@@ -11,6 +11,7 @@ import ProfilesPage from "@/pages/ProfilesPage";
 import ProfileDetailPage from "@/pages/ProfileDetailPage";
 import VoicePage from "@/pages/VoicePage";
 import DraftsPage from "@/pages/DraftsPage";
+import TutorialPage from "@/pages/TutorialPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/profiles/:id" element={<ProfileDetailPage />} />
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/drafts" element={<DraftsPage />} />
+          <Route path="/tutorial" element={<TutorialPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

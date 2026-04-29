@@ -9,6 +9,7 @@ import {
   Users as UsersIcon,
   Mic,
   History,
+  BookOpen,
 } from "lucide-react";
 
 export default function StudioLayout() {
@@ -25,6 +26,7 @@ export default function StudioLayout() {
   const onProfiles = location.pathname.startsWith("/profiles");
   const onVoice = location.pathname.startsWith("/voice");
   const onDrafts = location.pathname.startsWith("/drafts");
+  const onTutorial = location.pathname.startsWith("/tutorial");
 
   const tabClass = (active: boolean) =>
     `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
@@ -79,6 +81,9 @@ export default function StudioLayout() {
           </NavLink>
           <NavLink to="/drafts" className={tabClass(onDrafts)}>
             <History className="h-3.5 w-3.5" /> Drafts
+          </NavLink>
+          <NavLink to="/tutorial" className={tabClass(onTutorial)}>
+            <BookOpen className="h-3.5 w-3.5" /> Tutorial
           </NavLink>
         </nav>
 
