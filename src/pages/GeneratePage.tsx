@@ -301,7 +301,10 @@ export default function GeneratePage() {
   const [platform, setPlatform] = useState<Platform>("linkedin");
   const [ctaType, setCtaType] = useState<CtaType>("dm-keyword");
   const [audience, setAudience] = useState<Audience>("general");
-  const [hooksFirst, setHooksFirst] = useState<boolean>(false);
+  // Hooks-first ON by default: per Day 41, the first 1-2 lines decide whether
+  // anyone reads further. Forcing every post through a hook-validation step is
+  // the highest-leverage edit on any draft.
+  const [hooksFirst, setHooksFirst] = useState<boolean>(true);
   const [hookOptions, setHookOptions] = useState<VariantState[]>([]);
   const [chosenHook, setChosenHook] = useState<string | null>(null);
   const [variants, setVariants] = useState<VariantState[]>([]);
