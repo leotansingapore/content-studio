@@ -32,13 +32,27 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
       if (error) throw error;
       toast({ title: "Signed in", description: "Loading your studio." });
-      navigate("/", { replace: true });
+      // First-time sign-in on this device routes to the in-app tutorial.
+      // Subsequent sign-ins go straight to /generate.
+      const uid = data.user?.id;
+      const seenKey = uid ? `content-studio-tutorial-seen-${uid}` : null;
+      const seen = seenKey ? localStorage.getItem(seenKey) : "1";
+      if (seenKey && !seen) {
+        try {
+          localStorage.setItem(seenKey, new Date().toISOString());
+        } catch {
+          // ignore storage failures (Safari private mode, etc.)
+        }
+        navigate("/tutorial", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
     } catch (err) {
       toast({
         title: "Couldn't sign in",
