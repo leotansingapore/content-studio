@@ -575,5 +575,24 @@
     "source": "web-research",
     "verified": true,
     "last_checked": "2026-04-29"
+  },
+  {
+    "id": "emmanuel-xavier-ng-instagram",
+    "name": "Emmanuel Xavier Ng",
+    "handle": "@emmaneeww",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/emmaneeww/",
+    "secondary_platforms": ["threads"],
+    "company": "AIA",
+    "niche": ["personal-finance", "wealth-accumulation", "hdb", "life-stage-money"],
+    "audience": ["young-adult"],
+    "format": ["short-video", "carousel"],
+    "post_cadence": "weekly",
+    "why_follow": "AIA FC at Ascendance Wealth Management with a tight, underserved positioning - 'I help uni students build wealth early and afford their first home'. A clean example of an FC owning one specific life-stage moment instead of speaking to everyone, which is what most new advisors get wrong on social.",
+    "style_notes": "Bio-first niche play targeting uni students and first-time home buyers. Hooks centre on early-career money decisions (first paycheck, BTO down payment, CPF moves before 25) framed for someone who has never thought about money before. Worth studying as a positioning template, not just a content template.",
+    "source": "web-research",
+    "verified": false,
+    "last_checked": "2026-04-29",
+    "verification_note": "Profile, niche, and AWM (AIA Financial Advisers) affiliation confirmed via bio metadata. Individual post content and cadence not directly sampled - skim recent posts before treating any specific frame as a template."
   }
 ]
