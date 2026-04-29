@@ -149,6 +149,12 @@ The Profiles tab in the studio lists curated SG-based financial advisors and per
 - **Include:** SG-based (or SEA-based with strong SG audience), posts at least weekly, content is client-attracting (personal-finance education, insurance/retirement explainers, life-stage money guidance, behind-the-scenes client stories).
 - **Exclude:** Primary audience is other advisors / aspiring FCs, inactive (no post in last 60+ days), pure team-builder / MDRT-flex content, Leo himself.
 
+### Insurer-tier coverage
+
+Each entry can carry an optional `company` field tagging the FC's tied insurer or independent affiliation. Recognised values: `AIA`, `Prudential`, `Great Eastern`, `Manulife`, `Independent / Fee-only`, `Other`. The Profiles tab renders a colour-coded company badge on the card and offers a multi-select company filter (including a "No company set" chip for entries without the field).
+
+Insurer-tier coverage skews toward whichever companies actually have FCs publicly running client-attracting content - i.e. CPF, retirement, insurance, and life-stage money education rather than recruit/MDRT brag content. In SG today the publicly active client-attracting set is small; the data file reflects that bias rather than padding to hit even counts per insurer.
+
 ### Where the data lives
 
 `src/data/advisors.json` - a flat array of profile entries.
@@ -163,6 +169,7 @@ The Profiles tab in the studio lists curated SG-based financial advisors and per
   "platform": "linkedin | instagram | facebook | tiktok | youtube",
   "platform_url": "https://...",
   "secondary_platforms": ["tiktok", "facebook"],
+  "company": "AIA | Prudential | Great Eastern | Manulife | Independent / Fee-only | Other",
   "niche": ["personal-finance", "career"],
   "audience": ["young-adult", "working-adult"],
   "format": ["carousel", "short-video"],
@@ -175,6 +182,8 @@ The Profiles tab in the studio lists curated SG-based financial advisors and per
   "verification_note": "Optional - only present when verified is false."
 }
 ```
+
+The `company` field is optional. Only set it when you can verify the affiliation cleanly (FC's public bio, insurer-disclosed list, or company-confirming content). When in doubt, omit - badge and filter both treat missing as "no company set" rather than guessing.
 
 Multi-platform creators may appear as either one entry per major platform (when format/cadence diverges) or one entry with a `secondary_platforms` array (when the platforms mirror each other). The data file mixes both patterns where it improves clarity.
 

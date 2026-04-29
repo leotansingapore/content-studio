@@ -34,6 +34,15 @@ export type AdvisorPlatform =
   | "tiktok"
   | "youtube";
 
+export type AdvisorCompany =
+  | "AIA"
+  | "Prudential"
+  | "Great Eastern"
+  | "Manulife"
+  | "Independent / Fee-only"
+  | "Other"
+  | (string & {});
+
 export type AdvisorEntry = {
   id: string;
   name: string;
@@ -41,6 +50,7 @@ export type AdvisorEntry = {
   platform: AdvisorPlatform;
   platform_url: string;
   secondary_platforms?: string[];
+  company?: AdvisorCompany;
   niche: string[];
   audience: string[];
   format: string[];
@@ -73,6 +83,27 @@ const PLATFORM_OPTIONS: AdvisorPlatform[] = [
   "tiktok",
   "youtube",
 ];
+
+const COMPANY_OPTIONS: AdvisorCompany[] = [
+  "AIA",
+  "Prudential",
+  "Great Eastern",
+  "Manulife",
+  "Independent / Fee-only",
+  "Other",
+];
+
+const COMPANY_NONE = "__none__";
+
+const COMPANY_BADGE_STYLES: Record<string, string> = {
+  AIA: "border-red-500/40 bg-red-500/10 text-red-500",
+  Prudential: "border-orange-500/40 bg-orange-500/10 text-orange-500",
+  "Great Eastern": "border-amber-500/40 bg-amber-500/10 text-amber-500",
+  Manulife: "border-emerald-500/40 bg-emerald-500/10 text-emerald-500",
+  "Independent / Fee-only":
+    "border-sky-500/40 bg-sky-500/10 text-sky-500",
+  Other: "border-violet-500/40 bg-violet-500/10 text-violet-500",
+};
 
 const AUDIENCE_OPTIONS = Array.from(
   new Set(ENTRIES.flatMap((e) => e.audience)),
@@ -117,6 +148,18 @@ function PlatformBadge({ platform }: { platform: AdvisorPlatform }) {
   );
 }
 
+function CompanyBadge({ company }: { company: AdvisorCompany }) {
+  const style =
+    COMPANY_BADGE_STYLES[company as string] ?? COMPANY_BADGE_STYLES.Other;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${style}`}
+    >
+      {company}
+    </span>
+  );
+}
+
 function TagBadge({ children }: { children: React.ReactNode }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -149,6 +192,7 @@ function AdvisorCard({ entry }: { entry: AdvisorEntry }) {
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <PlatformBadge platform={entry.platform} />
+          {entry.company && <CompanyBadge company={entry.company} />}
           {entry.verified ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
               <CheckCircle2 className="h-3 w-3" /> Verified {entry.last_checked}
@@ -232,6 +276,7 @@ function AdvisorCard({ entry }: { entry: AdvisorEntry }) {
 export default function AdvisorProfiles() {
   const [search, setSearch] = useState("");
   const [platforms, setPlatforms] = useState<Set<AdvisorPlatform>>(new Set());
+  const [companies, setCompanies] = useState<Set<string>>(new Set());
   const [audiences, setAudiences] = useState<Set<string>>(new Set());
   const [niches, setNiches] = useState<Set<string>>(new Set());
 
@@ -240,6 +285,14 @@ export default function AdvisorProfiles() {
       const next = new Set(s);
       if (next.has(p)) next.delete(p);
       else next.add(p);
+      return next;
+    });
+  };
+  const toggleCompany = (c: string) => {
+    setCompanies((s) => {
+      const next = new Set(s);
+      if (next.has(c)) next.delete(c);
+      else next.add(c);
       return next;
     });
   };
@@ -262,6 +315,7 @@ export default function AdvisorProfiles() {
 
   const clearFilters = () => {
     setPlatforms(new Set());
+    setCompanies(new Set());
     setAudiences(new Set());
     setNiches(new Set());
     setSearch("");
@@ -271,6 +325,10 @@ export default function AdvisorProfiles() {
     const q = search.trim().toLowerCase();
     return ENTRIES.filter((e) => {
       if (platforms.size > 0 && !platforms.has(e.platform)) return false;
+      if (companies.size > 0) {
+        const key = (e.company as string | undefined) ?? COMPANY_NONE;
+        if (!companies.has(key)) return false;
+      }
       if (audiences.size > 0 && !e.audience.some((a) => audiences.has(a)))
         return false;
       if (niches.size > 0 && !e.niche.some((n) => niches.has(n))) return false;
@@ -279,6 +337,8 @@ export default function AdvisorProfiles() {
           e.name +
           " " +
           e.handle +
+          " " +
+          (e.company ?? "") +
           " " +
           e.niche.join(" ") +
           " " +
@@ -290,10 +350,11 @@ export default function AdvisorProfiles() {
       }
       return true;
     });
-  }, [search, platforms, audiences, niches]);
+  }, [search, platforms, companies, audiences, niches]);
 
   const activeFilterCount =
     platforms.size +
+    companies.size +
     audiences.size +
     niches.size +
     (search.trim() ? 1 : 0);
@@ -341,6 +402,28 @@ export default function AdvisorProfiles() {
                   {PLATFORM_META[p].label}
                 </Chip>
               ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+              Company
+            </Label>
+            <div className="flex flex-wrap gap-1.5">
+              {COMPANY_OPTIONS.map((c) => (
+                <Chip
+                  key={c}
+                  active={companies.has(c as string)}
+                  onClick={() => toggleCompany(c as string)}
+                >
+                  {c}
+                </Chip>
+              ))}
+              <Chip
+                active={companies.has(COMPANY_NONE)}
+                onClick={() => toggleCompany(COMPANY_NONE)}
+              >
+                No company set
+              </Chip>
             </div>
           </div>
           <div className="space-y-2">
