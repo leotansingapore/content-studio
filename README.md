@@ -11,7 +11,7 @@ Pick a pillar (Interest, Identity, Topic, Market), an idea source (real client q
 - Vite + React + TypeScript
 - Tailwind CSS + shadcn/ui (dark mode by default)
 - `@supabase/supabase-js` for auth and edge function invocation
-- React Router for `/` (studio) and `/auth` (sign-in)
+- React Router for distinct, deep-linkable routes (see Routes below)
 
 ## Auth model (Option A)
 
@@ -65,6 +65,23 @@ Set env vars in Vercel:
 
 Lifted from `~/Documents/New project/aia-product-compass-hub/src/pages/ContentStudio.tsx` and the shadcn primitives it imports (Card, Button, Label, Textarea, RadioGroup, Select, Toast).
 
+## Routes
+
+Each major surface has its own URL so it can be bookmarked, shared, or deep-linked. All non-auth routes are wrapped in `ProtectedRoute` and share the `StudioLayout` shell (header, tab bar, sign-out).
+
+| Route | What it shows |
+|---|---|
+| `/auth` | Sign-in form (email + password) |
+| `/` | Redirects to `/generate` |
+| `/generate` | The generation form (pillar / idea source / format / platform / CTA). Reads `?vibe=<id>` to pre-fill from an inspiration entry. |
+| `/inspiration` | The inspiration grid with platform / pillar / audience filters and search. |
+| `/inspiration/:id` | Single inspiration card detail with full content, why-it-works, tags, and "Use as vibe" button. |
+| `/profiles` | The advisor profiles grid with platform / company / audience / niche filters and search. |
+| `/profiles/:id` | Single advisor profile detail with full metadata, niche / audience / format tags, and "Open profile" button. |
+| `*` | Friendly 404 page with links back to the three main tabs. |
+
+Individual inspiration and profile cards are deep-linkable via the `/inspiration/:id` and `/profiles/:id` routes - the "View" / "Details" button on each card uses these. The "Use as vibe" button on inspiration cards (and the detail view) navigates to `/generate?vibe=<id>`, which the Generate page reads on mount and applies as the vibe-lock.
+
 ## Inspiration data
 
 The Inspiration tab in the studio shows curated FC content examples. New FCs use these as starting vibes by clicking "Use as vibe", which pre-fills the generation form with that example's pillar, audience, topic, platform, and adds a hidden style reference into the generation prompt.
@@ -77,7 +94,7 @@ Every entry maps to a specific concept from the First 60 Days Digital Influence 
 
 ### Where the data lives
 
-`src/data/inspiration.json` - a flat array of 50 curated entries grounded in the Day 40/41/42 frameworks and the scripts academy taxonomy.
+`src/data/inspiration.json` - a flat array of around 100 curated entries grounded in the Day 40/41/42 frameworks and the scripts academy taxonomy. Distribution skews toward LinkedIn (~50 percent) with strong Instagram (~30 percent) and Facebook (~20 percent) coverage. Audience mix covers young-adult, working-adult, parent, pre-retiree, and general life-stage segments.
 
 ### Entry shape
 
@@ -115,6 +132,7 @@ Use the named sections from Days 40/41/42. Examples:
 - `day-41:idea-mine:common-mistake`
 - `day-41:idea-mine:trending-news`
 - `day-41:idea-mine:behind-the-scenes`
+- `day-41:idea-mine:case-study`
 - `day-41:authority-social-cta-structure`
 - `day-41:engagement:dm-to-meeting`
 - `day-42:pillar:interest`

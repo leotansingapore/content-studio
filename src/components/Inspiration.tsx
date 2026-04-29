@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -20,6 +21,7 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
 } from "lucide-react";
 import inspirationData from "@/data/inspiration.json";
 
@@ -84,7 +86,7 @@ const AUDIENCE_OPTIONS = Array.from(
 ).sort();
 
 type Props = {
-  onUseAsVibe: (entry: InspirationEntry) => void;
+  onUseAsVibe?: (entry: InspirationEntry) => void;
 };
 
 function Chip({
@@ -151,13 +153,22 @@ function InspirationCard({
   onUseAsVibe,
 }: {
   entry: InspirationEntry;
-  onUseAsVibe: (e: InspirationEntry) => void;
+  onUseAsVibe?: (e: InspirationEntry) => void;
 }) {
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const preview =
     entry.content.length > 140 && !expanded
       ? entry.content.slice(0, 140).trimEnd() + "..."
       : entry.content;
+
+  const handleUseAsVibe = () => {
+    if (onUseAsVibe) {
+      onUseAsVibe(entry);
+    } else {
+      navigate(`/generate?vibe=${encodeURIComponent(entry.id)}`);
+    }
+  };
 
   return (
     <Card className="flex h-full flex-col border-border/60 shadow-card transition-all hover:border-primary/40 hover:shadow-elegant">
@@ -203,15 +214,28 @@ function InspirationCard({
             Why it works: {entry.why_it_works}
           </p>
         </div>
-        <Button
-          size="sm"
-          onClick={() => onUseAsVibe(entry)}
-          className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          Use as vibe
-          <ArrowRight className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="w-full gap-1.5 sm:w-auto sm:flex-1"
+          >
+            <Link to={`/inspiration/${encodeURIComponent(entry.id)}`}>
+              <ExternalLink className="h-3.5 w-3.5" />
+              View
+            </Link>
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleUseAsVibe}
+            className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Use as vibe
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -292,9 +316,9 @@ export default function Inspiration({ onUseAsVibe }: Props) {
             Inspiration library
           </CardTitle>
           <CardDescription>
-            50 hand-picked FC content examples. Filter by platform, pillar, or
-            audience. Tap "Use as vibe" on any card to pre-fill the generator
-            with that example's pattern.
+            Hand-picked FC content examples. Filter by platform, pillar, or
+            audience. Tap "View" for the full card detail (deep-linkable), or
+            "Use as vibe" to pre-fill the generator with that example's pattern.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

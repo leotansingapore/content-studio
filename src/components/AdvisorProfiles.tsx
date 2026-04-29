@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -24,6 +25,7 @@ import {
   Globe,
   CheckCircle2,
   AlertTriangle,
+  Eye,
 } from "lucide-react";
 import advisorsData from "@/data/advisors.json";
 
@@ -254,20 +256,33 @@ function AdvisorCard({ entry }: { entry: AdvisorEntry }) {
             </p>
           )}
         </div>
-        <Button
-          asChild
-          size="sm"
-          className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
-        >
-          <a
-            href={entry.platform_url}
-            target="_blank"
-            rel="noopener noreferrer"
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="w-full gap-1.5 sm:w-auto sm:flex-1"
           >
-            <ExternalLink className="h-3.5 w-3.5" />
-            View profile
-          </a>
-        </Button>
+            <Link to={`/profiles/${encodeURIComponent(entry.id)}`}>
+              <Eye className="h-3.5 w-3.5" />
+              Details
+            </Link>
+          </Button>
+          <Button
+            asChild
+            size="sm"
+            className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1"
+          >
+            <a
+              href={entry.platform_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              View profile
+            </a>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

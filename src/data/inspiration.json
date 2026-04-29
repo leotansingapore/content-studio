@@ -11,7 +11,12 @@
     "why_it_works": "Real client question as the hook + specific numbers + reframe + tiny next step + soft DM CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-41:idea-mine:client-question",
-    "tags": ["cpf", "young-adult", "myth-busting", "authority"]
+    "tags": [
+      "cpf",
+      "young-adult",
+      "myth-busting",
+      "authority"
+    ]
   },
   {
     "id": "linkedin-claim-week-working-adult-002",
@@ -25,7 +30,12 @@
     "why_it_works": "Real claim story + specific timeline + dollar contrast + emotional payoff + scenario close that makes the prospect picture themselves.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
-    "tags": ["critical-illness", "claims", "working-adult", "social"]
+    "tags": [
+      "critical-illness",
+      "claims",
+      "working-adult",
+      "social"
+    ]
   },
   {
     "id": "linkedin-protection-tip-working-adult-003",
@@ -39,7 +49,12 @@
     "why_it_works": "Concrete numbers + cost-of-delay + named life-stage + save CTA. Authority pillar with a specific frame.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-41:idea-mine:common-mistake",
-    "tags": ["protection", "term-life", "employer-insurance", "working-adult"]
+    "tags": [
+      "protection",
+      "term-life",
+      "employer-insurance",
+      "working-adult"
+    ]
   },
   {
     "id": "linkedin-nsf-ord-young-adult-004",
@@ -53,7 +68,12 @@
     "why_it_works": "Life-stage trigger + specific numbers + age-cost framing + tactical and DM CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-42:pillar:market",
-    "tags": ["ord", "nsf", "young-adult", "authority"]
+    "tags": [
+      "ord",
+      "nsf",
+      "young-adult",
+      "authority"
+    ]
   },
   {
     "id": "linkedin-retirement-pre-retiree-005",
@@ -67,7 +87,12 @@
     "why_it_works": "Specific decision point + 3 clear options + cost-of-default framing + tactical next step.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["cpf-life", "retirement", "pre-retiree", "authority"]
+    "tags": [
+      "cpf-life",
+      "retirement",
+      "pre-retiree",
+      "authority"
+    ]
   },
   {
     "id": "linkedin-money-myth-young-adult-006",
@@ -81,7 +106,12 @@
     "why_it_works": "Listicle hook + age-specific reflection + each myth specific and tactical + screenshot CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:idea-mine:common-mistake",
-    "tags": ["mindset", "money-myths", "young-adult", "hook"]
+    "tags": [
+      "mindset",
+      "money-myths",
+      "young-adult",
+      "hook"
+    ]
   },
   {
     "id": "instagram-cpf-carousel-young-adult-007",
@@ -95,7 +125,12 @@
     "why_it_works": "Listicle format + specific number ranges + age-based hook + soft DM CTA. Carousels save well.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:authority-post-structure",
-    "tags": ["cpf", "young-adult", "carousel", "authority"]
+    "tags": [
+      "cpf",
+      "young-adult",
+      "carousel",
+      "authority"
+    ]
   },
   {
     "id": "instagram-fact-find-parent-008",
@@ -109,7 +144,12 @@
     "why_it_works": "Behind-the-scenes fact-find + emotional pause + concrete dollar moves + universal scenario question + save CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
-    "tags": ["new-parent", "fact-find", "protection", "social"]
+    "tags": [
+      "new-parent",
+      "fact-find",
+      "protection",
+      "social"
+    ]
   },
   {
     "id": "linkedin-medical-card-working-adult-009",
@@ -123,7 +163,12 @@
     "why_it_works": "Specific knowledge gap + numbered rules + tactical 10-minute audit + save CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-41:idea-mine:common-mistake",
-    "tags": ["ishield", "medical", "working-adult", "tip"]
+    "tags": [
+      "ishield",
+      "medical",
+      "working-adult",
+      "tip"
+    ]
   },
   {
     "id": "facebook-protection-parent-010",
@@ -137,7 +182,12 @@
     "why_it_works": "Counter-intuitive claim + numbered reasoning + life-stage urgency + soft DM CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:pillar:market",
-    "tags": ["critical-illness", "parent", "child-cover", "authority"]
+    "tags": [
+      "critical-illness",
+      "parent",
+      "child-cover",
+      "authority"
+    ]
   },
   {
     "id": "linkedin-tip-young-adult-011",
@@ -151,7 +201,12 @@
     "why_it_works": "Specific allocation framework + named reasoning per bucket + save CTA + compounding hook close.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["budgeting", "young-adult", "first-salary", "tip"]
+    "tags": [
+      "budgeting",
+      "young-adult",
+      "first-salary",
+      "tip"
+    ]
   },
   {
     "id": "instagram-cpf-question-young-adult-012",
@@ -165,7 +220,12 @@
     "why_it_works": "Real DM as the hook + diagnostic questions back + concrete numbers + worksheet CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:idea-mine:client-question",
-    "tags": ["cpf", "young-adult", "savings", "hook"]
+    "tags": [
+      "cpf",
+      "young-adult",
+      "savings",
+      "hook"
+    ]
   },
   {
     "id": "linkedin-year-end-tax-working-adult-013",
@@ -179,7 +239,12 @@
     "why_it_works": "Specific deadline + stacked relief math + 60-minute action checklist + DM CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:authority-post-structure",
-    "tags": ["tax", "year-end", "working-adult", "cta"]
+    "tags": [
+      "tax",
+      "year-end",
+      "working-adult",
+      "cta"
+    ]
   },
   {
     "id": "instagram-tip-cpf-014",
@@ -193,7 +258,12 @@
     "why_it_works": "Specific named hack + bullet benefits + concrete tax saving math + tactical month + dual CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["cpf", "tax", "working-adult", "tip"]
+    "tags": [
+      "cpf",
+      "tax",
+      "working-adult",
+      "tip"
+    ]
   },
   {
     "id": "linkedin-nomination-pre-retiree-015",
@@ -207,7 +277,12 @@
     "why_it_works": "Real client story + concrete numbers + emotional payoff + actionable Saturday checklist.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
-    "tags": ["nomination", "estate", "pre-retiree", "social"]
+    "tags": [
+      "nomination",
+      "estate",
+      "pre-retiree",
+      "social"
+    ]
   },
   {
     "id": "instagram-wedding-ci-young-adult-016",
@@ -221,7 +296,12 @@
     "why_it_works": "Punchy contrast + relatable spending baseline + reframe (not anti-wedding) + life-stage CTA.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["wedding", "ci", "young-adult", "hook"]
+    "tags": [
+      "wedding",
+      "ci",
+      "young-adult",
+      "hook"
+    ]
   },
   {
     "id": "linkedin-authority-data-017",
@@ -235,7 +315,12 @@
     "why_it_works": "Authority pillar with strong reframe + specific numbers + balanced (not anti-product) + DM keyword.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-41:idea-mine:common-mistake",
-    "tags": ["ilp", "investment", "young-adult", "authority"]
+    "tags": [
+      "ilp",
+      "investment",
+      "young-adult",
+      "authority"
+    ]
   },
   {
     "id": "facebook-cta-pre-retiree-018",
@@ -249,7 +334,12 @@
     "why_it_works": "Tactical step-by-step + specific framework + de-selling tone + diagnostic CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:authority-post-structure",
-    "tags": ["retirement", "pre-retiree", "gap-analysis", "cta"]
+    "tags": [
+      "retirement",
+      "pre-retiree",
+      "gap-analysis",
+      "cta"
+    ]
   },
   {
     "id": "instagram-tip-bto-019",
@@ -263,7 +353,12 @@
     "why_it_works": "Life-stage trigger + numbered tactical list + concrete language per slide + dual CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:pillar:market",
-    "tags": ["bto", "young-adult", "carousel", "life-stage"]
+    "tags": [
+      "bto",
+      "young-adult",
+      "carousel",
+      "life-stage"
+    ]
   },
   {
     "id": "linkedin-inheritance-fight-parent-020",
@@ -277,7 +372,12 @@
     "why_it_works": "Real client story + concrete trigger + tactical 4-step plan + scenario CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
-    "tags": ["estate", "family", "parent", "social"]
+    "tags": [
+      "estate",
+      "family",
+      "parent",
+      "social"
+    ]
   },
   {
     "id": "linkedin-twfp-working-adult-021",
@@ -291,7 +391,12 @@
     "why_it_works": "Authority frame + named TWC anchor + integration angle + diagnostic test + DM CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["twc", "framework", "working-adult", "authority"]
+    "tags": [
+      "twc",
+      "framework",
+      "working-adult",
+      "authority"
+    ]
   },
   {
     "id": "instagram-tip-protection-022",
@@ -305,7 +410,12 @@
     "why_it_works": "Specific gap framing + concrete numbers + cost reframe + scenario question + DM CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-41:idea-mine:common-mistake",
-    "tags": ["disability", "income-protection", "working-adult", "tip"]
+    "tags": [
+      "disability",
+      "income-protection",
+      "working-adult",
+      "tip"
+    ]
   },
   {
     "id": "linkedin-cta-soft-023",
@@ -319,7 +429,12 @@
     "why_it_works": "Specific frame (24mo trigger) + numbered checklist + de-selling close (use with existing FA) + DM CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:authority-post-structure",
-    "tags": ["review", "general", "cta", "client-care"]
+    "tags": [
+      "review",
+      "general",
+      "cta",
+      "client-care"
+    ]
   },
   {
     "id": "facebook-tip-parent-024",
@@ -333,7 +448,12 @@
     "why_it_works": "Challenges default thinking + specific 3-option compare + non-pushy + named DM keyword.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:pillar:market",
-    "tags": ["education", "endowment", "parent", "tip"]
+    "tags": [
+      "education",
+      "endowment",
+      "parent",
+      "tip"
+    ]
   },
   {
     "id": "linkedin-parents-hospital-pre-retiree-025",
@@ -347,7 +467,12 @@
     "why_it_works": "Specific scenario + 5-step Saturday checklist + no-product framing + save CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:authority-post-structure",
-    "tags": ["parents", "hospital", "pre-retiree", "tip"]
+    "tags": [
+      "parents",
+      "hospital",
+      "pre-retiree",
+      "tip"
+    ]
   },
   {
     "id": "instagram-cta-srs-young-adult-026",
@@ -361,7 +486,12 @@
     "why_it_works": "Comment-bait + age-segmented value + specific takes per cohort + dual CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:engagement:dm-to-meeting",
-    "tags": ["srs", "young-adult", "tax", "cta"]
+    "tags": [
+      "srs",
+      "young-adult",
+      "tax",
+      "cta"
+    ]
   },
   {
     "id": "linkedin-tip-srs-027",
@@ -375,7 +505,12 @@
     "why_it_works": "Loss aversion hook + 4-line summary + specific numbers + Dec urgency + DM CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["srs", "tax", "working-adult", "tip"]
+    "tags": [
+      "srs",
+      "tax",
+      "working-adult",
+      "tip"
+    ]
   },
   {
     "id": "instagram-fact-find-young-adult-028",
@@ -389,7 +524,12 @@
     "why_it_works": "Behind-the-scenes fact-find moment + emotional question + reframe (sentence first, plan second) + save CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
-    "tags": ["fact-find", "young-adult", "money-conversation", "social"]
+    "tags": [
+      "fact-find",
+      "young-adult",
+      "money-conversation",
+      "social"
+    ]
   },
   {
     "id": "linkedin-four-risks-working-adult-029",
@@ -403,7 +543,12 @@
     "why_it_works": "Authority frame + named 4 risks + specific gap diagnostic + DM CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["four-risks", "framework", "working-adult", "authority"]
+    "tags": [
+      "four-risks",
+      "framework",
+      "working-adult",
+      "authority"
+    ]
   },
   {
     "id": "facebook-cta-young-adult-030",
@@ -417,7 +562,12 @@
     "why_it_works": "De-selling tone (how not to get sold) + specific 6-step playbook + DM keyword.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:authority-post-structure",
-    "tags": ["first-meeting", "young-adult", "cta", "trust"]
+    "tags": [
+      "first-meeting",
+      "young-adult",
+      "cta",
+      "trust"
+    ]
   },
   {
     "id": "linkedin-tip-pre-retiree-031",
@@ -431,7 +581,12 @@
     "why_it_works": "Specific scenario + 4-bucket framework + opportunity cost reframe + DM CTA.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:pillar:market",
-    "tags": ["downsize", "retirement", "pre-retiree", "tip"]
+    "tags": [
+      "downsize",
+      "retirement",
+      "pre-retiree",
+      "tip"
+    ]
   },
   {
     "id": "instagram-fact-find-young-adult-032",
@@ -445,7 +600,12 @@
     "why_it_works": "Provocative claim + specific question list + reframe of what review means + save CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:authority-social-cta-structure",
-    "tags": ["fact-find", "young-adult", "review", "hook"]
+    "tags": [
+      "fact-find",
+      "young-adult",
+      "review",
+      "hook"
+    ]
   },
   {
     "id": "linkedin-claim-child-parent-033",
@@ -459,7 +619,12 @@
     "why_it_works": "Real claim story + 3-piece stack + emotional payoff + DM CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
-    "tags": ["child-claim", "parent", "stack", "social"]
+    "tags": [
+      "child-claim",
+      "parent",
+      "stack",
+      "social"
+    ]
   },
   {
     "id": "instagram-tip-marriage-034",
@@ -473,7 +638,12 @@
     "why_it_works": "Life-stage trigger + numbered actionable list + per-slide tactical detail + save and DM CTA.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:pillar:market",
-    "tags": ["marriage", "young-adult", "carousel", "life-stage"]
+    "tags": [
+      "marriage",
+      "young-adult",
+      "carousel",
+      "life-stage"
+    ]
   },
   {
     "id": "linkedin-cta-comment-035",
@@ -487,7 +657,12 @@
     "why_it_works": "Comment-bait + age-segmented value + specific moves per cohort + public framing.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-41:engagement:dm-to-meeting",
-    "tags": ["comment-bait", "general", "cta", "age-segmented"]
+    "tags": [
+      "comment-bait",
+      "general",
+      "cta",
+      "age-segmented"
+    ]
   },
   {
     "id": "instagram-hook-money-036",
@@ -501,7 +676,12 @@
     "why_it_works": "Punchy specific number + relatable scenario + reframe (re-allocation not sacrifice) + save CTA.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["compounding", "young-adult", "saving", "hook"]
+    "tags": [
+      "compounding",
+      "young-adult",
+      "saving",
+      "hook"
+    ]
   },
   {
     "id": "linkedin-authority-claims-037",
@@ -515,7 +695,12 @@
     "why_it_works": "Specific dated case + cost vs payout numbers + identity reframe + scenario question close.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
-    "tags": ["critical-illness", "claims", "general", "authority"]
+    "tags": [
+      "critical-illness",
+      "claims",
+      "general",
+      "authority"
+    ]
   },
   {
     "id": "facebook-tip-cpf-038",
@@ -529,7 +714,12 @@
     "why_it_works": "Counter-intuitive frame + 4 specific risks + balanced (when to withdraw) + named DM keyword.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-41:idea-mine:common-mistake",
-    "tags": ["cpf", "withdrawal", "pre-retiree", "tip"]
+    "tags": [
+      "cpf",
+      "withdrawal",
+      "pre-retiree",
+      "tip"
+    ]
   },
   {
     "id": "linkedin-leakage-general-039",
@@ -543,7 +733,12 @@
     "why_it_works": "Counter-intuitive reframe + specific leakage numbers + 3-move plan + diagnostic close.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["leakage", "income", "general", "hook"]
+    "tags": [
+      "leakage",
+      "income",
+      "general",
+      "hook"
+    ]
   },
   {
     "id": "instagram-tip-baby-040",
@@ -557,7 +752,12 @@
     "why_it_works": "Life-stage trigger + numbered actionable list + per-slide tactical detail + save and DM CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:pillar:market",
-    "tags": ["new-parent", "carousel", "life-stage", "tip"]
+    "tags": [
+      "new-parent",
+      "carousel",
+      "life-stage",
+      "tip"
+    ]
   },
   {
     "id": "linkedin-question-general-041",
@@ -571,7 +771,12 @@
     "why_it_works": "Powerful single-question opener + sub-question list + reframe of how to size cover + save CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["protection", "general", "household", "hook"]
+    "tags": [
+      "protection",
+      "general",
+      "household",
+      "hook"
+    ]
   },
   {
     "id": "instagram-hook-time-042",
@@ -585,7 +790,12 @@
     "why_it_works": "Reframe of cultural pressure + agricultural metaphor + permission close.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-42:pillar:identity",
-    "tags": ["mindset", "young-adult", "comparison", "hook"]
+    "tags": [
+      "mindset",
+      "young-adult",
+      "comparison",
+      "hook"
+    ]
   },
   {
     "id": "linkedin-tip-investment-043",
@@ -599,7 +809,12 @@
     "why_it_works": "Specific cost gap + concrete alternative + opportunity-cost framing + balanced + DM CTA.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-41:idea-mine:common-mistake",
-    "tags": ["etf", "investment", "working-adult", "tip"]
+    "tags": [
+      "etf",
+      "investment",
+      "working-adult",
+      "tip"
+    ]
   },
   {
     "id": "facebook-cta-pre-retiree-044",
@@ -613,7 +828,12 @@
     "why_it_works": "Specific age-bracket trigger + bullet pain points + numbered diagnostic + DM CTA.",
     "source": "scripts-academy",
     "curriculum_anchor": "day-42:pillar:market",
-    "tags": ["healthcare", "ishield", "pre-retiree", "cta"]
+    "tags": [
+      "healthcare",
+      "ishield",
+      "pre-retiree",
+      "cta"
+    ]
   },
   {
     "id": "linkedin-school-fees-parent-045",
@@ -627,7 +847,12 @@
     "why_it_works": "Specific cost frame + tuition inflation + 3 funding options + DM CTA.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:pillar:market",
-    "tags": ["school-fees", "education", "parent", "authority"]
+    "tags": [
+      "school-fees",
+      "education",
+      "parent",
+      "authority"
+    ]
   },
   {
     "id": "instagram-tip-tax-046",
@@ -641,7 +866,12 @@
     "why_it_works": "Numbered list + specific savings per relief + cumulative payoff + Dec urgency + dual CTA.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:authority-post-structure",
-    "tags": ["tax", "working-adult", "carousel", "tip"]
+    "tags": [
+      "tax",
+      "working-adult",
+      "carousel",
+      "tip"
+    ]
   },
   {
     "id": "linkedin-authority-money-myth-047",
@@ -655,7 +885,12 @@
     "why_it_works": "Counter-intuitive math + 3-bucket framework + diagnostic question. Clean Authority pillar.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["inflation", "buckets", "young-adult", "authority"]
+    "tags": [
+      "inflation",
+      "buckets",
+      "young-adult",
+      "authority"
+    ]
   },
   {
     "id": "facebook-delayed-cpf-pre-retiree-048",
@@ -669,7 +904,12 @@
     "why_it_works": "Real client regret story + counter-default insight + 4-step diagnostic + universal save CTA.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
-    "tags": ["cpf-life", "deferral", "pre-retiree", "social"]
+    "tags": [
+      "cpf-life",
+      "deferral",
+      "pre-retiree",
+      "social"
+    ]
   },
   {
     "id": "facebook-first-child-review-parent-049",
@@ -683,7 +923,12 @@
     "why_it_works": "De-selling tone + specific 6-section agenda + parent-targeted + DM CTA.",
     "source": "pattern-derived",
     "curriculum_anchor": "day-42:authority-post-structure",
-    "tags": ["family-review", "parent", "cta", "diagnostic"]
+    "tags": [
+      "family-review",
+      "parent",
+      "cta",
+      "diagnostic"
+    ]
   },
   {
     "id": "facebook-tip-general-050",
@@ -697,6 +942,961 @@
     "why_it_works": "Universal tip + numbered list + counter-intuitive insights + concrete each + diagnostic question close.",
     "source": "curriculum-derived",
     "curriculum_anchor": "day-42:pillar:topic",
-    "tags": ["habits", "general", "retirement", "tip"]
+    "tags": [
+      "habits",
+      "general",
+      "retirement",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-budget-changes-news-working-adult-051",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Authority",
+    "audience": "working-adult",
+    "topic": "Singapore Budget CPF policy changes",
+    "hook": "Every Budget season, 3 things change in CPF that almost nobody updates in their plan.",
+    "content": "Every Budget season, 3 things change in CPF that almost nobody updates in their plan.\n\n1. The salary ceiling. The OW ceiling steps up over time. If your salary is above the ceiling, you are leaving employer contribution on the table the moment the new ceiling kicks in.\n\n2. The Basic Healthcare Sum. The BHS rises yearly. The amount that overflows from MA into SA changes with it. People who set up their RSTU 5 years ago and never revisited are over-topping or under-topping by a few hundred a year.\n\n3. CPF Life payout floors. Pre-retirees who locked their plan choice 10 years ago need to revisit if BRS, FRS, or ERS thresholds have shifted in ways that change their lifetime income.\n\nThe fix is a 30-minute annual CPF review every Q1 right after Budget. Print your statement, lay it next to the new caps, recompute.\n\nDM me CPFREVIEW for the 1-page checklist I use with clients.",
+    "why_it_works": "News hook + 3 specific tactical changes + annual ritual prescription + DM CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:trending-news",
+    "tags": [
+      "cpf",
+      "budget",
+      "news-hook",
+      "working-adult"
+    ]
+  },
+  {
+    "id": "linkedin-mas-rules-working-adult-052",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Authority",
+    "audience": "working-adult",
+    "topic": "MAS commission cap rule changes",
+    "hook": "MAS quietly tightened a rule last year. Most people do not know it changed how their FA gets paid.",
+    "content": "MAS quietly tightened a rule last year. Most people do not know it changed how their FA gets paid.\n\nThe Balanced Scorecard framework grades advisors on quality of advice and after-sales service, not just on volume of policies sold. Poor scores cap how much commission the advisor can take home.\n\nWhy this matters to you as a client:\n\n1. Your advisor has a direct incentive to understand your situation properly before recommending anything. Selling you the wrong product hurts their score and their pay.\n\n2. After-sales service is now baked into compensation. Annual reviews, claim support, policy adjustments. These are not extras.\n\n3. Mis-selling complaints land harder. Advisors with repeated complaints lose income and licences.\n\nIf your advisor has not run a proper review with you in 24 months, they are either not paying attention to their own scorecard, or they have left the industry.\n\nThe right question to ask your FA: when was the last time you reviewed my plan against my current life stage?\n\nSave this for your next review.",
+    "why_it_works": "Industry rule explainer + reframes consumer power + 3-point teach-out + save CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:trending-news",
+    "tags": [
+      "mas",
+      "regulation",
+      "working-adult",
+      "authority"
+    ]
+  },
+  {
+    "id": "linkedin-case-study-working-adult-053",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Social",
+    "audience": "working-adult",
+    "topic": "anonymised plan restructure case",
+    "hook": "A client came to me with 9 policies and 2 ILPs. We ended with 4 policies, $0 added premium, and $180K more cover.",
+    "content": "A client came to me with 9 policies and 2 ILPs. We ended with 4 policies, $0 added premium, and $180K more cover.\n\nName, age, and exact numbers anonymised. The arithmetic is real.\n\nWhen we sat down he was paying $948 a month across 9 policies bought from 4 different agents over 13 years. Two of them were ILPs sold to him in his late 20s. He had no idea what most of them covered.\n\nWe ran the protection map on his actual life:\n- Death cover needed: $850K (mortgage, kids, parents)\n- CI cover needed: $300K (12 months recovery + treatment)\n- Disability income: 60 percent of monthly take-home until 65\n- Hospital: A-class with rider\n\nWhat the 9 policies actually delivered:\n- Death: $670K (under by $180K)\n- CI: $120K (under by $180K)\n- Disability income: 0 (none of them had it)\n- Hospital: yes\n\nThe restructure:\n1. Surrendered 1 ILP that had completed its 10-year cycle and was loss-making on a future-cash basis.\n2. Reduced premium term on 3 endowments to redirect cash flow.\n3. Bought 1 properly-sized term to age 65 with CI rider.\n4. Added 1 disability income plan.\n\nNew monthly: $946. New cover: $850K death, $300K CI, full disability income.\n\nThis is not magic. This is what happens when an FA actually sits with the numbers instead of layering more product.\n\nDM me MAP if you want the same protection-map worksheet I used for him.",
+    "why_it_works": "Case study with concrete numbers + before/after restructure + same-cost-better-cover + DM CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:case-study",
+    "tags": [
+      "case-study",
+      "restructure",
+      "working-adult",
+      "social"
+    ]
+  },
+  {
+    "id": "linkedin-case-study-pre-retiree-054",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Social",
+    "audience": "pre-retiree",
+    "topic": "pre-retiree income laddering case",
+    "hook": "A 58-year-old client thought she had to keep working 7 more years. After we ran the math, she stopped at 60.",
+    "content": "A 58-year-old client thought she had to keep working 7 more years. After we ran the math, she stopped at 60.\n\nDetails anonymised. Numbers are accurate to the structure.\n\nShe came in convinced her CPF Life payout alone would not cover her lifestyle. She is not wrong about that. But she had not added the other 3 income streams.\n\nWhat she had:\n- CPF Life from 65: $1,650/month under FRS\n- SRS account: $130K accumulated, never withdrawn\n- An endowment maturing at 60: $180K lump sum\n- A small investment portfolio: $240K\n\nHer monthly target spend at 60: $4,200.\n\nThe laddering plan we built:\n- 60 to 65 (the gap years): endowment lump sum funds $3K/month + SRS withdrawal of $1,200/month under the $40K tax-free band gives $4,200\n- 65 to 75: CPF Life $1,650 + SRS continued at $1,200 + investment portfolio drawn at 4 percent SWR = $4,150\n- 75 onwards: CPF Life $1,650 + investment portfolio + endowment dividends already laddered\n\nShe did not need 7 more years of working income. She needed 5 years of structured drawdown. The work was telling her, in 4 separate buckets, exactly what each year of retirement would look like.\n\nShe stopped working 4 months later. The math did the unlock, not the pep talk.\n\nDM me LADDER for the 4-bucket retirement income worksheet.",
+    "why_it_works": "Specific pre-retiree case + 4-stream income map + concrete numbers + reframe (less work needed) + DM CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:case-study",
+    "tags": [
+      "case-study",
+      "retirement-income",
+      "pre-retiree",
+      "social"
+    ]
+  },
+  {
+    "id": "linkedin-pr-tax-working-adult-055",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Authority",
+    "audience": "working-adult",
+    "topic": "PR and new-citizen tax planning",
+    "hook": "Just got your PR? 4 financial moves that change in the first 12 months.",
+    "content": "Just got your PR? 4 financial moves that change in the first 12 months.\n\nMost new PRs run their finances exactly like they did on EP for the first year. That leaves real money on the table.\n\n1. CPF starts. Both your contribution and your employer's. Year 1 PR rates are graduated and lower than full rates, but the OA accumulates for property and the SA at 4 percent compounds for 30+ years. The dollar value of these 12 months is bigger than most spreadsheets show.\n\n2. SRS becomes available. Up to $15,300/year contribution, full deductible against assessable income. If you are paying tax in the 11.5 to 15 percent brackets, this alone is a 4-figure annual saving.\n\n3. Property eligibility shifts. After 3 years of PR status, resale HDB becomes accessible. Your 12-month plan should already model whether the buy is realistic and at what price.\n\n4. Tax residency stabilises. Once you cross 183 days in a calendar year you are taxed at progressive resident rates. If you have any overseas income or carried forward trades, the year you become PR is when this needs proper modelling.\n\nNone of this needs panic. It needs a 1-hour sit-down within 90 days of getting the letter.\n\nComment NEWPR and I will share the 1-page first-12-months checklist.",
+    "why_it_works": "Life-event hook + 4 specific PR moves + concrete numbers + comment CTA. Targets an under-served segment.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "pr",
+      "new-citizen",
+      "tax",
+      "working-adult"
+    ]
+  },
+  {
+    "id": "linkedin-expat-dependant-working-adult-056",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "working-adult",
+    "topic": "dependant insurance for expat families",
+    "hook": "Most expat families in Singapore are under-insured on the dependant pass holder, not the EP holder.",
+    "content": "Most expat families in Singapore are under-insured on the dependant pass holder, not the EP holder.\n\nThe pattern I see weekly:\n\nThe working spouse on EP is fully covered through the company group plan. Health, hospital, sometimes term. Stable, well-priced, decent.\n\nThe stay-at-home spouse on DP is covered through... a bolt-on rider on the EP holder's group plan. Lower limit. Often no CI. Often expires the day the EP holder leaves the company.\n\nThe gap that catches families:\n\n1. CI cover for the DP holder is usually the rider's lowest tier or absent. A breast cancer diagnosis on the DP spouse can drain $80K to $150K in pre-MediShield Life-equivalent costs since DPs do not have CPF MediSave to lean on.\n\n2. The cover dies with the job. Family relocates, EP gets cancelled, the DP rider terminates. Re-applying at age 42 with even a minor flag = rejection or exclusions.\n\n3. The DP holder usually has no income protection of their own. If the EP holder is the one who falls ill, the family income drops to zero.\n\nThe fix:\n- A standalone CI plan in the DP holder's name, owned by the family rather than the employer.\n- Hospital cover that survives a job change.\n- Income protection on the EP holder, not just life cover.\n\nWorth a 30-minute review if your family lives this structure. DM me EXPAT for the dependant-protection checklist.",
+    "why_it_works": "Niche edge case + specific 3-point gap analysis + 3-point fix + DM CTA. Hits an under-served audience.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "expat",
+      "dependant",
+      "working-adult",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-news-cpf-tip-working-adult-057",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "working-adult",
+    "topic": "CPF closure of Special Account at 55",
+    "hook": "The Special Account closes at 55 from this year. Here is what changes for you if you are 50 today.",
+    "content": "The Special Account closes at 55 from this year. Here is what changes for you if you are 50 today.\n\nFrom the policy change, when you turn 55 the SA will close. Funds above the FRS spill into a holding mechanism. Below the FRS, the funds move to RA where the 4 percent floor still applies.\n\nThe practical impact in 4 lines:\n\n1. RSTU into SA still works between now and 55. If your SA is below the FRS, every dollar topped up at 50 keeps earning 4 percent through to 55 and then continues earning the equivalent in RA.\n\n2. The window to use SA shielding strategies (where applicable) is narrower than it used to be. If your plan relies on this technique, recheck with someone who runs CPF planning every week.\n\n3. The FRS at 55 is roughly $213K (2025 cohort). Index it forward by your years to 55 to see your target.\n\n4. Cash voluntary contribution to the Retirement Account post-55 is a separate move and one most people never use. It still earns the floor rate.\n\nThis is not a panic. It is a recalibration. If your retirement plan was built on the old assumption that SA stays open at 55, you have one annual review to update it.\n\nSave this and bring it to your next CPF review.",
+    "why_it_works": "Real Singapore policy change + 4 tactical implications + age-specific framing + save CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:trending-news",
+    "tags": [
+      "cpf",
+      "sa-closure",
+      "working-adult",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-news-tax-working-adult-058",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Authority",
+    "audience": "working-adult",
+    "topic": "tax relief cap implications",
+    "hook": "There is a $80,000 cap on personal income tax reliefs. Once you cross it, every extra contribution is wasted from a tax perspective.",
+    "content": "There is a $80,000 cap on personal income tax reliefs. Once you cross it, every extra contribution is wasted from a tax perspective.\n\nAfter the cap was introduced a few years ago, the planning conversation changed permanently. The conversation is no longer how much can I contribute. It is how do I sequence contributions so each dollar of relief actually counts.\n\nThe order I run with clients earning $150K to $350K:\n\n1. CPF mandatory and voluntary employer-match: capped, automatic, count first.\n2. NSman or working mother child relief: automatic, count first.\n3. Course fees relief: only if actually upgrading.\n4. SRS: $15,300 cap, fully fungible, first lever I pull for excess.\n5. RSTU into SA or Retirement Account top-up for parents: $8K each, capped at $16K combined, second lever.\n6. CPF voluntary contribution to MA: only if MA is still below BHS.\n\nIf adding step 5 will push you past the $80K cap, the dollar of contribution still buys you the SA or RA at 4 percent floor, but the tax saving is zero. That changes whether the move is worth it.\n\nThe right sequence depends on your actual income and existing reliefs. Run the math each year before December.\n\nDM me CAP and I will send the relief-cap modelling sheet I use.",
+    "why_it_works": "Tactical authority post + 6-step priority list + nuance on cap binding + DM CTA. High-income segment.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "tax",
+      "relief-cap",
+      "working-adult",
+      "authority"
+    ]
+  },
+  {
+    "id": "linkedin-bts-meeting-working-adult-059",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Social",
+    "audience": "working-adult",
+    "topic": "behind the scenes of a real review meeting",
+    "hook": "I just finished a 90-minute review with a couple in their 40s. The most useful 10 minutes were the silence.",
+    "content": "I just finished a 90-minute review with a couple in their 40s. The most useful 10 minutes were the silence.\n\nNot the questions I asked. Not the projections I showed. The 10 minutes after I asked them what they would do if either of them lost income tomorrow.\n\nThey did not answer right away. They looked at each other. He shifted in his chair. She picked up her water. The dog walked past. None of it broke the silence.\n\nFinally she said: I had not actually thought about it as a real possibility. She is the higher earner.\n\nThat 10 minutes was worth more than the entire spreadsheet I prepared.\n\nThe job of a fact-find is not to extract numbers fast. It is to slow time down enough that the couple notices the gaps they had been outsourcing to vague hope.\n\nThree years into this work I still relearn the lesson: the spreadsheet is the prop. The conversation is the product.\n\nIf your last review felt like you spoke 5 percent and the FA spoke 95 percent, that is the tell.",
+    "why_it_works": "Quiet behind-the-scenes moment + reframe of what a review actually is + diagnostic close. Pure social pillar.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-40:two-prong:social",
+    "tags": [
+      "behind-the-scenes",
+      "review",
+      "working-adult",
+      "social"
+    ]
+  },
+  {
+    "id": "linkedin-bts-quiet-monday-general-060",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Social",
+    "audience": "general",
+    "topic": "what a quiet Monday looks like",
+    "hook": "Today's Monday: 1 client coffee, 2 nominations updates, 3 follow-up texts, 1 new prospect referred by a 3-year client.",
+    "content": "Today's Monday: 1 client coffee, 2 nominations updates, 3 follow-up texts, 1 new prospect referred by a 3-year client.\n\nNothing dramatic. No closes. No flashy quotes. No big sale to brag about.\n\nThe client coffee was a 20-minute catch-up I almost cancelled because nothing was on the agenda. He spent 15 minutes telling me about his daughter's school transition. Then mentioned, almost in passing, that they are thinking of having a second child. Whole protection conversation just opened that I would have missed.\n\nThe nominations updates were 2 clients filing CPF nominations after their wedding. Both took 6 minutes each. 6 minutes that will save their families weeks of probate one day.\n\nThe follow-ups were polite check-ins on plans we mentioned in past meetings. 2 said not yet. 1 said let me know when you are next free.\n\nThe referral came from a client I have served for 3 years. She did not say a kind thing about me to her friend. She said a useful thing.\n\nThis is most of the work. A quiet, repeating Monday.\n\nThe glamorous version sells better on stage. The Monday version compounds.",
+    "why_it_works": "Day-in-the-life social + concrete small actions + understated tone + closing reframe. Humanises FC work.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-40:two-prong:social",
+    "tags": [
+      "behind-the-scenes",
+      "monday",
+      "general",
+      "social"
+    ]
+  },
+  {
+    "id": "linkedin-reconnection-warm-general-061",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "CTA",
+    "audience": "general",
+    "topic": "reconnection note to old contacts",
+    "hook": "If you and I have not spoken in 12+ months, this is the open door.",
+    "content": "If you and I have not spoken in 12+ months, this is the open door.\n\nI moved into financial advisory full-time and quietly expected most old contacts to either congratulate me once and never engage, or assume I was about to pitch them.\n\nNeither has aged well.\n\nThe truth: most people I have not spoken to in a year are simply busy with their own lives. Same as me. The drift is not personal.\n\nIf you are reading this and we used to work together, study together, or just lose touch in normal life, I am not asking for anything.\n\nNo meeting. No review. No pitch.\n\nIf you ever have a money question that has been sitting in your head, I am happy to give you 15 minutes of useful answer with no follow-up unless you want one. That is the offer.\n\nReply to this post or DM me when life next throws you a question and I will answer it like the friend I would still be if we lived 10 minutes apart.\n\nThis is the entire pitch. Save the post for whenever the question comes up.",
+    "why_it_works": "Reconnection move from Day 40 + permission-led tone + zero-pressure CTA + save CTA backup.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-40:reconnection-move",
+    "tags": [
+      "reconnection",
+      "warm-market",
+      "general",
+      "cta"
+    ]
+  },
+  {
+    "id": "linkedin-reconnection-school-young-adult-062",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "CTA",
+    "audience": "young-adult",
+    "topic": "reconnection with school and uni friends",
+    "hook": "To everyone I went to school or uni with: I am opening 5 free 30-min money chats this month. Strictly for old friends.",
+    "content": "To everyone I went to school or uni with: I am opening 5 free 30-min money chats this month. Strictly for old friends.\n\nNot a sales pitch. Not a webinar. Not a referral push.\n\nWhen I switched into financial advisory, the people I most wanted to help were the ones I came up with. Same starting line. Different lanes since. I have spent the last few years building expertise that I would have killed to have access to at 25.\n\nIf you are an old friend, here is the offer:\n\n1. 30 minutes on Zoom or Google Meet.\n2. We talk about whatever money question is loudest in your head right now.\n3. I send you 1 useful resource after.\n4. No follow-up unless you ask. No selling. No pretending the chat is anything other than what it is.\n\n5 slots this month. First come first served. Reply to this post or DM me with the year we first met and the question you want to bring.\n\nThe reason I cap it at 5: I want to do real work in the chat, not bulk-process old contacts.",
+    "why_it_works": "Specific cohort framing + concrete offer mechanics + cap creates legitimacy + reply or DM CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-40:reconnection-move",
+    "tags": [
+      "reconnection",
+      "school-friends",
+      "young-adult",
+      "cta"
+    ]
+  },
+  {
+    "id": "instagram-shortvideo-cpf-young-adult-063",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "Hook",
+    "audience": "young-adult",
+    "topic": "CPF SA compounding 30-second explainer",
+    "hook": "$10K in your CPF SA today. What does it become at 65?",
+    "content": "[Open on camera, hook line on screen]\nVoice: $10K in your CPF SA today. What does it become at 65?\n\n[Cut to whiteboard or screen graphic]\nVoice: SA earns 4 percent guaranteed. Compounded. For 33 years if you are 32 today.\n\n[Numbers appear on screen]\nVoice: $10K becomes $36K. Without you doing anything. That is just the floor rate.\n\n[Camera back to face]\nVoice: Most 32-year-olds I meet have never RSTU'd a single dollar. They are leaving the simplest forced-savings vehicle in Singapore on the table.\n\n[Closing shot, on-screen text: DM CPFKIT]\nVoice: DM me CPFKIT and I will send you the spreadsheet that shows your number based on your age and balance today.\n\n[End frame: handle, hashtags #CPF #Singapore #PersonalFinance]\n\nCaption: 30 seconds for the answer to one of the most-skipped CPF moves at 32. Save this for the next time someone says CPF is just government money.",
+    "why_it_works": "Curiosity hook + concrete number + reframe + DM CTA. Short-video format with on-screen text and structured shot list.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "cpf",
+      "short-video",
+      "young-adult",
+      "hook"
+    ]
+  },
+  {
+    "id": "instagram-shortvideo-protection-working-adult-064",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "Tip",
+    "audience": "working-adult",
+    "topic": "30-second disability protection myth",
+    "hook": "Your group insurance does not cover disability. Most people only learn this after they need it.",
+    "content": "[Open with face to camera, hook on screen]\nVoice: Your group insurance does not cover disability. Most people only learn this after they need it.\n\n[Cut to graphic of group plan vs disability income]\nVoice: Group plans cover death and CI to a small limit. They almost never include disability income. That is the cover that pays you a monthly amount if you cannot work.\n\n[Numbers appear]\nVoice: A 35-year-old earning $7K/month who cannot work for 24 months loses $168K of income. Group insurance covers $0 of that.\n\n[Camera back to face]\nVoice: A standalone disability income plan at 35, paying out 60 percent until age 65, runs about $90 to $130 a month. Less than your phone bill.\n\n[Closing shot, on-screen text: SAVE THIS]\nVoice: Save this and run the question against your own situation: what would 24 months of zero income do to your household?\n\n[End frame: handle, hashtags #SingaporeFinance #DisabilityIncome]\n\nCaption: One of the most under-bought, most-needed covers in SG. The premium is small. The exposure without it is not.",
+    "why_it_works": "Common-mistake hook + concrete loss math + counter to group plan myth + save CTA. Short-video format.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:common-mistake",
+    "tags": [
+      "disability",
+      "short-video",
+      "working-adult",
+      "tip"
+    ]
+  },
+  {
+    "id": "instagram-shortvideo-parent-baby-protection-065",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "Authority",
+    "audience": "parent",
+    "topic": "first protection for newborn",
+    "hook": "Day 30 of your baby's life is the first cheapest day to buy CI cover. Day 30. Not day 365.",
+    "content": "[Open with camera, hook on screen]\nVoice: Day 30 of your baby's life is the first cheapest day to buy CI cover. Day 30. Not day 365.\n\n[Cut to graphic showing age vs premium curve]\nVoice: A multi-pay CI plan with $200K cover on a 30-day-old baby is roughly $30 to $45 a month. The same plan at age 5 is about 25 percent more. At 10 it is 50 percent more.\n\n[Camera back to face, slower tone]\nVoice: It is not that 5-year-olds need CI. It is that you are buying the next 60 years of your child's CI cover today before any health flag appears.\n\n[On-screen list: 3 covers to consider]\nVoice: Three covers worth looking at in the first 100 days: child CI, hospital plan, and an early-stage education endowment.\n\n[Closing shot, on-screen text: DM BABY100]\nVoice: DM me BABY100 for the 100-day baby financial setup checklist.\n\n[End frame: handle, hashtags #SingaporeParents #BabyFinance]\n\nCaption: New parent? The first 100 days are the cheapest 100 days of your child's protection life.",
+    "why_it_works": "Counter-intuitive day-30 hook + concrete premium curve + reframe (insuring lifetime not childhood) + DM CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "baby",
+      "ci",
+      "short-video",
+      "parent"
+    ]
+  },
+  {
+    "id": "instagram-shortvideo-pre-retiree-cpf-066",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "Hook",
+    "audience": "pre-retiree",
+    "topic": "deferring CPF Life payout",
+    "hook": "Defer your CPF Life payout from 65 to 70 and your monthly income jumps about 7 percent every year you wait.",
+    "content": "[Open with face to camera, hook on screen]\nVoice: Defer your CPF Life payout from 65 to 70 and your monthly income jumps about 7 percent every year you wait.\n\n[Cut to graphic]\nVoice: Start at 65: example payout $1,650/month. Start at 70: roughly $2,400/month for the same Retirement Account balance.\n\n[Camera back to face]\nVoice: For every year you defer, the monthly figure compounds. Five years of deferment means about 45 percent more per month for life.\n\n[On-screen text appears]\nVoice: It only makes sense if you have other income to fund 65 to 70. SRS, an endowment ladder, a part-time consulting role, or rental income.\n\n[Closing shot, on-screen text: SAVE THIS]\nVoice: If you are 60 to 65, this is one of the highest-return decisions you will ever make. Save this and bring it to your next retirement review.\n\n[End frame: handle, hashtags #CPFLife #RetirementSG]\n\nCaption: Deferring CPF Life is not a niche move. It is the single biggest payout-rate decision most pre-retirees fail to model.",
+    "why_it_works": "Counter-intuitive defer hook + specific 7%/year math + condition for it to work + save CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "cpf-life",
+      "deferment",
+      "short-video",
+      "pre-retiree"
+    ]
+  },
+  {
+    "id": "instagram-carousel-parent-education-067",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "Authority",
+    "audience": "parent",
+    "topic": "education funding by age",
+    "hook": "How much you should have saved for your child's education at age 5, 10, 15.",
+    "content": "Slide 1: How much you should have saved for your child's education at age 5, 10, 15. Save this if your child is under 18.\n\nSlide 2: The target. Local university 4-year fees + living: roughly $80K to $100K. Overseas (UK/AU/US) 3 to 4 years: roughly $250K to $400K.\n\nSlide 3: Age 5. Local target benchmark: $20K saved. Overseas target: $50K saved. If you started at birth at $300/month, you are on track for the local target.\n\nSlide 4: Age 10. Local target: $45K. Overseas target: $130K. The window for double-digit compounding is closing. Late starters should consider increasing monthly contribution rather than chasing returns.\n\nSlide 5: Age 15. Local target: $70K. Overseas target: $250K. With 3 years left, returns matter less than contribution and capital preservation. Risk should be coming down.\n\nSlide 6: The vehicles. Endowment plans for capital protection. Investment-linked plans for higher long-term return. Cash unit trusts and ETFs for flexibility. SRS for tax efficiency on top-up. Each one solves a different part.\n\nSlide 7: 3 actions today. Pick a target by age 18. Backsolve to a monthly contribution. Set up the vehicle. The math is the easy part. Starting is the hard part.\n\nSlide 8: DM me UNI18 for the education-funding worksheet I use with parents.",
+    "why_it_works": "Age-gated benchmarks + local vs overseas split + 4-vehicle map + tactical 3-step close. Save-worthy parent carousel.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:authority-post-structure",
+    "tags": [
+      "education",
+      "parent",
+      "carousel",
+      "authority"
+    ]
+  },
+  {
+    "id": "instagram-carousel-parent-bundle-068",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "Tip",
+    "audience": "parent",
+    "topic": "parent and child policy bundles",
+    "hook": "5 ways a parent and child plan together saves money compared to buying separately.",
+    "content": "Slide 1: 5 ways a parent and child plan together saves money compared to buying separately. Save this if you have kids under 12.\n\nSlide 2: 1. Joint medical riders. Some hospital plan riders cover the parent and child under one premium structure with shared deductibles. Cheaper than two stand-alone riders.\n\nSlide 3: 2. Bundled CI. Multi-pay CI plans on the parent often include a child rider that adds CI cover for the child at very low marginal cost. The child cover steps up automatically through to age 18.\n\nSlide 4: 3. Education endowment with parent waiver. A waiver of premium rider on the parent ensures that if the parent passes or is diagnosed with TPD, the endowment continues to pay itself until maturity.\n\nSlide 5: 4. Family discount on insurer plans. Some insurers offer 5 to 10 percent multi-life discounts when 2 or more family members are insured under one policy umbrella.\n\nSlide 6: 5. Compounding tax relief. The parent's CI premium counts toward their tax relief. The child's premiums do not. Structuring so that more of the family premium sits on the working parent's plan can lift annual tax relief by hundreds of dollars.\n\nSlide 7: The catch. None of these are good reasons to buy what you do not need. They are good reasons to structure properly what you already need to buy.\n\nSlide 8: DM me FAMILY for the parent-and-child cover map I use during family reviews.",
+    "why_it_works": "Family-bundle save-worthy carousel + 5 concrete savings + caveat slide for credibility + DM CTA.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "parent-child",
+      "bundle",
+      "parent",
+      "carousel"
+    ]
+  },
+  {
+    "id": "instagram-carousel-pre-retiree-bequest-069",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "Authority",
+    "audience": "pre-retiree",
+    "topic": "legacy and bequest planning at 55",
+    "hook": "What you actually leave behind: 6 buckets every 55-year-old should map.",
+    "content": "Slide 1: What you actually leave behind: 6 buckets every 55-year-old should map. Save this for your next family discussion.\n\nSlide 2: Bucket 1 - CPF balances. OA, SA, MA, RA. Each follows a different distribution route at death. CPF nomination governs OA SA MA. RA passes via the Public Trustee unless nominated.\n\nSlide 3: Bucket 2 - Insurance proceeds. Death benefit, TPD, CI lump sums. Each policy can carry its own beneficiary nomination. Trust nominations versus revocable nominations behave very differently.\n\nSlide 4: Bucket 3 - Property. HDB rules differ from private. Joint tenancy passes outside the will. Tenancy-in-common passes via the will. Most couples have not checked which they hold.\n\nSlide 5: Bucket 4 - Investment accounts. Brokerage, ETFs, unit trusts. Distribution depends on whether the account is sole, joint with right of survivorship, or held in a trust.\n\nSlide 6: Bucket 5 - Cash and bank deposits. Joint accounts pass to the surviving holder. Sole accounts go through probate. The CDP holdings follow your CDP nomination if filed.\n\nSlide 7: Bucket 6 - The will, LPA, and ACP. The Will governs estate distribution. The LPA grants someone power if you lose mental capacity. The Advance Care Plan documents your medical wishes. All three should exist by 55.\n\nSlide 8: DM me LEGACY for the 6-bucket worksheet to fill out with your family.",
+    "why_it_works": "Comprehensive estate-planning carousel + 6 buckets each tactical + age-trigger framing + DM CTA.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:authority-post-structure",
+    "tags": [
+      "legacy",
+      "estate",
+      "pre-retiree",
+      "carousel"
+    ]
+  },
+  {
+    "id": "instagram-carousel-young-adult-srs-070",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "Tip",
+    "audience": "young-adult",
+    "topic": "SRS for late-20s professional",
+    "hook": "SRS at 28: why opening it now beats opening it at 35, even if you only contribute $1.",
+    "content": "Slide 1: SRS at 28: why opening it now beats opening it at 35, even if you only contribute $1. Save this before next tax season.\n\nSlide 2: SRS is a Supplementary Retirement Scheme account. Cap on contribution: $15,300/year for citizens and PRs. Every dollar you contribute reduces your assessable income for tax.\n\nSlide 3: The 10-year clock. Your statutory retirement age at the time you open the account is locked. Once you start withdrawing after that age, only 50 percent of withdrawals are taxable.\n\nSlide 4: This means: opening at 28 with the statutory retirement age fixed at 63 (current law) saves you many years of locked-in flexibility versus opening at 38 or later when the rules may have shifted.\n\nSlide 5: The $1 trick. You only need a single dollar to open. The clock starts the moment the account is opened. You do not need to contribute meaningfully right away.\n\nSlide 6: Where to put the money. The default cash sits at 0.05 percent. Move it into Singapore Government bonds, a Singapore-domiciled equity ETF, or a unit trust with reasonable fees. SRS uninvested is dead money.\n\nSlide 7: The fix. Open the SRS account at any of the 3 SRS banks. Deposit $1. Done. Then revisit at year-end to plan a meaningful tax-relief contribution.\n\nSlide 8: DM me SRS28 for the SRS opening checklist + investment options sheet.",
+    "why_it_works": "Counter-intuitive $1-trick + specific tax mechanic + age-locked benefit + DM CTA. Highly save-worthy.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "srs",
+      "tax",
+      "young-adult",
+      "carousel"
+    ]
+  },
+  {
+    "id": "instagram-carousel-cta-young-adult-071",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "CTA",
+    "audience": "young-adult",
+    "topic": "DM checklist for first job financial setup",
+    "hook": "Just started your first job? DM me JOB1 and I will send you the 10-move first 90-day checklist.",
+    "content": "Slide 1: Just started your first job? DM me JOB1 and I will send you the 10-move first 90-day checklist.\n\nSlide 2: Move 1 - Set up your CPF Investment Account. You may not invest right away. Just have it open.\n\nSlide 3: Move 2 - Open SRS at $1. The 10-year clock starts at opening, not at meaningful contribution.\n\nSlide 4: Move 3 - Buy a basic term plan with conversion privilege while you are healthy.\n\nSlide 5: Move 4 - Set up an emergency fund of 3 months expenses in a high-interest savings account.\n\nSlide 6: Move 5 - Automate 25 percent of every paycheck before you see it. To savings, investment, RSTU, or all three.\n\nSlide 7: Move 6 - Update your CPF nomination. Most people never do this. It takes 6 minutes online.\n\nSlide 8: Moves 7 to 10 are in the checklist. CI cover, hospital plan, RSTU strategy, and the 1 mistake that causes the most regret in this segment.\n\nSlide 9: DM me JOB1 in the next 24 hours and I will send the full checklist + the worksheet to fill in for yourself.\n\nSlide 10: No follow-up unless you ask. The checklist stands on its own.",
+    "why_it_works": "Pure CTA carousel + 6 visible moves + 4 hidden behind DM trigger + zero-follow-up assurance.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:authority-post-structure",
+    "tags": [
+      "first-job",
+      "checklist",
+      "young-adult",
+      "cta"
+    ]
+  },
+  {
+    "id": "instagram-cta-comment-bait-young-adult-072",
+    "platform": "instagram",
+    "format": "text-only",
+    "pillar": "CTA",
+    "audience": "young-adult",
+    "topic": "comment bait for SRS strategy",
+    "hook": "Comment your annual income range and I will tell you whether SRS makes sense before December 31.",
+    "content": "Comment your annual income range and I will tell you whether SRS makes sense before December 31.\n\nThe brackets:\n- Under $40K\n- $40K to $80K\n- $80K to $120K\n- $120K to $200K\n- Over $200K\n\nFor each bracket the answer is different. Some brackets get 0 tax saving from SRS. Some get a 4-figure saving. Knowing which one you are in is a 30-second answer.\n\nDrop a number 1 to 5 corresponding to the bracket above. I will reply directly with the SRS verdict for that range and the specific tax saving (or non-saving) you can expect this year.\n\nThe deadline to act is 31 December every year. Once you cross it, the contribution does not count for the current year's tax bill.\n\nNumber in the comments. I will reply.",
+    "why_it_works": "Comment-bait hook + 5 specific numeric brackets + low-friction reply + clear deadline.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:engagement:dm-to-meeting",
+    "tags": [
+      "srs",
+      "comment-bait",
+      "young-adult",
+      "cta"
+    ]
+  },
+  {
+    "id": "instagram-cta-bookchat-pre-retiree-073",
+    "platform": "instagram",
+    "format": "text-only",
+    "pillar": "CTA",
+    "audience": "pre-retiree",
+    "topic": "soft 15-minute retirement gap call",
+    "hook": "If you are 50 to 60 and have never had your retirement income gap properly modelled, the 15-minute call is free. No pitch.",
+    "content": "If you are 50 to 60 and have never had your retirement income gap properly modelled, the 15-minute call is free. No pitch.\n\nWhat the 15 minutes covers:\n\n1. Your actual monthly target spend at retirement, not a vague feel.\n2. Your projected income from CPF Life under each plan option.\n3. The dollar gap between target and projected.\n4. The 3 levers most people have not pulled (defer, ladder, top up).\n\nWhat it does not cover:\n\n1. Selling you a product on the call.\n2. Asking you to bring policy documents on the first call.\n3. Pretending I can fix everything in 15 minutes.\n\nWhat happens after:\n\n1. You decide if you want a longer review.\n2. If yes, that is a separate conversation.\n3. If no, the 15 minutes still stands as a useful reality check on where you are versus where you want to be.\n\nDM me GAP15 with your age. I will reply with 2 time slots in the next 2 weeks.",
+    "why_it_works": "Soft 15-min ask + specific scope-in / scope-out + zero-pressure framing + DM CTA. Pre-retiree segment.",
+    "source": "scripts-academy",
+    "curriculum_anchor": "day-41:engagement:dm-to-meeting",
+    "tags": [
+      "retirement",
+      "pre-retiree",
+      "soft-call",
+      "cta"
+    ]
+  },
+  {
+    "id": "facebook-cta-comment-parent-074",
+    "platform": "facebook",
+    "format": "text-only",
+    "pillar": "CTA",
+    "audience": "parent",
+    "topic": "comment bait for school inflation",
+    "hook": "Comment your child's age and I will tell you exactly what their first year of university will cost in 2024 dollars.",
+    "content": "Comment your child's age and I will tell you exactly what their first year of university will cost in 2024 dollars.\n\nThe inflation rate for tertiary education is roughly 4 to 6 percent per year. Local fees rise more slowly. Overseas fees rise faster.\n\nA $30K-per-year local programme today is on track to hit roughly $50K to $60K when a 5-year-old enrols. The same overseas $80K programme is on track for $130K to $160K.\n\nMost parents do not run this number. They keep using today's price tag and assume their endowment is on track when it is not.\n\nDrop your child's age in the comments and either Local or Overseas. I will reply with the projected 2024-dollar first-year tuition number.\n\nNo email capture. No DM follow-up. Just the answer.",
+    "why_it_works": "Concrete comment-bait + parent segment + zero-follow-up assurance + projection-anchored.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:engagement:dm-to-meeting",
+    "tags": [
+      "education",
+      "comment-bait",
+      "parent",
+      "cta"
+    ]
+  },
+  {
+    "id": "facebook-cta-checklist-pre-retiree-075",
+    "platform": "facebook",
+    "format": "text-only",
+    "pillar": "CTA",
+    "audience": "pre-retiree",
+    "topic": "DM checklist for parents-and-money sandwich",
+    "hook": "DM me SANDWICH if you are between 45 and 60 and supporting both your kids and your parents. I will send the 1-page sandwich-generation checklist.",
+    "content": "DM me SANDWICH if you are between 45 and 60 and supporting both your kids and your parents. I will send the 1-page sandwich-generation checklist.\n\nThe sandwich generation has 3 simultaneous money problems running at the same time:\n\n1. Kids: education funding, first home help, possibly weddings.\n2. Parents: medical care, day-to-day support, possibly long-term care or eldershield.\n3. Self: retirement that is now within sight, and which you forgot to fund first.\n\nThe checklist covers:\n- The cash flow split that does not bankrupt the middle generation.\n- The 4 medical buffers needed for elderly parents in Singapore.\n- The 3 hardest conversations and the order to have them.\n- The 1 estate move every sandwich-generation household should make this quarter.\n\nNo email capture. No automatic newsletter. DM SANDWICH and I send the PDF directly.",
+    "why_it_works": "Niche segment + specific 3-problem framing + scoped checklist preview + DM CTA, low-friction.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "sandwich-generation",
+      "pre-retiree",
+      "checklist",
+      "cta"
+    ]
+  },
+  {
+    "id": "facebook-cta-bookchat-working-adult-076",
+    "platform": "facebook",
+    "format": "text-only",
+    "pillar": "CTA",
+    "audience": "working-adult",
+    "topic": "soft policy review call",
+    "hook": "If your last policy review was over 24 months ago, here is a no-pitch 20-minute call to find what changed.",
+    "content": "If your last policy review was over 24 months ago, here is a no-pitch 20-minute call to find what changed.\n\nThe scope of the 20 minutes:\n\n1. Quick capture of every policy you have, who is insured, sum assured, premium.\n2. Match each policy to one of the 4 risks (death, CI, disability, longevity).\n3. Identify the bucket with the largest gap in 1 line.\n4. Identify any policy that has lapsed, is about to lapse, or is no longer fit for purpose.\n\nWhat we do not do in 20 minutes:\n\n1. Sell you a product.\n2. Recommend a top-up.\n3. Pretend the 20-minute call replaces a proper full review.\n\nWhat the 20-minute call does:\n\n1. Tells you whether your protection is broadly aligned with your life today.\n2. Surfaces the 1 thing that needs urgent attention versus the 5 things that can wait.\n3. Earns the right to a fuller review only if you want one.\n\nDM me REVIEW20 with your current life stage (single, married, kids, pre-retiree). I will send 2 time slots.",
+    "why_it_works": "Concrete scope-in / scope-out + 24-month trigger + segmentation prompt + DM CTA.",
+    "source": "scripts-academy",
+    "curriculum_anchor": "day-41:engagement:dm-to-meeting",
+    "tags": [
+      "policy-review",
+      "soft-call",
+      "working-adult",
+      "cta"
+    ]
+  },
+  {
+    "id": "linkedin-tip-parent-fnf-077",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "parent",
+    "topic": "kids first FNF and money habits",
+    "hook": "The earliest age I have seen a kid handle their own first protection conversation: 14. The latest: 38. Both worked. One went smoother.",
+    "content": "The earliest age I have seen a kid handle their own first protection conversation: 14. The latest: 38. Both worked. One went smoother.\n\nThe family-and-finance (FNF) conversation does not need to wait until your kid is graduating from university. It can start much earlier and it tends to stick when it does.\n\nThe simple stages I see work:\n\n1. Age 7 to 10. The bank account talk. Open a junior savings account in their name. Show them the balance. Let them earn interest line by line. The numbers stay small. The habit forms.\n\n2. Age 11 to 14. The household talk. Show them the family's recurring bills (utilities, mortgage, school, insurance) at age-appropriate level. Let them ask why each one exists. Do not lecture.\n\n3. Age 15 to 18. The protection talk. Walk them through what insurance their family has on them. Why CI. Why hospital. Why education endowment. Let them see the policy.\n\n4. Age 19 to 22. The first plan talk. Their first part-time job, their first own protection or RSTU contribution. They need to feel the trade-off of giving up cash for future security.\n\n5. Age 23+. They run their own conversation. Your job is to be the second opinion, not the voice in the chair.\n\nThe earlier these stages start, the less likely the family hits a fight at age 28 over money decisions.\n\nDM me FNF for the age-by-age family money conversation guide.",
+    "why_it_works": "Parent-segment tip + age-staged ladder + concrete each-stage move + DM CTA.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "fnf",
+      "kids-money",
+      "parent",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-tip-parent-school-fees-078",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "parent",
+    "topic": "school fee inflation math",
+    "hook": "If your kid is 4 today and you are saving $400/month for university, you are likely $60K short of a local degree.",
+    "content": "If your kid is 4 today and you are saving $400/month for university, you are likely $60K short of a local degree.\n\nThe arithmetic, slowly:\n\nLocal university total cost in 14 years (4-year programme + living): roughly $130K to $150K assuming 4 percent annual fee inflation.\n\n$400/month for 14 years at a 4 percent net return is roughly $90K. At 6 percent net it is roughly $105K.\n\nThe gap is real. It does not close by itself.\n\nThe 3 ways to close it:\n\n1. Increase the monthly to $600 to $700. Same vehicle. Same horizon. Closes most of the gap on a 6 percent assumption.\n\n2. Lengthen the runway. If you started at age 1 instead of age 4, the same $400 lands you within $10K of target.\n\n3. Diversify the bucket. Endowment for capital protection on the $80K core. ILP or unit trust on the additional $30K to $40K aiming for higher return. Cash reserve on $10K for flexibility.\n\nThe sin is not under-saving. The sin is not running the number, then assuming.\n\nDM me UNIMATH for the printable parent worksheet that backsolves your monthly contribution from your child's age and target programme.",
+    "why_it_works": "Painfully specific gap math + 3-lever close + age-anchored hook + DM CTA. Common parent under-saving pattern.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "school-fees",
+      "education",
+      "parent",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-tip-parent-baby-protection-079",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "parent",
+    "topic": "first 100 days protection plan",
+    "hook": "The 4 protection moves in your baby's first 100 days. Not 4 products to buy. 4 decisions to make.",
+    "content": "The 4 protection moves in your baby's first 100 days. Not 4 products to buy. 4 decisions to make.\n\n1. Update the parent's CPF nomination. Most parents only realise they have an outdated nomination when the second child arrives. Do it now.\n\n2. Add the baby to the parent's hospital plan rider. The newborn rider window is short and the premium tier is the lowest the child will ever see.\n\n3. Decide whether you want CI cover on the baby. Multi-pay CI plans at age 30 days run roughly $30 to $50 a month for $200K cover. The decision is not about cost. It is about which 60-year curve you want to lock in.\n\n4. Update the will and beneficiary nominations on every existing policy in both parents' names. The baby's existence changes who should inherit what. Old wills do not auto-update.\n\nThis is not a sales list. It is a checklist most exhausted new parents skip in the first 100 days because nobody handed it to them.\n\nDM me BABY100 for the printable 100-day baby checklist.",
+    "why_it_works": "Parent-decision framing not product-pitch + concrete 4 moves + sales-disarming line + DM CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "baby",
+      "first-100-days",
+      "parent",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-tip-parent-bundle-080",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "parent",
+    "topic": "parent and child cover bundle",
+    "hook": "Most families pay for 2 hospital plans when 1 family-bundled plan would cover the same thing for less.",
+    "content": "Most families pay for 2 hospital plans when 1 family-bundled plan would cover the same thing for less.\n\nThis is not a one-size pitch. It is a structural review most families have never run.\n\nWhen the second child arrives, most couples have:\n- Parent A on hospital plan with rider, paying full premium\n- Parent B on hospital plan with rider, paying full premium\n- Child 1 on a separate rider on Parent A\n- Child 2 added on yet another rider on Parent A\n\nThe alternative structure:\n- One family-bundled hospital plan (where the insurer offers it) covering all 4 lives under shared premium logic\n- Single deductible reset rules across the family in some structures\n- 5 to 10 percent multi-life discount on supported plans\n\nThe potential savings on a 4-person family running this restructure: $400 to $1,200 per year, with no reduction in coverage.\n\nThe catch: not every insurer offers true family bundling. AIA HealthShield Gold Max with the right rider is one. Some others run individual structures only with multi-life discounts.\n\nThe move:\n1. Lay out every hospital and CI plan in the household on 1 page.\n2. Add the annual premium per life.\n3. Ask whether the insurer offers a true bundle or only multi-life discount.\n4. Decide whether to restructure now or at next renewal.\n\nDM me FAMILYBUNDLE for the comparison sheet.",
+    "why_it_works": "Tactical restructure tip + concrete savings range + insurer-naming credibility + 4-step move + DM CTA.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "family-bundle",
+      "hospital",
+      "parent",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-pre-retiree-cpf-life-tip-081",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "pre-retiree",
+    "topic": "CPF Life deferment math",
+    "hook": "Defer your CPF Life payout from 65 to 70. The lifetime income jump is not 10 percent. It is closer to 45 percent.",
+    "content": "Defer your CPF Life payout from 65 to 70. The lifetime income jump is not 10 percent. It is closer to 45 percent.\n\nThe rule: for every year you defer payout from 65 toward 70, the monthly payout increases by approximately 7 percent. Compounded over 5 years that is roughly a 40 to 45 percent uplift in lifetime monthly income.\n\nWhat it costs: 5 years of having to fund retirement from other sources (SRS, endowment ladder, part-time work, rental income).\n\nWhat it returns: a higher floor for life. If you live to 85, that is 15 years at the higher monthly rate. If you live to 95, 25 years.\n\nThe decision logic:\n\n1. If you have NO other income source for 65 to 70, do not defer. Take it at 65.\n\n2. If you have $300K+ in liquid assets you can ladder across 65 to 70, deferring is one of the highest-return decisions of your retirement.\n\n3. If you are in average health and have family longevity, the breakeven of deferring is usually before 80. After that the deferred plan wins.\n\n4. If you have multiple plans (CPF Life Standard vs Escalating), the deferral interacts with the plan choice in non-trivial ways.\n\nThis is not a marketing decision. It is a math decision. Run it once with someone who does it weekly.\n\nDM me DEFER65 for the deferment-vs-take-now worksheet.",
+    "why_it_works": "Counter-intuitive 45% number + 4-condition decision tree + math-not-marketing framing + DM CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "cpf-life",
+      "deferment",
+      "pre-retiree",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-pre-retiree-healthcare-082",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Authority",
+    "audience": "pre-retiree",
+    "topic": "post-65 healthcare cost reality",
+    "hook": "Healthcare in Singapore at 65 is roughly affordable. At 75 it accelerates. At 85 it is the single largest line item.",
+    "content": "Healthcare in Singapore at 65 is roughly affordable. At 75 it accelerates. At 85 it is the single largest line item.\n\nThe numbers I show pre-retirees:\n\nAt age 65 to 75. Average annual healthcare cost (premium + out-of-pocket + minor procedures): $4K to $7K. Manageable on most retirement budgets.\n\nAt 75 to 85. Costs typically double to triple. Common drivers: rider premium increase, more frequent specialist visits, first major hospital admission, often a chronic condition diagnosed and managed.\n\nAt 85+. Costs depend almost entirely on long-term care need. Without nursing care: similar to the 75 to 85 band. With nursing care or live-in caregiver: $30K to $90K per year on top of medical.\n\nThe protection map most retirees have:\n- Hospital plan with rider: yes, but the rider may have premium-renewal age caps\n- ElderShield or CareShield Life: yes, monthly payout of $600 to $750+ when severely disabled\n- Out-of-pocket buffer: usually under-funded\n- Long-term care plan beyond ElderShield: usually missing\n\nThe gap most pre-retirees have not modelled is the 85+ band. The buffer that needs to exist by 65 is roughly $200K to $400K just to cover the long-tail risk of needing 5+ years of care at 85.\n\nDM me HEALTH85 for the long-tail healthcare cost worksheet.",
+    "why_it_works": "Age-staged authority post + concrete cost numbers + 4-line protection map + DM CTA. Pre-retiree segment.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "healthcare",
+      "long-term-care",
+      "pre-retiree",
+      "authority"
+    ]
+  },
+  {
+    "id": "linkedin-pre-retiree-downsizing-083",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "pre-retiree",
+    "topic": "downsizing math at 60",
+    "hook": "Most 60-year-olds plan to downsize their HDB. Most do not run the actual unlock math. The number is smaller than the dinner-table version.",
+    "content": "Most 60-year-olds plan to downsize their HDB. Most do not run the actual unlock math. The number is smaller than the dinner-table version.\n\nThe dinner-table version: I will sell my 4-room and the unlock will fund my retirement.\n\nThe spreadsheet version:\n\nSale price of 4-room HDB in mid-tier estate at 60: roughly $580K to $700K (varies by estate and lease).\n\nMinus outstanding mortgage if any.\n\nMinus return of CPF principal + accrued interest to your CPF OA. (This is the line most people forget. The accrued interest can be larger than the principal you used decades ago.)\n\nMinus cost of the next property: 3-room flat or smaller in same area $400K to $500K, or further-out 4-room around $500K to $600K.\n\nMinus stamp duty, legal fees, agent commission, renovation: $30K to $60K.\n\nThe net cash unlock from downsizing in real terms: often $50K to $200K. Sometimes negative if you move to a private downsize or premium 3-room in central area.\n\nThis is not a reason to skip downsizing. It is a reason to model the actual number before assuming the downsize funds 10 years of retirement.\n\nThe better question: does my retirement plan still work if downsizing only unlocks $80K?\n\nDM me DOWNSIZE for the worksheet that runs your actual numbers.",
+    "why_it_works": "Reality-check tip + line-by-line math + reframe of the question + DM CTA. Pre-retiree segment.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "downsizing",
+      "hdb",
+      "pre-retiree",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-pre-retiree-srs-late-084",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "pre-retiree",
+    "topic": "SRS for late starter at 55",
+    "hook": "55 and never opened SRS? You can still claim the full annual relief and start the 10-year clock today.",
+    "content": "55 and never opened SRS? You can still claim the full annual relief and start the 10-year clock today.\n\nMost 55-year-olds I meet skipped SRS for 10+ years because they thought it was for younger savers. It is not.\n\nThe arithmetic for a late starter:\n\n1. Open the account today. Statutory retirement age locked at the prevailing age (currently 63).\n\n2. Annual contribution cap $15,300. Full deductible against your assessable income for the year.\n\n3. If you are in the 11.5 to 18 percent income tax band, the relief is worth $1,750 to $2,750 per year.\n\n4. Once you cross the locked statutory retirement age (63 in current law), you can withdraw. Only 50 percent of withdrawals are taxable. Spread across 10 years of withdrawal, often the effective tax rate is near zero for most retirees who have stopped working.\n\nThe key insight for a late starter:\n\n- Even 5 years of full $15,300 contributions = $76,500 contributed.\n- At a modest 4 to 5 percent return inside SRS, that grows to roughly $85K to $90K by 60.\n- Withdrawn at 63 to 73 with low income, the effective tax on the corpus is small.\n- The relief saved during the contribution years is meaningful: $9K to $14K of cumulative tax relief.\n\nLate to SRS does not mean too late. It means run the math.\n\nDM me SRSLATE for the late-start SRS modelling sheet.",
+    "why_it_works": "Late-starter reframe + line-by-line math + tactical 4-step + DM CTA. Pre-retiree segment.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "srs",
+      "late-starter",
+      "pre-retiree",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-pre-retiree-laddering-085",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Authority",
+    "audience": "pre-retiree",
+    "topic": "retirement income laddering",
+    "hook": "Retirement income laddering: 3 buckets, 3 horizons, 1 plan. Most pre-retirees have only 1 of the 3.",
+    "content": "Retirement income laddering: 3 buckets, 3 horizons, 1 plan. Most pre-retirees have only 1 of the 3.\n\nThe 3 buckets, in order of risk and horizon:\n\nBucket 1 - 0 to 3 years. Pure stability. CPF Life payout, savings account, money market funds, short-term endowment maturing in this window. The job is to fund the next 3 years of guaranteed monthly spending.\n\nBucket 2 - 3 to 10 years. Moderate risk. SRS invested in a 60/40 portfolio, ladder of medium-term endowments, balanced unit trusts. The job is to refill bucket 1 as it draws down.\n\nBucket 3 - 10+ years. Growth. Equity ETFs, growth-tilted ILPs, longer-horizon investments. The job is to outpace inflation across the back half of retirement.\n\nThe critical move most pre-retirees miss: rebalancing across buckets every year.\n\nWhen markets rally, harvest from bucket 3 to refill bucket 2. When markets crash, draw from bucket 1 only and let bucket 3 recover. The buckets buy you the right to not panic-sell at the worst moment.\n\nMost pre-retirees I see are 80 percent in bucket 1 (over-conservative for a 30-year retirement) or 80 percent in bucket 3 (over-exposed to a market crash 5 years before they need the money). The middle structure is rarely set up.\n\nThe 3-bucket setup needs to be done before you stop working, not after.\n\nDM me LADDER3 for the bucket-allocation worksheet.",
+    "why_it_works": "Authority post + 3-bucket framework + concrete each + tactical pitfalls + DM CTA. Pre-retiree segment.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:authority-post-structure",
+    "tags": [
+      "laddering",
+      "buckets",
+      "pre-retiree",
+      "authority"
+    ]
+  },
+  {
+    "id": "linkedin-pre-retiree-eldershield-086",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Authority",
+    "audience": "pre-retiree",
+    "topic": "ElderShield CareShield long-term care",
+    "hook": "ElderShield pays $600 a month if you cannot do 3 ADLs. Sounds fine until you cost out a real Singapore nursing home.",
+    "content": "ElderShield pays $600 a month if you cannot do 3 ADLs. Sounds fine until you cost out a real Singapore nursing home.\n\nThe protection most Singaporeans have:\n\n1. ElderShield (older cohort) or CareShield Life (newer): monthly payout of $600 to $750+ when severely disabled, defined as inability to perform 3 of 6 Activities of Daily Living.\n\n2. Optional supplementary plans on top of CareShield Life through any of the 3 approved insurers, raising the monthly payout to $1,500 to $5,000.\n\nThe actual cost of severe disability care in Singapore:\n\n1. Nursing home (subsidised, public): $1,500 to $3,500 a month depending on subsidy band.\n\n2. Nursing home (private): $3,500 to $7,000 a month.\n\n3. Live-in foreign domestic worker for elderly care: $1,200 to $1,800 a month including levy and food, plus the family time-cost.\n\n4. Hospital-based intermediate care or community hospital stays: episodic but expensive.\n\nThe gap on the average pre-retiree's plan:\n- Default ElderShield $600 a month vs nursing home reality $3,500 a month = $2,900/month gap = $35K/year gap.\n\nIf the disability lasts 5 years (common), the cumulative gap is $175K. If it lasts 10 years, $350K.\n\nThe move most pre-retirees can still make:\n- Top up CareShield Life with a supplementary plan while still healthy. Premium is fully payable from MediSave up to a cap. The marginal cost is small. The marginal coverage is large.\n\nDM me CARESHIELD for the gap-analysis worksheet.",
+    "why_it_works": "Authority post on under-discussed cover + concrete numbers + clear gap math + tactical fix + DM CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "careshield",
+      "elder-care",
+      "pre-retiree",
+      "authority"
+    ]
+  },
+  {
+    "id": "linkedin-working-adult-mid-career-087",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Authority",
+    "audience": "working-adult",
+    "topic": "mid-career promotion review",
+    "hook": "You just got a promotion or a salary jump. The 3 financial moves in the next 60 days that almost no one makes.",
+    "content": "You just got a promotion or a salary jump. The 3 financial moves in the next 60 days that almost no one makes.\n\nThe usual response to a promotion: lifestyle creep. Bigger flat. Bigger car. Bigger restaurant tab. Bigger phone bill.\n\nThe better response: lock in the gain before it dissolves.\n\n1. Auto-redirect 40 to 60 percent of the raise into structural saves before the new salary hits your account. Increase the standing instruction on RSTU, SRS, ETF DCA, or term-life premium for a higher cover. The window before you adjust to the new income is roughly 30 days. After that the lifestyle locks in.\n\n2. Re-rate your protection. A $5K/month earner becoming a $7K/month earner has just increased their dependents' income loss exposure by 40 percent. A protection plan sized for the old salary is now under-sized. Raise the term cover sum or buy an additional level term layer.\n\n3. Resequence your tax reliefs. Your higher income may have pushed you into a new tax band. The relief moves that did not move the needle at the old band may now move it materially. SRS, voluntary CPF cash top-up to MA, parents' top-up.\n\nThe 60-day window is the difference between a raise that compounds and a raise that disappears.\n\nDM me PROMO60 for the 60-day promotion-to-financial-plan worksheet.",
+    "why_it_works": "Life-event hook + 3 specific tactical moves + 60-day window urgency + DM CTA. Working-adult segment.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "promotion",
+      "raise",
+      "working-adult",
+      "authority"
+    ]
+  },
+  {
+    "id": "linkedin-working-adult-job-change-088",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "working-adult",
+    "topic": "job change financial moves",
+    "hook": "Changing jobs in the next 6 months? 4 financial mistakes most people make in the transition window.",
+    "content": "Changing jobs in the next 6 months? 4 financial mistakes most people make in the transition window.\n\n1. Letting employer group cover lapse. Group hospital and group term coverage typically end on the last day of employment, with a 30 to 60 day grace period. Most people only realise they were uninsured during the gap when they need to file a claim. The fix: buy a personal hospital plan and term layer at least 60 days before the resignation, so you are not relying on the next employer's group cover starting on day 1.\n\n2. Forgetting CPF contribution gaps. Between leaving and starting, your CPF contribution drops to zero. A 3-month gap during 30 years is small. A 12-month gap or repeated gaps for someone changing jobs every 18 months adds up to materially less retirement savings. Track your gaps.\n\n3. Cashing out the 13th-month or bonus into lifestyle. The transition bonus is often the largest single inflow of cash a working adult sees. Defaulting to spend it is the single biggest wealth leak in mid-career. Lock at least 60 percent into structural saves before it hits the account.\n\n4. Not updating beneficiaries. New employer group plan = new beneficiary form. Old plan beneficiary may have been your parents 8 years ago. Now you have a spouse and child. Update at the start of the new role, not at the year-end review.\n\nDM me JOBSWAP for the job-change financial checklist.",
+    "why_it_works": "Life-event tip + 4 concrete mistakes + each with fix + DM CTA. Working-adult segment.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "job-change",
+      "transition",
+      "working-adult",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-working-adult-mortgage-089",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "working-adult",
+    "topic": "mortgage and protection alignment",
+    "hook": "Got a $700K HDB mortgage? Your term life cover should be sized to match, not 10 percent of it.",
+    "content": "Got a $700K HDB mortgage? Your term life cover should be sized to match, not 10 percent of it.\n\nThe pattern I see most often:\n\n1. Couple takes a $700K HDB loan, joint repayment.\n2. Each spouse buys a $200K term life with CI cover.\n3. They feel covered.\n\nThe arithmetic:\n\nIf one spouse passes during the loan term, the surviving spouse needs to either:\n- Continue paying the entire mortgage on their own income, or\n- Sell the property and absorb the transaction cost.\n\nA $200K term payout pays off less than a third of the outstanding $700K. The surviving spouse still carries the bulk of the loan. The math does not work.\n\nThe correct sizing:\n\n1. Each spouse's term cover should be at least the outstanding mortgage at the time the cover is bought.\n2. Plus separate cover for income replacement (10x annual income is the rule of thumb).\n3. Plus separate cover for kids' future expenses if applicable.\n\nFor a $700K mortgage and $80K combined income with 1 kid, total cover per spouse is in the $1.2M to $1.6M range, not $200K.\n\nThe encouraging part: term life at 32 to 40 is cheap. Going from $200K to $1.2M cover usually adds $30 to $80 per month, depending on age and health. Less than the mortgage interest difference between two banks.\n\nDM me MORTGAGE for the mortgage-aligned cover worksheet.",
+    "why_it_works": "Concrete loan-vs-cover math + reframe of correct sizing + cost reassurance + DM CTA. Working-adult segment.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "mortgage",
+      "term-life",
+      "working-adult",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-working-adult-self-employed-090",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Authority",
+    "audience": "working-adult",
+    "topic": "self-employed financial structure",
+    "hook": "Self-employed in Singapore? 5 structural moves that close the gap between you and an equivalent salaried worker.",
+    "content": "Self-employed in Singapore? 5 structural moves that close the gap between you and an equivalent salaried worker.\n\nThe gap:\n- No mandatory employer CPF contribution.\n- No group medical or term cover.\n- No auto-deducted income tax (which reads like a feature until you owe a 5-figure bill in March).\n- Income volatility instead of monthly stability.\n\nThe 5 moves:\n\n1. Make your own MediSave contribution mandatory in your monthly cash flow. The MA top-up is required by law if you self-declare self-employed income, but treating it as a discretionary annual catch-up rather than a monthly auto-debit is the most common structural error.\n\n2. Build the cash buffer to 6 months, not 3. Salaried workers can survive on 3 months because their next pay is predictable. You cannot. The buffer is your stand-in for monthly stability.\n\n3. Buy disability income cover. The single biggest risk is not death. It is 12 months of being unable to bill. A standalone disability plan at 35 to 45 covers 60 percent of self-declared income to age 65.\n\n4. Set up SRS and use it harder than a salaried worker would. Your tax band fluctuates, and SRS is the cleanest annual lever. Top up to the cap in high-income years.\n\n5. Open a separate business account and pay yourself a fixed monthly salary out of it. The mental separation creates the discipline that an employer's payroll system would otherwise enforce for you.\n\nDM me SELFEMP for the self-employed financial structure checklist.",
+    "why_it_works": "Niche segment + concrete 5-move structural + each tactical + DM CTA. Working-adult/self-employed segment.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "self-employed",
+      "structure",
+      "working-adult",
+      "authority"
+    ]
+  },
+  {
+    "id": "linkedin-working-adult-spouse-decides-091",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "working-adult",
+    "topic": "joint financial decision making",
+    "hook": "If your spouse always defers the money decision to you, that is not agreement. That is risk.",
+    "content": "If your spouse always defers the money decision to you, that is not agreement. That is risk.\n\nThe pattern shows up in fact-finds. One spouse handles the policies, the bank logins, the mortgage, the SRS contributions. The other spouse signs where they are told and trusts the system.\n\nIt feels efficient until something happens to the deciding spouse.\n\nWhen the deciding spouse falls ill, dies, or simply needs a break, the trusting spouse is left with no operational knowledge:\n- Where the policies are filed.\n- What the passwords are.\n- Which bank accounts hold what.\n- Whether the CPF nomination is up to date.\n- Where the will is, if there is one.\n\nThe 5-step move:\n\n1. Write a 1-page family financial inventory together. Update it yearly.\n\n2. Both spouses must be able to log in to every shared account. Use a password manager with shared vaults if needed.\n\n3. Run the annual review with both spouses in the room, not just the deciding one. The trusting spouse must be able to ask the FA at least 1 question every year.\n\n4. Make decisions together. Even if one spouse is the natural lead, the decision-making conversation has 2 voices, not 1.\n\n5. The will, LPA, and ACP must be drafted with both spouses involved.\n\nThis is not about distrust. It is about resilience. Couples that share financial knowledge weather emergencies dramatically better than couples where one person knows everything.\n\nSave this for your next family financial conversation.",
+    "why_it_works": "Reframes \"my spouse decides\" objection + 5-step move + sales-disarming framing + save CTA. Working-adult segment.",
+    "source": "scripts-academy",
+    "curriculum_anchor": "day-41:idea-mine:common-mistake",
+    "tags": [
+      "couples",
+      "joint-decisions",
+      "working-adult",
+      "tip"
+    ]
+  },
+  {
+    "id": "linkedin-working-adult-investment-loss-092",
+    "platform": "linkedin",
+    "format": "text-only",
+    "pillar": "Hook",
+    "audience": "working-adult",
+    "topic": "lost money on investments before",
+    "hook": "I lost money on investments in 2022 too. The fix was not to stop investing. It was to stop investing the wrong way.",
+    "content": "I lost money on investments in 2022 too. The fix was not to stop investing. It was to stop investing the wrong way.\n\nMost people who say I tried investing and it did not work mean one of these:\n\n1. They picked individual stocks they did not understand and got crushed by a 30 percent drawdown.\n\n2. They piled into a single thematic ETF (crypto, AI, biotech) at the peak and watched 50 percent vanish.\n\n3. They invested via a high-fee ILP whose underlying funds underperformed and whose annual fees ate the small returns.\n\n4. They tried to time the market and missed the rebound that followed the panic sell.\n\nNone of these are reasons to stop investing. They are reasons to invest differently.\n\nThe principles that hold up across cycles:\n\n- Diversify across geographies, not just stocks within Singapore.\n- DCA into broad-market index ETFs, not single themes.\n- Match the horizon of the money to the volatility of the asset.\n- Keep fees low.\n- Stop checking the portfolio daily.\n\nThe people I see retire well are the ones who stayed in the market through the worst periods because the structure was right and the discipline was automatic. Not the ones who waited for the perfect entry that never came.\n\nIf 2022 broke your investment confidence, the fix is not to sit in cash. It is to rebuild on better foundations.\n\nDM me REBUILD for the post-loss investment restart checklist.",
+    "why_it_works": "Reframes \"I lost money before\" objection + 4 typical loss patterns + 5 durable principles + DM CTA. Authority hook.",
+    "source": "scripts-academy",
+    "curriculum_anchor": "day-41:idea-mine:common-mistake",
+    "tags": [
+      "investment",
+      "post-loss",
+      "working-adult",
+      "hook"
+    ]
+  },
+  {
+    "id": "instagram-young-adult-career-switcher-093",
+    "platform": "instagram",
+    "format": "text-only",
+    "pillar": "Social",
+    "audience": "young-adult",
+    "topic": "career switcher financial reset",
+    "hook": "Career-switching at 28 is not a step backward. The financial reset that comes with it is the part most people skip.",
+    "content": "Career-switching at 28 is not a step backward. The financial reset that comes with it is the part most people skip.\n\nIf you are between roles, between industries, or between countries, here is what tends to drift in the transition:\n\n1. Your protection cover. Group plan ends with the old job. New plan starts with the new job. The gap in between is not free.\n\n2. Your savings velocity. The first 3 months in a new field usually means lower or zero income. The auto-debit instructions you set up at the old salary stop matching reality.\n\n3. Your tax band. A pay cut to switch fields usually drops you a band. Reliefs you stacked at the old band may now be over-engineered. Reliefs you skipped because they did not move the needle may now be worth pulling.\n\n4. Your network. Quietly, the warm market shifts. The people who could refer you to a job in your old field may not be the people who refer you in the new one. The reverse is also true.\n\nNone of these are reasons to not switch. They are reasons to plan the financial side of the switch with the same care you plan the career side.\n\nThe 6-week reset I run with career-switchers in their 20s:\n- Week 1: build the cash buffer.\n- Week 2: bridge protection cover.\n- Week 3: redo the monthly auto-saves at the new income.\n- Week 4: re-rate your tax plan.\n- Week 5 to 6: rebuild the network slowly with a clear story.\n\nDM me SWITCH28 for the 6-week career-switch financial reset playbook.",
+    "why_it_works": "Identity-pillar + reassuring tone + 4 transition leakages + 6-week structure + DM CTA. Young-adult segment.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:identity",
+    "tags": [
+      "career-switch",
+      "young-adult",
+      "social",
+      "identity"
+    ]
+  },
+  {
+    "id": "instagram-young-adult-fresh-grad-094",
+    "platform": "instagram",
+    "format": "text-only",
+    "pillar": "Social",
+    "audience": "young-adult",
+    "topic": "fresh graduate identity",
+    "hook": "Fresh grad with $0 in savings. That is not a failure. That is the starting line. Here is what to do in your first 12 months.",
+    "content": "Fresh grad with $0 in savings. That is not a failure. That is the starting line. Here is what to do in your first 12 months.\n\nThe story I hear from late-20s clients in regret: I should have started at 22.\n\nThe rebuttal at 22: I have $0. There is nothing to start with.\n\nBoth are wrong about the same number.\n\nThe truth is at 22 you do not need a balance. You need a habit. The two compound differently.\n\nThe first-12-months habits, ranked by how much they pay off over 30 years:\n\n1. Automate. Set 25 percent of every paycheck to auto-debit out before you see it. Split: 10 percent SRS or RSTU, 10 percent ETF DCA, 5 percent emergency fund. The percentage matters less than the auto.\n\n2. Buy term life with conversion privilege. $500K cover at 22 in good health is roughly $30/month. The same plan at 32 is roughly $50/month. The same plan at 42 is roughly $90/month and may exclude pre-existing conditions discovered in 10 years of medical history.\n\n3. Open SRS at $1. The 10-year clock starts at opening. You do not need to contribute meaningfully right away.\n\n4. Update your CPF nomination. It takes 6 minutes. Most never do it.\n\n5. Track the first 12 months in a single spreadsheet. Income in. Spending out. The gap is your savings rate. Watch it month by month.\n\nThis is the boring playbook. It is also the one that matters.\n\nNo DM, no follow-up. Just save this.",
+    "why_it_works": "Identity-pillar + reframe of $0 + 5-habit ranked playbook + save CTA. Young-adult identity content.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:identity",
+    "tags": [
+      "fresh-grad",
+      "first-12-months",
+      "young-adult",
+      "social"
+    ]
+  },
+  {
+    "id": "instagram-young-adult-bts-fact-find-095",
+    "platform": "instagram",
+    "format": "text-only",
+    "pillar": "Social",
+    "audience": "young-adult",
+    "topic": "behind the scenes of a young adult fact-find",
+    "hook": "I sat with a 26-year-old yesterday. The first 10 minutes were her listing every reason she did not need to be there.",
+    "content": "I sat with a 26-year-old yesterday. The first 10 minutes were her listing every reason she did not need to be there.\n\nNot rude. Just defensive.\n\nI know I am too young for insurance.\nI am not earning enough to invest.\nMy parents already have me on something, I think.\nI saw a bad agent on TikTok and want to make sure you are not him.\n\nI did not interrupt.\n\nWhen she finished I said: those are 4 fair questions. Want to take them in order?\n\n45 minutes later we had answered all 4 with actual numbers from her actual situation. She was not too young. She was not under-earning for the right move. Her parents had her on something but the cover lapsed when she turned 21 and nobody noticed. The TikTok agent was, in fact, doing something concerning and I told her clearly what to look out for.\n\nShe left with no products bought. She did leave with a 3-step plan she could run by herself in the next 30 days. And the door open for a follow-up if any of the 3 steps surfaced a real question.\n\nThis is most of the work. Not closing. Listening, then answering plainly, then leaving.\n\nThe followers who eventually become clients are the ones who got the listening first.",
+    "why_it_works": "Behind-the-scenes social + young-adult voice authentic + 4-objection structure + reframe of FC role. Pure social pillar.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-40:two-prong:social",
+    "tags": [
+      "behind-the-scenes",
+      "fact-find",
+      "young-adult",
+      "social"
+    ]
+  },
+  {
+    "id": "facebook-parent-tip-school-fee-inflation-096",
+    "platform": "facebook",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "parent",
+    "topic": "school fee inflation reality",
+    "hook": "School fees in Singapore inflate at 4 to 6 percent a year. If you are saving for the 2025 number, you are saving for the wrong number.",
+    "content": "School fees in Singapore inflate at 4 to 6 percent a year. If you are saving for the 2025 number, you are saving for the wrong number.\n\nThe quiet inflation:\n\n1. International school annual tuition: $30K to $55K in 2024. Projected $50K to $90K when a 5-year-old enrols.\n\n2. Local university annual fees: $10K to $14K in 2024. Projected $17K to $23K in 14 years.\n\n3. Overseas (UK undergrad): roughly GBP 25K to 40K per year in 2024. Projected GBP 40K to 65K in 14 years even before currency moves.\n\n4. Private school tuition (junior years): $20K to $40K. Tracks similar inflation rates.\n\nThe 3 mistakes parents make:\n\n1. Saving against today's price tag. The endowment matures and lands $40K short.\n\n2. Treating school fees as one big bucket. International primary at age 6 is an 18-year horizon. Local university at age 18 is a 14-year horizon. Different horizons need different vehicles.\n\n3. Not running the inflation each year. Even adding 4 percent annually to the savings target restores the math. Most parents check the target once and never revisit.\n\nThe 30-minute fix: pull out your last endowment projection. Multiply target by 1.04 to the power of years to maturity. That is the new target. Adjust the monthly contribution to land there.\n\nDM me INFLATE for the school-fee inflation worksheet.",
+    "why_it_works": "Concrete inflation numbers + 4-segment breakdown + 3-mistake list + tactical fix + DM CTA. Parent segment.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "school-fees",
+      "inflation",
+      "parent",
+      "tip"
+    ]
+  },
+  {
+    "id": "facebook-parent-bts-CI-claim-097",
+    "platform": "facebook",
+    "format": "text-only",
+    "pillar": "Social",
+    "audience": "parent",
+    "topic": "child CI claim emotional weight",
+    "hook": "A client sent me a voice note last month. Her 4-year-old had been admitted overnight. The voice note was 11 seconds.",
+    "content": "A client sent me a voice note last month. Her 4-year-old had been admitted overnight. The voice note was 11 seconds.\n\nIt said: he is fine, the doctor says we caught it early. I just realised tonight how much of this would be different if we had not bought that plan 3 years ago.\n\nThat was it.\n\nThe child had a seizure of unknown cause. Hospitalised for 3 nights. Discharged. Outpatient follow-ups for 4 weeks. Diagnostic MRI. Specialist visits. Medication.\n\nTotal cost across 6 weeks: roughly $14K out-of-pocket before MediShield Life and the rider kicked in.\n\nThe rider claim landed within 9 days. Reimbursed almost everything.\n\nWhat the rider did not pay for, and what mattered more: she did not have to choose between the right specialist and the affordable one. She did not have to ask her in-laws to help. She did not have to lie awake at 2am wondering if the next bill would be the one that broke them.\n\nThe rider was an extra $40 a month, bought 3 years ago when her son was 1.\n\nWhen she sent that voice note, she was not thanking me. She was thanking the version of herself 3 years ago who had agreed to pay $40 a month for something she hoped she would never need.\n\nIf you have a child under 12 and have never reviewed their hospital and CI cover, this is the post.",
+    "why_it_works": "Real claim moment social + concrete numbers + emotional reframe of premium = past-self gratitude + soft CTA. Parent segment.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
+    "tags": [
+      "child-ci",
+      "claim",
+      "parent",
+      "social"
+    ]
+  },
+  {
+    "id": "facebook-parent-tip-baby-fnf-098",
+    "platform": "facebook",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "parent",
+    "topic": "baby first protection",
+    "hook": "The 3 things every newborn in Singapore should be enrolled in before they turn 3 months old.",
+    "content": "The 3 things every newborn in Singapore should be enrolled in before they turn 3 months old.\n\nThis is not about selling more product. It is about the 3 enrollments that get harder, more expensive, or impossible if delayed.\n\n1. The Integrated Shield Plan rider in the parent's name. The child rider window for adding a newborn is short and the premium tier for a newborn is the lowest the child will ever see across their life. Adding the child later means paying the older-age premium for the entire policy life.\n\n2. The CDA top-up. The first dollar deposited into the Child Development Account is matched by the government up to a cap. Most parents top up well past the matched cap because they did not know the cap, or they top up too late and miss the maximum baby bonus tranche.\n\n3. The CPF nomination on both parents. The arrival of a child changes the natural beneficiary structure. Most couples never updated their CPF nomination after marriage and never update it after birth. The default rules then send the funds where the parents probably did not intend.\n\nThe 1-hour fix in the first 90 days: book a virtual call with your insurer for the rider, log into the CDA portal for the top-up, and visit cpf.gov.sg for the nomination.\n\nNone of these need a financial advisor. They need an hour and a calendar block.\n\nIf you want a printable checklist of all 3 with the exact links and steps, DM me 90DAYS.",
+    "why_it_works": "Self-serve tip + 3 concrete enrollments + de-selling line + DM-only-if-you-want CTA. Parent segment.",
+    "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": [
+      "newborn",
+      "first-90-days",
+      "parent",
+      "tip"
+    ]
+  },
+  {
+    "id": "facebook-pre-retiree-bts-second-spring-099",
+    "platform": "facebook",
+    "format": "text-only",
+    "pillar": "Social",
+    "audience": "pre-retiree",
+    "topic": "early retirement reflection",
+    "hook": "A 62-year-old client told me last week she took 8 months to enjoy retirement. Then she went back to work part-time. Voluntarily.",
+    "content": "A 62-year-old client told me last week she took 8 months to enjoy retirement. Then she went back to work part-time. Voluntarily.\n\nThe story she told me:\n\nFor the first 8 months she did all the things on the list. Travelled with her sister. Picked up watercolour. Volunteered at her grandson's school 3 mornings a week. Slept until 9.\n\nMonth 9 she said something quiet started bothering her. Not money. Not boredom. The lack of being needed in a specific time-bound way.\n\nMonth 10 she signed on for 2 days a week as a part-time consultant in a small firm tied to her old industry. Half her old salary. None of the old stress. She comes home at 5 and gets to choose whether work is in her week.\n\nWhat changed in her financial plan:\n\n1. Her CPF Life payout is still set to start at 65. The 2-day-a-week income covers her gap years more cleanly than her endowment ladder would have.\n\n2. Her SRS is staying invested longer, accumulating more before she draws.\n\n3. Her tax bill at 62 is lower than at 60 because she is now in a much lower band and SRS contributions still reduce her assessable income.\n\nThis is not about not retiring. It is about retiring in 2 stages.\n\nThe first stage is rest. The second stage is choosing what to come back to.\n\nIf your retirement plan only models stage 1, it may be missing the part that actually matters for the next 20 years.",
+    "why_it_works": "Pre-retiree identity content + counter-intuitive 2-stage retirement + concrete plan implications + reframe close. Pure social pillar.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-40:two-prong:social",
+    "tags": [
+      "second-spring",
+      "phased-retirement",
+      "pre-retiree",
+      "social"
+    ]
+  },
+  {
+    "id": "facebook-pre-retiree-tip-legacy-100",
+    "platform": "facebook",
+    "format": "text-only",
+    "pillar": "Tip",
+    "audience": "pre-retiree",
+    "topic": "legacy and beneficiary fixes",
+    "hook": "5 estate moves every 55-year-old should make this year. Not when you turn 65. Not when something happens. This year.",
+    "content": "5 estate moves every 55-year-old should make this year. Not when you turn 65. Not when something happens. This year.\n\n1. CPF nomination. If you have not filed one, you have effectively chosen the Public Trustee distribution rules. Those rules may not match your wishes. The form is online and takes 10 minutes.\n\n2. Insurance nominations. Each policy can carry its own nomination. Trust nominations and revocable nominations behave very differently for tax and access timing. Pull every policy schedule and check who is named where.\n\n3. Will. A will governs your non-CPF, non-jointly-held assets. Without one, the Intestate Succession Act decides who inherits and in what shares. The shares may not be what you want. Drafting a basic will costs $300 to $800 with a lawyer or via legal-assistance schemes for under-resourced households.\n\n4. LPA. The Lasting Power of Attorney lets a trusted person manage your affairs if you lose mental capacity. Without it, the family must apply through court for a deputyship, which can take 6 to 18 months and cost $5K to $15K.\n\n5. Advance Care Plan and ACP. Documents your medical wishes for the moment when you cannot communicate them. Avoids family fights about life-sustaining treatment.\n\nNone of these prevent death. All of them prevent the worst version of the aftermath.\n\nDM me 5MOVES for the printable estate-planning checklist with the SG-specific links for each step.",
+    "why_it_works": "Tactical pre-retiree estate tip + concrete each + cost numbers + reframe of why not when + DM CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
+    "tags": [
+      "estate",
+      "legacy",
+      "pre-retiree",
+      "tip"
+    ]
   }
 ]

@@ -1,9 +1,15 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import Auth from "@/pages/Auth";
-import Studio from "@/pages/Studio";
+import StudioLayout from "@/pages/StudioLayout";
+import GeneratePage from "@/pages/GeneratePage";
+import InspirationPage from "@/pages/InspirationPage";
+import InspirationDetailPage from "@/pages/InspirationDetailPage";
+import ProfilesPage from "@/pages/ProfilesPage";
+import ProfileDetailPage from "@/pages/ProfileDetailPage";
+import NotFoundPage from "@/pages/NotFoundPage";
 
 export default function App() {
   return (
@@ -11,21 +17,20 @@ export default function App() {
       <Routes>
         <Route path="/auth" element={<Auth />} />
         <Route
-          path="/"
           element={
             <ProtectedRoute>
-              <Studio />
+              <StudioLayout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="*"
-          element={
-            <ProtectedRoute>
-              <Studio />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route path="/" element={<Navigate to="/generate" replace />} />
+          <Route path="/generate" element={<GeneratePage />} />
+          <Route path="/inspiration" element={<InspirationPage />} />
+          <Route path="/inspiration/:id" element={<InspirationDetailPage />} />
+          <Route path="/profiles" element={<ProfilesPage />} />
+          <Route path="/profiles/:id" element={<ProfileDetailPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
       </Routes>
       <Toaster />
     </>
