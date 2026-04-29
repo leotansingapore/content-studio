@@ -139,3 +139,50 @@ Just append to the JSON array. Constraints:
 ### v1 vs the road ahead
 
 This is a curated v1. The future plan is to cron-scrape FC and competitor accounts via Apify Instagram + LinkedIn scrapers, run them through Claude for taxonomy classification (including curriculum anchor mapping), and append to this file as a nightly job. For now, manually appended entries are the source of truth.
+
+## Profiles to follow
+
+The Profiles tab in the studio lists curated SG-based financial advisors and personal-finance creators worth following as a long-term inspiration source for client-attracting content. Same audience bar as the inspiration cards: a 28yo working professional, 35yo new parent, or 55yo pre-retiree should find value in their feeds.
+
+### Curation rules
+
+- **Include:** SG-based (or SEA-based with strong SG audience), posts at least weekly, content is client-attracting (personal-finance education, insurance/retirement explainers, life-stage money guidance, behind-the-scenes client stories).
+- **Exclude:** Primary audience is other advisors / aspiring FCs, inactive (no post in last 60+ days), pure team-builder / MDRT-flex content, Leo himself.
+
+### Where the data lives
+
+`src/data/advisors.json` - a flat array of profile entries.
+
+### Entry shape
+
+```json
+{
+  "id": "the-woke-salaryman-instagram",
+  "name": "The Woke Salaryman",
+  "handle": "@thewokesalaryman",
+  "platform": "linkedin | instagram | facebook | tiktok | youtube",
+  "platform_url": "https://...",
+  "secondary_platforms": ["tiktok", "facebook"],
+  "niche": ["personal-finance", "career"],
+  "audience": ["young-adult", "working-adult"],
+  "format": ["carousel", "short-video"],
+  "post_cadence": "weekly | multiple-per-week | monthly",
+  "why_follow": "One-line reason this profile is effective for FC inspiration.",
+  "style_notes": "1-2 sentences on tone, structure, hooks they tend to use.",
+  "source": "leo-brand-intel | web-research | both",
+  "verified": true,
+  "last_checked": "2026-04-29",
+  "verification_note": "Optional - only present when verified is false."
+}
+```
+
+Multi-platform creators may appear as either one entry per major platform (when format/cadence diverges) or one entry with a `secondary_platforms` array (when the platforms mirror each other). The data file mixes both patterns where it improves clarity.
+
+### The verified flag
+
+- `verified: true` - direct verification that the account exists, the URL resolves, and the profile is consistent with active posting at the time of `last_checked`.
+- `verified: false` - the profile was found in Leo's notes or in an aggregated roundup but recency or consistency could not be re-verified end-to-end. The card in the UI shows an "Unverified - check activity" caption and (when present) the `verification_note` so the FC can sanity-check the account before recommending it widely.
+
+### v1 and the road ahead
+
+This is a curated v1. Future plan: periodic re-verification (e.g. monthly Apify scrape that confirms most-recent-post date for each profile), and an automated downgrade of `verified` to `false` plus a `verification_note` whenever a profile goes quiet for 60+ days.

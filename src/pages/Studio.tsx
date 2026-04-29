@@ -42,10 +42,12 @@ import {
   Lightbulb,
   Pencil,
   X as XIcon,
+  Users as UsersIcon,
 } from "lucide-react";
 import Inspiration, {
   type InspirationEntry,
 } from "@/components/Inspiration";
+import AdvisorProfiles from "@/components/AdvisorProfiles";
 
 type Pillar = "interest" | "identity" | "topic" | "market";
 type Format = "carousel" | "short-video" | "text-post" | "story";
@@ -211,7 +213,7 @@ const CTAS: { value: CtaType; label: string; sub: string }[] = [
   },
 ];
 
-type TabValue = "generate" | "inspiration";
+type TabValue = "generate" | "inspiration" | "profiles";
 
 const PILLAR_FROM_INSPIRATION: Record<
   InspirationEntry["pillar"],
@@ -427,10 +429,23 @@ export default function Studio() {
           >
             <Lightbulb className="h-3.5 w-3.5" /> Inspiration
           </button>
+          <button
+            type="button"
+            onClick={() => setTab("profiles")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              tab === "profiles"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <UsersIcon className="h-3.5 w-3.5" /> Profiles
+          </button>
         </div>
 
         {tab === "inspiration" ? (
           <Inspiration onUseAsVibe={handleUseAsVibe} />
+        ) : tab === "profiles" ? (
+          <AdvisorProfiles />
         ) : (
           <div ref={formAnchorRef} className="space-y-6">
             {styleReference && (
