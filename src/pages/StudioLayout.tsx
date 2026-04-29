@@ -7,6 +7,8 @@ import {
   Lightbulb,
   Pencil,
   Users as UsersIcon,
+  Mic,
+  History,
 } from "lucide-react";
 
 export default function StudioLayout() {
@@ -21,6 +23,8 @@ export default function StudioLayout() {
   const onGenerate = location.pathname.startsWith("/generate");
   const onInspiration = location.pathname.startsWith("/inspiration");
   const onProfiles = location.pathname.startsWith("/profiles");
+  const onVoice = location.pathname.startsWith("/voice");
+  const onDrafts = location.pathname.startsWith("/drafts");
 
   const tabClass = (active: boolean) =>
     `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
@@ -60,7 +64,7 @@ export default function StudioLayout() {
           </p>
         </header>
 
-        <nav className="inline-flex rounded-xl border border-border/60 bg-muted/30 p-1">
+        <nav className="inline-flex flex-wrap rounded-xl border border-border/60 bg-muted/30 p-1">
           <NavLink to="/generate" className={tabClass(onGenerate)}>
             <Pencil className="h-3.5 w-3.5" /> Generate
           </NavLink>
@@ -69,6 +73,12 @@ export default function StudioLayout() {
           </NavLink>
           <NavLink to="/profiles" className={tabClass(onProfiles)}>
             <UsersIcon className="h-3.5 w-3.5" /> Profiles
+          </NavLink>
+          <NavLink to="/voice" className={tabClass(onVoice)}>
+            <Mic className="h-3.5 w-3.5" /> Voice
+          </NavLink>
+          <NavLink to="/drafts" className={tabClass(onDrafts)}>
+            <History className="h-3.5 w-3.5" /> Drafts
           </NavLink>
         </nav>
 

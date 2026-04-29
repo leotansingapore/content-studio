@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -43,9 +43,32 @@ import {
   Check,
   StopCircle,
   Wand2,
+  AlertTriangle,
+  Mic,
+  Hash,
+  Image as ImageWandIcon,
+  Keyboard,
 } from "lucide-react";
 import inspirationData from "@/data/inspiration.json";
 import { type InspirationEntry } from "@/components/Inspiration";
+import {
+  scanCompliance,
+  hasComplianceErrors,
+  type ComplianceFlag,
+} from "@/lib/compliance";
+import {
+  isVoiceProfileUsable,
+  loadVoiceProfile,
+  isNudgeDismissed,
+  dismissNudgeForSession,
+} from "@/lib/voiceProfile";
+import {
+  getDraftById,
+  newDraftId,
+  upsertDraft,
+  type DraftEntry,
+} from "@/lib/draftHistory";
+import { readout, type CounterReadout } from "@/lib/platformCounters";
 
 type Pillar = "interest" | "identity" | "topic" | "market";
 type Format = "carousel" | "short-video" | "text-post" | "story";
@@ -287,6 +310,8 @@ interface BasePayload {
   ctaType: CtaType;
   styleReference?: string;
   audience: Audience;
+  voiceSummary?: string;
+  singlish?: boolean;
 }
 
 export default function GeneratePage() {
@@ -301,6 +326,7 @@ export default function GeneratePage() {
   const [platform, setPlatform] = useState<Platform>("linkedin");
   const [ctaType, setCtaType] = useState<CtaType>("dm-keyword");
   const [audience, setAudience] = useState<Audience>("general");
+  const [singlish, setSinglish] = useState<boolean>(false);
   // Hooks-first ON by default: per Day 41, the first 1-2 lines decide whether
   // anyone reads further. Forcing every post through a hook-validation step is
   // the highest-leverage edit on any draft.
@@ -317,6 +343,45 @@ export default function GeneratePage() {
   const [vibeSourceId, setVibeSourceId] = useState<string | null>(null);
   const formAnchorRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Voice profile + nudge.
+  const [userId, setUserId] = useState<string | null>(null);
+  const [voiceSummary, setVoiceSummary] = useState<string | null>(null);
+  const [voiceProfileUsable, setVoiceProfileUsable] = useState<boolean>(false);
+  const [voiceNudgeDismissed, setVoiceNudgeDismissed] = useState<boolean>(false);
+
+  // Draft history.
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+
+  // Compliance flags + dismiss tracking.
+  const [dismissedFlagIds, setDismissedFlagIds] = useState<Set<string>>(new Set());
+
+  // Hashtags + image prompt.
+  const [hashtags, setHashtags] = useState<string[]>([]);
+  const [hashtagsLoading, setHashtagsLoading] = useState<boolean>(false);
+  const [imagePrompt, setImagePrompt] = useState<string>("");
+  const [imagePromptLoading, setImagePromptLoading] = useState<boolean>(false);
+
+  // Keyboard shortcuts dialog visibility.
+  const [showShortcuts, setShowShortcuts] = useState<boolean>(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!active) return;
+      const id = data.user?.id ?? null;
+      setUserId(id);
+      const profile = loadVoiceProfile(id);
+      const usable = isVoiceProfileUsable(profile);
+      setVoiceProfileUsable(usable);
+      setVoiceSummary(usable ? (profile?.voiceSummary ?? null) : null);
+      setVoiceNudgeDismissed(isNudgeDismissed());
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // On mount or query change: if ?vibe=<id> present, load that entry as vibe.
   useEffect(() => {
@@ -360,6 +425,41 @@ export default function GeneratePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get("vibe")]);
 
+  // Restore a draft into the form when ?draft=<id> arrives.
+  useEffect(() => {
+    const draftId = searchParams.get("draft");
+    if (!draftId || !userId) return;
+    const entry = getDraftById(userId, draftId);
+    if (!entry) {
+      // Silently strip the param if the id is unknown.
+      const next = new URLSearchParams(searchParams);
+      next.delete("draft");
+      setSearchParams(next, { replace: true });
+      return;
+    }
+    setPillar(entry.pillar as Pillar);
+    setPillarDetail(entry.pillarDetail ?? "");
+    setAudience((entry.audience as Audience) ?? "general");
+    setFormat(entry.format as Format);
+    setPlatform(entry.platform as Platform);
+    setCtaType(entry.ctaType as CtaType);
+    if (entry.hook) setChosenHook(entry.hook);
+    setDraft(entry.draft);
+    setCurrentDraftId(entry.id);
+    setVibeSourceId(entry.vibeSourceId ?? null);
+    toast({
+      title: "Draft restored",
+      description: "Form repopulated. Edit and re-roll, or copy as-is.",
+    });
+    setTimeout(() => {
+      formAnchorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, searchParams.get("draft")]);
+
   const handleClearVibe = () => {
     setStyleReference(null);
     setVibeSourceId(null);
@@ -379,6 +479,31 @@ export default function GeneratePage() {
     [ideaSource],
   );
 
+  // Debounced compliance scan on draft (500ms).
+  const [complianceFlags, setComplianceFlags] = useState<ComplianceFlag[]>([]);
+  useEffect(() => {
+    if (!draft) {
+      setComplianceFlags([]);
+      return;
+    }
+    const t = setTimeout(() => {
+      setComplianceFlags(scanCompliance(draft));
+    }, 500);
+    return () => clearTimeout(t);
+  }, [draft]);
+
+  const visibleFlags = useMemo(
+    () => complianceFlags.filter((f) => !dismissedFlagIds.has(f.id)),
+    [complianceFlags, dismissedFlagIds],
+  );
+  const hasErrors = useMemo(() => hasComplianceErrors(visibleFlags), [visibleFlags]);
+
+  // Counter readout for the draft.
+  const counters: CounterReadout = useMemo(
+    () => readout(draft, platform),
+    [draft, platform],
+  );
+
   const isStreaming = streamingMode !== "idle";
 
   const buildBasePayload = (): BasePayload => ({
@@ -391,6 +516,8 @@ export default function GeneratePage() {
     ctaType,
     styleReference: styleReference ?? undefined,
     audience,
+    voiceSummary: voiceSummary && voiceSummary.trim().length > 0 ? voiceSummary.trim() : undefined,
+    singlish: singlish ? true : undefined,
   });
 
   const stopStreaming = () => {
@@ -606,11 +733,145 @@ export default function GeneratePage() {
     }
   };
 
+  const fetchAuxForDraft = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      const url = `${SUPABASE_URL}/functions/v1/generate-social-content`;
+      const session = (await supabase.auth.getSession()).data.session;
+      const token = session?.access_token ?? SUPABASE_ANON_KEY;
+
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        apikey: SUPABASE_ANON_KEY,
+      };
+      const baseFields = {
+        platform,
+        pillar,
+        pillarDetail: pillarDetail.trim(),
+        audience,
+        format,
+        ctaType,
+        ideaSource: ideaMeta.label,
+        draft: trimmed,
+        voiceSummary: voiceSummary ?? undefined,
+        singlish: singlish ? true : undefined,
+      };
+
+      setHashtagsLoading(true);
+      setImagePromptLoading(true);
+
+      const hashtagsPromise = fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ ...baseFields, mode: "hashtags" }),
+      })
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`hashtags ${r.status}`);
+          return (await r.json()) as { hashtags?: string[]; error?: string };
+        })
+        .then((data) => {
+          if (data?.hashtags && Array.isArray(data.hashtags)) {
+            setHashtags(data.hashtags);
+          }
+        })
+        .catch((err) => {
+          console.error("hashtags fetch failed:", err);
+          toast({
+            title: "Couldn't fetch hashtags",
+            description: "Drafted post is fine; hashtags can be added later.",
+            variant: "destructive",
+          });
+        })
+        .finally(() => setHashtagsLoading(false));
+
+      const imagePromptPromise = fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ ...baseFields, mode: "image-prompt" }),
+      })
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`image-prompt ${r.status}`);
+          return (await r.json()) as { prompt?: string; error?: string };
+        })
+        .then((data) => {
+          if (typeof data?.prompt === "string") {
+            setImagePrompt(data.prompt);
+          }
+        })
+        .catch((err) => {
+          console.error("image-prompt fetch failed:", err);
+          toast({
+            title: "Couldn't fetch image prompt",
+            description: "Drafted post is fine; image prompt can be added later.",
+            variant: "destructive",
+          });
+        })
+        .finally(() => setImagePromptLoading(false));
+
+      await Promise.allSettled([hashtagsPromise, imagePromptPromise]);
+    },
+    [
+      audience,
+      ctaType,
+      format,
+      ideaMeta.label,
+      pillar,
+      pillarDetail,
+      platform,
+      singlish,
+      toast,
+      voiceSummary,
+    ],
+  );
+
+  const persistDraftEntry = useCallback(
+    (text: string, hookText: string) => {
+      if (!userId || !text.trim()) return;
+      const id = currentDraftId ?? newDraftId();
+      const entry: DraftEntry = {
+        id,
+        createdAt: new Date().toISOString(),
+        hook: hookText,
+        draft: text,
+        pillar,
+        pillarDetail: pillarDetail.trim(),
+        audience,
+        format,
+        platform,
+        ctaType,
+        vibeSourceId: vibeSourceId ?? undefined,
+      };
+      upsertDraft(userId, entry);
+      setCurrentDraftId(id);
+    },
+    [
+      audience,
+      ctaType,
+      currentDraftId,
+      format,
+      pillar,
+      pillarDetail,
+      platform,
+      userId,
+      vibeSourceId,
+    ],
+  );
+
   const handlePickVariant = (idx: number) => {
     const v = variants.find((x) => x.index === idx);
     if (!v) return;
     setSelectedVariantIndex(idx);
     setDraft(v.text);
+    setHashtags([]);
+    setImagePrompt("");
+    setDismissedFlagIds(new Set());
+    // Save to history immediately on selection.
+    setCurrentDraftId(null);
+    persistDraftEntry(v.text, chosenHook ?? "");
+    // Fire hashtags + image-prompt in parallel; failures don't block.
+    void fetchAuxForDraft(v.text);
     toast({
       title: "Draft selected",
       description:
@@ -638,6 +899,81 @@ export default function GeneratePage() {
   // Suppress unused import warning - navigate may be needed by future flows.
   void navigate;
 
+  const handleCopyHashtags = async () => {
+    if (hashtags.length === 0) return;
+    const text = hashtags.map((h) => `#${h}`).join(" ");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Hashtags copied", description: text });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Select the text manually and copy.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyImagePrompt = async () => {
+    if (!imagePrompt) return;
+    try {
+      await navigator.clipboard.writeText(imagePrompt);
+      toast({
+        title: "Image prompt copied",
+        description: "Paste into Canva, Midjourney, or kie.ai.",
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Select the text manually and copy.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDismissNudge = () => {
+    dismissNudgeForSession();
+    setVoiceNudgeDismissed(true);
+  };
+
+  const handleDraftBlur = () => {
+    if (!draft.trim()) return;
+    persistDraftEntry(draft, chosenHook ?? "");
+  };
+
+  // Keyboard shortcuts: Cmd/Ctrl+Enter, Cmd/Ctrl+Shift+C, Esc.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key === "Enter") {
+        e.preventDefault();
+        if (!isStreaming) {
+          void handleGenerate();
+        }
+        return;
+      }
+      if (meta && e.shiftKey && (e.key === "C" || e.key === "c")) {
+        e.preventDefault();
+        if (draft) {
+          void handleCopy();
+        }
+        return;
+      }
+      if (e.key === "Escape") {
+        if (showShortcuts) {
+          setShowShortcuts(false);
+          return;
+        }
+        if (styleReference) {
+          handleClearVibe();
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStreaming, draft, showShortcuts, styleReference]);
+
   const generateButtonLabel = (() => {
     if (isStreaming) return hooksFirst ? "Drafting hooks..." : "Drafting variations...";
     if (draft || variants.length > 0 || hookOptions.length > 0) {
@@ -646,8 +982,66 @@ export default function GeneratePage() {
     return hooksFirst ? "Generate 5 hooks" : "Generate 3 variations";
   })();
 
+  const showVoiceNudge =
+    !voiceProfileUsable && !voiceNudgeDismissed && userId !== null;
+
   return (
     <div ref={formAnchorRef} className="space-y-6">
+      {showVoiceNudge && (
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs">
+          <div className="flex items-start gap-2">
+            <Mic className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <div className="space-y-0.5">
+              <p className="font-semibold text-primary">
+                Set your voice (recommended)
+              </p>
+              <p className="text-muted-foreground">
+                Paste 3-5 of your past posts once. Drafts will sound like YOU,
+                not generic AI.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/voice"
+              className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-background px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10"
+            >
+              <Mic className="h-3 w-3" /> Set voice
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDismissNudge}
+              className="h-7 gap-1 text-xs text-muted-foreground"
+            >
+              <XIcon className="h-3 w-3" /> Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {voiceProfileUsable && (
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs">
+          <div className="flex items-start gap-2">
+            <Mic className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+            <div className="space-y-0.5">
+              <p className="font-semibold text-emerald-700 dark:text-emerald-400">
+                Voice profile active
+              </p>
+              <p className="text-muted-foreground">
+                Drafts will be steered toward your tone and structure.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/voice"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+          >
+            Edit voice
+          </Link>
+        </div>
+      )}
+
       {styleReference && (
         <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 p-3 text-xs">
           <div className="flex items-start gap-2">
@@ -765,6 +1159,25 @@ export default function GeneratePage() {
                 </button>
               ))}
             </div>
+            <label
+              className={`mt-1 flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-all ${
+                singlish
+                  ? "border-primary/60 bg-primary/10 text-primary"
+                  : "border-border/70 text-muted-foreground hover:border-primary/40"
+              }`}
+              title="Add light Singlish flavour where it lands naturally."
+            >
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 accent-primary"
+                checked={singlish}
+                onChange={(e) => setSinglish(e.target.checked)}
+              />
+              Light Singlish (SG-native voice)
+              <span className="ml-auto text-[10px] text-muted-foreground">
+                1-3 Singlish moments per post max
+              </span>
+            </label>
           </div>
         </CardContent>
       </Card>
@@ -913,6 +1326,14 @@ export default function GeneratePage() {
             <Wand2 className="h-3.5 w-3.5" />
             Hooks first (recommended)
           </label>
+          <button
+            type="button"
+            onClick={() => setShowShortcuts(true)}
+            title="Keyboard shortcuts"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/70 text-muted-foreground hover:border-primary/40 hover:text-primary"
+          >
+            <Keyboard className="h-3.5 w-3.5" />
+          </button>
           {isStreaming ? (
             <Button
               size="lg"
@@ -1093,9 +1514,17 @@ export default function GeneratePage() {
                 variant="outline"
                 size="sm"
                 onClick={handleCopy}
-                className="gap-1.5"
+                className="relative gap-1.5"
               >
                 <Copy className="h-3.5 w-3.5" /> Copy
+                {hasErrors && (
+                  <span
+                    title="Compliance error flag detected - review before posting"
+                    className="absolute -right-1.5 -top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-destructive bg-destructive text-[10px] font-bold leading-none text-destructive-foreground"
+                  >
+                    !
+                  </span>
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -1112,12 +1541,91 @@ export default function GeneratePage() {
             </div>
           </CardHeader>
           <CardContent>
+            {visibleFlags.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {visibleFlags.map((flag) => {
+                  const isError = flag.severity === "error";
+                  return (
+                    <div
+                      key={flag.id}
+                      className={`flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] ${
+                        isError
+                          ? "border-destructive/50 bg-destructive/10 text-destructive-foreground"
+                          : "border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+                      }`}
+                    >
+                      <AlertTriangle
+                        className={`mt-0.5 h-3 w-3 shrink-0 ${
+                          isError ? "text-destructive" : "text-amber-600"
+                        }`}
+                      />
+                      <div className="space-y-0.5">
+                        <div className="font-semibold uppercase tracking-[0.14em]">
+                          {isError ? "Compliance error" : "Compliance warn"}
+                          <span className="ml-1.5 rounded bg-background/60 px-1 py-0.5 font-mono text-[10px] normal-case tracking-normal">
+                            {flag.match}
+                          </span>
+                        </div>
+                        <div className="text-[11px] leading-snug">{flag.message}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDismissedFlagIds((prev) => {
+                            const next = new Set(prev);
+                            next.add(flag.id);
+                            return next;
+                          })
+                        }
+                        className="ml-1 rounded hover:bg-background/40"
+                        aria-label="Dismiss flag"
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             <Textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onBlur={handleDraftBlur}
               rows={Math.min(28, Math.max(10, draft.split("\n").length + 2))}
               className="font-mono text-sm leading-relaxed"
             />
+
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">
+                Words: {counters.words}
+              </span>
+              <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">
+                Chars: {counters.chars}
+              </span>
+              <span
+                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${
+                  counters.status === "good"
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                    : counters.status === "warn"
+                      ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                      : "border-destructive/50 bg-destructive/10 text-destructive"
+                }`}
+              >
+                {counters.status === "good" ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <AlertTriangle className="h-3 w-3" />
+                )}
+                {counters.message}
+              </span>
+              {counters.firstNote && (
+                <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-muted-foreground">
+                  {counters.firstNote}
+                </span>
+              )}
+            </div>
+
             <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
               <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>
@@ -1126,8 +1634,123 @@ export default function GeneratePage() {
                 rewrite that part.
               </span>
             </div>
+
+            {(hashtags.length > 0 || hashtagsLoading) && (
+              <div className="mt-4 rounded-xl border border-border/60 bg-muted/20 p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <Hash className="h-3.5 w-3.5" /> Hashtags
+                  </div>
+                  {hashtags.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleCopyHashtags}
+                      className="h-7 gap-1 text-xs"
+                    >
+                      <Copy className="h-3 w-3" /> Copy all
+                    </Button>
+                  )}
+                </div>
+                {hashtagsLoading && hashtags.length === 0 ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Generating...
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {hashtags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-border/60 bg-background px-2 py-0.5 font-mono text-[11px] text-foreground"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(imagePrompt || imagePromptLoading) && (
+              <div className="mt-3 rounded-xl border border-border/60 bg-muted/20 p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <ImageWandIcon className="h-3.5 w-3.5" /> Image prompt
+                  </div>
+                  {imagePrompt && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleCopyImagePrompt}
+                      className="h-7 gap-1 text-xs"
+                    >
+                      <Copy className="h-3 w-3" /> Copy
+                    </Button>
+                  )}
+                </div>
+                {imagePromptLoading && !imagePrompt ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Generating...
+                  </div>
+                ) : (
+                  <p className="text-xs leading-relaxed text-foreground">
+                    {imagePrompt}
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
+      )}
+
+      {showShortcuts && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+          onClick={() => setShowShortcuts(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border border-border/70 bg-background p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-serif text-lg font-semibold">
+                Keyboard shortcuts
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowShortcuts(false)}
+                className="rounded p-1 hover:bg-muted"
+                aria-label="Close shortcuts"
+              >
+                <XIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Generate</span>
+                <kbd className="rounded border border-border/70 bg-muted/40 px-2 py-0.5 font-mono text-xs">
+                  Cmd / Ctrl + Enter
+                </kbd>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Copy current draft</span>
+                <kbd className="rounded border border-border/70 bg-muted/40 px-2 py-0.5 font-mono text-xs">
+                  Cmd / Ctrl + Shift + C
+                </kbd>
+              </li>
+              <li className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">
+                  Clear vibe / close dialog
+                </span>
+                <kbd className="rounded border border-border/70 bg-muted/40 px-2 py-0.5 font-mono text-xs">
+                  Esc
+                </kbd>
+              </li>
+            </ul>
+          </div>
+        </div>
       )}
 
       {isStreaming && (

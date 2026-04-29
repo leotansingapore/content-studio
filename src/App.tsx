@@ -9,6 +9,8 @@ import InspirationPage from "@/pages/InspirationPage";
 import InspirationDetailPage from "@/pages/InspirationDetailPage";
 import ProfilesPage from "@/pages/ProfilesPage";
 import ProfileDetailPage from "@/pages/ProfileDetailPage";
+import VoicePage from "@/pages/VoicePage";
+import DraftsPage from "@/pages/DraftsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 export default function App() {
@@ -29,6 +31,8 @@ export default function App() {
           <Route path="/inspiration/:id" element={<InspirationDetailPage />} />
           <Route path="/profiles" element={<ProfilesPage />} />
           <Route path="/profiles/:id" element={<ProfileDetailPage />} />
+          <Route path="/voice" element={<VoicePage />} />
+          <Route path="/drafts" element={<DraftsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
