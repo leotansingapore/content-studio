@@ -64,3 +64,44 @@ Set env vars in Vercel:
 ## Source
 
 Lifted from `~/Documents/New project/aia-product-compass-hub/src/pages/ContentStudio.tsx` and the shadcn primitives it imports (Card, Button, Label, Textarea, RadioGroup, Select, Toast).
+
+## Inspiration data
+
+The Inspiration tab in the studio shows curated FC content examples. New FCs use these as starting vibes by clicking "Use as vibe", which pre-fills the generation form with that example's pillar, audience, topic, platform, and adds a hidden style reference into the generation prompt.
+
+### Where the data lives
+
+`src/data/inspiration.json` - a flat array of 50 curated entries pulled from Leo's brand corpus (Obsidian vault), the AIA scripts academy library, and pattern-derived posts based on the script-academy synthesis taxonomy.
+
+### Entry shape
+
+```json
+{
+  "id": "linkedin-cpf-myth-young-adult-001",
+  "platform": "linkedin | instagram | facebook",
+  "format": "text-only | carousel | short-video",
+  "pillar": "Authority | Social | Tip | Hook | CTA",
+  "audience": "young-adult | working-adult | pre-retiree | parent | general",
+  "topic": "free-form short topic, e.g. CPF SA top-up at 32",
+  "hook": "first 1-2 lines that stop the scroll",
+  "content": "full post body, ASCII only, no em dashes or smart quotes",
+  "why_it_works": "one-sentence structural reason it performs",
+  "source": "leo-brand-corpus | scripts-academy | competitor-scrape | pattern-derived",
+  "tags": ["cpf", "young-adult", "myth-busting"]
+}
+```
+
+### How to add new entries
+
+Just append to the JSON array. Constraints:
+
+- ASCII only. No em dashes, smart quotes, or other Unicode special characters.
+- Strip writer-tic phrases ("in plain English", "at a glance").
+- No external-guru name-drops (Hormozi, Jeb Blount, etc.).
+- Keep AIA product names. No HOLOS / MoneyBees / trainer brand refs.
+- Every field must have a real value (no nulls, no empty strings).
+- `id` must be unique and kebab-case.
+
+### v1 vs the road ahead
+
+This is a curated v1. The future plan is to cron-scrape Leo's high-performing posts plus competitor accounts (Wilfred Wong, Bryan Ching, Daniel Heng, etc.) via Apify Instagram + LinkedIn scrapers, run them through Claude for taxonomy classification, and append to this file as a nightly job. For now, manually appended entries are the source of truth.

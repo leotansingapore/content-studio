@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -39,7 +39,13 @@ import {
   MessageSquare,
   HelpCircle,
   LogOut,
+  Lightbulb,
+  Pencil,
+  X as XIcon,
 } from "lucide-react";
+import Inspiration, {
+  type InspirationEntry,
+} from "@/components/Inspiration";
 
 type Pillar = "interest" | "identity" | "topic" | "market";
 type Format = "carousel" | "short-video" | "text-post" | "story";
@@ -205,9 +211,41 @@ const CTAS: { value: CtaType; label: string; sub: string }[] = [
   },
 ];
 
+type TabValue = "generate" | "inspiration";
+
+const PILLAR_FROM_INSPIRATION: Record<
+  InspirationEntry["pillar"],
+  Pillar
+> = {
+  Authority: "topic",
+  Tip: "topic",
+  Hook: "topic",
+  CTA: "topic",
+  Social: "identity",
+};
+
+const FORMAT_FROM_INSPIRATION: Record<
+  InspirationEntry["format"],
+  Format
+> = {
+  "text-only": "text-post",
+  carousel: "carousel",
+  "short-video": "short-video",
+};
+
+const PLATFORM_FROM_INSPIRATION: Record<
+  InspirationEntry["platform"],
+  Platform
+> = {
+  linkedin: "linkedin",
+  instagram: "instagram",
+  facebook: "facebook",
+};
+
 export default function Studio() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [tab, setTab] = useState<TabValue>("generate");
   const [pillar, setPillar] = useState<Pillar>("topic");
   const [pillarDetail, setPillarDetail] = useState("");
   const [ideaSource, setIdeaSource] = useState<string>("real-question");
@@ -217,6 +255,43 @@ export default function Studio() {
   const [ctaType, setCtaType] = useState<CtaType>("dm-keyword");
   const [draft, setDraft] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [styleReference, setStyleReference] = useState<string | null>(null);
+  const [vibeSourceId, setVibeSourceId] = useState<string | null>(null);
+  const formAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  const handleUseAsVibe = (entry: InspirationEntry) => {
+    setPillar(PILLAR_FROM_INSPIRATION[entry.pillar]);
+    setPillarDetail(entry.topic);
+    setFormat(FORMAT_FROM_INSPIRATION[entry.format]);
+    setPlatform(PLATFORM_FROM_INSPIRATION[entry.platform]);
+    const snippet = entry.content.slice(0, 100).trim();
+    const reference = `Match the structural pattern of this example: ${entry.hook} | ${snippet}`;
+    setStyleReference(reference);
+    setVibeSourceId(entry.id);
+    setIdeaContext(
+      (prev) =>
+        prev && prev.trim().length > 0
+          ? prev
+          : `Style reference (do not copy verbatim, match the pattern): ${entry.hook}`,
+    );
+    setTab("generate");
+    toast({
+      title: "Vibe loaded",
+      description:
+        "Form pre-filled. Add your own context and generate when ready.",
+    });
+    setTimeout(() => {
+      formAnchorRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
+  };
+
+  const handleClearVibe = () => {
+    setStyleReference(null);
+    setVibeSourceId(null);
+  };
 
   const pillarMeta = useMemo(
     () => PILLARS.find((p) => p.value === pillar)!,
@@ -249,6 +324,7 @@ export default function Studio() {
             format,
             platform,
             ctaType,
+            styleReference: styleReference ?? undefined,
           },
         },
       );
@@ -328,7 +404,65 @@ export default function Studio() {
           </p>
         </header>
 
-        <Card className="border-border/60 shadow-card">
+        <div className="inline-flex rounded-xl border border-border/60 bg-muted/30 p-1">
+          <button
+            type="button"
+            onClick={() => setTab("generate")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              tab === "generate"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Pencil className="h-3.5 w-3.5" /> Generate
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("inspiration")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              tab === "inspiration"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Lightbulb className="h-3.5 w-3.5" /> Inspiration
+          </button>
+        </div>
+
+        {tab === "inspiration" ? (
+          <Inspiration onUseAsVibe={handleUseAsVibe} />
+        ) : (
+          <div ref={formAnchorRef} className="space-y-6">
+            {styleReference && (
+              <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 p-3 text-xs">
+                <div className="flex items-start gap-2">
+                  <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-foreground" />
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-accent-foreground">
+                      Vibe locked in
+                    </p>
+                    <p className="text-muted-foreground">
+                      The generator will match this example's pattern. Edit your
+                      pillar / context below if you want to steer it.
+                    </p>
+                    {vibeSourceId && (
+                      <p className="font-mono text-[10px] text-muted-foreground/80">
+                        ref: {vibeSourceId}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearVibe}
+                  className="h-7 gap-1 text-xs text-muted-foreground"
+                >
+                  <XIcon className="h-3 w-3" /> Clear vibe
+                </Button>
+              </div>
+            )}
+            <Card className="border-border/60 shadow-card">
           <CardHeader>
             <CardTitle className="font-serif text-xl">
               1. Pick your pillar
@@ -586,6 +720,8 @@ export default function Studio() {
               </div>
             </CardContent>
           </Card>
+        )}
+          </div>
         )}
       </main>
     </div>
