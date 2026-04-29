@@ -34,8 +34,25 @@ export type InspirationEntry = {
   content: string;
   why_it_works: string;
   source: string;
+  curriculum_anchor: string;
   tags: string[];
 };
+
+function formatCurriculumAnchor(anchor: string): string {
+  return anchor
+    .split(":")
+    .map((part) =>
+      part
+        .split("-")
+        .map((word) =>
+          word.length > 0
+            ? word[0].toUpperCase() + word.slice(1).toLowerCase()
+            : word,
+        )
+        .join(" "),
+    )
+    .join(" - ");
+}
 
 const ENTRIES = inspirationData as InspirationEntry[];
 
@@ -150,6 +167,9 @@ function InspirationCard({
           <PillarBadge pillar={entry.pillar} />
           <AudienceBadge audience={entry.audience} />
         </div>
+        <p className="text-[10px] font-medium text-muted-foreground/80">
+          Pattern: {formatCurriculumAnchor(entry.curriculum_anchor)}
+        </p>
         <CardTitle className="font-serif text-base font-semibold leading-snug">
           {entry.hook}
         </CardTitle>

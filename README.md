@@ -69,9 +69,15 @@ Lifted from `~/Documents/New project/aia-product-compass-hub/src/pages/ContentSt
 
 The Inspiration tab in the studio shows curated FC content examples. New FCs use these as starting vibes by clicking "Use as vibe", which pre-fills the generation form with that example's pillar, audience, topic, platform, and adds a hidden style reference into the generation prompt.
 
+Every example is a **team-generic template**. Any AIA financial consultant on the team should be able to read an entry and think "I could write a version of this about my own life, my own clients, my own voice." No biographical content from any single FC's personal brand. Personalisation comes from generic-yet-specific scenarios (e.g. "a 27-year-old asked me whether topping up SA was worth it") that any FC can adapt.
+
+### Curriculum grounding
+
+Every entry maps to a specific concept from the First 60 Days Digital Influence module (Days 40, 41, 42) via the `curriculum_anchor` field. This way, an FC reading an example also sees the framework it instantiates ("Day 41 Idea Mine - Client Question", "Day 42 Pillar - Identity", "Day 42 Authority Post Structure", etc.).
+
 ### Where the data lives
 
-`src/data/inspiration.json` - a flat array of 50 curated entries pulled from Leo's brand corpus (Obsidian vault), the AIA scripts academy library, and pattern-derived posts based on the script-academy synthesis taxonomy.
+`src/data/inspiration.json` - a flat array of 50 curated entries grounded in the Day 40/41/42 frameworks and the scripts academy taxonomy.
 
 ### Entry shape
 
@@ -86,22 +92,50 @@ The Inspiration tab in the studio shows curated FC content examples. New FCs use
   "hook": "first 1-2 lines that stop the scroll",
   "content": "full post body, ASCII only, no em dashes or smart quotes",
   "why_it_works": "one-sentence structural reason it performs",
-  "source": "leo-brand-corpus | scripts-academy | competitor-scrape | pattern-derived",
+  "source": "scripts-academy | curriculum-derived | pattern-derived",
+  "curriculum_anchor": "day-41:idea-mine:client-question",
   "tags": ["cpf", "young-adult", "myth-busting"]
 }
 ```
+
+### Source values
+
+- `scripts-academy` - structurally aligned to a pattern in the AIA scripts academy library.
+- `curriculum-derived` - structured directly from a Day 40 / 41 / 42 framework.
+- `pattern-derived` - net-new pattern not specifically tied to a curriculum day.
+
+### Curriculum anchor values
+
+Use the named sections from Days 40/41/42. Examples:
+
+- `day-40:reconnection-move`
+- `day-40:two-prong:authority`
+- `day-40:two-prong:social`
+- `day-41:idea-mine:client-question`
+- `day-41:idea-mine:common-mistake`
+- `day-41:idea-mine:trending-news`
+- `day-41:idea-mine:behind-the-scenes`
+- `day-41:authority-social-cta-structure`
+- `day-41:engagement:dm-to-meeting`
+- `day-42:pillar:interest`
+- `day-42:pillar:identity`
+- `day-42:pillar:topic`
+- `day-42:pillar:market`
+- `day-42:authority-post-structure`
 
 ### How to add new entries
 
 Just append to the JSON array. Constraints:
 
 - ASCII only. No em dashes, smart quotes, or other Unicode special characters.
+- Team-generic. No FC-specific biographical anchors (e.g. specific schools, employers, named life events). Personalisation comes from realistic, generic-yet-specific scenarios.
 - Strip writer-tic phrases ("in plain English", "at a glance").
-- No external-guru name-drops (Hormozi, Jeb Blount, etc.).
+- No external-guru name-drops.
 - Keep AIA product names. No HOLOS / MoneyBees / trainer brand refs.
 - Every field must have a real value (no nulls, no empty strings).
 - `id` must be unique and kebab-case.
+- `curriculum_anchor` must reference an actual Day 40/41/42 section.
 
 ### v1 vs the road ahead
 
-This is a curated v1. The future plan is to cron-scrape Leo's high-performing posts plus competitor accounts (Wilfred Wong, Bryan Ching, Daniel Heng, etc.) via Apify Instagram + LinkedIn scrapers, run them through Claude for taxonomy classification, and append to this file as a nightly job. For now, manually appended entries are the source of truth.
+This is a curated v1. The future plan is to cron-scrape FC and competitor accounts via Apify Instagram + LinkedIn scrapers, run them through Claude for taxonomy classification (including curriculum anchor mapping), and append to this file as a nightly job. For now, manually appended entries are the source of truth.

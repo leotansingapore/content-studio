@@ -10,20 +10,22 @@
     "content": "A client asked me last week: My SA is only $20K at 32. Is that bad?\n\nMy honest answer: Yes and no.\n\nYes, because compound interest needs time. Every $1K you skip topping up at 32 is roughly $4K you don't have at 65 at SA's 4 percent floor.\n\nNo, because most 32-year-olds I meet have $0 in voluntary top-ups. You are already ahead of the average.\n\nThe fix is not panic. The fix is a $200/month standing instruction into SA RSTU until you hit the FRS. Two cups of bubble tea a week.\n\nDM me CPF and I will send you the exact RSTU calculator I use with clients.",
     "why_it_works": "Real client question as the hook + specific numbers + reframe + tiny next step + soft DM CTA.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-41:idea-mine:client-question",
     "tags": ["cpf", "young-adult", "myth-busting", "authority"]
   },
   {
-    "id": "linkedin-fc-life-vulnerability-002",
+    "id": "linkedin-introvert-fc-002",
     "platform": "linkedin",
     "format": "text-only",
     "pillar": "Social",
     "audience": "general",
-    "topic": "FC life behind the scenes",
-    "hook": "I had a stammer growing up.",
-    "content": "I had a stammer growing up.\n\nFor years I thought that disqualified me from ever doing sales. Sales was for the loud guy at the front of the room.\n\nThen I joined AIA and met my first client. Quiet, anxious, never met an FA before. He said: I am glad you are not the kind that talks over me.\n\nThat day I realised the best advisors are not the loudest. They are the ones who shut up first.\n\nIf you are an introvert wondering whether this industry is for you, hear me out: listening is the unfair advantage. Closing 1000+ clients later, I still talk less than half the meeting.\n\nWhat is the one trait you thought disqualified you that turned out to be your edge?",
-    "why_it_works": "Vulnerable confession + reframe of perceived weakness as strength + open question CTA invites comments.",
-    "source": "leo-brand-corpus",
-    "tags": ["fc-life", "vulnerability", "introvert", "career-switch"]
+    "topic": "introvert advantage in FC work",
+    "hook": "I used to think I was too quiet to ever do this job.",
+    "content": "I used to think I was too quiet to ever do this job.\n\nFinancial advisory, in my head, was for the loud guy at the front of the room. The networker. The natural closer.\n\nThen I sat across from my first real client. He was anxious. Defensive. Visibly bracing for a pitch.\n\nFifteen minutes in he said: I am glad you are not the kind that talks over me.\n\nThat was the day I realised the best advisors are not the loudest. They are the ones who shut up first. Who ask the second question, and then the third, before opening a brochure.\n\nIf you are an introvert wondering whether this work is for you, hear me out: listening is the unfair advantage. Most clients I meet say their previous advisor never let them finish a sentence.\n\nWhat is the one trait you thought disqualified you that turned out to be your edge?",
+    "why_it_works": "Vulnerable identity confession + reframe of perceived weakness + open question CTA invites comments.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:identity",
+    "tags": ["fc-life", "identity", "introvert", "social"]
   },
   {
     "id": "linkedin-protection-tip-working-adult-003",
@@ -36,6 +38,7 @@
     "content": "Your company group insurance is not enough. Here is the math.\n\nMost group plans cover 12 to 24 months of salary on death. If you earn $6K/month, that is roughly $72K to $144K of coverage.\n\nNow the gap: a 35-year-old with a kid and a mortgage typically needs 10x annual income in protection. That is $720K. Your group plan covers 10 to 20 percent of what you actually need.\n\nWorse: when you leave the company, the cover is gone. You re-apply at 45 with a cholesterol flag and the premium triples. Or you cannot get cover at all.\n\nThe fix is simple: buy your own term plan while you are healthy and young. Pay it off by 65. Sleep at night.\n\nSave this if you are still relying on group cover only.",
     "why_it_works": "Concrete numbers + cost-of-delay + named life-stage + save CTA. Authority pillar with a specific frame.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-41:idea-mine:common-mistake",
     "tags": ["protection", "term-life", "employer-insurance", "working-adult"]
   },
   {
@@ -44,11 +47,12 @@
     "format": "text-only",
     "pillar": "Authority",
     "audience": "young-adult",
-    "topic": "career switch to FA",
-    "hook": "Why I left engineering for financial advisory at 22.",
-    "content": "Why I left engineering for financial advisory at 22.\n\nI was on the Global Engineering Programme at NUS. Top scholarship. Six-figure starting salary path. Every parent's dream.\n\nThen I did the math no one tells you to do.\n\nAs a salaried engineer: $40 per hour, capped at maybe $80 per hour by year 10. Trade your hours for money. Always.\n\nAs an FA running a system: $750 per hour blended, by year 3. Build once. Earn forever.\n\nThe twist: the FA path is not a sales job. It is a $0-cost franchise. AIA hands you the brand, the products, the digital app, the back office. You bring the discipline.\n\nI hit $145K in my first year as a uni Y1, part-time, 99 percent cold market. No magic. Just the system.\n\nIf you are a final-year student looking at the corporate path, ask yourself: do I want to trade my next 40 years for hours, or for outcomes?\n\nDM me FRANCHISE if you want to see the actual numbers I ran in 2017.",
-    "why_it_works": "Specific origin story + math comparison + reframe (franchise not sales) + concrete proof + DM CTA.",
-    "source": "leo-brand-corpus",
+    "topic": "career switch math",
+    "hook": "A friend asked me at lunch last week: should I leave my corporate job to do what you do?",
+    "content": "A friend asked me at lunch last week: should I leave my corporate job to do what you do?\n\nI did not pitch. I asked one question back: what is your hourly rate, fully loaded, today?\n\nHe paused. Did the math. Salary plus bonus, divided by hours actually worked. Around $35 per hour.\n\nWe ran the same calc on the FC path. Year 1 to 3 it can be lower. By year 4 to 5, for a consultant running a clean system, it is multiples higher because the income is per outcome, not per hour.\n\nThe twist most people miss: financial advisory is not really a sales job. It is closer to a $0-cost franchise. The brand, the products, the digital tools, the back-office, the training, the mentorship structure are already built. You bring the discipline and the activity.\n\nI am not saying everyone should switch. Most people should not. But if you have ever felt the ceiling of trading hours for money, the conversation is worth one lunch.\n\nDM me NUMBERS if you want to see the simple spreadsheet I run with friends who are seriously considering.",
+    "why_it_works": "Friend-question opener + comparison math + reframe (franchise not sales) + de-selling close + DM CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:client-question",
     "tags": ["recruitment", "career-switch", "young-adult", "authority"]
   },
   {
@@ -62,20 +66,22 @@
     "content": "At 55, the most expensive mistake is choosing CPF Life Standard without doing the math.\n\nThree options. Same name on the form. Very different lifetime payouts.\n\nStandard: highest monthly income, lowest bequest. Best if you are healthy and have other estate plans.\n\nBasic: lower monthly income, larger bequest. Best if leaving money to kids matters more than monthly cash flow.\n\nEscalating: starts lower, grows 2 percent yearly. Best if you are worried about inflation eating your purchasing power past 75.\n\nMost people I meet just tick Standard because it is the default. They never run the breakeven against their actual life expectancy and family situation.\n\nIf you are turning 55 in the next 24 months, do this: get a personalised CPF Life projection from the CPF Board, then sit with an FA who can show you the bequest and inflation impact in numbers.\n\nDM me LIFE for the comparison sheet I use with my pre-retirement clients.",
     "why_it_works": "Specific decision point + 3 clear options + cost-of-default framing + tactical next step.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-42:pillar:topic",
     "tags": ["cpf-life", "retirement", "pre-retiree", "authority"]
   },
   {
-    "id": "linkedin-myth-bust-young-adult-006",
+    "id": "linkedin-money-myth-young-adult-006",
     "platform": "linkedin",
     "format": "text-only",
     "pillar": "Hook",
     "audience": "young-adult",
-    "topic": "money myths",
-    "hook": "The richest 1 percent are not smarter than you. They just rejected one specific path.",
-    "content": "The richest 1 percent are not smarter than you. They just rejected one specific path.\n\nGood grades. Good job. Good salary. The script we were handed.\n\nHere is the inconvenient truth: the system was designed to produce reliable workers, not wealthy owners.\n\nIf everyone became rich, who would do the work?\n\nThe top 1 percent are mostly business owners. They control 90 percent of global wealth. They got there by stepping off the conveyor belt early.\n\nTwo paths from here:\n\nStay on the belt. Trade time for money. Hit the ceiling around year 15.\n\nOr step off. Build something that earns while you sleep. Take 5 years of friction for 30 years of compounding.\n\nNot saying the first path is wrong. Just saying it is a choice. Most people do not realise they are choosing.\n\nWhich path are you on, and is it on purpose?",
-    "why_it_works": "Contrarian hook + status threat + binary choice + question close. Pure attention pillar.",
-    "source": "leo-brand-corpus",
-    "tags": ["mindset", "wealth", "career", "contrarian"]
+    "topic": "money myths young adults believe",
+    "hook": "3 money beliefs I had at 23 that cost me real money.",
+    "content": "3 money beliefs I had at 23 that cost me real money.\n\n1. I will start investing when I have more.\n\nThe number that lets you start never arrives. $100 a month from 23 to 35 beats $500 a month from 35 to 45 in compounded outcome. The runway, not the size, is the variable.\n\n2. CPF is just government money I cannot touch.\n\nUntil I learned SA at 4 percent guaranteed is a fixed-income return I would not get anywhere else with that risk profile. Treating CPF as part of your portfolio, not separate from it, changes how aggressive you can afford to be on the cash side.\n\n3. Insurance is for older people.\n\nThe cheapest CI premium you will ever see is the one quoted at age 25. Wait until 35 and the same plan is 60 percent more expensive, often with exclusions if any health flag has appeared.\n\nNone of these are flashy. All of them compound for 30 years.\n\nIf you are early in your career, screenshot this and check which one you still quietly believe.",
+    "why_it_works": "Listicle hook + age-specific reflection + each myth specific and tactical + screenshot CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:common-mistake",
+    "tags": ["mindset", "money-myths", "young-adult", "hook"]
   },
   {
     "id": "instagram-cpf-carousel-young-adult-007",
@@ -88,20 +94,22 @@
     "content": "Slide 1: What your CPF should look like at 25, 30, 35. Save this before tax season.\n\nSlide 2: At 25 - OA $30K to $50K, SA $15K to $25K, MA hitting BHS soon. If you are below this, you are likely under-contributing.\n\nSlide 3: At 30 - OA $80K to $130K, SA $40K to $70K. SA at 4 percent is your retirement workhorse.\n\nSlide 4: At 35 - OA $160K to $250K, SA $90K to $140K. If SA is below $90K, RSTU now while you can claim tax relief.\n\nSlide 5: The compounding gap - $10K extra in SA at 30 becomes $33K at 65. Skipping it is not nothing. It is $23K of free money.\n\nSlide 6: Action - 1) check your statement, 2) compare to these benchmarks, 3) set a recurring RSTU even if just $100/month, 4) revisit yearly.\n\nSlide 7: DM me CPF and I will send you the personal CPF projection sheet I use with clients. Not a sales pitch, just the spreadsheet.",
     "why_it_works": "Listicle format + specific number ranges + age-based hook + soft DM CTA. Carousels save well.",
     "source": "pattern-derived",
+    "curriculum_anchor": "day-42:authority-post-structure",
     "tags": ["cpf", "young-adult", "carousel", "authority"]
   },
   {
-    "id": "instagram-fc-vulnerability-008",
+    "id": "instagram-rejection-fc-008",
     "platform": "instagram",
     "format": "text-only",
     "pillar": "Social",
     "audience": "general",
-    "topic": "rejection in sales",
+    "topic": "rejection in financial advisory",
     "hook": "Every no used to feel like a slap.",
-    "content": "Every no used to feel like a slap.\n\nLike proof I was not good enough.\n\nThat sting is what keeps 95 percent of advisors small.\n\nThen I learned one shift: a no is not a verdict on you. It is data. A piece of information you did not have before.\n\nNow when a prospect says no I ask: what would have to change for this to be a yes? Sometimes they tell me. Sometimes I get the next client referred from them three months later. Sometimes I just close the loop and move on.\n\nThe real failure is not the no. It is letting the no decide whether you make the next call.\n\nIf you are in a rejection slump right now, screenshot this and send the next message anyway.",
+    "content": "Every no used to feel like a slap.\n\nLike proof I was not good enough.\n\nThat sting is what keeps most new advisors small.\n\nThen I learned one shift: a no is not a verdict on you. It is data. A piece of information you did not have before.\n\nNow when a prospect says no I ask: what would have to change for this to be a yes? Sometimes they tell me. Sometimes I get the next client referred from them three months later. Sometimes I just close the loop and move on.\n\nThe real failure is not the no. It is letting the no decide whether you make the next call.\n\nIf you are in a rejection slump right now, screenshot this and send the next message anyway.",
     "why_it_works": "Vulnerable confession + reframe + specific tactical line + tiny action CTA.",
-    "source": "leo-brand-corpus",
-    "tags": ["mindset", "rejection", "fc-life", "vulnerability"]
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
+    "tags": ["mindset", "rejection", "fc-life", "social"]
   },
   {
     "id": "linkedin-systems-recruit-009",
@@ -109,11 +117,12 @@
     "format": "text-only",
     "pillar": "Authority",
     "audience": "general",
-    "topic": "systems vs hustle",
-    "hook": "Most advisors do not have a lead problem. They have a leaky bucket.",
-    "content": "Most advisors do not have a lead problem. They have a leaky bucket.\n\nYou run ads. Network. Cold call. You pour everything into getting more leads.\n\nMeanwhile every lead that comes in leaks out: no follow-up sequence, inconsistent messaging, no nurture, no calendar workflow.\n\nThe fix is not more leads. It is plugging the holes.\n\nMy own numbers shifted when I stopped chasing volume:\n\nBefore systems: 100 leads, 3 clients\n\nAfter systems: 30 leads, 12 clients\n\nSame effort. Less volume. Better retention.\n\nThe advisors who look unstoppable are not superhuman. They just plugged the leaks while everyone else was still pouring water in.\n\nWhich of your leaks costs you the most: follow-up, nurture, or qualification?",
-    "why_it_works": "Strong metaphor (leaky bucket) + concrete before/after numbers + diagnostic question close.",
-    "source": "leo-brand-corpus",
+    "topic": "lead system vs lead volume",
+    "hook": "Most advisors do not have a lead problem. They have a follow-through problem.",
+    "content": "Most advisors do not have a lead problem. They have a follow-through problem.\n\nYou run ads. You network. You prospect. You pour effort into getting more leads.\n\nMeanwhile every lead that comes in falls out somewhere: no follow-up sequence, inconsistent messaging, no nurture, no calendar workflow.\n\nThe fix is rarely more leads. It is plugging the holes in the system you already have.\n\nA simple test: take your last 30 days of inbound DMs and ad leads. How many got a reply within 24 hours? How many got a second touchpoint after the first reply? How many got a third?\n\nIf those three numbers drop sharply, your conversion problem is not at the top of the funnel. It is in the middle.\n\nThe advisors who look unstoppable are not superhuman. They just plugged the leaks while everyone else was still pouring water in.\n\nWhich of your three numbers drops the most: first reply, second touch, or third?",
+    "why_it_works": "Reframe + diagnostic test + concrete metric breakdown + question close.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:engagement:dm-to-meeting",
     "tags": ["systems", "recruitment", "lead-gen", "authority"]
   },
   {
@@ -127,6 +136,7 @@
     "content": "The cheapest CI plan you can buy is the one for your kid before they turn 1.\n\nMost parents I meet think CI cover for kids is unnecessary. Kids are healthy. Why pay?\n\nHere is what changes the math:\n\n1. Premiums for a 6-month-old are roughly 30 to 40 percent of the same plan at age 25. Lock in young, lock in cheap.\n\n2. Once a child has any chronic flag (asthma, allergies, eczema documented), the premium loads or the plan excludes that condition. By primary 1 it is often too late for clean cover.\n\n3. The plan transfers to your child as an asset at adulthood. Day one of working life they already have lifetime CI cover, paid up.\n\nThis is not about expecting your kid to fall sick. It is about giving them a financial head start you cannot give them later.\n\nIf your child is under 2, this is a 10-minute conversation worth having before their next medical check-up.\n\nMessage me CHILD if you want the comparison between the three main child CI plans.",
     "why_it_works": "Counter-intuitive claim + numbered reasoning + life-stage urgency + soft DM CTA.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-42:pillar:market",
     "tags": ["critical-illness", "parent", "child-cover", "authority"]
   },
   {
@@ -140,20 +150,22 @@
     "content": "Your first paycheck is the most leveraged dollar you will ever earn.\n\nNot because it is the biggest. It is the smallest. But it has the longest runway.\n\nMy default split for a 23-year-old earning $3.5K take-home:\n\n50 percent essentials and rent. Boring but necessary.\n\n20 percent SRS top-up. Tax-deductible. Compounds tax-free until 62.\n\n10 percent term and CI premium. Lock in cheap rates while you are healthy.\n\n10 percent investing. ETF or savings plan, automatic.\n\n10 percent guilt-free spending. Burnout is more expensive than discipline.\n\nThe goal is not to feel poor. It is to set the system once so you stop deciding every month.\n\nSave this. The dollar you allocate at 23 is worth roughly 6x the dollar you allocate at 45.",
     "why_it_works": "Specific allocation framework + named reasoning per bucket + save CTA + compounding hook close.",
     "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
     "tags": ["budgeting", "young-adult", "first-salary", "tip"]
   },
   {
-    "id": "instagram-hook-mindset-012",
+    "id": "instagram-cpf-question-young-adult-012",
     "platform": "instagram",
     "format": "text-only",
     "pillar": "Hook",
-    "audience": "general",
-    "topic": "mindset",
-    "hook": "Done beats perfect. Because perfect never ships.",
-    "content": "Done beats perfect. Because perfect never ships.\n\nTwo founders. Same idea. One launches in 2 weeks. One is still planning after 3 months.\n\nGuess who owns the market.\n\nMost people are not slow because they need to be. They are scared. Overthinking. Waiting for the right moment.\n\nMeanwhile your competitor shipped something ugly 3 weeks ago. And they are winning.\n\nWhat are you launching this week? Comment it. Make it real.",
-    "why_it_works": "Short punchy hook + specific scenario + comment CTA. Pure attention with comment-bait.",
-    "source": "leo-brand-corpus",
-    "tags": ["mindset", "speed", "execution", "hook"]
+    "audience": "young-adult",
+    "topic": "CPF SA vs cash savings",
+    "hook": "A 26-year-old DM'd me: should I top up CPF SA, or just keep the money in a savings account?",
+    "content": "A 26-year-old DM'd me: should I top up CPF SA, or just keep the money in a savings account?\n\nI asked her two questions back.\n\nFirst: when do you actually need this money?\n\nIf the answer is in the next 5 years (BTO down payment, wedding, parents), keep it liquid. SA is locked until 55.\n\nIf the answer is retirement, the math is not close. SA at 4 percent floor versus a savings account at 2 to 3 percent, compounded across 30+ years, ends up roughly $40K to $80K apart on a single $8K top-up at 26.\n\nSecond question: what tax bracket are you in?\n\nA $7K RSTU at the 11.5 percent bracket saves you $805 in tax this year. Plus the 4 percent compound. Plus the bequest treatment in CPF.\n\nMy reply was not buy something. It was: write your goal first, then the vehicle picks itself.\n\nIf you have the same question sitting in your drafts, comment GOAL and I will send you the 3-question worksheet I use with clients before any top-up decision.",
+    "why_it_works": "Real DM as the hook + diagnostic questions back + concrete numbers + worksheet CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:client-question",
+    "tags": ["cpf", "young-adult", "savings", "hook"]
   },
   {
     "id": "linkedin-cta-recruit-013",
@@ -163,9 +175,10 @@
     "audience": "young-adult",
     "topic": "recruitment intake",
     "hook": "We open the next FC intake in 6 weeks. Here is who I am looking for.",
-    "content": "We open the next FC intake in 6 weeks. Here is who I am looking for.\n\nNot polished. Not extroverted. Not from finance backgrounds.\n\nI am looking for:\n\n1. Someone who has had a real job and felt the trade-time-for-money ceiling\n\n2. Someone who has built or sold something on the side, even small\n\n3. Someone who picks up a new tool faster than their colleagues\n\n4. Someone who can sit in discomfort for 18 months while a system compounds\n\nIf that is you, here is what you get:\n\n- Plug-and-play sales system (scripts, follow-ups, calendar)\n\n- 1-1 mentorship from someone who has groomed MDRTs and a TOT\n\n- AIA brand and digital app as your unfair leverage\n\n- $0 startup cost, no inventory, no payroll\n\nNot a pitch. A filter. If you have read this far and your stomach lurched a little, DM me FILTER and we will set 30 minutes to see if your numbers and your why line up.",
+    "content": "We open the next FC intake in 6 weeks. Here is who I am looking for.\n\nNot polished. Not extroverted. Not from finance backgrounds.\n\nI am looking for:\n\n1. Someone who has had a real job and felt the trade-time-for-money ceiling\n\n2. Someone who has built or sold something on the side, even small\n\n3. Someone who picks up a new tool faster than their colleagues\n\n4. Someone who can sit in discomfort for 18 months while a system compounds\n\nIf that is you, here is what you get:\n\n- Plug-and-play sales system (scripts, follow-ups, calendar)\n\n- 1-on-1 mentorship from a leader who is still actively running cases\n\n- AIA brand and digital app as your unfair leverage\n\n- $0 startup cost, no inventory, no payroll\n\nNot a pitch. A filter. If you have read this far and your stomach lurched a little, DM me FILTER and we will set 30 minutes to see if your numbers and your why line up.",
     "why_it_works": "Clear ICP + de-selling tone (filter not pitch) + specific incentive list + named DM keyword.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-41:authority-social-cta-structure",
     "tags": ["recruitment", "career-switch", "filter", "cta"]
   },
   {
@@ -179,32 +192,35 @@
     "content": "The simplest tax hack in Singapore is hiding in your CPF statement.\n\nVoluntary Cash Contribution to your own MA, up to BHS.\n\n- Tax deductible up to $8K\n\n- Earns 4 percent guaranteed in MA\n\n- Frees up MA for hospital insurance premiums\n\n- Once MA hits BHS, overflow goes to OA/SA at the same 4 percent floor\n\nFor a 35-year-old in the 11.5 percent bracket, that is $920 of tax saved on a $8K contribution. Plus the $320 of guaranteed interest.\n\nMost people I meet never use this. They top up their kid's cash account first, then complain at tax time.\n\nDo this once a year, ideally December. Set a calendar reminder.\n\nSave this and DM me MA if you want the exact step-by-step on the CPF portal.",
     "why_it_works": "Specific named hack + bullet benefits + concrete tax saving math + tactical month + dual CTA.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-42:pillar:topic",
     "tags": ["cpf", "tax", "working-adult", "tip"]
   },
   {
-    "id": "linkedin-social-fc-015",
+    "id": "linkedin-social-followup-015",
     "platform": "linkedin",
     "format": "text-only",
     "pillar": "Social",
     "audience": "general",
     "topic": "long follow-up close",
-    "hook": "I closed a client this month from a meeting in 2018.",
-    "content": "I closed a client this month from a meeting in 2018.\n\nFirst meeting, she said no. Polite, clear, not interested.\n\nI did what every advisor is told not to do: I stayed in touch anyway. Birthday text. Forwarded one article a year if it was relevant. Replied when she posted on LinkedIn. No pitch, ever.\n\n6 years later she messaged: Hey Leo, my dad passed last month and I realised I have no idea what insurance my mum has. Can you help?\n\nThat case became $2.4K UCC + $500 SFT + $1K HSG, plus her mum's $5K HSG transfer from another insurer.\n\nNot the biggest case I closed this year. The most instructive.\n\nThe lesson is not slow follow-up. The lesson is no follow-up if your only reason to contact is the sale. Be a useful human first. The sale comes when life triggers it.\n\nWho on your dormant list deserves a no-strings message this week?",
-    "why_it_works": "Specific dated proof story + concrete case numbers + reframed lesson + diagnostic question close.",
-    "source": "leo-brand-corpus",
+    "hook": "I closed a client this month from a meeting we had 4 years ago.",
+    "content": "I closed a client this month from a meeting we had 4 years ago.\n\nFirst meeting, she said no. Polite, clear, not interested.\n\nI did what most advisors are told not to do: I stayed in touch anyway. Birthday text. One useful article a year if it was relevant. Replied when she posted. No pitch, ever.\n\nLast month she messaged: hey, my dad just passed and I have no idea what insurance my mum has. Can you help?\n\nThat conversation became a real planning case. Not the largest of my year. The most instructive.\n\nThe lesson is not slow follow-up. The lesson is no follow-up if your only reason to contact is the sale. Be a useful human first. The sale comes when life triggers it.\n\nWho on your dormant list deserves a no-strings message this week?",
+    "why_it_works": "Specific time-distance proof story + reframed lesson + diagnostic question close.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
     "tags": ["follow-up", "fc-life", "stay-long", "social"]
   },
   {
-    "id": "instagram-hook-friction-016",
+    "id": "instagram-friction-video-016",
     "platform": "instagram",
     "format": "short-video",
     "pillar": "Hook",
     "audience": "general",
     "topic": "burnout vs friction",
-    "hook": "You are not stuck because you lack drive. You are racing with the handbrake on.",
-    "content": "Scene 1 (0-3s): Talking head, direct eye contact. You are not stuck because you lack drive.\n\nScene 2 (3-8s): B-roll of 47 browser tabs, unanswered Whatsapps, calendar overload. You are racing with the handbrake on.\n\nScene 3 (8-18s): Whiteboard animation. Success equals Will times Way divided by Friction. Most agencies pump up your Will. Some improve your Way. Almost nobody removes your Friction.\n\nScene 4 (18-30s): Vulnerable talking head. I spent years exhausted with nothing to show. Tennis taught me discipline. Business taught me friction was the real enemy.\n\nScene 5 (30-45s): Split screen, stuck car vs smooth acceleration. When you remove drag, your existing effort becomes exponential.\n\nScene 6 (45-55s): Convicted close. The advisors who look unstoppable are not superhuman. They just released the brakes.\n\nCTA: Comment HANDBRAKE if you want the friction audit checklist.",
-    "why_it_works": "Visual metaphor first, explanation second + formula + vulnerable + comment CTA.",
-    "source": "leo-brand-corpus",
+    "hook": "You are not lazy. You are racing with the handbrake on.",
+    "content": "Scene 1 (0-3s): Talking head, direct eye contact. You are not lazy. You are racing with the handbrake on.\n\nScene 2 (3-8s): B-roll of an overflowing inbox, 47 browser tabs, missed Whatsapps. The drag is invisible until you measure it.\n\nScene 3 (8-18s): Whiteboard. Output equals Effort divided by Friction. Most people add more effort. Almost nobody removes friction.\n\nScene 4 (18-30s): Talking head. I spent 18 months exhausted with nothing to show. The shift was not working harder. It was killing 3 small workflow leaks: no client follow-up template, no calendar workflow, no daily activity dashboard.\n\nScene 5 (30-45s): Split screen, same person, before and after. Same effort. Different output.\n\nScene 6 (45-55s): Convicted close. The advisors who look unstoppable are not superhuman. They just released the brakes.\n\nCTA: Comment FRICTION if you want the 3-leak audit checklist I run quarterly.",
+    "why_it_works": "Visual metaphor first + formula + specific FC examples + comment CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
     "tags": ["mindset", "systems", "video", "friction"]
   },
   {
@@ -218,6 +234,7 @@
     "content": "An ILP is not insurance. It is investment with insurance bolted on.\n\nIf no one said this to you when you bought yours, here is what to look for:\n\n1. Cost of insurance rises with age. Inside an ILP it eats your investment unit value silently. Check the annual statement. The number is there if you know where to look.\n\n2. The fund management fees are 1.5 to 2 percent on top of the underlying fund's own fees. Two layers.\n\n3. Surrender in the first 5 to 10 years usually returns less than premiums paid.\n\nThis does not mean ILPs are bad. They work for specific cases: forced savings discipline, embedded protection a person would not buy separately, estate planning.\n\nThey are bad when sold as your main investment vehicle. For most 25 to 35 year olds with no warm-up to investing, term plus ETF will compound harder.\n\nIf you have an ILP and have never had it explained in plain numbers, dig out the statement. Read the cost of insurance line. Then decide.\n\nDM me ILP and I will send the 5-question audit I run on every existing policy I review.",
     "why_it_works": "Authority pillar with strong reframe + specific numbers + balanced (not anti-product) + DM keyword.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-41:idea-mine:common-mistake",
     "tags": ["ilp", "investment", "young-adult", "authority"]
   },
   {
@@ -229,8 +246,9 @@
     "topic": "retirement income gap",
     "hook": "If you are 55 and have not done a retirement income gap analysis, do this 10-minute exercise this weekend.",
     "content": "If you are 55 and have not done a retirement income gap analysis, do this 10-minute exercise this weekend.\n\nStep 1: Write down your current monthly spending. Round up.\n\nStep 2: Multiply by 60 percent (the typical retirement spend ratio).\n\nStep 3: Multiply that by 12 months and 25 years (life expectancy buffer).\n\nThat is your retirement nut.\n\nStep 4: Sum your CPF Life monthly + any annuities + investment income at 4 percent withdrawal rate.\n\nStep 5: Subtract step 4 from step 3.\n\nThat number is your gap.\n\nMost pre-retirees I sit with have a $300K to $700K gap and never knew until they did the math.\n\nThe earlier you see the gap, the more options you have. SRS top-up, AIA Pro Lifetime Protector, downsize HDB, part-time consulting income, family income transfers.\n\nIf the number scares you, message me GAP and I will send a clean Excel version of this exercise.\n\nNot a sales pitch. A diagnostic.",
-    "why_it_works": "Tactical step-by-step + specific framework + de-selling tone + diagnostic CTA. Authority + soft sell.",
+    "why_it_works": "Tactical step-by-step + specific framework + de-selling tone + diagnostic CTA.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-42:authority-post-structure",
     "tags": ["retirement", "pre-retiree", "gap-analysis", "cta"]
   },
   {
@@ -244,6 +262,7 @@
     "content": "Slide 1: Got your BTO ballot? 5 financial moves before key collection. Save now.\n\nSlide 2: Move 1 - Lock in your mortgage rate intent. Floating vs fixed. SORA-pegged vs board rate. Different strokes for different income trajectories.\n\nSlide 3: Move 2 - Top up SA before you wipe OA on downpayment. Once OA goes to housing it cannot come back. SA at 4 percent compounds while you wait for keys.\n\nSlide 4: Move 3 - Mortgage Reducing Term Assurance (MRTA). Cheap term cover that decreases with your loan. Or stand-alone term that stays level. The level term is usually the smarter buy.\n\nSlide 5: Move 4 - Joint income protection. If one partner is the higher earner, model what happens to the mortgage if their income stops for 6 months. Group cover is rarely enough.\n\nSlide 6: Move 5 - Set up the legacy admin. CPF nomination, will, LPA. 2 hours of paperwork that your future self will thank you for.\n\nSlide 7: Save this carousel. DM me BTO if you want the spreadsheet I use with my BTO clients to model the 30-year cashflow.",
     "why_it_works": "Life-stage trigger + numbered tactical list + concrete language per slide + dual CTA.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-42:pillar:market",
     "tags": ["bto", "young-adult", "carousel", "life-stage"]
   },
   {
@@ -252,24 +271,26 @@
     "format": "text-only",
     "pillar": "Social",
     "audience": "general",
-    "topic": "team building",
+    "topic": "team building lesson",
     "hook": "Last week I almost gave up on a team member.",
     "content": "Last week I almost gave up on a team member.\n\nShe missed her third weekly target in a row. I had the conversation drafted in my head: maybe this is not for you, maybe it is time to consider other paths.\n\nThen I did the activity audit instead.\n\nTurned out she was making 60 percent of the dials, but spending double the average time per conversation, and not booking second meetings because she was over-explaining product.\n\nThe issue was not effort. It was friction in the script.\n\nWe rewrote her opener to a 90-second version. She booked 4 meetings the next week.\n\nThe lesson I almost missed: when results stall, audit the system before judging the person.\n\nIf you lead a team and someone is struggling, do this before the hard conversation: pull their last 30 days of activity numbers. Compare to your benchmarks at each step. The bottleneck is almost never effort. It is one specific gear in the system.\n\nWhich team member do you owe an audit to before a verdict?",
     "why_it_works": "Vulnerable confession + specific diagnostic + tactical fix + leadership reframe + question close.",
-    "source": "leo-brand-corpus",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
     "tags": ["team-building", "leadership", "systems", "social"]
   },
   {
-    "id": "linkedin-myth-young-adult-021",
+    "id": "linkedin-warm-cold-young-adult-021",
     "platform": "linkedin",
     "format": "text-only",
     "pillar": "Hook",
     "audience": "young-adult",
     "topic": "warm market vs cold market",
-    "hook": "Real businesses are not built by monetising your friendships.",
-    "content": "Real businesses are not built by monetising your friendships.\n\nIf your success depends on who already knows you, that is not a business. That is borrowed trust.\n\nThe warm market gets you started. It is not supposed to sustain you.\n\nEvery time you sell to a friend, you trade social capital for short-term gain.\n\nReal growth happens when strangers choose you. Not because they owe you. Because they believe you.\n\nThat is when you stop pitching and start attracting.\n\nBuild systems that make people trust your value. Not your friendship.\n\nDo not rely on your friends to become clients. Acquire clients, then they become your friends.\n\nWhich one are you building right now?",
-    "why_it_works": "Contrarian principle + reframe + memorable closing line + identity question.",
-    "source": "leo-brand-corpus",
+    "hook": "Your warm market is not your business. It is a starter pack.",
+    "content": "Your warm market is not your business. It is a starter pack.\n\nIf your income depends on who already knows you, that is not a business yet. It is borrowed trust running on a clock.\n\nThe warm market gets you started. It is not supposed to sustain you.\n\nReal growth begins when strangers choose you. Not because they owe you. Because they trust the value you put out before they ever met you.\n\nIn practice that means content, referrals, structured prospecting. Things that produce a pipeline whether or not you know the person.\n\nNot saying do not serve your warm market. Serve them well, that is how the first wave of referrals comes. But if month 18 of your career still depends on the people you already knew at month 1, you are not running a business. You are spending down social capital.\n\nWhich pillar of your pipeline produced the most cases last quarter: warm referrals, content inbound, or structured prospecting?",
+    "why_it_works": "Reframe of cultural pressure + clear distinction + diagnostic question + identity close.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-40:two-prong:authority",
     "tags": ["cold-market", "warm-market", "fc-life", "hook"]
   },
   {
@@ -283,6 +304,7 @@
     "content": "Disability protection is the most under-bought, most-needed cover in Singapore.\n\nNot death cover. Not CI. Disability income.\n\nThe one that pays you a monthly income if you cannot work due to illness or injury.\n\nWhy under-bought:\n\n1. Most people assume CareShield Life is enough. It is not. Max payout is roughly $662/month for severe disability. Try replacing your $5K salary with that.\n\n2. Premiums look more expensive than term life because the probability of a long-term disability claim is higher than a death claim before 65.\n\n3. Nobody talks about it because it is unsexy.\n\nFor a 35-year-old earning $6K, supplemental disability income cover that replaces 70 percent of salary costs roughly $40 to $60/month. Less than your phone bill.\n\nIf your monthly income disappears next month for 12 months, what breaks first: rent, mortgage, kids, or your savings?\n\nMessage me INCOME for the comparison between CareShield supplements and stand-alone disability plans.",
     "why_it_works": "Specific gap framing + concrete numbers + cost reframe + scenario question + DM CTA.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-41:idea-mine:common-mistake",
     "tags": ["disability", "income-protection", "working-adult", "tip"]
   },
   {
@@ -296,6 +318,7 @@
     "content": "If your last policy review was over 24 months ago, you are due for one. Here is what a real review looks like.\n\nNot the 15-minute call your old advisor calls a check-in.\n\nA real review is 60 to 90 minutes and answers 6 questions:\n\n1. Has your income changed by more than 20 percent since the last policy was written? Coverage probably needs to scale.\n\n2. Has your family situation changed (married, kids, parents dependent)? Beneficiaries and bequest math change.\n\n3. Are any of your existing policies underperforming projection? Bonus rates and ILP performance drift over time.\n\n4. Have new product structures landed in market that better fit your goal? AIA refreshes plan menus every 18 to 24 months.\n\n5. Are you maximising every available tax relief (SRS, RSTU, MA VC)? Annual reset.\n\n6. Is the legacy admin clean (will, CPF nomination, LPA, beneficiaries on every policy)?\n\nIf any answer is no or unclear, that is what a real review covers.\n\nDM me REVIEW and I will send the 6-question worksheet. No pitch. Use it with your existing advisor if you have one.",
     "why_it_works": "Specific frame (24mo trigger) + numbered checklist + de-selling close (use with existing FA) + DM CTA.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-42:authority-post-structure",
     "tags": ["review", "general", "cta", "client-care"]
   },
   {
@@ -309,6 +332,7 @@
     "content": "Education endowment plans are not the only way to fund university.\n\nThey are one option. Often not the best.\n\nWhat they give you:\n- Forced savings discipline\n- Some guaranteed return (2 to 3 percent)\n- A bonus return (2 to 4 percent, projected)\n- A small life cover on the parent\n\nWhat they take:\n- 18 to 21 years of locked-in cashflow\n- Lower returns than equity-based vehicles over 18+ years\n- Surrender penalties if life forces you out\n\nFor a kid currently age 0, with a target of $80K in tuition by age 18, the alternatives:\n\nA: Endowment plan. Pay around $300/month for 18 years.\n\nB: Term life on parent + monthly contribution into a global equity ETF. Same outcome with usually 30 to 50 percent more capital at age 18, with flexibility.\n\nC: SRS top-up by parent (tax-deductible) plus a separate education plan triggered closer to age 12 when the time horizon is shorter and capital protection matters more.\n\nNo one option is right for every family. But endowment by default is the wrong default.\n\nDM me UNI for the 3-option spreadsheet I use with new-parent clients.",
     "why_it_works": "Challenges default thinking + specific 3-option compare + non-pushy + named DM keyword.",
     "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
     "tags": ["education", "endowment", "parent", "tip"]
   },
   {
@@ -317,25 +341,27 @@
     "format": "text-only",
     "pillar": "Authority",
     "audience": "general",
-    "topic": "Book Meet Close",
+    "topic": "leading vs lagging indicators",
     "hook": "Most advisors track the wrong number.",
-    "content": "Most advisors track the wrong number.\n\nThey track sales. Sales is a lagging indicator. By the time it is bad, you are 60 days behind.\n\nThe leading indicators are 3 numbers:\n\n1. Books per week. How many net-new appointments did you book.\n\n2. Meetings per week. How many of those actually showed.\n\n3. Closes per week. How many became signed cases.\n\nMy team's targets:\n\n- 8 to 12 books per week\n\n- 5 to 7 meetings per week\n\n- 1 to 3 closes per week\n\nIf books are low, the issue is prospecting volume or script.\n\nIf books are fine but meetings are low, the issue is qualification or pre-meeting nurture.\n\nIf meetings are fine but closes are low, the issue is fact-finding or product fit.\n\nDiagnose the bottleneck weekly, not monthly. The fix is usually 1 specific thing, not a general try harder.\n\nWhich of your 3 numbers is the weakest right now?",
+    "content": "Most advisors track the wrong number.\n\nThey track sales. Sales is a lagging indicator. By the time it is bad, you are 60 days behind.\n\nThe leading indicators are 3 numbers:\n\n1. Books per week. How many net-new appointments did you book.\n\n2. Meetings per week. How many of those actually showed.\n\n3. Closes per week. How many became signed cases.\n\nA realistic weekly target for a full-time advisor running a clean system:\n\n- 8 to 12 books per week\n\n- 5 to 7 meetings per week\n\n- 1 to 3 closes per week\n\nIf books are low, the issue is prospecting volume or script.\n\nIf books are fine but meetings are low, the issue is qualification or pre-meeting nurture.\n\nIf meetings are fine but closes are low, the issue is fact-finding or product fit.\n\nDiagnose the bottleneck weekly, not monthly. The fix is usually 1 specific thing, not a general try harder.\n\nWhich of your 3 numbers is the weakest right now?",
     "why_it_works": "Counter-intuitive opener + specific framework + diagnostic logic + question close.",
-    "source": "leo-brand-corpus",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:common-mistake",
     "tags": ["systems", "leading-indicators", "fc-life", "authority"]
   },
   {
-    "id": "instagram-hook-curiosity-026",
+    "id": "instagram-cta-srs-young-adult-026",
     "platform": "instagram",
     "format": "text-only",
-    "pillar": "Hook",
-    "audience": "general",
-    "topic": "lifestyle math",
-    "hook": "Your friends might be the most expensive thing in your life.",
-    "content": "Your friends might be the most expensive thing in your life.\n\nNot the bubble tea. Not the dinners.\n\nThe $100K side business idea you killed because they made you feel weird for trying.\n\nYou start reading about investing. Building. Learning. You get excited. You share it.\n\nAnd they hit you with: that is risky, just get a stable job, money is not everything.\n\nSo you doubt yourself. You feel weird for wanting more.\n\nYou do not need to dump them. But you do need a better environment.\n\nPeople who celebrate when you win. Who ask how instead of why. Who see your ambition as normal, not weird.\n\nIf you want exceptional results, you need to be the exception.\n\nYour environment is your income. Choose it carefully.",
-    "why_it_works": "Provocative contrarian hook + relatable scenario + memorable line + identity reframe.",
-    "source": "leo-brand-corpus",
-    "tags": ["mindset", "environment", "ambition", "hook"]
+    "pillar": "CTA",
+    "audience": "young-adult",
+    "topic": "SRS for young professionals",
+    "hook": "Comment your age and I will tell you whether SRS is worth it for you yet.",
+    "content": "Comment your age and I will tell you whether SRS is worth it for you yet.\n\nNot a gimmick. SRS is age and bracket dependent.\n\nA 23-year-old earning $3.5K take-home: probably no. The tax saving is small, the lock-up to 62 is long.\n\nA 27-year-old earning $5.5K take-home, no kids, no mortgage yet: likely yes. The compound runway is long enough that the SRS shell beats holding the same money in a regular brokerage account post-tax.\n\nA 32-year-old in the 15 percent bracket buying a flat soon: maybe partial. Cap the SRS at the level your liquidity can absorb until BTO key collection.\n\nA 40-year-old in the 19.5 percent bracket: almost always yes, max it.\n\nThis is one of those tools where the right answer is age-specific and bracket-specific. Most blanket advice (always max it / never bother) is wrong.\n\nComment your age and I will reply with a one-line take. If you want the full SRS calculator, DM me SRS.",
+    "why_it_works": "Comment-bait + age-segmented value + specific takes per cohort + dual CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:engagement:dm-to-meeting",
+    "tags": ["srs", "young-adult", "tax", "cta"]
   },
   {
     "id": "linkedin-tip-srs-027",
@@ -346,34 +372,37 @@
     "topic": "SRS contribution",
     "hook": "If you earn more than $80K a year and have not opened an SRS account, you are donating to IRAS.",
     "content": "If you earn more than $80K a year and have not opened an SRS account, you are donating to IRAS.\n\nSRS in 4 lines:\n\n1. Contribute up to $15.3K/year. The full amount is deductible against your taxable income.\n\n2. At an 11.5 percent tax bracket, $15.3K saves you roughly $1.76K/year. At 15 percent, $2.3K. At 19.5 percent, $3K.\n\n3. The capital sits invested (your choice of stocks, bonds, ILPs, single-premium endowment). Earnings grow tax-deferred until withdrawal.\n\n4. Withdraw after 62, only 50 percent is taxable. Spread over 10 years and most retirees pay close to zero on the way out.\n\nThe trade-off: locked until 62 (or pay 5 percent penalty + full taxation).\n\nFor anyone over 30 in a 11.5+ percent bracket with stable income, this is the cheapest tax move on the menu. Do it before December.\n\nDM me SRS for the comparison between holding cash, equity ETFs, or endowment inside the SRS shell.",
-    "why_it_works": "Loss aversion hook (donating to IRAS) + 4-line summary + specific numbers + Dec urgency + DM CTA.",
+    "why_it_works": "Loss aversion hook + 4-line summary + specific numbers + Dec urgency + DM CTA.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-42:pillar:topic",
     "tags": ["srs", "tax", "working-adult", "tip"]
   },
   {
-    "id": "instagram-social-origin-028",
+    "id": "instagram-fc-system-recruit-028",
     "platform": "instagram",
     "format": "short-video",
     "pillar": "Social",
     "audience": "young-adult",
-    "topic": "FC origin story",
-    "hook": "$145K in my first year as a uni student. No warm market.",
-    "content": "Scene 1 (0-3s): Direct talking head. $145K in my first year as a uni student. No warm market.\n\nScene 2 (3-8s): B-roll of NUS campus. I was 21, on the Global Engineering scholarship at NUS, doing FA part-time.\n\nScene 3 (8-15s): Talking head. I had a stammer. I am an introvert. 99 percent of my prospects had never heard of me.\n\nScene 4 (15-25s): Quick cuts of cold calls, Whatsapp messages. I dialled. I followed up. I followed up again. I learned 3 scripts cold and ran them every day.\n\nScene 5 (25-40s): Whiteboard. The math: 20 dials a day, 5 conversations, 1 booked appointment. 5 appointments a week. 2 closes. Repeat for 50 weeks.\n\nScene 6 (40-50s): Talking head. The system did the work. Not charisma. Not network. The system.\n\nScene 7 (50-60s): Vulnerable smile. If I had waited until I felt ready, I would still be waiting.\n\nCTA: Comment SYSTEM if you want the 3 scripts that ran my first year.",
-    "why_it_works": "Specific number proof + vulnerability (stammer/introvert) + system over charisma + comment CTA.",
-    "source": "leo-brand-corpus",
+    "topic": "FC origin story (system over charisma)",
+    "hook": "I am introverted. I had no warm market. The system did the work.",
+    "content": "Scene 1 (0-3s): Direct talking head. I am introverted. I had no warm market. The system did the work.\n\nScene 2 (3-8s): B-roll of laptop, calendar, phone. Most people imagine FC as a personality job. It is mostly a process job.\n\nScene 3 (8-15s): Talking head. I followed the process the team taught me. 3 scripts. Daily activity. Weekly review.\n\nScene 4 (15-25s): Whiteboard. The math: 20 dials a day, 5 conversations, 1 booked appointment. 5 appointments a week. 1 to 2 closes. Repeat.\n\nScene 5 (25-40s): Quick cuts of follow-up messages and calendar entries. The compounding piece nobody sees: same activity for 12 months becomes a pipeline. 24 months becomes a book.\n\nScene 6 (40-50s): Talking head. The system did the work. Not charisma. Not network. The system.\n\nScene 7 (50-60s): Soft smile. If I had waited until I felt ready, I would still be waiting.\n\nCTA: Comment SYSTEM if you want the 3 scripts that ran my first year.",
+    "why_it_works": "Identity reframe (introvert can do this) + system-over-charisma proof + comment CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:identity",
     "tags": ["recruitment", "young-adult", "video", "origin-story"]
   },
   {
-    "id": "linkedin-authority-aia-029",
+    "id": "linkedin-aia-platform-029",
     "platform": "linkedin",
     "format": "text-only",
     "pillar": "Authority",
     "audience": "general",
-    "topic": "AIA digital app advantage",
-    "hook": "The reason I stayed at AIA is not the products. It is the digital app.",
-    "content": "The reason I stayed at AIA is not the products. It is the digital app.\n\nWhen I started in 2017, I underwrote everything on paper. 2 hour fact-finds. Forms in triplicate. 3-week underwriting decisions.\n\nNow:\n\n- Fact-find on iPad. Auto-saves. Replicates to client app.\n\n- Submit a case. Underwriter decision in 24 to 72 hours for 80 percent of cases.\n\n- Client signs digitally from their phone. No clinic visit unless flagged.\n\n- Policy in force, app notifies, premium auto-debits.\n\n- Client can self-serve change of address, claims initiation, fund switches.\n\nFor an FC, the app means I run 4 to 5 quality meetings a week instead of 2. That alone doubled my throughput.\n\nFor a client, the app means the experience is closer to a fintech than a 1990s insurer.\n\nThis is not an AIA ad. It is a structural reason I argue for more often than people expect: the platform you sit on top of decides 30 percent of your output before you do anything.\n\nIf you are evaluating an FC career and trying to compare insurers, the platform difference is the question that gets asked least and matters most.",
+    "topic": "platform leverage in advisory",
+    "hook": "When I evaluate any insurer to work with or recommend, I check the digital platform first, products second.",
+    "content": "When I evaluate any insurer to work with or recommend, I check the digital platform first, products second.\n\nReason: products converge across the major insurers. CI is CI. Term is term. Once you adjust for premium and rider features, the difference is at the margin.\n\nThe platform underneath is what shifts day-to-day output:\n\n- Fact-find on iPad. Auto-saves. Replicates to client app. No more paper trail.\n\n- Submit a case. Underwriter decision in 24 to 72 hours for the majority of clean cases.\n\n- Client signs digitally from their phone. No clinic visit unless flagged.\n\n- Policy in force, app notifies, premium auto-debits.\n\n- Client can self-serve change of address, claims initiation, fund switches.\n\nFor an advisor, the platform decides whether you run 4 to 5 quality meetings a week or 2. That alone often doubles throughput.\n\nFor a client, it is the difference between a fintech-grade experience and a 1990s insurer.\n\nThis is a structural argument I make more often than people expect: the platform you sit on top of decides 30 percent of your outcome before you do anything.\n\nIf you are evaluating an FC career and trying to compare insurers, the platform difference is the question that gets asked least and matters most.",
     "why_it_works": "Authority pillar with infrastructure angle + before/after specifics + structural insight + recruitment hook.",
-    "source": "leo-brand-corpus",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
     "tags": ["aia", "digital", "platform", "authority"]
   },
   {
@@ -387,6 +416,7 @@
     "content": "If you have never sat down with an FA, here is exactly how to do your first one without getting sold.\n\nStep 1: Pick someone with referrals you can verify. Ask 2 of their existing clients what the experience was like. If they cannot offer references, walk.\n\nStep 2: Set the agenda upfront. Tell them: 60 minutes, fact-finding only, no product pitch in this meeting. Any FA worth their time will agree.\n\nStep 3: Bring documents. CPF statement, last 3 payslips, list of every existing policy with premium and sum assured. The conversation is 10x more useful when grounded in numbers.\n\nStep 4: Ask 3 questions: what is the gap I cannot see, what would you do first if you were me, what is my biggest risk in the next 5 years.\n\nStep 5: Walk out without buying anything. Say thank you, tell them you will reflect for a week. Real FAs are fine with this.\n\nStep 6: Decide in your own time. If their analysis was useful, go back. If not, you got a free diagnostic.\n\nMessage me FIRSTMEET if you want a printable version of these 6 steps.",
     "why_it_works": "De-selling tone (how not to get sold) + specific 6-step playbook + DM keyword.",
     "source": "pattern-derived",
+    "curriculum_anchor": "day-42:authority-post-structure",
     "tags": ["first-meeting", "young-adult", "cta", "trust"]
   },
   {
@@ -400,20 +430,22 @@
     "content": "Most pre-retirees plan to downsize their HDB. Few model what it actually unlocks.\n\nIf you bought a 5-room in 2005 for $400K, it is likely worth $700K to $900K today. Downsize to a 3-room at $500K, you free $200K to $400K of net cash.\n\nWhere that money should usually go:\n\n1. Top up the Retirement Account up to ERS. CPF Life payout for life climbs roughly $200 to $400/month per $50K topped up at age 65, depending on plan.\n\n2. Single-premium retirement income annuity. AIA Pro Lifetime Protector or equivalent. Locks in lifetime income, hedges longevity risk.\n\n3. A liquid bucket (3 to 5 years of expenses) in fixed income or T-bills. So you do not panic-sell during a market drawdown.\n\n4. A risk bucket (10 to 20 percent of the freed capital) in equity for the 25-year tail you might still live.\n\nThe split depends on your CPF Life choice, your other income, and your bequest goal.\n\nThe move I see most often: the freed cash sits in a savings account at 0.05 percent for 3 years while the retiree decides. That is the actual cost.\n\nDM me DOWNSIZE for the 4-bucket worksheet.",
     "why_it_works": "Specific scenario + 4-bucket framework + opportunity cost reframe + DM CTA.",
     "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
     "tags": ["downsize", "retirement", "pre-retiree", "tip"]
   },
   {
-    "id": "instagram-hook-fear-032",
+    "id": "instagram-fact-find-young-adult-032",
     "platform": "instagram",
     "format": "text-only",
     "pillar": "Hook",
-    "audience": "general",
-    "topic": "fear vs power",
-    "hook": "Fear makes you careful. Power makes you dangerous.",
-    "content": "Fear makes you careful. Power makes you dangerous.\n\nMost people stay careful for 40 years.\n\nCareful sounds responsible. Careful is what your parents called wisdom.\n\nCareful is also why most people retire on $400K and call it enough because it has to be.\n\nDangerous is different. Dangerous moves first. Dangerous launches the project before it feels ready. Dangerous quits the safe job at 28 to build the asset that pays at 40.\n\nDangerous is not reckless. Reckless is no plan. Dangerous is plan and move.\n\nThe gap between careful and dangerous is usually 1 conversation, 1 commitment, 1 system.\n\nWhich are you defaulting to this week?",
-    "why_it_works": "Sharp opening line + reframe of cultural defaults + memorable contrast + identity question.",
-    "source": "leo-brand-corpus",
-    "tags": ["mindset", "courage", "ambition", "hook"]
+    "audience": "young-adult",
+    "topic": "what a real fact-find feels like",
+    "hook": "Most people have never had a real conversation about money. Even the ones who think they have.",
+    "content": "Most people have never had a real conversation about money. Even the ones who think they have.\n\nA real fact-find is 60 to 90 minutes. It asks questions like:\n\nWhat would your life look like if your income stopped for 12 months?\n\nIf you had a serious illness at 50, what is the first thing in your plan that would break?\n\nWho depends on you financially right now? Who will, in 5 years?\n\nWhat is the number you would want in the bank the day you retire? And how did you arrive at that number?\n\nWhen was the last time you and your partner sat down together and talked through these answers?\n\nMost meetings I hear described as financial reviews are 20-minute product check-ins. Useful, but not the same thing.\n\nA real conversation surfaces the gap between the life you want and the plan that funds it. Sometimes the gap is small. Sometimes it is huge. Either way, knowing is better than not.\n\nIf you have not had this conversation in over 2 years, save this. The questions are free. The answers are yours.",
+    "why_it_works": "Provocative claim + specific question list + reframe of what review means + save CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:authority-social-cta-structure",
+    "tags": ["fact-find", "young-adult", "review", "hook"]
   },
   {
     "id": "linkedin-social-mentor-033",
@@ -421,11 +453,12 @@
     "format": "text-only",
     "pillar": "Social",
     "audience": "young-adult",
-    "topic": "mentorship",
+    "topic": "mentor vs manager in advisory",
     "hook": "If your mentor has not closed a case in 18 months, they are not a mentor. They are a manager.",
     "content": "If your mentor has not closed a case in 18 months, they are not a mentor. They are a manager.\n\nThere is nothing wrong with managers. They run the team admin, file the compliance, sign off the cases.\n\nBut the difference matters when you are 9 months in and stuck.\n\nA manager will tell you to make more calls.\n\nA mentor who is still in the field will pull up your last 5 fact-finds and show you the exact line where you lost the case. They will roleplay the objection live. They will sit in on your next Zoom and feed you the question through Whatsapp.\n\nWhen you are picking a team to join, ask 1 question: when was the last time you closed a case yourself?\n\nNot a trick question. Just a clarity question.\n\nThe people I learned the most from were the ones still doing the work alongside me. Not above me.\n\nIf you are an early FC and your mentor cannot show you their last 5 cases, you are paying tuition for a degree they have not earned in years.",
     "why_it_works": "Sharp distinction + concrete behavioural test + specific question to ask + recruitment angle.",
-    "source": "leo-brand-corpus",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:identity",
     "tags": ["mentorship", "recruitment", "young-adult", "social"]
   },
   {
@@ -439,6 +472,7 @@
     "content": "Slide 1: Newly married? 7 financial moves before your first anniversary. Save this.\n\nSlide 2: Move 1 - Joint review of all existing policies. Surface duplicates, gaps, beneficiaries needing update.\n\nSlide 3: Move 2 - Update CPF nominations. Default goes to estate. Explicit nomination skips probate.\n\nSlide 4: Move 3 - Decide combined vs separate accounts. Hybrid (2 personal + 1 joint) tends to reduce friction more than full pooling.\n\nSlide 5: Move 4 - Write or update wills. $200 to $500 per spouse. Skip this and you regret it later.\n\nSlide 6: Move 5 - Combine income protection so the surviving spouse can carry the mortgage if one income stops.\n\nSlide 7: Move 6 - Open a joint emergency fund. 6 months of combined essential spending in a high-interest account.\n\nSlide 8: Move 7 - Annual money date. 90 minutes, 1 night a year. Review goals, accounts, beneficiaries. Sounds boring. Saves marriages.\n\nSlide 9: Save this. DM me NEWLYWED for the 7-move printable checklist.",
     "why_it_works": "Life-stage trigger + numbered actionable list + per-slide tactical detail + save and DM CTA.",
     "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:market",
     "tags": ["marriage", "young-adult", "carousel", "life-stage"]
   },
   {
@@ -452,6 +486,7 @@
     "content": "Drop your year of birth in the comments and I will tell you 1 protection move you probably skipped.\n\nNot a gimmick. The move is age-driven.\n\nIf you were born:\n\n1995 to 2000: lock in CI cover before age 30 while premiums are at floor levels.\n\n1985 to 1995: review whether your existing CI plan still has Multi-Pay (most pre-2018 plans do not).\n\n1975 to 1985: confirm your hospital plan rider is still ASR or Co-Pay model. The move from 100 percent rider hit some plans hard.\n\n1965 to 1975: stress-test your retirement income against a 2008-style 30 percent equity drawdown 2 years before your planned retirement.\n\n1955 to 1965: review your CPF Life vs annuity bequest math. The default Standard plan may not match your estate intent.\n\nDrop your year. I will reply with the specific move and which AIA plan or non-AIA structure addresses it.\n\nThis is a public exercise. Other readers will benefit too.",
     "why_it_works": "Comment-bait + age-segmented value + specific moves per cohort + public framing.",
     "source": "pattern-derived",
+    "curriculum_anchor": "day-41:engagement:dm-to-meeting",
     "tags": ["comment-bait", "general", "cta", "age-segmented"]
   },
   {
@@ -465,6 +500,7 @@
     "content": "$5 a day at 22 becomes $1.2 million at 65.\n\nAt 7 percent compound. Every day. Every week. Every year.\n\nThat is a kopi and a kaya toast.\n\nMost 22-year-olds I meet do not believe me until I show them the spreadsheet.\n\nThen they say: I do not have $5 a day.\n\nFair. Most people do not.\n\nBut most people also have a $40 dinner once a week, a $15 GrabFood Tuesday habit, a $90 Netflix and Spotify and gym combined.\n\n$5 a day is a re-allocation, not a sacrifice.\n\nThe trick is not the $5. The trick is the 43 years.\n\nThe earlier you start, the less you need.\n\nThe later you start, the harder the math gets.\n\nNo one is going to do it for you. Set the auto-debit. Forget about it.\n\nSave this if you needed the reminder.",
     "why_it_works": "Punchy specific number + relatable scenario + reframe (re-allocation not sacrifice) + save CTA.",
     "source": "pattern-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
     "tags": ["compounding", "young-adult", "saving", "hook"]
   },
   {
@@ -473,11 +509,12 @@
     "format": "text-only",
     "pillar": "Authority",
     "audience": "general",
-    "topic": "claim experience",
-    "hook": "I paid out my first claim in 2018. I learned more about insurance in that one week than in my first year of selling it.",
-    "content": "I paid out my first claim in 2018. I learned more about insurance in that one week than in my first year of selling it.\n\nThe client was 41. Stage 2 colon cancer. Treatable. Expensive.\n\nWe filed the CI claim. Money landed in 11 working days. No quibbles.\n\nHe did not have to take a single panicked call from the hospital billing desk. He did not have to ask his elderly parents for money. He did not have to break his fixed deposit.\n\nThe coverage was bought 4 years earlier. He paid roughly $80/month for it. The payout was $250K.\n\nThat ratio is what insurance is.\n\n- A small cost most months you do not feel.\n\n- A large cheque at the moment your life would otherwise restructure around money.\n\nWhen people ask me what I do, I do not say I sell insurance. I say I make sure that when life punches you in the face, your bank account does not also fall over.\n\nIf you have been delaying a CI conversation, do this: imagine you get a diagnosis next month. Run the math on what your savings can absorb. The gap is the case for cover.",
+    "topic": "what a CI claim actually feels like",
+    "hook": "I sat with a client through her first CI claim last year. I learned more about insurance in that one week than in my first year of selling it.",
+    "content": "I sat with a client through her first CI claim last year. I learned more about insurance in that one week than in my first year of selling it.\n\nShe was 41. Stage 2 colon cancer. Treatable. Expensive.\n\nWe filed the CI claim. Money landed inside two weeks. No quibbles.\n\nShe did not have to take a single panicked call from the hospital billing desk. She did not have to ask her elderly parents for money. She did not have to break her fixed deposit.\n\nThe coverage was bought 4 years earlier. She had been paying roughly $80/month for it. The payout was $250K.\n\nThat ratio is what insurance is.\n\n- A small cost most months you do not feel.\n\n- A large cheque at the moment your life would otherwise restructure around money.\n\nWhen people ask me what I do, I do not say I sell insurance. I say I make sure that when life punches you in the face, your bank account does not also fall over.\n\nIf you have been delaying a CI conversation, do this: imagine you get a diagnosis next month. Run the math on what your savings can absorb. The gap is the case for cover.",
     "why_it_works": "Specific dated case + cost vs payout numbers + identity reframe + scenario question close.",
-    "source": "leo-brand-corpus",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
     "tags": ["critical-illness", "claims", "general", "authority"]
   },
   {
@@ -491,6 +528,7 @@
     "content": "At 55, you can withdraw money from your CPF. Most people do not realise the 4 ways this can backfire.\n\n1. Withdrawing above the FRS threshold means your CPF Life payout drops. Permanent. The reduced payout is locked in for life.\n\n2. The withdrawn cash, once outside CPF, no longer earns 4 percent guaranteed. Most retirees park it in a 0.05 percent savings account.\n\n3. CPF Life monthly income is not subject to estate distribution issues. Cash outside CPF is. If your estate planning is messy, more cash outside CPF often means more friction at your passing.\n\n4. The withdrawn cash becomes vulnerable to family pressure (kids' wedding, kids' BTO, kids' business). CPF inside the system is harder to give away under emotional pressure.\n\nNone of this means do not withdraw. There are valid reasons:\n\n- You have ample alternative retirement income\n\n- You want capital for a private investment with a clear plan\n\n- You have a bequest goal that requires liquid assets\n\nBut the default of withdraw because I can is the most expensive default in pre-retirement.\n\nDM me 55 if you want the 4-question framework I use with clients to decide what to keep, withdraw, or top-up at 55.",
     "why_it_works": "Counter-intuitive frame + 4 specific risks + balanced (when to withdraw) + named DM keyword.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-41:idea-mine:common-mistake",
     "tags": ["cpf", "withdrawal", "pre-retiree", "tip"]
   },
   {
@@ -499,12 +537,13 @@
     "format": "text-only",
     "pillar": "Social",
     "audience": "general",
-    "topic": "building 100-person team",
-    "hook": "I want to be the boss of 100 people earning $10K/month by 2030.",
-    "content": "I want to be the boss of 100 people earning $10K/month by 2030.\n\nNot $10K total. Each. Monthly.\n\nThat is the goal. Specific, dated, repeatable.\n\nMost goal-setting in this industry is a vibe. Become a top performer. Build a strong team. Help people. The words feel right and the numbers are missing.\n\nI write the goal as a sentence with all 4 elements: 100 people, $10K/month, by 2030, sustainably.\n\nThe sentence forces 4 sub-questions:\n\n1. Where are these 100 people coming from? (Recruitment system.)\n\n2. What does an FC at $10K/month look like? (Activity and case-mix benchmark.)\n\n3. How long does it take to grow someone from intake to $10K/month? (12 to 24 months in our system.)\n\n4. What breaks at 100 people? (Mentorship bandwidth, training infrastructure, culture fit at scale.)\n\nThe sentence is not a slogan. It is a 4-question audit I run on the business every quarter.\n\nIf your goal cannot survive being broken into 4 sub-questions, it is not a goal. It is a wish.\n\nWhat is yours, in 1 sentence?",
-    "why_it_works": "Specific BHAG + transparent breakdown + counter-intuitive principle + question close.",
-    "source": "leo-brand-corpus",
-    "tags": ["leadership", "team-building", "goal-setting", "social"]
+    "topic": "why most goals fail",
+    "hook": "If your goal cannot survive being broken into 4 sub-questions, it is not a goal. It is a wish.",
+    "content": "If your goal cannot survive being broken into 4 sub-questions, it is not a goal. It is a wish.\n\nMost goal-setting in this industry is a vibe. Become a top performer. Build a strong team. Help more people. The words feel right and the numbers are missing.\n\nThe test I run on any of my own annual goals:\n\n1. Is the outcome specific and quantified? (Not more clients. 30 net-new clients.)\n\n2. Is there a date? (Not someday. By 31 December.)\n\n3. Is the activity that produces the outcome named? (Not vibes. 8 to 12 books per week, 5 to 7 meetings, 1 to 3 closes.)\n\n4. Is there a constraint that makes it sustainable? (Not at all costs. Without sacrificing the 1-week family holiday and the 1 evening a week off-grid.)\n\nIf any of those 4 are missing, the goal is not real. It is a slogan.\n\nThis is not motivational. It is mechanical. The reason most year-end reviews feel hollow is that the goal was never specified enough to know whether it was hit.\n\nWhich of your goals this year survives the 4 questions?",
+    "why_it_works": "Counter-intuitive principle + 4-question test + diagnostic close.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
+    "tags": ["leadership", "goal-setting", "fc-life", "social"]
   },
   {
     "id": "instagram-tip-baby-040",
@@ -517,6 +556,7 @@
     "content": "Slide 1: New baby? 6 financial moves in your first 100 days. Save before you forget.\n\nSlide 2: Move 1 - Increase parent CI and term cover. The household's protection need just doubled.\n\nSlide 3: Move 2 - Open the Child Development Account (CDA). Every $1 the government dollar-matches up to ceiling. Free money.\n\nSlide 4: Move 3 - Buy CI on the child while they are under 1. Cheapest premium, lowest underwriting friction.\n\nSlide 5: Move 4 - Update your CPF nomination and will. New beneficiary, new structure.\n\nSlide 6: Move 5 - Build a 12-month essential expense buffer. Babies cost roughly $1.5K to $2K/month in the first year.\n\nSlide 7: Move 6 - Schedule a 6-month financial review with your FA. Things change fast in year one.\n\nSlide 8: Save this. DM me NEWBABY for the printable 100-day checklist.",
     "why_it_works": "Life-stage trigger + numbered actionable list + per-slide tactical detail + save and DM CTA.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-42:pillar:market",
     "tags": ["new-parent", "carousel", "life-stage", "tip"]
   },
   {
@@ -525,11 +565,12 @@
     "format": "text-only",
     "pillar": "Hook",
     "audience": "general",
-    "topic": "industry truth",
+    "topic": "educator vs salesperson",
     "hook": "The best advisors are not better salespeople. They are better educators.",
     "content": "The best advisors are not better salespeople. They are better educators.\n\nA salesperson convinces.\n\nAn educator clarifies.\n\nA salesperson hides discomfort.\n\nAn educator surfaces it.\n\nA salesperson talks 70 percent of the meeting.\n\nAn educator talks 30 percent and asks better questions in the other 70.\n\nThe ironic part: educators close more cases. Higher trust, higher referral rate, longer client tenure.\n\nIf you are 6 months into the industry and your closing ratio is low, the diagnosis is rarely you need to be more persuasive. It is usually you need to teach better.\n\nWhich one were you trained as?",
-    "why_it_works": "Sharp distinction + repeated structural contrast + counter-intuitive close (educators close more) + identity question.",
-    "source": "leo-brand-corpus",
+    "why_it_works": "Sharp distinction + repeated structural contrast + counter-intuitive close + identity question.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:identity",
     "tags": ["sales", "education", "fc-life", "hook"]
   },
   {
@@ -540,9 +581,10 @@
     "audience": "young-adult",
     "topic": "time vs money",
     "hook": "You are not behind. You are just early in the season.",
-    "content": "You are not behind. You are just early in the season.\n\nIf you are 24 and feeling poor, broke, slow, behind everyone on Instagram who is buying a HDB, eating Omakase, traveling business class, you are seeing a curated highlight reel.\n\nThe people you are comparing yourself to:\n\n- 80 percent are servicing debt that does not show on Instagram\n\n- 15 percent are getting parental subsidy that does not show on Instagram\n\n- 5 percent are genuinely ahead and they are usually not the loudest ones\n\nSeasons in life:\n\n22 to 30 is the planting season. Long hours, low rewards, compounding skills.\n\n30 to 45 is the growing season. Visible progression, but built on what you planted earlier.\n\n45+ is the harvesting season. The ones who skipped planting are still trying to plant.\n\nDo not skip the planting season because the harvest takes a decade longer.\n\nIf you are tired right now, it is the right kind of tired. Stay in it.",
-    "why_it_works": "Reframe of cultural pressure + specific stats + agricultural metaphor + permission close.",
-    "source": "leo-brand-corpus",
+    "content": "You are not behind. You are just early in the season.\n\nIf you are 24 and feeling poor, broke, slow, behind everyone on Instagram who is buying a HDB, eating Omakase, traveling business class, you are seeing a curated highlight reel.\n\nThe people you are comparing yourself to:\n\n- A large share are servicing debt that does not show on Instagram\n\n- Some are getting parental subsidy that does not show on Instagram\n\n- A few are genuinely ahead and they are usually not the loudest ones\n\nSeasons in life:\n\n22 to 30 is the planting season. Long hours, low rewards, compounding skills.\n\n30 to 45 is the growing season. Visible progression, but built on what you planted earlier.\n\n45+ is the harvesting season. The ones who skipped planting are still trying to plant.\n\nDo not skip the planting season because the harvest takes a decade longer.\n\nIf you are tired right now, it is the right kind of tired. Stay in it.",
+    "why_it_works": "Reframe of cultural pressure + agricultural metaphor + permission close.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:identity",
     "tags": ["mindset", "young-adult", "comparison", "hook"]
   },
   {
@@ -551,11 +593,12 @@
     "format": "text-only",
     "pillar": "Tip",
     "audience": "working-adult",
-    "topic": "ETF vs ILP",
+    "topic": "ETF vs RSP",
     "hook": "If your only investment vehicle is a regular savings plan with the bank, you are paying the highest fees in the market.",
     "content": "If your only investment vehicle is a regular savings plan with the bank, you are paying the highest fees in the market.\n\nA typical bank RSP charges 1 to 2 percent sales charge per contribution + 1.5 to 2 percent annual fund management fee + you get a curated shortlist of funds, not the full universe.\n\nA modern alternative for $500/month:\n\n- A no-load global equity ETF (VWRA or IWDA + EIMI for emerging exposure)\n\n- Held inside an SRS account (tax-deductible) or a CDP-linked broker (Tiger, Moomoo, IBKR)\n\n- Total annual cost: 0.20 to 0.25 percent\n\nOver 25 years on $500/month, the fee gap between 2.5 percent total cost and 0.25 percent costs you roughly $90K to $130K of compounded returns.\n\nThat is a flat in the Klang Valley, lost to fees.\n\nThis does not mean every advisor-recommended product is wasteful. There are good reasons to pay for advice (forced discipline, bundled protection, behavioural support, structured payouts).\n\nBut the default of bank RSP is rarely the right answer for a 30-year-old with a 30-year horizon.\n\nDM me ETF for the 3-step setup I use with clients who want a passive core + advised satellite.",
     "why_it_works": "Specific cost gap + concrete alternative + opportunity-cost framing + balanced + DM CTA.",
     "source": "pattern-derived",
+    "curriculum_anchor": "day-41:idea-mine:common-mistake",
     "tags": ["etf", "investment", "working-adult", "tip"]
   },
   {
@@ -569,6 +612,7 @@
     "content": "Healthcare costs do not stop at 65. They start at 65. Here is what changes.\n\nUntil 65, your hospitalisation cover is usually paid via MA. Auto-debit, low friction, low awareness.\n\nAfter 65:\n\n- Premium typically scales 2 to 3x compared to age 50\n\n- The MA balance you have built up has to fund both the rider portion and any catastrophic claim\n\n- Some plans cap entry age, so switching providers at 67 is rarely an option\n\n- Pre-existing conditions get harder to insure as they accumulate\n\nThe move at 55 to 60 is to stress-test your medical plan against a 25-year horizon:\n\n1. Will my MA + cash buffer fund the rider for 25 years at projected premium hike?\n\n2. Is my plan an Integrated Shield Plan with full ASR rider? If only Co-pay, what is the out-of-pocket on a Class A stay?\n\n3. Is there a plan in market that better matches my hospital preference and budget?\n\n4. Can I afford the rider lifetime, or do I drop it at 75 and accept higher co-pay?\n\nNone of these are dramatic. All of them are easier to address at 55 than at 75.\n\nMessage me HEALTH and I will send the 4-question diagnostic and the comparison sheet of the major IShield plans.",
     "why_it_works": "Specific age-bracket trigger + bullet pain points + numbered diagnostic + DM CTA.",
     "source": "scripts-academy",
+    "curriculum_anchor": "day-42:authority-post-structure",
     "tags": ["healthcare", "ishield", "pre-retiree", "cta"]
   },
   {
@@ -578,11 +622,12 @@
     "pillar": "Social",
     "audience": "general",
     "topic": "career pivot stories",
-    "hook": "I groomed a TOT this year. He started as a 33-year-old laid-off engineer.",
-    "content": "I groomed a TOT this year. He started as a 33-year-old laid-off engineer.\n\nLaid off in May. Joined the team in July. TOT (Top of the Table, the top tier of MDRT) by April the following year.\n\nNot a fairy tale. The math was visible from week 1:\n\n- Engineering background = comfort with frameworks, structured fact-finding, technical product\n\n- Mid-career age = real warm market who actually need protection (peers buying flats, having kids)\n\n- 12 years of corporate = followed instructions, ran the system as written, did not improvise too early\n\n- Recently retrenched = strong urgency, no room for half-measures\n\nThe profile most people undervalue is exactly the one I now actively recruit: 30 to 38, technical background, recently displaced, family obligation, low ego.\n\nIf you are in tech or engineering and the next round of layoffs has you anxious, I am not going to tell you to switch to FA. I am going to tell you the 4 traits I just listed are 80 percent of your runway already.\n\nThe other 20 is mentorship and the system. Both can be borrowed.\n\nDM me PIVOT if you are sitting in this profile and want to see the 12-month income projection from intake.",
-    "why_it_works": "Specific dated proof + counter-intuitive ICP + named traits + recruitment CTA.",
-    "source": "leo-brand-corpus",
-    "tags": ["recruitment", "career-switch", "tot", "social"]
+    "hook": "The profile of new joiner who does best on my team is the one most other industries underrate.",
+    "content": "The profile of new joiner who does best on my team is the one most other industries underrate.\n\nLate-30s. Technical or operations background (engineer, accountant, ops manager, project manager). Recently displaced or feeling the ceiling. Has a young family. Followed corporate frameworks for years without complaint.\n\nWhat I see in that profile:\n\n- Technical background = comfort with frameworks, structured fact-finding, technical product\n\n- Mid-career age = real warm market who actually need protection (peers buying flats, having kids, ageing parents)\n\n- A decade-plus of corporate = followed instructions, ran the system as written, did not improvise too early\n\n- Recently displaced or stuck = strong urgency, no room for half-measures\n\nThis is not a recruitment pitch. It is a pattern observation. The traits the corporate world treats as ordinary are the same ones that compound brutally fast inside a structured advisory team.\n\nIf you are in tech or operations and the next round of layoffs has you anxious, I am not going to tell you to switch to FA. I am going to tell you those 4 traits are 80 percent of your runway already.\n\nThe other 20 is mentorship and the system. Both can be borrowed.\n\nDM me PIVOT if you sit in this profile and want to see the 12-month income projection from intake.",
+    "why_it_works": "Counter-intuitive ICP + named traits + pattern reframe + recruitment CTA.",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:market",
+    "tags": ["recruitment", "career-switch", "pivot", "social"]
   },
   {
     "id": "instagram-tip-tax-046",
@@ -595,6 +640,7 @@
     "content": "Slide 1: 5 tax reliefs most working adults skip every year. Use before December.\n\nSlide 2: Relief 1 - SRS contribution up to $15,300. Saves $1.7K to $3K/year depending on bracket.\n\nSlide 3: Relief 2 - CPF Cash Top-Up to your own SA up to $8K, plus $8K for parents. Saves $1.8K combined at 11.5 percent.\n\nSlide 4: Relief 3 - CPF Voluntary Cash Contribution to MA up to BHS. Saves $920 on $8K at 11.5 percent. Earns 4 percent guaranteed.\n\nSlide 5: Relief 4 - NSman Relief if you completed ICT this year. $3,000 to $5,000 reduction depending on key appointment.\n\nSlide 6: Relief 5 - Course Fee Relief on approved skills training. Up to $5,500 for relevant courses.\n\nSlide 7: Stack all 5 and a $100K earner can shift roughly $30K to $40K of taxable income. Save $3K to $5K in tax.\n\nSlide 8: Save this. DM me TAX for the December checklist.",
     "why_it_works": "Numbered list + specific savings per relief + cumulative payoff + Dec urgency + dual CTA.",
     "source": "pattern-derived",
+    "curriculum_anchor": "day-42:authority-post-structure",
     "tags": ["tax", "working-adult", "carousel", "tip"]
   },
   {
@@ -607,7 +653,8 @@
     "hook": "If your only saving is a 3 percent fixed deposit, you are losing 1 to 2 percent a year to inflation.",
     "content": "If your only saving is a 3 percent fixed deposit, you are losing 1 to 2 percent a year to inflation.\n\nSingapore's structural inflation runs around 2 to 3 percent. SG Core inflation has spent stretches above 4 percent recently.\n\nA 3 percent FD at 3 percent inflation is a real return of zero. After tax, slightly negative.\n\nThis does not mean cash is bad. It means cash is a tool, not a strategy.\n\nThe 3-bucket frame I use with most under-30 clients:\n\n1. Liquid cash bucket = 3 to 6 months of essential expenses. T-bills, fixed deposits, or money market funds. Kept against emergency, not against inflation.\n\n2. Mid-term bucket = funds you will deploy in 1 to 5 years (BTO down payment, wedding, business capital). Short-duration bond funds, single-premium endowment, or stable allocation.\n\n3. Long-term bucket = funds you will not touch for 7+ years. Equity ETFs, regular savings plans into diversified equity, plus your CPF SA quietly compounding at 4 percent.\n\nWhen people complain about not making money, it is usually because they have all 3 buckets sitting in the first one.\n\nWhich bucket are you over-weighted in right now?",
     "why_it_works": "Counter-intuitive math + 3-bucket framework + diagnostic question. Clean Authority pillar.",
-    "source": "leo-brand-corpus",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
     "tags": ["inflation", "buckets", "young-adult", "authority"]
   },
   {
@@ -616,11 +663,12 @@
     "format": "text-only",
     "pillar": "Hook",
     "audience": "young-adult",
-    "topic": "status games",
+    "topic": "knowing products vs asking questions",
     "hook": "Knowing more products is not helping you close.",
     "content": "Knowing more products is not helping you close.\n\nThe newer FCs I meet have studied 15 plans cover-to-cover.\n\nThey can recite premium tiers. Bonus rates. Surrender values at year 10.\n\nThey still cannot close because they are answering questions the prospect has not asked.\n\nThe top performers I know go deep on 4 to 5 plans they understand cold, and ask better questions.\n\nThe close happens at the question, not the recommendation.\n\nIf the prospect cannot articulate the gap clearly themselves by minute 30 of the meeting, no amount of product depth will close them.\n\nGo learn 5 plans deeply. Memorise 20 questions you can ask in any order.\n\nThe first list is technical. The second list is what actually moves the case.",
     "why_it_works": "Counter-intuitive contrarian principle + specific behaviour swap + clean close.",
-    "source": "leo-brand-corpus",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:idea-mine:behind-the-scenes",
     "tags": ["sales", "fc-life", "questioning", "hook"]
   },
   {
@@ -629,11 +677,12 @@
     "format": "text-only",
     "pillar": "CTA",
     "audience": "young-adult",
-    "topic": "FA discovery",
+    "topic": "FA discovery call",
     "hook": "If you are FA-curious but not ready to commit, here is a 30-minute conversation that will not waste your time.",
-    "content": "If you are FA-curious but not ready to commit, here is a 30-minute conversation that will not waste your time.\n\nNot a recruitment pitch. A diagnostic.\n\nThe 30 minutes covers:\n\n1. The actual hourly rate of an FA in year 1, year 3, year 5 (the math, not the slogan)\n\n2. The trait inventory I look for and which 3 traits you have or are missing\n\n3. The 12-month onboarding system, week by week\n\n4. Your alternative path math (your current career trajectory vs FA trajectory) so you see both sides\n\n5. A clean go-no-go answer at the end of the call\n\nWhat I want from you in advance: 1 honest paragraph on why you are looking, 1 paragraph on what you are afraid of.\n\nWhat I will not do: chase you after the call. If you are a yes, we move. If you are a no or not yet, we close cleanly.\n\nThis is what I wish someone had offered me at 21 instead of the slide deck.\n\nDM me 30MIN if you want to book.",
+    "content": "If you are FA-curious but not ready to commit, here is a 30-minute conversation that will not waste your time.\n\nNot a recruitment pitch. A diagnostic.\n\nThe 30 minutes covers:\n\n1. The actual hourly rate of an FA in year 1, year 3, year 5 (the math, not the slogan)\n\n2. The trait inventory I look for and which 3 traits you have or are missing\n\n3. The 12-month onboarding system, week by week\n\n4. Your alternative path math (your current career trajectory vs FA trajectory) so you see both sides\n\n5. A clean go-no-go answer at the end of the call\n\nWhat I want from you in advance: 1 honest paragraph on why you are looking, 1 paragraph on what you are afraid of.\n\nWhat I will not do: chase you after the call. If you are a yes, we move. If you are a no or not yet, we close cleanly.\n\nThis is the conversation I wish someone had offered me when I was first considering this path.\n\nDM me 30MIN if you want to book.",
     "why_it_works": "De-selling tone + specific 5-point agenda + reciprocal expectations + named DM keyword.",
-    "source": "leo-brand-corpus",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-41:authority-social-cta-structure",
     "tags": ["recruitment", "young-adult", "cta", "discovery-call"]
   },
   {
@@ -644,9 +693,10 @@
     "audience": "general",
     "topic": "annual money habits",
     "hook": "5 money habits that separate clients who retire well from those who do not.",
-    "content": "5 money habits that separate clients who retire well from those who do not.\n\nNot income. Not luck. Habits.\n\nFrom 1000+ clients across 7 years:\n\n1. They automate. Every contribution is auto-debit. SRS, RSTU, ETF, term premium. They do not decide every month. The system decides.\n\n2. They name their accounts. Not Account 1 and Account 2. Kids' University. Mum's Hospital Fund. 2030 House Move. Naming changes how they spend it.\n\n3. They review yearly, not monthly. Once a year, 90 minutes, all numbers in 1 sheet. Monthly checking creates panic. Yearly review creates discipline.\n\n4. They do not chase the news. Markets drop, they do not move. Markets rip, they do not move. The plan was written when they were calm. They trust the plan.\n\n5. They tell someone the plan. Spouse, FA, accountability partner. Plans you keep secret tend to die quietly.\n\nNone of these are sophisticated. All of them are durable.\n\nWhich 1 are you missing right now?",
+    "content": "5 money habits that separate clients who retire well from those who do not.\n\nNot income. Not luck. Habits.\n\nFrom the clients I have walked through retirement planning over the years:\n\n1. They automate. Every contribution is auto-debit. SRS, RSTU, ETF, term premium. They do not decide every month. The system decides.\n\n2. They name their accounts. Not Account 1 and Account 2. Kids' University. Mum's Hospital Fund. 2030 House Move. Naming changes how they spend it.\n\n3. They review yearly, not monthly. Once a year, 90 minutes, all numbers in 1 sheet. Monthly checking creates panic. Yearly review creates discipline.\n\n4. They do not chase the news. Markets drop, they do not move. Markets rip, they do not move. The plan was written when they were calm. They trust the plan.\n\n5. They tell someone the plan. Spouse, FA, accountability partner. Plans you keep secret tend to die quietly.\n\nNone of these are sophisticated. All of them are durable.\n\nWhich 1 are you missing right now?",
     "why_it_works": "Universal tip + numbered list + counter-intuitive insights + concrete each + diagnostic question close.",
-    "source": "leo-brand-corpus",
+    "source": "curriculum-derived",
+    "curriculum_anchor": "day-42:pillar:topic",
     "tags": ["habits", "general", "retirement", "tip"]
   }
 ]
