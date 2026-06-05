@@ -594,5 +594,22 @@
     "verified": false,
     "last_checked": "2026-04-29",
     "verification_note": "Profile, niche, and AWM (AIA Financial Advisers) affiliation confirmed via bio metadata. Individual post content and cadence not directly sampled - skim recent posts before treating any specific frame as a template."
+  },
+  {
+    "id": "willis-lau-instagram",
+    "name": "Willis Lau",
+    "handle": "@willislaubx",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/willislaubx",
+    "secondary_platforms": ["tiktok"],
+    "niche": ["personal-branding", "content-strategy", "advisor-growth", "social-selling"],
+    "audience": ["financial-advisors"],
+    "format": ["carousel", "short-video", "text-post"],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "Content and personal-brand coach for financial advisors. His frameworks - Trust = Personal + Professional, and the ABC Content Funnel (Attraction, Building Trust, Conversion) - are the backbone of the funnel-stage planning in this studio. Study how he turns advisor positioning into scroll-stopping, trust-building content.",
+    "style_notes": "Framework-led teaching: clean 2x2s and funnel diagrams, plain-language breakdowns of how to earn attention then trust online. Hooks name the exact mistake advisors make ('Don't expect respect or support. Earn it.') then resolve it with a repeatable system.",
+    "source": "leo-curated",
+    "verified": true,
+    "last_checked": "2026-06-05"
   }
 ]

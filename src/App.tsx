@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Auth from "@/pages/Auth";
 import StudioLayout from "@/pages/StudioLayout";
 import GeneratePage from "@/pages/GeneratePage";
+import PlanPage from "@/pages/PlanPage";
 import InspirationPage from "@/pages/InspirationPage";
 import InspirationDetailPage from "@/pages/InspirationDetailPage";
 import ProfilesPage from "@/pages/ProfilesPage";
@@ -28,6 +29,7 @@ export default function App() {
         >
           <Route path="/" element={<Navigate to="/generate" replace />} />
           <Route path="/generate" element={<GeneratePage />} />
+          <Route path="/plan" element={<PlanPage />} />
           <Route path="/inspiration" element={<InspirationPage />} />
           <Route path="/inspiration/:id" element={<InspirationDetailPage />} />
           <Route path="/profiles" element={<ProfilesPage />} />

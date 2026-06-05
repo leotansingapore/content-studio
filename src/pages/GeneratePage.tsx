@@ -69,6 +69,17 @@ import {
   type DraftEntry,
 } from "@/lib/draftHistory";
 import { readout, type CounterReadout } from "@/lib/platformCounters";
+import QuickTip from "@/components/QuickTip";
+import CompetitorReference, {
+  buildCompetitorStyleReference,
+  findCompetitorByHandle,
+  type CompetitorRef,
+} from "@/components/CompetitorReference";
+import {
+  FUNNEL_STAGES,
+  getFunnelStage,
+  type FunnelStageId,
+} from "@/data/funnelFramework";
 
 type Pillar = "interest" | "identity" | "topic" | "market";
 type Format = "carousel" | "short-video" | "text-post" | "story";
@@ -327,6 +338,10 @@ export default function GeneratePage() {
   const [ctaType, setCtaType] = useState<CtaType>("dm-keyword");
   const [audience, setAudience] = useState<Audience>("general");
   const [singlish, setSinglish] = useState<boolean>(false);
+  // Funnel stage (Willis Lau's ABC funnel) — steers ideation + the draft.
+  const [funnelStage, setFunnelStage] = useState<FunnelStageId | null>(null);
+  // Competitor whose angle to reference (optional).
+  const [competitorRef, setCompetitorRef] = useState<CompetitorRef | null>(null);
   // Hooks-first ON by default: per Day 41, the first 1-2 lines decide whether
   // anyone reads further. Forcing every post through a hook-validation step is
   // the highest-leverage edit on any draft.
@@ -343,6 +358,7 @@ export default function GeneratePage() {
   const [vibeSourceId, setVibeSourceId] = useState<string | null>(null);
   const formAnchorRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const prefillAppliedRef = useRef<boolean>(false);
 
   // Voice profile + nudge.
   const [userId, setUserId] = useState<string | null>(null);
@@ -460,6 +476,74 @@ export default function GeneratePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, searchParams.get("draft")]);
 
+  // Prefill from a Plan deep-link: /generate?pillar=&detail=&audience=&format=
+  // &platform=&cta=&funnel=&idea=&ctx=&ref=  (runs once, then strips params).
+  useEffect(() => {
+    if (prefillAppliedRef.current) return;
+    const has =
+      searchParams.has("pillar") ||
+      searchParams.has("detail") ||
+      searchParams.has("funnel") ||
+      searchParams.has("idea");
+    if (!has) return;
+    prefillAppliedRef.current = true;
+
+    const pillarParam = searchParams.get("pillar");
+    if (pillarParam && PILLARS.some((p) => p.value === pillarParam)) {
+      setPillar(pillarParam as Pillar);
+    }
+    const detailParam = searchParams.get("detail");
+    if (detailParam) setPillarDetail(detailParam);
+
+    const audienceParam = searchParams.get("audience");
+    if (audienceParam && AUDIENCES.some((a) => a.value === audienceParam)) {
+      setAudience(audienceParam as Audience);
+    }
+    const formatParam = searchParams.get("format");
+    if (formatParam && FORMATS.some((f) => f.value === formatParam)) {
+      setFormat(formatParam as Format);
+    }
+    const platformParam = searchParams.get("platform");
+    if (platformParam && PLATFORMS.some((p) => p.value === platformParam)) {
+      setPlatform(platformParam as Platform);
+    }
+    const ctaParam = searchParams.get("cta");
+    if (ctaParam && CTAS.some((c) => c.value === ctaParam)) {
+      setCtaType(ctaParam as CtaType);
+    }
+    const ideaParam = searchParams.get("idea");
+    if (ideaParam && IDEA_SOURCES.some((s) => s.value === ideaParam)) {
+      setIdeaSource(ideaParam);
+    }
+    const funnelParam = searchParams.get("funnel");
+    if (funnelParam && FUNNEL_STAGES.some((s) => s.id === funnelParam)) {
+      setFunnelStage(funnelParam as FunnelStageId);
+    }
+    const ctxParam = searchParams.get("ctx");
+    if (ctxParam) setIdeaContext(ctxParam);
+
+    const refParam = searchParams.get("ref");
+    if (refParam) {
+      const found = findCompetitorByHandle(refParam);
+      if (found) setCompetitorRef(found);
+    }
+
+    const next = new URLSearchParams(searchParams);
+    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref"].forEach(
+      (k) => next.delete(k),
+    );
+    setSearchParams(next, { replace: true });
+
+    toast({
+      title: "Loaded from your plan",
+      description: "Form pre-filled for this funnel slot. Tweak and generate.",
+    });
+    setTimeout(() => {
+      formAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleClearVibe = () => {
     setStyleReference(null);
     setVibeSourceId(null);
@@ -506,19 +590,35 @@ export default function GeneratePage() {
 
   const isStreaming = streamingMode !== "idle";
 
-  const buildBasePayload = (): BasePayload => ({
-    pillar,
-    pillarDetail: pillarDetail.trim(),
-    ideaSource: ideaMeta.label,
-    ideaContext: ideaContext.trim() || undefined,
-    format,
-    platform,
-    ctaType,
-    styleReference: styleReference ?? undefined,
-    audience,
-    voiceSummary: voiceSummary && voiceSummary.trim().length > 0 ? voiceSummary.trim() : undefined,
-    singlish: singlish ? true : undefined,
-  });
+  const buildBasePayload = (): BasePayload => {
+    // Fold the funnel-stage directive into the free-text context so the draft is
+    // steered for where the reader sits in the funnel (the edge function is
+    // prompt-driven, so this is how we shape it without server changes).
+    const funnelMeta = funnelStage ? getFunnelStage(funnelStage) : null;
+    const ctxParts: string[] = [];
+    if (funnelMeta) ctxParts.push(funnelMeta.directive);
+    const trimmedCtx = ideaContext.trim();
+    if (trimmedCtx) ctxParts.push(trimmedCtx);
+
+    // Combine an active vibe reference with a competitor's angle reference.
+    const styleParts: string[] = [];
+    if (styleReference) styleParts.push(styleReference);
+    if (competitorRef) styleParts.push(buildCompetitorStyleReference(competitorRef));
+
+    return {
+      pillar,
+      pillarDetail: pillarDetail.trim(),
+      ideaSource: ideaMeta.label,
+      ideaContext: ctxParts.join("\n\n") || undefined,
+      format,
+      platform,
+      ctaType,
+      styleReference: styleParts.join("\n") || undefined,
+      audience,
+      voiceSummary: voiceSummary && voiceSummary.trim().length > 0 ? voiceSummary.trim() : undefined,
+      singlish: singlish ? true : undefined,
+    };
+  };
 
   const stopStreaming = () => {
     abortControllerRef.current?.abort();
@@ -1072,6 +1172,8 @@ export default function GeneratePage() {
         </div>
       )}
 
+      <QuickTip context="generate" />
+
       <Card className="border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">
@@ -1181,6 +1283,95 @@ export default function GeneratePage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="border-border/60 shadow-card">
+        <CardHeader>
+          <CardTitle className="font-serif text-xl">Funnel stage</CardTitle>
+          <CardDescription>
+            Where is this reader in your funnel? The ABC funnel: Attraction to
+            get seen, Building Trust to earn credibility, Conversion to invite
+            the next step. Optional — but it sharpens the draft.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {FUNNEL_STAGES.map((s) => {
+              const active = funnelStage === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => {
+                    if (active) {
+                      setFunnelStage(null);
+                    } else {
+                      setFunnelStage(s.id);
+                      setCtaType(s.cta as CtaType);
+                    }
+                  }}
+                  className={`flex flex-col gap-1 rounded-xl border p-3 text-left transition-all ${
+                    active
+                      ? `border-primary/60 bg-primary/5 shadow-sm ring-1 ${s.accent.ring}`
+                      : "border-border/70 hover:border-primary/40 hover:bg-muted/40"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-bold ${s.accent.badge}`}
+                    >
+                      {s.letter}
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {s.label}
+                    </span>
+                  </span>
+                  <span className="text-[11px] leading-snug text-muted-foreground">
+                    {s.tagline}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {funnelStage &&
+            (() => {
+              const s = getFunnelStage(funnelStage);
+              const ctaLabel =
+                CTAS.find((c) => c.value === s.cta)?.label ?? s.cta;
+              return (
+                <div className="rounded-xl border border-border/60 bg-muted/20 p-3 text-xs">
+                  <p className={`font-semibold ${s.accent.text}`}>
+                    {s.letter} · {s.label} — {s.goal}
+                  </p>
+                  <p className="mt-1 leading-relaxed text-muted-foreground">
+                    {s.description}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {s.contentTypes.map((c) => (
+                      <span
+                        key={c}
+                        className="rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] text-muted-foreground"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    CTA set to{" "}
+                    <span className="font-medium text-foreground">
+                      {ctaLabel}
+                    </span>{" "}
+                    for this stage — change it in step 3 if you want.
+                  </p>
+                </div>
+              );
+            })()}
+        </CardContent>
+      </Card>
+
+      <CompetitorReference
+        selectedId={competitorRef?.id ?? null}
+        onSelect={setCompetitorRef}
+      />
 
       <Card className="border-border/60 shadow-card">
         <CardHeader>

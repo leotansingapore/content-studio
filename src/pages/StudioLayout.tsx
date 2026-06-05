@@ -10,6 +10,7 @@ import {
   Mic,
   History,
   BookOpen,
+  CalendarRange,
 } from "lucide-react";
 
 export default function StudioLayout() {
@@ -22,6 +23,7 @@ export default function StudioLayout() {
   };
 
   const onGenerate = location.pathname.startsWith("/generate");
+  const onPlan = location.pathname.startsWith("/plan");
   const onInspiration = location.pathname.startsWith("/inspiration");
   const onProfiles = location.pathname.startsWith("/profiles");
   const onVoice = location.pathname.startsWith("/voice");
@@ -41,7 +43,7 @@ export default function StudioLayout() {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
             <Sparkles className="h-3.5 w-3.5" />
-            Content Studio
+            Consultant Content Studio
           </div>
           <Button
             variant="ghost"
@@ -55,20 +57,30 @@ export default function StudioLayout() {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-6 px-3 py-6 sm:px-6 sm:py-10">
-        <header className="space-y-2">
-          <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
-            Draft a social post in 60 seconds
-          </h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Built around the Day 40-42 framework. Pick a pillar, an idea
-            source, a format - the generator drafts a post that hits Authority
-            + Social + a soft CTA.
-          </p>
-        </header>
+        {onGenerate && (
+          <header className="space-y-2">
+            <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
+              Draft a post that earns attention and trust
+            </h1>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Pick a pillar, a funnel stage, and an idea source — the generator
+              drafts a post that fits where your reader is in the funnel:
+              Attraction, Building Trust, or Conversion. New here? Build a full
+              week in{" "}
+              <NavLink to="/plan" className="font-semibold text-primary hover:underline">
+                Plan
+              </NavLink>
+              .
+            </p>
+          </header>
+        )}
 
         <nav className="inline-flex flex-wrap rounded-xl border border-border/60 bg-muted/30 p-1">
           <NavLink to="/generate" className={tabClass(onGenerate)}>
             <Pencil className="h-3.5 w-3.5" /> Generate
+          </NavLink>
+          <NavLink to="/plan" className={tabClass(onPlan)}>
+            <CalendarRange className="h-3.5 w-3.5" /> Plan
           </NavLink>
           <NavLink to="/inspiration" className={tabClass(onInspiration)}>
             <Lightbulb className="h-3.5 w-3.5" /> Inspiration

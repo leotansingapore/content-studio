@@ -71,13 +71,13 @@ export default function Auth() {
         <div className="space-y-2 text-center">
           <div className="mx-auto inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
             <Sparkles className="h-3.5 w-3.5" />
-            Content Studio
+            Consultant Content Studio
           </div>
           <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight">
             Sign in to draft posts
           </h1>
           <p className="text-sm text-muted-foreground">
-            Use your AIA Academy email + password.
+            Use your Academy email + password.
           </p>
         </div>
 
