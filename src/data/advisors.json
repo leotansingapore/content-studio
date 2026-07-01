@@ -836,6 +836,180 @@
     "tier": 1
   },
   {
+    "id": "aia-reuben-lee-instagram",
+    "name": "Reuben Lee",
+    "handle": "@reuuuben",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/reuuuben/",
+    "company": "AIA",
+    "niche": [
+      "financial-planning",
+      "team-building",
+      "insurance"
+    ],
+    "audience": [
+      "young-adult",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Financial Services Director and co-founder of an AIA SG top team - a recruitment- and leadership-forward personal brand with a golf/lifestyle hook.",
+    "style_notes": "Leader/recruiter positioning ('build a team with heroes') mixing lifestyle (golf) with team-building CTAs.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "pp-glenn-ng-instagram",
+    "name": "Glenn Ng",
+    "handle": "@glenn_ng",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/glenn_ng/",
+    "niche": [
+      "financial-planning",
+      "team-building",
+      "wealth-planning"
+    ],
+    "audience": [
+      "professional",
+      "working-adult"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "13x MDRT / 2x TOT leader running a 100% referral-based advisory - a masterclass in referral-driven, mid-career-targeted positioning.",
+    "style_notes": "Heavy credential stack plus a clear niche (mid-career regain control); leader-to-agents recruiting angle.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "gefa-deon-neo-instagram",
+    "name": "Deon Neo",
+    "handle": "@deonneocw",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/deonneocw/",
+    "company": "Great Eastern",
+    "niche": [
+      "financial-planning",
+      "wealth-planning",
+      "insurance"
+    ],
+    "audience": [
+      "young-adult",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Verified Great Eastern (GEFA) consultant with a crisp 'build wealth, live free, lead strong' brand - tight, repeatable messaging.",
+    "style_notes": "Punchy three-part tagline, relationship-led tone; clean and consistent personal branding.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "gefa-fabian-sim-instagram",
+    "name": "Fabian Sim",
+    "handle": "@iamfabiansim",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/iamfabiansim/",
+    "company": "Great Eastern",
+    "niche": [
+      "financial-planning",
+      "wealth-planning",
+      "mentorship"
+    ],
+    "audience": [
+      "young-adult",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "4x MDRT ChFC/AEPP GEFA planner partnering young professionals to build wealth - faith-led, mentor-forward brand.",
+    "style_notes": "Values-led (faith) plus strong credentials; dual audience of clients and aspiring advisors.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "aag-jun-xian-instagram",
+    "name": "Jun Xian",
+    "handle": "@_junxiannnnn",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/_junxiannnnn/",
+    "company": "AIA",
+    "niche": [
+      "personal-finance",
+      "financial-planning",
+      "life-stage-money"
+    ],
+    "audience": [
+      "young-adult",
+      "professional",
+      "business-owner"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "AAG financial consultant positioned as an 'adulting & finance' community leader for young adults, PMETs and business owners.",
+    "style_notes": "Relatable 'adulting' framing + finance/fitness/leadership pillars; community-builder voice.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "pp-cheryl-ang-instagram",
+    "name": "Cheryl Ang",
+    "handle": "@cherylahy",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/cherylahy/",
+    "niche": [
+      "financial-planning",
+      "wealth-planning",
+      "cashflow"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "5x MDRT advisor with a simple, benefit-led hook: helping you free up cash to live life on your terms.",
+    "style_notes": "Single clear value prop (free up cash), benefit-first; concise credential + outcome framing.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
     "id": "the-woke-salaryman-instagram",
     "name": "The Woke Salaryman",
     "handle": "@thewokesalaryman",
