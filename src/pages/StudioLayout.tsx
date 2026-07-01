@@ -18,6 +18,7 @@ import {
   GraduationCap,
   CalendarClock,
   TrendingUp,
+  BarChart3,
 } from "lucide-react";
 
 type NavItem = { to: string; label: string; icon: typeof Home };
@@ -39,6 +40,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     heading: "Improve",
     items: [
       { to: "/coach", label: "Coach", icon: Gauge },
+      { to: "/analytics", label: "Analytics", icon: BarChart3 },
       { to: "/playbook", label: "My Playbook", icon: BookMarked },
       { to: "/academy", label: "Academy", icon: GraduationCap },
     ],

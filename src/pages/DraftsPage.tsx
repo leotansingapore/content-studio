@@ -32,6 +32,7 @@ import {
   deleteDraft,
   loadDrafts,
   setDraftStatus,
+  setDraftMetrics,
   draftStatus,
   type DraftEntry,
   type DraftStatus,
@@ -91,6 +92,16 @@ export default function DraftsPage() {
   const handleSetStatus = (id: string, status: DraftStatus, when?: string) => {
     if (!userId) return;
     setDrafts(setDraftStatus(userId, id, status, when));
+  };
+
+  const handleMetric = (
+    id: string,
+    field: "impressions" | "reactions" | "comments",
+    value: string,
+  ) => {
+    if (!userId) return;
+    const n = Math.max(0, parseInt(value, 10) || 0);
+    setDrafts(setDraftMetrics(userId, id, { [field]: n }));
   };
 
   const handleRestore = (id: string) => {
@@ -279,6 +290,32 @@ export default function DraftsPage() {
                       className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     />
                   </label>
+                )}
+                {s === "posted" && (
+                  <div className="mb-3 grid grid-cols-3 gap-2">
+                    {(
+                      [
+                        ["impressions", "Impressions"],
+                        ["reactions", "Reactions"],
+                        ["comments", "Comments"],
+                      ] as const
+                    ).map(([field, label]) => (
+                      <label key={field} className="space-y-0.5">
+                        <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+                          {label}
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          inputMode="numeric"
+                          defaultValue={d.metrics?.[field] ?? ""}
+                          onChange={(e) => handleMetric(d.id, field, e.target.value)}
+                          placeholder="0"
+                          className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        />
+                      </label>
+                    ))}
+                  </div>
                 )}
                 <div className="mt-auto flex flex-wrap items-center gap-2">
                   <Button

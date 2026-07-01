@@ -28,10 +28,25 @@ export interface DraftEntry {
   status?: DraftStatus;
   scheduledFor?: string;
   postedAt?: string;
+  // Self-reported performance (until a real platform integration lands).
+  metrics?: PostMetrics;
+}
+
+export interface PostMetrics {
+  impressions?: number;
+  reactions?: number;
+  comments?: number;
+  shares?: number;
 }
 
 export function draftStatus(d: DraftEntry): DraftStatus {
   return d.status ?? "draft";
+}
+
+// Total engagement actions (reactions + comments + shares).
+export function engagement(m?: PostMetrics): number {
+  if (!m) return 0;
+  return (m.reactions ?? 0) + (m.comments ?? 0) + (m.shares ?? 0);
 }
 
 const KEY_PREFIX = "content-studio-drafts-";
@@ -193,6 +208,70 @@ export function getPostingActivity(
     cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - 7);
   }
   return { thisWeekPosted, weekStreak: streak };
+}
+
+export function setDraftMetrics(
+  userId: string,
+  id: string,
+  metrics: PostMetrics,
+): DraftEntry[] {
+  const current = loadDrafts(userId);
+  const next = current.map((d) =>
+    d.id === id
+      ? { ...d, metrics: { ...d.metrics, ...metrics } }
+      : d,
+  );
+  saveDrafts(userId, next);
+  return next;
+}
+
+export interface AnalyticsSummary {
+  trackedCount: number;
+  totalImpressions: number;
+  totalEngagement: number;
+  avgEngagementRate: number; // % of impressions that engaged
+  top: DraftEntry[]; // posts with metrics, best engagement first
+  bestPillar: string | null;
+  bestFormat: string | null;
+}
+
+export function getAnalytics(
+  userId: string | null | undefined,
+): AnalyticsSummary {
+  const tracked = loadDrafts(userId).filter(
+    (d) => d.metrics && (d.metrics.impressions || engagement(d.metrics)),
+  );
+  let totalImpressions = 0;
+  let totalEngagement = 0;
+  const byPillar: Record<string, number> = {};
+  const byFormat: Record<string, number> = {};
+  for (const d of tracked) {
+    totalImpressions += d.metrics?.impressions ?? 0;
+    const e = engagement(d.metrics);
+    totalEngagement += e;
+    byPillar[d.pillar] = (byPillar[d.pillar] ?? 0) + e;
+    byFormat[d.format] = (byFormat[d.format] ?? 0) + e;
+  }
+  const top = [...tracked].sort(
+    (a, b) => engagement(b.metrics) - engagement(a.metrics),
+  );
+  const bestOf = (r: Record<string, number>): string | null => {
+    const keys = Object.keys(r);
+    if (keys.length === 0) return null;
+    return keys.sort((a, b) => r[b] - r[a])[0];
+  };
+  return {
+    trackedCount: tracked.length,
+    totalImpressions,
+    totalEngagement,
+    avgEngagementRate:
+      totalImpressions > 0
+        ? Math.round((totalEngagement / totalImpressions) * 1000) / 10
+        : 0,
+    top,
+    bestPillar: bestOf(byPillar),
+    bestFormat: bestOf(byFormat),
+  };
 }
 
 export function newDraftId(): string {

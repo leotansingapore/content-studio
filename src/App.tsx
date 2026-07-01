@@ -11,6 +11,7 @@ import CoachPage from "@/pages/CoachPage";
 import PlaybookPage from "@/pages/PlaybookPage";
 import AcademyPage from "@/pages/AcademyPage";
 import CalendarPage from "@/pages/CalendarPage";
+import AnalyticsPage from "@/pages/AnalyticsPage";
 import PlanPage from "@/pages/PlanPage";
 import InspirationPage from "@/pages/InspirationPage";
 import InspirationDetailPage from "@/pages/InspirationDetailPage";
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/drafts" element={<DraftsPage />} />
           <Route path="/coach" element={<CoachPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/playbook" element={<PlaybookPage />} />
           <Route path="/academy" element={<AcademyPage />} />
           <Route path="/tutorial" element={<TutorialPage />} />
