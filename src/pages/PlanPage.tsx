@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import {
   Card,
   CardContent,
@@ -47,6 +48,8 @@ import {
   savePlan,
   clearPlan,
   planItemToGenerateUrl,
+  planItemDate,
+  upcomingMonday,
   type ContentPlan,
   type PlanItem,
 } from "@/lib/contentPlan";
@@ -105,6 +108,7 @@ const WEEK_OPTIONS = [1, 2, 4];
 
 export default function PlanPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [positioning, setPositioning] = useState<Positioning>(EMPTY_POSITIONING);
   const [topicsRaw, setTopicsRaw] = useState("");
@@ -255,6 +259,40 @@ export default function PlanPage() {
     clearPlan(userId);
     setPlan(null);
     setEditing(true);
+  };
+
+  // Push every plan slot onto the calendar as a scheduled post (dated from the
+  // upcoming Monday). Re-running updates the same slots instead of duplicating.
+  const handleAddToCalendar = () => {
+    if (!userId || !plan) return;
+    const week1 = upcomingMonday(new Date());
+    let count = 0;
+    for (const item of plan.items) {
+      const date = planItemDate(item, week1);
+      const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      const entry: DraftEntry = {
+        id: `plan_${item.id}`,
+        createdAt: new Date().toISOString(),
+        hook: item.hook || item.angle,
+        draft: "",
+        pillar: item.pillar,
+        pillarDetail: item.pillarDetail,
+        audience: item.audience,
+        format: item.format,
+        platform: item.platform,
+        ctaType: item.ctaType,
+        vibeSourceId: item.seedId,
+        status: "scheduled",
+        scheduledFor: iso,
+      };
+      upsertDraft(userId, entry);
+      count++;
+    }
+    toast({
+      title: `${count} posts added to your calendar`,
+      description: "Open one to write it — it stays on its scheduled day.",
+    });
+    navigate("/calendar");
   };
 
   const addCompetitor = (ref: CompetitorRef | null) => {
@@ -683,7 +721,14 @@ export default function PlanPage() {
               );
             })}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              onClick={handleAddToCalendar}
+              className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"
+            >
+              <Calendar className="h-3.5 w-3.5" /> Add week to calendar
+            </Button>
             <Button
               variant="outline"
               size="sm"

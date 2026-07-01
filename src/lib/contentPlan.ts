@@ -289,6 +289,35 @@ export function planItemToGenerateUrl(item: PlanItem): string {
   return `/generate?${params.toString()}`;
 }
 
+// ---- calendar mapping ----
+
+const WEEKDAY_OFFSET: Record<string, number> = {
+  Mon: 0,
+  Tue: 1,
+  Wed: 2,
+  Thu: 3,
+  Fri: 4,
+  Sat: 5,
+  Sun: 6,
+};
+
+// The upcoming Monday (today if it's already Monday).
+export function upcomingMonday(from: Date): Date {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const offset = (8 - (d.getDay() === 0 ? 7 : d.getDay())) % 7; // days until Mon
+  d.setDate(d.getDate() + offset);
+  return d;
+}
+
+// Map a plan item to a concrete calendar date, given the week-1 Monday.
+export function planItemDate(item: PlanItem, week1Monday: Date): Date {
+  const weekday = item.dayLabel.split("·").pop()?.trim() ?? "Mon";
+  const off = WEEKDAY_OFFSET[weekday] ?? 0;
+  const d = new Date(week1Monday);
+  d.setDate(d.getDate() + (item.week - 1) * 7 + off);
+  return d;
+}
+
 // ---- store ----
 
 function safeStorage(): Storage | null {

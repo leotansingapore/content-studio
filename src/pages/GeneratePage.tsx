@@ -366,6 +366,9 @@ export default function GeneratePage() {
   const formAnchorRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const prefillAppliedRef = useRef<boolean>(false);
+  // When a scheduled/posted slot is loaded, keep updating that same entry on
+  // re-roll/pick (so it stays on the calendar) instead of forking a new draft.
+  const preserveIdRef = useRef<string | null>(null);
 
   // Voice profile + nudge.
   const [userId, setUserId] = useState<string | null>(null);
@@ -475,6 +478,10 @@ export default function GeneratePage() {
     if (entry.hook) setChosenHook(entry.hook);
     setDraft(entry.draft);
     setCurrentDraftId(entry.id);
+    preserveIdRef.current =
+      entry.status === "scheduled" || entry.status === "posted"
+        ? entry.id
+        : null;
     setVibeSourceId(entry.vibeSourceId ?? null);
     toast({
       title: "Draft restored",
@@ -952,9 +959,12 @@ export default function GeneratePage() {
     (text: string, hookText: string) => {
       if (!userId || !text.trim()) return;
       const id = currentDraftId ?? newDraftId();
+      // Preserve scheduling/status/created-at when updating an existing entry
+      // (e.g. writing a slot that was scheduled from the Plan).
+      const existing = getDraftById(userId, id);
       const entry: DraftEntry = {
         id,
-        createdAt: new Date().toISOString(),
+        createdAt: existing?.createdAt ?? new Date().toISOString(),
         hook: hookText,
         draft: text,
         pillar,
@@ -964,6 +974,9 @@ export default function GeneratePage() {
         platform,
         ctaType,
         vibeSourceId: vibeSourceId ?? undefined,
+        status: existing?.status,
+        scheduledFor: existing?.scheduledFor,
+        postedAt: existing?.postedAt,
       };
       upsertDraft(userId, entry);
       setCurrentDraftId(id);
@@ -989,8 +1002,10 @@ export default function GeneratePage() {
     setHashtags([]);
     setImagePrompt("");
     setDismissedFlagIds(new Set());
-    // Save to history immediately on selection.
-    setCurrentDraftId(null);
+    // Save to history immediately on selection. Normally each pick forks a
+    // fresh entry, but when editing a scheduled/posted slot we keep updating
+    // it so it stays put on the calendar.
+    if (!preserveIdRef.current) setCurrentDraftId(null);
     persistDraftEntry(v.text, chosenHook ?? "");
     // Fire hashtags + image-prompt in parallel; failures don't block.
     void fetchAuxForDraft(v.text);
