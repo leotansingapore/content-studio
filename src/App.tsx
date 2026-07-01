@@ -8,6 +8,7 @@ import HomePage from "@/pages/HomePage";
 import GeneratePage from "@/pages/GeneratePage";
 import CoachPage from "@/pages/CoachPage";
 import PlaybookPage from "@/pages/PlaybookPage";
+import AcademyPage from "@/pages/AcademyPage";
 import PlanPage from "@/pages/PlanPage";
 import InspirationPage from "@/pages/InspirationPage";
 import InspirationDetailPage from "@/pages/InspirationDetailPage";
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/drafts" element={<DraftsPage />} />
           <Route path="/coach" element={<CoachPage />} />
           <Route path="/playbook" element={<PlaybookPage />} />
+          <Route path="/academy" element={<AcademyPage />} />
           <Route path="/tutorial" element={<TutorialPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

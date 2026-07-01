@@ -15,6 +15,7 @@ import {
   Plus,
   Gauge,
   BookMarked,
+  GraduationCap,
 } from "lucide-react";
 
 type NavItem = { to: string; label: string; icon: typeof Home };
@@ -36,6 +37,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     items: [
       { to: "/coach", label: "Coach", icon: Gauge },
       { to: "/playbook", label: "My Playbook", icon: BookMarked },
+      { to: "/academy", label: "Academy", icon: GraduationCap },
     ],
   },
   {
