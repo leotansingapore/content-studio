@@ -32,27 +32,15 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
       if (error) throw error;
       toast({ title: "Signed in", description: "Loading your studio." });
-      // First-time sign-in on this device routes to the in-app tutorial.
-      // Subsequent sign-ins go straight to /generate.
-      const uid = data.user?.id;
-      const seenKey = uid ? `content-studio-tutorial-seen-${uid}` : null;
-      const seen = seenKey ? localStorage.getItem(seenKey) : "1";
-      if (seenKey && !seen) {
-        try {
-          localStorage.setItem(seenKey, new Date().toISOString());
-        } catch {
-          // ignore storage failures (Safari private mode, etc.)
-        }
-        navigate("/tutorial", { replace: true });
-      } else {
-        navigate("/", { replace: true });
-      }
+      // Land on the dashboard; brand-new users get routed to the welcome
+      // walkthrough from there.
+      navigate("/", { replace: true });
     } catch (err) {
       toast({
         title: "Couldn't sign in",
@@ -68,16 +56,25 @@ export default function Auth() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <div className="w-full max-w-md space-y-6">
-        <div className="space-y-2 text-center">
-          <div className="mx-auto inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
-            <Sparkles className="h-3.5 w-3.5" />
-            Consultant Content Studio
+        <div className="flex flex-col items-center space-y-3 text-center">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <span className="flex flex-col items-start leading-none">
+              <span className="text-base font-bold tracking-tight text-foreground">
+                Content Studio
+              </span>
+              <span className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                for advisors
+              </span>
+            </span>
           </div>
           <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight">
-            Sign in to draft posts
+            Sign in to your studio
           </h1>
           <p className="text-sm text-muted-foreground">
-            Use your Academy email + password.
+            Use your Academy email and password.
           </p>
         </div>
 
