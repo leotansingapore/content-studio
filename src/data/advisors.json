@@ -1,106 +1,37 @@
 [
   {
-    "id": "the-woke-salaryman-instagram",
-    "name": "The Woke Salaryman",
-    "handle": "@thewokesalaryman",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/thewokesalaryman/",
-    "secondary_platforms": ["tiktok", "facebook", "substack"],
-    "niche": ["personal-finance", "career", "life-stage-money"],
-    "audience": ["young-adult", "working-adult"],
-    "format": ["carousel", "comic", "short-video"],
-    "post_cadence": "multiple-per-week",
-    "why_follow": "Hand-drawn comic carousels turn complex money topics into one-screen mental models any reader remembers.",
-    "style_notes": "Two-tone visuals, conversational tone, every comic ends with a clear takeaway line. Hooks lead with a relatable salaryman dilemma.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "sg-budget-babe-instagram",
-    "name": "Dawn Cher (SG Budget Babe)",
-    "handle": "@sgbudgetbabe",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/sgbudgetbabe/",
-    "secondary_platforms": ["facebook", "blog"],
-    "niche": ["budgeting", "investing", "insurance", "motherhood-money"],
-    "audience": ["working-adult", "parent", "young-adult"],
-    "format": ["text-post", "carousel", "blog"],
-    "post_cadence": "weekly",
-    "why_follow": "Personal-finance OG who blends budgeting, investing, and family money decisions with founder-level transparency.",
-    "style_notes": "Long-form blog plus short IG captions that summarise. Hooks often start with a real life-stage milestone (renovation, kid, market dip).",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "honey-money-sg-youtube",
-    "name": "Chris Chong (Honey Money SG)",
-    "handle": "@HoneyMoneySG",
-    "platform": "youtube",
-    "platform_url": "https://www.youtube.com/@HoneyMoneySG",
-    "secondary_platforms": ["instagram", "tiktok", "telegram"],
-    "niche": ["cpf", "tax-srs", "credit-cards", "fire"],
-    "audience": ["working-adult", "young-adult"],
-    "format": ["long-video", "short-video", "text-post"],
-    "post_cadence": "weekly",
-    "why_follow": "Walks through real numbers and CPF/SRS optimisation moves the way an FC would in a review meeting.",
-    "style_notes": "Talking-head plus screen-share with annotated screenshots. Hooks frame a specific dollar outcome ('how I avoided $X tax').",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
     "id": "the-astute-parent-youtube",
     "name": "Josh Tan (TheAstuteParent)",
     "handle": "@joshconsultancy",
     "platform": "youtube",
     "platform_url": "https://www.youtube.com/@joshconsultancy",
-    "secondary_platforms": ["instagram", "telegram"],
+    "secondary_platforms": [
+      "instagram",
+      "telegram"
+    ],
     "company": "Independent / Fee-only",
-    "niche": ["insurance", "retirement", "family-finance", "investments"],
-    "audience": ["parent", "working-adult", "pre-retiree"],
-    "format": ["long-video", "short-video"],
+    "niche": [
+      "insurance",
+      "retirement",
+      "family-finance",
+      "investments"
+    ],
+    "audience": [
+      "parent",
+      "working-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "long-video",
+      "short-video"
+    ],
     "post_cadence": "weekly",
     "why_follow": "Licensed FC who breaks down insurance and retirement product mechanics in plain language for parents and families.",
     "style_notes": "Calm explainer voice, whiteboard-style breakdowns, hooks that name a specific product or scenario ('Should I keep my AIA Pro Achiever?').",
     "source": "web-research",
     "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "kelvin-learns-investing-youtube",
-    "name": "Kelvin Tan (Kelvin Learns Investing)",
-    "handle": "@KelvinLearnsInvesting",
-    "platform": "youtube",
-    "platform_url": "https://www.youtube.com/@KelvinLearnsInvesting",
-    "secondary_platforms": ["instagram", "tiktok"],
-    "niche": ["investing", "etfs", "personal-finance", "credit-cards"],
-    "audience": ["young-adult", "working-adult"],
-    "format": ["long-video", "short-video"],
-    "post_cadence": "weekly",
-    "why_follow": "Casual Singlish-flavoured explainers that make ETFs, credit cards, and SG-specific investing approachable for first-time investors.",
-    "style_notes": "Sit-down monologue with screen overlays. Hooks lean into self-deprecation and curiosity ('I tried this for 30 days').",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "1m65-loo-cheng-chuan-instagram",
-    "name": "Loo Cheng Chuan (1M65)",
-    "handle": "@loochengchuan",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/loochengchuan/",
-    "secondary_platforms": ["youtube", "facebook"],
-    "niche": ["cpf", "retirement", "long-term-wealth"],
-    "audience": ["working-adult", "pre-retiree", "parent"],
-    "format": ["text-post", "long-video", "short-video"],
-    "post_cadence": "weekly",
-    "why_follow": "Founder of the 1M65 movement; the clearest evangelist of using CPF mechanics for retirement, with proof-of-concept transparency.",
-    "style_notes": "Direct, mission-led tone. Hooks frame retirement targets in concrete dollar milestones (1M65, 4M65). Strong family-finance framing.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
+    "last_checked": "2026-04-29",
+    "tier": 1
   },
   {
     "id": "providend-christopher-tan-linkedin",
@@ -108,86 +39,35 @@
     "handle": "Christopher Tan",
     "platform": "linkedin",
     "platform_url": "https://www.linkedin.com/in/christopher-tan-19336a/",
-    "secondary_platforms": ["youtube", "podcast", "blog"],
+    "secondary_platforms": [
+      "youtube",
+      "podcast",
+      "blog"
+    ],
     "company": "Independent / Fee-only",
-    "niche": ["retirement", "fee-only-advice", "wealth-philosophy", "client-stories"],
-    "audience": ["working-adult", "pre-retiree", "parent"],
-    "format": ["text-post", "long-video", "podcast"],
+    "niche": [
+      "retirement",
+      "fee-only-advice",
+      "wealth-philosophy",
+      "client-stories"
+    ],
+    "audience": [
+      "working-adult",
+      "pre-retiree",
+      "parent"
+    ],
+    "format": [
+      "text-post",
+      "long-video",
+      "podcast"
+    ],
     "post_cadence": "weekly",
     "why_follow": "CEO of Singapore's first fee-only advisory firm; models how a senior advisor talks about money, life, and retirement without product-pitch energy.",
     "style_notes": "Reflective, principle-led writing. Long-form posts on Business Times Money Wisdom column adapted to LinkedIn. Hooks often pose a big-life question.",
     "source": "web-research",
     "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "investment-moats-kyith-blog",
-    "name": "Kyith Ng (Investment Moats)",
-    "handle": "@kyith",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/kyith/",
-    "secondary_platforms": ["blog", "facebook"],
-    "company": "Independent / Fee-only",
-    "niche": ["investing", "fire", "retirement-modelling", "spending"],
-    "audience": ["working-adult", "pre-retiree"],
-    "format": ["blog", "text-post"],
-    "post_cadence": "weekly",
-    "why_follow": "Decades-deep blogger now at a fee-only advisory firm; rare combo of analytical rigor and lived FIRE experience.",
-    "style_notes": "Data-heavy posts with charts and personal spending logs. Hooks frame a specific portfolio/spending question and walk through the math.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "financial-horse-instagram",
-    "name": "Financial Horse",
-    "handle": "@financialhorse",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/financialhorse/",
-    "secondary_platforms": ["blog", "facebook", "telegram", "twitter"],
-    "niche": ["sg-stocks", "reits", "macro", "market-commentary"],
-    "audience": ["working-adult", "young-adult"],
-    "format": ["blog", "text-post", "carousel"],
-    "post_cadence": "multiple-per-week",
-    "why_follow": "SGX-recognised commentator on SG stocks, REITs, and macro - useful for FCs who get asked 'should I buy X right now' by clients.",
-    "style_notes": "Plain-English market commentary, weekly thoughts roundup format. Hooks tie a single stock or news event to a 'so what' for retail investors.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "heartland-boy-facebook",
-    "name": "Heartland Boy",
-    "handle": "@heartlandboysg",
-    "platform": "facebook",
-    "platform_url": "https://www.facebook.com/heartlandboysg/",
-    "secondary_platforms": ["blog"],
-    "niche": ["hdb", "property", "personal-finance", "family-money"],
-    "audience": ["young-adult", "working-adult", "parent"],
-    "format": ["blog", "text-post"],
-    "post_cadence": "weekly",
-    "why_follow": "Heartlander voice on HDB, property, and household finance - speaks directly to the BTO/young-family money decisions FCs walk clients through.",
-    "style_notes": "Story-led blog posts, candid about wins and losses. Hooks anchor on a relatable household financial moment.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "expat-finances-danielle-teboul-instagram",
-    "name": "Danielle Teboul (Expat Finances)",
-    "handle": "@that_ang_moh_in_finance",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/that_ang_moh_in_finance/",
-    "secondary_platforms": ["blog", "linkedin"],
-    "niche": ["expat-finance", "investing", "cpf-for-foreigners", "career"],
-    "audience": ["working-adult", "expat"],
-    "format": ["carousel", "text-post", "blog"],
-    "post_cadence": "weekly",
-    "why_follow": "Niche-but-clear voice for the expat client segment most FCs serve at least a few of - shows how to write for a specific audience.",
-    "style_notes": "Infographic carousels with a single-question hook and a structured 3-5 point breakdown. Tone is warm and practical.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
+    "last_checked": "2026-04-29",
+    "tier": 1
   },
   {
     "id": "grace-koh-instagram",
@@ -195,102 +75,30 @@
     "handle": "@gracedotc0m",
     "platform": "instagram",
     "platform_url": "https://www.instagram.com/gracedotc0m/",
-    "secondary_platforms": ["tiktok"],
-    "niche": ["financial-planning", "lifestyle-money", "social-media-for-fcs"],
-    "audience": ["young-adult", "working-adult"],
-    "format": ["short-video", "carousel"],
+    "secondary_platforms": [
+      "tiktok"
+    ],
+    "niche": [
+      "financial-planning",
+      "lifestyle-money",
+      "social-media-for-fcs"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "short-video",
+      "carousel"
+    ],
     "post_cadence": "weekly",
     "why_follow": "SG financial advisor who has built a personal-finance content brand for Gen Z without leaning on recruit-flavoured content.",
     "style_notes": "Lifestyle-meets-finance Reels, casual delivery, hooks framed as 'what nobody told me about X'. Strong CTA hygiene.",
     "source": "web-research",
     "verified": false,
     "last_checked": "2026-04-29",
-    "verification_note": "Listed in 2025/2026 SG fin-influencer roundups; double-check post recency directly on the profile before recommending widely."
-  },
-  {
-    "id": "honey-money-sg-instagram",
-    "name": "Chris Chong (Honey Money SG) - IG",
-    "handle": "@honeymoneysg",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/honeymoneysg/",
-    "secondary_platforms": ["youtube", "tiktok"],
-    "niche": ["cpf", "tax-srs", "credit-cards"],
-    "audience": ["working-adult", "young-adult"],
-    "format": ["short-video", "carousel"],
-    "post_cadence": "multiple-per-week",
-    "why_follow": "Bite-sized IG companion to the long-form YouTube; useful for studying how a single CPF/SRS idea gets adapted into a 30-second Reel.",
-    "style_notes": "Quick spreadsheet zoom-ins, on-screen captions, hooks that quote a dollar figure or 'mistake' upfront.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "the-woke-salaryman-tiktok",
-    "name": "The Woke Salaryman - TikTok",
-    "handle": "@thewokesalaryman",
-    "platform": "tiktok",
-    "platform_url": "https://www.tiktok.com/@thewokesalaryman",
-    "secondary_platforms": ["instagram"],
-    "niche": ["personal-finance", "career", "life-stage-money"],
-    "audience": ["young-adult", "working-adult"],
-    "format": ["short-video"],
-    "post_cadence": "weekly",
-    "why_follow": "Comic-format ideas adapted to short video - great study for FCs who want to translate a static carousel idea into a 30-60s clip.",
-    "style_notes": "Animated comic frames with voiceover or captions. Hooks open on a stark contrast ('rich friend vs broke friend at 35').",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "moneysmart-sg-tiktok",
-    "name": "MoneySmart SG",
-    "handle": "@moneysmart.sg",
-    "platform": "tiktok",
-    "platform_url": "https://www.tiktok.com/@moneysmart.sg",
-    "secondary_platforms": ["instagram", "blog"],
-    "niche": ["credit-cards", "loans", "deals", "personal-finance"],
-    "audience": ["young-adult", "working-adult"],
-    "format": ["short-video", "carousel"],
-    "post_cadence": "multiple-per-week",
-    "why_follow": "Brand account but a useful pattern library - meme-led TikToks that turn dry product comparisons into watchable hooks.",
-    "style_notes": "Trend-aware, meme overlays, hooks lean on 'POV' and 'you vs your friend' framings. Always pairs entertainment with one usable tip.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "1m65-youtube",
-    "name": "1M65 (Loo Cheng Chuan) - YouTube",
-    "handle": "@1m65",
-    "platform": "youtube",
-    "platform_url": "https://www.youtube.com/@1m65",
-    "secondary_platforms": ["instagram"],
-    "niche": ["cpf", "retirement", "long-term-wealth"],
-    "audience": ["working-adult", "pre-retiree"],
-    "format": ["long-video", "podcast"],
-    "post_cadence": "multiple-per-week",
-    "why_follow": "Daily-cadence podcast format is rare in SG personal-finance YouTube - shows what consistency looks like at volume.",
-    "style_notes": "Conversational podcast tone, recurring segments around CPF mechanics. Hooks tie one daily money idea to long-term retirement maths.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "kelvin-learns-investing-tiktok",
-    "name": "Kelvin Learns Investing - TikTok",
-    "handle": "@kvlearnsinvest",
-    "platform": "tiktok",
-    "platform_url": "https://www.tiktok.com/@kvlearnsinvest",
-    "secondary_platforms": ["youtube", "instagram"],
-    "niche": ["investing", "etfs", "personal-finance"],
-    "audience": ["young-adult", "working-adult"],
-    "format": ["short-video"],
-    "post_cadence": "weekly",
-    "why_follow": "Long-form YouTube ideas chopped into 30-60s TikToks - useful pattern study for repurposing one idea across formats.",
-    "style_notes": "Selfie-style talking head, jump cuts, hooks lean on numbers ('I made $X doing this') without crossing into hype.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
+    "verification_note": "Listed in 2025/2026 SG fin-influencer roundups; double-check post recency directly on the profile before recommending widely.",
+    "tier": 1
   },
   {
     "id": "aia-ge-jiabao-tiktok",
@@ -298,17 +106,35 @@
     "handle": "@gejiabao",
     "platform": "tiktok",
     "platform_url": "https://www.tiktok.com/@gejiabao",
-    "secondary_platforms": ["youtube", "linkedin", "instagram"],
+    "secondary_platforms": [
+      "youtube",
+      "linkedin",
+      "instagram"
+    ],
     "company": "AIA",
-    "niche": ["cpf", "retirement", "insurance", "investing"],
-    "audience": ["working-adult", "young-adult", "pre-retiree"],
-    "format": ["short-video", "long-video", "text-post"],
+    "niche": [
+      "cpf",
+      "retirement",
+      "insurance",
+      "investing"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "short-video",
+      "long-video",
+      "text-post"
+    ],
     "post_cadence": "multiple-per-week",
     "why_follow": "Tied AIA FC who has built a 110k+ TikTok following on plain-language CPF, SRS, and retirement explainers - rare proof that an insurer-employed FC can do client-attracting content well in SG.",
     "style_notes": "On-screen text overlays with spreadsheet zoom-ins, conversational explainer voice. Hooks open on a specific CPF or product mechanic ('if you have lots of $$ in SA') and end with a usable framing.",
     "source": "web-research",
     "verified": true,
-    "last_checked": "2026-04-29"
+    "last_checked": "2026-04-29",
+    "tier": 1
   },
   {
     "id": "aia-ge-jiabao-youtube",
@@ -316,17 +142,32 @@
     "handle": "@gejiabao",
     "platform": "youtube",
     "platform_url": "https://www.youtube.com/@gejiabao",
-    "secondary_platforms": ["tiktok", "linkedin", "instagram"],
+    "secondary_platforms": [
+      "tiktok",
+      "linkedin",
+      "instagram"
+    ],
     "company": "AIA",
-    "niche": ["cpf", "retirement", "insurance", "investing"],
-    "audience": ["working-adult", "pre-retiree"],
-    "format": ["long-video"],
+    "niche": [
+      "cpf",
+      "retirement",
+      "insurance",
+      "investing"
+    ],
+    "audience": [
+      "working-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "long-video"
+    ],
     "post_cadence": "weekly",
     "why_follow": "Long-form companion to the TikTok feed; demonstrates how a tied FC can sustain depth on CPF LIFE deferment, SRS, and retirement modelling without veering into product-pitch energy.",
     "style_notes": "Calm walk-through with on-screen math and CPF-board screenshots. Hooks frame a specific decision ('STOP! Think Twice Before Deferring CPF LIFE Payouts To Age 70').",
     "source": "web-research",
     "verified": true,
-    "last_checked": "2026-04-29"
+    "last_checked": "2026-04-29",
+    "tier": 1
   },
   {
     "id": "prudential-sumita-n-tiktok",
@@ -334,17 +175,31 @@
     "handle": "@sumitandrjpth16",
     "platform": "tiktok",
     "platform_url": "https://www.tiktok.com/@sumitandrjpth16",
-    "secondary_platforms": ["linkedin"],
+    "secondary_platforms": [
+      "linkedin"
+    ],
     "company": "Prudential",
-    "niche": ["retirement", "insurance", "wealth-accumulation", "women-money"],
-    "audience": ["working-adult", "parent", "young-adult"],
-    "format": ["short-video"],
+    "niche": [
+      "retirement",
+      "insurance",
+      "wealth-accumulation",
+      "women-money"
+    ],
+    "audience": [
+      "working-adult",
+      "parent",
+      "young-adult"
+    ],
+    "format": [
+      "short-video"
+    ],
     "post_cadence": "weekly",
     "why_follow": "5x MDRT Prudential FC posting client-attracting Reels/TikToks on starting late, single-mum money, and protection conversations - a working example of an insurer-tied FC writing for clients, not recruits.",
     "style_notes": "Story-led short videos, warm tone, hooks anchor on a relatable life-stage moment ('she was 27, no savings, no plan'). Always ends with a soft CTA to plan, not pitch.",
     "source": "web-research",
     "verified": true,
-    "last_checked": "2026-04-29"
+    "last_checked": "2026-04-29",
+    "tier": 1
   },
   {
     "id": "prudential-ashley-tan-instagram",
@@ -352,87 +207,32 @@
     "handle": "@ashleytyl",
     "platform": "instagram",
     "platform_url": "https://www.instagram.com/ashleytyl/",
-    "secondary_platforms": ["linkedin"],
+    "secondary_platforms": [
+      "linkedin"
+    ],
     "company": "Prudential",
-    "niche": ["insurance", "cpf", "legacy-planning", "investing-basics"],
-    "audience": ["young-adult", "working-adult", "parent"],
-    "format": ["carousel", "text-post"],
+    "niche": [
+      "insurance",
+      "cpf",
+      "legacy-planning",
+      "investing-basics"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult",
+      "parent"
+    ],
+    "format": [
+      "carousel",
+      "text-post"
+    ],
     "post_cadence": "weekly",
     "why_follow": "Senior Wealth Manager at Prudential running a personal financial-education brand on IG and LinkedIn - useful study for an FC building credibility from a smaller follower base.",
     "style_notes": "Education-led carousels and text posts on CPF schemes, beneficiary nominations, and investing myths. Hooks frame a single misconception and walk through the principle. Signs off with #AssuredwithAsh and #takeyourfirststep.",
     "source": "web-research",
     "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "the-financial-coconut-instagram",
-    "name": "Reggie Koh (The Financial Coconut)",
-    "handle": "@thefinancialcoconut",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/thefinancialcoconut/",
-    "secondary_platforms": ["youtube", "tiktok", "linkedin", "podcast"],
-    "niche": ["personal-finance", "retirement", "investing", "wellness-money"],
-    "audience": ["working-adult", "young-adult", "pre-retiree"],
-    "format": ["carousel", "short-video", "podcast"],
-    "post_cadence": "multiple-per-week",
-    "why_follow": "Founder of SG's first personal-finance podcast network with 78K+ IG followers and 1M+ episode downloads - models how to build a multi-format finance brand without product-pitch energy.",
-    "style_notes": "Conversational, story-led posts that tease longer podcast conversations. Hooks pose a real-life money or wellness dilemma and pull viewers into the deeper-format episode for the full answer.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "the-financial-coconut-podcast",
-    "name": "The Financial Coconut Podcast",
-    "handle": "@thefinancialcoconut",
-    "platform": "youtube",
-    "platform_url": "https://www.youtube.com/@thefinancialcoconut",
-    "secondary_platforms": ["instagram", "tiktok", "spotify", "apple-podcasts"],
-    "niche": ["personal-finance", "retirement", "investing", "career-money"],
-    "audience": ["working-adult", "young-adult", "pre-retiree"],
-    "format": ["long-video", "podcast"],
-    "post_cadence": "weekly",
-    "why_follow": "Long-form companion to the IG feed - 1M+ download podcast network with shows on CPF, REITs, retirement, and career money - rare proof that long-form personal-finance audio works for SG audiences.",
-    "style_notes": "Interview format mixed with solo monologue episodes. Hooks frame each episode around one specific question or guest expertise. Recurring shows include 'Wise & Shine' and 'Chills with TFC'.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "beansprout-gerald-wong-instagram",
-    "name": "Gerald Wong (Beansprout)",
-    "handle": "@growbeansprout",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/growbeansprout/",
-    "secondary_platforms": ["youtube", "tiktok", "linkedin", "telegram", "blog"],
-    "company": "Independent / Fee-only",
-    "niche": ["investing", "reits", "cpf", "srs", "personal-finance"],
-    "audience": ["working-adult", "young-adult", "pre-retiree"],
-    "format": ["carousel", "text-post", "short-video"],
-    "post_cadence": "multiple-per-week",
-    "why_follow": "MAS-licensed advisory platform run by a former Credit Suisse Head of SG Research and CFA charterholder - gold standard for analyst-grade investing content adapted for retail readers.",
-    "style_notes": "Data-led carousels with chart screenshots and clean takeaway lines. Hooks frame a specific dollar question ('how much CPF do you need for $5K/month?') and walk through the math.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "beansprout-gerald-wong-linkedin",
-    "name": "Gerald Wong (Beansprout) - LinkedIn",
-    "handle": "Gerald Wong, CFA",
-    "platform": "linkedin",
-    "platform_url": "https://www.linkedin.com/in/gerald-wong-cfa/",
-    "secondary_platforms": ["instagram", "blog"],
-    "company": "Independent / Fee-only",
-    "niche": ["investing", "reits", "macro", "personal-finance"],
-    "audience": ["working-adult", "pre-retiree"],
-    "format": ["text-post", "blog"],
-    "post_cadence": "weekly",
-    "why_follow": "Thought-leadership companion to the Beansprout brand - shows how an analyst-turned-founder uses LinkedIn to translate market events into retail-investor takeaways.",
-    "style_notes": "Concise text posts that anchor on one current market or macro event with a single 'so what' for retail investors. Often links out to longer Beansprout pieces.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
+    "last_checked": "2026-04-29",
+    "tier": 1
   },
   {
     "id": "sethisfy-seth-wee-blog",
@@ -440,17 +240,35 @@
     "handle": "@sethisfy",
     "platform": "instagram",
     "platform_url": "https://www.instagram.com/sethisfy/",
-    "secondary_platforms": ["youtube", "blog", "telegram", "tiktok"],
+    "secondary_platforms": [
+      "youtube",
+      "blog",
+      "telegram",
+      "tiktok"
+    ],
     "company": "Independent / Fee-only",
-    "niche": ["credit-cards", "insurance", "investing", "personal-finance"],
-    "audience": ["working-adult", "young-adult"],
-    "format": ["carousel", "blog", "long-video"],
+    "niche": [
+      "credit-cards",
+      "insurance",
+      "investing",
+      "personal-finance"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult"
+    ],
+    "format": [
+      "carousel",
+      "blog",
+      "long-video"
+    ],
     "post_cadence": "multiple-per-week",
     "why_follow": "16-year licensed FA representative turned independent finfluencer - rare voice that openly compares insurance and investment products without insurer-tied bias.",
     "style_notes": "Practical deal-led posts and product breakdowns. Hooks lead with a specific dollar value or product name, structured around a clear pros/cons or who-it's-for framing.",
     "source": "web-research",
     "verified": true,
-    "last_checked": "2026-04-29"
+    "last_checked": "2026-04-29",
+    "tier": 1
   },
   {
     "id": "sethisfy-seth-wee-youtube",
@@ -458,17 +276,33 @@
     "handle": "@Sethisfy",
     "platform": "youtube",
     "platform_url": "https://www.youtube.com/@Sethisfy",
-    "secondary_platforms": ["blog", "instagram", "telegram"],
+    "secondary_platforms": [
+      "blog",
+      "instagram",
+      "telegram"
+    ],
     "company": "Independent / Fee-only",
-    "niche": ["credit-cards", "insurance", "investing", "personal-finance"],
-    "audience": ["working-adult", "young-adult"],
-    "format": ["long-video", "short-video"],
+    "niche": [
+      "credit-cards",
+      "insurance",
+      "investing",
+      "personal-finance"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult"
+    ],
+    "format": [
+      "long-video",
+      "short-video"
+    ],
     "post_cadence": "weekly",
     "why_follow": "13K+ subscriber long-form companion to the Sethisfy blog - useful study for translating a written deal-comparison post into a watchable video walkthrough.",
     "style_notes": "Screen-share product walkthroughs with on-screen annotations. Hooks frame a single product or strategy as either worth-it or not, and the video walks through the case.",
     "source": "web-research",
     "verified": true,
-    "last_checked": "2026-04-29"
+    "last_checked": "2026-04-29",
+    "tier": 1
   },
   {
     "id": "prudential-junhao-cai-linkedin",
@@ -478,103 +312,29 @@
     "platform_url": "https://www.linkedin.com/in/cjhfinance/",
     "secondary_platforms": [],
     "company": "Prudential",
-    "niche": ["wealth-management", "retirement", "critical-illness", "small-business-insurance"],
-    "audience": ["working-adult", "parent", "pre-retiree", "business-owner"],
-    "format": ["text-post", "long-form-article"],
+    "niche": [
+      "wealth-management",
+      "retirement",
+      "critical-illness",
+      "small-business-insurance"
+    ],
+    "audience": [
+      "working-adult",
+      "parent",
+      "pre-retiree",
+      "business-owner"
+    ],
+    "format": [
+      "text-post",
+      "long-form-article"
+    ],
     "post_cadence": "weekly",
     "why_follow": "7x MDRT Chartered Financial Consultant at Prudential FA who writes long-form LinkedIn articles on cash strategy, CI adequacy, and quality-of-life trends - shows what senior-FC thought leadership looks like.",
     "style_notes": "Essay-style articles with titles like 'Cash Is King - Until It Isn't'. Hooks invert a popular money belief and walk through the principle in plain language. Closes with a soft client-led call to think through their own plan.",
     "source": "web-research",
     "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "mr-15hww-blog",
-    "name": "Thomas (Mr 15HWW)",
-    "handle": "Mr 15HWW",
-    "platform": "facebook",
-    "platform_url": "https://my15hourworkweek.com/",
-    "secondary_platforms": ["blog"],
-    "niche": ["fire", "permanent-portfolio", "cpf", "semi-retirement"],
-    "audience": ["working-adult", "pre-retiree"],
-    "format": ["blog", "text-post"],
-    "post_cadence": "monthly",
-    "why_follow": "Long-running semi-retirement blog with monthly portfolio and expense updates - rare transparent record of a SG household actually walking the FIRE-lite path while raising kids.",
-    "style_notes": "Personal-update format with portfolio tables and reflective commentary. Hooks anchor on a specific monthly milestone or contrarian take ('why I am not chasing 100% equities').",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "sg-fire-couple-instagram",
-    "name": "Daniel & Adeline (SGFireCouple)",
-    "handle": "@sgfirecouple",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/sgfirecouple/",
-    "secondary_platforms": ["lemon8"],
-    "niche": ["fire", "couple-finance", "investing", "lifestyle-money"],
-    "audience": ["working-adult", "young-adult", "parent"],
-    "format": ["carousel", "text-post"],
-    "post_cadence": "weekly",
-    "why_follow": "SG couple openly sharing income, expenses, and portfolio splits while building toward FIRE - one of the few accounts to model 'no lifestyle inflation' through a real household lens.",
-    "style_notes": "Story-led carousels around one financial principle or household decision. Hooks anchor on transparency ('our actual S$20K/month income split') and end with one usable takeaway.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "dr-wealth-alvin-chow-linkedin",
-    "name": "Alvin Chow (Dr Wealth)",
-    "handle": "Alvin Chow",
-    "platform": "linkedin",
-    "platform_url": "https://www.linkedin.com/in/alvinchowyonghan/",
-    "secondary_platforms": ["youtube", "blog"],
-    "company": "Other",
-    "niche": ["value-investing", "quant", "etfs", "personal-finance"],
-    "audience": ["working-adult", "pre-retiree"],
-    "format": ["text-post", "long-video"],
-    "post_cadence": "weekly",
-    "why_follow": "Co-founder of Dr Wealth and now an iFAST Global Markets investment advisor - long-running educator who frames investing strategies the way an FC should be able to ('strategies are like religions').",
-    "style_notes": "Numbers-driven essay posts with a clear thesis. Hooks frame a contrarian or principle-led idea ('different strategies, different religions'). Closes with a practical principle a retail investor can use.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "dr-wealth-blog",
-    "name": "Dr Wealth",
-    "handle": "@drwealthsg",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/drwealthsg/",
-    "secondary_platforms": ["youtube", "tiktok", "telegram", "blog", "facebook"],
-    "company": "Other",
-    "niche": ["sg-stocks", "reits", "value-investing", "personal-finance"],
-    "audience": ["working-adult", "young-adult"],
-    "format": ["carousel", "blog", "long-video"],
-    "post_cadence": "multiple-per-week",
-    "why_follow": "SG's longest-running independent investment-education brand - daily blog posts on SG blue chips, REITs, and value plays, useful as a reference for how to talk specific stocks without crossing into hype.",
-    "style_notes": "Specific-stock breakdowns with valuation tables and screenshots. Hooks lead with a concrete dollar move ('I bought Nanofilm at 60 cents and made 150%') paired with the framework behind it.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
-  },
-  {
-    "id": "planner-bee-instagram",
-    "name": "Planner Bee",
-    "handle": "@plannerbeeco",
-    "platform": "instagram",
-    "platform_url": "https://www.instagram.com/plannerbeeco/",
-    "secondary_platforms": ["facebook", "telegram", "linkedin", "blog"],
-    "company": "Other",
-    "niche": ["insurance", "personal-finance", "investing", "budgeting"],
-    "audience": ["working-adult", "young-adult", "parent"],
-    "format": ["carousel", "text-post"],
-    "post_cadence": "weekly",
-    "why_follow": "Brand account but a useful pattern library - insurance comparison and CPF/SRS posts written for everyday readers, with the kind of structured visuals an FC can study and adapt.",
-    "style_notes": "Tidy comparison carousels with side-by-side product fields. Hooks ask a single decision question ('which one is better for you?') and the carousel walks through criteria.",
-    "source": "web-research",
-    "verified": true,
-    "last_checked": "2026-04-29"
+    "last_checked": "2026-04-29",
+    "tier": 1
   },
   {
     "id": "emmanuel-xavier-ng-instagram",
@@ -582,18 +342,31 @@
     "handle": "@emmaneeww",
     "platform": "instagram",
     "platform_url": "https://www.instagram.com/emmaneeww/",
-    "secondary_platforms": ["threads"],
+    "secondary_platforms": [
+      "threads"
+    ],
     "company": "AIA",
-    "niche": ["personal-finance", "wealth-accumulation", "hdb", "life-stage-money"],
-    "audience": ["young-adult"],
-    "format": ["short-video", "carousel"],
+    "niche": [
+      "personal-finance",
+      "wealth-accumulation",
+      "hdb",
+      "life-stage-money"
+    ],
+    "audience": [
+      "young-adult"
+    ],
+    "format": [
+      "short-video",
+      "carousel"
+    ],
     "post_cadence": "weekly",
     "why_follow": "AIA FC at Ascendance Wealth Management with a tight, underserved positioning - 'I help uni students build wealth early and afford their first home'. A clean example of an FC owning one specific life-stage moment instead of speaking to everyone, which is what most new advisors get wrong on social.",
     "style_notes": "Bio-first niche play targeting uni students and first-time home buyers. Hooks centre on early-career money decisions (first paycheck, BTO down payment, CPF moves before 25) framed for someone who has never thought about money before. Worth studying as a positioning template, not just a content template.",
     "source": "web-research",
     "verified": false,
     "last_checked": "2026-04-29",
-    "verification_note": "Profile, niche, and AWM (AIA Financial Advisers) affiliation confirmed via bio metadata. Individual post content and cadence not directly sampled - skim recent posts before treating any specific frame as a template."
+    "verification_note": "Profile, niche, and AWM (AIA Financial Advisers) affiliation confirmed via bio metadata. Individual post content and cadence not directly sampled - skim recent posts before treating any specific frame as a template.",
+    "tier": 1
   },
   {
     "id": "willis-lau-instagram",
@@ -601,15 +374,1502 @@
     "handle": "@willislaubx",
     "platform": "instagram",
     "platform_url": "https://www.instagram.com/willislaubx",
-    "secondary_platforms": ["tiktok"],
-    "niche": ["personal-branding", "content-strategy", "advisor-growth", "social-selling"],
-    "audience": ["financial-advisors"],
-    "format": ["carousel", "short-video", "text-post"],
+    "secondary_platforms": [
+      "tiktok"
+    ],
+    "niche": [
+      "personal-branding",
+      "content-strategy",
+      "advisor-growth",
+      "social-selling"
+    ],
+    "audience": [
+      "financial-advisors"
+    ],
+    "format": [
+      "carousel",
+      "short-video",
+      "text-post"
+    ],
     "post_cadence": "multiple-per-week",
     "why_follow": "Content and personal-brand coach for financial advisors. His frameworks - Trust = Personal + Professional, and the ABC Content Funnel (Attraction, Building Trust, Conversion) - are the backbone of the funnel-stage planning in this studio. Study how he turns advisor positioning into scroll-stopping, trust-building content.",
     "style_notes": "Framework-led teaching: clean 2x2s and funnel diagrams, plain-language breakdowns of how to earn attention then trust online. Hooks name the exact mistake advisors make ('Don't expect respect or support. Earn it.') then resolve it with a repeatable system.",
     "source": "leo-curated",
     "verified": true,
-    "last_checked": "2026-06-05"
+    "last_checked": "2026-06-05",
+    "tier": 1
+  },
+  {
+    "id": "awm-sean-tan-instagram",
+    "name": "Sean Tan",
+    "handle": "@seantalkssg",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/seantalkssg/",
+    "company": "Great Eastern",
+    "niche": [
+      "insurance",
+      "financial-planning",
+      "personal-finance"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "short-video",
+      "reel",
+      "talking-head"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "High-volume, personality-forward Great Eastern advisor who uses humour and warmth to make protection planning feel approachable.",
+    "style_notes": "Casual, very frequent posting with a friendly on-camera persona - wins on consistency and relatability over polish.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "awm-dominic-yee-instagram",
+    "name": "Dominic Yee",
+    "handle": "@thedomilicious",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/thedomilicious/",
+    "company": "AIA",
+    "niche": [
+      "retirement",
+      "legacy-planning",
+      "insurance",
+      "wealth-planning"
+    ],
+    "audience": [
+      "working-adult",
+      "parent",
+      "professional"
+    ],
+    "format": [
+      "carousel",
+      "reel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "MDRT AIA consultant framing content around living well, retiring ready and leaving a legacy - clear life-stage hooks.",
+    "style_notes": "Aspirational life-stage angles plus community-building CTAs; co-founder side venture adds a builder narrative.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "awm-dominic-sja-instagram",
+    "name": "Dominic (SJA)",
+    "handle": "@_dommm",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/_dommm/",
+    "company": "AIA",
+    "niche": [
+      "investing",
+      "wealth-planning",
+      "insurance"
+    ],
+    "audience": [
+      "young-adult",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "MDRT/IDA AIA advisor positioned around helping clients build six-figure portfolios, with recruitment-aware content.",
+    "style_notes": "Portfolio-outcome hooks and a 'grow with me' team-building narrative blending client results with recruiting.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "awm-chan-yun-qi-instagram",
+    "name": "Chan Yun Qi",
+    "handle": "@yun_qiiiiii",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/yun_qiiiiii/",
+    "company": "AIA",
+    "niche": [
+      "wealth-planning",
+      "insurance",
+      "team-building"
+    ],
+    "audience": [
+      "young-adult",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "occasional",
+    "why_follow": "Award-heavy AIA Associate Director (Centurion, 5x MDRT) - a study in leading with credentials and mentorship positioning.",
+    "style_notes": "Authority-first: leads with accolades and a team-grooming track record; lower volume, higher-signal posts.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "awm-isaac-liew-instagram",
+    "name": "Isaac Phillip Liew",
+    "handle": "@izliew",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/izliew/",
+    "company": "AIA",
+    "niche": [
+      "insurance",
+      "financial-planning"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "occasional",
+    "why_follow": "Early-career AIA advisor with an approachable 'turn financial dreams into reality' angle - a clean example of a starter personal brand.",
+    "style_notes": "Warm, dream-oriented messaging; simple and personable while still building content cadence.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "aag-ryan-tay-instagram",
+    "name": "Ryan Tay",
+    "handle": "@poodelead",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/poodelead/",
+    "company": "AIA",
+    "niche": [
+      "estate-planning",
+      "legacy-planning",
+      "wealth-planning"
+    ],
+    "audience": [
+      "working-adult",
+      "professional",
+      "business-owner"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "occasional",
+    "why_follow": "AIAFA estate-planning practitioner specialising in wealth and legacy - a niche, expertise-led positioning most advisors skip.",
+    "style_notes": "Specialist (estate/legacy) rather than generalist; credibility via practitioner qualification.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "awm-chantelle-instagram",
+    "name": "Chantelle",
+    "handle": "@yanjiaoo_",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/yanjiaoo_/",
+    "company": "AIA",
+    "niche": [
+      "personal-finance",
+      "insurance",
+      "lifestyle"
+    ],
+    "audience": [
+      "young-adult"
+    ],
+    "format": [
+      "reel"
+    ],
+    "post_cadence": "occasional",
+    "why_follow": "AIA advisor blending fitness, finance and humour - a lifestyle-first personal brand that softens the sales angle.",
+    "style_notes": "Lifestyle + finance mix (fitness, laughs) for relatability, funnelling to a Telegram community.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "awm-nicholas-goh-instagram",
+    "name": "Nicholas Goh",
+    "handle": "@niccczz",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/niccczz/",
+    "company": "AIA",
+    "niche": [
+      "wealth-planning",
+      "insurance",
+      "team-building"
+    ],
+    "audience": [
+      "young-adult",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Verified AIA Associate Director branding himself as a 'collaborative networker' - strong at positioning and recruitment.",
+    "style_notes": "Networker/leader persona with a trademarked tagline; authority plus team-growth focus.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "awm-wayne-cheong-instagram",
+    "name": "Wayne Cheong",
+    "handle": "@june_way",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/june_way/",
+    "company": "AIA",
+    "niche": [
+      "wealth-planning",
+      "investing",
+      "life-stage-money"
+    ],
+    "audience": [
+      "working-adult",
+      "parent",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "AIA advisor pairing asset-allocation and wealth-strategy content with a fatherhood angle - relatable authority.",
+    "style_notes": "Combines technical themes (asset allocation) with personal fatherhood storytelling; MDRT/IDA credentials.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "pfpfa-elijah-tan-instagram",
+    "name": "Elijah Tan",
+    "handle": "@pandachu96",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/pandachu96/",
+    "company": "Other",
+    "niche": [
+      "wealth-planning",
+      "insurance",
+      "team-building"
+    ],
+    "audience": [
+      "young-adult",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "SMU first-class grad and fast-rising Associate Director (4x COT) leaning on academic credibility and travel-with-parents storytelling.",
+    "style_notes": "Credential- and achievement-led (COT, MDRT team) with aspirational family/travel proof points.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "gefa-wilfred-lau-instagram",
+    "name": "Wilfred Lau, CFP",
+    "handle": "@wilfredlauu",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/wilfredlauu/",
+    "company": "Great Eastern",
+    "niche": [
+      "insurance",
+      "financial-planning",
+      "protection"
+    ],
+    "audience": [
+      "working-adult",
+      "parent",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "CFP-certified Great Eastern adviser managing 700+ clients - protection-first messaging with a professional-planner tone.",
+    "style_notes": "Protection-and-family framing, credential-forward (CFP, MDRT/COT); builds trust via scale (client count).",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "financial-alliance-wina-instagram",
+    "name": "Wina",
+    "handle": "@winainsg",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/winainsg/",
+    "company": "Independent / Fee-only",
+    "niche": [
+      "financial-planning",
+      "insurance",
+      "wealth-planning"
+    ],
+    "audience": [
+      "working-adult",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Bilingual (EN / 中文) Financial Alliance consultant simplifying financial and protection planning for a Mandarin-speaking audience.",
+    "style_notes": "Dual-language content with a 'simplify complex planning' angle aimed at Chinese-speaking Singaporeans.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "sherry-huang-instagram",
+    "name": "Sherry Huang",
+    "handle": "@sherryhsy_",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/sherryhsy_/",
+    "niche": [
+      "wealth-planning",
+      "insurance",
+      "expat-finance"
+    ],
+    "audience": [
+      "expat",
+      "professional"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Advisor niched on expat wealth planning and closing coverage gaps beyond company benefits - a sharp target-audience focus.",
+    "style_notes": "Expat-specific pain points (coverage gaps, cross-border wealth) delivered in a premium, aspirational tone.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "abode-ayy-instagram",
+    "name": "AYY (Abode)",
+    "handle": "@yunee",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/yunee/",
+    "niche": [
+      "financial-planning",
+      "insurance",
+      "personal-finance"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "occasional",
+    "why_follow": "Financial consultant at Abode with a calm, clarity-focused personal brand and a soft lifestyle overlay.",
+    "style_notes": "Gentle, aesthetic branding ('clarity in every choice') - an example of a lifestyle-softened advisory voice.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "jorene-chong-instagram",
+    "name": "Jorene Chong",
+    "handle": "@storeberrryking",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/storeberrryking/",
+    "niche": [
+      "insurance",
+      "wealth-planning",
+      "business-planning"
+    ],
+    "audience": [
+      "working-adult",
+      "parent",
+      "business-owner"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "occasional",
+    "why_follow": "Insurance and wealth-planning advisor serving families, HR and business owners with a protect / grow / optimise framing.",
+    "style_notes": "Explicit audience segmentation (families, HR, business owners) with outcome-verb messaging.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 1
+  },
+  {
+    "id": "the-woke-salaryman-instagram",
+    "name": "The Woke Salaryman",
+    "handle": "@thewokesalaryman",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/thewokesalaryman/",
+    "secondary_platforms": [
+      "tiktok",
+      "facebook",
+      "substack"
+    ],
+    "niche": [
+      "personal-finance",
+      "career",
+      "life-stage-money"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "carousel",
+      "comic",
+      "short-video"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "Hand-drawn comic carousels turn complex money topics into one-screen mental models any reader remembers.",
+    "style_notes": "Two-tone visuals, conversational tone, every comic ends with a clear takeaway line. Hooks lead with a relatable salaryman dilemma.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "sg-budget-babe-instagram",
+    "name": "Dawn Cher (SG Budget Babe)",
+    "handle": "@sgbudgetbabe",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/sgbudgetbabe/",
+    "secondary_platforms": [
+      "facebook",
+      "blog"
+    ],
+    "niche": [
+      "budgeting",
+      "investing",
+      "insurance",
+      "motherhood-money"
+    ],
+    "audience": [
+      "working-adult",
+      "parent",
+      "young-adult"
+    ],
+    "format": [
+      "text-post",
+      "carousel",
+      "blog"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Personal-finance OG who blends budgeting, investing, and family money decisions with founder-level transparency.",
+    "style_notes": "Long-form blog plus short IG captions that summarise. Hooks often start with a real life-stage milestone (renovation, kid, market dip).",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "honey-money-sg-youtube",
+    "name": "Chris Chong (Honey Money SG)",
+    "handle": "@HoneyMoneySG",
+    "platform": "youtube",
+    "platform_url": "https://www.youtube.com/@HoneyMoneySG",
+    "secondary_platforms": [
+      "instagram",
+      "tiktok",
+      "telegram"
+    ],
+    "niche": [
+      "cpf",
+      "tax-srs",
+      "credit-cards",
+      "fire"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult"
+    ],
+    "format": [
+      "long-video",
+      "short-video",
+      "text-post"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Walks through real numbers and CPF/SRS optimisation moves the way an FC would in a review meeting.",
+    "style_notes": "Talking-head plus screen-share with annotated screenshots. Hooks frame a specific dollar outcome ('how I avoided $X tax').",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "kelvin-learns-investing-youtube",
+    "name": "Kelvin Tan (Kelvin Learns Investing)",
+    "handle": "@KelvinLearnsInvesting",
+    "platform": "youtube",
+    "platform_url": "https://www.youtube.com/@KelvinLearnsInvesting",
+    "secondary_platforms": [
+      "instagram",
+      "tiktok"
+    ],
+    "niche": [
+      "investing",
+      "etfs",
+      "personal-finance",
+      "credit-cards"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "long-video",
+      "short-video"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Casual Singlish-flavoured explainers that make ETFs, credit cards, and SG-specific investing approachable for first-time investors.",
+    "style_notes": "Sit-down monologue with screen overlays. Hooks lean into self-deprecation and curiosity ('I tried this for 30 days').",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "1m65-loo-cheng-chuan-instagram",
+    "name": "Loo Cheng Chuan (1M65)",
+    "handle": "@loochengchuan",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/loochengchuan/",
+    "secondary_platforms": [
+      "youtube",
+      "facebook"
+    ],
+    "niche": [
+      "cpf",
+      "retirement",
+      "long-term-wealth"
+    ],
+    "audience": [
+      "working-adult",
+      "pre-retiree",
+      "parent"
+    ],
+    "format": [
+      "text-post",
+      "long-video",
+      "short-video"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Founder of the 1M65 movement; the clearest evangelist of using CPF mechanics for retirement, with proof-of-concept transparency.",
+    "style_notes": "Direct, mission-led tone. Hooks frame retirement targets in concrete dollar milestones (1M65, 4M65). Strong family-finance framing.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "investment-moats-kyith-blog",
+    "name": "Kyith Ng (Investment Moats)",
+    "handle": "@kyith",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/kyith/",
+    "secondary_platforms": [
+      "blog",
+      "facebook"
+    ],
+    "company": "Independent / Fee-only",
+    "niche": [
+      "investing",
+      "fire",
+      "retirement-modelling",
+      "spending"
+    ],
+    "audience": [
+      "working-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "blog",
+      "text-post"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Decades-deep blogger now at a fee-only advisory firm; rare combo of analytical rigor and lived FIRE experience.",
+    "style_notes": "Data-heavy posts with charts and personal spending logs. Hooks frame a specific portfolio/spending question and walk through the math.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "financial-horse-instagram",
+    "name": "Financial Horse",
+    "handle": "@financialhorse",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/financialhorse/",
+    "secondary_platforms": [
+      "blog",
+      "facebook",
+      "telegram",
+      "twitter"
+    ],
+    "niche": [
+      "sg-stocks",
+      "reits",
+      "macro",
+      "market-commentary"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult"
+    ],
+    "format": [
+      "blog",
+      "text-post",
+      "carousel"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "SGX-recognised commentator on SG stocks, REITs, and macro - useful for FCs who get asked 'should I buy X right now' by clients.",
+    "style_notes": "Plain-English market commentary, weekly thoughts roundup format. Hooks tie a single stock or news event to a 'so what' for retail investors.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "heartland-boy-facebook",
+    "name": "Heartland Boy",
+    "handle": "@heartlandboysg",
+    "platform": "facebook",
+    "platform_url": "https://www.facebook.com/heartlandboysg/",
+    "secondary_platforms": [
+      "blog"
+    ],
+    "niche": [
+      "hdb",
+      "property",
+      "personal-finance",
+      "family-money"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult",
+      "parent"
+    ],
+    "format": [
+      "blog",
+      "text-post"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Heartlander voice on HDB, property, and household finance - speaks directly to the BTO/young-family money decisions FCs walk clients through.",
+    "style_notes": "Story-led blog posts, candid about wins and losses. Hooks anchor on a relatable household financial moment.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "expat-finances-danielle-teboul-instagram",
+    "name": "Danielle Teboul (Expat Finances)",
+    "handle": "@that_ang_moh_in_finance",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/that_ang_moh_in_finance/",
+    "secondary_platforms": [
+      "blog",
+      "linkedin"
+    ],
+    "niche": [
+      "expat-finance",
+      "investing",
+      "cpf-for-foreigners",
+      "career"
+    ],
+    "audience": [
+      "working-adult",
+      "expat"
+    ],
+    "format": [
+      "carousel",
+      "text-post",
+      "blog"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Niche-but-clear voice for the expat client segment most FCs serve at least a few of - shows how to write for a specific audience.",
+    "style_notes": "Infographic carousels with a single-question hook and a structured 3-5 point breakdown. Tone is warm and practical.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "honey-money-sg-instagram",
+    "name": "Chris Chong (Honey Money SG) - IG",
+    "handle": "@honeymoneysg",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/honeymoneysg/",
+    "secondary_platforms": [
+      "youtube",
+      "tiktok"
+    ],
+    "niche": [
+      "cpf",
+      "tax-srs",
+      "credit-cards"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult"
+    ],
+    "format": [
+      "short-video",
+      "carousel"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "Bite-sized IG companion to the long-form YouTube; useful for studying how a single CPF/SRS idea gets adapted into a 30-second Reel.",
+    "style_notes": "Quick spreadsheet zoom-ins, on-screen captions, hooks that quote a dollar figure or 'mistake' upfront.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "the-woke-salaryman-tiktok",
+    "name": "The Woke Salaryman - TikTok",
+    "handle": "@thewokesalaryman",
+    "platform": "tiktok",
+    "platform_url": "https://www.tiktok.com/@thewokesalaryman",
+    "secondary_platforms": [
+      "instagram"
+    ],
+    "niche": [
+      "personal-finance",
+      "career",
+      "life-stage-money"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "short-video"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Comic-format ideas adapted to short video - great study for FCs who want to translate a static carousel idea into a 30-60s clip.",
+    "style_notes": "Animated comic frames with voiceover or captions. Hooks open on a stark contrast ('rich friend vs broke friend at 35').",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "1m65-youtube",
+    "name": "1M65 (Loo Cheng Chuan) - YouTube",
+    "handle": "@1m65",
+    "platform": "youtube",
+    "platform_url": "https://www.youtube.com/@1m65",
+    "secondary_platforms": [
+      "instagram"
+    ],
+    "niche": [
+      "cpf",
+      "retirement",
+      "long-term-wealth"
+    ],
+    "audience": [
+      "working-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "long-video",
+      "podcast"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "Daily-cadence podcast format is rare in SG personal-finance YouTube - shows what consistency looks like at volume.",
+    "style_notes": "Conversational podcast tone, recurring segments around CPF mechanics. Hooks tie one daily money idea to long-term retirement maths.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "kelvin-learns-investing-tiktok",
+    "name": "Kelvin Learns Investing - TikTok",
+    "handle": "@kvlearnsinvest",
+    "platform": "tiktok",
+    "platform_url": "https://www.tiktok.com/@kvlearnsinvest",
+    "secondary_platforms": [
+      "youtube",
+      "instagram"
+    ],
+    "niche": [
+      "investing",
+      "etfs",
+      "personal-finance"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "short-video"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Long-form YouTube ideas chopped into 30-60s TikToks - useful pattern study for repurposing one idea across formats.",
+    "style_notes": "Selfie-style talking head, jump cuts, hooks lean on numbers ('I made $X doing this') without crossing into hype.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "the-financial-coconut-instagram",
+    "name": "Reggie Koh (The Financial Coconut)",
+    "handle": "@thefinancialcoconut",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/thefinancialcoconut/",
+    "secondary_platforms": [
+      "youtube",
+      "tiktok",
+      "linkedin",
+      "podcast"
+    ],
+    "niche": [
+      "personal-finance",
+      "retirement",
+      "investing",
+      "wellness-money"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "carousel",
+      "short-video",
+      "podcast"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "Founder of SG's first personal-finance podcast network with 78K+ IG followers and 1M+ episode downloads - models how to build a multi-format finance brand without product-pitch energy.",
+    "style_notes": "Conversational, story-led posts that tease longer podcast conversations. Hooks pose a real-life money or wellness dilemma and pull viewers into the deeper-format episode for the full answer.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "the-financial-coconut-podcast",
+    "name": "The Financial Coconut Podcast",
+    "handle": "@thefinancialcoconut",
+    "platform": "youtube",
+    "platform_url": "https://www.youtube.com/@thefinancialcoconut",
+    "secondary_platforms": [
+      "instagram",
+      "tiktok",
+      "spotify",
+      "apple-podcasts"
+    ],
+    "niche": [
+      "personal-finance",
+      "retirement",
+      "investing",
+      "career-money"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "long-video",
+      "podcast"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Long-form companion to the IG feed - 1M+ download podcast network with shows on CPF, REITs, retirement, and career money - rare proof that long-form personal-finance audio works for SG audiences.",
+    "style_notes": "Interview format mixed with solo monologue episodes. Hooks frame each episode around one specific question or guest expertise. Recurring shows include 'Wise & Shine' and 'Chills with TFC'.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "beansprout-gerald-wong-instagram",
+    "name": "Gerald Wong (Beansprout)",
+    "handle": "@growbeansprout",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/growbeansprout/",
+    "secondary_platforms": [
+      "youtube",
+      "tiktok",
+      "linkedin",
+      "telegram",
+      "blog"
+    ],
+    "company": "Independent / Fee-only",
+    "niche": [
+      "investing",
+      "reits",
+      "cpf",
+      "srs",
+      "personal-finance"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "carousel",
+      "text-post",
+      "short-video"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "MAS-licensed advisory platform run by a former Credit Suisse Head of SG Research and CFA charterholder - gold standard for analyst-grade investing content adapted for retail readers.",
+    "style_notes": "Data-led carousels with chart screenshots and clean takeaway lines. Hooks frame a specific dollar question ('how much CPF do you need for $5K/month?') and walk through the math.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "beansprout-gerald-wong-linkedin",
+    "name": "Gerald Wong (Beansprout) - LinkedIn",
+    "handle": "Gerald Wong, CFA",
+    "platform": "linkedin",
+    "platform_url": "https://www.linkedin.com/in/gerald-wong-cfa/",
+    "secondary_platforms": [
+      "instagram",
+      "blog"
+    ],
+    "company": "Independent / Fee-only",
+    "niche": [
+      "investing",
+      "reits",
+      "macro",
+      "personal-finance"
+    ],
+    "audience": [
+      "working-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "text-post",
+      "blog"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Thought-leadership companion to the Beansprout brand - shows how an analyst-turned-founder uses LinkedIn to translate market events into retail-investor takeaways.",
+    "style_notes": "Concise text posts that anchor on one current market or macro event with a single 'so what' for retail investors. Often links out to longer Beansprout pieces.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "mr-15hww-blog",
+    "name": "Thomas (Mr 15HWW)",
+    "handle": "Mr 15HWW",
+    "platform": "facebook",
+    "platform_url": "https://my15hourworkweek.com/",
+    "secondary_platforms": [
+      "blog"
+    ],
+    "niche": [
+      "fire",
+      "permanent-portfolio",
+      "cpf",
+      "semi-retirement"
+    ],
+    "audience": [
+      "working-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "blog",
+      "text-post"
+    ],
+    "post_cadence": "monthly",
+    "why_follow": "Long-running semi-retirement blog with monthly portfolio and expense updates - rare transparent record of a SG household actually walking the FIRE-lite path while raising kids.",
+    "style_notes": "Personal-update format with portfolio tables and reflective commentary. Hooks anchor on a specific monthly milestone or contrarian take ('why I am not chasing 100% equities').",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "sg-fire-couple-instagram",
+    "name": "Daniel & Adeline (SGFireCouple)",
+    "handle": "@sgfirecouple",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/sgfirecouple/",
+    "secondary_platforms": [
+      "lemon8"
+    ],
+    "niche": [
+      "fire",
+      "couple-finance",
+      "investing",
+      "lifestyle-money"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult",
+      "parent"
+    ],
+    "format": [
+      "carousel",
+      "text-post"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "SG couple openly sharing income, expenses, and portfolio splits while building toward FIRE - one of the few accounts to model 'no lifestyle inflation' through a real household lens.",
+    "style_notes": "Story-led carousels around one financial principle or household decision. Hooks anchor on transparency ('our actual S$20K/month income split') and end with one usable takeaway.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "dr-wealth-alvin-chow-linkedin",
+    "name": "Alvin Chow (Dr Wealth)",
+    "handle": "Alvin Chow",
+    "platform": "linkedin",
+    "platform_url": "https://www.linkedin.com/in/alvinchowyonghan/",
+    "secondary_platforms": [
+      "youtube",
+      "blog"
+    ],
+    "company": "Other",
+    "niche": [
+      "value-investing",
+      "quant",
+      "etfs",
+      "personal-finance"
+    ],
+    "audience": [
+      "working-adult",
+      "pre-retiree"
+    ],
+    "format": [
+      "text-post",
+      "long-video"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Co-founder of Dr Wealth and now an iFAST Global Markets investment advisor - long-running educator who frames investing strategies the way an FC should be able to ('strategies are like religions').",
+    "style_notes": "Numbers-driven essay posts with a clear thesis. Hooks frame a contrarian or principle-led idea ('different strategies, different religions'). Closes with a practical principle a retail investor can use.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 2
+  },
+  {
+    "id": "julius-yip-instagram",
+    "name": "Julius Yip",
+    "handle": "@juliusyipp",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/juliusyipp/",
+    "niche": [
+      "budgeting",
+      "personal-finance"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Money-motivation creator giving away budgeting sheets to help followers 'get a grip on their money' - lead-magnet driven.",
+    "style_notes": "Documentary/motivational tone with a free budgeting-sheet lead magnet; approachable and non-salesy.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 2
+  },
+  {
+    "id": "ferris-francis-instagram",
+    "name": "Ferris Frederick Francis",
+    "handle": "@ferrisfrancis",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/ferrisfrancis/",
+    "niche": [
+      "personal-finance",
+      "money-mindset",
+      "investing"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "reel",
+      "talking-head"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Contrarian finance creator who 'says the uncomfortable truths about money' - a masterclass in opinionated hooks.",
+    "style_notes": "Punchy, contrarian POV hooks; aspirational lifestyle proof paired with blunt money commentary.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 2
+  },
+  {
+    "id": "lobang-sis-audrey-yap-instagram",
+    "name": "Audrey Yap (Lobang Sis)",
+    "handle": "@yourlobangsis",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/yourlobangsis/",
+    "niche": [
+      "personal-finance",
+      "deals",
+      "money-mindset"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "Verified 'Asian sister' finance/deals creator (16k) who turned a layoff into a six-figure rebuild - relatable authority at scale.",
+    "style_notes": "Big-sister voice with deal drops and comeback storytelling; high engagement and affiliate funnels.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 2
+  },
+  {
+    "id": "edrick-lie-instagram",
+    "name": "Edrick Lie",
+    "handle": "@edrickinspire",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/edrickinspire/",
+    "niche": [
+      "financial-education",
+      "entrepreneurship",
+      "money-mindset"
+    ],
+    "audience": [
+      "young-adult",
+      "student"
+    ],
+    "format": [
+      "reel",
+      "carousel"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "Verified founder building 'Asia's most financially intelligent generation' - polished, founder-led financial education.",
+    "style_notes": "Founder/authority brand with free-resource funnels and a rags-to-8-figure narrative.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 2
+  },
+  {
+    "id": "dollar-bureau-instagram",
+    "name": "Dollar Bureau",
+    "handle": "@dollarbureau",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/dollarbureau/",
+    "niche": [
+      "personal-finance",
+      "insurance",
+      "investing"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult"
+    ],
+    "format": [
+      "carousel",
+      "text-post"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "SG personal-finance media brand (30k monthly readers) simplifying money decisions - editorial, comparison-led content.",
+    "style_notes": "Editorial/media voice with a newsletter funnel; comparison content rather than a personal brand.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 2
+  },
+  {
+    "id": "moneysmart-sg-tiktok",
+    "name": "MoneySmart SG",
+    "handle": "@moneysmart.sg",
+    "platform": "tiktok",
+    "platform_url": "https://www.tiktok.com/@moneysmart.sg",
+    "secondary_platforms": [
+      "instagram",
+      "blog"
+    ],
+    "niche": [
+      "credit-cards",
+      "loans",
+      "deals",
+      "personal-finance"
+    ],
+    "audience": [
+      "young-adult",
+      "working-adult"
+    ],
+    "format": [
+      "short-video",
+      "carousel"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "Brand account but a useful pattern library - meme-led TikToks that turn dry product comparisons into watchable hooks.",
+    "style_notes": "Trend-aware, meme overlays, hooks lean on 'POV' and 'you vs your friend' framings. Always pairs entertainment with one usable tip.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 3
+  },
+  {
+    "id": "dr-wealth-blog",
+    "name": "Dr Wealth",
+    "handle": "@drwealthsg",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/drwealthsg/",
+    "secondary_platforms": [
+      "youtube",
+      "tiktok",
+      "telegram",
+      "blog",
+      "facebook"
+    ],
+    "company": "Other",
+    "niche": [
+      "sg-stocks",
+      "reits",
+      "value-investing",
+      "personal-finance"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult"
+    ],
+    "format": [
+      "carousel",
+      "blog",
+      "long-video"
+    ],
+    "post_cadence": "multiple-per-week",
+    "why_follow": "SG's longest-running independent investment-education brand - daily blog posts on SG blue chips, REITs, and value plays, useful as a reference for how to talk specific stocks without crossing into hype.",
+    "style_notes": "Specific-stock breakdowns with valuation tables and screenshots. Hooks lead with a concrete dollar move ('I bought Nanofilm at 60 cents and made 150%') paired with the framework behind it.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 3
+  },
+  {
+    "id": "planner-bee-instagram",
+    "name": "Planner Bee",
+    "handle": "@plannerbeeco",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/plannerbeeco/",
+    "secondary_platforms": [
+      "facebook",
+      "telegram",
+      "linkedin",
+      "blog"
+    ],
+    "company": "Other",
+    "niche": [
+      "insurance",
+      "personal-finance",
+      "investing",
+      "budgeting"
+    ],
+    "audience": [
+      "working-adult",
+      "young-adult",
+      "parent"
+    ],
+    "format": [
+      "carousel",
+      "text-post"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Brand account but a useful pattern library - insurance comparison and CPF/SRS posts written for everyday readers, with the kind of structured visuals an FC can study and adapt.",
+    "style_notes": "Tidy comparison carousels with side-by-side product fields. Hooks ask a single decision question ('which one is better for you?') and the carousel walks through criteria.",
+    "source": "web-research",
+    "verified": true,
+    "last_checked": "2026-04-29",
+    "tier": 3
+  },
+  {
+    "id": "singlife-financial-advisers-instagram",
+    "name": "Singlife Financial Advisers",
+    "handle": "@singlifefinancialadvisers",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/singlifefinancialadvisers/",
+    "niche": [
+      "financial-planning",
+      "insurance"
+    ],
+    "audience": [
+      "working-adult",
+      "professional"
+    ],
+    "format": [
+      "carousel",
+      "reel"
+    ],
+    "post_cadence": "occasional",
+    "why_follow": "Corporate account of a licensed SG advisory firm - useful for seeing how a brand (vs an individual) frames advisory content.",
+    "style_notes": "Brand-level, compliance-safe messaging; macro/corporate tone rather than personality-led.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 3
+  },
+  {
+    "id": "gen-financial-advisory-instagram",
+    "name": "GEN Financial Advisory",
+    "handle": "@genfinancial",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/genfinancial/",
+    "niche": [
+      "financial-planning",
+      "wealth-planning"
+    ],
+    "audience": [
+      "working-adult",
+      "professional"
+    ],
+    "format": [
+      "carousel",
+      "reel"
+    ],
+    "post_cadence": "occasional",
+    "why_follow": "Independent SG advisory firm leading with values (gratitude, service) - an example of culture-forward firm branding.",
+    "style_notes": "Values/culture-led firm branding; macro positioning, light on individual voice.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 3
+  },
+  {
+    "id": "vantage-wealth-management-instagram",
+    "name": "Vantage Wealth Management SG",
+    "handle": "@vantagewealthmanagement",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/vantagewealthmanagement/",
+    "niche": [
+      "wealth-planning",
+      "financial-planning"
+    ],
+    "audience": [
+      "professional",
+      "business-owner"
+    ],
+    "format": [
+      "carousel",
+      "reel"
+    ],
+    "post_cadence": "occasional",
+    "why_follow": "Infinity-linked advisory branch emphasising holistic, integrity-rooted planning - firm-level positioning.",
+    "style_notes": "Holistic-planning and integrity messaging on a small corporate account.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 3
+  },
+  {
+    "id": "global-financial-consultants-instagram",
+    "name": "Global Financial Consultants",
+    "handle": "@gfcadvice",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/gfcadvice/",
+    "niche": [
+      "financial-planning",
+      "expat-finance",
+      "wealth-planning"
+    ],
+    "audience": [
+      "expat",
+      "professional"
+    ],
+    "format": [
+      "carousel",
+      "reel"
+    ],
+    "post_cadence": "occasional",
+    "why_follow": "Advisory firm targeting expats, PRs and Singaporeans - an example of expat-focused firm content.",
+    "style_notes": "Expat/PR targeting at firm level; corporate, trust-signalling tone.",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 3
+  },
+  {
+    "id": "wealth-management-institute-instagram",
+    "name": "Wealth Management Institute (WMI)",
+    "handle": "@wmisingapore",
+    "platform": "instagram",
+    "platform_url": "https://www.instagram.com/wmisingapore/",
+    "niche": [
+      "wealth-management",
+      "financial-education"
+    ],
+    "audience": [
+      "professional"
+    ],
+    "format": [
+      "carousel",
+      "article"
+    ],
+    "post_cadence": "weekly",
+    "why_follow": "Institutional wealth-management training body - macro industry content, handy for credibility and thought-leadership cues.",
+    "style_notes": "Institutional/thought-leadership content; the most macro of the set (a training body, not an advisory).",
+    "source": "instagram-scrape",
+    "verified": false,
+    "last_checked": "2026-07-01",
+    "verification_note": "Auto-added 2026-07-01 from an Instagram similarity scrape seeded off @emmaneeww; style notes inferred from bio/positioning - review before relying on them.",
+    "tier": 3
   }
 ]

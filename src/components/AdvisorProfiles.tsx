@@ -64,6 +64,28 @@ export type AdvisorEntry = {
   verified: boolean;
   last_checked: string;
   verification_note?: string;
+  // 1 = individual financial advisor, 2 = finance creator / media, 3 = firm / platform
+  tier?: number;
+};
+
+const TIER_ORDER = [1, 2, 3];
+
+const TIER_META: Record<number, { label: string; blurb: string }> = {
+  1: {
+    label: "Financial advisors",
+    blurb:
+      "Licensed advisors and consultants - closest to how you sell and show up.",
+  },
+  2: {
+    label: "Finance creators & media",
+    blurb:
+      "Educators and personalities to mine for hooks, formats and angles.",
+  },
+  3: {
+    label: "Firms & institutions",
+    blurb:
+      "Brand and firm accounts - more macro, useful for positioning cues.",
+  },
 };
 
 const ENTRIES = advisorsData as AdvisorEntry[];
@@ -535,11 +557,28 @@ export default function AdvisorProfiles() {
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {visible.map((entry) => (
-              <AdvisorCard key={entry.id} entry={entry} />
-            ))}
-          </div>
+          {TIER_ORDER.map((tier) => {
+            const group = visible.filter((e) => (e.tier ?? 2) === tier);
+            if (group.length === 0) return null;
+            const meta = TIER_META[tier];
+            return (
+              <section key={tier} className="space-y-3">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-border/60 pb-1.5">
+                  <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">
+                    {meta.label}
+                  </h2>
+                  <span className="text-xs text-muted-foreground">
+                    {meta.blurb}
+                  </span>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.map((entry) => (
+                    <AdvisorCard key={entry.id} entry={entry} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
           {remaining > 0 && (
             <div className="flex justify-center pt-1">
               <Button
