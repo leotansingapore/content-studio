@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 
 export default function NotFoundPage() {
   useEffect(() => {
@@ -28,20 +27,14 @@ export default function NotFoundPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
-        <Button asChild variant="outline" className="gap-1.5">
-          <Link to="/generate">
-            <ArrowLeft className="h-3.5 w-3.5" /> Generate
-          </Link>
+        <Button asChild className="gap-1.5">
+          <Link to="/generate">Write a post</Link>
         </Button>
         <Button asChild variant="outline" className="gap-1.5">
-          <Link to="/inspiration">
-            <ArrowLeft className="h-3.5 w-3.5" /> Inspiration
-          </Link>
+          <Link to="/inspiration">Inspiration</Link>
         </Button>
         <Button asChild variant="outline" className="gap-1.5">
-          <Link to="/profiles">
-            <ArrowLeft className="h-3.5 w-3.5" /> Profiles
-          </Link>
+          <Link to="/profiles">Creators</Link>
         </Button>
       </CardContent>
     </Card>

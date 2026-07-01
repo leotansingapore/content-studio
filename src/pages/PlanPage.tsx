@@ -61,6 +61,7 @@ import {
   Trash2,
   Calendar,
   Compass,
+  ChevronDown,
 } from "lucide-react";
 
 const AUDIENCE_LABEL: Record<PlanAudience, string> = {
@@ -304,17 +305,20 @@ export default function PlanPage() {
 
         <QuickTip context="plan" />
 
-        <Card className="border-border/60 shadow-card">
-          <CardHeader>
-            <CardTitle className="font-serif text-xl">
-              The two frameworks behind your plan
-            </CardTitle>
-            <CardDescription>
-              Trust is earned on two tracks. Your plan alternates between them as
-              it moves readers through the ABC funnel.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <details className="group rounded-xl border border-border/60 bg-card shadow-card">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-4 [&::-webkit-details-marker]:hidden">
+            <div>
+              <p className="font-serif text-lg font-semibold text-foreground">
+                The two frameworks behind your plan
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Optional background — how the plan balances trust and funnel
+                stage. Skip it and just build.
+              </p>
+            </div>
+            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="space-y-3 px-5 pb-5">
             <div className="grid gap-3 sm:grid-cols-2">
               {TRUST_DIMENSIONS.map((d) => (
                 <div
@@ -360,8 +364,8 @@ export default function PlanPage() {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </details>
 
         <Card className="border-border/60 shadow-card">
           <CardHeader>

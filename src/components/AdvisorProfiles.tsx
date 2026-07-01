@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Card,
@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Eye,
+  ChevronDown,
 } from "lucide-react";
 import advisorsData from "@/data/advisors.json";
 
@@ -288,12 +289,16 @@ function AdvisorCard({ entry }: { entry: AdvisorEntry }) {
   );
 }
 
+const PAGE_SIZE = 12;
+
 export default function AdvisorProfiles() {
   const [search, setSearch] = useState("");
   const [platforms, setPlatforms] = useState<Set<AdvisorPlatform>>(new Set());
   const [companies, setCompanies] = useState<Set<string>>(new Set());
   const [audiences, setAudiences] = useState<Set<string>>(new Set());
   const [niches, setNiches] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const togglePlatform = (p: AdvisorPlatform) => {
     setPlatforms((s) => {
@@ -374,108 +379,131 @@ export default function AdvisorProfiles() {
     niches.size +
     (search.trim() ? 1 : 0);
 
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search, platforms, companies, audiences, niches]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const remaining = filtered.length - visible.length;
+
   return (
     <div className="space-y-5">
+      <header className="space-y-1.5">
+        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+          Creators to follow
+        </h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          SG financial advisors and finance creators worth studying. Filter by
+          who they write for, open a card for the full breakdown, or jump
+          straight to their profile.
+        </p>
+      </header>
+
       <Card className="border-border/60 shadow-card">
-        <CardHeader>
-          <CardTitle className="font-serif text-xl">
-            Profiles to follow
-          </CardTitle>
-          <CardDescription>
-            Curated SG-based financial advisors and personal-finance creators
-            worth following for client-attracting content inspiration. Same bar
-            as the inspiration cards: a 28yo working pro, 35yo new parent, or
-            55yo pre-retiree should find value in their feeds.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1.5">
-            <Label
-              htmlFor="advisor-search"
-              className="flex items-center gap-1.5"
+        <CardContent className="space-y-3 pt-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="advisor-search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search names, handles, niches (e.g. CPF, retirement)"
+                className="pl-9"
+              />
+            </div>
+            <Button
+              variant={showFilters || activeFilterCount > 0 ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFilters((v) => !v)}
+              className="gap-1.5"
             >
-              <Search className="h-3.5 w-3.5" /> Search
-            </Label>
-            <Input
-              id="advisor-search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search names, handles, niches, style (e.g. CPF, retirement, carousel)"
-            />
+              <Filter className="h-3.5 w-3.5" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              <Filter className="h-3.5 w-3.5" /> Platform
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {PLATFORM_OPTIONS.map((p) => (
-                <Chip
-                  key={p}
-                  active={platforms.has(p)}
-                  onClick={() => togglePlatform(p)}
-                >
-                  {PLATFORM_META[p].label}
-                </Chip>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Company
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {COMPANY_OPTIONS.map((c) => (
-                <Chip
-                  key={c}
-                  active={companies.has(c as string)}
-                  onClick={() => toggleCompany(c as string)}
-                >
-                  {c}
-                </Chip>
-              ))}
+
+          {/* Company is the axis consultants care about most, so keep it up top. */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {COMPANY_OPTIONS.map((c) => (
               <Chip
-                active={companies.has(COMPANY_NONE)}
-                onClick={() => toggleCompany(COMPANY_NONE)}
+                key={c}
+                active={companies.has(c as string)}
+                onClick={() => toggleCompany(c as string)}
               >
-                No company set
+                {c}
               </Chip>
-            </div>
+            ))}
           </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Audience
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {AUDIENCE_OPTIONS.map((a) => (
-                <Chip
-                  key={a}
-                  active={audiences.has(a)}
-                  onClick={() => toggleAudience(a)}
-                >
-                  {a}
-                </Chip>
-              ))}
+
+          {showFilters && (
+            <div className="space-y-3 border-t border-border/60 pt-3">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                  Platform
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {PLATFORM_OPTIONS.map((p) => (
+                    <Chip
+                      key={p}
+                      active={platforms.has(p)}
+                      onClick={() => togglePlatform(p)}
+                    >
+                      {PLATFORM_META[p].label}
+                    </Chip>
+                  ))}
+                  <Chip
+                    active={companies.has(COMPANY_NONE)}
+                    onClick={() => toggleCompany(COMPANY_NONE)}
+                  >
+                    No company set
+                  </Chip>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                  Audience
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {AUDIENCE_OPTIONS.map((a) => (
+                    <Chip
+                      key={a}
+                      active={audiences.has(a)}
+                      onClick={() => toggleAudience(a)}
+                    >
+                      {a}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                  Niche
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {NICHE_OPTIONS.map((n) => (
+                    <Chip
+                      key={n}
+                      active={niches.has(n)}
+                      onClick={() => toggleNiche(n)}
+                    >
+                      {n}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Niche
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {NICHE_OPTIONS.map((n) => (
-                <Chip
-                  key={n}
-                  active={niches.has(n)}
-                  onClick={() => toggleNiche(n)}
-                >
-                  {n}
-                </Chip>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
-              Showing {filtered.length} of {ENTRIES.length} profiles
+              {filtered.length} creator{filtered.length === 1 ? "" : "s"}
+              {activeFilterCount > 0 ? " match your filters" : ""}
             </p>
             {activeFilterCount > 0 && (
               <Button
@@ -484,7 +512,7 @@ export default function AdvisorProfiles() {
                 onClick={clearFilters}
                 className="h-8 gap-1 text-xs text-muted-foreground"
               >
-                <X className="h-3 w-3" /> Clear filters
+                <X className="h-3 w-3" /> Clear
               </Button>
             )}
           </div>
@@ -494,15 +522,38 @@ export default function AdvisorProfiles() {
       {filtered.length === 0 ? (
         <Card className="border-border/60 shadow-card">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No profiles match those filters yet.
+            No creators match those filters.{" "}
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="font-semibold text-primary hover:underline"
+            >
+              Clear filters
+            </button>{" "}
+            to see them all.
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((entry) => (
-            <AdvisorCard key={entry.id} entry={entry} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {visible.map((entry) => (
+              <AdvisorCard key={entry.id} entry={entry} />
+            ))}
+          </div>
+          {remaining > 0 && (
+            <div className="flex justify-center pt-1">
+              <Button
+                variant="outline"
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="gap-1.5"
+              >
+                <ChevronDown className="h-4 w-4" />
+                Show {Math.min(PAGE_SIZE, remaining)} more
+                <span className="text-muted-foreground">({remaining} left)</span>
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

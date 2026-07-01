@@ -23,7 +23,6 @@ import {
   Trash2,
   Search,
   Pencil,
-  History,
   Sparkles,
 } from "lucide-react";
 import {
@@ -102,16 +101,18 @@ export default function DraftsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
-        <div className="flex items-start gap-2 text-xs text-muted-foreground">
-          <History className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-          <span>
-            Your last {drafts.length} drafts (max 50). Restore one to reload
-            the form and the editable draft, then keep iterating.
-          </span>
-        </div>
-      </div>
+      <header className="space-y-1.5">
+        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+          Your drafts
+        </h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Every post you pick a variant for saves here automatically (last 50).
+          Restore one to reload it in the editor and keep iterating.
+        </p>
+      </header>
 
+      {drafts.length > 0 && (
+        <>
       <Card className="border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">
@@ -167,6 +168,8 @@ export default function DraftsPage() {
           </div>
         </CardContent>
       </Card>
+        </>
+      )}
 
       {visible.length === 0 ? (
         <Card className="border-border/60 shadow-card">

@@ -15,6 +15,7 @@ import {
   Keyboard,
   AlertTriangle,
   ArrowRight,
+  CalendarRange,
 } from "lucide-react";
 
 export default function TutorialPage() {
@@ -95,13 +96,19 @@ export default function TutorialPage() {
           <div className="flex items-center gap-2">
             <Pencil className="h-5 w-5 text-primary" />
             <CardTitle className="font-serif text-xl">
-              The 3-step flow on /generate
+              The guided flow on /generate
             </CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 text-sm leading-relaxed">
+          <p className="text-muted-foreground">
+            The Write tab walks you through it one step at a time - Topic,
+            Funnel, Idea, then Format. Every step has a sensible default, so you
+            can click Next through the ones you don&apos;t care about and only
+            tweak what matters. A progress bar up top lets you jump around.
+          </p>
           <div>
-            <p className="font-semibold">1. Pick your pillar.</p>
+            <p className="font-semibold">1. Topic (pick your pillar).</p>
             <p className="text-muted-foreground">
               Day 41 framework - Interest, Identity, Topic, Market.
             </p>
@@ -122,7 +129,9 @@ export default function TutorialPage() {
           </div>
 
           <div>
-            <p className="font-semibold">2. Pick your idea source.</p>
+            <p className="font-semibold">
+              2. Funnel &rarr; 3. Idea (the spark).
+            </p>
             <p className="text-muted-foreground">
               Real client question, common mistake, news hook, story,
               before-after, &quot;3 things you didn&apos;t know&quot;,
@@ -138,7 +147,7 @@ export default function TutorialPage() {
 
           <div>
             <p className="font-semibold">
-              3. Pick platform / format / CTA / audience.
+              4. Format (where and how to post).
             </p>
             <p className="text-muted-foreground">
               LinkedIn / IG / FB / TikTok &middot; Text / Carousel / Short
@@ -218,7 +227,7 @@ export default function TutorialPage() {
       {/* Tabs */}
       <Card className="border-border/60 shadow-card">
         <CardHeader>
-          <CardTitle className="font-serif text-xl">The five tabs</CardTitle>
+          <CardTitle className="font-serif text-xl">The tabs</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -234,13 +243,28 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <Pencil className="h-3.5 w-3.5" /> Generate
+                      <Pencil className="h-3.5 w-3.5" /> Write
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
                     /generate
                   </td>
-                  <td className="py-2 text-muted-foreground">The form.</td>
+                  <td className="py-2 text-muted-foreground">
+                    The guided draft flow.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-3 font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarRange className="h-3.5 w-3.5" /> Plan
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                    /plan
+                  </td>
+                  <td className="py-2 text-muted-foreground">
+                    Turn your positioning into a full week of posts.
+                  </td>
                 </tr>
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
@@ -259,7 +283,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <UsersIcon className="h-3.5 w-3.5" /> Profiles
+                      <UsersIcon className="h-3.5 w-3.5" /> Creators
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
@@ -374,7 +398,7 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">Tuesday</td>
                   <td className="py-2 pr-3 text-muted-foreground">
-                    Open <Link to="/generate" className="underline">/generate</Link>, run the 3-step flow,
+                    Open <Link to="/generate" className="underline">Write</Link>, run the guided flow,
                     pick the strongest hook + body.
                   </td>
                   <td className="py-2 text-muted-foreground">15 min</td>

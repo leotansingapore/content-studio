@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -241,6 +241,8 @@ function InspirationCard({
   );
 }
 
+const PAGE_SIZE = 12;
+
 export default function Inspiration({ onUseAsVibe }: Props) {
   const [search, setSearch] = useState("");
   const [platforms, setPlatforms] = useState<Set<InspirationEntry["platform"]>>(
@@ -250,6 +252,10 @@ export default function Inspiration({ onUseAsVibe }: Props) {
     new Set(),
   );
   const [audiences, setAudiences] = useState<Set<string>>(new Set());
+  // Collapse the secondary filters and paginate the grid so the page opens
+  // as a short, scannable screen instead of one endless wall of cards.
+  const [showFilters, setShowFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const togglePlatform = (p: InspirationEntry["platform"]) => {
     setPlatforms((s) => {
@@ -308,82 +314,108 @@ export default function Inspiration({ onUseAsVibe }: Props) {
   const activeFilterCount =
     platforms.size + pillars.size + audiences.size + (search.trim() ? 1 : 0);
 
+  // Any time the filters change, jump back to the first page of results.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search, platforms, pillars, audiences]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const remaining = filtered.length - visible.length;
+
   return (
     <div className="space-y-5">
+      <header className="space-y-1.5">
+        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+          Inspiration
+        </h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Real posts that worked, sorted so you can borrow the pattern. Open one
+          to read the full breakdown, or hit "Use as vibe" to start a draft from
+          it.
+        </p>
+      </header>
+
+      {/* Compact toolbar: search + a single row of pillar quick-filters, with
+          platform/audience tucked behind a toggle to keep the top short. */}
       <Card className="border-border/60 shadow-card">
-        <CardHeader>
-          <CardTitle className="font-serif text-xl">
-            Inspiration library
-          </CardTitle>
-          <CardDescription>
-            Hand-picked FC content examples. Filter by platform, pillar, or
-            audience. Tap "View" for the full card detail (deep-linkable), or
-            "Use as vibe" to pre-fill the generator with that example's pattern.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="inspiration-search" className="flex items-center gap-1.5">
-              <Search className="h-3.5 w-3.5" /> Search
-            </Label>
-            <Input
-              id="inspiration-search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search hooks, content, tags (e.g. CPF, BTO, retirement)"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              <Filter className="h-3.5 w-3.5" /> Platform
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {PLATFORM_OPTIONS.map((p) => (
-                <Chip
-                  key={p}
-                  active={platforms.has(p)}
-                  onClick={() => togglePlatform(p)}
-                >
-                  {PLATFORM_META[p].label}
-                </Chip>
-              ))}
+        <CardContent className="space-y-3 pt-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="inspiration-search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search examples (e.g. CPF, BTO, retirement)"
+                className="pl-9"
+              />
             </div>
+            <Button
+              variant={showFilters || activeFilterCount > 0 ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFilters((v) => !v)}
+              className="gap-1.5"
+            >
+              <Filter className="h-3.5 w-3.5" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Pillar
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {PILLAR_OPTIONS.map((p) => (
-                <Chip
-                  key={p}
-                  active={pillars.has(p)}
-                  onClick={() => togglePillar(p)}
-                >
-                  {p}
-                </Chip>
-              ))}
+
+          {/* Pillar = the primary axis, so it stays visible as quick-filters. */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {PILLAR_OPTIONS.map((p) => (
+              <Chip key={p} active={pillars.has(p)} onClick={() => togglePillar(p)}>
+                {p}
+              </Chip>
+            ))}
+          </div>
+
+          {showFilters && (
+            <div className="space-y-3 border-t border-border/60 pt-3">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                  Platform
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {PLATFORM_OPTIONS.map((p) => (
+                    <Chip
+                      key={p}
+                      active={platforms.has(p)}
+                      onClick={() => togglePlatform(p)}
+                    >
+                      {PLATFORM_META[p].label}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                  Audience
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {AUDIENCE_OPTIONS.map((a) => (
+                    <Chip
+                      key={a}
+                      active={audiences.has(a)}
+                      onClick={() => toggleAudience(a)}
+                    >
+                      {a}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-muted-foreground">
-              Audience
-            </Label>
-            <div className="flex flex-wrap gap-1.5">
-              {AUDIENCE_OPTIONS.map((a) => (
-                <Chip
-                  key={a}
-                  active={audiences.has(a)}
-                  onClick={() => toggleAudience(a)}
-                >
-                  {a}
-                </Chip>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
-              Showing {filtered.length} of {ENTRIES.length} examples
+              {filtered.length} example{filtered.length === 1 ? "" : "s"}
+              {activeFilterCount > 0 ? " match your filters" : ""}
             </p>
             {activeFilterCount > 0 && (
               <Button
@@ -392,7 +424,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
                 onClick={clearFilters}
                 className="h-8 gap-1 text-xs text-muted-foreground"
               >
-                <X className="h-3 w-3" /> Clear filters
+                <X className="h-3 w-3" /> Clear
               </Button>
             )}
           </div>
@@ -402,19 +434,44 @@ export default function Inspiration({ onUseAsVibe }: Props) {
       {filtered.length === 0 ? (
         <Card className="border-border/60 shadow-card">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No examples match those filters. Try clearing some.
+            No examples match those filters.{" "}
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="font-semibold text-primary hover:underline"
+            >
+              Clear filters
+            </button>{" "}
+            to see them all.
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((entry) => (
-            <InspirationCard
-              key={entry.id}
-              entry={entry}
-              onUseAsVibe={onUseAsVibe}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {visible.map((entry) => (
+              <InspirationCard
+                key={entry.id}
+                entry={entry}
+                onUseAsVibe={onUseAsVibe}
+              />
+            ))}
+          </div>
+          {remaining > 0 && (
+            <div className="flex justify-center pt-1">
+              <Button
+                variant="outline"
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                className="gap-1.5"
+              >
+                <ChevronDown className="h-4 w-4" />
+                Show {Math.min(PAGE_SIZE, remaining)} more
+                <span className="text-muted-foreground">
+                  ({remaining} left)
+                </span>
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -48,6 +48,9 @@ import {
   Hash,
   Image as ImageWandIcon,
   Keyboard,
+  ChevronLeft,
+  ChevronRight,
+  Pencil,
 } from "lucide-react";
 import inspirationData from "@/data/inspiration.json";
 import { type InspirationEntry } from "@/components/Inspiration";
@@ -380,6 +383,12 @@ export default function GeneratePage() {
 
   // Keyboard shortcuts dialog visibility.
   const [showShortcuts, setShowShortcuts] = useState<boolean>(false);
+
+  // Guided wizard: which of the 4 brief steps is open, and whether the brief
+  // editor is expanded. Once a draft exists the brief collapses to a summary so
+  // the screen stays focused on the output.
+  const [wizardStep, setWizardStep] = useState<number>(0);
+  const [briefOpen, setBriefOpen] = useState<boolean>(true);
 
   useEffect(() => {
     let active = true;
@@ -1085,8 +1094,34 @@ export default function GeneratePage() {
   const showVoiceNudge =
     !voiceProfileUsable && !voiceNudgeDismissed && userId !== null;
 
+  const hasOutput =
+    hookOptions.length > 0 || variants.length > 0 || draft.trim().length > 0;
+
+  // Labels for the 4 guided steps, in the order the consultant fills them in.
+  const STEP_META = [
+    { label: "Topic", hint: "What it's about" },
+    { label: "Funnel", hint: "Where they are" },
+    { label: "Idea", hint: "Your angle" },
+    { label: "Format", hint: "Where & how" },
+  ];
+  const LAST_STEP = STEP_META.length - 1;
+  const goNext = () =>
+    setWizardStep((s) => Math.min(LAST_STEP, s + 1));
+  const goBack = () => setWizardStep((s) => Math.max(0, s - 1));
+
   return (
     <div ref={formAnchorRef} className="space-y-6">
+      <header className="space-y-1.5">
+        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+          Write a post
+        </h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Answer a few quick questions and the studio drafts a post in your
+          voice. Everything has a sensible default, so you can move fast and
+          tweak later.
+        </p>
+      </header>
+
       {showVoiceNudge && (
         <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs">
           <div className="flex items-start gap-2">
@@ -1174,10 +1209,56 @@ export default function GeneratePage() {
 
       <QuickTip context="generate" />
 
+      {briefOpen ? (
+        <div className="space-y-6">
+          {/* Progress chips — click any step to jump; all steps have defaults. */}
+          <div className="scrollbar-none flex items-center gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/20 p-1.5">
+            {STEP_META.map((s, i) => {
+              const active = wizardStep === i;
+              const done = wizardStep > i;
+              return (
+                <button
+                  key={s.label}
+                  type="button"
+                  onClick={() => setWizardStep(i)}
+                  className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-left transition-colors ${
+                    active ? "bg-background shadow-sm" : "hover:bg-background/60"
+                  }`}
+                >
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : done
+                          ? "bg-primary/20 text-primary"
+                          : "border border-border/70 text-muted-foreground"
+                    }`}
+                  >
+                    {done ? <Check className="h-3 w-3" /> : i + 1}
+                  </span>
+                  <span className="hidden sm:block">
+                    <span
+                      className={`block text-xs font-semibold leading-none ${
+                        active ? "text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {s.label}
+                    </span>
+                    <span className="mt-0.5 block text-[10px] leading-none text-muted-foreground">
+                      {s.hint}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {wizardStep === 0 && (
+            <div className="space-y-6">
       <Card className="border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">
-            1. Pick your pillar
+            What&apos;s your post about?
           </CardTitle>
           <CardDescription>
             What is this post centred on? Social pillars (Interest/Identity)
@@ -1283,7 +1364,11 @@ export default function GeneratePage() {
           </div>
         </CardContent>
       </Card>
+            </div>
+          )}
 
+          {wizardStep === 1 && (
+            <div className="space-y-6">
       <Card className="border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">Funnel stage</CardTitle>
@@ -1367,7 +1452,11 @@ export default function GeneratePage() {
             })()}
         </CardContent>
       </Card>
+            </div>
+          )}
 
+          {wizardStep === 2 && (
+            <div className="space-y-6">
       <CompetitorReference
         selectedId={competitorRef?.id ?? null}
         onSelect={setCompetitorRef}
@@ -1376,7 +1465,7 @@ export default function GeneratePage() {
       <Card className="border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">
-            2. Pick your idea source
+            What&apos;s the spark?
           </CardTitle>
           <CardDescription>
             The 7 idea sources from Day 41. The strongest posts come from
@@ -1414,11 +1503,15 @@ export default function GeneratePage() {
           </div>
         </CardContent>
       </Card>
+            </div>
+          )}
 
+          {wizardStep === 3 && (
+            <div className="space-y-6">
       <Card className="border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">
-            3. Pick platform, format, CTA
+            Where and how to post
           </CardTitle>
           <CardDescription>
             Match the format to where you're posting and what you want the
@@ -1537,7 +1630,10 @@ export default function GeneratePage() {
           ) : (
             <Button
               size="lg"
-              onClick={handleGenerate}
+              onClick={() => {
+                setBriefOpen(false);
+                void handleGenerate();
+              }}
               className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
             >
               <Sparkles className="h-4 w-4" />
@@ -1546,6 +1642,57 @@ export default function GeneratePage() {
           )}
         </div>
       </div>
+            </div>
+          )}
+
+          {/* Wizard footer navigation */}
+          <div className="flex items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={goBack}
+              disabled={wizardStep === 0}
+              className="gap-1.5 text-muted-foreground disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" /> Back
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Step {wizardStep + 1} of {STEP_META.length}
+            </span>
+            {wizardStep < LAST_STEP ? (
+              <Button type="button" onClick={goNext} className="gap-1.5">
+                Next <ChevronRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <span className="w-[74px]" aria-hidden />
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 p-3">
+          <div className="flex items-start gap-2 text-xs">
+            <Pencil className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <div className="space-y-0.5">
+              <p className="font-semibold text-foreground">Your brief</p>
+              <p className="text-muted-foreground">
+                {pillarMeta.label}
+                {pillarDetail.trim() ? ` · ${pillarDetail.trim()}` : ""} ·{" "}
+                {PLATFORMS.find((p) => p.value === platform)?.label} ·{" "}
+                {FORMATS.find((f) => f.value === format)?.label}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setBriefOpen(true)}
+            className="gap-1.5"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Edit brief
+          </Button>
+        </div>
+      )}
 
       {hookOptions.length > 0 && (
         <Card className="border-border/60 shadow-card">

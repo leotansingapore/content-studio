@@ -171,6 +171,16 @@ export default function VoicePage() {
 
   return (
     <div className="space-y-6">
+      <header className="space-y-1.5">
+        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+          Your voice
+        </h1>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Do this once. Paste a few posts you wrote yourself and every future
+          draft will sound like you, not generic AI.
+        </p>
+      </header>
+
       <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
           <Mic className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
