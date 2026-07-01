@@ -20,6 +20,13 @@ export interface CoachDimension {
   note: string;
 }
 
+export interface CoachPostScore {
+  index: number;
+  score: number; // 0-100 for this single post
+  snippet: string;
+  issue: string; // the biggest thing to fix on this post ("" if none)
+}
+
 export interface CoachReport {
   score: number; // 0-100 overall
   postCount: number;
@@ -27,6 +34,7 @@ export interface CoachReport {
   dimensions: CoachDimension[];
   strengths: string[];
   fixes: string[];
+  perPost: CoachPostScore[];
 }
 
 const CTA_RE =
@@ -76,8 +84,9 @@ export function analyzePosts(posts: CoachInput[]): CoachReport | null {
   let personal = 0;
   let totalWords = 0;
   const openings = new Set<string>();
+  const perPost: CoachPostScore[] = [];
 
-  for (const p of clean) {
+  clean.forEach((p, i) => {
     const text = p.text.trim();
     const platform: PlatformId = p.platform ?? "linkedin";
     const hook = firstLine(text);
@@ -87,28 +96,48 @@ export function analyzePosts(posts: CoachInput[]): CoachReport | null {
     // Hook: short, or asks a question, or has a number, or a curiosity trigger.
     const hookWords = wordCount(hook);
     const strong =
-      (hookWords <= 14 && hook.length <= 100) &&
-      (/\d/.test(hook) ||
-        hook.trim().endsWith("?") ||
-        CURIOSITY_RE.test(hook));
+      hookWords <= 14 &&
+      hook.length <= 100 &&
+      (/\d/.test(hook) || hook.trim().endsWith("?") || CURIOSITY_RE.test(hook));
     if (strong) strongHooks++;
 
-    // Length fit for the platform.
-    if (readout(text, platform).status === "good") goodLength++;
+    const lengthOk = readout(text, platform).status === "good";
+    if (lengthOk) goodLength++;
 
     // Clear CTA anywhere, or a question in the last ~2 lines.
     const tail = text.split("\n").slice(-2).join(" ");
-    if (CTA_RE.test(text) || tail.includes("?")) withCta++;
+    const hasCta = CTA_RE.test(text) || tail.includes("?");
+    if (hasCta) withCta++;
 
-    // Compliance: reward posts with no hard error flags.
-    if (!hasComplianceErrors(scanCompliance(text))) clean_compliance++;
+    const compliant = !hasComplianceErrors(scanCompliance(text));
+    if (compliant) clean_compliance++;
 
     if (PERSONAL_RE.test(text)) personal++;
+    openings.add(hook.toLowerCase().split(/\s+/).slice(0, 3).join(" "));
 
-    openings.add(
-      hook.toLowerCase().split(/\s+/).slice(0, 3).join(" "),
+    // Per-post score (variety is a set-level trait, so excluded here).
+    const postScore = Math.round(
+      (strong ? 35 : 0) +
+        (hasCta ? 25 : 0) +
+        (lengthOk ? 20 : 0) +
+        (compliant ? 20 : 0),
     );
-  }
+    const issue = !strong
+      ? "Weak hook — open with a question, number, or bold claim."
+      : !hasCta
+        ? "No clear ask — tell the reader what to do next."
+        : !lengthOk
+          ? "Length is off for the platform."
+          : !compliant
+            ? "Uses a regulated phrase — reword it."
+            : "";
+    perPost.push({
+      index: i,
+      score: postScore,
+      snippet: hook.slice(0, 70),
+      issue,
+    });
+  });
 
   const n = clean.length;
   // Variety: distinct openings + a healthy mix of personal vs teaching posts.
@@ -203,6 +232,7 @@ export function analyzePosts(posts: CoachInput[]): CoachReport | null {
     dimensions,
     strengths,
     fixes,
+    perPost,
   };
 }
 

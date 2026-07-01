@@ -217,7 +217,7 @@ export default function CalendarPage() {
       </Card>
 
       {/* View toggle */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border border-border/70 bg-muted/30 p-0.5">
           <button
             type="button"
@@ -265,6 +265,8 @@ export default function CalendarPage() {
 
       {view === "month" ? (
         <Card className="overflow-hidden border-border/60 shadow-card">
+          <div className="overflow-x-auto">
+            <div className="min-w-[620px]">
           <div className="grid grid-cols-7 border-b border-border/60 bg-muted/30 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {WEEKDAYS.map((w) => (
               <div key={w} className="py-2">
@@ -327,6 +329,8 @@ export default function CalendarPage() {
                 </div>
               );
             })}
+          </div>
+            </div>
           </div>
         </Card>
       ) : (

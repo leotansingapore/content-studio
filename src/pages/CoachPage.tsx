@@ -282,6 +282,41 @@ export default function CoachPage() {
                 </ol>
               </div>
             </div>
+
+            {report.perPost.length > 1 && (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">
+                  Post by post
+                </p>
+                <div className="space-y-1.5">
+                  {[...report.perPost]
+                    .sort((a, b) => a.score - b.score)
+                    .map((p) => {
+                      const tone = scoreTone(p.score);
+                      return (
+                        <div
+                          key={p.index}
+                          className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2"
+                        >
+                          <span
+                            className={`w-9 shrink-0 text-center font-serif text-base font-semibold ${tone.text}`}
+                          >
+                            {p.score}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-medium text-foreground">
+                              {p.snippet || `Post ${p.index + 1}`}
+                            </p>
+                            <p className="truncate text-[11px] text-muted-foreground">
+                              {p.issue || "Solid — no obvious fix."}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
