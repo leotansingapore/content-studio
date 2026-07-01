@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -15,6 +15,7 @@ import {
 import { loadPositioning } from "@/lib/positioning";
 import { loadCoachHistory } from "@/lib/coach";
 import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
+import { isOnboarded } from "@/lib/onboarding";
 import {
   Pencil,
   CalendarRange,
@@ -98,6 +99,7 @@ export default function HomePage() {
   });
   const [cadence, setCadence] = useState<number>(0);
   const [name, setName] = useState<string>("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "Home - Content Studio";
@@ -106,6 +108,15 @@ export default function HomePage() {
       const { data } = await supabase.auth.getUser();
       if (!active) return;
       const id = data.user?.id ?? null;
+      // First-run: brand-new users get the welcome walkthrough once.
+      const firstRun =
+        loadDrafts(id).length === 0 &&
+        !isVoiceProfileUsable(loadVoiceProfile(id)) &&
+        !isOnboarded(id);
+      if (firstRun) {
+        navigate("/welcome", { replace: true });
+        return;
+      }
       const email = data.user?.email ?? "";
       setName(email ? email.split("@")[0].replace(/[._-]+/g, " ") : "");
       setDrafts(loadDrafts(id));
