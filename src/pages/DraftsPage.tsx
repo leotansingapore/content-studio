@@ -24,11 +24,16 @@ import {
   Search,
   Pencil,
   Sparkles,
+  CheckCircle2,
+  Undo2,
 } from "lucide-react";
 import {
   deleteDraft,
   loadDrafts,
+  setDraftStatus,
+  draftStatus,
   type DraftEntry,
+  type DraftStatus,
 } from "@/lib/draftHistory";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -53,6 +58,7 @@ export default function DraftsPage() {
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [pillarFilter, setPillarFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<"all" | DraftStatus>("all");
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,13 +78,19 @@ export default function DraftsPage() {
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return drafts.filter((d) => {
+      if (statusFilter !== "all" && draftStatus(d) !== statusFilter) return false;
       if (platformFilter !== "all" && d.platform !== platformFilter) return false;
       if (pillarFilter !== "all" && d.pillar !== pillarFilter) return false;
       if (!q) return true;
       const blob = `${d.hook} ${d.draft}`.toLowerCase();
       return blob.includes(q);
     });
-  }, [drafts, platformFilter, pillarFilter, search]);
+  }, [drafts, statusFilter, platformFilter, pillarFilter, search]);
+
+  const handleSetStatus = (id: string, status: DraftStatus) => {
+    if (!userId) return;
+    setDrafts(setDraftStatus(userId, id, status));
+  };
 
   const handleRestore = (id: string) => {
     navigate(`/generate?draft=${encodeURIComponent(id)}`);
@@ -103,16 +115,39 @@ export default function DraftsPage() {
     <div className="space-y-6">
       <header className="space-y-1.5">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          Your drafts
+          My posts
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Every post you pick a variant for saves here automatically (last 50).
-          Restore one to reload it in the editor and keep iterating.
+          Everything you draft saves here automatically. Mark posts as done to
+          track what you've shipped and keep your momentum going.
         </p>
       </header>
 
       {drafts.length > 0 && (
         <>
+      <div className="scrollbar-none flex gap-1.5 overflow-x-auto">
+        {(
+          [
+            ["all", `All (${drafts.length})`],
+            ["draft", "Drafts"],
+            ["scheduled", "Scheduled"],
+            ["posted", "Posted"],
+          ] as [("all" | DraftStatus), string][]
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setStatusFilter(key)}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              statusFilter === key
+                ? "border-primary/60 bg-primary/10 text-primary"
+                : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <Card className="border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">
@@ -183,7 +218,7 @@ export default function DraftsPage() {
               onClick={() => navigate("/generate")}
               className="gap-1.5"
             >
-              <Pencil className="h-3.5 w-3.5" /> Go to Generate
+              <Pencil className="h-3.5 w-3.5" /> Write a post
             </Button>
           </CardContent>
         </Card>
@@ -192,12 +227,24 @@ export default function DraftsPage() {
           {visible.map((d) => {
             const preview = d.draft.replace(/\s+/g, " ").slice(0, 100);
             const ts = new Date(d.createdAt);
+            const s = draftStatus(d);
+            const statusStyle =
+              s === "posted"
+                ? "border-success/40 bg-success/10 text-success"
+                : s === "scheduled"
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-border/60 bg-muted/40 text-muted-foreground";
             return (
               <div
                 key={d.id}
-                className="flex flex-col rounded-xl border border-border/70 bg-background p-4 shadow-sm transition-colors hover:border-primary/40"
+                className="flex flex-col rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
               >
                 <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${statusStyle}`}
+                  >
+                    {s === "posted" ? "Posted" : s === "scheduled" ? "Scheduled" : "Draft"}
+                  </span>
                   <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                     {PLATFORM_LABEL[d.platform] ?? d.platform}
                   </span>
@@ -217,27 +264,46 @@ export default function DraftsPage() {
                   {preview}
                   {d.draft.length > 100 ? "..." : ""}
                 </p>
-                <div className="mt-auto flex items-center justify-between gap-2">
+                <div className="mt-auto flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleRestore(d.id)}
                     className="gap-1.5"
                   >
-                    <Pencil className="h-3.5 w-3.5" /> Restore
+                    <Pencil className="h-3.5 w-3.5" /> Edit
                   </Button>
+                  {s === "posted" ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleSetStatus(d.id, "draft")}
+                      className="gap-1.5 text-xs text-muted-foreground"
+                    >
+                      <Undo2 className="h-3.5 w-3.5" /> Mark unposted
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleSetStatus(d.id, "posted")}
+                      className="gap-1.5 text-xs text-success hover:text-success"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => handleDelete(d.id)}
-                    className={`gap-1.5 text-xs ${
+                    className={`ml-auto gap-1.5 text-xs ${
                       confirmId === d.id
                         ? "text-destructive"
                         : "text-muted-foreground"
                     }`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
-                    {confirmId === d.id ? "Click to confirm" : "Delete"}
+                    {confirmId === d.id ? "Confirm" : "Delete"}
                   </Button>
                 </div>
               </div>

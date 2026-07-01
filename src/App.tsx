@@ -4,6 +4,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import Auth from "@/pages/Auth";
 import StudioLayout from "@/pages/StudioLayout";
+import HomePage from "@/pages/HomePage";
 import GeneratePage from "@/pages/GeneratePage";
 import PlanPage from "@/pages/PlanPage";
 import InspirationPage from "@/pages/InspirationPage";
@@ -27,7 +28,8 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Navigate to="/generate" replace />} />
+          <Route path="/" element={<Navigate to="/home" replace />} />
+          <Route path="/home" element={<HomePage />} />
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/inspiration" element={<InspirationPage />} />
