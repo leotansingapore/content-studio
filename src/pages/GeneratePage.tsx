@@ -51,10 +51,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Pencil,
+  Gauge,
 } from "lucide-react";
 import inspirationData from "@/data/inspiration.json";
 import { type InspirationEntry } from "@/components/Inspiration";
 import PostPreview from "@/components/PostPreview";
+import { analyzePosts } from "@/lib/coach";
+import type { PlatformId } from "@/lib/platformCounters";
 import {
   scanCompliance,
   hasComplianceErrors,
@@ -595,6 +598,15 @@ export default function GeneratePage() {
   // Counter readout for the draft.
   const counters: CounterReadout = useMemo(
     () => readout(draft, platform),
+    [draft, platform],
+  );
+
+  // Live craft check on the current draft (reuses the Coach engine).
+  const craftCheck = useMemo(
+    () =>
+      draft.trim().length > 30
+        ? analyzePosts([{ text: draft, platform: platform as PlatformId }])
+        : null,
     [draft, platform],
   );
 
@@ -1986,6 +1998,37 @@ export default function GeneratePage() {
                 rewrite that part.
               </span>
             </div>
+
+            {craftCheck && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/20 p-3">
+                <div className="flex items-center gap-2">
+                  <Gauge className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    Craft check
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                      craftCheck.score >= 75
+                        ? "bg-success/15 text-success"
+                        : craftCheck.score >= 50
+                          ? "bg-primary/15 text-primary"
+                          : "bg-warning/15 text-warning"
+                    }`}
+                  >
+                    {craftCheck.score}/100
+                  </span>
+                </div>
+                <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                  {craftCheck.fixes[0]}
+                </p>
+                <Link
+                  to="/coach"
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Full check &rarr;
+                </Link>
+              </div>
+            )}
 
             {(hashtags.length > 0 || hashtagsLoading) && (
               <div className="mt-4 rounded-xl border border-border/60 bg-muted/20 p-3">

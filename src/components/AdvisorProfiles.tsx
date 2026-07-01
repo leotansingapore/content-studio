@@ -351,6 +351,7 @@ export default function AdvisorProfiles() {
   const [audiences, setAudiences] = useState<Set<string>>(new Set());
   const [niches, setNiches] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+  const [savedOnly, setSavedOnly] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [userId, setUserId] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedItems>({
@@ -420,6 +421,7 @@ export default function AdvisorProfiles() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return ENTRIES.filter((e) => {
+      if (savedOnly && !saved.creators.includes(e.id)) return false;
       if (platforms.size > 0 && !platforms.has(e.platform)) return false;
       if (companies.size > 0) {
         const key = (e.company as string | undefined) ?? COMPANY_NONE;
@@ -446,7 +448,7 @@ export default function AdvisorProfiles() {
       }
       return true;
     });
-  }, [search, platforms, companies, audiences, niches]);
+  }, [search, platforms, companies, audiences, niches, savedOnly, saved.creators]);
 
   const activeFilterCount =
     platforms.size +
@@ -499,6 +501,21 @@ export default function AdvisorProfiles() {
               {activeFilterCount > 0 && (
                 <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">
                   {activeFilterCount}
+                </span>
+              )}
+            </Button>
+            <Button
+              variant={savedOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSavedOnly((v) => !v)}
+              className="gap-1.5"
+              title="Show only creators you've saved"
+            >
+              <Bookmark className={`h-3.5 w-3.5 ${savedOnly ? "fill-current" : ""}`} />
+              Saved
+              {saved.creators.length > 0 && (
+                <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">
+                  {saved.creators.length}
                 </span>
               )}
             </Button>

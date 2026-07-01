@@ -159,6 +159,14 @@ export default function CreateGuidePage() {
           />
           <ToolRow
             tool={{
+              name: "ChatGPT",
+              what: "Yes - paste your slide text and ask it to design each slide as an image (1080x1350), or generate a Canva-ready layout. Great for a first draft you then tidy up.",
+              url: "https://chatgpt.com",
+              tutorial: tut("chatgpt instagram carousel images tutorial"),
+            }}
+          />
+          <ToolRow
+            tool={{
               name: "Higgsfield",
               what: "Generate on-brand background images or an AI presenter for slides.",
               url: "https://higgsfield.ai",
@@ -166,6 +174,13 @@ export default function CreateGuidePage() {
             }}
           />
         </div>
+        <p className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[12px] text-muted-foreground">
+          Using ChatGPT? Paste the slide-by-slide text from Write and prompt:
+          "Design these as a 6-slide Instagram carousel, 1080x1350, bold heading
+          per slide, consistent colours, minimal icons." Then export and post, or
+          drop the images into Canva for final tweaks. Always re-check figures and
+          add your advisory disclaimer before publishing.
+        </p>
         <p className="text-[12px] text-muted-foreground">
           Keep it to 6-10 slides, big text, one idea per slide, brand colour on
           the cover, and a save/share prompt on the last slide.

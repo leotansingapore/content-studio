@@ -6,10 +6,13 @@ import { supabase } from "@/lib/supabase";
 import {
   loadDrafts,
   getDraftStats,
+  getPostingActivity,
   draftStatus,
   type DraftEntry,
   type DraftStats,
+  type PostingActivity,
 } from "@/lib/draftHistory";
+import { loadPositioning } from "@/lib/positioning";
 import { loadCoachHistory } from "@/lib/coach";
 import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
 import {
@@ -26,6 +29,7 @@ import {
   Sparkles,
   CalendarClock,
   Gauge,
+  Flame,
 } from "lucide-react";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -88,6 +92,11 @@ export default function HomePage() {
   const [stats, setStats] = useState<DraftStats | null>(null);
   const [voiceReady, setVoiceReady] = useState<boolean>(true);
   const [coachRuns, setCoachRuns] = useState<number>(0);
+  const [activity, setActivity] = useState<PostingActivity>({
+    thisWeekPosted: 0,
+    weekStreak: 0,
+  });
+  const [cadence, setCadence] = useState<number>(0);
   const [name, setName] = useState<string>("");
 
   useEffect(() => {
@@ -103,6 +112,8 @@ export default function HomePage() {
       setStats(getDraftStats(id));
       setVoiceReady(isVoiceProfileUsable(loadVoiceProfile(id)));
       setCoachRuns(loadCoachHistory(id).length);
+      setActivity(getPostingActivity(id));
+      setCadence(loadPositioning(id)?.cadence ?? 0);
     })();
     return () => {
       active = false;
@@ -276,6 +287,65 @@ export default function HomePage() {
             label="Posted all-time"
             tint="bg-accent text-foreground"
           />
+        </section>
+      )}
+
+      {/* Weekly rhythm: consistency vs goal + streak */}
+      {(hasPosts || cadence > 0) && (
+        <section className="grid gap-3 sm:grid-cols-2">
+          <Card className="border-border/60 shadow-card">
+            <CardContent className="space-y-2 py-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-semibold text-foreground">This week</span>
+                <span className="text-muted-foreground">
+                  {activity.thisWeekPosted}
+                  {cadence > 0 ? ` / ${cadence}` : ""} posted
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-gradient-primary transition-all duration-500"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      cadence > 0
+                        ? (activity.thisWeekPosted / cadence) * 100
+                        : activity.thisWeekPosted > 0
+                          ? 100
+                          : 0,
+                    )}%`,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {cadence > 0
+                  ? activity.thisWeekPosted >= cadence
+                    ? "Goal hit for the week. Nice."
+                    : `${cadence - activity.thisWeekPosted} to go to hit your weekly goal.`
+                  : "Set a weekly goal in Plan to track your rhythm."}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/60 shadow-card">
+            <CardContent className="flex items-center gap-3 py-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning/10 text-warning">
+                <Flame className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="font-serif text-2xl font-semibold leading-none text-foreground">
+                  {activity.weekStreak}{" "}
+                  <span className="text-base font-normal text-muted-foreground">
+                    {activity.weekStreak === 1 ? "week" : "weeks"}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {activity.weekStreak > 0
+                    ? "Posting streak — keep it alive."
+                    : "Post once this week to start a streak."}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </section>
       )}
 
