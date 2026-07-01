@@ -292,6 +292,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
     inspiration: [],
     creators: [],
   });
+  const [savedOnly, setSavedOnly] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -346,6 +347,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return ENTRIES.filter((e) => {
+      if (savedOnly && !saved.inspiration.includes(e.id)) return false;
       if (platforms.size > 0 && !platforms.has(e.platform)) return false;
       if (pillars.size > 0 && !pillars.has(e.pillar)) return false;
       if (audiences.size > 0 && !audiences.has(e.audience)) return false;
@@ -363,7 +365,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
       }
       return true;
     });
-  }, [search, platforms, pillars, audiences]);
+  }, [search, platforms, pillars, audiences, savedOnly, saved.inspiration]);
 
   const activeFilterCount =
     platforms.size + pillars.size + audiences.size + (search.trim() ? 1 : 0);
@@ -415,6 +417,23 @@ export default function Inspiration({ onUseAsVibe }: Props) {
               {activeFilterCount > 0 && (
                 <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">
                   {activeFilterCount}
+                </span>
+              )}
+            </Button>
+            <Button
+              variant={savedOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSavedOnly((v) => !v)}
+              className="gap-1.5"
+              title="Show only posts you've saved"
+            >
+              <Bookmark
+                className={`h-3.5 w-3.5 ${savedOnly ? "fill-current" : ""}`}
+              />
+              Saved
+              {saved.inspiration.length > 0 && (
+                <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">
+                  {saved.inspiration.length}
                 </span>
               )}
             </Button>

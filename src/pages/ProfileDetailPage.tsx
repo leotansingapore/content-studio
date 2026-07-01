@@ -24,6 +24,9 @@ import {
 } from "lucide-react";
 import advisorsData from "@/data/advisors.json";
 import { type AdvisorEntry, type AdvisorPlatform } from "@/components/AdvisorProfiles";
+import TopPostCard from "@/components/TopPostCard";
+import { getTopPostsForAdvisor } from "@/lib/topPosts";
+import { TrendingUp } from "lucide-react";
 
 const ENTRIES = advisorsData as AdvisorEntry[];
 
@@ -257,6 +260,29 @@ export default function ProfileDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {getTopPostsForAdvisor(entry).length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-baseline gap-2 border-b border-border/60 pb-1.5">
+            <h2 className="flex items-center gap-1.5 font-serif text-lg font-semibold tracking-tight text-foreground">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Top performing posts
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              Study the idea, then remix it in your voice.
+            </span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {getTopPostsForAdvisor(entry).map((post) => (
+              <TopPostCard
+                key={post.shortCode}
+                post={post}
+                advisor={{ name: entry.name, handle: entry.handle }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

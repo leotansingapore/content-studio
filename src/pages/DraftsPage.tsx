@@ -26,6 +26,7 @@ import {
   Sparkles,
   CheckCircle2,
   Undo2,
+  CalendarClock,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -87,9 +88,9 @@ export default function DraftsPage() {
     });
   }, [drafts, statusFilter, platformFilter, pillarFilter, search]);
 
-  const handleSetStatus = (id: string, status: DraftStatus) => {
+  const handleSetStatus = (id: string, status: DraftStatus, when?: string) => {
     if (!userId) return;
-    setDrafts(setDraftStatus(userId, id, status));
+    setDrafts(setDraftStatus(userId, id, status, when));
   };
 
   const handleRestore = (id: string) => {
@@ -260,10 +261,25 @@ export default function DraftsPage() {
                     {d.hook}
                   </div>
                 )}
-                <p className="mb-3 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
+                <p className="mb-2 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
                   {preview}
                   {d.draft.length > 100 ? "..." : ""}
                 </p>
+                {s !== "posted" && (
+                  <label className="mb-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <CalendarClock className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    {s === "scheduled" ? "Scheduled for" : "Schedule for"}
+                    <input
+                      type="date"
+                      value={d.scheduledFor?.slice(0, 10) ?? ""}
+                      onChange={(e) =>
+                        e.target.value &&
+                        handleSetStatus(d.id, "scheduled", e.target.value)
+                      }
+                      className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                  </label>
+                )}
                 <div className="mt-auto flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"

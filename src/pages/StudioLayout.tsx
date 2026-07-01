@@ -16,6 +16,8 @@ import {
   Gauge,
   BookMarked,
   GraduationCap,
+  CalendarClock,
+  TrendingUp,
 } from "lucide-react";
 
 type NavItem = { to: string; label: string; icon: typeof Home };
@@ -29,6 +31,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     items: [
       { to: "/generate", label: "Write", icon: Pencil },
       { to: "/plan", label: "Plan a week", icon: CalendarRange },
+      { to: "/calendar", label: "Calendar", icon: CalendarClock },
       { to: "/drafts", label: "My posts", icon: History },
     ],
   },
@@ -43,8 +46,10 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
   {
     heading: "Discover",
     items: [
+      { to: "/swipe", label: "Top posts", icon: TrendingUp },
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
       { to: "/profiles", label: "Creators", icon: UsersIcon },
+      { to: "/create-guide", label: "How to post", icon: Sparkles },
     ],
   },
   {
