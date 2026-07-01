@@ -157,6 +157,8 @@ export default function StudioLayout() {
           <div className="flex items-center gap-1">
             <NavLink
               to="/tutorial"
+              aria-label="How it works"
+              title="How it works"
               className={({ isActive }) =>
                 `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium ${
                   isActive ? "text-primary" : "text-muted-foreground"
@@ -169,6 +171,8 @@ export default function StudioLayout() {
               variant="ghost"
               size="sm"
               onClick={handleSignOut}
+              aria-label="Sign out"
+              title="Sign out"
               className="gap-1.5 text-muted-foreground"
             >
               <LogOut className="h-3.5 w-3.5" />

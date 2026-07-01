@@ -16,6 +16,12 @@ import {
   AlertTriangle,
   ArrowRight,
   CalendarRange,
+  Home,
+  CalendarClock,
+  Gauge,
+  BarChart3,
+  BookMarked,
+  GraduationCap,
 } from "lucide-react";
 
 export default function TutorialPage() {
@@ -243,6 +249,20 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
+                      <Home className="h-3.5 w-3.5" /> Home
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                    /home
+                  </td>
+                  <td className="py-2 text-muted-foreground">
+                    Your dashboard: what to do next, this week&apos;s rhythm and
+                    streak, and posts coming up.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-3 font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
                       <Pencil className="h-3.5 w-3.5" /> Write
                     </span>
                   </td>
@@ -250,7 +270,7 @@ export default function TutorialPage() {
                     /generate
                   </td>
                   <td className="py-2 text-muted-foreground">
-                    The guided draft flow.
+                    The guided draft flow, with a live preview and craft check.
                   </td>
                 </tr>
                 <tr>
@@ -263,7 +283,22 @@ export default function TutorialPage() {
                     /plan
                   </td>
                   <td className="py-2 text-muted-foreground">
-                    Turn your positioning into a full week of posts.
+                    Turn your positioning into a full week of posts, then add
+                    the whole week to your calendar in one click.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-3 font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarClock className="h-3.5 w-3.5" /> Calendar
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                    /calendar
+                  </td>
+                  <td className="py-2 text-muted-foreground">
+                    Schedule posts onto days and mark them posted when they go
+                    live.
                   </td>
                 </tr>
                 <tr>
@@ -309,15 +344,69 @@ export default function TutorialPage() {
                 <tr>
                   <td className="py-2 pr-3 font-semibold">
                     <span className="inline-flex items-center gap-1.5">
-                      <History className="h-3.5 w-3.5" /> Drafts
+                      <History className="h-3.5 w-3.5" /> My posts
                     </span>
                   </td>
                   <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
                     /drafts
                   </td>
                   <td className="py-2 text-muted-foreground">
-                    Every draft you&apos;ve generated. Restore, edit,
-                    re-publish.
+                    Every post you&apos;ve made. Filter by status, schedule,
+                    mark posted, and log its numbers.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-3 font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Gauge className="h-3.5 w-3.5" /> Coach
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                    /coach
+                  </td>
+                  <td className="py-2 text-muted-foreground">
+                    Scores your posts on hooks, CTA, length and more, with fixes
+                    to try next.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-3 font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
+                      <BarChart3 className="h-3.5 w-3.5" /> Analytics
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                    /analytics
+                  </td>
+                  <td className="py-2 text-muted-foreground">
+                    Log real numbers and see your top posts and what&apos;s
+                    working.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-3 font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
+                      <BookMarked className="h-3.5 w-3.5" /> My Playbook
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                    /playbook
+                  </td>
+                  <td className="py-2 text-muted-foreground">
+                    Your positioning, voice and saved examples in one place.
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-3 font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
+                      <GraduationCap className="h-3.5 w-3.5" /> Academy
+                    </span>
+                  </td>
+                  <td className="py-2 pr-3 font-mono text-xs text-muted-foreground">
+                    /academy
+                  </td>
+                  <td className="py-2 text-muted-foreground">
+                    A short video course on creating content with AI.
                   </td>
                 </tr>
               </tbody>
