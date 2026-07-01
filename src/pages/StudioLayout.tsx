@@ -13,6 +13,8 @@ import {
   CalendarRange,
   Home,
   Plus,
+  Gauge,
+  BookMarked,
 } from "lucide-react";
 
 type NavItem = { to: string; label: string; icon: typeof Home };
@@ -27,6 +29,13 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
       { to: "/generate", label: "Write", icon: Pencil },
       { to: "/plan", label: "Plan a week", icon: CalendarRange },
       { to: "/drafts", label: "My posts", icon: History },
+    ],
+  },
+  {
+    heading: "Improve",
+    items: [
+      { to: "/coach", label: "Coach", icon: Gauge },
+      { to: "/playbook", label: "My Playbook", icon: BookMarked },
     ],
   },
   {

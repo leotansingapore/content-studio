@@ -54,6 +54,7 @@ import {
 } from "lucide-react";
 import inspirationData from "@/data/inspiration.json";
 import { type InspirationEntry } from "@/components/Inspiration";
+import PostPreview from "@/components/PostPreview";
 import {
   scanCompliance,
   hasComplianceErrors,
@@ -1926,13 +1927,26 @@ export default function GeneratePage() {
               </div>
             )}
 
-            <Textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={handleDraftBlur}
-              rows={Math.min(28, Math.max(10, draft.split("\n").length + 2))}
-              className="font-mono text-sm leading-relaxed"
-            />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </div>
+                <Textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onBlur={handleDraftBlur}
+                  rows={Math.min(28, Math.max(12, draft.split("\n").length + 2))}
+                  className="h-full font-mono text-sm leading-relaxed"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5" /> Live preview
+                </div>
+                <PostPreview text={draft} platform={platform} />
+              </div>
+            </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
               <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">

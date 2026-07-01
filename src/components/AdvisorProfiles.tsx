@@ -27,8 +27,16 @@ import {
   AlertTriangle,
   Eye,
   ChevronDown,
+  Bookmark,
 } from "lucide-react";
 import advisorsData from "@/data/advisors.json";
+import { supabase } from "@/lib/supabase";
+import {
+  loadSaved,
+  toggleSaved,
+  isSaved,
+  type SavedItems,
+} from "@/lib/savedItems";
 
 export type AdvisorPlatform =
   | "linkedin"
@@ -193,7 +201,15 @@ function TagBadge({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AdvisorCard({ entry }: { entry: AdvisorEntry }) {
+function AdvisorCard({
+  entry,
+  saved,
+  onToggleSave,
+}: {
+  entry: AdvisorEntry;
+  saved?: boolean;
+  onToggleSave?: () => void;
+}) {
   const { toast } = useToast();
 
   const handleCopy = async () => {
@@ -215,17 +231,32 @@ function AdvisorCard({ entry }: { entry: AdvisorEntry }) {
   return (
     <Card className="flex h-full flex-col border-border/60 shadow-card transition-all hover:border-primary/40 hover:shadow-elegant">
       <CardHeader className="space-y-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <PlatformBadge platform={entry.platform} />
-          {entry.company && <CompanyBadge company={entry.company} />}
-          {entry.verified ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
-              <CheckCircle2 className="h-3 w-3" /> Verified {entry.last_checked}
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-500">
-              <AlertTriangle className="h-3 w-3" /> Unverified - check activity
-            </span>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <PlatformBadge platform={entry.platform} />
+            {entry.company && <CompanyBadge company={entry.company} />}
+            {entry.verified ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+                <CheckCircle2 className="h-3 w-3" /> Verified {entry.last_checked}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-500">
+                <AlertTriangle className="h-3 w-3" /> Unverified - check activity
+              </span>
+            )}
+          </div>
+          {onToggleSave && (
+            <button
+              type="button"
+              onClick={onToggleSave}
+              aria-label={saved ? "Remove bookmark" : "Save creator"}
+              title={saved ? "Saved to your Playbook" : "Save creator"}
+              className={`-mr-1 -mt-1 shrink-0 rounded-lg p-1.5 transition-colors ${
+                saved ? "text-primary" : "text-muted-foreground hover:text-primary"
+              }`}
+            >
+              <Bookmark className={`h-4 w-4 ${saved ? "fill-primary/20" : ""}`} />
+            </button>
           )}
         </div>
         <CardTitle className="font-serif text-base font-semibold leading-snug">
@@ -321,6 +352,29 @@ export default function AdvisorProfiles() {
   const [niches, setNiches] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [saved, setSaved] = useState<SavedItems>({
+    inspiration: [],
+    creators: [],
+  });
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      const id = data.user?.id ?? null;
+      setUserId(id);
+      setSaved(loadSaved(id));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleToggleSave = (id: string) => {
+    if (!userId) return;
+    setSaved(toggleSaved(userId, "creators", id));
+  };
 
   const togglePlatform = (p: AdvisorPlatform) => {
     setPlatforms((s) => {
@@ -573,7 +627,12 @@ export default function AdvisorProfiles() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {group.map((entry) => (
-                    <AdvisorCard key={entry.id} entry={entry} />
+                    <AdvisorCard
+                  key={entry.id}
+                  entry={entry}
+                  saved={isSaved(saved, "creators", entry.id)}
+                  onToggleSave={() => handleToggleSave(entry.id)}
+                />
                   ))}
                 </div>
               </section>

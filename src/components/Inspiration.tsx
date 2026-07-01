@@ -22,8 +22,16 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  Bookmark,
 } from "lucide-react";
 import inspirationData from "@/data/inspiration.json";
+import { supabase } from "@/lib/supabase";
+import {
+  loadSaved,
+  toggleSaved,
+  isSaved,
+  type SavedItems,
+} from "@/lib/savedItems";
 
 export type InspirationEntry = {
   id: string;
@@ -151,9 +159,13 @@ function AudienceBadge({ audience }: { audience: string }) {
 function InspirationCard({
   entry,
   onUseAsVibe,
+  saved,
+  onToggleSave,
 }: {
   entry: InspirationEntry;
   onUseAsVibe?: (e: InspirationEntry) => void;
+  saved?: boolean;
+  onToggleSave?: () => void;
 }) {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
@@ -173,10 +185,29 @@ function InspirationCard({
   return (
     <Card className="flex h-full flex-col border-border/60 shadow-card transition-all hover:border-primary/40 hover:shadow-elegant">
       <CardHeader className="space-y-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <PlatformBadge platform={entry.platform} />
-          <PillarBadge pillar={entry.pillar} />
-          <AudienceBadge audience={entry.audience} />
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <PlatformBadge platform={entry.platform} />
+            <PillarBadge pillar={entry.pillar} />
+            <AudienceBadge audience={entry.audience} />
+          </div>
+          {onToggleSave && (
+            <button
+              type="button"
+              onClick={onToggleSave}
+              aria-label={saved ? "Remove bookmark" : "Save for later"}
+              title={saved ? "Saved to your Playbook" : "Save for later"}
+              className={`-mr-1 -mt-1 shrink-0 rounded-lg p-1.5 transition-colors ${
+                saved
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-primary"
+              }`}
+            >
+              <Bookmark
+                className={`h-4 w-4 ${saved ? "fill-primary/20" : ""}`}
+              />
+            </button>
+          )}
         </div>
         <p className="text-[10px] font-medium text-muted-foreground/80">
           Pattern: {formatCurriculumAnchor(entry.curriculum_anchor)}
@@ -256,6 +287,29 @@ export default function Inspiration({ onUseAsVibe }: Props) {
   // as a short, scannable screen instead of one endless wall of cards.
   const [showFilters, setShowFilters] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [saved, setSaved] = useState<SavedItems>({
+    inspiration: [],
+    creators: [],
+  });
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      const id = data.user?.id ?? null;
+      setUserId(id);
+      setSaved(loadSaved(id));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleToggleSave = (id: string) => {
+    if (!userId) return;
+    setSaved(toggleSaved(userId, "inspiration", id));
+  };
 
   const togglePlatform = (p: InspirationEntry["platform"]) => {
     setPlatforms((s) => {
@@ -453,6 +507,8 @@ export default function Inspiration({ onUseAsVibe }: Props) {
                 key={entry.id}
                 entry={entry}
                 onUseAsVibe={onUseAsVibe}
+                saved={isSaved(saved, "inspiration", entry.id)}
+                onToggleSave={() => handleToggleSave(entry.id)}
               />
             ))}
           </div>

@@ -6,6 +6,8 @@ import Auth from "@/pages/Auth";
 import StudioLayout from "@/pages/StudioLayout";
 import HomePage from "@/pages/HomePage";
 import GeneratePage from "@/pages/GeneratePage";
+import CoachPage from "@/pages/CoachPage";
+import PlaybookPage from "@/pages/PlaybookPage";
 import PlanPage from "@/pages/PlanPage";
 import InspirationPage from "@/pages/InspirationPage";
 import InspirationDetailPage from "@/pages/InspirationDetailPage";
@@ -38,6 +40,8 @@ export default function App() {
           <Route path="/profiles/:id" element={<ProfileDetailPage />} />
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/drafts" element={<DraftsPage />} />
+          <Route path="/coach" element={<CoachPage />} />
+          <Route path="/playbook" element={<PlaybookPage />} />
           <Route path="/tutorial" element={<TutorialPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
