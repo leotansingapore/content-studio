@@ -23,6 +23,7 @@ import { supabase } from "@/lib/supabase";
 import {
   Sparkles,
   Copy,
+  Clapperboard,
   RefreshCw,
   Loader2,
   Heart,
@@ -603,15 +604,17 @@ export default function GeneratePage() {
   );
   const hasErrors = useMemo(() => hasComplianceErrors(visibleFlags), [visibleFlags]);
 
-  // Counter readout for the draft. Short-video drafts bundle the spoken
-  // script with the caption; only the caption counts against platform limits.
+  // Short-video drafts bundle the spoken script with the caption; the split
+  // drives caption-only counters and the separate copy buttons.
+  const svSplit = useMemo(
+    () => (format === "short-video" ? splitScriptCaption(draft) : null),
+    [draft, format],
+  );
+
+  // Counter readout for the draft. Only the caption counts against platform limits.
   const counters: CounterReadout = useMemo(
-    () =>
-      readout(
-        format === "short-video" ? splitScriptCaption(draft).caption : draft,
-        platform,
-      ),
-    [draft, platform, format],
+    () => readout(svSplit ? svSplit.caption : draft, platform),
+    [draft, platform, svSplit],
   );
 
   // Live craft check on the current draft (reuses the Coach engine).
@@ -1022,14 +1025,10 @@ export default function GeneratePage() {
     });
   };
 
-  const handleCopy = async () => {
-    if (!draft) return;
+  const copyText = async (text: string, title: string, description: string) => {
     try {
-      await navigator.clipboard.writeText(draft);
-      toast({
-        title: "Copied",
-        description: "Paste into your platform of choice.",
-      });
+      await navigator.clipboard.writeText(text);
+      toast({ title, description });
     } catch {
       toast({
         title: "Copy failed",
@@ -1037,6 +1036,11 @@ export default function GeneratePage() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleCopy = async () => {
+    if (!draft) return;
+    await copyText(draft, "Copied", "Paste into your platform of choice.");
   };
 
   // Suppress unused import warning - navigate may be needed by future flows.
@@ -1882,22 +1886,63 @@ export default function GeneratePage() {
               </CardDescription>
             </div>
             <div className="flex shrink-0 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopy}
-                className="relative gap-1.5"
-              >
-                <Copy className="h-3.5 w-3.5" /> Copy
-                {hasErrors && (
-                  <span
-                    title="Compliance error flag detected - review before posting"
-                    className="absolute -right-1.5 -top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-destructive bg-destructive text-[10px] font-bold leading-none text-destructive-foreground"
+              {svSplit?.script ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      void copyText(
+                        svSplit.caption,
+                        "Caption copied",
+                        "Paste into the post caption.",
+                      )
+                    }
+                    className="relative gap-1.5"
                   >
-                    !
-                  </span>
-                )}
-              </Button>
+                    <Copy className="h-3.5 w-3.5" /> Copy caption
+                    {hasErrors && (
+                      <span
+                        title="Compliance error flag detected - review before posting"
+                        className="absolute -right-1.5 -top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-destructive bg-destructive text-[10px] font-bold leading-none text-destructive-foreground"
+                      >
+                        !
+                      </span>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      void copyText(
+                        svSplit.script!,
+                        "Script copied",
+                        "This is what you say on camera.",
+                      )
+                    }
+                    className="gap-1.5"
+                  >
+                    <Clapperboard className="h-3.5 w-3.5" /> Copy script
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopy}
+                  className="relative gap-1.5"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy
+                  {hasErrors && (
+                    <span
+                      title="Compliance error flag detected - review before posting"
+                      className="absolute -right-1.5 -top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-destructive bg-destructive text-[10px] font-bold leading-none text-destructive-foreground"
+                    >
+                      !
+                    </span>
+                  )}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
