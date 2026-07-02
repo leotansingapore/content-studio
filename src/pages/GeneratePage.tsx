@@ -76,6 +76,7 @@ import {
   type DraftEntry,
 } from "@/lib/draftHistory";
 import { readout, type CounterReadout } from "@/lib/platformCounters";
+import { splitScriptCaption } from "@/lib/scriptCaption";
 import QuickTip from "@/components/QuickTip";
 import CompetitorReference, {
   buildCompetitorStyleReference,
@@ -602,10 +603,15 @@ export default function GeneratePage() {
   );
   const hasErrors = useMemo(() => hasComplianceErrors(visibleFlags), [visibleFlags]);
 
-  // Counter readout for the draft.
+  // Counter readout for the draft. Short-video drafts bundle the spoken
+  // script with the caption; only the caption counts against platform limits.
   const counters: CounterReadout = useMemo(
-    () => readout(draft, platform),
-    [draft, platform],
+    () =>
+      readout(
+        format === "short-video" ? splitScriptCaption(draft).caption : draft,
+        platform,
+      ),
+    [draft, platform, format],
   );
 
   // Live craft check on the current draft (reuses the Coach engine).
@@ -1971,7 +1977,7 @@ export default function GeneratePage() {
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5" /> Live preview
                 </div>
-                <PostPreview text={draft} platform={platform} />
+                <PostPreview text={draft} platform={platform} format={format} />
               </div>
             </div>
 
