@@ -125,7 +125,7 @@ create policy hub_posts_member_read on public.hub_posts
     published and public.hub_is_member() and (
       audience_type = 'all'
       or (audience_type = 'industry' and audience_value = public.hub_my_industry())
-      or (audience_type = 'client' and audience_value = public.hub_my_email()::text)
+      or (audience_type = 'client' and lower(audience_value) = lower(public.hub_my_email()::text))
     )
   );
 
@@ -135,7 +135,7 @@ create policy hub_trends_member_read on public.hub_trends
       public.hub_is_member() and (
         audience_type = 'all'
         or (audience_type = 'industry' and audience_value = public.hub_my_industry())
-        or (audience_type = 'client' and audience_value = public.hub_my_email()::text)
+        or (audience_type = 'client' and lower(audience_value) = lower(public.hub_my_email()::text))
       )
     )
   );

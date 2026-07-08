@@ -47,7 +47,10 @@ export default function TrendCard({ trend }: { trend: HubTrend }) {
         )}
         {trend.source_urls.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {trend.source_urls.slice(0, 4).map((u) => (
+            {trend.source_urls
+              .filter((u) => /^https?:\/\//i.test(u))
+              .slice(0, 4)
+              .map((u) => (
               <a
                 key={u}
                 href={u}

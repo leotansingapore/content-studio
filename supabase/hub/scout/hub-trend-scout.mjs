@@ -99,7 +99,9 @@ for (const niche of niches) {
     title: String(d.title || "").slice(0, 200),
     summary_md: String(d.summary_md || ""),
     angles_md: String(d.angles_md || ""),
-    source_urls: Array.isArray(d.source_urls) ? d.source_urls.map(String).slice(0, 6) : [],
+    source_urls: Array.isArray(d.source_urls)
+      ? d.source_urls.map(String).filter((u) => /^https?:\/\//i.test(u)).slice(0, 6)
+      : [],
     audience_type: "industry",
     audience_value: niche,
   }));
