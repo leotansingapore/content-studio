@@ -23,6 +23,11 @@ import VoicePage from "@/pages/VoicePage";
 import DraftsPage from "@/pages/DraftsPage";
 import TutorialPage from "@/pages/TutorialPage";
 import NotFoundPage from "@/pages/NotFoundPage";
+import HubGate from "@/components/hub/HubGate";
+import HubHomePage from "@/pages/hub/HubHomePage";
+import HubTrendsPage from "@/pages/hub/HubTrendsPage";
+import HubGuidesPage from "@/pages/hub/HubGuidesPage";
+import HubGuideDetailPage from "@/pages/hub/HubGuideDetailPage";
 
 export default function App() {
   return (
@@ -55,6 +60,12 @@ export default function App() {
           <Route path="/playbook" element={<PlaybookPage />} />
           <Route path="/academy" element={<AcademyPage />} />
           <Route path="/tutorial" element={<TutorialPage />} />
+          <Route path="/hub" element={<HubGate />}>
+            <Route index element={<HubHomePage />} />
+            <Route path="trends" element={<HubTrendsPage />} />
+            <Route path="guides" element={<HubGuidesPage />} />
+            <Route path="guides/:slug" element={<HubGuideDetailPage />} />
+          </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
