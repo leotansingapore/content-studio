@@ -28,6 +28,7 @@ import HubHomePage from "@/pages/hub/HubHomePage";
 import HubTrendsPage from "@/pages/hub/HubTrendsPage";
 import HubGuidesPage from "@/pages/hub/HubGuidesPage";
 import HubGuideDetailPage from "@/pages/hub/HubGuideDetailPage";
+import HubAdminPage from "@/pages/hub/HubAdminPage";
 
 export default function App() {
   return (
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="trends" element={<HubTrendsPage />} />
             <Route path="guides" element={<HubGuidesPage />} />
             <Route path="guides/:slug" element={<HubGuideDetailPage />} />
+            <Route path="admin" element={<HubAdminPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Route>
