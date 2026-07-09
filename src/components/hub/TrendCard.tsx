@@ -1,9 +1,27 @@
 import { useState } from "react";
-import { ChevronDown, Play, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ChevronDown, Play, Sparkles, Wand2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Markdown from "@/components/hub/Markdown";
 import type { HubTrend } from "@/lib/hub";
+
+// Deep-link into Write with the trend pre-loaded, mirroring the swipe file's
+// remix flow (GeneratePage consumes pillar/detail/ctx/format/platform).
+function buildTrendRemixUrl(trend: HubTrend): string {
+  const params = new URLSearchParams({
+    pillar: "topic",
+    detail: trend.title.slice(0, 90),
+    ctx: [
+      `Ride this trend: ${trend.title}.`,
+      trend.summary_md.replace(/\s+/g, " ").slice(0, 300),
+      `Angles to pick from: ${trend.angles_md.replace(/\s+/g, " ").slice(0, 400)}`,
+    ].join(" "),
+    format: "short-video",
+    platform: "instagram",
+  });
+  return `/generate?${params.toString()}`;
+}
 
 function timeAgo(iso: string) {
   const mins = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -60,8 +78,14 @@ export default function TrendCard({ trend }: { trend: HubTrend }) {
           <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
         {open && (
-          <div className="rounded-md border border-border/60 p-3">
+          <div className="space-y-3 rounded-md border border-border/60 p-3">
             <Markdown>{trend.angles_md}</Markdown>
+            <Link
+              to={buildTrendRemixUrl(trend)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+            >
+              <Wand2 className="h-3.5 w-3.5" /> Remix in Write
+            </Link>
           </div>
         )}
       </CardContent>
