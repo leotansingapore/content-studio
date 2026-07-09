@@ -69,6 +69,13 @@ const videoOk = async (u) => {
         await fetch("https://www.youtube.com/oembed?url=" + encodeURIComponent(u) + "&format=json")
       ).ok;
     }
+    if (/instagram\.com\/(reel|p)\/[A-Za-z0-9_-]{5,}/i.test(u)) {
+      // Instagram serves 200 for dead AND live posts to logged-out requests,
+      // so IG links cannot be machine-verified here. Accept well-formed post
+      // URLs; the research prompt requires URLs actually seen in search
+      // results, and search-indexed reels are almost always live.
+      return true;
+    }
     return (await fetch(u, { method: "HEAD", redirect: "follow" })).ok;
   } catch {
     return false;
@@ -136,7 +143,7 @@ for (const niche of niches) {
       MARKET +
       ' audience (local terms, local money context). Skip anything matching these recent titles: ' +
       JSON.stringify(recent.map((r) => r.title)) +
-      '. EVERY trend MUST come with example videos: 1-3 links to REAL public videos that show the trend in action (TikTok, Instagram Reel, or YouTube Shorts URLs you actually found during your web search - never invent URLs; a member will watch one before filming). Trends you cannot find a real example video for are not worth returning. Return ONLY a JSON array of at most 5 objects, each: {"title": string, "summary_md": string (2-3 sentences, what it is and why it works), "angles_md": string (markdown bullet list of 3-5 concrete post angles a "' +
+      '. EVERY trend MUST come with example videos: 1-3 links to REAL public videos that show the trend in action (URLs you actually found during your web search - never invent URLs; a member will watch one before filming). The audience posts mainly on Instagram, so PREFER Instagram Reel links (site:instagram.com/reel searches work; the reference accounts above are IG accounts) - TikTok and YouTube Shorts are fine fallbacks. Trends you cannot find a real example video for are not worth returning. Return ONLY a JSON array of at most 5 objects, each: {"title": string, "summary_md": string (2-3 sentences, what it is and why it works), "angles_md": string (markdown bullet list of 3-5 concrete post angles a "' +
       niche +
       '" creator can film this week), "source_urls": [string], "example_video_urls": [string]}. No prose outside the JSON.',
   );
