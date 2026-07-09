@@ -31,6 +31,7 @@ export type HubTrend = {
   summary_md: string;
   angles_md: string;
   source_urls: string[];
+  example_video_urls: string[];
   audience_type: "all" | "industry" | "client";
   audience_value: string | null;
   created_at: string;

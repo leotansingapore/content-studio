@@ -88,7 +88,7 @@ for (const niche of niches) {
       JSON.stringify(recent.map((r) => r.title)) +
       '. Return ONLY a JSON array of at most 3 objects, each: {"title": string, "summary_md": string (2-3 sentences, what it is and why it works), "angles_md": string (markdown bullet list of 3-5 concrete post angles a "' +
       niche +
-      '" creator can film this week), "source_urls": [string]}. No prose outside the JSON.',
+      '" creator can film this week), "source_urls": [string], "example_video_urls": [string] (1-3 links to REAL public videos that show this trend in action - TikTok, Instagram Reel, or YouTube Shorts URLs you actually found during your web search, so a member can watch one before filming; use [] if you did not find a real link - never invent URLs)}. No prose outside the JSON.',
   );
   if (!drops || !Array.isArray(drops) || drops.length === 0) {
     log("skip niche " + niche + ": no valid JSON");
@@ -101,6 +101,9 @@ for (const niche of niches) {
     angles_md: String(d.angles_md || ""),
     source_urls: Array.isArray(d.source_urls)
       ? d.source_urls.map(String).filter((u) => /^https?:\/\//i.test(u)).slice(0, 6)
+      : [],
+    example_video_urls: Array.isArray(d.example_video_urls)
+      ? d.example_video_urls.map(String).filter((u) => /^https?:\/\//i.test(u)).slice(0, 3)
       : [],
     audience_type: "industry",
     audience_value: niche,
@@ -132,6 +135,7 @@ for (const niche of niches) {
           summary_md: String(d.summary_md || ""),
           angles_md: String(d.angles_md || ""),
           source_urls: rows[i] ? rows[i].source_urls : [],
+          example_video_urls: rows[i] ? rows[i].example_video_urls : [],
           audience_type: "client",
           audience_value: c.email,
         })),

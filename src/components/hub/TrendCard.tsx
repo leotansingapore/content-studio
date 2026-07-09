@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ExternalLink, Sparkles } from "lucide-react";
+import { ChevronDown, ExternalLink, Play, Sparkles } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Markdown from "@/components/hub/Markdown";
@@ -33,6 +33,25 @@ export default function TrendCard({ trend }: { trend: HubTrend }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <Markdown>{trend.summary_md}</Markdown>
+        {(trend.example_video_urls ?? []).filter((u) => /^https?:\/\//i.test(u)).length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {(trend.example_video_urls ?? [])
+              .filter((u) => /^https?:\/\//i.test(u))
+              .slice(0, 3)
+              .map((u) => (
+                <a
+                  key={u}
+                  href={u}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+                >
+                  <Play className="h-3 w-3" />
+                  Watch an example
+                </a>
+              ))}
+          </div>
+        )}
         <button
           className="flex w-full items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2 text-sm font-medium hover:bg-muted/50"
           onClick={() => setOpen((v) => !v)}
