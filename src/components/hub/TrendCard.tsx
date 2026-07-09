@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ExternalLink, Play, Sparkles } from "lucide-react";
+import { ChevronDown, Play, Sparkles } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Markdown from "@/components/hub/Markdown";
@@ -38,7 +38,7 @@ export default function TrendCard({ trend }: { trend: HubTrend }) {
             {(trend.example_video_urls ?? [])
               .filter((u) => /^https?:\/\//i.test(u))
               .slice(0, 3)
-              .map((u) => (
+              .map((u, i, arr) => (
                 <a
                   key={u}
                   href={u}
@@ -47,7 +47,7 @@ export default function TrendCard({ trend }: { trend: HubTrend }) {
                   className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20"
                 >
                   <Play className="h-3 w-3" />
-                  Watch an example
+                  {arr.length === 1 ? "Watch an example" : `Example ${i + 1}`}
                 </a>
               ))}
           </div>
@@ -62,31 +62,6 @@ export default function TrendCard({ trend }: { trend: HubTrend }) {
         {open && (
           <div className="rounded-md border border-border/60 p-3">
             <Markdown>{trend.angles_md}</Markdown>
-          </div>
-        )}
-        {trend.source_urls.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {trend.source_urls
-              .filter((u) => /^https?:\/\//i.test(u))
-              .slice(0, 4)
-              .map((u) => (
-              <a
-                key={u}
-                href={u}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
-              >
-                <ExternalLink className="h-3 w-3" />
-                {(() => {
-                  try {
-                    return new URL(u).hostname.replace(/^www\./, "");
-                  } catch {
-                    return u.slice(0, 30);
-                  }
-                })()}
-              </a>
-            ))}
           </div>
         )}
       </CardContent>
