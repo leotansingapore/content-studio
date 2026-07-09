@@ -4,6 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
+import { initCloudSync } from "@/lib/cloudSync";
 
 export default function ProtectedRoute({
   children,
@@ -15,7 +16,11 @@ export default function ProtectedRoute({
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!mounted) return;
+      // Pull cloud workspace data before the app renders, so every feature
+      // reads the freshest cross-device state from localStorage.
+      if (data.session) await initCloudSync(data.session.user.id);
       if (!mounted) return;
       setSession(data.session);
       setLoading(false);
