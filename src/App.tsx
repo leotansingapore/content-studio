@@ -29,6 +29,7 @@ import HubTrendsPage from "@/pages/hub/HubTrendsPage";
 import HubGuidesPage from "@/pages/hub/HubGuidesPage";
 import HubGuideDetailPage from "@/pages/hub/HubGuideDetailPage";
 import HubAdminPage from "@/pages/hub/HubAdminPage";
+import BoardPage from "@/pages/BoardPage";
 
 export default function App() {
   return (
@@ -56,6 +57,7 @@ export default function App() {
           <Route path="/create-guide" element={<CreateGuidePage />} />
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/drafts" element={<DraftsPage />} />
+          <Route path="/board" element={<BoardPage />} />
           <Route path="/coach" element={<CoachPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/playbook" element={<PlaybookPage />} />

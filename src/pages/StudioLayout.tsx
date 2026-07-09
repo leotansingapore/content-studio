@@ -20,6 +20,7 @@ import {
   TrendingUp,
   BarChart3,
   Crown,
+  Columns3,
 } from "lucide-react";
 
 type NavItem = { to: string; label: string; icon: typeof Home };
@@ -35,6 +36,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
       { to: "/plan", label: "Plan a week", icon: CalendarRange },
       { to: "/calendar", label: "Calendar", icon: CalendarClock },
       { to: "/drafts", label: "My posts", icon: History },
+      { to: "/board", label: "Board", icon: Columns3 },
     ],
   },
   {
