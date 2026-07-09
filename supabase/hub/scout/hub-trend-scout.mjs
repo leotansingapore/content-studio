@@ -22,6 +22,22 @@ if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
   process.exit(1);
 }
 
+// Market localization + niche reference accounts (real local creators the
+// research should ground itself in). Optional file; scout works without it.
+const MARKET = env.MARKET || "Singapore";
+let refGroups = [];
+try {
+  refGroups = JSON.parse(
+    readFileSync(join(STATE, "reference-accounts.json"), "utf8"),
+  ).groups || [];
+} catch {
+  // no reference file; research runs unguided
+}
+const refAccountsFor = (niche) => {
+  const g = refGroups.find((x) => new RegExp(x.match, "i").test(niche));
+  return g ? g.accounts.slice(0, 20) : [];
+};
+
 const H = {
   apikey: env.SUPABASE_SERVICE_ROLE_KEY,
   Authorization: "Bearer " + env.SUPABASE_SERVICE_ROLE_KEY,
@@ -96,12 +112,29 @@ for (const niche of niches) {
       encodeURIComponent(niche) +
       "&order=created_at.desc&limit=20",
   );
+  const refs = refAccountsFor(niche);
   const drops = claudeJson(
-    'You are a social content trend scout. Research with web search what is trending RIGHT NOW (' +
+    'You are a social content trend scout for the ' +
+      MARKET +
+      ' market. Research with web search what is trending RIGHT NOW (' +
       new Date().toDateString() +
       ') for short-form content creators in the "' +
       niche +
-      '" niche: formats, audio and meme trends, hooks, platform shifts. Skip anything matching these recent titles: ' +
+      '" niche in ' +
+      MARKET +
+      ': formats, audio and meme trends, hooks, platform shifts. Global trends only count if they are landing with ' +
+      MARKET +
+      ' audiences; local trends beat global ones.' +
+      (refs.length
+        ? ' Ground your research in what real ' +
+          MARKET +
+          ' creators in this niche are actually posting - search for recent posts from these accounts and note what formats are working for them: ' +
+          refs.join(", ") +
+          '.'
+        : '') +
+      ' Angles must fit a ' +
+      MARKET +
+      ' audience (local terms, local money context). Skip anything matching these recent titles: ' +
       JSON.stringify(recent.map((r) => r.title)) +
       '. EVERY trend MUST come with example videos: 1-3 links to REAL public videos that show the trend in action (TikTok, Instagram Reel, or YouTube Shorts URLs you actually found during your web search - never invent URLs; a member will watch one before filming). Trends you cannot find a real example video for are not worth returning. Return ONLY a JSON array of at most 5 objects, each: {"title": string, "summary_md": string (2-3 sentences, what it is and why it works), "angles_md": string (markdown bullet list of 3-5 concrete post angles a "' +
       niche +

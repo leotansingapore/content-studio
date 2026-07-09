@@ -19,6 +19,17 @@ service role key.
 ```
 SUPABASE_URL=https://hgdbflprrficdoyxmdxe.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service role key>
+MARKET=Singapore   # optional, defaults to Singapore
+```
+
+## Reference accounts (`~/.local/state/hub-scout/reference-accounts.json`, optional)
+
+Real local creators the research grounds itself in, grouped by a niche regex.
+Regenerate the financial-advisor group from the repo's advisors.json:
+
+```
+jq '{groups: [{match: "financ|insur|advis|wealth", accounts: [.[] | select(.tier == 1 and (.platform | ascii_downcase | contains("instagram"))) | (.handle + " (" + .name + ")")] | .[0:20]}]}' \
+  src/data/advisors.json > ~/.local/state/hub-scout/reference-accounts.json
 ```
 
 ## Deploy after editing

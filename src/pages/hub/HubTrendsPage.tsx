@@ -23,8 +23,10 @@ function HowItWorks() {
         <CardContent className="space-y-2 pt-0 text-sm text-muted-foreground">
           <p>
             A research scout runs every 5 hours, around the clock. It checks what is
-            gaining traction right now for short-form creators in your industry: formats,
-            sounds, hooks, and platform changes.
+            gaining traction right now for short-form creators in your industry in
+            Singapore: formats, sounds, hooks, and platform changes. It also watches what
+            real local creators in your niche are posting, so drops reflect what is
+            working here, not just globally.
           </p>
           <p>
             Each drop tells you three things: what the trend is, why it works, and a set
