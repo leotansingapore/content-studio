@@ -81,7 +81,7 @@ const claudeJson = (prompt, retries = 1) => {
       const out = execFileSync("claude", ["-p", "--model", "sonnet"], {
         input: prompt,
         encoding: "utf8",
-        timeout: 420000,
+        timeout: 900000,
         maxBuffer: 10 * 1024 * 1024,
         env: { ...process.env, PATH: process.env.PATH + ":/usr/local/bin:/opt/homebrew/bin" },
       });
