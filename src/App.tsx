@@ -18,6 +18,7 @@ import InspirationDetailPage from "@/pages/InspirationDetailPage";
 import ProfilesPage from "@/pages/ProfilesPage";
 import ProfileDetailPage from "@/pages/ProfileDetailPage";
 import SwipeFilePage from "@/pages/SwipeFilePage";
+import TrendsPage from "@/pages/TrendsPage";
 import CreateGuidePage from "@/pages/CreateGuidePage";
 import VoicePage from "@/pages/VoicePage";
 import DraftsPage from "@/pages/DraftsPage";
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/profiles" element={<ProfilesPage />} />
           <Route path="/profiles/:id" element={<ProfileDetailPage />} />
           <Route path="/swipe" element={<SwipeFilePage />} />
+          <Route path="/trends" element={<TrendsPage />} />
           <Route path="/create-guide" element={<CreateGuidePage />} />
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/drafts" element={<DraftsPage />} />
