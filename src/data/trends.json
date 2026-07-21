@@ -118,5 +118,65 @@
     "source_label": "The Advisor Coach - Video Marketing for Financial Advisors",
     "source_url": "https://www.theadvisorcoach.com/video-marketing-for-financial-advisors.html",
     "date_found": "2026-07-20"
+  },
+  {
+    "id": "trend-2026-07-21-tiktok-starting-over-hook",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "title": "\"Starting over at 40\" beats \"starting out at 18\" by roughly 4x on identical finance hooks",
+    "why_it_works": "On the same creator's account, the \"if I were 40 and starting over\" version pulled 229.7K views versus 60.3K for the \"starting at 18\" version - about 4x. Viewers who feel financially behind are a larger, more emotionally activated audience than absolute beginners, so anchoring urgency to an older \"restart\" age converts the scroll into a watch better than a young \"starting out\" framing.",
+    "how_to_film": "Pick an older age your clients actually relate to (40, 45, 50) and open with \"If I were 45 starting my retirement/CPF plan from zero today, here's exactly what I'd do.\" Say the age and the stakes in the first 2 seconds, then walk through 3 concrete moves (e.g. CPF top-up, SRS, insurance review) in under 60 seconds. Skip the \"18-year-old\" framing - it underperforms.",
+    "source_label": "Draper - TikTok Personal Finance Hooks 2026",
+    "source_url": "https://draper.chat/blog/tiktok-personal-finance-hooks-2026",
+    "date_found": "2026-07-21"
+  },
+  {
+    "id": "trend-2026-07-21-linkedin-personal-not-company",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "identity",
+    "title": "Posting from your personal profile beats your agency page by roughly 5x",
+    "why_it_works": "2026 LinkedIn data shows personal profiles drive about 5x more engagement and 2.75x more impressions than company pages sharing identical content, and the gap is widening as LinkedIn's algorithm increasingly favors individual voices over corporate broadcasting.",
+    "how_to_film": "Stop treating your agency/company LinkedIn page as your primary channel. Write and publish from your own personal profile first, in your own voice (\"Today a client asked me...\"), and only reshare to the company page as secondary distribution, never as the source post.",
+    "source_label": "RefineLabs - Personal LinkedIn Profiles vs Company Pages",
+    "source_url": "https://www.refinelabs.com/article/personal-linkedin-engagement-vs-company-page",
+    "date_found": "2026-07-21"
+  },
+  {
+    "id": "trend-2026-07-21-sg-mas-educational-framing",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "market",
+    "title": "MAS's March 2026 digital ad rules make \"educational, not product-pitch\" content both the safer and better-performing choice",
+    "why_it_works": "MAS's Guidelines on Standards of Conduct for Digital Advertising, effective 25 March 2026, apply to all MAS-regulated financial institutions and any appointed content creators/partners, requiring prominent disclosures and treating misleading digital ads as a board-level conduct risk - MAS has already sent advisory letters to creators suspected of unlicensed advice. Content that offers a free guide or general framework rather than pushing a specific policy sidesteps that risk while matching what already performs best organically.",
+    "how_to_film": "Reframe any \"buy this policy\" video into a neutral teaching moment: \"Here are 3 questions to ask before topping up your CPF SA - I'm not telling you what to buy, just what to check.\" Never name a specific product or insurer on camera; end with an offer for a free, no-obligation review instead of a sales pitch.",
+    "source_label": "PolicyRix - MAS Digital Advertising Rules for Finfluencers 2026",
+    "source_url": "https://policy-global.vercel.app/news/2026-06-23/singapore-mas-finfluencer-digital-advertising-rules-2026",
+    "date_found": "2026-07-21"
+  },
+  {
+    "id": "trend-2026-07-21-instagram-money-mistake-confessional",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "identity",
+    "title": "\"My biggest money mistake\" confessionals are outperforming polished advice on Reels",
+    "why_it_works": "Personal finance confessionals build trust with Instagram's millennial audience faster than authoritative advice does, and content that combines practical value with emotional honesty gets amplified more than purely instructional posts - passive-income and vulnerability-driven finance content are currently the most-saved formats in the niche.",
+    "how_to_film": "Film yourself telling one real, specific mistake from your own financial or early-career life (e.g. \"I went 3 years under-insured before I understood ECI riders\"). No script on paper, talk like you're telling a friend, then give the one thing you'd do differently. End on the lesson, not a pitch.",
+    "source_label": "FlowShorts - Finance & Money Reels Ideas 2026",
+    "source_url": "https://flowshorts.app/instagram-reels-ideas/finance",
+    "date_found": "2026-07-21"
+  },
+  {
+    "id": "trend-2026-07-21-tiktok-faceless-screen-record",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "topic",
+    "title": "Faceless screen-recording explainers are dominating FYP in finance and productivity niches",
+    "why_it_works": "Faceless channels built on tight scripts and screen recordings (no camera, no face) are currently dominating the For You Page in finance, productivity, and tools niches, because \"how-to\" content in these categories has high search and save intent - viewers want the process shown, not a face reacting to it.",
+    "how_to_film": "Screen-record your phone or laptop doing something a client would otherwise do alone: walking through the CPF or MoneySense calculator, comparing two policy illustrations side by side, or filling in an insurance needs worksheet. Voice over it live as you click, keep the script under 45 seconds, and burn in captions since many will watch muted.",
+    "source_label": "Unil - TikTok Trends 2026",
+    "source_url": "https://unil.ink/blog/tiktok-trends-2026",
+    "date_found": "2026-07-21"
   }
 ]
