@@ -79,7 +79,10 @@ function DialogDescription({ children }: { children: React.ReactNode }) {
 }
 
 const BASE_PATH = "/fads";
-const STORAGE_PREFIX = "fads-tool-v1";
+// content-studio- prefix so cloudSync mirrors F.A.D.S. answers across devices.
+const STORAGE_PREFIX = "content-studio-fads-v1";
+// Pre-sync key format (2026-07-23) — migrated on first hydrate, then removed.
+const LEGACY_PREFIX = "fads-tool-v1";
 
 // ============ DATA ============
 
@@ -468,6 +471,17 @@ export default function FadsPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
+      // One-time migration from the pre-cloud-sync key format.
+      const legacyKey = storageKey.replace(STORAGE_PREFIX, LEGACY_PREFIX);
+      const legacyPolishKey = polishStorageKey.replace(STORAGE_PREFIX, LEGACY_PREFIX);
+      if (!localStorage.getItem(storageKey) && localStorage.getItem(legacyKey)) {
+        localStorage.setItem(storageKey, localStorage.getItem(legacyKey)!);
+        localStorage.removeItem(legacyKey);
+      }
+      if (!localStorage.getItem(polishStorageKey) && localStorage.getItem(legacyPolishKey)) {
+        localStorage.setItem(polishStorageKey, localStorage.getItem(legacyPolishKey)!);
+        localStorage.removeItem(legacyPolishKey);
+      }
       const raw = localStorage.getItem(storageKey);
       if (raw) {
         const parsed = JSON.parse(raw);
@@ -1188,10 +1202,18 @@ export default function FadsPage() {
     ]
       .filter(Boolean)
       .join(", ");
+    // Topics should read as short niche chips ("CPF for parents"), not full
+    // sentences — split the mistakes/challenges prose on sentence boundaries
+    // and keep only the fragments short enough to work as topics.
     const topicSeed = [formData.audience1Mistakes, formData.audience1Challenges]
       .filter(Boolean)
+      .join("\n")
+      .split(/[.;\n]/)
+      .map((t) => t.trim().replace(/^(and|but|or)\s+/i, ""))
+      .filter((t) => t.length >= 4 && t.length <= 45)
+      .slice(0, 6)
       .join("\n");
-    const topics = existing.topics.length > 0 ? existing.topics : parseTopics(topicSeed).slice(0, 6);
+    const topics = existing.topics.length > 0 ? existing.topics : parseTopics(topicSeed);
     const next: Positioning = {
       ...existing,
       oneLiner:
