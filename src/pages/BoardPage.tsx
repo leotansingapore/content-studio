@@ -131,6 +131,24 @@ export default function BoardPage() {
   }, [drafts, stages]);
 
   const [newIdea, setNewIdea] = useState("");
+  // Draft awaiting a posting date after being dropped on Scheduled.
+  const [scheduling, setScheduling] = useState<string | null>(null);
+  const [scheduleDate, setScheduleDate] = useState("");
+
+  const confirmSchedule = () => {
+    if (!userId || !scheduling || !scheduleDate) return;
+    setDrafts(
+      setDraftStatus(
+        userId,
+        scheduling,
+        "scheduled",
+        new Date(`${scheduleDate}T09:00:00`).toISOString(),
+      ),
+    );
+    setScheduling(null);
+    setScheduleDate("");
+    toast({ title: "Scheduled" });
+  };
 
   // Capture a rough concept straight on the board — it lands in Idea and can
   // be scripted later in Write via the card's Open link.
@@ -157,10 +175,9 @@ export default function BoardPage() {
   const moveTo = (draft: DraftEntry, col: BoardColumn) => {
     if (!userId) return;
     if (col === "scheduled") {
-      toast({
-        title: "Set a date to schedule",
-        description: "Open the post and pick a date in My posts or the Calendar.",
-      });
+      // Finish the thought in place: ask for the date right in the column.
+      setScheduling(draft.id);
+      setScheduleDate("");
       return;
     }
     if (col === "posted") {
@@ -260,6 +277,39 @@ export default function BoardPage() {
                           />
                         );
                       })}
+                      {col.key === "scheduled" && scheduling && (
+                        <div className="space-y-1.5 rounded-lg border border-primary/40 bg-primary/5 p-2">
+                          <p className="text-[11px] font-semibold text-primary">
+                            Pick a posting date
+                          </p>
+                          <p className="line-clamp-1 text-[11px] text-muted-foreground">
+                            {drafts.find((d) => d.id === scheduling)?.hook || "Selected post"}
+                          </p>
+                          <input
+                            type="date"
+                            value={scheduleDate}
+                            onChange={(e) => setScheduleDate(e.target.value)}
+                            className="w-full rounded-md border border-border/70 bg-background px-2 py-1 text-xs outline-none focus:border-primary/40"
+                          />
+                          <div className="flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={confirmSchedule}
+                              disabled={!scheduleDate}
+                              className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
+                            >
+                              Schedule
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setScheduling(null)}
+                              className="rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       {col.key === "idea" && (
                         <div className="flex items-center gap-1">
                           <input
