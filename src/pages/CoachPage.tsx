@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import SectionTabs, { PERFORMANCE_TABS } from "@/components/SectionTabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -152,8 +153,14 @@ export default function CoachPage() {
     [history],
   );
 
+  const pastedCount = useMemo(
+    () => (text.trim() ? splitPastedPosts(text).length : 0),
+    [text],
+  );
+
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={PERFORMANCE_TABS} />
       <header className="space-y-1.5">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Coach
@@ -170,47 +177,50 @@ export default function CoachPage() {
           <CardTitle className="font-serif text-lg">Analyze your posts</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div className="space-y-1.5">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <Label htmlFor="coach-text">
                 Paste your recent posts
                 <span className="ml-1 font-normal text-muted-foreground">
                   (separate each post with a line of ---)
                 </span>
               </Label>
-              <Textarea
-                id="coach-text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                rows={7}
-                placeholder={"Paste your first post here...\n\n---\n\nPaste your next post here...\n\n---\n\nAnd another..."}
-              />
+              {pastedCount > 0 && (
+                <span className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary">
+                  {pastedCount} {pastedCount === 1 ? "post" : "posts"} detected
+                </span>
+              )}
             </div>
-            <div className="space-y-1.5">
-              <Label>Platform</Label>
-              <Select
-                value={platform}
-                onValueChange={(v) => setPlatform(v as PlatformId)}
-              >
-                <SelectTrigger className="sm:w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="linkedin">LinkedIn</SelectItem>
-                  <SelectItem value="instagram">Instagram</SelectItem>
-                  <SelectItem value="facebook">Facebook</SelectItem>
-                  <SelectItem value="tiktok">TikTok</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Textarea
+              id="coach-text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={7}
+              placeholder={"Paste your first post here...\n\n---\n\nPaste your next post here...\n\n---\n\nAnd another..."}
+            />
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={platform}
+              onValueChange={(v) => setPlatform(v as PlatformId)}
+            >
+              <SelectTrigger className="w-36" aria-label="Platform">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="linkedin">LinkedIn</SelectItem>
+                <SelectItem value="instagram">Instagram</SelectItem>
+                <SelectItem value="facebook">Facebook</SelectItem>
+                <SelectItem value="tiktok">TikTok</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               onClick={handleAnalyzePasted}
               disabled={text.trim().length < 20}
               className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"
             >
-              <Gauge className="h-4 w-4" /> Analyze
+              <Gauge className="h-4 w-4" />
+              {pastedCount > 1 ? `Analyze ${pastedCount} posts` : "Analyze"}
             </Button>
             <Button
               variant="outline"
