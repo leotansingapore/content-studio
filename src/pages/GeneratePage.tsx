@@ -1589,6 +1589,7 @@ export default function GeneratePage() {
               onChange={(e) => setIdeaContext(e.target.value)}
               placeholder="The actual question, mistake, story, or numbers. Specific beats generic every time."
               rows={3}
+              autoResize
             />
           </div>
         </CardContent>
