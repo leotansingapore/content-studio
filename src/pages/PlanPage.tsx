@@ -23,6 +23,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import QuickTip from "@/components/QuickTip";
+import {
+  getBreakdown,
+  getDayOfWeekBreakdown,
+  MIN_GROUP_SAMPLE,
+} from "@/lib/analytics";
 import CompetitorReference, {
   customInstagramRef,
   findCompetitorByHandle,
@@ -55,6 +60,7 @@ import {
   planItemDate,
   upcomingMonday,
   type ContentPlan,
+  type PlanFormat,
   type PlanItem,
 } from "@/lib/contentPlan";
 import {
@@ -69,6 +75,7 @@ import {
   Calendar,
   Compass,
   ChevronDown,
+  TrendingUp,
 } from "lucide-react";
 
 const AUDIENCE_LABEL: Record<PlanAudience, string> = {
@@ -152,6 +159,24 @@ export default function PlanPage() {
     [positioning, topicsRaw],
   );
 
+  // Close the loop with Analytics: if the user has tracked real numbers, the
+  // plan leans toward their proven format and best posting days.
+  const performance = useMemo(() => {
+    const formats = getBreakdown(userId, "format").filter(
+      (r) => r.count >= MIN_GROUP_SAMPLE && r.key !== "unspecified",
+    );
+    const bestFormat =
+      formats.length >= 2 &&
+      formats[0].avgEngagementRate > formats[1].avgEngagementRate
+        ? (formats[0].key as PlanFormat)
+        : null;
+    const days = getDayOfWeekBreakdown(userId)
+      .filter((r) => r.count >= MIN_GROUP_SAMPLE)
+      .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
+    const bestDays = days.length >= 2 ? days.slice(0, 2).map((r) => r.day) : [];
+    return bestFormat || bestDays.length ? { bestFormat, bestDays } : undefined;
+  }, [userId]);
+
   const prefillFromFads = () => {
     const text = fadsPaste.trim();
     if (!text) return;
@@ -216,6 +241,7 @@ export default function PlanPage() {
         handle: c.handle,
         styleNotes: c.styleNotes,
       })),
+      performance,
     });
     savePlan(userId, newPlan);
     setPlan(newPlan);
@@ -238,6 +264,7 @@ export default function PlanPage() {
         handle: c.handle,
         styleNotes: c.styleNotes,
       })),
+      performance,
     });
     savePlan(userId, newPlan);
     setPlan(newPlan);
@@ -736,6 +763,11 @@ export default function PlanPage() {
               </h2>
               {plan.oneLiner && (
                 <p className="max-w-2xl text-sm opacity-90">{plan.oneLiner}</p>
+              )}
+              {plan.performanceNote && (
+                <p className="flex items-center gap-1.5 text-xs font-medium opacity-90">
+                  <TrendingUp className="h-3 w-3" /> {plan.performanceNote}
+                </p>
               )}
             </div>
             <div className="text-right">

@@ -51,6 +51,8 @@ export interface ContentPlan {
   salt: number;
   oneLiner: string;
   items: PlanItem[];
+  /** Human-readable note when the plan was weighted by the user's own analytics. */
+  performanceNote?: string;
 }
 
 interface InspirationSeed {
@@ -172,6 +174,15 @@ export interface GeneratePlanOptions {
   weeks?: number;
   salt?: number;
   competitors?: PlanCompetitorSeed[];
+  /**
+   * The user's own tracked results (from Analytics). When present, the plan
+   * leans toward what has actually worked for them: the winning format takes
+   * roughly half the slots, and posting days start with their best days.
+   */
+  performance?: {
+    bestFormat?: PlanFormat | null;
+    bestDays?: string[];
+  };
 }
 
 export function generatePlan(
@@ -183,7 +194,24 @@ export function generatePlan(
   const competitors = opts.competitors ?? [];
   const cadence = positioning.cadence || 3;
   const topics = positioning.topics.filter((t) => t.trim().length > 0);
-  const days = dayPattern(cadence);
+
+  // Performance weighting: interleave the user's winning format into every
+  // other rotation slot, and start the week on their best posting days.
+  const bestFormat = opts.performance?.bestFormat ?? null;
+  const formatRotation: PlanFormat[] = bestFormat
+    ? FORMAT_ROTATION.filter((f) => f !== bestFormat).flatMap((f) => [
+        bestFormat,
+        f,
+      ])
+    : FORMAT_ROTATION;
+  const bestDays = (opts.performance?.bestDays ?? []).filter((d) =>
+    ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].includes(d),
+  );
+  let days = dayPattern(cadence);
+  if (bestDays.length > 0) {
+    const rest = days.filter((d) => !bestDays.includes(d));
+    days = [...bestDays, ...rest].slice(0, days.length);
+  }
 
   const items: PlanItem[] = [];
   let globalIndex = 0;
@@ -196,7 +224,7 @@ export function generatePlan(
       const stageId = order[slot];
       const stage = FUNNEL_STAGES.find((s) => s.id === stageId)!;
       const pillar = stage.pillars[(globalIndex + salt) % stage.pillars.length];
-      const format = FORMAT_ROTATION[(globalIndex + salt) % FORMAT_ROTATION.length];
+      const format = formatRotation[(globalIndex + salt) % formatRotation.length];
       const ideaSource =
         stage.ideaSources[(globalIndex + salt) % stage.ideaSources.length];
       const isSocial = pillar === "identity" || pillar === "interest";
@@ -261,6 +289,20 @@ export function generatePlan(
     }
   }
 
+  const noteParts: string[] = [];
+  if (bestFormat) {
+    const label: Record<PlanFormat, string> = {
+      "text-post": "text posts",
+      carousel: "carousels",
+      "short-video": "short videos",
+      story: "stories",
+    };
+    noteParts.push(`more ${label[bestFormat]} (your best format)`);
+  }
+  if (bestDays.length > 0) {
+    noteParts.push(`posting starts ${bestDays.join(" + ")} (your best days)`);
+  }
+
   return {
     id: `plan-${Date.now()}`,
     createdAt: new Date().toISOString(),
@@ -269,6 +311,9 @@ export function generatePlan(
     salt,
     oneLiner: positioning.oneLiner,
     items,
+    performanceNote: noteParts.length
+      ? `Weighted by your analytics: ${noteParts.join("; ")}.`
+      : undefined,
   };
 }
 
