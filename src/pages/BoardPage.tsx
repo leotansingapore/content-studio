@@ -157,6 +157,11 @@ export default function BoardPage() {
   const addIdea = () => {
     const hook = newIdea.trim();
     if (!hook || !userId) return;
+    // Guard against double-Enter creating duplicate cards.
+    if (drafts.some((d) => d.hook === hook && !d.draft)) {
+      setNewIdea("");
+      return;
+    }
     const entry: DraftEntry = {
       id: newDraftId(),
       createdAt: new Date().toISOString(),
@@ -301,6 +306,7 @@ export default function BoardPage() {
                           <input
                             type="date"
                             value={scheduleDate}
+                            min={new Date().toISOString().slice(0, 10)}
                             onChange={(e) => setScheduleDate(e.target.value)}
                             className="w-full rounded-md border border-border/70 bg-background px-2 py-1 text-xs outline-none focus:border-primary/40"
                           />

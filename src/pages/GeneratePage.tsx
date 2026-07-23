@@ -473,13 +473,20 @@ export default function GeneratePage() {
       setSearchParams(next, { replace: true });
       return;
     }
-    setPillar(entry.pillar as Pillar);
-    setPillarDetail(entry.pillarDetail ?? "");
-    setAudience((entry.audience as Audience) ?? "general");
-    setFormat(entry.format as Format);
-    setPlatform(entry.platform as Platform);
-    setCtaType(entry.ctaType as CtaType);
-    if (entry.hook) setChosenHook(entry.hook);
+    // Board quick-add ideas carry only a hook — keep the wizard's defaults
+    // and use the idea text as the topic so Generate works immediately.
+    const isBareIdea = !entry.draft && !entry.pillar;
+    if (isBareIdea) {
+      setPillarDetail(entry.hook);
+    } else {
+      setPillar(entry.pillar as Pillar);
+      setPillarDetail(entry.pillarDetail ?? "");
+      setAudience((entry.audience as Audience) ?? "general");
+      setFormat(entry.format as Format);
+      setPlatform(entry.platform as Platform);
+      setCtaType(entry.ctaType as CtaType);
+      if (entry.hook) setChosenHook(entry.hook);
+    }
     setDraft(entry.draft);
     setCurrentDraftId(entry.id);
     preserveIdRef.current =
@@ -488,8 +495,10 @@ export default function GeneratePage() {
         : null;
     setVibeSourceId(entry.vibeSourceId ?? null);
     toast({
-      title: "Draft restored",
-      description: "Form repopulated. Edit and re-roll, or copy as-is.",
+      title: isBareIdea ? "Idea loaded" : "Draft restored",
+      description: isBareIdea
+        ? "Your board idea is set as the topic — pick a format and generate."
+        : "Form repopulated. Edit and re-roll, or copy as-is.",
     });
     setTimeout(() => {
       formAnchorRef.current?.scrollIntoView({
