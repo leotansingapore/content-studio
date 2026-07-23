@@ -57,36 +57,38 @@ function BoardCard({
     <Card
       draggable
       onDragStart={(e) => e.dataTransfer.setData("text/draft-id", draft.id)}
-      className="min-w-0 cursor-grab active:cursor-grabbing"
+      className="group min-w-0 cursor-grab border-border/60 shadow-sm transition-shadow hover:shadow-card active:cursor-grabbing"
     >
-      <CardContent className="space-y-2 p-3">
+      <CardContent className="space-y-2.5 p-3">
         <div className="flex items-start gap-1.5">
-          <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
-          <p className="line-clamp-3 min-w-0 break-words text-sm font-medium leading-snug">
+          <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground/70" />
+          <p className="line-clamp-2 min-w-0 text-sm font-medium leading-snug">
             {draft.hook || draft.draft.slice(0, 80) || "Untitled draft"}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 pl-5">
-          {draft.platform && (
-            <span className="whitespace-nowrap rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-              {draft.platform}
-            </span>
-          )}
-          {draft.format && (
-            <span className="whitespace-nowrap rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-              {draft.format}
-            </span>
-          )}
-          {draft.scheduledFor && (
-            <span className="whitespace-nowrap text-[10px] text-muted-foreground">
-              {new Date(draft.scheduledFor).toLocaleDateString()}
-            </span>
-          )}
-        </div>
+        {(draft.platform || draft.format || draft.scheduledFor) && (
+          <div className="flex flex-wrap items-center gap-1.5 pl-5">
+            {draft.platform && (
+              <span className="whitespace-nowrap rounded-full border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {draft.platform}
+              </span>
+            )}
+            {draft.format && (
+              <span className="whitespace-nowrap rounded-full border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {draft.format.replace(/-/g, " ")}
+              </span>
+            )}
+            {draft.scheduledFor && (
+              <span className="whitespace-nowrap text-[10px] text-muted-foreground">
+                {new Date(draft.scheduledFor).toLocaleDateString()}
+              </span>
+            )}
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2 pl-5">
           <Link
             to={`/generate?draft=${draft.id}`}
-            className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
           >
             <Pencil className="h-3 w-3" /> Open
           </Link>
@@ -94,7 +96,7 @@ function BoardCard({
             <button
               type="button"
               onClick={onAdvance}
-              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-border/70 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-border/70 px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
             >
               {advanceLabel} <ArrowRight className="h-3 w-3" />
             </button>
@@ -228,24 +230,25 @@ export default function BoardPage() {
           </CardContent>
         </Card>
       )}
-      {(
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+      {/* Horizontal, Trello/Linear-style board: real-width columns that size to
+          their content, grouped by phase, scrolling sideways on narrow screens. */}
+      <div className="-mx-4 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+        <div className="flex items-start gap-6">
           {PHASES.map((phase) => (
-            <section key={phase.number} className="rounded-xl border border-border/60 bg-card p-3">
-              <div className="mb-3 flex items-baseline gap-2 px-1">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+            <section key={phase.number} className="flex shrink-0 flex-col">
+              <div className="mb-3 flex items-center gap-2 px-0.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   {phase.number}
                 </span>
-                <div>
-                  <p className="text-sm font-semibold">
-                    Phase {phase.number} — {phase.title}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">{phase.blurb}</p>
-                </div>
+                <p className="text-sm font-semibold text-foreground">{phase.title}</p>
+                <span className="hidden text-xs text-muted-foreground sm:inline">
+                  {phase.blurb}
+                </span>
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex items-start gap-4">
                 {phase.columns.map((key) => {
                   const col = BOARD_COLUMNS.find((c) => c.key === key)!;
+                  const cards = byColumn.get(col.key) ?? [];
                   return (
                     <div
                       key={col.key}
@@ -255,18 +258,27 @@ export default function BoardPage() {
                       }}
                       onDragLeave={() => setDragOver(null)}
                       onDrop={onDrop(col.key)}
-                      className={`flex min-h-40 min-w-0 flex-col gap-2 rounded-lg border p-2 transition-colors ${
-                        dragOver === col.key ? "border-primary bg-primary/5" : "border-border bg-muted/20"
+                      className={`flex w-72 shrink-0 flex-col gap-2.5 rounded-2xl border p-3 transition-colors ${
+                        dragOver === col.key
+                          ? "border-primary/50 bg-primary/5"
+                          : "border-border/50 bg-muted/30"
                       }`}
                     >
-                      <div className="px-1">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          {col.label}{" "}
-                          <span className="font-normal">({byColumn.get(col.key)?.length ?? 0})</span>
-                        </p>
-                        <p className="text-[10px] text-muted-foreground/70">{col.hint}</p>
+                      <div className="flex items-start justify-between gap-2 px-0.5">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">
+                            {col.label}
+                          </p>
+                          <p className="text-[10px] leading-tight text-muted-foreground/70">
+                            {col.hint}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-md bg-background px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground shadow-sm">
+                          {cards.length}
+                        </span>
                       </div>
-                      {(byColumn.get(col.key) ?? []).map((d) => {
+
+                      {cards.map((d) => {
                         const step = NEXT_STEP[col.key];
                         return (
                           <BoardCard
@@ -277,6 +289,7 @@ export default function BoardPage() {
                           />
                         );
                       })}
+
                       {col.key === "scheduled" && scheduling && (
                         <div className="space-y-1.5 rounded-lg border border-primary/40 bg-primary/5 p-2">
                           <p className="text-[11px] font-semibold text-primary">
@@ -310,25 +323,23 @@ export default function BoardPage() {
                           </div>
                         </div>
                       )}
+
                       {col.key === "idea" && (
-                        <div className="flex items-center gap-1">
-                          <input
-                            value={newIdea}
-                            onChange={(e) => setNewIdea(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") addIdea();
-                            }}
-                            placeholder="+ Quick idea, Enter to add"
-                            className="min-w-0 flex-1 rounded-lg border border-dashed border-border/70 bg-background px-2 py-1.5 text-xs outline-none placeholder:text-muted-foreground/60 focus:border-primary/40"
-                          />
-                        </div>
+                        <input
+                          value={newIdea}
+                          onChange={(e) => setNewIdea(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") addIdea();
+                          }}
+                          placeholder="+ Quick idea, Enter to add"
+                          className="w-full rounded-lg border border-dashed border-border/70 bg-background/60 px-2.5 py-2 text-xs outline-none placeholder:text-muted-foreground/60 focus:border-primary/40 focus:bg-background"
+                        />
                       )}
-                      {PRODUCTION.includes(col.key) &&
-                        col.key !== "idea" &&
-                        (byColumn.get(col.key) ?? []).length === 0 && (
-                        <p className="px-1 py-3 text-center text-[11px] text-muted-foreground/60">
+
+                      {cards.length === 0 && col.key !== "idea" && (
+                        <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-border/50 text-[11px] text-muted-foreground/50">
                           Drop posts here
-                        </p>
+                        </div>
                       )}
                     </div>
                   );
@@ -337,7 +348,7 @@ export default function BoardPage() {
             </section>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
