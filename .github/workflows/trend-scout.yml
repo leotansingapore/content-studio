@@ -9,8 +9,9 @@ name: Trend scout
 
 on:
   schedule:
-    # 22:00 UTC = 06:00 Singapore time — a fresh drop is live by the morning.
-    - cron: "0 22 * * *"
+    # 02:00 UTC = 10:00 Singapore time (SGT, UTC+8). GitHub runs cron in UTC and
+    # timing is best-effort (can be delayed several minutes under load).
+    - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       count:
