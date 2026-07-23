@@ -185,7 +185,17 @@ export async function fetchLiveIgProfile(
   const { data, error } = await supabase.functions.invoke("analyze-ig-creator", {
     body: { handle },
   });
-  if (error) throw new Error(error.message ?? "Lookup failed");
+  if (error) {
+    // FunctionsHttpError hides the JSON body behind error.context — surface
+    // the function's own message ("temporarily unavailable", "no profile"...)
+    // instead of the generic "non-2xx status code".
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === "function") {
+      const body = await ctx.json().catch(() => null);
+      if (body?.error) throw new Error(body.error);
+    }
+    throw new Error(error.message ?? "Lookup failed");
+  }
   if ((data as { error?: string })?.error) {
     throw new Error((data as { error: string }).error);
   }
