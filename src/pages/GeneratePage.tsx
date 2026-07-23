@@ -508,7 +508,8 @@ export default function GeneratePage() {
       searchParams.has("pillar") ||
       searchParams.has("detail") ||
       searchParams.has("funnel") ||
-      searchParams.has("idea");
+      searchParams.has("idea") ||
+      searchParams.has("ctx");
     if (!has) return;
     prefillAppliedRef.current = true;
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import SectionTabs, { PERFORMANCE_TABS } from "@/components/SectionTabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
   Wrench,
   History as HistoryIcon,
   TrendingUp,
+  PenLine,
 } from "lucide-react";
 
 function scoreTone(score: number): { label: string; text: string; ring: string } {
@@ -290,6 +292,19 @@ export default function CoachPage() {
                     </li>
                   ))}
                 </ol>
+                {report.fixes.length > 0 && (
+                  <Button asChild size="sm" className="mt-1 gap-1.5">
+                    <Link
+                      to={`/generate?ctx=${encodeURIComponent(
+                        `Revise my next post applying these coach fixes: ${report.fixes
+                          .slice(0, 3)
+                          .join(" | ")}`,
+                      )}`}
+                    >
+                      <PenLine className="h-3.5 w-3.5" /> Revise in Write
+                    </Link>
+                  </Button>
+                )}
               </div>
             </div>
 
