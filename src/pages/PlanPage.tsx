@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate } from "react-router-dom";
 import { upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import {
@@ -324,6 +325,7 @@ export default function PlanPage() {
   if (editing || !plan) {
     return (
       <div className="space-y-6">
+        <SectionTabs tabs={PIPELINE_TABS} />
         <Card className="overflow-hidden border-border/60 shadow-card">
           <div className="bg-gradient-hero px-5 py-5 text-primary-foreground sm:px-6">
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-90">
@@ -414,14 +416,14 @@ export default function PlanPage() {
               Optional shortcut. Paste the audience / edge / positioning you
               wrote in the F.A.D.S. tool and we'll prefill the fields. Or just
               fill them in below. Don't have it yet?{" "}
-              <a
-                href="https://academy.finternship.com/learning-track/pre-rnf/assignments/audience-differentiation/tool"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/fads"
                 className="font-semibold text-primary hover:underline"
               >
                 Build it in the F.A.D.S. tool →
-              </a>
+              </Link>{" "}
+              It's built into the studio now — "Send to Plan" on its output tab
+              fills these fields for you.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -667,6 +669,7 @@ export default function PlanPage() {
   // ---------- Plan view ----------
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={PIPELINE_TABS} />
       {/* Accountability header */}
       <Card className="overflow-hidden border-border/60 shadow-card">
         <div className="bg-gradient-hero px-5 py-5 text-primary-foreground sm:px-6">

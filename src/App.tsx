@@ -32,6 +32,7 @@ import HubGuidesPage from "@/pages/hub/HubGuidesPage";
 import HubGuideDetailPage from "@/pages/hub/HubGuideDetailPage";
 import HubAdminPage from "@/pages/hub/HubAdminPage";
 import BoardPage from "@/pages/BoardPage";
+import FadsPage from "@/pages/FadsPage";
 
 export default function App() {
   return (
@@ -51,6 +52,8 @@ export default function App() {
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/generate/batch" element={<BatchPage />} />
           <Route path="/plan" element={<PlanPage />} />
+          <Route path="/fads" element={<FadsPage />} />
+          <Route path="/fads/:tab" element={<FadsPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/inspiration" element={<InspirationPage />} />
           <Route path="/inspiration/:id" element={<InspirationDetailPage />} />
