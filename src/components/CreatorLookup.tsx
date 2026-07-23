@@ -199,7 +199,16 @@ export default function CreatorLookup() {
   }, [submitted]);
 
   const notFound = submitted !== null && !analysis && !liveAnalysis && !liveLoading;
-  const liveCandidate = submitted ? parseInstagramInput(submitted) : null;
+  // Curated entry that exists but has no analyzed posts (directory-only).
+  const curatedNoData = notFound && submitted ? findAdvisor(submitted) : null;
+  // Fall back to the curated entry's own handle so directory-only Instagram
+  // creators can still be analyzed live.
+  const liveCandidate = submitted
+    ? parseInstagramInput(submitted) ??
+      (curatedNoData && /instagram/i.test(curatedNoData.platform_url)
+        ? parseInstagramInput(curatedNoData.handle)
+        : null)
+    : null;
 
   const handleSubmit = (value: string) => {
     const v = value.trim();
@@ -320,7 +329,9 @@ export default function CreatorLookup() {
         {notFound && (
           <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 text-sm">
             <p className="font-medium text-foreground">
-              No match for "{submitted}" in our curated set.
+              {curatedNoData
+                ? `${curatedNoData.name} is in our directory, but we haven't analyzed their posts yet.`
+                : `No match for "${submitted}" in our curated set.`}
             </p>
             {liveCandidate ? (
               <>
