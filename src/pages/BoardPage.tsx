@@ -17,7 +17,9 @@ import {
 import {
   draftStatus,
   loadDrafts,
+  newDraftId,
   setDraftStatus,
+  upsertDraft,
   type DraftEntry,
 } from "@/lib/draftHistory";
 import { supabase } from "@/lib/supabase";
@@ -65,12 +67,16 @@ function BoardCard({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 pl-5">
-          <span className="whitespace-nowrap rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-            {draft.platform}
-          </span>
-          <span className="whitespace-nowrap rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-            {draft.format}
-          </span>
+          {draft.platform && (
+            <span className="whitespace-nowrap rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+              {draft.platform}
+            </span>
+          )}
+          {draft.format && (
+            <span className="whitespace-nowrap rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+              {draft.format}
+            </span>
+          )}
           {draft.scheduledFor && (
             <span className="whitespace-nowrap text-[10px] text-muted-foreground">
               {new Date(draft.scheduledFor).toLocaleDateString()}
@@ -124,6 +130,30 @@ export default function BoardPage() {
     return map;
   }, [drafts, stages]);
 
+  const [newIdea, setNewIdea] = useState("");
+
+  // Capture a rough concept straight on the board — it lands in Idea and can
+  // be scripted later in Write via the card's Open link.
+  const addIdea = () => {
+    const hook = newIdea.trim();
+    if (!hook || !userId) return;
+    const entry: DraftEntry = {
+      id: newDraftId(),
+      createdAt: new Date().toISOString(),
+      hook,
+      draft: "",
+      pillar: "",
+      pillarDetail: "",
+      audience: "",
+      format: "",
+      platform: "",
+      ctaType: "",
+    };
+    setDrafts(upsertDraft(userId, entry));
+    setStages(setStage(userId, entry.id, "idea"));
+    setNewIdea("");
+  };
+
   const moveTo = (draft: DraftEntry, col: BoardColumn) => {
     if (!userId) return;
     if (col === "scheduled") {
@@ -168,16 +198,20 @@ export default function BoardPage() {
         </p>
       </div>
 
-      {drafts.length === 0 ? (
+      {drafts.length === 0 && (
         <Card>
-          <CardContent className="space-y-3 py-10 text-center text-sm text-muted-foreground">
-            <p>Nothing in production yet. Write your first post and it lands here.</p>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-muted-foreground">
+            <p>
+              Nothing in production yet. Type a quick idea below, or write a
+              full post and it lands here.
+            </p>
             <Button asChild size="sm">
               <Link to="/generate">Write a post</Link>
             </Button>
           </CardContent>
         </Card>
-      ) : (
+      )}
+      {(
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           {PHASES.map((phase) => (
             <section key={phase.number} className="rounded-xl border border-border/60 bg-card p-3">
@@ -226,7 +260,22 @@ export default function BoardPage() {
                           />
                         );
                       })}
-                      {PRODUCTION.includes(col.key) && (byColumn.get(col.key) ?? []).length === 0 && (
+                      {col.key === "idea" && (
+                        <div className="flex items-center gap-1">
+                          <input
+                            value={newIdea}
+                            onChange={(e) => setNewIdea(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") addIdea();
+                            }}
+                            placeholder="+ Quick idea, Enter to add"
+                            className="min-w-0 flex-1 rounded-lg border border-dashed border-border/70 bg-background px-2 py-1.5 text-xs outline-none placeholder:text-muted-foreground/60 focus:border-primary/40"
+                          />
+                        </div>
+                      )}
+                      {PRODUCTION.includes(col.key) &&
+                        col.key !== "idea" &&
+                        (byColumn.get(col.key) ?? []).length === 0 && (
                         <p className="px-1 py-3 text-center text-[11px] text-muted-foreground/60">
                           Drop posts here
                         </p>
