@@ -27,6 +27,8 @@ import {
   CheckCircle2,
   Undo2,
   CalendarClock,
+  Wand2,
+  X,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -37,6 +39,7 @@ import {
   type DraftEntry,
   type DraftStatus,
 } from "@/lib/draftHistory";
+import { repurposeTargetsFor, buildRepurposeUrl } from "@/lib/repurpose";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -62,6 +65,7 @@ export default function DraftsPage() {
   const [search, setSearch] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<"all" | DraftStatus>("all");
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [repurposeOpenId, setRepurposeOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -96,7 +100,7 @@ export default function DraftsPage() {
 
   const handleMetric = (
     id: string,
-    field: "impressions" | "reactions" | "comments",
+    field: "impressions" | "reactions" | "comments" | "shares",
     value: string,
   ) => {
     if (!userId) return;
@@ -292,12 +296,13 @@ export default function DraftsPage() {
                   </label>
                 )}
                 {s === "posted" && (
-                  <div className="mb-3 grid grid-cols-3 gap-2">
+                  <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {(
                       [
                         ["impressions", "Impressions"],
                         ["reactions", "Reactions"],
                         ["comments", "Comments"],
+                        ["shares", "Shares"],
                       ] as const
                     ).map(([field, label]) => (
                       <label key={field} className="space-y-0.5">
@@ -325,6 +330,16 @@ export default function DraftsPage() {
                     className="gap-1.5"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setRepurposeOpenId((cur) => (cur === d.id ? null : d.id))
+                    }
+                    className="gap-1.5"
+                  >
+                    <Wand2 className="h-3.5 w-3.5" /> Repurpose
                   </Button>
                   {s === "posted" ? (
                     <Button
@@ -359,6 +374,35 @@ export default function DraftsPage() {
                     {confirmId === d.id ? "Confirm" : "Delete"}
                   </Button>
                 </div>
+                {repurposeOpenId === d.id && (
+                  <div className="mt-3 space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
+                        Repurpose into
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setRepurposeOpenId(null)}
+                        aria-label="Close"
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {repurposeTargetsFor(d).map((t) => (
+                        <button
+                          key={t.key}
+                          type="button"
+                          onClick={() => navigate(buildRepurposeUrl(d, t))}
+                          className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-primary/10"
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

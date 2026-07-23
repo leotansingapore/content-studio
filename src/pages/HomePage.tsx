@@ -31,6 +31,7 @@ import {
   CalendarClock,
   Gauge,
   Flame,
+  Layers,
 } from "lucide-react";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -187,6 +188,11 @@ export default function HomePage() {
           <Button asChild size="lg" variant="outline" className="gap-2">
             <Link to="/plan">
               <CalendarRange className="h-4 w-4" /> Plan a week
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="gap-2">
+            <Link to="/generate/batch">
+              <Layers className="h-4 w-4" /> Weekly batch
             </Link>
           </Button>
         </div>

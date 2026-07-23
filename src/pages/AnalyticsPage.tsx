@@ -3,41 +3,81 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import { engagement, draftStatus, loadDrafts } from "@/lib/draftHistory";
 import {
-  getAnalytics,
-  engagement,
-  draftStatus,
-  loadDrafts,
-  type AnalyticsSummary,
-} from "@/lib/draftHistory";
+  getTrackedPosts,
+  getTrend,
+  getBreakdown,
+  getLengthCorrelation,
+  getDayOfWeekBreakdown,
+  getInsights,
+  labelForDimension,
+  MIN_GROUP_SAMPLE,
+  type BreakdownDimension,
+  type Insight,
+} from "@/lib/analytics";
+import { RankBars, type RankBarRow } from "@/components/charts/RankBars";
+import { TrendChart, type TrendChartPoint } from "@/components/charts/TrendChart";
+import CreatorLookup from "@/components/CreatorLookup";
 import {
   BarChart3,
   Eye,
   Heart,
   TrendingUp,
+  TrendingDown,
   Linkedin,
   Instagram,
   Lock,
   ArrowRight,
+  Lightbulb,
+  Info,
+  Ruler,
+  CalendarDays,
 } from "lucide-react";
 
-const PILLAR_LABEL: Record<string, string> = {
-  interest: "Interest",
-  identity: "Identity",
-  topic: "Topic",
-  market: "Market",
-};
-const FORMAT_LABEL: Record<string, string> = {
-  "text-post": "Text posts",
-  carousel: "Carousels",
-  "short-video": "Short video",
-  story: "Stories",
-};
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
   instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
+};
+
+const LENGTH_LABEL: Record<string, string> = {
+  good: "Sweet spot",
+  warn: "A bit long",
+  over: "Too long",
+};
+
+const DIMENSION_TABS: { id: BreakdownDimension; label: string }[] = [
+  { id: "platform", label: "Platform" },
+  { id: "pillar", label: "Pillar" },
+  { id: "format", label: "Format" },
+];
+
+const INSIGHT_STYLE: Record<
+  Insight["tone"],
+  { icon: typeof Lightbulb; card: string; icon_: string }
+> = {
+  positive: {
+    icon: TrendingUp,
+    card: "border-success/30 bg-success/[0.05]",
+    icon_: "bg-success/10 text-success",
+  },
+  negative: {
+    icon: TrendingDown,
+    card: "border-destructive/30 bg-destructive/[0.05]",
+    icon_: "bg-destructive/10 text-destructive",
+  },
+  tip: {
+    icon: Lightbulb,
+    card: "border-primary/20 bg-primary/[0.04]",
+    icon_: "bg-primary/10 text-primary",
+  },
+  neutral: {
+    icon: Info,
+    card: "border-border/60 bg-muted/20",
+    icon_: "bg-muted text-muted-foreground",
+  },
 };
 
 function Stat({
@@ -69,8 +109,9 @@ function Stat({
 }
 
 export default function AnalyticsPage() {
-  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+  const [userId, setUserId] = useState<string | null | undefined>(undefined);
   const [postedCount, setPostedCount] = useState(0);
+  const [dimension, setDimension] = useState<BreakdownDimension>("platform");
 
   useEffect(() => {
     document.title = "Analytics - Content Studio";
@@ -78,7 +119,7 @@ export default function AnalyticsPage() {
     supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
       const id = data.user?.id ?? null;
-      setSummary(getAnalytics(id));
+      setUserId(id);
       setPostedCount(
         loadDrafts(id).filter((d) => draftStatus(d) === "posted").length,
       );
@@ -88,8 +129,76 @@ export default function AnalyticsPage() {
     };
   }, []);
 
-  const hasData = (summary?.trackedCount ?? 0) > 0;
-  const top = useMemo(() => summary?.top.slice(0, 5) ?? [], [summary]);
+  const tracked = useMemo(() => getTrackedPosts(userId), [userId]);
+  const hasData = tracked.length > 0;
+
+  const totals = useMemo(() => {
+    const totalImpressions = tracked.reduce((s, d) => s + d.impressions, 0);
+    const totalEngagement = tracked.reduce((s, d) => s + d.engagementTotal, 0);
+    return {
+      totalImpressions,
+      totalEngagement,
+      avgEngagementRate:
+        totalImpressions > 0
+          ? Math.round((totalEngagement / totalImpressions) * 1000) / 10
+          : 0,
+    };
+  }, [tracked]);
+
+  const top = useMemo(
+    () =>
+      [...tracked]
+        .sort((a, b) => b.engagementTotal - a.engagementTotal)
+        .slice(0, 5),
+    [tracked],
+  );
+
+  const insights = useMemo(() => getInsights(userId), [userId]);
+
+  const trendPoints: TrendChartPoint[] = useMemo(
+    () =>
+      getTrend(userId).map((p) => ({
+        id: p.id,
+        label: p.label,
+        value: p.engagementRate,
+        detail: `${PLATFORM_LABEL[p.platform] ?? p.platform} · ${p.impressions.toLocaleString()} impressions`,
+      })),
+    [userId],
+  );
+
+  const breakdownRows: RankBarRow[] = useMemo(
+    () =>
+      getBreakdown(userId, dimension).map((r) => ({
+        key: r.key,
+        label: labelForDimension(dimension, r.key),
+        value: r.avgEngagementRate,
+        count: r.count,
+      })),
+    [userId, dimension],
+  );
+
+  const lengthRows: RankBarRow[] = useMemo(
+    () =>
+      getLengthCorrelation(userId).map((r) => ({
+        key: r.status,
+        label: LENGTH_LABEL[r.status],
+        value: r.avgEngagementRate,
+        count: r.count,
+        tone: r.status,
+      })),
+    [userId],
+  );
+
+  const dayRows: RankBarRow[] = useMemo(
+    () =>
+      getDayOfWeekBreakdown(userId).map((r) => ({
+        key: r.day,
+        label: r.day,
+        value: r.avgEngagementRate,
+        count: r.count,
+      })),
+    [userId],
+  );
 
   return (
     <div className="space-y-6">
@@ -99,10 +208,12 @@ export default function AnalyticsPage() {
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           See what's actually landing. Add the real numbers from your posts and
-          the studio surfaces your top performers and the angles worth doubling
-          down on.
+          the studio surfaces your top performers, what's underperforming, and
+          what to double down on.
         </p>
       </header>
+
+      <CreatorLookup />
 
       {/* Connect — coming soon (honest about the gate) */}
       <Card className="border-border/60 shadow-card">
@@ -116,7 +227,8 @@ export default function AnalyticsPage() {
           <p className="text-sm text-muted-foreground">
             Connecting your accounts will pull impressions and engagement
             automatically. It needs platform approval first, so for now add
-            numbers by hand on your posted posts — it takes seconds.
+            numbers by hand on your posted posts in My posts — it takes
+            seconds and everything below runs off those numbers.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" disabled className="gap-1.5">
@@ -129,58 +241,144 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      {hasData && summary ? (
+      {hasData ? (
         <>
-          <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat
+              icon={BarChart3}
+              value={String(tracked.length)}
+              label="Posts tracked"
+              tint="bg-muted text-foreground"
+            />
             <Stat
               icon={Eye}
-              value={summary.totalImpressions.toLocaleString()}
+              value={totals.totalImpressions.toLocaleString()}
               label="Impressions tracked"
               tint="bg-primary/10 text-primary"
             />
             <Stat
               icon={Heart}
-              value={summary.totalEngagement.toLocaleString()}
+              value={totals.totalEngagement.toLocaleString()}
               label="Total engagement"
               tint="bg-brand/10 text-brand"
             />
             <Stat
               icon={TrendingUp}
-              value={`${summary.avgEngagementRate}%`}
-              label="Engagement rate"
+              value={`${totals.avgEngagementRate}%`}
+              label="Avg engagement rate"
               tint="bg-success/10 text-success"
             />
           </section>
 
-          {(summary.bestPillar || summary.bestFormat) && (
-            <Card className="border-primary/20 bg-primary/[0.04] shadow-card">
-              <CardContent className="py-4">
-                <p className="text-sm font-semibold text-foreground">
-                  What&apos;s working
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Your best engagement comes from{" "}
-                  {summary.bestPillar && (
-                    <span className="font-medium text-foreground">
-                      {PILLAR_LABEL[summary.bestPillar] ?? summary.bestPillar}
-                    </span>
-                  )}
-                  {summary.bestPillar && summary.bestFormat ? " posts as " : ""}
-                  {summary.bestFormat && (
-                    <span className="font-medium text-foreground">
-                      {FORMAT_LABEL[summary.bestFormat] ?? summary.bestFormat}
-                    </span>
-                  )}
-                  . Do more of that — and{" "}
-                  <Link to="/generate" className="font-semibold text-primary hover:underline">
-                    write the next one
-                  </Link>
-                  .
-                </p>
+          {/* Insights */}
+          <section className="space-y-3">
+            <h2 className="font-serif text-lg font-semibold text-foreground">
+              What's working, what's not
+            </h2>
+            <div className="space-y-2.5">
+              {insights.map((insight, i) => {
+                const style = INSIGHT_STYLE[insight.tone];
+                const Icon = style.icon;
+                return (
+                  <Card key={i} className={`shadow-card ${style.card}`}>
+                    <CardContent className="flex items-start gap-3 py-4">
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${style.icon_}`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">
+                          {insight.title}
+                        </p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                          {insight.body}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Trend */}
+          <Card className="border-border/60 shadow-card">
+            <CardHeader>
+              <CardTitle className="font-serif text-lg">
+                Engagement rate over time
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TrendChart points={trendPoints} />
+            </CardContent>
+          </Card>
+
+          {/* Breakdown by dimension */}
+          <Card className="border-border/60 shadow-card">
+            <CardHeader className="space-y-2.5">
+              <CardTitle className="font-serif text-lg">
+                Engagement rate by {DIMENSION_TABS.find((t) => t.id === dimension)?.label.toLowerCase()}
+              </CardTitle>
+              <div className="flex gap-1.5">
+                {DIMENSION_TABS.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setDimension(t.id)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                      dimension === t.id
+                        ? "border-primary/60 bg-primary/10 text-primary"
+                        : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <RankBars rows={breakdownRows} minSample={MIN_GROUP_SAMPLE} />
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* Length correlation */}
+            <Card className="border-border/60 shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-serif text-lg">
+                  <Ruler className="h-4 w-4 text-muted-foreground" /> Length vs
+                  engagement
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RankBars
+                  rows={lengthRows}
+                  minSample={MIN_GROUP_SAMPLE}
+                  emptyLabel="Add impressions on a few posted posts to see this."
+                />
               </CardContent>
             </Card>
-          )}
 
+            {/* Day of week */}
+            <Card className="border-border/60 shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-serif text-lg">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground" /> By
+                  day posted
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RankBars
+                  rows={dayRows}
+                  minSample={MIN_GROUP_SAMPLE}
+                  emptyLabel="Add impressions on a few posted posts to see this."
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top posts */}
           <section className="space-y-3">
             <h2 className="font-serif text-lg font-semibold text-foreground">
               Top posts
@@ -198,8 +396,8 @@ export default function AnalyticsPage() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {PLATFORM_LABEL[d.platform] ?? d.platform}
-                      {d.metrics?.impressions
-                        ? ` · ${d.metrics.impressions.toLocaleString()} impressions`
+                      {d.impressions
+                        ? ` · ${d.impressions.toLocaleString()} impressions`
                         : ""}
                     </p>
                   </div>

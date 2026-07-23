@@ -1156,7 +1156,10 @@ export default function GeneratePage() {
         <p className="max-w-2xl text-sm text-muted-foreground">
           Answer a few quick questions and the studio drafts a post in your
           voice. Everything has a sensible default, so you can move fast and
-          tweak later.
+          tweak later.{" "}
+          <Link to="/generate/batch" className="font-semibold text-primary hover:underline">
+            Need one topic across several platforms at once? Try Weekly batch.
+          </Link>
         </p>
       </header>
 
