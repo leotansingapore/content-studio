@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Loader2, Sparkles } from "lucide-react";
 
 import {
@@ -18,14 +18,22 @@ import { supabase } from "@/lib/supabase";
 export default function Auth() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Deep link the user tried to reach before being bounced here.
+  const from =
+    (location.state as { from?: string } | null)?.from &&
+    (location.state as { from: string }).from !== "/auth"
+      ? (location.state as { from: string }).from
+      : "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate("/", { replace: true });
+      if (data.session) navigate(from, { replace: true });
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -38,9 +46,9 @@ export default function Auth() {
       });
       if (error) throw error;
       toast({ title: "Signed in", description: "Loading your studio." });
-      // Land on the dashboard; brand-new users get routed to the welcome
-      // walkthrough from there.
-      navigate("/", { replace: true });
+      // Return to the page they were heading to; new users get routed to the
+      // welcome walkthrough from the dashboard.
+      navigate(from, { replace: true });
     } catch (err) {
       toast({
         title: "Couldn't sign in",

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 
@@ -13,6 +13,7 @@ export default function ProtectedRoute({
 }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     let mounted = true;
@@ -43,7 +44,14 @@ export default function ProtectedRoute({
   }
 
   if (!session) {
-    return <Navigate to="/auth" replace />;
+    // Remember where they were heading so login returns them there.
+    return (
+      <Navigate
+        to="/auth"
+        replace
+        state={{ from: location.pathname + location.search }}
+      />
+    );
   }
 
   return <>{children}</>;
