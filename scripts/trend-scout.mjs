@@ -220,12 +220,13 @@ Return ONLY a JSON array (no prose before or after) of objects with these fields
 - "cta_type": one of "dm-keyword" | "comment-keyword" | "save-share" | "book-call" | "open-question"  (match the cta you wrote)
 - "why_it_works": 1-2 sentences on why riding this proven-viral moment earns attention honestly
 - "how_to_film": concrete delivery notes for the chosen format (framing, first line, pacing)
-- "source_label": platform + creator/handle + rough traction, e.g. "TikTok · @creator — 2.1M views"
-- "source_url": a real URL to the SPECIFIC viral post/reel/video
+- "source_label": platform + what it links to, e.g. "TikTok · #loudbudgeting" or "Instagram · @creator reel"
+- "source_url": a link ON the platform that shows the trend — ideally the specific viral post/reel/video, otherwise the hashtag, sound, or topic page where that viral content lives (e.g. https://www.tiktok.com/tag/loudbudgeting)
 
 Hard rules on the source:
-- "source_url" MUST be a link to the actual viral post, on one of these domains ONLY: tiktok.com, instagram.com, facebook.com (or fb.watch), linkedin.com. NO news sites, blogs, or Wikipedia — the source is the viral social post itself.
-- Every source_url must be a real post you actually found via search — never invented. If you can't confirm a post is genuinely viral and on one of those four platforms, leave it out.
+- "source_url" MUST be on one of these domains ONLY: tiktok.com, instagram.com, facebook.com (or fb.watch), linkedin.com. NO news sites, blogs, or Wikipedia — the proof is the content on the platform itself.
+- Prefer a specific viral post. If you can't confirm an exact post URL, link the platform's hashtag / sound / topic page for that trend instead — never invent a post ID you didn't see, but a well-formed hashtag/topic URL is always fine.
+- Return the FULL set of ${count} ideas. Do not return a short list: if a specific post is hard to pin down, use the relevant hashtag/topic page on the right platform rather than dropping the idea.
 - Keep it Singapore-relevant (SG angle, SGD, CPF/SRS/insurance where it fits — only where the bridge is honest).
 - Vary the platforms, formats, pillars and trend types across the ${count} ideas.
 - Output the JSON array and nothing else.`;
