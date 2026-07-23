@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Card,
@@ -1152,6 +1153,7 @@ export default function GeneratePage() {
 
   return (
     <div ref={formAnchorRef} className="space-y-6">
+      <SectionTabs tabs={WRITE_TABS} />
       <header className="space-y-1.5">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Write a post

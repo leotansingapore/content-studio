@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -171,6 +172,7 @@ export default function VoicePage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={PLAYBOOK_TABS} />
       <header className="space-y-1.5">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Your voice

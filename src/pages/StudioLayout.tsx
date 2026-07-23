@@ -8,13 +8,10 @@ import {
   Lightbulb,
   Pencil,
   Users as UsersIcon,
-  Mic,
   History,
   BookOpen,
-  CalendarRange,
   Home,
   Plus,
-  Gauge,
   BookMarked,
   GraduationCap,
   CalendarClock,
@@ -26,28 +23,35 @@ import {
   Flame,
 } from "lucide-react";
 
-type NavItem = { to: string; label: string; icon: typeof Home };
+type NavItem = { to: string; label: string; icon: typeof Home; also?: string[] };
 
 // Grouped like the leading content tools (Buffer/Typefully/Taplio): a few
-// labelled sections rather than one flat list of tabs.
+// labelled sections rather than one flat list of tabs. Merged sections keep
+// their routes — `also` lists sibling paths that light this entry up, and
+// SectionTabs on the pages themselves moves between siblings.
 const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
   { heading: null, items: [{ to: "/home", label: "Home", icon: Home }] },
   {
     heading: "Create",
     items: [
       { to: "/generate", label: "Write", icon: Pencil },
-      { to: "/plan", label: "Plan a week", icon: CalendarRange },
-      { to: "/calendar", label: "Calendar", icon: CalendarClock },
-      { to: "/drafts", label: "My posts", icon: History },
-      { to: "/board", label: "Board", icon: Columns3 },
+      {
+        to: "/plan",
+        label: "Pipeline",
+        icon: Columns3,
+        also: ["/calendar", "/board", "/drafts"],
+      },
     ],
   },
   {
     heading: "Improve",
     items: [
-      { to: "/coach", label: "Coach", icon: Gauge },
-      { to: "/analytics", label: "Analytics", icon: BarChart3 },
-      { to: "/playbook", label: "My Playbook", icon: BookMarked },
+      {
+        to: "/analytics",
+        label: "Performance",
+        icon: BarChart3,
+        also: ["/coach"],
+      },
       { to: "/academy", label: "Academy", icon: GraduationCap },
     ],
   },
@@ -63,7 +67,14 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
   },
   {
     heading: "Setup",
-    items: [{ to: "/voice", label: "Your voice", icon: Mic }],
+    items: [
+      {
+        to: "/playbook",
+        label: "My Playbook",
+        icon: BookMarked,
+        also: ["/voice", "/fads"],
+      },
+    ],
   },
 ];
 
@@ -183,11 +194,19 @@ export default function StudioLayout() {
                   {group.heading}
                 </p>
               )}
-              {group.items.map(({ to, label, icon: Icon }) => (
+              {group.items.map(({ to, label, icon: Icon, also }) => (
                 <NavLink
                   key={to}
                   to={to}
-                  className={({ isActive }) => railItemClass(isActive)}
+                  className={({ isActive }) =>
+                    railItemClass(
+                      isActive ||
+                        (also?.some(
+                          (p) => pathname === p || pathname.startsWith(p + "/"),
+                        ) ??
+                          false),
+                    )
+                  }
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   {label}

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -204,6 +205,7 @@ export default function BatchPage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={WRITE_TABS} />
       <header className="space-y-1.5">
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <Layers className="h-6 w-6 text-primary" /> Weekly batch

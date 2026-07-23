@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import SectionTabs, { PERFORMANCE_TABS } from "@/components/SectionTabs";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -202,6 +203,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={PERFORMANCE_TABS} />
       <header className="space-y-1.5">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Analytics
