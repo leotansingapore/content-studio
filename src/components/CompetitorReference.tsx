@@ -5,6 +5,7 @@ import {
   X as XIcon,
   ExternalLink,
   Star,
+  Instagram,
 } from "lucide-react";
 import advisorsData from "@/data/advisors.json";
 import type { AdvisorEntry } from "@/components/AdvisorProfiles";
@@ -45,7 +46,39 @@ export function findCompetitorByHandle(handle: string): CompetitorRef | null {
 
 /** The style directive injected into the generator when a competitor is referenced. */
 export function buildCompetitorStyleReference(ref: CompetitorRef): string {
-  return `Match the ANGLE and structure of ${ref.name} (${ref.handle}): ${ref.styleNotes} Do not copy verbatim — adapt it to my own voice, niche, and audience.`;
+  const style = ref.styleNotes.trim()
+    ? ref.styleNotes
+    : "Study the angles, hooks, and formats this creator is known for.";
+  return `Match the ANGLE and structure of ${ref.name} (${ref.handle}): ${style} Do not copy verbatim — adapt it to my own voice, niche, and audience.`;
+}
+
+/**
+ * Parse a raw Instagram handle ("@gejiabao", "gejiabao") or profile URL
+ * ("https://instagram.com/gejiabao/") into a normalized handle + URL.
+ * Returns null when the input doesn't look like a valid IG handle.
+ */
+export function parseInstagramInput(
+  raw: string,
+): { handle: string; url: string } | null {
+  const t = raw.trim();
+  if (!t) return null;
+  const urlMatch = t.match(/instagram\.com\/([A-Za-z0-9._]+)/i);
+  const bare = (urlMatch ? urlMatch[1] : t.replace(/^@/, "")).replace(/\/$/, "");
+  // IG usernames: 1-30 chars, letters/digits/dot/underscore. Require 2+ and at
+  // least one letter so plain search words don't all light up as handles.
+  if (!/^[A-Za-z0-9._]{2,30}$/.test(bare) || !/[A-Za-z]/.test(bare)) return null;
+  return { handle: `@${bare}`, url: `https://www.instagram.com/${bare}/` };
+}
+
+export function customInstagramRef(handle: string, url: string): CompetitorRef {
+  return {
+    id: `custom-${handle.replace(/^@/, "").toLowerCase()}`,
+    name: handle,
+    handle,
+    styleNotes: "",
+    platformUrl: url,
+    platform: "instagram",
+  };
 }
 
 interface Props {
@@ -153,11 +186,46 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search names, handles, niches (e.g. CPF, branding, willis)"
+              placeholder="Search names, niches — or paste an Instagram handle / URL"
               className="w-full rounded-lg border border-border/70 bg-background py-1.5 pl-8 pr-2 text-xs outline-none focus:border-primary/40"
             />
           </div>
           <div className="max-h-60 space-y-1 overflow-y-auto pr-1">
+            {(() => {
+              const ig = parseInstagramInput(query);
+              if (!ig) return null;
+              // Only offer the custom row on explicit intent (@handle or a URL)
+              // or when nothing curated matches — plain search words like
+              // "willis" shouldn't all render as Instagram handles.
+              const explicit =
+                query.trim().startsWith("@") ||
+                /instagram\.com/i.test(query);
+              if (!explicit && results.length > 0) return null;
+              const curated = findCompetitorByHandle(ig.handle);
+              if (curated) return null;
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect(customInstagramRef(ig.handle, ig.url));
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className="flex w-full items-start gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 text-left transition-colors hover:border-primary hover:bg-primary/10"
+                >
+                  <Instagram className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-xs font-semibold text-primary">
+                      Use {ig.handle} from Instagram
+                    </span>
+                    <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                      Not in our curated list — the plan will reference this
+                      page's angle by handle.
+                    </p>
+                  </div>
+                </button>
+              );
+            })()}
             {results.map((e) => {
               const featured = FEATURED_IDS.includes(e.id);
               return (
@@ -189,9 +257,10 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
                 </button>
               );
             })}
-            {results.length === 0 && (
+            {results.length === 0 && !parseInstagramInput(query) && (
               <p className="px-1 py-3 text-center text-[11px] text-muted-foreground">
-                No profiles match "{query}".
+                No profiles match "{query}". Paste an Instagram handle or URL to
+                reference a page outside the curated list.
               </p>
             )}
           </div>
