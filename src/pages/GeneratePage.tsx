@@ -78,6 +78,7 @@ import {
 } from "@/lib/draftHistory";
 import { readout, type CounterReadout } from "@/lib/platformCounters";
 import { splitScriptCaption } from "@/lib/scriptCaption";
+import { toPlainText } from "@/lib/plainText";
 import QuickTip from "@/components/QuickTip";
 import CompetitorReference, {
   buildCompetitorStyleReference,
@@ -1025,9 +1026,11 @@ export default function GeneratePage() {
     });
   };
 
+  // Everything copied from here is headed for a social platform, none of which
+  // render markdown - strip it so "**hook**" doesn't paste as literal asterisks.
   const copyText = async (text: string, title: string, description: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(toPlainText(text));
       toast({ title, description });
     } catch {
       toast({

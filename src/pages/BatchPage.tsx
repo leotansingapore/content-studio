@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { streamOnePost } from "@/lib/batchGenerate";
+import { toPlainText } from "@/lib/plainText";
 import {
   upsertDraft,
   newDraftId,
@@ -192,7 +193,7 @@ export default function BatchPage() {
 
   const handleCopy = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(toPlainText(text));
       toast({ title: "Copied" });
     } catch {
       toast({ title: "Copy failed", variant: "destructive" });
