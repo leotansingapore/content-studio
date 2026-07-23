@@ -89,6 +89,24 @@ interface Props {
 export default function CompetitorReference({ selectedId, onSelect }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  // Custom IG handle awaiting an optional "what you like about them" note.
+  const [pendingCustom, setPendingCustom] = useState<{
+    handle: string;
+    url: string;
+  } | null>(null);
+  const [customNote, setCustomNote] = useState("");
+
+  const addCustom = () => {
+    if (!pendingCustom) return;
+    onSelect({
+      ...customInstagramRef(pendingCustom.handle, pendingCustom.url),
+      styleNotes: customNote.trim(),
+    });
+    setPendingCustom(null);
+    setCustomNote("");
+    setOpen(false);
+    setQuery("");
+  };
 
   const selected = useMemo(
     () => ENTRIES.find((e) => e.id === selectedId) ?? null,
@@ -203,13 +221,47 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
               if (!explicit && results.length > 0) return null;
               const curated = findCompetitorByHandle(ig.handle);
               if (curated) return null;
+              if (pendingCustom && pendingCustom.handle === ig.handle) {
+                return (
+                  <div className="space-y-1.5 rounded-lg border border-primary/40 bg-primary/5 p-2">
+                    <p className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                      <Instagram className="h-3.5 w-3.5" /> {ig.handle}
+                    </p>
+                    <input
+                      value={customNote}
+                      onChange={(e) => setCustomNote(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") addCustom();
+                      }}
+                      placeholder="What do you like about their content? (optional — sharpens the plan)"
+                      className="w-full rounded-md border border-border/70 bg-background px-2 py-1.5 text-xs outline-none focus:border-primary/40"
+                      autoFocus
+                    />
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={addCustom}
+                        className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground"
+                      >
+                        Add reference
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPendingCustom(null)}
+                        className="rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <button
                   type="button"
                   onClick={() => {
-                    onSelect(customInstagramRef(ig.handle, ig.url));
-                    setOpen(false);
-                    setQuery("");
+                    setPendingCustom(ig);
+                    setCustomNote("");
                   }}
                   className="flex w-full items-start gap-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-2 text-left transition-colors hover:border-primary hover:bg-primary/10"
                 >
