@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -32,7 +33,11 @@ import HubGuidesPage from "@/pages/hub/HubGuidesPage";
 import HubGuideDetailPage from "@/pages/hub/HubGuideDetailPage";
 import HubAdminPage from "@/pages/hub/HubAdminPage";
 import BoardPage from "@/pages/BoardPage";
-import FadsPage from "@/pages/FadsPage";
+
+// F.A.D.S. is a ~2K-line worksheet most sessions never open — route-level
+// lazy() keeps it out of the main bundle (avoid manualChunks object form,
+// which force-preloads lazy chunks).
+const FadsPage = lazy(() => import("@/pages/FadsPage"));
 
 export default function App() {
   return (
@@ -52,8 +57,22 @@ export default function App() {
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/generate/batch" element={<BatchPage />} />
           <Route path="/plan" element={<PlanPage />} />
-          <Route path="/fads" element={<FadsPage />} />
-          <Route path="/fads/:tab" element={<FadsPage />} />
+          <Route
+            path="/fads"
+            element={
+              <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Loading F.A.D.S…</div>}>
+                <FadsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/fads/:tab"
+            element={
+              <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Loading F.A.D.S…</div>}>
+                <FadsPage />
+              </Suspense>
+            }
+          />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/inspiration" element={<InspirationPage />} />
           <Route path="/inspiration/:id" element={<InspirationDetailPage />} />
