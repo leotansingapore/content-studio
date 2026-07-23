@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import {
   Card,
@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import QuickTip from "@/components/QuickTip";
 import CompetitorReference, {
+  findCompetitorByHandle,
   type CompetitorRef,
 } from "@/components/CompetitorReference";
 import {
@@ -110,6 +111,7 @@ const WEEK_OPTIONS = [1, 2, 4];
 export default function PlanPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [userId, setUserId] = useState<string | null>(null);
   const [positioning, setPositioning] = useState<Positioning>(EMPTY_POSITIONING);
   const [topicsRaw, setTopicsRaw] = useState("");
@@ -305,6 +307,26 @@ export default function PlanPage() {
     );
   };
 
+  // ?competitor=<advisor id or handle> — arrives from "Use as competitor in
+  // my plan" on the Analytics creator lookup. Consumed once, then stripped.
+  useEffect(() => {
+    const param = searchParams.get("competitor");
+    if (!param) return;
+    const found = findCompetitorByHandle(param);
+    if (found) {
+      addCompetitor(found);
+      setEditing(true);
+      toast({
+        title: `Referencing ${found.name}`,
+        description: "They're set as a competitor for your next plan build.",
+      });
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete("competitor");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get("competitor")]);
+
   const postedCount = plan ? plan.items.filter((i) => i.posted).length : 0;
   const totalCount = plan ? plan.items.length : 0;
   const pct = totalCount > 0 ? Math.round((postedCount / totalCount) * 100) : 0;
@@ -407,6 +429,19 @@ export default function PlanPage() {
           </div>
         </details>
 
+        {usable ? (
+          // Positioning is already set — keep the shortcut one line tall.
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-sm">
+            <p className="text-foreground/90">
+              <span className="font-semibold text-success">Positioning set.</span>{" "}
+              Tweak the fields below, or refine it in the{" "}
+              <Link to="/fads" className="font-semibold text-primary hover:underline">
+                F.A.D.S. tool
+              </Link>{" "}
+              and hit Send to Plan again.
+            </p>
+          </div>
+        ) : (
         <Card className="border-border/60 shadow-card">
           <CardHeader>
             <CardTitle className="font-serif text-xl">
@@ -446,6 +481,7 @@ export default function PlanPage() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
         <Card className="border-border/60 shadow-card">
           <CardHeader>

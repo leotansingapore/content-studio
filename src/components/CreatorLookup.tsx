@@ -134,17 +134,24 @@ function AnalysisResult({ analysis }: { analysis: CreatorAnalysis }) {
         })}
       </div>
 
-      {bestPost && (
-        <Button
-          asChild
-          size="sm"
-          className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
-        >
-          <Link to={buildRemixUrl(bestPost, advisor)}>
-            <Wand2 className="h-3.5 w-3.5" /> Remix their best post in Write
+      <div className="flex flex-col gap-2 sm:flex-row">
+        {bestPost && (
+          <Button
+            asChild
+            size="sm"
+            className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
+          >
+            <Link to={buildRemixUrl(bestPost, advisor)}>
+              <Wand2 className="h-3.5 w-3.5" /> Remix their best post in Write
+            </Link>
+          </Button>
+        )}
+        <Button asChild size="sm" variant="outline" className="flex-1 gap-1.5">
+          <Link to={`/plan?competitor=${encodeURIComponent(advisor.id)}`}>
+            <UserSearch className="h-3.5 w-3.5" /> Use as competitor in my plan
           </Link>
         </Button>
-      )}
+      </div>
     </div>
   );
 }
