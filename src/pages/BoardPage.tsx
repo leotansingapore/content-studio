@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link } from "react-router-dom";
-import { Columns3, GripVertical, Pencil } from "lucide-react";
+import { ArrowRight, Columns3, GripVertical, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,38 +24,75 @@ import { supabase } from "@/lib/supabase";
 
 const PRODUCTION: BoardColumn[] = ["idea", "scripted", "to-film", "editing"];
 
-function BoardCard({ draft }: { draft: DraftEntry }) {
+// Columns grouped into a phase 1 / 2 / 3 flow so the board reads as a
+// pipeline, not six flat buckets.
+const PHASES: { number: number; title: string; blurb: string; columns: BoardColumn[] }[] = [
+  { number: 1, title: "Write it", blurb: "Capture ideas, turn them into scripts", columns: ["idea", "scripted"] },
+  { number: 2, title: "Produce it", blurb: "Film and cut the content", columns: ["to-film", "editing"] },
+  { number: 3, title: "Publish it", blurb: "Schedule, post, track", columns: ["scheduled", "posted"] },
+];
+
+// One-click advancement per column (drag still works). Scheduled needs a date,
+// so the editing column jumps straight to posted.
+const NEXT_STEP: Partial<Record<BoardColumn, { to: BoardColumn; label: string }>> = {
+  idea: { to: "scripted", label: "Scripted" },
+  scripted: { to: "to-film", label: "To film" },
+  "to-film": { to: "editing", label: "Editing" },
+  editing: { to: "posted", label: "Mark posted" },
+  scheduled: { to: "posted", label: "Mark posted" },
+};
+
+function BoardCard({
+  draft,
+  onAdvance,
+  advanceLabel,
+}: {
+  draft: DraftEntry;
+  onAdvance?: () => void;
+  advanceLabel?: string;
+}) {
   return (
     <Card
       draggable
       onDragStart={(e) => e.dataTransfer.setData("text/draft-id", draft.id)}
-      className="cursor-grab active:cursor-grabbing"
+      className="min-w-0 cursor-grab active:cursor-grabbing"
     >
       <CardContent className="space-y-2 p-3">
         <div className="flex items-start gap-1.5">
           <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
-          <p className="line-clamp-3 text-sm font-medium leading-snug">
+          <p className="line-clamp-3 min-w-0 break-words text-sm font-medium leading-snug">
             {draft.hook || draft.draft.slice(0, 80) || "Untitled draft"}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5 pl-5">
-          <span className="rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+          <span className="whitespace-nowrap rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
             {draft.platform}
           </span>
-          <span className="rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+          <span className="whitespace-nowrap rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
             {draft.format}
           </span>
           {draft.scheduledFor && (
-            <span className="text-[10px] text-muted-foreground">
+            <span className="whitespace-nowrap text-[10px] text-muted-foreground">
               {new Date(draft.scheduledFor).toLocaleDateString()}
             </span>
           )}
+        </div>
+        <div className="flex items-center justify-between gap-2 pl-5">
           <Link
             to={`/generate?draft=${draft.id}`}
-            className="ml-auto inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+            className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
           >
             <Pencil className="h-3 w-3" /> Open
           </Link>
+          {onAdvance && advanceLabel && (
+            <button
+              type="button"
+              onClick={onAdvance}
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-border/70 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+            >
+              {advanceLabel} <ArrowRight className="h-3 w-3" />
+            </button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -86,14 +124,8 @@ export default function BoardPage() {
     return map;
   }, [drafts, stages]);
 
-  const onDrop = (col: BoardColumn) => (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(null);
-    const id = e.dataTransfer.getData("text/draft-id");
-    if (!id || !userId) return;
-    const draft = drafts.find((d) => d.id === id);
-    if (!draft) return;
-
+  const moveTo = (draft: DraftEntry, col: BoardColumn) => {
+    if (!userId) return;
     if (col === "scheduled") {
       toast({
         title: "Set a date to schedule",
@@ -102,25 +134,37 @@ export default function BoardPage() {
       return;
     }
     if (col === "posted") {
-      setDrafts(setDraftStatus(userId, id, "posted"));
+      setDrafts(setDraftStatus(userId, draft.id, "posted"));
       toast({ title: "Marked as posted" });
       return;
     }
     // Production stage move; also clears scheduled/posted if dragging back.
     if (draftStatus(draft) !== "draft") {
-      setDrafts(setDraftStatus(userId, id, "draft"));
+      setDrafts(setDraftStatus(userId, draft.id, "draft"));
     }
-    setStages(setStage(userId, id, col as ProductionStage));
+    setStages(setStage(userId, draft.id, col as ProductionStage));
+  };
+
+  const onDrop = (col: BoardColumn) => (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(null);
+    const id = e.dataTransfer.getData("text/draft-id");
+    if (!id) return;
+    const draft = drafts.find((d) => d.id === id);
+    if (!draft) return;
+    moveTo(draft, col);
   };
 
   return (
     <div className="space-y-4">
+      <SectionTabs tabs={PIPELINE_TABS} />
       <div>
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
           <Columns3 className="h-5 w-5" /> Content board
         </h1>
         <p className="text-sm text-muted-foreground">
-          Drag each post through production: idea to scripted to filmed to live.
+          Move each post through three phases: write it, produce it, publish it.
+          Drag cards or use the quick-move button on each card.
         </p>
       </div>
 
@@ -134,36 +178,64 @@ export default function BoardPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {BOARD_COLUMNS.map((col) => (
-            <div
-              key={col.key}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(col.key);
-              }}
-              onDragLeave={() => setDragOver(null)}
-              onDrop={onDrop(col.key)}
-              className={`flex min-h-40 flex-col gap-2 rounded-lg border p-2 transition-colors ${
-                dragOver === col.key ? "border-primary bg-primary/5" : "border-border bg-muted/20"
-              }`}
-            >
-              <div className="px-1">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {col.label}{" "}
-                  <span className="font-normal">({byColumn.get(col.key)?.length ?? 0})</span>
-                </p>
-                <p className="text-[10px] text-muted-foreground/70">{col.hint}</p>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          {PHASES.map((phase) => (
+            <section key={phase.number} className="rounded-xl border border-border/60 bg-card p-3">
+              <div className="mb-3 flex items-baseline gap-2 px-1">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+                  {phase.number}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold">
+                    Phase {phase.number} — {phase.title}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">{phase.blurb}</p>
+                </div>
               </div>
-              {(byColumn.get(col.key) ?? []).map((d) => (
-                <BoardCard key={d.id} draft={d} />
-              ))}
-              {PRODUCTION.includes(col.key) && (byColumn.get(col.key) ?? []).length === 0 && (
-                <p className="px-1 py-3 text-center text-[11px] text-muted-foreground/60">
-                  Drop posts here
-                </p>
-              )}
-            </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {phase.columns.map((key) => {
+                  const col = BOARD_COLUMNS.find((c) => c.key === key)!;
+                  return (
+                    <div
+                      key={col.key}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragOver(col.key);
+                      }}
+                      onDragLeave={() => setDragOver(null)}
+                      onDrop={onDrop(col.key)}
+                      className={`flex min-h-40 min-w-0 flex-col gap-2 rounded-lg border p-2 transition-colors ${
+                        dragOver === col.key ? "border-primary bg-primary/5" : "border-border bg-muted/20"
+                      }`}
+                    >
+                      <div className="px-1">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {col.label}{" "}
+                          <span className="font-normal">({byColumn.get(col.key)?.length ?? 0})</span>
+                        </p>
+                        <p className="text-[10px] text-muted-foreground/70">{col.hint}</p>
+                      </div>
+                      {(byColumn.get(col.key) ?? []).map((d) => {
+                        const step = NEXT_STEP[col.key];
+                        return (
+                          <BoardCard
+                            key={d.id}
+                            draft={d}
+                            onAdvance={step ? () => moveTo(d, step.to) : undefined}
+                            advanceLabel={step?.label}
+                          />
+                        );
+                      })}
+                      {PRODUCTION.includes(col.key) && (byColumn.get(col.key) ?? []).length === 0 && (
+                        <p className="px-1 py-3 text-center text-[11px] text-muted-foreground/60">
+                          Drop posts here
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           ))}
         </div>
       )}
