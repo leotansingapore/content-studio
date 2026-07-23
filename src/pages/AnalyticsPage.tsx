@@ -171,10 +171,14 @@ export default function AnalyticsPage() {
     if (!row) return;
     const metrics: PostMetrics = {};
     (["impressions", "reactions", "comments", "shares"] as const).forEach((f) => {
-      if (row[f] !== undefined && row[f] !== "") {
-        const n = Number(row[f]);
-        if (Number.isFinite(n) && n >= 0) metrics[f] = Math.round(n);
+      if (row[f] === undefined) return;
+      if (row[f] === "") {
+        // Explicitly cleared — zero it out so a typo can be undone.
+        metrics[f] = 0;
+        return;
       }
+      const n = Number(row[f]);
+      if (Number.isFinite(n) && n >= 0) metrics[f] = Math.round(n);
     });
     setDraftMetrics(userId, id, metrics);
     setBulkEdits((prev) => {
