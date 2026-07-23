@@ -1813,7 +1813,7 @@ export default function GeneratePage() {
                     {String.fromCharCode(65 + h.index)}
                   </div>
                   <div className="flex-1 space-y-1">
-                    <div className="font-mono text-sm leading-relaxed text-foreground">
+                    <div className="font-sans text-sm leading-relaxed text-foreground">
                       {h.text || (
                         <span className="text-muted-foreground">
                           <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary/60" />{" "}
@@ -1894,7 +1894,7 @@ export default function GeneratePage() {
                         </span>
                       )}
                     </div>
-                    <pre className="min-h-[180px] flex-1 whitespace-pre-wrap break-words font-mono text-xs leading-relaxed text-foreground">
+                    <pre className="min-h-[180px] flex-1 whitespace-pre-wrap break-words font-sans text-[13px] leading-relaxed text-foreground">
                       {v.text || (
                         <span className="text-muted-foreground">
                           drafting...
@@ -2064,7 +2064,7 @@ export default function GeneratePage() {
                   onChange={(e) => setDraft(e.target.value)}
                   onBlur={handleDraftBlur}
                   rows={Math.min(28, Math.max(12, draft.split("\n").length + 2))}
-                  className="h-full font-mono text-sm leading-relaxed"
+                  className="h-full font-sans text-sm leading-relaxed"
                 />
               </div>
               <div className="space-y-1.5">

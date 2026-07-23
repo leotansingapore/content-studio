@@ -32,7 +32,7 @@ function ScriptBlock({ script }: { script: string }) {
         <Clapperboard className="h-3.5 w-3.5" /> Video script — spoken on
         camera, not posted as text
       </p>
-      <p className="whitespace-pre-line font-mono text-xs leading-relaxed text-muted-foreground">
+      <p className="whitespace-pre-line font-sans text-xs leading-relaxed text-muted-foreground">
         {script}
       </p>
     </div>
