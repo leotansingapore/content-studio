@@ -64,6 +64,11 @@ export function parseInstagramInput(
   if (!t) return null;
   const urlMatch = t.match(/instagram\.com\/([A-Za-z0-9._]+)/i);
   const bare = (urlMatch ? urlMatch[1] : t.replace(/^@/, "")).replace(/\/$/, "");
+  // Post/reel/story URLs put a content-type segment where the username goes
+  // ("instagram.com/reel/xyz") — never treat those as handles.
+  if (urlMatch && /^(p|reel|reels|stories|explore|tv|accounts)$/i.test(bare)) {
+    return null;
+  }
   // IG usernames: 1-30 chars, letters/digits/dot/underscore. Require 2+ and at
   // least one letter so plain search words don't all light up as handles.
   if (!/^[A-Za-z0-9._]{2,30}$/.test(bare) || !/[A-Za-z]/.test(bare)) return null;
