@@ -177,6 +177,14 @@ export interface LiveIgProfile {
   posts: TopPost[];
   fetchedAt: string;
   cached: boolean;
+  /** Compact stats from the previous monthly snapshot, when one exists. */
+  previous?: {
+    takenAt: string;
+    followers: number;
+    avgLikes: number;
+    avgComments: number;
+    videoShare: number;
+  } | null;
 }
 
 export async function fetchLiveIgProfile(
@@ -281,6 +289,43 @@ export function liveCreatorAnalysis(
       body: `Average engagement across their last ${posts.length} posts against ${profile.followers.toLocaleString()} followers. Above ~1% is healthy for finance content on Instagram.`,
     });
   }
+  // Month-over-month deltas from the auto-refresh snapshots.
+  const prev = profile.previous;
+  if (prev) {
+    const parts: string[] = [];
+    const fDelta = profile.followers - prev.followers;
+    if (prev.followers > 0 && Math.abs(fDelta) >= Math.max(10, prev.followers * 0.005)) {
+      parts.push(
+        `followers ${fDelta > 0 ? "+" : ""}${fDelta.toLocaleString()}`,
+      );
+    }
+    if (prev.avgLikes > 0) {
+      const likePct = Math.round(((avgLikes - prev.avgLikes) / prev.avgLikes) * 100);
+      if (Math.abs(likePct) >= 10) {
+        parts.push(`avg likes ${likePct > 0 ? "+" : ""}${likePct}%`);
+      }
+    }
+    const isVideo = (p: TopPost) =>
+      /video|clips|igtv/i.test(`${p.productType ?? ""} ${p.type ?? ""}`);
+    const videoShareNow = Math.round(
+      (posts.filter(isVideo).length / posts.length) * 100,
+    );
+    if (Math.abs(videoShareNow - prev.videoShare) >= 20) {
+      parts.push(
+        videoShareNow > prev.videoShare
+          ? `shifting into video (${prev.videoShare}% → ${videoShareNow}% of posts)`
+          : `moving away from video (${prev.videoShare}% → ${videoShareNow}%)`,
+      );
+    }
+    if (parts.length > 0) {
+      insights.push({
+        tone: "positive",
+        title: `Since ${new Date(prev.takenAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}: ${parts[0]}`,
+        body: `What changed since the last refresh: ${parts.join(", ")}. When a competitor's numbers move like this, look at what they changed — that's your cheapest experiment data.`,
+      });
+    }
+  }
+
   const videoPosts = posts.filter((p) => (p.views || 0) > 0);
   if (videoPosts.length >= 2) {
     const avgViews = Math.round(
