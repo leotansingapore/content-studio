@@ -178,5 +178,65 @@
     "source_label": "Unil - TikTok Trends 2026",
     "source_url": "https://unil.ink/blog/tiktok-trends-2026",
     "date_found": "2026-07-21"
+  },
+  {
+    "id": "trend-2026-07-23-tiktok-expert-referral-hook",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "title": "\"Expert referral\" hooks - quoting a named colleague - are one of FinTok's six consistently-working hook types in 2026",
+    "why_it_works": "2026 research on personal-finance creators identifies six hook types that consistently outperform: savings challenge, contrarian rule, milestone reveal, numbered list, starting-over, and expert referral. The expert-referral version borrows credibility by attributing the insight to a specific named professional rather than stating it as your own opinion, which reads as less self-promotional and more like overheard, trustworthy information.",
+    "how_to_film": "Open with a named source, not yourself: \"My claims manager told me something that changed how I explain critical illness cover.\" Deliver the insight as if quoting them for the first 5-8 seconds, then spend the rest of the clip translating it into what it means for the viewer. Use a real colleague's role (underwriter, claims manager, compliance officer), not a vague \"an expert told me.\"",
+    "source_label": "Draper - TikTok Personal Finance Hooks 2026",
+    "source_url": "https://draper.chat/blog/tiktok-personal-finance-hooks-2026",
+    "date_found": "2026-07-23"
+  },
+  {
+    "id": "trend-2026-07-23-linkedin-newsletter-bypasses-algorithm",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "topic",
+    "title": "LinkedIn's Newsletter feature is growing 150% YoY because it skips the feed algorithm entirely",
+    "why_it_works": "LinkedIn newsletters grew 150% year-over-year and now reach 450M+ subscribers, delivering 25-35% open rates versus roughly 21% for average email newsletters. Every new issue triggers LinkedIn's triple notification system (email, push, and in-app alert) direct to subscribers, so reach isn't gated by the feed algorithm the way a normal post is - and it's run from a personal profile, where individual voices already outperform company pages.",
+    "how_to_film": "Launch a personal-profile LinkedIn newsletter (not a company page) with a niche title like \"CPF & Coverage Weekly.\" Publish one 300-500 word issue every 1-2 weeks breaking down a single topic - a policy change, a client Q&A, a myth you corrected that week. Invite 20-30 of your existing connections per week so each issue lands directly in their notifications regardless of algorithm reach.",
+    "source_label": "Moburst - LinkedIn Newsletter Strategies for Growth 2026",
+    "source_url": "https://www.moburst.com/the-best-linkedin-newsletter-strategies-for-business-growth-in-2026/",
+    "date_found": "2026-07-23"
+  },
+  {
+    "id": "trend-2026-07-23-instagram-caption-search-indexing",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "topic",
+    "title": "Instagram now indexes Reel captions by keyword - caption SEO is overtaking hashtag stacking",
+    "why_it_works": "Instagram's July 2026 platform shift has it indexing captions by keyword for in-app search, so a caption written as the exact question a viewer would type now drives discovery the way hashtag walls used to. Captions carry real search and context weight this year, and Instagram is actively deprioritizing generic, hashtag-heavy captions in favor of ones that answer a specific, searchable question.",
+    "how_to_film": "Write your caption's first line as the literal search query a client would type - e.g. \"How much CPF do I need before I can retire in Singapore\" - then answer it in 2-3 plain sentences before any hashtags. Say the same phrase out loud in the video's first line so the spoken and written keywords reinforce each other for Instagram's search indexing.",
+    "source_label": "Mean.CEO - Instagram Trends July 2026 (Startup Edition)",
+    "source_url": "https://blog.mean.ceo/instagram-trends-july-2026/",
+    "date_found": "2026-07-23"
+  },
+  {
+    "id": "trend-2026-07-23-sg-cpf-ow-ceiling-8000",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "market",
+    "title": "CPF's Ordinary Wage ceiling rises to $8,000 on 1 January 2026 - a built-in, deadline-bound content hook for every SG advisor this quarter",
+    "why_it_works": "The CPF Ordinary Wage ceiling rises from $7,400 to $8,000 on 1 January 2026, the final step of a phased increase that began in 2023 - anyone earning above $7,400 sees mandatory CPF contributions rise and take-home pay drop by up to $120 a month, while employers face roughly $340/month more in contributions per affected employee. A real, dated regulatory change with a concrete dollar impact is exactly the kind of specific, non-generic hook that performs on every platform.",
+    "how_to_film": "Open with the number and the date: \"If you earn above $7,400, your CPF contributions change on 1 January 2026 - here's what that costs you.\" Show the before/after take-home math for an $8,000 earner on screen, then add the employer-side cost if part of your audience runs a business. Keep it educational per MAS's digital ad rules - no product names, end with an offer to run the viewer's own numbers.",
+    "source_label": "Vialto Partners - CPF Ordinary Wage Ceiling Increase to $8,000",
+    "source_url": "https://vialtopartners.com/regional-alerts/singapore-employment-tax-increase-in-cpf-ordinary-wage-ceiling-to-s8000-from-1-january-2026",
+    "date_found": "2026-07-23"
+  },
+  {
+    "id": "trend-2026-07-23-instagram-poll-sticker-micro-engagement",
+    "platform": "instagram",
+    "format": "story",
+    "pillar": "interest",
+    "title": "Poll stickers on Stories are now a direct algorithm signal, not just a UI nicety",
+    "why_it_works": "Instagram's 2026 distribution model reads \"micro-engagements\" - a tapped poll, a slid emoji, an answered quiz - as proof a viewer is actively participating rather than passively scrolling, and rewards accounts that generate these taps with more reach. The poll sticker collects the most taps for the least viewer effort of any sticker type, and quiz stickers have been unstable through April 2026, making poll the safer default.",
+    "how_to_film": "Post a 5-7 frame Story series on one topic (e.g. \"Are you topping up your CPF SA before year-end?\") and place a poll sticker with two simple options (\"Yes / Not yet\") on frame 2 or 3, not the opening frame. The next day, film a short follow-up frame reacting to how people voted to close the loop and prompt repeat taps.",
+    "source_label": "Storrito - Instagram Poll & Question Stickers 2026",
+    "source_url": "https://storrito.com/resources/storrito-poll-question-stickers-instagram-2026-algorithm-replies/",
+    "date_found": "2026-07-23"
   }
 ]
