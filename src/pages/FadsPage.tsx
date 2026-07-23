@@ -625,8 +625,30 @@ export default function FadsPage() {
     }));
   };
 
+  // Wipe every answer (and AI polish) after an explicit confirm — with 100+
+  // fields there was previously no way back from a bad prefill.
+  const startOver = () => {
+    if (
+      !window.confirm(
+        "Clear ALL your F.A.D.S. answers and AI-polished drafts? This can't be undone.",
+      )
+    )
+      return;
+    setFormData(INITIAL_FORM);
+    setAiPolish({});
+    toast.success("Worksheet cleared — fresh start.");
+  };
+
   // Fill random for demo
   const fillRandomAnswers = () => {
+    const hasAnswers = Object.values(formData).some((v) => v.trim());
+    if (
+      hasAnswers &&
+      !window.confirm(
+        "This replaces your current answers with sample ones. Continue?",
+      )
+    )
+      return;
     const p1 = CLIENT_PROFILES.profileA;
     const p2 = CLIENT_PROFILES.profileB;
     setFormData({
@@ -1382,12 +1404,17 @@ export default function FadsPage() {
             </div>
           )}
 
-          {/* Demo fill */}
-          <div className="mt-6">
+          {/* Demo fill + reset */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
             <Button onClick={fillRandomAnswers} variant="outline" size="lg"
               className="bg-gradient-to-r from-accent/10 to-primary/10 hover:from-accent/20 hover:to-primary/20">
               <Lightbulb className="h-4 w-4 mr-2" /> Fill with Sample Answers
             </Button>
+            {overallProgress > 0 && (
+              <Button onClick={startOver} variant="ghost" size="lg" className="text-muted-foreground hover:text-destructive">
+                Start over
+              </Button>
+            )}
           </div>
         </div>
 
