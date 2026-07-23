@@ -1352,12 +1352,35 @@ export default function FadsPage() {
             <Progress value={overallProgress} className="h-3" />
           </div>
 
-          {/* Per-section mini progress */}
-          <div className="mt-4 max-w-lg mx-auto space-y-1">
-            {Object.entries(TAB_FIELDS).map(([tabId, fields]) => (
-              <SectionProgress key={tabId} label={TABS.find(t => t.id === tabId)?.label || tabId} fields={fields} formData={formData} />
-            ))}
-          </div>
+          {/* Per-section progress: full rows early on, a compact pill strip
+              once past 50% so the worksheet itself sits above the fold. */}
+          {overallProgress < 50 ? (
+            <div className="mt-4 max-w-lg mx-auto space-y-1">
+              {Object.entries(TAB_FIELDS).map(([tabId, fields]) => (
+                <SectionProgress key={tabId} label={TABS.find(t => t.id === tabId)?.label || tabId} fields={fields} formData={formData} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+              {Object.keys(TAB_FIELDS).map((tabId) => {
+                const pct = tabProgress[tabId] ?? 0;
+                const label = TABS.find(t => t.id === tabId)?.label || tabId;
+                return (
+                  <span
+                    key={tabId}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                      pct === 100
+                        ? "border-green-500/30 bg-green-500/10 text-green-600 dark:text-green-400"
+                        : "border-border bg-muted/40 text-muted-foreground"
+                    }`}
+                  >
+                    {pct === 100 && <CheckCircle2 className="h-3 w-3" />}
+                    {label} {pct < 100 && `${pct}%`}
+                  </span>
+                );
+              })}
+            </div>
+          )}
 
           {/* Demo fill */}
           <div className="mt-6">
