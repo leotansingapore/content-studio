@@ -1,0 +1,60 @@
+name: Trend scout
+
+# Studies what's trending worldwide each morning and rewrites it into
+# financial-advisor content for /trends. Commits the fresh drop to main, which
+# (via Vercel's git integration) deploys the updated page.
+#
+# Requires repo secret ANTHROPIC_API_KEY. Without it the job fails fast and
+# writes nothing.
+
+on:
+  schedule:
+    # 22:00 UTC = 06:00 Singapore time — a fresh drop is live by the morning.
+    - cron: "0 22 * * *"
+  workflow_dispatch:
+    inputs:
+      count:
+        description: "Number of trends to generate"
+        required: false
+        default: "24"
+
+# Never let two scouts run (and push) at once.
+concurrency:
+  group: trend-scout
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Generate today's trend drop
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TREND_COUNT: ${{ github.event.inputs.count || '24' }}
+        run: node scripts/trend-scout.mjs
+
+      - name: Commit if the drop changed
+        run: |
+          if git diff --quiet -- src/data/trends.json; then
+            echo "No change to trends.json — nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Pull-rebase first: other sessions push to main frequently.
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git add src/data/trends.json
+          git commit -m "trends: world-trend drop for $(TZ=Asia/Singapore date +%Y-%m-%d)"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
