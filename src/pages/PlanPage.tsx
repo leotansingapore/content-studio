@@ -261,6 +261,12 @@ export default function PlanPage() {
 
   const handleDeletePlan = () => {
     if (!userId) return;
+    if (
+      !window.confirm(
+        "Delete this content plan? Your positioning stays; the mapped posts and posted ticks are removed.",
+      )
+    )
+      return;
     clearPlan(userId);
     setPlan(null);
     setEditing(true);
@@ -642,10 +648,12 @@ export default function PlanPage() {
                     key={c.id}
                     className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[11px] font-medium text-primary"
                   >
-                    {c.name}{" "}
-                    <span className="font-mono text-muted-foreground">
-                      {c.handle}
-                    </span>
+                    {c.name}
+                    {c.name !== c.handle && (
+                      <span className="font-mono text-muted-foreground">
+                        {c.handle}
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={() =>
