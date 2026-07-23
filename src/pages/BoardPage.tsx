@@ -271,10 +271,10 @@ export default function BoardPage() {
       )}
       {/* Horizontal, Trello/Linear-style board: real-width columns that size to
           their content, grouped by phase, scrolling sideways on narrow screens. */}
-      <div className="-mx-4 overflow-x-auto px-4 pb-4 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
-        <div className="flex items-start gap-6">
+      <div>
+        <div className="space-y-5">
           {PHASES.map((phase) => (
-            <section key={phase.number} className="flex shrink-0 flex-col">
+            <section key={phase.number}>
               <div className="mb-3 flex items-center gap-2 px-0.5">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   {phase.number}
@@ -284,7 +284,7 @@ export default function BoardPage() {
                   {phase.blurb}
                 </span>
               </div>
-              <div className="flex items-start gap-4">
+              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                 {phase.columns.map((key) => {
                   const col = BOARD_COLUMNS.find((c) => c.key === key)!;
                   const cards = byColumn.get(col.key) ?? [];
@@ -297,7 +297,7 @@ export default function BoardPage() {
                       }}
                       onDragLeave={() => setDragOver(null)}
                       onDrop={onDrop(col.key)}
-                      className={`flex w-72 shrink-0 flex-col gap-2.5 rounded-2xl border p-3 transition-colors ${
+                      className={`flex min-w-0 flex-col gap-2.5 rounded-2xl border p-3 transition-colors ${
                         dragOver === col.key
                           ? "border-primary/50 bg-primary/5"
                           : "border-border/50 bg-muted/30"

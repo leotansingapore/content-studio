@@ -368,11 +368,7 @@ export default function StudioLayout() {
       <div className="lg:pl-60">
         <main
           id="main-content"
-          className={`mx-auto px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:px-10 lg:pb-8 ${
-            // The board is a horizontal Kanban — let it use the full width so the
-            // stages fan out instead of scrolling inside a narrow column.
-            pathname === "/board" ? "max-w-[100rem]" : "max-w-5xl"
-          }`}
+          className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:px-10 lg:pb-8"
         >
           {/* Lazy route chunks resolve here so the rail/bottom nav never flickers. */}
           <Suspense
