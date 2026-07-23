@@ -60,10 +60,14 @@ const TREND_TYPE_STYLE: Record<string, string> = {
 
 function Chip({
   active,
+  disabled,
+  count,
   onClick,
   children,
 }: {
   active: boolean;
+  disabled?: boolean;
+  count?: number;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -71,13 +75,26 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+      disabled={disabled}
+      aria-pressed={active}
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
         active
           ? "border-primary/60 bg-primary/10 text-primary"
-          : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
+          : disabled
+            ? "cursor-not-allowed border-border/50 bg-background text-muted-foreground/40"
+            : "border-border/70 bg-background text-muted-foreground hover:border-border hover:text-foreground"
       }`}
     >
-      {children}
+      <span>{children}</span>
+      {typeof count === "number" && (
+        <span
+          className={`tabular-nums text-[10px] ${
+            active ? "text-primary/70" : "text-muted-foreground/55"
+          }`}
+        >
+          {count}
+        </span>
+      )}
     </button>
   );
 }
@@ -332,6 +349,32 @@ export default function TrendsPage() {
     [trends, platform, type],
   );
 
+  // Faceted counts: how many trends each chip would show given the OTHER
+  // dimension's current selection. This lets us surface the count on every
+  // chip and disable the ones that lead nowhere, so a filter combo can never
+  // dead-end at "no results".
+  const platformCounts = useMemo(() => {
+    const base = trends.filter((t) => type === "all" || t.trend_type === type);
+    const map: Record<string, number> = { all: base.length };
+    for (const p of platforms) map[p] = base.filter((t) => t.platform === p).length;
+    return map;
+  }, [trends, platforms, type]);
+
+  const typeCounts = useMemo(() => {
+    const base = trends.filter(
+      (t) => platform === "all" || t.platform === platform,
+    );
+    const map: Record<string, number> = { all: base.length };
+    for (const ty of types) map[ty] = base.filter((t) => t.trend_type === ty).length;
+    return map;
+  }, [trends, types, platform]);
+
+  const hasActiveFilter = platform !== "all" || type !== "all";
+  const clearFilters = () => {
+    setPlatform("all");
+    setType("all");
+  };
+
   const latestDate = trends[0]?.date_found;
 
   return (
@@ -356,14 +399,24 @@ export default function TrendsPage() {
       {(platforms.length > 1 || types.length > 1) && (
         <div className="space-y-2">
           {platforms.length > 1 && (
-            <div className="flex flex-wrap gap-1.5">
-              <Chip active={platform === "all"} onClick={() => setPlatform("all")}>
+            <div
+              className="flex flex-wrap gap-1.5"
+              role="group"
+              aria-label="Filter by platform"
+            >
+              <Chip
+                active={platform === "all"}
+                count={platformCounts.all}
+                onClick={() => setPlatform("all")}
+              >
                 All platforms
               </Chip>
               {platforms.map((p) => (
                 <Chip
                   key={p}
                   active={platform === p}
+                  count={platformCounts[p] ?? 0}
+                  disabled={platform !== p && (platformCounts[p] ?? 0) === 0}
                   onClick={() => setPlatform(p)}
                 >
                   {PLATFORM_META[p]?.label ?? p}
@@ -372,12 +425,26 @@ export default function TrendsPage() {
             </div>
           )}
           {types.length > 1 && (
-            <div className="flex flex-wrap gap-1.5">
-              <Chip active={type === "all"} onClick={() => setType("all")}>
+            <div
+              className="flex flex-wrap gap-1.5"
+              role="group"
+              aria-label="Filter by type"
+            >
+              <Chip
+                active={type === "all"}
+                count={typeCounts.all}
+                onClick={() => setType("all")}
+              >
                 All types
               </Chip>
               {types.map((t) => (
-                <Chip key={t} active={type === t} onClick={() => setType(t)}>
+                <Chip
+                  key={t}
+                  active={type === t}
+                  count={typeCounts[t] ?? 0}
+                  disabled={type !== t && (typeCounts[t] ?? 0) === 0}
+                  onClick={() => setType(t)}
+                >
                   {t.replace(/-/g, " ")}
                 </Chip>
               ))}
@@ -386,14 +453,37 @@ export default function TrendsPage() {
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        {filtered.length} trend{filtered.length === 1 ? "" : "s"}
-      </p>
+      <div className="flex items-center gap-3">
+        <p
+          className="text-xs text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          {filtered.length} trend{filtered.length === 1 ? "" : "s"}
+          {hasActiveFilter ? " match your filters" : ""}
+        </p>
+        {hasActiveFilter && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
 
       {filtered.length === 0 ? (
         <Card className="border-border/60 shadow-card">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No trends match those filters.
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              No trends match those filters.
+            </p>
+            {hasActiveFilter && (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
