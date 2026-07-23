@@ -27,6 +27,15 @@ import { RankBars, type RankBarRow } from "@/components/charts/RankBars";
 import { TrendChart, type TrendChartPoint } from "@/components/charts/TrendChart";
 import CreatorLookup from "@/components/CreatorLookup";
 import {
+  SOCIAL_PLATFORMS,
+  loadSocialAccounts,
+  setSocialAccount,
+  connectedCount,
+  accountUrl,
+  type SocialAccounts,
+  type SocialPlatform,
+} from "@/lib/socialAccounts";
+import {
   BarChart3,
   Eye,
   Heart,
@@ -34,13 +43,24 @@ import {
   TrendingDown,
   Linkedin,
   Instagram,
-  Lock,
+  Facebook,
+  Video,
+  Plug,
+  Check,
+  ExternalLink,
   ArrowRight,
   Lightbulb,
   Info,
   Ruler,
   CalendarDays,
 } from "lucide-react";
+
+const ACCOUNT_ICON: Record<SocialPlatform, typeof Linkedin> = {
+  linkedin: Linkedin,
+  tiktok: Video,
+  instagram: Instagram,
+  facebook: Facebook,
+};
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -144,6 +164,12 @@ export default function AnalyticsPage() {
   const [dimension, setDimension] = useState<BreakdownDimension>("platform");
   // Bumps whenever bulk metrics are saved so every derived memo recomputes.
   const [metricsVersion, setMetricsVersion] = useState(0);
+  const [accounts, setAccounts] = useState<SocialAccounts>({});
+
+  const saveAccount = (platform: SocialPlatform, handle: string) => {
+    if (!userId) return;
+    setAccounts(setSocialAccount(userId, platform, handle));
+  };
   // Draft edits in the bulk table, keyed by draft id then metric field.
   const [bulkEdits, setBulkEdits] = useState<Record<string, Record<string, string>>>({});
 
@@ -196,6 +222,7 @@ export default function AnalyticsPage() {
       if (!active) return;
       const id = data.user?.id ?? null;
       setUserId(id);
+      setAccounts(loadSocialAccounts(id));
       setPostedCount(
         loadDrafts(id).filter((d) => draftStatus(d) === "posted").length,
       );
@@ -292,28 +319,73 @@ export default function AnalyticsPage() {
 
       <CreatorLookup />
 
-      {/* Connect — coming soon (honest about the gate) */}
+      {/* Your accounts — register a handle per platform. */}
       <Card className="border-border/60 shadow-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-serif text-lg">
-            <Lock className="h-4 w-4 text-muted-foreground" /> Auto-sync — coming
-            soon
+          <CardTitle className="flex items-center justify-between gap-2 font-serif text-lg">
+            <span className="flex items-center gap-2">
+              <Plug className="h-4 w-4 text-primary" /> Your accounts
+            </span>
+            <span className="text-xs font-normal text-muted-foreground">
+              {connectedCount(accounts)}/{SOCIAL_PLATFORMS.length} connected
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Connecting your accounts will pull impressions and engagement
-            automatically. It needs platform approval first, so for now add
-            numbers by hand on your posted posts in My posts — it takes
-            seconds and everything below runs off those numbers.
+            Add your handle on each platform to link your posts to the right
+            account. Automatic metric sync needs each platform's approval — until
+            that's set up, add your numbers by hand below.
           </p>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" disabled className="gap-1.5">
-              <Linkedin className="h-3.5 w-3.5" /> Connect LinkedIn
-            </Button>
-            <Button variant="outline" size="sm" disabled className="gap-1.5">
-              <Instagram className="h-3.5 w-3.5" /> Connect Instagram
-            </Button>
+          <div className="space-y-2">
+            {SOCIAL_PLATFORMS.map((p) => {
+              const Icon = ACCOUNT_ICON[p.key];
+              const acct = accounts[p.key];
+              const url = acct ? accountUrl(p.key, acct.handle) : null;
+              return (
+                <div
+                  key={p.key}
+                  className="flex items-center gap-2.5 rounded-lg border border-border/60 bg-muted/20 p-2"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-background text-muted-foreground shadow-sm">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-medium text-foreground">
+                        {p.label}
+                      </p>
+                      {acct && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-success/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-success">
+                          <Check className="h-2.5 w-2.5" /> Connected
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      defaultValue={acct?.handle ?? ""}
+                      placeholder={p.placeholder}
+                      onBlur={(e) => saveAccount(p.key, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                      }}
+                      aria-label={`Your ${p.label} handle`}
+                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+                    />
+                  </div>
+                  {url && (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Open ${p.label} profile`}
+                      className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
