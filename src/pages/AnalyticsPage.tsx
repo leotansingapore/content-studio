@@ -4,7 +4,13 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
-import { engagement, draftStatus, loadDrafts } from "@/lib/draftHistory";
+import {
+  engagement,
+  draftStatus,
+  loadDrafts,
+  setDraftMetrics,
+  type PostMetrics,
+} from "@/lib/draftHistory";
 import {
   getTrackedPosts,
   getTrend,
@@ -109,10 +115,75 @@ function Stat({
   );
 }
 
+// Editable number cell for the bulk metrics table.
+function MetricInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <input
+      type="number"
+      min="0"
+      inputMode="numeric"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full min-w-14 rounded-md border border-border/70 bg-background px-2 py-1 text-right text-xs tabular-nums outline-none focus:border-primary/40"
+    />
+  );
+}
+
 export default function AnalyticsPage() {
   const [userId, setUserId] = useState<string | null | undefined>(undefined);
   const [postedCount, setPostedCount] = useState(0);
   const [dimension, setDimension] = useState<BreakdownDimension>("platform");
+  // Bumps whenever bulk metrics are saved so every derived memo recomputes.
+  const [metricsVersion, setMetricsVersion] = useState(0);
+  // Draft edits in the bulk table, keyed by draft id then metric field.
+  const [bulkEdits, setBulkEdits] = useState<Record<string, Record<string, string>>>({});
+
+  const postedDrafts = useMemo(
+    () =>
+      userId
+        ? loadDrafts(userId).filter((d) => draftStatus(d) === "posted")
+        : [],
+    [userId, metricsVersion],
+  );
+
+  const editValue = (d: (typeof postedDrafts)[number], field: keyof PostMetrics): string => {
+    const edited = bulkEdits[d.id]?.[field];
+    if (edited !== undefined) return edited;
+    const existing = d.metrics?.[field];
+    return existing !== undefined ? String(existing) : "";
+  };
+
+  const setEdit = (id: string, field: string, v: string) =>
+    setBulkEdits((prev) => ({ ...prev, [id]: { ...prev[id], [field]: v } }));
+
+  const saveRow = (id: string) => {
+    if (!userId) return;
+    const row = bulkEdits[id];
+    if (!row) return;
+    const metrics: PostMetrics = {};
+    (["impressions", "reactions", "comments", "shares"] as const).forEach((f) => {
+      if (row[f] !== undefined && row[f] !== "") {
+        const n = Number(row[f]);
+        if (Number.isFinite(n) && n >= 0) metrics[f] = Math.round(n);
+      }
+    });
+    setDraftMetrics(userId, id, metrics);
+    setBulkEdits((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setMetricsVersion((v) => v + 1);
+  };
 
   useEffect(() => {
     document.title = "Analytics - Content Studio";
@@ -130,7 +201,7 @@ export default function AnalyticsPage() {
     };
   }, []);
 
-  const tracked = useMemo(() => getTrackedPosts(userId), [userId]);
+  const tracked = useMemo(() => getTrackedPosts(userId), [userId, metricsVersion]);
   const hasData = tracked.length > 0;
 
   const totals = useMemo(() => {
@@ -154,7 +225,7 @@ export default function AnalyticsPage() {
     [tracked],
   );
 
-  const insights = useMemo(() => getInsights(userId), [userId]);
+  const insights = useMemo(() => getInsights(userId), [userId, metricsVersion]);
 
   const trendPoints: TrendChartPoint[] = useMemo(
     () =>
@@ -164,7 +235,7 @@ export default function AnalyticsPage() {
         value: p.engagementRate,
         detail: `${PLATFORM_LABEL[p.platform] ?? p.platform} · ${p.impressions.toLocaleString()} impressions`,
       })),
-    [userId],
+    [userId, metricsVersion],
   );
 
   const breakdownRows: RankBarRow[] = useMemo(
@@ -175,7 +246,7 @@ export default function AnalyticsPage() {
         value: r.avgEngagementRate,
         count: r.count,
       })),
-    [userId, dimension],
+    [userId, dimension, metricsVersion],
   );
 
   const lengthRows: RankBarRow[] = useMemo(
@@ -187,7 +258,7 @@ export default function AnalyticsPage() {
         count: r.count,
         tone: r.status,
       })),
-    [userId],
+    [userId, metricsVersion],
   );
 
   const dayRows: RankBarRow[] = useMemo(
@@ -198,7 +269,7 @@ export default function AnalyticsPage() {
         value: r.avgEngagementRate,
         count: r.count,
       })),
-    [userId],
+    [userId, metricsVersion],
   );
 
   return (
@@ -242,6 +313,71 @@ export default function AnalyticsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bulk metrics entry — add real numbers for every posted post in one place */}
+      {postedDrafts.length > 0 && (
+        <Card className="border-border/60 shadow-card">
+          <CardHeader>
+            <CardTitle className="font-serif text-lg">Add your numbers</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Fill in what each posted post actually did. Everything below
+              recalculates as soon as you save a row.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-left text-xs">
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                    <th className="py-1.5 pr-2 font-semibold">Post</th>
+                    <th className="w-20 px-1 py-1.5 font-semibold">Impressions</th>
+                    <th className="w-20 px-1 py-1.5 font-semibold">Reactions</th>
+                    <th className="w-20 px-1 py-1.5 font-semibold">Comments</th>
+                    <th className="w-20 px-1 py-1.5 font-semibold">Shares</th>
+                    <th className="w-16 px-1 py-1.5" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {postedDrafts.map((d) => (
+                    <tr key={d.id} className="border-t border-border/50">
+                      <td className="max-w-[220px] py-1.5 pr-2">
+                        <p className="truncate font-medium text-foreground">
+                          {d.hook || d.draft.slice(0, 50) || "Untitled"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {PLATFORM_LABEL[d.platform] ?? d.platform}
+                        </p>
+                      </td>
+                      {(["impressions", "reactions", "comments", "shares"] as const).map(
+                        (f) => (
+                          <td key={f} className="px-1 py-1.5">
+                            <MetricInput
+                              value={editValue(d, f)}
+                              onChange={(v) => setEdit(d.id, f, v)}
+                              placeholder="0"
+                            />
+                          </td>
+                        ),
+                      )}
+                      <td className="px-1 py-1.5 text-right">
+                        <Button
+                          size="sm"
+                          variant={bulkEdits[d.id] ? "default" : "outline"}
+                          disabled={!bulkEdits[d.id]}
+                          onClick={() => saveRow(d.id)}
+                          className="h-7 px-2.5 text-[11px]"
+                        >
+                          Save
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {hasData ? (
         <>
