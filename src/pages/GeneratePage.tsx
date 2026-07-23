@@ -408,6 +408,26 @@ export default function GeneratePage() {
       if (!active) return;
       const id = data.user?.id ?? null;
       setUserId(id);
+      // Restore the user's usual platform/format — most advisors post to one
+      // platform 90% of the time. Deep-link params always win.
+      try {
+        const hasOverride = ["draft", "platform", "format", "vibe"].some((k) =>
+          new URLSearchParams(window.location.search).has(k),
+        );
+        if (!hasOverride && id) {
+          const prefs = JSON.parse(
+            localStorage.getItem(`content-studio-writeprefs-${id}`) ?? "null",
+          );
+          if (prefs?.platform && PLATFORMS.some((p) => p.value === prefs.platform)) {
+            setPlatform(prefs.platform as Platform);
+          }
+          if (prefs?.format && FORMATS.some((f) => f.value === prefs.format)) {
+            setFormat(prefs.format as Format);
+          }
+        }
+      } catch {
+        // corrupt prefs are ignorable
+      }
       const profile = loadVoiceProfile(id);
       const usable = isVoiceProfileUsable(profile);
       setVoiceProfileUsable(usable);
@@ -795,6 +815,17 @@ export default function GeneratePage() {
 
   const handleGenerate = async () => {
     if (!validateForm()) return;
+    // Remember the working platform/format as next session's defaults.
+    if (userId) {
+      try {
+        localStorage.setItem(
+          `content-studio-writeprefs-${userId}`,
+          JSON.stringify({ platform, format }),
+        );
+      } catch {
+        // storage full — defaults just won't stick
+      }
+    }
     // Collapse the wizard only after validation passes — collapsing first
     // strands the user on a dead brief summary when the topic is missing.
     setBriefOpen(false);
