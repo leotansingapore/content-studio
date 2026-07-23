@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import SectionTabs, { LEARN_TABS } from "@/components/SectionTabs";
 import { Link } from "react-router-dom";
 import {
   Card,
@@ -38,6 +39,7 @@ interface Tool {
 function ToolRow({ tool }: { tool: Tool }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2">
+      <SectionTabs tabs={LEARN_TABS} />
       <div className="min-w-0">
         <p className="text-sm font-semibold text-foreground">{tool.name}</p>
         <p className="text-[11px] text-muted-foreground">{tool.what}</p>

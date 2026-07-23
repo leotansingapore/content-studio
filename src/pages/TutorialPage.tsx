@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import SectionTabs, { LEARN_TABS } from "@/components/SectionTabs";
 import {
   Card,
   CardContent,
@@ -27,6 +28,7 @@ import {
 export default function TutorialPage() {
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={LEARN_TABS} />
       {/* Why */}
       <Card className="border-border/60 shadow-card">
         <CardHeader>

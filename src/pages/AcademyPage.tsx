@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import SectionTabs, { LEARN_TABS } from "@/components/SectionTabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
 import { ACADEMY } from "@/data/academy";
@@ -64,6 +65,7 @@ export default function AcademyPage() {
 
   return (
     <div className="space-y-6">
+      <SectionTabs tabs={LEARN_TABS} />
       <header className="space-y-3">
         <div className="space-y-1.5">
           <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">

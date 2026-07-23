@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -52,7 +52,12 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
         icon: BarChart3,
         also: ["/coach"],
       },
-      { to: "/academy", label: "Academy", icon: GraduationCap },
+      {
+        to: "/academy",
+        label: "Learn",
+        icon: GraduationCap,
+        also: ["/create-guide", "/tutorial"],
+      },
     ],
   },
   {
@@ -62,7 +67,6 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
       { to: "/trends", label: "Trends", icon: Flame },
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
       { to: "/profiles", label: "Creators", icon: UsersIcon },
-      { to: "/create-guide", label: "How to post", icon: Sparkles },
     ],
   },
   {
@@ -372,7 +376,14 @@ export default function StudioLayout() {
           id="main-content"
           className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:px-10 lg:pb-8"
         >
-          <Outlet />
+          {/* Lazy route chunks resolve here so the rail/bottom nav never flickers. */}
+          <Suspense
+            fallback={
+              <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

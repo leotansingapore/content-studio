@@ -33,6 +33,13 @@ export const PERFORMANCE_TABS: SectionTab[] = [
   { to: "/coach", label: "Coach" },
 ];
 
+// Learn group: every teaching surface in one place.
+export const LEARN_TABS: SectionTab[] = [
+  { to: "/academy", label: "Academy" },
+  { to: "/create-guide", label: "How to post" },
+  { to: "/tutorial", label: "How the studio works" },
+];
+
 export default function SectionTabs({ tabs }: { tabs: SectionTab[] }) {
   return (
     <nav
