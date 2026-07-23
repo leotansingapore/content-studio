@@ -202,12 +202,16 @@ export async function fetchLiveIgProfile(
   return data as LiveIgProfile;
 }
 
+// Live posts include video view counts — weigh them in (lightly) so a
+// reels-heavy account's best content ranks by actual reach, not just likes.
+function liveScore(p: TopPost): number {
+  return engagementScore(p) + (p.views || 0) / 100;
+}
+
 export function liveCreatorAnalysis(
   profile: LiveIgProfile,
 ): CreatorAnalysis | null {
-  const posts = [...profile.posts].sort(
-    (a, b) => engagementScore(b) - engagementScore(a),
-  );
+  const posts = [...profile.posts].sort((a, b) => liveScore(b) - liveScore(a));
   if (posts.length === 0) return null;
 
   const advisor: AdvisorEntry = {
@@ -275,6 +279,17 @@ export function liveCreatorAnalysis(
       tone: rate >= 1 ? "positive" : "neutral",
       title: `${Math.round(rate * 100) / 100}% engagement rate`,
       body: `Average engagement across their last ${posts.length} posts against ${profile.followers.toLocaleString()} followers. Above ~1% is healthy for finance content on Instagram.`,
+    });
+  }
+  const videoPosts = posts.filter((p) => (p.views || 0) > 0);
+  if (videoPosts.length >= 2) {
+    const avgViews = Math.round(
+      videoPosts.reduce((s, p) => s + (p.views || 0), 0) / videoPosts.length,
+    );
+    insights.push({
+      tone: "neutral",
+      title: `${avgViews.toLocaleString()} avg views on video`,
+      body: `Across ${videoPosts.length} recent videos. Views show real reach that likes under-count — if their view-to-like ratio is high, the hook is carrying weaker content.`,
     });
   }
   insights.push({
