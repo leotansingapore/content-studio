@@ -786,6 +786,9 @@ export default function GeneratePage() {
 
   const handleGenerate = async () => {
     if (!validateForm()) return;
+    // Collapse the wizard only after validation passes — collapsing first
+    // strands the user on a dead brief summary when the topic is missing.
+    setBriefOpen(false);
     setSelectedVariantIndex(null);
     setDraft("");
     setChosenHook(null);
@@ -1677,10 +1680,7 @@ export default function GeneratePage() {
           ) : (
             <Button
               size="lg"
-              onClick={() => {
-                setBriefOpen(false);
-                void handleGenerate();
-              }}
+              onClick={() => void handleGenerate()}
               className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
             >
               <Sparkles className="h-4 w-4" />
