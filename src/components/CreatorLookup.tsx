@@ -8,10 +8,13 @@ import {
   analyzeCreator,
   findAdvisor,
   searchAdvisors,
+  fetchLiveIgProfile,
+  liveCreatorAnalysis,
   ANALYZABLE_COUNT,
   type CreatorAnalysis,
   type CreatorInsightTone,
 } from "@/lib/creatorAnalysis";
+import { parseInstagramInput } from "@/components/CompetitorReference";
 import { buildRemixUrl } from "@/lib/topPosts";
 import {
   Search,
@@ -23,6 +26,8 @@ import {
   ExternalLink,
   Heart,
   MessageCircle,
+  Radio,
+  Loader2,
 } from "lucide-react";
 
 const TONE_STYLE: Record<
@@ -46,7 +51,13 @@ const TONE_STYLE: Record<
   },
 };
 
-function AnalysisResult({ analysis }: { analysis: CreatorAnalysis }) {
+function AnalysisResult({
+  analysis,
+  live = false,
+}: {
+  analysis: CreatorAnalysis;
+  live?: boolean;
+}) {
   const { advisor, bestPost, avgLikes, avgComments, formatStats, insights, posts } =
     analysis;
 
@@ -141,13 +152,25 @@ function AnalysisResult({ analysis }: { analysis: CreatorAnalysis }) {
             size="sm"
             className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
           >
-            <Link to={buildRemixUrl(bestPost, advisor)}>
+            <Link
+              to={
+                live
+                  ? `/generate?ctx=${encodeURIComponent(
+                      `Remix this angle from ${advisor.handle} (adapt to my niche and voice, never copy): "${bestPost.caption.slice(0, 220)}"`,
+                    )}`
+                  : buildRemixUrl(bestPost, advisor)
+              }
+            >
               <Wand2 className="h-3.5 w-3.5" /> Remix their best post in Write
             </Link>
           </Button>
         )}
         <Button asChild size="sm" variant="outline" className="flex-1 gap-1.5">
-          <Link to={`/plan?competitor=${encodeURIComponent(advisor.id)}`}>
+          <Link
+            to={`/plan?competitor=${encodeURIComponent(
+              live ? advisor.handle : advisor.id,
+            )}`}
+          >
             <UserSearch className="h-3.5 w-3.5" /> Use as competitor in my plan
           </Link>
         </Button>
@@ -159,6 +182,10 @@ function AnalysisResult({ analysis }: { analysis: CreatorAnalysis }) {
 export default function CreatorLookup() {
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState<string | null>(null);
+  // Live Instagram fallback (analyze-ig-creator edge function via Apify).
+  const [liveAnalysis, setLiveAnalysis] = useState<CreatorAnalysis | null>(null);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
 
   const suggestions = useMemo(
     () => (submitted ? [] : searchAdvisors(query)),
@@ -171,18 +198,45 @@ export default function CreatorLookup() {
     return advisor ? analyzeCreator(advisor) : null;
   }, [submitted]);
 
-  const notFound = submitted !== null && !analysis;
+  const notFound = submitted !== null && !analysis && !liveAnalysis && !liveLoading;
+  const liveCandidate = submitted ? parseInstagramInput(submitted) : null;
 
   const handleSubmit = (value: string) => {
     const v = value.trim();
     if (!v) return;
     setQuery(v);
     setSubmitted(v);
+    setLiveAnalysis(null);
+    setLiveError(null);
+  };
+
+  const runLiveLookup = async () => {
+    if (!liveCandidate) return;
+    setLiveLoading(true);
+    setLiveError(null);
+    try {
+      const profile = await fetchLiveIgProfile(liveCandidate.handle);
+      const built = liveCreatorAnalysis(profile);
+      if (!built) {
+        setLiveError(
+          "That account has no public posts to analyze (private or empty).",
+        );
+      } else {
+        setLiveAnalysis(built);
+      }
+    } catch (e) {
+      setLiveError(e instanceof Error ? e.message : "Lookup failed — try again.");
+    } finally {
+      setLiveLoading(false);
+    }
   };
 
   const reset = () => {
     setSubmitted(null);
     setQuery("");
+    setLiveAnalysis(null);
+    setLiveError(null);
+    setLiveLoading(false);
   };
 
   return (
@@ -238,33 +292,74 @@ export default function CreatorLookup() {
 
         {!submitted && (
           <p className="text-[11px] text-muted-foreground">
-            Covers {ANALYZABLE_COUNT} curated SG finance/insurance creators today
-            — start typing to see matches.
+            {ANALYZABLE_COUNT} curated SG finance/insurance creators, or any
+            public Instagram handle — paste @handle or a profile URL for a live
+            analysis.
           </p>
         )}
 
         {analysis && <AnalysisResult analysis={analysis} />}
+        {!analysis && liveAnalysis && (
+          <>
+            <p className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
+              <Radio className="h-3 w-3" /> Live from Instagram — latest posts,
+              refreshed weekly
+            </p>
+            <AnalysisResult analysis={liveAnalysis} live />
+          </>
+        )}
+
+        {liveLoading && (
+          <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            Pulling {liveCandidate?.handle} from Instagram — takes 10–30 seconds
+            on first lookup…
+          </div>
+        )}
 
         {notFound && (
           <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 text-sm">
             <p className="font-medium text-foreground">
               No match for "{submitted}" in our curated set.
             </p>
-            <p className="text-xs text-muted-foreground">
-              This looks up {ANALYZABLE_COUNT} SG finance/insurance creators we've
-              already researched — it's not a live scrape of any handle. Live
-              lookup for arbitrary accounts would need paid scraping access
-              (Apify or similar) plus a backend to hold the credentials, which
-              isn't wired up yet.
-            </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button asChild variant="outline" size="sm" className="gap-1.5">
-                <Link to="/profiles">Browse covered creators</Link>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={reset}>
-                Try another handle
-              </Button>
-            </div>
+            {liveCandidate ? (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  We can pull {liveCandidate.handle}'s latest public posts from
+                  Instagram and run the same analysis. First lookup takes
+                  10–30 seconds; results are cached for a week.
+                </p>
+                {liveError && (
+                  <p className="text-xs font-medium text-destructive">{liveError}</p>
+                )}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button size="sm" onClick={runLiveLookup} className="gap-1.5">
+                    <Radio className="h-3.5 w-3.5" /> Analyze {liveCandidate.handle}{" "}
+                    live from Instagram
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={reset}>
+                    Try another handle
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  This covers {ANALYZABLE_COUNT} curated SG finance/insurance
+                  creators. For anyone else, paste their Instagram handle
+                  (like @handle) or profile URL and we'll analyze their latest
+                  posts live.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button asChild variant="outline" size="sm" className="gap-1.5">
+                    <Link to="/profiles">Browse covered creators</Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={reset}>
+                    Try another handle
+                  </Button>
+                </div>
+              </>
+            )}
             <p className="text-xs text-muted-foreground">
               Looking up your own account instead? Track your real posts in{" "}
               <Link to="/drafts" className="font-semibold text-primary hover:underline">
@@ -275,7 +370,7 @@ export default function CreatorLookup() {
           </div>
         )}
 
-        {submitted && analysis && (
+        {submitted && (analysis || liveAnalysis) && (
           <button
             type="button"
             onClick={reset}

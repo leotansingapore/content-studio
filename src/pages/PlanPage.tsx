@@ -24,7 +24,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import QuickTip from "@/components/QuickTip";
 import CompetitorReference, {
+  customInstagramRef,
   findCompetitorByHandle,
+  parseInstagramInput,
   type CompetitorRef,
 } from "@/components/CompetitorReference";
 import {
@@ -312,7 +314,13 @@ export default function PlanPage() {
   useEffect(() => {
     const param = searchParams.get("competitor");
     if (!param) return;
-    const found = findCompetitorByHandle(param);
+    // Curated creators match by id/handle; anything else that parses as an
+    // IG handle (live-analyzed accounts) becomes a custom reference.
+    let found = findCompetitorByHandle(param);
+    if (!found) {
+      const ig = parseInstagramInput(param);
+      if (ig) found = customInstagramRef(ig.handle, ig.url);
+    }
     if (found) {
       addCompetitor(found);
       setEditing(true);

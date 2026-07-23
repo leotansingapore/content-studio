@@ -159,3 +159,119 @@ export function analyzeCreator(advisor: AdvisorEntry): CreatorAnalysis | null {
 
   return { advisor, posts, bestPost, avgLikes, avgComments, formatStats, insights };
 }
+
+// ---------------------------------------------------------------------------
+// Live analysis for ANY public Instagram handle (analyze-ig-creator edge fn).
+// Same output shape as analyzeCreator so the UI renders both, but the data is
+// the account's LATEST ~12 posts (recent form), not a curated best-of.
+
+import { supabase } from "@/lib/supabase";
+
+export interface LiveIgProfile {
+  handle: string;
+  url: string;
+  fullName: string;
+  biography: string;
+  followers: number;
+  postsCount: number;
+  posts: TopPost[];
+  fetchedAt: string;
+  cached: boolean;
+}
+
+export async function fetchLiveIgProfile(
+  handle: string,
+): Promise<LiveIgProfile> {
+  const { data, error } = await supabase.functions.invoke("analyze-ig-creator", {
+    body: { handle },
+  });
+  if (error) throw new Error(error.message ?? "Lookup failed");
+  if ((data as { error?: string })?.error) {
+    throw new Error((data as { error: string }).error);
+  }
+  return data as LiveIgProfile;
+}
+
+export function liveCreatorAnalysis(
+  profile: LiveIgProfile,
+): CreatorAnalysis | null {
+  const posts = [...profile.posts].sort(
+    (a, b) => engagementScore(b) - engagementScore(a),
+  );
+  if (posts.length === 0) return null;
+
+  const advisor: AdvisorEntry = {
+    id: `live-${profile.handle.replace(/^@/, "").toLowerCase()}`,
+    name: profile.fullName || profile.handle,
+    handle: profile.handle,
+    platform: "Instagram" as AdvisorEntry["platform"],
+    platform_url: profile.url,
+    niche: [],
+    audience: [],
+    format: [],
+    post_cadence: "",
+    why_follow: "",
+    style_notes: "",
+    source: "live-instagram",
+    verified: false,
+    last_checked: profile.fetchedAt,
+  };
+
+  const bestPost = posts[0];
+  const avgLikes = Math.round(
+    posts.reduce((s, p) => s + (p.likes || 0), 0) / posts.length,
+  );
+  const avgComments =
+    Math.round(
+      (posts.reduce((s, p) => s + (p.comments || 0), 0) / posts.length) * 10,
+    ) / 10;
+
+  const groups = new Map<string, TopPost[]>();
+  for (const p of posts) {
+    const fmt = generatorFormat(p);
+    groups.set(fmt, [...(groups.get(fmt) ?? []), p]);
+  }
+  const formatStats: FormatStat[] = [...groups.entries()]
+    .map(([format, list]) => ({
+      format,
+      label: FORMAT_LABEL[format] ?? format,
+      count: list.length,
+      avgScore:
+        Math.round(
+          (list.reduce((s, p) => s + engagementScore(p), 0) / list.length) * 10,
+        ) / 10,
+    }))
+    .sort((a, b) => b.avgScore - a.avgScore);
+
+  const insights: CreatorInsight[] = [];
+  if (formatStats.length > 1) {
+    const top = formatStats[0];
+    insights.push({
+      tone: "positive",
+      title: `${top.label} are winning for them right now`,
+      body: `${top.count} of their last ${posts.length} posts are ${top.label.toLowerCase()}, averaging a ${top.avgScore} engagement score - their strongest recent format. If you're borrowing from this account, start there.`,
+    });
+  }
+  if (bestPost.caption) {
+    insights.push({
+      tone: "tip",
+      title: "Their best recent hook",
+      body: `"${bestPost.caption.slice(0, 180)}${bestPost.caption.length > 180 ? "…" : ""}" - ${bestPost.likes.toLocaleString()} likes, ${bestPost.comments} comments. Study the first line: that's the hook doing the work.`,
+    });
+  }
+  if (profile.followers > 0) {
+    const rate = ((avgLikes + avgComments) / profile.followers) * 100;
+    insights.push({
+      tone: rate >= 1 ? "positive" : "neutral",
+      title: `${Math.round(rate * 100) / 100}% engagement rate`,
+      body: `Average engagement across their last ${posts.length} posts against ${profile.followers.toLocaleString()} followers. Above ~1% is healthy for finance content on Instagram.`,
+    });
+  }
+  insights.push({
+    tone: "neutral",
+    title: "What this is (and isn't)",
+    body: `Live pull of ${advisor.name}'s latest ${posts.length} public posts (fetched ${new Date(profile.fetchedAt).toLocaleDateString()}, refreshed weekly). It shows their current form, not a curated best-of - one viral outlier can skew the averages.`,
+  });
+
+  return { advisor, posts, bestPost, avgLikes, avgComments, formatStats, insights };
+}
