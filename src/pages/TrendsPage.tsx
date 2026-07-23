@@ -8,6 +8,7 @@ import {
   buildTrendRemixUrl,
   trendHooks,
   trendTalkingPoints,
+  trendFreshness,
   type TrendEntry,
   type TrendPlatform,
 } from "@/lib/trends";
@@ -21,6 +22,7 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  Clock,
   Globe,
   Linkedin,
   Instagram,
@@ -88,6 +90,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
   const hooks = trendHooks(trend);
   const points = trendTalkingPoints(trend);
   const hasKit = hooks.length > 0 || points.length > 0 || Boolean(trend.cta);
+  const freshness = trendFreshness(trend);
 
   const copy = async (text: string, label: string) => {
     try {
@@ -116,6 +119,21 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
               }`}
             >
               {trend.trend_type.replace(/-/g, " ")}
+            </span>
+          )}
+          {freshness && (
+            <span
+              title={
+                freshness.stale
+                  ? "Older than the 48h freshness bar - the scout may not have refreshed"
+                  : "Spotted trending within the last 48 hours"
+              }
+              className={`ml-auto inline-flex items-center gap-1 text-[10px] font-semibold ${
+                freshness.stale ? "text-warning" : "text-success"
+              }`}
+            >
+              <Clock className="h-3 w-3" />
+              {freshness.label}
             </span>
           )}
         </div>

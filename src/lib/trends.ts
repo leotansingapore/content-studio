@@ -43,6 +43,39 @@ export interface TrendEntry {
   /** The closing call to action, as a usable line. */
   cta?: string;
   cta_type?: TrendCtaType;
+  /**
+   * ISO date the trend was observed trending. The scout only accepts trends
+   * seen within 48h, and this is what makes that rule auditable rather than
+   * a promise - the card surfaces it, so a stale drop is visible.
+   */
+  observed_at?: string;
+}
+
+export const MAX_TREND_AGE_HOURS = 48;
+
+/** Whole days between an ISO date and today, or null if unparseable. */
+function daysSince(iso: string | undefined): number | null {
+  if (!iso) return null;
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return null;
+  const startOfDay = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diff = startOfDay(new Date()) - startOfDay(then);
+  return Math.round(diff / 86_400_000);
+}
+
+export interface TrendFreshness {
+  label: string;
+  /** True once the trend is past the 48h bar the scout is held to. */
+  stale: boolean;
+}
+
+export function trendFreshness(t: TrendEntry): TrendFreshness | null {
+  const days = daysSince(t.observed_at ?? t.date_found);
+  if (days === null || days < 0) return null;
+  if (days === 0) return { label: "Today", stale: false };
+  if (days === 1) return { label: "Yesterday", stale: false };
+  return { label: `${days}d ago`, stale: days > 2 };
 }
 
 const VALID_CTA_TYPES: TrendCtaType[] = [
