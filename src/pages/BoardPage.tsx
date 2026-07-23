@@ -18,6 +18,7 @@ import {
   draftStatus,
   loadDrafts,
   newDraftId,
+  saveDrafts,
   setDraftStatus,
   upsertDraft,
   type DraftEntry,
@@ -48,23 +49,56 @@ function BoardCard({
   draft,
   onAdvance,
   advanceLabel,
+  onRename,
 }: {
   draft: DraftEntry;
   onAdvance?: () => void;
   advanceLabel?: string;
+  onRename?: (hook: string) => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState("");
+
+  const commitRename = () => {
+    setEditing(false);
+    const t = title.trim();
+    if (t && t !== draft.hook && onRename) onRename(t);
+  };
+
   return (
     <Card
-      draggable
+      draggable={!editing}
       onDragStart={(e) => e.dataTransfer.setData("text/draft-id", draft.id)}
       className="group min-w-0 cursor-grab border-border/60 shadow-sm transition-shadow hover:shadow-card active:cursor-grabbing"
     >
       <CardContent className="space-y-2.5 p-3">
         <div className="flex items-start gap-1.5">
           <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground/70" />
-          <p className="line-clamp-2 min-w-0 text-sm font-medium leading-snug">
-            {draft.hook || draft.draft.slice(0, 80) || "Untitled draft"}
-          </p>
+          {editing ? (
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename();
+                if (e.key === "Escape") setEditing(false);
+              }}
+              autoFocus
+              className="min-w-0 flex-1 rounded-md border border-primary/40 bg-background px-1.5 py-0.5 text-sm font-medium outline-none"
+            />
+          ) : (
+            <p
+              className="line-clamp-2 min-w-0 cursor-text text-sm font-medium leading-snug"
+              title={onRename ? "Click to rename" : undefined}
+              onClick={() => {
+                if (!onRename) return;
+                setTitle(draft.hook || "");
+                setEditing(true);
+              }}
+            >
+              {draft.hook || draft.draft.slice(0, 80) || "Untitled draft"}
+            </p>
+          )}
         </div>
         {(draft.platform || draft.format || draft.scheduledFor) && (
           <div className="flex flex-wrap items-center gap-1.5 pl-5">
@@ -291,6 +325,18 @@ export default function BoardPage() {
                             draft={d}
                             onAdvance={step ? () => moveTo(d, step.to) : undefined}
                             advanceLabel={step?.label}
+                            onRename={(hook) => {
+                              if (!userId) return;
+                              // Rename in place — upsertDraft would bump the
+                              // card to the top of its column.
+                              setDrafts((prev) => {
+                                const next = prev.map((x) =>
+                                  x.id === d.id ? { ...x, hook } : x,
+                                );
+                                saveDrafts(userId, next);
+                                return next;
+                              });
+                            }}
                           />
                         );
                       })}
