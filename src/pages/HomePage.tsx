@@ -8,6 +8,7 @@ import {
   getDraftStats,
   getPostingActivity,
   draftStatus,
+  setDraftStatus,
   type DraftEntry,
   type DraftStats,
   type PostingActivity,
@@ -90,6 +91,7 @@ function StatCard({
 }
 
 export default function HomePage() {
+  const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   const [stats, setStats] = useState<DraftStats | null>(null);
   const [voiceReady, setVoiceReady] = useState<boolean>(true);
@@ -118,8 +120,10 @@ export default function HomePage() {
         navigate("/welcome", { replace: true });
         return;
       }
+      setUserId(id);
       const email = data.user?.email ?? "";
-      setName(email ? email.split("@")[0].replace(/[._-]+/g, " ") : "");
+      const prefix = email.split("@")[0].replace(/[._-]+/g, " ").trim();
+      setName(/^[a-zA-Z ]{2,18}$/.test(prefix) ? prefix : "");
       setDrafts(loadDrafts(id));
       setStats(getDraftStats(id));
       setVoiceReady(isVoiceProfileUsable(loadVoiceProfile(id)));
@@ -148,6 +152,22 @@ export default function HomePage() {
       .slice(0, 3);
   }, [drafts]);
 
+  // Posts due today or overdue — the in-app reminder that drives the habit.
+  const dueNow = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return drafts.filter(
+      (d) =>
+        draftStatus(d) === "scheduled" &&
+        d.scheduledFor &&
+        d.scheduledFor.slice(0, 10) <= today,
+    );
+  }, [drafts]);
+
+  const markDuePosted = (id: string) => {
+    if (!userId) return;
+    setDrafts(setDraftStatus(userId, id, "posted"));
+  };
+
   const checklist = [
     { done: voiceReady, label: "Set your voice", to: "/voice" },
     { done: hasPosts, label: "Write your first post", to: "/generate" },
@@ -159,6 +179,47 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
+      {/* Due today / overdue reminder */}
+      {dueNow.length > 0 && (
+        <section className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-4">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <CalendarClock className="h-4 w-4 text-warning" />
+            {dueNow.length === 1
+              ? "1 post is due to go out"
+              : `${dueNow.length} posts are due to go out`}
+          </p>
+          <div className="space-y-1.5">
+            {dueNow.slice(0, 3).map((d) => (
+              <div
+                key={d.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {d.hook || d.draft.slice(0, 60) || "Untitled"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Scheduled {new Date(d.scheduledFor!).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Button asChild variant="outline" size="sm" className="h-7 px-2.5 text-xs">
+                    <Link to={`/generate?draft=${d.id}`}>Open</Link>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => markDuePosted(d.id)}
+                    className="h-7 gap-1 px-2.5 text-xs"
+                  >
+                    <CheckCircle2 className="h-3 w-3" /> Posted
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Greeting + primary actions */}
       <section className="space-y-5">
         <header className="space-y-1.5">
