@@ -244,6 +244,8 @@ export interface CoachHistoryEntry {
   score: number;
   postCount: number;
   topFix: string;
+  /** Full report snapshot so history rows can reopen it (absent on old entries). */
+  report?: CoachReport;
 }
 
 const KEY_PREFIX = "content-studio-coach-";
@@ -289,6 +291,7 @@ export function addCoachEntry(
     score: report.score,
     postCount: report.postCount,
     topFix: report.fixes[0] ?? "",
+    report,
   };
   const next = [entry, ...loadCoachHistory(userId)].slice(0, MAX_HISTORY);
   storage.setItem(`${KEY_PREFIX}${userId}`, JSON.stringify(next));

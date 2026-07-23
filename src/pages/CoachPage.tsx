@@ -360,10 +360,23 @@ export default function CoachPage() {
           <CardContent className="space-y-2">
             {history.slice(0, 8).map((h) => {
               const tone = scoreTone(h.score);
+              const openable = Boolean(h.report);
               return (
-                <div
+                <button
                   key={h.id}
-                  className="flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2"
+                  type="button"
+                  disabled={!openable}
+                  onClick={() => {
+                    if (!h.report) return;
+                    setReport(h.report);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-left ${
+                    openable
+                      ? "transition-colors hover:border-primary/40 hover:bg-primary/5"
+                      : "cursor-default"
+                  }`}
+                  title={openable ? "Reopen this report" : "Older run — details not saved"}
                 >
                   <span
                     className={`w-8 shrink-0 text-center font-serif text-lg font-semibold ${tone.text}`}
@@ -375,9 +388,10 @@ export default function CoachPage() {
                     <p className="text-[10px] text-muted-foreground">
                       {new Date(h.date).toLocaleDateString()} · {h.postCount}{" "}
                       {h.postCount === 1 ? "post" : "posts"}
+                      {openable && " · tap to reopen"}
                     </p>
                   </div>
-                </div>
+                </button>
               );
             })}
           </CardContent>
