@@ -50,7 +50,10 @@ export default function WelcomePage() {
       if (!active) return;
       setUserId(data.user?.id ?? null);
       const email = data.user?.email ?? "";
-      setName(email ? email.split("@")[0].replace(/[._-]+/g, " ") : "");
+      const prefix = email.split("@")[0].replace(/[._-]+/g, " ").trim();
+      // Only greet by name when the email prefix actually reads like one —
+      // "tan.junsing88" or 20+ chars greets awkwardly, so skip it.
+      setName(/^[a-zA-Z ]{2,18}$/.test(prefix) ? prefix : "");
     });
     return () => {
       active = false;

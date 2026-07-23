@@ -220,12 +220,6 @@ export default function StudioLayout() {
           ))}
         </nav>
         <div className="space-y-1 border-t border-border/70 px-3 py-3">
-          <NavLink
-            to="/tutorial"
-            className={({ isActive }) => railItemClass(isActive)}
-          >
-            <BookOpen className="h-4 w-4 shrink-0" /> How it works
-          </NavLink>
           <button
             type="button"
             onClick={handleSignOut}
