@@ -36,10 +36,10 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     items: [
       { to: "/generate", label: "Write", icon: Pencil },
       {
-        to: "/plan",
+        to: "/calendar",
         label: "Pipeline",
         icon: Columns3,
-        also: ["/calendar", "/board", "/drafts"],
+        also: ["/board", "/drafts"],
       },
     ],
   },

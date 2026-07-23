@@ -19,9 +19,8 @@ export const PLAYBOOK_TABS: SectionTab[] = [
   { to: "/fads", label: "F.A.D.S." },
 ];
 
-// Pipeline group: one flow from plan to posted.
+// Pipeline group: calendar, board, and posted.
 export const PIPELINE_TABS: SectionTab[] = [
-  { to: "/plan", label: "Plan a week" },
   { to: "/calendar", label: "Calendar" },
   { to: "/board", label: "Board" },
   { to: "/drafts", label: "My posts" },
