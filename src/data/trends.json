@@ -1,394 +1,366 @@
 [
   {
-    "id": "trend-2026-07-26-mas-bot-antifraud-mou",
+    "id": "trend-2026-07-27-mas-sgd-neer-tightening",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "topic",
+    "pillar": "market",
     "trend_type": "news",
-    "trend_source": "MAS and the Bank of Thailand signed an MOU on 24 July 2026 covering cybersecurity cooperation, joint training and cross-border digital-fraud protection, signed at the EMEAP Governors' Meeting.",
-    "title": "MAS just signed a cross-border anti-fraud pact - what that actually protects you from",
-    "why_it_works": "A dated regulator-to-regulator announcement gives an honest, non-alarmist reason to talk about scam awareness without fear-mongering or naming any incident.",
+    "trend_source": "MAS tightened the SGD nominal effective exchange rate (NEER) policy band's slope for the second time in 2026 on 27 July 2026, a smaller move than April's, citing renewed Middle East oil-price risk, and raised its 2026 core inflation forecast to 1.5-2.5%.",
+    "title": "MAS just tightened monetary policy again - what a stronger SGD actually does for your wallet",
+    "why_it_works": "A same-day regulator announcement gives an honest, factual reason to explain SGD strength and imported inflation without any market call.",
     "hooks": [
-      "MAS just signed an anti-fraud pact with Thailand's central bank this week. Here's what that kind of cooperation actually catches.",
-      "Regulators don't sign cybersecurity agreements for fun. MAS and Bank of Thailand did exactly that on Friday - here's why it matters to you.",
-      "Two central banks just agreed to share fraud intelligence across borders. If you've never checked MAS's scam register, this is your nudge."
+      "MAS just tightened monetary policy again today. Here's what a stronger Singapore dollar actually does to your grocery bill.",
+      "Our central bank moved on policy again this morning. Not a stock tip - just what it means for your cost of living.",
+      "MAS raised its inflation forecast alongside today's policy move. Here's the one number worth paying attention to."
     ],
     "talking_points": [
-      "State the facts: MAS and Bank of Thailand signed an MOU on 24 July 2026 for cybersecurity cooperation, joint training and cross-border digital fraud protection.",
-      "Explain plainly: this kind of pact helps regulators share intel faster on scams that cross borders, like fake investment platforms.",
-      "Practical step: check any investment 'opportunity' against MAS's Financial Institutions Directory or Investor Alert List before transferring a cent.",
-      "Keep it reassuring and factual, not alarming - this is regulators doing their job, not a warning of a new threat."
+      "State the facts: MAS tightened the SGD NEER policy band's slope on 27 July 2026, its second move this year, and raised its 2026 core inflation forecast to 1.5-2.5%.",
+      "Explain plainly: a stronger SGD makes imports cheaper, which is one lever MAS uses to manage imported inflation from things like oil price shocks.",
+      "Practical point: a higher inflation forecast is a good prompt to check whether your monthly budget still has room, not a reason to change your investments.",
+      "No call on where SGD or any currency goes next - purely a policy explainer and a budgeting reminder."
     ],
-    "cta": "Comment 'CHECK' and I'll send you the exact MAS link to verify any investment platform before you send money.",
+    "cta": "Comment 'INFLATION' and I'll send you a simple way to check if your budget still has room for a higher cost of living.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the MOU headline in the first line, calm and informative tone throughout.",
-    "source_label": "MAS - MAS and BOT sign MOU",
-    "source_url": "https://www.mas.gov.sg/news/media-releases/2026/mas-and-bot-sign-mou-on-cybersecurity-cooperation-and-digital-fraud-protection",
-    "observed_at": "2026-07-24",
-    "date_found": "2026-07-26"
+    "how_to_film": "Text-only LinkedIn post, lead with the MAS policy headline in the first line, calm and factual tone throughout.",
+    "source_label": "CNBC - MAS tightens policy amid oil price risk",
+    "source_url": "https://www.cnbc.com/2026/07/27/singapore-mas-july-monetary-policy-middle-east-oil-prices-inflation-.html",
+    "observed_at": "2026-07-27",
+    "date_found": "2026-07-27"
   },
   {
-    "id": "trend-2026-07-26-spf-fbi-scam-bust",
+    "id": "trend-2026-07-27-big-tech-earnings-ai-capex",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Microsoft, Meta, Apple and Amazon all report earnings within the same 48-hour window this week, with investors and analysts openly divided over roughly US$724 billion in 2026 AI capital spending, per Fortune reporting on 26 July 2026.",
+    "title": "Four Big Tech earnings land in one week - the actual lesson has nothing to do with picking a stock",
+    "why_it_works": "A dated, concrete news hook about market anxiety gives an honest reason to talk about not reacting to a single week of headlines, without recommending any stock or predicting where markets go.",
+    "hooks": [
+      "Four of the biggest tech earnings reports land in the same 48 hours this week. Here's why that shouldn't change your plan either way.",
+      "Investors are already anxious about a single week of earnings reports. That anxiety itself is the interesting story.",
+      "Big Tech's AI spending is dividing investors again this week. Not a call on the stocks - just a reminder about single-week noise."
+    ],
+    "talking_points": [
+      "State the facts neutrally: Microsoft, Meta, Apple and Amazon report earnings within the same week, with markets split over roughly US$724 billion in 2026 AI capital spending, per Fortune on 26 July 2026.",
+      "Explain plainly: a single earnings week creating this much noise is exactly the kind of short-term volatility a long-term plan is built to absorb.",
+      "Practical point: check your own portfolio's diversification before earnings week, not your reaction to the headlines during it.",
+      "No call on any of the four stocks, AI valuations, or where markets go next - purely a reaction-management lesson."
+    ],
+    "cta": "Comment 'STEADY' and tell me one time you're glad you didn't react to a single week of market headlines.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text-only LinkedIn post, lead with the four-companies-one-week fact, calm and factual tone throughout.",
+    "source_label": "Fortune - Big Tech earnings slam into AI spending revolt",
+    "source_url": "https://fortune.com/2026/07/26/big-tech-earnings-meta-microsoft-apple-amazon-market-revolt-ai-spending/",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-27"
+  },
+  {
+    "id": "trend-2026-07-27-section-301-tariffs-court-challenge",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "Singapore Police Force and the FBI announced on 25 July 2026 a deepened cooperation pact on scams and cyber-fraud, revealing a joint action had already stopped US$2.7 million in crypto scam losses.",
-    "title": "Police just stopped a US$2.7 million scam together - the one habit that would've stopped it sooner",
-    "why_it_works": "A concrete, dated enforcement win makes 'verify before you send money' feel real and current instead of generic advice, without naming any victim or product.",
+    "trend_source": "New US Section 301 tariffs of 10-12.5% on goods from 60 trading partners took effect 24 July 2026 and were immediately challenged in court, per Bloomberg reporting on 26 July 2026.",
+    "title": "New US tariffs just took effect and are already in court - what it means for the price of imported goods",
+    "why_it_works": "A dated trade-policy story gives a neutral, non-partisan reason to talk about budgeting for import-cost creep, without taking any political position.",
     "hooks": [
-      "Singapore Police and the FBI just stopped US$2.7 million in scam losses together. Here's the one check that catches most of these early.",
-      "A joint SPF-FBI operation just recovered millions in scam money this week. The pattern behind it repeats more than you'd think.",
-      "Police announced a new anti-scam pact with the FBI today. If you've ever felt pressured to move money fast, read this first."
+      "New US tariffs took effect this week and are already facing a court challenge. Here's the quiet cost that could follow.",
+      "A fresh round of tariffs just kicked in on goods from 60 countries. Not a political take - just what it could do to prices.",
+      "Trade tariffs are back in the headlines this week. If you buy anything imported, here's the budgeting angle worth knowing."
     ],
     "talking_points": [
-      "State the facts: SPF and the FBI announced deepened anti-scam cooperation on 25 July 2026, with a joint action already stopping US$2.7 million in crypto scam losses.",
-      "Name the common pattern in scams like this: urgency, a request to move money fast, and pressure to keep it secret from family or your bank.",
-      "Practical step: pause and verify independently - call your bank on the number on your card, not one given to you - before any urgent transfer.",
-      "Keep the tone empowering, not fearful - awareness is the actual protection, not panic."
+      "State the facts neutrally: new US Section 301 tariffs of 10-12.5% on goods from 60 trading partners took effect 24 July 2026 and are already being challenged in court.",
+      "Explain plainly: tariffs on traded goods tend to filter into retail prices over time, from electronics to household goods.",
+      "Practical step: build a small buffer into your budget for imported goods that could see price creep over the next few months.",
+      "Stay neutral on the policy itself - this is a cost-of-living heads-up, not a political position."
     ],
-    "cta": "Save this post - the 3 warning signs above are worth remembering before you ever move money in a hurry.",
+    "cta": "Save this if you want a reminder to check your budget's buffer before import prices start to shift.",
     "cta_type": "save-share",
-    "how_to_film": "Text-only Facebook post, factual and calm tone, no dramatization, focus on the practical takeaway.",
-    "source_label": "Malay Mail - SPF and FBI anti-scam pact",
-    "source_url": "https://www.malaymail.com/news/singapore/2026/07/25/singapore-police-fbi-join-forces-after-stopping-us27m-crypto-scam-losses/228882",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-26"
+    "how_to_film": "Text-only Facebook post, factual and calm tone, no political framing, focus on the practical takeaway.",
+    "source_label": "Bloomberg - Section 301 tariffs challenged in court",
+    "source_url": "https://www.bloomberg.com/news/articles/2026-07-26/trump-s-section-301-tariffs-how-they-re-being-challenged-in-court",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-27"
   },
   {
-    "id": "trend-2026-07-26-typhoon-noul-sia-flights",
+    "id": "trend-2026-07-27-oil-price-reversal-iran-pause",
     "platform": "instagram",
-    "format": "story",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Typhoon Noul forced Singapore Airlines to cancel multiple flights to and from Hong Kong and Shenzhen on 25-26 July 2026, with affected passengers offered full refunds.",
-    "title": "SIA just cancelled flights over a typhoon - the travel insurance question worth asking before you book",
-    "why_it_works": "A live, dated flight-disruption story makes a travel insurance reminder feel timely and relevant instead of a generic pitch, especially with year-end travel season approaching.",
-    "hooks": [
-      "SIA just cancelled flights to Hong Kong and Shenzhen because of a typhoon. Here's the one thing I check before every trip.",
-      "A typhoon just disrupted flights in and out of Singapore this weekend. If you're booking year-end travel, read this first.",
-      "Flight cancellations hit the news again today. Full refund from the airline is great - but does it cover everything else you paid for?"
-    ],
-    "talking_points": [
-      "Reference the real event: Typhoon Noul forced SIA to cancel several Hong Kong and Shenzhen flights on 25-26 July 2026, with full refunds offered.",
-      "Explain the gap: an airline refund covers the flight - it usually doesn't cover prepaid hotels, tours or missed connections.",
-      "Practical step: check what your travel insurance actually covers for weather disruption before your next trip, not after.",
-      "Keep it practical and timely, not fear-based - this is about being prepared, not scared to travel."
-    ],
-    "cta": "DM me 'TRAVEL' and I'll send you the checklist of what to look for in a travel insurance policy before you book.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Instagram Story, use a travel or airport-adjacent visual, short text overlay naming the typhoon disruption, casual delivery to camera.",
-    "source_label": "Malay Mail - Typhoon Noul flight cancellations",
-    "source_url": "https://www.malaymail.com/news/world/2026/07/25/high-rise-scaffolding-collapses-and-hundreds-of-flights-are-cancelled-as-typhoon-noul-nears-hong-kong-video/228959",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-26"
-  },
-  {
-    "id": "trend-2026-07-26-sti-dip-ai-capex",
-    "platform": "linkedin",
-    "format": "text-post",
+    "format": "carousel",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Singapore's Straits Times Index fell 0.7% on 24 July 2026, tracking global weakness after Alphabet raised its 2026 AI capital-spending guidance to US$195-205 billion, alongside rising oil prices.",
-    "title": "The STI dipped because of a spending number from a US tech company - here's the actual lesson",
-    "why_it_works": "A same-week, concrete local index move gives an honest, non-speculative reason to talk about not reacting to single-day headlines, without any call on AI stocks or where the market goes next.",
+    "trend_source": "Brent crude fell roughly 5-8%, dipping below US$90 a barrel, after the US and Iran paused military strikes for a second night, reversing the price spike from days earlier, per Bloomberg and CNBC reporting on 26-27 July 2026.",
+    "title": "Oil just reversed almost as fast as it spiked - the real lesson about your buffer",
+    "why_it_works": "A dated, concrete price reversal right after the earlier spike makes a compelling, honest case for not chasing volatility, staying strictly on planning behaviour rather than any prediction.",
     "hooks": [
-      "The STI fell 0.7% today because a US tech company raised its spending forecast. That sentence alone tells you something important.",
-      "Singapore's stock index moved because of a capital spending number out of California. Here's why that shouldn't change your plan.",
-      "Global headlines moved our local index today. Not a prediction, just a reminder about what a single day actually means."
+      "Oil just dropped 5-8% overnight, almost as fast as it spiked last week. Here's what that round trip actually teaches.",
+      "The same oil price that spiked past US$100 a week ago just reversed sharply. Not a prediction - a lesson about buffers.",
+      "Prices swung hard again this weekend, in the other direction this time. If you tried to react to the first move, read this."
     ],
     "talking_points": [
-      "State the facts neutrally: the STI fell 0.7% on 24 July 2026, tracking global weakness after Alphabet's 2026 AI capex guidance and rising oil prices.",
-      "Explain plainly: a single day's index move driven by overseas headlines says very little about your own long-term plan.",
-      "Practical point: a diversified portfolio is built precisely so no single company's earnings call should change your strategy.",
-      "No call on AI stocks, tech valuations or where the market goes next - purely a reaction-management lesson."
+      "State the facts neutrally: Brent crude fell 5-8% and dipped below US$90 a barrel after the US and Iran paused military strikes, reversing the spike from days earlier.",
+      "Name the lesson: the same commodity that spiked sharply just reversed just as fast - a reminder that reacting to any single price move is a losing game.",
+      "Practical point: a 3-6 month buffer in your budget absorbs this kind of swing either way, without you needing to predict which direction it goes next.",
+      "Strictly no prediction on oil prices or any geopolitical commentary beyond the bare facts - purely a buffer-planning angle."
     ],
-    "cta": "Comment 'STEADY' and tell me one time you're glad you didn't react to a single day of market news.",
+    "cta": "Comment 'BUFFER' and I'll send you a simple way to size an emergency fund that can absorb a swing like this either way.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the STI figure in the first line, calm factual tone throughout.",
-    "source_label": "Business Today - SGX opens lower as STI falls 0.7%",
-    "source_url": "https://www.businesstoday.com.my/2026/07/24/sgx-opens-lower-as-sti-falls-0-7-investors-track-global-market-weakness/",
-    "observed_at": "2026-07-24",
-    "date_found": "2026-07-26"
+    "how_to_film": "Instagram carousel: slide 1 the spike-then-reversal headline, slide 2 the 'don't chase volatility' concept, slide 3 the buffer-planning angle, slide 4 how to size a buffer, slide 5 comment CTA.",
+    "source_label": "CNBC - Oil slides as Iran signals halt to attacks",
+    "source_url": "https://www.cnbc.com/2026/07/27/oil-price-wti-brent-slide-as-iran-reportedly-may-halt-attacks.html",
+    "observed_at": "2026-07-27",
+    "date_found": "2026-07-27"
   },
   {
-    "id": "trend-2026-07-26-coe-quota-q3",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "LTA announced the Aug-Oct 2026 COE quota on 24-25 July 2026 at 19,085 certificates, up 0.2% overall, with Category A (smaller car) supply set to fall further.",
-    "title": "COE quota just came out for the next quarter - the budgeting question to ask before you bid",
-    "why_it_works": "A fresh, official quota release gives a natural, dated reason to talk about affordability discipline for anyone planning a car purchase, without any prediction on premiums.",
+    "id": "trend-2026-07-27-lebron-76ers-pay-cut",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "LeBron James signed a below-market 2-year, US$8 million deal with the Philadelphia 76ers, announced 25 July 2026 and signed 27 July 2026, calling it his 'last decision' and prioritising a title chase over maximising pay.",
+    "title": "LeBron just took a massive pay cut on purpose - the money lesson behind that choice",
+    "why_it_works": "A genuinely major, positive sports story about deliberately choosing purpose over the biggest paycheck gives an upbeat, natural parallel to values-based financial planning.",
     "hooks": [
-      "LTA just released the COE quota for August to October. If a car purchase is on your list, here's the budgeting move to make first.",
-      "New COE numbers are out for next quarter. Category A supply is tightening again - here's what that means for your budget, not the premium.",
-      "COE quota news is out today. Before you even think about bidding, here's the one number you should actually know first."
+      "LeBron just signed for a fraction of what he could earn elsewhere. Turns out the biggest number isn't always the smart choice.",
+      "A basketball legend just took a pay cut on purpose this week. Here's why that's actually a smart financial decision, not a sacrifice.",
+      "LeBron called this his 'last decision' and picked purpose over the paycheck. That's a bigger lesson than it sounds."
     ],
     "talking_points": [
-      "State the facts: LTA's Aug-Oct 2026 COE quota is 19,085 certificates, up 0.2% overall, with Category A supply set to fall further.",
-      "Explain plainly: quota numbers hint at supply, not price - resist reading them as a prediction of where premiums go.",
-      "Practical step: know your maximum affordable loan repayment as a share of income before you bid, not after you've committed.",
-      "No speculation on COE premium direction - purely a reminder to budget before, not during, the bidding process."
+      "Reference the real event: LeBron James signed a below-market 2-year, US$8 million deal with the Philadelphia 76ers, announced 25 July 2026, calling it his 'last decision.'",
+      "Name the parallel: he chose a specific goal - chasing a title - over maximising his paycheck, a genuinely deliberate financial trade-off.",
+      "Draw the honest line: knowing what you're actually optimising for, not just the biggest number, is the same discipline behind a good financial plan.",
+      "Keep the tone admiring and energetic, matching the moment - this is inspiration, not a lecture on spending."
     ],
-    "cta": "Message me 'COE' and I'll send you a simple worksheet for working out what car loan repayment you can actually afford.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Text-only Facebook post, factual tone, lead with the quota figure, avoid any premium-direction language.",
-    "source_label": "Bernama - LTA COE quota Aug-Oct 2026",
-    "source_url": "https://asean.bernama.com/news.php?id=2585638",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-26"
+    "cta": "Reply and tell me: what's one financial decision you've made for purpose over the biggest number?",
+    "cta_type": "open-question",
+    "how_to_film": "TikTok short video, use NBA highlight-style energy, on-screen text naming the pay-cut detail, deliver the takeaway to camera in the last 5 seconds.",
+    "source_label": "NBA.com - LeBron James signs with 76ers",
+    "source_url": "https://www.nba.com/news/lebron-james-free-agency-sixers-2026",
+    "observed_at": "2026-07-27",
+    "date_found": "2026-07-27"
   },
   {
-    "id": "trend-2026-07-26-aramco-strike-oil-surge",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "current-affairs",
-    "trend_source": "Missile and drone strikes hit Saudi Aramco-linked facilities in Jazan and Yanbu on 25 July 2026, sparking fires and sending Brent crude prices surging past US$100 a barrel.",
-    "title": "Oil just spiked past US$100 overnight - what that actually means for your monthly budget",
-    "why_it_works": "A live geopolitical event with a concrete price move gives a compliant, non-partisan reason to talk about cost-of-living resilience, staying strictly on behaviour and planning, not any market call.",
-    "hooks": [
-      "Oil just jumped past US$100 a barrel overnight after strikes on a Saudi export hub. Here's what actually filters down to your wallet.",
-      "A geopolitical event most of us didn't see coming just moved oil prices sharply. Petrol, transport, groceries - here's the real chain reaction.",
-      "Global oil prices spiked again this weekend. Not a prediction on where it goes next - just a prompt to check your buffer."
-    ],
-    "talking_points": [
-      "State the facts neutrally: strikes on Saudi Aramco-linked facilities in Jazan and Yanbu on 25 July 2026 sent Brent crude above US$100 a barrel.",
-      "Explain the chain simply: oil price spikes eventually show up in petrol, transport fares, and the cost of anything shipped or manufactured.",
-      "Practical point: a 3-6 month buffer in your budget absorbs exactly this kind of imported cost shock without derailing your plan.",
-      "Strictly no political commentary on the conflict and no prediction on oil prices - purely a cost-of-living planning angle."
-    ],
-    "cta": "Comment 'BUFFER' and I'll send you a simple way to size an emergency fund that can absorb a cost-of-living shock like this.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the oil price figure, calm and neutral tone, avoid any geopolitical framing beyond the bare facts.",
-    "source_label": "Tech Times - Aramco Jazan and Yanbu strikes",
-    "source_url": "https://www.techtimes.com/articles/321583/20260725/houthi-strike-burns-jizan-aramco-refinery-yanbu-attack-seals-saudi-arabias-oil-trap.htm",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-26"
-  },
-  {
-    "id": "trend-2026-07-26-pogacar-fifth-tour",
+    "id": "trend-2026-07-27-koivun-3m-open-win",
     "platform": "instagram",
     "format": "carousel",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Tadej Pogacar all but sealed a record-equalling 5th Tour de France title after stage 20 on 25 July 2026, joining an elite group of five-time winners after three weeks of consistent, unspectacular gains.",
-    "title": "Pogacar just won his 5th Tour - the boring habit behind it, not the highlight reel",
-    "why_it_works": "A genuinely exciting sports moment gives an upbeat, universal parallel to consistent saving and investing, and it's a positive, energising angle rather than a cautionary one.",
+    "trend_source": "21-year-old Jackson Koivun won the 3M Open in only his third professional start, firing a tournament-record 25-under total to hold off world No.1 Scottie Scheffler, reported 26 July 2026.",
+    "title": "A 21-year-old just beat the world's best golfer in his third pro start - it wasn't luck",
+    "why_it_works": "A genuinely exciting breakout sports story gives an energising, honest parallel to years of unpaid preparation paying off, which mirrors long-horizon saving and investing without being preachy.",
     "hooks": [
-      "Pogacar just sealed his 5th Tour de France title. Nobody remembers the 3 weeks of consistent, boring effort that actually won it.",
-      "A cyclist just joined an elite 5-time-winner club this weekend. The secret wasn't one big stage - it was every single day.",
-      "Tour de France history was made today. Here's the money habit that mirrors exactly how he won it."
+      "A 21-year-old just won on tour in only his third start as a pro, beating the world No.1. That 'overnight' win took years.",
+      "Everyone's calling this a breakout win this weekend. What they're not seeing is the years of reps before it.",
+      "Jackson Koivun just set a tournament scoring record in his third pro start. Here's the boring truth behind that number."
     ],
     "talking_points": [
-      "Reference the real event: Tadej Pogacar all but sealed a record-equalling 5th Tour de France title after stage 20 on 25 July 2026.",
-      "Name the parallel: Tour titles aren't won on one big day - they're built from small, consistent gains held over three relentless weeks.",
-      "Draw the honest line: automated, consistent saving or investing works the same way - unglamorous, repeated, and it compounds.",
+      "Reference the real event: 21-year-old Jackson Koivun won the 3M Open in his third pro start with a tournament-record 25-under total, holding off world No.1 Scottie Scheffler, reported 26 July 2026.",
+      "Name the parallel: a 'sudden' breakout win is almost always years of unpaid, unseen preparation - amateur and college golf - showing up at once.",
+      "Draw the honest line: consistent, unglamorous saving or investing works the same way - the payoff looks sudden, but it compounds quietly for years first.",
       "Keep the tone celebratory and energetic, matching the achievement, not preachy about money habits."
     ],
-    "cta": "Save this if you need a reminder that consistency beats intensity - in cycling and in your finances.",
+    "cta": "Save this if you need a reminder that the 'overnight' win is usually years in the making - in golf and in your finances.",
     "cta_type": "save-share",
-    "how_to_film": "Instagram carousel: slide 1 the Tour headline, slide 2 the 'marginal gains' concept explained, slide 3 the money parallel, slide 4 one small consistent habit to start, slide 5 save CTA.",
-    "source_label": "NBC Sports - Pogacar nears 5th Tour de France title",
-    "source_url": "https://www.nbcsports.com/cycling/tour-de-france/news/pogacar-closes-in-on-record-equaling-fifth-tour-de-france-title-as-carapaz-wins-penultimate-stage",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-26"
+    "how_to_film": "Instagram carousel: slide 1 the win headline, slide 2 the 'years of prep' reframe, slide 3 the money parallel, slide 4 one small consistent habit to start, slide 5 save CTA.",
+    "source_label": "PGA Tour - Koivun wins 3M Open",
+    "source_url": "https://www.pgatour.com/article/news/daily-wrapup/2026/07/26/round-4-3m-open-tpc-twin-cities-scores-leaderboard-results",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-27"
   },
   {
-    "id": "trend-2026-07-26-wnba-allstar-income-streams",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "The 2026 WNBA All-Star Game (Team Coop vs Team Spoon) tipped off in Chicago on 25 July 2026, headlined by Caitlin Clark, A'ja Wilson and Paige Bueckers, with growing attention on players' income beyond their playing contracts.",
-    "title": "WNBA All-Star weekend is trending - the real financial story is off the court",
-    "why_it_works": "A high-energy, positive sports moment lets the post celebrate the athletes while making an honest point about building income beyond a single source, without needing to comment on any score or player specifically.",
-    "hooks": [
-      "WNBA All-Star weekend just happened and everyone's talking about the plays. I'm more interested in what these athletes do off the court.",
-      "Caitlin Clark and A'ja Wilson lit up the All-Star Game this weekend. Their biggest financial move might not even be on a stat sheet.",
-      "Sports fans are buzzing about All-Star weekend. Here's the money lesson hiding behind the highlight reel."
-    ],
-    "talking_points": [
-      "Reference the real event: the 2026 WNBA All-Star Game (Team Coop vs Team Spoon) played in Chicago on 25 July 2026, headlined by Caitlin Clark, A'ja Wilson and Paige Bueckers.",
-      "Name the trend: top athletes increasingly build income through endorsements, equity and media ventures alongside their playing contracts.",
-      "Draw the parallel: relying on one income source - even a great one - is riskier than building a second or third stream over time.",
-      "Keep the tone upbeat and celebratory of the sport, not a lecture - this is inspiration, not a warning."
-    ],
-    "cta": "Comment 'STREAMS' and tell me what a second income stream could look like for you.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "TikTok short video, use All-Star Game highlight-style energy, on-screen text naming the income-diversification point, deliver the takeaway to camera in the last 5 seconds.",
-    "source_label": "ESPN - 2026 WNBA All-Star Game",
-    "source_url": "https://www.espn.com/wnba/story/_/id/49449685/2026-wnba-all-star-game-chicago-team-spoon-team-coop-live-updates-results-best-moments",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-26"
-  },
-  {
-    "id": "trend-2026-07-26-jennie-less-than-a-lover",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "BLACKPINK's Jennie released her solo single and music video 'Less Than a Lover' on 24 July 2026, which she wrote, composed and co-directed herself, shot in Girona, Spain.",
-    "title": "Jennie wrote, composed AND directed her new single - that's the real flex, not the video",
-    "why_it_works": "A genuinely trending pop-culture release gives a natural, fandom-driven hook into owning your work and income, riding real excitement instead of forcing a lecture.",
-    "hooks": [
-      "Jennie's new single just dropped and she wrote, composed AND directed it herself. That's not just talent, that's ownership.",
-      "Everyone's talking about Jennie's new MV today. The part that actually matters financially is who owns the rights to it.",
-      "New Jennie single, shot in Spain, written and directed by her. Here's why that detail is bigger than it sounds."
-    ],
-    "talking_points": [
-      "Reference the real release: Jennie's solo single and MV 'Less Than a Lover,' out 24 July 2026, which she wrote, composed and co-directed herself.",
-      "Name the financial detail: writing and producing your own work means owning more of the royalties and IP, not just a performance fee.",
-      "Draw the general parallel: owning what you create - a business, content, a skill - builds wealth differently than trading time for a fixed income.",
-      "Keep the tone celebratory of the release, not a forced business lecture - let the fandom energy carry it."
-    ],
-    "cta": "Reply and tell me one thing you create or own that could become an income stream of its own.",
-    "cta_type": "open-question",
-    "how_to_film": "TikTok short video, use a clip or audio from 'Less Than a Lover' if available, on-screen text naming the writer-director detail, casual delivery to camera.",
-    "source_label": "UPI - Jennie 'Less Than a Lover' MV",
-    "source_url": "https://www.upi.com/Entertainment_News/Music/2026/07/24/korea-jennie-less-than-lover-video/4441784897616/",
-    "observed_at": "2026-07-24",
-    "date_found": "2026-07-26"
-  },
-  {
-    "id": "trend-2026-07-26-ankalaev-comeback-win",
+    "id": "trend-2026-07-27-anthony-joshua-comeback-win",
     "platform": "instagram",
     "format": "story",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Former UFC light-heavyweight champion Magomed Ankalaev returned from his title loss to defeat Bogdan Guskov via 5th-round TKO in Abu Dhabi on 25 July 2026.",
-    "title": "He lost the title, then came back and finished it in round 5 - the comeback lesson worth borrowing",
-    "why_it_works": "A real comeback storyline gives an energising, non-cheesy way to talk about rebuilding after a financial setback, framed as inspiration rather than a lecture.",
+    "trend_source": "Anthony Joshua survived two first-round knockdowns to knock out Kristian Prenga in round 2 in Jeddah, his first fight back after a tough stretch, reported 25-26 July 2026, setting up a showdown with Tyson Fury.",
+    "title": "He was knocked down twice in round 1, then won by KO in round 2 - the comeback lesson worth borrowing",
+    "why_it_works": "A real, dramatic comeback storyline gives an energising, non-cheesy way to talk about rebuilding after a setback, framed as inspiration rather than a lecture.",
     "hooks": [
-      "A former champion lost his title, then came back and finished his opponent in round 5 tonight. That's what a real comeback looks like.",
-      "He was dethroned last year. Tonight he won by TKO in the 5th round. The comeback took planning, not luck.",
-      "UFC Abu Dhabi delivered a proper comeback story tonight. Here's the money version of the same lesson."
+      "He got knocked down twice in the first round. He won by knockout in the second. That's what a real comeback looks like.",
+      "Down twice in round one, over by round two - in his favour. The recovery took composure, not luck.",
+      "Boxing delivered a proper comeback story this weekend. Here's the money version of the same lesson."
     ],
     "talking_points": [
-      "Reference the real event: former champion Magomed Ankalaev defeated Bogdan Guskov via 5th-round TKO in Abu Dhabi on 25 July 2026, in his first fight since losing his title.",
-      "Name the parallel: a comeback after a setback - in the cage or with money - takes a deliberate plan, not just waiting for things to improve.",
+      "Reference the real event: Anthony Joshua survived two first-round knockdowns to knock out Kristian Prenga in round 2 in Jeddah, reported 25-26 July 2026.",
+      "Name the parallel: a comeback after being knocked down - in the ring or with money - takes composure and a plan, not just waiting it out.",
       "Practical point: after any financial setback, a written plan with small milestones rebuilds momentum faster than trying to recover it all at once.",
       "Keep the tone motivating and respectful of the sport, not overly dramatic."
     ],
     "cta": "Reply and tell me: what's one financial setback you've already started rebuilding from?",
     "cta_type": "open-question",
-    "how_to_film": "Instagram Story, use fight-night or UFC-adjacent visual, short punchy text overlay on the comeback angle, energetic delivery to camera.",
-    "source_label": "ESPN - UFC Fight Night Abu Dhabi results",
-    "source_url": "https://www.espn.com/mma/fightcenter/_/id/600059667/league/ufc",
+    "how_to_film": "Instagram Story, use fight-night or boxing-adjacent visual, short punchy text overlay on the comeback angle, energetic delivery to camera.",
+    "source_label": "ESPN - Joshua knocks out Prenga in Jeddah",
+    "source_url": "https://www.espn.com/boxing/story/_/id/49444667/anthony-joshua-kristian-prenga-boxing-live-blog-latest-news-analysis-results-eddie-hearn-tyson-fury-heavyweight",
     "observed_at": "2026-07-25",
-    "date_found": "2026-07-26"
+    "date_found": "2026-07-27"
   },
   {
-    "id": "trend-2026-07-26-emma-roberts-micro-wedding",
-    "platform": "instagram",
-    "format": "carousel",
+    "id": "trend-2026-07-27-akopian-senior-chess-champion",
+    "platform": "linkedin",
+    "format": "text-post",
     "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "Actress Emma Roberts married Cody John in an intimate, family-only ceremony in Sun Valley, Idaho, reported 25 July 2026, continuing a trend of small 'micro' celebrity weddings over blowout affairs.",
-    "title": "Emma Roberts just had a tiny, intimate wedding - the budgeting lesson in going small",
-    "why_it_works": "A genuinely trending celebrity moment lets the post ride real interest while making an honest, relatable point about wedding budgeting for engaged clients, without judging anyone's choices.",
+    "trend_type": "sport",
+    "trend_source": "GM Vladimir Akopian won the 2026 U.S. Senior Chess Championship, defeating top seed GM Alexander Onischuk in a blitz tiebreak playoff, concluding 25 July 2026 in Saint Louis.",
+    "title": "A veteran just won a title in a nerve-wracking tiebreak - the decision-making lesson underneath",
+    "why_it_works": "A real, dated competitive result gives a calm, professional-audience-appropriate way to talk about patient decision-making under pressure, without any forced product pitch.",
     "hooks": [
-      "Emma Roberts just got married in a tiny, family-only ceremony instead of a huge affair. Here's why that's actually the smarter money move.",
-      "Another celebrity just chose an intimate wedding over a massive one. The 'micro wedding' trend is quietly a budgeting trend too.",
-      "News just broke of a small, private celebrity wedding this weekend. If you're engaged, this is worth thinking about before you book anything."
+      "A veteran chess grandmaster just won a national title in a tense tiebreak this weekend. His edge wasn't speed - it was patience.",
+      "The U.S. Senior Chess Championship came down to a blitz playoff. The winner didn't panic - here's why that matters.",
+      "A title was decided in a tiebreak this weekend. The calmer player won, not the faster one."
     ],
     "talking_points": [
-      "Reference the real news: Emma Roberts married Cody John in an intimate, family-only ceremony in Idaho, reported 25 July 2026.",
-      "Name the trend: 'micro weddings' - small guest lists, simpler venues - are rising as couples prioritise experience over scale.",
-      "Practical point: setting a wedding budget and a joint-finances plan together, before booking anything, avoids the most common newlywed money friction.",
-      "Keep the tone warm and celebratory, not judging couples who choose bigger weddings - this is about intentional choice, not thrift-shaming."
+      "Reference the real event: GM Vladimir Akopian won the 2026 U.S. Senior Chess Championship, defeating top seed GM Alexander Onischuk in a blitz tiebreak, concluding 25 July 2026.",
+      "Name the parallel: a tiebreak under time pressure rewards preparation and composure, not rushed decisions - the same discipline good financial decisions need.",
+      "Practical point: big financial decisions made under pressure - market dips, deadlines, big purchases - benefit from the same 'slow down and use your plan' approach.",
+      "Keep the tone respectful and calm, matching the competitive setting, not preachy."
     ],
-    "cta": "Save this if a wedding is somewhere on your horizon and you want to plan the budget before the guest list.",
-    "cta_type": "save-share",
-    "how_to_film": "Instagram carousel: slide 1 the headline, slide 2 the micro-wedding trend explained, slide 3 the budgeting angle, slide 4 one joint-finances tip for newlyweds, slide 5 save CTA.",
-    "source_label": "TMZ - Emma Roberts marries Cody John",
-    "source_url": "https://www.tmz.com/2026/07/25/emma-roberts-marrying-cody-john-in-idaho/",
+    "cta": "Comment 'CALM' and tell me one financial decision you're glad you slowed down on before making.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text-only LinkedIn post, lead with the tiebreak headline, calm and measured tone throughout.",
+    "source_label": "Chess.com - Akopian wins U.S. Senior Championship",
+    "source_url": "https://www.chess.com/news/view/akopian-wins-us-senior-championship",
     "observed_at": "2026-07-25",
-    "date_found": "2026-07-26"
+    "date_found": "2026-07-27"
   },
   {
-    "id": "trend-2026-07-26-looksmaxxing-budget",
+    "id": "trend-2026-07-27-india-zimbabwe-t20-sweep",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "identity",
-    "trend_type": "meme",
-    "trend_source": "The 'looksmaxxing' appearance-optimisation trend among young men was back in wider online debate this week, 25 July 2026, with commentary calling out the pressure to spend on grooming and supplement products.",
-    "title": "Looksmaxxing is trending again - the glow-up that actually pays off is the one for your wallet",
-    "why_it_works": "A genuinely trending, self-aware meme topic gives a light, punch-up-at-the-hype angle into not overspending on unproven products, staying playful rather than preachy.",
+    "trend_type": "sport",
+    "trend_source": "India completed a clean 3-0 T20I series sweep over Zimbabwe, with 19-year-old Vaibhav Sooryavanshi scoring 81 in the deciding match, reported 26 July 2026.",
+    "title": "India just swept a series 3-0 - the boring reason it happened every single match",
+    "why_it_works": "A genuinely major cricket result popular with a large Singapore diaspora audience gives an energetic, positive parallel to showing up consistently rather than one big performance.",
     "hooks": [
-      "Looksmaxxing is trending again this week. Can we talk about the glow-up nobody's spending money on - your savings account?",
-      "Everyone's debating looksmaxxing right now. I'll take the free version: sleep, water, and not buying every supplement that's trending.",
-      "The internet's obsessed with looksmaxxing this week. Here's the one 'maxxing' habit that actually compounds - literally."
+      "India just swept a T20 series 3-0 this weekend. Nobody wins three matches in a row on talent alone.",
+      "A 19-year-old just anchored a series-deciding innings. The consistency behind that number is the real story.",
+      "Clean sweep this weekend - three matches, three wins. Here's the habit behind a run like that."
     ],
     "talking_points": [
-      "Reference the real trend: the 'looksmaxxing' appearance-optimisation trend was back in wider online debate this week, 25 July 2026.",
-      "Name the pattern lightly: a lot of the trend leans on unproven grooming and supplement products with real recurring cost and thin evidence.",
-      "Redirect playfully: the basics (sleep, diet, exercise) are free, and redirecting that spend into savings is the actual glow-up.",
-      "Keep the tone self-deprecating and funny, never mocking anyone who follows the trend - this pokes at the spending, not the people."
+      "Reference the real event: India completed a 3-0 T20I series sweep over Zimbabwe, with 19-year-old Vaibhav Sooryavanshi scoring 81 in the deciding match, reported 26 July 2026.",
+      "Name the parallel: a clean sweep isn't one great performance - it's showing up and delivering across every single match.",
+      "Draw the honest line: consistent saving or investing works the same way - it's not one big month, it's showing up every month.",
+      "Keep the tone upbeat and celebratory of the series, not a lecture - this is energy, not homework."
     ],
-    "cta": "Comment 'GLOWUP' and I'll send you a simple way to redirect one recurring subscription into savings instead.",
+    "cta": "Comment 'CONSISTENT' and tell me one money habit you've kept up for every single month this year.",
     "cta_type": "comment-keyword",
-    "how_to_film": "TikTok short video, playful on-screen text listing 'free glow-ups,' deliver the punchline about savings to camera, keep tone light and self-deprecating.",
-    "source_label": "Fox News - looksmaxxing trend debate",
-    "source_url": "https://www.foxnews.com/media/tpusa-andrew-kolvet-calls-viral-looksmaxxing-craze-red-warning-sign-young-men",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-26"
+    "how_to_film": "TikTok short video, use cricket highlight-style energy, on-screen text naming the sweep, deliver the takeaway to camera in the last 5 seconds.",
+    "source_label": "ESPNcricinfo - India complete 3-0 sweep of Zimbabwe",
+    "source_url": "https://www.espncricinfo.com/series/india-in-zimbabwe-2026-1530058/zimbabwe-vs-india-3rd-t20i-1530062/match-report",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-27"
   },
   {
-    "id": "trend-2026-07-26-palma-overtourism-protest",
+    "id": "trend-2026-07-27-bunnie-xo-windfall-purchase",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "Media personality Bunnie XO showed off a new Rolls-Royce Cullinan on social media, funded in part by a lump-sum payment from her recently finalised divorce settlement, reported 26 July 2026.",
+    "title": "She just got a lump-sum payout and bought a Rolls-Royce - the smarter windfall move most people skip",
+    "why_it_works": "A genuinely trending, high-visibility windfall story gives a natural, non-judgmental hook into the real planning question behind any sudden lump sum, without shaming the purchase itself.",
+    "hooks": [
+      "A lump-sum payout just bought a Rolls-Royce this week. Before you judge it, here's the question that actually matters with any windfall.",
+      "Someone just turned a settlement payout into a very public purchase. Here's the one step worth taking before you spend any lump sum.",
+      "A big one-time payout is trending again this week. The purchase isn't the story - what happens before it is."
+    ],
+    "talking_points": [
+      "Reference the real news: media personality Bunnie XO showed off a new Rolls-Royce, funded in part by a lump-sum payment from her recently finalised divorce settlement, reported 26 July 2026.",
+      "Name the real risk: a sudden lump sum - divorce, bonus, inheritance, sale of a business - gets spent fastest in the first few months without a plan.",
+      "Practical step: park a windfall in a holding account for 30-90 days before any big purchase, so the decision is deliberate, not reactive.",
+      "Keep the tone non-judgmental and light - this isn't about her choice, it's about having a plan for your own windfall."
+    ],
+    "cta": "DM me 'WINDFALL' and I'll send you a simple 3-step plan for what to do in the first month after any lump sum.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "TikTok short video, playful on-screen text listing 'what to do before you spend a windfall,' deliver the 3-step plan to camera, keep tone light and non-judgmental.",
+    "source_label": "TMZ - Bunnie XO buys Rolls-Royce",
+    "source_url": "https://www.tmz.com/2026/07/26/bunnie-xo-buys-rolls-royce/",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-27"
+  },
+  {
+    "id": "trend-2026-07-27-15-dollar-ice-cream-economy",
     "platform": "instagram",
     "format": "carousel",
     "pillar": "topic",
-    "trend_type": "current-affairs",
-    "trend_source": "A mass anti-overtourism demonstration is taking place in Palma, Mallorca on 26 July 2026, organised by the 'Menys Turisme, Mes Vida' movement, linking tourist numbers to rising local housing and living costs.",
-    "title": "Mallorca is protesting overtourism today - the quiet cost creeping into your next Europe trip",
-    "why_it_works": "A live, dated event gives a natural, non-partisan reason to talk about rising tourist taxes and travel costs, purely as a budgeting heads-up for anyone planning a Europe trip.",
+    "trend_type": "culture",
+    "trend_source": "A CNN Business feature on a Minnesota creamery selling US$15-100 artisanal ice cream pints went viral this week, reported 25 July 2026, using it as a lens on rising 'premiumization' spending even as many households feel squeezed by inflation.",
+    "title": "A US$15 pint of ice cream is going viral - the spending pattern worth checking in your own budget",
+    "why_it_works": "A genuinely trending, relatable consumer story gives a light, non-judgmental way to talk about small lifestyle-spending creep, staying playful rather than preachy.",
     "hooks": [
-      "There's a mass anti-overtourism protest happening in Mallorca today. Here's the quiet cost it's pointing to for your next Europe trip.",
-      "Palma's streets are closed today for an overtourism protest. Not taking a side - just flagging the travel cost trend behind it.",
-      "European cities keep protesting tourist numbers this year. If Europe's on your travel list, here's what's actually changing in the budget."
+      "A US$15 pint of ice cream is going viral this week. It's not really about the ice cream - it's about a spending pattern worth naming.",
+      "People are talking about a US$100 tub of ice cream today. Here's the sneaky money habit hiding behind the headline.",
+      "This week's viral splurge is ice cream. Next week it'll be something else. Here's the actual thing worth watching."
     ],
     "talking_points": [
-      "State the facts neutrally: a mass anti-overtourism demonstration is taking place in Palma, Mallorca on 26 July 2026, linking tourist numbers to local living costs.",
-      "Explain the trend: cities across Europe (Barcelona, Venice, Palma) have been raising tourist taxes and entry fees in response to similar pressure.",
-      "Practical step: budget an extra buffer for tourist taxes and entry fees on your next Europe trip - they're becoming the norm, not the exception.",
-      "Stay neutral on the protest itself - this is a cost-of-travel heads-up, not commentary on tourism policy."
+      "Reference the real story: a CNN Business feature on a Minnesota creamery selling US$15-100 artisanal ice cream pints went viral this week, reported 25 July 2026.",
+      "Name the pattern: 'premiumization' - small, frequent upgrades on everyday purchases - adds up faster than one big splurge ever does.",
+      "Practical step: track one small recurring 'treat' category for a month before deciding whether to cut it or keep it guilt-free.",
+      "Keep the tone light and non-judgmental - this is about awareness, not telling anyone to stop treating themselves."
     ],
-    "cta": "Save this before you book your next Europe trip so the tourist-tax buffer doesn't catch you by surprise.",
+    "cta": "Save this if you want a nudge to check one small 'treat' spend category before it becomes a habit.",
     "cta_type": "save-share",
-    "how_to_film": "Instagram carousel: slide 1 the protest headline, slide 2 the tourist-tax trend across European cities, slide 3 the budgeting tip, slide 4 how much to buffer, slide 5 save CTA.",
-    "source_label": "Ara Balears - Palma overtourism protest",
-    "source_url": "https://en.arabalears.cat/politics/demonstration-of-26-j-in-palma-blocked-streets-route-and-bus-lines-affected_1_5808558.html",
-    "observed_at": "2026-07-26",
-    "date_found": "2026-07-26"
+    "how_to_film": "Instagram carousel: slide 1 the viral headline, slide 2 the 'premiumization' concept explained, slide 3 the budgeting angle, slide 4 the one-month tracking tip, slide 5 save CTA.",
+    "source_label": "CNN Business - the $15 pint of ice cream",
+    "source_url": "https://edition.cnn.com/2026/07/25/economy/15-usd-pint-ice-cream-economy",
+    "observed_at": "2026-07-25",
+    "date_found": "2026-07-27"
   },
   {
-    "id": "trend-2026-07-26-deepseek-funding-pause",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "AI lab DeepSeek reportedly paused a planned US$1.5 billion fundraising round, Bloomberg reported 25 July 2026, after viral online commentary around the round circulated.",
-    "title": "Even a hyped AI lab just paused its own fundraise - the business lesson, not the hype",
-    "why_it_works": "A dated, concrete business story about a funding pause gives an honest hook into cash discipline for business-owner clients, without any comment on AI investing or stock picks.",
+    "id": "trend-2026-07-27-the-odyssey-box-office-record",
+    "platform": "instagram",
+    "format": "story",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "Christopher Nolan's 'The Odyssey' posted a record second weekend of US$87 million, becoming 2026's highest-grossing R-rated film with a worldwide total near US$640 million, reported 26 July 2026.",
+    "title": "A movie just made US$87 million in its second weekend alone - what that says about how we spend on 'treats'",
+    "why_it_works": "A genuinely trending box-office story gives a light, current way to talk about discretionary entertainment spending as a real budget category, without judging anyone's choices.",
     "hooks": [
-      "A hyped AI company just paused a US$1.5 billion fundraise this week. Here's the boring business lesson buried in that headline.",
-      "Even the most talked-about AI lab right now hit pause on raising money. That's not failure - that's discipline.",
-      "Big funding round, paused overnight. If you run a business, here's the actual takeaway - not the hype cycle."
+      "A single movie just made US$87 million in one weekend - its second weekend. That's discretionary spending on a massive scale.",
+      "This film just became the biggest R-rated movie of the year this weekend. Entertainment spending is a real budget line, not an afterthought.",
+      "People are still lining up for this movie weeks after it opened. Here's why 'fun money' deserves its own line in your budget."
     ],
     "talking_points": [
-      "State the facts neutrally: DeepSeek paused a planned US$1.5 billion fundraising round, per a Bloomberg report on 25 July 2026.",
-      "Explain plainly: pausing a raise rather than rushing it through is a sign of discipline, not necessarily trouble - timing matters more than speed.",
-      "Practical point for business owners: build enough runway that you're never forced to raise or borrow on someone else's timeline.",
-      "No comment on AI valuations, investing in AI companies, or any stock or fund - purely a cash-discipline lesson for business owners."
+      "Reference the real news: Christopher Nolan's 'The Odyssey' posted a record US$87 million second weekend, becoming 2026's highest-grossing R-rated film, reported 26 July 2026.",
+      "Name the pattern: entertainment and experiences are a genuine, planned budget category for most households, not just leftover spending.",
+      "Practical step: give 'fun money' - movies, concerts, outings - its own small monthly amount so it doesn't quietly eat into savings.",
+      "Keep the tone light and current, not judgmental about spending on entertainment."
     ],
-    "cta": "Comment 'RUNWAY' and I'll send you a simple way to calculate how many months of runway your business actually has.",
+    "cta": "DM me 'FUNMONEY' and I'll send you a simple way to set a guilt-free monthly entertainment budget.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Instagram Story, use a cinema or movie-night visual, short text overlay naming the box-office figure, casual delivery to camera.",
+    "source_label": "Deadline - The Odyssey box office update",
+    "source_url": "https://deadline.com/2026/07/box-office-the-odyssey-motor-city-her-private-hell-hadestown-1237002537/",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-27"
+  },
+  {
+    "id": "trend-2026-07-27-avengers-endgame-encore",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "Marvel announced 'Avengers: Endgame Encore,' a theatrical re-release of the 2019 film with new bonus scenes, at Comic-Con on 25-26 July 2026, set for cinemas on 25 September.",
+    "title": "A 2019 movie is heading back to cinemas - the smart money move studios make that you can copy",
+    "why_it_works": "A genuinely trending entertainment announcement gives a light, relatable way to talk about getting more value from something you already own, without a forced pitch.",
+    "hooks": [
+      "A movie from 2019 is going back into cinemas this September, with new scenes added. That's a smart reuse of an existing asset.",
+      "Marvel just announced they're re-releasing a 6-year-old film. Here's the money principle behind that move.",
+      "An old movie just got new life this week. The lesson isn't about movies - it's about not letting what you already have go to waste."
+    ],
+    "talking_points": [
+      "Reference the real news: Marvel announced 'Avengers: Endgame Encore,' a theatrical re-release with new bonus scenes, at Comic-Con on 25-26 July 2026, opening 25 September.",
+      "Name the principle: studios often get more value from an existing asset - old IP, old content - than from starting something new from scratch.",
+      "Draw the light parallel: the same idea applies to money you already have - an old policy, a dormant account, unused benefits - worth revisiting before starting something new.",
+      "Keep the tone playful and current, not a heavy pitch - this is a fun observation, not a hard sell."
+    ],
+    "cta": "Comment 'REVISIT' and tell me one old account or policy you haven't looked at in over a year.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the funding-pause headline, calm and business-focused tone, no AI hype language.",
-    "source_label": "Bloomberg - DeepSeek funding pause",
-    "source_url": "https://www.bloomberg.com/news/articles/2026-07-25/deepseek-said-to-tell-backers-of-funding-pause-after-viral-posts",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-26"
+    "how_to_film": "Text-only Facebook post, lead with the re-release headline, light and conversational tone throughout.",
+    "source_label": "Marvel.com - San Diego Comic-Con Hall H recap",
+    "source_url": "https://www.marvel.com/articles/live-events/marvel-studios-san-diego-comic-con-2026-hall-h-recap",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-27"
   }
 ]
