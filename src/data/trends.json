@@ -1,366 +1,338 @@
 [
   {
-    "id": "trend-2026-07-27-mas-sgd-neer-tightening",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "MAS tightened the SGD nominal effective exchange rate (NEER) policy band's slope for the second time in 2026 on 27 July 2026, a smaller move than April's, citing renewed Middle East oil-price risk, and raised its 2026 core inflation forecast to 1.5-2.5%.",
-    "title": "MAS just tightened monetary policy again - what a stronger SGD actually does for your wallet",
-    "why_it_works": "A same-day regulator announcement gives an honest, factual reason to explain SGD strength and imported inflation without any market call.",
-    "hooks": [
-      "MAS just tightened monetary policy again today. Here's what a stronger Singapore dollar actually does to your grocery bill.",
-      "Our central bank moved on policy again this morning. Not a stock tip - just what it means for your cost of living.",
-      "MAS raised its inflation forecast alongside today's policy move. Here's the one number worth paying attention to."
-    ],
-    "talking_points": [
-      "State the facts: MAS tightened the SGD NEER policy band's slope on 27 July 2026, its second move this year, and raised its 2026 core inflation forecast to 1.5-2.5%.",
-      "Explain plainly: a stronger SGD makes imports cheaper, which is one lever MAS uses to manage imported inflation from things like oil price shocks.",
-      "Practical point: a higher inflation forecast is a good prompt to check whether your monthly budget still has room, not a reason to change your investments.",
-      "No call on where SGD or any currency goes next - purely a policy explainer and a budgeting reminder."
-    ],
-    "cta": "Comment 'INFLATION' and I'll send you a simple way to check if your budget still has room for a higher cost of living.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the MAS policy headline in the first line, calm and factual tone throughout.",
-    "source_label": "CNBC - MAS tightens policy amid oil price risk",
-    "source_url": "https://www.cnbc.com/2026/07/27/singapore-mas-july-monetary-policy-middle-east-oil-prices-inflation-.html",
-    "observed_at": "2026-07-27",
-    "date_found": "2026-07-27"
-  },
-  {
-    "id": "trend-2026-07-27-big-tech-earnings-ai-capex",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Microsoft, Meta, Apple and Amazon all report earnings within the same 48-hour window this week, with investors and analysts openly divided over roughly US$724 billion in 2026 AI capital spending, per Fortune reporting on 26 July 2026.",
-    "title": "Four Big Tech earnings land in one week - the actual lesson has nothing to do with picking a stock",
-    "why_it_works": "A dated, concrete news hook about market anxiety gives an honest reason to talk about not reacting to a single week of headlines, without recommending any stock or predicting where markets go.",
-    "hooks": [
-      "Four of the biggest tech earnings reports land in the same 48 hours this week. Here's why that shouldn't change your plan either way.",
-      "Investors are already anxious about a single week of earnings reports. That anxiety itself is the interesting story.",
-      "Big Tech's AI spending is dividing investors again this week. Not a call on the stocks - just a reminder about single-week noise."
-    ],
-    "talking_points": [
-      "State the facts neutrally: Microsoft, Meta, Apple and Amazon report earnings within the same week, with markets split over roughly US$724 billion in 2026 AI capital spending, per Fortune on 26 July 2026.",
-      "Explain plainly: a single earnings week creating this much noise is exactly the kind of short-term volatility a long-term plan is built to absorb.",
-      "Practical point: check your own portfolio's diversification before earnings week, not your reaction to the headlines during it.",
-      "No call on any of the four stocks, AI valuations, or where markets go next - purely a reaction-management lesson."
-    ],
-    "cta": "Comment 'STEADY' and tell me one time you're glad you didn't react to a single week of market headlines.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the four-companies-one-week fact, calm and factual tone throughout.",
-    "source_label": "Fortune - Big Tech earnings slam into AI spending revolt",
-    "source_url": "https://fortune.com/2026/07/26/big-tech-earnings-meta-microsoft-apple-amazon-market-revolt-ai-spending/",
-    "observed_at": "2026-07-26",
-    "date_found": "2026-07-27"
-  },
-  {
-    "id": "trend-2026-07-27-section-301-tariffs-court-challenge",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "New US Section 301 tariffs of 10-12.5% on goods from 60 trading partners took effect 24 July 2026 and were immediately challenged in court, per Bloomberg reporting on 26 July 2026.",
-    "title": "New US tariffs just took effect and are already in court - what it means for the price of imported goods",
-    "why_it_works": "A dated trade-policy story gives a neutral, non-partisan reason to talk about budgeting for import-cost creep, without taking any political position.",
-    "hooks": [
-      "New US tariffs took effect this week and are already facing a court challenge. Here's the quiet cost that could follow.",
-      "A fresh round of tariffs just kicked in on goods from 60 countries. Not a political take - just what it could do to prices.",
-      "Trade tariffs are back in the headlines this week. If you buy anything imported, here's the budgeting angle worth knowing."
-    ],
-    "talking_points": [
-      "State the facts neutrally: new US Section 301 tariffs of 10-12.5% on goods from 60 trading partners took effect 24 July 2026 and are already being challenged in court.",
-      "Explain plainly: tariffs on traded goods tend to filter into retail prices over time, from electronics to household goods.",
-      "Practical step: build a small buffer into your budget for imported goods that could see price creep over the next few months.",
-      "Stay neutral on the policy itself - this is a cost-of-living heads-up, not a political position."
-    ],
-    "cta": "Save this if you want a reminder to check your budget's buffer before import prices start to shift.",
-    "cta_type": "save-share",
-    "how_to_film": "Text-only Facebook post, factual and calm tone, no political framing, focus on the practical takeaway.",
-    "source_label": "Bloomberg - Section 301 tariffs challenged in court",
-    "source_url": "https://www.bloomberg.com/news/articles/2026-07-26/trump-s-section-301-tariffs-how-they-re-being-challenged-in-court",
-    "observed_at": "2026-07-26",
-    "date_found": "2026-07-27"
-  },
-  {
-    "id": "trend-2026-07-27-oil-price-reversal-iran-pause",
+    "id": "trend-2026-07-28-retail-festival-ends",
     "platform": "instagram",
     "format": "carousel",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Brent crude fell roughly 5-8%, dipping below US$90 a barrel, after the US and Iran paused military strikes for a second night, reversing the price spike from days earlier, per Bloomberg and CNBC reporting on 26-27 July 2026.",
-    "title": "Oil just reversed almost as fast as it spiked - the real lesson about your buffer",
-    "why_it_works": "A dated, concrete price reversal right after the earlier spike makes a compelling, honest case for not chasing volatility, staying strictly on planning behaviour rather than any prediction.",
+    "pillar": "topic",
+    "trend_type": "event",
+    "trend_source": "The Singapore Retail Festival (formerly the Great Singapore Sale) ran 4-26 July 2026 across malls like ION Orchard and VivoCity with discounts up to 70%, and wrapped up this week, with the deepest markdowns landing in its final stretch.",
+    "title": "The Singapore Retail Festival just ended - the check worth doing before the credit card bill lands",
+    "why_it_works": "A dated, real end-of-sale-season moment gives a natural, non-judgmental reason to talk about a post-sale spending review, right when the temptation to overspend was highest.",
     "hooks": [
-      "Oil just dropped 5-8% overnight, almost as fast as it spiked last week. Here's what that round trip actually teaches.",
-      "The same oil price that spiked past US$100 a week ago just reversed sharply. Not a prediction - a lesson about buffers.",
-      "Prices swung hard again this weekend, in the other direction this time. If you tried to react to the first move, read this."
+      "The Singapore Retail Festival just wrapped up and I want to talk about the credit card bill landing in a few weeks.",
+      "If you bought something in the last two weeks because it was '70% off,' I want you to check one thing first.",
+      "Sale season just ended in Singapore. Here's the five-minute check I do before my card statement arrives."
     ],
     "talking_points": [
-      "State the facts neutrally: Brent crude fell 5-8% and dipped below US$90 a barrel after the US and Iran paused military strikes, reversing the spike from days earlier.",
-      "Name the lesson: the same commodity that spiked sharply just reversed just as fast - a reminder that reacting to any single price move is a losing game.",
-      "Practical point: a 3-6 month buffer in your budget absorbs this kind of swing either way, without you needing to predict which direction it goes next.",
-      "Strictly no prediction on oil prices or any geopolitical commentary beyond the bare facts - purely a buffer-planning angle."
+      "Reference the real event: the Singapore Retail Festival ran 4-26 July 2026 across malls like ION Orchard and VivoCity, with discounts up to 70%, and wrapped up this week.",
+      "Name the pattern: the deepest discounts land in the final stretch, which is exactly when impulse buying peaks.",
+      "Practical step: go through your bank app for the last two weeks and flag anything bought purely because of a discount, not a need.",
+      "Keep the tone light and practical - this isn't about not enjoying a sale, it's about a five-minute review before the bill lands."
     ],
-    "cta": "Comment 'BUFFER' and I'll send you a simple way to size an emergency fund that can absorb a swing like this either way.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Instagram carousel: slide 1 the spike-then-reversal headline, slide 2 the 'don't chase volatility' concept, slide 3 the buffer-planning angle, slide 4 how to size a buffer, slide 5 comment CTA.",
-    "source_label": "CNBC - Oil slides as Iran signals halt to attacks",
-    "source_url": "https://www.cnbc.com/2026/07/27/oil-price-wti-brent-slide-as-iran-reportedly-may-halt-attacks.html",
-    "observed_at": "2026-07-27",
-    "date_found": "2026-07-27"
+    "cta": "Save this as your reminder to do a five-minute post-sale spending check before your next statement.",
+    "cta_type": "save-share",
+    "how_to_film": "Instagram carousel: slide 1 the 'sale season just ended' headline, slide 2 why the last stretch is riskiest, slide 3 the 5-minute bank app check, slide 4 what to flag, slide 5 save CTA.",
+    "source_label": "Yahoo Life Singapore - Singapore Retail Festival 2026",
+    "source_url": "https://sg.style.yahoo.com/singapore-retail-festival-returns-4-020019107.html",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-28"
   },
   {
-    "id": "trend-2026-07-27-lebron-76ers-pay-cut",
+    "id": "trend-2026-07-28-pop-mart-bakery-rws",
     "platform": "tiktok",
     "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "LeBron James signed a below-market 2-year, US$8 million deal with the Philadelphia 76ers, announced 25 July 2026 and signed 27 July 2026, calling it his 'last decision' and prioritising a title chase over maximising pay.",
-    "title": "LeBron just took a massive pay cut on purpose - the money lesson behind that choice",
-    "why_it_works": "A genuinely major, positive sports story about deliberately choosing purpose over the biggest paycheck gives an upbeat, natural parallel to values-based financial planning.",
+    "pillar": "interest",
+    "trend_type": "event",
+    "trend_source": "Pop Mart is opening POP BAKERY, its first Southeast Asia flagship, on 30 July 2026 at WEAVE, Resorts World Sentosa, selling Labubu-themed cookies and Molly chocolates - the kind of Labubu-adjacent launch that reliably draws queues in Singapore.",
+    "title": "A new Labubu bakery is about to draw queues at Sentosa - the spending question to ask before you line up",
+    "why_it_works": "A concrete, dated local launch that's guaranteed to trigger queue culture and impulse spending gives an honest, timely hook into planning for hype purchases instead of shaming them.",
     "hooks": [
-      "LeBron just signed for a fraction of what he could earn elsewhere. Turns out the biggest number isn't always the smart choice.",
-      "A basketball legend just took a pay cut on purpose this week. Here's why that's actually a smart financial decision, not a sacrifice.",
-      "LeBron called this his 'last decision' and picked purpose over the paycheck. That's a bigger lesson than it sounds."
+      "There's a new Labubu bakery opening at Sentosa this week and I already know there'll be a queue out the door.",
+      "Before you queue for the new Pop Mart bakery, I want to ask you one question about impulse buys.",
+      "A cookie tin is about to become the most fought-over item in Singapore this week. Here's the habit behind that."
     ],
     "talking_points": [
-      "Reference the real event: LeBron James signed a below-market 2-year, US$8 million deal with the Philadelphia 76ers, announced 25 July 2026, calling it his 'last decision.'",
-      "Name the parallel: he chose a specific goal - chasing a title - over maximising his paycheck, a genuinely deliberate financial trade-off.",
-      "Draw the honest line: knowing what you're actually optimising for, not just the biggest number, is the same discipline behind a good financial plan.",
-      "Keep the tone admiring and energetic, matching the moment - this is inspiration, not a lecture on spending."
+      "Reference the real news: Pop Mart's POP BAKERY, its first Southeast Asia flagship, opens 30 July 2026 at Resorts World Sentosa, selling Labubu-themed cookies and Molly chocolates.",
+      "Name the pattern: Labubu-adjacent launches in Singapore reliably draw long queues and quick sell-outs, which is exactly when impulse spending spikes.",
+      "Practical point: decide your spend limit before you queue, not while you're standing in it - hype purchases are easiest to control with a number set in advance.",
+      "Keep the tone fun and non-judgmental - queueing for something you love is fine, the plan just needs to come first."
     ],
-    "cta": "Reply and tell me: what's one financial decision you've made for purpose over the biggest number?",
-    "cta_type": "open-question",
-    "how_to_film": "TikTok short video, use NBA highlight-style energy, on-screen text naming the pay-cut detail, deliver the takeaway to camera in the last 5 seconds.",
-    "source_label": "NBA.com - LeBron James signs with 76ers",
-    "source_url": "https://www.nba.com/news/lebron-james-free-agency-sixers-2026",
-    "observed_at": "2026-07-27",
-    "date_found": "2026-07-27"
+    "cta": "Comment 'QUEUE' and I'll send you a simple way to set a hype-purchase budget before you line up for anything.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "TikTok short video, film outside a Pop Mart store or with Labubu merch as a prop, deliver the 'set your limit before you queue' tip to camera with quick cuts.",
+    "source_label": "MissLobang - Pop Mart POP BAKERY opens at Resorts World Sentosa",
+    "source_url": "https://www.misslobang.com/article/pop-mart-pop-bakery-resorts-world-sentosa-opening-30-jul-2026",
+    "observed_at": "2026-07-28",
+    "date_found": "2026-07-28"
   },
   {
-    "id": "trend-2026-07-27-koivun-3m-open-win",
+    "id": "trend-2026-07-28-sg-banks-record-highs",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "DBS, OCBC and UOB shares all closed at record highs in the same trading session on 26 July 2026, with OCBC up 3.3% to $26.34, UOB up 2.9% to $41.69 and DBS up 2.6% to $68.64.",
+    "title": "Our three local banks just hit record highs together - the question that matters more than the headline",
+    "why_it_works": "A same-week record-high headline gives an honest reason to talk about not chasing a rally, purely a behavioural reminder with zero stock call.",
+    "hooks": [
+      "DBS, OCBC and UOB all hit record highs together this week. I'm not here to tell you to buy or sell any of them.",
+      "Our three big local banks just had their best week ever on the stock market. Here's the only question that actually matters.",
+      "Record highs for DBS, OCBC and UOB this week. Before you feel FOMO, read this."
+    ],
+    "talking_points": [
+      "State the facts neutrally: DBS, OCBC and UOB shares all closed at record highs in the same trading session, with gains of 2.6-3.3% on 26 July 2026.",
+      "Name the trap: record highs create FOMO to chase a rally, which is exactly the wrong time to make a rushed decision.",
+      "Practical point: if you already hold these banks through a CPF fund, SRS portfolio or STI ETF, this is a good week to check your overall diversification, not to add more on impulse.",
+      "No call on whether to buy, sell or hold any of the three banks - purely a behavioural reminder."
+    ],
+    "cta": "Comment 'CHECK' and tell me the last time you reviewed your portfolio's diversification instead of chasing a headline.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text-only LinkedIn post, lead with the three-banks-record-highs fact, calm and factual tone throughout.",
+    "source_label": "Growbeansprout - DBS, OCBC, UOB share price record highs",
+    "source_url": "https://growbeansprout.com/dbs-ocbc-uob-share-price-jul-26",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-28"
+  },
+  {
+    "id": "trend-2026-07-28-jimothy-raccoon-meme",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "meme",
+    "trend_source": "Jimothy, a short-spined rescue raccoon first posted by Instagram user Kiana Hall on 14 July 2026, exploded into one of 2026's most-loved viral animals this past week, spawning fan art and reaction memes across TikTok and X.",
+    "title": "The internet fell for an unpolished, oddly-shaped raccoon this week - the pet-budget question hiding behind the cuteness",
+    "why_it_works": "A huge, wholesome viral animal moment gives a light, non-judgmental opening to talk about the real costs of impulse pet adoption, without moralising about the meme itself.",
+    "hooks": [
+      "Everyone's obsessed with a short, round raccoon named Jimothy this week. I want to talk about the pet he's making people want.",
+      "A raccoon named Jimothy just became the internet's favourite animal. Here's the budget question nobody's asking about him.",
+      "If Jimothy the raccoon has you googling 'exotic pets near me,' read this before you adopt anything."
+    ],
+    "talking_points": [
+      "Reference the real story: Jimothy, a short-spined rescue raccoon first posted by Instagram user Kiana Hall on 14 July 2026, exploded into one of 2026's most-loved viral animals this past week.",
+      "Name the real risk: viral animal moments reliably spike impulse pet adoptions, and vet bills for an unusual pet are almost always higher than people expect.",
+      "Practical step: price out a full year of vet care and food for any pet before bringing one home, not after.",
+      "Keep the tone warm and non-judgmental - Jimothy is adorable, this is about planning, not shaming anyone who loves animals."
+    ],
+    "cta": "DM me 'PET' and I'll send you a simple checklist to budget for a new pet before you bring one home.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "TikTok short video, use raccoon or pet footage/clips as background, deliver the vet-bill budgeting tip to camera with on-screen text.",
+    "source_label": "Forbes - Who is Jimothy the viral raccoon",
+    "source_url": "https://www.forbes.com/sites/danidiplacido/2026/07/26/who-is-jimothy-the-viral-round-raccoon-explained/",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-28"
+  },
+  {
+    "id": "trend-2026-07-28-odysseus-screaming-meme",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "identity",
+    "trend_type": "meme",
+    "trend_source": "The 'Odysseus Screaming' meme - a still of Matt Damon's anguished face from Christopher Nolan's The Odyssey - went viral this week captioned 'when you upload your resume and still have to retype your entire work history,' racking up nearly a million views on a single post.",
+    "title": "That screaming Matt Damon meme about resumes - the real checklist behind the joke",
+    "why_it_works": "A meme literally about the pain of job applications gives a natural, funny opening into the financial admin people actually forget when they switch jobs.",
+    "hooks": [
+      "That screaming Matt Damon meme about uploading your resume and retyping your whole work history? Let's actually fix that problem.",
+      "The internet's favourite meme this week is about how painful job applications are. Here's the financial checklist hiding in the joke.",
+      "If you've reposted the Odysseus screaming meme about job applications, you probably have a job-switch checklist gap too."
+    ],
+    "talking_points": [
+      "Reference the real meme: a still of Matt Damon's anguished face from Christopher Nolan's The Odyssey went viral this week captioned 'when you upload your resume and still have to retype your entire work history.'",
+      "Name the real gap: people update their resume for a new job far more carefully than they update their insurance nominations, CPF details or notice-period pay calculations.",
+      "Practical step: before you accept a new offer, check your insurance portability, your last paycheck's CPF contribution, and any unused benefits at your current job.",
+      "Keep the tone light and current - ride the meme's humour, don't lecture."
+    ],
+    "cta": "Comment 'SWITCH' and I'll send you the 5-point checklist to run through before you hand in your notice.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text-only LinkedIn post, open with the meme reference, conversational and slightly funny tone, end on the practical checklist.",
+    "source_label": "Know Your Meme - Matt Damon Yelling / Odysseus Screaming",
+    "source_url": "https://knowyourmeme.com/memes/matt-damon-yelling-odysseus-screaming",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-28"
+  },
+  {
+    "id": "trend-2026-07-28-pogacar-fifth-tour-win",
     "platform": "instagram",
     "format": "carousel",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "21-year-old Jackson Koivun won the 3M Open in only his third professional start, firing a tournament-record 25-under total to hold off world No.1 Scottie Scheffler, reported 26 July 2026.",
-    "title": "A 21-year-old just beat the world's best golfer in his third pro start - it wasn't luck",
-    "why_it_works": "A genuinely exciting breakout sports story gives an energising, honest parallel to years of unpaid preparation paying off, which mirrors long-horizon saving and investing without being preachy.",
+    "trend_source": "Tadej Pogačar won the 2026 Tour de France on 26 July 2026, his fifth title, tying him with Jacques Anquetil, Eddy Merckx, Bernard Hinault and Miguel Induráin as the most successful riders in the race's history.",
+    "title": "He just won his 5th Tour de France - the boring habit behind that number",
+    "why_it_works": "A genuinely historic, positive sports achievement gives an energising, honest parallel to showing up year after year, which mirrors long-horizon investing without preaching.",
     "hooks": [
-      "A 21-year-old just won on tour in only his third start as a pro, beating the world No.1. That 'overnight' win took years.",
-      "Everyone's calling this a breakout win this weekend. What they're not seeing is the years of reps before it.",
-      "Jackson Koivun just set a tournament scoring record in his third pro start. Here's the boring truth behind that number."
+      "Tadej Pogačar just won his 5th Tour de France. Winning once is talent. Winning five times is a habit.",
+      "A cyclist just tied the record for the most Tour de France wins ever. Nobody talks about how boring his routine probably is.",
+      "He just became one of the most successful Tour de France riders in history. Here's the unglamorous reason why."
     ],
     "talking_points": [
-      "Reference the real event: 21-year-old Jackson Koivun won the 3M Open in his third pro start with a tournament-record 25-under total, holding off world No.1 Scottie Scheffler, reported 26 July 2026.",
-      "Name the parallel: a 'sudden' breakout win is almost always years of unpaid, unseen preparation - amateur and college golf - showing up at once.",
-      "Draw the honest line: consistent, unglamorous saving or investing works the same way - the payoff looks sudden, but it compounds quietly for years first.",
+      "Reference the real event: Tadej Pogačar won the 2026 Tour de France on 26 July 2026, his fifth title, tying him with the most successful riders in the race's history.",
+      "Name the parallel: winning five times isn't one extraordinary ride, it's showing up prepared, year after year, long before the cameras are on.",
+      "Draw the honest line: consistent investing works the same way - it's not one great year, it's showing up every year regardless of headlines.",
       "Keep the tone celebratory and energetic, matching the achievement, not preachy about money habits."
     ],
-    "cta": "Save this if you need a reminder that the 'overnight' win is usually years in the making - in golf and in your finances.",
+    "cta": "Save this if you need a reminder that five wins in a row is a habit, not a lucky streak - in cycling or in your finances.",
     "cta_type": "save-share",
-    "how_to_film": "Instagram carousel: slide 1 the win headline, slide 2 the 'years of prep' reframe, slide 3 the money parallel, slide 4 one small consistent habit to start, slide 5 save CTA.",
-    "source_label": "PGA Tour - Koivun wins 3M Open",
-    "source_url": "https://www.pgatour.com/article/news/daily-wrapup/2026/07/26/round-4-3m-open-tpc-twin-cities-scores-leaderboard-results",
+    "how_to_film": "Instagram carousel: slide 1 the 5th-win headline, slide 2 the 'habit not luck' reframe, slide 3 the investing parallel, slide 4 one small consistent habit to start, slide 5 save CTA.",
+    "source_label": "NPR - Tadej Pogačar wins 2026 Tour de France",
+    "source_url": "https://www.npr.org/2026/07/26/nx-s1-5908503/tadej-pogacar-tour-de-france-2026-winner-wildfires",
     "observed_at": "2026-07-26",
-    "date_found": "2026-07-27"
+    "date_found": "2026-07-28"
   },
   {
-    "id": "trend-2026-07-27-anthony-joshua-comeback-win",
+    "id": "trend-2026-07-28-gan-ching-hwee-record",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Singapore swimmer Gan Ching Hwee broke her own national record in the women's 400m freestyle at the 2026 Commonwealth Games in Glasgow this week, clocking 4:09.34 - finishing 5th, outside the medals, but shaving 0.48s off her own best.",
+    "title": "She broke her own record and still didn't medal - the number that actually matters",
+    "why_it_works": "A real, dated result about beating your own personal best rather than the podium gives an honest parallel to measuring financial progress against your own past, not someone else's.",
+    "hooks": [
+      "She broke her own national record this week and still finished 5th, outside the medals. I think that's the real win.",
+      "A Singapore swimmer just beat her own best time at the Commonwealth Games. Nobody's talking about why that matters more than the medal.",
+      "No medal, personal best. Here's why that's actually the number worth celebrating."
+    ],
+    "talking_points": [
+      "Reference the real event: Singapore swimmer Gan Ching Hwee broke her own national record in the women's 400m freestyle at the 2026 Commonwealth Games, clocking 4:09.34 and finishing 5th.",
+      "Name the parallel: she wasn't measured against the field that day, she was measured against her own past best - and she won that comparison.",
+      "Practical point: track your net worth or savings rate against your own number from a year ago, not against anyone else's highlight reel.",
+      "Keep the tone proud and encouraging, matching the achievement - this is about progress, not comparison."
+    ],
+    "cta": "Reply and tell me one number that's better for you this year than it was last year.",
+    "cta_type": "open-question",
+    "how_to_film": "TikTok short video, use swimming or pool footage as background, on-screen text showing 'personal best' vs 'medal,' deliver the takeaway to camera.",
+    "source_label": "SwimSwam - Gan Ching Hwee breaks 400m freestyle record",
+    "source_url": "https://swimswam.com/ching-hwee-gan-breaks-own-400-free-national-record-with-409-34-at-commonwealth-games/",
+    "observed_at": "2026-07-27",
+    "date_found": "2026-07-28"
+  },
+  {
+    "id": "trend-2026-07-28-3x3-basketball-debut-loss",
     "platform": "instagram",
     "format": "story",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Anthony Joshua survived two first-round knockdowns to knock out Kristian Prenga in round 2 in Jeddah, his first fight back after a tough stretch, reported 25-26 July 2026, setting up a showdown with Tyson Fury.",
-    "title": "He was knocked down twice in round 1, then won by KO in round 2 - the comeback lesson worth borrowing",
-    "why_it_works": "A real, dramatic comeback storyline gives an energising, non-cheesy way to talk about rebuilding after a setback, framed as inspiration rather than a lecture.",
+    "trend_source": "Team Singapore's 3x3 basketball squad lost 21-15 to Malaysia in their Commonwealth Games debut in Glasgow on 26 July 2026, as Malaysia completed a perfect 3-0 group stage.",
+    "title": "Singapore's 3x3 team lost their Games debut - the one thing worth noticing about how close it was",
+    "why_it_works": "A real, narrow opening-match loss gives an honest, non-defeatist way to talk about a rough start not being the whole story, mirroring a slow start to any financial goal.",
     "hooks": [
-      "He got knocked down twice in the first round. He won by knockout in the second. That's what a real comeback looks like.",
-      "Down twice in round one, over by round two - in his favour. The recovery took composure, not luck.",
-      "Boxing delivered a proper comeback story this weekend. Here's the money version of the same lesson."
+      "Singapore's 3x3 basketball team lost their Commonwealth Games debut this week. Here's why I'm not writing off their campaign.",
+      "A narrow loss on debut isn't the same as a bad campaign. Team Singapore's 3x3 squad just proved that this week.",
+      "They lost their first game at the Commonwealth Games. Here's the money lesson in how close it actually was."
     ],
     "talking_points": [
-      "Reference the real event: Anthony Joshua survived two first-round knockdowns to knock out Kristian Prenga in round 2 in Jeddah, reported 25-26 July 2026.",
-      "Name the parallel: a comeback after being knocked down - in the ring or with money - takes composure and a plan, not just waiting it out.",
-      "Practical point: after any financial setback, a written plan with small milestones rebuilds momentum faster than trying to recover it all at once.",
-      "Keep the tone motivating and respectful of the sport, not overly dramatic."
+      "Reference the real event: Team Singapore's 3x3 basketball squad lost 21-15 to Malaysia in their Commonwealth Games debut in Glasgow on 26 July 2026.",
+      "Name the parallel: a narrow opening loss isn't the same as a failed campaign - it's one data point in a longer group stage.",
+      "Draw the honest line: a rough first month of a savings plan or a slow start to investing isn't proof it won't work - it's one data point too.",
+      "Keep the tone supportive, not defeatist - this is about staying in the game, not sugar-coating a loss."
     ],
-    "cta": "Reply and tell me: what's one financial setback you've already started rebuilding from?",
+    "cta": "Reply and tell me one financial goal where your first attempt didn't go well but you kept going anyway.",
     "cta_type": "open-question",
-    "how_to_film": "Instagram Story, use fight-night or boxing-adjacent visual, short punchy text overlay on the comeback angle, energetic delivery to camera.",
-    "source_label": "ESPN - Joshua knocks out Prenga in Jeddah",
-    "source_url": "https://www.espn.com/boxing/story/_/id/49444667/anthony-joshua-kristian-prenga-boxing-live-blog-latest-news-analysis-results-eddie-hearn-tyson-fury-heavyweight",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-27"
+    "how_to_film": "Instagram Story, use a basketball court or hoop visual, short text overlay on the 'narrow loss, longer campaign' angle, energetic delivery to camera.",
+    "source_label": "Malay Mail - Malaysia's winning 3x3 basketball debut vs Singapore",
+    "source_url": "https://www.malaymail.com/news/sports/2026/07/26/malaysia-make-winning-3x3-basketball-debut-at-glasgow-2026-commonwealth-games-with-three-straight-victories/229020",
+    "observed_at": "2026-07-26",
+    "date_found": "2026-07-28"
   },
   {
-    "id": "trend-2026-07-27-akopian-senior-chess-champion",
-    "platform": "linkedin",
+    "id": "trend-2026-07-28-ndp-ballot-season",
+    "platform": "facebook",
     "format": "text-post",
     "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "GM Vladimir Akopian won the 2026 U.S. Senior Chess Championship, defeating top seed GM Alexander Onischuk in a blitz tiebreak playoff, concluding 25 July 2026 in Saint Louis.",
-    "title": "A veteran just won a title in a nerve-wracking tiebreak - the decision-making lesson underneath",
-    "why_it_works": "A real, dated competitive result gives a calm, professional-audience-appropriate way to talk about patient decision-making under pressure, without any forced product pitch.",
+    "trend_type": "event",
+    "trend_source": "National Day Parade 2026 preview shows are running this week (25 July and 1 August) ahead of the main parade on 9 August, with tickets decided entirely by a Singpass ballot rather than by queuing or paying.",
+    "title": "NDP tickets are decided by ballot - your retirement shouldn't be",
+    "why_it_works": "A genuinely Singaporean, currently-unfolding cultural moment gives a natural, patriotic-adjacent hook into deliberate planning versus leaving outcomes to chance.",
     "hooks": [
-      "A veteran chess grandmaster just won a national title in a tense tiebreak this weekend. His edge wasn't speed - it was patience.",
-      "The U.S. Senior Chess Championship came down to a blitz playoff. The winner didn't panic - here's why that matters.",
-      "A title was decided in a tiebreak this weekend. The calmer player won, not the faster one."
+      "NDP tickets are decided by a Singpass ballot - pure luck. I don't think your retirement should work the same way.",
+      "Preview season for National Day Parade is happening right now. It reminded me how much we leave to chance versus planning.",
+      "Millions of Singaporeans found out if they got NDP tickets through balloting this year. Here's the one thing that shouldn't be a lottery."
     ],
     "talking_points": [
-      "Reference the real event: GM Vladimir Akopian won the 2026 U.S. Senior Chess Championship, defeating top seed GM Alexander Onischuk in a blitz tiebreak, concluding 25 July 2026.",
-      "Name the parallel: a tiebreak under time pressure rewards preparation and composure, not rushed decisions - the same discipline good financial decisions need.",
-      "Practical point: big financial decisions made under pressure - market dips, deadlines, big purchases - benefit from the same 'slow down and use your plan' approach.",
-      "Keep the tone respectful and calm, matching the competitive setting, not preachy."
+      "Reference the real event: National Day Parade 2026 preview shows are running this week (25 July and 1 August) ahead of the main parade on 9 August, with tickets decided entirely by a Singpass ballot.",
+      "Name the parallel: getting NDP tickets is genuinely down to luck - there's no way to improve your odds beyond applying.",
+      "Draw the honest line: retirement income, insurance coverage and emergency funds are the opposite of a ballot - they respond directly to what you actually plan and do.",
+      "Keep the tone warm and patriotic, not preachy - this is a light reflection tied to the season, not a hard sell."
     ],
-    "cta": "Comment 'CALM' and tell me one financial decision you're glad you slowed down on before making.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the tiebreak headline, calm and measured tone throughout.",
-    "source_label": "Chess.com - Akopian wins U.S. Senior Championship",
-    "source_url": "https://www.chess.com/news/view/akopian-wins-us-senior-championship",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-27"
+    "cta": "Book a time with me this National Day season to check whether your own plan is left to chance or actually mapped out.",
+    "cta_type": "book-call",
+    "how_to_film": "Facebook text post with a Singapore flag or NDP-season photo, warm and reflective tone, end on the planning message.",
+    "source_label": "TheSmartLocal - NDP 2026 ticket balloting guide",
+    "source_url": "https://thesmartlocal.com/read/ndp-tickets-balloting-guide/",
+    "observed_at": "2026-07-28",
+    "date_found": "2026-07-28"
   },
   {
-    "id": "trend-2026-07-27-india-zimbabwe-t20-sweep",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "India completed a clean 3-0 T20I series sweep over Zimbabwe, with 19-year-old Vaibhav Sooryavanshi scoring 81 in the deciding match, reported 26 July 2026.",
-    "title": "India just swept a series 3-0 - the boring reason it happened every single match",
-    "why_it_works": "A genuinely major cricket result popular with a large Singapore diaspora audience gives an energetic, positive parallel to showing up consistently rather than one big performance.",
-    "hooks": [
-      "India just swept a T20 series 3-0 this weekend. Nobody wins three matches in a row on talent alone.",
-      "A 19-year-old just anchored a series-deciding innings. The consistency behind that number is the real story.",
-      "Clean sweep this weekend - three matches, three wins. Here's the habit behind a run like that."
-    ],
-    "talking_points": [
-      "Reference the real event: India completed a 3-0 T20I series sweep over Zimbabwe, with 19-year-old Vaibhav Sooryavanshi scoring 81 in the deciding match, reported 26 July 2026.",
-      "Name the parallel: a clean sweep isn't one great performance - it's showing up and delivering across every single match.",
-      "Draw the honest line: consistent saving or investing works the same way - it's not one big month, it's showing up every month.",
-      "Keep the tone upbeat and celebratory of the series, not a lecture - this is energy, not homework."
-    ],
-    "cta": "Comment 'CONSISTENT' and tell me one money habit you've kept up for every single month this year.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "TikTok short video, use cricket highlight-style energy, on-screen text naming the sweep, deliver the takeaway to camera in the last 5 seconds.",
-    "source_label": "ESPNcricinfo - India complete 3-0 sweep of Zimbabwe",
-    "source_url": "https://www.espncricinfo.com/series/india-in-zimbabwe-2026-1530058/zimbabwe-vs-india-3rd-t20i-1530062/match-report",
-    "observed_at": "2026-07-26",
-    "date_found": "2026-07-27"
-  },
-  {
-    "id": "trend-2026-07-27-bunnie-xo-windfall-purchase",
-    "platform": "tiktok",
-    "format": "short-video",
+    "id": "trend-2026-07-28-ssb-august-tranche",
+    "platform": "linkedin",
+    "format": "text-post",
     "pillar": "topic",
-    "trend_type": "culture",
-    "trend_source": "Media personality Bunnie XO showed off a new Rolls-Royce Cullinan on social media, funded in part by a lump-sum payment from her recently finalised divorce settlement, reported 26 July 2026.",
-    "title": "She just got a lump-sum payout and bought a Rolls-Royce - the smarter windfall move most people skip",
-    "why_it_works": "A genuinely trending, high-visibility windfall story gives a natural, non-judgmental hook into the real planning question behind any sudden lump sum, without shaming the purchase itself.",
+    "trend_type": "news",
+    "trend_source": "Applications for the August 2026 Singapore Savings Bond (SSB) tranche close today, 28 July 2026 at 9pm, with its 10-year average rate easing to 2.06% per annum from 2.11% the month before.",
+    "title": "This month's Singapore Savings Bond window closes today - what a falling rate actually tells you",
+    "why_it_works": "A same-day, real application deadline gives an honest, purely informational reason to talk about reviewing where idle cash sits, with no return promised and no product pushed.",
     "hooks": [
-      "A lump-sum payout just bought a Rolls-Royce this week. Before you judge it, here's the question that actually matters with any windfall.",
-      "Someone just turned a settlement payout into a very public purchase. Here's the one step worth taking before you spend any lump sum.",
-      "A big one-time payout is trending again this week. The purchase isn't the story - what happens before it is."
+      "Today's the last day to apply for this month's Singapore Savings Bond. Here's what the rate actually tells you.",
+      "The Singapore Savings Bond window closes tonight at 9pm. I'm not telling you to buy it - just to know it exists.",
+      "This month's SSB rate quietly dropped again. Here's what that says about where safe cash is heading."
     ],
     "talking_points": [
-      "Reference the real news: media personality Bunnie XO showed off a new Rolls-Royce, funded in part by a lump-sum payment from her recently finalised divorce settlement, reported 26 July 2026.",
-      "Name the real risk: a sudden lump sum - divorce, bonus, inheritance, sale of a business - gets spent fastest in the first few months without a plan.",
-      "Practical step: park a windfall in a holding account for 30-90 days before any big purchase, so the decision is deliberate, not reactive.",
-      "Keep the tone non-judgmental and light - this isn't about her choice, it's about having a plan for your own windfall."
+      "State the facts: applications for the August 2026 Singapore Savings Bond (SSB) tranche close today, 28 July 2026 at 9pm, with its 10-year average rate easing to 2.06% per annum from 2.11% the month before.",
+      "Explain plainly: SSB rates track where interest rates are broadly heading, so a slipping rate is one more sign that leaving cash idle is getting less rewarding.",
+      "Practical point: if you've been meaning to review where your emergency fund or idle cash sits, a closing application window is a natural nudge to actually do it today.",
+      "No return is promised or implied beyond the published rate - purely an informational deadline reminder."
     ],
-    "cta": "DM me 'WINDFALL' and I'll send you a simple 3-step plan for what to do in the first month after any lump sum.",
+    "cta": "DM me 'CASH' and I'll send you a simple way to compare where your idle savings currently sit against your options.",
     "cta_type": "dm-keyword",
-    "how_to_film": "TikTok short video, playful on-screen text listing 'what to do before you spend a windfall,' deliver the 3-step plan to camera, keep tone light and non-judgmental.",
-    "source_label": "TMZ - Bunnie XO buys Rolls-Royce",
-    "source_url": "https://www.tmz.com/2026/07/26/bunnie-xo-buys-rolls-royce/",
-    "observed_at": "2026-07-26",
-    "date_found": "2026-07-27"
+    "how_to_film": "Text-only LinkedIn post, lead with the 'applications close today' fact, calm and informational tone throughout.",
+    "source_label": "Turtle Investor - SSB August 2026 rate and deadline",
+    "source_url": "https://www.turtleinvestor.net/singapore-savings-bonds-ssb-august-2026/",
+    "observed_at": "2026-07-28",
+    "date_found": "2026-07-28"
   },
   {
-    "id": "trend-2026-07-27-15-dollar-ice-cream-economy",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "topic",
-    "trend_type": "culture",
-    "trend_source": "A CNN Business feature on a Minnesota creamery selling US$15-100 artisanal ice cream pints went viral this week, reported 25 July 2026, using it as a lens on rising 'premiumization' spending even as many households feel squeezed by inflation.",
-    "title": "A US$15 pint of ice cream is going viral - the spending pattern worth checking in your own budget",
-    "why_it_works": "A genuinely trending, relatable consumer story gives a light, non-judgmental way to talk about small lifestyle-spending creep, staying playful rather than preachy.",
-    "hooks": [
-      "A US$15 pint of ice cream is going viral this week. It's not really about the ice cream - it's about a spending pattern worth naming.",
-      "People are talking about a US$100 tub of ice cream today. Here's the sneaky money habit hiding behind the headline.",
-      "This week's viral splurge is ice cream. Next week it'll be something else. Here's the actual thing worth watching."
-    ],
-    "talking_points": [
-      "Reference the real story: a CNN Business feature on a Minnesota creamery selling US$15-100 artisanal ice cream pints went viral this week, reported 25 July 2026.",
-      "Name the pattern: 'premiumization' - small, frequent upgrades on everyday purchases - adds up faster than one big splurge ever does.",
-      "Practical step: track one small recurring 'treat' category for a month before deciding whether to cut it or keep it guilt-free.",
-      "Keep the tone light and non-judgmental - this is about awareness, not telling anyone to stop treating themselves."
-    ],
-    "cta": "Save this if you want a nudge to check one small 'treat' spend category before it becomes a habit.",
-    "cta_type": "save-share",
-    "how_to_film": "Instagram carousel: slide 1 the viral headline, slide 2 the 'premiumization' concept explained, slide 3 the budgeting angle, slide 4 the one-month tracking tip, slide 5 save CTA.",
-    "source_label": "CNN Business - the $15 pint of ice cream",
-    "source_url": "https://edition.cnn.com/2026/07/25/economy/15-usd-pint-ice-cream-economy",
-    "observed_at": "2026-07-25",
-    "date_found": "2026-07-27"
-  },
-  {
-    "id": "trend-2026-07-27-the-odyssey-box-office-record",
-    "platform": "instagram",
-    "format": "story",
-    "pillar": "topic",
-    "trend_type": "culture",
-    "trend_source": "Christopher Nolan's 'The Odyssey' posted a record second weekend of US$87 million, becoming 2026's highest-grossing R-rated film with a worldwide total near US$640 million, reported 26 July 2026.",
-    "title": "A movie just made US$87 million in its second weekend alone - what that says about how we spend on 'treats'",
-    "why_it_works": "A genuinely trending box-office story gives a light, current way to talk about discretionary entertainment spending as a real budget category, without judging anyone's choices.",
-    "hooks": [
-      "A single movie just made US$87 million in one weekend - its second weekend. That's discretionary spending on a massive scale.",
-      "This film just became the biggest R-rated movie of the year this weekend. Entertainment spending is a real budget line, not an afterthought.",
-      "People are still lining up for this movie weeks after it opened. Here's why 'fun money' deserves its own line in your budget."
-    ],
-    "talking_points": [
-      "Reference the real news: Christopher Nolan's 'The Odyssey' posted a record US$87 million second weekend, becoming 2026's highest-grossing R-rated film, reported 26 July 2026.",
-      "Name the pattern: entertainment and experiences are a genuine, planned budget category for most households, not just leftover spending.",
-      "Practical step: give 'fun money' - movies, concerts, outings - its own small monthly amount so it doesn't quietly eat into savings.",
-      "Keep the tone light and current, not judgmental about spending on entertainment."
-    ],
-    "cta": "DM me 'FUNMONEY' and I'll send you a simple way to set a guilt-free monthly entertainment budget.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Instagram Story, use a cinema or movie-night visual, short text overlay naming the box-office figure, casual delivery to camera.",
-    "source_label": "Deadline - The Odyssey box office update",
-    "source_url": "https://deadline.com/2026/07/box-office-the-odyssey-motor-city-her-private-hell-hadestown-1237002537/",
-    "observed_at": "2026-07-26",
-    "date_found": "2026-07-27"
-  },
-  {
-    "id": "trend-2026-07-27-avengers-endgame-encore",
+    "id": "trend-2026-07-28-diesel-pricier-than-petrol",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "topic",
-    "trend_type": "culture",
-    "trend_source": "Marvel announced 'Avengers: Endgame Encore,' a theatrical re-release of the 2019 film with new bonus scenes, at Comic-Con on 25-26 July 2026, set for cinemas on 25 September.",
-    "title": "A 2019 movie is heading back to cinemas - the smart money move studios make that you can copy",
-    "why_it_works": "A genuinely trending entertainment announcement gives a light, relatable way to talk about getting more value from something you already own, without a forced pitch.",
+    "trend_type": "news",
+    "trend_source": "As of late July 2026, diesel is now more expensive than petrol across almost the entire Singapore market for the first time, with gasoline at $2.32/litre and diesel at $2.72/litre.",
+    "title": "Diesel now costs more than petrol in Singapore for the first time ever - here's who feels it",
+    "why_it_works": "A genuine, dated first-of-its-kind price flip gives a factual, non-alarmist reason to talk about rechecking a specific budget line right now.",
     "hooks": [
-      "A movie from 2019 is going back into cinemas this September, with new scenes added. That's a smart reuse of an existing asset.",
-      "Marvel just announced they're re-releasing a 6-year-old film. Here's the money principle behind that move.",
-      "An old movie just got new life this week. The lesson isn't about movies - it's about not letting what you already have go to waste."
+      "Diesel now costs more than petrol in Singapore for the first time ever. Here's who actually feels that this month.",
+      "A first-ever price flip just happened at Singapore petrol stations. If you drive diesel, your budget just quietly moved.",
+      "Petrol and diesel just swapped places in price for the first time in Singapore. Here's the budgeting angle."
     ],
     "talking_points": [
-      "Reference the real news: Marvel announced 'Avengers: Endgame Encore,' a theatrical re-release with new bonus scenes, at Comic-Con on 25-26 July 2026, opening 25 September.",
-      "Name the principle: studios often get more value from an existing asset - old IP, old content - than from starting something new from scratch.",
-      "Draw the light parallel: the same idea applies to money you already have - an old policy, a dormant account, unused benefits - worth revisiting before starting something new.",
-      "Keep the tone playful and current, not a heavy pitch - this is a fun observation, not a hard sell."
+      "State the facts: as of late July 2026, diesel is now more expensive than petrol across almost the entire Singapore market, a first for the country, with gasoline at $2.32/litre and diesel at $2.72/litre.",
+      "Explain plainly: this is being driven by global supply pressure on diesel specifically, not just general fuel inflation.",
+      "Practical point: if you or your family drive a diesel vehicle or rely on diesel-fuelled delivery and transport, it's worth rechecking your monthly transport budget line now rather than at year-end.",
+      "Keep the tone factual and helpful, not alarmist - this is a budgeting heads-up, not a crisis."
     ],
-    "cta": "Comment 'REVISIT' and tell me one old account or policy you haven't looked at in over a year.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-only Facebook post, lead with the re-release headline, light and conversational tone throughout.",
-    "source_label": "Marvel.com - San Diego Comic-Con Hall H recap",
-    "source_url": "https://www.marvel.com/articles/live-events/marvel-studios-san-diego-comic-con-2026-hall-h-recap",
+    "cta": "Save this if you want a reminder to recheck your transport budget line this month.",
+    "cta_type": "save-share",
+    "how_to_film": "Text-only Facebook post, lead with the 'diesel now pricier than petrol, a first' fact, calm and practical tone throughout.",
+    "source_label": "GetGo - Singapore petrol price guide",
+    "source_url": "https://www.getgo.sg/blog/petrol-price-guide",
     "observed_at": "2026-07-26",
-    "date_found": "2026-07-27"
+    "date_found": "2026-07-28"
+  },
+  {
+    "id": "trend-2026-07-28-jovi-loh-gymnast-grit",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Singapore gymnast Jovi Loh suffered a fall on the high bar during Commonwealth Games qualification this week when his hands slipped mid-routine, but remounted and completed it, scoring 11.3, before an injury forced him out of the all-around final.",
+    "title": "He fell mid-routine at the Commonwealth Games, got back up, and finished anyway - the real story isn't the injury",
+    "why_it_works": "A real, dated moment of visibly recovering from a fall gives an honest parallel to taking the next step after a financial setback without needing a perfect outcome.",
+    "hooks": [
+      "He fell off the high bar at the Commonwealth Games this week, got back up, and finished his routine anyway.",
+      "A Singapore gymnast's hands slipped mid-routine this week. What he did in the next ten seconds is the actual story.",
+      "He couldn't finish the final due to injury, but everyone's still talking about how he handled the fall."
+    ],
+    "talking_points": [
+      "Reference the real event: Singapore gymnast Jovi Loh suffered a fall on the high bar during Commonwealth Games qualification this week, hands slipping off mid-routine, but remounted and completed it, scoring 11.3.",
+      "Name the parallel: he didn't get a clean outcome - he later had to withdraw from the all-around final due to injury - but he still took the next right step after the fall instead of freezing.",
+      "Draw the honest line: recovering from a financial setback rarely looks clean either - the win is taking the next step, not needing a perfect outcome.",
+      "Keep the tone respectful and admiring, not overly dramatic about the injury."
+    ],
+    "cta": "Reply and tell me one 'next right step' you took after a financial setback, even if the outcome wasn't perfect.",
+    "cta_type": "open-question",
+    "how_to_film": "TikTok short video, use gymnastics or high bar footage as background, on-screen text on 'the fall vs the comeback,' deliver the takeaway to camera.",
+    "source_label": "ActiveSG Circle - Team Singapore, Loh's grit at the Commonwealth Games",
+    "source_url": "https://www.activesgcircle.gov.sg/read/commonwealth-games-2026-lohs-grit-shines-through-despite-heartbreaking-exit",
+    "observed_at": "2026-07-27",
+    "date_found": "2026-07-28"
   }
 ]
