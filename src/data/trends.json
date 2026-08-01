@@ -1,338 +1,366 @@
 [
   {
-    "id": "trend-2026-07-31-sg-second-support-package",
+    "id": "trend-2026-08-01-linkedin-ai-slop",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "On 29 July 2026, Second Minister for Finance Jeffrey Siow and Senior Minister of State Low Yen Ling announced a second S$900 million support package for Singaporean households and businesses, including S$300 CDC vouchers, enhanced U-Save rebates and ComCare payouts.",
-    "title": "Government just announced a second S$900m support package - what's actually landing in your account",
-    "why_it_works": "A real, dated policy announcement with a direct, honest money angle - knowing what's coming and when - described neutrally with zero political framing.",
+    "trend_source": "On 30 July 2026, LinkedIn rolled out a 'Seems like AI slop' button letting users flag AI-generated posts, and said it has already blocked billions of AI-generated posts and comments in the past few months; it's also retiring its own AI post-rewrite tool for a plain proofreading feature.",
+    "title": "LinkedIn just added a button to flag 'AI slop' - why my posts sound like me, not a robot",
+    "why_it_works": "A real, dated platform change gives an honest, self-aware reason to talk about authentic, first-person content over generic AI-drafted posts - directly relevant to how advisors should be posting.",
     "hooks": [
-      "The government just announced another S$900 million support package this week. Here's what's actually landing in your account.",
-      "S$300 more in CDC vouchers just got announced. I keep getting asked when it lands - so here's the answer.",
-      "Another support package just dropped this week. Most people I talk to don't know what they're actually getting."
+      "LinkedIn just added a button to report posts that 'seem like AI slop.' I want to tell you why that doesn't worry me.",
+      "This week LinkedIn started letting people flag AI-written posts. Here's what I write instead.",
+      "LinkedIn says it blocked billions of AI-generated posts recently. I've never needed AI to tell you what happened with a client."
     ],
     "talking_points": [
-      "State the fact: on 29 July 2026, Jeffrey Siow and Low Yen Ling announced a second S$900m support package, including S$300 CDC vouchers (disbursed January 2027), enhanced U-Save rebates of up to S$190, and ComCare payouts of at least S$250 a month for up to 3 months for those who qualify.",
-      "Explain the mechanics neutrally: this is on top of the S$1b package announced in April and Budget 2026 measures, bringing total government support to S$2b to date - eligibility and disbursement dates differ by scheme.",
-      "Practical point: rebates and vouchers are useful but time-bound - the real value comes from knowing exactly when each one lands so you can plan around it rather than being surprised.",
-      "Stay politically neutral: describe scheme mechanics only, no view on the underlying policy."
+      "State the fact: on 30 July 2026, LinkedIn launched a 'Seems like AI slop' flag on every post and said it has blocked billions of AI-generated posts and comments in the past few months, while retiring its own AI-rewrite tool for a simpler proofreading feature.",
+      "Name why this matters: a platform this large deciding AI-sounding content should get less reach is a signal that generic, templated posts are losing ground to real, specific stories.",
+      "Practical point: the posts that hold up are the ones with a real detail in them - an actual client question, an actual number, an actual moment - not a polished paragraph that could apply to anyone.",
+      "Turn it into a habit: before posting, ask whether a stranger could tell this specific story only came from you."
     ],
-    "cta": "Comment 'PACKAGE' and I'll send you the full list of what's landing and when.",
+    "cta": "Comment 'REAL' and I'll send you my 3-question check for writing a post that doesn't sound AI-written.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the fact, calm explainer tone, end with the checklist offer.",
-    "source_label": "Malay Mail - Singapore unveils S$900m support package amid global uncertainties",
-    "source_url": "https://www.malaymail.com/news/singapore/2026/07/29/singapore-unveils-s900m-support-package-amid-global-uncertainties/229465",
-    "observed_at": "2026-07-29",
-    "date_found": "2026-07-31"
+    "how_to_film": "Text-only LinkedIn post, lead with the LinkedIn fact, conversational and slightly wry tone, end on the offer.",
+    "source_label": "TechCrunch - LinkedIn adds a button to report AI-generated 'slop'",
+    "source_url": "https://techcrunch.com/2026/07/30/linkedin-adds-a-button-to-report-ai-generated-slop/",
+    "observed_at": "2026-07-30",
+    "date_found": "2026-08-01"
   },
   {
-    "id": "trend-2026-07-31-us-gdp-miss",
+    "id": "trend-2026-08-01-tiktok-shop-sg-summit",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "event",
+    "trend_source": "TikTok Shop held its first-ever Singapore Summit on 30 July 2026, a full-day hybrid event for more than 1,500 sellers, creators and partners, after which TikTok Shop announced plans to train 1,000+ Singapore sellers and support 3,000+ creators in content, LIVE selling and affiliate commerce.",
+    "title": "TikTok just held its first-ever Singapore Shop Summit - the side-income conversation creators keep skipping",
+    "why_it_works": "A real, dated, Singapore-specific platform event gives an honest opening to talk about planning around variable creator or affiliate income, without pushing any product or platform.",
+    "hooks": [
+      "TikTok Shop just held its first Singapore Summit this week. 1,500 sellers and creators showed up to learn how to earn more.",
+      "If you're one of the thousands of Singapore creators TikTok just said it'll train this year, here's the money question nobody's asking you.",
+      "TikTok announced its biggest Singapore creator push yet this week. More income streams also means more income to plan around."
+    ],
+    "talking_points": [
+      "Reference the real event: TikTok Shop's first-ever Singapore Summit ran 30 July 2026 with 1,500+ sellers, creators and partners, after which TikTok Shop announced plans to train 1,000+ sellers and support 3,000+ creators through content, LIVE selling and affiliate programmes.",
+      "Name the real gap: as more Singaporeans earn affiliate or creator income alongside a day job, that income is usually irregular and easy to under-plan for - no CPF contribution, no automatic savings, no protection tied to it.",
+      "Practical point: treat platform income like any variable income - set aside a fixed percentage before spending it, and check whether your protection coverage still reflects your full income, not just your day-job salary.",
+      "Keep the tone practical and encouraging, not cautionary - this is about planning around a real opportunity, not warning people off it."
+    ],
+    "cta": "Comment 'CREATOR' and I'll send you my simple checklist for planning around side or platform income.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "TikTok short video, screen-record the TikTok Shop Summit headline or use a phone-in-hand prop, deliver the income-planning point direct to camera with energy.",
+    "source_label": "TikTok Newsroom - TikTok Shop deepens commitment to Singapore's discovery commerce ecosystem",
+    "source_url": "https://newsroom.tiktok.com/tiktok-shop-deepens-commitment-to-singapores-discovery-commerce-ecosystem-at-inaugural-tiktok-shop-singapore-summit?lang=en-SG",
+    "observed_at": "2026-07-30",
+    "date_found": "2026-08-01"
+  },
+  {
+    "id": "trend-2026-08-01-sheng-siong-dividend",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "The US Bureau of Economic Analysis released its advance estimate for Q2 2026 GDP on 30 July 2026, showing growth of 1.5% - below the 1.8% economists expected and down from 2.1% in Q1.",
-    "title": "The US economy just grew slower than expected - the planning lesson in a 'miss'",
-    "why_it_works": "A real, dated data release used purely as a planning-versus-forecasting parallel, with zero prediction or call on any investment.",
+    "trend_source": "Sheng Siong Group announced on 29 July 2026 that 1H FY2026 net profit rose 11.9% to S$81.0 million on revenue of S$855.4 million, and raised its interim dividend to 3.75 cents per share (from 3.20 cents), payable 28 August 2026.",
+    "title": "A supermarket chain just grew profit and raised its dividend - what 'boring' businesses teach about steady money",
+    "why_it_works": "A real, dated earnings release from an everyday, non-speculative business gives an honest, purely educational angle on dividends and defensive businesses, with zero call to buy the stock.",
     "hooks": [
-      "US growth numbers just came in below what economists expected. I'm not here to predict what happens next.",
-      "The economy grew slower than forecast this week. Here's why I actually like it when a forecast is wrong.",
-      "Growth missed expectations again this week. Your plan shouldn't need a correct forecast to work."
+      "A supermarket chain here just posted higher profit and raised its dividend this week. Nobody's talking about it because it's not exciting.",
+      "Sheng Siong's profit grew almost 12% this week. I'm not telling you to buy the stock - I want to talk about why 'boring' works.",
+      "While everyone watches flashy stocks, a grocery chain quietly raised its dividend again this week. That's not an accident."
     ],
     "talking_points": [
-      "State the fact: on 30 July 2026, the US BEA's advance estimate showed Q2 2026 GDP growth of 1.5%, below the 1.8% expected and down from 2.1% in Q1.",
-      "Name the pattern: economists forecast constantly, and forecasts miss constantly - that's not a flaw in the system, it's just how uncertain the near-term always is.",
-      "Practical point: a financial plan that only works if a forecast is right is a fragile plan - the goal is a plan that holds up whether growth beats, meets or misses expectations.",
-      "No prediction on what happens next and no call on any investment - purely about not building your plan around needing to guess correctly."
+      "State the fact: Sheng Siong Group reported on 29 July 2026 that 1H FY2026 net profit rose 11.9% to S$81.0 million on S$855.4 million in revenue, and raised its interim dividend to 3.75 cents per share from 3.20 cents, payable 28 August 2026.",
+      "Name the pattern: a supermarket chain isn't a glamorous business, but people buy groceries in every economic climate - that steadiness is exactly why 'boring' defensive businesses can support consistent payouts.",
+      "Practical point: this isn't a stock tip - it's a reminder that a financial plan built on steady, unglamorous habits usually outlasts one chasing excitement.",
+      "No call to buy, sell or hold any stock - purely using a real result to explain what a defensive business is."
     ],
-    "cta": "Reply and tell me one decision you're holding off on because you're waiting for 'more clarity' - let's talk about it.",
+    "cta": "Reply and tell me one 'boring but steady' habit in your own finances that's actually doing the heavy lifting.",
     "cta_type": "open-question",
-    "how_to_film": "Text-only LinkedIn post, lead with the fact, reflective and measured tone.",
-    "source_label": "US Bureau of Economic Analysis - GDP Advance Estimate, 2nd Quarter 2026",
-    "source_url": "https://www.bea.gov/news/2026/gdp-advance-estimate-2nd-quarter-2026",
+    "how_to_film": "Text-only LinkedIn post, lead with the Sheng Siong fact, calm educational tone throughout.",
+    "source_label": "The Edge Singapore - Sheng Siong reports earnings of $81 mil for 1HFY2026, up 11.9% y-o-y",
+    "source_url": "https://www.theedgesingapore.com/capital/results/sheng-siong-reports-earnings-81-mil-1hfy2026-119-y-o-y",
     "observed_at": "2026-07-30",
-    "date_found": "2026-07-31"
+    "date_found": "2026-08-01"
   },
   {
-    "id": "trend-2026-07-31-private-car-population-lowest",
+    "id": "trend-2026-08-01-gst-voucher-august",
     "platform": "facebook",
-    "format": "carousel",
+    "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "Singapore's private car population has fallen to its lowest level since 2019 while rental car numbers hit a record high, reported in Asean news headlines on 30 July 2026, as high COE premiums push more residents toward renting over owning.",
-    "title": "Fewer Singaporeans own a car than at any point since 2019 - the real math behind renting vs owning",
-    "why_it_works": "A real, dated, data-driven shift gives an honest cost-of-ownership angle without any market call or judgment on car buyers.",
+    "trend_source": "The Ministry of Finance confirmed about 1.5 million adult Singaporeans will receive up to S$850 in GST Voucher cash and about 710,000 seniors up to S$450 in MediSave top-ups in August 2026, with cash via PayNow-NRIC starting 6 August, bank crediting from 15 August, and MediSave credited from 11 August.",
+    "title": "Up to S$850 is landing in August - here's exactly when, so it doesn't just disappear",
+    "why_it_works": "A real, official, dated payout schedule gives a directly useful money angle with zero forced bridge - knowing the exact date is the entire value of the post.",
     "hooks": [
-      "Singapore's private car population just hit its lowest point since 2019. More people are renting instead of owning.",
-      "Fewer people here own a car than any year since 2019. I don't think that's a bad thing.",
-      "Rental cars just hit a record high in Singapore. Here's the money question behind why."
+      "Up to S$850 is landing in some bank accounts starting next week. Here's the date breakdown so you're not caught off guard.",
+      "1.5 million of us are getting a GST Voucher payout in August. Most people don't know which date theirs actually lands.",
+      "S$850 cash, S$450 MediSave top-up - the government just confirmed exactly when August's payouts hit your account."
     ],
     "talking_points": [
-      "Reference the real data: private car population has fallen to its lowest level since 2019 while rental car numbers hit a record high, reported this week, with high COE premiums cited as the main driver.",
-      "Name the shift: owning a depreciating asset outright versus paying for access to one on demand is a real financial trade-off, not just a lifestyle preference.",
-      "Practical point: before chasing car ownership as a status milestone, run the actual numbers - COE, insurance, parking and depreciation against what renting or ride-hailing costs over the same years.",
-      "Keep the tone neutral and non-judgmental - owning a car is still the right call for many households, this is about making that choice with the real numbers in hand."
+      "State the fact: MOF confirmed about 1.5 million adult Singaporeans will get up to S$850 in GST Voucher cash and about 710,000 seniors up to S$450 in MediSave top-ups in August 2026.",
+      "Give the real dates: cash via PayNow-NRIC starts 6 August, bank crediting starts 15 August, GovCash starts 22 August, and MediSave top-ups are credited to CPF accounts from 11 August.",
+      "Practical point: a payout you didn't plan for tends to get spent without a second thought - decide today whether yours is going to daily expenses, savings, or your MediSave buffer, before it lands.",
+      "Keep the tone purely informative and neutral - describe the scheme mechanics only, no view on the policy itself."
     ],
-    "cta": "Save this before your next car-buying decision - run the 5-year cost comparison first.",
+    "cta": "Save this post so you've got the payout dates handy when they land.",
     "cta_type": "save-share",
-    "how_to_film": "Facebook carousel: slide 1 the headline stat, slide 2 own-vs-rent cost breakdown, slide 3 the 'run your own numbers' prompt, slide 4 save CTA.",
-    "source_label": "The Star - Asean News Headlines, 30 July 2026",
-    "source_url": "https://www.thestar.com.my/aseanplus/aseanplus-news/2026/07/30/asean-news-headlines-at-10pm-on-thursday-july-30-2026",
-    "observed_at": "2026-07-30",
-    "date_found": "2026-07-31"
+    "how_to_film": "Text-only Facebook post, lead with the headline amount, clear and practical tone, list the dates plainly.",
+    "source_label": "Ministry of Finance - 1.5 million adult Singaporeans to receive up to $850 in GSTV Cash in August 2026",
+    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/1-5-million-adult-singaporeans-to-receive-up-to--850-in--gstv---cash-and-710-000-singaporean-seniors-to-receive-up-to--450-medisave-top-up-in-august-2026/",
+    "observed_at": "2026-07-31",
+    "date_found": "2026-08-01"
   },
   {
-    "id": "trend-2026-07-31-toh-wei-soong-silver",
+    "id": "trend-2026-08-01-ndp-drone-show",
+    "platform": "instagram",
+    "format": "story",
+    "pillar": "identity",
+    "trend_type": "event",
+    "trend_source": "National Day Parade 2026's second preview show ran at the National Stadium on 1 August 2026, featuring Singapore's first-ever indoor drone light show with 300+ drones and two aerialists, under the theme 'Majulah Singapura, Go Beyond!'",
+    "title": "NDP just flew 300 drones indoors for the first time - the 'go beyond' theme is really a money mindset",
+    "why_it_works": "A real, same-day, hyperlocal national event gives a warm, non-forced tie-in to going beyond the bare minimum in planning, matching the parade's own theme.",
+    "hooks": [
+      "NDP's preview show just flew 300 drones indoors for the first time tonight. This year's theme is 'go beyond' - I think about that a lot in my work.",
+      "Singapore just did its first-ever indoor drone show at the National Stadium tonight. 300 drones, perfectly synced.",
+      "If you caught tonight's NDP preview, you saw 300 drones move as one. That's what a plan with everyone on the same page looks like."
+    ],
+    "talking_points": [
+      "Reference the real event: NDP 2026's second preview show ran at the National Stadium on 1 August 2026, featuring Singapore's first-ever indoor drone light show with 300+ synchronised drones and two aerialists, under the theme 'Majulah Singapura, Go Beyond!'",
+      "Name the parallel: 300 drones only look impressive because every single one is doing its individual, small part in sync - not one dramatic move, but many small ones aligned.",
+      "Practical point: 'going beyond' in a financial plan rarely looks dramatic either - it's the small, synced habits (protection, savings, CPF) working together, not one big move.",
+      "Keep the tone warm, celebratory and locally proud - this is about the spectacle and the small-things-in-sync idea, not a sales pitch."
+    ],
+    "cta": "Reply and tell me one small money habit you've kept in sync for years - I'd love to hear it.",
+    "cta_type": "open-question",
+    "how_to_film": "Instagram Story, use a clip or photo from the drone show or the National Stadium, on-screen text on the '300 drones' stat, deliver to camera.",
+    "source_label": "Singapore Police Force - Security and traffic arrangements for NDP 2026 Preview 2",
+    "source_url": "https://www.police.gov.sg/Media-Hub/News/2026/07/20260730_security_and_traffic_arrangements_for_national_day_parade_2026_preview_2",
+    "observed_at": "2026-08-01",
+    "date_found": "2026-08-01"
+  },
+  {
+    "id": "trend-2026-08-01-mccartney-pole-vault",
     "platform": "instagram",
     "format": "carousel",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Para-swimmer Toh Wei Soong won silver in the men's 50m freestyle S7 at the Commonwealth Games in Glasgow on Wednesday, 29 July 2026, following his bronze at his 2018 debut and silver at Birmingham 2022.",
-    "title": "Singapore's para-swimmer just won silver again - the 'showing up again' lesson",
-    "why_it_works": "A real, dated, inspiring result gives an honest parallel to consistency in long financial goals, with no country bias and no market call.",
+    "trend_source": "New Zealand's Eliza McCartney won her first-ever Commonwealth Games gold in the women's pole vault in Glasgow on 1 August 2026, clearing 4.65m, after previously only earning silvers and bronzes across three Games appearances.",
+    "title": "She finally won gold on her third Commonwealth Games - the 'not this time either' years",
+    "why_it_works": "A real, same-day, inspiring result gives an honest parallel to long financial goals that take repeated attempts, celebratory and universal, no market or country bias.",
     "hooks": [
-      "Toh Wei Soong just won silver at the Commonwealth Games again this week. His first Games medal was a bronze in 2018.",
-      "A Singapore para-swimmer just medalled at his third straight Commonwealth Games. That's not luck, that's showing up.",
-      "He won bronze in 2018, silver in 2022, and silver again this week. The progress isn't always a straight line up."
+      "Eliza McCartney just won her first Commonwealth Games gold today. She'd only ever won silvers and bronzes before this.",
+      "It took her three Commonwealth Games to finally win gold. I think about that every time someone tells me they're 'behind' on a goal.",
+      "Today's pole vault gold wasn't her first medal - it was her first time it was gold. There's a difference."
     ],
     "talking_points": [
-      "Reference the real event: Toh Wei Soong won silver in the men's 50m freestyle S7 at Glasgow 2026 on 29 July 2026, having won bronze at his Gold Coast 2018 debut and silver at Birmingham 2022.",
-      "Name the pattern: three Games, three medals, but not always an improvement each time - the constant is that he kept training and kept showing up regardless of the previous result.",
-      "Practical point: the same applies to any long financial goal - a quieter year isn't a failed one, as long as you're still contributing and still showing up.",
-      "Keep the tone celebratory and universal, not about any one sport - this is about what repeated effort over years actually looks like."
+      "Reference the real result: New Zealand's Eliza McCartney won gold in the women's pole vault at the Glasgow 2026 Commonwealth Games on 1 August 2026, clearing 4.65m, after previously only winning silver and bronze medals across her career.",
+      "Name the pattern: medalling every time but not winning until the third attempt isn't failure repeated - it's the same effort, refined, until it finally lands.",
+      "Practical point: a financial goal that isn't 'done' yet after a few years isn't a failed goal - check whether you're still showing up and improving, not whether you've already arrived.",
+      "Keep the tone celebratory and universal, not about any one sport or country - purely about what repeated effort looks like before it pays off."
     ],
-    "cta": "Save this for the next time a 'flat' year makes you want to quit a goal - showing up again is the point.",
+    "cta": "Save this for the next time a goal feels like it's taking too long - it might just be the version before the gold.",
     "cta_type": "save-share",
-    "how_to_film": "Instagram carousel: slide 1 the medal headline, slide 2 the 2018-2022-2026 medal timeline, slide 3 the showing-up point, slide 4 save CTA.",
-    "source_label": "players.bio - Para-swimmer Toh Wei Soong clinches silver",
-    "source_url": "https://players.bio/news/para-swimmer-toh-wei-soong-clinches-silver/893632",
-    "observed_at": "2026-07-29",
-    "date_found": "2026-07-31"
+    "how_to_film": "Instagram carousel: slide 1 the gold-medal headline, slide 2 her past silver/bronze results, slide 3 the 'not failure, refinement' point, slide 4 save CTA.",
+    "source_label": "1News NZ - Eliza McCartney wins gold in women's pole vault, Ayris takes bronze",
+    "source_url": "https://www.1news.co.nz/2026/08/01/eliza-mccartney-wins-gold-in-womens-pole-vault-ayris-takes-bronze/",
+    "observed_at": "2026-08-01",
+    "date_found": "2026-08-01"
   },
   {
-    "id": "trend-2026-07-31-sg-scam-probe-255",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Singapore Police's Cyber Command investigated 255 people, aged 16 to 77, over more than 660 scam cases involving about $5.6 million in losses, in an operation running 16-29 July 2026 and reported 30 July 2026.",
-    "title": "255 people just got investigated over $5.6m in scams - the ages might surprise you",
-    "why_it_works": "A real, dated, actionable community-safety story gives a natural scam-awareness angle, informative rather than alarmist, with no victim-blaming.",
-    "hooks": [
-      "255 people were just investigated over $5.6 million in scam losses this week. The youngest suspect is 16.",
-      "Police just wrapped up a two-week scam operation here. 660 cases, $5.6 million, ages 16 to 77.",
-      "This week's scam numbers just came out: 255 people, $5.6 million, and it's not just the profile you'd expect."
-    ],
-    "talking_points": [
-      "State the fact: Singapore Police's Cyber Command investigated 255 people aged 16 to 77 over more than 660 scam cases involving about $5.6 million in losses, in an operation from 16-29 July 2026, reported this week.",
-      "Name what's notable: the cases span e-commerce, phishing, job, government-impersonation, investment and lucky draw scams - the range shows how many entry points scammers use, not just one obvious trick.",
-      "Practical point: the single most useful habit is a pause-and-verify one - before moving money or sharing details, verify through an official channel you looked up yourself, not one given to you.",
-      "Keep the tone informative, not alarmist - this is about a real operation and real numbers, not a scare tactic."
-    ],
-    "cta": "Comment 'SCAM' and I'll send you the 3 verification habits I tell every client to build in.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-only Facebook post, lead with the numbers, calm and informative tone throughout.",
-    "source_label": "The Star - Singapore police probe 255 over scam cases involving losses of about $5.6 million",
-    "source_url": "https://www.thestar.com.my/aseanplus/2026/07/30/singapore-police-probe-255-over-scam-cases-involving-losses-of-about-56-million",
-    "observed_at": "2026-07-30",
-    "date_found": "2026-07-31"
-  },
-  {
-    "id": "trend-2026-07-31-mamamoo-singapore",
-    "platform": "instagram",
-    "format": "story",
-    "pillar": "interest",
-    "trend_type": "event",
-    "trend_source": "K-pop group MAMAMOO performed their 2026 world tour '4WARD' at Singapore Indoor Stadium on Friday, 31 July 2026, their first Singapore show in 3 years, marking their 12th anniversary with tickets priced S$178 to S$358.",
-    "title": "MAMAMOO just played Singapore for the first time in 3 years - the ticket-tier decision worth thinking through",
-    "why_it_works": "A real, same-day event gives an honest value-tiering angle on concert spending, warm and non-judgmental rather than guilt-tripping.",
-    "hooks": [
-      "MAMAMOO is playing Singapore tonight for the first time in 3 years. Tickets ranged from $178 to $358.",
-      "If you're at the MAMAMOO concert tonight, I'm not here to judge which ticket tier you picked.",
-      "Tonight's MAMAMOO show sold tickets from $178 all the way to $358 for a soundcheck add-on. Here's how I'd think about that gap."
-    ],
-    "talking_points": [
-      "Reference the real event: MAMAMOO performed their '4WARD' world tour at Singapore Indoor Stadium on 31 July 2026, their first Singapore show in 3 years, with tickets ranging from S$178 to S$358 including a VIP soundcheck tier.",
-      "Name the real decision: a wide price range for the same event means you're not just paying for a seat, you're paying for how close you want the experience to be - that's a legitimate value call, not an impulse one.",
-      "Practical point: the tier worth paying for is the one you'd still be glad you picked a month later, not the one that felt most urgent in the ticket queue.",
-      "Keep the tone warm and non-judgmental - fans are allowed to spend on this, the point is choosing the tier deliberately."
-    ],
-    "cta": "Reply and tell me which ticket tier you picked tonight, and whether it was worth it.",
-    "cta_type": "open-question",
-    "how_to_film": "Instagram Story, use a photo or clip from outside the venue, on-screen text on the ticket price range, deliver to camera.",
-    "source_label": "Time Out Singapore - MAMAMOO returns to Singapore for their 12th anniversary tour",
-    "source_url": "https://www.timeout.com/singapore/news/mamamoo-returns-to-singapore-for-their-12th-anniversary-tour-in-july-061626",
-    "observed_at": "2026-07-31",
-    "date_found": "2026-07-31"
-  },
-  {
-    "id": "trend-2026-07-31-grab-punggol-av",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Grab announced on 29 July 2026 that it will pilot on-demand autonomous vehicle rides in Punggol, letting riders book a dedicated AV between two points instead of a fixed shuttle loop, with commercial fares from Q4 2026.",
-    "title": "Grab just announced driverless rides in Punggol - the 'pay for access, not ownership' mindset",
-    "why_it_works": "A real, dated tech-transport announcement gives an honest bridge to pay-per-use thinking, purely observational with no product endorsement.",
-    "hooks": [
-      "Grab just announced driverless rides are coming to Punggol. No fixed route, you book point to point.",
-      "Autonomous rides are being piloted in Singapore this week. I don't think this is really a car story.",
-      "Grab's new driverless pilot just got announced. Here's the money habit it actually reminds me of."
-    ],
-    "talking_points": [
-      "Reference the real announcement: Grab announced on 29 July 2026 it will pilot on-demand autonomous vehicle rides in Punggol, letting riders book a dedicated AV for a direct point-to-point trip, with commercial fares planned from Q4 2026.",
-      "Name the shift: this is another example of paying only for the access you use, when you use it, instead of the upfront cost of ownership - the same logic shows up across transport, entertainment and some financial products.",
-      "Practical point: before assuming you need to 'own' something outright - a car, a big lump-sum product - check whether a pay-as-you-use version actually fits your situation better.",
-      "Keep the tone curious and forward-looking, purely an observation on a transport trend, not an endorsement of any specific service."
-    ],
-    "cta": "Comment if you'd try a driverless ride, and tell me one other thing you'd rather pay-per-use than own.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "TikTok short video, use a screen recording or photo of Punggol as a prop, deliver the access-vs-ownership point to camera.",
-    "source_label": "Yahoo News Malaysia - Grab to pilot on-demand driverless rides in Singapore's Punggol town",
-    "source_url": "https://malaysia.news.yahoo.com/grab-pilot-demand-driverless-rides-015515353.html",
-    "observed_at": "2026-07-29",
-    "date_found": "2026-07-31"
-  },
-  {
-    "id": "trend-2026-07-31-lions-vietnam-asean",
+    "id": "trend-2026-08-01-kennedy-countback",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "interest",
     "trend_type": "sport",
-    "trend_source": "The Singapore Lions face defending champions Vietnam today, 31 July 2026, at My Dinh Stadium in their toughest group match of the ASEAN Championship Hyundai Cup 2026, after opening wins over Cambodia and Timor-Leste.",
-    "title": "The Lions just leveled up to face the defending champions - what 'facing the toughest opponent yet' actually takes",
-    "why_it_works": "A real, same-day match gives a motivating parallel about difficulty scaling with progress, celebratory and not nationalistic, no gambling angle.",
+    "trend_source": "At the Glasgow 2026 Commonwealth Games on 1 August, Nina Kennedy and Eliza McCartney both cleared identical pole vault heights, but gold went to McCartney purely on a countback (fewer earlier misses) - sparking public debate over whether the tiebreak rule is too harsh.",
+    "title": "Two athletes jumped the exact same height today - only one got gold. Here's why.",
+    "why_it_works": "A real, same-day sporting controversy gives an honest, easy-to-grasp lesson that identical-looking outcomes can differ entirely because of the fine print, without taking a side or naming a market.",
     "hooks": [
-      "The Lions play the defending champions today after two straight wins. This is the match that actually tests them.",
-      "Singapore's football team just went from beating the easier teams to facing the toughest one. Sound familiar?",
-      "Today's the Lions' hardest match of the tournament so far. I think about money goals the same way."
+      "Two athletes cleared the exact same height at the Commonwealth Games today. Only one got gold. Let me explain why.",
+      "Same height, same day, same competition - different medal. Today's pole vault final is a lesson in reading the fine print.",
+      "The rule that decided today's gold medal has nothing to do with how high anyone jumped. Stay with me."
     ],
     "talking_points": [
-      "Reference the real match: the Singapore Lions face defending champions Vietnam today, 31 July 2026, at My Dinh Stadium, their toughest test yet after opening wins over Cambodia and Timor-Leste in the ASEAN Championship Hyundai Cup 2026.",
-      "Name the pattern: the matches get harder as you go further - the same is true of most financial goals, the early wins are the easy ones, the real test comes later.",
-      "Practical point: don't judge a plan's health only by the easy early progress - check whether it still holds up when the 'opponent' (a big expense, a market wobble, a life change) actually shows up.",
-      "Keep the tone celebratory of the team's run, not political or nationalistic - purely about what tougher tests reveal."
+      "State the fact: at Glasgow 2026 on 1 August, Nina Kennedy and Eliza McCartney both cleared an identical 4.65m in the pole vault final, but McCartney won gold purely on countback - she'd had fewer misses earlier in the competition - sparking debate over whether the rule is too harsh.",
+      "Name the lesson: two results that look identical on the surface can end very differently once you check the fine print - the same is true of two policies or plans that look similar on the headline numbers.",
+      "Practical point: before assuming two options are 'basically the same,' check the equivalent of the tiebreak rule - exclusions, waiting periods, how a payout actually gets triggered.",
+      "Keep the tone genuinely curious and fair to both athletes - no side-taking, purely using the moment to make the fine-print point land."
     ],
-    "cta": "Reply and tell me what your toughest financial 'opponent' is right now - let's talk through it.",
-    "cta_type": "open-question",
-    "how_to_film": "TikTok short video, use match highlights or a Lions jersey as a prop, deliver the tougher-opponent point to camera with energy.",
-    "source_label": "ASEAN United - Hyundai Cup 2026: Vietnam vs Singapore match details",
-    "source_url": "https://aseanutdfc.com/asean-championship/match/5rw6azr4balbm0gww0706kges/details",
-    "observed_at": "2026-07-31",
-    "date_found": "2026-07-31"
+    "cta": "Comment 'FINE PRINT' and I'll send you the 3 things I always check before comparing two plans that look similar.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "TikTok short video, use a photo or clip of the pole vault final as a prop, deliver the fine-print point to camera with energy.",
+    "source_label": "Yahoo News Australia - Calls for rule change after Nina Kennedy denied gold medal on countback",
+    "source_url": "https://au.news.yahoo.com/calls-for-rule-change-after-nina-kennedy-denied-gold-medal-on-countback-at-commonwealth-games-212726644.html",
+    "observed_at": "2026-08-01",
+    "date_found": "2026-08-01"
   },
   {
-    "id": "trend-2026-07-31-sti-fed-hold-reaction",
+    "id": "trend-2026-08-01-eurozone-inflation",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "The Straits Times Index fell 0.7% to close at 5,673.58 on Thursday, 30 July 2026, with banking stocks leading a broad decline after the US Federal Reserve held interest rates steady - a hold, not a hike or cut.",
-    "title": "Local stocks fell on a rate HOLD, not a hike - what that jumpiness actually signals",
-    "why_it_works": "A real, dated, Singapore-specific market reaction gives a purely behavioural angle about overreacting to non-events, with zero call on any stock.",
+    "trend_source": "Eurostat's flash estimate released 31 July 2026 showed euro-area annual inflation rising to 2.9% in July, up from 2.8% in June, driven by energy prices and core inflation climbing to 2.5%.",
+    "title": "Europe's inflation just ticked up again - the real (not headline) number that actually matters",
+    "why_it_works": "A real, dated, factual data release used purely to explain why inflation-adjusted planning matters, with zero prediction on markets or currencies.",
     "hooks": [
-      "The Singapore stock market fell almost 1% this week on a Fed decision to... hold rates. Not even a hike.",
-      "Local banking stocks dropped Thursday because rates stayed exactly the same. Read that again.",
-      "The market reacted to a non-event this week. That tells you more about the market than about rates."
+      "Europe's inflation number just ticked up again this week. I'm not here to predict what that means for markets.",
+      "A fresh inflation reading came out this week showing prices still climbing in Europe. Here's the number I actually pay attention to.",
+      "Headline inflation went up again in Europe this week. The number underneath it tells a more useful story."
     ],
     "talking_points": [
-      "State the fact neutrally: the Straits Times Index fell 0.7% to 5,673.58 on 30 July 2026, with banking stocks including DBS, OCBC and UOB leading the decline, after the US Fed held interest rates steady.",
-      "Name what's notable: the Fed didn't cut or hike, it held - and the market still moved meaningfully, showing how much of daily market movement is reaction to expectations rather than to actual news.",
-      "Practical point: if a portfolio's mood swings with every headline like this, that's a signal to check the plan's time horizon, not to start reacting to every daily move yourself.",
-      "No call on buying, selling or holding any stock - purely an observation about market behaviour versus personal portfolio behaviour."
+      "State the fact: Eurostat's flash estimate on 31 July 2026 showed euro-area annual inflation rose to 2.9% in July from 2.8% in June, with energy prices and core inflation (up to 2.5%) as the main drivers.",
+      "Name what's useful: the 'core' number, which strips out volatile items like energy, often tells you more about underlying cost pressure than the flashier headline figure everyone reacts to.",
+      "Practical point: whatever region you're in, the real question for your own plan isn't the headline print - it's whether your savings and protection are growing faster than your actual cost of living.",
+      "No prediction on markets, currencies or interest rates - purely explaining why the 'real' number matters more than the headline."
     ],
-    "cta": "Comment 'CALM' and I'll send you my simple check for whether you're overreacting to daily market noise.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the STI fact, measured tone throughout.",
-    "source_label": "Business Today - STI opens 1% lower as bank stocks drag Singapore market",
-    "source_url": "https://www.businesstoday.com.my/2026/07/30/sti-opens-1-lower-as-bank-stocks-drag-singapore-market/",
-    "observed_at": "2026-07-30",
-    "date_found": "2026-07-31"
+    "cta": "Reply and tell me the last time you actually checked your own real, after-inflation return - not just the headline one.",
+    "cta_type": "open-question",
+    "how_to_film": "Text-only LinkedIn post, lead with the Eurostat fact, measured and explanatory tone.",
+    "source_label": "Euronews - Eurozone inflation hits 2.9% - which countries saw the biggest increases",
+    "source_url": "https://www.euronews.com/business/2026/07/31/eurozone-inflation-hits-29-which-countries-saw-the-biggest-increases",
+    "observed_at": "2026-07-31",
+    "date_found": "2026-08-01"
   },
   {
-    "id": "trend-2026-07-31-hoyofest-singapore",
+    "id": "trend-2026-08-01-pathirage-javelin",
     "platform": "instagram",
     "format": "carousel",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Sri Lanka's Rumesh Tharanga Pathirage, a former cricketer who switched to javelin, won gold at the Glasgow 2026 Commonwealth Games on 31 July with a throw of 89.75m, beating two-time Olympic medallist Neeraj Chopra - Sri Lanka's first Commonwealth Games athletics gold.",
+    "title": "A former cricketer just beat an Olympic champion at a completely different sport - the career-switch lesson",
+    "why_it_works": "A real, dated underdog result gives an honest, celebratory parallel to reassessing your financial plan after a major career pivot, without diminishing the athlete he beat.",
+    "hooks": [
+      "A former cricketer just beat a two-time Olympic medallist at javelin - a sport he switched to. That's a career-change story worth sitting with.",
+      "He used to play cricket. Yesterday he won Commonwealth gold in javelin, beating the reigning Olympic champion. Career pivots can work.",
+      "Sri Lanka just won its first-ever Commonwealth Games athletics gold - from a guy who started out in a completely different sport."
+    ],
+    "talking_points": [
+      "State the fact: Sri Lanka's Rumesh Tharanga Pathirage, a former cricketer, won javelin gold at Glasgow 2026 on 31 July with a throw of 89.75m, beating two-time Olympic medallist Neeraj Chopra - Sri Lanka's first-ever Commonwealth Games athletics gold.",
+      "Name the real story: switching sports entirely and still reaching the top takes the earlier skills with you, even in an unrelated field - discipline and training habits transfer even when the sport doesn't.",
+      "Practical point: a major career change is exactly the moment to revisit your income protection and savings plan - your risks and needs shift with your income, even if the change is a step up.",
+      "Keep the tone celebratory of both athletes - this is about what a career pivot can build on, not a knock on anyone."
+    ],
+    "cta": "Comment 'PIVOT' and I'll send you my checklist for what to review financially after a major career change.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Instagram carousel: slide 1 the gold-medal headline and career-switch fact, slide 2 the throw distance vs Chopra's, slide 3 the career-pivot planning point, slide 4 comment CTA.",
+    "source_label": "Al Jazeera - Pathirage wins Sri Lanka's first athletics gold in Commonwealth javelin",
+    "source_url": "https://www.aljazeera.com/sports/2026/7/31/pathirage-wins-sri-lankas-first-athletics-gold-in-commonwealth-javelin",
+    "observed_at": "2026-07-31",
+    "date_found": "2026-08-01"
+  },
+  {
+    "id": "trend-2026-08-01-spiderman-brand-new-day",
+    "platform": "tiktok",
+    "format": "short-video",
     "pillar": "interest",
     "trend_type": "culture",
-    "trend_source": "HoYo FEST 2026, the official convention for Genshin Impact, Honkai: Star Rail and Zenless Zone Zero, opened at Suntec Singapore on 31 July 2026 and runs to 2 August, with 1-day passes at S$16 and 3-day bundles at S$35.",
-    "title": "HoYo Fest just opened in Singapore - the merch-spending check before you queue",
-    "why_it_works": "A real, same-day gaming-convention opening gives a fun, honest impulse-spending angle for a younger audience, non-judgmental about the hobby itself.",
+    "trend_source": "'Spider-Man: Brand New Day' opened in cinemas worldwide, including Singapore, on 30 July 2026, spawning the trending hashtag/audio '#SpiderManBrandNewDay' and 'A Brand New Day starts now' clips across TikTok.",
+    "title": "Spider-Man's newest movie just opened here - stealing its 'brand new day' line for something real",
+    "why_it_works": "A real, dated cinema release gives a clean, honest 'fresh start' hook for talking about restarting a lapsed habit or policy, without needing a forced pun.",
     "hooks": [
-      "HoYo Fest just opened at Suntec today. Tickets are $16 to $35, but that's not what gets expensive.",
-      "If you're at HoYo Fest this weekend, I already know the merch booth is where the real spending happens.",
-      "Genshin, Star Rail and Zenless Zone Zero all have booths at Suntec this weekend. Here's my one rule for con spending."
+      "Spider-Man: Brand New Day just opened here this week. I'm stealing that line for something that has nothing to do with superheroes.",
+      "If you caught the new Spider-Man movie this week, you know the line 'a brand new day starts now.' Here's where I use it.",
+      "New Spider-Man just hit cinemas here. The title alone is a better financial reset reminder than most finance content I see."
     ],
     "talking_points": [
-      "Reference the real event: HoYo FEST 2026 opened at Suntec Singapore on 31 July 2026 and runs to 2 August, featuring Genshin Impact, Honkai: Star Rail and Zenless Zone Zero activities and merch booths, with entry from S$16.",
-      "Name the real spend: the ticket is cheap, but limited-edition merch and in-game top-ups at the event are where a $16 day can quietly become a $200 one.",
-      "Practical point: decide your merch budget before you're at the booth holding the item - it keeps the fun of the con without the regret afterward.",
-      "Keep the tone fun and current, not judgmental - enjoying a hobby con is valid, this is just about deciding the number first."
+      "Reference the real release: 'Spider-Man: Brand New Day' opened in cinemas worldwide, including Singapore, on 30 July 2026, with the hashtag '#SpiderManBrandNewDay' trending on TikTok.",
+      "Name the honest hook: 'a brand new day' is a genuinely useful reset line for anyone who's been meaning to restart a savings habit, review a lapsed policy, or just open the app they've been avoiding.",
+      "Practical point: a reset doesn't need a big dramatic moment - today, right after watching the movie or reading this, is as good a 'brand new day' as any to do one small thing.",
+      "Keep the tone fun and current, a light pop-culture reference, not a forced tie-in to the actual movie plot."
     ],
-    "cta": "Save this before your next con or meet - decide your merch budget before you're in line.",
-    "cta_type": "save-share",
-    "how_to_film": "Instagram carousel: slide 1 the HoYo Fest photo and headline, slide 2 the ticket price, slide 3 the 'decide your number first' tip, slide 4 save CTA.",
-    "source_label": "GameTrader.SG - HoYo FEST 2026 Singapore tickets and details",
-    "source_url": "https://www.gametrader.sg/blog/hoyofest-2026-singapore-tickets-on-sale-16-july/",
-    "observed_at": "2026-07-31",
-    "date_found": "2026-07-31"
+    "cta": "Comment 'RESET' and tell me the one financial thing you've been putting off - today's your brand new day for it.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "TikTok short video, use a cinema ticket or poster as a prop, deliver the 'brand new day' reset point to camera.",
+    "source_label": "Tech Times - Spider-Man: Brand New Day opens overseas, spoiler clips flood social media",
+    "source_url": "https://www.techtimes.com/articles/321995/20260729/spider-man-brand-new-day-opens-overseas-spoiler-clips-flood-social-media.htm",
+    "observed_at": "2026-07-30",
+    "date_found": "2026-08-01"
   },
   {
-    "id": "trend-2026-07-31-bundle-preseed",
-    "platform": "linkedin",
-    "format": "text-post",
+    "id": "trend-2026-08-01-same-age-as-parents",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "meme",
+    "trend_source": "A TikTok trend using Pitbull's 'Hey Baby (Drop It to the Floor)' has creators comparing themselves to their parents at the same age - captioned 'me at the same age as my parents when they had two kids' - reported as actively trending this week.",
+    "title": "The 'me at my parents' age' trend, but for money milestones instead of chaos",
+    "why_it_works": "A real, currently-trending, self-deprecating meme format gives an honest, funny way to open a generational-milestone money conversation, punching at the format's own expense, not at any client.",
+    "hooks": [
+      "There's a trend right now where people compare themselves to their parents at the same age. Let's do that with money instead of chaos.",
+      "Me at my parents' age: still figuring out my CPF. Them at my age: apparently owned property. Cool, cool, cool.",
+      "This week's 'me at my parents' age' trend hit different when I thought about it in money terms, not vibes."
+    ],
+    "talking_points": [
+      "Reference the real trend: a TikTok format set to Pitbull's 'Hey Baby' has people comparing themselves to their parents at the same age, captioned things like 'me at the same age as my parents when they had two kids,' actively trending this week.",
+      "Name the real comparison people actually make: property, marriage, kids, savings - and how unfair a straight comparison usually is given how much cost of living and timelines have shifted.",
+      "Practical point: instead of comparing milestones, compare habits - are you saving and protecting at a rate that fits your actual life now, regardless of what your parents' generation did at the same age.",
+      "Keep it self-deprecating and light, never mocking anyone's specific situation or income - the joke is on the comparison itself, not on the person."
+    ],
+    "cta": "Comment your version of 'me at my parents' age' - money edition. I'll go first in the replies.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "TikTok short video using the trending Pitbull audio, on-screen text comparing 'them vs me' milestones, deliver the real-talk point to camera at the end.",
+    "source_label": "Newengen - August 2026 TikTok Trends roundup",
+    "source_url": "https://newengen.com/insights/august-tiktok-trends/",
+    "observed_at": "2026-07-31",
+    "date_found": "2026-08-01"
+  },
+  {
+    "id": "trend-2026-08-01-coe-july-2nd-bidding",
+    "platform": "facebook",
+    "format": "carousel",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "Singapore-based rewards platform Bundle raised a US$5.5 million pre-seed round co-anchored by Ethereal Ventures and Further Ventures, reported 30 July 2026, to expand into the Philippines and Vietnam.",
-    "title": "A Singapore startup just raised $5.5m before it even had scale - what a pre-seed round is actually betting on",
-    "why_it_works": "A real, dated local funding story used to explain how early-stage bets work, purely educational with no call to invest in any startup.",
+    "trend_source": "Singapore's July 2026 second COE bidding exercise closed with Cat A at S$126,000, Cat B at S$129,890, Cat C at S$93,889, Cat D at S$10,202 and Cat E at S$129,971 - a slight pullback from the first July round, reported 29-30 July 2026.",
+    "title": "COE premiums pulled back slightly this week - still six figures for the cheapest category",
+    "why_it_works": "A real, dated bidding result gives an honest big-ticket-purchase planning angle, purely about budgeting discipline, with no call on any purchase decision.",
     "hooks": [
-      "A Singapore startup just raised $5.5 million this week before most people have even heard of it. Here's what that number means.",
-      "Pre-seed. Seed. Series A. If those terms confuse you, this week's $5.5m raise is a good example to break it down.",
-      "A local startup just landed a $5.5 million pre-seed round. I'm not telling you to invest in startups."
+      "COE premiums dipped slightly this week. Cat A is still over S$126,000. Let's talk about what that means for your budget.",
+      "The latest COE results came out this week - a small pullback, but still six figures for the smallest car category.",
+      "COE eased a little this round. I still think most people underestimate what car ownership actually costs here."
     ],
     "talking_points": [
-      "Reference the real news: Singapore-based rewards platform Bundle raised a US$5.5 million pre-seed round this week, co-anchored by Ethereal Ventures and Further Ventures, to expand into the Philippines and Vietnam.",
-      "Explain the mechanic plainly: pre-seed funding is money raised on a plan and a team, before there's much revenue to show - investors are betting on the direction, not a track record.",
-      "Practical point: your own financial plan works the same way at the start - the first version doesn't need to be perfect, it needs a clear direction that people, including future-you, can back.",
-      "No call to invest in this or any startup - purely using a real funding story to explain how early-stage bets actually work."
+      "State the fact: Singapore's July 2026 second COE bidding exercise closed with Cat A (cars up to 1600cc) at S$126,000, Cat B (larger cars) at S$129,890 and Cat E (open) at S$129,971 - a slight pullback from the first July round.",
+      "Name the real cost: COE is just one line item - insurance, parking, petrol/EV charging and depreciation stack on top, and together they're one of the biggest recurring commitments most households take on.",
+      "Practical point: before committing to a car, run the full 5- or 10-year cost against what you're actually budgeting monthly, not just whether you can afford the down payment and loan.",
+      "Keep the tone neutral and practical - owning a car is a valid choice for many households, this is about making the decision with the real numbers."
     ],
-    "cta": "Comment 'STARTUP' and I'll send you a simple breakdown of pre-seed to Series A, in plain English.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the raise, educational tone, end on the plain-English offer.",
-    "source_label": "DealStreetAsia - Singapore's Bundle raises $5.5m pre-seed round",
-    "source_url": "https://www.dealstreetasia.com/stories/se-asia-deals-30-july-490655",
+    "cta": "Save this before your next car purchase - run the full cost, not just the COE, first.",
+    "cta_type": "save-share",
+    "how_to_film": "Facebook carousel: slide 1 the COE headline numbers, slide 2 the hidden costs on top, slide 3 the 'run the full number first' tip, slide 4 save CTA.",
+    "source_label": "Motorist Singapore - July 2026 COE Results 2nd Bidding",
+    "source_url": "https://www.motorist.sg/article/6136/july-2026-coe-results-2nd-bidding-singapore-lost-the-world-cup-of-sensible-vehicle-prices-but-with-a-minor-pullback-in-quota-premiums-for-categories-a-b-and-c",
     "observed_at": "2026-07-30",
-    "date_found": "2026-07-31"
+    "date_found": "2026-08-01"
   },
   {
-    "id": "trend-2026-07-31-sephora-plaza-singapura-closing",
+    "id": "trend-2026-08-01-commonwealth-mile",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "interest",
-    "trend_type": "culture",
-    "trend_source": "Sephora's original unit at Plaza Singapura, open since 2013, serves its final day today, 31 July 2026, the latest in a string of closures there this month including Secret Recipe and Tim Ho Wan's first Singapore outlet, as the mall preps a revamp.",
-    "title": "A Singapore mall is closing out its original stores this week - the 'everything must go' trap worth knowing",
-    "why_it_works": "A real, same-day retail-closure moment gives an honest behavioural angle on closing-sale urgency, nostalgic and light rather than a straight scarcity story.",
+    "trend_type": "sport",
+    "trend_source": "The Commonwealth Games brought back the men's mile event on 1 August 2026 for the first time since 1966, headlined by world-record holder Josh Kerr against rising 20-year-old Cameron Myers.",
+    "title": "An event that hasn't run at the Commonwealth Games since 1966 just came back today",
+    "why_it_works": "A real, same-day revival of a 60-year-absent event gives an honest, light parallel to why some 'old-fashioned' financial habits are worth bringing back, purely observational.",
     "hooks": [
-      "Sephora's original Plaza Singapura store closes today after 13 years. It's the third familiar shop there to shut this month.",
-      "A mall I grew up shopping at is closing out its original stores this week. I keep seeing people buy things they didn't plan to.",
-      "'Last day' sales are happening at Plaza Singapura this week. Here's the one question I'd ask before buying."
+      "An event that hasn't been at the Commonwealth Games since 1966 just came back today. Some things are worth reviving.",
+      "The mile hadn't run at these Games in 60 years - until today. It made me think about what else gets shelved and shouldn't.",
+      "Today's race hasn't happened at a Commonwealth Games since before most of our parents were born. Worth the wait."
     ],
     "talking_points": [
-      "Reference the real event: Sephora's original unit at Plaza Singapura, open since 2013, closes today, 31 July 2026, following Secret Recipe and Tim Ho Wan's first Singapore outlet closing there earlier this month as the mall preps a revamp.",
-      "Name the pattern: a closing-down sale creates real urgency, and urgency is exactly when people buy things that weren't on their list, because the fear of missing the deal outweighs the actual need.",
-      "Practical point: at any closing sale, ask if you'd still want the item at full price with no deadline - if the answer is no, the 'deal' isn't actually saving you money.",
-      "Keep the tone nostalgic and light, not judgmental - it's fine to visit for the memories, the discipline is just at the checkout."
+      "Reference the real event: the Commonwealth Games brought back the men's mile on 1 August 2026 for the first time since 1966, headlined by world-record holder Josh Kerr against 20-year-old Cameron Myers.",
+      "Name the parallel: some formats get shelved not because they stopped working, but because something newer took the spotlight - the mile is a classic, not an outdated one.",
+      "Practical point: the same is true of simple financial habits like a plain savings plan or basic protection - unglamorous, easy to shelve for something newer, but still fundamentally sound.",
+      "Keep the tone light and nostalgic, celebrating the event's return, not a hard sales pivot."
     ],
-    "cta": "Save this before your next closing-down sale visit - ask the full-price question first.",
-    "cta_type": "save-share",
-    "how_to_film": "Text-only Facebook post, open with the closures, nostalgic tone, end on the full-price question.",
-    "source_label": "TheSmartLocal - Plaza Singapura Revamp: Last Look At The Stores Closing",
-    "source_url": "https://thesmartlocal.com/read/plaza-singapura-revamp/",
-    "observed_at": "2026-07-31",
-    "date_found": "2026-07-31"
+    "cta": "Reply and tell me one 'old-fashioned' money habit you think deserves a comeback.",
+    "cta_type": "open-question",
+    "how_to_film": "Text-only Facebook post, lead with the 60-years fact, warm nostalgic tone, end on the open question.",
+    "source_label": "Olympics.com - Commonwealth Games 2026 schedule, 1 August: Josh Kerr, Cameron Myers",
+    "source_url": "https://www.olympics.com/en/news/commonwealth-games-2026-schedule-1-august-josh-kerr-cameron-myers-watch-live",
+    "observed_at": "2026-08-01",
+    "date_found": "2026-08-01"
   }
 ]
