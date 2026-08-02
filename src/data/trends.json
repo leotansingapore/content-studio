@@ -1,366 +1,338 @@
 [
   {
-    "id": "trend-2026-08-01-linkedin-ai-slop",
+    "id": "trend-2026-08-02-mom-retrenchment-q2",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "On 30 July 2026, LinkedIn rolled out a 'Seems like AI slop' button letting users flag AI-generated posts, and said it has already blocked billions of AI-generated posts and comments in the past few months; it's also retiring its own AI post-rewrite tool for a plain proofreading feature.",
-    "title": "LinkedIn just added a button to flag 'AI slop' - why my posts sound like me, not a robot",
-    "why_it_works": "A real, dated platform change gives an honest, self-aware reason to talk about authentic, first-person content over generic AI-drafted posts - directly relevant to how advisors should be posting.",
+    "trend_source": "MOM's Q2 2026 Labour Market Advance Release (out 31 Jul) showed retrenchments jumped to 4,500, the highest quarterly total since Q4 2020, concentrated in info-comms and manufacturing even as overall employment kept growing.",
+    "title": "What the Q2 retrenchment spike means for your emergency fund",
+    "why_it_works": "SG professionals are actively discussing job security this week because of hard numbers, not vibes - it makes the 'how many months of expenses do you actually have saved' conversation feel urgent and current instead of generic advice.",
     "hooks": [
-      "LinkedIn just added a button to report posts that 'seem like AI slop.' I want to tell you why that doesn't worry me.",
-      "This week LinkedIn started letting people flag AI-written posts. Here's what I write instead.",
-      "LinkedIn says it blocked billions of AI-generated posts recently. I've never needed AI to tell you what happened with a client."
+      "Retrenchments just hit their highest level since 2020 - and most people still don't know their real runway number.",
+      "MOM's new data shows layoffs are up 17% this quarter. Here's the one number every working adult should know.",
+      "Everyone's talking about the retrenchment numbers this week. Almost nobody's actually checked their own runway."
     ],
     "talking_points": [
-      "State the fact: on 30 July 2026, LinkedIn launched a 'Seems like AI slop' flag on every post and said it has blocked billions of AI-generated posts and comments in the past few months, while retiring its own AI-rewrite tool for a simpler proofreading feature.",
-      "Name why this matters: a platform this large deciding AI-sounding content should get less reach is a signal that generic, templated posts are losing ground to real, specific stories.",
-      "Practical point: the posts that hold up are the ones with a real detail in them - an actual client question, an actual number, an actual moment - not a polished paragraph that could apply to anyone.",
-      "Turn it into a habit: before posting, ask whether a stranger could tell this specific story only came from you."
+      "MOM's Q2 2026 data: retrenchments hit 4,500, up from 3,830 in Q1 - the highest since Q4 2020",
+      "Concentrated in info-comms and manufacturing, even though overall employment is still growing",
+      "Runway = your savings divided by monthly essential expenses, not your full income",
+      "3-6 months is the usual buffer, but weigh it against how exposed your own industry is"
     ],
-    "cta": "Comment 'REAL' and I'll send you my 3-question check for writing a post that doesn't sound AI-written.",
+    "cta": "Drop 'RUNWAY' in the comments and I'll walk you through how to calculate yours.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Text-only LinkedIn post, lead with the LinkedIn fact, conversational and slightly wry tone, end on the offer.",
-    "source_label": "TechCrunch - LinkedIn adds a button to report AI-generated 'slop'",
-    "source_url": "https://techcrunch.com/2026/07/30/linkedin-adds-a-button-to-report-ai-generated-slop/",
-    "observed_at": "2026-07-30",
-    "date_found": "2026-08-01"
+    "how_to_film": "Talking head, direct to camera. Cut to a simple on-screen graphic showing the MOM stat (4,500 vs 3,830) for 2 seconds, then back to camera for the runway explainer.",
+    "source_label": "MOM Q2 2026 Labour Market Advance Release",
+    "source_url": "https://www.mom.gov.sg/newsroom/press-releases/2026/0731-labour-market-advance-release-2q-2026",
+    "observed_at": "2026-07-31",
+    "date_found": "2026-08-02"
   },
   {
-    "id": "trend-2026-08-01-tiktok-shop-sg-summit",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "topic",
-    "trend_type": "event",
-    "trend_source": "TikTok Shop held its first-ever Singapore Summit on 30 July 2026, a full-day hybrid event for more than 1,500 sellers, creators and partners, after which TikTok Shop announced plans to train 1,000+ Singapore sellers and support 3,000+ creators in content, LIVE selling and affiliate commerce.",
-    "title": "TikTok just held its first-ever Singapore Shop Summit - the side-income conversation creators keep skipping",
-    "why_it_works": "A real, dated, Singapore-specific platform event gives an honest opening to talk about planning around variable creator or affiliate income, without pushing any product or platform.",
-    "hooks": [
-      "TikTok Shop just held its first Singapore Summit this week. 1,500 sellers and creators showed up to learn how to earn more.",
-      "If you're one of the thousands of Singapore creators TikTok just said it'll train this year, here's the money question nobody's asking you.",
-      "TikTok announced its biggest Singapore creator push yet this week. More income streams also means more income to plan around."
-    ],
-    "talking_points": [
-      "Reference the real event: TikTok Shop's first-ever Singapore Summit ran 30 July 2026 with 1,500+ sellers, creators and partners, after which TikTok Shop announced plans to train 1,000+ sellers and support 3,000+ creators through content, LIVE selling and affiliate programmes.",
-      "Name the real gap: as more Singaporeans earn affiliate or creator income alongside a day job, that income is usually irregular and easy to under-plan for - no CPF contribution, no automatic savings, no protection tied to it.",
-      "Practical point: treat platform income like any variable income - set aside a fixed percentage before spending it, and check whether your protection coverage still reflects your full income, not just your day-job salary.",
-      "Keep the tone practical and encouraging, not cautionary - this is about planning around a real opportunity, not warning people off it."
-    ],
-    "cta": "Comment 'CREATOR' and I'll send you my simple checklist for planning around side or platform income.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "TikTok short video, screen-record the TikTok Shop Summit headline or use a phone-in-hand prop, deliver the income-planning point direct to camera with energy.",
-    "source_label": "TikTok Newsroom - TikTok Shop deepens commitment to Singapore's discovery commerce ecosystem",
-    "source_url": "https://newsroom.tiktok.com/tiktok-shop-deepens-commitment-to-singapores-discovery-commerce-ecosystem-at-inaugural-tiktok-shop-singapore-summit?lang=en-SG",
-    "observed_at": "2026-07-30",
-    "date_found": "2026-08-01"
-  },
-  {
-    "id": "trend-2026-08-01-sheng-siong-dividend",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Sheng Siong Group announced on 29 July 2026 that 1H FY2026 net profit rose 11.9% to S$81.0 million on revenue of S$855.4 million, and raised its interim dividend to 3.75 cents per share (from 3.20 cents), payable 28 August 2026.",
-    "title": "A supermarket chain just grew profit and raised its dividend - what 'boring' businesses teach about steady money",
-    "why_it_works": "A real, dated earnings release from an everyday, non-speculative business gives an honest, purely educational angle on dividends and defensive businesses, with zero call to buy the stock.",
-    "hooks": [
-      "A supermarket chain here just posted higher profit and raised its dividend this week. Nobody's talking about it because it's not exciting.",
-      "Sheng Siong's profit grew almost 12% this week. I'm not telling you to buy the stock - I want to talk about why 'boring' works.",
-      "While everyone watches flashy stocks, a grocery chain quietly raised its dividend again this week. That's not an accident."
-    ],
-    "talking_points": [
-      "State the fact: Sheng Siong Group reported on 29 July 2026 that 1H FY2026 net profit rose 11.9% to S$81.0 million on S$855.4 million in revenue, and raised its interim dividend to 3.75 cents per share from 3.20 cents, payable 28 August 2026.",
-      "Name the pattern: a supermarket chain isn't a glamorous business, but people buy groceries in every economic climate - that steadiness is exactly why 'boring' defensive businesses can support consistent payouts.",
-      "Practical point: this isn't a stock tip - it's a reminder that a financial plan built on steady, unglamorous habits usually outlasts one chasing excitement.",
-      "No call to buy, sell or hold any stock - purely using a real result to explain what a defensive business is."
-    ],
-    "cta": "Reply and tell me one 'boring but steady' habit in your own finances that's actually doing the heavy lifting.",
-    "cta_type": "open-question",
-    "how_to_film": "Text-only LinkedIn post, lead with the Sheng Siong fact, calm educational tone throughout.",
-    "source_label": "The Edge Singapore - Sheng Siong reports earnings of $81 mil for 1HFY2026, up 11.9% y-o-y",
-    "source_url": "https://www.theedgesingapore.com/capital/results/sheng-siong-reports-earnings-81-mil-1hfy2026-119-y-o-y",
-    "observed_at": "2026-07-30",
-    "date_found": "2026-08-01"
-  },
-  {
-    "id": "trend-2026-08-01-gst-voucher-august",
+    "id": "trend-2026-08-02-mas-tech-risk-notice",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "The Ministry of Finance confirmed about 1.5 million adult Singaporeans will receive up to S$850 in GST Voucher cash and about 710,000 seniors up to S$450 in MediSave top-ups in August 2026, with cash via PayNow-NRIC starting 6 August, bank crediting from 15 August, and MediSave credited from 11 August.",
-    "title": "Up to S$850 is landing in August - here's exactly when, so it doesn't just disappear",
-    "why_it_works": "A real, official, dated payout schedule gives a directly useful money angle with zero forced bridge - knowing the exact date is the entire value of the post.",
+    "trend_source": "MAS closed its public consultation on 31 Jul 2026 for tighter Technology Risk Management notices requiring banks and insurers to harden their cyber-resilience standards.",
+    "title": "Why your bank keeps adding more security steps (and why that's good news)",
+    "why_it_works": "Frustration with extra OTPs and verification steps is a live, relatable client complaint - the MAS story lets a consultant reframe it as protection rather than annoyance, right as regulators are visibly tightening the rules.",
     "hooks": [
-      "Up to S$850 is landing in some bank accounts starting next week. Here's the date breakdown so you're not caught off guard.",
-      "1.5 million of us are getting a GST Voucher payout in August. Most people don't know which date theirs actually lands.",
-      "S$850 cash, S$450 MediSave top-up - the government just confirmed exactly when August's payouts hit your account."
+      "Annoyed your bank keeps adding more verification steps? Here's why that's actually protecting your money.",
+      "MAS just closed a consultation on tightening bank cyber rules. Here's what that means for you.",
+      "That extra OTP that annoys you every login exists because of exactly this kind of regulation."
     ],
     "talking_points": [
-      "State the fact: MOF confirmed about 1.5 million adult Singaporeans will get up to S$850 in GST Voucher cash and about 710,000 seniors up to S$450 in MediSave top-ups in August 2026.",
-      "Give the real dates: cash via PayNow-NRIC starts 6 August, bank crediting starts 15 August, GovCash starts 22 August, and MediSave top-ups are credited to CPF accounts from 11 August.",
-      "Practical point: a payout you didn't plan for tends to get spent without a second thought - decide today whether yours is going to daily expenses, savings, or your MediSave buffer, before it lands.",
-      "Keep the tone purely informative and neutral - describe the scheme mechanics only, no view on the policy itself."
+      "MAS's consultation on updated Technology Risk Management notices for banks and insurers closed 31 Jul 2026",
+      "The push is for stronger cyber-resilience standards across financial institutions, not just individual accounts",
+      "Practical takeaway: never share OTPs, and treat extra verification steps as a feature, not a bug",
+      "Good moment to double-check your own scam-vigilance habits - unsolicited calls, links, urgency"
     ],
-    "cta": "Save this post so you've got the payout dates handy when they land.",
+    "cta": "Save this post as a reminder next time an OTP prompt feels like a hassle.",
     "cta_type": "save-share",
-    "how_to_film": "Text-only Facebook post, lead with the headline amount, clear and practical tone, list the dates plainly.",
-    "source_label": "Ministry of Finance - 1.5 million adult Singaporeans to receive up to $850 in GSTV Cash in August 2026",
-    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/1-5-million-adult-singaporeans-to-receive-up-to--850-in--gstv---cash-and-710-000-singaporean-seniors-to-receive-up-to--450-medisave-top-up-in-august-2026/",
+    "how_to_film": "Static text-post style graphic or simple talking head; overlay a mock phone screen showing an OTP prompt as the visual hook in the first 2 seconds.",
+    "source_label": "MAS consultation - Technology Risk Management notices",
+    "source_url": "https://www.mas.gov.sg/publications/consultations/2026/consultation-paper-on-proposed-amendments-to-notices-on-technology-risk-management",
     "observed_at": "2026-07-31",
-    "date_found": "2026-08-01"
+    "date_found": "2026-08-02"
   },
   {
-    "id": "trend-2026-08-01-ndp-drone-show",
+    "id": "trend-2026-08-02-trump-tariffs-deadline",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "market",
+    "trend_type": "current-affairs",
+    "trend_source": "New US tariffs under Section 301 (plus country-specific reciprocal rates) took effect at the 1 Aug 2026 deadline, even as terms kept shifting - like a last-minute 90-day delay announced for Mexico on 31 Jul.",
+    "title": "The tariff deadline headlines - and why your plan shouldn't flinch",
+    "why_it_works": "Tariff-deadline headlines dominated feeds this weekend and clients will ask about them Monday - this gives a calm, behaviour-first response instead of speculation, with no market predictions or buy/sell calls involved.",
+    "hooks": [
+      "The tariff deadline hit yesterday and my inbox is already full of 'should I move my money' messages.",
+      "Tariffs took effect August 1. Here's the one thing I tell clients before they touch their portfolio.",
+      "Trade headlines change daily - even the tariff deadline itself got renegotiated overnight for some countries."
+    ],
+    "talking_points": [
+      "New US tariffs took effect 1 Aug 2026 under Section 301, alongside country-specific reciprocal rates",
+      "Terms are still shifting - a 90-day delay was announced for Mexico on 31 Jul",
+      "Headline-driven moves are exactly what a long-term financial plan is built to absorb, not react to",
+      "The useful question isn't 'what will tariffs do to markets' - it's 'does my plan still match my goals'"
+    ],
+    "cta": "Comment 'PLAN' if you want a quick gut-check on whether headline news should change anything for you.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Carousel: slide 1 headline stat (tariffs took effect Aug 1), slide 2 the Mexico delay as proof terms keep shifting, slides 3-4 the 'plan over reaction' takeaway with a simple checklist graphic.",
+    "source_label": "ABC News - Trump's Aug. 1 tariff deadline",
+    "source_url": "https://abcnews.com/Business/trumps-aug-1-tariff-deadline/story?id=123921765",
+    "observed_at": "2026-08-01",
+    "date_found": "2026-08-02"
+  },
+  {
+    "id": "trend-2026-08-02-ai-layoffs-tracker",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "A live 2026 tech-layoffs tracker shows 322 layoff events and roughly 205,832 roles cut so far this year, with over half of those events explicitly citing AI or automation as a driver (as of 1 Aug 2026).",
+    "title": "AI didn't just change how we work - it's showing up in the layoff numbers",
+    "why_it_works": "AI-and-jobs anxiety is everywhere right now, and a live, dated tracker with a specific number is more persuasive than the usual 'AI might disrupt jobs' evergreen line - it makes the income-protection conversation concrete.",
+    "hooks": [
+      "205,000 jobs cut this year and counting - more than half of them blamed on AI. Let's talk about that.",
+      "A live tracker just hit 322 AI-linked layoff events for 2026. Here's what that means for your money plan.",
+      "If your industry keeps mentioning 'AI restructuring,' this number is exactly why that phrase should get your attention."
+    ],
+    "talking_points": [
+      "Live 2026 layoffs tracker: 322 events, ~205,832 roles cut, 54% citing AI or automation as a driver as of 1 Aug",
+      "This isn't a prediction - it's what's already happened this year, tracked in real time",
+      "Income protection and an emergency fund matter more when disruption is sector-wide, not just company-specific",
+      "Practical step: know which parts of your role are most automatable, and build your buffer accordingly"
+    ],
+    "cta": "DM me 'BUFFER' and I'll send you a simple way to calculate your own emergency fund target.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Fast-paced talking head with on-screen number counters (322 events, 205,832 roles) animating up; text overlay for the key stat.",
+    "source_label": "SkillSyncer 2026 Tech Layoffs Tracker",
+    "source_url": "https://skillsyncer.com/layoffs-tracker",
+    "observed_at": "2026-08-01",
+    "date_found": "2026-08-02"
+  },
+  {
+    "id": "trend-2026-08-02-apple-chip-shortage",
     "platform": "instagram",
     "format": "story",
     "pillar": "identity",
-    "trend_type": "event",
-    "trend_source": "National Day Parade 2026's second preview show ran at the National Stadium on 1 August 2026, featuring Singapore's first-ever indoor drone light show with 300+ drones and two aerialists, under the theme 'Majulah Singapura, Go Beyond!'",
-    "title": "NDP just flew 300 drones indoors for the first time - the 'go beyond' theme is really a money mindset",
-    "why_it_works": "A real, same-day, hyperlocal national event gives a warm, non-forced tie-in to going beyond the bare minimum in planning, matching the parade's own theme.",
+    "trend_type": "news",
+    "trend_source": "Apple posted record June-quarter iPhone revenue but its stock slid on a warning about severe supply constraints from a global memory-chip shortage tied to AI data-centre demand (31 Jul 2026).",
+    "title": "Your next phone upgrade might cost more - plan for it now",
+    "why_it_works": "Chip shortages are already the reason pre-orders and restocks feel harder, so this is a natural, low-pressure entry point into 'sinking fund' behaviour instead of impulse-upgrading a gadget.",
     "hooks": [
-      "NDP's preview show just flew 300 drones indoors for the first time tonight. This year's theme is 'go beyond' - I think about that a lot in my work.",
-      "Singapore just did its first-ever indoor drone show at the National Stadium tonight. 300 drones, perfectly synced.",
-      "If you caught tonight's NDP preview, you saw 300 drones move as one. That's what a plan with everyone on the same page looks like."
+      "Apple just warned its own investors that phones might get harder to get and pricier. Here's the money move.",
+      "Chip shortages are back in the headlines - and your next gadget upgrade is going to feel it.",
+      "Record iPhone sales, a falling stock, and a chip warning - all in one earnings report. Here's the real lesson."
     ],
     "talking_points": [
-      "Reference the real event: NDP 2026's second preview show ran at the National Stadium on 1 August 2026, featuring Singapore's first-ever indoor drone light show with 300+ synchronised drones and two aerialists, under the theme 'Majulah Singapura, Go Beyond!'",
-      "Name the parallel: 300 drones only look impressive because every single one is doing its individual, small part in sync - not one dramatic move, but many small ones aligned.",
-      "Practical point: 'going beyond' in a financial plan rarely looks dramatic either - it's the small, synced habits (protection, savings, CPF) working together, not one big move.",
-      "Keep the tone warm, celebratory and locally proud - this is about the spectacle and the small-things-in-sync idea, not a sales pitch."
+      "Apple's record iPhone revenue still came with a stock slide on chip-shortage supply warnings (31 Jul 2026)",
+      "Global memory-chip demand from AI data centres is squeezing supply for consumer electronics generally",
+      "A 'sinking fund' - saving a fixed amount monthly toward a planned upgrade - beats financing an impulse buy",
+      "Good moment to separate needs (a working phone) from wants (this year's model) before restocks get tighter"
     ],
-    "cta": "Reply and tell me one small money habit you've kept in sync for years - I'd love to hear it.",
-    "cta_type": "open-question",
-    "how_to_film": "Instagram Story, use a clip or photo from the drone show or the National Stadium, on-screen text on the '300 drones' stat, deliver to camera.",
-    "source_label": "Singapore Police Force - Security and traffic arrangements for NDP 2026 Preview 2",
-    "source_url": "https://www.police.gov.sg/Media-Hub/News/2026/07/20260730_security_and_traffic_arrangements_for_national_day_parade_2026_preview_2",
-    "observed_at": "2026-08-01",
-    "date_found": "2026-08-01"
-  },
-  {
-    "id": "trend-2026-08-01-mccartney-pole-vault",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "New Zealand's Eliza McCartney won her first-ever Commonwealth Games gold in the women's pole vault in Glasgow on 1 August 2026, clearing 4.65m, after previously only earning silvers and bronzes across three Games appearances.",
-    "title": "She finally won gold on her third Commonwealth Games - the 'not this time either' years",
-    "why_it_works": "A real, same-day, inspiring result gives an honest parallel to long financial goals that take repeated attempts, celebratory and universal, no market or country bias.",
-    "hooks": [
-      "Eliza McCartney just won her first Commonwealth Games gold today. She'd only ever won silvers and bronzes before this.",
-      "It took her three Commonwealth Games to finally win gold. I think about that every time someone tells me they're 'behind' on a goal.",
-      "Today's pole vault gold wasn't her first medal - it was her first time it was gold. There's a difference."
-    ],
-    "talking_points": [
-      "Reference the real result: New Zealand's Eliza McCartney won gold in the women's pole vault at the Glasgow 2026 Commonwealth Games on 1 August 2026, clearing 4.65m, after previously only winning silver and bronze medals across her career.",
-      "Name the pattern: medalling every time but not winning until the third attempt isn't failure repeated - it's the same effort, refined, until it finally lands.",
-      "Practical point: a financial goal that isn't 'done' yet after a few years isn't a failed goal - check whether you're still showing up and improving, not whether you've already arrived.",
-      "Keep the tone celebratory and universal, not about any one sport or country - purely about what repeated effort looks like before it pays off."
-    ],
-    "cta": "Save this for the next time a goal feels like it's taking too long - it might just be the version before the gold.",
+    "cta": "Save this if you're due for an upgrade and want to plan it instead of impulse-buying it.",
     "cta_type": "save-share",
-    "how_to_film": "Instagram carousel: slide 1 the gold-medal headline, slide 2 her past silver/bronze results, slide 3 the 'not failure, refinement' point, slide 4 save CTA.",
-    "source_label": "1News NZ - Eliza McCartney wins gold in women's pole vault, Ayris takes bronze",
-    "source_url": "https://www.1news.co.nz/2026/08/01/eliza-mccartney-wins-gold-in-womens-pole-vault-ayris-takes-bronze/",
-    "observed_at": "2026-08-01",
-    "date_found": "2026-08-01"
+    "how_to_film": "Story format: phone-in-hand selfie shot, text overlay with the headline stat, simple graphic showing the 'sinking fund' math.",
+    "source_label": "US News - Apple slides as supply snags cloud outlook",
+    "source_url": "https://www.usnews.com/news/top-news/articles/2026-07-31/apple-slides-as-supply-snags-cloud-outlook-putting-iphone-demand-in-focus",
+    "observed_at": "2026-07-31",
+    "date_found": "2026-08-02"
   },
   {
-    "id": "trend-2026-08-01-kennedy-countback",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "sport",
-    "trend_source": "At the Glasgow 2026 Commonwealth Games on 1 August, Nina Kennedy and Eliza McCartney both cleared identical pole vault heights, but gold went to McCartney purely on a countback (fewer earlier misses) - sparking public debate over whether the tiebreak rule is too harsh.",
-    "title": "Two athletes jumped the exact same height today - only one got gold. Here's why.",
-    "why_it_works": "A real, same-day sporting controversy gives an honest, easy-to-grasp lesson that identical-looking outcomes can differ entirely because of the fine print, without taking a side or naming a market.",
-    "hooks": [
-      "Two athletes cleared the exact same height at the Commonwealth Games today. Only one got gold. Let me explain why.",
-      "Same height, same day, same competition - different medal. Today's pole vault final is a lesson in reading the fine print.",
-      "The rule that decided today's gold medal has nothing to do with how high anyone jumped. Stay with me."
-    ],
-    "talking_points": [
-      "State the fact: at Glasgow 2026 on 1 August, Nina Kennedy and Eliza McCartney both cleared an identical 4.65m in the pole vault final, but McCartney won gold purely on countback - she'd had fewer misses earlier in the competition - sparking debate over whether the rule is too harsh.",
-      "Name the lesson: two results that look identical on the surface can end very differently once you check the fine print - the same is true of two policies or plans that look similar on the headline numbers.",
-      "Practical point: before assuming two options are 'basically the same,' check the equivalent of the tiebreak rule - exclusions, waiting periods, how a payout actually gets triggered.",
-      "Keep the tone genuinely curious and fair to both athletes - no side-taking, purely using the moment to make the fine-print point land."
-    ],
-    "cta": "Comment 'FINE PRINT' and I'll send you the 3 things I always check before comparing two plans that look similar.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "TikTok short video, use a photo or clip of the pole vault final as a prop, deliver the fine-print point to camera with energy.",
-    "source_label": "Yahoo News Australia - Calls for rule change after Nina Kennedy denied gold medal on countback",
-    "source_url": "https://au.news.yahoo.com/calls-for-rule-change-after-nina-kennedy-denied-gold-medal-on-countback-at-commonwealth-games-212726644.html",
-    "observed_at": "2026-08-01",
-    "date_found": "2026-08-01"
-  },
-  {
-    "id": "trend-2026-08-01-eurozone-inflation",
+    "id": "trend-2026-08-02-amazon-aws-surge",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Eurostat's flash estimate released 31 July 2026 showed euro-area annual inflation rising to 2.9% in July, up from 2.8% in June, driven by energy prices and core inflation climbing to 2.5%.",
-    "title": "Europe's inflation just ticked up again - the real (not headline) number that actually matters",
-    "why_it_works": "A real, dated, factual data release used purely to explain why inflation-adjusted planning matters, with zero prediction on markets or currencies.",
+    "trend_source": "Amazon shares jumped roughly 15% after blowout Q2 2026 results, with AWS revenue up 37% year-on-year - its fastest cloud growth in 18 quarters - the same day Apple's stock slid on a chip-shortage warning (31 Jul 2026).",
+    "title": "Same earnings season, opposite stock moves - the real lesson isn't which one to buy",
+    "why_it_works": "Two of the world's biggest companies moved in opposite directions on the very same day for very different reasons - a clean, honest illustration of concentration risk that doesn't require picking a winner or predicting what's next.",
     "hooks": [
-      "Europe's inflation number just ticked up again this week. I'm not here to predict what that means for markets.",
-      "A fresh inflation reading came out this week showing prices still climbing in Europe. Here's the number I actually pay attention to.",
-      "Headline inflation went up again in Europe this week. The number underneath it tells a more useful story."
+      "Apple's stock fell and Amazon's jumped 15% - same week, same 'AI boom' theme. Here's the real lesson.",
+      "One earnings report sent a stock up 15%. Another sent one down. Neither should move your plan alone.",
+      "Big tech had wildly different days this week. That's exactly why 'just buy the winners' isn't a strategy."
     ],
     "talking_points": [
-      "State the fact: Eurostat's flash estimate on 31 July 2026 showed euro-area annual inflation rose to 2.9% in July from 2.8% in June, with energy prices and core inflation (up to 2.5%) as the main drivers.",
-      "Name what's useful: the 'core' number, which strips out volatile items like energy, often tells you more about underlying cost pressure than the flashier headline figure everyone reacts to.",
-      "Practical point: whatever region you're in, the real question for your own plan isn't the headline print - it's whether your savings and protection are growing faster than your actual cost of living.",
-      "No prediction on markets, currencies or interest rates - purely explaining why the 'real' number matters more than the headline."
+      "Amazon's Q2 2026 revenue hit $200.6B; AWS grew 37% YoY, its fastest pace in 18 quarters - shares jumped ~15%",
+      "The same week, Apple's stock slid on supply-chain warnings despite record iPhone revenue",
+      "This isn't a stock pick or a prediction - it's a live example of how single-company news swings can diverge",
+      "Diversification exists precisely so one earnings call doesn't decide your outcome"
     ],
-    "cta": "Reply and tell me the last time you actually checked your own real, after-inflation return - not just the headline one.",
+    "cta": "What's your take - does one earnings report ever change your long-term plan? Tell me below.",
     "cta_type": "open-question",
-    "how_to_film": "Text-only LinkedIn post, lead with the Eurostat fact, measured and explanatory tone.",
-    "source_label": "Euronews - Eurozone inflation hits 2.9% - which countries saw the biggest increases",
-    "source_url": "https://www.euronews.com/business/2026/07/31/eurozone-inflation-hits-29-which-countries-saw-the-biggest-increases",
+    "how_to_film": "Split-screen graphic: Apple stock arrow down on one side, Amazon arrow up on the other, both dated 31 Jul, then talking head for the diversification point.",
+    "source_label": "Invezz - Amazon stock rallies on AWS sales jump",
+    "source_url": "https://invezz.com/news/2026/07/31/amazon-stock-rallies-over-10-as-aws-sales-jump-37-but-one-warning-grows-louder/",
     "observed_at": "2026-07-31",
-    "date_found": "2026-08-01"
+    "date_found": "2026-08-02"
   },
   {
-    "id": "trend-2026-08-01-pathirage-javelin",
+    "id": "trend-2026-08-02-us-mortgage-rates-2026-high",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "current-affairs",
+    "trend_source": "US 30-year fixed mortgage rates hit 6.65% on 1 Aug 2026, the highest level of the year, as the Fed continues holding its benchmark rate with core inflation still elevated - part of a broader 'higher for longer' global rate backdrop.",
+    "title": "Rates are staying higher for longer - what that means for your home loan",
+    "why_it_works": "SG homeowners track global rate headlines because SORA-pegged loans move with the same broad cycle - this is a timely, non-speculative reason to review a loan package instead of assuming rates will fall soon.",
+    "hooks": [
+      "US mortgage rates just hit their highest point of the year. Here's why that headline still matters here.",
+      "'Higher for longer' isn't just a headline - it's why your home loan review can't wait for a rate cut.",
+      "If you're waiting for rates to drop before refinancing, this week's data might change your timeline."
+    ],
+    "talking_points": [
+      "US 30-year mortgage rates hit 6.65% on 1 Aug 2026, the highest of the year, as the Fed holds rates",
+      "SG mortgage rates are pegged to SORA, not the Fed directly - but they move with the same global rate cycle",
+      "Waiting indefinitely for a rate cut can cost more than reviewing your loan structure now",
+      "A loan review isn't about timing the market - it's matching your repayment plan to your actual cash flow"
+    ],
+    "cta": "Book a quick call if you haven't reviewed your home loan package in the last 12 months.",
+    "cta_type": "book-call",
+    "how_to_film": "Simple text-post style graphic with the 6.65% stat, then talking head for the SG-context explainer.",
+    "source_label": "Norada Real Estate - Mortgage rates, August 1, 2026",
+    "source_url": "https://www.noradarealestate.com/blog/todays-mortgage-rates-today-august-1-2026-update/",
+    "observed_at": "2026-08-01",
+    "date_found": "2026-08-02"
+  },
+  {
+    "id": "trend-2026-08-02-ai-cybersecurity-breach",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "current-affairs",
+    "trend_source": "OpenAI and Anthropic both disclosed that their AI models breached real company systems during authorised security testing exercises, reigniting the AI-regulation and cyber-risk debate (1 Aug 2026).",
+    "title": "If AI can breach a company's systems in a test, your own scam defences need an update",
+    "why_it_works": "A widely shared AI-security story this week makes cyber-risk feel immediate rather than abstract, giving a natural, non-alarmist opening to talk about scam vigilance and, for business owners, cyber-insurance as part of overall risk planning.",
+    "hooks": [
+      "OpenAI and Anthropic just admitted their own AI models breached real companies during security tests. Let's unpack that.",
+      "If AI models can find their way into a company's systems during a test, phishing scams look almost quaint.",
+      "This week's AI-security story is a good excuse to actually check your own scam defences."
+    ],
+    "talking_points": [
+      "OpenAI and Anthropic disclosed their AI models breached real organisations' systems during red-team security testing (1 Aug 2026)",
+      "It's reignited debate on AI regulation and how fast cyber-risk is evolving for businesses",
+      "For business owners: cyber-insurance and basic AI-governance controls are now a real budget line, not a nice-to-have",
+      "For individuals: the same vigilance basics apply - never share OTPs, verify unusual requests independently"
+    ],
+    "cta": "Comment 'CYBER' if you want a simple checklist for reviewing your business's cyber-risk exposure.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Fast-paced talking head, headline screenshot overlay for the first 2 seconds, then direct explainer to camera with on-screen bullet text for the checklist point.",
+    "source_label": "NPR - Anthropic, OpenAI models hack cybersecurity",
+    "source_url": "https://www.npr.org/2026/08/01/nx-s1-5914852/anthropic-openai-models-hack-cybersecurity",
+    "observed_at": "2026-08-01",
+    "date_found": "2026-08-02"
+  },
+  {
+    "id": "trend-2026-08-02-cwg-boxing-india-record",
     "platform": "instagram",
     "format": "carousel",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Sri Lanka's Rumesh Tharanga Pathirage, a former cricketer who switched to javelin, won gold at the Glasgow 2026 Commonwealth Games on 31 July with a throw of 89.75m, beating two-time Olympic medallist Neeraj Chopra - Sri Lanka's first Commonwealth Games athletics gold.",
-    "title": "A former cricketer just beat an Olympic champion at a completely different sport - the career-switch lesson",
-    "why_it_works": "A real, dated underdog result gives an honest, celebratory parallel to reassessing your financial plan after a major career pivot, without diminishing the athlete he beat.",
+    "trend_source": "India won a record seven boxing golds (plus three silvers) at the Commonwealth Games 2026 in Glasgow on Day 9 (1 Aug 2026) - the most golds any nation has won in Commonwealth Games boxing history in a single edition.",
+    "title": "Seven golds in one day didn't happen overnight - neither does financial security",
+    "why_it_works": "The record-breaking result is fresh and impressive on its own, and 'consistent training compounds' is an honest, non-forced parallel to consistent saving - it doesn't promise outcomes, just draws the discipline comparison.",
     "hooks": [
-      "A former cricketer just beat a two-time Olympic medallist at javelin - a sport he switched to. That's a career-change story worth sitting with.",
-      "He used to play cricket. Yesterday he won Commonwealth gold in javelin, beating the reigning Olympic champion. Career pivots can work.",
-      "Sri Lanka just won its first-ever Commonwealth Games athletics gold - from a guy who started out in a completely different sport."
+      "India just won a record seven boxing golds in one day at the Commonwealth Games. That took years to build.",
+      "Nobody wins seven golds in a day by starting yesterday. Your savings habit works the same way.",
+      "A record-breaking day for India's boxers - and a reminder that consistency, not luck, gets you there."
     ],
     "talking_points": [
-      "State the fact: Sri Lanka's Rumesh Tharanga Pathirage, a former cricketer, won javelin gold at Glasgow 2026 on 31 July with a throw of 89.75m, beating two-time Olympic medallist Neeraj Chopra - Sri Lanka's first-ever Commonwealth Games athletics gold.",
-      "Name the real story: switching sports entirely and still reaching the top takes the earlier skills with you, even in an unrelated field - discipline and training habits transfer even when the sport doesn't.",
-      "Practical point: a major career change is exactly the moment to revisit your income protection and savings plan - your risks and needs shift with your income, even if the change is a step up.",
-      "Keep the tone celebratory of both athletes - this is about what a career pivot can build on, not a knock on anyone."
+      "India won a record 7 boxing golds (plus 3 silvers) at Commonwealth Games 2026 on 1 Aug - most in CWG boxing history",
+      "That result is years of consistent, unglamorous training compounding, not a single lucky day",
+      "Same principle applies to saving and investing - the habit matters more than any single contribution",
+      "Small, consistent monthly contributions beat waiting for a 'big' amount to start"
     ],
-    "cta": "Comment 'PIVOT' and I'll send you my checklist for what to review financially after a major career change.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Instagram carousel: slide 1 the gold-medal headline and career-switch fact, slide 2 the throw distance vs Chopra's, slide 3 the career-pivot planning point, slide 4 comment CTA.",
-    "source_label": "Al Jazeera - Pathirage wins Sri Lanka's first athletics gold in Commonwealth javelin",
-    "source_url": "https://www.aljazeera.com/sports/2026/7/31/pathirage-wins-sri-lankas-first-athletics-gold-in-commonwealth-javelin",
-    "observed_at": "2026-07-31",
-    "date_found": "2026-08-01"
+    "cta": "Save this post as your reminder that consistency beats intensity - in training and in saving.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 headline stat, slide 2 the boxing story, slides 3-4 the savings-consistency parallel with a simple visual of small amounts compounding.",
+    "source_label": "Olympics.com - Commonwealth Games 2026 boxing final report",
+    "source_url": "https://www.olympics.com/en/news/commonwealth-games-2026-boxing-india-final-report",
+    "observed_at": "2026-08-01",
+    "date_found": "2026-08-02"
   },
   {
-    "id": "trend-2026-08-01-spiderman-brand-new-day",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "culture",
-    "trend_source": "'Spider-Man: Brand New Day' opened in cinemas worldwide, including Singapore, on 30 July 2026, spawning the trending hashtag/audio '#SpiderManBrandNewDay' and 'A Brand New Day starts now' clips across TikTok.",
-    "title": "Spider-Man's newest movie just opened here - stealing its 'brand new day' line for something real",
-    "why_it_works": "A real, dated cinema release gives a clean, honest 'fresh start' hook for talking about restarting a lapsed habit or policy, without needing a forced pun.",
-    "hooks": [
-      "Spider-Man: Brand New Day just opened here this week. I'm stealing that line for something that has nothing to do with superheroes.",
-      "If you caught the new Spider-Man movie this week, you know the line 'a brand new day starts now.' Here's where I use it.",
-      "New Spider-Man just hit cinemas here. The title alone is a better financial reset reminder than most finance content I see."
-    ],
-    "talking_points": [
-      "Reference the real release: 'Spider-Man: Brand New Day' opened in cinemas worldwide, including Singapore, on 30 July 2026, with the hashtag '#SpiderManBrandNewDay' trending on TikTok.",
-      "Name the honest hook: 'a brand new day' is a genuinely useful reset line for anyone who's been meaning to restart a savings habit, review a lapsed policy, or just open the app they've been avoiding.",
-      "Practical point: a reset doesn't need a big dramatic moment - today, right after watching the movie or reading this, is as good a 'brand new day' as any to do one small thing.",
-      "Keep the tone fun and current, a light pop-culture reference, not a forced tie-in to the actual movie plot."
-    ],
-    "cta": "Comment 'RESET' and tell me the one financial thing you've been putting off - today's your brand new day for it.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "TikTok short video, use a cinema ticket or poster as a prop, deliver the 'brand new day' reset point to camera.",
-    "source_label": "Tech Times - Spider-Man: Brand New Day opens overseas, spoiler clips flood social media",
-    "source_url": "https://www.techtimes.com/articles/321995/20260729/spider-man-brand-new-day-opens-overseas-spoiler-clips-flood-social-media.htm",
-    "observed_at": "2026-07-30",
-    "date_found": "2026-08-01"
-  },
-  {
-    "id": "trend-2026-08-01-same-age-as-parents",
+    "id": "trend-2026-08-02-cwg-netball-jamaica-upset",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "identity",
-    "trend_type": "meme",
-    "trend_source": "A TikTok trend using Pitbull's 'Hey Baby (Drop It to the Floor)' has creators comparing themselves to their parents at the same age - captioned 'me at the same age as my parents when they had two kids' - reported as actively trending this week.",
-    "title": "The 'me at my parents' age' trend, but for money milestones instead of chaos",
-    "why_it_works": "A real, currently-trending, self-deprecating meme format gives an honest, funny way to open a generational-milestone money conversation, punching at the format's own expense, not at any client.",
+    "trend_type": "sport",
+    "trend_source": "Jamaica stunned world No.1-ranked Australia 46-45 in the Commonwealth Games 2026 netball semifinal on 1 Aug 2026, one of the tournament's biggest upsets, setting up a final against New Zealand.",
+    "title": "The world No.1 just lost by one point - the underdog lesson for your finances",
+    "why_it_works": "A fresh, one-point upset against the top-ranked team is genuinely exciting and gives an honest 'you don't need the biggest resources to win' angle - useful for reassuring clients who feel they're starting behind.",
     "hooks": [
-      "There's a trend right now where people compare themselves to their parents at the same age. Let's do that with money instead of chaos.",
-      "Me at my parents' age: still figuring out my CPF. Them at my age: apparently owned property. Cool, cool, cool.",
-      "This week's 'me at my parents' age' trend hit different when I thought about it in money terms, not vibes."
+      "Jamaica just beat the world's No.1 netball team by one point. Here's why that matters for your money.",
+      "Nobody expected this upset - and that's exactly the point about starting where you are, not where you wish you were.",
+      "The top-ranked team just lost by a single point. Big budgets don't guarantee big wins."
     ],
     "talking_points": [
-      "Reference the real trend: a TikTok format set to Pitbull's 'Hey Baby' has people comparing themselves to their parents at the same age, captioned things like 'me at the same age as my parents when they had two kids,' actively trending this week.",
-      "Name the real comparison people actually make: property, marriage, kids, savings - and how unfair a straight comparison usually is given how much cost of living and timelines have shifted.",
-      "Practical point: instead of comparing milestones, compare habits - are you saving and protecting at a rate that fits your actual life now, regardless of what your parents' generation did at the same age.",
-      "Keep it self-deprecating and light, never mocking anyone's specific situation or income - the joke is on the comparison itself, not on the person."
+      "Jamaica beat world No.1 Australia 46-45 in the Commonwealth Games 2026 netball semifinal (1 Aug 2026)",
+      "It's one of the tournament's biggest upsets, setting up a final against New Zealand",
+      "You don't need the 'biggest' portfolio or income to build real financial security - just a plan that fits your numbers",
+      "Comparing your starting point to someone else's is the fastest way to feel like you're behind"
     ],
-    "cta": "Comment your version of 'me at my parents' age' - money edition. I'll go first in the replies.",
+    "cta": "Comment 'START' if you want help figuring out your own starting point, whatever it looks like.",
     "cta_type": "comment-keyword",
-    "how_to_film": "TikTok short video using the trending Pitbull audio, on-screen text comparing 'them vs me' milestones, deliver the real-talk point to camera at the end.",
-    "source_label": "Newengen - August 2026 TikTok Trends roundup",
-    "source_url": "https://newengen.com/insights/august-tiktok-trends/",
-    "observed_at": "2026-07-31",
-    "date_found": "2026-08-01"
+    "how_to_film": "Fast cuts: score graphic (46-45) for the first 2 seconds, then talking head to camera for the underdog-lesson delivery.",
+    "source_label": "TNT Sports - Jamaica stun Australia in netball semi-final",
+    "source_url": "https://www.tntsports.co.uk/netball/commonwealth-games-2026-netball/2026/jamiaca-australia-win-netball-semi-final-gold-medal-match-romelda-aiken-shanice-beckford_sto23324479/story.shtml",
+    "observed_at": "2026-08-01",
+    "date_found": "2026-08-02"
   },
   {
-    "id": "trend-2026-08-01-coe-july-2nd-bidding",
-    "platform": "facebook",
-    "format": "carousel",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Singapore's July 2026 second COE bidding exercise closed with Cat A at S$126,000, Cat B at S$129,890, Cat C at S$93,889, Cat D at S$10,202 and Cat E at S$129,971 - a slight pullback from the first July round, reported 29-30 July 2026.",
-    "title": "COE premiums pulled back slightly this week - still six figures for the cheapest category",
-    "why_it_works": "A real, dated bidding result gives an honest big-ticket-purchase planning angle, purely about budgeting discipline, with no call on any purchase decision.",
-    "hooks": [
-      "COE premiums dipped slightly this week. Cat A is still over S$126,000. Let's talk about what that means for your budget.",
-      "The latest COE results came out this week - a small pullback, but still six figures for the smallest car category.",
-      "COE eased a little this round. I still think most people underestimate what car ownership actually costs here."
-    ],
-    "talking_points": [
-      "State the fact: Singapore's July 2026 second COE bidding exercise closed with Cat A (cars up to 1600cc) at S$126,000, Cat B (larger cars) at S$129,890 and Cat E (open) at S$129,971 - a slight pullback from the first July round.",
-      "Name the real cost: COE is just one line item - insurance, parking, petrol/EV charging and depreciation stack on top, and together they're one of the biggest recurring commitments most households take on.",
-      "Practical point: before committing to a car, run the full 5- or 10-year cost against what you're actually budgeting monthly, not just whether you can afford the down payment and loan.",
-      "Keep the tone neutral and practical - owning a car is a valid choice for many households, this is about making the decision with the real numbers."
-    ],
-    "cta": "Save this before your next car purchase - run the full cost, not just the COE, first.",
-    "cta_type": "save-share",
-    "how_to_film": "Facebook carousel: slide 1 the COE headline numbers, slide 2 the hidden costs on top, slide 3 the 'run the full number first' tip, slide 4 save CTA.",
-    "source_label": "Motorist Singapore - July 2026 COE Results 2nd Bidding",
-    "source_url": "https://www.motorist.sg/article/6136/july-2026-coe-results-2nd-bidding-singapore-lost-the-world-cup-of-sensible-vehicle-prices-but-with-a-minor-pullback-in-quota-premiums-for-categories-a-b-and-c",
-    "observed_at": "2026-07-30",
-    "date_found": "2026-08-01"
-  },
-  {
-    "id": "trend-2026-08-01-commonwealth-mile",
+    "id": "trend-2026-08-02-oil-price-surge",
     "platform": "facebook",
     "format": "text-post",
-    "pillar": "interest",
-    "trend_type": "sport",
-    "trend_source": "The Commonwealth Games brought back the men's mile event on 1 August 2026 for the first time since 1966, headlined by world-record holder Josh Kerr against rising 20-year-old Cameron Myers.",
-    "title": "An event that hasn't run at the Commonwealth Games since 1966 just came back today",
-    "why_it_works": "A real, same-day revival of a 60-year-absent event gives an honest, light parallel to why some 'old-fashioned' financial habits are worth bringing back, purely observational.",
+    "pillar": "topic",
+    "trend_type": "current-affairs",
+    "trend_source": "Global crude oil prices climbed above US$85 a barrel on 31 Jul 2026, extending the month's gains to over 20% amid supply-route disruptions - the sharpest energy price move in months.",
+    "title": "Oil just jumped 20% this month - here's how that shows up in your monthly budget",
+    "why_it_works": "Energy price spikes translate quickly into petrol and electricity bills in Singapore, since the country imports over 95% of its energy - a concrete, current number makes the 'build a buffer for rising costs' conversation land instead of feeling generic.",
     "hooks": [
-      "An event that hasn't been at the Commonwealth Games since 1966 just came back today. Some things are worth reviving.",
-      "The mile hadn't run at these Games in 60 years - until today. It made me think about what else gets shelved and shouldn't.",
-      "Today's race hasn't happened at a Commonwealth Games since before most of our parents were born. Worth the wait."
+      "Oil just jumped over 20% this month. Singapore imports almost all its energy - so this hits your bills too.",
+      "That petrol pump price creeping up isn't random. Global oil just had its biggest move in months.",
+      "A 20% monthly oil price jump doesn't stay overseas - it shows up in your electricity bill eventually."
     ],
     "talking_points": [
-      "Reference the real event: the Commonwealth Games brought back the men's mile on 1 August 2026 for the first time since 1966, headlined by world-record holder Josh Kerr against 20-year-old Cameron Myers.",
-      "Name the parallel: some formats get shelved not because they stopped working, but because something newer took the spotlight - the mile is a classic, not an outdated one.",
-      "Practical point: the same is true of simple financial habits like a plain savings plan or basic protection - unglamorous, easy to shelve for something newer, but still fundamentally sound.",
-      "Keep the tone light and nostalgic, celebrating the event's return, not a hard sales pivot."
+      "Global crude oil climbed above US$85 a barrel on 31 Jul 2026, up over 20% for the month",
+      "Singapore imports more than 95% of its energy, so global price swings filter into local petrol and electricity costs",
+      "This isn't a call to buy or sell anything - it's a reason to build a small buffer into your monthly budget",
+      "Reviewing recurring expenses (transport, utilities) now beats reacting to a bigger bill later"
     ],
-    "cta": "Reply and tell me one 'old-fashioned' money habit you think deserves a comeback.",
-    "cta_type": "open-question",
-    "how_to_film": "Text-only Facebook post, lead with the 60-years fact, warm nostalgic tone, end on the open question.",
-    "source_label": "Olympics.com - Commonwealth Games 2026 schedule, 1 August: Josh Kerr, Cameron Myers",
-    "source_url": "https://www.olympics.com/en/news/commonwealth-games-2026-schedule-1-august-josh-kerr-cameron-myers-watch-live",
+    "cta": "Save this if you want a reminder to review your monthly budget before the next bill lands.",
+    "cta_type": "save-share",
+    "how_to_film": "Simple text-post graphic with the oil price stat, then talking head connecting it to SG electricity and petrol costs.",
+    "source_label": "Fortune - Current price of oil as of July 31, 2026",
+    "source_url": "https://fortune.com/article/price-of-oil-07-31-2026/",
+    "observed_at": "2026-07-31",
+    "date_found": "2026-08-02"
+  },
+  {
+    "id": "trend-2026-08-02-aia-corporate-insurance-enhancement",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "AIA Singapore announced enhancements to its corporate insurance offering (announced 30 Jul, rolling out from 1 Aug 2026) - including a GP referral waiver for Specialist Outpatient Clinics and fully digitalised pre-authorisation - covering over 1 million corporate insured members.",
+    "title": "Your corporate insurance just got easier to use - here's what changed from today",
+    "why_it_works": "This is a real, dated change that takes effect this week and directly affects how corporate-insured clients access care - explaining it clearly is genuinely useful, not a pitch, and positions the consultant as the person who actually reads the fine print.",
+    "hooks": [
+      "If you're on a corporate insurance plan, something changed for you starting today - here's what it means.",
+      "No more GP referral letter needed for specialist visits at public hospitals, if your plan is one of these.",
+      "AIA just digitalised pre-authorisation for over a million corporate-insured employees. Here's what that actually changes."
+    ],
+    "talking_points": [
+      "From 1 Aug 2026, employees on these plans can visit Specialist Outpatient Clinics at public hospitals without a GP referral letter",
+      "Pre-authorisation requests can now be submitted digitally anytime via the AIA+ app or web portal",
+      "The change covers over 1 million corporate insured members, about a third of Singapore's workforce",
+      "Practical step: check with your HR or your policy summary to confirm if your plan is affected"
+    ],
+    "cta": "DM me 'CORPORATE' if you're not sure whether your work insurance plan includes this change.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Talking head, simple on-screen bullet graphic listing the two changes (GP waiver, digital pre-auth) as you explain them.",
+    "source_label": "PR Newswire APAC - AIA Singapore expands medical access",
+    "source_url": "https://en.prnasia.com/releases/apac/aia-singapore-expands-cross-border-medical-access-and-digitalised-care-for-more-than-1-million-employees-542381.shtml",
     "observed_at": "2026-08-01",
-    "date_found": "2026-08-01"
+    "date_found": "2026-08-02"
   }
 ]
