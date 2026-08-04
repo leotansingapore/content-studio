@@ -1,338 +1,338 @@
 [
   {
-    "id": "trend-2026-08-03-coe-bidding-opens",
+    "id": "trend-2026-08-04-eu-ai-act-deepfake-labels",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "The EU AI Act's Article 50 transparency rules became enforceable on 2 Aug 2026 - AI chatbots and voice assistants must now disclose they're AI, and AI-generated images, audio and deepfake video must carry a machine-readable label, with penalties up to €15 million for non-compliance.",
+    "title": "The EU just forced AI to identify itself - here's why that matters for your money too",
+    "why_it_works": "A dated, global regulatory story with an honest tie to a real problem - AI voice and deepfake scams targeting bank transfers - gives a genuine reason to talk about verifying anything that asks you to move money, without fear-mongering.",
+    "hooks": [
+      "The EU just made AI legally required to say 'I'm AI.' Singapore doesn't have that rule yet - here's what I do instead.",
+      "New law this week: AI voices and deepfake videos now need a label in Europe. Here's the one habit that protects you regardless.",
+      "If an AI voice ever asks you to move money urgently, this new EU rule confirms what I've told clients for months."
+    ],
+    "talking_points": [
+      "EU AI Act's transparency rules (Article 50) became enforceable on 2 Aug 2026, requiring AI to disclose itself and deepfakes to carry a label",
+      "Singapore doesn't have an identical rule yet, so the responsibility to verify still sits with you",
+      "Before acting on any voice note, video call or message asking you to transfer money, hang up and call the person back on a number you already have saved",
+      "This isn't about fearing AI - it's one habit that protects you whether the request is real or fake"
+    ],
+    "cta": "Save this post and share it with a family member who handles money for someone else in the household.",
+    "cta_type": "save-share",
+    "how_to_film": "Text-post graphic: headline showing 'EU AI Act - AI must now identify itself' with today's date, then talking head explaining the verify-before-you-transfer habit.",
+    "source_label": "European Commission - AI Act transparency rules",
+    "source_url": "https://digital-strategy.ec.europa.eu/en/news/commission-starts-enforcing-ai-act-rules-and-new-transparency-requirements-2-august",
+    "observed_at": "2026-08-02",
+    "date_found": "2026-08-04"
+  },
+  {
+    "id": "trend-2026-08-04-visa-biocatch-fraud-shield",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "LTA opened the new COE bidding round today (3 Aug, 12pm) for the Aug-Oct 2026 quota period, with results due Wed 5 Aug 4pm; the new quota cuts small/mid-car Category A supply by about 4% while lifting bigger-car Category B by about 6%.",
-    "title": "COE bidding just opened - what a shifting quota means for financing your next car",
-    "why_it_works": "COE bidding is a recurring, watched-every-two-weeks event in Singapore, and today's quota shift (fewer Cat A slots, more Cat B) gives a concrete, dated reason to talk about financing a big purchase properly instead of rushing into a bid.",
+    "trend_source": "Visa announced on 3 Aug 2026 it's acquiring behavioural-biometrics firm BioCatch for US$2.4 billion, a company that protects 1.8 billion devices across 350+ banks, specifically to fight AI-powered account-takeover scams.",
+    "title": "A card network just paid US$2.4 billion to fight AI scams - here's what that tells you",
+    "why_it_works": "A concrete, dated acquisition signals how seriously the financial industry treats AI-driven fraud right now, an honest, current reason to talk about personal account-security habits rather than a scare tactic.",
     "hooks": [
-      "COE bidding just opened for the next round and the quota shifted again - here's what that means for your wallet.",
-      "Thinking about bidding for a COE this round? Let's talk about the financing side before you place that bid.",
-      "Every COE round gets people asking me the same question - how much car can I actually afford."
+      "Visa just spent US$2.4 billion buying an anti-fraud company this week. That number alone tells you how real AI scams have become.",
+      "A major card network just made a $2.4 billion bet on stopping AI-powered scams. Here's what that means for your own accounts.",
+      "If banks are spending billions defending against AI fraud, maybe it's worth 5 minutes checking your own account security settings."
     ],
     "talking_points": [
-      "New COE bidding round opened today, 3 Aug, 12pm; results due Wed 5 Aug, 4pm",
-      "Quota for this Aug-Oct period cuts Category A (small/mid cars) by about 4% and raises Category B by about 6%",
-      "A COE plus car loan is a 10-year commitment - work out the total monthly outlay, not just the bid price",
-      "Build in a buffer for insurance, maintenance and loan interest before you commit to a number"
+      "Visa announced a US$2.4 billion acquisition of BioCatch on 3 Aug 2026, aimed squarely at AI-powered account-takeover fraud",
+      "BioCatch already protects 1.8 billion devices across 350-plus banks - this isn't a hypothetical threat, it's an industry-wide response",
+      "On your end: turn on two-factor authentication, use unique passwords for banking apps, and never approve a login you didn't initiate",
+      "None of this requires new products - just five minutes checking settings you probably already have"
     ],
-    "cta": "Comment 'CAR' if you want a quick way to work out what COE plus loan repayment actually does to your monthly budget.",
+    "cta": "Comment 'SECURE' and I'll send you a simple checklist to lock down your banking app settings.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talking head to camera; overlay a simple text graphic with today's date and the Cat A/Cat B quota shift for the first 2 seconds, then explain the budgeting math.",
-    "source_label": "LTA - COE Quota Announcement (Aug-Oct 2026)",
-    "source_url": "https://www.lta.gov.sg/content/ltagov/en/newsroom/2026/7/news-releases/coe_quota_aug26-oct26.html",
+    "how_to_film": "Text-post style graphic with the $2.4B headline number, then talking head walking through the account-security checklist points.",
+    "source_label": "CNBC - Visa to acquire BioCatch",
+    "source_url": "https://www.cnbc.com/2026/08/03/visa-buys-biocatch-fraud-detection.html",
     "observed_at": "2026-08-03",
-    "date_found": "2026-08-03"
+    "date_found": "2026-08-04"
   },
   {
-    "id": "trend-2026-08-03-civil-servant-pay-rise",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Salary adjustments of 2-9% for eligible civil servants, announced by the Public Service Division, took effect from 1 August 2026 - meaning many public-sector employees are seeing the change land in this month's pay.",
-    "title": "Your pay just went up - here's what to do with it before it disappears into daily spending",
-    "why_it_works": "For the public-sector employees affected, this is a real, dated change showing up in their pay this month - a specific prompt to redirect part of a raise before lifestyle creep absorbs it, rather than a generic 'save more' message.",
+    "id": "trend-2026-08-04-kuwaki-maiden-major",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Shiho Kuwaki won her first major title in a playoff at the AIG Women's Open at Royal Lytham & St Annes on 2 Aug 2026, beating Nelly Korda and Jeeno Thitikul to the trophy.",
+    "title": "Her first major win came in a playoff this weekend - the years before that moment are the real story",
+    "why_it_works": "A fresh, feel-good sporting milestone with a clean, honest parallel to hitting a first big financial milestone after years of consistent effort - no promise of outcome, just the patience angle.",
     "hooks": [
-      "If you're a civil servant, your pay adjustment kicked in this month - here's the one move before it just blends into spending.",
-      "A 2 to 9 percent pay rise landed for public sector staff this month. Here's what I'd do with mine.",
-      "Got a pay bump this month? The first 30 days decide whether it becomes savings or just a bigger lifestyle."
+      "She just won her first major title this weekend, in a playoff, after years of near-misses. That's the part nobody films.",
+      "Beating two of the best golfers in the world for a first major - here's what that win actually took.",
+      "First major win of her career happened this weekend. I keep thinking about everything that had to happen before it."
     ],
     "talking_points": [
-      "Salary adjustments of 2-9% for eligible civil servants took effect from 1 August 2026",
-      "The easiest time to build a new saving habit is the month a raise lands, before spending adjusts to match it",
-      "Consider directing part of the increase to your CPF Special Account or an emergency fund top-up before it's absorbed",
-      "A raise is also a good trigger to check if your insurance coverage still matches your income level"
+      "Shiho Kuwaki won her maiden major at the AIG Women's Open on 2 Aug 2026, beating Nelly Korda and Jeeno Thitikul in a playoff",
+      "A first major typically comes after years of top-10 finishes that don't make headlines",
+      "Your first big financial milestone - first $50k saved, first fully-funded emergency fund - works the same way, built from unseen months",
+      "The 'boring' consistent months before a milestone are doing more work than the milestone itself"
     ],
-    "cta": "DM me 'RAISE' and I'll send you a simple way to split a pay increase between spending, saving and protection.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Talking head, simple on-screen text showing the 2-9% range and 1 Aug effective date, then a 3-way split graphic (spend/save/protect) as you talk through it.",
-    "source_label": "Public Service Division - Salary Adjustments Announcement",
-    "source_url": "https://www.psd.gov.sg/newsroom/eligible-civil-servants-to-receive-salary-adjustments-of-2-percent-to-9-percent/",
-    "observed_at": "2026-08-01",
-    "date_found": "2026-08-03"
-  },
-  {
-    "id": "trend-2026-08-03-sti-record-high",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "current-affairs",
-    "trend_source": "Singapore's stock market (the Straits Times Index) extended its run to fresh record highs this week, even after a late wobble on 2 Aug 2026.",
-    "title": "The STI just hit another record - the question isn't whether to chase it",
-    "why_it_works": "Record-high headlines get shared and clients will ask about them - this is a chance to redirect the excitement toward a diversification and rebalancing conversation, without making any call on where the market goes next.",
-    "hooks": [
-      "Singapore's stock market hit another record this week. My first question to clients isn't 'should I buy more.'",
-      "Record highs always bring the same message from clients - 'should I jump in now.' Here's what I say instead.",
-      "The STI just set a new record, wobble and all. Here's the one check I'd do before touching your portfolio."
-    ],
-    "talking_points": [
-      "The Straits Times Index extended its record run this week, with a late wobble noted on 2 Aug 2026",
-      "This is not a signal to buy or sell anything - a single week's record doesn't predict what happens next",
-      "A record high is a good trigger to check your asset allocation still matches your goals and risk comfort, not to chase performance",
-      "Rebalancing back to your target mix is a discipline exercise, not a market call"
-    ],
-    "cta": "What's your take - does a record high ever change what you do with your portfolio? Tell me below.",
-    "cta_type": "open-question",
-    "how_to_film": "Simple text-post graphic with the record-high headline, then talking head explaining the rebalancing-over-chasing point.",
-    "source_label": "Business Today - Singapore stocks record run",
-    "source_url": "https://www.businesstoday.com.my/2026/08/02/singapore-stocks-keep-their-record-run-alive-despite-late-wobble/",
+    "cta": "Comment 'MILESTONE' if you're working toward a money goal that hasn't hit yet but is closer than it feels.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Fast-paced short video: trophy/result graphic for first 2 seconds, then direct-to-camera on the years-before-the-win point.",
+    "source_label": "Sky Sports - AIG Women's Open leaderboard and result",
+    "source_url": "https://www.skysports.com/golf/news/12176/13567418/aig-womens-open-2026-leaderboard-latest-golf-scores-from-royal-lytham-and-st-annes-weather-and-tee-times-for-final-womens-major-of-the-year",
     "observed_at": "2026-08-02",
-    "date_found": "2026-08-03"
+    "date_found": "2026-08-04"
   },
   {
-    "id": "trend-2026-08-03-seeds-of-tomorrow-ndc",
+    "id": "trend-2026-08-04-majulah-hunt-final-week",
     "platform": "instagram",
     "format": "carousel",
     "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "The Gardens by the Bay and Mediacorp National Day Concert 2026, themed 'Seeds of Tomorrow,' was held on 2 Aug, telling the story of a single seed planted with hope and nurtured across generations.",
-    "title": "'Seeds of Tomorrow' isn't just a concert theme - it's how a financial plan actually works",
-    "why_it_works": "The concert's own theme - something planted now that grows across generations - is an honest, ready-made metaphor for long-term planning that doesn't need forcing, fresh off a free, widely-attended national event this weekend.",
+    "trend_type": "event",
+    "trend_source": "NDP 2026's island-wide 'Majulah Hunt' digital treasure hunt (built with Accenture and Google) enters its final week from 3-10 Aug, with a secret 61st landmark still to be revealed to players who scan all 60 known locations.",
+    "title": "There's a secret 61st location in NDP's treasure hunt - and it's basically how good saving apps are built",
+    "why_it_works": "A genuinely Singapore-specific, currently-running event with a real reward mechanic gives an honest, non-forced parallel to how gamified saving tools use small unlocks to build a habit - without pitching a product.",
     "hooks": [
-      "This year's National Day Concert theme was 'Seeds of Tomorrow' - and it's basically a metaphor for financial planning.",
-      "A seed planted with hope, nurtured across generations - that was Sunday's concert theme. Here's the money version of that.",
-      "Singapore just held a concert about planting something today for tomorrow. That's exactly what a financial plan is."
+      "NDP's digital treasure hunt has a secret 61st location and it drops this week. I can't stop thinking about why it works.",
+      "Scan 60 landmarks, unlock rewards, chase a secret last one - that's basically the psychology behind every good savings app.",
+      "The Majulah Hunt's final week just started and the game design is honestly a masterclass in building a habit."
     ],
     "talking_points": [
-      "The Gardens by the Bay and Mediacorp National Day Concert 2026, 'Seeds of Tomorrow,' was held on 2 Aug",
-      "Its story arc - a seed planted with hope, nurtured across generations - mirrors how compounding savings or a legacy plan works over time",
-      "The earlier something is 'planted' (started), the more room it has to grow before you need it",
-      "This applies to a child's education fund, retirement savings, or a legacy plan for family"
+      "NDP 2026's 'Majulah Hunt' island-wide digital treasure hunt enters its final week (3-10 Aug), with a secret 61st landmark still to unlock",
+      "Small, visible progress (landmarks scanned) plus a reward at the end is exactly why gamified saving apps and round-up tools work",
+      "You can build the same effect manually - a visible tracker for a savings goal, with a small reward when you hit a milestone",
+      "The mechanic isn't the point - making progress visible to yourself is"
     ],
-    "cta": "Save this post and think about one 'seed' - one habit or plan - you could plant this month.",
+    "cta": "Save this if you want to try turning one savings goal into something you can actually see progress on.",
     "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 concert photo/graphic with the theme name, slide 2 the seed-to-tree story arc, slides 3-4 the financial-planning parallel with a simple growth-over-time visual.",
-    "source_label": "Gardens by the Bay - National Day Concert 2026",
-    "source_url": "https://www.gardensbythebay.com.sg/en/things-to-do/calendar-of-events/national-day-concert-2026.html",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-03"
+    "how_to_film": "Carousel: slide 1 Majulah Hunt graphic/screenshot, slide 2 the 'why gamification works' point, slides 3-4 a simple visible-savings-tracker template.",
+    "source_label": "NDP.gov.sg - Majulah Hunt",
+    "source_url": "https://www.ndp.gov.sg/going-beyond/majulah-hunt/",
+    "observed_at": "2026-08-03",
+    "date_found": "2026-08-04"
   },
   {
-    "id": "trend-2026-08-03-oil-price-reversal",
+    "id": "trend-2026-08-04-linkedin-ai-slop-button",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "identity",
+    "trend_type": "news",
+    "trend_source": "LinkedIn rolled out a 'Seems like AI slop' reporting option on every post and is retiring its AI ghostwriting feature, part of a crackdown on generic AI content that was still generating fresh coverage on 2-3 Aug 2026.",
+    "title": "LinkedIn just made it easier to flag AI slop - here's why that's good news for how I post about your money",
+    "why_it_works": "A live, still-developing platform-policy story LinkedIn users are actively discussing this week, with an honest angle for an advisor: a reason to double down on real, specific, first-person client-education content instead of generic posts.",
+    "hooks": [
+      "LinkedIn just added a button to flag AI slop. Here's why I think that's actually good news for financial content.",
+      "Generic AI-written posts are about to get buried on LinkedIn. Here's what I'm changing about how I post here.",
+      "If you can now report a post as 'AI slop,' maybe that's a sign to write like an actual human. Here's my take."
+    ],
+    "talking_points": [
+      "LinkedIn rolled out a 'Seems like AI slop' report option and is retiring its AI ghostwriting tool, reported 30 Jul with fresh follow-up coverage on 2-3 Aug 2026",
+      "The platform says it wants to reward original, specific, human insight over generic AI-generated posts",
+      "For financial content specifically, that's a good thing - your questions deserve a real answer from someone who knows your situation, not a generic template",
+      "It's a good prompt to ask: is the financial content you're reading written by a person who'd actually stand behind it?"
+    ],
+    "cta": "What's your take - can you tell when a LinkedIn post is AI-written? Tell me below.",
+    "cta_type": "open-question",
+    "how_to_film": "Simple text-post style graphic with the 'Seems like AI slop' button screenshot reference, then talking head on the human-content point.",
+    "source_label": "Forbes - LinkedIn changed the rules",
+    "source_url": "https://www.forbes.com/sites/williamarruda/2026/08/02/linkedin-just-changed-the-rules-heres-how-to-stay-visible/",
+    "observed_at": "2026-08-02",
+    "date_found": "2026-08-04"
+  },
+  {
+    "id": "trend-2026-08-04-hdb-new-housing-sites-debate",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "topic",
-    "trend_type": "current-affairs",
-    "trend_source": "Global oil prices tumbled as much as 7% on 2 Aug 2026, with Brent crude dropping to around US$81.55 a barrel, as renewed Iran talks and an OPEC+ supply increase eased the supply concerns that had driven prices up in July.",
-    "title": "Oil just swung the other way this week - proof your budget shouldn't chase the headline",
-    "why_it_works": "Last month's oil price jump was already in the news cycle, and this week's sharp reversal is a clean, honest illustration that commodity prices swing both ways - useful for a 'build a steady buffer, don't react to the headline' message rather than a market call.",
+    "trend_type": "news",
+    "trend_source": "Singapore's Parliament sat on 4 Aug 2026 with more than 20 questions filed on HDB's newly announced housing plans at Gillman Barracks and near Maju Forest - new public housing sites HDB confirmed on 10 Jul 2026 after completing environmental and heritage assessments.",
+    "title": "Two new HDB housing sites got 20+ questions in Parliament today - here's the honest long-view on new supply",
+    "why_it_works": "A dated, concrete parliamentary sitting about specific new housing sites gives a neutral, factual hook to talk about how new supply fits into long-term property and affordability planning, without wading into the debate itself.",
     "hooks": [
-      "Oil prices jumped last month, then dropped 7% this week - here's the one thing I tell clients either way.",
-      "If you built your budget around last month's high petrol prices, here's what I'd actually change this week.",
-      "Global oil swung sharply again this week, and I still wouldn't touch my monthly budget because of it."
+      "Parliament spent today on questions about two new HDB sites at Gillman Barracks and Maju Forest. Here's the money angle, not the politics.",
+      "More than 20 questions were filed today about where Singapore's next HDB flats will go. Here's why that matters for your plan.",
+      "New HDB sites got debated in Parliament today. I'm not touching the politics - just what new supply means for your timeline."
     ],
     "talking_points": [
-      "Brent crude fell as much as 7% on 2 Aug 2026, to around US$81.55/barrel, after climbing through July",
-      "The reversal followed renewed Iran talks and an OPEC+ supply increase easing prior supply concerns",
-      "Singapore imports the vast majority of its energy, so global swings eventually filter into petrol and electricity bills either way",
-      "A steady monthly buffer for utilities and transport beats trying to time your budget around any single month's price move"
+      "Parliament sat on 4 Aug 2026 with 20-plus questions filed on HDB's new housing plans at Gillman Barracks and near Maju Forest",
+      "HDB confirmed these sites on 10 Jul 2026 after completing environmental and heritage impact assessments",
+      "New supply sites take years to become flats you can actually apply for - useful context if you're timing a BTO application around a life event",
+      "This is a factual supply update, not a signal to speed up or delay any purchase decision"
     ],
-    "cta": "Save this if you want a reminder to build a small buffer into your budget instead of reacting to the next price swing.",
-    "cta_type": "save-share",
-    "how_to_film": "Text-post style graphic showing the oil price arrow down (7%) after last month's rise, then talking head connecting it to a steady household budget buffer.",
-    "source_label": "FX Leaders - Oil prices dive on Iran talks, OPEC+ supply",
-    "source_url": "https://www.fxleaders.com/news/2026/08/02/oil-prices-dive-brent-and-wti-crude-breach-80-on-iran-talks-and-opec-adding-supply/",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-03"
+    "cta": "DM me 'HDB' if you want help mapping your own property timeline against your other financial goals.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Text-post graphic with today's date and 'new HDB sites debated in Parliament' headline, then talking head on the supply-and-timeline point.",
+    "source_label": "Yahoo News Singapore - Parliament Aug 4 sitting",
+    "source_url": "https://sg.news.yahoo.com/parliament-discuss-maju-forest-redevelopment-090500954.html",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-04"
   },
   {
-    "id": "trend-2026-08-03-micron-stock-slide",
+    "id": "trend-2026-08-04-sg-blue-chip-earnings-season",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Micron's stock kept falling into a second week (2 Aug 2026) on profit-taking and margin-peak worries, even though the memory-chip maker's own near-term guidance stayed strong.",
-    "title": "A 'hot' stock just fell for a second week straight - the real lesson is about concentration, not the stock",
-    "why_it_works": "A well-known chip stock sliding despite strong guidance is a clean, current example of single-stock volatility that doesn't require picking a side - it opens a genuine conversation about concentration risk and diversification instead of stock-picking.",
+    "trend_source": "Singapore blue chips DBS and SGX are both due to report results after market close on 6 Aug 2026, kicking off local earnings season, per coverage published 2 Aug 2026.",
+    "title": "Earnings season lands on the SGX this week - here's the one thing I actually watch for",
+    "why_it_works": "A dated, forward-looking local earnings calendar gives a natural, honest reason to talk about how to read earnings season without making any call on where a stock goes.",
     "hooks": [
-      "One of this year's hottest stocks just fell for a second straight week - even with good guidance. Here's the lesson I'd take from it.",
-      "Strong earnings guidance, falling stock price - I get asked about that exact mismatch more than you'd think.",
-      "If your portfolio's riding on one 'hot' sector right now, let me flag this week's chip-stock wobble to you."
+      "DBS and SGX both report this week. Here's the one thing I actually look at that has nothing to do with the share price.",
+      "Local earnings season kicks off this week on the SGX. I'm not predicting any of it - here's what I do instead.",
+      "Two SGX blue chips report results this week. My checklist for reading earnings has nothing to do with guessing the number."
     ],
     "talking_points": [
-      "Micron's stock extended its slide into a second week as of 2 Aug 2026, on profit-taking and margin-peak concerns",
-      "This is despite the company's own near-term guidance staying strong - sentiment and fundamentals can diverge short-term",
-      "This isn't a signal to buy or sell Micron - it's a live example of why single-stock or single-sector concentration is risky",
-      "Diversification exists precisely so one sector's mood swing doesn't decide your whole outcome"
+      "DBS and SGX are both due to report results after market close on 6 Aug 2026, per coverage published 2 Aug 2026",
+      "Earnings season brings a flood of headlines and short-term price moves - none of it changes your actual financial plan",
+      "What matters more: whether the company's underlying business still fits why you invested in it in the first place",
+      "One quarter's number is not a reason to change your allocation on its own"
     ],
-    "cta": "Comment 'SPREAD' if you want a simple way to check how concentrated your own portfolio really is.",
+    "cta": "Comment 'PLAN' if you want a simple checklist for reading earnings season without getting swept up in the headlines.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talking head with a simple line-down graphic overlay for the first 2 seconds, then explain the concentration-risk point directly to camera.",
-    "source_label": "The Motley Fool - Micron stock plummeting",
-    "source_url": "https://www.fool.com/investing/2026/08/02/micron-technology-stock-plummeting-not-buying-dip/",
+    "how_to_film": "Talking head, on-screen calendar graphic showing DBS/SGX report dates, then the checklist points direct to camera.",
+    "source_label": "TheFinance.sg - SG blue-chip earnings this August",
+    "source_url": "https://thefinance.sg/2026/08/02/3-singapore-blue-chip-stocks-reporting-results-in-august-what-we-are-watching/",
     "observed_at": "2026-08-02",
-    "date_found": "2026-08-03"
+    "date_found": "2026-08-04"
   },
   {
-    "id": "trend-2026-08-03-bitcoin-half-peak",
+    "id": "trend-2026-08-04-spacex-first-public-earnings",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "market",
-    "trend_type": "current-affairs",
-    "trend_source": "Bitcoin was trading around US$63,450 on 2 Aug 2026, roughly half of its 2025 peak near US$126,000, after failing to hold a July rebound.",
-    "title": "Bitcoin is trading at half its old peak - here's the actual lesson, no matter what happens next",
-    "why_it_works": "A widely-cited, dramatic number (half its peak) gets attention, and using it purely as a volatility example - without any prediction of where it goes from here - keeps the message honest and squarely about risk-sizing rather than speculation.",
+    "trend_type": "news",
+    "trend_source": "SpaceX reported its first-ever earnings as a public company on 4 Aug 2026, roughly two months after its June IPO, with the stock already down more than 45% from its post-IPO high.",
+    "title": "The hottest IPO of the year just posted its first earnings - down 45% from its own high already",
+    "why_it_works": "A dated, dramatic example of newly-public hype-stock volatility, used purely to illustrate a behavioral point about not investing on excitement alone - no prediction on the stock itself.",
     "hooks": [
-      "Bitcoin is sitting at roughly half its old peak right now. This isn't about whether to buy it - it's about position sizing.",
-      "A coin that hit 126K is trading near 63K today. That swing is the whole lesson, no prediction needed.",
-      "People ask me daily what bitcoin will do next. My answer has nothing to do with a price target."
+      "One of the most hyped IPOs this year just reported its first earnings today, already down 45% from its post-IPO high.",
+      "This stock IPO'd two months ago to huge excitement. Today's earnings report lands with the price already down almost half. Here's the lesson.",
+      "A brand-new public company just had its first earnings day, and the hype has already cooled by 45%. That's not unusual - here's why."
     ],
     "talking_points": [
-      "Bitcoin traded around US$63,450 on 2 Aug 2026, roughly half its 2025 peak of about US$126,000",
-      "This isn't a call on where the price goes next - it's a real, current example of how volatile a single asset can be",
-      "Whatever you hold in highly volatile assets should be sized so a 50% swing doesn't derail your actual financial goals",
-      "A financial plan should survive its most volatile holding having a bad year, not depend on it having a good one"
+      "SpaceX reported its first-ever public earnings on 4 Aug 2026, about two months after its June IPO, with shares already down over 45% from their post-IPO peak",
+      "This isn't a call on SpaceX specifically - it's a real, current example of how volatile freshly-IPO'd stocks can be",
+      "Buying into hype at an all-time high is different from buying based on a plan - the excitement fades faster than the price stabilises",
+      "If you're drawn to a hot new listing, size it as speculative, not as a core holding"
     ],
-    "cta": "DM me 'SIZE' if you want a simple way to check whether your riskier holdings are sized sensibly against your goals.",
+    "cta": "DM me 'IPO' if you want a simple way to think through whether a hyped new listing fits your actual portfolio.",
     "cta_type": "dm-keyword",
-    "how_to_film": "Fast-paced talking head, on-screen number graphic showing 126K to 63K, then direct-to-camera explainer on position sizing, no chart predictions shown.",
-    "source_label": "24/7 Wall St - Bitcoin price update",
-    "source_url": "https://247wallst.com/investing/cryptocurrency/2026/08/02/bitcoin-price-prediction-what-price-will-btc-hit-in-august/",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-03"
+    "how_to_film": "Fast-paced talking head, on-screen graphic showing IPO price to today's price arrow down, then direct-to-camera on sizing speculative positions sensibly.",
+    "source_label": "Investing.com - SpaceX first earnings report",
+    "source_url": "https://www.investing.com/news/stock-market-news/spacex-sets-date-for-maiden-earnings-report-why-august-4-is-makeorbreak-4801629",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-04"
   },
   {
-    "id": "trend-2026-08-03-cwg-closing-ahmedabad",
+    "id": "trend-2026-08-04-grab-record-quarter",
     "platform": "instagram",
     "format": "carousel",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "The Commonwealth Games 2026 in Glasgow closed on 2 Aug with Australia topping the medal table; the Games flag was formally handed to India, host of the 2030 edition in Ahmedabad.",
-    "title": "India just got the Commonwealth Games flag for 2030 - four years out is the whole point",
-    "why_it_works": "The flag handover is a genuinely fresh, feel-good closing moment, and the honest parallel - a four-year head start to prepare properly - fits long-horizon financial goals without promising any outcome.",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Grab reported record Q2 2026 revenue, raised its full-year guidance and announced a US$750 million share buyback, in results released after US market close on 3 Aug 2026.",
+    "title": "A Southeast Asian super-app you probably use just posted a record quarter - here's the check worth doing",
+    "why_it_works": "Grab is a company many Singaporeans use daily and may hold indirectly through regional or tech funds - a dated, concrete result gives a natural reason to check portfolio exposure rather than react to the headline.",
     "hooks": [
-      "The Commonwealth Games just ended and India got the flag for 2030 - and I keep thinking about that four-year head start.",
-      "Nobody hosts a Games well by starting the year before. I tell clients the same thing about their retirement plan.",
-      "Glasgow 2026 just closed and the next host already has four years to prepare. I want that same head start for your goals."
+      "Grab just posted a record quarter and raised its own guidance. If you hold regional tech funds, here's why that's worth a two-minute check.",
+      "The app most of us use daily just had its best quarter yet. I'm not saying buy it - here's what I'd actually check.",
+      "Record revenue, raised guidance, a $750 million buyback - Grab's results this week are a good excuse to check what's actually in your portfolio."
     ],
     "talking_points": [
-      "Commonwealth Games 2026 closed in Glasgow on 2 Aug, with Australia topping the medal table",
-      "The Games flag was formally handed to India, which hosts the next edition in Ahmedabad in 2030",
-      "A four-year preparation runway is standard for something this big - long financial goals (retirement, a child's education) deserve the same lead time",
-      "Starting early doesn't guarantee an outcome, but it gives you far more room to adjust along the way"
+      "Grab reported record Q2 2026 revenue, raised full-year guidance, and announced a US$750 million share buyback on 3 Aug 2026",
+      "Many Singaporeans hold exposure to companies like Grab indirectly, through regional equity or technology funds, without realising it",
+      "A strong quarter for one company you use daily is a good trigger to actually check what's inside your funds, not to buy the stock directly",
+      "This isn't a recommendation on Grab - it's a prompt to know what you already own"
     ],
-    "cta": "Save this if you've got a long-term goal you keep telling yourself you'll start 'later.'",
+    "cta": "Save this and check the fund fact sheet for anything you're already invested in this month.",
     "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 closing ceremony photo/graphic, slide 2 the flag handover moment, slides 3-4 the 'start early' parallel with a simple timeline graphic.",
-    "source_label": "Olympics.com - Commonwealth Games 2026 closing ceremony",
-    "source_url": "https://www.olympics.com/en/news/commonwealth-games-2026-closing-ceremony-india-shankar-mahadevan",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-03"
+    "how_to_film": "Carousel: slide 1 the record-quarter headline, slide 2 'do you actually know what's in your fund' prompt, slides 3-4 a simple how-to-check-your-fund-holdings walkthrough.",
+    "source_label": "Grab - Q2 2026 results press release",
+    "source_url": "https://www.grab.com/sg/press/others/grab-reports-record-second-quarter-2026-results-raises-full-year-guidance-and-announces-750-million-share-repurchase-program/",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-04"
   },
   {
-    "id": "trend-2026-08-03-netball-silver-ferns-gold",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "New Zealand's Silver Ferns ended a 16-year Commonwealth Games netball gold drought by beating Jamaica's Sunshine Girls in the 2 Aug 2026 final in Glasgow.",
-    "title": "16 years without gold, then this - the patience lesson in New Zealand's netball win",
-    "why_it_works": "A 16-year wait finally paying off is a strong, honest 'consistency over a long stretch' story - a fair parallel to sticking with a protection or savings plan without implying any guaranteed payoff.",
+    "id": "trend-2026-08-04-tbill-yield-drop",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Singapore's latest 6-month T-bill auction (BS26115N), issued 4 Aug 2026, closed with a cut-off yield of 1.59%, continuing a downward drift from earlier this year.",
+    "title": "This week's T-bill yield just dropped again - what I'd actually do with idle cash now",
+    "why_it_works": "A concrete, dated auction result gives a natural, honest reason to talk through where to park idle cash as short-term rates drift down, without recommending any specific product or predicting rates.",
     "hooks": [
-      "New Zealand just ended a 16-year wait for netball gold, and I think that's the most relatable stat from these Games.",
-      "16 years between golds - I keep coming back to that stat when clients feel behind on their own goals.",
-      "The Silver Ferns just won their first gold in 16 years. I tell clients: a long wait isn't a sign something's wrong."
+      "This week's T-bill auction closed at 1.59 percent. If your cash has been sitting in a T-bill on autopilot, here's what I'd check.",
+      "Short-term yields dropped again this week. Here's how I think about idle cash when T-bill rates start sliding.",
+      "T-bill rates keep drifting down. If you're still assuming 3 to 4 percent, this week's result says otherwise."
     ],
     "talking_points": [
-      "New Zealand's Silver Ferns beat Jamaica's Sunshine Girls in the Commonwealth Games netball final on 2 Aug 2026, their first gold in 16 years",
-      "16 years is a long stretch of showing up without the headline result - persistence, not a single lucky tournament",
-      "A savings or protection plan works the same way - the payoff is often years out, not next month",
-      "If your plan feels slow right now, that's usually normal, not a sign to change course"
+      "Singapore's latest 6-month T-bill auction, issued 4 Aug 2026, closed with a cut-off yield of 1.59%",
+      "That's part of a broader drift down in short-term yields this year - T-bills, fixed deposits and SSBs are all moving together",
+      "As T-bill yields fall, it's worth comparing them again against fixed deposits and Singapore Savings Bonds for the same idle cash",
+      "This is a rate update, not a recommendation to move your money into or out of any specific instrument"
     ],
-    "cta": "Comment 'PATIENCE' if a long-term goal of yours has felt slower than you expected lately.",
+    "cta": "Comment 'CASH' if you want a simple side-by-side of where idle cash options stand right now.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Fast cuts: score/result graphic for the first 2 seconds, then talking head to camera delivering the patience-and-persistence point.",
-    "source_label": "Glasgow 2026 - Silver Ferns win netball gold",
-    "source_url": "https://www.glasgow2026.com/news/4552086/silver-ferns-put-sunshine-girls-in-shade-to-win-netball-gold",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-03"
+    "how_to_film": "Text-post graphic showing the 1.59% headline and this week's date, then talking head on comparing cash options as rates drift.",
+    "source_label": "Ask Gov.sg (MAS) - Latest T-bill cut-off yield",
+    "source_url": "https://ask.gov.sg/mas/questions/clx8ktirr005tryoz2yzyrvl6",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-04"
   },
   {
-    "id": "trend-2026-08-03-judo-asmita-dey-gold",
+    "id": "trend-2026-08-04-ssb-rate-rise",
     "platform": "instagram",
     "format": "story",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "Asmita Dey became the first Indian judoka - male or female - to win a Commonwealth Games gold medal, capping the Games' closing days; she is the daughter of a bicycle mechanic and started out as an 800m runner before switching to judo.",
-    "title": "A bicycle mechanic's daughter just made history - the real takeaway is what she gives the next generation",
-    "why_it_works": "A genuine, inspiring first-generation breakthrough from a modest background is a natural, non-forced way to talk about building so the next generation has more starting options - without turning anyone's background into a sales pitch.",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "The newly opened Singapore Savings Bonds tranche (SBSEP26) offers a 10-year average return of up to 2.25% p.a., up from 2.06% in the July tranche, with applications open until 26 Aug 2026.",
+    "title": "SSB rates just ticked back up - here's why that's worth a second look",
+    "why_it_works": "A concrete, dated rate change in a widely-held, government-backed savings instrument gives an honest, non-promotional reason to talk about revisiting conservative cash allocations.",
     "hooks": [
-      "A bicycle mechanic's daughter just became India's first-ever Commonwealth judo gold medallist. Here's what that opens up for her family.",
-      "She started as an 800m runner before switching to judo and made history this week. Here's why I found that story worth sharing.",
-      "First in her country's history, daughter of a bicycle mechanic - this is exactly what I mean by building for the next generation."
+      "Singapore Savings Bonds rates just ticked up again this month, after months of drifting down. Here's why I'd take a second look.",
+      "If you wrote off SSBs a few months ago because the rate looked low, this month's tranche is worth another glance.",
+      "The newest SSB tranche just opened at a higher rate than last month's. Small move, but worth knowing about."
     ],
     "talking_points": [
-      "Asmita Dey became the first Indian judoka ever to win a Commonwealth Games gold, as the Games wrapped up in Glasgow",
-      "She's the daughter of a bicycle mechanic and switched to judo after starting as an 800m runner",
-      "Her story is about the next generation having options her parents' generation didn't - the same reason an education fund or legacy plan exists",
-      "It's not about the amount you start with - it's about giving the next generation a wider set of choices than you had"
+      "The newest SSB tranche offers a 10-year average return of up to 2.25% p.a., up from 2.06% in the previous month's tranche, applications open until 26 Aug 2026",
+      "SSBs let you exit early without penalty and are backed by the Singapore government - useful for money you might need before a fixed term ends",
+      "This isn't a call to move everything into SSBs - it's one option worth comparing against your fixed deposits and T-bills again this month",
+      "Rates move monthly, so what didn't make sense a few months ago can look different today"
     ],
-    "cta": "Save this if you're building something - a fund, a policy, a habit - for someone who comes after you.",
+    "cta": "Save this if you've got idle cash sitting in a low-interest account you haven't reviewed in a while.",
     "cta_type": "save-share",
-    "how_to_film": "Story format: photo/graphic of the medal moment, text overlay with her background, then a short direct-to-camera line connecting it to building options for the next generation.",
-    "source_label": "Olympics.com - Who is Asmita Dey",
-    "source_url": "https://www.olympics.com/en/news/who-is-asmita-dey-india-judoka-medals-records",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-03"
+    "how_to_film": "Story format: rate comparison graphic (2.06% to 2.25%), then a short direct-to-camera line on comparing cash options this month.",
+    "source_label": "SingPromos - SSB latest tranche rate",
+    "source_url": "https://singpromos.com/banks-credit-cards/singapore-savings-bonds-offers-up-to-2-25-p-a-10-year-average-return-in-latest-issue-apply-by-26-aug-2026-305052/",
+    "observed_at": "2026-08-03",
+    "date_found": "2026-08-04"
   },
   {
-    "id": "trend-2026-08-03-tennis-eala-dc-open",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "Alexandra Eala became the first Filipino to reach a WTA 500 final, beating Naomi Osaka in the semifinal before finishing runner-up to Jessica Pegula at the Washington DC Open (1-2 Aug 2026).",
-    "title": "First Filipino ever in a WTA 500 final - the routine behind the run, not the runner-up finish",
-    "why_it_works": "A fresh Southeast Asian sporting milestone carries genuine regional pride for an SG audience, and framing it around her routine and consistency (not the loss) keeps the money parallel about discipline rather than outcome.",
-    "hooks": [
-      "A Filipino player just made WTA history this weekend - beat Naomi Osaka to get there. Here's what stood out to me.",
-      "She lost the final, but making it there as the first Filipino ever is the actual headline. Consistency got her there.",
-      "Big Southeast Asian tennis moment this weekend. The lesson isn't the score - it's what she did every week before it."
-    ],
-    "talking_points": [
-      "Alexandra Eala beat Naomi Osaka in the semifinal (1 Aug) to become the first Filipino to reach a WTA 500 final, finishing runner-up to Jessica Pegula (2 Aug) at the Washington DC Open",
-      "A milestone like this comes from a consistent weekly training routine, not a single lucky match",
-      "The same applies to a savings or investment habit - the routine matters more than any single month's result",
-      "A 'loss' in the final doesn't erase the progress that got her there - worth remembering when a financial goal doesn't land exactly as planned"
-    ],
-    "cta": "DM me 'ROUTINE' if you want help building a simple, repeatable monthly money routine.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Fast-paced short video: score/result graphic first, on-screen text 'first Filipino in a WTA 500 final', then direct-to-camera routine-over-outcome point.",
-    "source_label": "Washington Post - Alexandra Eala carries hopes into DC Open final",
-    "source_url": "https://www.washingtonpost.com/sports/2026/08/01/rising-star-alex-eala-carries-hopes-nation-into-dc-open-final/",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-03"
-  },
-  {
-    "id": "trend-2026-08-03-tennis-jodar-rise",
+    "id": "trend-2026-08-04-palantir-earnings-pop",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "19-year-old Rafael Jodar, ranked 478th in the world a year ago, reached his maiden ATP 500 final in Washington after beating Alejandro Tabilo in the semifinal on 2 Aug 2026.",
-    "title": "Ranked 478th a year ago, in an ATP 500 final this week - that's what compounding effort looks like",
-    "why_it_works": "A dramatic, verifiable ranking jump in about a year is an honest way to talk about how consistent, unglamorous effort compounds over time - without implying any guaranteed or fast outcome, which keeps it compliant.",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Palantir's stock surged 12% on 3 Aug 2026 after Q2 revenue beat estimates ($1.94B vs $1.80B expected, +93% year-on-year) and the company raised its guidance, marking an eighth straight beat-or-match quarter.",
+    "title": "A stock jumped 12% on earnings today - here's the one question I'd ask before chasing that",
+    "why_it_works": "A dated, dramatic single-day stock move gives a clean, honest opening to talk about the difference between reacting to a headline pop and sticking to a plan, without naming a buy or sell call.",
     "hooks": [
-      "This guy was ranked 478th in the world a year ago. This week he's in an ATP 500 final. Let's talk about that jump.",
-      "A 19-year-old just went from outside the top 400 to a tour final in about a year. That's not luck - that's work.",
-      "Nobody jumps 400-plus spots in a ranking by accident. Here's what that kind of climb actually takes."
+      "A stock jumped 12 percent today on an earnings beat. Here's the question I'd ask before touching my portfolio because of it.",
+      "Eight straight beat-or-match quarters, then a 12 percent pop today. Impressive - and still not a reason to chase it.",
+      "Big earnings beat, big share jump today. I still wouldn't change my portfolio because of a single day's move."
     ],
     "talking_points": [
-      "Rafael Jodar, 19, ranked 478th a year ago, beat Alejandro Tabilo in the semifinal (2 Aug 2026) to reach his maiden ATP 500 final",
-      "A jump like that is built from a full year of consistent, largely unseen weekly work, not one breakout moment",
-      "Financial progress compounds the same way - the visible result comes long after the consistent habit started",
-      "The takeaway is patience with the process, not a promise that consistency guarantees any specific result or timeline"
+      "A widely-held tech stock jumped 12% on 3 Aug 2026 after beating Q2 revenue estimates and raising guidance, its eighth straight beat-or-match quarter",
+      "This isn't a call to buy or avoid the stock - it's a live example of how sharply sentiment can move in a single day",
+      "The question worth asking before chasing any single-day pop: does this change your actual financial plan, or just today's headlines",
+      "A plan built around one earnings day either way is not a plan"
     ],
-    "cta": "Comment 'CLIMB' if you're in the middle of a long financial goal that doesn't feel like it's moving yet.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head with an on-screen ranking-jump graphic (478 to tour final) for the first 2 seconds, then explain the compounding-effort point directly to camera.",
-    "source_label": "ATP Tour - Jodar reaches Washington semi-final",
-    "source_url": "https://www.atptour.com/en/news/jodar-tabilo-washington-2026-semi-final",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-03"
+    "cta": "What's your rule for not chasing a stock after a big pop? Tell me below.",
+    "cta_type": "open-question",
+    "how_to_film": "Talking head with a simple up-arrow graphic overlay for the first 2 seconds, then the reacting-vs-planning point direct to camera.",
+    "source_label": "CNBC - Palantir Q2 2026 earnings",
+    "source_url": "https://www.cnbc.com/2026/08/03/palantir-pltr-earnings-q2-2026.html",
+    "observed_at": "2026-08-03",
+    "date_found": "2026-08-04"
   }
 ]
