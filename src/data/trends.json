@@ -1,338 +1,366 @@
 [
   {
-    "id": "trend-2026-08-04-eu-ai-act-deepfake-labels",
+    "id": "trend-2026-08-05-coldcard-hack",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "The EU AI Act's Article 50 transparency rules became enforceable on 2 Aug 2026 - AI chatbots and voice assistants must now disclose they're AI, and AI-generated images, audio and deepfake video must carry a machine-readable label, with penalties up to €15 million for non-compliance.",
-    "title": "The EU just forced AI to identify itself - here's why that matters for your money too",
-    "why_it_works": "A dated, global regulatory story with an honest tie to a real problem - AI voice and deepfake scams targeting bank transfers - gives a genuine reason to talk about verifying anything that asks you to move money, without fear-mongering.",
+    "trend_source": "A firmware flaw in the Coldcard hardware wallet let at least 15 separate hackers drain more than US$130 million from thousands of 'offline' crypto wallets over the past few days, with the exploit still active as of 4 Aug 2026.",
+    "title": "A hardware wallet hack just drained US$130M - the lesson has nothing to do with crypto",
+    "why_it_works": "A dated, dramatic security breach story lets me use a real event to make a timeless point about updating software and not assuming 'offline' or 'cold storage' means safe forever - honest, with no crypto endorsement or panic.",
     "hooks": [
-      "The EU just made AI legally required to say 'I'm AI.' Singapore doesn't have that rule yet - here's what I do instead.",
-      "New law this week: AI voices and deepfake videos now need a label in Europe. Here's the one habit that protects you regardless.",
-      "If an AI voice ever asks you to move money urgently, this new EU rule confirms what I've told clients for months."
+      "A hardware wallet got hacked for $130 million this week and the reason has nothing to do with crypto going up or down.",
+      "Over $130 million vanished from 'offline' wallets in the last few days. The lesson applies to your banking app too.",
+      "People trusted their money to a device that was supposed to be unhackable. This week it got hacked anyway."
     ],
     "talking_points": [
-      "EU AI Act's transparency rules (Article 50) became enforceable on 2 Aug 2026, requiring AI to disclose itself and deepfakes to carry a label",
-      "Singapore doesn't have an identical rule yet, so the responsibility to verify still sits with you",
-      "Before acting on any voice note, video call or message asking you to transfer money, hang up and call the person back on a number you already have saved",
-      "This isn't about fearing AI - it's one habit that protects you whether the request is real or fake"
+      "A firmware flaw in the Coldcard hardware wallet let at least 15 separate hackers drain over $130 million from thousands of 'offline' wallets in a few days this week",
+      "The maker flagged the flaw in late July and shipped emergency firmware, but wallets that hadn't updated stayed exposed",
+      "'Offline' or 'cold storage' isn't automatically safe forever - it's only as safe as the last update you installed",
+      "The habit that actually protects you: check for security updates on every app or device holding your money, not just the ones you check daily"
     ],
-    "cta": "Save this post and share it with a family member who handles money for someone else in the household.",
-    "cta_type": "save-share",
-    "how_to_film": "Text-post graphic: headline showing 'EU AI Act - AI must now identify itself' with today's date, then talking head explaining the verify-before-you-transfer habit.",
-    "source_label": "European Commission - AI Act transparency rules",
-    "source_url": "https://digital-strategy.ec.europa.eu/en/news/commission-starts-enforcing-ai-act-rules-and-new-transparency-requirements-2-august",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-04"
-  },
-  {
-    "id": "trend-2026-08-04-visa-biocatch-fraud-shield",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Visa announced on 3 Aug 2026 it's acquiring behavioural-biometrics firm BioCatch for US$2.4 billion, a company that protects 1.8 billion devices across 350+ banks, specifically to fight AI-powered account-takeover scams.",
-    "title": "A card network just paid US$2.4 billion to fight AI scams - here's what that tells you",
-    "why_it_works": "A concrete, dated acquisition signals how seriously the financial industry treats AI-driven fraud right now, an honest, current reason to talk about personal account-security habits rather than a scare tactic.",
-    "hooks": [
-      "Visa just spent US$2.4 billion buying an anti-fraud company this week. That number alone tells you how real AI scams have become.",
-      "A major card network just made a $2.4 billion bet on stopping AI-powered scams. Here's what that means for your own accounts.",
-      "If banks are spending billions defending against AI fraud, maybe it's worth 5 minutes checking your own account security settings."
-    ],
-    "talking_points": [
-      "Visa announced a US$2.4 billion acquisition of BioCatch on 3 Aug 2026, aimed squarely at AI-powered account-takeover fraud",
-      "BioCatch already protects 1.8 billion devices across 350-plus banks - this isn't a hypothetical threat, it's an industry-wide response",
-      "On your end: turn on two-factor authentication, use unique passwords for banking apps, and never approve a login you didn't initiate",
-      "None of this requires new products - just five minutes checking settings you probably already have"
-    ],
-    "cta": "Comment 'SECURE' and I'll send you a simple checklist to lock down your banking app settings.",
+    "cta": "Comment 'UPDATE' and I'll send you a 2-minute checklist for checking the security settings on your banking and investment apps.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Text-post style graphic with the $2.4B headline number, then talking head walking through the account-security checklist points.",
-    "source_label": "CNBC - Visa to acquire BioCatch",
-    "source_url": "https://www.cnbc.com/2026/08/03/visa-buys-biocatch-fraud-detection.html",
-    "observed_at": "2026-08-03",
-    "date_found": "2026-08-04"
+    "how_to_film": "Text-post graphic with the '$130M hack' headline and this week's date, then talking head walking through the update-checklist point.",
+    "source_label": "TechCrunch - Coldcard wallet exploit",
+    "source_url": "https://techcrunch.com/2026/08/04/hackers-steal-over-130-million-by-exploiting-bug-in-offline-hardware-wallets/",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-05"
   },
   {
-    "id": "trend-2026-08-04-kuwaki-maiden-major",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "Shiho Kuwaki won her first major title in a playoff at the AIG Women's Open at Royal Lytham & St Annes on 2 Aug 2026, beating Nelly Korda and Jeeno Thitikul to the trophy.",
-    "title": "Her first major win came in a playoff this weekend - the years before that moment are the real story",
-    "why_it_works": "A fresh, feel-good sporting milestone with a clean, honest parallel to hitting a first big financial milestone after years of consistent effort - no promise of outcome, just the patience angle.",
-    "hooks": [
-      "She just won her first major title this weekend, in a playoff, after years of near-misses. That's the part nobody films.",
-      "Beating two of the best golfers in the world for a first major - here's what that win actually took.",
-      "First major win of her career happened this weekend. I keep thinking about everything that had to happen before it."
-    ],
-    "talking_points": [
-      "Shiho Kuwaki won her maiden major at the AIG Women's Open on 2 Aug 2026, beating Nelly Korda and Jeeno Thitikul in a playoff",
-      "A first major typically comes after years of top-10 finishes that don't make headlines",
-      "Your first big financial milestone - first $50k saved, first fully-funded emergency fund - works the same way, built from unseen months",
-      "The 'boring' consistent months before a milestone are doing more work than the milestone itself"
-    ],
-    "cta": "Comment 'MILESTONE' if you're working toward a money goal that hasn't hit yet but is closer than it feels.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Fast-paced short video: trophy/result graphic for first 2 seconds, then direct-to-camera on the years-before-the-win point.",
-    "source_label": "Sky Sports - AIG Women's Open leaderboard and result",
-    "source_url": "https://www.skysports.com/golf/news/12176/13567418/aig-womens-open-2026-leaderboard-latest-golf-scores-from-royal-lytham-and-st-annes-weather-and-tee-times-for-final-womens-major-of-the-year",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-04"
-  },
-  {
-    "id": "trend-2026-08-04-majulah-hunt-final-week",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "identity",
-    "trend_type": "event",
-    "trend_source": "NDP 2026's island-wide 'Majulah Hunt' digital treasure hunt (built with Accenture and Google) enters its final week from 3-10 Aug, with a secret 61st landmark still to be revealed to players who scan all 60 known locations.",
-    "title": "There's a secret 61st location in NDP's treasure hunt - and it's basically how good saving apps are built",
-    "why_it_works": "A genuinely Singapore-specific, currently-running event with a real reward mechanic gives an honest, non-forced parallel to how gamified saving tools use small unlocks to build a habit - without pitching a product.",
-    "hooks": [
-      "NDP's digital treasure hunt has a secret 61st location and it drops this week. I can't stop thinking about why it works.",
-      "Scan 60 landmarks, unlock rewards, chase a secret last one - that's basically the psychology behind every good savings app.",
-      "The Majulah Hunt's final week just started and the game design is honestly a masterclass in building a habit."
-    ],
-    "talking_points": [
-      "NDP 2026's 'Majulah Hunt' island-wide digital treasure hunt enters its final week (3-10 Aug), with a secret 61st landmark still to unlock",
-      "Small, visible progress (landmarks scanned) plus a reward at the end is exactly why gamified saving apps and round-up tools work",
-      "You can build the same effect manually - a visible tracker for a savings goal, with a small reward when you hit a milestone",
-      "The mechanic isn't the point - making progress visible to yourself is"
-    ],
-    "cta": "Save this if you want to try turning one savings goal into something you can actually see progress on.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 Majulah Hunt graphic/screenshot, slide 2 the 'why gamification works' point, slides 3-4 a simple visible-savings-tracker template.",
-    "source_label": "NDP.gov.sg - Majulah Hunt",
-    "source_url": "https://www.ndp.gov.sg/going-beyond/majulah-hunt/",
-    "observed_at": "2026-08-03",
-    "date_found": "2026-08-04"
-  },
-  {
-    "id": "trend-2026-08-04-linkedin-ai-slop-button",
+    "id": "trend-2026-08-05-us-stocks-record-high",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "identity",
+    "pillar": "market",
     "trend_type": "news",
-    "trend_source": "LinkedIn rolled out a 'Seems like AI slop' reporting option on every post and is retiring its AI ghostwriting feature, part of a crackdown on generic AI content that was still generating fresh coverage on 2-3 Aug 2026.",
-    "title": "LinkedIn just made it easier to flag AI slop - here's why that's good news for how I post about your money",
-    "why_it_works": "A live, still-developing platform-policy story LinkedIn users are actively discussing this week, with an honest angle for an advisor: a reason to double down on real, specific, first-person client-education content instead of generic posts.",
+    "trend_source": "The S&P 500 and Dow both closed at record highs on 4 Aug 2026 and the Nasdaq jumped over 2.5%, as oil prices sank on hopes of a deal to reopen the Strait of Hormuz.",
+    "title": "Wall Street hit fresh record highs today - here's what I still wouldn't do",
+    "why_it_works": "A dated, dramatic single-day rally driven by real news gives an honest opening to talk about not changing your plan because of one green day, without touching any stock call.",
     "hooks": [
-      "LinkedIn just added a button to flag AI slop. Here's why I think that's actually good news for financial content.",
-      "Generic AI-written posts are about to get buried on LinkedIn. Here's what I'm changing about how I post here.",
-      "If you can now report a post as 'AI slop,' maybe that's a sign to write like an actual human. Here's my take."
+      "The S&P 500 and the Dow both closed at record highs today. I still didn't touch a single client's portfolio.",
+      "Markets just had one of their best days this year. Here's the one question I ask before getting excited about that.",
+      "Record close on Wall Street today. Records get set - and broken - more often than most people think."
     ],
     "talking_points": [
-      "LinkedIn rolled out a 'Seems like AI slop' report option and is retiring its AI ghostwriting tool, reported 30 Jul with fresh follow-up coverage on 2-3 Aug 2026",
-      "The platform says it wants to reward original, specific, human insight over generic AI-generated posts",
-      "For financial content specifically, that's a good thing - your questions deserve a real answer from someone who knows your situation, not a generic template",
-      "It's a good prompt to ask: is the financial content you're reading written by a person who'd actually stand behind it?"
+      "The S&P 500 and Dow both closed at record highs this week, and the Nasdaq jumped over 2.5%, as oil prices fell on hopes of a deal to reopen the Strait of Hormuz",
+      "A record close feels significant in the moment, but markets set new records fairly often over time - it's not a signal on its own",
+      "The question worth asking on a record-high day: has anything about my actual goals or timeline changed? If not, there's nothing to do",
+      "Reacting to green days is the same habit as reacting to red days - neither belongs in a real financial plan"
     ],
-    "cta": "What's your take - can you tell when a LinkedIn post is AI-written? Tell me below.",
+    "cta": "What's your rule for not getting swept up on a record-high day? Tell me below.",
     "cta_type": "open-question",
-    "how_to_film": "Simple text-post style graphic with the 'Seems like AI slop' button screenshot reference, then talking head on the human-content point.",
-    "source_label": "Forbes - LinkedIn changed the rules",
-    "source_url": "https://www.forbes.com/sites/williamarruda/2026/08/02/linkedin-just-changed-the-rules-heres-how-to-stay-visible/",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-04"
-  },
-  {
-    "id": "trend-2026-08-04-hdb-new-housing-sites-debate",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Singapore's Parliament sat on 4 Aug 2026 with more than 20 questions filed on HDB's newly announced housing plans at Gillman Barracks and near Maju Forest - new public housing sites HDB confirmed on 10 Jul 2026 after completing environmental and heritage assessments.",
-    "title": "Two new HDB housing sites got 20+ questions in Parliament today - here's the honest long-view on new supply",
-    "why_it_works": "A dated, concrete parliamentary sitting about specific new housing sites gives a neutral, factual hook to talk about how new supply fits into long-term property and affordability planning, without wading into the debate itself.",
-    "hooks": [
-      "Parliament spent today on questions about two new HDB sites at Gillman Barracks and Maju Forest. Here's the money angle, not the politics.",
-      "More than 20 questions were filed today about where Singapore's next HDB flats will go. Here's why that matters for your plan.",
-      "New HDB sites got debated in Parliament today. I'm not touching the politics - just what new supply means for your timeline."
-    ],
-    "talking_points": [
-      "Parliament sat on 4 Aug 2026 with 20-plus questions filed on HDB's new housing plans at Gillman Barracks and near Maju Forest",
-      "HDB confirmed these sites on 10 Jul 2026 after completing environmental and heritage impact assessments",
-      "New supply sites take years to become flats you can actually apply for - useful context if you're timing a BTO application around a life event",
-      "This is a factual supply update, not a signal to speed up or delay any purchase decision"
-    ],
-    "cta": "DM me 'HDB' if you want help mapping your own property timeline against your other financial goals.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Text-post graphic with today's date and 'new HDB sites debated in Parliament' headline, then talking head on the supply-and-timeline point.",
-    "source_label": "Yahoo News Singapore - Parliament Aug 4 sitting",
-    "source_url": "https://sg.news.yahoo.com/parliament-discuss-maju-forest-redevelopment-090500954.html",
+    "how_to_film": "Talking head with a simple record-high chart graphic overlay for the first 2 seconds, then direct-to-camera on the plan-vs-reaction point.",
+    "source_label": "CNBC - Stock market record highs",
+    "source_url": "https://www.cnbc.com/2026/08/04/stock-market-today-live-updates.html",
     "observed_at": "2026-08-04",
-    "date_found": "2026-08-04"
+    "date_found": "2026-08-05"
   },
   {
-    "id": "trend-2026-08-04-sg-blue-chip-earnings-season",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Singapore blue chips DBS and SGX are both due to report results after market close on 6 Aug 2026, kicking off local earnings season, per coverage published 2 Aug 2026.",
-    "title": "Earnings season lands on the SGX this week - here's the one thing I actually watch for",
-    "why_it_works": "A dated, forward-looking local earnings calendar gives a natural, honest reason to talk about how to read earnings season without making any call on where a stock goes.",
-    "hooks": [
-      "DBS and SGX both report this week. Here's the one thing I actually look at that has nothing to do with the share price.",
-      "Local earnings season kicks off this week on the SGX. I'm not predicting any of it - here's what I do instead.",
-      "Two SGX blue chips report results this week. My checklist for reading earnings has nothing to do with guessing the number."
-    ],
-    "talking_points": [
-      "DBS and SGX are both due to report results after market close on 6 Aug 2026, per coverage published 2 Aug 2026",
-      "Earnings season brings a flood of headlines and short-term price moves - none of it changes your actual financial plan",
-      "What matters more: whether the company's underlying business still fits why you invested in it in the first place",
-      "One quarter's number is not a reason to change your allocation on its own"
-    ],
-    "cta": "Comment 'PLAN' if you want a simple checklist for reading earnings season without getting swept up in the headlines.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head, on-screen calendar graphic showing DBS/SGX report dates, then the checklist points direct to camera.",
-    "source_label": "TheFinance.sg - SG blue-chip earnings this August",
-    "source_url": "https://thefinance.sg/2026/08/02/3-singapore-blue-chip-stocks-reporting-results-in-august-what-we-are-watching/",
-    "observed_at": "2026-08-02",
-    "date_found": "2026-08-04"
-  },
-  {
-    "id": "trend-2026-08-04-spacex-first-public-earnings",
+    "id": "trend-2026-08-05-amd-earnings-drop",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "SpaceX reported its first-ever earnings as a public company on 4 Aug 2026, roughly two months after its June IPO, with the stock already down more than 45% from its post-IPO high.",
-    "title": "The hottest IPO of the year just posted its first earnings - down 45% from its own high already",
-    "why_it_works": "A dated, dramatic example of newly-public hype-stock volatility, used purely to illustrate a behavioral point about not investing on excitement alone - no prediction on the stock itself.",
+    "trend_source": "AMD posted record Q2 2026 revenue of $11.5 billion and beat earnings estimates on 4 Aug 2026, with data-centre AI revenue more than doubling year-on-year, yet the stock still fell over 8% after-hours.",
+    "title": "AMD beat every number today and the stock still dropped 8% - here's why that happens",
+    "why_it_works": "A dated, counterintuitive earnings reaction is a clean, real example of the 'priced-in expectations' behavior lesson, without recommending the stock either way.",
     "hooks": [
-      "One of the most hyped IPOs this year just reported its first earnings today, already down 45% from its post-IPO high.",
-      "This stock IPO'd two months ago to huge excitement. Today's earnings report lands with the price already down almost half. Here's the lesson.",
-      "A brand-new public company just had its first earnings day, and the hype has already cooled by 45%. That's not unusual - here's why."
+      "AMD beat earnings, beat revenue, and raised its outlook today. The stock still fell 8%. Let me explain why.",
+      "Good news, big drop. AMD's earnings today are a perfect example of something every investor eventually learns the hard way.",
+      "A company just posted record revenue and its stock fell anyway. This happens more than you'd think."
     ],
     "talking_points": [
-      "SpaceX reported its first-ever public earnings on 4 Aug 2026, about two months after its June IPO, with shares already down over 45% from their post-IPO peak",
-      "This isn't a call on SpaceX specifically - it's a real, current example of how volatile freshly-IPO'd stocks can be",
-      "Buying into hype at an all-time high is different from buying based on a plan - the excitement fades faster than the price stabilises",
-      "If you're drawn to a hot new listing, size it as speculative, not as a core holding"
+      "AMD posted record Q2 2026 revenue of $11.5 billion and beat earnings estimates, with data-centre AI revenue more than doubling year-on-year",
+      "The stock still sank over 8% after-hours because it had already run up sharply this year - the good news was already priced in",
+      "This isn't a call on AMD - it's a live example of why 'the company did well' and 'the stock will go up' aren't the same thing",
+      "A single day's price move, in either direction, is not new information about whether your own portfolio plan still makes sense"
     ],
-    "cta": "DM me 'IPO' if you want a simple way to think through whether a hyped new listing fits your actual portfolio.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Fast-paced talking head, on-screen graphic showing IPO price to today's price arrow down, then direct-to-camera on sizing speculative positions sensibly.",
-    "source_label": "Investing.com - SpaceX first earnings report",
-    "source_url": "https://www.investing.com/news/stock-market-news/spacex-sets-date-for-maiden-earnings-report-why-august-4-is-makeorbreak-4801629",
+    "cta": "Comment 'PRICED IN' if you want a simple explanation of why good news doesn't always move a stock up.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Fast-paced talking head, on-screen graphic showing 'beat estimates' next to a down-arrow, then direct-to-camera on the expectations point.",
+    "source_label": "TipRanks - AMD earnings reaction",
+    "source_url": "https://www.tipranks.com/news/amd-earnings-advanced-micro-devices-stock-falls-despite-solid-financial-results",
     "observed_at": "2026-08-04",
-    "date_found": "2026-08-04"
+    "date_found": "2026-08-05"
   },
   {
-    "id": "trend-2026-08-04-grab-record-quarter",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Grab reported record Q2 2026 revenue, raised its full-year guidance and announced a US$750 million share buyback, in results released after US market close on 3 Aug 2026.",
-    "title": "A Southeast Asian super-app you probably use just posted a record quarter - here's the check worth doing",
-    "why_it_works": "Grab is a company many Singaporeans use daily and may hold indirectly through regional or tech funds - a dated, concrete result gives a natural reason to check portfolio exposure rather than react to the headline.",
+    "id": "trend-2026-08-05-oil-price-hormuz",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "current-affairs",
+    "trend_source": "Brent crude fell over 5% and WTI dropped near 6% to $75.77 on 4 Aug 2026 as Qatar drafted an interim proposal and US-Iran talks signalled progress toward reopening the Strait of Hormuz shipping route.",
+    "title": "Oil just had its worst two days in weeks - what that quietly means for your monthly budget",
+    "why_it_works": "A dated, concrete commodity move with a direct, honest pass-through to Singapore pump prices gives a genuine cost-of-living angle, described neutrally without taking any side on the underlying geopolitics.",
     "hooks": [
-      "Grab just posted a record quarter and raised its own guidance. If you hold regional tech funds, here's why that's worth a two-minute check.",
-      "The app most of us use daily just had its best quarter yet. I'm not saying buy it - here's what I'd actually check.",
-      "Record revenue, raised guidance, a $750 million buyback - Grab's results this week are a good excuse to check what's actually in your portfolio."
+      "Oil dropped over 5% in a single day this week. Here's the boring but useful reason that matters to your wallet.",
+      "Crude prices just fell for two days straight. If it holds, here's where you'll actually feel it first.",
+      "Oil prices dropped hard this week on hopes of a shipping-route deal. Petrol pumps here usually feel it within days."
     ],
     "talking_points": [
-      "Grab reported record Q2 2026 revenue, raised full-year guidance, and announced a US$750 million share buyback on 3 Aug 2026",
-      "Many Singaporeans hold exposure to companies like Grab indirectly, through regional equity or technology funds, without realising it",
-      "A strong quarter for one company you use daily is a good trigger to actually check what's inside your funds, not to buy the stock directly",
-      "This isn't a recommendation on Grab - it's a prompt to know what you already own"
+      "Brent crude fell over 5% and WTI dropped near 6% this week as hopes grew for a deal to reopen the Strait of Hormuz shipping route",
+      "Singapore petrol prices track global crude costs closely, through the regional MOPS benchmark, so pump prices can move within days of a swing like this",
+      "This is a neutral cost-of-living update, not a comment on the situation driving it - the point is what a falling or rising oil price does to your monthly transport and utilities budget",
+      "If you drive daily, this is a good week to actually check your fuel spend against your budget rather than guess"
     ],
-    "cta": "Save this and check the fund fact sheet for anything you're already invested in this month.",
+    "cta": "Save this and check your last month's petrol spend against this week's prices.",
     "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 the record-quarter headline, slide 2 'do you actually know what's in your fund' prompt, slides 3-4 a simple how-to-check-your-fund-holdings walkthrough.",
-    "source_label": "Grab - Q2 2026 results press release",
-    "source_url": "https://www.grab.com/sg/press/others/grab-reports-record-second-quarter-2026-results-raises-full-year-guidance-and-announces-750-million-share-repurchase-program/",
+    "how_to_film": "Text-post graphic showing the oil price drop percentage and this week's date, then talking head connecting it to the household budget point.",
+    "source_label": "Bloomberg - Oil market news",
+    "source_url": "https://www.bloomberg.com/news/articles/2026-08-04/latest-oil-market-news-and-analysis-for-aug-5",
     "observed_at": "2026-08-04",
-    "date_found": "2026-08-04"
+    "date_found": "2026-08-05"
   },
   {
-    "id": "trend-2026-08-04-tbill-yield-drop",
+    "id": "trend-2026-08-05-tiktok-shop-summit",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "culture",
+    "trend_source": "TikTok Shop held its first-ever Singapore Summit on 4 Aug 2026, bringing together over 1,500 sellers and creators and spotlighting LIVE 'Flash Sale' countdown-timer tools used to drive urgent purchases.",
+    "title": "TikTok Shop just held its first Singapore summit - here's the psychology behind that countdown timer",
+    "why_it_works": "A dated, Singapore-specific first-ever event gives an honest reason to name the actual mechanic behind livestream shopping impulse buys, educational rather than product-pushing.",
+    "hooks": [
+      "TikTok Shop held its first-ever Singapore summit this week. I watched a LIVE flash sale and clocked exactly what makes people buy.",
+      "Over 1,500 sellers showed up to TikTok Shop's first Singapore summit this week. Here's the one feature doing all the work.",
+      "That countdown timer on a TikTok Shop LIVE sale isn't decoration. Here's what it's actually designed to do to you."
+    ],
+    "talking_points": [
+      "TikTok Shop held its first-ever Singapore Summit this week, bringing together over 1,500 sellers and creators around LIVE selling",
+      "The countdown-timer 'Flash Sale' tool is built specifically to create urgency and prompt immediate purchases, and it works - some sellers report large month-on-month sales growth from it",
+      "Recognising the mechanic doesn't mean avoiding it - it means giving yourself one rule: if you weren't already planning to buy it, sleep on it overnight",
+      "The same urgency trick shows up in a lot of spending decisions, not just livestream shopping"
+    ],
+    "cta": "DM me 'PAUSE' and I'll send you the one-line rule I use before any impulse buy.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Short video: screen-record a TikTok Shop LIVE countdown timer for 2 seconds, then direct-to-camera on the urgency-and-pause point.",
+    "source_label": "TikTok Newsroom - TikTok Shop Singapore Summit",
+    "source_url": "https://newsroom.tiktok.com/tiktok-shop-deepens-commitment-to-singapores-discovery-commerce-ecosystem-at-inaugural-tiktok-shop-singapore-summit?lang=en-SG",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-05"
+  },
+  {
+    "id": "trend-2026-08-05-instagram-nonchalant",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "Instagram's 'Not Very Nonchalant' trend, set to @trace.young's original sound, has creators this week rejecting deadpan 'unbothered' culture for loud, unapologetic joy.",
+    "title": "Stop playing it 'nonchalant' about your money wins too",
+    "why_it_works": "A genuinely trending Reels audio and format gives an honest, current hook to talk about dropping the 'I've got it all figured out' performance and being openly excited about real progress, without pitching anything.",
+    "hooks": [
+      "There's a trend on Instagram right now about dropping the 'nonchalant' act and actually looking happy. I want that for your money too.",
+      "Everyone's rejecting 'unbothered' on Reels this week. Can we do that with money goals too? Hiding excitement isn't cool, it's just tiring.",
+      "This week's biggest Reels trend is about people finally admitting they're happy. Try that the next time you hit a savings goal."
+    ],
+    "talking_points": [
+      "Instagram's 'Not Very Nonchalant' trend has creators rejecting deadpan 'unbothered' culture for loud, visible, unapologetic joy, set to a viral original sound",
+      "Money culture has its own version of 'nonchalant' - acting like you have it all figured out, or downplaying a real milestone because it feels uncool to care",
+      "Being genuinely excited about hitting a savings target, clearing a debt, or starting your first investment isn't cringe - it's honest, and it's motivating to the people watching",
+      "The trend is a reminder: the version of you that's quietly proud of real progress is more relatable than the version performing calm"
+    ],
+    "cta": "Comment 'PROUD' with a money milestone you're actually excited about, however small.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Short video: open with the trending audio for the first 2 seconds and an exaggerated 'unbothered' face, then break into genuine excitement talking about a real money win.",
+    "source_label": "Newengen - Instagram Trends August 2026",
+    "source_url": "https://newengen.com/insights/instagram-trends/",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-05"
+  },
+  {
+    "id": "trend-2026-08-05-tiktok-same-answer-format",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "meme",
+    "trend_source": "A TikTok comedy format trending this week has creators posing a question then listing 3-4 'answers' that are all exactly the same, with each repeat getting a bigger reaction or visual gag.",
+    "title": "I get asked 'what's the best investment' a lot - watch me answer it 4 different ways (that are all the same)",
+    "why_it_works": "This week's TikTok comedy format, where every 'different' answer is secretly identical, maps honestly onto a real, common experience in financial content: the 'best' answer to most money questions is genuinely repetitive, and that's the joke and the point.",
+    "hooks": [
+      "People keep asking me for the secret to investing. Watch me give you four different answers. They're all the same answer.",
+      "I'm going to answer the same money question four times like it's new information each time, because that's basically my job.",
+      "Ask me 'what should I invest in' any way you want. I dare you to spot the four identical answers coming."
+    ],
+    "talking_points": [
+      "A comedy format trending on TikTok this week has creators posing a question, then giving 3-4 'different' answers that are secretly all identical, with each repeat getting a bigger reaction",
+      "Financial advice has the same running joke - however the question is phrased, the honest answer is often the same repeated basics",
+      "Emergency fund first, then clear high-interest debt, then invest consistently for your goals - said four ways, it's still one answer",
+      "Boring and repeated usually means it's actually correct, not that it's outdated advice"
+    ],
+    "cta": "Comment your version of 'the same question, asked differently' and I'll give you the same honest answer.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Short video using the trending format: cut to 4 quick reaction shots, each escalating, delivering the identical money answer each time.",
+    "source_label": "Newengen - TikTok Trends August 2026",
+    "source_url": "https://newengen.com/insights/august-tiktok-trends/",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-05"
+  },
+  {
+    "id": "trend-2026-08-05-coe-quota-shift",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "Singapore's latest 6-month T-bill auction (BS26115N), issued 4 Aug 2026, closed with a cut-off yield of 1.59%, continuing a downward drift from earlier this year.",
-    "title": "This week's T-bill yield just dropped again - what I'd actually do with idle cash now",
-    "why_it_works": "A concrete, dated auction result gives a natural, honest reason to talk through where to park idle cash as short-term rates drift down, without recommending any specific product or predicting rates.",
+    "trend_source": "For the Aug-Oct 2026 COE quota period, whose bidding opened 3 Aug 2026, LTA allocated 4% fewer certificates to Category A and 6% more to Category B, with August premiums near $125,646 (Cat A) and $127,835 (Cat B).",
+    "title": "LTA just quietly shifted the COE quota - here's what it means if you're timing a car purchase",
+    "why_it_works": "A dated, factual quota reallocation for the current bidding cycle gives a neutral, non-speculative reason to talk about how COE category choice interacts with a bigger purchase-timing decision, without predicting where premiums will go.",
     "hooks": [
-      "This week's T-bill auction closed at 1.59 percent. If your cash has been sitting in a T-bill on autopilot, here's what I'd check.",
-      "Short-term yields dropped again this week. Here's how I think about idle cash when T-bill rates start sliding.",
-      "T-bill rates keep drifting down. If you're still assuming 3 to 4 percent, this week's result says otherwise."
+      "LTA just cut the Category A car quota and boosted Category B this round. Here's why that matters if you're car shopping.",
+      "The COE quota for August to October just shifted between categories. Most people never even check this before buying a car.",
+      "If you're timing a car purchase around COE, here's a quota change this week you probably haven't seen yet."
     ],
     "talking_points": [
-      "Singapore's latest 6-month T-bill auction, issued 4 Aug 2026, closed with a cut-off yield of 1.59%",
-      "That's part of a broader drift down in short-term yields this year - T-bills, fixed deposits and SSBs are all moving together",
-      "As T-bill yields fall, it's worth comparing them again against fixed deposits and Singapore Savings Bonds for the same idle cash",
-      "This is a rate update, not a recommendation to move your money into or out of any specific instrument"
+      "For the August-to-October 2026 COE quota period, LTA allocated 4% fewer certificates to Category A and 6% more to Category B, with this round's bidding opening on 3 August",
+      "Category A August premiums are sitting around $125,646 versus roughly $127,835 for Category B - a gap worth knowing before you assume which category is 'cheaper'",
+      "A quota shift changes supply, not your personal timeline - the more useful question is whether a car purchase actually fits your current financial plan, not whether this month's premium looks 'good'",
+      "If a car is a real need, comparing categories properly is a five-minute check that can meaningfully change the total cost"
     ],
-    "cta": "Comment 'CASH' if you want a simple side-by-side of where idle cash options stand right now.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-post graphic showing the 1.59% headline and this week's date, then talking head on comparing cash options as rates drift.",
-    "source_label": "Ask Gov.sg (MAS) - Latest T-bill cut-off yield",
-    "source_url": "https://ask.gov.sg/mas/questions/clx8ktirr005tryoz2yzyrvl6",
-    "observed_at": "2026-08-04",
-    "date_found": "2026-08-04"
+    "cta": "DM me 'COE' if you want help thinking through whether a car purchase fits your current financial plan.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Text-post graphic showing the Cat A vs Cat B quota shift and this month's premiums, then talking head on the plan-first point.",
+    "source_label": "SmartCalculator.sg - COE bidding dates and quota 2026",
+    "source_url": "https://www.smartcalculator.sg/articles/coe-bidding-dates-2026",
+    "observed_at": "2026-08-03",
+    "date_found": "2026-08-05"
   },
   {
-    "id": "trend-2026-08-04-ssb-rate-rise",
+    "id": "trend-2026-08-05-china-stocks-rebound",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "China's Shenzhen Component jumped 3.25% and AI and chip-related shares surged strongly on 4 Aug 2026, a sharp rebound the very next session after a broad-based selloff.",
+    "title": "China's market fell hard, then ripped higher the very next day - the lesson isn't about China",
+    "why_it_works": "A dated, sharp two-day swing in a real, current market gives an honest, purely behavioral example of how fast sentiment can reverse, with zero recommendation on any market or stock.",
+    "hooks": [
+      "China's stock market had a sharp selloff, then bounced hard the very next day. Here's the pattern I actually pay attention to.",
+      "One day it's a selloff, the next day it's a rally. This week's swing in Chinese markets is a textbook example of something.",
+      "A market fell, then jumped over 3% the next session. If that whiplash sounds familiar, here's the actual lesson in it."
+    ],
+    "talking_points": [
+      "Chinese stocks saw a sharp rebound this week, with tech and chip-related shares jumping strongly the session right after a broad selloff",
+      "This isn't a call on China, or on any stock - it's a real, current example of how quickly sentiment can swing in both directions within days",
+      "Anyone who sold in a panic during the selloff and anyone who chased the rebound the next day were both reacting to noise, not a plan",
+      "The habit that actually protects you from this whiplash: decide your allocation in advance, and only revisit it on a schedule, not on a headline"
+    ],
+    "cta": "What's your rule for not reacting to a sharp market swing either way? Tell me below.",
+    "cta_type": "open-question",
+    "how_to_film": "Talking head with a simple down-then-up arrow graphic for the first 2 seconds, then direct-to-camera on the plan-not-panic point.",
+    "source_label": "Free Malaysia Today - China stocks rebound",
+    "source_url": "https://www.freemalaysiatoday.com/category/business/2026/08/04/china-stocks-rise-as-ai-chip-shares-rebound",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-05"
+  },
+  {
+    "id": "trend-2026-08-05-us-jobs-report-preview",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "The US jobs report for July, due Friday 7 Aug 2026, is expected by economists to show payrolls rebounding to roughly 85,000-88,000 after June's surprisingly weak 57,000 print.",
+    "title": "A big US jobs number drops this Friday - here's the only part of it I actually care about",
+    "why_it_works": "A dated, forward-looking calendar event with real economist consensus numbers gives an honest reason to talk about not overreacting to a single data print, without making any prediction of my own.",
+    "hooks": [
+      "The US jobs report lands this Friday, and economists are watching closely after a surprisingly weak June. Here's what I'm actually watching for.",
+      "One number drops this Friday that usually moves markets for a day. Here's why I don't let it move my clients' plans.",
+      "Economists expect this Friday's US jobs data to rebound after a weak June. I still won't change anything based on one report."
+    ],
+    "talking_points": [
+      "The US jobs report for July lands this Friday, with economists expecting payrolls to rebound to roughly 85,000-88,000 after June's surprisingly weak 57,000",
+      "This single data point often moves markets for a day or two as it feeds into expectations for the US Federal Reserve's next meeting",
+      "One month's jobs number, whether it beats or misses forecasts, doesn't change your personal financial plan or timeline",
+      "What's actually useful: using report days like this as a reminder to check your own emergency fund and job-security buffer, not to guess the market's next move"
+    ],
+    "cta": "Comment 'BUFFER' if you want a quick way to check whether your emergency fund actually covers your real monthly costs.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head with a simple calendar graphic marking 'Friday - US jobs report,' then direct-to-camera on the emergency-fund point.",
+    "source_label": "Kiplinger - Weekly economic calendar",
+    "source_url": "https://www.kiplinger.com/investing/economy/this-weeks-economic-calendar",
+    "observed_at": "2026-08-03",
+    "date_found": "2026-08-05"
+  },
+  {
+    "id": "trend-2026-08-05-honne-anniversary-tour",
     "platform": "instagram",
     "format": "story",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "The newly opened Singapore Savings Bonds tranche (SBSEP26) offers a 10-year average return of up to 2.25% p.a., up from 2.06% in the July tranche, with applications open until 26 Aug 2026.",
-    "title": "SSB rates just ticked back up - here's why that's worth a second look",
-    "why_it_works": "A concrete, dated rate change in a widely-held, government-backed savings instrument gives an honest, non-promotional reason to talk about revisiting conservative cash allocations.",
+    "pillar": "interest",
+    "trend_type": "event",
+    "trend_source": "HONNE is playing a three-night, 10th-anniversary run at the intimate Capitol Theatre in Singapore from 4-6 Aug 2026, with tickets priced $148 to $248.",
+    "title": "A three-night run is happening at Capitol Theatre this week - the money lesson is about paying for experiences",
+    "why_it_works": "A real, dated, Singapore-specific concert run happening this exact week gives a genuine, non-forced reason to talk about budgeting for experiences on purpose instead of by accident.",
     "hooks": [
-      "Singapore Savings Bonds rates just ticked up again this month, after months of drifting down. Here's why I'd take a second look.",
-      "If you wrote off SSBs a few months ago because the rate looked low, this month's tranche is worth another glance.",
-      "The newest SSB tranche just opened at a higher rate than last month's. Small move, but worth knowing about."
+      "HONNE is playing three intimate nights at Capitol Theatre this week for their 10th anniversary. I keep thinking about what people paid for that feeling.",
+      "A stripped-back three-night concert run is happening in Singapore this week. Here's how I think about spending on experiences like this.",
+      "Tickets for this week's HONNE shows in Singapore range from $148 to $248 - here's how to make that a planned spend, not an accident."
     ],
     "talking_points": [
-      "The newest SSB tranche offers a 10-year average return of up to 2.25% p.a., up from 2.06% in the previous month's tranche, applications open until 26 Aug 2026",
-      "SSBs let you exit early without penalty and are backed by the Singapore government - useful for money you might need before a fixed term ends",
-      "This isn't a call to move everything into SSBs - it's one option worth comparing against your fixed deposits and T-bills again this month",
-      "Rates move monthly, so what didn't make sense a few months ago can look different today"
+      "HONNE is playing a three-night, 10th-anniversary run at the intimate Capitol Theatre in Singapore this week, with tickets ranging from $148 to $248",
+      "Spending on a concert or experience isn't the problem - spending on it by accident, without it being part of your month's plan, usually is",
+      "A simple fix: give experiences their own small monthly 'fun budget' line instead of letting them compete last-minute with savings or bills",
+      "The best concerts are memorable precisely because they were planned for, not because they were the cheapest option available"
     ],
-    "cta": "Save this if you've got idle cash sitting in a low-interest account you haven't reviewed in a while.",
+    "cta": "Save this if you've got a concert or trip coming up you haven't actually budgeted for yet.",
     "cta_type": "save-share",
-    "how_to_film": "Story format: rate comparison graphic (2.06% to 2.25%), then a short direct-to-camera line on comparing cash options this month.",
-    "source_label": "SingPromos - SSB latest tranche rate",
-    "source_url": "https://singpromos.com/banks-credit-cards/singapore-savings-bonds-offers-up-to-2-25-p-a-10-year-average-return-in-latest-issue-apply-by-26-aug-2026-305052/",
-    "observed_at": "2026-08-03",
-    "date_found": "2026-08-04"
+    "how_to_film": "Story format: quick clip or photo reference of the Capitol Theatre marquee, then a short direct-to-camera line on the planned-fun-budget tip.",
+    "source_label": "Bandwagon - HONNE 10th Anniversary Tour Singapore",
+    "source_url": "https://www.bandwagon.asia/articles/honne-brings-10-year-anniversary-tour-to-singapore-with-3-shows-at-capitol-theatre",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-05"
   },
   {
-    "id": "trend-2026-08-04-palantir-earnings-pop",
+    "id": "trend-2026-08-05-hawker-closures",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "current-affairs",
+    "trend_source": "Twenty hawker centres and markets across Singapore are closed this week for NEA's scheduled spring cleaning, with several closures, including North Bridge Road Market & Food Centre, running 3-5 Aug 2026.",
+    "title": "Your hawker centre might be closed this week - a good excuse to run a 3-day 'cook at home' budget check",
+    "why_it_works": "A real, dated, very Singapore-specific inconvenience this week gives an honest, light reason to talk about tracking a short burst of food spending without it feeling forced or preachy.",
+    "hooks": [
+      "Twenty hawker centres are closed for cleaning this week. If yours is one of them, here's a quick experiment worth trying.",
+      "Found out my usual hawker centre is closed for spring cleaning this week. Here's what I'm doing with the three days instead.",
+      "If your hawker centre is on this week's closure list, that's an accidental few days to actually see your food spending."
+    ],
+    "talking_points": [
+      "Twenty hawker centres and markets across Singapore are closed this week for NEA's scheduled spring cleaning, with several closures running from 3 to 5 August",
+      "A forced few days away from your usual hawker stall often means more delivery or restaurant spending by default, unless you notice it",
+      "Use the closure as a free, three-day experiment: track exactly what you spend on food this week compared to a normal week",
+      "It's a small, low-stakes way to see your real food spending pattern without committing to a full budgeting overhaul"
+    ],
+    "cta": "Save this and screenshot your food spending for the next 3 days - compare it to normal at the end of the week.",
+    "cta_type": "save-share",
+    "how_to_film": "Text-post graphic listing a few closed hawker centres with this week's dates, then talking head on the 3-day spending-check idea.",
+    "source_label": "SETHLUI.com - Hawker centre closures August 2026",
+    "source_url": "https://sethlui.com/markets-hawker-centres-spring-cleaning-list-singapore-aug-2026/",
+    "observed_at": "2026-08-03",
+    "date_found": "2026-08-05"
+  },
+  {
+    "id": "trend-2026-08-05-gold-price-dip",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Palantir's stock surged 12% on 3 Aug 2026 after Q2 revenue beat estimates ($1.94B vs $1.80B expected, +93% year-on-year) and the company raised its guidance, marking an eighth straight beat-or-match quarter.",
-    "title": "A stock jumped 12% on earnings today - here's the one question I'd ask before chasing that",
-    "why_it_works": "A dated, dramatic single-day stock move gives a clean, honest opening to talk about the difference between reacting to a headline pop and sticking to a plan, without naming a buy or sell call.",
+    "trend_source": "Gold traded around $4,020 to $4,073 an ounce on 4 Aug 2026, still down roughly 28% from its January 2026 record above $5,590.",
+    "title": "Gold is still 28% off its record high this year - here's the only question that matters if you hold any",
+    "why_it_works": "A dated, factual price point on a widely-held safe-haven asset gives an honest reason to talk about why you hold something, without predicting where the price goes next.",
     "hooks": [
-      "A stock jumped 12 percent today on an earnings beat. Here's the question I'd ask before touching my portfolio because of it.",
-      "Eight straight beat-or-match quarters, then a 12 percent pop today. Impressive - and still not a reason to chase it.",
-      "Big earnings beat, big share jump today. I still wouldn't change my portfolio because of a single day's move."
+      "Gold is trading around $4,020 an ounce this week, still nearly 28% below its record high from January. Here's the only thing I'd check.",
+      "If you bought gold at the top in January, you're sitting on a real paper loss right now. Here's how I'd think about that.",
+      "Gold's down more than a quarter from its record high this year. I'm not predicting where it goes next - just what to ask yourself."
     ],
     "talking_points": [
-      "A widely-held tech stock jumped 12% on 3 Aug 2026 after beating Q2 revenue estimates and raising guidance, its eighth straight beat-or-match quarter",
-      "This isn't a call to buy or avoid the stock - it's a live example of how sharply sentiment can move in a single day",
-      "The question worth asking before chasing any single-day pop: does this change your actual financial plan, or just today's headlines",
-      "A plan built around one earnings day either way is not a plan"
+      "Gold traded around $4,020 to $4,073 an ounce this week, still down roughly 28% from its January 2026 record above $5,590",
+      "This isn't a call on where gold goes next - nobody knows that, including anyone telling you otherwise",
+      "The only question that actually matters: why did you hold gold in the first place - as a small diversifier, or chasing the headline run-up? The answer should decide what you do now, not the current price",
+      "A single asset moving 20-30% in either direction is normal volatility, not a reason to panic-sell or panic-buy more"
     ],
-    "cta": "What's your rule for not chasing a stock after a big pop? Tell me below.",
+    "cta": "What's your honest reason for holding gold, if you do? Tell me below.",
     "cta_type": "open-question",
-    "how_to_film": "Talking head with a simple up-arrow graphic overlay for the first 2 seconds, then the reacting-vs-planning point direct to camera.",
-    "source_label": "CNBC - Palantir Q2 2026 earnings",
-    "source_url": "https://www.cnbc.com/2026/08/03/palantir-pltr-earnings-q2-2026.html",
-    "observed_at": "2026-08-03",
-    "date_found": "2026-08-04"
+    "how_to_film": "Talking head with a simple price-chart graphic (January peak to today) for the first 2 seconds, then direct-to-camera on the why-you-hold-it point.",
+    "source_label": "Forbes Advisor - Gold price today",
+    "source_url": "https://www.forbes.com/advisor/investing/gold-price/",
+    "observed_at": "2026-08-04",
+    "date_found": "2026-08-05"
   }
 ]
