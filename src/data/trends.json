@@ -1,478 +1,366 @@
 [
   {
-    "id": "trend-2026-08-06-disney-subscription-audit",
+    "id": "trend-2026-08-08-national-day-message",
     "platform": "facebook",
     "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Disney's Q3 FY2026 earnings, reported 5 Aug 2026, beat estimates (EPS $2.06 vs $1.86 expected) as streaming profit more than doubled and theme-park attendance grew 3%, even as households say they're watching costs.",
-    "title": "Disney's earnings beat this week says people are still paying for stuff they forgot about",
-    "why_it_works": "A dated, real earnings beat gives an honest reason to talk about auditing recurring subscriptions, without touching the stock itself.",
-    "hooks": [
-      "Disney just posted a record quarter and streaming profit more than doubled. I'd bet some of that is subscriptions people forgot they had.",
-      "This week Disney beat earnings partly on people still paying for Disney+ they barely use. Sound familiar?",
-      "Theme park visits are up, streaming profit doubled - Disney had a great week. When did you last check your own subscriptions?"
-    ],
-    "talking_points": [
-      "Disney's Q3 FY2026 results this week beat expectations, with streaming profit more than doubling and theme park attendance up 3% even as many households say they're watching spending",
-      "This isn't a stock call - it's a reminder that recurring subscriptions (streaming, apps, gym, delivery) quietly survive budget cuts because they're easy to forget",
-      "A 10-minute audit: open your bank or card statement and list every recurring charge under $30 - most people find at least one they don't use",
-      "Cancelling or pausing one forgotten subscription is a small, immediate win that doesn't touch your actual lifestyle"
-    ],
-    "cta": "Comment 'AUDIT' and I'll send you the 5-question checklist I use to spot subscriptions worth cutting.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-post graphic with the Disney earnings headline and this week's date, then talking head walking through the subscription-audit checklist point by point.",
-    "source_label": "Qz - Disney Q3 FY2026 earnings",
-    "source_url": "https://qz.com/disney-earnings-beat-parks-streaming-q3-2026-080526",
-    "observed_at": "2026-08-05",
-    "date_found": "2026-08-06"
-  },
-  {
-    "id": "trend-2026-08-06-jimothy-raccoon",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "meme",
-    "trend_source": "Jimothy, a round-bodied Seattle raccoon with a short-spine condition, has gone viral this week - the Mariners held a dedicated 'Jimothy Night' giveaway game on 4 Aug 2026 and the city is preparing an official proclamation and mural in his honour.",
-    "title": "Everyone's obsessed with a chubby raccoon named Jimothy this week - here's the money lesson hiding in the merch",
-    "why_it_works": "A fresh, wholesome, punch-up meme (nobody's mocked, just delighted) gives an honest bridge to impulse merch spending on a feel-good trend, without forcing it.",
-    "hooks": [
-      "There's a raccoon named Jimothy taking over the internet this week and I already want the merch. Let's talk about that impulse.",
-      "Seattle gave a raccoon named Jimothy his own stadium night this week. I clocked exactly why collectible merch like this works on us.",
-      "Jimothy the raccoon is everywhere this week. The second I saw the merch, I understood why 'limited edition' sells so fast."
-    ],
-    "talking_points": [
-      "Jimothy, a short-spined Seattle raccoon, went viral this week - the Mariners ran a dedicated 'Jimothy Night' game on 4 August, with a city proclamation and mural following",
-      "Feel-good viral moments like this drive fast, low-thought spending on merch, because it's tied to a happy feeling, not a plan",
-      "The trick isn't avoiding fun purchases - it's the 24-hour pause: if you still want it tomorrow, buy it guilt-free",
-      "Same rule works for any 'limited edition' or 'while it's trending' purchase, not just internet-famous raccoons"
-    ],
-    "cta": "Comment 'PAUSE' and I'll send you the one-line rule I use before any trend-driven purchase.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Short video: open with a quick clip or photo reference of Jimothy merch or the mural for 2 seconds, then direct-to-camera on the 24-hour pause rule.",
-    "source_label": "KING 5 - Jimothy the raccoon",
-    "source_url": "https://www.king5.com/article/news/local/viral-raccoon-jimothy-inspires-mural-tattoos-and-seattle-proclamation/281-647f5fc4-fc95-4bfd-b90b-7aa39feb859b",
-    "observed_at": "2026-08-05",
-    "date_found": "2026-08-06"
-  },
-  {
-    "id": "trend-2026-08-06-xiaomi-redmi-launch",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "topic",
-    "trend_type": "event",
-    "trend_source": "Xiaomi launches the Redmi Note 17 5G today, 6 Aug 2026, with an 8,000mAh battery headlining the pitch - the kind of phone-launch hype cycle that pulls SG shoppers into upgrading early too.",
-    "title": "A new phone just launched today - here's the only question worth asking before you upgrade",
-    "why_it_works": "A real, dated device launch gives an honest, non-product-specific reason to talk about upgrade cycles and depreciation, without endorsing or dissing any brand.",
-    "hooks": [
-      "A new phone launched today with an 8,000mAh battery and my inbox is already full of 'should I upgrade' messages.",
-      "Phone launch day always triggers the same question from clients: is my current phone actually broken, or just old?",
-      "Another phone launched today promising a bigger battery. Here's the 10-second check I do before any upgrade."
-    ],
-    "talking_points": [
-      "Xiaomi's Redmi Note 17 5G launched today in a crowded field of new phone releases this quarter, each promising bigger batteries and better cameras",
-      "A new launch resets what 'normal' looks like, which is exactly what makes a working phone suddenly feel outdated",
-      "The check that actually matters: does your current phone still do what you need, not what the ad makes you feel",
-      "If you do upgrade, treat it as a planned purchase with a number attached, not a reaction to a launch date"
-    ],
-    "cta": "Save this before your next phone launch notification talks you into an upgrade you didn't plan for.",
-    "cta_type": "save-share",
-    "how_to_film": "Short video: screen-record a phone launch headline for 2 seconds, then direct-to-camera on the planned-vs-reactive upgrade point.",
-    "source_label": "91mobiles - Redmi Note 17 5G launch",
-    "source_url": "https://www.91mobiles.com/xiaomi-redmi-note-17-5g-price-in-india",
-    "observed_at": "2026-08-06",
-    "date_found": "2026-08-06"
-  },
-  {
-    "id": "trend-2026-08-06-ndp-long-weekend",
-    "platform": "instagram",
-    "format": "story",
     "pillar": "identity",
     "trend_type": "event",
-    "trend_source": "Singapore's National Day Parade returns to National Stadium this Sunday, 9 Aug 2026, with lead-up events already running this week, including the SingNation! sing-along and the Jewel Changi Rain Vortex light show.",
-    "title": "NDP week is here - a quick way to actually enjoy the long weekend without a spending hangover",
-    "why_it_works": "A genuinely Singapore-specific, dated week of national celebration gives an honest, natural reason to talk about planning fun spend for a holiday weekend, with real national pride and no product pitch.",
+    "trend_source": "PM Lawrence Wong's National Day Message 2026 is broadcast today, 8 Aug, in English, Mandarin, Malay and Tamil, the eve of the National Day Parade at the National Stadium.",
+    "title": "National Day Message airs tonight - the one night a year I actually check in on my own progress",
+    "why_it_works": "The Message is a real, dated, once-a-year national moment with genuine reflective weight - using it as a personal check-in cue is honest and stays completely non-partisan, with no scheme mechanics or policy claims.",
     "hooks": [
-      "NDP lead-up events are already running around Singapore this week. Here's how I budget for a long weekend without blowing it.",
-      "National Day weekend is here. I give every big weekend like this its own small budget so I actually enjoy it.",
-      "Rain Vortex is lit up for NDP this week and everyone's making plans. Here's the one thing I check before I say yes to all of them."
+      "The National Day Message airs tonight. It's the one night a year I actually sit down and check my own numbers.",
+      "Everyone's watching the National Day Message tonight. Here's the two-minute version I do for my own finances first.",
+      "Before the fireworks tomorrow, tonight's Message is my cue to ask: am I actually where I wanted to be this year?"
     ],
     "talking_points": [
-      "NDP lead-up events are running across Singapore this week, from the SingNation! sing-along to the Jewel Rain Vortex light show, ahead of the parade at National Stadium on 9 August",
-      "A long weekend with parties, food, and outings can quietly cost more than a normal week if there's no number attached to it",
-      "Give the weekend a simple cap in advance - one number for food, transport and extras - so you can say yes to plans without tracking every dollar",
-      "The goal isn't to spend less on National Day - it's to spend on purpose so it stays a good memory, not a next-month regret"
+      "PM Lawrence Wong's National Day Message airs tonight, 8 Aug, ahead of tomorrow's parade at the National Stadium",
+      "A national look-back is a natural, once-a-year cue for a personal one too - most people never schedule this for themselves",
+      "Three questions worth two minutes: did my savings move the way I wanted, is my protection still matched to my life, did anything change this year that I haven't updated for",
+      "This isn't about the news cycle - it's about using a date everyone already has on their calendar as your own check-in trigger"
     ],
-    "cta": "Save this before the long weekend starts and set your number now.",
-    "cta_type": "save-share",
-    "how_to_film": "Story format: quick clip of a lead-up NDP event (lights or sing-along), then a short direct-to-camera line on setting a weekend spending cap.",
-    "source_label": "IBTimes SG - Singapore National Day 2026",
-    "source_url": "https://www.ibtimes.sg/singapore-national-day-2026-everything-you-need-know-about-parade-fireworks-tickets-91369",
-    "observed_at": "2026-08-06",
-    "date_found": "2026-08-06"
+    "cta": "Save this and actually do the two-minute check-in tonight - comment 'CHECK' if you want the three questions sent to you.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text-post graphic with tonight's date and 'National Day Message night = my check-in night', then a short talking-head listing the three questions.",
+    "source_label": "PMO - Broadcast of National Day Message 2026",
+    "source_url": "https://www.pmo.gov.sg/newsroom/broadcast-of-national-day-message-2026/",
+    "observed_at": "2026-08-08",
+    "date_found": "2026-08-08"
   },
   {
-    "id": "trend-2026-08-06-coe-results-drop",
+    "id": "trend-2026-08-08-team-sg-glasgow-free-swim",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "sport",
+    "trend_source": "Team Singapore's 53-athlete Commonwealth Games contingent closed out its Glasgow 2026 campaign this week with two silver medals; ActiveSG centres are running free full-day pool and gym admission today, 8 Aug, to mark the team's return.",
+    "title": "Free swim day today because Team Singapore's home - what their training actually proves about money habits",
+    "why_it_works": "A real, dated free-admission perk plus a genuine athletic wrap-up gives an honest bridge to 'unglamorous reps beat one big decision' - a sports-fan angle with no manufactured pivot.",
+    "hooks": [
+      "ActiveSG pools are free all day today because Team Singapore's back from Glasgow. Here's the boring habit behind every medal.",
+      "Two silver medals, one long Glasgow campaign, zero shortcuts. That's basically how I think about saving too.",
+      "Free swim day today for Team Singapore's homecoming. Nobody claps for the training, only the result - money works the same way."
+    ],
+    "talking_points": [
+      "Team Singapore wrapped its Glasgow 2026 Commonwealth Games campaign this week with two silver medals from a 53-athlete contingent",
+      "ActiveSG is running free full-day pool and gym admission today, 8 Aug, to mark the team's return",
+      "Every medal moment sits on top of years of unremarkable, repeated training - the highlight reel skips the part that actually built it",
+      "Saving and protection work the same way - the boring monthly habit is what the milestone later gets credited to"
+    ],
+    "cta": "Comment 'TRAIN' and I'll share the one habit I repeat monthly that nobody sees.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Short video: quick clip/photo reference to Team Singapore or a local pool today, then talking head on the training-vs-highlight point.",
+    "source_label": "ActiveSG Circle - Commonwealth Games 2026: Team Singapore's Glasgow Chapter Closes",
+    "source_url": "https://www.activesgcircle.gov.sg/read/commonwealth-games-2026-team-singapores-glasgow-chapter-closes-with-renewed-ambitions",
+    "observed_at": "2026-08-08",
+    "date_found": "2026-08-08"
+  },
+  {
+    "id": "trend-2026-08-08-lions-adidas-kit",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "The Singapore national football team debuted its new Adidas kit - ending an 18-year Nike partnership - in Friday's Aug 7 match against Indonesia.",
+    "title": "The Lions switched kit sponsors after 18 years - the 'who's got your back' question, for your money",
+    "why_it_works": "A real, dated sponsor switch for a beloved national team gives a light, sports-fan-first way into the idea of proper backup/protection - stays in fan territory and never becomes a pitch.",
+    "hooks": [
+      "The Lions played in brand new kit on Friday - first time since 2008. Got me thinking about who's actually got my back.",
+      "18 years with one sponsor, then a switch. Singapore football just did what most of us should do with our own protection - review it.",
+      "New kit, new sponsor, same Lions. Here's why I check who's 'sponsoring' my own worst-case scenario every year."
+    ],
+    "talking_points": [
+      "Singapore's national football team wore its new Adidas kit for the first time on 7 Aug against Indonesia, ending an 18-year partnership with Nike",
+      "A sponsor switch after nearly two decades is a reminder that even long-standing arrangements get reviewed and updated",
+      "Most people set up their insurance or savings plan once and never revisit it, even as income, family or goals change",
+      "One yearly check is enough - not to switch for the sake of switching, but to confirm it still fits"
+    ],
+    "cta": "Save this as your cue to review your own coverage once a year, like the Lions just did with their kit.",
+    "cta_type": "save-share",
+    "how_to_film": "Short video: reference the new Lions kit (description or fan footage), then talking head on the annual-review point.",
+    "source_label": "Mothership - S'pore football team debuts Adidas kit",
+    "source_url": "https://mothership.sg/2026/08/adidas-sponsor-spore-national-football-kit/",
+    "observed_at": "2026-08-07",
+    "date_found": "2026-08-08"
+  },
+  {
+    "id": "trend-2026-08-08-fairprice-spend-61-voucher",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "This week's first COE bidding exercise for August 2026 closed 5 Aug 2026 with Category A falling to $123,890 (down $2,110) and Category B at $129,910.",
-    "title": "COE premiums actually fell this round - here's the trap in feeling like it's 'a good time to buy'",
-    "why_it_works": "A fresh, factual result from this week's real bidding round gives a neutral reason to talk about not letting a small price dip drive a big purchase decision.",
+    "trend_source": "FairPrice is giving a $6 voucher for every $61 spent on a single receipt at all outlets from 6 to 16 Aug 2026 - a spend-threshold promo running right now.",
+    "title": "The FairPrice $61-for-$6 deal - the one question before you top up your basket",
+    "why_it_works": "A real, dated, mass-relevant promo running this exact week gives an honest, neutral reason to talk about promo-driven overspending - purely educational, with no product pitch.",
     "hooks": [
-      "COE premiums actually dropped this week's bidding round. Before you get excited, here's the question I'd ask first.",
-      "Category A COE fell over two thousand dollars this round. That's still six figures for a certificate, not a discount.",
-      "This week's COE results dipped slightly. Here's why 'it went down' isn't the same as 'now is the time.'"
+      "FairPrice is giving $6 back for every $61 you spend until 16 Aug. Here's the one question before you top up to qualify.",
+      "I almost added $4 of stuff I didn't need just to hit FairPrice's $61 mark for the voucher. Then I asked myself one thing.",
+      "That FairPrice spend-$61-get-$6 deal running now is a good little test of your own spending discipline."
     ],
     "talking_points": [
-      "This week's first COE bidding exercise for August closed with Category A at $123,890, down $2,110, and Category B at $129,910",
-      "A few thousand dollars off a six-figure certificate is a small percentage move, not a clear buy signal - premiums swing both ways bidding to bidding",
-      "The question that actually matters before a car purchase: does it fit your monthly cash flow and savings goals, regardless of which direction COE moved this round",
-      "If a car purchase is already planned, a small dip is a mild bonus - it shouldn't be the reason you decide to buy"
+      "FairPrice is running a $6 voucher for every $61 spent on one receipt, at every outlet, from 6 to 16 Aug 2026",
+      "Threshold promos work by making you want to add a few more dollars of stuff just to 'unlock' the reward",
+      "Before topping up a basket to hit a threshold, ask: would I buy this item anyway, at full price, today",
+      "A $6 voucher isn't worth $10 of stuff you didn't plan to buy - the maths only works if the extra spend was already useful"
     ],
-    "cta": "DM me 'COE' if you want help checking whether a car purchase actually fits your current budget.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Text-post graphic showing this week's Cat A and Cat B results, then talking head on the plan-first-not-price-first point.",
-    "source_label": "SingPromos - COE results Aug 2026 1st bidding",
-    "source_url": "https://singpromos.com/news/coe-results-for-aug-2026-first-bidding-exercise-ended-5-aug-2026-305106",
-    "observed_at": "2026-08-05",
-    "date_found": "2026-08-06"
-  },
-  {
-    "id": "trend-2026-08-06-gst-voucher-payout",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "current-affairs",
-    "trend_source": "GST Voucher cash payouts of up to $850 started hitting PayNow-NRIC-linked bank accounts today, 6 Aug 2026, for about 1.5 million adult Singaporeans, alongside MediSave top-ups of up to $450 for eligible seniors.",
-    "title": "GST Voucher cash lands in accounts today - the boring move that beats spending it fast",
-    "why_it_works": "A real, dated, mass-relevant payout landing today gives an honest, neutral reason to talk about giving windfall cash a job before it disappears into daily spending, described factually with no product pitch.",
-    "hooks": [
-      "GST Voucher cash is hitting accounts today. Before you spend it, give it one job for sixty seconds.",
-      "Up to $850 landed in a lot of bank accounts today. Here's what I do with unexpected cash the moment it arrives.",
-      "If you got your GST Voucher payout today, here's the two-minute move that makes it actually count."
-    ],
-    "talking_points": [
-      "GST Voucher cash payouts of up to $850 started reaching PayNow-NRIC accounts today, with MediSave top-ups of up to $450 for eligible seniors",
-      "Windfall cash that lands without a plan tends to just blend into normal spending within days - not a criticism, just how money behaves",
-      "The fix takes sixty seconds: move it straight into savings, an emergency fund, or a bill you know is coming, before it hits your everyday account",
-      "It doesn't have to be the whole amount - even splitting it between 'saved' and 'spend on purpose' beats letting it disappear untracked"
-    ],
-    "cta": "Comment 'VOUCHER' and I'll send you a simple way to split a windfall so some of it always sticks.",
+    "cta": "Comment 'FAIRPRICE' if you want my simple rule for spend-threshold promos.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Text-post graphic showing the payout amount and today's date, then talking head on the give-it-a-job-first point.",
-    "source_label": "Mothership - GST Voucher payout August 2026",
-    "source_url": "https://mothership.sg/2026/07/gst-voucher-850-cash-august-2026/",
+    "how_to_film": "Text-post graphic showing the $61/$6 mechanic and dates, then talking head on the one-question test.",
+    "source_label": "Mothership - FairPrice $6 voucher for every $61 spent",
+    "source_url": "https://mothership.sg/2026/08/fairprice-spend-61-voucher/",
     "observed_at": "2026-08-06",
-    "date_found": "2026-08-06"
+    "date_found": "2026-08-08"
   },
   {
-    "id": "trend-2026-08-06-dbs-record-earnings",
+    "id": "trend-2026-08-08-gold-record-run",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "DBS reported record Q2 FY2026 results today, 6 Aug 2026 - net profit up 9% year-on-year to $3.08 billion and total quarterly income crossing $6 billion for the first time.",
-    "title": "DBS just posted a record quarter - here's the only thing I'd actually do with that headline",
-    "why_it_works": "A dated, real, locally relevant earnings record gives an honest opening for a behavioural point about not reacting to a good headline, without any buy or sell call on the stock.",
+    "trend_source": "Gold pushed toward fresh record territory this week, trading around US$4,350/oz on 7 Aug, as a much weaker than expected July US jobs report and Middle East tensions drove safe-haven demand.",
+    "title": "Gold's all over the headlines this week - the only question worth asking about it",
+    "why_it_works": "Behaviour and planning only - no buy/sell call, no return prediction. It uses a real, dated, widely-covered market headline to talk about reacting to news versus reviewing an actual plan.",
     "hooks": [
-      "DBS just posted a record quarter this morning. I still didn't change a single client's allocation because of it.",
-      "Total income crossed $6 billion for a Singapore bank for the first time today. Here's the one question a headline like that should make you ask.",
-      "A record profit headline dropped today. Records get set more often than people think - here's what actually matters."
+      "Gold's been in every headline this week. Before you feel FOMO, here's the one question that actually matters.",
+      "Everyone's talking about gold's run this week. I'm not telling anyone to buy it - I'm asking a different question.",
+      "Gold near record levels is this week's big financial headline. My clients ask me about it, so here's what I actually say."
     ],
     "talking_points": [
-      "DBS reported record Q2 FY2026 results today - net profit up 9% year-on-year to $3.08 billion, with total quarterly income crossing $6 billion for the first time",
-      "This isn't a call on the stock - a record quarter for one bank doesn't tell you anything about your own portfolio or plan",
-      "Headlines like this are a good prompt to check something concrete instead: when did you last review your own savings rate or emergency fund, not the market's",
-      "Reacting to a 'record' headline, positive or negative, is the same habit either way - it doesn't belong in a long-term plan"
+      "Gold traded near record territory this week, around US$4,350 an ounce on 7 Aug, as a weak July US jobs report and Middle East tensions pushed safe-haven demand",
+      "Chasing whatever asset is dominating headlines is a natural, human reaction - not a strategy",
+      "The useful question isn't 'should I buy gold now' - it's whether your overall mix still matches your goals and how much risk you're comfortable carrying",
+      "A five-minute review of your protection and savings mix beats reacting to one week of headlines"
     ],
-    "cta": "What's the one number you actually check on a day like this? Tell me below.",
-    "cta_type": "open-question",
-    "how_to_film": "Talking head with a simple 'record quarter' headline graphic for the first 2 seconds, then direct-to-camera on the check-your-own-numbers point.",
-    "source_label": "The Singaporean Investor - DBS Q2/1H FY2026 results",
-    "source_url": "https://www.thesingaporeaninvestor.sg/2026/08/06/dbs-group-holdings-limited-sgx-d05-2q-1h-fy2026-results-review/",
-    "observed_at": "2026-08-06",
-    "date_found": "2026-08-06"
+    "cta": "DM me 'GOLD' if you want to actually walk through what a balanced review looks like.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Design a clean text-post graphic quoting the gold price and date, no charts implying further moves, then a caption carrying the talking points.",
+    "source_label": "Fortune - Current price of gold: August 7, 2026",
+    "source_url": "https://fortune.com/article/current-price-of-gold-08-07-2026/",
+    "observed_at": "2026-08-07",
+    "date_found": "2026-08-08"
   },
   {
-    "id": "trend-2026-08-06-sbf-diversification",
+    "id": "trend-2026-08-08-market-swing-week",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "topic",
+    "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Singapore Business Federation chairman Mark Lee said this week that firms need to 'double down on diversification' as US tariffs and Middle East disruption squeeze single-market and single-supplier exposure.",
-    "title": "SBF's advice to businesses this week applies to your personal money too",
-    "why_it_works": "A real, current business-leader comment gives an honest, natural bridge from business diversification advice to personal financial diversification, staying in behaviour and planning territory with zero market predictions.",
+    "trend_source": "US markets swung hard this week - the Dow fell over 460 points on chip-stock weakness Thursday 6 Aug, then the Nasdaq jumped 1.3% Friday 7 Aug on a surprisingly soft jobs report, a sharp two-day round trip that dominated market headlines.",
+    "title": "The market dropped, then jumped, inside 24 hours - what that actually means for your plan",
+    "why_it_works": "Purely behavioural - no predictions, no specific stock or asset calls. Uses a real, dated bout of volatility to talk about not reacting emotionally to daily market noise.",
     "hooks": [
-      "SBF's chairman told businesses this week to double down on diversification. That advice didn't stop being true for your own money.",
-      "Every SG business leader is talking diversification this week because of global disruption. Here's the personal-finance version of that advice.",
-      "Businesses are being told to spread their risk this week. Most people never ask if their own income and savings are just as concentrated."
+      "Dow down 460 points Thursday, Nasdaq up over a percent by Friday. Here's what I actually do on days like that: nothing.",
+      "Markets swung hard this week, down then up in 24 hours. If that stressed you out, this is for you.",
+      "This week's market whiplash is a good reminder of a rule I actually follow with my own money."
     ],
     "talking_points": [
-      "SBF chairman Mark Lee urged Singapore firms this week to diversify away from single-market and single-supplier exposure, citing tariffs and Middle East disruption",
-      "The same principle applies personally: one income source, one bank, or one type of saving all concentrate risk the same way a single supplier does for a business",
-      "Diversifying doesn't mean chasing complexity - it can be as simple as a second income skill, a separate emergency fund, and more than one type of saving or protection",
-      "The businesses reacting this week aren't panicking - they're reviewing structure. That's the mindset worth borrowing, not urgency"
+      "US markets swung sharply this week - the Dow fell over 460 points Thursday 6 Aug on chip-stock weakness, then the Nasdaq jumped 1.3% Friday 7 Aug on a soft jobs report",
+      "A single week of headlines like this can make anyone want to check their portfolio every hour - that urge is normal, not useful",
+      "Long-term plans are built to absorb weeks like this one; they're not supposed to be reassessed every time a headline moves",
+      "If daily swings are genuinely keeping you up at night, that's a sign to review your risk comfort, not to time the market"
     ],
-    "cta": "Comment 'DIVERSIFY' and I'll send you a simple checklist to see how concentrated your own finances are.",
+    "cta": "Comment 'CALM' and I'll send you the three questions I ask myself before reacting to a volatile week.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talking head with a text overlay of the 'double down on diversification' quote for 2 seconds, then direct-to-camera on the personal-finance parallel.",
-    "source_label": "ChinaPulse - SBF chief on diversification",
-    "source_url": "https://www.chinapulse.com/data-news/2026/08/05/internationalisation-is-key-for-businesses-sbf-chief/",
-    "observed_at": "2026-08-05",
-    "date_found": "2026-08-06"
+    "how_to_film": "Text-post graphic with the week's up/down headline numbers, then a caption walking through the talking points.",
+    "source_label": "CNBC - Stock market news for Aug. 7, 2026",
+    "source_url": "https://www.cnbc.com/2026/08/06/stock-market-today-live-updates.html",
+    "observed_at": "2026-08-07",
+    "date_found": "2026-08-08"
   },
   {
-    "id": "trend-2026-08-06-retrenchment-data",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "MOM data released this week showed Singapore retrenchments climbed to a 5-year high in Q2 2026 - about 4,500 workers, up 17.5% from Q1 - even as total employment kept growing.",
-    "title": "Retrenchments just hit a 5-year high - the calm, practical response, not the scary one",
-    "why_it_works": "Real, dated national labour data with a direct, honest emergency-fund angle, handled as a practical planning prompt rather than fear-mongering, and never tied to any named company or individual's story.",
-    "hooks": [
-      "Retrenchment numbers just hit a 5-year high in Singapore. Here's the calm version of what to do with that, not the scary one.",
-      "MOM data out this week shows more people were let go last quarter than any quarter in five years.",
-      "Job security headlines are up this week. I'm not here to scare you - just to ask if your buffer actually covers you."
-    ],
-    "talking_points": [
-      "MOM data released this week showed Singapore retrenchments hit a 5-year high in Q2 2026, about 4,500 workers, up 17.5% from Q1, even as overall employment kept growing",
-      "This is a national number, not a sign anything is wrong with your own job - but it's a fair prompt to check your own buffer",
-      "The real number that matters: how many months of essential expenses your emergency fund actually covers right now, not how it felt when you set it up",
-      "If it's under three months, that's not a crisis - it's just the next thing to build toward, calmly and on a schedule"
-    ],
-    "cta": "Comment 'BUFFER' and I'll send you a simple way to check how many months your emergency fund actually covers.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head with a simple retrenchment-data headline graphic for 2 seconds, then direct-to-camera on the calm buffer-check point.",
-    "source_label": "Migrant Times - Singapore retrenchments 5-year high",
-    "source_url": "https://migrantimes.com/statistics-reports/04-08-2026/singapore-retrenchments-hit-five-year-high-despite-continued-job-growth",
-    "observed_at": "2026-08-04",
-    "date_found": "2026-08-06"
-  },
-  {
-    "id": "trend-2026-08-06-linkedin-top-colleges",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "identity",
-    "trend_type": "news",
-    "trend_source": "LinkedIn released its 2026 Top Colleges List this week, ranking schools on real career-outcomes data rather than reputation, with several new entrants shaking up prior years' rankings.",
-    "title": "LinkedIn's college rankings this week weren't about prestige - they were about outcomes",
-    "why_it_works": "A real, dated LinkedIn platform release gives an honest, natural reason to talk about treating education and upskilling as a financial decision with a real return, not a status symbol - no return promises.",
-    "hooks": [
-      "LinkedIn dropped its 2026 college rankings this week and it's not the usual prestige list. It's ranked on outcomes.",
-      "This week's LinkedIn Top Colleges List judged schools on career outcomes, not name recognition. That's how I'd want a course judged too.",
-      "A ranking came out this week based on what happened after graduation, not before. Worth applying that lens to your own upskilling."
-    ],
-    "talking_points": [
-      "LinkedIn released its 2026 Top Colleges List this week, ranking schools by real career-outcomes data rather than reputation, with several new schools debuting",
-      "The same lens is worth applying to any course, certification or degree you're considering - what outcome does it actually lead to, not how it sounds on a resume",
-      "In Singapore, that means checking what a course qualifies you for concretely, and whether SkillsFuture credits or employer support can offset the cost, before paying full price",
-      "Spending on your own skills is still spending - it deserves the same 'what's the actual return' question as any other financial decision"
-    ],
-    "cta": "Comment 'SKILLS' and I'll send you 3 questions to ask before paying for any course or certification.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head with a simple 'ranked by outcomes' text overlay for 2 seconds, then direct-to-camera on the questions-before-paying point.",
-    "source_label": "Forbes - LinkedIn Top Colleges List 2026",
-    "source_url": "https://www.forbes.com/sites/gabrielalinzainescu/2026/08/04/linkedins-top-colleges-list-turns-career-data-into-marketing-currency/",
-    "observed_at": "2026-08-04",
-    "date_found": "2026-08-06"
-  },
-  {
-    "id": "trend-2026-08-06-bangladesh-song",
+    "id": "trend-2026-08-08-parents-same-age-trend",
     "platform": "tiktok",
     "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "meme",
-    "trend_source": "A comedy-pop track built around the line 'you never take me to Bangladesh' is driving reaction videos and comedic covers across TikTok this week, with millions of posts riffing on escalating, absurd demands.",
-    "title": "That 'you never take me to Bangladesh' song is stuck in my head - so let's talk about escalating wants",
-    "why_it_works": "A genuinely trending, self-deprecating audio format gives an honest, playful bridge to the real habit of goals quietly inflating once the first one is hit, with no forced pitch.",
-    "hooks": [
-      "That 'you never take me to Bangladesh' song is stuck in everyone's head this week. It's actually a great example of goal creep.",
-      "This week's most annoying-in-a-good-way TikTok sound is basically a sketch about wanting more the second you get something.",
-      "Half my FYP this week is people demanding increasingly ridiculous things to that Bangladesh song. Sound familiar with money goals?"
-    ],
-    "talking_points": [
-      "A comedy-pop track built on escalating, absurd demands - 'you never take me to Bangladesh' - is driving reaction videos and covers across TikTok this week",
-      "It's funny because it's relatable - the same escalation happens quietly with money goals, where hitting one target just resets the bar higher without you noticing",
-      "That's not a bad thing on its own, but it's worth naming: is your next goal something you actually want, or just the next number up?",
-      "A simple check: write down why the current goal matters before moving the goalpost, so the 'why' doesn't get lost in the escalation"
-    ],
-    "cta": "Comment 'GOAL' with yours and I'll tell you if it still matches your original why.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Short video using the trending sound: quick escalating-demand bit for the first 3 seconds, then direct-to-camera on the goal-creep point.",
-    "source_label": "TikTok - #bangladesh",
-    "source_url": "https://www.tiktok.com/tag/bangladesh?lang=en",
-    "observed_at": "2026-08-05",
-    "date_found": "2026-08-06"
-  },
-  {
-    "id": "trend-2026-08-06-kinda-chic-carousel",
-    "platform": "instagram",
-    "format": "carousel",
     "pillar": "identity",
     "trend_type": "culture",
-    "trend_source": "A carousel format trending on Instagram this week pairs a colour with 'kinda chic to...' plus a quiet-life reminder on each slide, replacing loud flexing with understated, low-key affirmations.",
-    "title": "This week's 'kinda chic to...' carousel format, but make it money",
-    "why_it_works": "A real, currently-running Instagram carousel format gives an honest, on-trend structure to deliver quiet, unglamorous money habits as the 'chic' thing to do, matching the format's own message.",
+    "trend_source": "The 'me at the same age as my parents' trend is running on TikTok right now, set to Pitbull's 'Hey Baby', with users lining up their own milestones against their parents' at the same age.",
+    "title": "The 'same age as my parents' trend - use it without the guilt trip",
+    "why_it_works": "Taps a real, currently-running trend format with an honest generational-milestone angle. It stays warm and factual about different economic eras rather than shaming anyone's current life stage or income.",
     "hooks": [
-      "This week's Instagram carousel trend is 'kinda chic to...' plus a quiet-life reminder. I'm doing mine on money.",
-      "Everyone's using this new 'kinda chic to' carousel format this week. Swipe through my money version.",
-      "The trending 'kinda chic to...' carousel is basically permission to be boring on purpose. My favourite kind of chic."
+      "Everyone's doing the 'me at the same age as my parents' trend right now. Mine looks nothing like theirs and that's actually fine.",
+      "My parents owned a flat at my age. I don't. Before you spiral on this trend too, here's the context nobody adds.",
+      "Doing the same-age-as-my-parents trend today. Different economy, different timeline - here's what actually matters instead of the comparison."
     ],
     "talking_points": [
-      "A carousel format trending on Instagram this week pairs a colour with 'kinda chic to...' and a quiet, low-key affirmation on each slide",
-      "Use the same structure for money: 'kinda chic to have three months saved,' 'kinda chic to not check your portfolio daily,' 'kinda chic to say no to a sale'",
-      "The format's whole point is making unglamorous, quiet habits feel aspirational instead of boring - which is exactly what good financial habits are",
-      "Keep each slide to one line so it stays skimmable, and end on the habit you most want people to actually adopt"
+      "The 'me at the same age as my parents' trend is trending on TikTok right now, comparing your milestones to theirs at the same age",
+      "Housing prices, salaries and the cost of starting a family have all shifted a lot since our parents' generation - the comparison isn't apples to apples",
+      "The useful version of this trend isn't 'why am I behind' - it's 'what's my own actual starting point today'",
+      "Whatever your number is right now, the next move is the same: know it, then build a plan from there, not from your parents' timeline"
     ],
-    "cta": "Save this format and swap in your own 'kinda chic to' money habits for your next carousel.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: one colour plus one 'kinda chic to...' money line per slide, following the trending template exactly, 4-6 slides.",
-    "source_label": "SocialBee - Instagram trends August 2026",
-    "source_url": "https://socialbee.com/blog/instagram-trends/",
-    "observed_at": "2026-08-05",
-    "date_found": "2026-08-06"
+    "cta": "Comment 'SAMEAGE' and I'll send you a simple way to figure out your own starting point instead of comparing.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Duet or stitch the trend format: quick side-by-side text overlay of 'them at my age' vs 'me now', then a direct-to-camera reframe on starting points.",
+    "source_label": "TikTok - Same Age As When My Parents Became Parents",
+    "source_url": "https://www.tiktok.com/discover/same-age-as-when-my-parents-became-parents",
+    "observed_at": "2026-08-07",
+    "date_found": "2026-08-08"
   },
   {
-    "id": "trend-2026-08-06-subtitle-gratitude",
+    "id": "trend-2026-08-08-dont-tell-your-dreams-audio",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "'Don't Tell Your Dreams' by Lovixx x Stosliv is the trending Reels/TikTok audio right now for business-milestone and quiet-achievement content - moody production, 'let success speak' lyrics.",
+    "title": "The 'don't tell your dreams' audio - the quiet-money version",
+    "why_it_works": "Rides a live, currently-trending audio with a natural fit for discretion around money - a 'keep the plan private, let progress speak' angle that never brags about numbers or promises outcomes.",
+    "hooks": [
+      "Using the 'don't tell your dreams' audio for the thing I actually never talk about - my own money plan.",
+      "Everyone's using this trending audio for gym and business glow-ups. Here's my quiet-money version.",
+      "This trending sound says let your success speak. I run my savings the exact same way - no updates until it's done."
+    ],
+    "talking_points": [
+      "'Don't Tell Your Dreams' by Lovixx x Stosliv is trending right now across Reels and TikTok for business-milestone and personal-achievement content",
+      "The song's whole point is keeping your goals private and letting the result speak instead",
+      "That's a healthy way to treat money goals too - no need to announce a target, just quietly build toward it",
+      "The one thing worth doing out loud, even quietly, is writing the goal down somewhere you'll actually see it again"
+    ],
+    "cta": "Save this if you're building something quietly right now - you don't need an audience for it to count.",
+    "cta_type": "save-share",
+    "how_to_film": "Use the trending audio: moody, low-key clip of writing/checking a goal or savings tracker, no numbers on screen, text overlay only.",
+    "source_label": "TikTok - Don't Tell Your Dreams (Lovixx Stosliv)",
+    "source_url": "https://www.tiktok.com/discover/don%E2%80%99t-tell-your-dreams-lovixx-stosliv",
+    "observed_at": "2026-08-06",
+    "date_found": "2026-08-08"
+  },
+  {
+    "id": "trend-2026-08-08-taylor-swift-august-trend",
     "platform": "instagram",
     "format": "story",
     "pillar": "identity",
     "trend_type": "culture",
-    "trend_source": "A 'subtitle gratitude' format trending on Instagram this week pairs an unposed, everyday photo with a deadpan subtitle naming one small thing you quietly depend on.",
-    "title": "This week's deadpan gratitude subtitle trend, but for the boring financial habit that saves you",
-    "why_it_works": "A real, current, low-production Instagram format gives an honest, natural way to name a quiet money habit with genuine gratitude instead of a lecture, matching the format's tone exactly.",
+    "trend_source": "Taylor Swift's 'August' is the #1 trending song on Instagram Reels this week, with creators flooding Reels with nostalgic summer-wrap-up photo dumps as the month begins.",
+    "title": "It's 'August' season on Reels again - use the nostalgia for a mid-year money glance",
+    "why_it_works": "Rides a real, currently #1 trending audio with a natural mid-year timing hook - a wistful look-back format repurposed as a quick, low-pressure progress check, not a lecture.",
     "hooks": [
-      "This week's Instagram trend is a deadpan subtitle over a boring photo, naming something you quietly depend on. Mine's my emergency fund.",
-      "Everyone's doing the flat-subtitle gratitude format this week. I did mine on the spreadsheet nobody sees.",
-      "Saw this deadpan gratitude trend all over Instagram this week. Naturally I did mine about my savings account."
+      "'August' is the #1 song on Reels again this week. I'm using the nostalgia for something less pretty - my mid-year numbers.",
+      "Everyone's doing summer photo dumps to 'August' right now. Here's the two-minute version I do with my own goals.",
+      "This song comes back every August and makes me feel things about summer. It also reminds me to check in on the year so far."
     ],
     "talking_points": [
-      "A 'subtitle gratitude' format trending on Instagram this week pairs an ordinary, unposed photo with a deadpan subtitle naming one small thing you quietly rely on",
-      "Apply it to money: a photo of your phone with a flat caption like 'the auto-transfer I forget exists' or 'the app that stops me overspending'",
-      "The format works because it's unglamorous and real - which is exactly what makes a financial habit worth naming out loud instead of hiding",
-      "Keep the photo genuinely mundane and the caption completely deadpan - that contrast is what makes the format land"
+      "Taylor Swift's 'August' is the #1 trending song on Instagram Reels this week, powering nostalgic summer photo-dump content",
+      "The song's whole mood is looking back at where a season went - a natural, low-pressure cue for a mid-year check-in too",
+      "Two minutes is enough: what did I actually save or put toward a goal since January, and is anything off track",
+      "No shame in the answer either way - the point of a mid-year glance is just to catch it early, not to judge it"
     ],
-    "cta": "Save this format and post your own boring-but-essential money habit this week.",
+    "cta": "Save this as your own mid-year check-in reminder, wrapped around a song you were going to hear anyway.",
     "cta_type": "save-share",
-    "how_to_film": "Story: one plain, unposed photo with a flat subtitle caption naming your money habit, matching the trend's deadpan tone exactly.",
-    "source_label": "Newengen - Instagram trends August 2026",
-    "source_url": "https://newengen.com/insights/instagram-trends/",
-    "observed_at": "2026-08-05",
-    "date_found": "2026-08-06"
+    "how_to_film": "Story format: use the trending 'August' audio over a quick photo-dump style montage, end on a text card with the two-minute check-in prompt.",
+    "source_label": "TikTok - August Taylor Swift Trend",
+    "source_url": "https://www.tiktok.com/discover/august-taylor-swift-trend",
+    "observed_at": "2026-08-07",
+    "date_found": "2026-08-08"
   },
   {
-    "id": "trend-2026-08-06-enbloc-threshold-reform",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "current-affairs",
-    "trend_source": "A bill tabled in Parliament this week lowers the consent threshold needed for a collective (en-bloc) sale - from 80% to 70% for developments 40-59 years old, and to 65% for those 60 years and older - with stronger safeguards for minority owners.",
-    "title": "En-bloc sales just got easier to trigger - what that means if you're not planning to sell",
-    "why_it_works": "A real, dated Parliament bill directly affects thousands of SG homeowners' financial planning around a potential windfall or forced move, described neutrally with no partisan framing and no return promises.",
-    "hooks": [
-      "A bill this week makes it easier for your building to be sold en-bloc, even if you never wanted to move. Here's what to actually do about it.",
-      "The en-bloc consent threshold just dropped in Parliament this week. If you own an older flat or condo, this affects you more than you think.",
-      "Selling your whole building just got easier to vote through this week. Here's the one number worth knowing if that's your building."
-    ],
-    "talking_points": [
-      "A bill tabled in Parliament this week lowers the consent threshold for a collective sale - to 70% for developments 40-59 years old, and 65% for those 60 years and older - with added safeguards for minority owners",
-      "This is a neutral mechanics update, not a comment on the policy debate - the point is what it means for your own planning if you own in an older development",
-      "If your building could realistically go en-bloc, that's a reason to know your unit's rough value and have a plan for the payout, rather than being caught deciding under pressure",
-      "This applies whether you'd vote for or against a sale - either way, knowing your numbers in advance beats figuring it out during a heated meeting"
-    ],
-    "cta": "DM me 'ENBLOC' if you want help thinking through what you'd do with a payout if your building ever went collective.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Text-post graphic showing the old vs new consent thresholds and this week's date, then talking head on the know-your-numbers-in-advance point.",
-    "source_label": "EdgeProp - En-bloc consent threshold reform",
-    "source_url": "https://www.edgeprop.sg/property-news/en-bloc-threshold-falls-70-older-developments-tighter-safeguards-minority-owners",
-    "observed_at": "2026-08-04",
-    "date_found": "2026-08-06"
-  },
-  {
-    "id": "trend-2026-08-06-retail-sales-luxury",
+    "id": "trend-2026-08-08-sti-friday-close",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "topic",
+    "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Singapore retail sales rose 4% year-on-year in June 2026, data released this week, with recreational goods up 11.4% and watches and jewellery up 10.5% leading the growth.",
-    "title": "Retail data out this week shows we're spending more on 'nice to have' - here's a neutral way to check if that's you",
-    "why_it_works": "A real, dated national spending data release gives an honest, non-judgmental reason to talk about tracking discretionary spend drift, without shaming anyone's choices.",
+    "trend_source": "Singapore shares closed higher on Friday, 7 Aug, extending the local market's strong run this earnings season, as bank stocks rallied on results.",
+    "title": "Singapore shares closed strong on Friday - the local pride part, and the part that matters more",
+    "why_it_works": "Behaviour-only and locally relevant - describes a real, dated local market move without predicting further gains or naming a stock to buy, then redirects to a personal-planning point.",
     "hooks": [
-      "Singapore retail data out this week shows watches and jewellery sales up over 10%. Not a judgment - just a prompt to check your own numbers.",
-      "Recreational spending is up double digits this quarter, per data out this week. Here's a neutral way to see if that's you too.",
-      "This week's retail sales data shows discretionary spending climbing. I'm not here to lecture - just to suggest a five-minute check."
+      "Singapore shares closed the week strong on Friday. Nice to see, but here's what I actually pay attention to.",
+      "Local market had a good Friday. My own plan didn't change because of it - here's why.",
+      "It's satisfying when Singapore stocks have a good week. It's still not a reason to change what I'm doing."
     ],
     "talking_points": [
-      "Singapore retail sales rose 4% year-on-year in June, data released this week, with recreational goods up 11.4% and watches and jewellery up 10.5% leading growth",
-      "Rising discretionary spending isn't automatically a problem - the useful question is whether it's happening on purpose or by drift",
-      "A five-minute check: compare this month's 'nice to have' spending against three months ago - a steady climb is worth naming, even if you decide it's fine",
-      "The goal isn't to cut anything specific - it's to make sure the spending is a choice, not something that crept up unnoticed"
+      "Singapore shares closed higher on Friday, 7 Aug, capping a strong earnings-season week led by bank stocks",
+      "A good week for the local market is genuinely nice to see, but one week of index performance says very little about a long-term plan",
+      "The plan should be built around your own timeline and goals, not last week's headline",
+      "If a strong week makes you want to add more risk than you're actually comfortable with, that's the signal to talk it through, not to act on impulse"
     ],
-    "cta": "Comment 'DRIFT' and I'll send you the simple 3-month comparison I use to catch spending creep early.",
+    "cta": "Comment 'STI' if you want my simple way to check whether you're reacting to news or following your plan.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talking head with a simple retail-sales-growth graphic for 2 seconds, then direct-to-camera on the spending-drift check point.",
-    "source_label": "Inside Retail Asia - Singapore retail sales June 2026",
-    "source_url": "https://insideretail.asia/2026/08/05/sporting-goods-jewellery-lead-singapore-retail-sales-growth-in-june/",
-    "observed_at": "2026-08-05",
-    "date_found": "2026-08-06"
+    "how_to_film": "Text-post graphic naming Friday's strong local close, then a caption walking through the talking points.",
+    "source_label": "Yahoo Finance Singapore - Singapore Shares Close Friday in the Green Amid Earnings Buzz",
+    "source_url": "https://sg.finance.yahoo.com/news/singapore-shares-close-friday-green-094548706.html",
+    "observed_at": "2026-08-07",
+    "date_found": "2026-08-08"
   },
   {
-    "id": "trend-2026-08-06-mas-atm-access",
+    "id": "trend-2026-08-08-ocbc-uob-wealth-income",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "OCBC posted a record quarterly net profit of S$2.22 billion on 7 Aug, and UOB's net profit rose 10%, with both banks' results this week driven partly by record wealth-management and fee income cushioning margin pressure.",
+    "title": "Even the big banks are leaning on a second income stream right now - a nudge for the rest of us",
+    "why_it_works": "Describes real, dated, named corporate earnings news factually with no stock recommendation or return promise, then draws a behaviour-only parallel to income diversification for individuals.",
+    "hooks": [
+      "OCBC and UOB both leaned on wealth-management fees to cushion margin pressure this quarter. Most of us only have one income stream.",
+      "Big banks reported record wealth income this week even as their core lending margins got squeezed. That's basically a diversification lesson.",
+      "This week's bank earnings all mention the same thing - fee income cushioning the core business. Here's the personal version of that."
+    ],
+    "talking_points": [
+      "OCBC reported a record quarterly net profit of S$2.22 billion on 7 Aug, and UOB's profit rose 10%, both helped by record wealth-management and fee income even as lending margins narrowed",
+      "That's a business using more than one income source so a squeeze in one area doesn't sink the whole result - a plain business observation, not investment advice",
+      "Most individuals rely on one paycheck and one source of protection - a useful prompt to ask what your own 'second stream' looks like",
+      "That could be as simple as a side income, a proper emergency fund, or making sure your protection isn't tied to a single employer benefit"
+    ],
+    "cta": "DM me 'STREAM' if you want to talk through what building a second layer could look like for you.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Text-post graphic naming both banks' results and the shared theme, then a caption carrying the talking points.",
+    "source_label": "TheFinance.sg - OCBC reports 22% rise in net profit and higher interim dividend",
+    "source_url": "https://thefinance.sg/2026/08/07/ocbc-reports-22-rise-in-net-profit-and-higher-interim-dividend-our-quick-take/",
+    "observed_at": "2026-08-07",
+    "date_found": "2026-08-08"
+  },
+  {
+    "id": "trend-2026-08-08-cpf-new-investment-scheme",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "current-affairs",
-    "trend_source": "MAS Chairman Gan Kim Yong said this week that local banks have committed to keeping an ATM, branch or NETS cashpoint within 500 metres of every HDB block by 2027, citing seniors' continued reliance on cash and face-to-face banking.",
-    "title": "Banks just committed to cash access near every HDB block - a reminder to check on your parents' banking",
-    "why_it_works": "A real, dated MAS commitment gives an honest, caring reason to talk about elderly family members' financial access and habits, without pushing any product, staying practical and respectful.",
+    "trend_source": "The CPF Board's new life-cycle investment scheme - simplified, low-cost, diversified products launching in the first half of 2028 - is being explained afresh in coverage this week.",
+    "title": "There's a new CPF investment scheme coming in 2028 - what it actually means today",
+    "why_it_works": "Describes government scheme mechanics neutrally and factually, exactly as the scheme has been publicly explained, with no opinion on the policy and no return claims.",
     "hooks": [
-      "Banks committed this week to keeping cash access within 500 metres of every HDB block. It made me think about how my own parents actually bank.",
-      "There's a commitment out this week to keep physical banking near every HDB block, because seniors still rely on it. When did you last ask your parents how they manage money?",
-      "MAS confirmed this week that cash and branch access near HDB blocks isn't going away. Good excuse to check in on an older family member's banking habits."
+      "There's a new CPF investment scheme coming in 2028. Here's what it actually is, in plain language.",
+      "CPF Board is rolling out a new low-cost investment option in 2028. A few people have asked me what that means for them.",
+      "New CPF investment scheme, explained simply - because the actual mechanics got lost in the headlines."
     ],
     "talking_points": [
-      "MAS said this week that local banks have committed to an ATM, branch or NETS cashpoint within 500 metres of every HDB block by 2027, citing seniors' reliance on cash and in-person banking",
-      "This is a reminder that not everyone in your family banks the way you do - and that's not something to fix, just something to plan around",
-      "A simple, respectful check: ask an older parent or relative how they currently manage bills and cash, and whether they know who to call if something feels off",
-      "This isn't about taking over their finances - it's about making sure there's a plan in place before it's urgently needed"
+      "The CPF Board will introduce a new life-cycle investment scheme in the first half of 2028, offering simplified, low-cost, diversified products alongside the existing CPF Investment Scheme",
+      "It's built for members who want some investment exposure but don't want to actively pick and manage products themselves",
+      "Providers are still being selected, with the first offerings expected around 2027 ahead of the 2028 launch - nothing to sign up for yet",
+      "Worth knowing now so it's not a surprise later, and worth a proper look once real product details land"
     ],
-    "cta": "Comment 'PARENTS' and I'll send you 3 gentle questions to ask an older family member about their banking.",
+    "cta": "Comment 'CPF2028' and I'll keep you posted as the actual product details are announced.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Text-post graphic with the '500m of every HDB block' commitment and this week's date, then talking head on the check-in-on-parents point.",
-    "source_label": "Fintech News SG - MAS physical banking access commitment",
-    "source_url": "https://fintechnews.sg/135378/digital-banking-news-singapore/singapore-physical-banking/",
-    "observed_at": "2026-08-05",
-    "date_found": "2026-08-06"
+    "how_to_film": "Text-post graphic with a simple timeline (now - 2027 providers - 2028 launch), then a caption carrying the talking points.",
+    "source_label": "Mothership - New CPF investment scheme launching 2028",
+    "source_url": "https://mothership.sg/2026/08/cpf-investment-scheme/",
+    "observed_at": "2026-08-06",
+    "date_found": "2026-08-08"
   },
   {
-    "id": "trend-2026-08-06-smeicc-succession",
-    "platform": "linkedin",
-    "format": "text-post",
+    "id": "trend-2026-08-08-shopee-lazada-sale",
+    "platform": "tiktok",
+    "format": "short-video",
     "pillar": "topic",
     "trend_type": "event",
-    "trend_source": "SMEICC 2026, Singapore's flagship bilingual SME conference, ran at Suntec this week (5-6 Aug 2026) with family business succession planning as one of its headline topics.",
-    "title": "SMEs at this week's SMEICC conference are talking succession - most families never actually plan it",
-    "why_it_works": "A real, current, Singapore-specific business event gives an honest, natural reason to talk about succession and estate planning as an active financial decision, not a sales pitch, directly relevant to business-owner clients.",
+    "trend_source": "Shopee and Lazada's 8.8 National Day sale is live now - Lazada's started 8pm on 7 Aug, Shopee's runs to 13 Aug - with voucher-stacking across platform, shop, bank-card and shipping discounts.",
+    "title": "8.8 sale is live right now - the voucher-stacking trap nobody mentions",
+    "why_it_works": "A real, dated, currently-running sale event that most viewers are actively shopping today gives an honest reason to talk about promo psychology - practical and non-judgmental, not anti-spending.",
     "hooks": [
-      "Succession planning was a headline topic at this week's big SME conference in Singapore. Most business owners I meet still haven't written anything down.",
-      "SMEICC wrapped up in Singapore this week with family business succession as a main theme. Here's the one document most founders are missing.",
-      "This week's SME conference talked succession planning on stage. In real life, most family businesses only start planning after something forces it."
+      "The 8.8 sale is live right now on Shopee and Lazada. Before you stack five vouchers, ask yourself this one thing.",
+      "I love a good 8.8 sale. I also know exactly how these platforms get me to spend more than planned.",
+      "8.8 sale's on right now. Here's the two-minute rule I use before checkout, every single sale."
     ],
     "talking_points": [
-      "SMEICC 2026, Singapore's flagship bilingual SME conference, ran at Suntec this week with family business succession planning as a headline topic",
-      "Succession planning isn't just for large companies - any business owner whose income supports their family needs a plan for what happens if they can't run it tomorrow",
-      "The starting point isn't complicated: a written plan for who takes over, how the business is valued, and how the family is financially supported during the transition",
-      "Most founders build the business for years and plan its handover in a rush - starting the conversation early is the actual advantage"
+      "Shopee and Lazada's 8.8 National Day sale is running now, with Lazada live since 8pm on 7 Aug and Shopee's sale continuing to 13 Aug",
+      "Voucher stacking - platform, shop, bank-card and shipping discounts together - is designed to make the cart feel 'free', which makes it easy to add more than planned",
+      "Before checkout, total up what's actually in the cart against what you meant to spend today, discounts included",
+      "A genuinely good deal on something you needed is still a good deal after that pause - it's the extra add-ons that usually don't survive it"
     ],
-    "cta": "DM me 'SUCCESSION' if you want a simple starting checklist for a family business succession plan.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Talking head with a text overlay 'succession planning' from this week's conference theme, then direct-to-camera on the starting-checklist point.",
-    "source_label": "SMEICC 2026 - Suntec conference programme",
-    "source_url": "https://www.smeicc.org/smeicc-2026-programme/",
-    "observed_at": "2026-08-06",
-    "date_found": "2026-08-06"
+    "cta": "Comment 'CHECKOUT' and I'll send you the two-minute rule I use before I confirm any sale-day order.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Short video: screen-record adding vouchers/items during the sale, pause on the total, then talking head on the two-minute rule.",
+    "source_label": "ShopBack - 8.8 Sale 2026 Singapore",
+    "source_url": "https://www.shopback.sg/blog/finance/8-8-sale-2026-singapore-what-actually-goes-cheaper",
+    "observed_at": "2026-08-07",
+    "date_found": "2026-08-08"
   }
 ]
