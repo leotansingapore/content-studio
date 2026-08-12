@@ -1,338 +1,422 @@
 [
   {
-    "id": "trend-2026-08-11-haze-red-outlook-buffer",
-    "platform": "facebook",
+    "id": "trend-2026-08-12-mti-gdp-forecast-upgrade",
+    "platform": "linkedin",
     "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "NEA warned on Aug 9 that Singapore's haze risk could rise this week as dry conditions and regional hotspots persist, coming after the Singapore Institute of International Affairs rated its 2026 Haze Outlook 'Red' - only the second time since 2019 - and flagged August-September as the peak danger period.",
-    "title": "NEA's haze warning this week is your cue to check your 'boring' readiness, not panic-buy masks",
-    "why_it_works": "It's a real, local advisory people are already seeing in the news this week, and redirecting the instinct from 'stock up on N95s' to 'check my coverage and buffer' keeps the post calm and useful instead of alarmist.",
-    "hooks": [
-      "NEA just flagged rising haze risk this week - here's the non-panicky checklist I run every time I see that headline.",
-      "Haze outlook is rated 'Red' this year for only the second time since 2019. Here's what that actually means for your planning.",
-      "Before you buy another box of N95s, here's the other kind of readiness worth checking this week."
-    ],
-    "talking_points": [
-      "NEA's advisory this week: haze risk could increase if dry conditions and regional hotspots continue, with August-September flagged as the peak window.",
-      "Practical prep isn't just masks - it's knowing your hospitalisation and MC coverage actually still fits your household today.",
-      "A haze spike is also a good trigger to check your emergency fund covers a few unplanned home or health costs, not just a rainy day.",
-      "This isn't about predicting how bad it gets - it's about not having to scramble if it does."
-    ],
-    "cta": "Comment 'READY' and I'll send you the 3-point household readiness check I use.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Native Facebook text post, short paragraphs. Optional single photo of a hazy Singapore skyline (stock or your own) as the header image, not a dramatic or alarming shot.",
-    "source_label": "Mothership",
-    "source_url": "https://mothership.sg/2026/08/haze-risk-increase-nea/",
-    "observed_at": "2026-08-09",
-    "date_found": "2026-08-11"
-  },
-  {
-    "id": "trend-2026-08-11-sg61-go-beyond-milestone",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "topic",
-    "trend_type": "current-affairs",
-    "trend_source": "Singapore marked SG61 on Aug 9, with the National Day Parade returning to National Stadium for the first time in a decade and debuting its first-ever indoor drone light show, under the theme 'Majulah Singapura, Go Beyond!'",
-    "title": "SG61's 'Go Beyond' theme, but make it a personal 10-year money check",
-    "why_it_works": "The parade's return to National Stadium after a decade gives a natural 'then vs now' frame everyone just watched together, so mirroring it with your own 10-year money comparison feels timely and earns its bridge instead of forcing one.",
-    "hooks": [
-      "The parade came back to National Stadium after 10 years. What does your money picture look like over the same 10 years?",
-      "SG61's theme was 'Go Beyond.' Here's the one number worth checking to see if you actually have.",
-      "Drone shows, fireworks, a decade-later comeback - SG61 got me thinking about my own decade-later comparison."
-    ],
-    "talking_points": [
-      "Open with the actual moment: NDP back at National Stadium after 10 years, first-ever indoor drone show, SG61 and 'Go Beyond' as the theme.",
-      "Mirror it personally: pull up where your savings, CPF or insurance coverage stood 10 years ago versus today.",
-      "'Going beyond' isn't a bigger number overnight - it's whether your plan today reflects your life today, not your life a decade ago.",
-      "Close on one small, doable next step rather than a full portfolio overhaul."
-    ],
-    "cta": "Save this carousel and try the 10-year comparison yourself this week - tell me what surprised you.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 NDP/SG61 moment as a bold headline graphic, slide 2 'then' placeholder numbers, slide 3 'now' placeholder numbers, slide 4 the one-line takeaway, slide 5 soft CTA.",
-    "source_label": "TTG Asia",
-    "source_url": "https://www.ttgasia.com/2026/08/10/happy-national-day-singapore/",
-    "observed_at": "2026-08-09",
-    "date_found": "2026-08-11"
-  },
-  {
-    "id": "trend-2026-08-11-gstv-payout-landing",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "GST Voucher payouts are hitting accounts this week - cash via PayNow-NRIC from Aug 6, and MediSave top-ups of up to $450 for seniors crediting from Aug 11 - reaching about 1.5 million adult Singaporeans and 710,000 seniors.",
-    "title": "GSTV money is landing this week - here's the boring move that beats spending it fast",
-    "why_it_works": "The payout is hitting real bank accounts this exact week, so the reference is timely and immediately relevant to almost every reader, and the post stays purely educational with no product or return promise attached.",
-    "hooks": [
-      "If you got a GSTV top-up this week, here's the one question worth asking before it disappears into daily spending.",
-      "1.5 million of us are getting a cash top-up this week. Here's what I do with mine every year.",
-      "MediSave top-ups start crediting today for eligible seniors - here's a simple way to make sure it actually helps later."
-    ],
-    "talking_points": [
-      "GSTV cash has been crediting via PayNow-NRIC since Aug 6, and MediSave top-ups for seniors start crediting today, Aug 11.",
-      "It's easy money to treat as 'extra' and spend without noticing - naming that tendency out loud helps people catch themselves.",
-      "One simple move: earmark it for something specific first - top up an emergency buffer, clear a small debt, or park it before deciding.",
-      "No scheme replaces a real financial plan, but a payout week is a good, low-effort nudge to glance at yours."
-    ],
-    "cta": "DM me 'GSTV' if you want a simple way to decide where yours should go.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Native Facebook text post, plain and factual tone, short paragraphs. Optional simple graphic stating the payout dates as a quick reference.",
-    "source_label": "Ministry of Finance",
-    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/1-5-million-adult-singaporeans-to-receive-up-to--850-in--gstv---cash-and-710-000-singaporean-seniors-to-receive-up-to--450-medisave-top-up-in-august-2026/",
-    "observed_at": "2026-08-11",
-    "date_found": "2026-08-11"
-  },
-  {
-    "id": "trend-2026-08-11-gold-rate-cut-bets",
-    "platform": "instagram",
-    "format": "carousel",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Gold opened Monday, Aug 10 at its highest level since early June, staying above US$4,300/oz after a disappointing US jobs report fed bets on a near-term Fed rate cut.",
-    "title": "Gold's at its highest since June again - the useful question isn't 'should I buy,' it's 'why did this move me'",
-    "why_it_works": "A fresh gold headline reliably triggers 'should I do something' anxiety right when people are scrolling, so naming that reaction and redirecting it to self-awareness rather than a trade keeps the post honest and free of any market call.",
+    "trend_source": "Singapore's Ministry of Trade and Industry upgraded its full-year 2026 GDP growth forecast to 4.5-5.5% on Aug 11, after Q2 GDP grew 5.9% year-on-year, driven by an AI-related capex boom.",
+    "title": "SG just upgraded its growth forecast - use it as your mid-year check-in prompt",
+    "why_it_works": "A stronger-than-expected national growth number is genuinely newsworthy and gives you a natural, non-salesy reason to prompt clients to revisit their numbers instead of leaving them on autopilot.",
     "hooks": [
-      "Gold just hit its highest price since June and someone already asked me if they should buy in - here's my honest answer.",
-      "Weak jobs data, rate-cut bets, gold near multi-month highs - here's what I actually think when I see headlines like this.",
-      "Every gold headline seems to trigger the same group chat message. Let's talk about what's really behind that feeling."
+      "Singapore just upgraded its 2026 growth forecast to as high as 5.5%. Here's the one thing I'd actually check because of it.",
+      "MTI raised our growth forecast again this week. Most people will scroll past it. Here's why I didn't.",
+      "Good economic news is the easiest time to get lazy about your finances. Don't."
     ],
     "talking_points": [
-      "Gold opened at its highest level since early June this week, driven by a weak US jobs report and rising bets on a Fed rate cut.",
-      "I won't tell you to buy or sell gold - nobody can call short-term moves reliably, including me.",
-      "The more useful move: notice if headlines like this make you anxious, and check whether that's really about gold or about your own buffer.",
-      "A plan built for your actual timeline barely reacts to a single week of headlines - that's the goal, not chasing the metal."
+      "MTI raised its 2026 GDP growth forecast from 2.0-4.0% to 4.5-5.5% on Aug 11, after Q2 grew 5.9% y-o-y",
+      "Stronger growth often means bonuses and pay rises are coming - that's the moment to lock in extra CPF top-ups before the money gets spent elsewhere",
+      "A growth upgrade isn't a signal to change your investment mix - it's a prompt to check your protection coverage still matches your income",
+      "Good news moments are when people are most likely to skip a review because 'everything's fine' - that's exactly when a 15-minute check-in pays off"
     ],
-    "cta": "Want a quick gut-check on whether your buffer is solid enough to ignore headlines like this? Book a slot, link in bio.",
-    "cta_type": "book-call",
-    "how_to_film": "Carousel: slide 1 the gold price stat as a bold graphic, slide 2 'why it moved' in plain language, slide 3 'what I won't tell you', slide 4 the buffer question, slide 5 CTA.",
+    "cta": "Drop 'REVIEW' in the comments and I'll send you the 3 numbers worth checking this month.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head, direct to camera. Hold up or screen-record a graphic of the MTI forecast headline (4.5-5.5%) for 2 seconds while you say the stat, then cut back to camera for the talking points.",
+    "source_label": "Ministry of Trade and Industry",
+    "source_url": "https://www.mti.gov.sg/newsroom/release-of-second-quarter-2026-economic-survey-of-singapore/",
+    "observed_at": "2026-08-11",
+    "date_found": "2026-08-12"
+  },
+  {
+    "id": "trend-2026-08-12-us-cpi-rate-chatter",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "US markets slipped on Aug 11 ahead of Wednesday's July CPI print, with several Fed officials reportedly open to a September rate move - the print is the most-watched data release of the week.",
+    "title": "Everyone's watching Wednesday's inflation number. Here's what to actually do about it.",
+    "why_it_works": "Big data-release days generate genuine anxiety and clicks - redirecting that energy toward reviewing debt and rate exposure, not predicting the number, is honest and useful.",
+    "hooks": [
+      "Half of finance social media is holding its breath for tomorrow's inflation number. Here's the boring truth about what to do with it.",
+      "I'm not going to predict what the CPI report says tomorrow. But I will tell you what to check before it drops.",
+      "Big data day tomorrow. If you've got a variable-rate loan, this one's for you."
+    ],
+    "talking_points": [
+      "The US July CPI print lands Aug 12, seen as pivotal for whether the Fed leans toward a rate move in September",
+      "Reacting to a single data point with big financial decisions is rarely a good idea - the useful move is checking what you already have exposure to",
+      "If you're carrying variable-rate debt, this is a good week to ask your bank what your refinancing options actually look like",
+      "Chasing predictions is a distraction from the plan you already have - stick to it and revisit only if your actual numbers change"
+    ],
+    "cta": "Comment 'RATES' and I'll walk you through how to check your own rate exposure.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Screen-record a headline about the CPI print for 2 seconds, then talking head for the rest. Keep tone calm, not alarmist.",
+    "source_label": "Bloomberg",
+    "source_url": "https://www.bloomberg.com/news/articles/2026-08-11/stock-market-today-dow-s-p-live-updates",
+    "observed_at": "2026-08-11",
+    "date_found": "2026-08-12"
+  },
+  {
+    "id": "trend-2026-08-12-nvidia-wall-street-500b",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Nvidia signed deals with Apollo, BlackRock, Blackstone, Brookfield, Goldman Sachs and KKR on Aug 10 to raise over $500 billion for AI infrastructure, using AI chips and data centers as collateral.",
+    "title": "You probably already own a piece of the AI boom. Here's how to check.",
+    "why_it_works": "The headline is enormous and everyone's talking about 'the AI trade' - the honest, useful angle is showing clients they likely already have exposure through diversified funds, without pushing them to chase single names.",
+    "hooks": [
+      "Nvidia just lined up over $500 billion from Wall Street this week. Before you FOMO into a single stock, check this first.",
+      "Everyone's talking about the AI boom again. Here's the question I'd ask before buying anything because of it.",
+      "You don't need to pick the next Nvidia. You might already own a slice of it."
+    ],
+    "talking_points": [
+      "Nvidia signed MOUs with major asset managers (Aug 10) to raise $500B+ for AI infrastructure - a sign of how much capital is flowing into this theme",
+      "Diversified funds often already hold meaningful AI-sector exposure - check your fund fact sheet instead of guessing",
+      "Concentrating money into one 'hot' name is a bigger risk than most people realise, no matter how big the headline",
+      "The move isn't 'buy the AI trade' - it's understanding what you already own before adding more"
+    ],
+    "cta": "DM me 'AI' and I'll show you how to check your fund's actual sector exposure.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Talking head with a simple on-screen text overlay: '$500B' for emphasis, then cut to you explaining the fund-exposure check.",
+    "source_label": "CNBC",
+    "source_url": "https://www.cnbc.com/2026/08/10/nvidia-wall-street-asset-managers-500-billion-ai-push.html",
+    "observed_at": "2026-08-10",
+    "date_found": "2026-08-12"
+  },
+  {
+    "id": "trend-2026-08-12-bitcoin-dip-position-sizing",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Bitcoin slipped toward $63k on Aug 11 amid risk-off sentiment and $144.6M in spot ETF outflows, with leveraged long positions getting liquidated ahead of the CPI print.",
+    "title": "Crypto's red today. Here's the boring rule that actually protects you.",
+    "why_it_works": "Price-drop days are when crypto discourse spikes - meeting that moment with a sizing and behavior lesson instead of a prediction is credible and genuinely useful.",
+    "hooks": [
+      "Bitcoin dipped again today and my DMs are full of panic. Here's the one rule I keep repeating.",
+      "Crypto's down today. I'm not going to tell you to buy or sell. I'm going to tell you this instead.",
+      "The leveraged traders got liquidated again today. Here's why that should never be you."
+    ],
+    "talking_points": [
+      "Bitcoin slipped toward $63k on Aug 11 with $144.6M in ETF outflows and leveraged long liquidations, ahead of the CPI print",
+      "Speculative assets should sit in a clearly separate 'play money' allocation from your core savings and protection plan",
+      "If a 5% dip changes how you feel about your finances, the position was probably sized too big to begin with",
+      "The fix isn't a prediction - it's deciding your allocation limit before the volatility, not during it"
+    ],
+    "cta": "Save this for the next time crypto drops and you feel the urge to check your phone every hour.",
+    "cta_type": "save-share",
+    "how_to_film": "Fast-cut vertical video. Open on a red price-chart screenshot for 1 second, then straight to camera, punchy delivery, text captions on key numbers.",
     "source_label": "Yahoo Finance",
-    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/gold-prices-today-monday-august-10-2026-highest-opening-price-since-early-june-123242269.html",
-    "observed_at": "2026-08-10",
-    "date_found": "2026-08-11"
+    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/bitcoin-and-ethereum-prices-today-tuesday-august-11-2026-opening-prices-fall-back-ahead-of-inflation-reports-this-week-124608146.html",
+    "observed_at": "2026-08-11",
+    "date_found": "2026-08-12"
   },
   {
-    "id": "trend-2026-08-11-sia-ex-dividend-day",
+    "id": "trend-2026-08-12-riot-anthropic-diversify",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Singapore Airlines shares went ex-dividend today, Aug 11, for a S$0.29 payout - meaning anyone buying the stock from today no longer qualifies for this round.",
-    "title": "SIA goes ex-dividend today - a good excuse to explain why 'buying for the dividend' usually isn't a strategy",
-    "why_it_works": "A concrete, dated market mechanic most people have heard of but never had explained gives a genuinely useful, non-promotional teaching moment that doesn't recommend any trade.",
+    "trend_source": "Bitcoin miner Riot Platforms signed a 20-year, roughly $9.1 billion deal on Aug 10-11 to supply AI compute to Anthropic, sending its stock up sharply as the company diversified beyond mining.",
+    "title": "A bitcoin miner just became an AI compute company. That's the real lesson.",
+    "why_it_works": "The headline is dramatic and current, but the honest takeaway is about not depending on one income source - a message every self-employed or single-income client needs, without touching the stock itself.",
     "hooks": [
-      "SIA shares went ex-dividend today. Here's what that word actually means, in plain English.",
-      "Someone asked me if they should 'buy SIA quick for the dividend' - here's why that question misses the point.",
-      "Ex-dividend, dividend capture, payout dates - today's a good day to actually explain these terms properly."
+      "A crypto mining company just signed a $9 billion, 20-year deal to become an AI company instead. Here's the lesson, not the stock tip.",
+      "This company built its whole business on bitcoin mining. This week it bet on something completely different.",
+      "I'm not telling you to buy this stock. I am telling you why they made this move."
     ],
     "talking_points": [
-      "SIA's ex-dividend date is today, Aug 11, for a S$0.29 payout - buying the stock today no longer gets you this round.",
-      "'Dividend capture' - buying right before ex-date just for the payout - sounds clever but the share price typically drops by roughly the dividend on the ex-date, so it's rarely the free win it looks like.",
-      "This isn't a comment on SIA specifically or a stock call either way - it's purely about understanding the mechanic before it influences a decision.",
-      "The better question for any dividend stock is whether you'd hold it anyway, payout aside - not whether you can time one date."
+      "Riot Platforms signed a ~$9.1B, 20-year deal (Aug 10-11) to supply AI compute to Anthropic - a major pivot from its original bitcoin-mining business",
+      "The move is a textbook example of not relying on a single revenue stream, especially one as volatile as crypto mining",
+      "The same logic applies to personal income: one job, one client, or one asset class carrying your whole plan is a real risk",
+      "This isn't a stock recommendation - it's a prompt to ask where your own income and savings are concentrated"
     ],
-    "cta": "Ever been tempted to buy something 'just for the dividend'? Tell me about it in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Native LinkedIn text post, short lines with line breaks. Optional simple graphic showing 'ex-dividend date' with a plain-language definition, no ticker charts or price predictions.",
-    "source_label": "Singapore Airlines Investor Relations",
-    "source_url": "https://www.singaporeair.com/en_UK/sg/about-us/information-for-investors/dividend-information/",
+    "cta": "Comment 'INCOME' if you want my quick checklist for spotting income concentration risk in your own finances.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head. Use a simple text card: 'Bitcoin miner to AI compute, $9.1B, 20 years' before cutting to camera.",
+    "source_label": "CoinDesk",
+    "source_url": "https://www.coindesk.com/business/2026/08/11/riot-platforms-surges-20-in-pre-market-trading-on-usd9-1-billion-anthropic-deal",
     "observed_at": "2026-08-11",
-    "date_found": "2026-08-11"
+    "date_found": "2026-08-12"
   },
   {
-    "id": "trend-2026-08-11-cincinnati-draw-no-guarantees",
+    "id": "trend-2026-08-12-hottest-july-cost-buffer",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "NOAA confirmed on Aug 10 that July 2026 was the hottest month on record for the contiguous US in its 132-year record, beating the prior 1936/2012 marks.",
+    "title": "It was the hottest month ever recorded. Your utility bill already knows.",
+    "why_it_works": "A record-breaking climate data point is genuinely newsworthy and lets you talk about a concrete, non-alarmist money habit - building a buffer for rising utility and insurance costs - without touching disaster or tragedy.",
+    "hooks": [
+      "NOAA just confirmed last month was the hottest ever recorded. Here's the boring bill that's about to prove it.",
+      "Record heat made headlines this week. Your aircon bill is the part nobody's talking about.",
+      "This isn't about the weather. It's about the line item in your budget that keeps creeping up."
+    ],
+    "talking_points": [
+      "NOAA confirmed (Aug 10) that July 2026 was the hottest month on record for the contiguous US, breaking the 1936/2012 records",
+      "Rising heat trends have a direct, quiet cost: higher aircon usage, higher utility bills, and rising home insurance premiums over time",
+      "A simple fix is building a small 'seasonal cost creep' buffer into your monthly budget instead of being surprised by it",
+      "It's also worth checking when you last reviewed your home or contents insurance coverage - costs and needs shift over time"
+    ],
+    "cta": "Save this if your utility bill has been creeping up and you haven't budgeted for it yet.",
+    "cta_type": "save-share",
+    "how_to_film": "Talking head with a simple thermometer or bill graphic overlay. Keep tone practical, not doom-y.",
+    "source_label": "CNN",
+    "source_url": "https://www.cnn.com/2026/08/10/climate/hottest-month-record-july-noaa",
+    "observed_at": "2026-08-10",
+    "date_found": "2026-08-12"
+  },
+  {
+    "id": "trend-2026-08-12-linkedin-ai-slop-crackdown",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "interest",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "LinkedIn's 'Seems like AI slop' reporting feature and content classifiers, still driving fresh creator-strategy coverage as of Aug 10, are actively down-ranking detected AI-generated posts in the feed.",
+    "title": "LinkedIn is now flagging AI-sounding posts. Here's what that means if you post here.",
+    "why_it_works": "This is a live platform mechanic directly affecting how advisors themselves show up on LinkedIn - a meta, credible hook about their own content, not a forced bridge.",
+    "hooks": [
+      "LinkedIn can now flag your post as 'AI slop.' Here's what that actually means for advisors posting here.",
+      "If your LinkedIn posts have been getting fewer views lately, this new feature might be why.",
+      "I changed how I write my posts this week because of a new LinkedIn feature. Here's why."
+    ],
+    "talking_points": [
+      "LinkedIn rolled out a 'Seems like AI slop' reporting button and classifiers that down-rank detected AI-generated content, still generating fresh creator coverage as of Aug 10",
+      "For financial consultants building a presence here, over-polished or fully AI-written posts risk getting suppressed, not just ignored",
+      "The fix is simple: write in your own voice, keep it specific to real client questions you've actually heard, and use AI tools for structure, not the final words",
+      "This is a good moment to audit your last 5 posts and ask honestly whether they sound like you"
+    ],
+    "cta": "Comment 'VOICE' and I'll send you my quick checklist for writing posts that don't get flagged.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head. Screen-record the LinkedIn 'Seems like AI slop' reporting option if you can find it on a post, or use a simple text card describing it.",
+    "source_label": "Forbes",
+    "source_url": "https://www.forbes.com/sites/jodiecook/2026/08/10/what-linkedins-ai-slop-crackdown-means-for-your-posts/",
+    "observed_at": "2026-08-10",
+    "date_found": "2026-08-12"
+  },
+  {
+    "id": "trend-2026-08-12-storm-snap-losing-streak",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "The Cincinnati Open singles draw was released today, Aug 11, with the world's top-seeded players - including past champions Sabalenka, Gauff and Swiatek - placed into the bracket ahead of the tournament starting Aug 13.",
-    "title": "Cincinnati Open's draw just dropped - even a No. 1 seed doesn't guarantee the trophy",
-    "why_it_works": "Draw day is a genuine, dated sports moment with mass appeal that naturally illustrates 'preparation vs. outcome' without needing to predict a winner or push any product.",
+    "trend_source": "The Seattle Storm snapped an 11-game losing streak on Aug 10, beating the Chicago Sky 97-88 behind Dominique Malonga's 26 points and Natisha Hiedeman's 18.",
+    "title": "11 losses in a row. Then this happened.",
+    "why_it_works": "A dramatic streak-breaking win is an easy, universal metaphor for staying with a plan through a rough patch - sports fans and non-fans both get it instantly.",
     "hooks": [
-      "The Cincinnati Open draw just came out. Even the top seeds aren't guaranteed anything from here - here's why that's a useful reminder.",
-      "Being the No. 1 seed doesn't win you the tournament. Being ready when your match gets called does.",
-      "Draw day always gets people talking who'll win. I'm more interested in what the seeding can't tell you."
+      "This team lost 11 games in a row. Then they won by 9. Here's what that has to do with your money.",
+      "Nobody talks about the 11 losses before the win. That's the part that actually matters.",
+      "If you've ever wanted to quit your financial plan halfway through, watch this."
     ],
     "talking_points": [
-      "The Cincinnati Open draw dropped today, with past champions like Sabalenka, Gauff and Swiatek seeded into the bracket ahead of Aug 13.",
-      "A seeding is a starting position, not a result - upsets happen constantly, which is exactly why nobody can reliably call it in advance.",
-      "Same with money: your 'seeding' - income, savings rate, coverage - sets your starting position, but the outcome still depends on what you control day to day.",
-      "The players who go far aren't the ones who obsess over the bracket - they're the ones who show up prepared for whoever's across the net."
+      "The Seattle Storm snapped an 11-game losing streak on Aug 10 with a 97-88 win over Chicago",
+      "Nobody sees the losing streak in a highlight reel - they only see the win, which makes quitting during your own rough patch feel more tempting than it should",
+      "A financial plan works the same way: the boring, unglamorous months matter more than the one good month everyone notices",
+      "The move isn't reacting to a bad month - it's checking whether the plan is still sound before changing anything"
     ],
-    "cta": "What's the one thing in your financial plan that's fully in your control, regardless of what markets do? Drop it in the comments.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Native LinkedIn text post, confident and punchy tone. Optional graphic of a simple bracket illustration with no player names or predicted outcomes.",
-    "source_label": "TennisUpToDate",
-    "source_url": "https://tennisuptodate.com/atp/cincinnati-open-atp-2026-entry-list-when-is-the-draw-confirmed-history-and-prize-money",
-    "observed_at": "2026-08-11",
-    "date_found": "2026-08-11"
-  },
-  {
-    "id": "trend-2026-08-11-mink-dance-automate",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "The 'Mink Mink Mink' dance, set to RosarioRay's 'Mink' and popularised by creators Racheal Lee and @crispdal, is currently taking over TikTok with its simple, easy-to-copy choreography.",
-    "title": "Do the Mink Mink Mink dance - because the easiest money habit works the same way",
-    "why_it_works": "The trend's whole appeal is that anyone can copy it in one watch; that same 'simple enough to just do it' quality is exactly what makes a habit like automated saving actually stick, so the parallel lands without forcing anything.",
-    "hooks": [
-      "Learned the Mink Mink Mink dance in one watch. My savings habit took a lot longer to get this simple.",
-      "This dance works because it's stupid easy to repeat. Here's the one money habit that works the exact same way.",
-      "POV: you finally nailed Mink Mink Mink and realised your money system should be just as easy to repeat."
-    ],
-    "talking_points": [
-      "Open with the actual dance - hit the choreography properly, this is a trend post first.",
-      "Cut to a text overlay: 'the easiest habits are the ones you don't have to think about.'",
-      "Name the money version: an automated transfer on payday beats a 'good intention' you have to remember every month.",
-      "Keep the tone fun - this is a dance video, the money line is a quick beat, not a lecture."
-    ],
-    "cta": "Tag someone who needs to learn this dance - and comment 'AUTO' if you want how I set up automatic saving.",
+    "cta": "Which part of your plan have you wanted to quit on lately? Tell me below.",
     "cta_type": "open-question",
-    "how_to_film": "Set to 'Mink' by RosarioRay. Film the dance cleanly first, then a quick 2-second text-overlay cutaway with the money line before returning to the dance for the ending beat.",
-    "source_label": "TikTok",
-    "source_url": "https://www.tiktok.com/discover/mink-mink-mink-original-video",
+    "how_to_film": "Vertical video. Open with a bold text card '11 LOSSES IN A ROW' then cut to camera for the talking points.",
+    "source_label": "ESPN",
+    "source_url": "https://www.espn.com/wnba/game/_/gameId/401857133/sky-storm",
     "observed_at": "2026-08-10",
-    "date_found": "2026-08-11"
+    "date_found": "2026-08-12"
   },
   {
-    "id": "trend-2026-08-11-bangladesh-reel-substitution",
+    "id": "trend-2026-08-12-nba-christmas-schedule-plan-early",
     "platform": "instagram",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "meme",
-    "trend_source": "Ian McConnell's absurdist audio 'You Never Take Me to Bangladesh' is fuelling Instagram's biggest current substitution format - creators swap 'Bangladesh' for their own perpetually unfulfilled ask, delivered dead serious.",
-    "title": "Do the 'Bangladesh' substitution trend - but the unfulfilled ask is your own CPF statement",
-    "why_it_works": "The format's humour comes entirely from swapping in something specific and true to you; 'you never take me to review my own CPF statement' is a self-deprecating, instantly recognisable swap that keeps the joke's energy intact.",
+    "format": "story",
+    "pillar": "topic",
+    "trend_type": "event",
+    "trend_source": "The NBA released its 2026 Christmas Day five-game schedule on Aug 11, more than four months ahead of the actual date.",
+    "title": "The NBA just planned Christmas. In August.",
+    "why_it_works": "A major league locking in its biggest single day more than four months out is a light, current, easy-to-grasp cue for advance planning - a habit most clients don't practice with their own year-end money moves.",
     "hooks": [
-      "You never take me... to actually open my CPF statement. Delivered with the same betrayed energy as the original.",
-      "Doing the Bangladesh trend, except my unfulfilled ask is checking my own insurance coverage.",
-      "This absurdist audio hit different once I swapped in the thing I keep avoiding: my own numbers."
+      "The NBA just released its Christmas Day schedule. In August. Here's why that's actually smart.",
+      "Christmas is 4 months away and the NBA already planned it. When are you planning your year-end money moves?",
+      "This league plans its biggest day four months early. Most people plan theirs four days early."
     ],
     "talking_points": [
-      "Lead with the most betrayed, been-waiting-years expression the trend calls for, then land the swap on the opening line.",
-      "Keep it deadpan and specific - the money version should be something real, like 'checking my payslip deductions' or 'opening that one banking app.'",
-      "Post it short - 10 to 15 seconds keeps the completion rate high like the original format.",
-      "Optional caption: 'be honest, what's yours?' to invite people to name their own avoided task."
+      "The NBA released its 2026 Christmas Day schedule on Aug 11, over 4 months ahead of the date",
+      "Year-end financial moves - CPF top-ups, insurance reviews, gifting, tax planning - all work better done early instead of in a December scramble",
+      "Locking in a rough date now for a mid-year check-in means you're not making decisions under year-end time pressure",
+      "The earlier the plan, the fewer rushed decisions later"
     ],
-    "cta": "Comment your own 'you never take me to ___' - the money version, honestly.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Use the 'Bangladesh' audio directly. Straight to camera, deadpan delivery, one clean cut on the swap line, no extra effects - the specificity carries the joke.",
-    "source_label": "Instagram (@ianmcconnell)",
-    "source_url": "https://www.instagram.com/reel/DZsLs-aO2_4/?hl=en",
-    "observed_at": "2026-08-10",
-    "date_found": "2026-08-11"
-  },
-  {
-    "id": "trend-2026-08-11-dont-tell-dreams-goals",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "STOSLIV and LOVIXX's 'Don't Tell Your Dreams' is TikTok and Instagram's current go-to audio for quiet business and personal milestones - creators pair it with achievements they let speak for themselves.",
-    "title": "Use the 'Don't Tell Your Dreams' audio for the money milestone you've been keeping quiet",
-    "why_it_works": "The trend's whole premise is letting a result speak instead of announcing it in advance, which maps naturally onto a real financial milestone - hitting a savings goal or finishing a policy review - without any hype or promise attached.",
-    "hooks": [
-      "Didn't tell anyone I was doing this. Just quietly hit it.",
-      "Some goals you announce. This one I just worked on quietly until it was done.",
-      "No countdown, no announcement - just the after, set to this audio."
-    ],
-    "talking_points": [
-      "Use the trend as intended: no build-up, straight to a clean 'after' shot on the beat.",
-      "The milestone can be anything real and modest - finishing an emergency fund goal, finally reviewing your coverage, clearing a specific debt.",
-      "Caption or voiceover, one line: name what the milestone actually was, briefly, without a number if you'd rather keep it private.",
-      "Keep the tone understated - the trend's power is in restraint, not a big reveal."
-    ],
-    "cta": "Save this if you've got a quiet goal you're working on - you don't have to announce it to make progress.",
+    "cta": "Save this as your reminder to book your year-end review before December sneaks up on you.",
     "cta_type": "save-share",
-    "how_to_film": "Use the 'Don't Tell Your Dreams' audio. Single clean shot for the 'after' moment - a notebook checked off, a calm nod, a closed laptop - understated, not celebratory or flashy.",
-    "source_label": "TikTok",
-    "source_url": "https://www.tiktok.com/discover/don%E2%80%99t-tell-your-dreams-lovixx-stosliv",
-    "observed_at": "2026-08-09",
-    "date_found": "2026-08-11"
+    "how_to_film": "Instagram Story format: text card with the NBA schedule headline, then a quick to-camera clip with the talking points, poll sticker asking 'Planned your year-end review yet? Yes / Not yet'.",
+    "source_label": "Yahoo Sports",
+    "source_url": "https://sports.yahoo.com/articles/2026-nba-christmas-day-schedule-124355097.html",
+    "observed_at": "2026-08-11",
+    "date_found": "2026-08-12"
   },
   {
-    "id": "trend-2026-08-11-truck-driver-one-take-confession",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "Instagram's biggest current format shift is toward raw, single-take, straight-to-camera clips - exemplified this week by a truck driver's unscripted lip-sync reel pulling hundreds of millions of views - quietly outperforming produced content.",
-    "title": "Do the single-take, no-script confession format - but confess a real number, not a lip sync",
-    "why_it_works": "The format's appeal right now is specifically its lack of polish - a plain, honest money admission filmed in one unbroken take fits the exact thing that's currently outperforming produced content, instead of fighting the trend with a scripted post.",
-    "hooks": [
-      "No script, one take, just me telling you the money thing I got wrong this year.",
-      "Everyone's doing raw one-take reels right now. Here's mine - an honest one about my own finances.",
-      "POV title tells you exactly what this is: me, straight to camera, admitting a real number."
-    ],
-    "talking_points": [
-      "Lead with a clear POV-style title card so viewers know exactly what they're about to watch, same as the trend.",
-      "Film it in one unbroken take, straight to camera, no cuts, no b-roll - the rawness is the point.",
-      "Say one true, specific thing - a mistake, a late start, a number you're not proud of - not a polished lesson.",
-      "End on what changed since, briefly, without turning it into a pitch."
-    ],
-    "cta": "What's a money moment you'd admit on camera? Tell me in the comments - I'll go first if you missed mine.",
-    "cta_type": "open-question",
-    "how_to_film": "Phone at chest or eye height, plain background, single unbroken take, natural lighting. No cuts, no music swell, no text overlay - the format's whole appeal is that it looks unproduced.",
-    "source_label": "Newengen Instagram Trends Report",
-    "source_url": "https://newengen.com/insights/instagram-trends/",
-    "observed_at": "2026-08-10",
-    "date_found": "2026-08-11"
-  },
-  {
-    "id": "trend-2026-08-11-linkedin-authentic-not-ai",
+    "id": "trend-2026-08-12-ai-cybersecurity-digital-hygiene",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "LinkedIn engagement is currently rewarding visibly human, low-polish posts - single-take videos, founder stories, real numbers - over AI-sounding content, as more than 40% of long-form posts on the platform now show signs of full AI generation.",
-    "title": "Post like a human this week - LinkedIn is visibly rewarding it right now",
-    "why_it_works": "It's a real, current shift in what performs on the platform, and it gives a legitimate reason to post something specific and personal - a real client story or number - instead of generic advice, which is exactly what the trend rewards.",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "OpenAI released a cybersecurity-specialised AI model, GPT-5.6-Cyber, on Aug 11 for vetted defenders - it reportedly already found two previously-unknown Chrome browser vulnerabilities.",
+    "title": "AI is now hunting for security holes. Is your bank account one of them?",
+    "why_it_works": "AI-powered cybersecurity is a fresh, concrete headline that gives a natural, non-alarmist reason to talk about protecting financial accounts - practical and directly relevant to a consultant's role.",
     "hooks": [
-      "Over 40% of long LinkedIn posts right now read like they were written by AI. Here's why I'm doing the opposite this week.",
-      "LinkedIn's rewarding posts that sound like an actual person again. So here's an actual, specific thing that happened this week.",
-      "Skipping the polished template today - here's a real number and what it actually taught me."
+      "OpenAI just released an AI built to hunt security vulnerabilities. Here's the account of yours it can't protect.",
+      "AI found two unknown security holes in a major browser this week. When did you last check your own?",
+      "Cybersecurity is moving fast. Your bank account login probably isn't."
     ],
     "talking_points": [
-      "Right now, a large share of long-form LinkedIn posts show signs of full AI generation, and low-polish, visibly human content is outperforming it.",
-      "Instead of generic tips, share one specific, real thing: a client question you got, a mistake you caught, a number you actually checked this week.",
-      "Keep the format plain - short lines, no forced hook formula, no AI-sounding phrasing like 'let that sink in.'",
-      "The goal isn't looking unpolished for its own sake - it's that specificity and honesty read as trustworthy, especially in financial advice."
+      "OpenAI launched GPT-5.6-Cyber (Aug 11), an AI model for vulnerability research that has already flagged real browser security holes",
+      "As AI-driven security tools get more powerful on both the defence and attack side, basic account hygiene matters more, not less",
+      "Three checks worth doing this week: unique passwords on banking and brokerage accounts, MFA turned on everywhere it's offered, and estate documents stored somewhere your family can actually access",
+      "This isn't about fear - it's a 10-minute check most people keep putting off"
     ],
-    "cta": "DM me 'REAL' if you want a swipe file of specific post ideas instead of generic ones.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Native LinkedIn text post only - no graphic, no template. Write it the way you'd actually explain it to one client, not a broadcast audience.",
-    "source_label": "Linkpost",
-    "source_url": "https://www.linkpost.gg/en/linkedin-trends",
-    "observed_at": "2026-08-10",
-    "date_found": "2026-08-11"
+    "cta": "Comment 'SECURE' and I'll send you my 3-step account security checklist.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head, screen showing a simple checklist graphic (passwords / MFA / estate docs) while you talk through each point.",
+    "source_label": "SecurityWeek",
+    "source_url": "https://www.securityweek.com/openai-unveils-new-cybersecurity-model-gpt-5-6-cyber/",
+    "observed_at": "2026-08-11",
+    "date_found": "2026-08-12"
   },
   {
-    "id": "trend-2026-08-11-worth-the-money-list",
+    "id": "trend-2026-08-12-10-10-money-habits-format",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "interest",
+    "trend_type": "culture",
+    "trend_source": "The '10/10 habits' list format is trending on Instagram this week (roundup published Aug 10), with money-saving habits called out as one of the standard topic buckets creators are using it for.",
+    "title": "10/10 money habits, my version",
+    "why_it_works": "This is a currently-trending list format with money habits already baked in as a default topic - using it means you're riding the actual native format, not forcing a bridge.",
+    "hooks": [
+      "10/10 money habits. Slide through, tell me which one you're missing.",
+      "Everyone's doing '10/10 habit' posts right now. Here's my money version.",
+      "I'm rating my own money habits 10/10. Some of these might surprise you."
+    ],
+    "talking_points": [
+      "The '10/10 habits' list format is currently trending on Instagram, with money-saving habits as a common topic",
+      "Pick 10 specific, concrete habits - like transferring savings the day salary lands, or reviewing one subscription every payday - no vague advice",
+      "End on a habit that's slightly unexpected or personal to build credibility, not a generic tip",
+      "Keep each slide to one line so it's easy to screenshot and share"
+    ],
+    "cta": "Save this carousel and tell me in the comments which habit you're going to try first.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: 10 slides, one habit per slide, consistent simple template. Cover slide states '10/10 money habits'. Final slide is the CTA.",
+    "source_label": "Ramdam",
+    "source_url": "https://www.ramd.am/blog/trends-instagram",
+    "observed_at": "2026-08-10",
+    "date_found": "2026-08-12"
+  },
+  {
+    "id": "trend-2026-08-12-financial-infidelity-debate",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "Relationship-debate content ('is it cheating?' formats) is trending on Instagram this week, and one of the most common real-life versions people bring up is hiding money or debt from a partner.",
+    "title": "Is hiding a purchase from your partner 'financial infidelity'? Let's debate.",
+    "why_it_works": "It rides a currently-trending relationship-debate format while landing on a real, common personal-finance issue - hidden spending and debt in relationships - that consultants genuinely see with couples.",
+    "hooks": [
+      "Is hiding a $200 purchase from your partner cheating? People are actually debating this right now.",
+      "I've had more couples argue about hidden spending than actual cheating. Let's talk about it.",
+      "'Financial infidelity' is trending as a phrase. Here's what it actually looks like in real life."
+    ],
+    "talking_points": [
+      "Relationship 'is it cheating?' debate formats are trending on Instagram this week - one real version people bring up is hiding money or debt from a partner",
+      "'Financial infidelity' usually isn't one big secret - it's small hidden purchases or an undisclosed debt that snowballs over time",
+      "A simple fix couples can start with: a shared monthly 15-minute money check-in, not a full merge of finances",
+      "The goal isn't to remove privacy entirely - it's agreeing on a threshold amount above which you tell each other"
+    ],
+    "cta": "Comment 'YES' or 'NO' - is hiding a purchase from your partner financial infidelity?",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Vertical video, direct to camera, conversational debate tone. Text overlay: 'Is this financial infidelity?' at the top throughout.",
+    "source_label": "Marketing With M (Substack)",
+    "source_url": "https://marketingwithm.substack.com/p/whats-trending-this-week-week-of",
+    "observed_at": "2026-08-10",
+    "date_found": "2026-08-12"
+  },
+  {
+    "id": "trend-2026-08-12-padres-closer-lock-in-gains",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "market",
+    "trend_type": "sport",
+    "trend_source": "Padres closer Mason Miller notched his NL-leading 30th save on Aug 10 as San Diego beat Milwaukee 3-2, locking in a lead built earlier in the game.",
+    "title": "30 saves. Zero blown leads. That's the whole lesson.",
+    "why_it_works": "A closer's job - protecting a lead once it exists - is a clean, universal metaphor for locking in financial progress instead of giving it back, with zero market-timing implied.",
+    "hooks": [
+      "This pitcher's entire job is protecting a lead once his team has one. Most people don't do that with their own money.",
+      "30 saves this season. Not one blown lead. Here's the money lesson.",
+      "Building the lead is the fun part. Protecting it is the part nobody talks about."
+    ],
+    "talking_points": [
+      "Padres closer Mason Miller recorded his league-leading 30th save on Aug 10, sealing a 3-2 win over Milwaukee",
+      "A 'save' is really just protecting progress that's already been made - the same instinct most people skip with their own finances after a good year",
+      "Once you're ahead - a bonus, a good year, a debt paid off - the next move is locking it in, topping up an emergency fund or protection coverage, not spending it all",
+      "Protecting gains isn't as exciting as making them, but it's what actually compounds over time"
+    ],
+    "cta": "Save this for the next time you get good financial news and aren't sure what to do with it.",
+    "cta_type": "save-share",
+    "how_to_film": "Vertical video, quick cuts. Open with a 1-second baseball clip or graphic reference, then straight to camera.",
+    "source_label": "ESPN",
+    "source_url": "https://www.espn.com/mlb/game/_/gameId/401816476/brewers-padres",
+    "observed_at": "2026-08-10",
+    "date_found": "2026-08-12"
+  },
+  {
+    "id": "trend-2026-08-12-alex-eala-historic-seed",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Filipina tennis player Alex Eala earned the 17th seed at the Cincinnati Open (announced Aug 11), a career-high world No. 20 ranking and the highest seeding ever held by a Filipino player at WTA 1000 level.",
+    "title": "Nobody saw this seeding coming overnight. It took years.",
+    "why_it_works": "A Southeast Asian athlete's steady, incremental climb to a historic milestone is a resonant, regionally-relevant story about compounding consistency - a message that lands naturally with an SG audience without any forced pitch.",
+    "hooks": [
+      "This is the highest seed a Filipino tennis player has ever held at this level. It didn't happen overnight.",
+      "Career-high ranking. Historic seeding. Here's what nobody sees behind a story like this.",
+      "A big regional sports story this week - here's the quiet habit behind it."
+    ],
+    "talking_points": [
+      "Alex Eala earned the 17th seed at the Cincinnati Open (announced Aug 11), her career-high ranking and the highest seeding ever for a Filipino player at WTA 1000 level",
+      "Milestones like this come from years of small, unglamorous ranking-point gains, not one breakthrough moment",
+      "The same is true of most people's savings and investment progress - the compounding is invisible until you look back",
+      "The habit that matters is consistency over a long stretch, not chasing one big win"
+    ],
+    "cta": "Comment the name of someone in your life who's been quietly consistent for years - they deserve the shoutout.",
+    "cta_type": "open-question",
+    "how_to_film": "Vertical video, direct to camera, energetic tone. Text overlay: '17th seed. Career-high. Years in the making.'",
+    "source_label": "GMA News Online",
+    "source_url": "https://www.gmanetwork.com/news/sports/othersports/998125/alex-eala-earns-17th-seed-in-cincinnati-open/story/",
+    "observed_at": "2026-08-11",
+    "date_found": "2026-08-12"
+  },
+  {
+    "id": "trend-2026-08-12-netflix-documentary-confession-format",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "interest",
     "trend_type": "culture",
-    "trend_source": "TikTok's '5 Things Worth the Money' trend has creators listing five purchases or habits they swear are always worth it, speaking straight to camera with the items shown as on-screen text.",
-    "title": "Do the '5 things worth the money' trend - but the list is money habits, not products",
-    "why_it_works": "The trend's list format is built for quick, specific, opinionated content; swapping products for habits keeps the format's punch while staying entirely educational and free of any product or brand endorsement.",
+    "trend_source": "The 'preparing for my Netflix documentary' chair-sit confession format - miming clipping on a mic before a dramatic 'confession' - is one of the biggest formats crossing from TikTok onto Instagram this week.",
+    "title": "Preparing for my Netflix documentary: the year I nearly blew my savings",
+    "why_it_works": "It borrows a currently-peaking confession format wholesale and fills it with a real, relatable money near-miss - the mock-dramatic tone does the work, no forced pitch needed.",
     "hooks": [
-      "5 things worth the money - except mine aren't things you can buy, they're habits.",
-      "Everyone's doing the 'worth the money' trend with skincare and shoes. Here's my money habit version.",
-      "Doing the worth-the-money trend, but every item on my list is free to start today."
+      "Preparing for my Netflix documentary: the year a client almost cleared out their entire emergency fund.",
+      "Clips on my mic. Preparing my documentary confession. This one's about the investment I almost made.",
+      "This is my Netflix documentary moment: the near-miss most people don't admit to."
     ],
     "talking_points": [
-      "Format it exactly like the trend: five items, on-screen text, quick and opinionated, straight to camera.",
-      "Keep the list generic and behavioural - an emergency fund, automatic transfers, an annual coverage check, reading your CPF statement, a written budget - never a specific branded product.",
-      "For each one, say why it's 'worth it' in one honest sentence, not a sales pitch.",
-      "Close by naming that this list costs nothing to start - the 'worth it' is the habit, not a purchase."
+      "Use the trending chair-sit, mock mic-clip, dramatic confession format currently peaking on TikTok and crossing onto Instagram this week",
+      "Tell a real, anonymised near-miss - a client who nearly drained savings for a hyped investment, or nearly skipped protection coverage to save on premiums",
+      "Play the drama for comedy, then land on the actual lesson in the last few seconds - the tone shift is what makes the format work",
+      "Keep the 'documentary confession' short, under 30 seconds - the joke loses power if it drags"
     ],
-    "cta": "Save this and comment which habit you're starting first.",
-    "cta_type": "save-share",
-    "how_to_film": "Straight to camera, on-screen text counting down 5 to 1 as you say each one, quick cuts between items, energetic pace matching the trend's format.",
-    "source_label": "TikTok",
-    "source_url": "https://www.tiktok.com/discover/5-things-are-worth-the-money-trend",
+    "cta": "Comment your own near-miss story - anonymously if you want.",
+    "cta_type": "open-question",
+    "how_to_film": "Sit down, mime clipping on a lapel mic, pause, deliver the 'confession' in a mock-serious documentary tone, then break into the real lesson.",
+    "source_label": "The Express Tribune",
+    "source_url": "https://tribune.com.pk/story/2618464/what-is-the-netflix-documentary-meme-viral-tiktok-trend-explained",
     "observed_at": "2026-08-10",
-    "date_found": "2026-08-11"
+    "date_found": "2026-08-12"
   }
 ]
