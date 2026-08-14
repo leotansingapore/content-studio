@@ -1,338 +1,422 @@
 [
   {
-    "id": "trend-2026-08-13-cpi-headline-number",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "The US Bureau of Labor Statistics released the July 2026 CPI report on Aug 12, showing inflation cooling to 3.4% year-on-year, matching forecasts and easing from June's 3.5% - the most-watched data release of the week.",
-    "title": "Why '3.4%' means nothing until you attach it to your own numbers",
-    "why_it_works": "The headline number is everywhere today; translating a macro stat into a personal cost-of-living checklist - not a market call - is honest and genuinely useful right now.",
-    "hooks": [
-      "Inflation just came in at 3.4% and I promise you that number means less than the one on your own bank statement.",
-      "Everyone's talking about today's inflation print. Here's the only version of that number that actually matters to you.",
-      "3.4% is the headline today. Here's what I'd actually check before reacting to it."
-    ],
-    "talking_points": [
-      "The 3.4% figure is a national average - it says nothing about your own spending basket, since rent, food and transport weigh differently for everyone",
-      "Use it as a trigger to review whether your emergency fund and protection still match today's cost of living, not to react to one data point",
-      "CPF Ordinary Account interest and insurance guarantees don't move with every headline - that's the point of having them",
-      "Ask yourself: has MY spending actually gone up 3.4%, more, or less? That's the number worth planning around"
-    ],
-    "cta": "Drop 'CHECKLIST' in the comments and I'll send you the 3-question cost-of-living check I use with clients.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-post: open with the hook as your first line, keep paragraphs short (2-3 lines), bold the '3.4%' figure once, close with the CTA on its own line.",
-    "source_label": "BLS - July 2026 CPI release",
-    "source_url": "https://www.bls.gov/news.release/archives/cpi_08122026.htm",
-    "observed_at": "2026-08-12",
-    "date_found": "2026-08-13"
-  },
-  {
-    "id": "trend-2026-08-13-stocks-rally-inflation",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "US stocks rose on Aug 12 (S&P 500 +0.30%, Nasdaq +0.59%) after the cooler-than-feared July inflation report, with AI-linked names surging on strong earnings - covered live across Yahoo Finance, CNBC and The Street.",
-    "title": "The market cheered today. Your plan shouldn't move because of it.",
-    "why_it_works": "A 'stocks rally' headline is in everyone's feed today; it's a natural, honest moment to talk about not reacting to daily swings, with zero stock picks involved.",
-    "hooks": [
-      "Stocks jumped today on good inflation news. Here's why that shouldn't change a single thing about your plan.",
-      "If you check your portfolio every time the market moves, today probably felt good. Tomorrow might not.",
-      "The market had a great day today. I want to talk about why that's actually not the point."
-    ],
-    "talking_points": [
-      "One green day (or red day) is noise, not a strategy - the headline is designed to make you feel like you should act",
-      "Reacting to daily market swings is how people end up buying high and selling low",
-      "A plan built around cost-of-living, protection and long-term goals shouldn't be edited by a single day's headline",
-      "The better habit: review your plan on a schedule, not on a headline"
-    ],
-    "cta": "Comment 'PLAN' if you want the one-page framework I use to keep clients from reacting to market noise.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-post: lead with the hook, use a short bulleted list for the talking points so it scans well on Facebook, end with the CTA as a clear last line.",
-    "source_label": "Yahoo Finance - Stock market today, Aug 12 2026",
-    "source_url": "https://finance.yahoo.com/markets/live/stock-market-today-wednesday-august-12-dow-sp-500-nasdaq-cpi-report-091555133.html",
-    "observed_at": "2026-08-12",
-    "date_found": "2026-08-13"
-  },
-  {
-    "id": "trend-2026-08-13-gold-record-question",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Gold has been holding above US$4,400/oz this week, near its highest level since June, with Yahoo Finance's Aug 12 pricing column headlined 'holding over $4,400 ahead of CPI report'.",
-    "title": "Everyone's asking me about gold this week. My answer is the same for any 'hot' asset.",
-    "why_it_works": "Gold headlines are everywhere right now and clients are genuinely asking; the honest answer is a behaviour and allocation lesson, not a buy call.",
-    "hooks": [
-      "Three people asked me about buying gold this week. Here's what I told all three of them.",
-      "Gold's near its highest price in weeks and my inbox knows it. Here's my actual answer.",
-      "'Should I buy gold now?' Wrong question. Here's the one I ask back."
-    ],
-    "talking_points": [
-      "A price headline is not a plan - 'gold is near a high' tells you nothing about whether it fits your goals",
-      "The real question is what percentage of your portfolio is in any single asset, gold included",
-      "Chasing an asset because it's in the news is a timing decision, not a strategy",
-      "If you want inflation protection, that's a conversation about your whole portfolio, not one metal"
-    ],
-    "cta": "Save this if you keep getting asked 'should I buy gold' too - swipe for the 3 questions I ask back.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 the hook in bold text on a gold-tone background; slides 2-4 each show one of the three questions to ask back; final slide is the save/share CTA.",
-    "source_label": "Yahoo Finance - Gold prices, Aug 12 2026",
-    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/gold-prices-today-wednesday-august-12-2026-holding-over-4400-ahead-of-cpi-report-114442535.html",
-    "observed_at": "2026-08-12",
-    "date_found": "2026-08-13"
-  },
-  {
-    "id": "trend-2026-08-13-crypto-cpi-jitters",
+    "id": "trend-2026-08-14-silver-fintok-fomo",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Bitcoin and Ethereum both ticked up cautiously on Aug 12 as traders waited on the July CPI print, per Yahoo Finance's daily crypto pricing column - a jumpy, headline-driven day for both coins.",
-    "title": "Crypto moved today because of a report most people didn't even read",
-    "why_it_works": "Crypto price-checking behaviour is a daily reality for a lot of clients; using today's jitteriness to talk about that habit, not price predictions, is honest and relevant.",
+    "trend_type": "current-affairs",
+    "trend_source": "FinTok is flooded with 'smart money buyers lining up' takes on silver's wild August swings, with TikTok's own 'Silver Price Crash 2026 Update News' discover page trending this week.",
+    "title": "Why I'm not chasing the silver hype on my FYP",
+    "why_it_works": "Silver volatility is genuinely everywhere on FinTok right now, so naming it earns attention; pairing it with a calm, non-prediction stance builds trust instead of hype fatigue.",
     "hooks": [
-      "Bitcoin moved today because of one report at 8:30am. Let's talk about what that says about checking your portfolio.",
-      "If you checked crypto prices more than twice today, this one's for you.",
-      "Crypto had a jumpy day today waiting on one number. Your money habits shouldn't be this jumpy."
+      "My FYP is obsessed with silver prices right now and I need to say something.",
+      "Everyone's FinTok feed is showing 'smart money' silver calls this week, here's my honest take.",
+      "I'm not buying the silver hype on my For You page, and here's why."
     ],
     "talking_points": [
-      "Price-checking behaviour, constantly refreshing, is linked to worse decision-making regardless of which asset you hold",
-      "One data release moving a price by a few percent says nothing about your long-term plan",
-      "If any single headline can make you want to buy or sell, that position may be bigger than you're actually comfortable with",
-      "Set a review cadence (monthly, quarterly) instead of a reaction cadence (daily)"
+      "Name what's trending: silver's sharp swings and the 'smart money' narrative all over FinTok this week.",
+      "Chasing a single hot asset off a viral video is speculation dressed up as insight.",
+      "Volatility in any one metal or stock is exactly why a diversified plan exists.",
+      "Ask: does this fit your actual goals, or does it just fit today's algorithm?"
     ],
-    "cta": "Comment 'CADENCE' and I'll send you a simple monthly review template.",
+    "cta": "Comment 'PLAN' and I'll send you the 3 questions to ask before you chase any hot trend.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talking head to camera with a phone showing a jumpy price chart in frame; point at the screen when you say 'this is what checking twice does to your head.'",
-    "source_label": "Yahoo Finance - Bitcoin & Ethereum prices, Aug 12 2026",
-    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/bitcoin-and-ethereum-prices-today-wednesday-august-12-2026-crypto-prices-rise-with-cpi-report-on-deck-121022039.html",
-    "observed_at": "2026-08-12",
-    "date_found": "2026-08-13"
+    "how_to_film": "Talking head, phone in hand scrolling a FinTok feed (blur any specific numbers/predictions on screen), cut to you setting the phone down and talking direct to camera.",
+    "source_label": "TikTok - Silver Price Crash 2026 Update News",
+    "source_url": "https://www.tiktok.com/discover/silver-price-crash-2026-update-news",
+    "observed_at": "2026-08-13",
+    "date_found": "2026-08-14"
   },
   {
-    "id": "trend-2026-08-13-sti-record-pullback",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "The Straits Times Index closed at a record high on Aug 11, then fell 36 points (0.6%) on Aug 12 as investors took profits - a two-day round trip covered across Singapore market wraps.",
-    "title": "STI hit a record, then gave it back the next day. Good.",
-    "why_it_works": "Local and timely - it turns a headline SG investors are watching into a lesson about volatility being normal, not alarming, without any stock calls.",
+    "id": "trend-2026-08-14-paparazzi-money-glowup",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "The 'Paparazzi' dubstep glow-up transition trend, bad angle to a beat-drop reveal, is one of TikTok's biggest transition formats this week.",
+    "title": "The financial glow-up version of the Paparazzi transition",
+    "why_it_works": "The transition format is built for a dramatic before/after, and a financial glow-up (no plan to on-track) is a genuinely satisfying, relatable payoff that doesn't need forcing.",
     "hooks": [
-      "The STI hit a record high on Tuesday. By Wednesday it had given some of it back. That's not a bad sign.",
-      "If you own Singapore stocks and panicked yesterday, read this before you do anything.",
-      "Record high, then a pullback the next day - here's why that's actually healthy, not scary."
+      "POV: you had zero plan for your money, then the beat drops.",
+      "Doing the Paparazzi transition but it's my finances before vs after.",
+      "My honest reaction to my bank app a year ago vs today, on beat."
     ],
     "talking_points": [
-      "Record highs followed by pullbacks are normal profit-taking, not a warning sign - volatility is the price of long-term returns",
-      "A 0.6% move is well within a typical trading day's range, not a trend",
-      "The mistake isn't holding through a pullback - it's checking daily and reacting to noise",
-      "If a 0.6% dip changes your mood about your portfolio, your allocation may be more aggressive than your risk tolerance"
+      "Open on the 'before': no budget, no plan, financial stress (use the trend's bad-angle setup).",
+      "Beat drop into the 'after': one specific, real change you helped a client make.",
+      "Name the one action that started the glow-up, not a windfall, a decision.",
+      "Remind viewers: this is a process, not an overnight flex."
     ],
-    "cta": "Comment 'RISK' if you want the quick risk-tolerance check I run new clients through.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-post: open with the hook, use a short line-break rhythm for readability, close with the CTA as the final standalone line.",
-    "source_label": "FX.co - STI pulls back from record high on profit-taking",
-    "source_url": "https://www.fx.co/en/forex-news/3090381",
-    "observed_at": "2026-08-12",
-    "date_found": "2026-08-13"
-  },
-  {
-    "id": "trend-2026-08-13-sg-banks-record-profits",
-    "platform": "facebook",
-    "format": "carousel",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "DBS, OCBC and UOB all posted strong or record 2Q2026 results this week - OCBC crossed S$2b quarterly profit for the first time and DBS hit a record S$6.01b half-year profit - widely covered in Singapore business press on Aug 12.",
-    "title": "Your bank just posted record profits. Does your own balance sheet feel like it?",
-    "why_it_works": "A very local, very current headline (SG bank earnings season) with an honest, non-product-pushing angle about where idle cash sits, not which bank to pick.",
-    "hooks": [
-      "DBS, OCBC and UOB all just posted record profits. Here's the question that headline should make you ask.",
-      "Your bank had a great quarter. When's the last time you checked if your own cash is working that hard?",
-      "Record bank profits made headlines this week. Here's the one number I'd actually check."
-    ],
-    "talking_points": [
-      "Record bank profits are partly funded by the spread between what they pay depositors and what they earn - that spread is your opportunity cost on idle cash",
-      "This is a good week to check how much of your cash is sitting in a low-interest account by default, not by choice",
-      "This isn't about switching banks - it's about knowing where every dollar sits and why",
-      "Pair this check with your emergency fund review, not a random spending audit"
-    ],
-    "cta": "Save this and go check your own accounts this week before you forget.",
+    "cta": "Save this if you want your own money glow-up before the year ends.",
     "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 the three bank names plus 'record profits'; slide 2 the opportunity-cost question; slides 3-4 how to check where cash sits; final slide the save CTA.",
-    "source_label": "TheFinance.sg - DBS, OCBC, UOB 2Q2026 results wrap",
-    "source_url": "https://thefinance.sg/2026/08/12/dbs-and-ocbc-hit-new-highs-while-uob-dipped-after-2q-2026-results-what-are-we-watching-for-next/",
-    "observed_at": "2026-08-12",
-    "date_found": "2026-08-13"
+    "how_to_film": "Use the actual Paparazzi dubstep audio. Bad lighting/dead stare for 'before' text overlay, hard cut on the beat drop into a confident 'after' shot with a specific stat or milestone on screen.",
+    "source_label": "TikTok - Paparazzi Effect trend page",
+    "source_url": "https://www.tiktok.com/discover/paparazzi-effect",
+    "observed_at": "2026-08-13",
+    "date_found": "2026-08-14"
   },
   {
-    "id": "trend-2026-08-13-eala-cincinnati-bye",
-    "platform": "instagram",
+    "id": "trend-2026-08-14-project-anchor-hoax",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "meme",
+    "trend_source": "A fake 'NASA leak' called Project Anchor claimed Earth would lose gravity for 7 seconds on Aug 12, riding the real solar eclipse for credibility, until Snopes and NASA officially debunked it.",
+    "title": "The gravity hoax and the one question worth stealing from it",
+    "why_it_works": "Everyone saw the panic and the debunking this week, so the reference lands instantly; the pun on 'anchor' gives a light, non-preachy way into an emergency-fund conversation.",
+    "hooks": [
+      "Did anyone else's group chat panic about losing gravity for 7 seconds this week?",
+      "The internet believed we'd float away for 7 seconds, turns out it was fake.",
+      "That gravity hoax was fake, but here's a question worth asking anyway."
+    ],
+    "talking_points": [
+      "Recap the hoax in one line: fake NASA leak, 7 seconds of no gravity, tied to the real eclipse.",
+      "NASA and fact-checkers shut it down within hours, the panic outran the facts.",
+      "Punny pivot: is your own financial plan actually 'anchored,' or just assumed to be?",
+      "One concrete anchor: an emergency fund and up-to-date protection, not a hoax-proof one."
+    ],
+    "cta": "DM me 'ANCHOR' and I'll walk you through what an actual financial buffer looks like.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Talking head reacting to the hoax headline (screen-record a real fact-check article on screen), then cut to a calm direct-to-camera close.",
+    "source_label": "Snopes",
+    "source_url": "https://www.snopes.com/fact-check/nasa-project-anchor-earth-gravity/",
+    "observed_at": "2026-08-12",
+    "date_found": "2026-08-14"
+  },
+  {
+    "id": "trend-2026-08-14-rays-nine-oh-sweep",
+    "platform": "tiktok",
     "format": "short-video",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Alex Eala earned a first-round bye and the No. 17 seed for her Cincinnati Open debut this week, with her projected path (Pegula, Rybakina, Sabalenka) revealed Aug 11-12 - covered by Philstar and GMA News.",
-    "title": "Alex Eala didn't get her bye by luck. Neither will your retirement.",
-    "why_it_works": "A proud, current SG/PH regional sports story with an honest discipline-and-system parallel - achievement through consistency, not a hot streak, and no forced pitch.",
+    "trend_source": "The Tampa Bay Rays just became only the 2nd team in MLB history to go 9-0 on a West Coast road trip, sweeping three series in a row this week.",
+    "title": "What a 9-0 road trip teaches about steady money habits",
+    "why_it_works": "A rare, dated sports feat gives a fresh, high-energy hook, and 'consistency beats one big swing' is an honest, non-hyped parallel to steady saving and investing habits.",
     "hooks": [
-      "Alex Eala just earned a first-round bye at a tournament she's never played before. That's not luck.",
-      "Her seeding this week didn't come from one good match. It came from a system. Same with your money.",
-      "Everyone's excited about Eala's Cincinnati draw this week. Here's the boring reason she's even in this position."
+      "A baseball team just did something that's only happened once before in MLB history.",
+      "The Rays went 9-0 on the road this week, here's the money lesson in it.",
+      "No home runs needed, just nine straight wins. Same logic applies to your money."
     ],
     "talking_points": [
-      "Eala's seeding is the result of consistent results across many tournaments, not one breakout win",
-      "The 'boring' version of financial planning - consistent contributions, regular reviews - works the same way: no single big move, just repetition",
-      "A bye is an advantage earned in advance, the same way an emergency fund is an advantage you only feel when you need it",
-      "Ask yourself what quiet, consistent work you're doing right now that will pay off later"
+      "Name the feat: Rays swept 9 straight road games, only the 2nd team ever to do it.",
+      "It wasn't one legendary play, it was showing up and winning the same way, game after game.",
+      "Same principle in saving and investing: consistency compounds more reliably than one big bet.",
+      "Ask viewers what their own version of 'showing up every game' looks like this month."
     ],
-    "cta": "Which SG or PH athlete's discipline inspires your money habits? Tell me in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Short vertical video: talk to camera holding a racket or gesture as if serving, voiceover the hook, cut to text overlay for the talking points, end on a CTA text card.",
-    "source_label": "Philstar - Eala Cincinnati Open Round 2 preview",
-    "source_url": "https://www.philstar.com/sports/2026/08/12/2548801/eala-against-either-ruse-linette-cincinnati-open-round-2",
-    "observed_at": "2026-08-12",
-    "date_found": "2026-08-13"
-  },
-  {
-    "id": "trend-2026-08-13-jokic-buyout-offer",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "sport",
-    "trend_source": "Panathinaikos owner Dimitris Giannakopoulos revealed this week that his club made a serious offer to buy Nikola Jokic out of the final year of his Nuggets contract - the Nuggets rejected it almost immediately, confirmed by Jokic's agent on Aug 11-12.",
-    "title": "A basketball team tried to buy out a superstar's contract. Here's what 'buyout' actually costs.",
-    "why_it_works": "NBA offseason drama is genuinely trending this week and 'buyout' is a real financial mechanic - an honest, un-forced way into explaining early-exit costs.",
-    "hooks": [
-      "A Greek basketball team just tried to buy Nikola Jokic out of his contract. Let's talk about what 'buyout' actually means.",
-      "Everyone's talking about the Jokic buyout offer this week. It's a great excuse to explain surrender value.",
-      "The Nuggets said no to a buyout offer this week. Here's why saying no to an early exit is usually the smart move."
-    ],
-    "talking_points": [
-      "A 'buyout' is just a price to exit a contract early - in sports or in your own policies, exiting early almost always costs more than staying the course",
-      "The Nuggets rejected the offer because Jokic's value to them is worth more than what they'd get today - similar logic to cashing out a long-term policy early",
-      "Before you surrender or withdraw early from anything, ask what future value you're giving up to solve a problem today",
-      "Long-term commitments are priced to reward patience - buyouts are priced to reward the person offering them, not you"
-    ],
-    "cta": "DM me 'BUYOUT' and I'll break down what early surrender actually costs, using a real policy example.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Talking head, casual tone, hand gestures for the 'buyout' concept, text overlay reading 'buyout ≠ free exit' during the talking points.",
-    "source_label": "HoopsHype - Jokic's agent on Panathinaikos offer",
-    "source_url": "https://www.hoopshype.com/story/sports/nba/2026/08/11/nikola-jokics-agent-on-panathinaikos-offer-what-giannakopoulos-said-is-true/91253095007/",
-    "observed_at": "2026-08-11",
-    "date_found": "2026-08-13"
-  },
-  {
-    "id": "trend-2026-08-13-spiderman-hand-drawn-poster",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "culture",
-    "trend_source": "A Canadian movie theatre employee hand-drew his own 'Spider-Man: Brand New Day' poster after the official one didn't arrive in time - the story broke today (Hollywood Reporter) and is spreading fast on TikTok and Instagram.",
-    "title": "The poster never showed up, so he drew his own. That's the whole lesson.",
-    "why_it_works": "A genuinely fresh, wholesome, non-political story about resourcefulness under a missed deadline - a light, honest parallel to starting before conditions are perfect, no forced pitch.",
-    "hooks": [
-      "A movie theatre didn't get its official poster in time, so an employee just drew one himself. It went viral today.",
-      "This guy's hand-drawn Spider-Man poster is going viral today, and it's actually a great money lesson.",
-      "The 'poster never arrived' story blowing up today is basically about starting before conditions are perfect."
-    ],
-    "talking_points": [
-      "He didn't wait for the 'right' poster - he used a marker and what he had, and it worked better than the plan",
-      "The same applies to starting a financial plan: waiting for the 'perfect' amount of money or the 'right' time is the poster that never arrives",
-      "Imperfect action, a basic plan started today, beats a perfect plan you're still waiting to begin",
-      "Ask yourself what your own version of 'grab a marker' has been - the thing you've been putting off"
-    ],
-    "cta": "If you've been waiting for the 'right time' to start, book 15 minutes with me this week - link in bio.",
-    "cta_type": "book-call",
-    "how_to_film": "Hold up a printed or sketched poster prop, talk to camera, text overlay 'the poster never arrived' then 'so he made his own' as you speak.",
-    "source_label": "Hollywood Reporter - viral hand-drawn Spider-Man poster",
-    "source_url": "https://www.hollywoodreporter.com/movies/movie-news/viral-hand-drawn-spider-man-brand-new-day-poster-artist-speaks-1236672446/",
+    "cta": "Comment your one money habit you've kept up for 9 weeks straight, let's celebrate consistency.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Quick highlight-style talking head with a scoreboard-style on-screen graphic (9-0) then cut to you explaining the parallel directly to camera.",
+    "source_label": "Bay News 9",
+    "source_url": "https://baynews9.com/fl/tampa/sports/2026/08/13/rays-complete-2nd-9-0-west-coast-trip-in-mlb-history-with-8-4-win-over-athletics",
     "observed_at": "2026-08-13",
-    "date_found": "2026-08-13"
+    "date_found": "2026-08-14"
   },
   {
-    "id": "trend-2026-08-13-nba-lebron-christmas-reveal",
+    "id": "trend-2026-08-14-reels-milestone-audio",
     "platform": "instagram",
     "format": "story",
-    "pillar": "interest",
-    "trend_type": "event",
-    "trend_source": "The NBA revealed its marquee 2026-27 matchups this week: LeBron James will make his Philadelphia 76ers debut against the Knicks, then return to LA to face the Lakers on Christmas Day - reported Aug 12 ahead of the full schedule release.",
-    "title": "The NBA just locked in Christmas Day 2026. Have you locked in yours?",
-    "why_it_works": "A genuinely fresh reveal fans are excited about right now, with a light, honest parallel to planning big annual dates in advance rather than a stretch.",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "STOSLIV's 'Don't Tell Your Dreams' is trending as Instagram's go-to motivational Reels audio this week, with creators using it for business-milestone and achievement reveals.",
+    "title": "Use this week's motivational Reels audio for a real client win",
+    "why_it_works": "The audio is already trend-coded for milestone reveals, so a genuine, anonymised client win fits the format natively instead of feeling like an ad.",
     "hooks": [
-      "LeBron's Christmas Day matchup just got revealed and NBA fans are already planning their whole December around it.",
-      "The NBA locked in its Christmas Day schedule this week, months ahead. Here's why that habit is worth stealing.",
-      "Everyone's hyped about LeBron's new team's Christmas Day game. I'm more interested in how early they planned it."
+      "Using this week's trending audio for a real money milestone, not a flex.",
+      "This sound is all over Reels right now, here's the win I'm using it for.",
+      "Someone I work with just hit a milestone, and this audio said it better than I could."
     ],
     "talking_points": [
-      "The NBA locks in its biggest revenue day months in advance - nothing about it is last-minute",
-      "Your biggest annual costs, insurance renewals, tax top-ups, year-end planning, deserve the same lock-in-early treatment",
-      "Waiting until December to plan December is how people miss CPF and SRS tax-relief windows every year",
-      "Pick one 'Christmas Day' moment in your own calendar, a renewal date or a review date, and lock it in today"
+      "Name a specific, anonymised client milestone (e.g. cleared a debt, hit a savings target).",
+      "Show the timeline honestly, how long it actually took, not an overnight story.",
+      "Credit the boring part: the habit or plan behind the milestone, not luck.",
+      "Invite viewers to share their own milestone in the comments."
     ],
-    "cta": "Which date do you need to lock into your calendar today? Tell me below.",
-    "cta_type": "open-question",
-    "how_to_film": "Instagram Story: 3-4 quick text/photo slides building up the reveal, add a poll sticker asking 'What's your December lock-in date?' for engagement.",
-    "source_label": "Dunkest - NBA News Aug 12, LeBron's Christmas Day reveal",
-    "source_url": "https://www.dunkest.com/en/nba/news/244131/nba-news-august-12-lebron-lakers-giannis-and-the-jokic-dream",
-    "observed_at": "2026-08-12",
-    "date_found": "2026-08-13"
+    "cta": "Drop a target emoji in the comments if you're working toward a money milestone right now.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Vertical story format, text-on-screen build-up (the goal, the timeline, the win), timed to the trending audio's beat, ending on a still frame with the milestone stat.",
+    "source_label": "Newengen - Instagram Trends: August 2026 (Updated Weekly)",
+    "source_url": "https://newengen.com/insights/instagram-trends/",
+    "observed_at": "2026-08-13",
+    "date_found": "2026-08-14"
   },
   {
-    "id": "trend-2026-08-13-solar-eclipse-planning",
+    "id": "trend-2026-08-14-asean-ticket-scalping",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "event",
+    "trend_source": "Tickets for the Singapore vs Thailand ASEAN Championship semi-final sold out in minutes on Aug 12, with Carousell resellers flipping pairs for up to $1,500, around 15x face value.",
+    "title": "What the Lions ticket scalping frenzy says about FOMO spending",
+    "why_it_works": "This is genuinely trending in Singapore right now and directly relatable; using it to talk about scarcity-driven overspending, not the match itself, is an honest, no-stretch bridge.",
+    "hooks": [
+      "Did you see Lions tickets going for $1,500 a pair on Carousell this week?",
+      "Tickets sold out in minutes, then showed up online at 15x the price, let's talk about that.",
+      "I get it, everyone wants to watch the Lions play Thailand, but read this first."
+    ],
+    "talking_points": [
+      "Name it: SG vs Thailand tickets sold out in minutes, resold at up to 15x face value.",
+      "That's scarcity marketing working exactly as designed, urgency beats judgement in the moment.",
+      "It's not really about football tickets, it's the same trigger behind 'limited time' sales pressure.",
+      "One pause-before-you-pay habit: ask if you'd still want it at the normal price tomorrow."
+    ],
+    "cta": "Would you have paid scalper price for these tickets? Tell me honestly in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Screen-record the sold-out listing and a scalped Carousell listing side by side, then talk direct to camera about the psychology behind it.",
+    "source_label": "Mothership.SG",
+    "source_url": "https://mothership.sg/2026/08/singapore-thailand-asean-championship-sold-out-reselling/",
+    "observed_at": "2026-08-13",
+    "date_found": "2026-08-14"
+  },
+  {
+    "id": "trend-2026-08-14-odyssey-billion-club",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "Christopher Nolan's 'The Odyssey' just crossed $1.1B worldwide in three weeks, making it his highest-grossing film ever, ahead of 'The Dark Knight Rises.'",
+    "title": "The Odyssey's billion-dollar run is a compounding story, not an opening-night one",
+    "why_it_works": "The milestone is fresh and widely covered, and the real detail, three weeks of steady numbers, not one huge weekend, maps honestly onto how real financial goals are actually reached.",
+    "hooks": [
+      "Christopher Nolan's new film just crossed $1 billion, here's the detail that stood out to me.",
+      "It took 3 weeks, not one big opening night, for this film to hit $1 billion.",
+      "The Odyssey just became Nolan's biggest movie ever, and the 'how' is the interesting part."
+    ],
+    "talking_points": [
+      "Name the milestone: The Odyssey crossed $1.1B in 3 weeks, Nolan's highest-grossing film ever.",
+      "It wasn't a single record-breaking opening weekend, it was steady turnout, week after week.",
+      "Big financial goals (a house deposit, retirement number) work the same way: compounding, not one windfall.",
+      "Slide idea: 'what's your version of week 1, 2, 3', small consistent contributions."
+    ],
+    "cta": "Save this carousel if you needed the reminder that slow and steady still gets you to a big number.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 hook + film poster-style text, slide 2 the $1B fact, slide 3 the 3-week detail, slide 4 the money parallel, slide 5 CTA.",
+    "source_label": "Deadline",
+    "source_url": "https://deadline.com/2026/08/box-office-the-odyssey-christopher-nolan-record-1237029568/",
+    "observed_at": "2026-08-13",
+    "date_found": "2026-08-14"
+  },
+  {
+    "id": "trend-2026-08-14-suno-bmg-ip-deal",
     "platform": "instagram",
     "format": "carousel",
     "pillar": "topic",
     "trend_type": "current-affairs",
-    "trend_source": "A total solar eclipse swept across Greenland, Iceland and northern Spain on Aug 12 - Europe's first total eclipse since 1999 and Spain's first in over a century - drawing huge crowds and travel spending, covered by CNN and CBS News.",
-    "title": "People flew across the world for 2 minutes of darkness. Here's the actual lesson.",
-    "why_it_works": "A genuinely fresh, global, wholesome current-affairs moment with an honest bridge to planning ahead for rare, big-ticket experiences rather than a forced pitch.",
+    "trend_source": "AI music generator Suno just signed a global licensing deal with music label BMG, announced Aug 12, so artists get paid when their catalogue trains or appears in Suno's models.",
+    "title": "What the Suno-BMG deal teaches anyone with royalty or side income",
+    "why_it_works": "A fresh, widely-covered AI and music story gives a natural entry into protecting and structuring non-salary income, a topic advisors can speak to without touching investment advice.",
     "hooks": [
-      "People spent thousands flying to Spain and Iceland this week for 2 minutes of total darkness. Let's talk about why.",
-      "Yesterday's total solar eclipse had people planning trips a year in advance. Your bucket list deserves that too.",
-      "Millions traveled for a 2-minute eclipse this week. Nobody funded that trip on a whim."
+      "A music label just got paid because an AI company had to license their songs, here's why that matters.",
+      "BMG just struck a deal so artists get paid when AI trains on their music.",
+      "If you earn any royalty or licensing income, this AI music story is actually about you."
     ],
     "talking_points": [
-      "Eclipse chasers don't book flights the week before - they plan and save a year or more ahead for a few minutes of experience",
-      "The same logic applies to any big 'someday' goal: a trip, a sabbatical, a milestone celebration needs its own savings pot, planned early",
-      "A rare, un-repeatable moment, like this eclipse not returning to Europe for years, is exactly the kind of goal worth a dedicated fund, not leftover cash",
-      "Ask yourself what your own 'eclipse' is - the once-in-a-while experience you keep saying you'll get to"
+      "Name the deal: Suno licensed BMG's catalogue so artists get paid for AI use of their work.",
+      "It's a reminder that IP and royalty income needs the same protection as any other income.",
+      "If you have royalties, licensing fees, or content income, is it actually documented and protected?",
+      "Simple next step: list every income source that isn't a regular salary."
     ],
-    "cta": "Save this and tell me your 'eclipse goal' in the comments - the trip or moment you keep postponing.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 an eclipse photo with the hook text; slide 2 the 'plan a year ahead' point; slide 3 the 'what's your eclipse' question; final slide the save CTA.",
-    "source_label": "CNN - Photos: Total solar eclipse 2026",
-    "source_url": "https://www.cnn.com/2026/08/12/science/gallery/photos-total-solar-eclipse",
+    "cta": "Comment 'INCOME' if you want the checklist for protecting non-salary income streams.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Carousel: slide 1 hook, slide 2 the deal explained simply, slide 3 'why this matters if you have side income', slide 4 checklist teaser, slide 5 CTA.",
+    "source_label": "Forbes",
+    "source_url": "https://www.forbes.com/sites/cathyolson/2026/08/12/ai-music-generator-suno-inks-latest-music-label-licensing-deal/",
     "observed_at": "2026-08-12",
-    "date_found": "2026-08-13"
+    "date_found": "2026-08-14"
   },
   {
-    "id": "trend-2026-08-13-perseid-meteor-peak",
-    "platform": "tiktok",
-    "format": "short-video",
+    "id": "trend-2026-08-14-col-special-payment",
+    "platform": "facebook",
+    "format": "carousel",
     "pillar": "topic",
-    "trend_type": "event",
-    "trend_source": "The Perseid meteor shower peaked overnight from Aug 12 into Aug 13 under a new moon (ideal dark-sky conditions), with up to 50-75 meteors an hour visible - covered by Space.com and NASA this week.",
-    "title": "You had to look up at the right moment last night or you missed it. Story of your finances too.",
-    "why_it_works": "A genuinely fresh, universally relatable, non-political astronomy moment happening right now, with a light 'timing and attention' parallel rather than a forced sales pitch.",
+    "trend_type": "news",
+    "trend_source": "Over 2.4 million Singapore citizens will get $400 to $600 under the Enhanced Budget 2026 Cost-of-Living Special Payment, paid automatically from 9 September 2026.",
+    "title": "Your September COL payment: check eligibility, then plan where it goes",
+    "why_it_works": "This is a concrete, dated, high-utility scheme every Singaporean household is asking about right now, no bridge needed, the payment itself is the financial-planning moment.",
     "hooks": [
-      "The best meteor shower of the year peaked last night. If you didn't look up, you missed it completely.",
-      "Perseids peaked overnight and it was a blink-and-you-miss-it moment. So is your CPF review, if you're honest.",
-      "Millions stayed up last night for a meteor shower most of us will forget to plan for next year."
+      "Are you getting the $400 to $600 Cost-of-Living payment in September? Here's how to check.",
+      "This cash lands in your account from 9 September, don't let it just disappear into spending.",
+      "2.4 million Singaporeans are getting a payout in September, here's what to do with yours."
     ],
     "talking_points": [
-      "The Perseids only peak once a year, for a few hours, and you have to be looking at the right time, not before, not after",
-      "Financial reviews work the same way: CPF top-up windows, tax-relief deadlines and insurance renewal dates all have a 'peak window' that's easy to miss",
-      "The fix isn't willpower, it's a reminder set in advance, the same way eclipse and meteor chasers set alarms",
-      "Ask yourself what date this year you keep meaning to 'look up' for but haven't set a reminder for yet"
+      "Explain eligibility simply: SC aged 21+, own no more than 1 property, assessable income up to $100k.",
+      "No application needed, paid automatically; link NRIC to PayNow by 30 Aug for earlier payment.",
+      "Suggest 3 destinations before it lands: emergency fund top-up, CPF top-up, or debt paydown.",
+      "Remind: it's a one-off, decide its job before it becomes 'just spending money.'"
     ],
-    "cta": "DM me 'REMINDER' and I'll help you build a simple calendar of your own money 'peak windows' this year.",
+    "cta": "DM me 'COL' and I'll send the eligibility checklist so you know exactly what you're getting.",
     "cta_type": "dm-keyword",
-    "how_to_film": "Night-sky b-roll or stock footage, talking head with a phone-flashlight aesthetic, text overlay repeating 'peak window' for both the meteor and finance points.",
-    "source_label": "Space.com - Perseid meteor shower peaks Aug 12-13",
-    "source_url": "https://www.space.com/stargazing/meteor-showers/perseid-meteor-shower-peaks-under-perfect-skies-tonight-heres-what-to-expect",
+    "how_to_film": "Carousel: slide 1 hook, slide 2 who's eligible, slide 3 how and when it's paid, slide 4 the 3 destinations, slide 5 CTA.",
+    "source_label": "Mothership.SG",
+    "source_url": "https://mothership.sg/2026/08/600-enhanced-cost-of-living-special-payment/",
     "observed_at": "2026-08-13",
-    "date_found": "2026-08-13"
+    "date_found": "2026-08-14"
+  },
+  {
+    "id": "trend-2026-08-14-counterfeit-scam-stamps",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Singapore Police charged a 23-year-old caught at Woodlands Checkpoint with forged Supreme Court and MHA stamps plus fake employee passes, tools typically used in government-official impersonation scams.",
+    "title": "SPF just busted someone carrying fake 'court' stamps, here's the reminder",
+    "why_it_works": "A dated, official SPF case gives a credible, non-alarmist hook into a scam-prevention reminder every consultant should be reinforcing with clients right now.",
+    "hooks": [
+      "SPF just charged a man caught with fake Supreme Court and government stamps at Woodlands.",
+      "Someone was caught this week carrying counterfeit 'official' stamps used to run scams.",
+      "This is exactly the kind of prop scammers use to sound like the real government."
+    ],
+    "talking_points": [
+      "Name the case: fake Supreme Court and MHA stamps and employee passes seized at Woodlands Checkpoint.",
+      "These props exist to make a scam call or message feel official and urgent.",
+      "Fact: CPF, IRAS, MAS, courts and banks never ask you to transfer money or verify by phone or WhatsApp.",
+      "Simple habit: hang up, and call the organisation back on its official number yourself."
+    ],
+    "cta": "Save this post and send it to a parent or relative who might need the reminder.",
+    "cta_type": "save-share",
+    "how_to_film": "Text-post, no video needed. Headline the SPF case, then the 3 official-agency-never-does-this facts, close with the save/share line.",
+    "source_label": "Singapore Police Force",
+    "source_url": "https://www.police.gov.sg/Media-Hub/News/2026/08/20260812_malaysian_man_to_be_charged_for_possession_of_counterfeit_instruments_linked_to_scams",
+    "observed_at": "2026-08-13",
+    "date_found": "2026-08-14"
+  },
+  {
+    "id": "trend-2026-08-14-westbrook-retires",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Russell Westbrook, the NBA's all-time triple-double leader, announced his retirement after 18 seasons this week via a Michael B. Jordan-narrated video.",
+    "title": "Westbrook retired on his own terms, plan yours the same way",
+    "why_it_works": "A major, freshly-announced retirement from a beloved athlete gives an emotionally resonant, non-salesy opener into retirement and income planning, without predicting markets or returns.",
+    "hooks": [
+      "Russell Westbrook just retired after 18 seasons, and how he did it stood out to me.",
+      "One of the NBA's greats just walked away on his own terms this week.",
+      "Westbrook didn't wait to be forced out, he chose the moment. Are you planning to?"
+    ],
+    "talking_points": [
+      "Name it: Westbrook retires after 18 seasons, all-time triple-double leader, announced this week.",
+      "He controlled the timing and the story, that only happens with a plan in place.",
+      "Retirement, yours, needs the same: a clear number and an income plan, not a last-minute decision.",
+      "Ask viewers: if you had to retire this year, would it be on your terms?"
+    ],
+    "cta": "Comment 'RETIRE' if you want a simple starting checklist for planning your own exit on your terms.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text-post, no video needed. Open with the Westbrook headline, 2-3 lines on the parallel, close with the CTA.",
+    "source_label": "NBA.com",
+    "source_url": "https://www.nba.com/news/russell-westbrook-retires-nba-after-18-seasons",
+    "observed_at": "2026-08-12",
+    "date_found": "2026-08-14"
+  },
+  {
+    "id": "trend-2026-08-14-ackman-netflix-reinvest",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "current-affairs",
+    "trend_source": "Bill Ackman's Pershing Square just re-entered Netflix, four years after exiting at a $400M+ loss, putting nearly 5% of the portfolio into the stock, the story is everywhere in finance media this week.",
+    "title": "Don't copy Ackman's Netflix bet, copy his discipline instead",
+    "why_it_works": "The Ackman story is dominating finance discourse right now, and reframing it around behaviour, not the stock, keeps the post honest, non-promotional, and fully compliant.",
+    "hooks": [
+      "Bill Ackman just re-bought Netflix, four years after losing $400M on it. Here's what I'd actually copy.",
+      "A billionaire changing his mind on one stock made headlines this week, here's the real lesson.",
+      "Everyone's talking about Ackman's Netflix bet. I want to talk about what happened after his last one."
+    ],
+    "talking_points": [
+      "Name the news: Ackman's Pershing Square re-entered Netflix this week after a $400M+ 2022 exit.",
+      "The headline isn't 'buy what Ackman buys', it's that even professionals get single stocks wrong.",
+      "One concentrated position, even from a billionaire, isn't a plan, it's one bet.",
+      "The actual takeaway: your allocation should survive being wrong about any one name."
+    ],
+    "cta": "What's your rule for not chasing headline stock moves? Share it in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Text-post, no video needed. Lead with the Ackman headline, 3-4 short paragraphs building the behavioural point, end with the open question.",
+    "source_label": "The Motley Fool",
+    "source_url": "https://www.fool.com/investing/2026/08/13/billionaire-bill-ackman-just-invested-5-of-pershing-square-capital-management-s-portfolio-in-netflix-should-investors-follow-suit/",
+    "observed_at": "2026-08-13",
+    "date_found": "2026-08-14"
+  },
+  {
+    "id": "trend-2026-08-14-ppi-fed-cut-odds",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "current-affairs",
+    "trend_source": "July's US Producer Price Index came in flat and cooled sharply year-on-year, released Aug 13, reinforcing bets on a September Fed rate move, a live talking point across finance LinkedIn this week.",
+    "title": "What a possible Fed rate move actually means for your mortgage and deposits",
+    "why_it_works": "The PPI print is a fresh, widely-discussed data release, and translating it into mechanics, not a prediction, keeps the post educational and compliant while riding real, current discourse.",
+    "hooks": [
+      "July's US producer prices just cooled sharply, and finance LinkedIn is buzzing about September.",
+      "I'm not going to predict what the Fed does next, but here's what either outcome means for you.",
+      "A US inflation report this week is already showing up in mortgage and deposit conversations here."
+    ],
+    "talking_points": [
+      "Name the data: July PPI came in flat, annual rate cooled to its lowest since March, released Aug 13.",
+      "This is feeding bets on a US rate move in September, no one knows the outcome yet.",
+      "If rates ease: fixed deposit and T-bill yields likely drift down over time, lock-in decisions matter.",
+      "If rates hold: mortgage refinancing timing and cash allocation stay the more urgent conversation."
+    ],
+    "cta": "Book a call if you want to stress-test your mortgage or deposit mix against either scenario.",
+    "cta_type": "book-call",
+    "how_to_film": "Text-post, no video needed. Open with the data point, split clearly into 'if it eases' vs 'if it holds' sections, close with the CTA.",
+    "source_label": "24/7 Wall St.",
+    "source_url": "https://247wallst.com/investing/2026/08/13/top-markets-commentator-july-inflation-was-definitely-better-than-expected-will-the-fed-cut-rates/",
+    "observed_at": "2026-08-13",
+    "date_found": "2026-08-14"
+  },
+  {
+    "id": "trend-2026-08-14-grok-four-six-launch",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "current-affairs",
+    "trend_source": "xAI shipped Grok 4.6 on Aug 12, a long-running 'agent' AI model priced well below rival frontier models, built for multi-step research and coding tasks.",
+    "title": "What a cheaper AI 'agent' model means for a one-person advisory practice",
+    "why_it_works": "The launch is dated and specific, and framing it around practice productivity, not investment advice on xAI, keeps the bridge honest and directly useful to a consultant's own workflow.",
+    "hooks": [
+      "A new AI model shipped this week that's built to run multi-step tasks on its own, here's why I noticed.",
+      "AI 'agent' tools just got noticeably cheaper this week. Here's what that means for how I work.",
+      "I'm not talking about AI stocks, I'm talking about what this new model means for my to-do list."
+    ],
+    "talking_points": [
+      "Name it: xAI released Grok 4.6 on Aug 12, priced well below comparable frontier models.",
+      "It's built for longer, multi-step tasks, research, drafting, admin, not just one-off replies.",
+      "Falling AI costs make it realistic for a solo practice to pilot AI for research and admin now.",
+      "This is a productivity note, not investment advice on any AI company."
+    ],
+    "cta": "Comment 'AI' if you want the 3 admin tasks I'd trial an AI agent on first.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text-post, no video needed. Lead with the launch fact, 3 short paragraphs on the practice-productivity angle, close with the CTA.",
+    "source_label": "MarkTechPost",
+    "source_url": "https://www.marktechpost.com/2026/08/12/spacexai-releases-grok-4-6/",
+    "observed_at": "2026-08-12",
+    "date_found": "2026-08-14"
+  },
+  {
+    "id": "trend-2026-08-14-vantage-data-centers-ipo",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "current-affairs",
+    "trend_source": "Vantage Data Centers is exploring a roughly $100B IPO or sale, reported Aug 13, which would be the largest data-centre listing ever, driven by AI infrastructure demand.",
+    "title": "A $100B IPO story that's really about diversification, not data centres",
+    "why_it_works": "The scale of the reported valuation is genuinely newsworthy this week, and using it to illustrate how much capital sits in private and alternative markets is an honest, non-promotional angle since Vantage isn't even public.",
+    "hooks": [
+      "A company most people have never heard of is reportedly exploring a $100 billion IPO.",
+      "This week's biggest possible IPO isn't a household name, and that's exactly the point.",
+      "There's a lot of money moving into things you can't just buy on an app. Here's an example."
+    ],
+    "talking_points": [
+      "Name it: Vantage Data Centers is reportedly exploring an IPO or sale at roughly $100B, reported Aug 13.",
+      "It's not public yet, this is about the scale of private capital in AI infrastructure, not a stock tip.",
+      "Most portfolios are 100% public-market exposure; private and alternative markets are a different conversation.",
+      "This is context for a diversification discussion, not a recommendation to chase this or any single deal."
+    ],
+    "cta": "Curious how private-market exposure fits, or doesn't, into your plan? Book a call and let's map it out.",
+    "cta_type": "book-call",
+    "how_to_film": "Text-post, no video needed. Lead with the $100B headline, explain the private-vs-public context, close with the CTA.",
+    "source_label": "Yahoo Finance (Reuters)",
+    "source_url": "https://finance.yahoo.com/technology/articles/exclusive-vantage-data-centers-explores-100830274.html",
+    "observed_at": "2026-08-13",
+    "date_found": "2026-08-14"
   }
 ]
