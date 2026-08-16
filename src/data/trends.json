@@ -1,338 +1,338 @@
 [
   {
-    "id": "trend-2026-08-15-reddit-sp500-diversification",
+    "id": "trend-2026-08-16-sti-gdp-review-not-chase",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Reddit (NYSE: RDDT) was announced on 14 Aug 2026 to join the S&P 500 effective 18 Aug, replacing AvalonBay Communities - shares jumped over 12% on the news as index funds are forced to buy in.",
-    "title": "What Reddit joining the S&P 500 teaches about not picking stocks",
-    "why_it_works": "Everyone's talking about the Reddit stock pop this week; using it to explain forced index buying teaches diversification instead of stock-picking, staying compliant while riding a genuinely live story.",
+    "trend_source": "Singapore's MTI upgraded its 2026 GDP growth forecast to 4.5-5.5% (from 2.0-4.0%) on an AI-investment boom, and the Straits Times Index closed near record levels at 5,743.59 (+0.41%) on 14 Aug 2026, capping a strong week for local stocks.",
+    "title": "GDP upgrade + STI near record: why the headline isn't a signal to change your plan",
+    "why_it_works": "SG's own growth upgrade and stock index are genuinely in this week's headlines together, giving a natural, locally-relevant opening to talk about not reacting to good news any more than bad news - a compliant, behaviour-first angle.",
     "hooks": [
-      "Reddit's stock just jumped 13% and basically nobody bought it on purpose - here's what actually happened.",
-      "You don't have to guess which stock is the next Reddit - here's why that's good news.",
-      "A meme forum just joined the same index as Apple and Microsoft. Let me explain why that matters to you."
+      "Singapore just upgraded its 2026 growth forecast, and the STI closed near a record this week.",
+      "Good economic news is everywhere in Singapore right now - here's why it won't change my plan.",
+      "MTI raised our growth forecast and the STI had a great week. I still won't chase it."
     ],
     "talking_points": [
-      "When a company joins the S&P 500, every index fund tracking it is forced to buy shares - that's why the stock jumped, not because of a hot tip.",
-      "This is exactly why diversified, broad-market investing beats trying to spot the next winner yourself.",
-      "Your CPF, SRS or ILP-linked funds likely already hold thousands of companies without you having to pick a single one.",
-      "The lesson isn't 'buy Reddit' - it's that a disciplined, diversified plan doesn't need you to time individual stocks."
+      "MTI raised Singapore's 2026 GDP growth forecast to 4.5-5.5% this week, and the STI closed near record levels off the back of it.",
+      "It's tempting to feel like good headlines mean it's time to invest more aggressively - but a headline week is not a financial plan.",
+      "The same discipline that stops you from panic-selling on bad news should stop you from chasing on good news too.",
+      "A plan built around your own goals doesn't need to react to any single week, good or bad."
     ],
-    "cta": "Curious how diversified your own portfolio actually is? Drop 'DIVERSIFY' in the comments and I'll walk you through it.",
+    "cta": "If good-news headlines have you wondering whether to change anything, comment 'REVIEW' and I'll share how I'd actually think about it.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Write as a LinkedIn text post: lead with the hook as line one before the 'see more' cut, one idea per short paragraph, optionally attach a simple screenshot of the S&P 500 addition headline.",
-    "source_label": "Forbes - Reddit Joins The S&P 500 Next Week",
-    "source_url": "https://www.forbes.com/sites/tylerroush/2026/08/14/reddit-joins-the-sp-500-next-week-heres-what-that-means-for-shares/",
+    "how_to_film": "Write as a LinkedIn text post: hook as line one before the 'see more' cut, short paragraphs, optionally attach a simple screenshot of the STI headline for credibility.",
+    "source_label": "BusinessToday - Singapore Stocks End Higher, STI Gains 0.41% to 5,743.59",
+    "source_url": "https://www.businesstoday.com.my/2026/08/15/singapore-stocks-end-higher-sti-gains-0-41-to-5743-59/",
     "observed_at": "2026-08-14",
-    "date_found": "2026-08-15"
+    "date_found": "2026-08-16"
   },
   {
-    "id": "trend-2026-08-15-broadcom-ai-debt-leverage",
-    "platform": "facebook",
+    "id": "trend-2026-08-16-ajax-godts-transfer-compounding",
+    "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Broadcom shares fell about 6% on 14 Aug 2026 after a BofA analyst estimated its AI chip-financing vehicle could carry up to $370B in debt by 2029 - a leverage story, not a demand story.",
-    "title": "The Broadcom AI-debt headline is really a lesson about leverage",
-    "why_it_works": "The AI-capex-debt story is dominating finance feeds this week; reframing it as a personal-finance lesson on leverage, not a stock call, keeps it compliant while riding a live news cycle.",
+    "trend_type": "sport",
+    "trend_source": "Ajax reached a verbal agreement on 14 Aug 2026 to sell 21-year-old winger Mika Godts to PSG for around €55 million - a player they signed from Genk for just €1 million three years ago.",
+    "title": "A €1 million signing just sold for €55 million. That's not luck, that's compounding.",
+    "why_it_works": "A genuinely fresh transfer story with a dramatic number gives a vivid, non-financial way to explain patient, long-horizon growth without making any market call - a safe, compliant analogy trending in football news right now.",
     "hooks": [
-      "A $370 billion number just wiped 6% off one of the world's biggest chip stocks in a day - here's the real lesson.",
-      "This AI company is booming and its stock still dropped. Let me explain why that's not a contradiction.",
-      "Growth funded by debt looks great until the bill comes due - true for companies, and true for us."
+      "Ajax paid €1 million for a teenager and just sold him for €55 million three years later.",
+      "A €1 million bet turned into €55 million in three years - and it wasn't luck.",
+      "This week's biggest transfer story is really a lesson in patience, not football tactics."
     ],
     "talking_points": [
-      "Broadcom's AI chip business is genuinely growing, but the stock still fell this week on concerns about how that growth is being financed - with borrowed money.",
-      "It's a reminder that revenue growth and financial safety aren't the same thing, for a company or a household.",
-      "The healthiest financial plans separate 'growth spending' from money you can't afford to lose - an emergency fund, protected savings.",
-      "Chasing whatever's growing fastest without asking how it's funded is how both companies and individuals get overextended."
+      "Ajax signed Mika Godts for about €1 million in 2023 and just agreed to sell him to PSG for roughly €55 million this week - a 55x jump in three years.",
+      "That number didn't come from one lucky moment - it came from three years of steady development, appearances and improvement, season after season.",
+      "The same principle applies to long-term saving and investing: the biggest gains usually come from time and consistency, not from timing one big move.",
+      "Nobody asks 'when's the best time to buy Mika Godts' - they ask 'did he keep developing.' Ask the same question about your own plan."
     ],
-    "cta": "Want a simple gut-check on whether your own finances are growth-funded or debt-funded? Message me 'CHECK' and I'll share it.",
+    "cta": "Curious how compounding actually plays out over a real timeline? Message me 'COMPOUND' and I'll walk you through an example.",
     "cta_type": "dm-keyword",
-    "how_to_film": "Write as a Facebook text post: open with the $370 billion hook, keep paragraphs to 1-2 lines, pair with a simple 'growth vs debt-funded growth' graphic if you want a visual.",
-    "source_label": "24/7 Wall St - Broadcom Sinks 6% as BofA Flags $370B in AI Debt",
-    "source_url": "https://247wallst.com/investing/2026/08/14/broadcom-sinks-6-as-bofa-flags-370b-in-ai-debt-amd-climbs-4-on-bairds-1250-call/",
+    "how_to_film": "Write as a LinkedIn text post: open with the €1m-to-€55m hook, short paragraphs, optionally attach a simple graphic showing the transfer fee jump.",
+    "source_label": "NL Times - Ajax Reach Verbal Agreement to Sell Mika Godts to PSG for €55 Million",
+    "source_url": "https://nltimes.nl/2026/08/14/ajax-reach-verbal-agreement-sell-mika-godts-psg-eu55-million",
     "observed_at": "2026-08-14",
-    "date_found": "2026-08-15"
+    "date_found": "2026-08-16"
   },
   {
-    "id": "trend-2026-08-15-trust-freedom-stockback",
+    "id": "trend-2026-08-16-suarez-1500-hits-consistency",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "interest",
+    "trend_type": "sport",
+    "trend_source": "Cincinnati Reds' Eugenio Suárez recorded the 1,500th hit of his career, an RBI double, in a 1-0 win over the Miami Marlins on 14 Aug 2026.",
+    "title": "1,500 career hits didn't happen in one game - and neither will your retirement number",
+    "why_it_works": "A fresh, feel-good sports milestone gives a clean, non-market way to talk about how big numbers are really the sum of small, repeated actions - reinforcing 'consistency beats timing' without touching investment advice.",
+    "hooks": [
+      "A baseball player just got his 1,500th career hit - built one at-bat at a time.",
+      "1,500 hits sounds impressive until you remember it's just one at-bat, over and over.",
+      "This week's career milestone took a decade to build. Your retirement number works the same way."
+    ],
+    "talking_points": [
+      "Eugenio Suárez recorded his 1,500th career hit this week - a milestone built from thousands of individual at-bats over more than a decade, most of them unremarkable on their own.",
+      "No single hit made the milestone - it's the accumulation of consistent effort, game after game, that got him there.",
+      "A retirement number works the same way: it's built from small, repeated contributions over years, not one big decision.",
+      "The habit of showing up - to the plate, or to your CPF/SRS top-up - matters more than any single 'big' moment."
+    ],
+    "cta": "How consistent are your own monthly contributions right now? Comment your streak - even if it's imperfect.",
+    "cta_type": "open-question",
+    "how_to_film": "Write as a Facebook text post: open with the 1,500-hits hook, keep paragraphs short, pair with a simple screenshot of the milestone headline if you have one.",
+    "source_label": "Redleg Nation - Chase Burns Is Dominant in the Reds' Shutout Win Over Miami",
+    "source_url": "https://www.redlegnation.com/2026/08/14/chase-burns-is-dominant-in-the-cincinnati-reds-shutout-win-over-miami-marlins/",
+    "observed_at": "2026-08-14",
+    "date_found": "2026-08-16"
+  },
+  {
+    "id": "trend-2026-08-16-snow-expo-sinking-fund",
     "platform": "instagram",
-    "format": "short-video",
+    "format": "story",
+    "pillar": "topic",
+    "trend_type": "event",
+    "trend_source": "Singapore Snow Expo returned to Suntec Singapore Convention Centre on 15-16 Aug 2026 after a nine-year gap, drawing crowds with ski holiday deals, snow-sport demos and a Niseko holiday giveaway.",
+    "title": "The Snow Expo is packed this weekend - here's how to actually afford that ski trip",
+    "why_it_works": "A genuinely new, buzzy local event happening this exact weekend gives a timely, relatable hook to talk about planning ahead for a big discretionary trip instead of impulse-booking after a hype expo.",
+    "hooks": [
+      "The Snow Expo is back at Suntec this weekend, and everyone's booking a ski trip already.",
+      "If the Snow Expo has you dreaming about Niseko, don't book yet - do this first.",
+      "Ski deals are everywhere at Suntec this weekend. The best deal is still the planned one."
+    ],
+    "talking_points": [
+      "Singapore Snow Expo returned to Suntec this weekend for the first time in nine years, with travel deals and a free ski holiday giveaway pulling big crowds.",
+      "Expo deals and giveaways are designed to create urgency - a genuinely fun holiday shouldn't be a rushed decision funded by credit.",
+      "A simple sinking fund - a separate pot you top up monthly for one specific trip - turns a spontaneous booking into a stress-free one.",
+      "The trip is more enjoyable when you're not still paying for it three months after you're back."
+    ],
+    "cta": "Save this if you're eyeing a ski trip - comment 'SNOW' and I'll DM you a simple sinking-fund template.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Vertical story format: film a quick clip at the expo or of ski gear/photos, overlay the hook as on-screen text, use a poll or tap-through sticker tied to the CTA.",
+    "source_label": "Deep Arrival - Singapore Snow Expo Returns After Nine-Year Gap",
+    "source_url": "https://deeparrival.com/news/singapore-snow-expo-returns-august-15-16-2026/",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-16"
+  },
+  {
+    "id": "trend-2026-08-16-d23-fandom-budget",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "event",
+    "trend_source": "D23: The Ultimate Disney Fan Event is running 14-16 Aug 2026 in Anaheim, with a record show floor and major franchise reveals driving global fan excitement and merchandise spending this weekend.",
+    "title": "D23 is happening right now - a good excuse to talk about 'fandom budgets'",
+    "why_it_works": "A massive global fan event is live this exact weekend and drives real impulse spending on merch and travel; using it to introduce a planned 'fandom budget' is a light, relatable, non-judgmental money lesson.",
+    "hooks": [
+      "D23 is happening right now, and fans are already spending big on merch this weekend.",
+      "You don't have to skip spending on what you love - just give it its own budget.",
+      "Fandom spending isn't the problem. Spending with no plan for it is."
+    ],
+    "talking_points": [
+      "D23, Disney's biggest fan event, is running this weekend, and it's already driving a wave of merchandise and travel spending worldwide.",
+      "Spending on things you genuinely love - concerts, conventions, collectibles - isn't a financial mistake by itself.",
+      "The difference is whether it's a planned line item in your budget or an impulse charge that shows up as regret next month.",
+      "A small monthly 'fun fund' for your specific fandom means you can enjoy the moment without derailing anything else."
+    ],
+    "cta": "What's the one thing you'd happily budget for every month, guilt-free? Tell me in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Write as a Facebook text post: open with the D23 hook, short paragraphs, optionally pair with a simple graphic of a 'fandom budget' line-item example.",
+    "source_label": "Hoodline - D23 Returns to Anaheim with Record 1 Million Square Feet of Disney Reveals",
+    "source_url": "https://hoodline.com/2026/08/d23-returns-to-anaheim-with-record-1-million-square-feet-of-disney-reveals/",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-16"
+  },
+  {
+    "id": "trend-2026-08-16-gst-voucher-medisave-topup",
+    "platform": "facebook",
+    "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "Trust Bank launched the 'Freedom' card in Singapore on 13 Aug 2026 - the country's first stockback card, converting spend into US stock/ETF investments, alongside a sign-up gift that's guaranteed in value but random in which stock it lands in.",
-    "title": "The new 'stockback' credit card is a perfect way to explain guaranteed vs. random",
-    "why_it_works": "A genuinely new SG fintech product launched this week gives a concrete, current hook to explain guaranteed value vs. uncertain payout - a concept advisors deal with constantly - without naming or bashing any card.",
+    "trend_source": "MOF confirmed the August 2026 GST Voucher payout: up to $850 cash for 1.5 million adult Singaporeans (bank crediting from 15 Aug 2026) and up to $450 MediSave top-ups for 710,000 seniors, totalling about $1.4 billion.",
+    "title": "Your GST Voucher just landed - here's the one thing worth doing with it",
+    "why_it_works": "The payout is landing in accounts this exact week, making it a live, universally relevant prompt; suggesting people redirect part of it toward MediSave or savings instead of spending it is neutral, educational and squarely in an advisor's lane.",
     "hooks": [
-      "A Singapore bank just launched a card that turns your spending into stocks - and it's a perfect example of something I explain to clients weekly.",
-      "You get a guaranteed gift, but you don't get to pick which stock it lands in. Sound familiar?",
-      "Stockback instead of cashback just launched here - and it explains guaranteed vs. variable return better than any slide I've made."
+      "Your GST Voucher cash should be landing this week - here's what I'd do with it.",
+      "$1.4 billion is landing in Singaporean bank accounts this week. Have you checked yours yet?",
+      "Before that GST Voucher cash disappears into spending, here's a 30-second thing worth doing."
     ],
     "talking_points": [
-      "A new local card rewards spending with fractional shares instead of cash - a fun, current example of 'guaranteed value, uncertain form.'",
-      "It's the same tension you navigate in real financial planning: how much of your money should be guaranteed, and how much can ride the market.",
-      "Gamified rewards are fun, but they shouldn't be your investment strategy - they're a bonus on top of an actual plan.",
-      "Knowing the difference between 'guaranteed' and 'random but capped' helps you read the fine print on anything, not just credit cards."
+      "MOF confirmed up to $850 in GST Voucher cash is crediting to bank accounts this week for about 1.5 million adult Singaporeans, plus MediSave top-ups for eligible seniors.",
+      "It's easy for a lump sum like this to just blend into everyday spending without you noticing.",
+      "Redirecting even half of it into a MediSave top-up, an emergency fund, or a specific savings goal makes it count for something beyond this month.",
+      "Check your eligibility and payment method on the GovBenefits site if you're not sure whether or how you're receiving it."
     ],
-    "cta": "Not sure how much of your own money should be guaranteed vs. growth-focused? Save this and DM me 'MIX' for a simple way to think about it.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Film unboxing-style holding up the card announcement on your phone screen, then cut to talking head explaining guaranteed-vs-random using two labelled jars or boxes as a visual prop.",
-    "source_label": "Fintech Singapore - Trust Bank Launches Freedom Stockback Card",
-    "source_url": "https://fintechnews.sg/135750/digital-banking-news-singapore/trust-freedom-card/",
-    "observed_at": "2026-08-13",
-    "date_found": "2026-08-15"
+    "cta": "Comment 'GSTV' and I'll share the simple split I use with clients for windfalls like this.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Write as a Facebook text post: lead with the payout hook, short punchy lines, optionally attach a screenshot of the MOF announcement for credibility.",
+    "source_label": "Ministry of Finance - GST Voucher Cash and MediSave Top-Up, August 2026",
+    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/1-5-million-adult-singaporeans-to-receive-up-to--850-in--gstv---cash-and-710-000-singaporean-seniors-to-receive-up-to--450-medisave-top-up-in-august-2026/",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-16"
   },
   {
-    "id": "trend-2026-08-15-us-retail-sales-cooling",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "current-affairs",
-    "trend_source": "US July retail sales rose just 0.1% and consumer sentiment fell to a multi-month low, reported 14 Aug 2026, stalling a Wall Street rally that had been running for weeks.",
-    "title": "Consumer confidence just dipped - here's what that has to do with your own budget",
-    "why_it_works": "Global economic-mood headlines are everywhere this week; turning 'consumer confidence fell' into a prompt about personal financial resilience is timely and behaviour-focused, not a market call.",
-    "hooks": [
-      "Consumer confidence just dropped and stocks wobbled - but here's the question that actually matters for you.",
-      "When people start feeling less confident about spending, that's usually a cue to check one number in your own life.",
-      "The headlines say Americans are feeling less confident about money this week. Are you?"
-    ],
-    "talking_points": [
-      "A weaker-than-expected retail sales report and falling consumer sentiment rattled markets this week - a sign people are pulling back on spending.",
-      "Regardless of what the global data says, the real question is whether your own household could absorb 3-6 months without income.",
-      "Confidence swings are a good prompt to check: emergency fund, insurance coverage, and whether your spending matches your actual priorities.",
-      "You can't control consumer sentiment indexes - you can control whether your own finances are built to handle a wobble."
-    ],
-    "cta": "How many months could your savings cover if things got tighter? Comment your number - no judgment, just a gut check.",
-    "cta_type": "open-question",
-    "how_to_film": "Write as a text post with a screenshot of the retail-sales headline attached; open with the hook line, close with the open question to drive comments.",
-    "source_label": "The Motley Fool - Stock Market Today, Aug. 14",
-    "source_url": "https://www.fool.com/coverage/stock-market-today/2026/08/14/stock-market-today-aug-14-stocks-slip-as-consumer-data-disappoints-broadcom-falls-6/",
-    "observed_at": "2026-08-14",
-    "date_found": "2026-08-15"
-  },
-  {
-    "id": "trend-2026-08-15-silver-record-fomo",
-    "platform": "instagram",
-    "format": "text-post",
-    "pillar": "interest",
-    "trend_type": "news",
-    "trend_source": "Silver hit a record above US$65/oz on 14 Aug 2026, up more than 100% year-to-date, driven by cooling inflation data and Fed rate-cut bets - reported by Yahoo Finance the same day.",
-    "title": "Silver just doubled this year - here's how to think about it without chasing it",
-    "why_it_works": "A genuine record-price headline is spreading fast this week and tempts people to chase it; using it to teach non-timing, goals-based thinking is exactly the credibility-building content a licensed advisor should own.",
-    "hooks": [
-      "Silver has doubled in price this year and hit a record high yesterday - and that's exactly when people make bad decisions.",
-      "Everyone's suddenly asking me about silver. Here's what I actually tell them.",
-      "A 100% run in one year feels like free money - until you remember what usually happens next."
-    ],
-    "talking_points": [
-      "Silver just hit a fresh record high, up over 100% year-to-date, driven by inflation and rate-cut expectations - it's genuinely a huge move.",
-      "The instinct after seeing a chart like that is to jump in - but buying because something already ran up is chasing, not investing.",
-      "A single commodity, however hot, is not a plan - it's a position-sizing question inside a diversified portfolio.",
-      "If a headline like this has you tempted, the better question is 'does this fit my goals,' not 'did I miss it.'"
-    ],
-    "cta": "If a hot asset has you FOMO-ing right now, message me 'FOMO' and I'll share how I help clients think it through.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Post as a text update with a simple screenshot of the record-price headline attached; keep the caption short and direct, matching the hook as the opening line.",
-    "source_label": "Yahoo Finance - Silver Prices Today, Aug 14 2026",
-    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/silver-prices-today-friday-august-14-2026-silver-over-65-following-soft-inflation-data-this-week-121251820.html",
-    "observed_at": "2026-08-14",
-    "date_found": "2026-08-15"
-  },
-  {
-    "id": "trend-2026-08-15-gold-record-safe-haven",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "interest",
-    "trend_type": "news",
-    "trend_source": "Gold held above US$4,400/oz on 14 Aug 2026, near record territory, as softening inflation data fed expectations the Fed is done raising rates - reported by Yahoo Finance the same day.",
-    "title": "Gold near record highs: what 'safe haven' actually means for your plan",
-    "why_it_works": "Gold hitting records is a live, widely-shared headline this week that naturally opens a conversation about what 'safety' in a portfolio really means - a core, compliant advisor topic.",
-    "hooks": [
-      "Gold is sitting near an all-time high right now, and I keep getting the same question about it.",
-      "'Safe haven' is one of the most misunderstood phrases in investing - and gold's record run is the perfect moment to explain it.",
-      "Gold near record highs doesn't mean what most people think it means for their own money."
-    ],
-    "talking_points": [
-      "Gold is trading near record levels this week as investors bet the Fed is finished hiking rates - a genuine, headline-driven move.",
-      "'Safe haven' describes how an asset tends to behave during uncertainty - it doesn't mean risk-free or guaranteed.",
-      "A small allocation to something uncorrelated can smooth a portfolio; a large, panic-driven bet chasing a headline is a different thing entirely.",
-      "The better question than 'should I buy gold now' is 'what role does this play in a plan I already have.'"
-    ],
-    "cta": "Save this carousel so you've got it ready next time someone asks you about gold.",
-    "cta_type": "save-share",
-    "how_to_film": "5-slide carousel: slide 1 record-high headline screenshot, slide 2 'what safe haven really means', slide 3 correlation drawn simply, slide 4 the better question to ask, slide 5 save-share prompt.",
-    "source_label": "Yahoo Finance - Gold Prices Today, Aug 14 2026",
-    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/gold-prices-today-friday-august-14-2026-gold-prices-hold-above-4400-on-softening-inflation-115406311.html",
-    "observed_at": "2026-08-14",
-    "date_found": "2026-08-15"
-  },
-  {
-    "id": "trend-2026-08-15-bitcoin-fear-greed",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "news",
-    "trend_source": "Bitcoin slipped to around $62,900 on 14 Aug 2026 as the Fear & Greed Index sat at 29 ('fear' territory), with crypto pulling back alongside weak US consumer data and stalled crypto regulation - reported by The Motley Fool the same day.",
-    "title": "The Fear & Greed Index dropped to 29 today - and that's the real story",
-    "why_it_works": "Crypto's daily swings are constant TikTok fodder; using today's specific Fear & Greed reading to talk about emotional decision-making, not a buy/sell call, is a fresh, compliant angle on a story genuinely moving today.",
-    "hooks": [
-      "There's a number that updates every day that tells you more about your money decisions than any price chart.",
-      "Bitcoin dipped today and the 'Fear and Greed Index' hit 29 - here's why that number matters more than the price.",
-      "If you've ever panic-sold or FOMO-bought anything, this index has been quietly tracking exactly why."
-    ],
-    "talking_points": [
-      "Crypto pulled back today as the Fear & Greed Index sat at 29, squarely in 'fear' territory, alongside weak economic data.",
-      "This index exists because emotion, not just fundamentals, drives short-term price swings - in crypto and in every market.",
-      "The real skill isn't predicting the next move, it's noticing when you're about to make a decision from fear or greed instead of a plan.",
-      "A written plan you set up in advance is what protects you from acting on today's mood."
-    ],
-    "cta": "Ever made a money decision you regretted because of fear or FOMO? Tell me in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Vertical selfie video, show the Fear & Greed Index gauge graphic on screen early, speak directly and energetically about emotional investing, end on the comment prompt.",
-    "source_label": "The Motley Fool - Crypto Market Today, Aug 14 2026",
-    "source_url": "https://www.fool.com/coverage/stock-market-today/2026/08/14/crypto-market-today-aug-14-bitcoin-slips-as-tokenization-regulation-stalls/",
-    "observed_at": "2026-08-14",
-    "date_found": "2026-08-15"
-  },
-  {
-    "id": "trend-2026-08-15-cea-property-agent-rules",
+    "id": "trend-2026-08-16-maju-forest-housing-supply-signal",
     "platform": "linkedin",
     "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Minister of State for National Development Alvin Tan announced on 14 Aug 2026 that more greenery will be retained at the Maju Forest (Sunset Way) and Gillman Barracks redevelopment sites than originally planned, trimming the number of future homes on both.",
+    "title": "Two housing sites just got smaller. Here's why that's worth a note, not a panic.",
+    "why_it_works": "A live, neutrally-described planning announcement this week gives a natural, non-partisan opening to talk about long-term property/HDB planning horizons without any speculation or market call.",
+    "hooks": [
+      "Two future housing sites just got a bit smaller this week - worth a note, not a panic.",
+      "More trees, fewer future homes on two sites this week. Small shifts like this add up.",
+      "This week's housing-supply tweak won't change your plans today, but it's worth tracking."
+    ],
+    "talking_points": [
+      "The government confirmed this week it will retain more forested area at the Maju Forest and Gillman Barracks sites than originally proposed, meaning fewer future homes on both.",
+      "One announcement doesn't move the property market - but small, repeated supply adjustments across many sites shape it over years.",
+      "If you're planning an HDB upgrade or purchase years out, it's worth being aware of long-range supply signals like this, not reacting to any single one.",
+      "The takeaway isn't 'buy now' or 'wait' - it's building a property timeline that isn't dependent on any one headline."
+    ],
+    "cta": "If you're mapping out a property upgrade timeline, comment 'PLAN' and I'll share how I help clients think about the horizon.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Write as a LinkedIn text post: hook as the first line before 'see more', short paragraphs, optionally attach a screenshot of the announcement headline.",
+    "source_label": "Mothership - More Greenery Retained at Maju Forest & Gillman Barracks, Alvin Tan",
+    "source_url": "https://mothership.sg/2026/08/maju-forest-gillman-barracks-more-greenery-retained-alvin-tan/",
+    "observed_at": "2026-08-14",
+    "date_found": "2026-08-16"
+  },
+  {
+    "id": "trend-2026-08-16-my-biggest-flex-advisor-hats",
+    "platform": "instagram",
+    "format": "short-video",
     "pillar": "identity",
-    "trend_type": "news",
-    "trend_source": "Straits Times reported this week (headlined in the 14 Aug 2026 regional news roundup) that Singapore's CEA will require property agents to complete at least 3 transactions in 3 years or pass a refresher exam to stay registered from 2027, aimed at weeding out inactive agents.",
-    "title": "Property agents now need to prove they're active. Should advisors too?",
-    "why_it_works": "A live regulatory story about raising professional standards in an adjacent advice industry is a natural, non-competitive way for a financial consultant to talk about their own credentials and activity without pitching.",
+    "trend_type": "culture",
+    "trend_source": "The 'My Biggest Flex' Instagram Reels trend has creators list every role they play over a Shakira-scored clip, with the text overlay 'my biggest flex is that you can hire me as your...' - currently trending on Instagram this week.",
+    "title": "The 'my biggest flex' trend is the perfect way to show what an advisor actually does",
+    "why_it_works": "A genuinely trending, low-production Reels format gives a fun, current way to show the breadth of an advisor's role - CPF, insurance, tax relief, retirement planning - without a hard sell, riding a real viral format.",
     "hooks": [
-      "Property agents in Singapore now have to prove they're actually active to keep their licence - here's why I think that's a great question to ask any advisor.",
-      "New rule: no deals, no renewal. Here's what to ask before you work with anyone giving you financial advice.",
-      "CEA just raised the bar for property agents. It made me think about what standard you should hold your financial advisor to."
+      "Everyone's doing the 'my biggest flex' trend right now, so here's mine.",
+      "My biggest flex is that you can hire me as your CPF planner and retirement translator.",
+      "This trend is supposed to be a joke, but honestly, it's just my job description."
     ],
     "talking_points": [
-      "Singapore's CEA will require property agents to complete 3 transactions over 3 years or sit a refresher exam to stay registered, starting 2027.",
-      "The goal is simple: weed out agents who registered once and went quiet, so consumers deal with people who are actually current.",
-      "It's a fair question to ask anyone giving you financial or property advice - are they actively practising, and how do they stay current?",
-      "Credentials matter less than whether someone is genuinely active in the field, advising real clients on real decisions."
+      "The 'my biggest flex' Reels trend has people listing every role they can be hired for over a trending audio clip - it's genuinely popular right now.",
+      "For a financial advisor, that list is real: CPF planner, insurance auditor, tax-relief hunter, retirement translator, all in one relationship.",
+      "Using a real trend to show the range of what you do is a fun, low-pressure way to remind your audience you're more than a 'sell insurance' contact.",
+      "End on a light, specific line so it reads as playful, not a pitch."
     ],
-    "cta": "Not sure what to ask before working with any advisor - property or financial? Comment 'ASK' and I'll share my checklist.",
+    "cta": "Comment your job title and I'll tell you the three hats I bet you didn't know I wear too.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Write as a LinkedIn text post: hook as the first line before 'see more', short paragraphs, optionally attach a screenshot of the CEA rule headline for credibility.",
-    "source_label": "BERNAMA ASEAN - Aug 14, 2026 Regional Headlines",
-    "source_url": "https://asean.bernama.com/news.php?id=2594192",
-    "observed_at": "2026-08-14",
-    "date_found": "2026-08-15"
+    "how_to_film": "Vertical Reel using the trending audio: quick cuts of you doing a 'role' each beat (laptop, calculator, phone call), text overlay each role, end on your face and a smile.",
+    "source_label": "Instagram Reel - 'My Biggest Flex' trend",
+    "source_url": "https://www.instagram.com/reel/DM2pcpUyBMe/",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-16"
   },
   {
-    "id": "trend-2026-08-15-sti-earnings-season",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "The Straits Times Index opened marginally higher on 13 Aug 2026 (+0.02% to 5,721.84) as investors focused on a busy week of local company earnings - reported by Yahoo Finance Singapore the same day.",
-    "title": "Local earnings season is here - what it actually means for your own money",
-    "why_it_works": "SG's own stock index and earnings season are genuinely in the news this week; reframing 'watching earnings' as a lesson on not needing to react to daily index moves keeps it locally relevant and compliant.",
-    "hooks": [
-      "The Straits Times Index barely moved this week, and that's actually the most useful thing about it.",
-      "Local earnings season is in full swing right now - here's why you don't need to watch it closely.",
-      "Singapore's own stock index opened flat again today. Here's why that's boring in the best way."
-    ],
-    "talking_points": [
-      "The STI opened nearly flat this week as investors digested a busy stretch of local company earnings reports.",
-      "Day-to-day index moves, up or down a fraction of a percent, are noise, not signal, for someone investing for retirement decades away.",
-      "Earnings season headlines are interesting to read, but they're not a prompt to change a long-term plan.",
-      "The value of a plan is that you don't have to react to every week's numbers - it's already built for the swings."
-    ],
-    "cta": "If checking your portfolio every time there's a headline is stressing you out, book a quick call and let's build a plan you don't need to watch daily.",
-    "cta_type": "book-call",
-    "how_to_film": "Write as a text post: open with the flat-STI hook, keep it short, optionally attach a simple screenshot of the day's STI close as visual proof.",
-    "source_label": "Yahoo Finance Singapore - Singapore Shares Open Flat",
-    "source_url": "https://sg.finance.yahoo.com/news/singapore-shares-open-flat-investors-055753446.html",
-    "observed_at": "2026-08-13",
-    "date_found": "2026-08-15"
-  },
-  {
-    "id": "trend-2026-08-15-treasury-yield-fed-pause",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "current-affairs",
-    "trend_source": "The US 10-year Treasury yield fell to about 4.647% this week (reported 14 Aug 2026) as bond traders increasingly bet the Fed is done raising rates, even as one-year inflation expectations stayed sticky at 4.1%.",
-    "title": "Bond yields are falling - here's why that's a cue to review, not to wait",
-    "why_it_works": "Falling yields on bets the Fed is finished hiking is a live macro story this week, giving a natural, general-education opening to talk about reviewing guaranteed rates while they're still attractive, without predicting markets.",
-    "hooks": [
-      "Bond yields just dropped because traders think rate hikes are over - here's what that means if you've been 'waiting for a better time.'",
-      "If you've been sitting on cash waiting for rates to go higher, this week's news is worth a look.",
-      "Guaranteed rates don't stay this attractive forever - and this week's bond market move is a reminder why."
-    ],
-    "talking_points": [
-      "The 10-year Treasury yield eased this week as bond markets increasingly price in the Fed being done with rate hikes.",
-      "When yields start easing, the 'guaranteed' side of your plan - fixed deposits, endowments, annuities - tends to get less attractive over time, not more.",
-      "Waiting indefinitely for a 'better rate' is itself a decision, and this week's move shows why that window doesn't stay open forever.",
-      "This isn't a call to rush - it's a prompt to review the guaranteed portion of your plan while conditions are still favourable."
-    ],
-    "cta": "If you've been putting off reviewing a rate, comment 'RATE' and I'll share what to check before you decide.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Write as a text post: open with the 'waiting for a better time' hook, short line-break structure, pair with a simple yield-trend screenshot if available.",
-    "source_label": "Climate and Economy - 14th August 2026 Economic Round-Up",
-    "source_url": "https://climateandeconomy.com/2026/08/14/14th-august-2026-todays-round-up-of-economic-news/",
-    "observed_at": "2026-08-14",
-    "date_found": "2026-08-15"
-  },
-  {
-    "id": "trend-2026-08-15-ai-layoffs-income-protection",
-    "platform": "linkedin",
-    "format": "text-post",
+    "id": "trend-2026-08-16-alarm-clock-distress-deadlines",
+    "platform": "instagram",
+    "format": "short-video",
     "pillar": "topic",
-    "trend_type": "current-affairs",
-    "trend_source": "Layoff trackers showed 205,832 workers affected across 322 tracked layoff events in 2026 as of 13 Aug 2026, with more than half explicitly citing AI or automation, concentrated in customer service, data and entry-level roles.",
-    "title": "205,832 and counting: the AI-layoff number that should prompt one check",
-    "why_it_works": "The AI-jobs-displacement number is a widely discussed, freshly-updated statistic this week; using it to prompt a conversation about income protection and diversified savings, without naming any employer, is squarely in an advisor's compliant lane.",
+    "trend_type": "culture",
+    "trend_source": "Instagram's 'performative distress alarm clock' Reels trend - creators filming exaggerated panic reacting to alarms and deadlines - is one of the platform's biggest breakout formats this week, with small accounts hitting millions of views.",
+    "title": "The 'panic alarm' trend is basically what forgetting your insurance renewal feels like",
+    "why_it_works": "A genuinely breakout, high-virality Reels format this week gives a relatable, humorous entry point into a real behaviour - procrastinating on renewals and deadlines - without shaming anyone.",
     "hooks": [
-      "Over 205,000 people have lost jobs tied to AI and automation this year alone - and most of them didn't see it coming.",
-      "This tracker updates every week, and it just crossed 205,832. Here's the one thing it should make you check.",
-      "AI-linked layoffs just hit a fresh high this year. I'm not here to scare you - I'm here to ask you one question."
+      "POV: your insurance renewal reminder just went off, and you've ignored it for three weeks.",
+      "This trend is basically what my inbox looks like every policy renewal season.",
+      "Everyone's doing the panic-alarm trend. Mine is just about my SRS deadline."
     ],
     "talking_points": [
-      "Trackers now show over 205,000 workers affected by layoffs citing AI or automation as a factor this year, concentrated in customer service and back-office roles.",
-      "The point isn't to panic about any one employer - it's that 'stable job' and 'guaranteed income' are two different things.",
-      "An emergency fund and income protection cover exist precisely for the gap between 'employed' and 'next role.'",
-      "The best time to build that buffer is while you're still employed, not after a headline like this becomes personal."
+      "The 'performative distress alarm clock' trend - exaggerated panic reacting to a deadline - is one of the biggest Reels formats breaking through this week.",
+      "It's funny because it's true: renewal dates, SRS deadlines and policy reviews often get the same 'I'll do it later' treatment until the alarm goes off.",
+      "Unlike a missed morning alarm, a missed renewal or deadline can quietly cost you coverage or a tax-relief window.",
+      "A simple calendar reminder two weeks out turns a 'panic' moment into a five-minute task."
     ],
-    "cta": "Do you know how many months your savings would cover if your income stopped tomorrow? Comment your number.",
-    "cta_type": "open-question",
-    "how_to_film": "Write as a text post: lead with the exact 205,832 figure as a scroll-stopping number, short punchy lines, close with the open question.",
-    "source_label": "SkillSyncer - 2026 Tech Layoffs Tracker",
-    "source_url": "https://skillsyncer.com/layoffs-tracker",
-    "observed_at": "2026-08-13",
-    "date_found": "2026-08-15"
+    "cta": "Comment 'DEADLINE' and I'll send you the two dates worth putting a reminder on today.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Vertical Reel: film the trending panic-alarm format - wake up, phone alarm blaring, exaggerated scramble - then cut to calm you explaining the real deadline it represents.",
+    "source_label": "Instagram Reel - Performative Distress Alarm Clock trend",
+    "source_url": "https://www.instagram.com/reel/DXWvA1UgWJa/",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-16"
   },
   {
-    "id": "trend-2026-08-15-moneymaxxing-tiktok",
+    "id": "trend-2026-08-16-bangladesh-neglect-complaint",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "The 'Bangladesh' trend - a deadpan 49-second song about a partner who 'never takes me to Bangladesh... it's like you don't care' - is currently one of Instagram's favourite absurdist audio formats, with people swapping in their own unfulfilled asks.",
+    "title": "'You never take me to Bangladesh' - but make it about your own SRS account",
+    "why_it_works": "A genuinely viral, absurdist audio format gives a low-effort, funny way to deliver a real nudge about self-neglect in personal finance, using humour instead of guilt.",
+    "hooks": [
+      "You never top up my SRS. You never claim my tax relief. It's like you don't care.",
+      "Doing the 'Bangladesh' trend, but it's just me complaining to myself about my own CPF.",
+      "This trend is supposed to be about a partner. Mine's about how I ignore my own money."
+    ],
+    "talking_points": [
+      "The 'Bangladesh' deadpan complaint trend is a genuinely popular Instagram audio format right now, built around absurd, exaggerated grievances.",
+      "Swapping the joke to target your own financial habits - not a partner - turns it into a gentle self-callout instead of a relationship joke.",
+      "The humour works because it's true: most people know exactly which financial task they keep putting off.",
+      "Naming it out loud, even as a joke, is often the first step to actually doing it."
+    ],
+    "cta": "What's the financial task you keep 'forgetting'? Comment it below - no judgment.",
+    "cta_type": "open-question",
+    "how_to_film": "Vertical Reel using the trending audio: deadpan delivery to camera, deliver each line flatly with a straight face, text overlay the punchline for extra reach.",
+    "source_label": "Instagram Reel - 'Bangladesh' absurdist complaint trend",
+    "source_url": "https://www.instagram.com/reel/DZsLs-aO2_4/?hl=en",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-16"
+  },
+  {
+    "id": "trend-2026-08-16-netflix-documentary-close-call",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "The 'Netflix documentary' trend - sit in a chair, swelling documentary score, caption frames a mundane life event as a true-crime/doc premise - has crossed over from TikTok and is trending independently on Instagram Reels this week.",
+    "title": "Using the 'Netflix documentary' trend to tell your own near-miss money story",
+    "why_it_works": "A genuinely trending dramatisation format gives advisors a fun, low-production way to share a relatable 'close call' story - without disclosing any real client details - that builds trust through vulnerability rather than a hard pitch.",
+    "hooks": [
+      "Preparing my Netflix documentary: the year I almost went three months with zero income protection.",
+      "Somebody get Netflix on the phone - my early 20s money decisions deserve a documentary.",
+      "This trend is for dramatic stories. Mine's just about the policy I almost let lapse."
+    ],
+    "talking_points": [
+      "The 'Netflix documentary' trend - a dramatic score over a mundane confession - has crossed over to Instagram and is trending this week.",
+      "Using it to share your own honest 'close call' with money (a lapsed policy, a missed deadline, an underinsured year) is more relatable than a polished success story.",
+      "Keep it about your own experience, not a client's - it builds trust without touching anyone else's private information.",
+      "End on how you fixed it, so the story lands as reassurance, not just drama."
+    ],
+    "cta": "What's your own financial 'documentary-worthy' close call? Tell me in the comments - I'll go first if you ask.",
+    "cta_type": "open-question",
+    "how_to_film": "Vertical Reel: sit in a chair, use a dramatic instrumental/documentary-style trending audio, deliver your close-call story deadpan with on-screen caption text, cut to a calmer resolution beat at the end.",
+    "source_label": "Instagram Reel - 'Netflix Documentary' chair-sit trend",
+    "source_url": "https://www.instagram.com/reel/Dag1nftsJKt/",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-16"
+  },
+  {
+    "id": "trend-2026-08-16-fforever-concert-fund",
     "platform": "tiktok",
     "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "culture",
-    "trend_source": "'Moneymaxxing' - Gen Z's TikTok trend of optimizing every dollar via high-yield savings, cutting recurring costs and automating saving - got fresh mainstream coverage this week, including a Fox News segment on 13 Aug 2026 tying it to rising credit card debt.",
-    "title": "Moneymaxxing is trending - here's the piece it's missing",
-    "why_it_works": "Moneymaxxing is a live, high-volume TikTok trend getting fresh news coverage this week; validating the good habits it promotes while adding the piece it's missing (protection, not just optimization) is a natural, credible advisor angle.",
+    "pillar": "topic",
+    "trend_type": "event",
+    "trend_source": "F-Forever, reuniting three F4 stars from Meteor Garden with Ashin of Mayday for their first world tour, is playing three sold-out nights (14-16 Aug 2026) at the Singapore Indoor Stadium, with an extra show added after the original two sold out.",
+    "title": "F4 sold out an extra Singapore show this weekend - a perfect prompt for a 'concert fund'",
+    "why_it_works": "A genuinely huge, sold-out local concert happening this exact weekend taps real nostalgia-driven spending; framing it around planning ahead for concerts, not skipping them, keeps the advice practical and non-judgmental.",
     "hooks": [
-      "Everyone's 'moneymaxxing' right now, cutting costs, automating savings. Here's the one thing the trend leaves out.",
-      "I love the moneymaxxing trend. I just think it's missing a step most people skip.",
-      "You've optimized your savings account, your subscriptions, your rewards points. Now optimize this."
+      "F4 just sold out an extra Singapore show this weekend - concert tickets catch you off guard too?",
+      "Tickets for this weekend's F4 reunion went up to $398. Here's how to never scramble again.",
+      "Nostalgia concerts keep selling out. Here's the one habit that makes them affordable every time."
     ],
     "talking_points": [
-      "Moneymaxxing - stacking high-yield savings, cutting recurring costs, automating transfers - is a genuinely great set of habits, and the trend is having a real moment right now.",
-      "Where it usually stops short: none of that optimizing protects you if you can't work for six months.",
-      "A maxxed-out savings account can get wiped out fast without the right protection sitting underneath it.",
-      "Optimizing income and expenses is step one; protecting the ability to keep earning is the step most 'moneymaxxing' content skips."
+      "F-Forever, reuniting three F4 members with Ashin of Mayday, added a third Singapore show this weekend after the first two sold out - tickets ran up to $398.",
+      "Big nostalgia concerts keep selling out fast, and the scramble to afford last-minute tickets is a very real, very common money stressor.",
+      "A small 'concert fund' - even $20-50 a month - means the next reunion tour or sold-out show doesn't have to be a financial scramble.",
+      "It's not about spending less on what you love - it's about not being caught off guard by it."
     ],
-    "cta": "Comment 'MAXX' if you want the one addition I'd make to your moneymaxxing setup.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Vertical TikTok video, film 'get ready with me' style listing off moneymaxxing habits quickly with fast cuts and an on-screen checklist, then slow down for the 'missing piece' reveal at the end.",
-    "source_label": "TikTok - #moneymaxxing",
-    "source_url": "https://www.tiktok.com/discover/moneymaxxing",
-    "observed_at": "2026-08-13",
-    "date_found": "2026-08-15"
+    "cta": "Which artist or group would make you scramble for tickets tomorrow? Comment below - let's normalise planning for it.",
+    "cta_type": "open-question",
+    "how_to_film": "Vertical TikTok video: quick cuts of concert-going footage/photos or ticket price screenshots, speak directly to camera about the 'concert fund' idea, end with the comment prompt on screen.",
+    "source_label": "LiveNation - F-Forever 1st World Tour in Singapore",
+    "source_url": "https://www.livenation.sg/event/f-forever-1st-world-tour-in-singapore-singapore-tickets-edp1679872",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-16"
   }
 ]
