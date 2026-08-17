@@ -1,338 +1,338 @@
 [
   {
-    "id": "trend-2026-08-16-sti-gdp-review-not-chase",
+    "id": "trend-2026-08-17-scheffler-fedex-consistency",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "sport",
+    "trend_source": "Scottie Scheffler closed the FedEx St Jude Championship on Sunday (Aug 16) with a final-round 66, finishing 17-under to win by 8 strokes -- his 2nd win of the season and 21st career PGA Tour title, the largest margin in the tournament's history.",
+    "title": "What an 8-stroke golf win says about the boring stuff that actually compounds",
+    "why_it_works": "SG professionals follow golf and business-discipline content on LinkedIn; Scheffler's win is fresh (this weekend) and the honest lesson -- process beats streaks -- maps directly onto financial habits without touching stock picks or performance promises.",
+    "hooks": [
+      "Scottie Scheffler won by 8 strokes this weekend. Nobody's talking about the boring part that got him there.",
+      "I watched Scheffler's final round and thought about every client who wants the shortcut version of a plan.",
+      "The biggest win margin in that tournament's history wasn't luck. It was the same routine, repeated."
+    ],
+    "talking_points": [
+      "Scheffler's win wasn't a hot streak -- it's his 21st Tour title, built on a repeatable pre-shot routine he's stuck to for years.",
+      "The same applies to money: the plans that hold up aren't the clever ones, they're the ones followed on the boring weeks too.",
+      "Name one 'boring' financial habit (auto-transfer to savings, reviewing coverage yearly) that quietly does the heavy lifting.",
+      "Invite people to audit their own 'routine' -- is there one, or is every money decision made from scratch each time?"
+    ],
+    "cta": "Drop a comment with the one money habit you've kept boring on purpose -- I'll reply with what I'd add to it.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text post. Open with the hook, 2-3 short paragraphs following the talking points, close with the CTA. Optional: a still image of the leaderboard as the post's visual.",
+    "source_label": "ESPN -- Scheffler wins FedEx St Jude Championship",
+    "source_url": "https://www.espn.com/golf/story/_/id/49632829/scottie-scheffler-opens-pga-tour-postseason-8-shot-victory",
+    "observed_at": "2026-08-16",
+    "date_found": "2026-08-17"
+  },
+  {
+    "id": "trend-2026-08-17-arsenal-city-community-shield-preseason",
+    "platform": "facebook",
+    "format": "carousel",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Arsenal beat Manchester City 3-0 in the 2026 FA Community Shield on Sunday (Aug 16) at Cardiff, scoring inside 24 seconds -- a rough full competitive debut for City's new manager Enzo Maresca.",
+    "title": "Every new season (and every new job) starts with a rough first day -- here's what to actually prepare for",
+    "why_it_works": "The Community Shield is this weekend's most-discussed football story; a new manager's tough debut is an honest, relatable parallel to any 'starting fresh' moment, without touching betting or predictions.",
+    "hooks": [
+      "Arsenal scored on City in 24 seconds this weekend. Their new manager's first big match couldn't have started worse.",
+      "New season, new manager, 3-0 down before most fans had sat down. Here's what that says about starting over.",
+      "Everyone's first day in a new role goes wrong somewhere. The question is what you'd already prepared for before it did."
+    ],
+    "talking_points": [
+      "Community Shield marks the unofficial start of the football season -- Arsenal's win, City's rough opener under a new manager.",
+      "Starting something new (a job, a business, a family) rarely goes to script on day one -- the prep work matters more than the opening scoreline.",
+      "Financially, 'preseason' means the emergency fund and coverage review done before the new chapter starts, not during the scramble.",
+      "Ask what your own 'preseason prep' looks like before your next big change -- a new job, a new home, a new kid."
+    ],
+    "cta": "Save this if you've got a big change coming up this year -- I'll be sharing the prep checklist I use with clients next.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 = hook + Arsenal scoreline graphic, slides 2-4 = one talking point each with a simple icon, final slide = the CTA.",
+    "source_label": "The FA -- 2026 Community Shield report",
+    "source_url": "https://www.thefa.com/news/2026/aug/16/fa-community-shield-2026-report-16082026",
+    "observed_at": "2026-08-16",
+    "date_found": "2026-08-17"
+  },
+  {
+    "id": "trend-2026-08-17-anthropic-revenue-career-diversify",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Singapore's MTI upgraded its 2026 GDP growth forecast to 4.5-5.5% (from 2.0-4.0%) on an AI-investment boom, and the Straits Times Index closed near record levels at 5,743.59 (+0.41%) on 14 Aug 2026, capping a strong week for local stocks.",
-    "title": "GDP upgrade + STI near record: why the headline isn't a signal to change your plan",
-    "why_it_works": "SG's own growth upgrade and stock index are genuinely in this week's headlines together, giving a natural, locally-relevant opening to talk about not reacting to good news any more than bad news - a compliant, behaviour-first angle.",
+    "trend_source": "Anthropic's Q2 2026 revenue jumped to over $11.5B (up 14x year-on-year) with its first positive operating income, and banks are reportedly prepping a fall IPO -- the story dominating tech/business LinkedIn this weekend.",
+    "title": "One company's AI numbers just went vertical. Here's the career question that raises for the rest of us.",
+    "why_it_works": "This is the exact genre of AI-industry business news that drives LinkedIn founder/VC/tech-professional commentary right now; the honest angle is career and income diversification, not a stock call on the company.",
     "hooks": [
-      "Singapore just upgraded its 2026 growth forecast, and the STI closed near a record this week.",
-      "Good economic news is everywhere in Singapore right now - here's why it won't change my plan.",
-      "MTI raised our growth forecast and the STI had a great week. I still won't chase it."
+      "An AI company just posted 14x revenue growth in a year. My first thought wasn't 'invest' -- it was 'diversify.'",
+      "Everyone's talking about one company's numbers this week. Nobody's talking about what happens if your whole career bets on one industry.",
+      "I'm not telling you to buy anything. I'm asking what your Plan B looks like if your industry has its own AI moment."
     ],
     "talking_points": [
-      "MTI raised Singapore's 2026 GDP growth forecast to 4.5-5.5% this week, and the STI closed near record levels off the back of it.",
-      "It's tempting to feel like good headlines mean it's time to invest more aggressively - but a headline week is not a financial plan.",
-      "The same discipline that stops you from panic-selling on bad news should stop you from chasing on good news too.",
-      "A plan built around your own goals doesn't need to react to any single week, good or bad."
+      "This isn't investment advice or a stock call -- it's a prompt about how fast one industry can reshape an entire job market.",
+      "Whatever sector you're in, ask: how much of my income depends on one employer, one client type, or one skill staying relevant?",
+      "A second income stream, a portable skill, or simply an emergency fund are the practical hedges -- not timing a trade.",
+      "Career risk deserves the same planning conversation as market risk, and most people never have it until they're forced to."
     ],
-    "cta": "If good-news headlines have you wondering whether to change anything, comment 'REVIEW' and I'll share how I'd actually think about it.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Write as a LinkedIn text post: hook as line one before the 'see more' cut, short paragraphs, optionally attach a simple screenshot of the STI headline for credibility.",
-    "source_label": "BusinessToday - Singapore Stocks End Higher, STI Gains 0.41% to 5,743.59",
-    "source_url": "https://www.businesstoday.com.my/2026/08/15/singapore-stocks-end-higher-sti-gains-0-41-to-5743-59/",
-    "observed_at": "2026-08-14",
-    "date_found": "2026-08-16"
+    "cta": "Book a 15-minute review if you want to stress-test your own income concentration -- no pitch, just the numbers.",
+    "cta_type": "book-call",
+    "how_to_film": "Text post. Lead with the hook, keep paragraphs short and scannable (LinkedIn native format), end with the CTA line on its own.",
+    "source_label": "CNBC -- Anthropic Q2 2026 revenue report",
+    "source_url": "https://www.cnbc.com/2026/08/15/anthropic-revenue-jumps-to-over-11point5-billion-in-q2-report.html",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-17"
   },
   {
-    "id": "trend-2026-08-16-ajax-godts-transfer-compounding",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "sport",
-    "trend_source": "Ajax reached a verbal agreement on 14 Aug 2026 to sell 21-year-old winger Mika Godts to PSG for around €55 million - a player they signed from Genk for just €1 million three years ago.",
-    "title": "A €1 million signing just sold for €55 million. That's not luck, that's compounding.",
-    "why_it_works": "A genuinely fresh transfer story with a dramatic number gives a vivid, non-financial way to explain patient, long-horizon growth without making any market call - a safe, compliant analogy trending in football news right now.",
+    "id": "trend-2026-08-17-paw-patrol-dino-family-budgeting",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "identity",
+    "trend_type": "event",
+    "trend_source": "PAW Patrol: The Dino Movie opened to $20.5M domestic / $69M global with an A CinemaScore this weekend (Aug 14-16), the latest big family-movie opening drawing parents and kids back to cinemas.",
+    "title": "The real cost of a 'simple' family movie outing -- and the money conversation to have with your kids at the popcorn counter",
+    "why_it_works": "A family blockbuster opening this weekend is instantly relatable to parent-consultants; the honest bridge is teaching kids about budgeting through a shared outing, not a pitch.",
     "hooks": [
-      "Ajax paid €1 million for a teenager and just sold him for €55 million three years later.",
-      "A €1 million bet turned into €55 million in three years - and it wasn't luck.",
-      "This week's biggest transfer story is really a lesson in patience, not football tactics."
+      "Tickets, popcorn, the toy at checkout -- a 'simple' movie outing with the kids adds up faster than you think.",
+      "PAW Patrol's new movie just had a huge opening weekend. Here's the money talk I had with my kid on the way out.",
+      "I let my child pick the snack budget before we walked into the cinema this weekend. Here's what happened."
     ],
     "talking_points": [
-      "Ajax signed Mika Godts for about €1 million in 2023 and just agreed to sell him to PSG for roughly €55 million this week - a 55x jump in three years.",
-      "That number didn't come from one lucky moment - it came from three years of steady development, appearances and improvement, season after season.",
-      "The same principle applies to long-term saving and investing: the biggest gains usually come from time and consistency, not from timing one big move.",
-      "Nobody asks 'when's the best time to buy Mika Godts' - they ask 'did he keep developing.' Ask the same question about your own plan."
+      "Family movie outings are a low-stakes, high-frequency moment to practice money conversations with kids.",
+      "Give kids a small, real budget for snacks/merch before you walk in -- they learn trade-offs faster than any lecture.",
+      "Talk price out loud without shame: 'this popcorn costs more than the ticket, is it worth it to you?'",
+      "The habit matters more than the amount -- kids who practice small trade-offs young handle bigger ones later."
     ],
-    "cta": "Curious how compounding actually plays out over a real timeline? Message me 'COMPOUND' and I'll walk you through an example.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Write as a LinkedIn text post: open with the €1m-to-€55m hook, short paragraphs, optionally attach a simple graphic showing the transfer fee jump.",
-    "source_label": "NL Times - Ajax Reach Verbal Agreement to Sell Mika Godts to PSG for €55 Million",
-    "source_url": "https://nltimes.nl/2026/08/14/ajax-reach-verbal-agreement-sell-mika-godts-psg-eu55-million",
-    "observed_at": "2026-08-14",
-    "date_found": "2026-08-16"
+    "cta": "Save this carousel for your next family outing -- swap 'movie' for any activity and the same 3 steps work.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 = hook over a cinema-ticket-style graphic, slides 2-4 = one talking point each, final slide = CTA with a simple recap.",
+    "source_label": "ComicBasics -- PAW Patrol: The Dino Movie opening weekend",
+    "source_url": "https://www.comicbasics.com/paw-patrol-the-dino-movie-just-set-a-franchise-box-office-record/",
+    "observed_at": "2026-08-16",
+    "date_found": "2026-08-17"
   },
   {
-    "id": "trend-2026-08-16-suarez-1500-hits-consistency",
+    "id": "trend-2026-08-17-cincinnati-open-underdog-prep",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "interest",
     "trend_type": "sport",
-    "trend_source": "Cincinnati Reds' Eugenio Suárez recorded the 1,500th hit of his career, an RBI double, in a 1-0 win over the Miami Marlins on 14 Aug 2026.",
-    "title": "1,500 career hits didn't happen in one game - and neither will your retirement number",
-    "why_it_works": "A fresh, feel-good sports milestone gives a clean, non-market way to talk about how big numbers are really the sum of small, repeated actions - reinforcing 'consistency beats timing' without touching investment advice.",
+    "trend_source": "At the Cincinnati Open this weekend (Aug 16), unseeded Diane Parry upset No. 21 seed Elise Mertens, and Felix Auger-Aliassime beat Stefanos Tsitsipas in straight sets -- a run of second-round upsets over higher-ranked, higher-profile players.",
+    "title": "The unseeded player who beat the No. 21 seed this weekend didn't out-talent her. She out-prepared her.",
+    "why_it_works": "Fresh tennis upsets this weekend give a light, relatable sport hook; the honest bridge is that consistent preparation beats reputation, mapped to financial planning without any market-timing framing.",
     "hooks": [
-      "A baseball player just got his 1,500th career hit - built one at-bat at a time.",
-      "1,500 hits sounds impressive until you remember it's just one at-bat, over and over.",
-      "This week's career milestone took a decade to build. Your retirement number works the same way."
+      "An unseeded player just beat a top-21 seed at Cincinnati this weekend. Ranking didn't decide that match.",
+      "Nobody expected Diane Parry to win that match. She wasn't the bigger name -- she was just more prepared for it.",
+      "The upset of the weekend wasn't about talent. It was about who showed up with a plan for exactly this moment."
     ],
     "talking_points": [
-      "Eugenio Suárez recorded his 1,500th career hit this week - a milestone built from thousands of individual at-bats over more than a decade, most of them unremarkable on their own.",
-      "No single hit made the milestone - it's the accumulation of consistent effort, game after game, that got him there.",
-      "A retirement number works the same way: it's built from small, repeated contributions over years, not one big decision.",
-      "The habit of showing up - to the plate, or to your CPF/SRS top-up - matters more than any single 'big' moment."
+      "Seeding and reputation predict a lot in tennis -- until someone shows up better prepared for that specific match.",
+      "Same with money: net worth or income level doesn't decide who handles a financial curveball well -- preparation does.",
+      "The 'unseeded' move is having a plan (protection, savings buffer) in place before you need it, not after.",
+      "Ask what your own 'seeding' is versus your actual preparation -- are they matched, or is one ahead of the other?"
     ],
-    "cta": "How consistent are your own monthly contributions right now? Comment your streak - even if it's imperfect.",
-    "cta_type": "open-question",
-    "how_to_film": "Write as a Facebook text post: open with the 1,500-hits hook, keep paragraphs short, pair with a simple screenshot of the milestone headline if you have one.",
-    "source_label": "Redleg Nation - Chase Burns Is Dominant in the Reds' Shutout Win Over Miami",
-    "source_url": "https://www.redlegnation.com/2026/08/14/chase-burns-is-dominant-in-the-cincinnati-reds-shutout-win-over-miami-marlins/",
-    "observed_at": "2026-08-14",
-    "date_found": "2026-08-16"
+    "cta": "Comment 'PREP' if you want the 3-point readiness check I use with clients before life throws the upset.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text post with the hook as the opening line, 2-3 short paragraphs, CTA as the closing line.",
+    "source_label": "TSN -- Cincinnati Open second-round upsets",
+    "source_url": "https://www.tsn.ca/tennis/video/2026/08/16/auger-aliassime-downs-tsitsipas-in-straight-sets-at-cincinnati-open/",
+    "observed_at": "2026-08-16",
+    "date_found": "2026-08-17"
   },
   {
-    "id": "trend-2026-08-16-snow-expo-sinking-fund",
+    "id": "trend-2026-08-17-fairprice-sg61-voucher-stacking",
     "platform": "instagram",
     "format": "story",
     "pillar": "topic",
-    "trend_type": "event",
-    "trend_source": "Singapore Snow Expo returned to Suntec Singapore Convention Centre on 15-16 Aug 2026 after a nine-year gap, drawing crowds with ski holiday deals, snow-sport demos and a Niseko holiday giveaway.",
-    "title": "The Snow Expo is packed this weekend - here's how to actually afford that ski trip",
-    "why_it_works": "A genuinely new, buzzy local event happening this exact weekend gives a timely, relatable hook to talk about planning ahead for a big discretionary trip instead of impulse-booking after a hype expo.",
-    "hooks": [
-      "The Snow Expo is back at Suntec this weekend, and everyone's booking a ski trip already.",
-      "If the Snow Expo has you dreaming about Niseko, don't book yet - do this first.",
-      "Ski deals are everywhere at Suntec this weekend. The best deal is still the planned one."
-    ],
-    "talking_points": [
-      "Singapore Snow Expo returned to Suntec this weekend for the first time in nine years, with travel deals and a free ski holiday giveaway pulling big crowds.",
-      "Expo deals and giveaways are designed to create urgency - a genuinely fun holiday shouldn't be a rushed decision funded by credit.",
-      "A simple sinking fund - a separate pot you top up monthly for one specific trip - turns a spontaneous booking into a stress-free one.",
-      "The trip is more enjoyable when you're not still paying for it three months after you're back."
-    ],
-    "cta": "Save this if you're eyeing a ski trip - comment 'SNOW' and I'll DM you a simple sinking-fund template.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Vertical story format: film a quick clip at the expo or of ski gear/photos, overlay the hook as on-screen text, use a poll or tap-through sticker tied to the CTA.",
-    "source_label": "Deep Arrival - Singapore Snow Expo Returns After Nine-Year Gap",
-    "source_url": "https://deeparrival.com/news/singapore-snow-expo-returns-august-15-16-2026/",
-    "observed_at": "2026-08-15",
-    "date_found": "2026-08-16"
-  },
-  {
-    "id": "trend-2026-08-16-d23-fandom-budget",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "event",
-    "trend_source": "D23: The Ultimate Disney Fan Event is running 14-16 Aug 2026 in Anaheim, with a record show floor and major franchise reveals driving global fan excitement and merchandise spending this weekend.",
-    "title": "D23 is happening right now - a good excuse to talk about 'fandom budgets'",
-    "why_it_works": "A massive global fan event is live this exact weekend and drives real impulse spending on merch and travel; using it to introduce a planned 'fandom budget' is a light, relatable, non-judgmental money lesson.",
-    "hooks": [
-      "D23 is happening right now, and fans are already spending big on merch this weekend.",
-      "You don't have to skip spending on what you love - just give it its own budget.",
-      "Fandom spending isn't the problem. Spending with no plan for it is."
-    ],
-    "talking_points": [
-      "D23, Disney's biggest fan event, is running this weekend, and it's already driving a wave of merchandise and travel spending worldwide.",
-      "Spending on things you genuinely love - concerts, conventions, collectibles - isn't a financial mistake by itself.",
-      "The difference is whether it's a planned line item in your budget or an impulse charge that shows up as regret next month.",
-      "A small monthly 'fun fund' for your specific fandom means you can enjoy the moment without derailing anything else."
-    ],
-    "cta": "What's the one thing you'd happily budget for every month, guilt-free? Tell me in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Write as a Facebook text post: open with the D23 hook, short paragraphs, optionally pair with a simple graphic of a 'fandom budget' line-item example.",
-    "source_label": "Hoodline - D23 Returns to Anaheim with Record 1 Million Square Feet of Disney Reveals",
-    "source_url": "https://hoodline.com/2026/08/d23-returns-to-anaheim-with-record-1-million-square-feet-of-disney-reveals/",
-    "observed_at": "2026-08-15",
-    "date_found": "2026-08-16"
-  },
-  {
-    "id": "trend-2026-08-16-gst-voucher-medisave-topup",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "MOF confirmed the August 2026 GST Voucher payout: up to $850 cash for 1.5 million adult Singaporeans (bank crediting from 15 Aug 2026) and up to $450 MediSave top-ups for 710,000 seniors, totalling about $1.4 billion.",
-    "title": "Your GST Voucher just landed - here's the one thing worth doing with it",
-    "why_it_works": "The payout is landing in accounts this exact week, making it a live, universally relevant prompt; suggesting people redirect part of it toward MediSave or savings instead of spending it is neutral, educational and squarely in an advisor's lane.",
+    "trend_source": "FairPrice Group's National Day promotion -- a $6 Return Voucher for every $61 spent, stackable with CDC Vouchers and CHAS/Pioneer-Merdeka discounts, capped at 3 per receipt -- ran from Aug 6-16, its last day.",
+    "title": "The voucher-stacking trick that just wrapped up -- and why 'small stackable wins' beats one big cut",
+    "why_it_works": "This is a real, dated, Singapore-specific cost-of-living promotion consultants' clients were actually using this week -- the honest bridge is habit-stacking small savings, which is exactly what the promo modelled.",
     "hooks": [
-      "Your GST Voucher cash should be landing this week - here's what I'd do with it.",
-      "$1.4 billion is landing in Singaporean bank accounts this week. Have you checked yours yet?",
-      "Before that GST Voucher cash disappears into spending, here's a 30-second thing worth doing."
+      "FairPrice's $6-for-$61 voucher promo just ended. If you stacked it right, here's what you walked away with.",
+      "I stacked three vouchers on one receipt this week and it reminded me why small stackable wins beat one big cut.",
+      "This National Day promo just wrapped up. The habit behind it is worth keeping long after the vouchers stop."
     ],
     "talking_points": [
-      "MOF confirmed up to $850 in GST Voucher cash is crediting to bank accounts this week for about 1.5 million adult Singaporeans, plus MediSave top-ups for eligible seniors.",
-      "It's easy for a lump sum like this to just blend into everyday spending without you noticing.",
-      "Redirecting even half of it into a MediSave top-up, an emergency fund, or a specific savings goal makes it count for something beyond this month.",
-      "Check your eligibility and payment method on the GovBenefits site if you're not sure whether or how you're receiving it."
+      "The promo rewarded stacking -- CDC Vouchers + return vouchers + CHAS/Pioneer discounts on one receipt, capped at 3.",
+      "The lesson isn't the $18 max -- it's that small, stackable savings habits add up faster than most people expect.",
+      "Same principle applies to insurance and CPF: small, stacked, consistent contributions beat one occasional big move.",
+      "Ask which 'small stack' habit (rebates, cashback, auto-top-ups) you already have running on autopilot."
     ],
-    "cta": "Comment 'GSTV' and I'll share the simple split I use with clients for windfalls like this.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Write as a Facebook text post: lead with the payout hook, short punchy lines, optionally attach a screenshot of the MOF announcement for credibility.",
-    "source_label": "Ministry of Finance - GST Voucher Cash and MediSave Top-Up, August 2026",
-    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/1-5-million-adult-singaporeans-to-receive-up-to--850-in--gstv---cash-and-710-000-singaporean-seniors-to-receive-up-to--450-medisave-top-up-in-august-2026/",
-    "observed_at": "2026-08-15",
-    "date_found": "2026-08-16"
+    "cta": "Reply 'STACK' and I'll send you the 3 small money habits I tell every client to automate first.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Story format: a simple text-over-photo of a receipt/voucher screenshot, 3-4 short story frames building to the CTA sticker.",
+    "source_label": "Mothership -- FairPrice $6 return voucher promotion",
+    "source_url": "https://mothership.sg/2026/08/fairprice-spend-61-voucher/",
+    "observed_at": "2026-08-16",
+    "date_found": "2026-08-17"
   },
   {
-    "id": "trend-2026-08-16-maju-forest-housing-supply-signal",
+    "id": "trend-2026-08-17-fiba-3x3-singapore-challenger",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "sport",
+    "trend_source": "The FIBA 3x3 Singapore Challenger 2026 wrapped up this weekend (Aug 15-16) at *SCAPE -- France's Toulouse beat China's Hangzhou Jingwei 21-12 in the final, with three teams punching tickets to the FIBA 3x3 World Tour Malaga.",
+    "title": "Singapore just hosted a world-tour basketball final. Here's the money lesson in a 21-12 3x3 blowout.",
+    "why_it_works": "A world-tour final happening on home ground in Singapore this weekend is a strong local hook; 3x3 basketball's fast, no-timeout format gives an honest 'no time to fix mistakes later' parallel to financial prep.",
+    "hooks": [
+      "Singapore just hosted a FIBA 3x3 world final this weekend. The scoreline says everything about being ready before you start.",
+      "3x3 basketball gives you 10 minutes and no timeouts. That's basically how most financial emergencies feel too.",
+      "Toulouse blew out the score at *SCAPE this weekend. Here's why fast formats punish anyone without a plan."
+    ],
+    "talking_points": [
+      "FIBA 3x3 Singapore Challenger 2026 wrapped this weekend at *SCAPE -- Toulouse beat Hangzhou Jingwei 21-12 in the final.",
+      "3x3's short, no-timeout format means teams can't course-correct mid-game -- prep has to happen before tip-off.",
+      "Financial emergencies work the same way: the plan (buffer fund, coverage) has to exist before the 10-minute clock starts.",
+      "One question to leave people with: if your 'game' started right now, what's already in place?"
+    ],
+    "cta": "Comment 'READY' and I'll share the 3-item checklist I tell clients to have in place before they need it.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Short vertical video: open on-screen text with the scoreline, cut to you talking to camera through the 3 talking points, end card with the CTA.",
+    "source_label": "FIBA.basketball -- Singapore Challenger 2026 final report",
+    "source_url": "https://www.fiba.basketball/en/news/toulouse-break-through-in-singapore-as-three-teams-punch-tickets-to-fiba-3x3-world-tour-malaga",
+    "observed_at": "2026-08-16",
+    "date_found": "2026-08-17"
+  },
+  {
+    "id": "trend-2026-08-17-dance-moms-dingbat-boundaries",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "meme",
+    "trend_source": "A 14-year-old Dance Moms clip of Abby Lee Miller snapping \"No I didn't, dingbat, LISTEN!\" has become one of TikTok's biggest sounds this week, with creators miming the argument before breaking into choreography.",
+    "title": "The 'dingbat, LISTEN' trend is really about the money conversation nobody wants to have out loud",
+    "why_it_works": "This is a genuinely fresh (this week) TikTok audio spike with huge reach; the honest bridge is using its 'say it plainly' energy for the blunt money conversations people avoid -- self-deprecating, not mocking anyone.",
+    "hooks": [
+      "Everyone's doing the 'dingbat, LISTEN' trend this week. I'm using it to say the money thing I usually soften.",
+      "This old Dance Moms clip is everywhere right now. Turns out it's the perfect energy for a hard money conversation.",
+      "'No I didn't, dingbat, LISTEN!' -- that's basically me trying to get my past self to start an emergency fund."
+    ],
+    "talking_points": [
+      "The sound is a 2010s Dance Moms clip that's spiked into one of this week's biggest TikTok audios.",
+      "Use the trend's blunt, no-nonsense energy to say the money thing you usually say gently -- and it lands harder.",
+      "Good examples: 'you don't need to buy the thing to prove you can afford it' or 'insurance isn't the boring option, no coverage is.'",
+      "Keep it self-deprecating -- aim the bluntness at your own past mistakes, not at anyone watching."
+    ],
+    "cta": "Drop a comment with the money thing you wish someone had said to you bluntly years ago.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Short vertical video using the trending audio: mime the argument for the first half, cut to you saying your blunt money line on the punchline beat, on-screen caption of the line.",
+    "source_label": "Central Jersey -- Dance Moms 'dingbat' TikTok trend",
+    "source_url": "https://centraljersey.com/2026/08/16/dance-moms-dingbat-tiktok-trend/",
+    "observed_at": "2026-08-16",
+    "date_found": "2026-08-17"
+  },
+  {
+    "id": "trend-2026-08-17-ariana-petal-simple-habit",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "culture",
+    "trend_source": "Ariana Grande's simple seated \"Petal\" chair choreography, posted from her own account, is still spreading fast on TikTok this week -- a low-effort routine outperforming more complex dance trends.",
+    "title": "The dance everyone's copying this week only works because it's stupidly simple. Same trick works for saving.",
+    "why_it_works": "A currently-spreading, artist-posted choreo trend is a light, low-stakes hook; the honest bridge is that simple, repeatable habits (like the choreo) beat complicated ones for both dance trends and money.",
+    "hooks": [
+      "This chair choreo is everywhere on TikTok right now because anyone can do it. That's the whole appeal.",
+      "I tried the Petal chair dance this week. It's popular for the same reason auto-transfers work better than budgeting apps.",
+      "The simplest trend on my For You page right now is outperforming every complicated one. Money habits work the same way."
+    ],
+    "talking_points": [
+      "Ariana Grande's own 'Petal' chair choreo is a simple, low-effort routine spreading fast on TikTok this week.",
+      "Simple, repeatable formats spread because anyone can start immediately -- no learning curve, no excuse.",
+      "The same logic beats complicated budgeting spreadsheets: one automatic transfer you never have to think about.",
+      "Challenge: name the one 'chair choreo' version of a money habit you could start today with zero setup."
+    ],
+    "cta": "Save this and try the choreo -- then tell me in the comments the one money habit you're automating this week.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Short vertical video using the trending Petal audio: do the simple chair choreo for the hook, then talk-to-camera through the money parallel, end on the CTA.",
+    "source_label": "TikTok -- @arianagrande Petal choreo",
+    "source_url": "https://www.tiktok.com/@arianagrande/video/7667549178033212702",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-17"
+  },
+  {
+    "id": "trend-2026-08-17-my-favorite-person-beneficiary",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "The 'My Favorite Person' TikTok trend -- flipping the camera on someone and telling them, on camera, that they're your favourite person -- is one of the platform's top emotional-reveal formats trending this week.",
+    "title": "Everyone's naming their 'favourite person' on TikTok this week. Have you actually told them they're covered too?",
+    "why_it_works": "This week's emotional-reveal trend naturally opens the door to naming a beneficiary or telling a loved one they're protected -- an honest, warm insurance bridge with zero pressure or product-pushing.",
+    "hooks": [
+      "This trend has everyone naming their favourite person on camera. It made me realise I'd never told mine they're covered.",
+      "I did the 'favourite person' trend this week. Then I checked if that person actually knows what happens if something happens to me.",
+      "Half my FYP is people naming their favourite person right now. The other half should be telling that person the plan."
+    ],
+    "talking_points": [
+      "The trend is a simple camera-flip reveal: tell someone, on camera, that they're your favourite person.",
+      "It's a warm, low-pressure moment to also have the practical conversation -- who's named, who knows where the documents are.",
+      "This isn't about selling anyone anything -- it's about making sure your favourite person isn't guessing later.",
+      "Prompt: have you actually told your favourite person what your plan looks like, not just that you love them?"
+    ],
+    "cta": "Tag your favourite person in the comments -- then DM me 'COVERED' if you want the 3 questions to ask them this week.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Short vertical video: do the trend format (flip the camera, name your favourite person), then a direct-to-camera close on the practical follow-up question.",
+    "source_label": "TikTok -- 'My Favorite Person' trend format",
+    "source_url": "https://www.tiktok.com/discover/how-to-do-the-talk-about-my-favorite-person-trend",
+    "observed_at": "2026-08-15",
+    "date_found": "2026-08-17"
+  },
+  {
+    "id": "trend-2026-08-17-spider-man-brand-new-day-consistency",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "Spider-Man: Brand New Day held the No.1 box office spot for a third straight weekend (Aug 14-16), the second-best three-peat opening in box office history -- built on repeat viewings, not one big opening weekend.",
+    "title": "The movie that's been #1 for 3 weekends straight isn't winning off one big opening. Neither should your money plan.",
+    "why_it_works": "A genuinely fresh box-office milestone (this weekend) gives a relatable pop-culture hook; the honest bridge is repeat consistency over one big splashy move -- careful to avoid any stock-market framing.",
+    "hooks": [
+      "This movie has been #1 for three weekends straight. That's not hype, that's people coming back.",
+      "Everyone remembers the opening weekend numbers. Nobody talks about the movie that's still #1 three weeks later.",
+      "The real flex isn't a huge opening weekend. It's still being #1 a month in. Money plans work the same way."
+    ],
+    "talking_points": [
+      "Spider-Man: Brand New Day is #1 for a third straight weekend -- a rare feat that rewards repeat viewers, not just opening-night hype.",
+      "One big opening weekend gets headlines; staying #1 for weeks needs people to keep choosing to come back.",
+      "A money plan works the same way -- one big lump-sum decision matters less than the habit you keep choosing every month.",
+      "Ask: is your plan a 'big opening weekend' (one decision, then forgotten) or a 'three-peat' (something you keep showing up for)?"
+    ],
+    "cta": "Save this if your money plan has been more opening-weekend than three-peat -- I'll share how to fix that next.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 = hook with the box-office headline, slides 2-4 = one talking point each, final slide = the CTA.",
+    "source_label": "Deadline -- Spider-Man: Brand New Day third weekend box office",
+    "source_url": "https://deadline.com/2026/08/box-office-spider-man-the-end-of-oak-street-1237033458/",
+    "observed_at": "2026-08-16",
+    "date_found": "2026-08-17"
+  },
+  {
+    "id": "trend-2026-08-17-nus-longevity-retirement-runway",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Minister of State for National Development Alvin Tan announced on 14 Aug 2026 that more greenery will be retained at the Maju Forest (Sunset Way) and Gillman Barracks redevelopment sites than originally planned, trimming the number of future homes on both.",
-    "title": "Two housing sites just got smaller. Here's why that's worth a note, not a panic.",
-    "why_it_works": "A live, neutrally-described planning announcement this week gives a natural, non-partisan opening to talk about long-term property/HDB planning horizons without any speculation or market call.",
+    "trend_type": "current-affairs",
+    "trend_source": "An NUS Medicine professor, Dean Ho, made himself the sole subject of a longevity study (DELTA) and found his biological age estimated 15 years younger than his actual 47 -- a story getting fresh pickup in Singapore media this week.",
+    "title": "A NUS professor just found out his body is 15 years younger. Has your retirement plan caught up?",
+    "why_it_works": "This week's local science story gives an honest, non-alarmist opening into retirement planning -- longer healthy years genuinely change how far money needs to stretch, without touching any biohacking product pitch.",
     "hooks": [
-      "Two future housing sites just got a bit smaller this week - worth a note, not a panic.",
-      "More trees, fewer future homes on two sites this week. Small shifts like this add up.",
-      "This week's housing-supply tweak won't change your plans today, but it's worth tracking."
+      "An NUS professor just tested himself and came out 15 years younger, biologically. My first thought was retirement math.",
+      "This week's big Singapore science story isn't really about biohacking. It's about how long your money needs to last.",
+      "If your body could realistically outlast your original retirement plan by 15 years, would you even know?"
     ],
     "talking_points": [
-      "The government confirmed this week it will retain more forested area at the Maju Forest and Gillman Barracks sites than originally proposed, meaning fewer future homes on both.",
-      "One announcement doesn't move the property market - but small, repeated supply adjustments across many sites shape it over years.",
-      "If you're planning an HDB upgrade or purchase years out, it's worth being aware of long-range supply signals like this, not reacting to any single one.",
-      "The takeaway isn't 'buy now' or 'wait' - it's building a property timeline that isn't dependent on any one headline."
+      "NUS Medicine's Dean Ho ran a longevity study on himself and came out with a biological age 15 years younger than his chronological age.",
+      "This isn't a call to copy his regimen -- it's a prompt that 'living longer, healthier' is becoming less rare, not more.",
+      "Retirement plans built on old life-expectancy assumptions can quietly fall short if the runway turns out longer than planned.",
+      "Ask when your own retirement number was last checked against a realistic, longer horizon -- not just the standard one."
     ],
-    "cta": "If you're mapping out a property upgrade timeline, comment 'PLAN' and I'll share how I help clients think about the horizon.",
+    "cta": "Comment 'RUNWAY' and I'll send you the 2 numbers I check first when a retirement plan hasn't been revisited in years.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Write as a LinkedIn text post: hook as the first line before 'see more', short paragraphs, optionally attach a screenshot of the announcement headline.",
-    "source_label": "Mothership - More Greenery Retained at Maju Forest & Gillman Barracks, Alvin Tan",
-    "source_url": "https://mothership.sg/2026/08/maju-forest-gillman-barracks-more-greenery-retained-alvin-tan/",
-    "observed_at": "2026-08-14",
-    "date_found": "2026-08-16"
-  },
-  {
-    "id": "trend-2026-08-16-my-biggest-flex-advisor-hats",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "The 'My Biggest Flex' Instagram Reels trend has creators list every role they play over a Shakira-scored clip, with the text overlay 'my biggest flex is that you can hire me as your...' - currently trending on Instagram this week.",
-    "title": "The 'my biggest flex' trend is the perfect way to show what an advisor actually does",
-    "why_it_works": "A genuinely trending, low-production Reels format gives a fun, current way to show the breadth of an advisor's role - CPF, insurance, tax relief, retirement planning - without a hard sell, riding a real viral format.",
-    "hooks": [
-      "Everyone's doing the 'my biggest flex' trend right now, so here's mine.",
-      "My biggest flex is that you can hire me as your CPF planner and retirement translator.",
-      "This trend is supposed to be a joke, but honestly, it's just my job description."
-    ],
-    "talking_points": [
-      "The 'my biggest flex' Reels trend has people listing every role they can be hired for over a trending audio clip - it's genuinely popular right now.",
-      "For a financial advisor, that list is real: CPF planner, insurance auditor, tax-relief hunter, retirement translator, all in one relationship.",
-      "Using a real trend to show the range of what you do is a fun, low-pressure way to remind your audience you're more than a 'sell insurance' contact.",
-      "End on a light, specific line so it reads as playful, not a pitch."
-    ],
-    "cta": "Comment your job title and I'll tell you the three hats I bet you didn't know I wear too.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Vertical Reel using the trending audio: quick cuts of you doing a 'role' each beat (laptop, calculator, phone call), text overlay each role, end on your face and a smile.",
-    "source_label": "Instagram Reel - 'My Biggest Flex' trend",
-    "source_url": "https://www.instagram.com/reel/DM2pcpUyBMe/",
-    "observed_at": "2026-08-15",
-    "date_found": "2026-08-16"
-  },
-  {
-    "id": "trend-2026-08-16-alarm-clock-distress-deadlines",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "topic",
-    "trend_type": "culture",
-    "trend_source": "Instagram's 'performative distress alarm clock' Reels trend - creators filming exaggerated panic reacting to alarms and deadlines - is one of the platform's biggest breakout formats this week, with small accounts hitting millions of views.",
-    "title": "The 'panic alarm' trend is basically what forgetting your insurance renewal feels like",
-    "why_it_works": "A genuinely breakout, high-virality Reels format this week gives a relatable, humorous entry point into a real behaviour - procrastinating on renewals and deadlines - without shaming anyone.",
-    "hooks": [
-      "POV: your insurance renewal reminder just went off, and you've ignored it for three weeks.",
-      "This trend is basically what my inbox looks like every policy renewal season.",
-      "Everyone's doing the panic-alarm trend. Mine is just about my SRS deadline."
-    ],
-    "talking_points": [
-      "The 'performative distress alarm clock' trend - exaggerated panic reacting to a deadline - is one of the biggest Reels formats breaking through this week.",
-      "It's funny because it's true: renewal dates, SRS deadlines and policy reviews often get the same 'I'll do it later' treatment until the alarm goes off.",
-      "Unlike a missed morning alarm, a missed renewal or deadline can quietly cost you coverage or a tax-relief window.",
-      "A simple calendar reminder two weeks out turns a 'panic' moment into a five-minute task."
-    ],
-    "cta": "Comment 'DEADLINE' and I'll send you the two dates worth putting a reminder on today.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Vertical Reel: film the trending panic-alarm format - wake up, phone alarm blaring, exaggerated scramble - then cut to calm you explaining the real deadline it represents.",
-    "source_label": "Instagram Reel - Performative Distress Alarm Clock trend",
-    "source_url": "https://www.instagram.com/reel/DXWvA1UgWJa/",
-    "observed_at": "2026-08-15",
-    "date_found": "2026-08-16"
-  },
-  {
-    "id": "trend-2026-08-16-bangladesh-neglect-complaint",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "topic",
-    "trend_type": "culture",
-    "trend_source": "The 'Bangladesh' trend - a deadpan 49-second song about a partner who 'never takes me to Bangladesh... it's like you don't care' - is currently one of Instagram's favourite absurdist audio formats, with people swapping in their own unfulfilled asks.",
-    "title": "'You never take me to Bangladesh' - but make it about your own SRS account",
-    "why_it_works": "A genuinely viral, absurdist audio format gives a low-effort, funny way to deliver a real nudge about self-neglect in personal finance, using humour instead of guilt.",
-    "hooks": [
-      "You never top up my SRS. You never claim my tax relief. It's like you don't care.",
-      "Doing the 'Bangladesh' trend, but it's just me complaining to myself about my own CPF.",
-      "This trend is supposed to be about a partner. Mine's about how I ignore my own money."
-    ],
-    "talking_points": [
-      "The 'Bangladesh' deadpan complaint trend is a genuinely popular Instagram audio format right now, built around absurd, exaggerated grievances.",
-      "Swapping the joke to target your own financial habits - not a partner - turns it into a gentle self-callout instead of a relationship joke.",
-      "The humour works because it's true: most people know exactly which financial task they keep putting off.",
-      "Naming it out loud, even as a joke, is often the first step to actually doing it."
-    ],
-    "cta": "What's the financial task you keep 'forgetting'? Comment it below - no judgment.",
-    "cta_type": "open-question",
-    "how_to_film": "Vertical Reel using the trending audio: deadpan delivery to camera, deliver each line flatly with a straight face, text overlay the punchline for extra reach.",
-    "source_label": "Instagram Reel - 'Bangladesh' absurdist complaint trend",
-    "source_url": "https://www.instagram.com/reel/DZsLs-aO2_4/?hl=en",
-    "observed_at": "2026-08-15",
-    "date_found": "2026-08-16"
-  },
-  {
-    "id": "trend-2026-08-16-netflix-documentary-close-call",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "The 'Netflix documentary' trend - sit in a chair, swelling documentary score, caption frames a mundane life event as a true-crime/doc premise - has crossed over from TikTok and is trending independently on Instagram Reels this week.",
-    "title": "Using the 'Netflix documentary' trend to tell your own near-miss money story",
-    "why_it_works": "A genuinely trending dramatisation format gives advisors a fun, low-production way to share a relatable 'close call' story - without disclosing any real client details - that builds trust through vulnerability rather than a hard pitch.",
-    "hooks": [
-      "Preparing my Netflix documentary: the year I almost went three months with zero income protection.",
-      "Somebody get Netflix on the phone - my early 20s money decisions deserve a documentary.",
-      "This trend is for dramatic stories. Mine's just about the policy I almost let lapse."
-    ],
-    "talking_points": [
-      "The 'Netflix documentary' trend - a dramatic score over a mundane confession - has crossed over to Instagram and is trending this week.",
-      "Using it to share your own honest 'close call' with money (a lapsed policy, a missed deadline, an underinsured year) is more relatable than a polished success story.",
-      "Keep it about your own experience, not a client's - it builds trust without touching anyone else's private information.",
-      "End on how you fixed it, so the story lands as reassurance, not just drama."
-    ],
-    "cta": "What's your own financial 'documentary-worthy' close call? Tell me in the comments - I'll go first if you ask.",
-    "cta_type": "open-question",
-    "how_to_film": "Vertical Reel: sit in a chair, use a dramatic instrumental/documentary-style trending audio, deliver your close-call story deadpan with on-screen caption text, cut to a calmer resolution beat at the end.",
-    "source_label": "Instagram Reel - 'Netflix Documentary' chair-sit trend",
-    "source_url": "https://www.instagram.com/reel/Dag1nftsJKt/",
-    "observed_at": "2026-08-15",
-    "date_found": "2026-08-16"
-  },
-  {
-    "id": "trend-2026-08-16-fforever-concert-fund",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "topic",
-    "trend_type": "event",
-    "trend_source": "F-Forever, reuniting three F4 stars from Meteor Garden with Ashin of Mayday for their first world tour, is playing three sold-out nights (14-16 Aug 2026) at the Singapore Indoor Stadium, with an extra show added after the original two sold out.",
-    "title": "F4 sold out an extra Singapore show this weekend - a perfect prompt for a 'concert fund'",
-    "why_it_works": "A genuinely huge, sold-out local concert happening this exact weekend taps real nostalgia-driven spending; framing it around planning ahead for concerts, not skipping them, keeps the advice practical and non-judgmental.",
-    "hooks": [
-      "F4 just sold out an extra Singapore show this weekend - concert tickets catch you off guard too?",
-      "Tickets for this weekend's F4 reunion went up to $398. Here's how to never scramble again.",
-      "Nostalgia concerts keep selling out. Here's the one habit that makes them affordable every time."
-    ],
-    "talking_points": [
-      "F-Forever, reuniting three F4 members with Ashin of Mayday, added a third Singapore show this weekend after the first two sold out - tickets ran up to $398.",
-      "Big nostalgia concerts keep selling out fast, and the scramble to afford last-minute tickets is a very real, very common money stressor.",
-      "A small 'concert fund' - even $20-50 a month - means the next reunion tour or sold-out show doesn't have to be a financial scramble.",
-      "It's not about spending less on what you love - it's about not being caught off guard by it."
-    ],
-    "cta": "Which artist or group would make you scramble for tickets tomorrow? Comment below - let's normalise planning for it.",
-    "cta_type": "open-question",
-    "how_to_film": "Vertical TikTok video: quick cuts of concert-going footage/photos or ticket price screenshots, speak directly to camera about the 'concert fund' idea, end with the comment prompt on screen.",
-    "source_label": "LiveNation - F-Forever 1st World Tour in Singapore",
-    "source_url": "https://www.livenation.sg/event/f-forever-1st-world-tour-in-singapore-singapore-tickets-edp1679872",
-    "observed_at": "2026-08-15",
-    "date_found": "2026-08-16"
+    "how_to_film": "Text post. Open with the hook, short paragraphs through the talking points, CTA as the final line.",
+    "source_label": "Mothership -- NUS professor longevity study",
+    "source_url": "https://mothership.sg/2026/08/nus-professor-15-years-younger-longevity-experiment/",
+    "observed_at": "2026-08-16",
+    "date_found": "2026-08-17"
   }
 ]
