@@ -1,338 +1,338 @@
 [
   {
-    "id": "trend-2026-08-20-mas-asset-hub-measures",
+    "id": "trend-2026-08-21-national-wages-council-chairman",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "market",
+    "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "MAS announced three measures on 19 Aug 2026 to grow Singapore as an asset-management hub: a tax exemption on qualifying fund managers' profit-related returns, a new Hedge Fund Investment Programme, and an Investment Management Track under the ONE Pass to draw global fund talent.",
-    "title": "MAS just made Singapore a bigger draw for fund managers. Here's what it means for your own money.",
-    "why_it_works": "A fresh, official MAS announcement this week that most clients scrolled past without registering - a credible moment to translate policy into 'does this change how I should be investing' without touching any specific fund, stock or return prediction.",
+    "trend_source": "Singapore's National Wages Council named ex-SGX CEO Hsieh Fu Hua as its new chairman on Aug 19 as the 2026/27 session convened to set this year's wage guidelines, the annual pay-rise ranges employers and unions reference nationwide.",
+    "title": "What the new Wage Council session means for your next pay conversation",
+    "why_it_works": "It's fresh, Singapore-specific news that touches almost every employed client, and it gives consultants a natural, non-political reason to talk about budgeting for the year ahead.",
     "hooks": [
-      "MAS just rolled out new tax breaks to pull more fund managers into Singapore. Here's why that's actually relevant to you.",
-      "Three new rules dropped this week to make Singapore a bigger asset management hub. I'll translate what that means for regular investors.",
-      "Singapore just got more attractive to global fund managers. That doesn't mean you need a global fund manager to benefit."
+      "Singapore just got a new wage guidelines chief - here's what that actually means for your payslip this year.",
+      "There's a group of people in Singapore who quietly decide how big your raise should be. Meet the National Wages Council.",
+      "Before you ask your boss for a raise this year, know what the National Wages Council just said."
     ],
     "talking_points": [
-      "MAS announced a tax exemption on profit-related returns for qualifying fund managers, a new Hedge Fund Investment Programme, and a new Investment Management Track under the ONE Pass, from 19 Aug 2026.",
-      "The goal is to bring more fund management expertise and capital into Singapore, which over time tends to widen the range of regulated investment structures available here.",
-      "None of this changes what any one fund or manager will return - it just means more competition and more options, not a signal to chase anything specific.",
-      "The useful question for you isn't 'which new fund' - it's whether your existing plan actually uses the structures already available to you."
+      "The NWC's 2026/27 session just convened under new chairman Hsieh Fu Hua, tasked with setting this year's recommended pay-rise ranges",
+      "These guidelines aren't binding, but most SG employers reference them when planning bonuses and increments",
+      "A likely pay bump is a chance to redirect the extra into CPF top-ups, an emergency fund, or a protection gap - not just lifestyle inflation",
+      "Knowing the guideline range helps you benchmark your own review conversation instead of guessing"
     ],
-    "cta": "Comment 'REVIEW' if you want a plain-English rundown of what structures your current plan is actually using.",
+    "cta": "Drop 'RAISE' in the comments and I'll send you a 3-question checklist for what to do with your next pay increment before it disappears into daily spending.",
     "cta_type": "comment-keyword",
-    "how_to_film": "LinkedIn text post. Open with the hook, 3-4 short paragraphs matching the talking points, no graphics needed - this is a read, not a watch.",
-    "source_label": "MAS media release",
-    "source_url": "https://www.mas.gov.sg/news/media-releases/2026/mas-introduces-measures-to-strengthen-singapores-competitiveness-as-a-leading-asset-management-hub",
+    "how_to_film": "Talking-head not required - LinkedIn text post; open with a bolded first line as the hook, keep paragraphs short for mobile.",
+    "source_label": "AsiaOne",
+    "source_url": "https://www.asiaone.com/singapore/hsieh-fu-hua-national-wage-council-chairman-peter-seah-steps-down",
     "observed_at": "2026-08-19",
-    "date_found": "2026-08-20"
+    "date_found": "2026-08-21"
   },
   {
-    "id": "trend-2026-08-20-coe-premiums-second-august-bidding",
+    "id": "trend-2026-08-21-epl-new-season-budget",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "sport",
+    "trend_source": "The 2026/27 Premier League season kicked off Aug 21 with defending champions Arsenal hosting newly-promoted Coventry City - Coventry's first top-flight match in 25 years - reigniting matchday, streaming and fantasy league chatter across SG football fan pages.",
+    "title": "New EPL season, new budget: what fans are quietly overspending on",
+    "why_it_works": "Football season openers are genuinely trending this week among SG's large EPL fanbase, and 'new season, new budget' is an honest, non-preachy way to talk about subscription creep and treat spending.",
+    "hooks": [
+      "The new EPL season just kicked off and so did my streaming subscription count - let's talk about that.",
+      "Coventry's first Premier League match in 25 years has everyone talking - meanwhile my streaming bill quietly doubled.",
+      "If you're excited for the new football season, so is every subscription service about to renew on you."
+    ],
+    "talking_points": [
+      "New EPL season means streaming passes, jersey drops and fantasy league buy-ins landing all at once",
+      "Quick audit tip: list every subscription auto-renewing this month before match one kicks off",
+      "Set a season-long entertainment budget instead of a per-purchase decision each time",
+      "Even $20/month redirected consistently instead of spent adds up meaningfully over a season"
+    ],
+    "cta": "Save this and do a 5-minute subscription audit before kickoff weekend is over.",
+    "cta_type": "save-share",
+    "how_to_film": "Quick-cut reel: show phone screen scrolling a subscription list, cut to a whiteboard tally of 'season spend', end on-camera with the tip.",
+    "source_label": "Al Jazeera",
+    "source_url": "https://www.aljazeera.com/sports/2026/8/20/arsenal-vs-coventry-premier-league-prediction-lineups-teams",
+    "observed_at": "2026-08-20",
+    "date_found": "2026-08-21"
+  },
+  {
+    "id": "trend-2026-08-21-loh-kean-yew-comeback-discipline",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "interest",
+    "trend_type": "sport",
+    "trend_source": "Singapore's Loh Kean Yew fought back from 5-11 down to lead 16-12 in the decider before falling 20-22, 18-21 to Canada's Victor Lai in the BWF World Championships round of 16 on Aug 20 - a dramatic near-comeback that's been the talk of SG sport pages this week.",
+    "title": "Loh Kean Yew's near-comeback is a masterclass in what discipline actually looks like",
+    "why_it_works": "It's a live, emotionally resonant SG sporting moment this week, and the comeback-under-pressure story maps honestly onto financial discipline without needing a forced pitch.",
+    "hooks": [
+      "Loh Kean Yew was down 5-11. He clawed back to 16-12. That's what discipline under pressure looks like.",
+      "Singapore's shuttler nearly pulled off the comeback of the week - here's the money lesson hiding in it.",
+      "He didn't win the match. But how Loh Kean Yew fought back is worth copying anyway."
+    ],
+    "talking_points": [
+      "Loh Kean Yew's round-of-16 exit at the BWF Worlds came after a serious fightback from 5-11 down",
+      "The lesson isn't about winning every point - it's about staying in the game after a bad stretch",
+      "The same applies to a portfolio dip or a month you couldn't save much - the comeback matters more than the setback",
+      "Consistency after a bad stretch, not one big move, is what actually rebuilds momentum"
+    ],
+    "cta": "Comment 'RESET' if you've had a rough saving month and want a simple way to get back on track.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Short Facebook text post, paired with a still photo of the match if available; keep paragraph breaks short for mobile readability.",
+    "source_label": "players.bio",
+    "source_url": "https://players.bio/news/singapore-s-loh-kean-yew-exits-bwf-world/897316",
+    "observed_at": "2026-08-20",
+    "date_found": "2026-08-21"
+  },
+  {
+    "id": "trend-2026-08-21-prime-air-convenience-fee",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Amazon announced Aug 19 a sixfold expansion of its Prime Air drone delivery - from about 11 to nearly 500 US cities by year end - with free delivery over $50 and a $2.99 fee below that, landing in as fast as 30 minutes.",
+    "title": "The $2.99 fee that's designed to make you spend more",
+    "why_it_works": "It's a fresh global tech story with a built-in, honest psychology angle - small convenience fees nudging bigger baskets - that any consultant can use to open a spending-awareness conversation without moralizing.",
+    "hooks": [
+      "Amazon's new drone delivery has a $2.99 fee under $50 - and that's not an accident, it's a nudge.",
+      "They didn't make delivery free. They made it $2.99 unless you spend more. Let's talk about that.",
+      "This one drone delivery fee is a masterclass in how convenience quietly drains your budget."
+    ],
+    "talking_points": [
+      "Amazon's Prime Air drone delivery is expanding to nearly 500 US cities with a $2.99 fee under a $50 order",
+      "Small thresholds like this are designed to nudge you into spending more to 'save' on the fee",
+      "The same pattern shows up in food delivery minimums, free-shipping thresholds, and subscription upsells",
+      "Naming the nudge out loud is often enough to stop falling for it - awareness beats willpower"
+    ],
+    "cta": "Save this so next time you're padding a cart to hit a free-delivery minimum, you catch yourself.",
+    "cta_type": "save-share",
+    "how_to_film": "Screen-record a shopping cart with items being added to cross a free-shipping threshold, voiceover explaining the psychology, end on camera with the takeaway line.",
+    "source_label": "TechCrunch",
+    "source_url": "https://techcrunch.com/2026/08/19/amazons-prime-air-is-taking-off-in-nearly-500-u-s-cities/",
+    "observed_at": "2026-08-19",
+    "date_found": "2026-08-21"
+  },
+  {
+    "id": "trend-2026-08-21-fortnite-season-launch-kids-money-talk",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "Fortnite's Chapter 7 Season 4 'Override' launched Aug 20 with a Sonic-led Battle Pass and a Gaming Legends crossover theme (Pac-Man, Mega Man, Persona 5), sparking the usual wave of kids asking parents for V-Bucks the moment a new season drops.",
+    "title": "Every new Fortnite season is also a new 'can I have money' conversation",
+    "why_it_works": "It's a genuinely fresh gaming-culture moment this week that lands directly with parent-clients, and the money angle - talking to kids about small recurring asks - is honest and non-judgmental.",
+    "hooks": [
+      "New Fortnite season just dropped and I already know what's coming: 'Dad, can I get the Battle Pass.'",
+      "Every time Fortnite drops a new season, it's basically a pop quiz on how you talk to your kid about money.",
+      "Sonic just joined Fortnite and somewhere a parent is about to say yes to V-Bucks for the fifth time this year."
+    ],
+    "talking_points": [
+      "Fortnite's new season launched with a fresh Battle Pass, which means a fresh ask from kids who play",
+      "V-Bucks purchases feel small individually but add up fast across a year of seasons",
+      "A simple family rule - like a monthly 'games budget' the kid manages themselves - turns this into a money lesson, not a fight",
+      "It's a low-stakes, recurring moment to start teaching kids to weigh a want against a budget"
+    ],
+    "cta": "Comment 'VBUCKS' and I'll send you the family budget rule I use for this exact conversation.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Screen-record the new season splash screen or Battle Pass menu, voiceover over it, cut to talking head for the tip.",
+    "source_label": "gHacks Tech News",
+    "source_url": "https://www.ghacks.net/2026/08/18/fortnite-chapter-7-season-4-override-launches-august-20-with-a-gaming-legends-theme/",
+    "observed_at": "2026-08-20",
+    "date_found": "2026-08-21"
+  },
+  {
+    "id": "trend-2026-08-21-us-open-ticket-price-outrage",
     "platform": "instagram",
     "format": "carousel",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Singapore's second COE bidding exercise of August 2026 closed 19 Aug at 4pm with premiums rising in 4 of 5 categories - Cat A up to $128,501, Cat D (motorcycles) jumping 7.6%, and Cat E up to $135,000 - reversing a recent easing trend.",
-    "title": "COE premiums just jumped again. Here's the 3-question check before you commit six figures to a car.",
-    "why_it_works": "COE results land biweekly and Singaporeans discuss them like clockwork - this cycle's reversal after a recent easing gives a timely reason to talk about not letting a car purchase quietly wreck a savings or protection plan.",
-    "hooks": [
-      "COE premiums just jumped again after a few rounds of easing. If you're car-shopping, don't skip this check first.",
-      "Cat D just rose 7.6% in one bidding round. Here's what I ask clients before they sign anything car-related.",
-      "A car in Singapore can cost more than a small flat. Here's how I make sure it doesn't eat your future too."
-    ],
-    "talking_points": [
-      "The second August 2026 COE exercise closed with 4 of 5 categories rising, reversing a recent trend of easing premiums.",
-      "A COE plus car loan is often a six-figure decade-long commitment, but most people budget for the monthly instalment, not the opportunity cost.",
-      "Before signing: check what the loan does to your monthly cash flow, and whether it competes with your insurance premiums or savings contributions.",
-      "A car is a depreciating asset from day one - treat the decision with the same scrutiny as any other major financial commitment."
-    ],
-    "cta": "Save this carousel before your next car-shopping trip so you run the numbers before the salesperson does.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 the COE headline number as a bold stat, slides 2-3 the talking points as short text cards, final slide the CTA.",
-    "source_label": "SingPromos - COE Aug 2026 second exercise results",
-    "source_url": "https://singpromos.com/news/coe-aug-2026-second-exercise-results-4-categories-rise-cat-d-jumps-7-6-305579",
-    "observed_at": "2026-08-19",
-    "date_found": "2026-08-20"
-  },
-  {
-    "id": "trend-2026-08-20-sia-phishing-advisory",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Singapore Airlines published an official customer advisory this week warning of phishing emails, fake hotline numbers, impersonation calls, and 'you've won a free flight' scams targeting KrisFlyer login details.",
-    "title": "SIA just warned its own customers about scam calls. Your financial accounts deserve the same suspicion.",
-    "why_it_works": "A trusted national brand publicly warning its own customers about impersonation scams is a credible, non-alarmist hook to reinforce the same verification habits that protect savings and insurance accounts - timely, not fear-based.",
-    "hooks": [
-      "SIA just told its own customers: don't trust that 'you've won a free flight' call. Same rule applies to your bank.",
-      "Even airlines are warning about impersonation scams this week. Here's the one habit that protects every account you own.",
-      "If a trusted brand like SIA has to warn its customers about fake hotlines, assume your bank isn't immune either."
-    ],
-    "talking_points": [
-      "SIA issued an advisory this week flagging phishing emails, fake hotline numbers and impersonation calls targeting KrisFlyer accounts.",
-      "The scam pattern is the same one used against bank, CPF and insurance accounts: urgency, a fake official number, and a request to 'verify' your login.",
-      "The fix doesn't change by platform: never call a number given to you in an unsolicited message, always dial the number on the official app or card.",
-      "Build one habit - pause and independently verify - and it protects your airline miles, your bank login and your insurance portal all at once."
-    ],
-    "cta": "DM me 'VERIFY' and I'll send the official contact numbers I tell my own clients to save, so you're never guessing mid-call.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "LinkedIn text post. Lead with the hook, short paragraphs, optional screenshot of the SIA advisory headline as the visual.",
-    "source_label": "Singapore Airlines - Newsalert advisory",
-    "source_url": "https://www.singaporeair.com/en_UK/sg/corporate/newsroom/newsalert-listing/advisory-on-phishing-scams-and-good-cybersecurity-practice/",
-    "observed_at": "2026-08-19",
-    "date_found": "2026-08-20"
-  },
-  {
-    "id": "trend-2026-08-20-perennial-living-assisted-living-opens",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Perennial Living at Parry Avenue, Singapore's first private assisted-living development, opened its doors on 18 Aug 2026 with 200 units starting from around $8,000 a month, with nursing suites to follow later this year.",
-    "title": "Singapore's first private assisted-living home just opened. Here's the number that should be in your retirement plan.",
-    "why_it_works": "A genuinely new milestone - Singapore's first private assisted-living facility - with a concrete, citable price point gives an honest, unforced entry into eldercare and long-term-care planning, informative rather than fear-based, and not about anyone's actual illness.",
-    "hooks": [
-      "Singapore's first private assisted-living home just opened this week, starting from about $8,000 a month. Let that number sink in.",
-      "A new assisted-living facility opened in Singapore with rents from $8,000 monthly. Is that number anywhere in your parents' plan?",
-      "This week Singapore got its first private assisted-living development. It's a good prompt to talk about a number nobody likes discussing."
-    ],
-    "talking_points": [
-      "Perennial Living opened this week at Parry Avenue with 200 assisted-living units starting from roughly $8,000 a month.",
-      "It's a genuinely new option in Singapore's eldercare landscape, and a useful real-world benchmark for what long-term care can actually cost.",
-      "Most families plan for a parent's retirement income but not for a care scenario like this - MediSave and CPF alone rarely cover it fully.",
-      "The right time to check this is before it's needed, when there's still room to plan calmly instead of deciding under pressure."
-    ],
-    "cta": "Comment 'CARE' and I'll share the checklist I use with clients to stress-test a family's eldercare readiness.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Facebook text post. Open with the hook, keep paragraphs short, use the $8,000/month figure as a pull-quote graphic if filming a caption image.",
-    "source_label": "EdgeProp Singapore",
-    "source_url": "https://www.edgeprop.sg/property-news/perennial-living-singapores-first-private-assisted-living-development-opens-its-doors",
-    "observed_at": "2026-08-18",
-    "date_found": "2026-08-20"
-  },
-  {
-    "id": "trend-2026-08-20-haze-risk-peak-season",
-    "platform": "facebook",
-    "format": "text-post",
     "pillar": "topic",
     "trend_type": "current-affairs",
-    "trend_source": "The Meteorological Service Singapore warned this week that intensifying fires in Sumatra and Kalimantan, combined with dry conditions, could push Singapore's air quality toward 'unhealthy' levels during what regional forecasters flag as the peak haze risk period for August-September 2026.",
-    "title": "Haze risk is rising again this week. Here's the one insurance line worth double-checking now, not during an actual bad-air week.",
-    "why_it_works": "A fresh, dated regional weather warning this week, handled the way any sensible prep content would - like a flu-season reminder - practical and non-alarmist, never dwelling on anyone's actual illness.",
+    "trend_source": "Fans and journalists are calling 2026 US Open ticket prices 'scandalous' this week - grounds passes around $363, cheapest Arthur Ashe seats about $327, average get-in price $311 versus $262 last year.",
+    "title": "The US Open ticket backlash, and how to tell a real splurge from FOMO spend",
+    "why_it_works": "It's a live, widely shared current-affairs story with money baked directly into the outrage, so the bridge to 'worth it vs FOMO' spending needs no forcing.",
     "hooks": [
-      "MSS flagged rising haze risk again this week. Before the masks come out, check one thing on your insurance.",
-      "We're heading into Singapore's usual haze-risk weeks. Here's the boring admin task worth doing now instead of later.",
-      "Haze warnings are back in the news this week. It's a good nudge to check something most people forget until it's bad."
+      "US Open tickets are so expensive right now fans are calling it 'scandalous' - here's how I'd think about it.",
+      "$327 to sit in the cheap seats at the US Open. Worth it, or FOMO talking?",
+      "Ticket prices for the US Open jumped again this year - here's my quick test before any big splurge."
     ],
     "talking_points": [
-      "MSS warned this week that fires in Sumatra and Kalimantan could push air quality into unhealthy territory during the region's typical peak haze period.",
-      "This isn't a call to panic - Singapore has handled haze seasons before - it's a reminder to check your prep while conditions are still fine.",
-      "Confirm your hospitalisation and outpatient coverage is current, and that you know how to make a claim without digging for documents mid-crisis.",
-      "Same logic as stocking up on masks early: doing the paperwork check now costs you five minutes instead of a scramble later."
+      "2026 US Open ticket prices are up sharply from last year, and fans online are calling the pricing out",
+      "A 'worth it' splurge is planned for and remembered fondly; a FOMO splurge is impulsive and regretted within a week",
+      "Quick test: would you still buy it if no one else knew you went? If yes, it's probably a real want",
+      "Budgeting one or two intentional big-ticket experiences a year beats saying no to everything or yes to everything"
     ],
-    "cta": "Save this post as your cue to pull up your policy summary this week, while the air's still clear.",
+    "cta": "Save this carousel and use the 'would I still buy it' test before your next big-ticket splurge.",
     "cta_type": "save-share",
-    "how_to_film": "Facebook text post, calm and practical tone throughout, no dramatic imagery - treat it like a checklist reminder, not a warning.",
-    "source_label": "Coverage of MSS haze warning (Malay Mail)",
-    "source_url": "https://www.malaymail.com/news/singapore/2026/08/19/singapore-braces-for-severe-transboundary-haze-ahead-of-f1-grand-prix-weekend/231875",
+    "how_to_film": "Carousel: slide 1 headline stat on ticket prices, slide 2-3 the 'worth it vs FOMO' test, slide 4 a one-line takeaway card.",
+    "source_label": "Yahoo Sports",
+    "source_url": "https://sports.yahoo.com/articles/tennis-fans-outraged-over-scandalous-162038923.html",
     "observed_at": "2026-08-19",
-    "date_found": "2026-08-20"
+    "date_found": "2026-08-21"
   },
   {
-    "id": "trend-2026-08-20-qixi-festival-money-date",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "Qixi Festival, China's 'Valentine's Day' based on the folklore of Zhinü and Niulang, fell on 19 Aug 2026, with couples across the region marking it with gifts and romantic dinners.",
-    "title": "It's Qixi week. Here's why the most romantic thing you can plan with your partner isn't dinner.",
-    "why_it_works": "A genuinely dated cultural moment this week gives a light, wholesome reason to talk about couples and money without moralising - framed as one more form of intimacy, not a lecture.",
-    "hooks": [
-      "It's Qixi week - Chinese Valentine's Day. The most underrated date night idea isn't dinner, it's this.",
-      "Couples are celebrating Qixi this week with gifts and dinners. Here's the date idea I actually recommend.",
-      "Happy Qixi week. If flowers are on the list, so should this 20-minute conversation."
-    ],
-    "talking_points": [
-      "Qixi Festival fell this week, with couples across the region marking it with gifts and romantic dinners.",
-      "A 'money date' - a relaxed, no-judgment chat about shared goals, spending habits and what you're both saving toward - is a form of intimacy too.",
-      "It works best with three questions: what are we saving for together, how do we split costs, and does either of us have a money worry we haven't said out loud.",
-      "Couples who talk about money early tend to avoid the bigger, harder conversations later - this is a low-pressure way to start."
-    ],
-    "cta": "Tag your partner and challenge them to a money date this week - dinner optional, honesty required.",
-    "cta_type": "open-question",
-    "how_to_film": "Carousel: slide 1 a warm Qixi-themed hook graphic, slides 2-3 the three money-date questions as clean text cards, final slide the CTA.",
-    "source_label": "National Today - Qixi Festival",
-    "source_url": "https://nationaltoday.com/qixi-festival/",
-    "observed_at": "2026-08-19",
-    "date_found": "2026-08-20"
-  },
-  {
-    "id": "trend-2026-08-20-vma-nominations-catalogue-ownership",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "culture",
-    "trend_source": "2026 MTV VMA nominations dropped this week, with Madonna leading on 11 nods and Taylor Swift close behind on 9, across categories including Video and Artist of the Year.",
-    "title": "Madonna just led the VMA nominations again, decades in. Here's the boring financial reason legends stay legends.",
-    "why_it_works": "A freshly dated pop-culture moment this week with an honest tie to owning appreciating assets and long-term thinking - no specific investment named, just a mindset shift, timely and fun rather than preachy.",
-    "hooks": [
-      "Madonna just scored 11 VMA nominations, decades into her career. Here's what that says about owning your work.",
-      "This week's VMA nods are stacked with legends still winning. The real story is who owns the catalogue.",
-      "Taylor Swift and Madonna are dominating this year's VMA noms. Both built wealth the same unglamorous way."
-    ],
-    "talking_points": [
-      "2026 VMA nominations dropped this week, led by Madonna with 11 nods and Taylor Swift with 9.",
-      "Artists who own their masters and catalogues keep earning from decades-old work - ownership compounds long after the moment fades.",
-      "The same principle applies outside music: assets you actually own and hold tend to keep paying you, long after the initial hype is gone.",
-      "It's not about picking the next big thing - it's about building a habit of owning appreciating assets instead of just renting your financial position."
-    ],
-    "cta": "Comment your favourite VMA nominee, then tell me one thing you own that's still paying you back.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Short vertical video, talk to camera, on-screen text showing the '11 noms' and '9 noms' stat, cut to the ownership point, CTA as closing line.",
-    "source_label": "Variety - Madonna leads VMA nominations",
-    "source_url": "https://variety.com/2026/music/news/madonna-leads-vmas-nominations-taylor-swift-1236837092/",
-    "observed_at": "2026-08-18",
-    "date_found": "2026-08-20"
-  },
-  {
-    "id": "trend-2026-08-20-chelsea-record-transfer-payout-planning",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "sport",
-    "trend_source": "The European football transfer window closed this week with a wave of nine-figure deals, headlined by Chelsea's British-record £117m signing of Morgan Rogers from Aston Villa on a long-term contract.",
-    "title": "A footballer just signed a £117m record deal this week. Here's what actually matters more than the number.",
-    "why_it_works": "A freshly closed, record-breaking transfer this week is a natural hook for the honest point that any windfall - transfer fee, bonus, inheritance, sale proceeds - needs structure, not just excitement, without touching any market prediction.",
-    "hooks": [
-      "Chelsea just paid a British-record £117m for one player this week. The size of the number isn't the interesting part.",
-      "A record transfer fee dropped this week. Here's the question that matters more than how much it's worth.",
-      "Nine-figure transfer deals closed across Europe this week. Same lesson applies whether it's £117m or your next bonus."
-    ],
-    "talking_points": [
-      "This week's transfer window closed with Chelsea's British-record £117m signing of Morgan Rogers, among a wave of nine-figure deals.",
-      "A huge one-time payout - transfer fee, bonus, inheritance, sale proceeds - feels like the finish line, but it's actually the start of a much longer decision.",
-      "The players and people who keep that wealth are the ones who build a plan and a timeline before they spend, not after.",
-      "The size of a windfall matters less than whether there's a structure ready to receive it - that's true at £117m or at $17,000."
-    ],
-    "cta": "Save this for the next time a bonus, payout or lump sum lands in your account before you touch it.",
-    "cta_type": "save-share",
-    "how_to_film": "Short vertical video: open on the £117m stat as bold on-screen text, talk through the windfall-planning point, CTA as closing line.",
-    "source_label": "FootballTransfers.com",
-    "source_url": "https://www.footballtransfers.com/en/transfer-news/uk-premier-league/2026/08/transfer-news-every-done-deal-official-confirmed-completed-signing-europe-today-19-august-2026",
-    "observed_at": "2026-08-19",
-    "date_found": "2026-08-20"
-  },
-  {
-    "id": "trend-2026-08-20-my-biggest-flex-income-streams",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "A trending Instagram Reels format this week has creators filming over the text 'My biggest flex is that you can hire me as your...' listing every job, skill and side hustle they have, set to Shakira's 'She Wolf.'",
-    "title": "Everyone's flexing their side hustles on Reels this week. Here's the question your insurance never asks about them.",
-    "why_it_works": "A live, dated Reels format this week gives a natural, on-trend way to raise a genuinely useful point - multiple income streams often mean multiple coverage gaps - without moralising about hustle culture.",
-    "hooks": [
-      "Everyone's doing the 'my biggest flex' hustle list on Reels this week. I want to ask about the gaps, not the list.",
-      "That 'hire me as your...' trend is filling my feed this week. Here's the one thing it never mentions.",
-      "If your Reels list of side hustles is three items long, here's a question worth asking yourself."
-    ],
-    "talking_points": [
-      "A trending Reels format this week has creators listing every job and side hustle they juggle, set to 'She Wolf.'",
-      "Multiple income streams are genuinely great for cash flow - but most people only insure and CPF-contribute based on their main job.",
-      "A freelance gig, a side business or platform work often falls outside default coverage unless you actively add it.",
-      "The fix isn't complicated: list your actual income sources like the trend does, then check which ones are actually protected."
-    ],
-    "cta": "Comment your income streams like the trend, and I'll tell you which ones usually get missed.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Short vertical video using the trend format: on-screen text listing income-stream examples, cut to talk-to-camera for the coverage point, CTA as closer.",
-    "source_label": "SocialBee - Instagram Trends",
-    "source_url": "https://socialbee.com/blog/instagram-trends/",
-    "observed_at": "2026-08-19",
-    "date_found": "2026-08-20"
-  },
-  {
-    "id": "trend-2026-08-20-saxophones-emergency-fund-meme",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "topic",
-    "trend_type": "meme",
-    "trend_source": "A dramatic-escalation meme format is dominating TikTok this week: a normal, relatable situation plays out, then the 'Boyz n the Hood' saxophone cue blasts in as things visibly go wrong.",
-    "title": "Use this week's 'saxophones' meme for the exact moment an emergency fund would've saved you.",
-    "why_it_works": "A dominant meme format this week with an obvious, funny, non-forced fit for financial content - the punchline writes itself and needs zero explanation for anyone who's seen the trend.",
-    "hooks": [
-      "Me, no emergency fund, when my laptop dies the same week rent is due. The saxophones start playing.",
-      "That moment you check your savings account before an 'urgent' expense and there's nothing there. Saxophones incoming.",
-      "POV: you said 'I'll start an emergency fund next month' three months in a row. Cue the sax."
-    ],
-    "talking_points": [
-      "This week's dominant TikTok meme format is a normal situation escalating into chaos, scored by the 'Boyz n the Hood' saxophone cue.",
-      "The format is a perfect fit for the exact feeling of an unexpected bill landing with zero savings buffer to absorb it.",
-      "A basic emergency fund target is 3-6 months of essential expenses, parked somewhere separate from your everyday spending account.",
-      "It doesn't need to start big - a fixed small transfer on payday, automated so you don't have to remember it, is enough to begin."
-    ],
-    "cta": "Comment 'BUFFER' and I'll send the simple way I tell clients to size their first emergency fund.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Short vertical video using the meme format: play out a relatable no-savings mishap, cut the saxophone sting at the punchline, talk-to-camera for the fix, CTA as closer.",
-    "source_label": "The Tango - Mid-Week Memes",
-    "source_url": "https://thetango.net/2026/08/19/mid-week-memes-august-19-2026/",
-    "observed_at": "2026-08-19",
-    "date_found": "2026-08-20"
-  },
-  {
-    "id": "trend-2026-08-20-loh-kean-yew-last-16",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "sport",
-    "trend_source": "Loh Kean Yew won his second-round match at the BWF World Championships this week, beating Hong Kong's Lee Cheuk Yiu 15-21, 21-17, 21-15 after dropping the first game, to reach the last 16 in New Delhi.",
-    "title": "Loh Kean Yew was down a game this week and still won. That's basically a financial plan in one match.",
-    "why_it_works": "A fresh result from this week's ongoing World Championships, distinct from the earlier first-round win - the comeback-after-a-bad-start angle bridges honestly to sticking with a plan through a rough patch, no prediction or hype involved.",
-    "hooks": [
-      "Loh Kean Yew lost the first game this week and still won the match. That's exactly how good financial plans survive a bad year.",
-      "Down a set, still through to the last 16 - Loh Kean Yew's comeback this week is a decent metaphor for staying invested.",
-      "One bad game didn't end Loh Kean Yew's run this week. One bad month shouldn't end your savings habit either."
-    ],
-    "talking_points": [
-      "Loh Kean Yew dropped the first game against Lee Cheuk Yiu this week but came back to win in three, reaching the BWF World Championships last 16.",
-      "A rough start didn't change the plan - he adjusted and kept playing the next point, not the last one.",
-      "A financial plan works the same way: a bad month, a missed contribution or a market dip isn't the end of the plan, it's one game in a longer match.",
-      "What matters is whether you keep showing up for the next point - the next contribution, the next check-in - not whether every round goes perfectly."
-    ],
-    "cta": "Comment 'MATCH' if you've had a rough financial month and want a quick gut-check on whether the plan's still fine.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Short vertical video: open with the scoreline as on-screen text, talk through the comeback-to-plan parallel, CTA as closing line.",
-    "source_label": "Olympics.com - Loh Kean Yew reaches last 16",
-    "source_url": "https://www.olympics.com/en/news/bwf-world-championships-2026-loh-kean-yew-overcomes-lee-cheuk-yiu-to-reach-last-16",
-    "observed_at": "2026-08-19",
-    "date_found": "2026-08-20"
-  },
-  {
-    "id": "trend-2026-08-20-frozen-housing-still-renovating",
+    "id": "trend-2026-08-21-ai-bubble-headline-noise",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Home Depot's Q2 2026 earnings this week beat estimates as shoppers kept spending on smaller renovation projects, even as its CFO described 'frozen housing market conditions' with fewer people moving house.",
-    "title": "People aren't moving house right now, so they're upgrading where they already live. That habit deserves a budget line.",
-    "why_it_works": "A dated earnings report this week captures a spending behaviour that also describes Singapore's own cooling property market - a relatable, non-market-timing observation about how people redirect money when big moves feel out of reach.",
+    "trend_source": "A fresh wave of commentary this week - including a Bloomberg Opinion piece on Aug 20 - has reignited debate over whether the AI-driven stock rally is due for a sharp correction, with S&P 500 top-10 concentration now above dot-com-era peaks.",
+    "title": "You don't need to predict the next correction to be protected from one",
+    "why_it_works": "The AI-bubble debate is dominating finance LinkedIn right now, and reframing it away from prediction and toward preparedness keeps the post honest, compliant and genuinely useful.",
     "hooks": [
-      "A major retailer's earnings this week showed people renovating more because they're moving less. Sound familiar?",
-      "When moving house feels out of reach, people spend on upgrading instead. This week's earnings data confirmed it.",
-      "Nobody's moving, everyone's renovating - that's the spending pattern showing up in this week's retail earnings."
+      "Everyone on LinkedIn this week is debating whether the AI rally is a bubble. I'm not going to guess - here's what I'd check instead.",
+      "The 'is this a bubble' debate is loud again this week. Your move isn't to predict it, it's to prepare for it.",
+      "Market concentration is above dot-com levels again, say the headlines. Here's the one thing worth actually doing about it."
     ],
     "talking_points": [
-      "This week's earnings from a major home-improvement retailer showed steady spending on smaller renovation projects despite a described 'frozen' housing market.",
-      "It's a familiar pattern here too - when a bigger move feels expensive or slow, budget quietly shifts toward upgrading the current home instead.",
-      "The risk is that 'small' renovation spending happens outside any plan, funded by credit rather than a dedicated pot.",
-      "A simple fix: if you're not moving this year, set a capped renovation budget on purpose, funded from savings, instead of letting it happen ad hoc."
+      "Commentary this week is debating whether AI-driven market concentration is heading for a sharp correction",
+      "Nobody - including the people writing these pieces - can reliably call the timing of a correction",
+      "What you can control: how diversified your holdings actually are, and whether your emergency fund covers 3-6 months",
+      "Headline-driven portfolio decisions usually cost more than sitting still with a plan you already trust"
     ],
-    "cta": "Comment 'RENO' and I'll send the simple worksheet I use to help clients cap a renovation budget before it caps them.",
+    "cta": "Book a 20-minute portfolio check-in if this week's headlines have you wondering how exposed you actually are.",
+    "cta_type": "book-call",
+    "how_to_film": "LinkedIn text post - open with a bolded contrarian line, use short paragraphs in a headline / reframe / action structure.",
+    "source_label": "Bloomberg Opinion",
+    "source_url": "https://www.bloomberg.com/opinion/articles/2026-08-20/us-stock-market-bubble-ai-boom-won-t-prevent-a-sharp-correction",
+    "observed_at": "2026-08-20",
+    "date_found": "2026-08-21"
+  },
+  {
+    "id": "trend-2026-08-21-gold-two-month-high-chasing-headlines",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Gold prices hit a two-month high this week after a mostly stagnant summer, breaking out on safe-haven positioning - a headline that's got 'should I buy gold now' questions circulating again.",
+    "title": "Gold just hit a 2-month high - here's why that headline shouldn't change your plan",
+    "why_it_works": "Gold-price headlines reliably trigger 'should I chase this' questions, and answering with behaviour (build your own safety net) rather than a prediction keeps this fully compliant and genuinely useful.",
+    "hooks": [
+      "Gold just hit a 2-month high and I'm already getting 'should I buy some' messages. Here's my honest answer.",
+      "A shiny headline about gold prices doesn't mean you need to change anything about your plan.",
+      "If a price headline is the only reason you're considering a purchase, pause before you make it."
+    ],
+    "talking_points": [
+      "Gold prices broke out to a two-month high this week after a quiet summer",
+      "Chasing an asset because of one week's headline is a common, understandable, and usually costly instinct",
+      "Your own 'safe haven' is an emergency fund and adequate protection - not whatever is trending that week",
+      "If diversification into gold or any asset makes sense for you, it's a plan decision, not a headline reaction"
+    ],
+    "cta": "Comment 'PLAN' if you want a simple way to check whether a purchase is part of your plan or just a headline reaction.",
     "cta_type": "comment-keyword",
-    "how_to_film": "LinkedIn text post. Hook as opener, short paragraphs matching the talking points, no visuals required.",
-    "source_label": "CNBC - Home Depot Q2 2026 earnings",
-    "source_url": "https://www.cnbc.com/2026/08/18/home-depot-hd-q2-2026-earnings.html",
-    "observed_at": "2026-08-18",
-    "date_found": "2026-08-20"
+    "how_to_film": "Facebook text post - short and conversational, optionally paired with a simple text-on-image quote graphic of the hook line.",
+    "source_label": "Forbes",
+    "source_url": "https://www.forbes.com/sites/conormurray/2026/08/19/gold-price-hits-two-month-high-after-mostly-stagnant-summer/",
+    "observed_at": "2026-08-19",
+    "date_found": "2026-08-21"
+  },
+  {
+    "id": "trend-2026-08-21-temasek-india-patient-diversification",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Three Temasek-backed Indian companies - Shiprocket, Milky Mist and Molbio Diagnostics - jumped sharply on their trading debuts this week, even as many foreign investors have been pulling money out of Indian equities over the past year.",
+    "title": "What Temasek's India bets say about patience most people don't have",
+    "why_it_works": "It's a fresh, Singapore-proud story this week that models patient, long-horizon diversification rather than a stock tip, which is exactly the behaviour lesson worth surfacing without naming anything to buy.",
+    "hooks": [
+      "While everyone else pulled money out of India, Temasek stayed patient - and this week that patience showed up.",
+      "Our own sovereign wealth fund just got a reminder that staying the course sometimes takes years to pay off.",
+      "Temasek didn't chase a hot market. It stayed in an unloved one long enough to see it turn."
+    ],
+    "talking_points": [
+      "Several Temasek-backed Indian companies had strong trading debuts this week, even as foreign investors broadly exited Indian equities over the past year",
+      "This isn't a stock tip - it's a reminder that institutional investors often hold unfashionable positions far longer than individuals are comfortable doing",
+      "Diversifying beyond Singapore and staying invested through an unloved stretch is a discipline, not a lucky guess",
+      "The lesson for your own plan: a position doesn't have to be popular right now to belong in a diversified portfolio"
+    ],
+    "cta": "Drop a comment if you want to talk through how much of your portfolio is actually diversified outside Singapore.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "LinkedIn text post - lead with the Temasek fact as the hook; never name a specific security to buy.",
+    "source_label": "CNBC",
+    "source_url": "https://www.cnbc.com/2026/08/20/singapore-temasek-india-foreign-shiprocket-milky-mist.html",
+    "observed_at": "2026-08-20",
+    "date_found": "2026-08-21"
+  },
+  {
+    "id": "trend-2026-08-21-sea-growth-bifurcation-income-buffer",
+    "platform": "linkedin",
+    "format": "carousel",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Fresh analysis this week describes Southeast Asian economic growth 'bifurcating' - the AI investment boom lifting some economies (Singapore's Q2 GDP was upgraded) while energy-shock exposure drags on others in the region.",
+    "title": "Your industry's growth story isn't your safety net - your buffer is",
+    "why_it_works": "It's a timely regional macro story this week with a natural planning angle: uneven growth across sectors means income resilience has to be personal, not assumed.",
+    "hooks": [
+      "Some parts of Southeast Asia are booming on AI investment. Others aren't. Here's why that matters for your buffer.",
+      "Growth in this region is splitting in two right now - and your job's exposure to that split matters more than the headline GDP number.",
+      "A strong national growth number doesn't mean your income is safe. This week's data is a good reminder why."
+    ],
+    "talking_points": [
+      "Fresh analysis this week shows Southeast Asian growth diverging - AI-investment-linked sectors up, energy-shock-exposed ones lagging",
+      "A strong headline GDP number can mask very different realities depending on your industry",
+      "This isn't about predicting your sector's future - it's about sizing your emergency fund to your actual income risk",
+      "If your industry is on the 'boom' side right now, that's the best time to build the buffer before conditions shift"
+    ],
+    "cta": "Save this and use it as a prompt to size your emergency fund to your industry's real risk, not the headline number.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 the bifurcation stat, slide 2 what it means by industry, slide 3 how to size a buffer, slide 4 one-line takeaway.",
+    "source_label": "BusinessWorld (Bloomberg)",
+    "source_url": "https://bworldonline.com/bloomberg/2026/08/19/771138/ai-boom-and-energy-shocks-see-growth-in-southeast-asia-bifurcate/",
+    "observed_at": "2026-08-19",
+    "date_found": "2026-08-21"
+  },
+  {
+    "id": "trend-2026-08-21-chatgpt-wrote-our-financial-plan",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "A fast-spreading TikTok format this week has friend groups prompting ChatGPT for a script and then acting it out deadpan on camera, captioned 'we had ChatGPT make us a script.'",
+    "title": "We asked ChatGPT to plan our retirement - here's what it got wrong",
+    "why_it_works": "It rides a current, high-engagement TikTok format while doing something genuinely useful - showing where generic AI financial advice breaks down - which builds trust instead of just chasing the trend for views.",
+    "hooks": [
+      "We had ChatGPT make us a retirement plan. Here's exactly what it missed.",
+      "I asked AI to plan my CPF strategy. It was 80% right and 20% dangerously wrong.",
+      "Everyone's doing the 'ChatGPT made our script' trend, so I asked it to plan my finances instead."
+    ],
+    "talking_points": [
+      "This week's viral format has creators acting out a script written entirely by ChatGPT",
+      "Using the same format, prompt ChatGPT for basic financial planning advice on camera",
+      "Point out what it gets right (general principles) and what it misses (your actual numbers, CPF rules, protection gaps)",
+      "Land on the point: AI is a good starting point, not a substitute for advice tailored to your situation"
+    ],
+    "cta": "Comment 'PLAN' if you want a real, personalised version of what ChatGPT just guessed at.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Film yourself typing the prompt into ChatGPT on screen, deadpan reaction shots reading the output, cut to camera to correct the parts it got wrong.",
+    "source_label": "Newengen — August 2026 TikTok Trends",
+    "source_url": "https://newengen.com/insights/august-tiktok-trends/",
+    "observed_at": "2026-08-20",
+    "date_found": "2026-08-21"
+  },
+  {
+    "id": "trend-2026-08-21-unscripted-one-take-authenticity",
+    "platform": "instagram",
+    "format": "story",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "A raw, single-take video of a truck driver lip-syncing from his cab went viral this week and is being cited in trend reports as proof that unproduced, one-take content is currently outperforming polished Reels.",
+    "title": "Answering your most-asked money question in one unscripted take",
+    "why_it_works": "Low-production, single-take content is genuinely outperforming polished posts on Instagram right now, and it's an easy, honest format for a consultant to show up as a real person rather than a script.",
+    "hooks": [
+      "No script, no retakes - just answering the question I get asked the most.",
+      "Everyone's overproducing their content right now. Here's me, unscripted, answering one real question.",
+      "One take, no edits - the CPF question I get asked more than any other."
+    ],
+    "talking_points": [
+      "Raw, single-take content is currently beating polished, edited posts for reach on Instagram",
+      "Pick the one question clients ask most often - CPF, insurance gaps, saving vs investing",
+      "Film it in one unscripted take, imperfections included, exactly like the trend format",
+      "The goal is trust and relatability, not production value - let it feel like a real conversation"
+    ],
+    "cta": "DM me 'ASK' with your one real money question and I'll answer it the same way - one take, no script.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Vertical, single continuous take, natural lighting, talk directly to camera as if to one person, no cuts or retakes, minimal captions added after.",
+    "source_label": "Newengen — Instagram Trends August 2026",
+    "source_url": "https://newengen.com/insights/instagram-trends/",
+    "observed_at": "2026-08-20",
+    "date_found": "2026-08-21"
   }
 ]
