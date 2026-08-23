@@ -1,338 +1,338 @@
 [
   {
-    "id": "trend-2026-08-22-bitcoin-fomo-rally",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Bitcoin surged past US$77,000 this week, up over 20% in days, its biggest weekly gain in more than three years, after crypto policy headlines and a Treasury bond-buyback announcement triggered a record short squeeze.",
-    "title": "The Bitcoin FOMO test: what this week's 20% rally really measures",
-    "why_it_works": "Huge crypto swings dominate feeds right now, and a values-neutral post about the psychology of FOMO builds trust without ever touching a buy or sell call.",
-    "hooks": [
-      "My phone hasn't stopped buzzing about Bitcoin this week. Here's the question I'm actually asking myself.",
-      "Everyone's asking if they missed the Bitcoin rally. Wrong question. Here's the right one.",
-      "Bitcoin jumped 20% in a week. My clients panicked. Here's what I told them instead."
-    ],
-    "talking_points": [
-      "This week's rally: Bitcoin above US$77,000, its best five-day run in years, driven by policy headlines, not fundamentals you can predict.",
-      "FOMO is a timing trap in both directions: chasing a pump and panic-selling a dip both come from the same emotional place.",
-      "A real plan asks 'what % of my net worth can I lose completely and still hit my goals' - not 'what's it going to do next.'",
-      "If you don't already have an emergency fund and insurance sorted, that's the actual conversation before any allocation debate."
-    ],
-    "cta": "Drop 'PLAN' in the comments and I'll send you the 3 questions to ask before you touch any volatile asset.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head, phone in hand scrolling a crypto price chart on a screen-recording overlay, cut to you putting the phone face-down on the table at the pivot line.",
-    "source_label": "Sunday Guardian Live, 22 Aug 2026",
-    "source_url": "https://sundayguardianlive.com/business/bitcoin-price-today-22-august-why-is-bitcoin-up-today-btc-surges-above-77000-in-biggest-weekly-rally-in-3-years-check-latest-prices-in-usd-inr-gbp-euro-jpy-266930/",
-    "observed_at": "2026-08-21",
-    "date_found": "2026-08-22"
-  },
-  {
-    "id": "trend-2026-08-22-us-debt-gold-safe-haven",
-    "platform": "facebook",
-    "format": "carousel",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Gold pushed toward record levels this week as the US national debt topped US$40 trillion, with financial media flagging debt concerns as a key driver behind the safe-haven rush.",
-    "title": "The US just crossed $40 trillion in debt. Here's the boring move that actually protects you",
-    "why_it_works": "Big scary macro numbers get shared everywhere, and reacting with 'here's how you build your own financial floor' instead of a gold pitch positions you as the calm, non-salesy voice in the feed.",
-    "hooks": [
-      "The US national debt just hit $40 trillion. My inbox is full of panicked messages.",
-      "Gold's near record highs and everyone's asking me if they should buy some. Here's my honest answer.",
-      "$40,000,000,000,000. Let that number sink in for a second, then let's talk about your emergency fund."
-    ],
-    "talking_points": [
-      "US national debt crossed $40 trillion this week, and gold is trading near multi-year highs as investors look for safety.",
-      "Chasing whatever's spiking, gold, crypto, anything, after the headline already broke is the least effective time to act.",
-      "Your actual hedge against macro uncertainty is boring: 3-6 months of expenses in cash, and protection in place before any growth assets.",
-      "Diversification isn't a slogan - it means not having your entire net worth reactive to one country's headlines."
-    ],
-    "cta": "Save this post if you've been meaning to check your emergency fund is actually 3-6 months, not 3-6 weeks.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 big bold '$40,000,000,000,000' stat, slide 2 a gold price chart screenshot, slides 3-5 your 3-point 'boring hedge' framework, final slide save-prompt CTA card.",
-    "source_label": "Yahoo Finance, 21 Aug 2026",
-    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/gold-prices-today-friday-august-21-2026-gold-remains-strong-amid-us-debt-concerns-161052751.html",
-    "observed_at": "2026-08-21",
-    "date_found": "2026-08-22"
-  },
-  {
-    "id": "trend-2026-08-22-toto-jackpot-windfall-psychology",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "event",
-    "trend_source": "Singapore Pools' Thursday Toto draw (20 Aug, Draw #4210) paid out a $2.95 million Group 1 prize, with the next draw already climbing to an estimated $4.5 million, fueling the usual jackpot-fever chatter online.",
-    "title": "What I'd actually do with a $4.5 million Toto jackpot (it's not what you think)",
-    "why_it_works": "Jackpot fever is a guaranteed engagement trigger every time the prize climbs, and flipping it into 'here's what real financial security looks like vs. a windfall fantasy' is a natural, non-preachy bridge.",
-    "hooks": [
-      "Toto's at $4.5 million this week. Let's talk about what actually happens to lottery winners' money.",
-      "Everyone's buying Toto this week. I'm going to tell you the unsexy alternative that actually works.",
-      "If I won $4.5 million on Monday, here's the very boring first phone call I'd make."
-    ],
-    "talking_points": [
-      "This week's Toto jackpot: $2.95M paid out Thursday, next draw already at an estimated $4.5M.",
-      "Most windfall money, lottery, inheritance, bonus, disappears within a few years without a plan - that's not a knock on winners, it's just what happens without structure.",
-      "A real safety net isn't a 1-in-14-million shot - it's insurance, CPF, and savings you control the odds on.",
-      "The 'first 3 calls' after any windfall: a lawyer, a tax check, and someone who isn't emotionally invested in the money."
-    ],
-    "cta": "Comment 'WINDFALL' and I'll send you the first-3-calls checklist for any sudden money, jackpot or otherwise.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Direct to camera, phone showing the Toto results screenshot, quick cut to a whiteboard or notes app listing the 'first 3 calls' as you say them.",
-    "source_label": "Singapore Pools Toto results, 20 Aug 2026",
-    "source_url": "https://www.lotteryextreme.com/singapore/",
-    "observed_at": "2026-08-20",
-    "date_found": "2026-08-22"
-  },
-  {
-    "id": "trend-2026-08-22-gstv-payout-windfall-habit",
-    "platform": "facebook",
-    "format": "story",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "MOF's August 2026 GST Voucher - Cash payout (up to $850) is landing in accounts this week, with GovCash disbursement starting today (22 Aug) for the last batch of the 1.5 million eligible recipients.",
-    "title": "Your GSTV cash is landing this week. Here's the 60-second move before it disappears into daily spending",
-    "why_it_works": "The payout is hitting real bank accounts this exact week, so timing the post now catches people while the money is still sitting there deciding what to do with it, before it quietly merges into everyday spending.",
-    "hooks": [
-      "If you got your GSTV cash this week, don't let it just sit in your spending account. Do this instead.",
-      "$850 just landed in a lot of accounts this week. Here's the 60-second move before you forget about it.",
-      "Government top-ups always disappear into groceries within a month. Here's how to actually make yours count."
-    ],
-    "talking_points": [
-      "MOF's GSTV - Cash (up to $850) and MediSave top-up (up to $450) payouts are rolling out through this week, with the final GovCash batch disbursing today.",
-      "Small windfalls like this rarely get 'spent badly' - they just get absorbed invisibly into normal spending with zero intention.",
-      "The 60-second move: transfer it straight to a separate account or your CPF/SRS the same day you notice it's in, before it blends in.",
-      "This works for any top-up, CDC vouchers, tax refunds, bonuses - the trick is always removing the decision, not exercising more willpower."
-    ],
-    "cta": "Comment 'GSTV' if you got yours this week and tell me what you're doing with it - I'll reply with the account-split trick.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Quick phone banking-app screen recording showing a transfer being made, voiceover explaining the 60-second move, end on a text card recapping the 1 action.",
-    "source_label": "Ministry of Finance Singapore, media release",
-    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/1-5-million-adult-singaporeans-to-receive-up-to--850-in--gstv---cash-and-710-000-singaporean-seniors-to-receive-up-to--450-medisave-top-up-in-august-2026/",
-    "observed_at": "2026-08-22",
-    "date_found": "2026-08-22"
-  },
-  {
-    "id": "trend-2026-08-22-f1-sprint-vs-marathon",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "sport",
-    "trend_source": "At this weekend's Dutch Grand Prix in Zandvoort, George Russell took Sprint Qualifying pole by hundredths of a second over Lando Norris and Charles Leclerc, with the full Grand Prix still to come on Sunday.",
-    "title": "F1 has a sprint AND a race this weekend. Your money should know the difference too",
-    "why_it_works": "F1's sprint-vs-Grand Prix format is genuinely in the news this exact weekend, and the metaphor, short sprints for quick wins vs. the long race for the goal, maps onto financial planning without any forcing.",
-    "hooks": [
-      "F1 ran a Sprint race and the full Grand Prix this weekend. Your finances need both, and here's why.",
-      "George Russell won Sprint Qualifying by 0.041 seconds. That margin means nothing by Sunday's real race.",
-      "This weekend's F1 has two different races. Most people only plan for one kind of financial race too."
-    ],
-    "talking_points": [
-      "This weekend's Dutch GP: Russell took Sprint pole by hundredths of a second, but the points that matter most come from Sunday's full Grand Prix.",
-      "A 'sprint' win in money terms is a quick trade, a bonus, a lucky month - nice, but it's not the race.",
-      "The 'Grand Prix' is your actual goal, retirement, your kids' education, owning your home outright, and it's won over years, not one good week.",
-      "Chasing sprint-style wins while ignoring the long race is how good months don't add up to a good decade."
-    ],
-    "cta": "Which race are you actually running, sprint or Grand Prix? Tell me in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Split-screen or quick cuts: F1 sprint clip/photo on one side, you talking on the other, use on-screen text for 'SPRINT' vs 'GRAND PRIX' framing.",
-    "source_label": "Formula1.com, 21 Aug 2026",
-    "source_url": "https://www.formula1.com/en/latest/article/russell-charges-to-pole-position-in-dutch-grand-prix-sprint-qualifying-ahead-of-norris.4agXz49Klz5hEljnOkKRwa",
-    "observed_at": "2026-08-21",
-    "date_found": "2026-08-22"
-  },
-  {
-    "id": "trend-2026-08-22-shanghai-property-easing-diversification",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Shanghai became the first top-tier Chinese city to roll out fresh homebuying-easing measures this week (20 Aug), letting residents tap housing provident funds for downpayments, as China's broader property slump deepens.",
-    "title": "Shanghai just eased property rules to prop up a falling market. What it should remind you to check",
-    "why_it_works": "China's property slump is a headline everyone half-follows, and turning it into 'is too much of my net worth sitting in one asset' is a genuinely useful, non-alarmist prompt rather than a hot take on China.",
-    "hooks": [
-      "Shanghai just loosened its property rules this week to stop prices falling further. Here's the lesson for us.",
-      "China's largest property market just needed a government rescue. When did you last check your own concentration risk?",
-      "One city, one asset class, one policy tweak - and it's front page news. That's what concentration risk looks like."
-    ],
-    "talking_points": [
-      "Shanghai this week became the first major Chinese city to ease home-buying rules, allowing provident fund withdrawals for downpayments, as the broader market keeps sliding.",
-      "This isn't a call on Chinese property - it's a reminder that concentrated bets, all your wealth in one property, one country, one asset class, can need a government rescue to unwind.",
-      "A simple gut-check: if your single biggest asset lost 30% of its value tomorrow, would your retirement plan still work?",
-      "Diversification isn't about predicting the next crash - it's about not needing to."
-    ],
-    "cta": "Message me 'CHECK' and I'll send you the 3-question concentration risk gut-check.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Pair with a simple icon-chain graphic: house icon, one country flag icon, percentage-drop icon, to visualise concentration risk without naming any country as a bad bet.",
-    "source_label": "Bloomberg, 20 Aug 2026",
-    "source_url": "https://www.bloomberg.com/news/articles/2026-08-20/shanghai-starts-new-round-of-property-easing-after-economy-slows",
-    "observed_at": "2026-08-20",
-    "date_found": "2026-08-22"
-  },
-  {
-    "id": "trend-2026-08-22-japan-yen-travel-budget",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Japan's core inflation accelerated again in data out this week (20-21 Aug), keeping the Bank of Japan on track for a possible rate hike as soon as September, with a weak yen still shaping how far Singaporean travellers' money stretches in Japan.",
-    "title": "Japan's inflation just jumped again. Here's what it actually means for your next trip",
-    "why_it_works": "Japan is Singaporeans' most obsessed-over travel destination, so a real macro story, BOJ rate hike odds, becomes instantly relatable the moment you connect it to trip budgets instead of bond yields.",
-    "hooks": [
-      "Planning a Japan trip? This week's inflation data actually matters for your budget. Here's why.",
-      "Everyone's obsessed with cheap Japan trips right now. This week's news might change that math.",
-      "The yen story everyone's ignoring: what rising Japan inflation means for your next trip budget."
-    ],
-    "talking_points": [
-      "Japan's core inflation accelerated again this week, keeping the Bank of Japan on track for a possible rate hike as soon as September.",
-      "A rate hike would likely strengthen the yen, meaning the 'cheap Japan trip' era Singaporeans have enjoyed could start fading.",
-      "This isn't about predicting currency moves - it's about not leaving travel funds as an afterthought when timing genuinely affects the bill.",
-      "The practical move: if a big Japan trip is on your calendar, lock in accommodation and exchange earlier, and keep a travel fund separate from daily spending."
-    ],
-    "cta": "Comment 'JAPAN' if you've got a trip coming up and I'll share how I budget for currency swings.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head with a Japan travel photo or yen-note prop, on-screen text overlay of the inflation % stat, end on your practical tip as a text card.",
-    "source_label": "Bloomberg, 20-21 Aug 2026",
-    "source_url": "https://www.bloomberg.com/news/articles/2026-08-20/japan-s-inflation-accelerates-backing-boj-s-case-for-rate-hike",
-    "observed_at": "2026-08-21",
-    "date_found": "2026-08-22"
-  },
-  {
-    "id": "trend-2026-08-22-us-open-prize-money-windfall-planning",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "interest",
-    "trend_type": "sport",
-    "trend_source": "The 2026 US Open, starting this week, carries a record $108 million prize pool, with singles champions earning $5.5 million each, the largest single winner's cheque in tennis history.",
-    "title": "A tennis player is about to win $5.5 million. Here's what actually happens to windfall money like that",
-    "why_it_works": "Record prize money headlines are everywhere as the tournament kicks off, and reframing 'huge cheque' into 'here's why even pros need a real plan for lump sums' is a natural, relatable angle for anyone expecting a bonus or payout.",
-    "hooks": [
-      "A tennis player is about to win $5.5 million dollars for two weeks of work. Here's the catch nobody talks about.",
-      "The US Open's giving out a record $108 million this year. Most of it won't last the way you'd think.",
-      "Pro athletes go broke more than you'd expect. This week's record prize money is a perfect case study why."
-    ],
-    "talking_points": [
-      "This year's US Open prize pool hits a record $108 million, with singles champions earning $5.5 million each, the biggest single cheque in tennis history.",
-      "Studies consistently show a large share of pro athletes face financial trouble within years of a big payday - the money isn't the problem, the lack of a plan is.",
-      "Big paydays, bonuses, sale proceeds, inheritance, need the same 3 things every time: tax awareness, a 'don't touch' bucket, and time before big decisions.",
-      "You don't need $5.5 million for this lesson to apply - the same discipline applies to a $5,000 bonus."
-    ],
-    "cta": "Save this if you've got a bonus or payout coming and want the 3-step lump-sum framework.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 '$108,000,000' stat, slide 2 '$5.5M to the winner' stat, slides 3-5 the 3-step lump sum framework, final slide save CTA.",
-    "source_label": "Women's Tennis Blog, 20 Aug 2026",
-    "source_url": "https://womenstennisblog.com/2026/08/20/us-open-prize-money-2026-hits-record-108m-champions-to-earn-5-5m/",
-    "observed_at": "2026-08-20",
-    "date_found": "2026-08-22"
-  },
-  {
-    "id": "trend-2026-08-22-esports-world-cup-young-earners",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "culture",
-    "trend_source": "The Esports World Cup 2026 wraps up its final tournaments this week (through 23 Aug) with a record $75 million total prize pool, the largest in esports history, split across 24 games.",
-    "title": "Teenagers are winning 6-figure esports cheques this week. Here's the financial talk their parents should have",
-    "why_it_works": "The tournament is closing out this exact week with record-breaking numbers dominating gaming feeds, and pivoting to 'young earners need a plan too' speaks directly to parents of gamer kids without moralising about gaming itself.",
-    "hooks": [
-      "A teenager could walk away with a 6-figure cheque this week from esports. Here's the talk that needs to happen after.",
-      "$75 million dollars, largest prize pool in esports history, wrapping up this week. Most winners are under 25.",
-      "If your kid's into esports and actually good, this week's news is why you need this conversation now."
-    ],
-    "talking_points": [
-      "The Esports World Cup 2026 closes this week with a record $75 million total prize pool across 24 games, the biggest in esports history.",
-      "Many top earners are teenagers or in their early 20s, often with zero background in managing a sudden large sum.",
-      "The conversation that matters isn't 'is gaming a career' - it's 'do you know what to do with money that lands all at once.'",
-      "Simple starting point for any young earner: separate spending money from the rest immediately, and get one trusted adult involved before any big purchase."
-    ],
-    "cta": "Comment 'YOUNG EARNER' if you know a young gamer, athlete or creator who could use this conversation - I'll send you a simple starter guide.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head over a gaming-setup style backdrop, on-screen text for the $75M stat, end with the 'one trusted adult' tip as a text card.",
-    "source_label": "Tech Insider, Esports World Cup 2026 coverage",
-    "source_url": "https://tech-insider.org/esports-world-cup-2026-record-75-million-prize-pool/",
-    "observed_at": "2026-08-21",
-    "date_found": "2026-08-22"
-  },
-  {
-    "id": "trend-2026-08-22-coe-bidding-financing-discipline",
-    "platform": "facebook",
-    "format": "carousel",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "This week's second COE bidding exercise of August closed with premiums up in 4 of 5 categories, Cat A up to $128,501 and Cat E climbing to $135,000, even during the traditionally quiet Hungry Ghost month.",
-    "title": "COE premiums just went up again. Here's the car-financing question most people skip",
-    "why_it_works": "COE results are a recurring, high-attention SG money story, and framing it around 'run the numbers before the dealer does' gives genuinely useful guidance instead of just repeating the price headline.",
-    "hooks": [
-      "COE premiums went up again this week. Here's the one number most car buyers never check.",
-      "Cat A COE just crossed $128,000 again. If you're car shopping, don't skip this step.",
-      "Everyone's talking about COE prices this week. Almost nobody's talking about this part of the loan."
-    ],
-    "talking_points": [
-      "This week's 2nd August COE exercise: Cat A up to $128,501, Cat E up to $135,000, 4 of 5 categories rose.",
-      "A rising COE changes your total loan amount, which changes your monthly instalment far more than people expect - always run the full number, not just the COE line.",
-      "The question to ask before signing: what's my total debt servicing ratio across all loans, not just this one car.",
-      "A cheaper COE month isn't a green light to buy either - the real question is always whether the purchase fits your plan, not whether the price 'feels' good this month."
-    ],
-    "cta": "DM me 'COE' and I'll send you the quick worksheet to check your true monthly affordability before you sign anything.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Carousel: slide 1 COE price table screenshot/graphic, slide 2 'total loan vs monthly instalment' example math, slides 3-4 the TDSR question, final slide DM CTA.",
-    "source_label": "Motorist Singapore, COE results",
-    "source_url": "https://www.motorist.sg/article/6246/august-2026-coe-results-2nd-bidding-ghosts-were-hungry-for-food-while-people-were-hungry-for-car-and-bike-coes-whose-premiums-reopened-the-gates-of-monetary-hell",
-    "observed_at": "2026-08-20",
-    "date_found": "2026-08-22"
-  },
-  {
-    "id": "trend-2026-08-22-mas-wealth-hub-pride",
+    "id": "trend-2026-08-23-ndr-family-costs-review",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "identity",
-    "trend_type": "news",
-    "trend_source": "MAS this week rolled out tax breaks, a new hedge-fund programme and an expanded talent visa track to cement Singapore's position as Asia's leading asset management hub, an industry already managing close to S$7 trillion here.",
-    "title": "Singapore just doubled down on being Asia's wealth hub. Here's why that's not just an industry headline",
-    "why_it_works": "It's a genuine pride-and-relevance moment for anyone in the local finance and advisory profession, and it gives consultants a credible, non-salesy reason to talk about why sophisticated planning matters more here, not less.",
+    "trend_type": "current-affairs",
+    "trend_source": "Tonight (23 Aug), PM Lawrence Wong delivers the National Day Rally 2026, with early coverage flagging a major review of family costs - infant care, childcare affordability and support for the 'sandwich generation' - as one of four key themes.",
+    "title": "Tonight's National Day Rally is about family costs. Here's the family plan you don't need to wait for.",
+    "why_it_works": "The Rally is the single most-watched national moment of the year and this year's preview centres on the exact pressures, childcare, ageing parents, cost of raising kids, your clients already feel, giving you a timely, non-partisan reason to talk about family planning.",
     "hooks": [
-      "Singapore just rolled out new incentives to be Asia's wealth hub. Here's why that actually matters to you, not just fund managers.",
-      "S$7 trillion is managed out of Singapore right now, and this week the government just moved to grow that further.",
-      "More global money managers setting up here is good for the industry. Here's what it should mean for your own plan."
+      "Tonight's National Day Rally is about family costs. I'm not waiting for the announcement to start this conversation.",
+      "PM Wong's speaking about the sandwich generation tonight. If that's you, here's what you can control before he even starts.",
+      "Whatever gets announced at the Rally tonight, this part of your family's plan is still on you."
     ],
     "talking_points": [
-      "This week MAS announced tax exemptions, a new hedge fund programme and an expanded talent visa track to strengthen Singapore's edge as an asset management hub, already at nearly S$7 trillion in assets.",
-      "More competition among global wealth managers setting up here generally means more sophisticated products and advice becoming available locally, not just for the ultra-wealthy.",
-      "It's also a reminder: if the world's asset managers are doubling down on planning and structure, that's not a bad habit to copy at any wealth level.",
-      "The takeaway isn't 'go find a hedge fund' - it's 'the basics, protection, savings discipline, a written plan, are still what most people are missing.'"
+      "PM Lawrence Wong delivers the National Day Rally tonight, with pre-Rally coverage flagging family costs, childcare affordability and support for parents caring for kids and ageing parents at once, as a headline theme.",
+      "Government support helps at the margins, but it isn't a substitute for your own family cost plan: what childcare, education and eldercare actually cost you specifically, mapped out.",
+      "The 'sandwich generation' squeeze is real, supporting both kids and parents at once, and the fix isn't more income, it's a written plan for both sets of costs.",
+      "One practical step tonight: while the Rally is on, list your family's three biggest recurring cost pressures - you'll know exactly what to listen for."
     ],
-    "cta": "What's one part of your own financial plan you've been putting off? Tell me in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Pair with a simple stat card: 'S$7 trillion AUM - ~25,000 jobs' pulled from the MAS release, styled plainly, no logos.",
-    "source_label": "MAS media release, 19 Aug 2026",
-    "source_url": "https://www.mas.gov.sg/news/media-releases/2026/mas-introduces-measures-to-strengthen-singapores-competitiveness-as-a-leading-asset-management-hub",
-    "observed_at": "2026-08-20",
-    "date_found": "2026-08-22"
+    "cta": "Comment 'FAMILY' and I'll send you the 3-column worksheet to map your own family cost pressures, no matter what's announced tonight.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head, filmed before or after the Rally airs, with a simple text overlay listing 'childcare / dependants / your own retirement' as the three pressures, no logos or government branding.",
+    "source_label": "AsiaOne, 23 Aug 2026",
+    "source_url": "https://www.asiaone.com/singapore/ndr-2026-pm-lawrence-wong-4-things",
+    "observed_at": "2026-08-23",
+    "date_found": "2026-08-23"
   },
   {
-    "id": "trend-2026-08-22-upi-paynow-remittance-habit",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "At this week's India-Singapore Ministerial Roundtable (20 Aug), officials highlighted a sharp rise in transactions on the UPI-PayNow cross-border digital payments link, as both countries deepen fintech and digital-economy cooperation.",
-    "title": "Sending money home just got easier this week. Here's the habit that matters more than the transfer",
-    "why_it_works": "It's genuinely fresh government news this week, and it lands naturally for the many Singaporeans and residents who regularly send money to family abroad, without wading into any political territory.",
+    "id": "trend-2026-08-23-revupsg-f1-ticket-sinking-fund",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "sport",
+    "trend_source": "RevUpSG's first F1 heartland watch party ran at Bedok Town Square 22-23 Aug screening the Dutch GP, and on 23 Aug from 12.30pm a strictly-limited batch of 1,000 community-priced Singapore GP 2026 tickets went on sale there to SCs/PRs, capped at two per person.",
+    "title": "1,000 community-priced F1 tickets sold today at Bedok. Here's the money lesson in that queue",
+    "why_it_works": "A real, time-boxed scarcity event happening today gives an authentic hook, and the lesson, decide your splurge budget before you're in the queue, not after, lands naturally without moralising about anyone who bought a ticket.",
     "hooks": [
-      "This week's news: sending money to family in India just got even easier. Here's the part people forget.",
-      "UPI-PayNow transactions just jumped again this week. If you send money home, this affects you.",
-      "Cross-border transfers keep getting faster and cheaper. Here's why that's not the same as having a plan."
+      "1,000 community-priced F1 tickets went on sale at Bedok today. Here's what I'd do before joining that queue.",
+      "People are queuing at Bedok right now for cheaper Singapore GP tickets. The real question isn't the price, it's this.",
+      "Limited-release tickets, 2 per person, gone in minutes. Here's how I decide if a splurge like this fits my month."
     ],
     "talking_points": [
-      "This week's India-Singapore Ministerial Roundtable highlighted rising transaction volumes on the UPI-PayNow digital payments link between the two countries.",
-      "Faster, cheaper transfers make it easy to send money home ad hoc - but ad hoc is exactly how family support quietly becomes unbudgeted.",
-      "The fix: treat regular family transfers like any other line item, a fixed monthly amount, decided in advance, not a reaction to each request.",
-      "If you're supporting family across borders long-term, it's also worth checking whether insurance or a simple will accounts for dependents who aren't in Singapore."
+      "RevUpSG's Bedok Town Square watch party sold a strictly limited batch of 1,000 community-priced Singapore GP 2026 tickets today from 12.30pm, capped at two per buyer.",
+      "Scarcity and a countdown clock are designed to make you decide fast - the fix is deciding your splurge number before you're standing in the queue, not during.",
+      "A simple test for any 'once a year' ticket or experience: does it come out of a fund you already set aside, or does it get pulled from next month's budget?",
+      "Community-priced or not, the real win is buying it without having to quietly cut something else to cover it."
     ],
-    "cta": "Message me 'FAMILY' if you send money home regularly and want help building it properly into your budget.",
+    "cta": "Comment 'SPLURGE' and I'll send you the simple sinking-fund formula for planning next year's big-ticket experience without the guilt.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Film on location or reaction-style to the queue/news footage, on-screen text counting down '1,000 tickets, 2 per person', cut to you explaining the sinking-fund tip direct to camera.",
+    "source_label": "The Star, 21 Aug 2026",
+    "source_url": "https://www.thestar.com.my/lifestyle/travel/2026/08/21/gear-up-for-formula-1-fun-at-these-watch-parties-in-singapore",
+    "observed_at": "2026-08-22",
+    "date_found": "2026-08-23"
+  },
+  {
+    "id": "trend-2026-08-23-apple-impersonation-scam-advisory",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Singapore Police issued an advisory on 21 Aug 2026 on a new scam variant impersonating Apple support: fake 'unauthorised access' pop-ups followed by a call from a fake Apple technician, with at least 5 cases and $195,000 lost since 7 Aug 2026.",
+    "title": "That 'your Apple ID was compromised' pop-up is this week's scam. Here's what protects you",
+    "why_it_works": "This is a live, specific, dated police advisory with real numbers, so warning your audience (and their parents) about the exact pop-up and phone-call pattern is genuinely useful, trust-building content, not fear-mongering.",
+    "hooks": [
+      "Police just flagged a new scam this week and it starts with an Apple pop-up on your phone. Here's the exact pattern.",
+      "Five people lost a total of $195,000 to this scam since the start of August. It starts with your phone, not your bank.",
+      "If you get a call from 'Apple support' after a scary pop-up, hang up. Here's why that's always the move."
+    ],
+    "talking_points": [
+      "Singapore Police's 21 Aug advisory: a scam impersonating Apple support, starting with a fake 'unauthorised access' pop-up, then a call from a fake technician - at least 5 cases and $195,000 lost since 7 Aug.",
+      "Apple, banks and government agencies never call you to 'fix' an account issue that started with a pop-up - a call like that is the scam, not the solution.",
+      "The one habit that stops this cold: never act on a prompt from a pop-up or an inbound call - always go directly to the official app or website yourself.",
+      "This is exactly the kind of scam worth a 2-minute conversation with your parents or older relatives this week, before it happens to them."
+    ],
+    "cta": "Save this and send it to one person who'd click first and ask questions later.",
+    "cta_type": "save-share",
+    "how_to_film": "Screen-record style: mock up the pop-up warning appearing, cut to you saying 'hang up, don't click', end on-screen with the 3-step 'verify yourself' checklist.",
+    "source_label": "Singapore Police Force advisory, 21 Aug 2026",
+    "source_url": "https://www.police.gov.sg/Media-Hub/News/2026/08/20260821_police_advisory_on_apple_impersonation_cryptocurrency_account_compromise_scams",
+    "observed_at": "2026-08-21",
+    "date_found": "2026-08-23"
+  },
+  {
+    "id": "trend-2026-08-23-col-special-payment-paynow-deadline",
+    "platform": "facebook",
+    "format": "carousel",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "MOF confirmed the Enhanced Budget 2026 Cost-of-Living Special Payment (S$400-S$600) reaches 2.4 million citizens automatically from 9 Sep 2026, with a PayNow-NRIC link-up by 30 Aug 2026 the only way to get it earlier.",
+    "title": "One deadline this week decides if your COL payment lands early: 30 August",
+    "why_it_works": "This has a specific, hard, imminent deadline (30 Aug) attached to real money, which is exactly the kind of concrete, useful, dated content people save and act on rather than scroll past.",
+    "hooks": [
+      "There's a real deadline this week if you want your Cost-of-Living payment earlier. It's 30 August, not 9 September.",
+      "Up to $600 lands automatically from 9 Sep - but one small step this week gets it to you sooner.",
+      "Most people don't know this payment has an 'early' option. It just needs one thing done by 30 August."
+    ],
+    "talking_points": [
+      "MOF: the Enhanced B2026 Cost-of-Living Special Payment ($400-$600) reaches over 2.4 million eligible citizens automatically from 9 September 2026, no application needed.",
+      "Linking your NRIC to PayNow by 30 August is the only lever that gets your payment credited earlier - miss it, and it still comes, just not as fast.",
+      "Check your eligibility once at govbenefits.gov.sg with Singpass rather than guessing - the amount depends on both your assessable income and your home's annual value.",
+      "Whatever the amount, decide where it's going before it lands - a small automatic top-up to CPF, SRS or an emergency fund beats it disappearing into everyday spending."
+    ],
+    "cta": "DM me 'COL' and I'll send you the 1-minute eligibility check plus where I'd park mine.",
     "cta_type": "dm-keyword",
-    "how_to_film": "Pair with a simple 2-flag graphic, Singapore and India, plus one line of text: 'sending money home just got easier.'",
-    "source_label": "ANI News, 20 Aug 2026",
-    "source_url": "https://aninews.in/news/business/india-singapore-discuss-deeper-economic-ties-in-manufacturing-fintech-healthcare-and-digitalisation20260820154843/",
-    "observed_at": "2026-08-20",
-    "date_found": "2026-08-22"
+    "how_to_film": "Carousel: slide 1 '30 August' big deadline callout, slide 2 payment amount table by scenario, slide 3 PayNow-link steps, final slide DM CTA.",
+    "source_label": "Ministry of Finance Singapore, media release",
+    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/over-2-4-million-singapore-citizens-to-receive-between--400-and--600-from-the-enhanced-budget-2026-cost-of-living--col--special-payment-in-september-2026/",
+    "observed_at": "2026-08-21",
+    "date_found": "2026-08-23"
+  },
+  {
+    "id": "trend-2026-08-23-tbill-yield-slide",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Singapore's 6-month T-bill cut-off yield slid to 1.56% at the 13 Aug auction, down from levels above 2% earlier this year, with the closing yield at 1.55% on 20 Aug and the next auction on 27 Aug.",
+    "title": "T-bill yields have quietly slid for months. If your cash is still parked at last year's rate, read this",
+    "why_it_works": "T-bills went mainstream with SG savers over the past two years, so a genuine, dated drop in yield is a natural, non-hype reason to prompt an actual portfolio review of idle cash rather than a set-and-forget habit.",
+    "hooks": [
+      "Singapore's T-bill yield has quietly slid to 1.56%. If you haven't checked since last year, this is your nudge.",
+      "The next T-bill auction closes 27 August. Here's the question to ask before you roll over your cash again.",
+      "T-bill yields were above 2% not long ago. They're not anymore, and most people parking cash there haven't noticed."
+    ],
+    "talking_points": [
+      "The 6-month T-bill cut-off yield eased to 1.56% at the 13 August auction, with the closing yield at 1.55% on 20 August - the next auction closes 27 August.",
+      "This isn't a call to chase a different product - it's a prompt to actually re-check what your parked cash is earning, since 'set and forget' quietly costs you as rates drift.",
+      "The real question before rolling over: does this cash need to stay liquid, or has your emergency fund grown enough that some of it could work differently?",
+      "A 10-minute review of where your idle cash sits, T-bills, SSBs, fixed deposits, savings account, once a quarter is a habit, not a trade."
+    ],
+    "cta": "Comment 'CASH' and I'll send you the quarterly checklist I use to review where clients' parked cash sits.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Simple talking head or voiceover over a plain line-chart graphic showing the T-bill yield sliding from above 2% to 1.55%, no logos, purely the trend line and dates.",
+    "source_label": "Growbeansprout.com, 20-21 Aug 2026",
+    "source_url": "https://growbeansprout.com/t-bill-auction-27-aug-2026",
+    "observed_at": "2026-08-21",
+    "date_found": "2026-08-23"
+  },
+  {
+    "id": "trend-2026-08-23-sp500-close-discipline",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "US markets closed higher on Friday 21 Aug 2026, with the S&P 500 up 0.43% to 7,674 as the week's earlier losses were pared back on stronger economic data.",
+    "title": "The S&P 500 clawed back a rough week in one Friday. Here's what that should teach you, not tell you to do",
+    "why_it_works": "A real, dated market swing is a low-stakes, no-recommendation way to make the case for staying invested through a choppy week instead of reacting to every headline, which is exactly the discipline point advisors want to land.",
+    "hooks": [
+      "Markets had a rough week, then clawed it all back in one Friday. Here's the only lesson I take from that.",
+      "If you checked your portfolio mid-week and panicked, Friday's close is exactly why that's the wrong habit.",
+      "One index, one week, two very different moods. Your plan shouldn't change with either one."
+    ],
+    "talking_points": [
+      "The S&P 500 closed up 0.43% at 7,674 on Friday 21 Aug, paring back a rough week's losses as economic data came in stronger than feared.",
+      "This isn't about calling where markets go next - it's about noticing how fast a 'bad week' narrative can flip in a single session.",
+      "Checking your portfolio daily during a choppy week almost always produces more anxiety than information - a quarterly check is usually enough for a long-term plan.",
+      "The plan that survives weeks like this is the one built for your actual timeline and goals, not one that gets rewritten every time the market has a mood swing."
+    ],
+    "cta": "What's your rule for when you actually check your portfolio? Tell me in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Simple talking head with a muted line-chart graphic in the background showing an up-down-up week shape, no specific index branding or price predictions.",
+    "source_label": "TheStreet, 21 Aug 2026",
+    "source_url": "https://www.thestreet.com/stock-market-today/stock-market-today-dow-jones-sp-500-nasdaq-updates-aug-21-2026",
+    "observed_at": "2026-08-21",
+    "date_found": "2026-08-23"
+  },
+  {
+    "id": "trend-2026-08-23-night-festival-free-fun-budget",
+    "platform": "instagram",
+    "format": "story",
+    "pillar": "topic",
+    "trend_type": "event",
+    "trend_source": "The 17th Singapore Night Festival ran this weekend (22-23 Aug) across four hubs from the National Museum to Bras Basah Complex and CHIJMES, Singapore's largest free nocturnal arts event.",
+    "title": "This weekend's Night Festival is free. Here's why 'free fun' still deserves a place in your budget",
+    "why_it_works": "It's this exact weekend's flagship free event, so it's a relatable, feel-good hook for a 'you don't need to spend to have a great weekend' message that still nudges toward intentional planning rather than guilt.",
+    "hooks": [
+      "This weekend's Night Festival is completely free. Here's the one thing I still budget for on nights like this.",
+      "Free entry doesn't mean a free night out. Here's how I plan for nights like the Night Festival.",
+      "Singapore's biggest free arts festival is on right now. Here's why 'free' events still need a small budget line."
+    ],
+    "talking_points": [
+      "The 17th Singapore Night Festival ran 22-23 Aug across four hubs, National Museum, Bras Basah Complex, CHIJMES and more, Singapore's largest free nocturnal arts event.",
+      "Free-entry events are still where money quietly leaks out, food stalls, parking, impulse buys, if there's no small cap decided in advance.",
+      "A simple habit: set a small 'fun money' cap for free events before you go, so spontaneity doesn't turn into next week's regret.",
+      "The bigger point: a great weekend doesn't need a big budget, it needs an intentional one, whether it's $0 or $100."
+    ],
+    "cta": "Save this if you're heading down this weekend and want the 'fun money cap' trick.",
+    "cta_type": "save-share",
+    "how_to_film": "Story format: on-location clips or reposted festival visuals, text overlay reading 'Free festival. Still set a $ cap' with your voiceover explaining the tip.",
+    "source_label": "Little Day Out, weekend guide 22-23 Aug 2026",
+    "source_url": "https://www.littledayout.com/things-to-do-this-weekend-in-singapore/",
+    "observed_at": "2026-08-22",
+    "date_found": "2026-08-23"
+  },
+  {
+    "id": "trend-2026-08-23-fixed-deposit-rate-shuffle",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Singapore's fixed deposit board reshuffled this month: CIMB moved to 1.70% p.a. to take the top mainstream spot from RHB, its promo running only until 31 Aug 2026, while OCBC and UOB stay at 1.30% for 12 months.",
+    "title": "The fixed deposit 'best rate' changed again this month. Most people's money didn't move with it",
+    "why_it_works": "A genuine, dated rate reshuffle with a real end-of-month deadline is a natural, no-hype reason to prompt people to actually check where their idle cash sits instead of leaving it on autopilot at whichever bank they opened an account with years ago.",
+    "hooks": [
+      "The best fixed deposit rate in Singapore changed again this month. Has your cash moved with it?",
+      "CIMB just took the top spot for fixed deposit rates, but the promo ends 31 August. Here's why that date matters.",
+      "Your bank's 'stable' 1.3% fixed deposit rate isn't actually competitive right now. Here's what is."
+    ],
+    "talking_points": [
+      "This month CIMB moved to 1.70% p.a. to take the top mainstream fixed deposit rate from RHB, with the promo running only until 31 August, while the big-three banks sit at 1.30% for 12 months.",
+      "This isn't about chasing the single best rate every month, it's about noticing when the gap between your bank and the market gets wide enough to matter.",
+      "A quick gut-check: if the difference on your parked cash is more than a nice dinner out a year, it's worth 10 minutes to move it.",
+      "Keep this separate from your emergency fund decision, fixed deposits lock up cash, so only move money you genuinely won't need before it matures."
+    ],
+    "cta": "Comment 'RATES' and I'll send you the simple monthly rate-check habit I use.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head paired with a simple two-column graphic: 'CIMB 1.70%' vs 'Big 3 banks 1.30%', both labelled as published rates only, no bank logos.",
+    "source_label": "MissLobang, Best Fixed Deposit Rates, Aug 2026",
+    "source_url": "https://www.misslobang.com/article/best-fixed-deposit-rates-singapore-2026",
+    "observed_at": "2026-08-21",
+    "date_found": "2026-08-23"
+  },
+  {
+    "id": "trend-2026-08-23-mock-doc-money-confession",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "TikTok's 'Netflix Documentary' mock sit-down interview format, one of this month's biggest comedic crossover trends, has creators staging exaggerated true-crime-doc-style 'confessions' about ordinary personal habits.",
+    "title": "The 'Netflix Documentary' trend, but it's your money habits confessing on camera",
+    "why_it_works": "Riding a genuinely current comedic format with a self-deprecating money 'confession' makes financial honesty feel funny and shareable instead of preachy, which is exactly the tone that gets a save or a laugh instead of a scroll-past.",
+    "hooks": [
+      "POV: my worst money habit gets the full true-crime documentary treatment.",
+      "This is my 'Netflix Documentary' confession about the subscription I forgot I was paying for.",
+      "Dramatic reenactment: the time I 'window shopped' and somehow bought three things."
+    ],
+    "talking_points": [
+      "TikTok's mock true-crime 'Netflix Documentary' sit-down format is one of this month's biggest comedic trends, used for exaggerated confessions about everyday habits.",
+      "Applied to money, it turns an awkward admission, a forgotten subscription, an impulse buy, a skipped budget check, into something funny and human instead of shameful.",
+      "The joke only works if it's self-deprecating about you, never about a client, a follower or anyone's income level.",
+      "End with the real, useful fix in one line, so the format earns its punchline instead of just being funny for funny's sake."
+    ],
+    "cta": "Comment your own 'documentary confession' below - I'll pick one to actually solve next week.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Mock interview lighting and framing (single light, plain background), fake lower-third caption naming your 'crime', dramatic pause before you confess, then a genuine 10-second fix.",
+    "source_label": "Newengen, August 2026 TikTok Trends",
+    "source_url": "https://newengen.com/insights/august-tiktok-trends/",
+    "observed_at": "2026-08-22",
+    "date_found": "2026-08-23"
+  },
+  {
+    "id": "trend-2026-08-23-spiderman-responsibility-meme",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "meme",
+    "trend_source": "Spider-Man: Brand New Day is still powering Instagram's biggest edit wave this month, with the Miles Morales 'ceiling illusion' clip set to Sunflower everywhere on Reels.",
+    "title": "'With great power comes great responsibility' has a boring, correct money version",
+    "why_it_works": "It piggybacks on the single most-used edit template on Reels right now, so it's genuinely discoverable, and the line itself is an easy, non-cringe bridge into financial responsibility without pretending to be a superhero.",
+    "hooks": [
+      "With great power comes great responsibility. With your first real paycheck comes this.",
+      "Everyone's doing the Miles Morales edit this week. Here's my finance guy version of it.",
+      "Spider-Man's whole thing is one line. My whole job is basically the money version of it."
+    ],
+    "talking_points": [
+      "Spider-Man: Brand New Day and the Miles Morales 'ceiling illusion' Reels edit, set to Sunflower, is one of Instagram's biggest trends this month.",
+      "The line 'with great power comes great responsibility' maps cleanly onto a first paycheck, a bonus, or any jump in income - more coming in means more decisions, not just more spending.",
+      "The unglamorous version: an emergency fund, some protection in place, and a plan, before the fun purchases, not instead of them.",
+      "Power without a plan is how a good year doesn't turn into anything lasting - the responsibility part is what makes the power part actually count."
+    ],
+    "cta": "Save this if your income just went up and you haven't updated the plan to match yet.",
+    "cta_type": "save-share",
+    "how_to_film": "Use the trending edit template/transition if usable, cut to you delivering the 'responsibility' line direct to camera, end on-screen text with the 3 unglamorous basics.",
+    "source_label": "Newengen, Instagram Trends Aug 2026",
+    "source_url": "https://newengen.com/insights/instagram-trends/",
+    "observed_at": "2026-08-22",
+    "date_found": "2026-08-23"
+  },
+  {
+    "id": "trend-2026-08-23-bangladesh-song-excuses",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "Ian McConnell's absurdist 49-second song 'You Never Take Me to Bangladesh' has gone viral on TikTok this month, with the exaggerated 'you never...' complaint format spawning countless duets and parodies.",
+    "title": "The 'You Never Take Me to Bangladesh' song, but it's the excuses people give for not starting a plan",
+    "why_it_works": "It borrows a genuinely huge, absurdist audio trend to poke fun at the exaggerated excuses everyone (including the advisor) has used to delay starting a financial plan, which is self-deprecating and funny rather than a lecture.",
+    "hooks": [
+      "You never take me to Bangladesh. You never let me start that emergency fund either, apparently.",
+      "Using this week's most unhinged trending sound to list every excuse I've used to avoid checking my CPF statement.",
+      "'You never cook me sausage on an open flame.' Also me, about my own financial plan, for three years."
+    ],
+    "talking_points": [
+      "'You Never Take Me to Bangladesh', Ian McConnell's absurdist viral song, is one of TikTok's biggest audio trends this month, built around exaggerated 'you never...' complaints.",
+      "The joke format is perfect for listing the equally absurd excuses people give themselves for delaying a money conversation - 'I'll start when I earn more', 'I'll do it next month'.",
+      "Keep every line self-deprecating, about your own past excuses, never mocking a follower's income or circumstances.",
+      "Land the punchline with one genuinely small first step, so the video pays off with something useful, not just a laugh."
+    ],
+    "cta": "Comment your most dramatic excuse for not starting your plan - I'll turn the best one into next week's video.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Use the trending audio, lip-sync the exaggerated lines while on-screen text lists your own past money excuses, end with the one small step direct to camera.",
+    "source_label": "The Daily Star, viral song explainer",
+    "source_url": "https://www.thedailystar.net/news/tech-startup/news/49-second-song-about-bangladesh-going-viral-online-why-4203541",
+    "observed_at": "2026-08-22",
+    "date_found": "2026-08-23"
+  },
+  {
+    "id": "trend-2026-08-23-sia-flash-sale-travel-fund",
+    "platform": "facebook",
+    "format": "carousel",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Singapore Airlines launched a fresh fare sale on 21 Aug 2026, fares from S$158 to over 70 destinations, bookable 21 Aug-10 Sep 2026, alongside a Mastercard promo offering S$50 in KrisPay miles for the first 200 qualifying bookings.",
+    "title": "SIA's flash sale just dropped fares to 70+ destinations. Here's the 5-minute check before you book",
+    "why_it_works": "A genuine, time-boxed fare sale that just launched is exactly the kind of FOMO-driving moment where a quick, practical planning tip, rather than a 'don't travel' lecture, actually gets saved and used.",
+    "hooks": [
+      "SIA just dropped fares from $158 to over 70 places. Before you book, do this one thing.",
+      "There's a flash sale on right now with a limited Mastercard perk attached. Here's how I'd actually use it.",
+      "Cheap flights are live until 10 September. Here's the 5-minute check that stops this from wrecking your month."
+    ],
+    "talking_points": [
+      "Singapore Airlines' latest fare sale launched 21 Aug, fares from S$158 to over 70 destinations, bookable through 10 Sep, plus a Mastercard promo offering S$50 in KrisPay miles for the first 200 qualifying bookings.",
+      "A flash sale with a countdown and a capped perk is designed to make you book before you think - the fix is a 5-minute pause, not skipping the deal.",
+      "The check: does this trip come out of a travel fund you've already set aside, or would it dip into next month's essentials?",
+      "If it's genuinely a good deal for a trip you already wanted, book it - the goal isn't to avoid every sale, it's to stop the ones that quietly become debt."
+    ],
+    "cta": "Save this before you open the SIA app - it's the check I run before every flash sale booking.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 fare sale screenshot/graphic, slide 2 the '5-minute check' three questions, slide 3 travel fund vs essentials framing, final slide save CTA.",
+    "source_label": "SingPromos, 21 Aug 2026",
+    "source_url": "https://singpromos.com/airlines-flights/singapore-airlines-promo-has-fares-fr-s158-to-over-70-destinations-book-from-21-aug-to-10-sep-2026-305593/",
+    "observed_at": "2026-08-21",
+    "date_found": "2026-08-23"
   }
 ]
