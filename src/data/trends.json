@@ -1,366 +1,338 @@
 [
   {
-    "id": "trend-2026-08-24-ndr-bto-income-ceiling-16k",
+    "id": "trend-2026-08-25-ndr-singles-income-ceiling-8k",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "At the National Day Rally on 23 Aug 2026, PM Lawrence Wong announced the BTO flat household income ceiling rises from $14,000 to $16,000 (EC ceiling from $16,000 to $18,000), effective for HFE letter applications from 24 Aug 2026.",
-    "title": "The BTO income ceiling just moved. If you earn $14k-$16k, check this today.",
-    "why_it_works": "An overnight eligibility shift is genuinely actionable and dated, not evergreen - a household that was locked out of subsidised housing yesterday may qualify today.",
+    "trend_source": "At the National Day Rally on 23 Aug 2026, PM Lawrence Wong announced the income ceiling for singles aged 35 and above buying a BTO flat rises from $7,000 to $8,000/month, the first such adjustment in 7 years, effective for HFE letter applications from 24 Aug 2026.",
+    "title": "Singles buying a BTO just got a higher income ceiling too. Here's the number.",
+    "why_it_works": "A dated, actionable eligibility shift for a segment (singles) that's easy to miss under the bigger household-ceiling headline.",
     "hooks": [
-      "The BTO income ceiling just jumped from $14k to $16k. If that's near your household income, this affects you today.",
-      "As of today, more households qualify for a BTO flat and CPF housing grants. Here's the number that changed.",
-      "If your combined income was just over the old BTO ceiling, you might now be under the new one. Worth checking."
+      "If you're single and buying a BTO, your income ceiling just moved from $7k to $8k. Here's what changed.",
+      "Everyone's talking about the household BTO ceiling. Singles got a bump too, and it's easy to miss.",
+      "Single, 35 and up, earning close to $7k? Check this before you assume you're still over the limit."
     ],
     "talking_points": [
-      "PM Lawrence Wong announced at the National Day Rally on 23 Aug that the BTO household income ceiling rises from $14,000 to $16,000 (EC ceiling: $16,000 to $18,000), effective for HFE letter applications from 24 Aug 2026.",
-      "This changes eligibility not just for a new flat, but for CPF Housing Grants and HDB loans tied to the same income bands.",
-      "If your household was just above the old ceiling, it's worth a fresh HFE letter check rather than assuming you're still excluded.",
-      "This isn't a call to rush into buying - it's a prompt to know your actual eligibility before you plan your next housing move."
+      "PM Wong announced at NDR 2026 that the income ceiling for singles aged 35+ buying a BTO flat rises from $7,000 to $8,000 a month, the first change in 7 years, effective for HFE applications from 24 Aug.",
+      "This specifically affects singles who were just above the old ceiling and assumed they didn't qualify for a subsidised flat.",
+      "A higher ceiling changes eligibility for the flat itself, not just affordability - it's worth a fresh HFE check rather than assuming the old number still applies.",
+      "This isn't a push to buy now - it's a prompt to know your actual eligibility before ruling anything out."
     ],
-    "cta": "Comment 'CEILING' and I'll send you the updated income bands for HDB loans and grants.",
+    "cta": "Comment 'SINGLE' and I'll send you the updated income bands for single BTO buyers.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talking head with a simple on-screen number callout '$14,000 to $16,000', citing HDB/HFE as the source, no HDB logo.",
-    "source_label": "AsiaOne, NDR 2026 coverage, 23-24 Aug 2026",
-    "source_url": "https://www.asiaone.com/singapore/ndr-2026-bto-income-ceiling-be-raised-16k-aug-24",
+    "how_to_film": "Talking head, on-screen number callout '$7,000 to $8,000', cite HDB/NDR 2026 as source, no logos.",
+    "source_label": "Her World Singapore, NDR 2026 coverage, 23 Aug 2026",
+    "source_url": "https://www.herworld.com/independence/national-day-rally-2026-bto-and-ec-income-ceilings-raised-support-more-families",
     "observed_at": "2026-08-23",
-    "date_found": "2026-08-24"
+    "date_found": "2026-08-25"
   },
   {
-    "id": "trend-2026-08-24-ndr-childcare-leave-expansion",
-    "platform": "facebook",
-    "format": "carousel",
-    "pillar": "identity",
-    "trend_type": "news",
-    "trend_source": "At the National Day Rally on 23 Aug 2026, PM Wong announced working parents get 8-12 days of childcare leave depending on number of children, fully government-funded, merging the current CCL and ECL schemes into one for parents of children 12 and under.",
-    "title": "Parents just got more childcare leave. Here's the plan that should come with it.",
-    "why_it_works": "A concrete, dated policy change that changes take-home flexibility for working parents is a natural, non-tacky bridge into income-continuity and childcare-cost planning.",
-    "hooks": [
-      "Working parents just got up to 12 days of childcare leave, fully paid by the government. Here's what I'd do with that time.",
-      "More childcare leave was just announced for parents. It's not extra income, but it changes your plan.",
-      "If you have 2 or 3 kids, your childcare leave just went up. Here's why that's worth more than the days off."
-    ],
-    "talking_points": [
-      "PM Wong announced at NDR 2026 that working parents get 8 days of childcare leave for one child, 10 for two, 12 for three or more, fully government-funded, merging the current CCL and ECL schemes.",
-      "More leave days reduce the times you're forced to choose between unpaid time off and childcare costs during school holidays or a sick kid.",
-      "This is a good trigger to actually check your childcare budget line, not just your leave balance, since the two are connected.",
-      "The real win isn't the extra day off, it's one less reason your income takes a hit when a child needs you home."
-    ],
-    "cta": "Save this if you're a working parent and want the childcare cost checklist that pairs with your new leave days.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 '8 / 10 / 12 days' by number of kids, slide 2 what changed vs the old scheme, slide 3 the income-continuity angle, final slide save CTA.",
-    "source_label": "AsiaOne, NDR 2026 coverage, 23 Aug 2026",
-    "source_url": "https://www.asiaone.com/singapore/ndr-2026-working-parent-get-12-days-childcare-leave",
-    "observed_at": "2026-08-23",
-    "date_found": "2026-08-24"
-  },
-  {
-    "id": "trend-2026-08-24-ndr-child-support-package-62k",
+    "id": "trend-2026-08-25-ndr-extra-ballot-per-child",
     "platform": "instagram",
     "format": "carousel",
     "pillar": "identity",
     "trend_type": "news",
-    "trend_source": "At NDR 2026, PM Wong unveiled the new SG Child Support Package: every Singaporean child gets up to $62,000 in direct support (baby gift, child credits, CDA grant and co-matching), replacing the Baby Bonus and Large Families schemes with equal support per child regardless of birth order.",
-    "title": "Every Singaporean child now gets up to $62,000. Here's how I'd actually use it.",
-    "why_it_works": "This is real, dated, specific money attached to a life event most clients are already planning around - genuinely useful breakdown content, not hype.",
+    "trend_source": "At NDR 2026, PM Wong announced that from the February 2027 BTO/SBF exercise, first-timer families get one additional ballot chance for every Singaporean citizen child they have or are expecting, with no cap on the number of chances.",
+    "title": "Every child is now an extra BTO ballot chance. Here's the family-planning math.",
+    "why_it_works": "A real, dated lottery-odds change gives an honest, non-pushy opening to plan family size and budget together, not just ballot odds.",
     "hooks": [
-      "Every Singaporean child now gets up to $62,000 in support. Here's how that money actually breaks down.",
-      "The Baby Bonus just got replaced with something bigger. Here's what $62,000 per child really means for your plan.",
-      "If you're planning a family, this new $62,000 package changes a few numbers in your plan. Let me show you."
+      "Starting Feb 2027, every child you have gives your family one more BTO ballot chance. No cap. Here's what that actually means.",
+      "Your odds of getting a flat just got tied to your family size. That's a new variable worth planning around.",
+      "More kids now means better ballot odds for a BTO. Here's the other number you should plan alongside that one."
     ],
     "talking_points": [
-      "NDR 2026: the new SG Child Support Package gives every Singaporean child up to $62,000 - a $10,000 baby gift, $32,000 in child credits paid yearly to age 16, and up to $10,000 in CDA grant plus co-matching - replacing the Baby Bonus and Large Families schemes.",
-      "Unlike before, every child gets the same support regardless of birth order, which changes how you'd plan for a second or third child.",
-      "The CDA portion is earmarked for approved child expenses, so the real question is what it's meant to cover: education, childcare, or a head start on savings.",
-      "This is meant to help, not replace your own plan - it's still worth mapping out what the $62,000 covers versus what you'll still need to fund yourself."
+      "From the Feb 2027 BTO/SBF exercise, first-timer families get one additional ballot chance for every Singaporean citizen child they have or are expecting, uncapped, PM Wong announced at NDR 2026 on 23 Aug.",
+      "Better odds for a flat is real news for growing families, but each child also changes the household budget, not just the ballot count.",
+      "This is a good trigger to plan the two numbers together: your realistic ballot timeline and your realistic cost-per-child runway.",
+      "The goal isn't to have a certain family size for the ballot odds - it's to make sure your plan can support whichever family size you choose."
     ],
-    "cta": "DM me 'CDA' and I'll send you the simple breakdown of what the new package covers versus what still needs your own plan.",
+    "cta": "Save this if you're planning a family and a BTO application at the same time.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 '+1 ballot per child, no cap', slide 2 what changed vs today, slide 3 the family-budget-planning angle, final slide save CTA.",
+    "source_label": "Uchify, NDR 2026 housing takeaways, 23 Aug 2026",
+    "source_url": "https://uchify.com/national-day-rally-2026-updates/",
+    "observed_at": "2026-08-23",
+    "date_found": "2026-08-25"
+  },
+  {
+    "id": "trend-2026-08-25-ndr-seniors-unlock-home-value",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "identity",
+    "trend_type": "news",
+    "trend_source": "At NDR 2026, PM Wong announced seniors will get more ways to unlock the value of their homes for retirement income while continuing to live in them, alongside more flexibility for seniors with healthy MediSave balances.",
+    "title": "Seniors can soon unlock their home's value without moving out. Here's the real question that raises.",
+    "why_it_works": "A dated policy direction that sits squarely in retirement planning territory, prompting a genuine check-in rather than a pitch.",
+    "hooks": [
+      "The government just said seniors will get more ways to unlock their home's value for retirement, without moving out. Here's what to check first.",
+      "Your flat might become part of your retirement income plan, officially. That's worth understanding before you need it.",
+      "Unlocking your home's value sounds simple. The real question is what it actually replaces in your retirement plan."
+    ],
+    "talking_points": [
+      "PM Wong announced at NDR 2026 that seniors will get more ways to unlock the value of their homes for retirement income while continuing to live in them.",
+      "This points toward more flexible use of a home's equity in retirement, on top of existing options like the Lease Buyback Scheme and CPF.",
+      "The real planning question isn't whether to unlock the value eventually - it's what income gap it's meant to cover, and whether that gap is already covered another way.",
+      "A home is usually a family's biggest asset - worth understanding the mechanics before you need to use them, not after."
+    ],
+    "cta": "Comment 'HOME' and I'll send you a simple breakdown of how home equity options fit into a retirement income plan.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head, simple on-screen phrase 'unlock home value, stay living in it', no HDB/CPF logos, deliver the retirement-income-gap point direct to camera.",
+    "source_label": "HumanResourcesOnline, NDR 2026 workforce measures, 23 Aug 2026",
+    "source_url": "https://www.humanresourcesonline.net/national-day-rally-2026-ai-advances-increased-childcare-leave-stronger-family-support-among-key-workforce-measures-announced",
+    "observed_at": "2026-08-23",
+    "date_found": "2026-08-25"
+  },
+  {
+    "id": "trend-2026-08-25-ndr-medisave-flexibility-seniors",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "identity",
+    "trend_type": "news",
+    "trend_source": "At NDR 2026, PM Wong announced seniors with healthy MediSave balances will get more flexibility to use those savings to meet their healthcare needs, alongside support to keep working and staying active if they choose to.",
+    "title": "More MediSave flexibility for seniors was just announced. Here's what 'healthy balance' actually means for your plan",
+    "why_it_works": "A concrete, dated healthcare-savings announcement gives a legitimate reason to check MediSave adequacy without fear-mongering.",
+    "hooks": [
+      "Seniors with healthy MediSave balances just got more flexibility to use them. The question is whether yours counts as healthy.",
+      "More flexibility for MediSave sounds great until you check whether your balance actually qualifies. Here's how to check.",
+      "This NDR announcement only helps if your MediSave balance is already where it needs to be. Let's check that first."
+    ],
+    "talking_points": [
+      "PM Wong announced at NDR 2026 that seniors with healthy MediSave balances will get more flexibility to use those savings for healthcare needs.",
+      "'Healthy balance' is doing a lot of work in that sentence - it's worth knowing where your own MediSave stands against the Basic Healthcare Sum before assuming the flexibility applies to you.",
+      "This isn't a reason to stop topping up MediSave - if anything, it's a reason to make sure you're building toward the balance that unlocks the flexibility.",
+      "A 10-minute MediSave check now is more useful than reacting to a headline about flexibility you may not yet have access to."
+    ],
+    "cta": "DM me 'MEDISAVE' and I'll send you the 3 numbers worth checking on your MediSave statement.",
     "cta_type": "dm-keyword",
-    "how_to_film": "Carousel: slide 1 '$62,000 per child' headline, slide 2 the three components broken down, slide 3 'what this doesn't cover', final slide DM CTA.",
-    "source_label": "AsiaOne, NDR 2026 coverage, 23 Aug 2026",
-    "source_url": "https://www.asiaone.com/singapore/ndr-2026-singaporean-children-receive-62000-under-new-support-package",
+    "how_to_film": "Talking head, on-screen text 'Is your MediSave balance actually healthy?', no CPF logo, end with the 3-numbers teaser.",
+    "source_label": "Prime Minister's Office Singapore, National Day Rally 2026 newsroom",
+    "source_url": "https://www.pmo.gov.sg/newsroom/ndr2026/",
     "observed_at": "2026-08-23",
-    "date_found": "2026-08-24"
+    "date_found": "2026-08-25"
   },
   {
-    "id": "trend-2026-08-24-bitcoin-78k-weekend-rally",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Bitcoin jumped 7.26% on Friday 21 Aug 2026 to settle near $78,335, its strongest weekly run since 2024 (weekly gain over 22%), before pulling back over the weekend of 22 Aug.",
-    "title": "Bitcoin just had its best week since 2024. Here's the only question that actually matters",
-    "why_it_works": "A genuine, dated, headline-grabbing swing is a natural, no-hype prompt to check risk exposure rather than react to the number.",
-    "hooks": [
-      "Bitcoin just had its best week since 2024, then gave some of it back over the weekend. Here's what I actually check when that happens.",
-      "If a 22% weekly swing in anything makes your stomach drop, that's telling you something about your portfolio, not the market.",
-      "I'm not telling you what to do with crypto. I'm telling you what to check before you do anything."
-    ],
-    "talking_points": [
-      "Bitcoin rose 7.26% on Friday 21 Aug to around $78,335, its strongest weekly run since 2024 with gains over 22%, before pulling back over the weekend.",
-      "This isn't a call on where price goes next - a swing this size is a good moment to check whether your actual crypto exposure still matches what you said your risk tolerance was.",
-      "The number that matters isn't the price, it's the percentage of your total portfolio that a move like this could swing.",
-      "If you don't know that percentage off the top of your head, that's the actual gap to close this week, not a trade."
-    ],
-    "cta": "Comment 'RISK' and I'll send you the 5-minute way to check what percentage of your portfolio any one asset actually is.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head, plain volatility line-chart graphic in the background showing a spike and partial pullback, no buy/sell language on screen.",
-    "source_label": "Rio Times, 22 Aug 2026",
-    "source_url": "https://www.riotimesonline.com/crypto-markets-bitcoin-majors-saturday-august-22-2026/",
-    "observed_at": "2026-08-22",
-    "date_found": "2026-08-24"
-  },
-  {
-    "id": "trend-2026-08-24-man-utd-hull-city-shock-loss",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "sport",
-    "trend_source": "Manchester United lost 2-0 to newly-promoted Hull City on the Premier League's opening weekend (Sat 22 Aug 2026), conceding two set-piece goals inside the first 38 minutes.",
-    "title": "Man Utd lost to a newly-promoted team on day one. Here's the boring money lesson in that.",
-    "why_it_works": "A huge, well-known club losing to an underdog on the very first weekend is instantly recognisable and a clean, self-deprecating-about-fandom analogy for why reputation isn't a guarantee - no team or player is mocked.",
-    "hooks": [
-      "Man United lost to a team that got promoted this season. If you back 'the favourite' with your money too, watch this.",
-      "Biggest club, opening day, lost to the newly-promoted side. Here's what that has to do with your portfolio.",
-      "Reputation didn't win that match on Saturday. It doesn't guarantee your investments either."
-    ],
-    "talking_points": [
-      "Manchester United were beaten 2-0 by newly-promoted Hull City on the Premier League's opening weekend, 22 Aug 2026, conceding two set-piece goals in the first 38 minutes.",
-      "A 'big name' losing on day one is a clean reminder that past reputation or performance never guarantees the next result - true for football and true for funds or star managers.",
-      "The fix isn't picking the next 'safe favourite' - it's building a plan that doesn't rely on any single 'sure thing' to work.",
-      "Diversification is basically the boring version of not betting the whole season on one club's reputation."
-    ],
-    "cta": "What's the most humbling result your favourite team has had this season?",
-    "cta_type": "open-question",
-    "how_to_film": "React to match highlights/clips, on-screen text 'reputation is not a guaranteed result', cut to you explaining the diversification point direct to camera.",
-    "source_label": "NBC Sports, 22 Aug 2026",
-    "source_url": "https://www.nbcsports.com/soccer/news/manchester-united-shocked-by-newly-promoted-hull-city-on-opening-day",
-    "observed_at": "2026-08-22",
-    "date_found": "2026-08-24"
-  },
-  {
-    "id": "trend-2026-08-24-lando-norris-dutch-gp-win",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "sport",
-    "trend_source": "Lando Norris won the Dutch GP at Zandvoort on 23 Aug 2026, his second straight win, holding off championship leader Kimi Antonelli by about 10 seconds to tighten the title fight.",
-    "title": "Lando Norris just won back-to-back. Here's what a title race can teach you about your own plan.",
-    "why_it_works": "A real, dated race result gives a clean, upbeat sports hook, and 'consistency over one big result' is a genuine, non-hyped bridge to long-term saving discipline.",
-    "hooks": [
-      "Lando Norris just won his second race in a row and closed the gap in the title fight. Here's the actual lesson in that.",
-      "Nobody wins a championship with one big race. Nobody builds wealth with one big year either.",
-      "Back-to-back wins just moved Norris up the standings. Here's why 'back-to-back' beats 'one big one' every time."
-    ],
-    "talking_points": [
-      "Lando Norris won the Dutch GP at Zandvoort on 23 Aug 2026, his second consecutive win, finishing about 10 seconds ahead of championship leader Kimi Antonelli.",
-      "A title race is won by consistency across a season, not one standout race - the same logic applies to long-term financial plans.",
-      "Steady, repeated contributions (to CPF, SRS, insurance, savings) compound the same way consecutive strong results close a points gap.",
-      "This isn't about picking a 'winning' fund or stock - it's about showing up with the same plan race after race, month after month."
-    ],
-    "cta": "Save this if your 2026 needs more 'consistent' and less 'one big move'.",
-    "cta_type": "save-share",
-    "how_to_film": "Reel using race highlight clips/reaction, on-screen text 'consistency beats one big race', cut to you delivering the compounding point direct to camera.",
-    "source_label": "Formula1.com official race result, 23 Aug 2026",
-    "source_url": "https://www.formula1.com/en/results/2026/races/1292/netherlands/race-result",
-    "observed_at": "2026-08-23",
-    "date_found": "2026-08-24"
-  },
-  {
-    "id": "trend-2026-08-24-us-open-record-purse-fan-week",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "identity",
-    "trend_type": "event",
-    "trend_source": "The USTA announced a record US$108M prize purse for the 2026 US Open (up about 20% on last year, even first-round losers get a record $140K), with singles qualifying and Fan Week starting today, 24 Aug 2026.",
-    "title": "US Open prize money just hit a record $108M. Here's the actual takeaway for a high-earning year",
-    "why_it_works": "A record, dated purse announcement landing right as the tournament opens today gives a timely reason to talk about turning a big but temporary payday into something lasting, without naming or speculating on any athlete's finances.",
-    "hooks": [
-      "The US Open just announced a record $108M prize purse, and it starts today. Here's what a huge payday should actually trigger.",
-      "Even first-round losers at this year's US Open take home a record $140K. Big or small, here's the same question that applies.",
-      "Tennis has one of the shortest 'peak earning' windows in sport. So does a great bonus year. Same lesson."
-    ],
-    "talking_points": [
-      "The USTA announced a record US$108M prize purse for the 2026 US Open, about 20% higher than last year, with even first-round losers earning a record $140K; qualifying and Fan Week began today, 24 Aug 2026.",
-      "Professional athletes have a short, defined earning window, which is exactly why turning peak-year income into durable wealth matters more than the headline number.",
-      "The same logic applies to any big bonus year, commission spike, or windfall: the plan for it matters more than the size of it.",
-      "A good rule of thumb: decide what portion of any 'peak year' income is locked away for the long term before it hits your account, not after."
-    ],
-    "cta": "What's your rule for handling a bonus or windfall year? Tell me in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Talking head with a simple on-screen stat card '$108M record purse', cut to you explaining the peak-earning-window point, no athlete names or logos.",
-    "source_label": "News Tribune, 21 Aug 2026",
-    "source_url": "https://www.newstribune.com/news/2026/aug/21/us-open-announces-record-108-million-prize-purse/",
-    "observed_at": "2026-08-24",
-    "date_found": "2026-08-24"
-  },
-  {
-    "id": "trend-2026-08-24-paparazzi-glow-up-transition",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "A 'paparazzi edit' format is spreading on TikTok this week: an unflattering opening clip captioned 'my honest reaction to watching paparazzi edits', hard-cutting on a dubstep beat-drop (set to a remix of Lady Gaga's 'Paparazzi') into a glammed-up version.",
-    "title": "The paparazzi glow-up transition, but it's your finances before and after",
-    "why_it_works": "It borrows a currently spreading TikTok transition format for a self-deprecating, visual 'financial glow-up' that's funny first and useful second - never mocking anyone but yourself.",
-    "hooks": [
-      "Doing the paparazzi glow-up transition, but it's my finances before I actually had a plan versus now.",
-      "My honest reaction to my old spending habits, hard cut to what changed.",
-      "Beat drop, and suddenly I have an emergency fund. That's the whole transition."
-    ],
-    "talking_points": [
-      "A 'paparazzi edit' transition is currently spreading on TikTok: an unflattering opening shot hard-cuts on a dubstep beat-drop (a Lady Gaga 'Paparazzi' remix) into a glammed-up reveal.",
-      "Applied to money, the 'before' shot is a real old habit (no emergency fund, no protection, spending on autopilot) and the 'after' is the fix already in place.",
-      "Keep the 'before' self-deprecating and about your own past habits only, never about a client's income or situation.",
-      "End on one concrete, nameable thing that changed, so the transition earns its punchline instead of just being a flex."
-    ],
-    "cta": "Comment 'BEFORE' and I'll turn your habit into next week's video.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Use the trending transition/sound if usable, plain unflattering first clip with the caption overlay, hard cut on the beat-drop to a clean 'after' shot with the real fix named on screen.",
-    "source_label": "trends.usa.one, TikTok trends roundup, 23 Aug 2026",
-    "source_url": "https://trends.usa.one/tiktok",
-    "observed_at": "2026-08-23",
-    "date_found": "2026-08-24"
-  },
-  {
-    "id": "trend-2026-08-24-linkedin-ai-slop-button-1m",
+    "id": "trend-2026-08-25-ndr-ai-job-transitions",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "LinkedIn's 'Seems like AI slop' reporting button, launched 30 Jul 2026, has now been clicked over 1 million times, with posts flagged as AI slop getting roughly 40% fewer views, per LinkedIn's own CPO.",
-    "title": "LinkedIn's AI-slop button just hit 1 million clicks. Here's what that should change about your posts",
-    "why_it_works": "A real, dated platform-behaviour story with a hard consequence (40% fewer views) is a timely, legitimate reason to push advisors toward specific, real content over generic AI-flavoured posts.",
+    "trend_source": "At NDR 2026, PM Wong said Singapore will keep embracing AI while helping workers through job transitions, by building new capabilities and equipping workers with new skills, as part of the government's broader workforce measures.",
+    "title": "The government just committed to helping workers through AI job transitions. Here's the plan that should sit next to yours",
+    "why_it_works": "A dated, non-alarmist announcement gives a natural opening to talk about income protection during a career transition without fear-mongering.",
     "hooks": [
-      "LinkedIn's 'AI slop' button has been clicked over a million times now. If your posts feel templated, this is why they're not landing.",
-      "Posts flagged as AI slop get 40% fewer views on LinkedIn now. Here's the one habit that keeps you out of that bucket.",
-      "A million people have flagged posts as AI slop this month. I don't want to be one of them, so here's what I changed."
+      "The government just said it'll help workers through AI job transitions. Here's the personal version of that plan.",
+      "Skills support for AI transitions was just announced. It only covers half of what a transition actually costs you.",
+      "If your job is anywhere near AI right now, this announcement is worth 60 seconds of your attention."
     ],
     "talking_points": [
-      "LinkedIn's 'Seems like AI slop' button, launched 30 Jul 2026, has been clicked over 1 million times, and posts flagged this way now get roughly 40% fewer views, per LinkedIn's own CPO.",
-      "The posts getting flagged tend to be generic, templated advice (like '5 tips for retirement') with no specific number, story or client situation behind them.",
-      "The fix isn't writing less with AI tools, it's always adding one real, specific detail a template couldn't produce - an actual number, date or situation.",
-      "This is a good prompt to audit your last 5 posts and ask honestly: could this have been about any advisor, or only about me?"
+      "PM Wong announced at NDR 2026 that Singapore will keep embracing AI while helping workers through job transitions with new capabilities and skills support.",
+      "Skills training addresses one side of a transition - the other side is the income gap if a transition takes months, not weeks.",
+      "This is a good prompt to check what actually replaces your income if you needed retraining time, not to assume the worst about your job.",
+      "The workers best placed for a transition are usually the ones who checked their income-protection gap before they needed it, not during."
     ],
-    "cta": "Comment 'SLOP' and I'll send you the 5-question checklist I use before I post anything.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head, simple on-screen stat callouts '1,000,000+ clicks' and '-40% views', no LinkedIn logo, end with the checklist teaser.",
-    "source_label": "Slashdot / TechSpot, 21 Aug 2026",
-    "source_url": "https://tech.slashdot.org/story/26/08/21/224221/over-1-million-people-have-clicked-linkedins-ai-slop-button",
-    "observed_at": "2026-08-22",
-    "date_found": "2026-08-24"
+    "cta": "What's your backup plan if your role changed overnight? Tell me in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Talking head, simple on-screen phrase 'skills training covers half the transition', no government logos, deliver the income-gap point direct to camera.",
+    "source_label": "Mothership.SG, NDR 2026 summary, 23 Aug 2026",
+    "source_url": "https://mothership.sg/2026/08/ndr-2026-summary/",
+    "observed_at": "2026-08-23",
+    "date_found": "2026-08-25"
   },
   {
-    "id": "trend-2026-08-24-mega-ipo-headlines-reports",
+    "id": "trend-2026-08-25-sg-core-inflation-2yr-high",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Singapore's core inflation accelerated to 2.0% year-on-year in July 2026, the fastest pace since October 2024, with data released 24 Aug 2026 showing higher utility bills as a key driver, per Bloomberg.",
+    "title": "Core inflation just hit a near 2-year high. Here's the one number worth checking, not panicking over",
+    "why_it_works": "A fresh, dated, cost-of-living-relevant data point gives a genuine reason to check a budget, with no market prediction or fear-based pitch.",
+    "hooks": [
+      "Singapore's core inflation just hit its fastest pace since October 2024. Here's the one line in your budget I'd check first.",
+      "Prices are climbing faster again. Before you panic, here's what that number actually means for your monthly budget.",
+      "Utility bills are the reason inflation just ticked up. Here's why that specific detail matters for your plan."
+    ],
+    "talking_points": [
+      "Singapore's core inflation accelerated to 2.0% year-on-year in July 2026, its fastest pace since October 2024, data released 24 Aug 2026 showed, driven mainly by higher utility bills.",
+      "This isn't a signal to cut spending across the board - it's a prompt to check which specific budget line (usually utilities or groceries) is actually moving for your household.",
+      "A rising core inflation number is a good annual trigger to re-check whether your protection and savings amounts still match today's cost of living, not last year's.",
+      "The households caught off guard aren't the ones facing higher prices - they're the ones who never re-checked their numbers against the new prices."
+    ],
+    "cta": "Comment 'BUDGET' and I'll send you the quick way to check if your budget still matches today's prices.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head, simple on-screen stat '2.0% - fastest since Oct 2024', muted line graphic, no predictions or price forecasts on screen.",
+    "source_label": "Bloomberg, 24 Aug 2026",
+    "source_url": "https://www.bloomberg.com/news/articles/2026-08-24/singapore-core-inflation-surges-to-near-two-year-high-on-energy",
+    "observed_at": "2026-08-24",
+    "date_found": "2026-08-25"
+  },
+  {
+    "id": "trend-2026-08-25-gold-15-week-high",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Gold hit a 15-week high on 24 Aug 2026, with spot gold rising about 1.5% to near $4,679/oz and futures touching an intraday high of $4,738.50, extending a late-summer rally, per Forbes.",
+    "title": "Gold just hit a 15-week high. Here's the only question that actually matters",
+    "why_it_works": "A dated headline number gives a natural, no-hype prompt to check portfolio concentration rather than chase the rally.",
+    "hooks": [
+      "Gold just touched a 15-week high. I'm not telling you to buy it, I'm telling you what to check before you do.",
+      "A late-summer gold rally is making headlines again. Here's the actual number I look at when that happens.",
+      "Everyone gets curious about gold when it rallies. Here's the boring question that matters more than the price."
+    ],
+    "talking_points": [
+      "Gold hit a 15-week high on 24 Aug 2026, with spot gold up about 1.5% near $4,679/oz and futures touching an intraday high of $4,738.50, extending a late-summer rally.",
+      "This isn't a call on where gold goes next - it's a reminder that a rally is a good prompt to check how much of your portfolio is actually in any single asset, gold included.",
+      "The number that matters is the percentage, not the price - if you don't know what share of your portfolio one asset is, that's this week's actual task.",
+      "A 'hot' asset is exactly when concentration risk quietly builds up without anyone noticing."
+    ],
+    "cta": "Comment 'GOLD' and I'll send you the 5-minute way to check your actual portfolio concentration.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head, plain gold-price line chart graphic showing the recent climb, no buy/sell language on screen.",
+    "source_label": "Forbes, 24 Aug 2026",
+    "source_url": "https://www.forbes.com/sites/conormurray/2026/08/24/gold-price-hits-15-week-high-as-late-summer-rally-extends/",
+    "observed_at": "2026-08-24",
+    "date_found": "2026-08-25"
+  },
+  {
+    "id": "trend-2026-08-25-nvidia-earnings-jackson-hole-big-week",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Bloomberg and other outlets reported this week that a major AI company (Anthropic) is preparing to file for an IPO as soon as end-August 2026, targeting a valuation near US$2 trillion that could rival or top SpaceX's record private valuation.",
-    "title": "A ~$2 trillion IPO is making headlines this week. Here's the only lesson worth taking from it",
-    "why_it_works": "A genuinely huge, dated IPO story is a timely, apolitical hook for a general education point about how newly-listed companies work, without recommending anyone buy in or predicting where any stock goes.",
+    "trend_source": "Markets opened cautiously on 24 Aug 2026 ahead of what analysts are calling one of the biggest weeks of late summer: Nvidia's quarterly earnings on Wednesday and Fed Chair Kevin Warsh's first Jackson Hole appearance on Friday, per Yahoo Finance.",
+    "title": "Markets are holding their breath this week. Here's what that should (and shouldn't) do to your plan",
+    "why_it_works": "A real, dated 'big week ahead' story is a no-prediction hook for staying steady through anticipated volatility instead of reacting to headlines.",
     "hooks": [
-      "A company is reportedly preparing for what could be the biggest IPO ever. Here's what I'd want you to know before any mega-IPO.",
-      "Headlines this week are calling this the next record-breaking IPO. I'm not telling you to buy in, I'm telling you what to check first.",
-      "Big IPO headlines always create the same pressure: get in early or miss out. Here's why that pressure is the actual risk."
+      "Wall Street is holding its breath this week waiting on two big events. Here's what I'm actually watching instead.",
+      "Big earnings, a big Fed speech, same week. Here's why I'm not changing anything about my plan for either.",
+      "If this week's market headlines make you anxious, here's the one move that actually helps."
     ],
     "talking_points": [
-      "Reports this week (Bloomberg and others) say a major AI company is preparing to file for an IPO as early as end-August 2026, targeting a valuation near US$2 trillion.",
-      "This isn't a stock pick or a prediction - it's a reminder that newly-listed companies often carry lock-up periods, no public earnings history, and higher volatility than an established stock.",
-      "Big IPO headlines create real FOMO - the fix is deciding your rules for new listings, if any, before the hype, not during it.",
-      "A single hyped IPO, however big the headline, is still one position - the same diversification principle applies regardless of how exciting the company is."
+      "U.S. markets opened cautiously on 24 Aug 2026 ahead of Nvidia's quarterly earnings on Wednesday and Fed Chair Kevin Warsh's first Jackson Hole appearance on Friday, two events analysts are calling among the biggest of late summer.",
+      "This isn't a prediction of which way markets move on either event - big anticipated catalysts often move prices sharply in either direction, which is exactly why reacting in the moment is risky.",
+      "The plan that survives weeks like this is the one that was set before the headlines, not adjusted because of them.",
+      "If you find yourself wanting to check your portfolio daily this week, that's the actual signal to address, not the headlines themselves."
     ],
-    "cta": "Comment 'IPO' and I'll send you the 4 questions I ask myself before touching any new listing.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head, plain 'newly-listed company' concept graphic with no logos or company name on screen, you delivering the FOMO/diversification point direct to camera.",
-    "source_label": "Bloomberg, reported 20-21 Aug 2026",
-    "source_url": "https://www.bloomberg.com/news/articles/2026-08-20/anthropic-expects-to-match-spacex-s-record-ipo-size-or-top-it",
-    "observed_at": "2026-08-22",
-    "date_found": "2026-08-24"
+    "cta": "What's your rule for staying steady during a 'big week' for markets? Tell me in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Talking head, simple on-screen calendar graphic marking 'Wed: earnings' and 'Fri: Fed speech', no specific stock names, no predictions on screen.",
+    "source_label": "Yahoo Finance, 24 Aug 2026",
+    "source_url": "https://finance.yahoo.com/markets/stocks/articles/u-stocks-set-cautious-open-131715232.html",
+    "observed_at": "2026-08-24",
+    "date_found": "2026-08-25"
   },
   {
-    "id": "trend-2026-08-24-instagram-subtitle-gratitude-format",
+    "id": "trend-2026-08-25-bitcoin-monday-climb-79k",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Bitcoin opened at $77,727.62 on Monday 24 Aug 2026, then climbed toward $79,000 by mid-morning US time, closing in on its recent high of $78,048 set 22 Aug, driven by renewed spot-ETF demand, per Yahoo Finance.",
+    "title": "Bitcoin's climbing toward a new high again. Here's the actual check before you feel FOMO",
+    "why_it_works": "A fresh, dated price move gives a legitimate, no-hype prompt to check risk tolerance and diversification instead of chasing the number.",
+    "hooks": [
+      "Bitcoin's climbing toward a new high again this morning. Before you feel FOMO, here's what I'd actually check.",
+      "Another day, another Bitcoin headline. Here's the one question I ask myself instead of checking the price.",
+      "If a green candle makes you want to buy something right now, that feeling is the thing to examine, not the price."
+    ],
+    "talking_points": [
+      "Bitcoin opened at $77,727.62 on Monday 24 Aug 2026 and climbed toward $79,000 by mid-morning, closing in on its recent high of $78,048 set two days earlier, driven by renewed spot-ETF demand.",
+      "This isn't a call to buy the dip or chase the rally - a repeated climb like this is exactly when FOMO decisions get made without a real plan behind them.",
+      "The actual check is simple: does your current crypto exposure match the risk tolerance you wrote down, or the one you feel today because the price is green?",
+      "A rule you set before the rally is worth more than a decision you make during one."
+    ],
+    "cta": "Comment 'FOMO' and I'll send you the 3 questions I ask before adding to any position.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Screen-record a price chart climbing, talking head cut-ins delivering the FOMO-check point, no buy/sell language on screen, no price predictions.",
+    "source_label": "Yahoo Finance, 24 Aug 2026",
+    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/bitcoin-and-ethereum-prices-today-monday-august-24-2026-prices-rising-as-investors-look-for-more-fed-clues-this-week-130538704.html",
+    "observed_at": "2026-08-24",
+    "date_found": "2026-08-25"
+  },
+  {
+    "id": "trend-2026-08-25-toto-monday-45m-jackpot",
     "platform": "instagram",
     "format": "story",
     "pillar": "topic",
-    "trend_type": "culture",
-    "trend_source": "An emerging Instagram format this week: creators screenshot an ordinary, unposed object (a notes app, a coffee cup) with a deadpan subtitle-style caption naming what they actually rely on day to day, flagged as a fresh, no-editing-required trend in this week's Instagram trend report.",
-    "title": "The deadpan 'subtitle' screenshot trend, but it's the boring thing your money actually depends on",
-    "why_it_works": "It's a genuinely low-effort, currently-spreading format that rewards an honest, funny admission - a perfect fit for naming the unglamorous habit behind a client's financial stability.",
+    "trend_type": "event",
+    "trend_source": "Singapore Pools' Toto draw on Monday 24 Aug 2026 carried a $4.5 million jackpot, the latest in a run of draws through August 2026 building toward it.",
+    "title": "Tonight's Toto jackpot hit $4.5 million. Here's the one habit that matters more than the numbers",
+    "why_it_works": "A real, dated, high-jackpot draw is a light, non-preachy prompt to talk about windfall behaviour and consistent saving, without endorsing gambling or promising any outcome.",
     "hooks": [
-      "Using this week's deadpan subtitle trend to screenshot the boring app my whole financial plan actually runs on.",
-      "Everyone's doing the subtitle screenshot thing. Mine is just my savings tracker, and that's the whole point.",
-      "No music, no edit, just a screenshot and a caption. Here's the one my finances depend on."
+      "Tonight's Toto jackpot is $4.5 million. I'm not telling you to play, I'm telling you what actually builds wealth instead.",
+      "Everyone's talking about tonight's jackpot. Here's the version of 'winning' that doesn't need six numbers.",
+      "A $4.5 million jackpot got people talking today. Here's the boring habit that actually works."
     ],
     "talking_points": [
-      "A deadpan 'subtitle' screenshot format is spreading on Instagram this week: an ordinary, unposed photo with a plain caption naming what the poster actually depends on.",
-      "Applied to money, the honest answer is rarely exciting - a budgeting app, a CPF statement, a recurring transfer - and that's exactly the point worth making.",
-      "The format works because it's unpolished on purpose - resist the urge to dress it up, the plainness is what makes it land.",
-      "Close with why the boring thing matters more than it looks, so the post pays off past the joke."
+      "Singapore Pools' Toto draw on Monday 24 Aug 2026 carried a $4.5 million jackpot, part of a build-up of draws through August.",
+      "A big jackpot is a fun, low-stakes moment to talk about money - not to promote playing, but to contrast a one-in-millions outcome with a plan anyone can actually follow.",
+      "The realistic version of a windfall is a recurring transfer set up years ago that quietly compounds - it's just far less exciting to talk about.",
+      "If a jackpot headline makes you think about your own money goals, that curiosity is worth pointing at something you can actually control."
     ],
-    "cta": "Save this and post your own version tagging what your money actually depends on.",
+    "cta": "Save this and set up one recurring transfer today, the closest thing to a guaranteed win most of us get.",
     "cta_type": "save-share",
-    "how_to_film": "Story format: a plain, unstaged screenshot or photo of your own actual tool/habit, deadpan subtitle-style caption overlay, your voiceover explaining why it matters.",
-    "source_label": "Newengen, Instagram Trends weekly report, Aug 2026",
-    "source_url": "https://newengen.com/insights/instagram-trends/",
-    "observed_at": "2026-08-22",
-    "date_found": "2026-08-24"
+    "how_to_film": "Story format: simple on-screen '$4,500,000' text over a plain background, casual voiceover making the contrast point, no lottery branding.",
+    "source_label": "Singapore Pools, Toto results, 24 Aug 2026",
+    "source_url": "https://www.singaporepools.com.sg/en/product/sr/Pages/toto_results.aspx?sppl=RHJhd051bWJlcj00MTQz",
+    "observed_at": "2026-08-24",
+    "date_found": "2026-08-25"
   },
   {
-    "id": "trend-2026-08-24-what-i-did-three-panel-reel",
+    "id": "trend-2026-08-25-ig-my-biggest-flex-side-hustle",
     "platform": "instagram",
     "format": "short-video",
-    "pillar": "topic",
+    "pillar": "identity",
     "trend_type": "culture",
-    "trend_source": "The 'What I Did' Reel format is trending this week: the screen splits into three horizontal panels showing what you wore, where you went, and what you did, ate or bought, turning one day or trip into a quick recap.",
-    "title": "The 3-panel 'what I did' Reel, but it's a full payday recap",
-    "why_it_works": "It's a genuinely current, easy-to-copy visual format, and applying it to a single payday (in, allocated, spent) turns a trend into an honest, non-preachy budgeting snapshot.",
+    "trend_source": "Instagram Reels' 'My Biggest Flex' trend is spreading this week, set to Shakira's 'She Wolf': creators list every hat they wear over the text 'My biggest flex is that you can hire me as your...', showcasing every skill or side hustle in one reel.",
+    "title": "The 'My Biggest Flex' trend, but it's every income stream you actually have",
+    "why_it_works": "A genuinely current, easy-to-copy IG format turns naturally into an honest inventory of someone's real income sources, without sounding like a pitch.",
     "hooks": [
-      "Doing this week's 3-panel 'what I did' trend, but it's what actually happened to my paycheck this month.",
-      "Wore, went, did - that's the trend. Mine's about where my last payday actually went instead.",
-      "Everyone's using this format for their outfit and day. Here's the money version."
+      "Doing this week's 'My biggest flex is you can hire me as your...' trend, but it's every way I actually make money.",
+      "Everyone's listing their skills for this trend. Mine's basically my income diversification plan in disguise.",
+      "This trend is supposed to be a flex. Mine's really just a list of backup plans."
     ],
     "talking_points": [
-      "The 'What I Did' Reel format is trending this week: three horizontal panels recapping a day or trip (what you wore, where you went, what you did).",
-      "Applied to money, the three panels become: what came in, what got allocated (savings, protection, bills), what was actually spent freely.",
-      "The format only works if it's honest - a real number in each panel, not a curated highlight reel.",
-      "End on the split that felt right, or the one you'd change next payday, so it reads as a real recap, not a flex."
+      "Instagram's 'My Biggest Flex' Reel trend is spreading this week, set to Shakira's 'She Wolf': creators list every hat they wear over the text 'My biggest flex is that you can hire me as your...'.",
+      "Applied honestly, the list becomes a real inventory: a main income, a side hustle, a skill that could become income if the main one paused.",
+      "The trend works because it's a flex - the honest version is that having more than one income line is protection, not just a brag.",
+      "End on the one line on your list you haven't actually turned into income yet, so it reads as real, not just a highlight reel."
     ],
-    "cta": "Save this template if you want to try your own payday version next time you get paid.",
+    "cta": "Save this and make your own list, then tell me which line you'd actually build first.",
     "cta_type": "save-share",
-    "how_to_film": "Three-panel split screen: panel 1 income in, panel 2 allocated (savings/protection/bills), panel 3 free spend, quick captions on each, casual voiceover.",
-    "source_label": "Lightreel, Instagram Trends weekly report, Aug 2026",
-    "source_url": "https://lightreel.ai/blogs/whats-trending-on-instagram",
-    "observed_at": "2026-08-22",
-    "date_found": "2026-08-24"
+    "how_to_film": "Reel using the trending 'She Wolf' audio if usable, B-roll of you doing each 'job', on-screen text listing each income stream, cut on the beat.",
+    "source_label": "Instagram Reels, 'My Biggest Flex' trend example, Aug 2026",
+    "source_url": "https://www.instagram.com/p/DU8Iw5olIBx/",
+    "observed_at": "2026-08-24",
+    "date_found": "2026-08-25"
   },
   {
-    "id": "trend-2026-08-24-sti-index-close-today",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Singapore's Straits Times Index (STI) opened at 5,646.56 and closed up 0.30% at 5,688.96 today, 24 Aug 2026, extending Friday's gains.",
-    "title": "The STI extended Friday's gains today. Here's what that should (and shouldn't) change",
-    "why_it_works": "A same-day, dated local index move is a low-stakes, no-recommendation hook for the same discipline point that lands better with a Singapore audience than a US index.",
+    "id": "trend-2026-08-25-us-open-qualifying-grind",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "event",
+    "trend_source": "US Open 2026 qualifying began Monday 24 Aug 2026 at the USTA Billie Jean King National Tennis Center, with 128 men and 128 women each chasing just 16 qualifying spots per gender, days before the record $108M main-draw purse even applies.",
+    "title": "The US Open's $108M purse started with 256 players nobody's watching yet. Here's the actual lesson",
+    "why_it_works": "A real, dated companion to the tournament's record-purse headline - the unglamorous qualifying grind is a clean bridge to the discipline behind any big financial goal, without speculating on any athlete's finances.",
     "hooks": [
-      "The STI closed higher again today, extending Friday's gains. Here's the only thing I actually track when that happens.",
-      "Two green days in a row for the STI. If that makes you want to check your portfolio, read this first.",
-      "A good week for the local index doesn't mean your plan changed. Here's why."
+      "The US Open's record $108M purse started today with 256 players nobody's filming. Here's why that part matters more.",
+      "Everyone talks about the prize money. Almost nobody talks about the days of qualifying before it even applies.",
+      "The flashy number is the purse. The real story is 256 people grinding through rounds with no cameras on them yet."
     ],
     "talking_points": [
-      "Singapore's Straits Times Index closed up 0.30% at 5,688.96 today, 24 Aug 2026, extending gains from Friday's session.",
-      "This isn't a signal to chase or avoid anything - it's a reminder that a 'good week' for an index says nothing about whether your own plan still fits your goals.",
-      "Checking the index daily during a green streak trains the same anxious habit as checking it during a red one - a quarterly review is usually enough.",
-      "The plan that survives both green and red weeks is the one built around your timeline, not the week's headlines."
+      "US Open 2026 qualifying began Monday 24 Aug 2026, with 128 men and 128 women chasing just 16 qualifying spots per gender, days before the tournament's record $108M purse comes into play for the main draw.",
+      "The headline number (the purse) is the visible part - the invisible part is years of unglamorous, unpaid rounds that most players never get to cash in on at all.",
+      "Any big financial goal works the same way: the visible outcome gets the attention, the boring, repeated groundwork before it doesn't.",
+      "This is a good week to ask what your own 'qualifying rounds' are - the unglamorous, repeated actions before the goal that actually gets noticed."
     ],
-    "cta": "What's your rule for how often you check the market? Tell me in the comments.",
+    "cta": "What's the unglamorous habit behind your own biggest goal? Tell me in the comments.",
     "cta_type": "open-question",
-    "how_to_film": "Simple talking head with a muted line-chart graphic showing two up days, no specific stock names or predictions on screen.",
-    "source_label": "Finanzen.ch, 24 Aug 2026",
-    "source_url": "https://www.finanzen.ch/nachrichten/aktien/singapore-stock-market-may-extend-fridays-gains-1036484661",
+    "how_to_film": "TikTok using qualifying-court B-roll or a plain court graphic, on-screen text '256 players. 16 spots. No cameras yet.', cut to you delivering the groundwork point direct to camera.",
+    "source_label": "Yahoo Sports, US Open 2026 Qualifying Day 1, 24 Aug 2026",
+    "source_url": "https://sports.yahoo.com/articles/us-open-2026-qualifying-day-114342200.html",
     "observed_at": "2026-08-24",
-    "date_found": "2026-08-24"
+    "date_found": "2026-08-25"
   }
 ]
