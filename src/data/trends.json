@@ -1,338 +1,422 @@
 [
   {
-    "id": "trend-2026-08-26-hdb-family-ceiling-16k",
+    "id": "trend-2026-08-27-nvidia-earnings-concentration",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "topic",
+    "pillar": "market",
     "trend_type": "news",
-    "trend_source": "At the National Day Rally on 23 Aug 2026, PM Lawrence Wong announced the household income ceiling for families buying HDB flats (BTO, resale flats bought with grants, and HDB housing loans) rises from $14,000 to $16,000 a month, effective for HFE letter applications from 24 Aug 2026 - the first change to this ceiling in 7 years.",
-    "title": "The family BTO income ceiling just jumped $2,000. Check if you're newly eligible.",
-    "why_it_works": "A concrete, dated eligibility shift for dual-income families who assumed they'd outgrown subsidised housing - a natural prompt to re-check numbers, not a pitch.",
+    "trend_source": "Nvidia's Q2 FY2026 earnings, reported 26 Aug 2026, showed revenue of $96.2 billion (+106% year-on-year) and EPS of $2.22 (+111%), with CEO Jensen Huang calling AI compute demand at 'an inflection point.'",
+    "title": "Nvidia just posted its biggest quarter ever. Here's the number that matters more than the headline.",
+    "why_it_works": "A fresh, massive earnings beat is a natural, no-prediction trigger to check single-stock concentration rather than chase the headline.",
     "hooks": [
-      "If your household income is between $14k and $16k, you just became eligible for a BTO flat again. Here's what changed.",
-      "Everyone's talking about singles getting a higher BTO ceiling. Families got a bigger jump, and it's easy to miss.",
-      "Thought you'd outgrown subsidised housing? The family income ceiling just moved by $2,000. Worth a second look."
+      "Nvidia just posted revenue up 106% in one quarter. I'm not telling you to buy it, here's what I'd check instead.",
+      "One company's earnings report is dominating every feed today. Here's the question worth asking about your own portfolio.",
+      "Jensen Huang says AI demand hit an inflection point. Your investments should hit a checkup point too."
     ],
     "talking_points": [
-      "PM Wong announced at NDR 2026 that the household income ceiling for BTO flats, resale flats bought with grants, and HDB housing loans rises from $14,000 to $16,000 a month, effective for HFE letter applications from 24 Aug - the first change in 7 years.",
-      "This mainly affects dual-income families who crossed the old $14,000 ceiling as their careers progressed and assumed they were priced out of subsidised housing for good.",
-      "A higher ceiling changes what you're eligible for, not what you can afford - it's worth a fresh HFE check before ruling out a BTO or resale purchase with grants.",
-      "This isn't a push to buy - it's a prompt to know your actual eligibility before making a housing decision based on an old number."
+      "Nvidia reported Q2 FY2026 revenue of $96.2 billion, up 106% year-on-year, and EPS of $2.22, up 111%, with CEO Jensen Huang describing AI compute demand as reaching 'an inflection point.'",
+      "This isn't a call on whether Nvidia or AI stocks keep climbing - a record-breaking earnings report is exactly the moment people forget to check what percentage of their portfolio sits in one name or sector.",
+      "If you hold Nvidia directly, through a fund, or through your CPFIS, this is a good prompt to know your actual weighting, not just your paper gains.",
+      "The plan that survives a blockbuster quarter is the one that was built before the blockbuster quarter, not adjusted because of it."
     ],
-    "cta": "Comment 'FAMILY' and I'll send you the updated income bands for family BTO and resale grant eligibility.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head, on-screen number callout '$14,000 to $16,000', cite NDR 2026/HDB as source, no logos.",
-    "source_label": "Mothership.SG, NDR 2026 BTO income ceiling report, 23 Aug 2026",
-    "source_url": "https://mothership.sg/2026/08/bto-income-ceiling/",
-    "observed_at": "2026-08-24",
-    "date_found": "2026-08-26"
+    "cta": "DM me 'NVDA' and I'll send you the 5-minute way to check your tech concentration.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Talking head, on-screen text '$96.2B revenue, +106% YoY', no stock ticker recommendations, no buy/sell language.",
+    "source_label": "Yahoo Finance, Nvidia earnings report, 26 Aug 2026",
+    "source_url": "https://finance.yahoo.com/markets/stocks/articles/nvidia-stock-soar-aug-26-084401610.html",
+    "observed_at": "2026-08-26",
+    "date_found": "2026-08-27"
   },
   {
-    "id": "trend-2026-08-26-ec-ceiling-18k",
+    "id": "trend-2026-08-27-jackson-hole-warsh-speech",
     "platform": "facebook",
     "format": "text-post",
-    "pillar": "identity",
-    "trend_type": "news",
-    "trend_source": "At NDR 2026, PM Wong announced the income ceiling for buying a new Executive Condominium (EC) rises from $16,000 to $18,000 a month, applying to EC land parcels with tender closing dates on or after 24 Aug 2026 - it does not extend to balance units in existing EC developments.",
-    "title": "The EC income ceiling just moved to $18,000. Here's who that actually opens the door for.",
-    "why_it_works": "ECs sit at the exact income bracket many mid-career professionals hit - a dated ceiling change is a genuine reason to revisit a housing plan they'd shelved.",
+    "pillar": "market",
+    "trend_type": "event",
+    "trend_source": "The Kansas City Fed's Jackson Hole Economic Symposium runs 27-29 Aug 2026, with new Fed Chair Kevin Warsh delivering his first keynote as Chair on Friday 28 Aug - a closely watched speech ahead of the September rate decision, per Euronews' 26 Aug 2026 preview.",
+    "title": "A new Fed Chair gives his first big speech this week. Here's the only prep that matters for you.",
+    "why_it_works": "A dated, imminent, market-moving speech gives a legitimate, no-prediction reason to pre-commit to a plan before headlines start moving markets.",
     "hooks": [
-      "Earning close to $16k a month and thought ECs were out of reach? The ceiling just moved to $18k.",
-      "The EC income ceiling just went up for the first time in 7 years. Here's what actually changed for buyers.",
-      "If you've been stuck between 'too much for a BTO, not enough for private property,' this EC change is for you."
+      "A brand new Fed Chair gives his first major speech this week. Markets might move. Here's what I'd do before that happens.",
+      "Everyone's watching Jackson Hole this week for hints on rates. I'm watching whether you have a plan that doesn't need those hints.",
+      "This week's Fed speech could move markets in either direction. That's exactly why reacting to it is the wrong move."
     ],
     "talking_points": [
-      "PM Wong announced at NDR 2026 that the EC income ceiling rises from $16,000 to $18,000 a month, applying to new EC land parcels with tender closing dates from 24 Aug 2026 - it doesn't cover balance units in existing EC projects.",
-      "ECs sit between BTO and private condos - this ceiling shift specifically targets households who've outgrown HDB eligibility but aren't ready for a full private purchase.",
-      "The higher ceiling changes who qualifies, not the loan math - TDSR and downpayment rules still apply the same way, so eligibility is only step one.",
-      "This is a good trigger to re-run the numbers on an EC you dismissed a year or two ago, not to assume the door is open without checking."
+      "The Jackson Hole Economic Symposium runs 27-29 August 2026, with new Fed Chair Kevin Warsh giving his first keynote as Chair on Friday 28 August, closely watched ahead of the September rate decision.",
+      "This isn't a prediction of what he'll say or how markets will react - a headline Fed speech is exactly the kind of single event that tempts people into short-term moves.",
+      "The households who stay calm through a big Fed week are usually the ones who already know their asset allocation and time horizon before the speech happens.",
+      "If you don't know your own numbers - how much cash buffer you hold, how diversified your investments are - this week is a good prompt to check, not to predict rates."
     ],
-    "cta": "DM me 'EC' and I'll send you the updated EC eligibility and downpayment breakdown.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Talking head, on-screen text '$16,000 to $18,000 for new ECs', no developer logos, deliver the TDSR caveat direct to camera.",
-    "source_label": "99.co, NDR 2026 EC income ceiling report, 23 Aug 2026",
-    "source_url": "https://www.99.co/singapore/insider/ndr-2026-bto-income-ceiling-raised-to-s16000-ec-ceiling-to-s18000/",
-    "observed_at": "2026-08-24",
-    "date_found": "2026-08-26"
+    "cta": "What's your rule for a big news week like this one? Tell me in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Talking head, simple on-screen text 'Jackson Hole, Fed Chair's first keynote, Fri 28 Aug', no rate predictions, no buy/sell language.",
+    "source_label": "Euronews, Jackson Hole preview, 26 Aug 2026",
+    "source_url": "https://www.euronews.com/business/2026/08/26/warshs-first-jackson-hole-bond-yields-a-treasury-rescue-and-inflation-that-refuses-to-fall",
+    "observed_at": "2026-08-26",
+    "date_found": "2026-08-27"
   },
   {
-    "id": "trend-2026-08-26-bto-nov-exercise-delay",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Following the NDR 2026 income ceiling changes, HDB pushed the next BTO sales exercise from Oct to Nov 2026 (7,960 flats across projects including Bedok, Toa Payoh, Sembawang, Tengah and Yishun), and set 25 Sep 2026 as the deadline for HFE letter supporting documents so buyers can apply under the new ceilings in time.",
-    "title": "HDB just moved the BTO launch to November. Here's the one deadline that actually matters.",
-    "why_it_works": "A real, dated administrative shift with a hard document deadline gives a genuinely useful action item, not just news to react to.",
-    "hooks": [
-      "HDB just pushed the next BTO launch from October to November. But the real deadline is 25 September.",
-      "If you're planning to apply for the November BTO exercise, your paperwork deadline is 25 September. Mark it now.",
-      "The BTO launch date moved. Most people missed the actual deadline buried in that announcement."
-    ],
-    "talking_points": [
-      "HDB moved the next BTO sales exercise from October to November 2026, offering 7,960 flats across projects including Bedok, Toa Payoh, Sembawang, Tengah and Yishun, to give buyers time to apply under the new NDR 2026 income ceilings.",
-      "All supporting documents for the HFE letter are due by 25 September 2026 - that's the deadline that determines whether you can apply under the revised ceilings in time for this launch.",
-      "An HFE letter takes time to process once documents are in, so the practical deadline for most people is really 'start now,' not 25 September.",
-      "This is a good moment to check whether your documents (payslips, CPF statements, marriage cert if relevant) are actually ready, not just whether you're eligible."
-    ],
-    "cta": "Save this and set a reminder for 25 September - your HFE document deadline.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 'BTO moved to Nov, 7,960 flats', slide 2 'Real deadline: 25 Sep for HFE docs', slide 3 document checklist, final slide save CTA.",
-    "source_label": "Uchify, November 2026 BTO launch preview, Aug 2026",
-    "source_url": "https://uchify.com/hdb-bto-november-2026-launch/",
-    "observed_at": "2026-08-24",
-    "date_found": "2026-08-26"
-  },
-  {
-    "id": "trend-2026-08-26-sg-child-support-package-62k",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "identity",
-    "trend_type": "news",
-    "trend_source": "At NDR 2026, PM Wong announced the SG Child Support Package will replace the Baby Bonus and Large Families Schemes from April 2027: a $10,000 Baby Gift, $2,000 a year in Child Credits from age 1 to 16, a $5,000 CDA First Step Grant with co-matching, and a $10,000 PSEA top-up at 17 - up to $62,000 per child, the same for every birth order.",
-    "title": "The new SG Child Support Package pays every child the same, up to $62,000. Here's the real planning gap it leaves.",
-    "why_it_works": "A dated, concrete restructuring of a major family scheme (birth-order-neutral, specific dollar figures) is a genuine prompt to plan around it, not just report it.",
-    "hooks": [
-      "The new Child Support Package gives every kid up to $62,000, no matter if they're your first or your fourth. Here's what that changes.",
-      "Baby Bonus is being replaced by something bigger. Here's the exact breakdown and what it doesn't cover.",
-      "$62,000 sounds like a lot until you spread it over 17 years. Here's the real number to plan around."
-    ],
-    "talking_points": [
-      "PM Wong announced at NDR 2026 that the SG Child Support Package replaces the Baby Bonus and Large Families Schemes from April 2027: a $10,000 Baby Gift, $2,000 a year in Child Credits from age 1 to 16, a $5,000 CDA First Step Grant with co-matching, and a $10,000 PSEA top-up at 17.",
-      "The headline number is up to $62,000 per child, and for the first time every child gets the same support regardless of birth order.",
-      "Spread across 17 years, the support works out to roughly a few thousand dollars a year - useful, but it's a contribution to the cost of raising a child, not the whole plan.",
-      "The real planning question is what this replaces in your own household budget versus what it doesn't touch, like childcare, enrichment or your own retirement savings running alongside it."
-    ],
-    "cta": "Save this if you're planning a family and want the full breakdown of what's covered and what isn't.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 'Up to $62,000 per child', slide 2 the 4-part breakdown, slide 3 'what it doesn't cover', final slide save CTA.",
-    "source_label": "AsiaOne, NDR 2026 SG Child Support Package report, 23 Aug 2026",
-    "source_url": "https://www.asiaone.com/singapore/ndr-2026-singaporean-children-receive-62000-under-new-support-package",
-    "observed_at": "2026-08-24",
-    "date_found": "2026-08-26"
-  },
-  {
-    "id": "trend-2026-08-26-childcare-leave-tiered",
+    "id": "trend-2026-08-27-ai-layoff-blame-stat",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "identity",
     "trend_type": "news",
-    "trend_source": "At NDR 2026, PM Wong announced childcare leave for working parents will be tiered by number of children (not age of youngest child): 8, 10 or 12 days a year for parents with one, two, or three or more Singaporean citizen children aged 12 and below, with the Government covering the cost up to the reimbursement limit.",
-    "title": "Childcare leave is changing from 'age-based' to 'count-based.' Here's who actually gains days.",
-    "why_it_works": "A dated structural change to a benefit working parents already use is easy to explain and immediately useful, without any pitch needed.",
+    "trend_source": "A report published 26 Aug 2026 found 53% of laid-off workers believe AI played a role in their job loss, but most say they were never actually told that by their employer, per CPA Practice Advisor.",
+    "title": "Over half of laid-off workers think AI played a role. Most were never told. Here's what that means for your safety net.",
+    "why_it_works": "A fresh, specific workforce statistic gives a genuine, non-alarmist reason to check income protection and emergency savings, without naming or exploiting any individual's job loss.",
     "hooks": [
-      "Childcare leave used to depend on your youngest child's age. Now it depends on how many kids you have. Here's the shift.",
-      "If you have two or more kids, you just gained childcare leave days. Here's the exact new tier.",
-      "This childcare leave change won't show up on your payslip, but it will show up on your leave balance."
+      "A new report says 53% of people who lost their job think AI played a role, and most were never told outright. Here's the real takeaway.",
+      "You don't need to predict if AI will affect your job. You need to know if your safety net would survive it either way.",
+      "This new stat isn't about fear. It's about whether your emergency fund assumes your income is guaranteed."
     ],
     "talking_points": [
-      "PM Wong announced at NDR 2026 that childcare leave will shift from being based on the youngest child's age to being tiered by number of children: 8, 10 or 12 days a year for parents with one, two, or three-or-more Singaporean citizen children aged 12 and below.",
-      "The Government will cover the cost of this leave up to the reimbursement limit, which matters for how comfortable an employer is approving it.",
-      "Parents with multiple children under 12 are the clearest winners here - it's worth checking your new tier against what you currently take.",
-      "This is a genuinely useful, no-cost check: know your new leave entitlement before you need it, not when you're already trying to book time off."
+      "A report published 26 August 2026 found 53% of laid-off workers believe AI played a role in their job loss, but most say their employer never actually told them that.",
+      "This isn't a prediction about your specific job or industry - it's a reminder that the reason behind a job change is often unclear, which makes planning for the possibility more useful than guessing at the cause.",
+      "The practical question is simple: if your income paused for three to six months, would your savings and insurance cover it, regardless of why the pause happened.",
+      "This is a good, calm prompt to review your emergency fund and income protection now, while you're not under pressure to make a fast decision."
     ],
-    "cta": "What's your household's biggest childcare planning gap right now? Tell me in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Talking head, simple on-screen table '1 child: 8 days, 2: 10 days, 3+: 12 days', no government logos.",
-    "source_label": "NTUC, NDR 2026 childcare leave report, 23 Aug 2026",
-    "source_url": "https://www.ntuc.org.sg/uportal/news/National-Day-Rally-2026-Singapore-parents-to-get-up-to-12-days-of-childcare-leave/",
-    "observed_at": "2026-08-24",
-    "date_found": "2026-08-26"
+    "cta": "Comment 'SAFETY NET' and I'll send you the 3 numbers to check for your own income protection.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head, on-screen text '53% believe AI played a role', no company names, no fear-based imagery.",
+    "source_label": "CPA Practice Advisor, 26 Aug 2026",
+    "source_url": "https://www.cpapracticeadvisor.com/2026/08/26/53-of-laid-off-workers-believe-ai-played-a-role-in-their-job-loss-but-most-were-never-told/189161/",
+    "observed_at": "2026-08-26",
+    "date_found": "2026-08-27"
   },
   {
-    "id": "trend-2026-08-26-preschool-fees-150-300",
+    "id": "trend-2026-08-27-stanford-young-worker-ai-gap",
+    "platform": "linkedin",
+    "format": "carousel",
+    "pillar": "identity",
+    "trend_type": "news",
+    "trend_source": "Stanford's Digital Economy Lab published an update on 26 Aug 2026 showing the employment gap between young workers in AI-exposed occupations and their peers has widened to 19%, as part of its ongoing 'canaries in the coal mine' tracking series.",
+    "title": "The AI job gap for young workers just widened to 19%. Here's the early-career move that actually helps.",
+    "why_it_works": "A dated, specific labour-market statistic on young workers is a natural, non-alarmist prompt to start saving and investing early, without predicting any individual's career outcome.",
+    "hooks": [
+      "Stanford just updated a number that matters if you're early in your career. The AI employment gap for young workers is now 19%.",
+      "If you're under 30 and job-hunting right now, this new stat is worth ten minutes of your attention.",
+      "The safest response to an uncertain job market isn't panic. It's starting your savings habit before you feel ready."
+    ],
+    "talking_points": [
+      "Stanford's Digital Economy Lab reported on 26 August 2026 that the employment gap between young workers in AI-exposed occupations and their peers has widened to 19%, part of its ongoing tracking of AI's effect on the labour market.",
+      "This isn't a prediction about any specific job, industry, or graduate's prospects - it's a live data point on a job market that's shifting for younger workers specifically.",
+      "The move that helps regardless of how this plays out is starting retirement and emergency savings early, even in small amounts, while you have the most years for it to compound.",
+      "It's also worth building skills and savings habits that aren't tied to one employer or one narrow role, so a shifting job market affects you less."
+    ],
+    "cta": "Save this if you're early in your career and want the 3-step savings habit to start now.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 '19% employment gap for young workers', slide 2 Stanford source callout, slide 3 '3 habits to start now', final slide save CTA.",
+    "source_label": "Stanford Digital Economy Lab, 26 Aug 2026",
+    "source_url": "https://digitaleconomy.stanford.edu/news/canariesaug26/",
+    "observed_at": "2026-08-26",
+    "date_found": "2026-08-27"
+  },
+  {
+    "id": "trend-2026-08-27-sg-scam-brief-h1-2026",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Singapore Police released the Mid-Year Scam and Cybercrime Brief 2026 on 26 Aug 2026: scam cases fell 14.4% to 16,821 and losses fell 17.9% to about $410.6 million, with investment scams still among the top 5 categories.",
+    "title": "Scam losses in Singapore fell this year, but investment scams are still in the top 5. Here's the pattern to know.",
+    "why_it_works": "A same-day, official statistics release gives a credible, non-alarmist hook for scam-awareness content that protects clients without naming or exploiting any individual victim.",
+    "hooks": [
+      "Good news first: scam losses in Singapore fell this year. The bad news is investment scams are still in the top 5.",
+      "The police just released the mid-year scam numbers. One category on that list should make anyone investing pause.",
+      "$410 million was lost to scams here in six months. Here's the one question that stops most of them."
+    ],
+    "talking_points": [
+      "Singapore Police released the Mid-Year Scam and Cybercrime Brief 2026 on 26 August 2026, showing scam cases fell 14.4% to 16,821 and losses fell 17.9% to about $410.6 million, with the Anti-Scam Centre recovering over $97.7 million.",
+      "Investment scams remain among the top 5 scam categories even as overall numbers improved, which means the pattern hasn't disappeared - it's just being caught more often.",
+      "The common thread in investment scams is urgency and unusually smooth, guaranteed-sounding returns - a real product or advisor will never rush you or promise a guaranteed outcome.",
+      "The simplest protection is a pause: verify any investment opportunity through MAS's public register before moving money, no matter how convincing the pitch sounds."
+    ],
+    "cta": "Comment 'CHECK' and I'll send you how to verify if an investment offer is actually licensed in Singapore.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head, on-screen text '$410.6 million lost to scams, H1 2026', no logos, calm and factual delivery, no fear-based imagery.",
+    "source_label": "AsiaOne, Mid-Year Scam and Cybercrime Brief 2026, 26 Aug 2026",
+    "source_url": "https://www.asiaone.com/singapore/scams-cases-losses-first-half-2026",
+    "observed_at": "2026-08-26",
+    "date_found": "2026-08-27"
+  },
+  {
+    "id": "trend-2026-08-27-air-india-sia-equity",
+    "platform": "linkedin",
+    "format": "carousel",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Air India is seeking about $1.9 billion in fresh equity from owners Tata Sons and Singapore Airlines, which holds roughly 25% of Air India, following combined annual losses of $2.33 billion at Air India and its budget arm, per a Mothership.SG report on 26 Aug 2026.",
+    "title": "SIA's Air India stake just made headlines for a $1.9 billion ask. Here's what that means if you hold the shares.",
+    "why_it_works": "A dated, concrete capital call at a company many Singaporeans hold shares in is a natural, no-prediction trigger to check single-stock exposure rather than react to the headline.",
+    "hooks": [
+      "Singapore Airlines might need to inject more money into Air India. If you hold SIA shares, here's what actually matters.",
+      "A $1.9 billion equity ask made headlines today. Here's why the number matters less than your own portfolio weighting.",
+      "Owning a familiar homegrown stock feels safe. This headline is a good test of whether that feeling matches your actual numbers."
+    ],
+    "talking_points": [
+      "Air India is seeking about $1.9 billion in fresh equity from owners Tata Sons and Singapore Airlines, which holds roughly 25% of Air India, following combined annual losses of $2.33 billion at Air India and its budget arm.",
+      "This isn't a call on whether SIA shares are a good or bad holding - it's a reminder that even household-name stocks carry concentration risk tied to their subsidiaries and investments.",
+      "If you hold SIA shares directly, through a fund, or through CPFIS, this is a good prompt to check what percentage of your portfolio actually depends on one company's decisions.",
+      "Familiarity with a brand isn't the same as diversification - a stock you recognise every day at Changi Airport still needs the same concentration check as any other."
+    ],
+    "cta": "DM me 'SIA' and I'll send you a simple way to check your single-stock concentration.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Carousel: slide 1 '$1.9 billion equity ask', slide 2 'SIA holds ~25% of Air India', slide 3 'the real question: your concentration', final slide DM CTA.",
+    "source_label": "Mothership.SG, 26 Aug 2026",
+    "source_url": "https://mothership.sg/2026/08/air-india-fresh-equity-sia/",
+    "observed_at": "2026-08-26",
+    "date_found": "2026-08-27"
+  },
+  {
+    "id": "trend-2026-08-27-ig-mystery-reveal-scam",
     "platform": "instagram",
     "format": "story",
-    "pillar": "identity",
-    "trend_type": "news",
-    "trend_source": "At NDR 2026, PM Wong announced the Government will progressively lower full-day childcare fees to $150 a month and infant-care fees to $300 a month for every Singaporean child regardless of household income, phased in from 2028 and reaching those levels by 2030.",
-    "title": "Preschool fees are being cut in half by 2030. Here's the number to actually plan around today.",
-    "why_it_works": "A dated, specific future cost reduction is a natural prompt to plan a multi-year runway rather than react to the headline number alone.",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "An Instagram account that built roughly 400,000 followers hyping a mysterious 'reveal' for 25 Aug 2026 funneled followers into a paid Telegram unlock that delivered only a generic motivational video - now widely covered as a hype-scam case study, per LatestLY's 25 Aug 2026 report.",
+    "title": "400,000 people paid for a 'mystery reveal' that turned out to be nothing. Here's the pattern behind it.",
+    "why_it_works": "A viral, dated internet hoax gives a natural, tasteful hook for the exact psychological pattern behind investment scams, without targeting or naming any individual victim.",
     "hooks": [
-      "Childcare fees are dropping to $150 a month by 2030. Here's what to actually do between now and then.",
-      "The government just announced cheaper preschool fees. The catch is the timeline, and it matters for your planning.",
-      "If you're planning a child in the next few years, this fee cut changes your budget, but not yet."
+      "An account with 400,000 followers hyped a mystery reveal for weeks. People paid to unlock it. Here's what they got.",
+      "This viral 'mystery reveal' scam has nothing to do with money, and everything to do with how money scams actually work.",
+      "If curiosity plus a countdown timer got 400,000 people to pay up, imagine what it does with an investment promise."
     ],
     "talking_points": [
-      "PM Wong announced at NDR 2026 that full-day childcare fees will progressively fall to $150 a month and infant-care fees to $300 a month for every Singaporean child, regardless of household income, phased in from 2028 and reaching those levels by 2030.",
-      "The reduction is real, but it isn't immediate - families with a child in preschool now will pay closer to today's fees for the next couple of years before the phase-in completes.",
-      "The useful move is to budget for today's fees, not the 2030 number, and treat any earlier drop as a bonus rather than a plan.",
-      "This is worth flagging to any client actively planning a first or second child in the next 2-3 years, since the timeline affects their real childcare runway."
+      "An Instagram account built around 400,000 followers spent weeks hyping a mystery 'reveal' for 25 August 2026, then funneled followers into a paid Telegram unlock that delivered only a generic motivational video.",
+      "The pattern is the same one behind most investment scams: manufactured urgency, a countdown, curiosity, and a paywall right before the 'payoff.'",
+      "The real lesson isn't about this specific account - it's noticing that the same structure shows up in crypto autotraders, fake courses, and guaranteed-return pitches.",
+      "The habit that protects you is simple: the more urgency and secrecy around an opportunity, the more scrutiny it deserves, not less."
     ],
-    "cta": "Save this if you're planning a child in the next few years - the timeline matters more than the headline number.",
+    "cta": "Save this - next time something feels urgent and secretive, come back to this checklist first.",
     "cta_type": "save-share",
-    "how_to_film": "Story format: on-screen '$150/month by 2030' text over a plain background, casual voiceover on the phase-in timeline, no government branding.",
-    "source_label": "Yahoo News Singapore, NDR 2026 preschool fees report, 23 Aug 2026",
-    "source_url": "https://sg.news.yahoo.com/ndr-2026-monthly-childcare-fees-124105511.html",
-    "observed_at": "2026-08-24",
-    "date_found": "2026-08-26"
-  },
-  {
-    "id": "trend-2026-08-26-silver-18pct-mom",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Silver extended its rally to open at $69.34 an ounce on Monday 24 Aug 2026, up more than 18% month-over-month, with Yahoo Finance attributing the late-August breakout partly to the U.S. Treasury's move to double its long-term bond buyback programme.",
-    "title": "Silver is up 18% this month alone. Here's the only question worth asking about that.",
-    "why_it_works": "A fresh, dated, specific rally number gives a no-hype prompt to check portfolio balance rather than chase the metal.",
-    "hooks": [
-      "Silver is up more than 18% this month. I'm not telling you to buy it, here's what I'd check instead.",
-      "A metal quietly having its best month in years just crossed my feed again. Here's my actual reaction.",
-      "Silver's rally is real. The question that matters isn't the price, it's how much of your portfolio would move with it."
-    ],
-    "talking_points": [
-      "Silver opened at $69.34 an ounce on Monday 24 Aug 2026, up more than 18% month-over-month, with the late-August breakout partly linked to the U.S. Treasury doubling its long-term bond buyback programme.",
-      "This isn't a call on where silver goes next - a fast, specific rally like this is exactly when people chase an asset without checking how it fits their existing plan.",
-      "The number that actually matters is what percentage of your total portfolio is in precious metals right now, not the percentage silver moved this month.",
-      "A rallying asset is a good annual trigger to check concentration, not a reason to add more of it."
-    ],
-    "cta": "Comment 'SILVER' and I'll send you the 5-minute way to check your precious metals concentration.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head, plain silver-price line chart graphic showing the August climb, no buy/sell language on screen.",
-    "source_label": "Yahoo Finance, 24 Aug 2026",
-    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/silver-prices-today-monday-august-24-2026-why-silver-remains-on-a-roll-up-over-18-month-over-month-124600654.html",
-    "observed_at": "2026-08-24",
-    "date_found": "2026-08-26"
-  },
-  {
-    "id": "trend-2026-08-26-gold-pullback-3month-high",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Gold touched its highest level in more than three months on Tuesday 25 Aug 2026 near $4,697/oz before easing as investors locked in profits ahead of this week's US inflation data and Fed Chair Kevin Warsh's Friday speech, with UOB noting bullion is on track for its strongest monthly gain since September 1999, per Yahoo Finance.",
-    "title": "Gold just had its best month since 1999. Then people started selling. Here's why that's normal.",
-    "why_it_works": "A dated pullback right after a record monthly gain is a clean, no-prediction moment to talk about profit-taking and plan discipline instead of chasing rallies.",
-    "hooks": [
-      "Gold just had its best month since 1999. Today, it pulled back. Here's why that's actually the normal part.",
-      "Everyone was excited about gold's rally. The pullback that followed is the more useful lesson.",
-      "A record month for gold, then a same-week pullback. This is what a plan is supposed to survive."
-    ],
-    "talking_points": [
-      "Gold touched a fresh three-month high near $4,697 an ounce on Tuesday 25 Aug 2026 before easing as investors locked in profits ahead of this week's US inflation data and Fed Chair Kevin Warsh's Friday speech, with bullion on track for its strongest monthly gain since September 1999.",
-      "A pullback right after a strong rally isn't a red flag - it's often just profit-taking, and reacting to it is a different mistake from chasing the rally in the first place.",
-      "The lesson isn't about gold specifically - it's that any single-asset record month deserves a portfolio check, not a decision made off the headline.",
-      "The households that handle a pullback calmly are usually the ones who already knew how much of their money was in the asset before it moved."
-    ],
-    "cta": "What's your rule for a pullback after a rally? Tell me in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Talking head, plain gold-price line chart showing the peak then pullback, no buy/sell language, no price predictions on screen.",
-    "source_label": "Yahoo Finance, 25 Aug 2026",
-    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/gold-prices-today-tuesday-august-25-2026-gold-hits-3-month-high-this-morning-120736963.html",
+    "how_to_film": "Story format: screen-record the account's countdown posts (blur any usernames), on-screen text overlay of the scam pattern, casual voiceover, no logos.",
+    "source_label": "LatestLY, 25 Aug 2026",
+    "source_url": "https://www.latestly.com/social-viral/25-august-2026-mystery-telegram-video-was-the-big-reveal-a-scam-7574813.html",
     "observed_at": "2026-08-25",
-    "date_found": "2026-08-26"
+    "date_found": "2026-08-27"
   },
   {
-    "id": "trend-2026-08-26-bitcoin-80k-3month-high",
-    "platform": "tiktok",
+    "id": "trend-2026-08-27-dont-tell-your-dreams-audio",
+    "platform": "instagram",
     "format": "short-video",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Bitcoin opened at $78,982 on Tuesday 25 Aug 2026, its highest opening in over three months, then briefly touched $81,023 before pulling back, gaining more than 22% over the week, per Yahoo Finance and The Motley Fool.",
-    "title": "Bitcoin just had its highest open in 3 months. Here's the check before you feel FOMO.",
-    "why_it_works": "A fresh, specifically dated price move gives a legitimate, no-hype prompt to check risk tolerance instead of chasing the number.",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "A moody, cinematic audio track ('Don't Tell Your Dreams' by LOVIXX & STOSLIV) is trending on Instagram Reels this week for milestone and transformation edits built around the idea of keeping ambitions private until results speak for themselves, per Reels activity and an Aug 26 2026 trending-audio roundup.",
+    "title": "This trending audio says 'don't tell your dreams.' Here's the money version of that idea.",
+    "why_it_works": "A currently-trending Reels audio and edit style gives a natural, on-brand way to talk about discreet, consistent wealth-building without any hype or promised returns.",
     "hooks": [
-      "Bitcoin just opened at its highest price in over three months. Before you feel FOMO, here's what I'd check.",
-      "Up 22% in a week. That number alone should make you pause, not buy.",
-      "If a green candle makes you want to act right now, that feeling is the thing to examine, not the price."
+      "This audio trending on Reels right now says don't tell your dreams, let results speak. That's basically how real wealth gets built too.",
+      "Everyone's using this sound for gym and business glow-ups. Here's the version for your money.",
+      "The quietest people I know about money are usually the ones actually building it. This trend nailed that idea by accident."
     ],
     "talking_points": [
-      "Bitcoin opened at $78,982 on Tuesday 25 Aug 2026, its highest opening in more than three months, briefly touching $81,023 before pulling back, and gaining over 22% across the week.",
-      "This isn't a call to buy the dip or chase the rally - a fast climb like this is exactly when FOMO decisions get made without a real plan behind them.",
-      "The actual check is simple: does your current crypto exposure match the risk tolerance you wrote down, or the one you feel today because the price is green?",
-      "A rule you set before the rally is worth more than a decision you make during one."
+      "A cinematic audio track trending on Instagram Reels this week is being used for milestone and transformation edits built around keeping ambitions private until results speak for themselves.",
+      "The same idea applies to money - consistent saving and investing rarely looks exciting month to month, which is exactly why it's easy to underrate compared to a flashy announcement.",
+      "This isn't about secrecy for its own sake - it's about not needing external validation for a financial habit to be working.",
+      "The edit works because the payoff comes after the quiet, unglamorous middle part - same as a real financial plan."
     ],
-    "cta": "Comment 'FOMO' and I'll send you the 3 questions I ask before adding to any position.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Screen-record a price chart climbing then pulling back, talking head cut-ins delivering the FOMO-check point, no buy/sell language, no predictions on screen.",
-    "source_label": "The Motley Fool, 25 Aug 2026",
-    "source_url": "https://www.fool.com/coverage/stock-market-today/2026/08/25/crypto-market-today-aug-25-bitcoins-rebound-above-usd80-000-has-it-finally-bottomed/",
-    "observed_at": "2026-08-25",
-    "date_found": "2026-08-26"
+    "cta": "Save this if you're in the quiet, unglamorous middle part of building your savings right now.",
+    "cta_type": "save-share",
+    "how_to_film": "Reel using the trending audio, quick cuts of everyday 'boring' money habits (auto-transfer, checking a statement), text overlay 'don't tell your dreams', end card with your handle.",
+    "source_label": "Instagram Reel using the trending audio",
+    "source_url": "https://www.instagram.com/reel/DZzm7P3vkLF/",
+    "observed_at": "2026-08-26",
+    "date_found": "2026-08-27"
   },
   {
-    "id": "trend-2026-08-26-ai-bubble-buffett-warning",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "A Motley Fool piece published 24 Aug 2026 revisited Warren Buffett's 1999 warning about tech-stock concentration as AI and semiconductor stocks trade at price-to-sales ratios above 30 and the top 10 S&P 500 stocks now make up about 35% of the index, above the dot-com peak of roughly 25%.",
-    "title": "The AI trade has quietly out-concentrated the dot-com bubble. Here's the number that matters.",
-    "why_it_works": "A dated, non-alarmist framing of a real concentration statistic gives a natural, no-prediction reason to check portfolio weighting.",
-    "hooks": [
-      "The top 10 stocks in the S&P 500 are now more concentrated than they were at the peak of the dot-com bubble. Sit with that.",
-      "I'm not calling an AI bubble. I am telling you the concentration number is worse than 1999's.",
-      "You don't need to predict an AI crash to do something useful with this one statistic."
-    ],
-    "talking_points": [
-      "A Motley Fool piece published 24 Aug 2026 revisited Warren Buffett's 1999 warning about tech concentration, noting AI and semiconductor stocks trading at price-to-sales ratios above 30 and the top 10 S&P 500 stocks now making up about 35% of the index, above the dot-com peak of roughly 25%.",
-      "This isn't a prediction that AI stocks will crash - it's a factual reminder that concentration risk has already exceeded a prior historical extreme, whatever happens next.",
-      "If your portfolio, CPFIS holdings, or company shares are AI- or tech-heavy, this is a legitimate prompt to check your actual weighting, not a reason to sell out of fear.",
-      "The useful move is the same whether the AI trade keeps running or cools off: know your number before the headline forces you to look at it."
-    ],
-    "cta": "DM me 'AI' and I'll send you the 5-minute way to check how tech-concentrated your portfolio actually is.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Talking head, on-screen text '35% vs 25% at the dot-com peak', no stock tickers or buy/sell language on screen.",
-    "source_label": "The Motley Fool, 24 Aug 2026",
-    "source_url": "https://www.fool.com/investing/2026/08/24/if-an-ai-bubble-burst-is-coming-warren-buffetts-19/",
-    "observed_at": "2026-08-24",
-    "date_found": "2026-08-26"
-  },
-  {
-    "id": "trend-2026-08-26-canada-auto-tariffs-market",
+    "id": "trend-2026-08-27-amazon-mturk-shutdown",
     "platform": "facebook",
     "format": "text-post",
-    "pillar": "market",
+    "pillar": "identity",
     "trend_type": "current-affairs",
-    "trend_source": "On 25 Aug 2026, President Trump announced tariffs on Canadian cars, trucks, auto parts and steel rising to 50% from 1 Jan 2027, with US markets closing mixed the same day - S&P 500 down 0.3%, Nasdaq down 0.8%, Dow up 0.3% - per Yahoo Finance.",
-    "title": "Tariffs went up, and the market didn't move the way you'd guess. Here's the actual lesson.",
-    "why_it_works": "A same-day, dated tariff announcement paired with a mixed (not uniformly negative) market reaction is a clean, no-prediction case for not reacting to single headlines.",
+    "trend_source": "Amazon announced it will shut down Mechanical Turk, its 21-year-old crowdsourced task marketplace, on 30 Sep 2026, alongside SageMaker Ground Truth and Augmented AI, as AI reshapes data-labeling work, per CNBC's 25 Aug 2026 report.",
+    "title": "A side-income platform millions used for 21 years is shutting down next month. Here's the real lesson.",
+    "why_it_works": "A dated, concrete platform shutdown affecting real side-income earners gives an honest, non-alarmist prompt to diversify income streams, without targeting any named individual's job loss.",
     "hooks": [
-      "Tariffs just went up 50% on a major trading partner. The stock market barely blinked in one direction. Here's why.",
-      "One index fell, one index rose, same tariff headline, same day. That's the whole lesson right there.",
-      "If you think you can predict how markets react to news, this is the exact day to test that theory."
+      "A platform people used for side income for 21 years just announced it's shutting down. Here's the actual takeaway.",
+      "If your side income depends on one single platform, this week's news is worth ten minutes of thought.",
+      "This isn't about one gig site closing. It's about what happens when any single income source disappears overnight."
     ],
     "talking_points": [
-      "On 25 Aug 2026, President Trump announced tariffs on Canadian cars, trucks, auto parts and steel rising to 50% from 1 Jan 2027, and US markets closed mixed the same day - the S&P 500 down 0.3%, the Nasdaq down 0.8%, but the Dow up 0.3%.",
-      "A single day's mixed reaction to a major tariff headline is a good reminder that markets don't move in one obvious direction just because a headline sounds big.",
-      "This isn't a call on where trade policy or markets go next - it's a prompt to notice how often 'obvious' news doesn't produce the obvious market move.",
-      "The plan that survives days like this is the one that wasn't built to react to any single headline in the first place."
+      "Amazon announced it will shut down Mechanical Turk, its 21-year-old crowdsourced task marketplace, on 30 September 2026, as AI increasingly takes over the data-labeling work the platform relied on.",
+      "This isn't a story about any individual losing income - it's a reminder that any single platform, gig, or side hustle can disappear with a business decision, not a personal one.",
+      "The practical takeaway is to treat any one income stream, side hustle included, as replaceable rather than guaranteed when you plan your monthly budget.",
+      "It's worth asking yourself right now: if my smallest income stream vanished tomorrow, would my core budget still hold?"
     ],
-    "cta": "What's your rule for not reacting to a single day's headline? Tell me in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Talking head, simple on-screen ticker graphic showing S&P down, Nasdaq down, Dow up, no specific stock names, no predictions.",
-    "source_label": "Yahoo Finance, Stock Market News for Aug 25 2026",
-    "source_url": "https://finance.yahoo.com/markets/stocks/articles/stock-market-news-aug-25-132700491.html",
+    "cta": "DM me 'INCOME' and I'll send you a simple way to stress-test your budget against a lost income stream.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Talking head, on-screen text '21 years, shutting down 30 Sep 2026', no logos beyond naming the platform in speech, calm delivery.",
+    "source_label": "CNBC, 25 Aug 2026",
+    "source_url": "https://www.cnbc.com/2026/08/25/amazon-service-that-jeff-bezos-called-artificial-ai-is-shutting-down.html",
     "observed_at": "2026-08-25",
-    "date_found": "2026-08-26"
+    "date_found": "2026-08-27"
   },
   {
-    "id": "trend-2026-08-26-ethereum-lags-bitcoin",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "While Bitcoin surged toward $80,000+ on Tuesday 25 Aug 2026, Ethereum edged lower to around $2,460 the same day, down from its Monday open, per Yahoo Finance's daily crypto price coverage.",
-    "title": "Bitcoin surged, Ethereum slipped, same day. Here's why that gap actually matters.",
-    "why_it_works": "A same-day divergence between two major cryptocurrencies is a clean, dated way to make a correlation/diversification point without any price prediction.",
+    "id": "trend-2026-08-27-blood-moon-eclipse",
+    "platform": "instagram",
+    "format": "story",
+    "pillar": "interest",
+    "trend_type": "event",
+    "trend_source": "A partial lunar eclipse on 27-28 Aug 2026, visible to an estimated 3.3 billion people across the Americas, Europe and Africa, will see 96.3% of the moon in Earth's shadow at its peak around 4:13am UTC, per Space.com's live-updates guide.",
+    "title": "3.3 billion people are looking up at the same sky tonight. Here's the money version of that moment.",
+    "why_it_works": "A rare, globally-shared celestial event happening this exact week gives a light, tasteful hook for a 'rare check-in' moment on personal finances, with zero prediction or pressure.",
     "hooks": [
-      "Bitcoin was up big today. Ethereum was down. Same day, same market. Here's why that gap matters.",
-      "'Crypto is up' isn't actually a sentence - here's proof from just today.",
-      "If you own multiple cryptocurrencies assuming they move together, today's numbers say otherwise."
+      "3.3 billion people are about to look up at the same 96% blood moon tonight. When did you last look at your own numbers?",
+      "This eclipse only happens because everything lines up rarely. Your finances deserve one rare, deliberate check-in too.",
+      "Everyone's setting a reminder for tonight's blood moon. Here's a reminder worth setting alongside it."
     ],
     "talking_points": [
-      "On Tuesday 25 Aug 2026, Bitcoin surged toward $80,000+, its highest opening in over three months, while Ethereum edged lower to around $2,460 the same day.",
-      "This isn't a call on which coin is the better buy - it's a reminder that 'crypto' isn't one asset, and treating a basket of coins as if they move together is a planning mistake.",
-      "If you hold more than one cryptocurrency, this is a good prompt to check whether you actually know how correlated your specific holdings are, rather than assuming they track each other.",
-      "The same logic applies outside crypto - any two assets you think of as 'basically the same' are worth checking on a day exactly like this one."
+      "A partial lunar eclipse on 27-28 August 2026 will be visible to an estimated 3.3 billion people across the Americas, Europe and Africa, with 96.3% of the moon in Earth's shadow at its peak.",
+      "Rare, globally-shared moments like this are a good nudge to do something people also treat as rare but shouldn't be - a full look at savings, insurance and investments in one sitting.",
+      "The comparison isn't about frequency, it's about attention - most people give their finances less deliberate attention in a year than they'll give tonight's sky in five minutes.",
+      "A simple, low-pressure move: use tonight as the trigger to book one hour this week for your own financial check-in."
     ],
-    "cta": "Comment 'CRYPTO' and I'll send you a simple way to check how correlated your holdings actually are.",
+    "cta": "Comment 'ECLIPSE' and I'll send you a simple one-hour financial check-in checklist.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Screen-record two price tickers side by side (BTC up, ETH down), talking head cut-in delivering the correlation point, no buy/sell language.",
-    "source_label": "Yahoo Finance, 25 Aug 2026",
-    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/bitcoin-and-ethereum-prices-today-tuesday-august-25-2026-highest-opening-for-bitcoin-in-over-three-months-123338376.html",
+    "how_to_film": "Story format: night sky or moon footage/timelapse, on-screen text '96% blood moon, 3.3 billion people watching', casual voiceover linking to a financial check-in, no predictions.",
+    "source_label": "Space.com, lunar eclipse guide, Aug 2026",
+    "source_url": "https://www.space.com/stargazing/lunar-eclipses/august-2026-lunar-eclipse-everything-you-need-to-know-about-the-96-percent-blood-moon",
+    "observed_at": "2026-08-27",
+    "date_found": "2026-08-27"
+  },
+  {
+    "id": "trend-2026-08-27-little-league-world-series",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "The 2026 Little League World Series is in its elimination rounds this week (results through 26-27 Aug 2026, finals set for 29-30 Aug), drawing global attention to youth baseball and softball, per ESPN's live coverage.",
+    "title": "The Little League World Series is on right now. Here's the money lesson hiding in every kid's uniform.",
+    "why_it_works": "A live, globally-watched youth sports event this week gives a wholesome, no-pressure hook for starting an early savings habit for kids' interests, without pushing any product.",
+    "hooks": [
+      "The Little League World Series is in its final rounds right now. Every kid on that field started somewhere small.",
+      "Watching these kids play this week reminded me of a money conversation most parents put off too long.",
+      "You don't need a World Series dream for your kid. You do need a plan for whatever they end up loving."
+    ],
+    "talking_points": [
+      "The 2026 Little League World Series is in its elimination rounds this week, with finals set for 29-30 August, drawing global attention to youth baseball and softball.",
+      "Behind every team on that field are years of gear, travel, coaching and league fees - a reminder that kids' interests, whatever they turn out to be, usually come with a real cost over time.",
+      "This isn't about pushing your child into any sport or activity - it's about starting a small, dedicated savings habit for 'whatever they end up loving' before you know exactly what that is.",
+      "Even a modest monthly amount set aside early gives you options later, instead of scrambling to fund a passion once it's already expensive."
+    ],
+    "cta": "Save this if you're a parent thinking about how to fund your kid's next big interest.",
+    "cta_type": "save-share",
+    "how_to_film": "Talking head or clips of casual backyard sports (no team logos), on-screen text 'start small, start early', warm and light tone.",
+    "source_label": "ESPN, 2026 Little League World Series coverage",
+    "source_url": "https://www.espn.com/llws/story/_/id/49490865/2026-little-league-world-series-baseball-softball-schedule-results-how-watch",
+    "observed_at": "2026-08-26",
+    "date_found": "2026-08-27"
+  },
+  {
+    "id": "trend-2026-08-27-us-open-mixed-doubles",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "sport",
+    "trend_source": "The 2026 US Open Mixed Doubles Championship ran 24-26 Aug 2026 as part of Fan Week, with results like Svitolina/Monfils defeating Eala/Auger-Aliassime, ahead of the main singles draw starting 30 Aug, per USOpen.org's official coverage.",
+    "title": "US Open Fan Week just wrapped. Here's the real prize money conversation nobody's having.",
+    "why_it_works": "A live, globally-watched sporting event this week gives a natural, non-prediction hook to talk about how even top earners need a financial plan behind the big numbers.",
+    "hooks": [
+      "US Open Fan Week just ended with some great mixed doubles matches. Here's what's happening off camera that matters more.",
+      "Prize money headlines are everywhere this week. The athletes who stay wealthy aren't the ones who earned the most.",
+      "Everyone's talking about who won this week at the US Open. Nobody's talking about who kept it."
+    ],
+    "talking_points": [
+      "The 2026 US Open Mixed Doubles Championship ran 24-26 August as part of Fan Week, with matches like Svitolina and Monfils defeating Eala and Auger-Aliassime, ahead of the main singles draw starting 30 August.",
+      "This isn't a comment on any specific player's finances - it's a reminder that a big pay day, whether prize money or a bonus, is only useful if there's a plan behind it.",
+      "Athletes and high earners face the same basic questions as anyone else: how much goes to taxes, how much to savings, how much is protected against a bad season or injury.",
+      "The takeaway for anyone with an irregular income - commission, bonus, freelance - is the same: plan around your average year, not your best one."
+    ],
+    "cta": "Comment 'IRREGULAR' and I'll send you how to budget when your income isn't the same every month.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Short video, quick tennis b-roll or text-on-screen highlights (no logos), talking head delivering the irregular-income point, upbeat tone.",
+    "source_label": "USOpen.org, official 2026 US Open coverage",
+    "source_url": "https://www.usopen.org/en_US/news/articles/2026-08-25/svitolina-monfils_defeat_eala-auger-aliassime_in_round_1_of_2026_us_open_mixed_doubles.html",
     "observed_at": "2026-08-25",
-    "date_found": "2026-08-26"
+    "date_found": "2026-08-27"
+  },
+  {
+    "id": "trend-2026-08-27-tatooine-heatwave-meme",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "meme",
+    "trend_source": "A wave of Star Wars-themed memes comparing the current heatwave to Tatooine and Mustafar - editing Tusken Raiders, Jawas and sandcrawlers into everyday neighbourhood scenes - is trending this week, per a Cheezburger/Memebase roundup published 25 Aug 2026.",
+    "title": "Everyone's joking their neighbourhood looks like Tatooine right now. Here's the bill that isn't a joke.",
+    "why_it_works": "A light, self-deprecating meme about the current heatwave gives a natural, funny bridge into budgeting for seasonal utility spikes, poking fun at everyone equally rather than any one group.",
+    "hooks": [
+      "Everyone's editing their neighbourhood into Tatooine this week because of the heat. My aircon bill already got the memo.",
+      "This heatwave has main character energy on my feed. My electricity bill has main character energy on my bank statement.",
+      "If your street looks like a Star Wars desert planet right now, your aircon bill is about to feel like it too."
+    ],
+    "talking_points": [
+      "A wave of Star Wars-themed memes comparing this week's heatwave to Tatooine and Mustafar - editing desert creatures into ordinary neighbourhood scenes - is trending online this week.",
+      "The joke lands because everyone's feeling the same seasonal spike, and that spike shows up somewhere real: the electricity bill from running the aircon longer and harder.",
+      "A useful, low-effort habit is checking your utilities bill against the same month last year, so a hot spell doesn't quietly blow up your monthly budget without you noticing.",
+      "This isn't about cutting comfort - it's about building a small seasonal buffer into your budget so a heatwave month doesn't feel like a surprise."
+    ],
+    "cta": "Comment 'AIRCON' and I'll send you a simple way to build a seasonal buffer into your budget.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Short video, quick cuts of 'hot outside' b-roll with a Star Wars-style text overlay joke, then cut to a mock electricity bill graphic, light and funny tone throughout.",
+    "source_label": "Cheezburger/Memebase, 25 Aug 2026",
+    "source_url": "https://cheezburger.com/46565893/the-memes-strike-back-star-wars-memes-for-rebels-imperials-and-force-users-to-laugh-at-across-the",
+    "observed_at": "2026-08-25",
+    "date_found": "2026-08-27"
+  },
+  {
+    "id": "trend-2026-08-27-never-told-you-this-format",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "A confession-style TikTok format built around the opening line 'I never told you this but...' is trending this week, typically cutting to a personal reveal, per a trend roundup published 26 Aug 2026.",
+    "title": "This confession format is everywhere on TikTok right now. Here's the money version worth actually saying.",
+    "why_it_works": "A currently-trending, ready-made confession format gives advisors a natural way to humanize a real money lesson, using a hook style audiences already recognise and expect.",
+    "hooks": [
+      "I never told you this, but my first real investment lost money, and it's the reason I do this job the way I do.",
+      "This 'I never told you this' format is trending right now. Here's the money confession I'd actually make.",
+      "Everyone's using this confession format for glow-ups. Here's mine, and it's about a financial mistake, not a haircut."
+    ],
+    "talking_points": [
+      "A confession-style TikTok format built around the line 'I never told you this but...' is trending this week, usually cutting from the opening line to a personal reveal.",
+      "The format works because it signals honesty upfront - which makes it a natural fit for sharing a real, specific money lesson instead of generic advice.",
+      "Pick one genuine moment - a mistake, a late start, a lesson from a client - rather than a polished or scripted 'reveal', since the format's whole appeal is that it feels unscripted.",
+      "Close by connecting your confession to one small action the viewer can take today, so the honesty lands as useful rather than just relatable."
+    ],
+    "cta": "DM me 'CONFESSION' and I'll send you 3 prompts to find your own money story for this format.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Talking head, deadpan delivery of the opening line, hard cut to the reveal, on-screen caption of the key lesson, natural lighting, no scripted feel.",
+    "source_label": "SocialBee, TikTok trends roundup, 26 Aug 2026",
+    "source_url": "https://socialbee.com/blog/tiktok-trends/",
+    "observed_at": "2026-08-26",
+    "date_found": "2026-08-27"
+  },
+  {
+    "id": "trend-2026-08-27-bob-girl-summer",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "'Bob Girl Summer' - before/after bob-haircut reveal videos set to the song 'FREAKED OUT', framed as a lighter, low-maintenance lifestyle change - is trending on TikTok this week, per TODAY.com's coverage and creator videos on the platform.",
+    "title": "Everyone's chopping their hair off for 'low maintenance summer.' Here's the money version of that same choice.",
+    "why_it_works": "A currently-trending lifestyle-simplification trend gives a natural, non-preachy bridge into automating and simplifying money admin, matching a mindset audiences are already choosing for themselves.",
+    "hooks": [
+      "Half my feed just cut their hair off for 'low maintenance summer.' My money's been low maintenance for years, here's how.",
+      "This bob-haircut trend is really about wanting less to manage. Your finances can go low-maintenance too.",
+      "You don't need a haircut to have a low-maintenance summer. You need three things running on autopilot."
+    ],
+    "talking_points": [
+      "'Bob Girl Summer' - before/after haircut reveal videos framed as a lighter, low-maintenance lifestyle change - is trending on TikTok this week.",
+      "The appeal isn't really about hair - it's about wanting fewer daily decisions and less upkeep, which is exactly what good money automation does too.",
+      "A genuinely low-maintenance money setup usually means three things running without you thinking about them: automatic savings transfers, automatic investment contributions, and insurance premiums on a set schedule.",
+      "The goal isn't to stop paying attention to money altogether - it's to remove the small, repeated decisions so your attention goes to the bigger ones."
+    ],
+    "cta": "Save this if you want your money on the same 'low maintenance' setting as your new haircut.",
+    "cta_type": "save-share",
+    "how_to_film": "Short video, quick 'before' clutter shot (multiple banking apps/manual transfers) cut to 'after' (one clean automated view), on-screen text 'low maintenance summer: money edition', light and trendy tone.",
+    "source_label": "TODAY.com, 'Bob Girl Summer' trend, Aug 2026",
+    "source_url": "https://www.today.com/popculture/bob-girl-summer-tiktok-trend-rcna215244",
+    "observed_at": "2026-08-26",
+    "date_found": "2026-08-27"
   }
 ]
