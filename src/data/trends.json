@@ -1,338 +1,338 @@
 [
   {
-    "id": "trend-2026-08-28-sg-money-mule-crackdown",
+    "id": "trend-2026-08-29-sg-average-speed-cameras",
     "platform": "facebook",
-    "format": "carousel",
+    "format": "text-post",
     "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "Singapore Police Force reported on 27 Aug 2026 that a two-week islandwide operation (13-26 Aug) left 231 people, aged 15 to 76, under investigation as alleged scammers or money mules.",
-    "title": "What SPF's 231-person scam sweep says about how fast money-mule recruitment is spreading",
-    "why_it_works": "A fresh, concrete police stat (not the mid-year scam report already covered) gives a natural, non-alarmist reason to start a family conversation about financial protection right now.",
+    "trend_source": "Singapore's Traffic Police announced on 28 Aug 2026 it is trialling a new Expressway Average Speed Enforcement (EASE) system on the BKE, using entry-and-exit cameras to catch speeding based on time and distance, after injury accidents rose 3.2% in H1 2026.",
+    "title": "The new BKE speed cameras are really an accident-cost reminder",
+    "why_it_works": "It's a genuinely new SG road-safety story breaking today, and it gives you an honest, non-alarmist reason to ask clients when they last checked what an accident actually costs versus what their plans cover.",
     "hooks": [
-      "Singapore Police just investigated 231 people for scams and money muling in one two-week sweep, and a 15-year-old was among them.",
-      "I keep getting asked if lending your bank account to a stranger for a 'quick favour' is really that risky. Here's why it is.",
-      "231 scammers and money mules picked up in two weeks. The youngest was 15. Let's talk about why that number matters to your family."
+      "Traffic Police just started testing cameras on the BKE that catch you speeding even if you slow down before them.",
+      "There's a new speed camera on the BKE and it doesn't care if you brake at the last second.",
+      "Accidents with injuries went up 3.2% in Singapore this year - that's the real reason for the new BKE cameras."
     ],
     "talking_points": [
-      "Police investigated 231 people (149 men, 82 women, aged 15-76) between 13-26 Aug 2026 for scam or money-mule activity.",
-      "Money muling often starts small: lending a bank account or SIM card for a fee is itself a crime, not a victimless favour.",
-      "Younger family members are increasingly being targeted for recruitment online, not just older relatives being scammed directly.",
-      "A five-minute family check-in this week - 'has anyone offered to pay you to use your bank account?' - is worth having."
+      "What the EASE system actually does: cameras at both ends of a zone calculate your average speed over the distance, not just a single snapshot.",
+      "It's starting on the BKE as a trial - no summons yet, but it signals where enforcement is heading.",
+      "The real number behind it: injury accidents rose 3.2% in H1 2026 versus the year before.",
+      "Use it as a nudge, not a scare: when did you last check what your hospitalisation or personal accident coverage actually pays out?"
     ],
-    "cta": "Save this and send it to one person in your family who's active on social media this weekend.",
-    "cta_type": "save-share",
-    "how_to_film": "Slide 1: bold stat '231 scammers/money mules investigated in 2 weeks'. Slide 2: age range 15-76 with a callout on the 15-year-old. Slide 3: what 'money muling' actually means in plain language. Slide 4: three questions to ask family members. Slide 5: CTA slide with the save-share prompt.",
-    "source_label": "Singapore Police Force",
-    "source_url": "https://www.police.gov.sg/Media-Hub/News/2026/08/20260827_police_investigate_231_scammers_and_money_mules_in_islandwide_enforcement_operation",
-    "observed_at": "2026-08-27",
-    "date_found": "2026-08-28"
-  },
-  {
-    "id": "trend-2026-08-28-bok-back-to-back-hike",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "The Bank of Korea raised its policy rate for a second straight meeting to 3.00% on 27 Aug 2026, a rare back-to-back hike, citing persistent inflation and a strong semiconductor-driven growth outlook.",
-    "title": "What Korea's rare back-to-back rate hike teaches about reacting to 'surprise' central bank moves",
-    "why_it_works": "A genuinely unusual central-bank move (back-to-back hikes) this week gives a clean, prediction-free hook to talk about building plans that don't depend on guessing rate paths.",
-    "hooks": [
-      "Korea's central bank just did something it hasn't done in years: hiked rates two meetings in a row.",
-      "A back-to-back rate hike from the Bank of Korea this week is a reminder that 'rates will stay low' is never a permanent plan.",
-      "When a central bank calls its own move 'preemptive,' that's a cue for how you should be positioning your cash too."
-    ],
-    "talking_points": [
-      "BOK raised its base rate 0.25pp to 3.00% on 27 Aug 2026, its second consecutive hike after July's increase.",
-      "The bank called it a 'preemptive' move against inflation risk tied to stronger-than-expected growth, not a response to a crisis.",
-      "Board members' own rate projections show most expect further increases, a reminder rate paths can shift faster than headlines suggest.",
-      "Planning takeaway: a financial plan built around 'rates will do X' is fragile - build in room for both directions."
-    ],
-    "cta": "Comment 'RATES' and I'll send you the simple checklist I use with clients to stress-test a plan against rate surprises.",
+    "cta": "Drop 'CHECK' in the comments and I'll walk you through what a typical accident claim actually costs versus what most people think their coverage pays.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Straight text-post for LinkedIn - lead with the stat in the first line so it renders in the feed preview before 'see more'.",
-    "source_label": "CNBC",
-    "source_url": "https://www.cnbc.com/2026/08/27/korea-bok-rate-hike-inflation.html",
-    "observed_at": "2026-08-27",
-    "date_found": "2026-08-28"
+    "how_to_film": "Talking head or text-post with a screenshot/graphic of the BKE stretch. Say the stat, explain EASE in one sentence, then pivot to the coverage question. Keep it under 45 seconds if filmed.",
+    "source_label": "Mothership.SG",
+    "source_url": "https://mothership.sg/2026/08/singapore-traffic-police-speeding-measure-distance-time/",
+    "observed_at": "2026-08-28",
+    "date_found": "2026-08-29"
   },
   {
-    "id": "trend-2026-08-28-us-pce-hot-inflation",
+    "id": "trend-2026-08-29-warsh-jackson-hole-inflation",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "The US Commerce Department's July PCE report, released 26 Aug 2026, showed headline inflation holding at 3.7% year-on-year, slightly above the 3.6% forecast, keeping pressure on the Fed's rate debate.",
-    "title": "The inflation number that came in 'a little hot' - and why that 0.1% still matters to your budget",
-    "why_it_works": "A fresh, dated data release (distinct from the Jackson Hole speech coverage) turns a dry macro number into a concrete prompt for a household budget review, with zero market calls.",
+    "trend_source": "New Fed Chair Kevin Warsh gave his first Jackson Hole keynote on 28 Aug 2026, saying inflation is 'still too high' and signalling the Fed may need to raise rates further - his most direct policy signal since taking over from Powell.",
+    "title": "A new Fed chair's first big speech, and what it means for your buffer - not your portfolio",
+    "why_it_works": "It's the single biggest global economic story of the day and every SG client with a mortgage or savings plan will have heard the headline; the honest angle is about resilience and planning, not calling the market.",
     "hooks": [
-      "The Fed's favourite inflation gauge came in a touch hotter than expected this week. Here's what that 0.1% actually means for you.",
-      "Everyone's talking about whether the Fed hikes or holds. I want to talk about what 3.7% inflation is doing to your grocery bill instead.",
-      "A headline inflation miss by 0.1% doesn't sound like much until you see what's actually still going up."
+      "The new Fed chair just gave his first Jackson Hole speech and the headline is: inflation still isn't behaving.",
+      "I'm not going to tell you what the Fed will do next - I don't know. Here's what I'm telling clients instead.",
+      "Every year there's a Jackson Hole speech that moves headlines. Here's the only part of it that should move your plan."
     ],
     "talking_points": [
-      "July PCE inflation held at 3.7% year-on-year (vs 3.6% forecast); core PCE held at 3.3%, both slightly above expectations.",
-      "Economists flagged this as evidence disinflation has 'stalled,' not reversed - a plateau, not a spike.",
-      "For household budgets, it's a cue to revisit recurring costs (subscriptions, premiums, groceries) rather than guess at rate moves.",
-      "The behavioural fix: an annual 'cost creep' review catches more savings than trying to time when inflation breaks."
+      "What Warsh actually said: this summer's inflation prints were better than feared, but the underlying trend hasn't convincingly improved.",
+      "I'm not making a rate call - nobody honestly can. What's actually in your control is how much of a buffer you're holding.",
+      "Elevated-inflation stretches are exactly when protection and emergency-fund gaps get exposed first, not investment losses.",
+      "Practical move this week: re-check 3-6 months of expenses against what you'd actually have on hand if rates or prices moved against you."
     ],
-    "cta": "Drop a comment with the one recurring expense you haven't reviewed in over a year - let's start there.",
-    "cta_type": "open-question",
-    "how_to_film": "Text-post for LinkedIn. Optional: a simple screenshot-style graphic showing '3.6% forecast vs 3.7% actual' as the hook image.",
-    "source_label": "The Motley Fool",
-    "source_url": "https://www.fool.com/investing/2026/08/26/the-fed-s-preferred-inflation-gauge-came-in-slightly-hotter-than-expected-here-s-what-investors-need-to-know/",
-    "observed_at": "2026-08-26",
-    "date_found": "2026-08-28"
+    "cta": "If you haven't stress-tested your emergency fund this year, message me 'BUFFER' and I'll send the quick way to do it.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Text-post. Structure as a short LinkedIn post: headline stat, one line of humility about not forecasting rates, then the practical planning pivot.",
+    "source_label": "CNBC",
+    "source_url": "https://www.cnbc.com/2026/08/28/kevin-warsh-jackson-hole-federal-reserve-inflation.html",
+    "observed_at": "2026-08-28",
+    "date_found": "2026-08-29"
   },
   {
-    "id": "trend-2026-08-28-gold-three-month-high",
+    "id": "trend-2026-08-29-us-open-sinner-withdrawal",
     "platform": "instagram",
     "format": "short-video",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Gold climbed to its highest level since early June this week, trading near US$4,600-4,700/oz on 26-27 Aug 2026, driven by a weaker US dollar and a surprise US Treasury bond buyback announcement.",
-    "title": "Gold's quiet 3-month-high moment - and the diversification conversation it opens up",
-    "why_it_works": "Gold rallies reliably trigger client DMs; using this week's real move to explain the role of gold in a plan (not a buy call) lets advisors ride the interest without giving a prediction.",
+    "pillar": "interest",
+    "trend_type": "sport",
+    "trend_source": "World No. 1 Jannik Sinner withdrew from the 2026 US Open (starting 30 Aug) with a knee injury - his first missed Grand Slam since 2019 - reshaping the men's draw days before the tournament begins.",
+    "title": "The world's best tennis player just got benched by his own body",
+    "why_it_works": "It's the single biggest story going into the tournament everyone will be watching this weekend, and 'even the world No. 1 can be sidelined overnight' is a true, non-alarmist way into income protection.",
     "hooks": [
-      "Gold just hit its highest price since June and most people scrolled right past it.",
-      "I'm not telling you to buy gold. I am telling you why so many people are suddenly asking me about it this week.",
-      "Every time gold rallies, I get the same three DMs. Let's answer them all at once."
+      "The world number 1 in tennis just pulled out of the US Open. Not by choice - his knee decided for him.",
+      "Jannik Sinner hasn't missed a Grand Slam since 2019. This week, his body made that decision for him.",
+      "You can be the best in the world at what you do and still get sidelined overnight. Here's what that means for your income."
     ],
     "talking_points": [
-      "Gold rose to its highest level since early June 2026 this week, touching roughly $4,600-4,700/oz on 26-27 Aug.",
-      "The move was linked to a weaker US dollar and a surprise US Treasury announcement to increase buybacks of long-dated bonds.",
-      "Rallies like this spike client questions about 'should I own gold' - the honest answer is about role (diversifier), not timing.",
-      "Frame it as a portfolio-construction conversation: what allocation, if any, fits someone's goals and risk tolerance - not a price call."
+      "Sinner's withdrawal is his first missed Slam in years - it wasn't planned, and it reshapes the whole draw.",
+      "Nobody at any income level is exempt from an unplanned health setback taking them out of work.",
+      "The question isn't 'will this happen to me' - it's 'what happens to my income for the weeks or months it does.'",
+      "This is exactly what income protection and critical illness cover are built for - not the dramatic scenario, the ordinary one."
     ],
-    "cta": "Save this if you've been wondering whether gold belongs in your plan - we'll unpack it properly in the next post.",
+    "cta": "Save this if you've never actually checked how many months your income is protected for if you couldn't work tomorrow.",
     "cta_type": "save-share",
-    "how_to_film": "Talking-to-camera short video, 30-45 seconds, with a simple on-screen line chart overlay of gold's recent move; end on the save prompt.",
-    "source_label": "Yahoo Finance",
-    "source_url": "https://finance.yahoo.com/personal-finance/investing/article/gold-prices-today-thursday-august-27-2026-prices-pull-back-after-pce-report-ahead-of-warsh-speech-121341759.html",
-    "observed_at": "2026-08-27",
-    "date_found": "2026-08-28"
+    "how_to_film": "Quick-cut reel: show a clip/photo reference of tennis action, overlay text with the Sinner headline, cut to you talking direct-to-camera for the pivot line. End card with the save prompt.",
+    "source_label": "Al Jazeera",
+    "source_url": "https://www.aljazeera.com/sports/2026/8/28/us-open-2026-all-to-know-about-the-schedule-top-seeds-and-favourites",
+    "observed_at": "2026-08-28",
+    "date_found": "2026-08-29"
   },
   {
-    "id": "trend-2026-08-28-salesforce-earnings-pop",
+    "id": "trend-2026-08-29-us-open-player-support-program",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Salesforce shares jumped roughly 22-23% on 27 Aug 2026 after a Q2 earnings beat, raised full-year guidance, and a new AI partnership with Anthropic - one of the stock's biggest single-day moves.",
-    "title": "A 23% single-day stock pop is a great story and a terrible plan - here's the difference",
-    "why_it_works": "A distinct, dated company event (not the Nvidia earnings already covered) makes a clean, behaviour-only case against performance-chasing without naming a buy or sell call.",
-    "hooks": [
-      "Salesforce jumped over 20% in a single day this week. That headline is exactly why diversification exists.",
-      "One earnings beat, one AI partnership, one 23% pop. Here's why chasing that headline is the wrong lesson to take from it.",
-      "If a single stock move like this week's Salesforce rally makes you want to overhaul your whole portfolio, read this first."
-    ],
-    "talking_points": [
-      "Salesforce stock rose roughly 22-23% on 27 Aug 2026 after beating Q2 earnings estimates, raising guidance, and announcing an AI partnership with Anthropic.",
-      "Single-day moves this large are a reminder that concentrated bets carry concentrated risk in both directions.",
-      "The behavioural trap: seeing one company's huge day and wanting to chase it retroactively is performance-chasing, not investing.",
-      "The planning lesson: a diversified, goals-based portfolio never depends on getting one headline right."
-    ],
-    "cta": "Book a 15-minute call if you want to check whether your portfolio is built on a plan or on a handful of headlines.",
-    "cta_type": "book-call",
-    "how_to_film": "Text-post for LinkedIn - first line leads with the stat, no video required.",
-    "source_label": "Yahoo Finance",
-    "source_url": "https://finance.yahoo.com/markets/stocks/articles/stock-market-today-aug-27-214747546.html",
-    "observed_at": "2026-08-27",
-    "date_found": "2026-08-28"
-  },
-  {
-    "id": "trend-2026-08-28-sg-tbill-yield-high",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "Singapore's 6-month T-bill cut-off yield rose to 1.6% at the 27 Aug 2026 auction, the highest level recorded so far in 2026.",
-    "title": "SG T-bills just hit their highest yield of 2026 - what that means if you've been parking cash there",
-    "why_it_works": "A locally specific, dated auction result gives Singapore savers a concrete, non-speculative reason to review where 'safe' cash sits this week.",
-    "hooks": [
-      "Singapore's 6-month T-bill yield just touched its highest point all year, and barely anyone's talking about it.",
-      "If you've had cash sitting in a T-bill since January, this week's auction result is worth a five-minute check-in.",
-      "1.6% doesn't sound exciting until you realise that's the best T-bill yield Singapore has seen all year."
-    ],
-    "talking_points": [
-      "The 27 Aug 2026 6-month T-bill auction cleared at a cut-off yield of 1.6%, the highest of 2026 so far.",
-      "Yields have been climbing gradually across recent auctions (1.56% on 13 Aug, 1.6% on both 20 and 27 Aug).",
-      "This is a useful nudge to review where 'safe' cash is parked - fixed deposits, T-bills, SSBs - rather than leaving it on autopilot.",
-      "Reminder: past yields aren't a promise of future ones - each auction is priced fresh, so this is about awareness, not chasing a rate."
-    ],
-    "cta": "Comment 'CASH' and I'll share how I help clients think through where to park emergency funds in this environment.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-post for Facebook, paired with a simple stat card showing the yield climb (1.56% to 1.6%) across the three auctions.",
-    "source_label": "TheFinance.sg",
-    "source_url": "https://thefinance.sg/2026/08/27/6-month-t-bill-yield-rises-to-1-6-highest-in-2026-at-latest-27-august-auction/",
-    "observed_at": "2026-08-27",
-    "date_found": "2026-08-28"
-  },
-  {
-    "id": "trend-2026-08-28-dollar-general-trade-down",
-    "platform": "facebook",
-    "format": "carousel",
     "pillar": "identity",
-    "trend_type": "current-affairs",
-    "trend_source": "In its 27 Aug 2026 earnings call, Dollar General said trade-down activity from higher-income shoppers remained strong, with its biggest customer-count gains coming from the highest income segment.",
-    "title": "Even high earners are trading down right now - and that's not a bad thing to admit",
-    "why_it_works": "A fresh, counterintuitive retail-earnings detail normalises budgeting behaviour across income levels, which is a validating, non-judgmental angle for a mixed-income audience.",
+    "trend_type": "sport",
+    "trend_source": "Alongside a record $108M prize pool, the USTA announced on 27 Aug 2026 that the US Open will be the first Grand Slam with a Player Support Program - benefits for mid-career life events and retirement transitions, on top of existing pensions.",
+    "title": "Even tennis pros now get a retirement-transition plan. Do you?",
+    "why_it_works": "It's a fresh, specific, non-obvious detail buried in a huge sports-money headline, and it hands you a clean, true analogy for planning career and retirement transitions without ever touching investment advice.",
     "hooks": [
-      "Dollar General's biggest new customers this quarter weren't low-income shoppers. They were the highest earners.",
-      "There's no shame in trading down, and this week's retail earnings prove even high earners agree.",
-      "If you've quietly started comparing prices more than you used to, this week's retail numbers say you're not alone."
+      "Buried in the US Open's record prize money announcement is a detail nobody's talking about.",
+      "Tennis players just got a benefit most employees don't have: a formal plan for their mid-career and retirement transitions.",
+      "The US Open now has a Player Support Program for retirement. Here's the question that raises for the rest of us."
     ],
     "talking_points": [
-      "Dollar General reported on 27 Aug 2026 that trade-down activity from higher-income shoppers stayed strong, with its largest customer-count growth in the highest income segment.",
-      "This challenges the assumption that value-seeking behaviour only shows up when income drops.",
-      "For planning conversations, it's a useful opener: budgeting and value-consciousness aren't signs of financial trouble, they're just good habits.",
-      "Content angle: normalise 'smart spending' across all income levels rather than treating it as a last resort."
+      "The headline is the record $108M prize pool - $5.5M to each singles champion.",
+      "The detail underneath: a first-of-its-kind Player Support Program covering mid-career life events and the transition out of competitive tennis.",
+      "It exists because a pro's peak earning years are short and the after-career gap is real - a structured plan, not luck, bridges it.",
+      "Most people don't have a tour organisation building that plan for them - which is exactly why it has to be a deliberate decision, not an afterthought."
     ],
-    "cta": "Save this if you needed the reminder that watching your spending isn't about how much you earn.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: Slide 1 headline stat, Slide 2 what 'trade-down' means, Slide 3 reframe (value-seeking is not struggling), Slide 4 CTA.",
-    "source_label": "Investing.com",
-    "source_url": "https://www.investing.com/news/transcripts/earnings-call-transcript-dollar-general-tops-q2-2026-estimates-shares-jump-93CH-4879767",
+    "cta": "What would your own 'transition plan' look like if your peak earning years were shorter than you assumed? Tell me in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Text-post. Lead with the prize-money hook, reveal the Player Support Program as the 'buried' detail, land on the personal question.",
+    "source_label": "Sportico",
+    "source_url": "https://www.sportico.com/leagues/tennis/2026/us-open-2026-prize-money-1234942446/",
     "observed_at": "2026-08-27",
-    "date_found": "2026-08-28"
+    "date_found": "2026-08-29"
   },
   {
-    "id": "trend-2026-08-28-crowdstrike-okta-ai-threats",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "CrowdStrike and Okta both reported strong quarterly results on 26 Aug 2026, with CrowdStrike raising its annual revenue forecast, citing a sharp rise in AI-driven cybersecurity threats.",
-    "title": "Cybersecurity earnings this week are a proxy for how fast scam tactics are evolving",
-    "why_it_works": "Ties a fresh, distinct corporate-earnings story to practical digital-hygiene advice, which fits naturally into an advisor's broader financial-protection conversation without pushing product.",
-    "hooks": [
-      "Two cybersecurity companies just posted blowout earnings this week because AI-driven threats are rising that fast.",
-      "When cybersecurity firms raise guidance because of 'AI threats,' that's your cue to check your own digital habits.",
-      "CrowdStrike and Okta both beat estimates this week citing a surge in AI-powered attacks. Here's what that means for your own accounts."
-    ],
-    "talking_points": [
-      "CrowdStrike lifted its annual revenue forecast on 26 Aug 2026, citing rising AI-driven cybersecurity threats; Okta also topped estimates on similar demand.",
-      "This isn't a stock tip - it's a signal that the volume and sophistication of digital fraud attempts is climbing industry-wide.",
-      "Practical takeaway: two-factor authentication, unique passwords, and account alerts are cheap insurance against a fast-moving threat.",
-      "Advisors are well placed to fold 'digital hygiene' into a broader financial-protection conversation, alongside insurance and estate basics."
-    ],
-    "cta": "Comment 'SECURE' and I'll send the 3-step account security checklist I share with clients.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-post for LinkedIn, lead with the stat/headline in line one.",
-    "source_label": "Bloomberg",
-    "source_url": "https://www.bloomberg.com/news/articles/2026-08-26/crowdstrike-beats-annual-revenue-forecasts-as-ai-threats-rise",
-    "observed_at": "2026-08-26",
-    "date_found": "2026-08-28"
-  },
-  {
-    "id": "trend-2026-08-28-mortgage-rates-three-week-high",
-    "platform": "linkedin",
-    "format": "carousel",
-    "pillar": "topic",
-    "trend_type": "current-affairs",
-    "trend_source": "Mortgage rates climbed to their highest level in three weeks this week, with application volume falling, as reported by CNBC on 26 Aug 2026.",
-    "title": "Mortgage rates just ticked up again - what that does (and doesn't) mean for you",
-    "why_it_works": "The rate headline just moved and buyers are already anxious; a calm, no-forecast breakdown of what actually matters (your numbers, not the headline) is exactly the reassurance people are searching for right now.",
-    "hooks": [
-      "Mortgage rates just hit a three-week high and my DMs are already full of panic.",
-      "If you're refreshing mortgage rate news every morning, this post is for you.",
-      "Rates moved again this week and I keep getting the exact same nervous question."
-    ],
-    "talking_points": [
-      "New data this week: rates hit a three-week high, applications dropped.",
-      "One week of movement isn't a forecast - rates have swung both directions all year.",
-      "What actually matters for buyers: your own debt-to-income ratio and how long you'll stay.",
-      "A real budget and a rate-lock conversation beat guessing the next headline."
-    ],
-    "cta": "Save this so you have it the next time a rate headline stresses you out.",
-    "cta_type": "save-share",
-    "how_to_film": "LinkedIn document/carousel: slide 1 states the stat as a bold hook, slides 2-4 cover one talking point each on simple text-on-colour backgrounds, final slide repeats the save CTA.",
-    "source_label": "CNBC",
-    "source_url": "https://www.cnbc.com/2026/08/26/mortgage-rates-hit-highest-level-in-3-weeks-weakening-demand-further.html",
-    "observed_at": "2026-08-26",
-    "date_found": "2026-08-28"
-  },
-  {
-    "id": "trend-2026-08-28-apple-iphone-event-money-check",
+    "id": "trend-2026-08-29-pl-deadline-day-fomo",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "interest",
-    "trend_type": "current-affairs",
-    "trend_source": "Apple sent media invitations on 26 Aug 2026 for a Sept 9 'Surprise and Shine' event expected to unveil the new iPhone 18 lineup, per MacRumors.",
-    "title": "Should you actually buy the new iPhone this year? A money-first gut check",
-    "why_it_works": "The event was just announced and upgrade hype is peaking right now, so a quick honest-math take rides the news cycle while giving genuinely useful, non-judgmental spending guidance instead of shaming anyone.",
+    "trend_type": "event",
+    "trend_source": "The Premier League's summer transfer window slams shut Tuesday 1 Sept 2026 at 11pm - the annual 'deadline day' scramble of last-minute medicals, agents and panic-buys is building all week across football social media.",
+    "title": "Deadline day energy is the worst way to make a big money decision",
+    "why_it_works": "Deadline day is one of the biggest recurring sports-social moments of the year and everyone already gets the 'chaos energy' joke - it's an easy, funny, true bridge into why last-minute financial decisions go badly.",
     "hooks": [
-      "Apple just announced its new phone event and I already know what my clients are going to ask me.",
-      "Before you pre-order the new iPhone, let's do quick math nobody else is doing.",
-      "Everyone's hyped about the new Apple event, so here's the boring question worth asking first."
+      "Premier League deadline day is this Tuesday and clubs are about to make the same mistake people make with money.",
+      "Deadline day chaos is fun to watch. It is a terrible way to actually decide anything.",
+      "Every year clubs panic-buy on deadline day and regret it by Christmas. Sound familiar?"
     ],
     "talking_points": [
-      "Apple's Sept 9 event was just announced, new iPhone lineup expected.",
-      "Upgrading every year vs every 2-3 years: the real dollar difference over time.",
-      "Trade-in value math: what your current phone might actually offset.",
-      "Separating genuine need from launch-day hype before you tap buy."
+      "The window shuts Tuesday 1 Sept, 11pm UK time - expect the usual last-minute medicals-in-a-car-park chaos.",
+      "Deadline-day signings have a track record of being the ones clubs regret - rushed decisions, inflated prices.",
+      "The parallel: insurance, CPF top-ups, year-end planning done in a last-minute scramble tend to be the same story.",
+      "The fix in both cases is identical - decide on your terms, before the deadline forces your hand."
     ],
-    "cta": "Send me a DM with 'PHONE' and I'll walk you through the real cost of upgrading vs waiting.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Talking-head selfie video holding your current phone, casual energetic delivery, text overlay showing simple 'cost per year of ownership' math as you talk through it.",
-    "source_label": "MacRumors",
-    "source_url": "https://www.macrumors.com/2026/08/26/apple-iphone-event-2026/",
-    "observed_at": "2026-08-26",
-    "date_found": "2026-08-28"
+    "cta": "Comment 'DEADLINE' and I'll send you the one money decision you should NOT be leaving to December.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Fast-cut TikTok: stitch/react style over transfer-deadline-day footage or graphics, direct-to-camera punchlines, on-screen text for the two key dates/stats.",
+    "source_label": "ESPN",
+    "source_url": "https://www.espn.com/soccer/story/_/id/48944912/premier-league-efl-summer-transfer-window-2026-dates-does-open-deadline-day",
+    "observed_at": "2026-08-28",
+    "date_found": "2026-08-29"
   },
   {
-    "id": "trend-2026-08-28-my-biggest-flex-she-wolf-reel",
-    "platform": "instagram",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "Shakira's 'She Wolf' is powering the 'My Biggest Flex' Reels trend this week, where creators list every role they play over the text 'My biggest flex is that you can hire me as your...' per SocialBee's trending Instagram songs roundup, updated 26 Aug 2026.",
-    "title": "The 'My Biggest Flex' trend, but it's everything a financial consultant secretly is",
-    "why_it_works": "It's an actively trending audio/format built for exactly this kind of multi-role list, and it lets you show the human, behind-the-scenes value of what you do in a fun, self-aware way instead of a sales pitch.",
-    "hooks": [
-      "My biggest flex is that you can hire me as your budget therapist, tax season translator, and hype woman.",
-      "Everyone's doing the 'my biggest flex' trend so here's mine as your financial person.",
-      "I saw this trend everywhere and realized nobody talks about how many jobs one advisor actually does."
-    ],
-    "talking_points": [
-      "Use the trending text overlay: 'My biggest flex is that you can hire me as your...'",
-      "List 4-5 real roles: budget accountability partner, tax-season translator, goal-setting coach, calm voice in a scary market.",
-      "Quick outfit or pose change on each new role to match the trend's fast list energy.",
-      "Land on the real value: someone in your corner who isn't guessing."
-    ],
-    "cta": "Save this for the next time someone asks what a financial consultant actually does.",
-    "cta_type": "save-share",
-    "how_to_film": "Selfie video set to the 'She Wolf' audio, jump cut or quick pose/outfit change on each 'role' text overlay, matching the trend's fast-list pacing.",
-    "source_label": "SocialBee, trending Instagram songs, 26 Aug 2026",
-    "source_url": "https://socialbee.com/blog/trending-instagram-songs/",
-    "observed_at": "2026-08-26",
-    "date_found": "2026-08-28"
-  },
-  {
-    "id": "trend-2026-08-28-smuckers-slow-comeback",
+    "id": "trend-2026-08-29-pl-transfer-window-record-spend",
     "platform": "facebook",
     "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "J.M. Smucker shares rose nearly 8% this week, their 7th straight winning week and part of a 38% gain in 2026 that would be the stock's first positive year in four, after a 26 Aug 2026 earnings beat driven by 12% growth in its Uncrustables brand.",
-    "title": "J.M. Smucker's stock just had its 7th good week in a row. That's the part worth studying.",
-    "why_it_works": "A distinct, dated earnings story about steady weekly gains (not a single dramatic pop) gives a clean, no-buy-call way to make the case for quiet, compounding progress over chasing headlines.",
+    "pillar": "identity",
+    "trend_type": "event",
+    "trend_source": "Premier League clubs have spent a record £2.36 billion in the 2026 summer transfer window, with Tottenham (£229.5M) and Chelsea (£218.9M) the biggest spenders - and the window isn't even closed yet.",
+    "title": "£2.36 billion spent, and the transfer window isn't even over",
+    "why_it_works": "Big, round, headline-grabbing money numbers are naturally shareable, and the honest lesson - big spend doesn't equal a plan - lands cleanly with an audience thinking about their own year-end money moves.",
     "hooks": [
-      "J.M. Smucker just had its 7th winning week in a row this year. Nobody's talking about it because it wasn't a single dramatic pop.",
-      "This stock is up 38% in 2026 and almost nobody's posting about it, because it happened slowly, one week at a time.",
-      "The stock everyone's ignoring this week had 7 good weeks in a row. That's exactly why it's the more useful lesson."
+      "Premier League clubs have spent 2.36 billion pounds this summer. The window still isn't shut.",
+      "Spending the most in the transfer window doesn't win you the league. Worth remembering with your own money too.",
+      "Tottenham and Chelsea top the transfer spending table this summer. Neither tops the league table."
     ],
     "talking_points": [
-      "J.M. Smucker shares rose nearly 8% this week, its 7th consecutive winning week, after a 26 Aug 2026 earnings beat driven by 12% growth in its Uncrustables brand, putting the stock up 38% in 2026 - its first positive year in four.",
-      "This isn't a call to buy the stock - it's a reminder that steady, compounding weeks rarely make headlines the way one dramatic single-day move does.",
-      "The same pattern applies to a financial plan: consistent, unglamorous contributions most weeks build more than chasing the one big headline move.",
-      "Worth checking: does your own plan reward you for showing up consistently, or does it only feel like it's working during a dramatic week?"
+      "£2.36 billion spent league-wide this window - a new record, and it closes 1 September.",
+      "Tottenham (£229.5M) and Chelsea (£218.9M) lead the spending, but heavy spending has never guaranteed the title.",
+      "The same is true with money decisions generally - how much you commit matters less than whether it fits a plan.",
+      "A useful year-end exercise: before you commit to any large purchase or policy, ask if it's solving the actual problem, not just the loudest one."
     ],
-    "cta": "Comment 'CONSISTENT' and I'll send you a simple way to track your own consistency instead of your account's dramatic days.",
+    "cta": "Save this post as your reminder before any big spend this year: does it fit the plan, or just the moment?",
+    "cta_type": "save-share",
+    "how_to_film": "Text-post. Lead with the big number, name the two clubs, land the reflective question as the final line.",
+    "source_label": "Sports Illustrated",
+    "source_url": "https://www.si.com/soccer/premier-league-transfers-total-money-spent-by-clubs-2026-summer-window",
+    "observed_at": "2026-08-28",
+    "date_found": "2026-08-29"
+  },
+  {
+    "id": "trend-2026-08-29-paynow-col-payment-deadline",
+    "platform": "facebook",
+    "format": "story",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "MOF confirmed 2.4 million Singapore citizens get $400-$600 under the Enhanced Budget 2026 Cost-of-Living Special Payment from 9 Sept - and anyone who links their NRIC to PayNow by 30 Aug 2026 (tomorrow) gets paid earlier.",
+    "title": "One-day reminder: link PayNow by tomorrow for the COL payout",
+    "why_it_works": "It's a real, dated deadline landing tomorrow with a direct cash benefit for almost every adult client - genuinely useful, time-boxed, and asks for nothing except sharing information.",
+    "hooks": [
+      "Quick one before you scroll past - this deadline is tomorrow and it affects your payout date.",
+      "If your NRIC isn't linked to PayNow by tomorrow, your Cost-of-Living payment comes later than it needs to.",
+      "2.4 million people are getting $400 to $600 in September. Tomorrow's deadline decides who gets it first."
+    ],
+    "talking_points": [
+      "The Enhanced B2026 Cost-of-Living Special Payment pays $400-$600 to eligible citizens from 9 September.",
+      "Link your NRIC to PayNow by 30 August and it lands on that early date automatically - no action needed after that.",
+      "Miss the deadline and you're not excluded, you're just paid on the later, non-PayNow-linked schedule.",
+      "Takes under two minutes in most banking apps if you haven't already done it for a past payout."
+    ],
+    "cta": "Send me a DM with 'PAYNOW' if you're not sure whether yours is already linked and I'll point you to the quickest way to check.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Story format: bold text overlay with the deadline date, quick screen-record of the PayNow-link steps in a banking app, link sticker to the official MOF page.",
+    "source_label": "Ministry of Finance",
+    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/over-2-4-million-singapore-citizens-to-receive-between--400-and--600-from-the-enhanced-budget-2026-cost-of-living--col--special-payment-in-september-2026/",
+    "observed_at": "2026-08-29",
+    "date_found": "2026-08-29"
+  },
+  {
+    "id": "trend-2026-08-29-we-are-the-people-remix-lifestyle-reels",
+    "platform": "instagram",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "culture",
+    "trend_source": "The 'me n u' remix of Empire of the Sun's 'We Are The People' has become one of the biggest cinematic audios on Reels right now, driving a wave of drone shots, sunsets, travel montages and 'dream life' edits.",
+    "title": "Everyone's filming the dream life. Fewer are funding it.",
+    "why_it_works": "The audio itself is genuinely trending across travel and lifestyle content right now, and the gap between the aspirational reel and the actual plan behind it is an honest, non-preachy hook rather than a guilt trip.",
+    "hooks": [
+      "This sound is on every dream-life reel right now. Here's the part nobody's showing you.",
+      "Everyone's filming the sunset, the flight, the 'main character' moment. Who's filming the plan behind it?",
+      "I love this trend. I also know most of these trips didn't pay for themselves."
+    ],
+    "talking_points": [
+      "The 'We Are The People (me n u remix)' audio is powering a wave of travel and lifestyle edits right now.",
+      "Nothing wrong with the aesthetic - the gap is between the moment you post and the plan that funded it.",
+      "A simple habit: name the specific goal (the trip, the milestone) and give it its own savings pot, not 'whatever's left.'",
+      "The best version of this trend is the one where the caption is true - you actually planned for it."
+    ],
+    "cta": "Comment your next big 'main character' goal and I'll tell you what a realistic monthly number looks like to fund it.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talking head or text-post for Facebook, on-screen text '7 winning weeks in a row', no buy/sell language, calm delivery.",
-    "source_label": "The Motley Fool",
-    "source_url": "https://www.fool.com/investing/2026/08/26/why-jm-smucker-stock-is-up-today/",
+    "how_to_film": "Use the trending audio. Open on an aspirational shot (real or stock), then cut to you talking direct-to-camera over the same audio for the pivot, ending on the goal-naming CTA.",
+    "source_label": "TikTok",
+    "source_url": "https://www.tiktok.com/music/WE-ARE-THE-PEOPLE-me-n-%C3%BC-remix-7452072766650829614",
+    "observed_at": "2026-08-28",
+    "date_found": "2026-08-29"
+  },
+  {
+    "id": "trend-2026-08-29-hungry-ghost-month-money-pause",
+    "platform": "facebook",
+    "format": "carousel",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "Zhong Yuan Jie, the peak day of Singapore's Hungry Ghost Festival, fell on 27 Aug 2026 - the seventh lunar month (13 Aug-10 Sept) when many Chinese Singaporean households traditionally avoid big purchases, moves and signings.",
+    "title": "Ghost Month says pause on big decisions. Your paperwork doesn't have to.",
+    "why_it_works": "This is a genuinely live, widely observed cultural moment in Singapore right now, and respecting the tradition - no pushing new big purchases - while offering a useful admin-only angle is honest rather than opportunistic.",
+    "hooks": [
+      "If your family pauses big decisions during Ghost Month, this post isn't asking you to break that.",
+      "It's the seventh lunar month - a lot of us are holding off on big moves right now. Fair enough.",
+      "You don't have to sign anything new this month to still get your finances in order."
+    ],
+    "talking_points": [
+      "Zhong Yuan Jie, the peak of the Hungry Ghost Festival, was this Thursday - the seventh month runs to 10 September.",
+      "Many households deliberately hold off on property, renovations, big purchases or signings during this period - a real and respected tradition.",
+      "What doesn't need to wait: checking your nominations are up to date, reading your existing policy summaries, or listing questions for later.",
+      "Save the actual decisions for after the month if that's your family's practice - just don't let the admin pile up untouched."
+    ],
+    "cta": "Save this carousel as your 'do later, not never' checklist for after the seventh month.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 states the observance respectfully, slides 2-4 list the low-key admin tasks, final slide is the save prompt. Keep visuals neutral and tasteful, not tied to festival imagery.",
+    "source_label": "SassyMama Singapore",
+    "source_url": "https://www.sassymamasg.com/kid-friendly-guide-hungry-ghost-festival/",
     "observed_at": "2026-08-27",
-    "date_found": "2026-08-28"
+    "date_found": "2026-08-29"
+  },
+  {
+    "id": "trend-2026-08-29-miles-deals-fomo-check",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "interest",
+    "trend_type": "culture",
+    "trend_source": "This week's MileLion deal roundup (22-28 Aug 2026) flags DBS/SIA fare offers, KrisFlyer Spontaneous Escapes at 30% off and OCBC's 6 miles-per-dollar promo - the kind of stacked travel-deal content SG's miles community shares constantly.",
+    "title": "The miles deal is real. Ask this before you tap 'buy' anyway.",
+    "why_it_works": "SG's credit-card-miles community is huge and this week's specific deal list is genuinely fresh, so the honest 'is this actually in the plan' filter feels like it's coming from inside the community, not lecturing it.",
+    "hooks": [
+      "This week's flight and miles deals are actually good. Here's the one question before you book.",
+      "30% off KrisFlyer redemptions this week. Great deal. Wrong reason to book, maybe.",
+      "The SG miles community is buzzing about this week's deals. I want you to ask one thing first."
+    ],
+    "talking_points": [
+      "This week: KrisFlyer Spontaneous Escapes 30% off, DBS/SIA fare offers, and OCBC's 6 mpd on select spend.",
+      "A genuinely good deal is still a bad idea if it's funded by 'whatever's on the card' instead of an actual travel budget.",
+      "Quick filter: would you book this trip at full price? If not, the discount isn't the reason to go - it's just making a 'maybe' feel urgent.",
+      "If yes, then this is exactly the kind of deal a dedicated travel fund is built to catch."
+    ],
+    "cta": "Comment 'MILES' and I'll share what a realistic monthly travel-fund number looks like for SG-based trips.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Carousel: slide 1 the hook, slide 2 lists this week's specific deals, slide 3 the filter question, slide 4 the CTA.",
+    "source_label": "The MileLion",
+    "source_url": "https://milelion.com/2026/08/28/milelion-weekly-deal-summary-22-28-aug-26/",
+    "observed_at": "2026-08-28",
+    "date_found": "2026-08-29"
+  },
+  {
+    "id": "trend-2026-08-29-toto-jackpot-windfall-planning",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Singapore Pools' Thursday 27 Aug 2026 Toto draw (Draw 4212) paid out a Division 1 jackpot of $1,242,725 to a single winner - the kind of overnight-windfall moment that always gets talked about the next day.",
+    "title": "One Toto ticket just turned into $1.24 million overnight",
+    "why_it_works": "A single winning Toto draw is genuinely this week's talked-about local money moment, and using it as a 'what would you actually do' thought exercise is a light, non-preachy way into windfall behaviour without touching gambling promotion.",
+    "hooks": [
+      "Someone in Singapore just turned one Toto ticket into 1.24 million dollars. Let's talk about what happens next.",
+      "This week's Toto jackpot had exactly one winner. Most windfall stories don't end where you'd think.",
+      "1.24 million dollars, one winner, one Thursday draw. Here's the boring but true part."
+    ],
+    "talking_points": [
+      "Thursday's Toto draw paid out a $1,242,725 Division 1 jackpot to a single ticket.",
+      "This isn't a post about playing - it's about the well-documented pattern that sudden windfalls, without a plan, tend to shrink fast.",
+      "The single most useful thing anyone can do with unexpected money: park it untouched for 30 days before any big decision.",
+      "Whether it's $1,000 or $1 million, the discipline is identical - a pause before a plan."
+    ],
+    "cta": "Tag someone who talks about 'what I'd do if I won Toto' and send them this.",
+    "cta_type": "save-share",
+    "how_to_film": "Direct-to-camera TikTok, on-screen text overlay of the $1,242,725 figure, quick list graphic for the '30-day pause' point.",
+    "source_label": "Singapore Pools",
+    "source_url": "https://www.singaporepools.com.sg/en/product/sr/Pages/toto_results.aspx?sppl=RHJhd051bWJlcj00MTM3",
+    "observed_at": "2026-08-27",
+    "date_found": "2026-08-29"
+  },
+  {
+    "id": "trend-2026-08-29-sg-scam-h1-investment-losses",
+    "platform": "linkedin",
+    "format": "carousel",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "New H1 2026 figures show Singapore's scam and cybercrime cases fell 17.9% to 18,391, but investment scams still caused the single highest category of losses at S$169.8 million - more than any other scam type.",
+    "title": "Scam cases are down. Investment-scam losses are still the biggest single category.",
+    "why_it_works": "The headline (cases falling) is genuinely good news, but the buried detail (investment scams still the costliest category) is the real, useful, fresh warning for anyone being pitched an 'opportunity' this week.",
+    "hooks": [
+      "Good news first: Singapore's scam cases fell this year. Now the part that should still worry you.",
+      "Scam cases are down 17.9% in Singapore. One category of loss actually got worse - investment scams.",
+      "If someone's pitched you an 'investment opportunity' lately, read this before you reply."
+    ],
+    "talking_points": [
+      "H1 2026: total scam cases down 17.9% to 18,391 - real, measurable progress.",
+      "But investment scams remain the single highest-loss category, at S$169.8 million - more than impersonation or e-commerce scams.",
+      "Common thread in investment scams: urgency, guaranteed or 'safe' high returns, and pressure to move money through an unfamiliar platform fast.",
+      "The one habit that blocks most of these: verify the person and the product independently before you transfer anything, every time."
+    ],
+    "cta": "Know someone who's mentioned a 'hot investment tip' recently? Send them this before they send anyone money.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel. Slide 1 the good-news stat, slide 2 the investment-scam figure, slide 3 the red-flag list, slide 4 the CTA.",
+    "source_label": "Technode Global",
+    "source_url": "https://technode.global/2026/08/26/singapores-scam-and-cybercrime-cases-down-17-9-percent-to-18391-cases-in-first-half/",
+    "observed_at": "2026-08-27",
+    "date_found": "2026-08-29"
   }
 ]
