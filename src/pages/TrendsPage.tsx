@@ -9,6 +9,8 @@ import {
   trendHooks,
   trendTalkingPoints,
   trendFreshness,
+  trendEngagement,
+  fmtEngagement,
   type TrendEntry,
   type TrendPlatform,
 } from "@/lib/trends";
@@ -24,6 +26,10 @@ import {
   ChevronUp,
   Clock,
   Globe,
+  Heart,
+  MessageCircle,
+  Share2,
+  Play,
   Linkedin,
   Instagram,
   Facebook,
@@ -108,6 +114,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
   const points = trendTalkingPoints(trend);
   const hasKit = hooks.length > 0 || points.length > 0 || Boolean(trend.cta);
   const freshness = trendFreshness(trend);
+  const engagement = trendEngagement(trend);
 
   const copy = async (text: string, label: string) => {
     try {
@@ -158,6 +165,30 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
         <p className="font-serif text-base font-semibold leading-snug text-foreground">
           {trend.title}
         </p>
+
+        {engagement && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-muted-foreground">
+            {trend.author && (
+              <span className="font-semibold text-foreground/70">{trend.author}</span>
+            )}
+            <span className="inline-flex items-center gap-1" title="Likes">
+              <Heart className="h-3 w-3" /> {fmtEngagement(engagement.likes)}
+            </span>
+            <span className="inline-flex items-center gap-1" title="Comments">
+              <MessageCircle className="h-3 w-3" /> {fmtEngagement(engagement.comments)}
+            </span>
+            {engagement.shares > 0 && (
+              <span className="inline-flex items-center gap-1" title="Shares">
+                <Share2 className="h-3 w-3" /> {fmtEngagement(engagement.shares)}
+              </span>
+            )}
+            {engagement.views > 0 && (
+              <span className="inline-flex items-center gap-1" title="Views">
+                <Play className="h-3 w-3" /> {fmtEngagement(engagement.views)}
+              </span>
+            )}
+          </div>
+        )}
 
         {trend.trend_source && (
           <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">

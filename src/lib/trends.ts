@@ -49,6 +49,40 @@ export interface TrendEntry {
    * a promise - the card surfaces it, so a stale drop is visible.
    */
   observed_at?: string;
+  // Real engagement from the scraped source post (Apify). Present when a drop
+  // was sourced from a live viral post rather than a news article. The card
+  // shows these as proof the format actually works.
+  /** The @handle that posted the viral source. */
+  author?: string;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  views?: number;
+}
+
+/** Compact number for engagement badges: 1234 -> "1.2k", 2_500_000 -> "2.5M". */
+export function fmtEngagement(n: number | undefined): string {
+  if (!n || n < 0) return "0";
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  return String(n);
+}
+
+export interface TrendEngagement {
+  likes: number;
+  comments: number;
+  shares: number;
+  views: number;
+}
+
+/** Engagement stats only when the trend was sourced from a real viral post. */
+export function trendEngagement(t: TrendEntry): TrendEngagement | null {
+  const likes = t.likes ?? 0;
+  const comments = t.comments ?? 0;
+  const shares = t.shares ?? 0;
+  const views = t.views ?? 0;
+  if (likes + comments + shares + views <= 0) return null;
+  return { likes, comments, shares, views };
 }
 
 export const MAX_TREND_AGE_HOURS = 48;

@@ -1,11 +1,14 @@
 name: Trend scout
 
-# Studies what's trending worldwide each morning and rewrites it into
+# Scrapes the real viral TikTok/Instagram finance posts each morning (via
+# Apify), ranks them by actual engagement, and rewrites the top ones into
 # financial-advisor content for /trends. Commits the fresh drop to main, which
 # (via Vercel's git integration) deploys the updated page.
 #
-# Requires repo secret ANTHROPIC_API_KEY. Without it the job fails fast and
-# writes nothing.
+# Requires TWO repo secrets:
+#   APIFY_TOKEN        - scrapes the viral posts (the real source + metrics)
+#   ANTHROPIC_API_KEY  - writes the advisor content kit for each post
+# Missing either one makes the job fail fast and write nothing.
 
 on:
   schedule:
@@ -42,6 +45,9 @@ jobs:
 
       - name: Generate today's trend drop
         env:
+          # APIFY_TOKEN scrapes the real viral TikTok/Instagram posts; without it
+          # the job fails fast and writes nothing (no fabricated news sources).
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           TREND_COUNT: ${{ github.event.inputs.count || '24' }}
         run: node scripts/trend-scout.mjs
