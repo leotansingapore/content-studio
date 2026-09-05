@@ -1,338 +1,338 @@
 [
   {
-    "id": "trend-2026-09-04-khachanov-seed-upset",
+    "id": "trend-2026-09-05-osaka-comeback-siniakova",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Karen Khachanov beat third seed Felix Auger-Aliassime 6-7(5), 6-3, 6-2, 6-2 in the second round of the 2026 US Open on Thursday, a genuine upset over a top seed.",
-    "title": "The US Open's #3 seed just got beaten — a lesson in checking your plan, not just your ranking",
-    "why_it_works": "A concrete upset this week that lands cleanly on an honest point: being seeded well, or having a good income, doesn't automatically protect you. Only an actual tested plan does.",
+    "trend_source": "Naomi Osaka fought back from a set down to beat Katerina Siniakova 6-2, 5-7, 6-1 in the second round of the 2026 US Open, silencing early-exit chatter.",
+    "title": "The comeback isn't the applause moment — it's the plan you made before you needed it",
+    "why_it_works": "Osaka's story right now is resilience after a rough patch, not talent — that's a bridge SG audiences relate to after their own bad stretches, and it opens a natural conversation about protecting income during the low points, not just celebrating the highs.",
     "hooks": [
-      "The US Open's number 3 seed just lost in the second round. Being ranked high doesn't mean you're covered.",
-      "Nobody expected the 3-seed to go out this early. Same shock happens when 'doing fine on paper' meets a real test.",
-      "Nice seeding doesn't win matches. A nice salary doesn't mean your money's actually protected. Both need testing."
+      "Osaka just came back from a set down at the US Open. Nobody claps for the version of you that almost quit.",
+      "She was one bad set away from an early exit. Here's why the comeback matters more than the win.",
+      "Everyone posts the win. Nobody posts the moment right before it when it could've gone the other way."
     ],
     "talking_points": [
-      "The result: Karen Khachanov beat third seed Felix Auger-Aliassime in the second round of the 2026 US Open on Thursday.",
-      "The seed number reflected past results, not this match — rankings don't guarantee outcomes on the day.",
-      "The parallel: a good salary or job title looks like security on paper, but it isn't tested until something actually goes wrong.",
-      "The real test is whether your plan (buffer, coverage, savings habit) actually holds up, not how good it looks from the outside."
+      "Osaka dropped the second set 5-7 before closing it out 6-1 in the decider.",
+      "The story that trends is the comeback, but the real work happened in the set she was losing.",
+      "Most people only protect their income when things are going well — the real test is the rough patch.",
+      "A safety net isn't giving up on the comeback, it's what lets you attempt one."
     ],
-    "cta": "Not sure if your own plan would hold up under a real test? Comment 'TEST' and I'll send you 3 quick ways to check.",
+    "cta": "Comment 'PLAN' and I'll send you the 3 numbers to check before your next rough patch.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talk to camera with a bold on-screen graphic showing '#3 SEED — OUT', quick cut to the reframe line as text overlay.",
-    "source_label": "ATP Tour",
-    "source_url": "https://www.atptour.com/en/news/auger-aliassime-khachanov-us-open-2026-thursday",
-    "observed_at": "2026-09-03",
-    "date_found": "2026-09-04"
-  },
-  {
-    "id": "trend-2026-09-04-sonego-zverev-five-set-scare",
-    "platform": "instagram",
-    "format": "story",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "World number 3 Alexander Zverev needed a five-set, near-five-hour comeback to survive a huge scare from Lorenzo Sonego in the first round of the 2026 US Open, recovering from two points away from defeat.",
-    "title": "The top seed almost lost in round one — recovering from 'almost losing it' is the real skill",
-    "why_it_works": "A genuine nail-biter from this week's US Open where the favourite nearly went out early gives an honest, non-cheesy parallel: almost blowing it and clawing back matters more than never wobbling at all.",
-    "hooks": [
-      "World number 3 was two points from going out in round one. He didn't. That comeback is the whole story.",
-      "Nearly 5 hours, five sets, one huge scare. The top seed almost lost before the tournament even got going.",
-      "Being 'two points from disaster' and still turning it around says more than never being tested at all."
-    ],
-    "talking_points": [
-      "The match: Alexander Zverev needed five sets and almost 5 hours to beat Lorenzo Sonego in round one of the 2026 US Open, coming back from two points away from losing.",
-      "The point isn't that Zverev struggled, it's that he didn't panic when it was nearly over.",
-      "The parallel: a bad month, a market dip, an unplanned bill isn't the story. What you do next is.",
-      "A recovery plan (buffer, review, adjusting the budget) matters more than pretending the wobble never happens."
-    ],
-    "cta": "Ever had a financial 'two points from disaster' moment you recovered from? Share it below.",
-    "cta_type": "open-question",
-    "how_to_film": "IG Story series, 3 frames: match photo or graphic with the scoreline, text overlay building the comeback point, close on an open-question sticker.",
+    "how_to_film": "Talking head, direct to camera. Open with a scoreline graphic of the 6-2, 5-7, 6-1 match, then cut to you making the 3 points. Text overlay the score in the first 3 seconds.",
     "source_label": "US Open Official",
-    "source_url": "https://www.usopen.org/en_US/news/articles/2026-09-02/zverev_survives_sonegos_2026_us_open_upset_bid_in_five-set_comeback.html",
-    "observed_at": "2026-09-02",
-    "date_found": "2026-09-04"
+    "source_url": "https://www.usopen.org/en_US/news/articles/2026-09-03/naomi_osaka_bounces_back_past_siniakova_in_round_2_of_2026_us_open.html",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
   },
   {
-    "id": "trend-2026-09-04-epl-deadline-day-record-spend",
+    "id": "trend-2026-09-05-osaka-courtside-etiquette",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Premier League clubs broke their all-time summer transfer record this week, spending £3.49bn, with £506.5m of that on deadline day alone (1 Sept), including Manchester City's £125m deadline-day deal for Enzo Fernández.",
-    "title": "Deadline day spending hit a record this week — the same pressure shows up in your own money decisions",
-    "why_it_works": "A concrete, dated business story everyone half-watched this week, and the deadline-day psychology of rushed decisions under a ticking clock is an honest, universal behaviour point with zero market-timing or stock-picking involved.",
-    "hooks": [
-      "Premier League clubs just spent a record £3.49 billion this transfer window. £506 million of that was in the last few hours.",
-      "Deadline day always produces the biggest, fastest decisions. Football clubs aren't the only ones who do this with money.",
-      "A ticking clock made clubs spend faster and bigger this week. Notice when your own money decisions do the same."
-    ],
-    "talking_points": [
-      "The number: Premier League clubs spent a record £3.49bn this summer transfer window, with £506.5m of it on deadline day (1 Sept) alone.",
-      "The pattern: decisions made under a countdown are rushed decisions, whether it's a transfer fee or a 'sale ends tonight' purchase.",
-      "The fix isn't avoiding deadlines, it's having a decided budget or limit before the clock starts, not during it.",
-      "A plan set in a calm moment beats a decision made in the last hour, every time."
-    ],
-    "cta": "What's one purchase you made under a countdown that you'd decide differently with more time? Tell me below.",
-    "cta_type": "open-question",
-    "how_to_film": "Text post, optionally paired with a simple graphic: the £3.49bn figure next to a countdown clock icon.",
-    "source_label": "Sky Sports",
-    "source_url": "https://www.skysports.com/football/news/11095/13580082/transfer-deadline-day-brings-record-spending-but-will-any-money-be-enough-for-these-premier-league-clubs",
-    "observed_at": "2026-09-02",
-    "date_found": "2026-09-04"
-  },
-  {
-    "id": "trend-2026-09-04-global-transfer-window-9-89bn",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Football clubs worldwide spent a record $9.89 billion on transfer fees this summer, the highest mid-year transfer window total ever recorded, reported this week as the window closed.",
-    "title": "The world just spent a record $9.89 billion on football transfers — the real skill was knowing where to stop",
-    "why_it_works": "A striking, dated global number from this week's transfer window close, with an honest planning point: a record high isn't proof of good decisions, having a limit and sticking to it is.",
-    "hooks": [
-      "Football clubs worldwide just spent a record $9.89 billion this window. Spending the most doesn't mean spending the smartest.",
-      "The biggest transfer window ever just closed. The clubs that stuck to a number, not just a wish list, won it.",
-      "$9.89 billion. That's this week's record transfer spend. The number that matters more is the one clubs didn't cross."
-    ],
-    "talking_points": [
-      "The number: clubs globally spent a record $9.89bn on transfer fees this summer window, the highest ever recorded.",
-      "A record total isn't automatically a smart total, some of that spending will be judged a mistake within a year.",
-      "The parallel: having a spending ceiling decided in advance, for a renovation, a wedding, a big purchase, protects you from your own excitement in the moment.",
-      "Knowing your number before you start shopping beats discovering it after."
-    ],
-    "cta": "Save this before your next big purchase, and decide your ceiling before you start looking.",
-    "cta_type": "save-share",
-    "how_to_film": "Text post paired with a simple graphic showing the $9.89bn figure, ending on the 'know your ceiling' line.",
-    "source_label": "Vanguard News",
-    "source_url": "https://www.vanguardngr.com/2026/09/clubs-spend-9-89-bn-in-record-breaking-transfer-window/",
-    "observed_at": "2026-09-02",
-    "date_found": "2026-09-04"
-  },
-  {
-    "id": "trend-2026-09-04-american-girl-doll-prized-possession",
-    "platform": "tiktok",
-    "format": "short-video",
     "pillar": "identity",
     "trend_type": "culture",
-    "trend_source": "TikTok's 'My American Girl Doll' trend revives a 2009 childhood clip of creator Angelo David gleefully showing off his doll, then cuts to reveal your grown-up 'prized possession' via on-screen text.",
-    "title": "Do the prized-possession reveal, but make your grown-up flex an actual asset",
-    "why_it_works": "A genuinely nostalgic, low-production trend built entirely around 'what do you actually treasure now,' and a real financial milestone is a completely honest answer, no forcing required.",
+    "trend_source": "After her second-round win, Naomi Osaka publicly asked courtside social media influencers filming reactions to respect tennis etiquette — sparking debate about filming for content vs being present.",
+    "title": "The professional in the room isn't the loudest one — it's the one who isn't performing for the camera",
+    "why_it_works": "This taps a live discourse — content creators vs decorum — that professionals in every field quietly relate to, and gives an advisor a credible, non-preachy way to talk about showing up with substance over spectacle.",
     "hooks": [
-      "My American Girl doll used to be my prized possession. My grown-up one isn't a thing, it's a number.",
-      "Everyone's doing the childhood-clip reveal trend. My grown-up prized possession is my first fully-paid policy.",
-      "Kids flex dolls. Adults should flex the thing that actually protects them. Here's mine."
+      "Naomi Osaka had to ask people at courtside to stop performing for the camera and just watch the match.",
+      "There's a version of you that shows up for the photo and a version that shows up for the work.",
+      "The best people in the room right now are usually not the ones posting about being there."
     ],
     "talking_points": [
-      "The trend: a nostalgic childhood clip of pure excitement over a toy cuts to a text-overlay reveal of your current 'prized possession'.",
-      "The reframe: swap the flex for something real, a first insurance policy, a fully-funded buffer, a CPF milestone.",
-      "Keep the tone playful and nostalgic, this isn't a pitch, it's a genuine personal reveal.",
-      "Close by inviting viewers to name their own grown-up 'prized possession' in the comments."
+      "Osaka asked courtside influencers to respect tennis etiquette after her second-round win.",
+      "It's a small moment that says a lot about performing for an audience vs actually being present.",
+      "The same tension shows up in how people handle money in public — flexing vs actually planning.",
+      "Substance doesn't need an audience, and it usually shows up quieter than you'd expect."
     ],
-    "cta": "What's your grown-up 'prized possession'? Comment it below, no wrong answers.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Old childhood photo or clip for the first 2 seconds if you have one, then a hard cut to you today with the 'prized possession' named in bold on-screen text.",
-    "source_label": "NewEngen — September TikTok Trends",
-    "source_url": "https://newengen.com/insights/september-tiktok-trends/",
-    "observed_at": "2026-09-02",
-    "date_found": "2026-09-04"
+    "cta": "Save this if you'd rather be the quiet one who's actually got it handled.",
+    "cta_type": "save-share",
+    "how_to_film": "Text-post style: a single strong opening line, no video needed. Keep paragraphs short, 2-3 lines max, end with the CTA as its own line.",
+    "source_label": "Sky Sports",
+    "source_url": "https://www.skysports.com/tennis/news/12110/13580942/us-open-naomi-osaka-urges-social-media-influencers-in-attendance-to-respect-tennis-etiquette-after-second-round-win",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
   },
   {
-    "id": "trend-2026-09-04-you-cant-do-that-money-myths",
+    "id": "trend-2026-09-05-eala-third-round-patience",
     "platform": "instagram",
+    "format": "carousel",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Alexandra Eala, the highest-seeded Filipina in Grand Slam history, beat Oleksandra Oliynykova 6-1, 6-4 to reach the US Open third round for the first time, crediting patience as the key.",
+    "title": "17th seed, highest-seeded Filipina ever at a Slam — and she says patience got her there",
+    "why_it_works": "Eala's own quote — 'my patience was key' — gives an honest, non-forced bridge to why consistent, unglamorous saving habits beat any one lucky break, and her identity makes this land with SG's Filipino community specifically.",
+    "hooks": [
+      "Alexandra Eala just became the highest-seeded Filipina in Grand Slam history. Her word for it? Patience.",
+      "She didn't call it talent. She called it patience. That's the whole post right there.",
+      "The highest-seeded Filipina in Slam history says the third round came down to one thing: patience."
+    ],
+    "talking_points": [
+      "Eala beat Oleksandra Oliynykova 6-1, 6-4 to reach the third round for the first time.",
+      "She's the highest-seeded Filipina in Grand Slam tennis history at 17th seed.",
+      "Her own explanation was patience, not a lucky break or a single big moment.",
+      "Same principle applies to money — the boring, patient habit usually outperforms the one big bet."
+    ],
+    "cta": "Which habit have you been patient with the longest? Tell me below.",
+    "cta_type": "open-question",
+    "how_to_film": "Carousel: slide 1 the scoreline and 'highest-seeded Filipina in Slam history', slide 2 her patience quote, slides 3-4 your talking points, final slide the question.",
+    "source_label": "Olympics.com",
+    "source_url": "https://www.olympics.com/en/news/us-open-2026-alexandra-eala-third-round-first-time",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
+  },
+  {
+    "id": "trend-2026-09-05-van-de-zandschulp-upsets-de-minaur",
+    "platform": "tiktok",
     "format": "short-video",
     "pillar": "interest",
-    "trend_type": "culture",
-    "trend_source": "Instagram's deadpan comeback format is trending this week: on-screen text sets up a doubt ('you can't do that'), then cuts to a confident 'of course I can' reply, already being applied to money goals like sticking to a budget.",
-    "title": "Use the 'of course I can' comeback format on your own money doubt",
-    "why_it_works": "The format is already being used for money doubts like sticking to a budget, so a financial version rides the trend exactly as it's forming, as long as the joke stays self-deprecating rather than mocking anyone else.",
+    "trend_type": "sport",
+    "trend_source": "World No. 70 Botic van de Zandschulp stunned 6th seed Alex de Minaur 6-4, 7-5, 6-2 at the US Open, his first win over de Minaur in five attempts.",
+    "title": "Ranked 70. Beat the world's 6th best. On his fifth try.",
+    "why_it_works": "It's a clean, feel-good underdog story with a built-in lesson — persistence and process beating rank on paper — that translates directly into 'you don't need to be the smartest investor, just the one who shows up consistently.'",
     "hooks": [
-      "'You can't stick to a budget.' Of course I can. Watch me prove my past self wrong.",
-      "'You'll never hit that savings number.' Of course I will. Here's the plan that says otherwise.",
-      "Someone doubted I could fix my own spending. Of course I could. Here's what actually changed."
+      "World number 70 just beat the 6th seed at the US Open. It was his fifth attempt.",
+      "He'd lost to this guy four times before. On try five, straight sets.",
+      "You don't need to be ranked 6 in the world to beat the person ranked 6."
     ],
     "talking_points": [
-      "Setup: on-screen text states the doubt about yourself, plainly, never aimed at anyone else.",
-      "Cut: confident reply backed by one real number or habit, not a vague brag.",
-      "Keep it self-deprecating, the joke is on your own past doubt, never on someone else's situation or income.",
-      "Close by naming the one small step that actually proved the doubt wrong."
+      "Van de Zandschulp was 0-4 against de Minaur before this win.",
+      "Ranked 70 in the world, he beat the 6th seed 6-4, 7-5, 6-2.",
+      "Rank on paper didn't decide the match — showing up prepared on the day did.",
+      "Same with money: you don't need to be a market genius, just consistent."
     ],
-    "cta": "What's a money doubt about yourself you've actually proven wrong? Comment it below.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Two-part cut: bold on-screen text for the doubt, hard cut to you confident with the real number or step as overlay text.",
-    "source_label": "Buffer — Instagram Reels Trends",
-    "source_url": "https://buffer.com/resources/trending-reels-on-instagram/",
-    "observed_at": "2026-09-02",
-    "date_found": "2026-09-04"
-  },
-  {
-    "id": "trend-2026-09-04-laters-com-seed-funding",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Singapore-founded travel fintech Laters.com (formerly Fly Fairly) raised a US$1.5M seed round led by XBO Ventures this week, built around cutting fees by offering 100+ payment methods across 650+ airlines.",
-    "title": "A Singapore startup just raised funding for solving travel fees — check your own trip for the same leak",
-    "why_it_works": "A genuinely fresh, local business story this week with a completely natural bridge: the exact problem the startup is solving, fees quietly eating into a travel budget, is one every client already has.",
-    "hooks": [
-      "A Singapore startup just raised funding this week for solving travel payment fees. Have you checked yours lately?",
-      "Local fintech news this week: a startup built its whole pitch around cutting travel fees. Worth stealing the habit.",
-      "Singapore-founded, just funded, built entirely around one idea: fees quietly eat your travel budget. Are yours?"
-    ],
-    "talking_points": [
-      "The news: Singapore-founded Laters.com (formerly Fly Fairly) raised a US$1.5M seed round this week, led by XBO Ventures.",
-      "Its whole pitch: 650+ airlines and 100+ payment methods, built to cut the fees travellers usually don't notice.",
-      "The takeaway for your own trips: FX fees, card surcharges and conversion markups quietly cost more than most people check for.",
-      "Before your next overseas trip, check your card's FX fee and compare it to a fee-free alternative."
-    ],
-    "cta": "Booking a trip soon? DM me 'FX' and I'll send you a quick way to check what your card is really charging you.",
+    "cta": "DM me 'PROCESS' and I'll walk you through a simple money habit that beats overthinking it.",
     "cta_type": "dm-keyword",
-    "how_to_film": "Text post, optionally paired with a simple two-line graphic: 'Startup news' next to 'Your own travel fee check'.",
-    "source_label": "Fintech News Singapore",
-    "source_url": "https://fintechnews.sg/136648/payments/laters-com-fly-fairly-funding/",
-    "observed_at": "2026-09-03",
-    "date_found": "2026-09-04"
+    "how_to_film": "Short video: text-on-screen scoreline reveal, quick cuts, energetic pacing. Voiceover the talking points over a highlight-style edit using text cards.",
+    "source_label": "ABC News Australia",
+    "source_url": "https://www.abc.net.au/news/2026-09-04/alex-de-minaur-falls-in-straight-sets-at-us-open/107115674",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
   },
   {
-    "id": "trend-2026-09-04-campbells-tyson-inflation-guidance",
+    "id": "trend-2026-09-05-tien-ends-monfils-career",
     "platform": "facebook",
     "format": "text-post",
     "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Campbell's and Tyson Foods both cut their outlooks this week, publicly citing inflation and rising input costs squeezing margins, reported alongside Thursday's market wrap.",
-    "title": "Two major food companies just admitted inflation is squeezing them too — your grocery bill isn't in your head",
-    "why_it_works": "A dated, concrete corporate news story this week that validates something households already feel, giving an honest, non-stock-related entry into a cost-of-living and budget-review conversation.",
+    "trend_type": "sport",
+    "trend_source": "20-year-old Learner Tien beat 40-year-old Gael Monfils 6-3, 6-4, 6-3 at the US Open in what turned out to be Monfils' Grand Slam farewell, with the crowd chanting 'Mon-fils' all night.",
+    "title": "Half his age, across the net, and the crowd was still cheering for the one leaving",
+    "why_it_works": "A career ending well, celebrated rather than mourned, is a rare and gentle way into succession and legacy planning — the exact conversation advisors need clients to have but which usually feels heavy; this makes it feel like a send-off instead.",
     "hooks": [
-      "Two big food companies just told everyone, on the record, that rising costs are squeezing them too. Your grocery bill isn't imagining it.",
-      "If a food company with pricing power is feeling the pinch, so is your household budget. Here's the real move.",
-      "This week two major food brands admitted inflation is eating their margins. It's eating yours too, just quieter."
+      "A 40-year-old just played his last Grand Slam match. The crowd chanted his name all night anyway.",
+      "He lost the match and still got the loudest ovation of the tournament so far.",
+      "Half his opponent's age was standing across the net. The stadium still sang for the one retiring."
     ],
     "talking_points": [
-      "The news: Campbell's and Tyson Foods both cut their outlooks this week, citing inflation and rising input costs.",
-      "This isn't stock advice, it's a signal that the cost pressure households are feeling is real and reported, not imagined.",
-      "The move: re-run your grocery and household budget line this month, don't assume last quarter's numbers still hold.",
-      "A 10-minute recheck now avoids a nastier surprise on the credit card statement later."
+      "Learner Tien, 20, beat Gael Monfils, 40, in what became Monfils' last Grand Slam match.",
+      "The crowd chanted 'Mon-fils' throughout, giving him a send-off instead of a quiet exit.",
+      "A good ending is planned for, not left to chance — the same is true of handing over a business or estate.",
+      "The people who go out well are usually the ones who started planning the exit early."
     ],
-    "cta": "When did you last actually recheck your grocery budget line? Comment below, be honest.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text post paired with a simple graphic: 'inflation squeeze' headline next to a grocery basket icon.",
-    "source_label": "CNBC",
-    "source_url": "https://www.cnbc.com/2026/09/02/stock-market-today-live-updates.html",
-    "observed_at": "2026-09-02",
-    "date_found": "2026-09-04"
+    "cta": "Book a call if 'handing things over well' is a conversation you've been putting off.",
+    "cta_type": "book-call",
+    "how_to_film": "Facebook text post with a warm, reflective tone. Optionally pair with a still image of a tennis court at golden hour. Keep sentences short, end on the call-to-book line.",
+    "source_label": "US Open Official",
+    "source_url": "https://www.usopen.org/en_US/news/articles/2026-09-03/tien_defeats_monfils_at_2026_us_open_ending_frenchmans_grand_slam_career.html",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
   },
   {
-    "id": "trend-2026-09-04-plane-seatmate-friendship",
+    "id": "trend-2026-09-05-swiatek-27-major-streak",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "sport",
+    "trend_source": "Iga Swiatek beat Nadia Podoroska 6-3, 6-2 in just over an hour, extending her streak of reaching at least the third round at every Grand Slam since Australian Open 2020 to 27 straight majors.",
+    "title": "27 Grand Slams in a row she's made the third round. That's not luck, that's a floor.",
+    "why_it_works": "A 27-tournament consistency streak is a vivid, concrete number that reframes 'consistency' as measurable and buildable rather than a vague virtue — an easy, natural way to talk about a saving or protection habit compounding quietly in the background.",
+    "hooks": [
+      "Iga Swiatek has made the third round at 27 straight Grand Slams. Twenty seven in a row.",
+      "One match took her just over an hour. The streak behind it took six years to build.",
+      "She's not chasing a hot streak. She built a floor so low results can't fall under it."
+    ],
+    "talking_points": [
+      "Swiatek beat Podoroska 6-3, 6-2 in 71 minutes to reach round three.",
+      "That extends her streak to 27 consecutive Grand Slams reaching at least the third round.",
+      "A floor like that isn't one good tournament, it's years of the same habit repeated.",
+      "The same idea applies to a savings or protection habit that runs whether you're paying attention or not."
+    ],
+    "cta": "Save this as your reminder to check if your own 'floor' is actually automated.",
+    "cta_type": "save-share",
+    "how_to_film": "Short video with a bold on-screen number '27' as the hook, then quick text cards building the story, voiceover the talking points.",
+    "source_label": "France 24",
+    "source_url": "https://www.france24.com/en/live-news/20260903-former-champ-swiatek-eases-into-us-open-third-round",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
+  },
+  {
+    "id": "trend-2026-09-05-fritz-lights-out-bellucci",
     "platform": "instagram",
     "format": "story",
-    "pillar": "identity",
-    "trend_type": "culture",
-    "trend_source": "A viral clip this week shows a young woman becoming fast friends with a 90-year-old seatmate on a flight, exchanging numbers, with viewers calling it proof the best connections aren't planned.",
-    "title": "The viral plane-friendship clip is a reminder: some of the best money conversations aren't with people your age",
-    "why_it_works": "A genuinely wholesome, widely-shared moment this week about an unplanned connection across generations, with an honest, non-forced parallel: money habits and wisdom often pass sideways, from someone outside your own generation.",
-    "hooks": [
-      "That viral plane-friendship clip this week made me think about the best money advice I never got from my own age group.",
-      "Two strangers, decades apart, became friends on a flight this week. Some of my best money lessons came the same random way.",
-      "The internet's obsessed with this cross-generation plane friendship. Here's why talking money outside your circle actually helps."
-    ],
-    "talking_points": [
-      "The clip: a young woman and a 90-year-old seatmate became fast friends on a flight this week, swapping numbers, going viral for the connection.",
-      "The point: some of the most useful money conversations happen outside your own generation, a parent's habits, a grandparent's caution, a younger person's tools.",
-      "A short, honest money chat with someone outside your usual circle often surfaces a blind spot you wouldn't catch alone.",
-      "Close on an invite: who outside your own generation taught you something real about money."
-    ],
-    "cta": "Who outside your own generation taught you something real about money? Tell me below.",
-    "cta_type": "open-question",
-    "how_to_film": "IG Story, 2-3 frames: reference the clip with a text card, then a personal reflection frame, end on the open-question sticker.",
-    "source_label": "TAG24",
-    "source_url": "https://www.tag24.com/en/topic/viral-video-of-the-day/viral-video-of-the-day-for-september-3-2026-90-year-old-diva-becomes-besties-with-young-woman-during-sweet-plane-ride-3526681",
-    "observed_at": "2026-09-03",
-    "date_found": "2026-09-04"
-  },
-  {
-    "id": "trend-2026-09-04-luke-bryan-simple-lyric-roast",
-    "platform": "tiktok",
-    "format": "short-video",
     "pillar": "interest",
-    "trend_type": "meme",
-    "trend_source": "TikTok is roasting the simple 'blank goes the blank' lyric structure of Luke Bryan's new single this week, with joke rewrites like 'Fart Goes The Butt' racking up 50k+ likes and brands joining in.",
-    "title": "The internet's roasting a song for being too simple — steal the joke format for a money truth",
-    "why_it_works": "A genuinely funny, actively escalating meme this week that's entirely about mocking simplicity, and the honest twist, that simple is exactly what works in money habits, lands as a joke rather than a lecture.",
+    "trend_type": "sport",
+    "trend_source": "Taylor Fritz demolished Mattia Bellucci 6-0, 6-1, 6-1 at the US Open, losing just two games in the entire match, and said afterward 'things were definitely clicking.'",
+    "title": "6-0, 6-1, 6-1. Two games lost in a Grand Slam match. 'Things were just clicking.'",
+    "why_it_works": "A blowout win credited to preparation rather than raw talent is a clean entry point into talking about why some weeks feel effortless — usually because the boring routine was already in place before the good day arrived.",
     "hooks": [
-      "Everyone's roasting this new song for having lyrics like 'blank goes the blank.' Turns out simple works better than clever.",
-      "The internet's making fun of a song for being too simple this week. My savings plan is also embarrassingly simple.",
-      "'Blank goes the blank' is the joke of the week. My money rule is just as simple, and it actually works."
+      "Taylor Fritz lost two games in an entire Grand Slam match. Two games.",
+      "He didn't call it his best match ever. He just said things were clicking that day.",
+      "Some days everything just clicks. Those days are usually built weeks before they happen."
     ],
     "talking_points": [
-      "The trend: TikTok is roasting a new country single's overly simple lyric structure, with joke rewrites getting huge engagement this week.",
-      "The joke works because simple sounds dumb until you notice it's memorable and easy to repeat.",
-      "The parallel: an overcomplicated money plan gets abandoned, a stupidly simple one, like 'automatic transfer goes the savings account,' actually survives.",
-      "Name your own 'blank goes the blank' money rule, the dumbest, simplest one that you actually stick to."
+      "Fritz beat Bellucci 6-0, 6-1, 6-1, losing only two games total.",
+      "He described it simply as a day where things were clicking, not a career-best effort.",
+      "The days that feel effortless are usually the payoff of routines set up in advance.",
+      "The same is true of a good financial year — it's built well before it shows up."
     ],
-    "cta": "What's your dumbest, simplest money rule that actually works? Comment it below.",
+    "cta": "Comment 'ROUTINE' and I'll share the one habit that makes the good weeks more frequent.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talk to camera referencing the trend/song for context, then reveal your own simple money rule as bold on-screen text, keep it fast and funny.",
-    "source_label": "99.5 QYK",
-    "source_url": "https://995qyk.com/2026/09/02/luke-bryan-responds-to-viral-tiktok-trend-with-new-music-release/",
-    "observed_at": "2026-09-02",
-    "date_found": "2026-09-04"
+    "how_to_film": "Instagram Story sequence, 3-4 frames: first frame the scoreline as a bold graphic, second his quote, third and fourth your point with a poll or question sticker.",
+    "source_label": "US Open Official",
+    "source_url": "https://www.usopen.org/en_US/news/articles/2026-09-03/taylor_fritz_upends_mattia_bellucci_to_reach_third_round_at_2026_us_open.html",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
   },
   {
-    "id": "trend-2026-09-04-hdb-hfe-deadline-november-bto",
+    "id": "trend-2026-09-05-gauff-reps-confidence",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Coco Gauff beat a resurgent Paula Badosa 6-4, 7-6(5) at the US Open and said afterward, 'I need matches like this to build my confidence.'",
+    "title": "The US Open champion just admitted she still needs the hard matches to feel confident",
+    "why_it_works": "Gauff naming her own need for reps to build confidence, despite already being a Slam winner, normalizes the fact that financial confidence works the same way — nobody feels ready before they've had a few of the hard conversations, wins included.",
+    "hooks": [
+      "Coco Gauff just said she still needs hard matches to feel confident. She's already a Slam champion.",
+      "Even the champion says she needs the tough wins to actually believe it, not just the easy ones.",
+      "'I need matches like this to build my confidence' — that's a US Open champion talking."
+    ],
+    "talking_points": [
+      "Gauff beat Paula Badosa 6-4, 7-6(5) in a tight, gritty second round.",
+      "She openly said she needs matches like that one to build her own confidence.",
+      "Confidence with money works the same way — it's built through a few real conversations, not a mindset switch.",
+      "You don't wait to feel ready, you get the reps in and the confidence follows."
+    ],
+    "cta": "Comment 'READY' if you've been putting off a money conversation until you 'feel ready' for it.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Carousel: slide 1 her quote large, slide 2 the scoreline, slides 3-4 talking points, last slide the comment prompt.",
+    "source_label": "Olympics.com",
+    "source_url": "https://www.olympics.com/en/news/2026-us-open-coco-gauff-beats-paula-badosa",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
+  },
+  {
+    "id": "trend-2026-09-05-teachers-day-fifty-dollar-rule",
     "platform": "facebook",
     "format": "carousel",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "HDB confirmed this week that all HFE (HDB Flat Eligibility) supporting documents are due by 25 Sept 2026 for buyers wanting to ballot in the November BTO exercise of about 7,960 flats across Bedok, Geylang, Sembawang, Tengah, Toa Payoh and Yishun.",
-    "title": "The November BTO deadline just got confirmed — the document, not the ballot, is the part people miss",
-    "why_it_works": "A concrete, dated deadline confirmed this week that directly affects anyone planning a flat purchase, with an honest, non-salesy bridge: financial readiness, down payment, loan pre-check, CPF usage, is the part of the HFE process people leave too late.",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "Singapore's Teachers' Day fell on Fri 4 Sept 2026, and coverage this week highlighted the MOE $50 gift-declaration rule most parents don't know about — cash and vouchers are discouraged outright.",
+    "title": "Most parents don't know there's a $50 rule for Teachers' Day gifts",
+    "why_it_works": "It's a hyper-specific, real rule most SG parents genuinely don't know, which makes it inherently shareable, and it opens a natural, non-salesy door into how the household already thinks about gifting, budgeting and boundaries around money.",
     "hooks": [
-      "HDB just confirmed the document deadline for November's BTO ballot: 25 September. That's sooner than it sounds.",
-      "7,960 flats are up for ballot in November. The paperwork deadline is what actually decides if you can join.",
-      "Everyone talks about BTO ballot luck. Nobody talks about the document deadline that comes before it."
+      "There's a $50 rule for Teachers' Day gifts in Singapore and most parents have never heard of it.",
+      "Your kid's teacher legally has to declare your gift if it's worth $50 or more. Did you know that?",
+      "Cash and vouchers for Teachers' Day are actually discouraged. Here's why, and what to give instead."
     ],
     "talking_points": [
-      "The news: HDB confirmed all HFE supporting documents are due by 25 Sept 2026 for the November BTO exercise, about 7,960 flats across six towns.",
-      "HDB's processing clock only starts once your full document set is in, a late payslip or letter delays the whole file.",
-      "Before submitting, check your own numbers: how much you can actually put down, what your loan eligibility looks like, how much CPF you'd use.",
-      "A 20-minute check now avoids finding out you're short right when the ballot opens."
+      "MOE requires teachers to declare gifts valued at $50 or more, and may have to buy it back to keep it.",
+      "Cash and vouchers are discouraged because they look like currying favour rather than saying thank you.",
+      "Most parent committees pool funds and land in the $8-15 per teacher range anyway.",
+      "The same 'keep it modest and thoughtful' instinct applies to how families budget for any gesture of gratitude."
     ],
-    "cta": "Planning to ballot in November? Comment 'BTO' and I'll send you a quick financial readiness checklist before the deadline.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Carousel: slide 1 the deadline date in bold, slide 2 the towns and flat count, slides 3-4 the financial readiness checklist, last slide the CTA.",
-    "source_label": "Little Big Red Dot",
-    "source_url": "https://littlebigreddot.com/hdb-hfe-document-deadline-25-september-november-bto-2026/",
-    "observed_at": "2026-09-03",
-    "date_found": "2026-09-04"
+    "cta": "Save this before you buy your kid's teacher a gift this week.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 the $50 rule as a hook graphic, slide 2 why cash and vouchers are discouraged, slide 3 the budget range parents actually use, slide 4 the CTA.",
+    "source_label": "MissLobang",
+    "source_url": "https://www.misslobang.com/article/best-teachers-day-gifts-singapore-2026",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
   },
   {
-    "id": "trend-2026-09-04-madison-keys-tiebreak-comeback",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "22nd seed Madison Keys came back from 2-5 down in the third-set tiebreak to beat Anna Bondar 5-7, 6-4, 7-6(5) in the second round of the 2026 US Open on Thursday.",
-    "title": "Down 2-5 in the decider, she still won — the comeback matters more than the deficit",
-    "why_it_works": "A genuine, dated comeback from this week's US Open that lands cleanly on a real point: being behind isn't the story, what you do in the last few points is, without needing any forced stretch.",
+    "id": "trend-2026-09-05-shopee-99-sale-week",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "interest",
+    "trend_type": "event",
+    "trend_source": "Shopee's 9.9 Super Shopping Day runs 8-14 September, peaking 9 September, with Lazada pushing new-season Apple, Samsung and Dyson launches in the same window — SG's biggest shopping conversation of the week.",
+    "title": "9.9 is this week. Here's the one question to ask before you add to cart",
+    "why_it_works": "9.9 is genuinely the shopping conversation happening in SG right now, and riding it with a light budgeting angle, rather than telling people not to shop, respects the fun of the sale while still doing the advisor's actual job.",
     "hooks": [
-      "She was down 2-5 in the final tiebreak. She still won the match. That's the whole lesson right there.",
-      "Nobody remembers you were behind. They remember whether you turned it around. This week's US Open proved it again.",
-      "2-5 down, one set from being out. She won anyway. Your money setback doesn't have to end the story either."
+      "9.9 starts this week. Before you stack vouchers, ask yourself one question first.",
+      "Shopee's biggest sale of the month lands this week. Here's how to actually win it.",
+      "The best 9.9 haul isn't the biggest one. It's the one you don't regret on the 10th."
     ],
     "talking_points": [
-      "The match: 22nd seed Madison Keys came back from 2-5 down in the third-set tiebreak to beat Anna Bondar in the 2026 US Open second round.",
-      "The point: being behind at any single moment doesn't decide the outcome, what happens in the next few points does.",
-      "The parallel: a bad month, a missed savings target, an unexpected bill, none of it decides the year by itself.",
-      "The real skill is the same in both: know your next move before you're already behind, so panic doesn't decide it for you."
+      "Shopee's 9.9 Super Shopping Day runs 8-14 Sept, peaking on 9 Sept.",
+      "Lazada is leaning into new electronics launches in the same window.",
+      "A simple rule: decide your top 2 wants before you open the app, not while scrolling flash deals.",
+      "Sale season is a good moment to also check what you're already paying for and not using."
     ],
-    "cta": "What's a financial 'down 2-5' moment you turned around? Tell me below.",
-    "cta_type": "open-question",
-    "how_to_film": "Talk to camera with a bold scoreline graphic ('2-5 down, still won'), quick cut to the reframe line as text overlay.",
-    "source_label": "Yahoo Sports",
-    "source_url": "https://sports.yahoo.com/articles/us-open-day-3-results-100735421.html",
+    "cta": "Save this as your 9.9 checklist before the sale opens.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 '9.9 is this week', slide 2 the one-question hook, slides 3-4 the practical rule and check, last slide the save prompt.",
+    "source_label": "ShopBack",
+    "source_url": "https://www.shopback.sg/blog/finance/sg-2026-sale-calendar-9-9-11-11-12-12-black-friday-boxing-day",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
+  },
+  {
+    "id": "trend-2026-09-05-netflix-earle-meets-world",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "Alix Earle's Netflix reality series 'Earle Meets World' premiered Sept 4, following the influencer managing her business empire alongside her personal life, including a recent public breakup.",
+    "title": "She built a business out of her personal brand. Now the cameras are on the part that isn't polished",
+    "why_it_works": "A creator whose income is her personal brand having to manage a public rough patch is a real, current example of why anyone self-employed needs their finances separated from their feelings — a concept advisors want self-employed clients to actually feel, not just hear.",
+    "hooks": [
+      "Alix Earle's whole business is her personal brand. Her new show is what happens when that brand has a bad month.",
+      "When your income and your image are the same thing, a bad week costs you twice.",
+      "Her new Netflix show is basically what happens when your business and your personal life share one bank account."
+    ],
+    "talking_points": [
+      "Earle Meets World premiered Sept 4, following Alix Earle balancing her business empire and personal life on camera.",
+      "The season covers her navigating a public breakup while still running her business in real time.",
+      "When your income is tied to your personal brand, a rough patch hits your finances and your identity at once.",
+      "Separating a personal emergency fund from business cash flow is what stops one bad month from becoming two problems."
+    ],
+    "cta": "DM me 'SEPARATE' if you run your own income and aren't sure your personal and business money are actually split.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Talking head reacting to a trailer moment, not the show itself. Cut to camera for your point, text overlay 'income = identity' as the hook line.",
+    "source_label": "Variety",
+    "source_url": "https://variety.com/2026/tv/reviews/earle-meets-world-review-alix-earle-netflix-1236847616/",
+    "observed_at": "2026-09-04",
+    "date_found": "2026-09-05"
+  },
+  {
+    "id": "trend-2026-09-05-mas-stablecoin-interest-ban",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "MAS published draft rules on 1 Sept proposing a ban on interest payments for MAS-regulated stablecoins and requiring 100% reserve backing, with industry player Fireblocks publicly responding to the consultation on 3 Sept.",
+    "title": "MAS wants to ban stablecoin interest. That tells you something about any 'stable' product still offering yield",
+    "why_it_works": "This is a real, dated regulatory story with a genuinely useful, compliant lesson — describing what the rule proposes without recommending any product, crypto or otherwise, and turning it into a simple habit of questioning anything promising both stability and yield.",
+    "hooks": [
+      "MAS just proposed banning interest on regulated stablecoins. That's worth understanding even if you've never touched crypto.",
+      "If a product can't be both fully safe and pay you extra, why do people keep believing it can?",
+      "Singapore's regulator just drew a line: stable and yield don't get to both come from the same product."
+    ],
+    "talking_points": [
+      "MAS's Sept 1 consultation proposes banning interest payments on any officially 'MAS-regulated stablecoin.'",
+      "The trade-off: full reserve backing and redemption guarantees, but no yield on top.",
+      "It's a useful reminder that 'stable' and 'extra return' are usually in tension, not partners.",
+      "The habit worth building: ask what's funding the extra yield before asking how safe something is."
+    ],
+    "cta": "Comment 'STABLE' if you want the plain-English rundown of what this proposal actually changes.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "LinkedIn text post, structured with a short opening line and 3 short paragraphs mirroring the talking points, no video or graphics needed.",
+    "source_label": "MAS",
+    "source_url": "https://www.mas.gov.sg/news/media-releases/2026/mas-consults-on-legislative-amendments-to-implement-stablecoin-regulatory-framework",
     "observed_at": "2026-09-03",
-    "date_found": "2026-09-04"
+    "date_found": "2026-09-05"
   }
 ]
