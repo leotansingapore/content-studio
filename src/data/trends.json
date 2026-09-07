@@ -1,338 +1,338 @@
 [
   {
-    "id": "trend-2026-09-06-haze-psi-unhealthy",
-    "platform": "facebook",
-    "format": "carousel",
-    "pillar": "topic",
-    "trend_type": "current-affairs",
-    "trend_source": "Singapore's 24-hour PSI crossed into the unhealthy range in the central region on 4 Sept 2026 for the first time since 2023, driven by transboundary haze from Sumatra and Kalimantan fires; NEA began issuing daily haze advisories in response.",
-    "title": "The haze caught households buying air purifiers and masks the same day they needed them",
-    "why_it_works": "It's a real, dated event everyone in Singapore is talking about this week, and the scramble for purifiers and masks is a natural, non-forced way into why an unplanned-cost buffer matters more than it seems until you need it.",
-    "hooks": [
-      "This week's the first time our air quality's gone unhealthy since 2023. Half of Singapore was googling air purifiers overnight.",
-      "Nobody plans to buy an air purifier at 9pm on a Thursday. But that's what unhealthy PSI does to you.",
-      "The haze is back for the first time in 3 years, and it's a reminder your buffer fund shouldn't be a last-minute purchase either."
-    ],
-    "talking_points": [
-      "Central Singapore's 24-hour PSI crossed 100 on 4 Sept, unhealthy for the first time since Oct 2023.",
-      "NEA started issuing daily haze advisories so people could plan a day ahead.",
-      "The rush for purifiers and masks happens because most households don't have a 'sudden cost' buffer set aside.",
-      "A small emergency fund means an unplanned $150-200 purchase doesn't throw off the rest of your month."
-    ],
-    "cta": "Save this and check: do you have a buffer for the expense you didn't see coming?",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 a PSI reading graphic ('101 - first time since 2023'), slide 2 a photo of a mask or purifier, slide 3-4 the buffer fund point, final slide the save prompt.",
-    "source_label": "Malay Mail",
-    "source_url": "https://www.malaymail.com/news/singapore/2026/09/04/daily-haze-advisories-to-begin-in-singapore-after-first-unhealthy-psi-reading-since-2023/233892",
-    "observed_at": "2026-09-05",
-    "date_found": "2026-09-06"
-  },
-  {
-    "id": "trend-2026-09-06-n95-mask-readiness",
+    "id": "trend-2026-09-07-col-payment-sept",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "topic",
+    "pillar": "market",
     "trend_type": "news",
-    "trend_source": "As PSI crossed into the unhealthy range this week, Singapore's Ministry of Health confirmed plans with the People's Association to distribute N95 masks to needy households through grassroots organisations, with government stock released to retailers if demand spikes.",
-    "title": "The government had a mask distribution plan ready before the haze got bad. Do you?",
-    "why_it_works": "It's a timely, civic example of readiness beating reaction, which maps honestly onto why a funded plan for the next unexpected expense matters more than reacting once it lands.",
+    "trend_source": "Over 2.4 million Singapore citizens will receive $400-$600 in cash from 9 September 2026 under the Enhanced Budget 2026 Cost-of-Living Special Payment, paid automatically with no application needed.",
+    "title": "What to actually do with your COL payout before it disappears into GrabFood",
+    "why_it_works": "Government payouts land in Singaporeans' bank accounts within days, and 'what should I do with this windfall' is a live question every payout cycle - a timely, judgement-free prompt beats a hard product pitch.",
     "hooks": [
-      "MOH already has a mask distribution plan ready for this haze. Most households don't have theirs.",
-      "The best response to a crisis is the one you planned before it happened. This week's haze proved that again.",
-      "Singapore didn't wait for the haze to get worse to have a plan. Neither should your finances."
+      "My PayNow just got $400 to $600 richer from 9 September and honestly my first instinct was Shopee 9.9.",
+      "Singapore's paying you up to $600 this week no application needed, here's what I did with mine instead.",
+      "Everyone's asking what to do with the new Cost-of-Living payout, so let's actually break down 3 options."
     ],
     "talking_points": [
-      "MOH and the People's Association have a plan to distribute N95 masks to needy households via grassroots groups.",
-      "Government stock gets released to retailers if public demand spikes, rather than reacting after shelves empty.",
-      "The lesson: readiness beats reaction, whether it's masks or money.",
-      "A simple, funded plan for the next unexpected expense means you're not scrambling when it lands."
+      "The Enhanced Budget 2026 COL Special Payment ($400-$600) starts paying out from 9 September automatically, based on income and property AV - no action needed if your NRIC is linked to PayNow.",
+      "Option 1: let it become the start of an emergency fund if you don't have 3-6 months of expenses saved.",
+      "Option 2: top up a CPF account or review an existing insurance plan instead of letting it get absorbed into daily spending.",
+      "Option 3: if you're financially stable, ring-fence it for a specific goal - it's 'found money', a good candidate for something you keep postponing."
     ],
-    "cta": "Comment 'READY' and I'll share a simple way to check if your own plan is actually funded.",
+    "cta": "Drop 'PAYOUT' in the comments and I'll send you a 2-minute way to check if your $400-$600 is better spent as savings or protection.",
     "cta_type": "comment-keyword",
-    "how_to_film": "LinkedIn text post, short paragraphs, no visuals needed, end with the comment prompt as its own line.",
-    "source_label": "Ministry of Health",
-    "source_url": "https://www.moh.gov.sg/newsroom/n95-masks-for-haze/",
-    "observed_at": "2026-09-05",
-    "date_found": "2026-09-06"
+    "how_to_film": "Talking head to camera holding your phone showing a PayNow notification screen; overlay text listing the 3 options as they're said; end card with the CTA text visible.",
+    "source_label": "Ministry of Finance Singapore",
+    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/over-2-4-million-singapore-citizens-to-receive-between--400-and--600-from-the-enhanced-budget-2026-cost-of-living--col--special-payment-in-september-2026/",
+    "observed_at": "2026-09-06",
+    "date_found": "2026-09-07"
   },
   {
-    "id": "trend-2026-09-06-pyramid-scheme-arrests",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Singapore's MFA and Police confirmed on 4 Sept 2026 that 52 Singapore citizens have been arrested and detained in Guangxi, China, over a suspected pyramid scheme built on recruiting others for commissions.",
-    "title": "52 Singaporeans just got arrested overseas for a scheme built entirely on recruiting friends",
-    "why_it_works": "It's a real, official, dated announcement squarely in an advisor's area of expertise, and it gives a clean, non-exploitative way to teach the one red flag that matters most without naming or dwelling on any individual.",
-    "hooks": [
-      "52 Singaporeans were just arrested in China over a pyramid scheme. The pitch was always the same: recruit and earn.",
-      "If someone's return depends on how many people you bring in, that's not an investment, that's the whole red flag.",
-      "This week 52 Singaporeans got detained overseas chasing a 'business opportunity' that was really a pyramid scheme."
-    ],
-    "talking_points": [
-      "MFA and SPF confirmed 52 Singaporeans arrested in Guangxi, China over a suspected pyramid scheme on 4 Sept.",
-      "The scheme ran on a familiar playbook: buy in, then earn by recruiting more people underneath you.",
-      "The tell is always the same: your return depends on new recruits, not a real product or asset.",
-      "A genuine investment doesn't need you to become its salesperson to make money."
-    ],
-    "cta": "Save this list of red flags before your next 'guaranteed opportunity' conversation.",
-    "cta_type": "save-share",
-    "how_to_film": "Text post, matter-of-fact tone, structured in short paragraphs mirroring the talking points.",
-    "source_label": "Ministry of Foreign Affairs",
-    "source_url": "https://www.mfa.gov.sg/newsroom/press-statements-transcripts-and-photos/mfa-spf-joint-press-statement--on-singapore-citizens-arrested-in-guangxi--china--4-september-2026/",
-    "observed_at": "2026-09-04",
-    "date_found": "2026-09-06"
-  },
-  {
-    "id": "trend-2026-09-06-sg-culture-pass-unused",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "New reporting this week shows only about S$30.4 million (roughly 10%) of the S$300 million SG Culture Pass fund has been used a year after its Sept 2025 launch, despite every adult getting S$100 in credits.",
-    "title": "You have $100 sitting unused right now and probably forgot about it",
-    "why_it_works": "It's a fresh, concrete 'use it or lose it' story that mirrors exactly the kind of unclaimed benefit an advisor helps clients spot, without pushing any product.",
-    "hooks": [
-      "90% of Singaporeans haven't touched their $100 Culture Pass credits. Yours might still be sitting there.",
-      "There's free money in your Singpass account right now that most people forgot exists.",
-      "A year in, only 1 in 10 dollars of the Culture Pass fund has been claimed. Check if yours is one of them."
-    ],
-    "talking_points": [
-      "Every Singaporean 18+ got $100 in SG Culture Pass credits when it launched in Sept 2025.",
-      "A year on, only about $30.4 million of the $300 million fund, roughly 10%, has actually been used.",
-      "It's a small but real example of 'use it or lose it' benefits people forget to claim.",
-      "Worth a 5-minute check: what other vouchers, rebates or riders have you already paid for but never used?"
-    ],
-    "cta": "Comment 'CHECK' and I'll send you the list of schemes Singaporeans usually forget to claim.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Facebook text post, conversational tone, short paragraphs, end with the comment CTA as its own line.",
-    "source_label": "Mothership",
-    "source_url": "https://mothership.sg/2026/09/sg-culture-pass-one-year/",
-    "observed_at": "2026-09-05",
-    "date_found": "2026-09-06"
-  },
-  {
-    "id": "trend-2026-09-06-us-eggs-return-singapore",
+    "id": "trend-2026-09-07-coe-round-record",
     "platform": "instagram",
     "format": "carousel",
-    "pillar": "interest",
-    "trend_type": "culture",
-    "trend_source": "US-sourced eggs officially returned to Singapore supermarkets this week after two decades away, retailing at up to S$14.80 for a dozen, a steep premium over regular eggs.",
-    "title": "Would you pay 4x more for the same egg because it's imported?",
-    "why_it_works": "It's a relatable, timely grocery story that opens an honest, non-preachy door into paying for a label versus actually checking what something is worth, without recommending any product.",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Singapore's September COE bidding round opened today (7 Sept) at 12pm with results out Wednesday, coming off a July all-time-high Category A close of $129,000.",
+    "title": "The real cost of 'just getting a car' in Singapore right now",
+    "why_it_works": "COE bidding is back in the news cycle every two weeks and record prices make it an easy, relatable hook - reframing a car as a financing decision, not just a purchase, is exactly the planning conversation an advisor should be having.",
     "hooks": [
-      "US eggs are back in Singapore after 20 years, and a dozen costs almost 4 times a regular one. People are still buying them.",
-      "Same egg, different sticker. This week's grocery story says a lot about how we decide what's 'worth it.'",
-      "$14.80 for a dozen eggs just because it says 'imported.' Would you pay it?"
+      "COE just opened bidding again and Cat A closed at $129,000 last round, let's talk about what that costs you.",
+      "A car in Singapore can now cost more than some people's first home deposit, here's the math nobody shows you.",
+      "Before you bid on that COE this week, run these 3 numbers first."
     ],
     "talking_points": [
-      "US eggs returned to Singapore supermarkets this week for the first time in over 20 years.",
-      "A dozen can cost up to $14.80, versus a fraction of that for a regular dozen.",
-      "It's a small, everyday example of paying for a label rather than checking what you're actually getting.",
-      "The same habit shows up in bigger purchases too: a fancier name doesn't automatically mean a better fit for you."
+      "This week's COE bidding round opened 7 September with results out 9 September, and Category A hit a record $129,000 close in July.",
+      "A COE plus car loan changes your monthly cash flow for 10 years - treat it like any other big liability, not a lifestyle flex.",
+      "Before bidding, check what a 10-year commitment does to your ability to save, insure, or invest - not just whether the loan gets approved.",
+      "If the numbers don't work, alternatives like car-sharing or leasing aren't a downgrade - they're cash freed up for goals that compound."
     ],
-    "cta": "Save this before your next big purchase where the name costs more than the substance.",
+    "cta": "Save this if you're COE-shopping and want a quick way to check what a car really costs your monthly budget before you bid.",
     "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 a photo or graphic of the egg carton with its price, slide 2 the price comparison, slides 3-4 the 'paying for the label' point, final slide the save prompt.",
-    "source_label": "The Star",
-    "source_url": "https://www.thestar.com.my/aseanplus/aseanplus-news/2026/09/05/us-eggs-return-to-singapore-will-customers-shell-out-up-to-1480-for-a-dozen",
-    "observed_at": "2026-09-05",
-    "date_found": "2026-09-06"
+    "how_to_film": "Carousel: slide 1 hook stat ($129k record), slides 2-3 show the math (COE + loan + insurance + petrol per month), slide 4 the 3 questions to ask before bidding, slide 5 CTA.",
+    "source_label": "SmartCalculator SG",
+    "source_url": "https://www.smartcalculator.sg/articles/coe-bidding-dates-2026",
+    "observed_at": "2026-09-07",
+    "date_found": "2026-09-07"
   },
   {
-    "id": "trend-2026-09-06-pegula-comeback-fernandez",
+    "id": "trend-2026-09-07-antonelli-p19-win",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Jessica Pegula lost the first set 1-6 to Leylah Fernandez in the US Open third round this week, then rebuilt her serve and rhythm to win the next two sets 6-4, 6-3.",
-    "title": "She lost the first set 1-6 and still won the match",
-    "why_it_works": "The scoreline is dramatic and verifiable, and a brutal start followed by a full recovery is an honest, uncontrived way into why a bad financial start doesn't have to decide the year.",
+    "trend_source": "Kimi Antonelli started 19th on the grid at the Italian Grand Prix on 6 September and won, becoming the first Italian to win at Monza since 1966 - the clip of him waving to the crowd is going viral.",
+    "title": "What a P19-to-1st comeback teaches about financial plans that look wrecked",
+    "why_it_works": "The Antonelli story is dominating F1 feeds this week purely on the emotional high of an against-the-odds comeback, and 'starting from behind isn't the same as being out of it' maps cleanly onto real financial setbacks without a forced pivot.",
     "hooks": [
-      "Jessica Pegula lost the first set 1-6 at the US Open. She still won the match.",
-      "1-6. That's not a typo, that's how badly she lost the first set. Then she won the next two.",
-      "The scoreline after set one said it was over. Pegula didn't get the memo."
+      "This guy started 19th on the grid on Sunday and won the race, and it's the best money lesson I've seen all week.",
+      "Kimi Antonelli went from way at the back to first in one race, here's why that's exactly how a money comeback works too.",
+      "If your finances feel like you started P19, this Monza win is for you."
     ],
     "talking_points": [
-      "Pegula dropped the first set 1-6 to Leylah Fernandez in the US Open third round.",
-      "She reset her serve and rhythm to win the next two sets 6-4, 6-3 and advance.",
-      "A brutal start doesn't decide the outcome, what you do in the next set does.",
-      "The same is true after a bad financial year: the reset matters more than the rough start."
+      "Antonelli started 19th at Monza on 6 September and won, the first Italian to win the Italian GP since 1966.",
+      "A bad starting position - a late start on saving, a big debt, a missed decade of investing - is a disadvantage, not a disqualification.",
+      "What changed his race: he didn't try to fix everything in one lap, he closed the gap step by step as chances opened.",
+      "Same with catching up financially: consistent small moves - protection first, then savings, then growth - beat one heroic move."
     ],
-    "cta": "DM me 'RESET' if last year's numbers weren't what you wanted and you want a plan to turn it around.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Short video: open with a '1-6' text card, quick cuts building tension, voiceover the talking points over a highlight-style edit.",
-    "source_label": "WTA Tennis",
-    "source_url": "https://www.wtatennis.com/news/4572263/after-slow-start-pegula-pulls-off-comeback-to-beat-fernandez-at-us-open",
-    "observed_at": "2026-09-05",
-    "date_found": "2026-09-06"
+    "cta": "If you feel like you're starting from P19 financially, comment 'RESTART' and I'll share where to actually begin.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talk over a still image or your own reaction describing the race context, cut to talking head making the analogy, end with the CTA as on-screen text.",
+    "source_label": "The Washington Times",
+    "source_url": "https://www.washingtontimes.com/news/2026/sep/6/kimi-antonelli-f1-leader-wins-italian-gp-epic-charge-back/",
+    "observed_at": "2026-09-06",
+    "date_found": "2026-09-07"
   },
   {
-    "id": "trend-2026-09-06-navarro-upsets-muchova",
+    "id": "trend-2026-09-07-ferrari-monza-fail",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "sport",
+    "trend_source": "Ferrari, racing at its home Grand Prix at Monza on 6 September, had a torrid weekend while a backmarker-starting Mercedes driver won instead - fans are calling it a 'disasterclass' for the favourite.",
+    "title": "Even Ferrari has a bad day at home - why you need a plan B, not just a favourite",
+    "why_it_works": "Monza is Ferrari's home race and their struggle there this weekend is the 'favourite stumbles' story everyone's talking about - an easy, non-partisan sports angle for backup-plan thinking.",
+    "hooks": [
+      "Ferrari was supposed to win their home race on Sunday and had one of their worst days of the year instead.",
+      "The team everyone backed to win at Monza this weekend didn't even finish near the podium, and that's a planning lesson.",
+      "Watching Ferrari's Monza weekend made me think about why nobody should have just ONE financial plan."
+    ],
+    "talking_points": [
+      "At the 6 September Italian GP, Ferrari underperformed badly at their own home race while a driver starting 19th won.",
+      "Even the 'safest bet' can have a bad day - a single income, a single policy, or a single plan carries the same risk.",
+      "A backup plan isn't pessimism, it's what let other teams capitalise when the favourite faltered.",
+      "Practically: this means income protection alongside your main income, and checking whether one plan really covers your whole family's risk."
+    ],
+    "cta": "What's your financial 'plan B' if your main income stalled for 3 months? Tell me in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Text-post style: short paragraphs with line breaks, headline the hook, close with the open question as its own line.",
+    "source_label": "ESPN",
+    "source_url": "https://www.espn.com/racing/f1/story/_/id/49850758/ferrari-vintage-disasterclass-paves-way-kimi-antonelli-take-home-italian-gp-win-monza",
+    "observed_at": "2026-09-06",
+    "date_found": "2026-09-07"
+  },
+  {
+    "id": "trend-2026-09-07-tiafoe-medvedev-comeback",
     "platform": "instagram",
     "format": "story",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Emma Navarro upset 7th seed Karolina Muchova in the US Open third round this week, one of the more notable results as the tournament's second week approached.",
-    "title": "Nobody talked about her all tournament. Then she beat the 7 seed.",
-    "why_it_works": "A quiet, unhyped player beating reputation on the day it counts is a fair, unforced parallel to a financial plan that doesn't need to be flashy to actually work.",
+    "trend_source": "Frances Tiafoe beat Daniil Medvedev in a tie-break thriller at the US Open on 6 September, saving match points to record his first-ever win over Medvedev after six straight losses.",
+    "title": "6 losses, then the 7th time he finally won - the persistence story to post this week",
+    "why_it_works": "Tiafoe's breakthrough after six head-to-head losses is fresh and emotionally clean, and maps directly onto financial persistence - retrying after past 'failures' with money - without needing a stretch.",
     "hooks": [
-      "Emma Navarro just beat the 7th seed at the US Open. Barely anyone was talking about her going in.",
-      "No hype, no big buildup. She just went out and beat a seeded player at a Grand Slam.",
-      "The favourite doesn't always win. This week at the US Open, the quiet one did."
+      "This guy lost to the same opponent 6 times before finally winning on Saturday, and it's such a good reminder.",
+      "0 for 6, then he won in a tie-break, here's why giving up too early costs more than losing does.",
+      "Frances Tiafoe just beat his career nemesis after 6 tries, and I think about money the exact same way."
     ],
     "talking_points": [
-      "Emma Navarro upset 7th seed Karolina Muchova in the US Open third round this week.",
-      "She wasn't the story going into the match, Muchova's form was.",
-      "Quiet, clean execution beat reputation on the day it counted.",
-      "A plan that isn't flashy can still be the one that actually works when it matters."
+      "Tiafoe had lost 6 of 7 previous matches to Medvedev before finally beating him at the US Open on 6 September.",
+      "Financial 'losses' - a lapsed policy, a failed savings habit, a rejected claim - feel final but usually aren't, most people quit right before the pattern breaks.",
+      "What changed for Tiafoe wasn't luck, it was showing up prepared again despite the past record.",
+      "Translate this to money: review what didn't work before trying again, don't just repeat the same approach and hope."
     ],
-    "cta": "Which do you have right now: a flashy plan or one that actually works?",
+    "cta": "Reply with a money habit you gave up on after it 'failed' once, let's see if it's worth a second try.",
     "cta_type": "open-question",
-    "how_to_film": "Instagram Story sequence, 3 frames: scoreline/seed graphic, a quick quote or stat card, final frame with a poll sticker asking the question.",
-    "source_label": "WTA Tennis",
-    "source_url": "https://www.wtatennis.com/news/4572284/navarro-upsets-muchova-kostyuk-cruises-at-us-open",
-    "observed_at": "2026-09-05",
-    "date_found": "2026-09-06"
+    "how_to_film": "Instagram Story, 3-4 frames: bold hook text on frame 1, quick text overlays for the talking points, a Yes/No poll sticker asking 'Ever quit something after 1 try?'",
+    "source_label": "ATP Tour",
+    "source_url": "https://www.atptour.com/en/news/tiafoe-medvedev-us-open-2026-sunday",
+    "observed_at": "2026-09-06",
+    "date_found": "2026-09-07"
   },
   {
-    "id": "trend-2026-09-06-gasly-maiden-pole-monza",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "Pierre Gasly claimed a shock maiden F1 pole position for Alpine at the Italian Grand Prix this week, beating Mercedes and McLaren, and said afterward it had been 'nine years chasing that one.'",
-    "title": "Nine years in F1 before his first pole position. He said that part out loud.",
-    "why_it_works": "A driver naming exactly how long his 'overnight' headline took is a rare, honest admission that maps directly onto how long real financial milestones actually take to build.",
-    "hooks": [
-      "Pierre Gasly just got his first F1 pole position. Nine years into his career.",
-      "'It's been nine years chasing that one' - that's a Formula 1 driver talking about his first pole, this week.",
-      "Nine years of racing before the headline moment. Nobody sees the nine years."
-    ],
-    "talking_points": [
-      "Gasly took a shock maiden pole position for Alpine at the Italian Grand Prix this week, ahead of Mercedes and McLaren.",
-      "He said afterward it had been 'nine years chasing that one.'",
-      "The headline moment is one race; the nine years before it is the actual story.",
-      "Most financial milestones work the same way: the 'overnight' result is really years of a boring habit."
-    ],
-    "cta": "Save this if you're a few years into a plan that hasn't had its 'headline moment' yet.",
-    "cta_type": "save-share",
-    "how_to_film": "Short video: open with a '9 years' text card, cut to the pole position graphic or result, voiceover the talking points.",
-    "source_label": "Formula 1",
-    "source_url": "https://www.formula1.com/en/latest/article/its-been-nine-years-chasing-it-gasly-reacts-to-shock-pole-position-for-italian-grand-prix.1FAPJfIGhtgTCJ9U3FBPQE",
-    "observed_at": "2026-09-05",
-    "date_found": "2026-09-06"
-  },
-  {
-    "id": "trend-2026-09-06-zverev-five-set-marathon",
+    "id": "trend-2026-09-07-sabalenka-threepeat-bid",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "interest",
+    "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Alexander Zverev, the US Open's No. 1 seed, won his second straight five-set match this week, grinding past Quentin Halys 6-4, 4-6, 7-6, 6-7, 6-3 in 4 hours 33 minutes to become the first top seed in the Open Era to open a Slam with back-to-back five-setters.",
-    "title": "The No. 1 seed has spent 2 rounds fighting for his tournament life. He's still in it.",
-    "why_it_works": "It's a clean, verifiable grit story where staying in the fight matters more than any single round looking easy, an honest parallel to sticking with a financial plan through a hard stretch.",
+    "trend_source": "Aryna Sabalenka overpowered Taylor Townsend on 6 September to reach her sixth straight US Open quarterfinal, putting her three wins from becoming the first woman since Serena Williams to win three US Open titles in a row.",
+    "title": "What defending a title, not just winning it once, actually takes",
+    "why_it_works": "Sabalenka's bid to become the first three-peat US Open champion since Serena Williams is a clean, non-partisan hook about sustaining success, mirroring the harder, less glamorous work of protecting wealth versus just building it.",
     "hooks": [
-      "The world's top seed has needed 5 sets in both his matches so far. He's still standing.",
-      "Nearly 9 hours on court in 2 rounds. That's what it's taken the No. 1 seed just to stay in the tournament.",
-      "Nobody's best year looks smooth from the inside. Not even the top seed's."
+      "Aryna Sabalenka is three wins away from a feat no woman has done since Serena Williams, and it's not about talent anymore.",
+      "Winning once is hard. Winning the same thing three years running is a completely different skill.",
+      "This week's US Open storyline made me rethink how I talk about 'reaching' a goal versus keeping it."
     ],
     "talking_points": [
-      "Alexander Zverev, the tournament's No. 1 seed, won back-to-back five-set matches to open the US Open.",
-      "The second, against Quentin Halys, took 4 hours 33 minutes and finished 6-3 in the fifth.",
-      "He's the first top seed in the Open Era to start a Slam with two straight five-setters.",
-      "Staying in the game through the hard stretch matters more than any single round looking easy."
+      "Sabalenka reached her sixth consecutive US Open quarterfinal on 6 September and is chasing a third straight US Open title.",
+      "Building wealth, a business, or a career gets attention; protecting and sustaining it rarely does, but it's the harder job.",
+      "The 'defending champion' mindset in money terms: insurance, an updated will, reviewing cover as your assets grow, not just accumulating more.",
+      "Most people plan for the win. Fewer plan for what happens after they've already won."
     ],
-    "cta": "Book a call if this year's numbers have felt more like a five-setter than a straight-sets win.",
+    "cta": "If you've hit a financial goal already, book a call and let's talk about protecting it, not just growing it further.",
     "cta_type": "book-call",
-    "how_to_film": "LinkedIn text post, short paragraphs, reflective tone, end with the book-a-call line.",
-    "source_label": "US Open",
-    "source_url": "https://www.usopen.org/en_US/news/articles/2026-09-04/alexander_zverev_wins_another_2026_us_open_five-set_marathon.html",
-    "observed_at": "2026-09-04",
-    "date_found": "2026-09-06"
+    "how_to_film": "Text-post: short punchy opening line, one idea per paragraph with line breaks, CTA as its own closing line.",
+    "source_label": "ESPN",
+    "source_url": "https://www.espn.com/tennis/story/_/id/49850415/sabalenka-overpowers-townsend-reach-us-open-quarterfinals",
+    "observed_at": "2026-09-06",
+    "date_found": "2026-09-07"
   },
   {
-    "id": "trend-2026-09-06-community-shield-season-opener",
+    "id": "trend-2026-09-07-pump-dump-scam-advisory",
+    "platform": "facebook",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Singapore Police issued an advisory on 5 September flagging a resurgence of 'pump and dump' stock scams, with 21 cases reported since July involving fraudsters posing as investment experts on social media.",
+    "title": "The 'investment expert' in your Telegram group is probably not one",
+    "why_it_works": "A fresh police advisory this week gives a credible, timely news hook for scam-awareness content that builds trust in a licensed advisor without pitching any product.",
+    "hooks": [
+      "Singapore Police just warned about a stock scam that's hit 21 people since July, and the pattern is always the same.",
+      "If someone in a Telegram or WhatsApp group is hyping a stock you've never heard of, read this first.",
+      "Police flagged a comeback of 'pump and dump' scams this week, here's exactly how they work."
+    ],
+    "talking_points": [
+      "SPF's 5 September advisory reports 21 pump-and-dump stock scam cases since July, where scammers pose as investment experts on social media to hype overseas-listed shares before selling and crashing the price.",
+      "Red flags: unsolicited stock tips in group chats, pressure to buy 'before it's too late', and 'proof' of past gains you can't verify.",
+      "A licensed advisor is checkable on the MAS Financial Institutions Directory, a random Telegram admin is not.",
+      "This isn't about which stock is 'safe', it's about never taking investment instructions from someone you can't verify."
+    ],
+    "cta": "Tag a friend who's in one too many 'stock tip' group chats, this one's for them.",
+    "cta_type": "save-share",
+    "how_to_film": "Text-post: open with the police advisory headline as a quote-style graphic, list the 3 red flags as bullet points, close with the CTA line.",
+    "source_label": "Malay Mail",
+    "source_url": "https://www.malaymail.com/news/singapore/2026/09/05/singapore-police-flag-comeback-of-pump-and-dump-stock-scams-21-cases-reported-since-july/234006",
+    "observed_at": "2026-09-05",
+    "date_found": "2026-09-07"
+  },
+  {
+    "id": "trend-2026-09-07-99-sale-budgeting",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "event",
+    "trend_source": "Shopee and Lazada's 9.9 Super Shopping Day runs 8-14 September, peaking on 9 September - the second-biggest shopping event of the year in Singapore after 11.11.",
+    "title": "The 9.9 sale trick that has nothing to do with the discount code",
+    "why_it_works": "9.9 is one of the two biggest shopping moments of the Singapore calendar and lands this week - a light budgeting angle rides real consumer behaviour without lecturing anyone out of shopping.",
+    "hooks": [
+      "9.9 starts tomorrow and I already have 14 items in my cart, so let's talk about the one rule I use.",
+      "Before you hit checkout on 9.9, try this 24-hour trick that's saved me hundreds.",
+      "Everyone's stacking vouchers for 9.9 this week, here's the one thing nobody stacks: a limit."
+    ],
+    "talking_points": [
+      "Shopee and Lazada's 9.9 Super Shopping Day runs 8-14 September, peaking on the 9th, the second-biggest sale of the year after 11.11.",
+      "Set a hard cap before opening the app, decide the number first, then shop, not the other way round.",
+      "'On sale' isn't the same as 'needed', the trick is asking if you'd still buy it at full price next week.",
+      "Redirect the money you saved, not spent, even $20 saved from a 9.9 haul is $20 you can actually track."
+    ],
+    "cta": "Comment your 9.9 budget cap and I'll check back in on you after the sale ends.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Screen-record yourself scrolling a shopping cart, voiceover the talking points, end by writing your budget cap on a sticky note to camera.",
+    "source_label": "MissLobang",
+    "source_url": "https://www.misslobang.com/article/77-sale-singapore-2026-best-online-deals-vouchers",
+    "observed_at": "2026-09-07",
+    "date_found": "2026-09-07"
+  },
+  {
+    "id": "trend-2026-09-07-apple-iphone18-financing",
     "platform": "instagram",
     "format": "carousel",
     "pillar": "interest",
     "trend_type": "event",
-    "trend_source": "Singapore's football season officially restarts today (6 Sept) with the Community Shield at Jalan Besar Stadium, defending champions Lion City Sailors against a rebuilt Tampines Rovers under new head coach Nazri Nasir.",
-    "title": "New season, new coach, 11 new signings. Nobody's résumé from last season counts today.",
-    "why_it_works": "A season restart is a genuine, dated 'everyone's back at zero' moment that gives a natural, non-forced cue to review a financial plan rather than just carry the old one forward.",
+    "trend_source": "Apple's iPhone event is set for 9 September 2026, expected to unveil the iPhone 18 Pro and Apple's first foldable iPhone, with pre-orders following days later.",
+    "title": "Before you finance the new foldable iPhone, run this math",
+    "why_it_works": "Apple's launch event lands this week and a genuinely new category, the first foldable iPhone, means a new, higher price point - a natural moment to talk instalment plans and opportunity cost without moralising about phones.",
     "hooks": [
-      "Singapore's football season restarts today. Last season's title doesn't play a single minute of it.",
-      "New coach, 11 new signings, and the reigning champs still have to prove it again from zero.",
-      "Today's the reset button for an entire football season. When's yours for your finances?"
+      "Apple's foldable iPhone gets announced this week and I already know how people are going to pay for it.",
+      "Before you sign up for 24-month instalments on the new iPhone, do this 60-second check.",
+      "New phone, new price tag, here's the one question to ask before you finance it."
     ],
     "talking_points": [
-      "The 2026/27 Singapore football season kicks off today with the Community Shield: Lion City Sailors vs Tampines Rovers.",
-      "Tampines have a new head coach and the Sailors have 11 new signings, so last season counts for nothing today.",
-      "A new season means everyone starts back at zero, regardless of how last year went.",
-      "The same reset works for money: a new season is a natural point to review, not just carry the old plan forward."
+      "Apple's 9 September event is expected to unveil the iPhone 18 Pro and its first foldable iPhone, likely at a new, higher price tier.",
+      "Instalment and BNPL plans make the monthly number feel small, always look at the total cost, not the monthly figure.",
+      "Ask: does this replace a phone that still works, or is it an upgrade for its own sake?",
+      "If you finance it, treat the instalment like any other fixed monthly commitment the next time you review your budget."
     ],
-    "cta": "Save this as your reminder to do your own season reset this month.",
+    "cta": "Save this carousel before you queue up for pre-order day.",
     "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 the matchup graphic, slide 2 a 'new season, new coach, new signings' stat card, slides 3-4 the reset point, final slide the save prompt.",
-    "source_label": "Singapore Premier League",
-    "source_url": "https://spl.sg/news/sailors-and-tampines-renew-rivalry-in-community-shield-clash/",
+    "how_to_film": "Carousel: slide 1 hook, slide 2 event facts, slide 3 the total-cost-vs-monthly-cost example, slide 4 the one question to ask, slide 5 CTA.",
+    "source_label": "Forbes",
+    "source_url": "https://www.forbes.com/sites/davidphelan/2026/09/06/apple-iphone-18-pro-release-date-schedule-your-complete-september-countdown/?streamIndex=0",
     "observed_at": "2026-09-06",
-    "date_found": "2026-09-06"
+    "date_found": "2026-09-07"
   },
   {
-    "id": "trend-2026-09-06-lykn-concert-singapore",
-    "platform": "tiktok",
-    "format": "short-video",
+    "id": "trend-2026-09-07-sept-school-holiday-budget",
+    "platform": "facebook",
+    "format": "text-post",
     "pillar": "interest",
     "trend_type": "event",
-    "trend_source": "Thai boy band LYKN plays their first-ever Singapore show tonight at The Theatre at Mediacorp as part of their debut Dusk & Dawn World Tour, with tickets ranging from $60 to $389.",
-    "title": "Tickets from $60 to $389 for tonight's show. Which one did you actually plan for?",
-    "why_it_works": "It's a real, dated concert everyone in the fandom is talking about tonight, and it gives a light, non-judgmental way to talk about planning a splurge instead of shaming it.",
+    "trend_source": "Singapore's September school holidays run 5-13 September 2026, giving families a rare mid-year travel window bookended by Teachers' Day.",
+    "title": "The school holiday spend nobody budgets for until it's over",
+    "why_it_works": "The September break is happening this exact week for every parent in Singapore, making a light, practical budgeting angle timely and useful rather than generic.",
     "hooks": [
-      "LYKN's first Singapore show is tonight, tickets go from $60 all the way to $389.",
-      "If you're at the LYKN concert tonight, be honest: did you budget for that ticket or wing it?",
-      "Tonight's concert ticket range is $60 to $389. Both are fine if you planned for it."
+      "We're deep into the September school holidays and my wallet already knows it.",
+      "If you're filling these 9 days of school holidays with activities, here's a trick before the credit card bill arrives.",
+      "September holidays are here, and this is the one number every parent should check before booking anything else."
     ],
     "talking_points": [
-      "LYKN plays their first Singapore show tonight at The Theatre at Mediacorp, part of their debut world tour.",
-      "Tickets range from $60 to $389 depending on category.",
-      "A concert splurge doesn't need to be a regret, it just needs to be planned rather than reactive.",
-      "Setting aside a 'fun fund' each month means the next concert doesn't compete with your rent or savings."
+      "Singapore's September school holidays run from 5 to 13 September 2026, a shorter but real travel and activity window for families.",
+      "Short breaks often cost more per day than long ones because everything is last-minute, checking total spend upfront avoids surprise bills.",
+      "If travelling, a quick check on travel insurance coverage takes 5 minutes and covers more than people assume: medical, delays, lost baggage.",
+      "Treat the holiday spend as its own mini-budget separate from daily expenses so it doesn't quietly eat into savings for the rest of the month."
     ],
-    "cta": "DM me 'FUNFUND' and I'll share how to set one up without touching your savings goals.",
-    "cta_type": "dm-keyword",
-    "how_to_film": "Short video: concert poster or ticket price graphic, quick talking points to camera, energetic tone matching the concert excitement.",
-    "source_label": "FACT Magazines",
-    "source_url": "https://www.factmagazines.com/singapore/things-to-do-in-singapore",
-    "observed_at": "2026-09-05",
-    "date_found": "2026-09-06"
+    "cta": "Comment 'HOLIDAY' and I'll send you a quick checklist for covering a short family trip without overspending.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text-post: relatable opening line, bullet-point checklist format for the talking points, casual family-trip style image if used.",
+    "source_label": "WuKong Education",
+    "source_url": "https://www.wukongsch.com/blog/singapore-school-holidays-psle-post-64066/",
+    "observed_at": "2026-09-07",
+    "date_found": "2026-09-07"
   },
   {
-    "id": "trend-2026-09-06-gold-star-behaviour-trend",
-    "platform": "facebook",
-    "format": "carousel",
-    "pillar": "identity",
-    "trend_type": "meme",
-    "trend_source": "A new social trend called 'Gold Star Behaviour' broke out on Instagram and TikTok this month: a photo overlaid with gold stars and a caption listing small, unglamorous things people are giving themselves credit for, like buying less and making considered choices instead of chasing big, dramatic wins.",
-    "title": "Give yourself a gold star for the boring money win nobody claps for",
-    "why_it_works": "The trend format already celebrates small, unglamorous wins over dramatic ones, so it maps onto quiet financial wins almost without needing a bridge at all.",
+    "id": "trend-2026-09-07-sia-dbs-fare-promo",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "interest",
+    "trend_type": "event",
+    "trend_source": "Singapore Airlines is running a DBS/POSB card promo from 8-14 September offering S$50 off return fares, part of a wider sale with fares from S$158, alongside a Mastercard KrisPay offer.",
+    "title": "The credit card promo that's actually worth the 5 minutes",
+    "why_it_works": "A live, dated card promo this week is a concrete, low-stakes hook for a broader point about using card perks intentionally instead of chasing every point scheme - a natural segue into planning around irregular expenses like travel.",
     "hooks": [
-      "There's a trend right now called 'Gold Star Behaviour' - you post the boring thing you did right and give yourself credit for it.",
-      "Gold star for not touching my emergency fund this month. That's the whole post.",
-      "The internet's newest trend is just people giving themselves credit for the unglamorous stuff. I've got one for you."
+      "There's a $50 off flight promo running this week that most people won't use because they didn't know about it.",
+      "SIA and DBS have a fare deal live right now, and here's the actual math on whether it's worth it.",
+      "Before you book that flight this week, check if your card already covers this discount."
     ],
     "talking_points": [
-      "'Gold Star Behaviour' is trending on Instagram and TikTok: a photo, gold stars, and a caption crediting a small, unglamorous win.",
-      "Most examples are about buying less and making considered choices, not big dramatic wins.",
-      "The trend format fits money perfectly: paying off a card, hitting a savings milestone, reviewing a policy nobody notices.",
-      "Recognising the boring wins is often what keeps people consistent long enough to hit the big ones."
+      "SIA's DBS/POSB promo runs 8-14 September for S$50 off return fares, on top of a wider sale with fares from S$158 to over 70 destinations.",
+      "Card perks and promos are only useful if they fit a trip you were already planning, not a reason to book one you weren't.",
+      "The real value isn't the $50, it's building the habit of checking what your card already gives you before paying full price for anything.",
+      "The same 'check before you pay' habit applies to insurance riders and CPF-linked benefits people forget they have."
     ],
-    "cta": "Comment your own gold star money win below, I'll start: mine's finally reviewing my CPF nominations.",
+    "cta": "What's a card perk or benefit you forgot you had? Tell me below.",
+    "cta_type": "open-question",
+    "how_to_film": "Text-post: short paragraphs with line breaks, close with the open question as its own line.",
+    "source_label": "SingPromos",
+    "source_url": "https://singpromos.com/airlines-flights/singapore-airlines-promo-has-fares-fr-s158-to-over-70-destinations-book-from-21-aug-to-10-sep-2026-305593/",
+    "observed_at": "2026-09-07",
+    "date_found": "2026-09-07"
+  },
+  {
+    "id": "trend-2026-09-07-one-that-got-away-sound",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "culture",
+    "trend_source": "Katy Perry's 'The One That Got Away' is TikTok's biggest trending sound this week, used in over 42 million videos for nostalgia and regret-themed clips.",
+    "title": "The financial 'one that got away', and why it's not too late",
+    "why_it_works": "Riding TikTok's single biggest trending sound this week, with its built-in nostalgia and regret theme, gives an easy format for a message about acting now instead of dwelling on missed financial decisions.",
+    "hooks": [
+      "Everyone's using this sound for their ex, I'm using it for the insurance policy I didn't buy at 25.",
+      "'The One That Got Away' is stuck in my head, so here's my financial one that got away.",
+      "This trending sound made me think about the money decision I keep putting off, not my ex."
+    ],
+    "talking_points": [
+      "'The One That Got Away' is TikTok's top trending sound this week, used in over 42 million videos, mostly for nostalgia and regret.",
+      "The financial version: the plan you didn't start, the policy you didn't take up, the habit you meant to build, it feels like a closed door but usually isn't.",
+      "Unlike an ex, most financial 'ones that got away' can still be started today, later is more expensive but rarely impossible.",
+      "Name the one thing you've been putting off, then take the smallest possible first step on it this week."
+    ],
+    "cta": "Comment your financial 'one that got away' and I'll tell you if it's really too late.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Carousel or single image in the trend's own format: plain photo, 'Gold Star Behaviour' text overlay, gold stars scattered, your financial win captioned below.",
-    "source_label": "Mean.ceo Social Trends",
-    "source_url": "https://blog.mean.ceo/current-social-media-trends-september-2026/",
-    "observed_at": "2026-09-05",
-    "date_found": "2026-09-06"
+    "how_to_film": "Use the trending sound, lip-sync the chorus, cut to a text overlay revealing your 'financial one that got away', end on a to-camera line with the CTA.",
+    "source_label": "Tokchart",
+    "source_url": "https://tokchart.com/",
+    "observed_at": "2026-09-06",
+    "date_found": "2026-09-07"
   }
 ]
