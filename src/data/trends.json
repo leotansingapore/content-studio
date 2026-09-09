@@ -1,338 +1,366 @@
 [
   {
-    "id": "trend-2026-09-08-appec-oil-surge",
+    "id": "trend-2026-09-09-coe-record-premiums",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "market",
     "trend_type": "news",
-    "trend_source": "Global oil traders are in Singapore this week for APPEC 2026 (7-10 Sept, ~1,500 delegates) as Brent crude pushes back above $100/barrel on fresh Strait of Hormuz supply risk, more than six months into the US-Iran conflict.",
-    "title": "What a Singapore oil conference has to do with your grocery bill",
-    "why_it_works": "Energy price headlines feel abstract but hit real household costs (fuel, electricity, imported goods) - using APPEC as the hook makes a usually-invisible story concrete and gives a natural, judgement-free prompt to check emergency-fund resilience without any market call.",
+    "trend_source": "Singapore's September COE bidding exercise closed today (9 Sept, 4pm) with Category A at $128,501 (+3.7%) and Category B at $131,001 (+0.8%), both up from August, while motorcycle COE jumped 7.6% to $11,301.",
+    "title": "COE just got more expensive again, here's the money move before you sign",
+    "why_it_works": "A same-day, hyper-local number everyone driving or car-shopping feels immediately - a pure financing-math bridge, not a car recommendation, with zero product pitch.",
     "hooks": [
-      "1,500 oil traders are in Singapore this week because crude just spiked past $100 a barrel again, and here's why that matters to you.",
-      "Oil prices just jumped on fresh Middle East supply risk, and it's going to show up in your electricity bill before your portfolio.",
-      "The oil conference happening in Singapore right now is a good excuse to ask: what's your plan if costs spike for a few months?"
+      "COE closed today at $128,501 for Cat A, that's up again from August, and I want to talk about the number nobody budgets for.",
+      "If you're eyeing a new car after today's COE result, do this 10-minute math before you walk into the showroom.",
+      "Motorcycle COE jumped 7.6% today and it's the clearest example of why 'it's just a loan' thinking gets people stuck."
     ],
     "talking_points": [
-      "APPEC 2026, the region's biggest oil conference, opened in Singapore on 7 September with Brent crude pushing back above $100 a barrel on fresh Strait of Hormuz supply risk.",
-      "Energy price spikes flow through fast in Singapore - electricity tariffs, petrol, and the cost of anything shipped or manufactured overseas.",
-      "This isn't a call to trade oil or predict where prices go next, it's a reminder that a 3-6 month expense buffer matters most exactly when headlines get noisy.",
-      "Check now, not later: does your emergency fund actually cover a stretch of higher bills, or was it sized for calmer times?"
+      "September COE bidding closed today with Category A at $128,501 (up 3.7% from August) and Category B at $131,001 (up 0.8%), while motorcycle COE (Category D) jumped 7.6% to $11,301.",
+      "A rising COE doesn't just change the price tag, it changes the loan size, the monthly instalment, and how long that instalment eats into your cash flow.",
+      "Before financing, run the total cost of ownership over the loan tenure, not just the monthly number the salesperson quotes you.",
+      "If the number only works assuming nothing else goes wrong for 7 years, it's not actually within budget yet."
     ],
-    "cta": "Comment 'BUFFER' and I'll send you a 2-minute way to check if your emergency fund is actually sized for a bumpy few months.",
+    "cta": "Comment 'COE' and I'll send you the 3-line math to run before you finance any vehicle in this market.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talking head, text-post style delivery to camera or written text-post; overlay the Brent crude $100/barrel figure as an on-screen stat; close on the CTA line.",
-    "source_label": "Bloomberg (via BusinessMirror)",
-    "source_url": "https://businessmirror.com.ph/2026/09/07/oil-traders-head-for-singapore-as-new-risks-build/",
-    "observed_at": "2026-09-07",
-    "date_found": "2026-09-08"
+    "how_to_film": "Text-post: open with today's Cat A figure as a bold stat graphic, 3-4 short punchy lines, close with the CTA.",
+    "source_label": "Motorist Singapore",
+    "source_url": "https://www.motorist.sg/coe-results",
+    "observed_at": "2026-09-09",
+    "date_found": "2026-09-09"
   },
   {
-    "id": "trend-2026-09-08-sti-oil-caution",
+    "id": "trend-2026-09-09-cost-of-living-payment",
     "platform": "facebook",
     "format": "text-post",
-    "pillar": "market",
+    "pillar": "topic",
     "trend_type": "news",
-    "trend_source": "Singapore's Straits Times Index eased slightly in the 7 September session as the same oil-price surge and geopolitical risk driving APPEC's agenda made investors cautious, even as semiconductor stocks rallied elsewhere in Asia.",
-    "title": "The STI dipped today. Here's why that shouldn't change what you do.",
-    "why_it_works": "Pairs a same-day, Singapore-specific market headline with a plain behavioural message - gives a low-risk way to talk about staying the course without predicting anything or naming a stock.",
+    "trend_source": "The Enhanced Budget 2026 Cost-of-Living Special Payment of $400-$600 started crediting automatically to over 2.4 million eligible Singapore citizens today, 9 September.",
+    "title": "Your Cost-of-Living payment lands today, here's the 60-second plan before it disappears into daily spending",
+    "why_it_works": "Money literally hitting bank accounts today with zero forced pivot - a genuinely useful, judgement-free prompt on intentional use of a windfall.",
     "hooks": [
-      "The STI dipped a little today on oil price jitters, and I want to talk about why that single day barely matters.",
-      "Singapore's stock market wobbled today while other Asian markets rallied, and that split screen is actually a good lesson.",
-      "If you checked your portfolio today and felt a twinge seeing red, read this before you do anything."
+      "If you're a Singapore citizen, up to $600 should be landing in your account today, here's what I'd do with it right now.",
+      "The Cost-of-Living Special Payment started crediting today, and the difference between people who keep it and people who don't isn't income.",
+      "$400 to $600 just landed for millions of Singaporeans today, before it blends into your normal spending, read this."
     ],
     "talking_points": [
-      "The Straits Times Index eased slightly in the 7 September session as oil-price and geopolitical concerns tied to this week's APPEC conference weighed on sentiment, even as other Asian markets rallied.",
-      "A single-day dip driven by a headline is noise, not a signal - reacting to every red day is how people lock in losses that would have recovered.",
-      "This is not a call on where the market goes next - it's a reminder that your allocation should already assume days like this happen.",
-      "If a 1% daily move makes you want to act, the real fix is checking whether your portfolio matches your actual risk comfort, not timing the next move."
+      "The Enhanced Budget 2026 Cost-of-Living Special Payment of $400-$600 began crediting automatically to eligible Singapore citizens today, 9 September, with more support for lower-income households.",
+      "Unplanned money almost always gets absorbed into everyday spending within days unless it's assigned a job the moment it lands.",
+      "A simple split works: part to a bill you know is coming, part to your buffer fund, and only what's left to discretionary spending.",
+      "This isn't about not enjoying it, it's about deciding on purpose instead of finding out where it went a month from now."
     ],
-    "cta": "What's your rule for handling a red day? Reply below, I'm curious what people actually do.",
+    "cta": "Comment 'PAYOUT' and I'll send you the 3-way split I use for windfalls like this one.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text-post: lead with the $400-$600 figure as the hook line, bullet the 3-way split, close on CTA.",
+    "source_label": "Ministry of Finance",
+    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/over-2-4-million-singapore-citizens-to-receive-between--400-and--600-from-the-enhanced-budget-2026-cost-of-living--col--special-payment-in-september-2026/",
+    "observed_at": "2026-09-09",
+    "date_found": "2026-09-09"
+  },
+  {
+    "id": "trend-2026-09-09-ai-tasks-not-jobs",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Minister Ong Ye Kung told students at NUS's Kent Ridge Ministerial Forum this week (7 Sept) that AI is mainly replacing tasks rather than whole jobs, citing graduate employment falling from 92.9% to 88.9% between 2023 and 2025.",
+    "title": "A minister just told graduates AI takes tasks, not jobs, here's the income-planning version of that",
+    "why_it_works": "A fresh, credible SG government statement directly about career and income risk - a natural, non-alarmist opening to talk about income resilience without any product pitch.",
+    "hooks": [
+      "A minister told students this week that AI replaces tasks, not entire jobs, and I think that distinction matters for your income plan too.",
+      "Graduate employment dropped from 92.9% to 88.9% in two years, that stat came up in a speech this week and it's worth sitting with.",
+      "If AI is quietly eating parts of your job rather than the whole thing, here's how that should change your money plan."
+    ],
+    "talking_points": [
+      "At NUS's Kent Ridge Ministerial Forum this week (7 September), Ong Ye Kung said AI mainly replaces individual tasks rather than entire jobs, pointing to graduate employment falling from 92.9% in 2023 to 88.9% in 2025.",
+      "A 'tasks not jobs' world still means income disruption - fewer hours, a slower promotion, a role redefined - even without a layoff headline.",
+      "The practical response isn't panic, it's making sure your expenses aren't built assuming your current income and role never change.",
+      "Treat one new skill or income stream as its own small project this quarter, not a someday plan."
+    ],
+    "cta": "What's one skill you've been meaning to pick up but keep pushing back? Tell me in the comments.",
     "cta_type": "open-question",
-    "how_to_film": "Text-post: short lines, bold the STI stat as the opening line, close with the open question on its own line.",
-    "source_label": "Smartkarma (Singapore Market Roundup)",
-    "source_url": "https://www.smartkarma.com/insights/singapore-market-roundup-07-sep-2026-sti-inclusion-could-raise-first-resources-share-price",
+    "how_to_film": "Text-post: open with the graduate employment stat as a bold callout, short punchy lines, close with the open question.",
+    "source_label": "Little Big Red Dot",
+    "source_url": "https://littlebigreddot.com/ong-ye-kung-ai-tasks-not-jobs-kent-ridge-forum-7-september-2026/",
     "observed_at": "2026-09-07",
-    "date_found": "2026-09-08"
+    "date_found": "2026-09-09"
   },
   {
-    "id": "trend-2026-09-08-surrender-cobra",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "meme",
-    "trend_source": "ESPN's broadcast camera caught a college football fan clutching her phone above her head in visible panic during Ole Miss's wild 41-38 season-opening win over Louisville on 6 September, and the reaction clip - dubbed the 'surrender cobra' - went viral across TikTok and X.",
-    "title": "The 'surrender cobra' is basically what checking your portfolio during a dip looks like",
-    "why_it_works": "It's this weekend's single biggest sports-viral clip and the reaction is universally recognisable - using it self-deprecatingly ('me, not my clients') keeps it punching at yourself, not mocking anyone, while making a real behavioural-finance point.",
-    "hooks": [
-      "There's a video from this weekend of a football fan doing the 'surrender cobra' and it's exactly how I look checking my portfolio on a red day.",
-      "Everyone's using the 'surrender cobra' clip from Sunday's game for something dramatic, mine's about money.",
-      "That viral 'surrender cobra' reaction going around right now? That's most people's face during a normal market dip."
-    ],
-    "talking_points": [
-      "A fan's phone-clutching panic reaction during Ole Miss's 6 September comeback win over Louisville went viral this weekend as the 'surrender cobra.'",
-      "The instinct to compulsively check and catastrophise the moment something looks bad is human, but it's also the exact instinct that turns a temporary dip into a locked-in loss.",
-      "The fix isn't 'don't feel it', it's having a plan written down before the panic moment so you're not deciding anything in the surrender-cobra state.",
-      "Same goes for any 'emergency' spending decision - the calmer version of you from last week already knows the right call."
-    ],
-    "cta": "Comment 'COBRA' if you've ever panic-checked your bank app and I'll tell you the one rule that stopped me doing it.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Reference the viral clip and reaction generically on screen (don't name or feature the individual), cut to talking head doing an exaggerated 'surrender cobra' pose about your own finances, end on CTA text overlay.",
-    "source_label": "TMZ",
-    "source_url": "https://www.tmz.com/2026/09/07/university-of-mississippi-female-fan-goes-viral-during-football-game/",
-    "observed_at": "2026-09-07",
-    "date_found": "2026-09-08"
-  },
-  {
-    "id": "trend-2026-09-08-alcaraz-shelton-qf",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "Ben Shelton demolished Stefanos Tsitsipas 6-2, 6-3, 6-4 on 6 September to set up a US Open quarterfinal against defending champion Carlos Alcaraz, who returned from a four-month injury layoff to beat Tommy Paul in straight sets.",
-    "title": "Power vs consistency: the US Open quarterfinal that's really a money-personality quiz",
-    "why_it_works": "A genuinely blockbuster, freshly-dated matchup with two contrasting playing styles gives a clean, non-partisan hook for talking about aggressive-growth vs balanced financial approaches, without picking a winner or giving any investment recommendation.",
-    "hooks": [
-      "Shelton's power game meets Alcaraz's all-round consistency at the US Open this week, and it's basically two investing personalities on court.",
-      "One of these US Open quarterfinalists blasts a dozen aces a match, the other just doesn't miss - which one are you with money?",
-      "Alcaraz is back from a 4-month injury layoff and straight into a US Open quarterfinal, here's the patience lesson in that."
-    ],
-    "talking_points": [
-      "Ben Shelton beat Stefanos Tsitsipas in straight sets on 6 September to set up a quarterfinal against defending champion Carlos Alcaraz, playing his first tournament back after a 4-month injury layoff.",
-      "Shelton's game is high-risk, high-reward power; Alcaraz's is disciplined consistency across every part of the court - both can win, but they take very different paths.",
-      "Same with money: an aggressive-growth approach and a steady, diversified approach can both work, the failure mode is switching between them mid-plan out of impatience.",
-      "Alcaraz's comeback after 4 months out is also its own lesson - stepping away from a plan isn't the same as being finished with it."
-    ],
-    "cta": "Save this if you're not sure whether your money approach matches your actual risk comfort, we can figure it out on a call.",
-    "cta_type": "book-call",
-    "how_to_film": "Carousel: slide 1 hook with both players, slide 2 the contrasting stats/styles, slide 3 the investing-personality parallel, slide 4 the comeback-after-injury point, slide 5 CTA.",
-    "source_label": "ATP Tour",
-    "source_url": "https://www.atptour.com/en/news/shelton-tsitsipas-us-open-2026-r4",
-    "observed_at": "2026-09-06",
-    "date_found": "2026-09-08"
-  },
-  {
-    "id": "trend-2026-09-08-zheng-qualifier-upset",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "Qualifier Zheng Qinwen came back from 5-0 down to beat 2022 champion Iga Swiatek 7-5, 6-3 at the US Open on 7 September, becoming the first qualifier to reach the quarterfinals at Flushing Meadows since Emma Raducanu's title run in 2021.",
-    "title": "She entered as a qualifier and just beat a former champion from 5-0 down",
-    "why_it_works": "An extraordinary, freshly-dated underdog story (had to qualify just to enter the main draw, then came back from 5-0) gives a clean 'starting from zero isn't the same as being out of contention' message with zero forced pivot.",
-    "hooks": [
-      "She had to qualify just to get into the US Open main draw. Yesterday she beat a former champion from 5-0 down.",
-      "Zheng Qinwen entered this US Open as a qualifier and is now through to the quarterfinals, here's why that start doesn't matter anymore.",
-      "This is the first qualifier to reach US Open quarterfinals since 2021, and it's a great reminder about starting from behind."
-    ],
-    "talking_points": [
-      "Zheng Qinwen, who had to play through qualifying rounds to enter the tournament, beat 2022 champion Iga Swiatek from a 5-0 first-set deficit on 7 September, becoming the first qualifier to reach the US Open quarterfinals since Emma Raducanu in 2021.",
-      "Where you start - qualifying rounds, a late start on saving, no safety net - says nothing about where you can finish.",
-      "The 5-0 comeback wasn't one lucky shot, it was game after game of just not giving up the next point - financial comebacks work the same way, one decision at a time.",
-      "If you're comparing your starting point to someone else's, compare it to your own a year ago instead."
-    ],
-    "cta": "Comment 'QUALIFIER' if you feel like you're starting from behind financially and I'll share where to actually begin.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Talking head reacting to the score line as on-screen text (5-0 down, final score), cut to camera making the comeback analogy, end with CTA text overlay.",
-    "source_label": "The Washington Times",
-    "source_url": "https://www.washingtontimes.com/news/2026/sep/7/qinwen-erases-another-5-0-deficit-beats-swiatek-reach-us-open/",
-    "observed_at": "2026-09-07",
-    "date_found": "2026-09-08"
-  },
-  {
-    "id": "trend-2026-09-08-nfl-seahawks-patriots-rematch",
+    "id": "trend-2026-09-09-sia-krakatau-delays",
     "platform": "facebook",
     "format": "text-post",
-    "pillar": "interest",
-    "trend_type": "sport",
-    "trend_source": "The Seattle Seahawks host the New England Patriots on 9 September in a rematch of Super Bowl LX (which Seattle won 29-13) - the first season to open with a Super Bowl rematch in 10 years, and the NFL's first-ever Wednesday season opener.",
-    "title": "The NFL is replaying February's Super Bowl to open the season, here's the budgeting angle",
-    "why_it_works": "A rare, specifically-dated scheduling quirk (first Wednesday opener, first Super Bowl-rematch opener in a decade) makes this genuinely newsworthy this week, and game-day spending is a real, relatable household cost with no forced pivot.",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Singapore Airlines rescheduled multiple Changi-Jakarta flights on 8 September and added relief flights after Anak Krakatau volcanic activity disrupted the route, with some flights delayed up to 10 hours.",
+    "title": "SIA just delayed a bunch of Jakarta flights, here's the travel buffer most people skip",
+    "why_it_works": "A real, dated disruption story about delays and rerouting only - an honest, practical opening for travel-planning and buffer-fund content, with no forced or tasteless pivot.",
     "hooks": [
-      "The NFL is opening its season by literally replaying February's Super Bowl, and it's the first time that's happened in 10 years.",
-      "If you're planning a game-day watch party for Wednesday's Seahawks-Patriots rematch, do this one thing first.",
-      "New season, same two teams as the Super Bowl, here's what a rematch like this teaches about reassessing after a loss."
+      "SIA delayed several Jakarta flights by hours yesterday because of volcanic ash, and it's a good reminder for anyone with a trip booked soon.",
+      "If your flight got pushed back yesterday because of the Krakatau disruption, here's the one thing to check before you rebook anything.",
+      "Volcanic ash delayed flights out of Changi yesterday, not the first time this year, here's how I'd plan around it."
     ],
     "talking_points": [
-      "The Seattle Seahawks host the New England Patriots on 9 September in a rematch of February's Super Bowl LX, the first Super Bowl-rematch season opener in a decade and the NFL's first-ever Wednesday opener.",
-      "Game-day spending - food delivery, drinks, merch, a bigger TV 'just for the season' - is real discretionary spend that's easy to lose track of over a whole season.",
-      "A losing team doesn't scrap the whole plan, they review what didn't work and adjust - the same applies after a financial setback, not everything needs rebuilding.",
-      "If you're hosting or heading out for the opener, set the spend before kickoff, not after the final score."
+      "Singapore Airlines rescheduled several Changi-Jakarta flights on 8 September, with some delayed by up to 10 hours, and added relief flights after volcanic activity from Anak Krakatau disrupted the route.",
+      "Travel insurance and airline rebooking policies usually only pay out for delays past a certain threshold - know your own policy's fine print before you're the one stuck at the gate.",
+      "A short buffer day between flights and fixed plans (a hotel check-in, a connecting flight, a meeting) absorbs disruptions like this without turning into a cascading cost.",
+      "This isn't about avoiding travel, it's about checking your travel insurance coverage before you book, not after you're delayed."
     ],
-    "cta": "What's your game-day budget for the season? Drop it in the comments, let's compare notes.",
-    "cta_type": "open-question",
-    "how_to_film": "Text-post: short punchy lines, bold the 'first Wednesday opener in NFL history' stat, close with the open question.",
-    "source_label": "The Sports Encounter",
-    "source_url": "https://thesportsencounter.com/2026/09/07/nfl-2026-seahawks-patriots-super-bowl-rematch-title-race/",
-    "observed_at": "2026-09-07",
-    "date_found": "2026-09-08"
-  },
-  {
-    "id": "trend-2026-09-08-emmy-streaming-audit",
-    "platform": "instagram",
-    "format": "carousel",
-    "pillar": "interest",
-    "trend_type": "culture",
-    "trend_source": "The Creative Arts Emmys (5-6 September) spread wins across Apple TV+ ('Widow's Bay', 8 awards), Peacock ('The Traitors', 6 awards) and Apple Music's Super Bowl LX Halftime Show special, with 'Remarkably Bright Creatures' named Best Movie.",
-    "title": "This week's Emmy winners are scattered across 5 different streaming apps, so let's audit yours",
-    "why_it_works": "Award season naturally surfaces 'which app is that even on' conversations - a light, low-stakes hook to prompt a genuine household subscription audit without moralising about spending on entertainment.",
-    "hooks": [
-      "This week's Emmy winners are spread across at least 5 different streaming apps, and I bet you're not subscribed to all of them.",
-      "Award season always reminds me to check which streaming apps I'm actually still paying for.",
-      "Before you sign up for yet another app to watch an Emmy winner, do this 2-minute check."
-    ],
-    "talking_points": [
-      "The 2026 Creative Arts Emmys (5-6 September) split wins across Apple TV+, Peacock and other platforms, with 'Widow's Bay' leading with 8 awards.",
-      "Most people are paying for 3-5 streaming subscriptions and can't name all of them from memory - that's the actual leak, not any one show.",
-      "A 5-minute audit: list every app charging your card monthly, then ask which ones you watched anything on in the last 30 days.",
-      "Redirect what you cancel - even $15-20 a month is worth putting toward something that compounds instead of autorenewing."
-    ],
-    "cta": "Save this carousel and do the audit tonight before your next renewal date hits.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 hook, slide 2 the scattered-Emmy-wins stat, slide 3 the audit checklist, slide 4 the redirect-the-savings point, slide 5 CTA.",
-    "source_label": "Gold Derby",
-    "source_url": "https://www.goldderby.com/tv/2026/creative-arts-emmys-2026-winners-list/",
-    "observed_at": "2026-09-06",
-    "date_found": "2026-09-08"
-  },
-  {
-    "id": "trend-2026-09-08-kpop-comeback-fandom-budget",
-    "platform": "tiktok",
-    "format": "short-video",
-    "pillar": "interest",
-    "trend_type": "culture",
-    "trend_source": "&TEAM's second mini-album 'Mark on Me' and EXO's D.O. fourth mini-album 'DOPAMINE' both dropped on 8 September, part of a packed month of over 60 confirmed K-pop comebacks.",
-    "title": "It's a double K-pop comeback day, here's the fandom budgeting talk nobody has",
-    "why_it_works": "Today's actual release day for two major comebacks gives a real, current hook into fandom spending (albums, photocards, future tour tickets) - a genuine discretionary-spend category worth planning for, not shaming.",
-    "hooks": [
-      "Two huge comebacks dropped today and I already know some of you are buying every album version, let's talk sinking funds.",
-      "It's comeback day, so before you buy all 12 versions for the photocards, try this instead.",
-      "Fandom spending is a real budget category, here's how to plan for it instead of feeling guilty about it."
-    ],
-    "talking_points": [
-      "&TEAM's 'Mark on Me' and D.O.'s 'DOPAMINE' both released on 8 September, two of the biggest K-pop comebacks this month.",
-      "Multiple album versions, photocards, merch and eventual tour tickets are a real recurring cost for fans, not a one-off impulse buy.",
-      "Treat it like any hobby: set a monthly fandom budget and a separate tour-ticket sinking fund instead of paying for it all in one card-swipe panic.",
-      "This isn't about spending less on what you love, it's about not finding out how much you spent only when the statement arrives."
-    ],
-    "cta": "Comment your monthly fandom budget, no judgment, I want to see the range.",
+    "cta": "Comment 'TRAVEL' and I'll send you the 3 things to check on your travel insurance before your next trip.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Show the two album covers or unboxing clips, voiceover the talking points, end talking to camera with the CTA.",
-    "source_label": "allkpop",
-    "source_url": "https://www.allkpop.com/article/2026/08/doh-kyungsoo-confirms-september-8-comeback-with-mini-album-dopamine",
+    "how_to_film": "Text-post: open with the delay stat, 3 short lines on the insurance/buffer point, close with CTA.",
+    "source_label": "World Today Journal",
+    "source_url": "https://world-today-journal.com/singapore-airlines-delays-jakarta-singapore-flights-due-to-anak-krakatau-eruption/",
     "observed_at": "2026-09-08",
-    "date_found": "2026-09-08"
+    "date_found": "2026-09-09"
   },
   {
-    "id": "trend-2026-09-08-china-pyramid-scheme-75k",
+    "id": "trend-2026-09-09-tiafoe-two-sets-down-comeback",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Frances Tiafoe came back from two sets down to beat Alex Michelsen 5-7, 3-6, 7-5, 6-3, 7-6 in a US Open quarterfinal this week, winning three straight sets after a rough start.",
+    "title": "He was down two sets and still won, the money version of not quitting mid-plan",
+    "why_it_works": "A dramatic, freshly-dated Grand Slam comeback with a clean 'don't bail on the plan because the start was bad' message, without any market-timing implied.",
+    "hooks": [
+      "Frances Tiafoe went down two sets to love this week and still won the match, that's basically every financial plan that ever worked.",
+      "He lost the first two sets 5-7, 3-6, then won three straight, here's why that sequence matters more than the final score.",
+      "The scoreline everyone's replaying this week is 2 sets down, 3 sets won, and it's a genuinely good money lesson."
+    ],
+    "talking_points": [
+      "Frances Tiafoe lost the first two sets 5-7, 3-6 to Alex Michelsen this week before winning three straight to close out the US Open quarterfinal 7-5, 6-3, 7-6.",
+      "A rough start (a slow saving year, a plan that hasn't shown results yet) tells you almost nothing about how the whole thing ends.",
+      "The players who come back aren't doing something dramatic, they're just still executing the same game plan point by point after a bad set.",
+      "Check whether you've actually abandoned a financial plan that was working, or just had two bad sets and assumed it was over."
+    ],
+    "cta": "Comment 'COMEBACK' if you've ever given up on a savings goal after a rough start, let's restart it properly.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Talking head with the score line as on-screen text (2 sets down, final score), cut to camera making the comeback point, end on CTA text overlay.",
+    "source_label": "Yahoo Sports",
+    "source_url": "https://sports.yahoo.com/articles/us-open-results-2026-quarterfinal-232139597.html",
+    "observed_at": "2026-09-08",
+    "date_found": "2026-09-09"
+  },
+  {
+    "id": "trend-2026-09-09-canada-us-tariff-retaliation",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "topic",
+    "pillar": "market",
     "trend_type": "news",
-    "trend_source": "A Singaporean woman is trying to recover more than S$75,000 after being invited to 'do business' in Nanning, China and investing in what she now suspects was a pyramid scheme - reported this week alongside news that 52 Singaporeans were arrested in Guangxi over similar suspected pyramid-scheme activity.",
-    "title": "S$75,000, one trip to China, and a lesson every 'business opportunity' invite should come with",
-    "why_it_works": "A fresh, well-documented, Singapore-specific scam story gives a credible news hook for scam-literacy content that builds trust in a licensed advisor, with zero product pitch.",
+    "trend_source": "Canada began imposing retaliatory tariffs of 15-50% on over 700 US-origin products on 8 September after US-Canada trade talks collapsed, targeting steel, dairy, appliances and electronics.",
+    "title": "A trade fight between two other countries just made a bunch of everyday goods pricier, here's the actual lesson",
+    "why_it_works": "A fresh, dated, genuinely global story with an honest, behaviour-only bridge to import-cost awareness - no call on markets or currencies.",
     "hooks": [
-      "A Singaporean woman is trying to get back S$75,000 after flying to China for a 'business opportunity' that turned out to be a suspected pyramid scheme.",
-      "If a friend invites you to fly overseas for a 'business trip' that involves recruiting more people, read this first.",
-      "This week's news of Singaporeans caught up in a China pyramid scheme has a pattern worth knowing before it's your invite."
+      "Canada started slapping tariffs of up to 50% on US goods this week, a live example of prices moving for reasons far from home.",
+      "A trade dispute between two countries most of us don't trade with directly just repriced steel, dairy and electronics this week.",
+      "This week's US-Canada tariff retaliation is a good excuse to talk about why 'the price just went up' isn't always local."
     ],
     "talking_points": [
-      "A Singaporean woman is trying to recover over S$75,000 she invested after being invited to 'do business' in Nanning, China, reported this week alongside news that 52 Singaporeans were arrested in Guangxi over related suspected pyramid-scheme activity.",
-      "Red flags: an invite framed as a personal favour from a friend, pressure to fly overseas to 'see it for yourself', and income that depends on recruiting more people rather than a real product or service.",
-      "A pyramid scheme almost always wears a legitimate-looking front - polished decks, testimonials, successful-looking organisers - the structure is the tell, not the packaging.",
-      "The advice that actually protects people: any 'opportunity' that needs secrecy, urgency, or a plane ticket before you can ask real questions is a no, regardless of who invited you."
+      "Canada began imposing retaliatory tariffs of 15-50% on over 700 US-origin products on 8 September, covering steel, dairy, appliances, agricultural equipment and electronics, after trade talks with the US collapsed.",
+      "Tariffs between two other economies still ripple into what things cost here, because global supply chains price in these disputes long before you see a shelf tag change.",
+      "This isn't a call on any market or currency, it's a reminder that 'why did this get more expensive' sometimes has an answer three countries away.",
+      "The practical response is the same as any price shock: build a little slack into categories most exposed to imported goods rather than trying to predict the next headline."
     ],
-    "cta": "Tag a friend who's mentioned a 'business trip' overseas that sounded a bit too vague, send them this.",
+    "cta": "Save this if you've been wondering why certain imported goods keep creeping up in price, it's rarely just one thing.",
     "cta_type": "save-share",
-    "how_to_film": "Text-post: open with the S$75,000 figure as a headline graphic, list the 3 red flags as bullet points, close with the CTA line.",
-    "source_label": "Mothership.SG",
-    "source_url": "https://mothership.sg/2026/09/singaporeans-suspect-pyramid-scheme-china/",
-    "observed_at": "2026-09-06",
-    "date_found": "2026-09-08"
+    "how_to_film": "Text-post: bold the tariff percentage as the opening stat, short explanatory lines, close with the save prompt.",
+    "source_label": "ABC7 New York",
+    "source_url": "https://abc7ny.com/post/us-canada-tariffs-news-imposes-50-20-billion-worth-canadian-products-says-will-retaliate/19718120/",
+    "observed_at": "2026-09-08",
+    "date_found": "2026-09-09"
   },
   {
-    "id": "trend-2026-09-08-haze-budget-resilience",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Singapore's PSI crossed into the Unhealthy range on 4 September for the first time since 2023 before easing back to moderate by 6 September, with authorities warning the haze risk lingers for the rest of the season.",
-    "title": "The haze eased this week, but the 'just in case' costs are still worth planning for",
-    "why_it_works": "A real, dated, Singapore-specific environmental story this week gives a light, practical prompt about planning for recurring seasonal costs as its own mini-budget line, without touching health details.",
-    "hooks": [
-      "Air quality actually crossed into the unhealthy range this week for the first time since 2023, then eased off just as fast.",
-      "The haze cleared up this week, but authorities are already flagging it could come back before the season's over.",
-      "Here's the one line item most people forget to budget for during haze season."
-    ],
-    "talking_points": [
-      "Singapore's PSI crossed into the Unhealthy range on 4 September, the first time since 2023, before easing to moderate levels by 6 September, though authorities flag the risk continuing through the season.",
-      "Recurring seasonal costs - indoor activities instead of outdoor plans, air purifiers, topping up on masks - rarely get their own budget line, so they show up as random 'why did I spend that' charges later.",
-      "Treat it as its own small seasonal fund the same way you would for school holidays or festive spending, not a surprise expense each time.",
-      "It's a small amount individually, but it's also a good practice run for the bigger 'unplanned but predictable' costs later in the year."
-    ],
-    "cta": "Comment 'HAZE' and I'll send you a quick checklist for a seasonal buffer that covers this without messing up your main budget.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-post: relatable opening line referencing the PSI swing, bullet-point checklist style for the talking points.",
-    "source_label": "Malay Mail",
-    "source_url": "https://www.malaymail.com/news/singapore/2026/09/06/singapore-haze-eases-after-unhealthy-readings-but-smoke-threat-lingers/234077",
-    "observed_at": "2026-09-06",
-    "date_found": "2026-09-08"
-  },
-  {
-    "id": "trend-2026-09-08-traitors-emmy-trust",
+    "id": "trend-2026-09-09-early-spring-finale",
     "platform": "instagram",
     "format": "story",
-    "pillar": "topic",
+    "pillar": "interest",
     "trend_type": "culture",
-    "trend_source": "Alan Cumming won his third consecutive Emmy for hosting 'The Traitors' at the Creative Arts Emmys (5-6 Sept), where the show - built entirely around figuring out who to trust - picked up 6 of its 7 nominations.",
-    "title": "'The Traitors' just won again - the trust game applies to your money too",
-    "why_it_works": "The show's whole premise (figuring out who's lying before they cost you) is a genuinely natural, non-forced parallel to vetting who gives you financial advice, made timely by this week's Emmy wins.",
+    "trend_source": "Netflix's romantic drama 'The Early Spring' airs its season finale today, 9 September, after building a slow-burn story that's held the platform's global top 10 since its 26 August premiere.",
+    "title": "The finale everyone's waiting for drops today, here's the patience lesson hiding in it",
+    "why_it_works": "A real, dated release-day moment for a show people are actively anticipating - a light, natural parallel to letting a financial plan play out instead of jumping ship early.",
     "hooks": [
-      "'The Traitors' just won its 6th Emmy this week for a show that's literally about spotting who to trust, so let's apply that to money.",
-      "Alan Cumming won his 3rd straight Emmy for hosting a show about catching liars, here's the money version of that skill.",
-      "The whole premise of this award-winning show is 'who do you actually trust', and most people never ask that about their finances."
+      "The finale of 'The Early Spring' drops today after weeks of slow burn, and honestly that's how good financial plans work too.",
+      "Everyone's been waiting for this finale for two weeks, here's why the wait was kind of the point.",
+      "If you dropped a slow-burn show halfway through, you'd never know how it ends, same goes for quitting a plan early."
     ],
     "talking_points": [
-      "'The Traitors' picked up 6 Emmys at the Creative Arts ceremony this week (5-6 September), including Alan Cumming's third consecutive win for hosting the trust-and-deception competition show.",
-      "The show's tension comes from contestants having to work out who's lying before it costs them - the same instinct most people skip when picking who advises them on money.",
-      "Simple checks most people never do: is this person licensed and checkable (MAS Financial Institutions Directory), do they explain trade-offs or only upside, would they say 'this isn't right for you'?",
-      "Trusting the wrong person costs more than a game - vet the person before the plan, not after."
+      "'The Early Spring' releases its season finale today, 9 September, after premiering 26 August and holding a spot in Netflix's global top 10 for most of its run.",
+      "A slow-burn show only pays off because you stayed with it through the slower episodes, not despite them.",
+      "Financial plans work the same way - the unglamorous middle stretch (automatic transfers, no drama, nothing to post about) is where the actual result gets built.",
+      "If you've ever pulled out of a savings or investment plan halfway because 'nothing was happening', this is your reminder that nothing happening was the plan working."
     ],
-    "cta": "Save this if you've never actually checked whether your advisor or 'expert' is who they say they are.",
+    "cta": "Save this and send it to the friend who keeps restarting their savings plan every few months.",
     "cta_type": "save-share",
-    "how_to_film": "Instagram Story, 3-4 frames: bold hook text on frame 1 referencing the show, quick text overlays for the 3 trust-check points, close frame with the CTA and a save-prompt sticker.",
-    "source_label": "The Hollywood Reporter",
-    "source_url": "https://www.hollywoodreporter.com/tv/tv-news/alan-cumming-third-emmy-reality-tv-host-traitors-1236689794/",
-    "observed_at": "2026-09-06",
-    "date_found": "2026-09-08"
+    "how_to_film": "Instagram Story, 3 frames: hook text over a TV/couch visual, mid-frame with the patience point as bold text, close frame with CTA and save sticker.",
+    "source_label": "ScreenRant",
+    "source_url": "https://screenrant.com/best-netflix-shows-to-binge-week-september-7-2026/",
+    "observed_at": "2026-09-09",
+    "date_found": "2026-09-09"
   },
   {
-    "id": "trend-2026-09-08-gauff-no-sets-dropped",
-    "platform": "instagram",
+    "id": "trend-2026-09-09-apple-surprise-and-shine",
+    "platform": "tiktok",
     "format": "short-video",
-    "pillar": "identity",
-    "trend_type": "sport",
-    "trend_source": "Coco Gauff beat 18-year-old Iva Jovic 6-1, 6-4 on 7 September to reach the US Open quarterfinals without dropping a single set through the tournament, setting up a match against Mirra Andreeva.",
-    "title": "She hasn't dropped a single set all tournament - the boring-but-effective money lesson",
-    "why_it_works": "A fresh, dated result about winning through consistency rather than drama gives a clean, low-key parallel to unglamorous financial habits actually outperforming flashy moves.",
+    "pillar": "interest",
+    "trend_type": "event",
+    "trend_source": "Apple's 'Surprise and Shine' event happens today, 9 September, where the iPhone 18 Pro, Pro Max and a new foldable are expected to be unveiled, with the new lineup landing in stores from 18 September.",
+    "title": "New iPhones get announced today, here's the upgrade math before you preorder",
+    "why_it_works": "A globally-watched, precisely-dated product event that drives real household spending decisions this month - an honest, non-judgemental prompt to plan the purchase instead of impulse-financing it.",
     "hooks": [
-      "Coco Gauff hasn't dropped a single set this entire US Open, and that's a more useful money lesson than any highlight reel.",
-      "The most 'boring' player in the draw right now is also the one who hasn't lost a set, here's why that matters for your money too.",
-      "No drama, no sets dropped, straight through to the quarterfinals - that's the whole strategy, and it works for saving too."
+      "Apple's announcing the new iPhones today, and if you're already planning to upgrade, do this one thing before preorder day.",
+      "New iPhone event is happening today, here's the 3-question check I run before any 'new phone' purchase.",
+      "Everyone's about to preorder a new iPhone in a week, here's how to do it without it becoming a January regret."
     ],
     "talking_points": [
-      "Coco Gauff beat Iva Jovic 6-1, 6-4 on 7 September to reach the US Open quarterfinals without dropping a set all tournament, and now faces Mirra Andreeva.",
-      "Not dropping a set isn't flashy, it's just not giving away what you don't have to - the financial version is automating savings so you're not 'gifting' money to random spending each month.",
-      "Consistency compounds quietly; nobody clips the 'boring' 6-1, 6-4 win, but it's the one that gets you furthest.",
-      "Check your own 'sets dropped' - the small recurring leaks (unused subscriptions, impulse buys) that don't feel dramatic but add up over a season."
+      "Apple's 'Surprise and Shine' event takes place today, 9 September, expected to unveil the iPhone 18 Pro, Pro Max and a new foldable model, with the new lineup arriving in stores from 18 September.",
+      "A new phone launch isn't the problem, financing a want as if it's a need - or stacking it onto an existing instalment plan - is where it gets expensive.",
+      "Before preordering: check what your current phone would sell for, whether you're paying off anything else already, and whether this is coming from a planned upgrade fund or just excitement.",
+      "None of this means don't upgrade, it means the decision should survive a week of thinking, not just the keynote."
     ],
-    "cta": "Comment 'CONSISTENT' and I'll send you a simple way to automate the boring stuff so you stop 'dropping sets' on autopilot spending.",
+    "cta": "If big purchases keep landing on your credit card instead of a plan, let's build you a simple upgrade fund on a call.",
+    "cta_type": "book-call",
+    "how_to_film": "Talking head with the event happening as on-screen text, cut to camera listing the 3 questions, end with CTA text overlay.",
+    "source_label": "MacRumors",
+    "source_url": "https://www.macrumors.com/2026/08/26/apple-iphone-event-2026/",
+    "observed_at": "2026-09-09",
+    "date_found": "2026-09-09"
+  },
+  {
+    "id": "trend-2026-09-09-99-sale-impulse",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "event",
+    "trend_source": "Shopee's 9.9 Super Shopping Day runs 8-14 September with peak deals today, 9 September, including flash-sale price points and a $99-off-$450 voucher, alongside Lazada's parallel 9.9 sale.",
+    "title": "It's 9.9 sale day, here's the trick the flash-sale timer is playing on you",
+    "why_it_works": "Today's literal date is the sale itself - a genuinely current, high-relevance hook into impulse-spending psychology without shaming anyone for shopping.",
+    "hooks": [
+      "It's 9.9 today, which means every app on your phone is trying to make you feel like you're losing money by not buying something.",
+      "The countdown timer on today's 9.9 sale isn't an accident, here's what it's actually designed to do to your brain.",
+      "I'm not telling you to skip today's 9.9 sale, I'm telling you to add one step before you check out."
+    ],
+    "talking_points": [
+      "Shopee's 9.9 Super Shopping Day runs 8-14 September with deals peaking today, 9 September, alongside Lazada's own 9.9 sale, both built around flash deals and countdown-timer urgency.",
+      "Countdown timers and 'X people are viewing this' banners are designed to trigger urgency, not to reflect real scarcity - most 'deals' repeat during 11.11 and 12.12.",
+      "The fix isn't avoiding sales, it's a 24-hour rule for anything not already on your list before the sale started.",
+      "If it's a genuine want you'd have bought anyway, buying it today at a discount is a win - the leak is the stuff added to cart because of the timer, not the need."
+    ],
+    "cta": "Save this before you open the app for today's 9.9 sale.",
+    "cta_type": "save-share",
+    "how_to_film": "Fast-cut talking head with app screenshots of countdown timers as B-roll, on-screen text for the 24-hour rule, end on CTA overlay.",
+    "source_label": "Shopee Singapore",
+    "source_url": "https://shopee.sg/blog/9-9-deals/",
+    "observed_at": "2026-09-09",
+    "date_found": "2026-09-09"
+  },
+  {
+    "id": "trend-2026-09-09-sora-refinance-window",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "market",
+    "trend_type": "news",
+    "trend_source": "Singapore's 3-month SORA has ticked up to around 1.19-1.30% this week after months near historic lows, with fixed home loan packages sitting at a historically attractive 1.40-1.45%.",
+    "title": "SORA moved this week, here's the only question that matters if you have a home loan",
+    "why_it_works": "A real, current rate-environment update with a purely behavioural, no-prediction angle - check your own loan, don't guess where rates go.",
+    "hooks": [
+      "SORA ticked up again this week after months near record lows, if you have a home loan, here's what to do.",
+      "Floating rates and fixed rates are almost the same right now, which almost never happens, here's why that matters.",
+      "I'm not going to tell you where rates go next, but I will tell you what to check on your loan this week."
+    ],
+    "talking_points": [
+      "Singapore's 3-month SORA moved up to roughly 1.19-1.30% this week after sitting near historic lows for months, while fixed home loan packages remain historically attractive at 1.40-1.45%.",
+      "This isn't a call on where rates go next, it's a reminder that floating and fixed being this close together is exactly when it's worth comparing the two properly.",
+      "Check your current package's lock-in period and penalty before assuming refinancing now is free - the maths only works if the savings outlast the switching cost.",
+      "The one thing that never depends on rate predictions: knowing your own loan's numbers well enough to compare them in five minutes, not five weeks."
+    ],
+    "cta": "Comment 'SORA' and I'll send you the 3 numbers to pull from your loan statement before comparing packages.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Talking head referencing the score line as on-screen text, cut to camera making the consistency-vs-drama point, end with CTA text overlay.",
-    "source_label": "The Sports Encounter",
-    "source_url": "https://thesportsencounter.com/2026/09/08/coco-gauff-iva-jovic-us-open-2026-quarterfinals/",
-    "observed_at": "2026-09-07",
-    "date_found": "2026-09-08"
+    "how_to_film": "Text-post: bold the current SORA range as the opener, 3-4 short lines, close with CTA.",
+    "source_label": "MortgageWise.sg",
+    "source_url": "https://www.mortgagewise.sg/will-sora-crash-to-1-per-cent/",
+    "observed_at": "2026-09-08",
+    "date_found": "2026-09-09"
+  },
+  {
+    "id": "trend-2026-09-09-in-a-minute-album-drop",
+    "platform": "tiktok",
+    "format": "short-video",
+    "pillar": "interest",
+    "trend_type": "culture",
+    "trend_source": "K-pop act In A Minute released their first full album, 'When the Sun Goes Down: Midnight', today, 9 September, a bigger step up from their earlier single releases.",
+    "title": "A K-pop group's first full album dropped today, here's the day-one-purchase trap to skip",
+    "why_it_works": "Today's actual release gives a fresh, specific fandom-spending moment distinct from the usual comeback-merch angle, focused on impulse day-one buying rather than collecting.",
+    "hooks": [
+      "In A Minute dropped their first full album today and I already know some of you bought it before finishing this video.",
+      "It's the group's biggest release yet, and day-one hype is exactly when impulse spending happens fastest, here's the fix.",
+      "New album, first full-length one for this group, here's the one pause I'd add before buying anything today."
+    ],
+    "talking_points": [
+      "K-pop act In A Minute released their first full album, 'When the Sun Goes Down: Midnight,' today, 9 September, a step up from their earlier single releases.",
+      "Day-one release hype (limited photocards, early-bird bundles, algorithm pressure) is designed to make you buy before you've decided how much you actually want to spend.",
+      "A simple pause - add to cart, close the app, come back in an hour - filters genuine excitement from FOMO almost every time.",
+      "This isn't about not supporting artists you love, it's about the purchase being a decision, not a reflex."
+    ],
+    "cta": "DM me 'PAUSE' and I'll send you the exact 1-hour rule I use before any hype purchase.",
+    "cta_type": "dm-keyword",
+    "how_to_film": "Show the album cover/unboxing as B-roll, voiceover the talking points, end talking to camera with the CTA.",
+    "source_label": "HelloKpop",
+    "source_url": "https://www.hellokpop.com/kpop/september-2026-k-pop-comebacks/",
+    "observed_at": "2026-09-09",
+    "date_found": "2026-09-09"
+  },
+  {
+    "id": "trend-2026-09-09-pegula-navarro-all-american",
+    "platform": "instagram",
+    "format": "carousel",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Jessica Pegula and Emma Navarro, both Americans, met in a US Open quarterfinal this week, an all-compatriot matchup that's rare this deep in a Grand Slam.",
+    "title": "Two Americans just played each other in a Grand Slam quarterfinal, the comparison lesson in that",
+    "why_it_works": "A genuinely unusual, freshly-dated matchup gives a clean, non-forced parallel to comparing your finances to peers instead of a distant benchmark, without picking a side.",
+    "hooks": [
+      "Two Americans played each other in a US Open quarterfinal this week, and it's rarer than you'd think this late in a Grand Slam.",
+      "Pegula vs Navarro this week was basically two people from the same background proving there's more than one way to get this far.",
+      "An all-American Grand Slam quarterfinal happened this week, here's the comparison lesson hiding in it."
+    ],
+    "talking_points": [
+      "Jessica Pegula (No. 3 seed) and Emma Navarro (No. 26 seed) met in a US Open quarterfinal this week, an all-American matchup that's unusual this deep into a Grand Slam.",
+      "Same country, same tour, same tournament - and still two completely different paths and seedings got them to the same stage.",
+      "Comparing your finances to a peer with the same background as you (same industry, same age, same city) can be useful or corrosive depending on what you do with it.",
+      "The useful version: what's one thing they're doing that's actually applicable to you? The corrosive version: using their number as a verdict on yours."
+    ],
+    "cta": "Save this if you catch yourself comparing your savings to a friend's more than actually checking your own numbers.",
+    "cta_type": "save-share",
+    "how_to_film": "Carousel: slide 1 hook with both players, slide 2 the seeding/rarity stat, slide 3 the comparison lesson, slide 4 useful vs corrosive comparison, slide 5 CTA.",
+    "source_label": "CBS Sports",
+    "source_url": "https://www.cbssports.com/tennis/news/us-open-2026-schedule-results-bracket-live-updates-quarterfinals/live/",
+    "observed_at": "2026-09-08",
+    "date_found": "2026-09-09"
+  },
+  {
+    "id": "trend-2026-09-09-mas-tlac-buffer",
+    "platform": "linkedin",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "MAS released the Explanatory Brief for the Financial Services and Markets (Amendment) Bill 2026 this week, which would require Singapore's biggest banks to hold a minimum loss-absorbing capital buffer on top of normal capital requirements.",
+    "title": "MAS wants big banks to hold a bigger buffer, your own finances should copy that logic",
+    "why_it_works": "A real, current regulatory development with an honest structural parallel - buffers exist because bad scenarios happen, not because anyone expects one - with zero product pitch or return promise.",
+    "hooks": [
+      "MAS just released a bill requiring big banks to hold a bigger safety buffer, a good model for your own money.",
+      "Big banks are being asked to hold more loss-absorbing capital this week, here's the personal-finance version of that requirement.",
+      "Regulators build buffers not because they expect a crisis, but because eventually something goes wrong, same logic applies to you."
+    ],
+    "talking_points": [
+      "MAS released the Explanatory Brief for the Financial Services and Markets (Amendment) Bill 2026 this week, proposing to require systemically important banks to hold a minimum total loss-absorbing capacity buffer beyond normal capital rules.",
+      "The logic isn't pessimism, it's structural: a buffer sized for a bad scenario means the bad scenario doesn't become a collapse.",
+      "Most people's 'emergency fund' is sized for a mild bad month, not an actual bad stretch - the same gap regulators are trying to close for banks.",
+      "This isn't a comment on any bank's stability, it's a prompt to check if your own buffer is sized for a real setback or just a good month gone slightly wrong."
+    ],
+    "cta": "Comment 'BUFFER' and I'll send you a way to check if your emergency fund is sized for a real setback, not just a bad week.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Text-post: open with the MAS headline as the hook, 3-4 short lines drawing the parallel, close with CTA.",
+    "source_label": "Monetary Authority of Singapore",
+    "source_url": "https://www.mas.gov.sg/news/speeches/2026/explanatory-brief-for-financial-services-and-markets-amendment-bill-2026",
+    "observed_at": "2026-09-08",
+    "date_found": "2026-09-09"
   }
 ]
