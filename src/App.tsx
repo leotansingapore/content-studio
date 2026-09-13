@@ -17,6 +17,7 @@ import DraftsPage from "@/pages/DraftsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import HubGate from "@/components/hub/HubGate";
 import BoardPage from "@/pages/BoardPage";
+import PublicRoadmap from "@/pages/PublicRoadmap";
 
 // F.A.D.S. is a ~2K-line worksheet most sessions never open — route-level
 // lazy() keeps it out of the main bundle (avoid manualChunks object form,
@@ -44,6 +45,8 @@ export default function App() {
   return (
     <>
       <Routes>
+        {/* Public: what people asked for, what is being built, what shipped. */}
+        <Route path="/roadmap" element={<PublicRoadmap />} />
         <Route path="/auth" element={<Auth />} />
         <Route
           element={
