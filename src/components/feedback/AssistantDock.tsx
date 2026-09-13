@@ -115,8 +115,9 @@ export function AssistantDock({
   });
   const [draft, setDraft] = useState(() => storage(`${threadKey}_draft`) ?? "");
   const [busy, setBusy] = useState(false);
-  /** The board's own path in this app, learnt from the first reply's [[go:]] allowance
-   *  (the server derives it from boards.feedback_url) so the dock never hardcodes one. */
+  /** The board's own path in this app, read from the service (which derives it from
+   *  boards.feedback_url) so the dock never hardcodes a route. Fetched when the dock
+   *  first opens, so "See what others asked for" is there before anyone has typed. */
   const [feedbackPath, setFeedbackPath] = useState<string | null>(null);
   const threadId = useMemo(() => storage(`${threadKey}_id`) ?? (() => { const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`; storage(`${threadKey}_id`, id); return id; })(), [threadKey]);
   const listRef = useRef<HTMLDivElement>(null);
@@ -156,6 +157,18 @@ export function AssistantDock({
     () => ({ "Content-Type": "application/json", "X-Board-Key": boardKey, "X-Voter": voter }),
     [boardKey, voter]
   );
+
+  // The board's own route in this app, so "See what others asked for" is offered from
+  // the moment the dock opens rather than after the first answer.
+  useEffect(() => {
+    if (!open || feedbackPath) return;
+    let alive = true;
+    fetch(`${base}/posts?sort=new`, { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && d?.board?.feedbackPath) setFeedbackPath(d.board.feedbackPath); })
+      .catch(() => { /* the chip simply stays hidden */ });
+    return () => { alive = false; };
+  }, [open, feedbackPath, base, headers]);
 
   const send = useCallback(async (seed?: string) => {
     const text = (seed ?? draft).trim();
