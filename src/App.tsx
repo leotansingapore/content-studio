@@ -31,6 +31,7 @@ const ProfilesPage = lazy(() => import("@/pages/ProfilesPage"));
 const ProfileDetailPage = lazy(() => import("@/pages/ProfileDetailPage"));
 const AcademyPage = lazy(() => import("@/pages/AcademyPage"));
 const TutorialPage = lazy(() => import("@/pages/TutorialPage"));
+const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
 const CreateGuidePage = lazy(() => import("@/pages/CreateGuidePage"));
 const HubHomePage = lazy(() => import("@/pages/hub/HubHomePage"));
 const HubTrendsPage = lazy(() => import("@/pages/hub/HubTrendsPage"));
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/playbook" element={<PlaybookPage />} />
           <Route path="/academy" element={<AcademyPage />} />
           <Route path="/tutorial" element={<TutorialPage />} />
+          <Route path="/feedback" element={<FeedbackPage />} />
           <Route path="/hub" element={<HubGate />}>
             <Route index element={<HubHomePage />} />
             <Route path="trends" element={<HubTrendsPage />} />

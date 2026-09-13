@@ -3,14 +3,13 @@ import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { AssistantDock } from "./AssistantDock";
+import { FEEDBACK_API, FEEDBACK_BOARD_KEY } from "./config";
 
 // The in-app assistant: answers from Content Studio's own map on the feedback service
 // and turns ideas, bugs and messages to the team into one-tap chips. Mounted inside the
 // signed-in studio layout. The key names exactly one board on the service and nothing
 // there lists boards, so this can only ever reach Content Studio's posts. Lifted above
 // the bottom nav below the lg breakpoint.
-const FEEDBACK_API = "https://leotan-feedback.vercel.app/api/v1";
-const FEEDBACK_BOARD_KEY = "fb_160b1f216061333a6eab92896d5619858b9e0a1a547effb0";
 
 export function AssistantMount() {
   const navigate = useNavigate();

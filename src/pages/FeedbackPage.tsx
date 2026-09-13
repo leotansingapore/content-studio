@@ -1,0 +1,38 @@
+// /feedback: Content Studio's own public feedback board. Ask for what you need, see
+// what others asked for, vote. The UI is the shared component copied verbatim from
+// github.com/leotansingapore/feedback-board/client/FeedbackBoard.tsx; the key in
+// components/feedback/config.ts names exactly one board on the service.
+
+import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import { FeedbackBoard } from "@/components/feedback/FeedbackBoard";
+import { FEEDBACK_API, FEEDBACK_BOARD_KEY } from "@/components/feedback/config";
+
+export default function FeedbackPage() {
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (alive) setUser(data.user ?? null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const meta = (user?.user_metadata ?? {}) as { full_name?: string; name?: string };
+  return (
+    <div className="mx-auto max-w-4xl">
+      <FeedbackBoard
+        apiUrl={FEEDBACK_API}
+        boardKey={FEEDBACK_BOARD_KEY}
+        appName="Content Studio"
+        identity={
+          user
+            ? { id: user.id, name: meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? null, email: user.email ?? null }
+            : undefined
+        }
+      />
+    </div>
+  );
+}

@@ -22,9 +22,11 @@ import {
   LayoutGrid,
   X,
   Flame,
+  MessageSquarePlus,
 } from "lucide-react";
+import { feedbackIsNew } from "@/components/feedback/config";
 
-type NavItem = { to: string; label: string; icon: typeof Home; also?: string[] };
+type NavItem = { to: string; label: string; icon: typeof Home; also?: string[]; isNew?: () => boolean };
 
 // Grouped like the leading content tools (Buffer/Typefully/Taplio): a few
 // labelled sections rather than one flat list of tabs. Merged sections keep
@@ -79,6 +81,8 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
         icon: BookMarked,
         also: ["/voice", "/fads"],
       },
+      // The public feedback board: marked New until it has been opened once.
+      { to: "/feedback", label: "Feedback", icon: MessageSquarePlus, isNew: feedbackIsNew },
     ],
   },
 ];
@@ -199,7 +203,7 @@ export default function StudioLayout() {
                   {group.heading}
                 </p>
               )}
-              {group.items.map(({ to, label, icon: Icon, also }) => (
+              {group.items.map(({ to, label, icon: Icon, also, isNew }) => (
                 <NavLink
                   key={to}
                   to={to}
@@ -215,6 +219,9 @@ export default function StudioLayout() {
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   {label}
+                  {isNew?.() && (
+                    <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">New</span>
+                  )}
                 </NavLink>
               ))}
             </div>
@@ -308,7 +315,7 @@ export default function StudioLayout() {
                     </p>
                   )}
                   <div className="grid grid-cols-2 gap-2">
-                    {group.items.map(({ to, label, icon: Icon }) => (
+                    {group.items.map(({ to, label, icon: Icon, isNew }) => (
                       <NavLink
                         key={to}
                         to={to}
@@ -322,6 +329,9 @@ export default function StudioLayout() {
                       >
                         <Icon className="h-4 w-4 shrink-0" />
                         {label}
+                        {isNew?.() && (
+                          <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">New</span>
+                        )}
                       </NavLink>
                     ))}
                   </div>
