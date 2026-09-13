@@ -2,6 +2,7 @@ import { Suspense, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import { AssistantMount } from "@/components/feedback/AssistantMount";
 import {
   Sparkles,
   LogOut,
@@ -380,6 +381,7 @@ export default function StudioLayout() {
           </Suspense>
         </main>
       </div>
+      <AssistantMount />
     </div>
   );
 }
