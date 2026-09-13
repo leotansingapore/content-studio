@@ -64,6 +64,16 @@ const btn = {
   icon: "inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
 };
 
+/** The four things people come to a product team with, offered before they have to
+ *  think of the words. Tapping one sends that sentence, so the assistant replies in
+ *  the same chat and attaches the button that actually posts it. */
+const OPENERS: { id: string; label: string; text: string }[] = [
+  { id: "bug", label: "Something is broken", text: "Something is broken and I want to report it:" },
+  { id: "feature", label: "Ask for a feature", text: "I would like to ask for a feature:" },
+  { id: "improve", label: "Suggest an improvement", text: "I have an idea to improve something:" },
+  { id: "question", label: "Ask a question", text: "I have a question about how this works:" },
+];
+
 export function AssistantDock({
   apiUrl,
   boardKey,
@@ -105,6 +115,9 @@ export function AssistantDock({
   });
   const [draft, setDraft] = useState(() => storage(`${threadKey}_draft`) ?? "");
   const [busy, setBusy] = useState(false);
+  /** The board's own path in this app, learnt from the first reply's [[go:]] allowance
+   *  (the server derives it from boards.feedback_url) so the dock never hardcodes one. */
+  const [feedbackPath, setFeedbackPath] = useState<string | null>(null);
   const threadId = useMemo(() => storage(`${threadKey}_id`) ?? (() => { const id = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`; storage(`${threadKey}_id`, id); return id; })(), [threadKey]);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -144,8 +157,8 @@ export function AssistantDock({
     [boardKey, voter]
   );
 
-  const send = useCallback(async () => {
-    const text = draft.trim();
+  const send = useCallback(async (seed?: string) => {
+    const text = (seed ?? draft).trim();
     if (!text || busy) return;
     setDraft("");
     const next: Msg[] = [...messages, { role: "user", text }];
@@ -162,7 +175,8 @@ export function AssistantDock({
           identity: identity ? { name: identity.name ?? null } : null,
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as { id?: string; text?: string; actions?: Action[]; error?: string };
+      const data = (await res.json().catch(() => ({}))) as { id?: string; text?: string; actions?: Action[]; feedbackPath?: string | null; error?: string };
+      if (data.feedbackPath) setFeedbackPath(data.feedbackPath);
       if (!res.ok) throw new Error(data.error || "The assistant is not answering right now.");
       setMessages((m) => [...m, { role: "assistant", text: data.text || "", id: data.id ?? null, actions: data.actions ?? [] }]);
     } catch (e) {
@@ -276,8 +290,37 @@ export function AssistantDock({
 
           <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
             {messages.length === 0 ? (
-              <div className="rounded-xl bg-muted/60 px-3 py-3 text-[13px] leading-relaxed text-muted-foreground">
-                Ask how anything in {appName} works. If you have an idea, a problem, or something for the team, say it here and I will hand you the right button.
+              // One chat, every channel. The four openers are the point of this dock: a
+              // person who would never hunt for a feedback form will tap "Something is
+              // broken". Each one just types its sentence and sends, so the answer is a
+              // real conversation, not a form -- and the assistant hands back the button
+              // that posts it or reaches the team.
+              <div className="space-y-3">
+                <div className="rounded-xl bg-muted/60 px-3 py-3 text-[13px] leading-relaxed text-muted-foreground">
+                  Ask how anything in {appName} works, or use this to reach the team. Whatever you pick, you see the exact message before anything is sent.
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {OPENERS.map((o) => (
+                    <button
+                      key={o.label}
+                      type="button"
+                      // Seeds the box and focuses it: the person finishes the sentence in
+                      // their own words. Sending the stub alone would make the assistant
+                      // ask "what is broken?", which is a question they already answered
+                      // by tapping.
+                      onClick={() => { setDraft(o.text + " "); inputRef.current?.focus(); }}
+                      className={btn.chip}
+                      data-testid={`assistant-opener-${o.id}`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                  {feedbackPath ? (
+                    <button type="button" onClick={() => { setOpen(false); navigate?.(feedbackPath); }} className={btn.chip} data-testid="assistant-opener-board">
+                      See what others asked for
+                    </button>
+                  ) : null}
+                </div>
               </div>
             ) : null}
             {messages.map((m, mi) =>
