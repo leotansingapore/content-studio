@@ -1,338 +1,366 @@
 [
   {
-    "id": "trend-2026-09-13-rybakina-dethrones-sabalenka-us-open",
+    "id": "trend-2026-09-14-axion-design-renovation-scandal",
+    "platform": "facebook",
+    "format": "carousel",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "Singapore police and the CPF Board are investigating interior design firm Axion Design after about 20 households reported stalled renovations and missing furniture, with 17 Small Claims Tribunal cases filed against the firm this year.",
+    "title": "A renovation firm just collapsed mid-project, here's the 3 checks that would have caught it",
+    "why_it_works": "A real, dated renovation-firm collapse this week gives an honest, non-alarmist reason to talk about payment safeguards and staged payments, with no ambulance-chasing of the affected households.",
+    "hooks": [
+      "A renovation firm just collapsed with client deposits stuck mid-project, here are the 3 checks that catch this before you pay a cent.",
+      "20 households paid an interior design firm that then went bankrupt mid-reno, here's what their contracts were probably missing.",
+      "Police are investigating a renovation firm this week over stalled projects and missing furniture, here's how I'd protect a deposit."
+    ],
+    "talking_points": [
+      "Police and the CPF Board are investigating Axion Design after complaints from about 20 households over stalled renovations, undelivered furniture and unpaid staff CPF, with 17 Small Claims Tribunal cases filed against the firm this year.",
+      "A CaseTrust or RCMA-accredited renovation firm isn't a guarantee, but it does mean a formal dispute-resolution and deposit-protection process exists if things go wrong.",
+      "Paying in milestones tied to completed work, not a large upfront deposit, keeps your exposure small if a firm can't finish the job.",
+      "This isn't about avoiding renovation, it's about the contract protecting you the same way it protects the contractor."
+    ],
+    "cta": "Comment 'RENO' and I'll send you the 3 contract clauses I check before any renovation deposit goes out.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Carousel: slide 1 hook with the news headline, slide 2 the CaseTrust/RCMA check, slide 3 the milestone-payment structure, slide 4 how to apply it, slide 5 CTA.",
+    "source_label": "Red Hot Singapore",
+    "source_url": "https://www.redhot.sg/police-probe-interior-design-firm-axion-design-after-complaints-over-stalled-renovations-missing-furniture-716591.html",
+    "observed_at": "2026-09-14",
+    "date_found": "2026-09-14"
+  },
+  {
+    "id": "trend-2026-09-14-zverev-us-open-second-major",
     "platform": "linkedin",
     "format": "text-post",
     "pillar": "identity",
     "trend_type": "sport",
-    "trend_source": "Elena Rybakina beat two-time defending champion Aryna Sabalenka 6-4, 5-7, 6-2 in the US Open women's final on 12 September, taking both the title and Sabalenka's world No. 1 ranking.",
-    "title": "The world No. 1 changed hands on a single result, not a reputation, here's the money version of that",
-    "why_it_works": "A same-day, decisive result gives an honest, non-predictive parallel between earning a position through results versus keeping it through reputation, with zero market call.",
+    "trend_source": "Alexander Zverev beat Ben Shelton 6-3, 7-6, 5-7, 6-2 in the US Open final on 13 September to win his second Grand Slam title, telling his team the win reflected years of hard work and suffering, not one good week.",
+    "title": "Zverev's second major came after years he called pure suffering, that's the compounding nobody posts about",
+    "why_it_works": "A same-week, real result gives an honest, non-market parallel between years of unseen effort and a visible payoff, with zero prediction or return promise.",
     "hooks": [
-      "Elena Rybakina just took the world No. 1 ranking off a two-time defending champion with one result, not a resume.",
-      "The US Open final ended with the ranking changing hands, and it wasn't because anyone got worse at tennis.",
-      "A two-time champion lost her No. 1 ranking to someone who simply had the better match, on the day it counted."
+      "Alexander Zverev just won his second Grand Slam and the first thing he credited was years of suffering, not talent.",
+      "The US Open men's final ended Sunday with a champion crediting years of pain for the win, that's not a highlight-reel moment.",
+      "A tennis player just won his second major title and credited years most people never see, here's the money version of that."
     ],
     "talking_points": [
-      "Elena Rybakina beat two-time defending champion Aryna Sabalenka 6-4, 5-7, 6-2 in the US Open women's final on 12 September, taking the title and the world No. 1 ranking, her second major of the year after also beating Sabalenka at the Australian Open.",
-      "Rankings and reputations are both earned, but only one of them updates in real time based on what's actually happening now.",
-      "The same logic applies to a financial plan or an advisor relationship, it's worth reviewing on actual fit and performance, not on how long it's been in place.",
-      "This isn't about switching for the sake of switching, it's about checking that what you have still earns its spot."
+      "Alexander Zverev defeated Ben Shelton 6-3, 7-6, 5-7, 6-2 in Sunday's US Open final for his second Grand Slam title, telling his team the win reflected years of hard work and setbacks, not one good week.",
+      "A financial plan works the same way, the unremarkable years of just contributing are what the highlight-reel year actually rests on.",
+      "Nobody posts the boring years, which is exactly why they get skipped when people compare their year 1 to someone else's year 10.",
+      "This isn't a promise about outcomes, it's a reminder that the invisible years are the ones actually doing the work."
     ],
-    "cta": "When did you last actually review your plan instead of just renewing it? Tell me in the comments.",
+    "cta": "What's the boring, invisible year in your own plan right now? Tell me in the comments.",
     "cta_type": "open-question",
-    "how_to_film": "Text-post: open with the ranking-change hook, 3-4 short lines, close with the open question.",
-    "source_label": "ABC News Australia",
-    "source_url": "https://www.abc.net.au/news/2026-09-13/us-open-women-s-final-aryna-sabalenka-elena-rybakina/107135066",
+    "how_to_film": "Text-post: open with the Zverev hook, 3-4 short lines, close with the open question.",
+    "source_label": "ESPN",
+    "source_url": "https://www.espn.com/tennis/story/_/id/49933388/alexander-zverev-beats-ben-shelton-4-sets-win-2026-us-open",
     "observed_at": "2026-09-13",
-    "date_found": "2026-09-13"
+    "date_found": "2026-09-14"
   },
   {
-    "id": "trend-2026-09-13-haze-psi-swing-buffer",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Singapore's 24-hour PSI hit an unhealthy 105 in central areas on 10 September before easing back to the moderate range across all five regions by 11 September, as smoke plumes from Sumatra and Kalimantan fires shifted with the wind.",
-    "title": "The haze went from unhealthy to moderate in a day, here's the money lesson in that swing",
-    "why_it_works": "A real, dated air-quality swing this week gives an honest, non-alarmist reason to talk about building a buffer sized for swings, not averages, without dramatising the haze itself.",
-    "hooks": [
-      "Singapore's air quality went from unhealthy to moderate in about a day this week, and that swing is the whole point.",
-      "The haze eased up again this week, but for a stretch it was genuinely unhealthy, here's what that swing reminded me to check.",
-      "PSI readings swung from moderate to unhealthy and back within days this week, most emergency funds aren't built for swings like that."
-    ],
-    "talking_points": [
-      "Singapore's 24-hour PSI reached an unhealthy 105 in central areas on 10 September, before easing back into the moderate range across all five regions by 11 September.",
-      "Most people size a buffer off their average month, not their worst week, which is exactly when a buffer actually gets tested.",
-      "A buffer built for the average bill covers nothing extra when several things spike at once, higher aircon usage, medical costs, a cancelled outdoor plan.",
-      "This isn't about the haze itself, it's about noticing how fast 'fine' can become 'not fine' and sizing accordingly."
-    ],
-    "cta": "Comment 'BUFFER' and I'll send you how I size mine for the bad week, not the average one.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-post: open with the PSI-swing hook, 3-4 short lines, close with CTA.",
-    "source_label": "Malay Mail",
-    "source_url": "https://www.malaymail.com/news/singapore/2026/09/11/singapore-haze-eases-as-psi-readings-return-to-moderate-range/234800",
-    "observed_at": "2026-09-11",
-    "date_found": "2026-09-13"
-  },
-  {
-    "id": "trend-2026-09-13-iphone-18-preorder-trade-in-math",
+    "id": "trend-2026-09-14-emmys-subscription-audit",
     "platform": "instagram",
     "format": "story",
     "pillar": "interest",
     "trend_type": "culture",
-    "trend_source": "Apple's iPhone 18 Pro, Pro Max and its first foldable iPhone Duo opened for preorder in Singapore at 8pm on 12 September, with the Pro starting at S$1,899 and retail from 18 September.",
-    "title": "iPhone 18 preorders just opened, here's the 60-second check before you tap buy",
-    "why_it_works": "A genuinely dated global launch moment most phone users are seeing on their screens tonight gives an honest reason to talk about trade-in and financing math before an upgrade, with zero shame about wanting the new phone.",
+    "trend_source": "The 78th Primetime Emmy Awards aired live on NBC and Peacock on 14 September from the Peacock Theater in Los Angeles, with Apple TV+ titles leading the season's nominations after dominating the Creative Arts ceremonies.",
+    "title": "Awards night reminds me how many shows people still pay for and never watch",
+    "why_it_works": "A globally trending, dated broadcast gives a natural, non-shaming reason to audit overlapping streaming subscriptions, without touching the awards content itself.",
     "hooks": [
-      "iPhone 18 preorders opened tonight at 8pm, and I already know how fast 'just look' turns into 'just bought'.",
-      "The new iPhone just went up for preorder, here's the number I check before any upgrade, new phone or not.",
-      "Preorders for the new iPhone opened today, the phone is optional, the math before you tap buy isn't."
+      "Emmy night always gets me, then I check my streaming apps and remember I'm paying for four I barely open.",
+      "Everyone's watching the Emmys tonight, half of us are watching on a subscription we forgot we still pay for.",
+      "Award season makes me want to watch everything, so tonight I'm checking which subscriptions actually earned their spot this year."
     ],
     "talking_points": [
-      "iPhone 18 Pro and Pro Max preorders opened at 8pm SGT on 12 September, priced from S$1,899, with the foldable iPhone Duo also available, and units in stores from 18 September.",
-      "A trade-in quote and any instalment plan's total cost, not just the monthly figure, changes what an 'upgrade' actually costs you this year.",
-      "Financing a phone isn't wrong, financing it without checking the total interest or the trade-in gap first is where it gets expensive.",
-      "This isn't about skipping the upgrade, it's about the decision costing what you think it costs."
+      "The 78th Primetime Emmy Awards aired live on 14 September from the Peacock Theater in Los Angeles, with Apple TV+ leading the season's nominations.",
+      "Award season nudges people to sign up for another streaming platform, on top of the ones already running quietly in the background.",
+      "A 10-minute audit of active subscriptions, and what you actually opened in the last month, usually turns up at least one to cancel.",
+      "This isn't about not enjoying the shows, it's about paying for the ones you watch, not the ones you meant to."
     ],
-    "cta": "Save this before you tap preorder and run the trade-in math first.",
+    "cta": "Save this and audit your subscriptions before you add a new one for award season.",
     "cta_type": "save-share",
-    "how_to_film": "Instagram Story, 3 frames: hook text over the new iPhone announcement visual, mid-frame with the trade-in/financing check, close frame with save prompt.",
-    "source_label": "LittleBigReddot",
-    "source_url": "https://littlebigreddot.com/iphone-18-pro-pro-max-singapore-price-preorder-12-september-2026/",
-    "observed_at": "2026-09-12",
-    "date_found": "2026-09-13"
+    "how_to_film": "Instagram Story, 3 frames: hook text over an awards-night visual, mid-frame listing subscription apps, close frame with save prompt.",
+    "source_label": "Deadline",
+    "source_url": "https://deadline.com/lists/2026-emmy-winners-list/",
+    "observed_at": "2026-09-14",
+    "date_found": "2026-09-14"
   },
   {
-    "id": "trend-2026-09-13-starhub-wellness-festival-doom-spending",
+    "id": "trend-2026-09-14-sia-dbs50off-deadline",
+    "platform": "instagram",
+    "format": "story",
+    "pillar": "interest",
+    "trend_type": "event",
+    "trend_source": "The DBS50OFF promo code, giving DBS and POSB cardholders S$50 off Singapore Airlines return flights, closes tonight, 14 September, after opening on 8 September.",
+    "title": "This flight discount code expires tonight, here's the number to check before you book",
+    "why_it_works": "A genuinely time-boxed promo ending today gives an honest reason to talk about checking total trip cost against a discount deadline, without pushing any purchase.",
+    "hooks": [
+      "A $50 flight discount code expires tonight, and the deadline is doing more of the selling than the destination is.",
+      "This airfare promo code closes tonight, here's the one number I check before any 'ends tonight' discount.",
+      "If you've been sitting on that flight booking, the code expires tonight, so here's the 2-minute check before you commit."
+    ],
+    "talking_points": [
+      "The DBS50OFF code cuts S$50 off Singapore Airlines return fares for DBS and POSB cardholders, running from 8 to 14 September 2026, with quotas allocated first-come, first-served.",
+      "A closing deadline is designed to shortcut comparison, the saving only matters relative to a trip you were already planning to take.",
+      "Checking the full return fare after the $50 off, against your actual travel budget for the year, takes less time than the booking itself.",
+      "This isn't about skipping the deal, it's about the deadline not making the decision for you."
+    ],
+    "cta": "Save this before tonight's deadline and run your total trip cost first.",
+    "cta_type": "save-share",
+    "how_to_film": "Instagram Story, 3 frames: hook text over a flight-booking screen, mid-frame with the total-cost check, close frame with save prompt and countdown.",
+    "source_label": "LittleBigRedDot",
+    "source_url": "https://littlebigreddot.com/dbs50off-singapore-airlines-50-off-8-14-september-2026/",
+    "observed_at": "2026-09-14",
+    "date_found": "2026-09-14"
+  },
+  {
+    "id": "trend-2026-09-14-shopee-99-sale-ends",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "interest",
     "trend_type": "event",
-    "trend_source": "StarHub's biggest-ever 5G Wellness Festival runs 12-13 September at New Bahru, free entry, built around helping Singaporeans build healthier digital habits after its study found two-thirds struggle to disconnect.",
-    "title": "This weekend's digital wellbeing festival has a money version nobody's talking about",
-    "why_it_works": "A real, dated wellness festival about disconnecting from screens gives a natural, non-judgemental bridge to noticing screen-triggered spending, without shaming anyone's phone habits.",
+    "trend_source": "Shopee's 9.9 Super Shopping Day runs from 8 September 8pm to 14 September 7:59pm, with Shocking Deals up to 90% off and a stacked $99-off-$450 flash voucher.",
+    "title": "The 9.9 sale closes tonight, here's the habit that matters more than the discount",
+    "why_it_works": "A real, dated, closing-tonight shopping event gives an honest reason to talk about planned-list shopping versus flash-sale urgency, with no shaming of anyone's purchases.",
     "hooks": [
-      "There's a whole festival this weekend about disconnecting from your phone, and I think it should include your banking app too.",
-      "StarHub's wellness festival is about screen time this weekend, here's the money habit hiding in the same problem.",
-      "Everyone's talking about digital wellbeing this weekend, mine started with noticing when I actually open a shopping app."
+      "Shopee's 9.9 sale closes at 7:59pm tonight, and the countdown timer is the actual product being sold to you.",
+      "9.9 ends tonight, so here's the list I check before any 'today only' countdown gets to decide for me.",
+      "If your cart's been sitting open all week for 9.9, the sale ends tonight, here's my 2-minute filter before checkout."
     ],
     "talking_points": [
-      "StarHub's biggest-ever 5G Wellness Festival runs 12-13 September at New Bahru, free entry, built on a study finding two-thirds of people in Singapore struggle to disconnect.",
-      "Doom-spending works the same way doom-scrolling does, a bored scroll turns into an add-to-cart before the intent was ever there.",
-      "Noticing which app, which time of day and which mood triggers the tap is the same 'digital habit' work the festival is about, just pointed at spending.",
-      "This isn't about deleting the apps, it's about knowing which 10 minutes of your day actually costs you money."
+      "Shopee's 9.9 Super Shopping Day runs 8 to 14 September, peaking on 9 September, with discounts up to 90% off and stacked flash vouchers closing tonight at 7:59pm.",
+      "A countdown timer triggers urgency on purpose, which is exactly why a pre-made list beats browsing during the sale.",
+      "Comparing tonight's 'deal' price against what you'd have paid anyway next month is the real test of whether it's a saving or a spend.",
+      "This isn't about skipping sales, it's about the list deciding the purchase, not the clock."
     ],
-    "cta": "Comment 'TRIGGER' and I'll send you how I track my own spending triggers for a week.",
+    "cta": "Comment 'LIST' and I'll send you the pre-shopping checklist I use before any big sale.",
     "cta_type": "comment-keyword",
-    "how_to_film": "Short video filmed phone-in-hand: open on scrolling, on-screen text naming the festival and the doom-spending parallel, cut to opening a banking or budgeting app instead, end on CTA overlay.",
-    "source_label": "PR Newswire",
-    "source_url": "https://www.prnewswire.com/apac/news-releases/starhubs-biggest-ever-5g-wellness-festival-invites-singapore-to-press-pause-302859282.html",
-    "observed_at": "2026-09-12",
-    "date_found": "2026-09-13"
+    "how_to_film": "Short video filmed phone-in-hand: open on the Shopee 9.9 countdown, on-screen text naming the list-vs-urgency point, cut to opening a notes app pre-made list, end on CTA overlay.",
+    "source_label": "Shopee",
+    "source_url": "https://shopee.sg/blog/9-9-deals/",
+    "observed_at": "2026-09-14",
+    "date_found": "2026-09-14"
   },
   {
-    "id": "trend-2026-09-13-kampong-gelam-festival-passing-it-down",
+    "id": "trend-2026-09-14-hawker-centre-closures",
     "platform": "facebook",
-    "format": "carousel",
+    "format": "text-post",
+    "pillar": "topic",
+    "trend_type": "news",
+    "trend_source": "21 hawker centres across Singapore are closed this week for routine cleaning, and Kim Keat Palm Market and the Block 726 Clementi West Street 2 hawker centre began repair closures today, 14 September, running to December.",
+    "title": "Your regular hawker stall might be closed this week, here's the buffer that covers it",
+    "why_it_works": "A real, dated closure affecting daily food-cost habits gives an honest, low-stakes reason to talk about a small buffer for temporary substitutions, without any alarm.",
+    "hooks": [
+      "Half my usual hawker options are closed for cleaning this week, and the pricier substitute is the whole point of this post.",
+      "If your go-to hawker centre is shut for cleaning this week, that price difference is exactly what a small buffer is for.",
+      "Two hawker centres started months-long repair closures today, small as it sounds, that's a real recurring cost shift for regulars."
+    ],
+    "talking_points": [
+      "21 hawker centres are closed this week for routine cleaning, and Kim Keat Palm Market and the Clementi West Street 2 centre began repair closures today that run to December.",
+      "A closed regular stall usually means a slightly pricier meal elsewhere, small on any one day, real if it happens for months.",
+      "A buffer sized for 'my usual option is unavailable' covers exactly this kind of ordinary disruption, not just emergencies.",
+      "This isn't about the closures themselves, it's about a small line in the budget for when the cheap default isn't there."
+    ],
+    "cta": "What's your go-to move when your regular cheap option is closed? Tell me in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Text-post: open with the hawker-closure hook, 3-4 short lines, close with the open question.",
+    "source_label": "AsiaOne",
+    "source_url": "https://www.asiaone.com/singapore/hawker-centre-closure-cleaning-2026-second-week-september",
+    "observed_at": "2026-09-14",
+    "date_found": "2026-09-14"
+  },
+  {
+    "id": "trend-2026-09-14-term-4-school-reopens",
+    "platform": "linkedin",
+    "format": "text-post",
     "pillar": "identity",
-    "trend_type": "event",
-    "trend_source": "The inaugural Kampong Gelam Festival, 'Through the Eras', ran 12-13 September at Sultan Gate Park and satellite heritage sites, free admission, celebrating the precinct's history through music, tours and workshops.",
-    "title": "A whole festival just launched to keep one precinct's story alive, here's the version of that for your family",
-    "why_it_works": "A real, dated, brand-new heritage festival gives an honest, upbeat reason to talk about the unglamorous paperwork that actually keeps a family's story and finances intact, with no morbid framing.",
+    "trend_type": "current-affairs",
+    "trend_source": "Singapore schools reopen today, 14 September, for the start of Term 4, the final stretch of the academic year before December's year-end break.",
+    "title": "Term 4 starts today, here's the year-end spend most families forget to plan for",
+    "why_it_works": "A real, dated start-of-term moment gives an honest reason to talk about planning ahead for December's known costs, with no pressure or product pitch.",
     "hooks": [
-      "Kampong Gelam just got its first-ever festival built entirely around keeping its story alive, here's the family version of that.",
-      "This weekend's new heritage festival is about a place remembering its own story, most families never wrote theirs down.",
-      "A precinct just launched a whole festival to pass its history down properly, here's the 10-minute version for your own household."
+      "Term 4 starts today, which means December's year-end costs are exactly 14 weeks away, not a surprise.",
+      "Schools reopened today for the last term of the year, here's the spend I plan for now instead of in December.",
+      "The final school term just started today, and it's the easiest time to plan for costs that land in December."
     ],
     "talking_points": [
-      "The inaugural Kampong Gelam Festival, 'Through the Eras', ran 12-13 September at Sultan Gate Park with satellite sites at the Malay Heritage Centre, Baghdad Street and Serambi, free admission.",
-      "A precinct's history survives because someone actively documents and passes it on, a family's finances work the same way.",
-      "CPF nominations, insurance beneficiaries and a basic will are the unglamorous version of 'passing the story down', done once and then just kept updated.",
-      "None of this needs to be morbid, it's closer to labelling the family photo album so the right person knows what it is."
+      "Singapore schools reopen today, 14 September, for Term 4, the final term before the year-end school holidays in December.",
+      "December brings enrichment sign-ups, year-end celebrations and holiday costs that are entirely predictable, just rarely planned for this early.",
+      "Splitting a known December cost into 14 weekly amounts starting now makes it a non-event when the bills actually arrive.",
+      "This isn't about cutting year-end spending, it's about it not landing as one lump sum in December."
     ],
-    "cta": "Save this carousel and check your CPF nomination is actually up to date this week.",
+    "cta": "Save this and start splitting your December costs from today's first week of Term 4.",
     "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 hook with the festival opening, slide 2 the precinct's-story-vs-family's-story parallel, slide 3 the 3 things to check (nomination, beneficiary, will), slide 4 how to start, slide 5 CTA.",
-    "source_label": "The Scribbling Geek",
-    "source_url": "https://www.scribblinggeek.com/index.php/2026/09/12/kampong-gelam-festival-2026/",
-    "observed_at": "2026-09-12",
-    "date_found": "2026-09-13"
+    "how_to_film": "Text-post: slide/line 1 hook with today's term start, then the December-costs point, then the weekly-split method, close with CTA.",
+    "source_label": "Ministry of Education",
+    "source_url": "https://www.moe.gov.sg/news/press-releases/20250730-school-terms-and-holidays-for-2026",
+    "observed_at": "2026-09-14",
+    "date_found": "2026-09-14"
   },
   {
-    "id": "trend-2026-09-13-public-garden-suntec-side-hustle-income",
+    "id": "trend-2026-09-14-panda-planet-last-day",
     "platform": "instagram",
     "format": "carousel",
     "pillar": "interest",
     "trend_type": "event",
-    "trend_source": "Public Garden art market returned to Suntec Singapore's Halls 405-406 on 12-13 September, free admission, featuring independent Singapore and Asia creative labels selling prints, fashion and lifestyle goods.",
-    "title": "This weekend's art market is full of side hustles, here's the one number those sellers should track",
-    "why_it_works": "A real, dated market full of independent local sellers gives an honest, encouraging reason to talk about tracking side-income properly, with zero judgement of anyone's craft or hustle.",
+    "trend_source": "The Panda Planet Immersive Experience at River Wonders, the format's first showing outside China, closes today, 14 September, after opening 4 September for Kai Kai and Jia Jia's birthdays.",
+    "title": "This panda exhibition closes today, here's the family-budget lesson hiding in the last-day rush",
+    "why_it_works": "A real, dated attraction closing today gives an honest reason to talk about planned versus last-minute family spending, with zero judgement of the outing itself.",
     "hooks": [
-      "Public Garden is back at Suntec this weekend, and half these sellers are running a side hustle most haven't tracked properly yet.",
-      "If you're one of the makers at this weekend's art market, here's the one number worth knowing besides your sales total.",
-      "Supporting small local sellers this weekend reminded me how many side hustles never separate the hustle from the day job's money."
+      "A panda exhibition at River Wonders closes today, and the last-day rush is the exact moment budgets get skipped.",
+      "If you're rushing to catch this panda exhibition before it closes today, here's the 30-second check before you buy tickets at the door.",
+      "Singapore's first Panda Planet exhibition wraps up today, last-day urgency is a real spending trigger worth naming."
     ],
     "talking_points": [
-      "Public Garden art market returned to Suntec Singapore's Halls 405-406 on 12-13 September, free admission, showcasing independent Singapore and Asia creative labels.",
-      "A side hustle's actual profit is sales minus materials, platform fees and time, a number most sellers only estimate.",
-      "Separating side-income into its own account makes it visible for tax filing and for deciding if it's actually worth scaling.",
-      "This isn't about turning a craft into a spreadsheet, it's about knowing if the hustle is paying you or just paying itself back."
+      "The Panda Planet Immersive Experience at River Wonders, the format's first showing outside China, closes today, 14 September, after opening 4 September for Kai Kai and Jia Jia's birthdays.",
+      "Last-day urgency for a family outing pushes people to skip comparing ticket bundles or add-ons they'd normally check.",
+      "A quick look at combo tickets or annual passes before paying at the door usually beats the walk-up price.",
+      "This isn't about missing the exhibition, it's about the closing-day rush not being the thing that decides your spend."
     ],
-    "cta": "Save this before your next market weekend and start tracking your actual side-income number.",
-    "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 hook over market visual, slide 2 the profit-vs-sales point, slide 3 the separate-account method, slide 4 how to apply it, slide 5 CTA.",
-    "source_label": "Time Out Singapore",
-    "source_url": "https://www.timeout.com/singapore/things-to-do/public-garden-4",
-    "observed_at": "2026-09-12",
-    "date_found": "2026-09-13"
+    "cta": "Comment 'FAMILY' and I'll send you how I budget for last-minute family outings without overspending.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Carousel: slide 1 hook over the exhibition visual, slide 2 the last-day-urgency point, slide 3 the ticket-check tip, slide 4 CTA.",
+    "source_label": "Mandai Wildlife Group",
+    "source_url": "https://www.mandai.com/en/about-mandai/media-centre/Kai_Kai_and_Jia_Jia_celebrate_birthdays_as_Singapores_first_Panda_Planet_exhibition_opens.html",
+    "observed_at": "2026-09-14",
+    "date_found": "2026-09-14"
   },
   {
-    "id": "trend-2026-09-13-col-special-payment-windfall-habit",
-    "platform": "linkedin",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "current-affairs",
-    "trend_source": "Over 2.4 million Singapore citizens are receiving S$400-600 in cash this week under the Enhanced Budget 2026 Cost-of-Living Special Payment, with PayNow-NRIC credits from 9 September and bank transfers running to 17 September.",
-    "title": "Millions of Singaporeans are getting a cash payout this week, here's what actually happens to windfalls",
-    "why_it_works": "A real, dated, ongoing government disbursement affecting millions this week gives an honest, purely behavioural reason to talk about intentional windfall spending, with zero product pitch or return promise.",
-    "hooks": [
-      "Over 2.4 million people are getting S$400 to $600 in their account this week, here's what usually happens to money like that.",
-      "This week's cost-of-living payout is landing in millions of accounts, and most of it will disappear without anyone deciding where.",
-      "If that special payment hit your account this week, here's the 2-minute decision that changes what it actually does for you."
-    ],
-    "talking_points": [
-      "Over 2.4 million adult Singapore citizens are receiving S$400-600 under the Enhanced Budget 2026 Cost-of-Living Special Payment, with PayNow-NRIC credits from 9 September and bank transfers running to 17 September.",
-      "Unassigned windfalls tend to blend into regular spending within days, not because of a bad decision, just because no decision was made.",
-      "Naming the money before it lands, top up an emergency fund, clear a specific bill, or a planned expense, is what actually changes its outcome.",
-      "This isn't about not enjoying a bit of it, it's about the whole amount not just disappearing into 'general spending'."
-    ],
-    "cta": "What's your plan for your payout this week? Tell me in the comments.",
-    "cta_type": "open-question",
-    "how_to_film": "Text-post: open with the millions-of-accounts hook, 3-4 short lines, close with the open question.",
-    "source_label": "Ministry of Finance",
-    "source_url": "https://www.mof.gov.sg/news-resources/newsroom/over-2-4-million-singapore-citizens-to-receive-between--400-and--600-from-the-enhanced-budget-2026-cost-of-living--col--special-payment-in-september-2026/",
-    "observed_at": "2026-09-12",
-    "date_found": "2026-09-13"
-  },
-  {
-    "id": "trend-2026-09-13-heritage-festival-final-day-patience",
-    "platform": "instagram",
+    "id": "trend-2026-09-14-asia-cup-cricket-depth",
+    "platform": "tiktok",
     "format": "short-video",
-    "pillar": "topic",
-    "trend_type": "event",
-    "trend_source": "The Singapore Botanic Gardens and Fort Canning Park Heritage Festival wraps its nine-day run today, 13 September, closing with the Open Score Project performance and its first-ever EnlighTEN light show.",
-    "title": "A 9-day festival ends today, and it only worked because nobody rushed it",
-    "why_it_works": "A real festival ending today, built entirely around living, growing, decades-old heritage sites, gives an honest, non-promissory way to talk about what patience and consistency actually produce over time.",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "India women won a record-extending 8th Women's Asia Cup title on 13 September, beating Sri Lanka by 73 runs in the final without losing a single match, powered by contributions from four different players.",
+    "title": "India's cricket team just won it all without one single star carrying them, here's the money version",
+    "why_it_works": "A real, same-week championship result gives an honest, non-prediction angle on depth and diversification of contribution, with zero stock or market call.",
     "hooks": [
-      "The Botanic Gardens heritage festival wraps up today, nine days celebrating something that took over a century to become special.",
-      "This festival ends today, and every tree it's celebrating proves the same point about money that nobody wants to hear.",
-      "Nine days of heritage events end today at a garden that's been growing since 1859, that timeline is the whole lesson."
+      "India's women's cricket team just went unbeaten to an 8th Asia Cup title, and no single player did it alone.",
+      "A team just won a tournament undefeated with four different players stepping up in the final, that's not a coincidence.",
+      "The Women's Asia Cup ended Sunday with a title win built on depth, not one star performance, worth copying."
     ],
     "talking_points": [
-      "The Singapore Botanic Gardens and Fort Canning Park Heritage Festival runs 5-13 September, closing today with the Open Score Project performance and the Gardens' first EnlighTEN light show.",
-      "Nothing about the Gardens looks impressive because of one good year, it's a few consistent decades that nobody notices happening.",
-      "A regular monthly contribution works on the same principle, unremarkable in any single month, genuinely different only after years of it.",
-      "This isn't a promise about what any plan will be worth, it's a reminder that consistency is the only part actually in your control."
+      "India's women beat Sri Lanka by 73 runs in Sunday's Women's Asia Cup final for a record 8th title, going undefeated all tournament with several players, Shafali Verma, Smriti Mandhana, Shree Charani and Deepti Sharma, stepping up across matches.",
+      "A team that depends on contributions from several players is harder to derail than one that depends on a single star performance.",
+      "The same logic applies to household finances, income, savings and insurance spread across a few solid pieces holds up better than one big bet holding everything up.",
+      "This isn't a call on any investment, it's a reminder that depth is what actually survives a bad day."
     ],
-    "cta": "Comment 'CONSISTENT' and I'll send you how I automate my own contributions so they don't rely on willpower.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Short video shot at or referencing the Gardens: open on greenery or a lights visual, on-screen text making the century-vs-decades point, cut to camera on the automate-it point, end on CTA overlay.",
-    "source_label": "Little Day Out",
-    "source_url": "https://www.littledayout.com/singapore-botanic-gardens-fort-canning-park-heritage-festival/",
+    "cta": "Where in your own finances is one thing doing all the work? Tell me in the comments.",
+    "cta_type": "open-question",
+    "how_to_film": "Short video: open on the match result graphic, on-screen text naming the depth-over-one-star point, cut to camera making the household-finance parallel, end on CTA overlay.",
+    "source_label": "ESPNcricinfo",
+    "source_url": "https://www.cricinfo.com/series/women-s-asia-cup-2026-1548888/india-women-vs-sri-lanka-women-final-1548905/match-report",
     "observed_at": "2026-09-13",
-    "date_found": "2026-09-13"
+    "date_found": "2026-09-14"
   },
   {
-    "id": "trend-2026-09-13-oil-yields-fuel-utility-budget",
-    "platform": "facebook",
-    "format": "text-post",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Oil prices tested US$100 and the US 10-year Treasury yield hit 4.974%, its highest since October 2023, this week as markets braced for the Fed's 15-16 September rate decision.",
-    "title": "Oil is testing US$100 this week, here's the household number worth checking, not guessing",
-    "why_it_works": "A genuinely dated macro move this week gives an honest, non-predictive reason to talk about budgeting for volatile fuel and utility costs, with zero market call or investment pick.",
-    "hooks": [
-      "Oil is testing US$100 a barrel this week, and I'm not touching what that means for markets, just what it means for petrol.",
-      "Headlines this week are about oil near US$100 and bond yields at a multi-year high, here's the boring household version.",
-      "Nobody can tell you where oil goes from here, but your petrol and utility budget shouldn't be guessing either."
-    ],
-    "talking_points": [
-      "Oil prices tested US$100 a barrel and the US 10-year Treasury yield hit 4.974%, its highest since October 2023, this week ahead of the Fed's 15-16 September meeting.",
-      "Petrol and electricity costs are two of the few household expenses that move directly with global energy prices, often faster than salaries adjust.",
-      "A separate, slightly padded line for fuel and utilities, reviewed every few months rather than assumed flat, absorbs swings like this week's.",
-      "This isn't about predicting oil prices, it's about your budget not being surprised when they move."
-    ],
-    "cta": "Comment 'FUEL' and I'll send you how I pad my utilities line instead of guessing it.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Text-post: open with the oil-and-yields hook, 3-4 short lines, close with CTA.",
-    "source_label": "Trading Strategy Guides",
-    "source_url": "https://tradingstrategyguides.com/stock-market-preview-september-12-2026-fed-rate-hike-fears-grip-futures/",
-    "observed_at": "2026-09-12",
-    "date_found": "2026-09-13"
-  },
-  {
-    "id": "trend-2026-09-13-sti-record-high-fomo-discipline",
+    "id": "trend-2026-09-14-arsenal-unbeaten-start",
     "platform": "linkedin",
     "format": "text-post",
-    "pillar": "market",
-    "trend_type": "news",
-    "trend_source": "The Straits Times Index hit a fresh intraday record above 5,800 points this week, led by gains in DBS, OCBC, UOB and property counters like HongKong Land.",
-    "title": "The STI just hit a record high, here's the feeling worth managing more than the headline",
-    "why_it_works": "A genuinely dated local market record gives an honest, behaviour-only angle on the FOMO a record high creates, with no prediction, no stock pick and no return promise.",
+    "pillar": "identity",
+    "trend_type": "sport",
+    "trend_source": "Arsenal beat Sunderland 2-0 on 12 September to stay the only unbeaten team in this season's Premier League, while Liverpool, Chelsea and Tottenham all dropped points the same weekend.",
+    "title": "Arsenal's the only unbeaten team in the league right now, and it's not because they're flashy",
+    "why_it_works": "A real, same-weekend league result gives an honest, non-prediction angle on steady discipline outperforming flash, with zero betting or market angle.",
     "hooks": [
-      "The Straits Times Index just hit a record high, and the headline isn't the hard part, the FOMO it creates is.",
-      "Singapore's stock index is at an all-time high this week, here's the one feeling I check before doing anything about it.",
-      "Record highs make it feel like everyone else is winning and you're late, that feeling is the actual thing to manage."
+      "Arsenal's the only unbeaten team left in the league this weekend, while the flashier sides dropped points.",
+      "A football team stayed unbeaten this weekend by grinding out a 2-0 win, not by playing the prettiest football.",
+      "The most unbeaten team in the league right now isn't the one everyone's talking about, that's the actual lesson."
     ],
     "talking_points": [
-      "The Straits Times Index reached a fresh intraday record above 5,800 points this week, led by DBS, OCBC, UOB and property counters including HongKong Land.",
-      "A record high headline is designed to trigger a reaction, chasing in out of FOMO or panic-checking a portfolio that hasn't actually changed.",
-      "A plan built around regular contributions doesn't need a reaction to a record high any more than it needed one to a dip.",
-      "This isn't a call on where the index goes next, nobody reliably knows that, it's about not letting a headline dictate a decision."
+      "Arsenal beat Sunderland 2-0 on 12 September to remain the only unbeaten team in this season's Premier League, while Liverpool, Chelsea and Tottenham all dropped points the same weekend.",
+      "An unbeaten run is built from unremarkable, low-drama results, not the highlight-reel wins everyone shares.",
+      "A financial plan that just doesn't blow up in a bad month is doing the same quiet work as a defence that just doesn't concede.",
+      "This isn't a football prediction or a market call, it's a reminder that avoiding bad months matters as much as chasing good ones."
     ],
-    "cta": "What's your rule for not reacting to headlines like this? Tell me in the comments.",
+    "cta": "What's your version of just not having a bad month? Tell me in the comments.",
     "cta_type": "open-question",
-    "how_to_film": "Text-post: open with the record-high hook, 3-4 short lines, close with the open question.",
-    "source_label": "TheFinance.sg",
-    "source_url": "https://thefinance.sg/2026/09/12/why-are-global-stocks-and-the-straits-times-index-near-record-highs-3-reasons-behind-the-rally/",
+    "how_to_film": "Text-post: open with the Arsenal hook, 3-4 short lines, close with the open question.",
+    "source_label": "The Sunday Guardian",
+    "source_url": "https://sundayguardianlive.com/sports/premier-league-results-september-12-2026-arsenal-stay-perfect-as-liverpool-chelsea-and-tottenham-drop-points-full-results-283625/",
     "observed_at": "2026-09-12",
-    "date_found": "2026-09-13"
+    "date_found": "2026-09-14"
   },
   {
-    "id": "trend-2026-09-13-revupsg-watch-parties-big-day-budget",
+    "id": "trend-2026-09-14-nfl-record-opener",
+    "platform": "instagram",
+    "format": "story",
+    "pillar": "interest",
+    "trend_type": "culture",
+    "trend_source": "The Chicago Bears beat the Carolina Panthers 59-37 on 13 September, the highest-scoring Week 1 game in NFL history, kicking off a season that also revives fantasy football spending.",
+    "title": "The NFL just posted its highest-scoring opening week ever, here's the budget check before fantasy season starts",
+    "why_it_works": "A real, dated record-breaking opener gives an honest reason to treat fantasy leagues and casual season-long spending as entertainment budget, with zero betting endorsement.",
+    "hooks": [
+      "The NFL's opening week just posted its highest score ever, 96 points in one game, and fantasy league season starts with it.",
+      "If that 59-37 season opener got you re-joining a fantasy league, here's the one number to set before week 2.",
+      "The NFL season kicked off with a record-breaking scoreline, and it's also when a lot of casual spending quietly restarts."
+    ],
+    "talking_points": [
+      "The Bears beat the Panthers 59-37 on 13 September, the highest-scoring Week 1 game in NFL history, as the new season kicked off with record offence across several games.",
+      "A new sports season often restarts small recurring spends, league buy-ins, subscriptions, prop bets, that people forget they paused in the off-season.",
+      "Setting one fixed amount for the season upfront keeps a fun hobby from turning into a string of small, unplanned charges.",
+      "This isn't about skipping the fun of the season, it's about deciding the number before week 1's excitement decides it for you."
+    ],
+    "cta": "Save this before you set your fantasy league budget for the season.",
+    "cta_type": "save-share",
+    "how_to_film": "Instagram Story, 3 frames: hook text over the scoreline graphic, mid-frame with the season-budget point, close frame with save prompt.",
+    "source_label": "NBC Bay Area",
+    "source_url": "https://www.nbcbayarea.com/news/sports/nfl/nfl-week-1-winners-and-losers-bears-offense-explodes-bills-texans-delivers/4142192/",
+    "observed_at": "2026-09-13",
+    "date_found": "2026-09-14"
+  },
+  {
+    "id": "trend-2026-09-14-sla25-trail-ends",
+    "platform": "facebook",
+    "format": "carousel",
+    "pillar": "topic",
+    "trend_type": "culture",
+    "trend_source": "The SLA25 Rediscovery Trail, a free self-guided trail across 25 heritage State properties marking the Singapore Land Authority's 25th anniversary, ended yesterday, 13 September, after a two-month run.",
+    "title": "A free 2-month trail across 25 places just ended, proof a great outing doesn't need a big budget",
+    "why_it_works": "A real, dated, free public program wrapping up gives an honest, upbeat reason to talk about low-cost outings and intentional leisure spending, with no judgement of anyone's usual plans.",
+    "hooks": [
+      "A free trail across 25 heritage spots in Singapore just wrapped up yesterday, and it cost nothing to join.",
+      "This 2-month free heritage trail just ended, it's a reminder that a good outing doesn't need a big budget.",
+      "25 places, 2 months, zero entry cost, that free trail just ended and it's the cheapest fun I had all year."
+    ],
+    "talking_points": [
+      "The SLA25 Rediscovery Trail, a free self-guided journey across 25 State-managed heritage sites marking the Singapore Land Authority's 25th anniversary, ran from 14 July and ended yesterday, 13 September.",
+      "Free or low-cost outings, heritage trails, parks, community events, get skipped over paid ones mostly because they're less visible, not less enjoyable.",
+      "Building a short list of free things to do before defaulting to a paid outing keeps a leisure budget from creeping up unnoticed.",
+      "This isn't about avoiding paid experiences, it's about the free ones getting equal consideration first."
+    ],
+    "cta": "Comment 'FREE' and I'll send you my list of no-cost things to do around Singapore.",
+    "cta_type": "comment-keyword",
+    "how_to_film": "Carousel: slide 1 hook with the trail's heritage-spot visual, slide 2 the free-vs-paid-visibility point, slide 3 how to build your own free-outing list, slide 4 CTA.",
+    "source_label": "Singapore Land Authority",
+    "source_url": "https://www.sla.gov.sg/sla25trail/",
+    "observed_at": "2026-09-13",
+    "date_found": "2026-09-14"
+  },
+  {
+    "id": "trend-2026-09-14-minecraft-experience-closes",
     "platform": "tiktok",
     "format": "short-video",
     "pillar": "interest",
     "trend_type": "event",
-    "trend_source": "Free #RevUpSG Formula 1 watch parties ran 12-13 September at three Singapore heartland locations including HDB Hub, screening live races and previewing 2026 Singapore Grand Prix merchandise ahead of the October race weekend.",
-    "title": "This weekend's free F1 watch parties are the warm-up, here's how I budget for the actual race weekend",
-    "why_it_works": "A real, dated, free community event tied to a big-ticket event still months out gives an honest reason to talk about planning ahead for a known future expense, with no ticket-buying pitch.",
+    "trend_source": "Minecraft Experience: Villager Rescue, Asia's first, ran from 24 April to 13 September at Mandai Wildlife Reserve, with weekday tickets from $46 for adults and weekend tickets from $51.",
+    "title": "Asia's first Minecraft experience just closed after 5 months, here's what its pricing teaches about planning family outings",
+    "why_it_works": "A real, dated attraction closing after a long run gives an honest reason to talk about planning for recurring kids'-activity spending across the year, with no shaming of ticket prices.",
     "hooks": [
-      "Free F1 watch parties popped up in the heartlands this weekend, and it's basically the hype trailer for October's actual bill.",
-      "This weekend's free Grand Prix watch parties got me excited for October, so I did the math on that weekend now, not later.",
-      "The F1 watch parties are free this weekend, the real race weekend in October isn't, here's how I'm splitting that cost now."
+      "Asia's first Minecraft Experience just closed after 5 months at Mandai, and the ticket pricing taught me something about planning ahead.",
+      "A 5-month kids' attraction just wrapped up, and weekday-versus-weekend pricing is worth knowing before your next family outing.",
+      "If your kids loved this Minecraft experience before it closed, the weekday discount is the trick for the next one."
     ],
     "talking_points": [
-      "Free #RevUpSG Formula 1 watch parties ran 12-13 September at three heartland locations including HDB Hub, screening races and previewing 2026 Singapore Grand Prix merchandise ahead of the 9-11 October race weekend.",
-      "A known future big-ticket event, tickets, travel, time off, is one of the easiest costs to under-plan for because it still feels far away.",
-      "Splitting that known cost into a monthly amount now, starting from the hype weekend rather than the week before, makes it a non-event when it arrives.",
-      "This isn't about skipping the fun, it's about the fun not landing as one uncomfortable lump sum in October."
+      "Minecraft Experience: Villager Rescue, Asia's first, ran from 24 April to 13 September at Mandai Wildlife Reserve, with weekday tickets from $46 for adults and weekend tickets from $51.",
+      "A $5 to $7 gap between weekday and weekend family-attraction pricing adds up fast across a year of school-holiday outings.",
+      "Checking a same attraction's weekday slot, or an off-peak season, before booking is a small habit that keeps kids'-activity spending predictable.",
+      "This isn't about cutting family outings, it's about timing them to cost less without losing any of the fun."
     ],
-    "cta": "Comment 'RACE' and I'll send you how I split a big known event cost into monthly amounts.",
-    "cta_type": "comment-keyword",
-    "how_to_film": "Short video at or referencing a watch-party setting: open on the race screening energy, on-screen text revealing the October cost, cut to the monthly-split method, end on CTA overlay.",
-    "source_label": "Singapore GP",
-    "source_url": "https://singaporegp.sg/en/news/2026/revupsg-watch-parties-bring-formula-1-action-to-three-heartland-locations-ahead-of-the-formula-1-singapore-airlines-singapore-grand-prix-2026/",
-    "observed_at": "2026-09-12",
-    "date_found": "2026-09-13"
-  },
-  {
-    "id": "trend-2026-09-13-thomson-reserve-condo-launch-affordability-check",
-    "platform": "linkedin",
-    "format": "carousel",
-    "pillar": "topic",
-    "trend_type": "news",
-    "trend_source": "Thomson Reserve, a 1,268-unit mega-launch in Upper Thomson by UOL, Singapore Land Group and CapitaLand, opened VVIP preview positioning this week ahead of its September/October 2026 launch.",
-    "title": "A 1,268-unit mega-launch just opened VVIP preview, here's the math before you queue",
-    "why_it_works": "A real, dated, major new condo launch actively opening preview access this week gives an honest, purely educational reason to talk through affordability math before any showflat visit, with no property-buying pitch.",
-    "hooks": [
-      "A 1,268-unit mega-launch just opened VVIP preview this week, and the queue moves faster than the affordability math does.",
-      "One of this year's biggest condo launches opened preview access this week, here's what I'd check before stepping into that showflat.",
-      "VVIP preview for a massive new launch opened this week, 'VVIP' doesn't change what your TDSR actually allows."
-    ],
-    "talking_points": [
-      "Thomson Reserve, a 1,268-unit mega-launch across six towers in Upper Thomson by UOL, Singapore Land Group and CapitaLand, opened VVIP preview positioning this week ahead of a September/October 2026 launch.",
-      "A showflat is built to make the unit feel urgent, the actual constraint is what your TDSR and existing CPF and cash position allow, not the queue number.",
-      "Working out the real total, downpayment, stamp duties, monthly instalment against income, before a preview visit changes the conversation you have there.",
-      "This isn't about whether to buy, it's about walking in with your own numbers instead of the sales gallery's."
-    ],
-    "cta": "Save this carousel and run your own affordability numbers before any showflat visit.",
+    "cta": "Save this before your next kids' attraction booking and check the weekday price first.",
     "cta_type": "save-share",
-    "how_to_film": "Carousel: slide 1 hook with the mega-launch news, slide 2 the showflat-urgency-vs-TDSR point, slide 3 the numbers to work out first, slide 4 how to do it, slide 5 CTA.",
-    "source_label": "A Nation of Moms",
-    "source_url": "https://anationofmoms.com/2026/09/new-condos-singapore.html",
-    "observed_at": "2026-09-12",
-    "date_found": "2026-09-13"
+    "how_to_film": "Short video: open on the attraction's colourful visuals, on-screen text comparing weekday vs weekend pricing, cut to a calendar showing off-peak planning, end on CTA overlay.",
+    "source_label": "Mandai Wildlife Group",
+    "source_url": "https://www.mandai.com/en/about-mandai/media-centre/Minecraft-Experience-Makes-Its-Asia-Debut-In-Singapore-At-The-Mandai-Wildlife-Reserve-This-April.html",
+    "observed_at": "2026-09-13",
+    "date_found": "2026-09-14"
   }
 ]
