@@ -32,6 +32,7 @@ export default function FeedbackPage() {
             ? { id: user.id, name: meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? null, email: user.email ?? null }
             : undefined
         }
+        chrome={false}
       />
     </div>
   );
