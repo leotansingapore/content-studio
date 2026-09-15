@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -466,7 +466,10 @@ export default function FadsPage() {
   // Per-collateral AI polish state. Keyed by `${kind}:${id}` (e.g. "asset:wa-tagline", "slide:why-im-here").
   const [aiPolish, setAiPolish] = useState<Record<string, string>>({});
   const [polishingId, setPolishingId] = useState<string | null>(null);
-  const hasHydrated = useRef(false);
+  // The storage key the form was last loaded from. Saving waits until the
+  // current key is loaded, so opening the page (or the user id arriving) never
+  // writes the empty form over saved work.
+  const [hydratedKey, setHydratedKey] = useState<string | null>(null);
 
   // Hydrate from localStorage once we know the user.
   useEffect(() => {
@@ -500,35 +503,45 @@ export default function FadsPage() {
     } catch (e) {
       console.warn("FADS tool: failed to hydrate from localStorage", e);
     } finally {
-      hasHydrated.current = true;
+      setHydratedKey(storageKey);
     }
   }, [storageKey, polishStorageKey]);
 
-  // Persist on every change (after hydration).
+  // Persist changes after hydration. Unchanged data isn't rewritten, so a
+  // visit doesn't re-upload it to the cloud with a fresh timestamp.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!hasHydrated.current) return;
+    if (hydratedKey !== storageKey) return;
     try {
-      localStorage.setItem(storageKey, JSON.stringify(formData));
+      const next = JSON.stringify(formData);
+      const saved = localStorage.getItem(storageKey);
+      if (saved === next) return;
+      if (saved === null && next === JSON.stringify(INITIAL_FORM)) return;
+      localStorage.setItem(storageKey, next);
     } catch (e) {
       console.warn("FADS tool: failed to persist", e);
     }
-  }, [formData, storageKey]);
+  }, [formData, storageKey, hydratedKey]);
 
   // Persist AI-polished collateral separately so refresh doesn't wipe it.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!hasHydrated.current) return;
+    if (hydratedKey !== storageKey) return;
     try {
       if (Object.keys(aiPolish).length === 0) {
-        localStorage.removeItem(polishStorageKey);
+        if (localStorage.getItem(polishStorageKey) !== null) {
+          localStorage.removeItem(polishStorageKey);
+        }
       } else {
-        localStorage.setItem(polishStorageKey, JSON.stringify(aiPolish));
+        const next = JSON.stringify(aiPolish);
+        if (localStorage.getItem(polishStorageKey) !== next) {
+          localStorage.setItem(polishStorageKey, next);
+        }
       }
     } catch (e) {
       console.warn("FADS tool: failed to persist AI polish", e);
     }
-  }, [aiPolish, polishStorageKey]);
+  }, [aiPolish, polishStorageKey, storageKey, hydratedKey]);
 
   useEffect(() => {
     if (!tab) {
