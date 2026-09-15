@@ -4,15 +4,17 @@
 // re-searching the full lists each time. Persisted per user to localStorage:
 //   key: content-studio-saved-${userId}
 
-export type SavedKind = "inspiration" | "creators";
+export type SavedKind = "inspiration" | "creators" | "topPosts";
 
 export interface SavedItems {
   inspiration: string[];
   creators: string[];
+  /** Saved swipe-file posts, keyed by `${advisorId}-${shortCode}`. */
+  topPosts: string[];
 }
 
 const KEY_PREFIX = "content-studio-saved-";
-const EMPTY: SavedItems = { inspiration: [], creators: [] };
+const EMPTY: SavedItems = { inspiration: [], creators: [], topPosts: [] };
 
 function safeStorage(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -34,6 +36,7 @@ export function loadSaved(userId: string | null | undefined): SavedItems {
     return {
       inspiration: Array.isArray(parsed.inspiration) ? parsed.inspiration : [],
       creators: Array.isArray(parsed.creators) ? parsed.creators : [],
+      topPosts: Array.isArray(parsed.topPosts) ? parsed.topPosts : [],
     };
   } catch (_) {
     return { ...EMPTY };
@@ -65,5 +68,5 @@ export function isSaved(items: SavedItems, kind: SavedKind, id: string): boolean
 }
 
 export function savedCount(items: SavedItems): number {
-  return items.inspiration.length + items.creators.length;
+  return items.inspiration.length + items.creators.length + items.topPosts.length;
 }

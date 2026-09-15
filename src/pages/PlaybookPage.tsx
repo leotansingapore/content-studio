@@ -67,6 +67,7 @@ export default function PlaybookPage() {
   const [saved, setSaved] = useState<SavedItems>({
     inspiration: [],
     creators: [],
+    topPosts: [],
   });
 
   useEffect(() => {

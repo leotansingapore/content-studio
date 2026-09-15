@@ -357,6 +357,7 @@ export default function AdvisorProfiles() {
   const [saved, setSaved] = useState<SavedItems>({
     inspiration: [],
     creators: [],
+    topPosts: [],
   });
 
   useEffect(() => {

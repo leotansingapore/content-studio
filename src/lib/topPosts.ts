@@ -36,6 +36,11 @@ export interface TopPostWithAdvisor extends TopPost {
   handle: string;
   company?: string;
   tier?: number;
+  // Advisor metadata carried onto the post so the swipe file can derive
+  // topic/audience tags without a second lookup.
+  niche?: string[];
+  audience?: string[];
+  advisorFormat?: string[];
 }
 
 const RAW = topPostsData as Record<string, TopPost[]>;
@@ -71,6 +76,9 @@ export function getAllTopPosts(): TopPostWithAdvisor[] {
         handle: advisor.handle,
         company: advisor.company as string | undefined,
         tier: advisor.tier,
+        niche: advisor.niche,
+        audience: advisor.audience,
+        advisorFormat: advisor.format,
       });
     }
   }
@@ -105,16 +113,22 @@ export function generatorFormat(p: TopPost): string {
 export function buildRemixUrl(
   post: TopPost,
   advisor: { name: string; handle: string },
+  extras?: { angle?: string | null; structure?: string | null },
 ): string {
   const topic =
     post.idea?.hook ||
     post.caption.slice(0, 90).replace(/\s+\S*$/, "") ||
     "A proven post idea";
+  // Inspiration, not plagiarism: we pass the idea, why it worked, the angle and
+  // the structure — never the original wording to copy.
   const ctxParts = [
-    `Reverse-engineer this top-performing post by ${advisor.name} (${advisor.handle}) and make my own version.`,
+    `Reverse-engineer this proven post by ${advisor.name} (${advisor.handle}) and write my OWN version in my voice. Keep the mechanic and structure; do not copy the wording.`,
+    post.idea?.hook ? `Original idea: ${post.idea.hook}` : "",
     post.idea?.why ? `Why it worked: ${post.idea.why}` : "",
-    post.idea?.adapt ? `How to adapt: ${post.idea.adapt}` : "",
-    `Original caption for reference (do not copy verbatim): ${post.caption.slice(0, 300)}`,
+    extras?.angle ? `Content angle to keep: ${extras.angle}` : "",
+    extras?.structure ? `Structure to follow: ${extras.structure}` : "",
+    post.idea?.adapt ? `How to adapt it for me: ${post.idea.adapt}` : "",
+    `Change the specifics to fit my audience and stay compliant for a licensed SG financial advisor.`,
   ].filter(Boolean);
   const params = new URLSearchParams({
     pillar: "topic",

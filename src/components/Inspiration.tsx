@@ -291,6 +291,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
   const [saved, setSaved] = useState<SavedItems>({
     inspiration: [],
     creators: [],
+    topPosts: [],
   });
   const [savedOnly, setSavedOnly] = useState(false);
 
