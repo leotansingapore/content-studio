@@ -712,17 +712,22 @@ export default function GeneratePage() {
   ) => {
     const runId = ++streamRunRef.current;
     const setRows = target === "hooks" ? setHookOptions : setVariants;
+    // This run supersedes anything still in flight. Cancel it, or its chunks
+    // keep landing in the rows this run is about to create.
+    abortControllerRef.current?.abort();
     const controller = new AbortController();
     try {
-      await streamRows(payload, target, initialCount, controller);
+      await streamRows(payload, target, initialCount, controller, runId);
     } finally {
-      // Rows still pending when the request ends (Stop, error, early close)
-      // must stop looking busy. A newer run owns the rows, so skip if one started.
+      // Only the newest run owns the rows and the Stop control. An older run
+      // finishing later must not clear the label or the controller under it.
       if (streamRunRef.current === runId) {
         const halted = controller.signal.aborted ? "stopped" : "failed";
         setRows((prev) =>
           prev.map((v) => (v.complete || v.halted ? v : { ...v, halted })),
         );
+        abortControllerRef.current = null;
+        setStreamingMode("idle");
       }
     }
   };
@@ -736,9 +741,13 @@ export default function GeneratePage() {
     target: "hooks" | "variants",
     initialCount: number,
     controller: AbortController,
+    runId: number,
   ) => {
     const url = `${SUPABASE_URL}/functions/v1/generate-social-content`;
     const session = (await supabase.auth.getSession()).data.session;
+    // A second click while the session was resolving already started a newer
+    // run. Drop this one before it costs a call or overwrites the new rows.
+    if (streamRunRef.current !== runId) return;
     const token = session?.access_token ?? SUPABASE_ANON_KEY;
 
     const initial: VariantState[] = Array.from(
@@ -779,6 +788,8 @@ export default function GeneratePage() {
     let buffer = "";
 
     const applyEvent = (evt: { type: string; [k: string]: unknown }) => {
+      // A chunk that arrives after a newer run started belongs to nobody.
+      if (streamRunRef.current !== runId) return;
       if (evt.type === "token") {
         const idx = evt.variantIndex as number;
         const text = evt.text as string;
@@ -884,9 +895,6 @@ export default function GeneratePage() {
           err instanceof Error ? err.message : "Try again in a moment.",
         variant: "destructive",
       });
-    } finally {
-      abortControllerRef.current = null;
-      setStreamingMode("idle");
     }
   };
 
@@ -912,9 +920,6 @@ export default function GeneratePage() {
           err instanceof Error ? err.message : "Try again in a moment.",
         variant: "destructive",
       });
-    } finally {
-      abortControllerRef.current = null;
-      setStreamingMode("idle");
     }
   };
 
@@ -942,9 +947,6 @@ export default function GeneratePage() {
           err instanceof Error ? err.message : "Try again in a moment.",
         variant: "destructive",
       });
-    } finally {
-      abortControllerRef.current = null;
-      setStreamingMode("idle");
     }
   };
 
