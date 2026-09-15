@@ -1,0 +1,40 @@
+name: CI
+
+# Build + test gate. Several agent sessions push straight to main, and a push to
+# main IS the Vercel production deploy — so this is the alarm when main breaks:
+# a red run marks the commit and emails whoever pushed it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Pull requests only need their latest commit checked; every main commit keeps
+# its own result so a breaking push can't hide behind the next one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Typecheck and build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm test
