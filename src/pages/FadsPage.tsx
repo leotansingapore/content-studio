@@ -2141,7 +2141,7 @@ export default function FadsPage() {
                     <CardDescription>Send your whole brand brief to an AI assistant for a polished narrative + content calendar.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button onClick={generateBrandTemplate} disabled={isGenerating} className="w-full" size="lg">
+                    <Button onClick={generateBrandTemplate} disabled={isGenerating} className="w-full disabled:opacity-100" size="lg">
                       {isGenerating ? (
                         <><ThinkingOrb state="working" size={20} theme="dark" aria-hidden className="mr-2" /> Generating...</>
                       ) : (

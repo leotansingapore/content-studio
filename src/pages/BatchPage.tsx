@@ -303,7 +303,7 @@ export default function BatchPage() {
             onClick={runBatch}
             disabled={running}
             size="lg"
-            className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 sm:w-auto"
+            className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 disabled:opacity-100 sm:w-auto"
           >
             {running ? (
               <>
