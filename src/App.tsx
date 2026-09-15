@@ -29,6 +29,7 @@ const GeneratePage = lazy(() => import("@/pages/GeneratePage"));
 const BatchPage = lazy(() => import("@/pages/BatchPage"));
 const SwipeFilePage = lazy(() => import("@/pages/SwipeFilePage"));
 const TrendsPage = lazy(() => import("@/pages/TrendsPage"));
+const CloneReelPage = lazy(() => import("@/pages/CloneReelPage"));
 const InspirationPage = lazy(() => import("@/pages/InspirationPage"));
 const InspirationDetailPage = lazy(() => import("@/pages/InspirationDetailPage"));
 const ProfilesPage = lazy(() => import("@/pages/ProfilesPage"));
@@ -73,6 +74,7 @@ export default function App() {
           <Route path="/profiles/:id" element={<ProfileDetailPage />} />
           <Route path="/swipe" element={<SwipeFilePage />} />
           <Route path="/trends" element={<TrendsPage />} />
+          <Route path="/clone" element={<CloneReelPage />} />
           <Route path="/create-guide" element={<CreateGuidePage />} />
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/drafts" element={<DraftsPage />} />

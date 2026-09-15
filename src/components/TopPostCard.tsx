@@ -12,8 +12,10 @@ import {
   Images,
   FileText,
   Flame,
+  Clapperboard,
 } from "lucide-react";
 import { buildRemixUrl, generatorFormat, type TopPost, type TopPostWithAdvisor } from "@/lib/topPosts";
+import { cloneLinkFor } from "@/lib/reelClone";
 import {
   deriveTopic,
   deriveAngle,
@@ -190,6 +192,13 @@ export default function TopPostCard({
               <Wand2 className="h-3.5 w-3.5" /> Remix this
             </Link>
           </Button>
+          {fmt === "short-video" && cloneLinkFor(post.url) && (
+            <Button asChild variant="outline" size="sm" className="shrink-0 px-2.5" title="Clone this reel">
+              <Link to={cloneLinkFor(post.url)!} aria-label="Clone this reel">
+                <Clapperboard className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
           {onToggleSave && (
             <Button
               variant="outline"

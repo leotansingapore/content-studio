@@ -24,6 +24,7 @@ import {
   LayoutGrid,
   X,
   Flame,
+  Clapperboard,
   MessageSquarePlus,
   Compass,
 } from "lucide-react";
@@ -71,6 +72,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     items: [
       { to: "/swipe", label: "Top posts", icon: TrendingUp },
       { to: "/trends", label: "Trends", icon: Flame },
+      { to: "/clone", label: "Clone a reel", icon: Clapperboard },
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
       { to: "/profiles", label: "Creators", icon: UsersIcon },
     ],

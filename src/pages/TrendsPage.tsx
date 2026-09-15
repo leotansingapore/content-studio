@@ -14,6 +14,7 @@ import {
   type TrendEntry,
   type TrendPlatform,
 } from "@/lib/trends";
+import { cloneLinkFor } from "@/lib/reelClone";
 import {
   Flame,
   Wand2,
@@ -340,6 +341,13 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
               <Wand2 className="h-3.5 w-3.5" /> Write this
             </Link>
           </Button>
+          {cloneLinkFor(trend.source_url) && (
+            <Button asChild variant="outline" size="sm" className="gap-1.5" title="Clone this video">
+              <Link to={cloneLinkFor(trend.source_url)!}>
+                <Clapperboard className="h-3.5 w-3.5" /> Clone
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline" size="sm" className="gap-1.5">
             <a href={trend.source_url} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-3.5 w-3.5" /> Source
