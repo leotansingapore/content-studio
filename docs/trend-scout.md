@@ -31,9 +31,11 @@ well on TikTok and Instagram**, and pushes the new drop live with no approval st
    honestly adapt for Singapore consultants and skips promotions, recruitment
    posts, stock or fund picks, and anything unclear.
 5. Validates the kits. URLs and numbers always come from the scraped video,
-   never from the model. Writes `trends.json` **only if** at least `TREND_MIN`
-   (default 8) valid trends survive, so a thin or failed run never overwrites
-   the last good drop.
+   never from the model. Any kit that trips the app's compliance rules
+   (`src/lib/compliance.ts`, e.g. "guaranteed", "risk-free", a specific %
+   return) is dropped, since nobody reviews an automatic drop. Writes
+   `trends.json` **only if** at least `TREND_MIN` (default 8) valid trends
+   survive, so a thin or failed run never overwrites the last good drop.
 6. Commits to `main`; Vercel's git integration deploys the updated page.
 
 **Only this job should write `trends.json`.** A separate Claude routine has been

@@ -69,6 +69,24 @@ export const CTA_TYPES = [
   "open-question",
 ];
 
+// Mirrors COMPLIANCE_FLAGS in src/lib/compliance.ts (a test keeps them in
+// sync). Any match drops the kit: an automatic drop has no one to reword it.
+export const COMPLIANCE_RULES = [
+  { id: "guarantee", pattern: /\b(guaranteed?|guarantee[ds]?)\b/i },
+  { id: "risk-free", pattern: /\b(risk[-\s]?free|no\s+risk)\b/i },
+  { id: "100-safe", pattern: /\b(100%|completely)\s+(safe|secure)\b/i },
+  { id: "best-superlative", pattern: /\b(best|number\s*one|#1)\s+(insurance|policy|plan|fund|product)/i },
+  { id: "aia-best", pattern: /\bAIA\s+is\s+the\s+best/i },
+  { id: "specific-return", pattern: /\b(\d+%\s+(return|p\.a\.|annual)|\d+%\s+(rate|interest))\b/i },
+  { id: "easy-money", pattern: /\b(easy|guaranteed|sure)\s+(money|profit|win)/i },
+  { id: "act-now", pattern: /\bact\s+(now|today)\b/i },
+];
+
+/** Compliance rule ids a piece of text trips (empty when clean). */
+export function complianceIssues(text) {
+  return COMPLIANCE_RULES.filter((r) => r.pattern.test(String(text ?? ""))).map((r) => r.id);
+}
+
 export const TIKTOK_ACTOR = "clockworks~tiktok-scraper";
 export const IG_REEL_ACTOR = "apify~instagram-reel-scraper";
 
@@ -402,7 +420,7 @@ export function buildKitPrompt(posts, count, today) {
 
   return `Today is ${today} (Singapore time). Below are ${posts.length} finance videos doing well right now on TikTok and Instagram, with their real engagement and what each one actually says. TikTok videos are ranked by engagement; Instagram reels by how far they beat their creator's usual views.
 
-For each video a Singapore financial consultant can HONESTLY ride, write one piece of content. Pick the best ${count}. Skip any without a genuine money / protection / planning angle, and skip any where the caption and transcript don't make clear what the video is about. Aim for a spread of topics and pillars.
+For each video a Singapore financial consultant can HONESTLY ride, write one piece of content. Pick up to ${count + 3} of the best. Skip any without a genuine money / protection / planning angle, and skip any where the caption and transcript don't make clear what the video is about. Aim for a spread of topics and pillars.
 
 VIDEOS:
 ${lines.join("\n\n")}
@@ -427,6 +445,8 @@ Rules:
 - Build from what the video actually says; never invent details that aren't in its caption or transcript.
 - Keep it Singapore-relevant (SGD, CPF, SRS, HDB, insurance where the bridge is honest). Adapt foreign accounts and figures to Singapore instead of presenting them as local facts.
 - Don't state specific government payouts, interest rates, tax caps or returns as facts; tell viewers to check the official source.
+- Never use regulated wording anywhere in a kit, even when quoting the video: "guaranteed", "risk-free", "no risk", "100% safe", "act now", "best policy / plan / fund", or a specific % return or interest rate. Kits that do are dropped automatically.
+- Use plain punctuation: no em dashes.
 - Skip recruitment ("join my team") content, paid promotions and affiliate offers.
 - Hooks are for the consultant to say in their own voice; never claim they did something from the source video (like running a street interview) that they didn't.
 - Skip videos with no honest money angle rather than stretching. Quality over hitting ${count}.
@@ -511,6 +531,9 @@ export function finalizeTrends(kits, posts, today, count = 12) {
     const hooks = cleanStringList(k.hooks);
     const points = cleanStringList(k.talking_points);
     if (hooks.length < 2 || points.length < 3) continue;
+
+    const kitText = [k.title, k.trend_source, k.cta, k.why_it_works, k.how_to_film, ...hooks, ...points].join("\n");
+    if (complianceIssues(kitText).length > 0) continue;
 
     const title = k.title.trim();
     const slug = slugify(title) || `trend-${out.length + 1}`;

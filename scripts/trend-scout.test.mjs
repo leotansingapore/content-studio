@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { COMPLIANCE_FLAGS } from "../src/lib/compliance.ts";
 import {
+  COMPLIANCE_RULES,
+  complianceIssues,
   IG_REEL_ACTOR,
   TIKTOK_ACTOR,
   ageInDays,
@@ -268,6 +271,19 @@ describe("buildKitPrompt", () => {
   });
 });
 
+describe("compliance", () => {
+  it("mirrors the app's compliance rules exactly", () => {
+    const shape = (rules) => rules.map((r) => [r.id, r.pattern.source, r.pattern.flags]);
+    expect(shape(COMPLIANCE_RULES)).toEqual(shape(COMPLIANCE_FLAGS));
+  });
+
+  it("flags regulated wording and passes clean text", () => {
+    expect(complianceIssues("The market is guaranteed to crash this month")).toEqual(["guarantee"]);
+    expect(complianceIssues("Lock in a 5% return")).toContain("specific-return");
+    expect(complianceIssues("Build a 3 to 6 month emergency fund first")).toEqual([]);
+  });
+});
+
 describe("finalizeTrends", () => {
   const posts = [
     {
@@ -304,6 +320,17 @@ describe("finalizeTrends", () => {
     expect(trend.source_url).toBe("https://www.tiktok.com/@a/video/1");
     expect(trend).toMatchObject({ platform: "tiktok", likes: 9000, views: 120000 });
     expect(trend.id).toBe("trend-2026-09-15-loud-budgeting-singapore-edition");
+  });
+
+  it("drops a kit that trips a compliance rule anywhere in its text", () => {
+    const risky = finalizeTrends(
+      [{ ...kit, hooks: ["Someone said the market is guaranteed to crash this month.", "Here is why."] }],
+      posts,
+      "2026-09-15",
+    );
+    expect(risky).toEqual([]);
+    const clean = finalizeTrends([kit], posts, "2026-09-15");
+    expect(clean).toHaveLength(1);
   });
 
   it("rejects kits with a bad index, enum or too few hooks", () => {
