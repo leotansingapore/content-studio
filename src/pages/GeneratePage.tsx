@@ -109,6 +109,8 @@ type Audience =
   | "general";
 type StreamingMode = "idle" | "hooks" | "variants";
 
+const HALT_LABEL = { stopped: "stopped", failed: "didn't finish" } as const;
+
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ?? "https://hgdbflprrficdoyxmdxe.supabase.co";
 const SUPABASE_ANON_KEY =
@@ -320,6 +322,8 @@ interface VariantState {
   index: number;
   text: string;
   complete: boolean;
+  // Set when the request ended (Stop, error, early close) before this row finished.
+  halted?: "stopped" | "failed";
 }
 
 interface BasePayload {
@@ -369,6 +373,7 @@ export default function GeneratePage() {
   const [vibeSourceId, setVibeSourceId] = useState<string | null>(null);
   const formAnchorRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const streamRunRef = useRef(0);
   const prefillAppliedRef = useRef<boolean>(false);
   // When a scheduled/posted slot is loaded, keep updating that same entry on
   // re-roll/pick (so it stays on the calendar) instead of forking a new draft.
@@ -705,6 +710,33 @@ export default function GeneratePage() {
     target: "hooks" | "variants",
     initialCount: number,
   ) => {
+    const runId = ++streamRunRef.current;
+    const setRows = target === "hooks" ? setHookOptions : setVariants;
+    const controller = new AbortController();
+    try {
+      await streamRows(payload, target, initialCount, controller);
+    } finally {
+      // Rows still pending when the request ends (Stop, error, early close)
+      // must stop looking busy. A newer run owns the rows, so skip if one started.
+      if (streamRunRef.current === runId) {
+        const halted = controller.signal.aborted ? "stopped" : "failed";
+        setRows((prev) =>
+          prev.map((v) => (v.complete || v.halted ? v : { ...v, halted })),
+        );
+      }
+    }
+  };
+
+  const streamRows = async (
+    payload: BasePayload & {
+      mode: "hooks" | "body" | "post";
+      n: number;
+      chosenHook?: string;
+    },
+    target: "hooks" | "variants",
+    initialCount: number,
+    controller: AbortController,
+  ) => {
     const url = `${SUPABASE_URL}/functions/v1/generate-social-content`;
     const session = (await supabase.auth.getSession()).data.session;
     const token = session?.access_token ?? SUPABASE_ANON_KEY;
@@ -716,7 +748,6 @@ export default function GeneratePage() {
     if (target === "hooks") setHookOptions(initial);
     else setVariants(initial);
 
-    const controller = new AbortController();
     abortControllerRef.current = controller;
     setStreamingMode(target);
 
@@ -1815,13 +1846,23 @@ export default function GeneratePage() {
                   </div>
                   <div className="flex-1 space-y-1">
                     <div className="font-sans text-sm leading-relaxed text-foreground">
-                      {h.text || (
-                        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                          <ThinkingOrb state="composing" size={20} theme="light" aria-hidden />{" "}
-                          drafting...
-                        </span>
-                      )}
+                      {h.text ||
+                        (h.halted ? (
+                          <span className="text-muted-foreground">
+                            {HALT_LABEL[h.halted]}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                            <ThinkingOrb state="composing" size={20} theme="light" aria-hidden />{" "}
+                            drafting...
+                          </span>
+                        ))}
                     </div>
+                    {h.halted && h.text && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {h.halted === "stopped" ? "stopped before finishing" : HALT_LABEL.failed}
+                      </span>
+                    )}
                     {h.complete && !isPicked && (
                       <span className="text-[11px] text-muted-foreground group-hover:text-primary">
                         Click to use this hook
@@ -1884,7 +1925,11 @@ export default function GeneratePage() {
                       <span className="rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                         Variant {String.fromCharCode(65 + v.index)}
                       </span>
-                      {!v.complete ? (
+                      {!v.complete && v.halted ? (
+                        <span className="text-[10px] text-muted-foreground">
+                          {HALT_LABEL[v.halted]}
+                        </span>
+                      ) : !v.complete ? (
                         <span className="flex items-center gap-1 text-[10px] text-primary">
                           <ThinkingOrb state="weaving" size={20} theme="light" aria-hidden />{" "}
                           streaming
@@ -1898,7 +1943,7 @@ export default function GeneratePage() {
                     <pre className="min-h-[180px] flex-1 whitespace-pre-wrap break-words font-sans text-[13px] leading-relaxed text-foreground">
                       {v.text || (
                         <span className="text-muted-foreground">
-                          drafting...
+                          {v.halted ? HALT_LABEL[v.halted] : "drafting..."}
                         </span>
                       )}
                     </pre>
