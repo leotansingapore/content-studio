@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link } from "react-router-dom";
-import { ArrowRight, Columns3, GripVertical, Pencil } from "lucide-react";
+import { ArrowRight, Columns3, GripVertical, Lightbulb, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -386,6 +386,17 @@ export default function BoardPage() {
                           placeholder="+ Quick idea, Enter to add"
                           className="w-full rounded-lg border border-dashed border-border/70 bg-background/60 px-2.5 py-2 text-xs outline-none placeholder:text-muted-foreground/60 focus:border-primary/40 focus:bg-background"
                         />
+                      )}
+                      {col.key === "idea" && (
+                        <Link
+                          to="/coach#idea-dump"
+                          className="inline-flex items-center gap-1 self-start px-0.5 text-[11px] font-medium text-primary hover:underline"
+                        >
+                          <Lightbulb className="h-3 w-3" /> Dump ideas
+                          <span className="font-normal text-muted-foreground">
+                            and get post briefs back
+                          </span>
+                        </Link>
                       )}
 
                       {cards.length === 0 && col.key !== "idea" && (
