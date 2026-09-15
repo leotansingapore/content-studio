@@ -50,11 +50,10 @@ Outputs to `dist/`.
 
 ## Deploy
 
-Vercel (auto-deployed from `main`):
-
-```bash
-vercel --prod --yes
-```
+Vercel deploys `main` automatically, so `git push origin main` is the deploy.
+Don't run `vercel --prod` from a checkout: on 2026-07-23 a CLI deploy from a
+stale checkout overwrote a newer production deploy. CLAUDE.md has the
+rebase, push and live-verify steps.
 
 Set env vars in Vercel:
 
@@ -72,7 +71,7 @@ Each major surface has its own URL so it can be bookmarked, shared, or deep-link
 | Route | What it shows |
 |---|---|
 | `/auth` | Sign-in form (email + password) |
-| `/` | Redirects to `/generate` |
+| `/` | Redirects to `/home` |
 | `/generate` | The generation form (pillar / idea source / format / platform / CTA). Reads `?vibe=<id>` to pre-fill from an inspiration entry. |
 | `/inspiration` | The inspiration grid with platform / pillar / audience filters and search. |
 | `/inspiration/:id` | Single inspiration card detail with full content, why-it-works, tags, and "Use as vibe" button. |

@@ -21,3 +21,8 @@ dist-ssr
 *.sw?
 .gstack/
 supabase/.temp/
+
+# Build and tool artifacts (every build rewrote these, dirtying the tree)
+*.tsbuildinfo
+excalidraw.log
+.verify/
