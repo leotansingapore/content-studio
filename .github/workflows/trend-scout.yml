@@ -12,14 +12,14 @@ name: Trend scout
 # Missing either one makes the job fail fast and write nothing.
 
 on:
-  # PAUSED 2026-09-15 (by request): the daily automatic run is disabled. The
-  # scout can still be triggered by hand from the Actions tab ("Run workflow").
-  # To resume the morning schedule, uncomment the cron line below.
-  # schedule:
-  #   # 01:50 UTC = 09:50 SGT. GitHub runs cron in UTC and can start late under
-  #   # load. Deliberately after 01:30 UTC, so this drop replaces any news-based
-  #   # drop another scheduled job commits earlier in the morning.
-  #   - cron: "50 1 * * *"
+  # Leo wants this to publish on its own every morning (confirmed 2026-09-15).
+  # To stop the news-based drop, pause that Claude routine instead; don't
+  # comment this out.
+  schedule:
+    # 01:50 UTC = 09:50 SGT. GitHub runs cron in UTC and can start late under
+    # load. Deliberately after 01:30 UTC, so this drop replaces any news-based
+    # drop another scheduled job commits earlier in the morning.
+    - cron: "50 1 * * *"
   workflow_dispatch:
     inputs:
       count:
