@@ -92,11 +92,10 @@ Deno.serve(async (req) => {
     const previous: PreviousIdea[] = (prev ?? []).map((p) => ({ hook: p.hook, idea: p.idea, status: p.status }));
     const nextBatch = (prev ?? []).reduce((m, p) => Math.max(m, p.batch), 0) + 1;
     const seen = seenTexts(posts, previous);
-    // What the meaning check compares against: recent ideas and every post.
-    const earlier = [
-      ...previous.slice(0, 100).map((p) => `${p.hook} (${p.idea})`),
-      ...posts.map((p) => oneLine(p.caption, 160)).filter(Boolean),
-    ];
+    // What the meaning check compares against: strictly against recent ideas,
+    // loosely against posts (a real twist on something they posted is fine).
+    const earlierIdeas = previous.slice(0, 100).map((p) => `${p.hook} (${p.idea})`);
+    const postTexts = posts.map((p) => oneLine(p.caption, 160)).filter(Boolean);
 
     const accepted: PostIdea[] = [];
     let formula = "";
@@ -121,7 +120,10 @@ Deno.serve(async (req) => {
       // Word overlap misses the same topic reworded or in another language;
       // a narrow second call catches those. If it fails, keep what passed.
       let fresh = result.ideas;
-      const check = buildRepeatCheckPrompt(fresh, [...accepted.map((i) => `${i.hook} (${i.idea})`), ...earlier]);
+      const check = buildRepeatCheckPrompt(fresh, {
+        ideas: [...accepted.map((i) => `${i.hook} (${i.idea})`), ...earlierIdeas],
+        posts: postTexts,
+      });
       const verdict = await openAiJson(check.system, check.user, apiKey, { temperature: 0, maxTokens: 200 });
       if (verdict !== null) {
         const repeats = parseRepeats(verdict, fresh.length);

@@ -56,10 +56,12 @@ describe("repeat check by meaning", () => {
   it("numbers the new ideas and lists what came before", () => {
     const { system, user } = buildRepeatCheckPrompt(
       [idea("Small habits keep you broke", "Daily coffee and rides add up."), idea("CPF basics", "Three accounts explained.")],
-      ["Pengeluaran kecil bikin boncos (Kebiasaan kecil tiap hari)"],
+      { ideas: ["Pengeluaran kecil bikin boncos (Kebiasaan kecil tiap hari)"], posts: [] },
     );
-    expect(system).toContain("another language");
-    expect(user).toContain("Earlier ideas and posts:\n- Pengeluaran kecil bikin boncos");
+    expect(system).toContain("same pain point, question or topic");
+    expect(system).toContain("only a near-copy is a repeat");
+    expect(user).toContain("Earlier suggestions:\n- Pengeluaran kecil bikin boncos");
+    expect(user).toContain("Existing posts:\n- none");
     expect(user).toContain("New ideas:\n1. Small habits keep you broke (Daily coffee and rides add up.)\n2. CPF basics");
   });
 

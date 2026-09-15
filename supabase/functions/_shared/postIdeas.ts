@@ -126,7 +126,7 @@ export function buildIdeasPrompt(input: {
 
   const system = [
     `You are a short-form content strategist for a licensed financial consultant in Singapore. You study what went furthest on their own ${name} account and write new post ideas in that same style.`,
-    "Step 1: work out their winning formula from their best posts: the hook style, the topic angle, the format and the length. Write it as one plain sentence in \"formula\".",
+    "Step 1: work out their winning formula from their best posts: the hook style, the topic angle, the format and the length. Write it in \"formula\" as one short plain sentence of at most 25 words.",
     `Step 2: write ${count} post ideas that use that formula. Each idea is either a new topic told in their winning style, or a fresh twist on a winning topic (a new angle, example or audience). Mix both kinds.`,
     "Rules:",
     "- Build every idea to spread: a scroll-stopping first line (curiosity, a surprising number, a myth, a strong opinion or a relatable pain), one clear payoff, and a reason to save it or send it to a friend.",
@@ -175,17 +175,24 @@ export function buildIdeasPrompt(input: {
  * A second, narrow model call that catches repeats the word-overlap check
  * can't: the same topic reworded, or written in another language.
  */
-export function buildRepeatCheckPrompt(candidates: PostIdea[], earlier: string[]): { system: string; user: string } {
+export function buildRepeatCheckPrompt(
+  candidates: PostIdea[],
+  earlier: { ideas: string[]; posts: string[] },
+): { system: string; user: string } {
   const system = [
-    "You check new social media post ideas against ideas and posts that already exist.",
-    "A new idea is a repeat if it covers the same core topic and angle as any earlier item, even when it is worded differently or written in another language.",
-    "A new idea is also a repeat if it covers the same topic as a new idea numbered before it.",
-    "An idea on a related theme with a clearly different angle, example or audience is not a repeat.",
+    "You check new social media post ideas for repeats.",
+    "Against earlier suggestions, be strict: a new idea is a repeat if it shares the same pain point, question or topic, even when the example, explanation, wording or language differs.",
+    "Against the account's existing posts, only a near-copy is a repeat. A new angle on a topic they have posted about is fine.",
+    "A new idea is also a repeat if it shares the pain point, question or topic of a new idea numbered before it.",
     'Return JSON only: {"repeats": [the numbers of the new ideas that are repeats]}',
   ].join("\n");
+  const list = (items: string[]) => (items.length ? items.map((e) => `- ${oneLine(e, 200)}`) : ["- none"]);
   const user = [
-    "Earlier ideas and posts:",
-    ...(earlier.length ? earlier.map((e) => `- ${oneLine(e, 200)}`) : ["- none"]),
+    "Earlier suggestions:",
+    ...list(earlier.ideas),
+    "",
+    "Existing posts:",
+    ...list(earlier.posts),
     "",
     "New ideas:",
     ...candidates.map((c, i) => `${i + 1}. ${c.hook} (${oneLine(c.idea, 200)})`),
