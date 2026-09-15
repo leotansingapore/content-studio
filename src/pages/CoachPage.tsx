@@ -34,7 +34,16 @@ import {
   coachContext,
   type CoachProfile,
 } from "@/lib/coachProfile";
-import { loadResult, type DiagnosisResult } from "@/lib/diagnosis";
+import {
+  loadResult,
+  loadDiagnosis,
+  saveDiagnosis,
+  scoreDiagnosis,
+  type DiagnosisResult,
+  type DiagnosisRecord,
+} from "@/lib/diagnosis";
+import DiagnosisQuiz from "@/components/DiagnosisQuiz";
+import DiagnosisSummary from "@/components/DiagnosisSummary";
 import {
   Gauge,
   Sparkles,
@@ -158,6 +167,9 @@ export default function CoachPage() {
   const [newLike, setNewLike] = useState("");
   const [newDislike, setNewDislike] = useState("");
   const [diag, setDiag] = useState<DiagnosisResult | null>(null);
+  const [role, setRole] = useState<string | undefined>();
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [ready, setReady] = useState(false);
 
   // Post review (unchanged craft analyzer).
   const [text, setText] = useState("");
@@ -179,9 +191,13 @@ export default function CoachPage() {
       setFields(
         Object.fromEntries(COACH_FIELDS.map((f) => [f.key, p[f.key] as string])),
       );
-      setDiag(loadResult(id));
+      const result = loadResult(id);
+      setDiag(result);
+      setRole(loadDiagnosis(id)?.role);
+      setShowQuiz(!result); // no diagnosis yet → run it first
       setHistory(loadCoachHistory(id));
       setInAppCount(loadDrafts(id).length);
+      setReady(true);
     })();
     return () => {
       active = false;
@@ -201,6 +217,19 @@ export default function CoachPage() {
     setProfile(next);
     setDirty(false);
     setSavedAt(Date.now());
+  };
+
+  const handleDiagComplete = (record: DiagnosisRecord) => {
+    if (userId) saveDiagnosis(userId, record);
+    setDiag(scoreDiagnosis(record.answers));
+    setRole(record.role);
+    setShowQuiz(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const retakeDiag = () => {
+    setShowQuiz(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const addPref = (kind: "like" | "dislike") => {
@@ -260,6 +289,33 @@ export default function CoachPage() {
           .join(" | ")}`
       : "";
 
+  if (!ready) {
+    return <div className="p-8 text-sm text-muted-foreground">Loading…</div>;
+  }
+
+  // No diagnosis yet → run it first, right inside the Coach.
+  if (showQuiz) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <header className="space-y-2">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Compass className="h-5 w-5" />
+            </span>
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+              Coach
+            </h1>
+          </div>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Let's start with a quick diagnosis so your coach knows exactly where
+            to focus. About two minutes.
+          </p>
+        </header>
+        <DiagnosisQuiz onComplete={handleDiagComplete} />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-10">
       <header className="space-y-2">
@@ -278,6 +334,21 @@ export default function CoachPage() {
           learns what you like as you go.
         </p>
       </header>
+
+      {/* ---- Coach diagnosis: where you stand + the one thing to do next -- */}
+      {diag && (
+        <section className="space-y-4">
+          <div>
+            <h2 className="font-serif text-lg font-semibold text-foreground">
+              Coach diagnosis
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Where you stand right now, and the one thing to work on next.
+            </p>
+          </div>
+          <DiagnosisSummary result={diag} role={role} onRetake={retakeDiag} />
+        </section>
+      )}
 
       {/* ---- About you: the intake ------------------------------------- */}
       <section className="space-y-4">
@@ -339,52 +410,6 @@ export default function CoachPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Pull the Diagnosis in rather than re-asking the scored questions. */}
-        {diag ? (
-          <Card className="border-border/60 shadow-card">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Gauge className="h-4 w-4" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Content Score {diag.overall}/100 · {diag.levelLabel}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Biggest focus right now: {diag.weaknesses[0]?.label}
-                  </p>
-                </div>
-              </div>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/diagnosis">View diagnosis</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-primary/20 bg-primary/[0.04] shadow-card">
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Gauge className="h-4 w-4" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Take the 2-minute Content Diagnosis
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    So the Coach knows your camera, consistency and hook scores
-                    without asking twice.
-                  </p>
-                </div>
-              </div>
-              <Button asChild size="sm">
-                <Link to="/diagnosis">Start diagnosis</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
 
         {profile && hasAnyProfile(profile) && ctx && (
           <Button

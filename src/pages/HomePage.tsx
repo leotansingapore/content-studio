@@ -254,7 +254,7 @@ export default function HomePage() {
                 </p>
                 {contentScore !== null && (
                   <Link
-                    to="/diagnosis"
+                    to="/coach"
                     className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                   >
                     <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
@@ -310,7 +310,7 @@ export default function HomePage() {
                 </div>
               </div>
               <Button asChild size="sm" className="gap-1.5">
-                <Link to="/diagnosis">
+                <Link to="/coach">
                   Start diagnosis <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </Button>
@@ -334,7 +334,7 @@ export default function HomePage() {
                 </div>
               </div>
               <Link
-                to="/diagnosis"
+                to="/coach"
                 className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
               >
                 <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
