@@ -1,26 +1,33 @@
 name: Trend scout
 
-# Scrapes the real viral TikTok/Instagram finance posts each morning (via
-# Apify), ranks them by actual engagement, and rewrites the top ones into
-# financial-advisor content for /trends. Commits the fresh drop to main, which
-# (via Vercel's git integration) deploys the updated page.
+# Every morning: finds finance videos doing well on TikTok and Instagram (via
+# Apify), pulls their transcripts, has Claude turn the best into content for
+# Singapore consultants, and commits the drop to main, which Vercel deploys.
+# There is no approval step: a run that can't produce enough valid trends
+# writes nothing, so the last good drop stays up.
 #
 # Requires TWO repo secrets:
-#   APIFY_TOKEN        - scrapes the viral posts (the real source + metrics)
-#   ANTHROPIC_API_KEY  - writes the advisor content kit for each post
+#   APIFY_TOKEN        - the scrape and transcripts (about US$1 a run)
+#   ANTHROPIC_API_KEY  - writes the content kits
 # Missing either one makes the job fail fast and write nothing.
 
 on:
   schedule:
-    # 02:00 UTC = 10:00 Singapore time (SGT, UTC+8). GitHub runs cron in UTC and
-    # timing is best-effort (can be delayed several minutes under load).
-    - cron: "0 2 * * *"
+    # 01:50 UTC = 09:50 SGT. GitHub runs cron in UTC and can start late under
+    # load. Deliberately after 01:30 UTC, so this drop replaces any news-based
+    # drop another scheduled job commits earlier in the morning.
+    - cron: "50 1 * * *"
   workflow_dispatch:
     inputs:
       count:
         description: "Number of trends to generate"
         required: false
-        default: "24"
+        default: "12"
+      dry_run:
+        description: "Preview only: print the drop in the log without committing"
+        type: boolean
+        required: false
+        default: false
 
 # Never let two scouts run (and push) at once.
 concurrency:
@@ -33,7 +40,7 @@ permissions:
 jobs:
   scout:
     runs-on: ubuntu-latest
-    # Apify runs (up to 12 min each, in parallel) + one streamed Claude call.
+    # Apify runs (up to 12 min each) + one streamed Claude call.
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
@@ -47,14 +54,15 @@ jobs:
 
       - name: Generate today's trend drop
         env:
-          # APIFY_TOKEN scrapes the real viral TikTok/Instagram posts; without it
-          # the job fails fast and writes nothing (no fabricated news sources).
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          TREND_COUNT: ${{ github.event.inputs.count || '24' }}
+          TREND_COUNT: ${{ github.event.inputs.count || '12' }}
+          # A dry run writes the drop outside the repo, so nothing is committed.
+          TREND_OUT: ${{ github.event.inputs.dry_run == 'true' && format('{0}/trends-preview.json', runner.temp) || '' }}
         run: node scripts/trend-scout.mjs
 
       - name: Commit if the drop changed
+        if: ${{ github.event.inputs.dry_run != 'true' }}
         run: |
           if git diff --quiet -- src/data/trends.json; then
             echo "No change to trends.json — nothing to commit."
@@ -62,8 +70,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Commit BEFORE pulling: git refuses to rebase over uncommitted
-          # changes, which failed this step every time it was reached.
+          # Commit BEFORE pulling: git refuses to rebase over uncommitted changes.
           git add src/data/trends.json
           git commit -m "trends: viral drop for $(TZ=Asia/Singapore date +%Y-%m-%d)"
           # Other sessions push to main often. If one touched trends.json since

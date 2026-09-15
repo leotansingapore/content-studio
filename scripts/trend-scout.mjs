@@ -1,50 +1,52 @@
-// Trend scout — the daily "what's actually going viral" drop for /trends.
+// Trend scout: the daily "what's actually going viral" drop for /trends.
 //
-// Sources real, high-engagement TikTok and Instagram posts (reels + carousels)
-// via Apify, ranks them by ACTUAL engagement (likes + comments + shares/saves)
-// so a post can surface on its numbers regardless of the creator's follower
-// count, then asks Claude to turn each proven-viral post into a piece a
-// Singapore AIA financial consultant can publish today — hooks, talking points,
-// CTA. Writes src/data/trends.json, which the /trends page renders.
+// Finds real finance videos doing well right now, pulls what each one actually
+// says, and asks Claude to turn the best of them into content a Singapore AIA
+// financial consultant can post today (hooks, talking points, CTA). Writes
+// src/data/trends.json, which the /trends page renders.
 //
-// Why scrape instead of web search: logged-out web search returns *articles
-// about* trends, never a verifiable viral permalink with real metrics. The
-// scraper provides the real URL and engagement numbers; Claude never supplies a
-// URL, so a fabricated source is structurally impossible.
+// Sources, all via Apify:
+//   - TikTok: finance hashtags, ranked by real engagement.
+//   - Instagram: recent reels from known finance creators (the SG creators in
+//     src/data/advisors.json plus a few large global accounts), ranked by how
+//     far each reel beat that creator's own median views. Instagram hashtag
+//     feeds only return brand-new, low-engagement posts, so they aren't used.
+//   - Transcripts for the shortlist: TikTok's own subtitles (speech-to-text when
+//     a video has none) and the Instagram reel scraper's transcript add-on.
+//
+// Claude never supplies a URL or a number: those come from the scraped post,
+// matched by index, so a fabricated source is structurally impossible.
 //
 // Runs in CI (see .github/workflows/trend-scout.yml). Locally:
 //   APIFY_TOKEN=apify_... ANTHROPIC_API_KEY=sk-ant-... node scripts/trend-scout.mjs
 //
 // Env:
-//   APIFY_TOKEN        (required) Apify API token — pays for the scrape
-//   ANTHROPIC_API_KEY  (required) Anthropic API key — writes the content kits
-//   TREND_COUNT        (optional) target number of trends, default 24
-//   TREND_MIN          (optional) minimum valid trends or the run fails without
-//                      writing, default 12 (never overwrite a good drop)
-//   TREND_MODEL        (optional) model id, default claude-opus-4-8
-//   TREND_MIN_ENGAGEMENT (optional) minimum (likes+comments) for a post to count
-//                      as viral enough to consider, default 3000
-//   APIFY_IG_ACTOR / APIFY_IG_HASHTAG_ACTOR / APIFY_TIKTOK_ACTOR (optional)
-//                      override the Apify actors
-//   IG_HASHTAGS / TIKTOK_HASHTAGS (optional) comma-separated hashtag overrides
+//   APIFY_TOKEN          (required) pays for the scrape and transcripts
+//   ANTHROPIC_API_KEY    (required) writes the content kits
+//   TREND_COUNT          (optional) target number of trends, default 12
+//   TREND_MIN            (optional) minimum valid trends or the run fails
+//                        without writing, default 8 (never overwrite a good drop)
+//   TREND_MODEL          (optional) model id, default claude-opus-4-8
+//   TREND_MIN_ENGAGEMENT (optional) TikTok floor on likes + comments, default 1000
+//   TREND_MAX_AGE_DAYS   (optional) ignore videos older than this, default 14
+//   TIKTOK_HASHTAGS      (optional) comma-separated hashtag override
+//   IG_CREATORS          (optional) extra comma-separated Instagram handles
+//   TREND_OUT            (optional) output path, default src/data/trends.json
 //
-// Design notes:
-// - normalizeIgItem / normalizeTiktokItem / rankPosts / finalizeTrends are pure
-//   and exported so the selection + validation logic is unit-testable without
-//   spending Apify or Anthropic quota.
-// - A run that produces fewer than TREND_MIN valid trends exits non-zero and
-//   does NOT write the file — a bad run must never wipe the last good drop.
+// The selection, parsing and validation helpers are pure and exported, so
+// scripts/trend-scout.test.mjs covers them without spending Apify or Anthropic
+// quota. A run that produces fewer than TREND_MIN valid trends exits non-zero
+// and does NOT write the file: a bad run must never wipe the last good drop.
 
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-// @anthropic-ai/sdk is imported lazily inside writeKits() so the pure,
-// exported selection/validation functions can be unit-tested without the SDK
-// (or a network) present.
+// @anthropic-ai/sdk is imported lazily inside writeKits() so the pure helpers
+// can be unit-tested without the SDK (or a network) present.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const OUT = path.join(ROOT, "src/data/trends.json");
+const DEFAULT_OUT = path.join(ROOT, "src/data/trends.json");
 
 // Mirrors src/lib/trends.ts. Kept here (not imported) so the scout has no build
 // dependency on the app's TypeScript.
@@ -67,45 +69,39 @@ export const CTA_TYPES = [
   "open-question",
 ];
 
-// Finance / money hashtags where genuinely viral SG-relevant content lives.
-// Small accounts surface here on engagement, which is exactly what we want.
-const DEFAULT_IG_HASHTAGS = [
-  "fintok",
-  "personalfinance",
-  "moneytok",
-  "financialliteracy",
-  "moneytips",
-  "sgfinance",
-  "moneysg",
-  "investingsg",
-];
+export const TIKTOK_ACTOR = "clockworks~tiktok-scraper";
+export const IG_REEL_ACTOR = "apify~instagram-reel-scraper";
+
 const DEFAULT_TIKTOK_HASHTAGS = [
   "fintok",
-  "loudbudgeting",
   "moneytok",
   "personalfinance",
   "financialliteracy",
-  "moneytips",
-  "sgfinance",
-  "investing101",
+  "budgeting",
+];
+// Large global finance creators, alongside the curated SG ones.
+const GLOBAL_IG_CREATORS = [
+  "herfirst100k",
+  "humphreytalks",
+  "vivianxtu",
+  "erikakullberg",
+  "yourrichbff",
+  "thefinancialdiet",
 ];
 
-// Each actor only accepts its own input fields (see the actors' published input
-// schemas). apify~instagram-scraper has no `hashtags` field, so hashtag posts
-// come from the dedicated hashtag actor; the general scraper handles the
-// curated creators' profile URLs.
-const IG_ACTOR = process.env.APIFY_IG_ACTOR || "apify~instagram-scraper";
-const IG_HASHTAG_ACTOR =
-  process.env.APIFY_IG_HASHTAG_ACTOR || "apify~instagram-hashtag-scraper";
-const TIKTOK_ACTOR =
-  process.env.APIFY_TIKTOK_ACTOR || "clockworks~tiktok-scraper";
+// Sized to keep a daily run near US$1 of Apify credit.
+const TIKTOK_PER_HASHTAG = 15;
+const IG_REELS_PER_CREATOR = 5;
+const TIKTOK_SHORTLIST = 12;
+const IG_SHORTLIST = 6;
+const MAX_TRANSCRIPT_CHARS = 1500;
 
 function csvEnv(name, fallback) {
   const raw = (process.env[name] || "").trim();
   if (!raw) return fallback;
   return raw
     .split(",")
-    .map((s) => s.trim().replace(/^#/, ""))
+    .map((s) => s.trim().replace(/^[#@]/, ""))
     .filter(Boolean);
 }
 
@@ -131,7 +127,7 @@ async function apifyFetch(url, token, init = {}) {
 /**
  * Start an Apify actor run, wait for it to finish, and return its dataset
  * items. An async run + polling rather than run-sync, which Apify cuts off
- * after 300s: too short for several hashtags' worth of posts.
+ * after 300s.
  */
 async function runActor(actor, input, token) {
   const started = await apifyFetch(`${APIFY_API}/acts/${actor}/runs`, token, {
@@ -154,6 +150,7 @@ async function runActor(actor, input, token) {
     `${APIFY_API}/datasets/${run.defaultDatasetId}/items?clean=true&format=json`,
     token,
   );
+  console.log(`  ${actor}: ${Array.isArray(items) ? items.length : 0} items, US$${run.usageTotalUsd ?? "?"}`);
   return Array.isArray(items) ? items : [];
 }
 
@@ -168,8 +165,8 @@ export function normalizeIgItem(p) {
     type.includes("video") || type.includes("clip")
       ? "short-video"
       : "carousel"; // Sidecar (multi-image) and single Image both map to carousel
-  const likes = Number(p.likesCount) || 0;
-  const comments = Number(p.commentsCount) || 0;
+  const likes = Math.max(0, Number(p.likesCount) || 0); // hidden likes come back as -1
+  const comments = Math.max(0, Number(p.commentsCount) || 0);
   const views = Number(p.videoViewCount || p.videoPlayCount) || 0;
   return {
     platform: "instagram",
@@ -210,6 +207,18 @@ export function normalizeTiktokItem(p) {
   };
 }
 
+/** Days between a timestamp (ISO string, or epoch seconds/ms) and `now`; null if unparseable. */
+export function ageInDays(timestamp, now = Date.now()) {
+  if (timestamp === null || timestamp === undefined || timestamp === "") return null;
+  const ms =
+    typeof timestamp === "number"
+      ? timestamp < 1e12
+        ? timestamp * 1000
+        : timestamp
+      : new Date(timestamp).getTime();
+  return Number.isNaN(ms) ? null : (now - ms) / 86_400_000;
+}
+
 // Comments and shares weighted above likes: they're the stronger "this is
 // genuinely useful / worth passing on" signals of real virality.
 export function engagementScore(post) {
@@ -219,8 +228,7 @@ export function engagementScore(post) {
 /**
  * Dedupe by URL, drop posts below the engagement floor, sort by engagement,
  * and cap how many come from any single author so one creator can't dominate
- * the drop. Ranks purely on engagement, so a small account that went viral
- * competes head-to-head with a big one.
+ * the drop.
  */
 export function rankPosts(posts, { minEngagement = 3000, perAuthorCap = 2 } = {}) {
   const seen = new Set();
@@ -245,6 +253,128 @@ export function rankPosts(posts, { minEngagement = 3000, perAuthorCap = 2 } = {}
   return capped;
 }
 
+function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  if (sorted.length === 0) return 0;
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * Rank Instagram reels by how far each beat its own creator's median views.
+ * Raw views would just surface the biggest accounts; the ratio finds the reel
+ * that broke out for that creator. The median uses every reel fetched for the
+ * creator, and only recent reels can be picked. Adds `outlier` (the ratio).
+ */
+export function pickOutlierReels(
+  items,
+  { maxAgeDays = 14, minViews = 5000, minRatio = 1.5, now = Date.now() } = {},
+) {
+  const byCreator = new Map();
+  for (const item of items) {
+    if (!item || item.error || !item.ownerUsername) continue;
+    const list = byCreator.get(item.ownerUsername) ?? [];
+    list.push(item);
+    byCreator.set(item.ownerUsername, list);
+  }
+  const viewsOf = (r) => Number(r.videoPlayCount ?? r.videoViewCount) || 0;
+  const picks = [];
+  for (const reels of byCreator.values()) {
+    const typical = median(reels.map(viewsOf));
+    if (typical <= 0) continue;
+    for (const reel of reels) {
+      const age = ageInDays(reel.timestamp, now);
+      if (age === null || age > maxAgeDays) continue;
+      const views = viewsOf(reel);
+      const ratio = views / typical;
+      if (views < minViews || ratio < minRatio) continue;
+      const post = normalizeIgItem(reel);
+      if (post) picks.push({ ...post, views, outlier: Math.round(ratio * 10) / 10 });
+    }
+  }
+  return picks.sort((a, b) => b.outlier - a.outlier || b.views - a.views);
+}
+
+/** The subtitle file for a TikTok scraper item, English first; null when none. */
+export function tiktokSubtitleLink(item) {
+  const links = item?.videoMeta?.subtitleLinks;
+  if (!Array.isArray(links) || links.length === 0) return null;
+  const english = links.find((l) => /^en/i.test(l?.language ?? ""));
+  return (english ?? links[0])?.downloadLink ?? null;
+}
+
+/** Plain text from a WebVTT file: no header, cue numbers, timings, tags or repeats. */
+export function vttToText(vtt) {
+  const lines = String(vtt ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.replace(/<[^>]+>/g, "").trim())
+    .filter(
+      (l) =>
+        l &&
+        l !== "WEBVTT" &&
+        !l.includes("-->") &&
+        !/^\d+$/.test(l) &&
+        !/^(NOTE|STYLE|Kind:|Language:)/.test(l),
+    );
+  const out = [];
+  for (const line of lines) if (out[out.length - 1] !== line) out.push(line);
+  return out.join(" ").replace(/\s+/g, " ").trim();
+}
+
+/** Discovery runs: which actor gets which input. Pure, so tests can pin inputs to each actor's schema. */
+export function buildDiscoveryJobs({ tiktokHashtags, igCreators }) {
+  const jobs = [
+    {
+      label: "TikTok hashtags",
+      platform: "tiktok",
+      actor: TIKTOK_ACTOR,
+      input: { hashtags: tiktokHashtags, resultsPerPage: TIKTOK_PER_HASHTAG },
+    },
+  ];
+  if (igCreators.length > 0) {
+    jobs.push({
+      label: "Instagram creator reels",
+      platform: "instagram",
+      actor: IG_REEL_ACTOR,
+      input: {
+        username: igCreators,
+        resultsLimit: IG_REELS_PER_CREATOR,
+        skipPinnedPosts: true,
+      },
+    });
+  }
+  return jobs;
+}
+
+/** Transcript runs for the shortlisted videos. */
+export function buildTranscriptJobs({ tiktokUrls, igUrls }) {
+  const jobs = [];
+  if (tiktokUrls.length > 0) {
+    jobs.push({
+      label: "TikTok transcripts",
+      platform: "tiktok",
+      actor: TIKTOK_ACTOR,
+      input: {
+        postURLs: tiktokUrls,
+        downloadSubtitlesOptions: "DOWNLOAD_AND_TRANSCRIBE_VIDEOS_WITHOUT_SUBTITLES",
+      },
+    });
+  }
+  if (igUrls.length > 0) {
+    jobs.push({
+      label: "Instagram transcripts",
+      platform: "instagram",
+      actor: IG_REEL_ACTOR,
+      input: { username: igUrls, resultsLimit: 1, includeTranscript: true },
+    });
+  }
+  return jobs;
+}
+
+function urlKey(url) {
+  return String(url ?? "").split("?")[0].replace(/\/+$/, "");
+}
+
 function fmtNum(n) {
   if (!n) return "0";
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
@@ -252,49 +382,54 @@ function fmtNum(n) {
   return String(n);
 }
 
-const SYSTEM = `You are a social-media strategist for Singapore-based AIA financial consultants. You are given real posts that are ALREADY going viral (with their real engagement numbers), and you turn a proven-viral post into a piece of content a financial advisor can publish today.
+const SYSTEM = `You are a social-media strategist for Singapore-based AIA financial consultants. You are given real finance videos that are ALREADY doing well (with their real engagement numbers and what each video actually says), and you turn a proven video into a piece of content a financial advisor can publish today.
 
-The engagement is the proof the format works — you build only on the posts given to you. Never force a connection: only ride a post where the bridge to a money / protection / planning idea is honest and earns attention rather than hijacking it. If a post has no honest money angle, skip it. Keep everything appropriate for a licensed financial advisor in Singapore: no product guarantees, no misleading or fear-mongering claims, no market-timing or specific investment calls, politically neutral, and memes must punch up or be self-deprecating — never mock anyone.`;
+The engagement is the proof the format works, so you build only on the videos given to you. Never force a connection: only ride a video where the bridge to a money / protection / planning idea is honest and earns attention rather than hijacking it. Keep everything appropriate for a licensed financial advisor in Singapore: no product guarantees, no promised returns, no misleading or fear-mongering claims, no market-timing or specific stock, fund or ETF picks, politically neutral, and humour must punch up or be self-deprecating, never mock anyone.`;
 
 export function buildKitPrompt(posts, count, today) {
   const lines = posts.map((p, i) => {
     const metrics = [
+      p.views ? `${fmtNum(p.views)} views` : null,
       `${fmtNum(p.likes)} likes`,
       `${fmtNum(p.comments)} comments`,
       p.shares ? `${fmtNum(p.shares)} shares` : null,
-      p.views ? `${fmtNum(p.views)} views` : null,
+      p.outlier ? `about ${p.outlier}x this creator's usual views` : null,
     ]
       .filter(Boolean)
       .join(", ");
-    return `[${i}] ${p.platform} ${p.format} by ${p.author || "unknown"} — ${metrics}\nCaption: ${p.caption || "(no caption)"}`;
+    return `[${i}] ${p.platform} ${p.format} by ${p.author || "unknown"} (${metrics})\nCaption: ${p.caption || "(no caption)"}\nTranscript: ${p.transcript || "(no transcript available)"}`;
   });
 
-  return `Today is ${today} (Singapore time). Below are ${posts.length} posts that are genuinely going viral right now on TikTok and Instagram, each with its real engagement. They are pre-sorted by engagement.
+  return `Today is ${today} (Singapore time). Below are ${posts.length} finance videos doing well right now on TikTok and Instagram, with their real engagement and what each one actually says. TikTok videos are ranked by engagement; Instagram reels by how far they beat their creator's usual views.
 
-For each post that a Singapore financial consultant can HONESTLY ride, write one piece of content. Pick the best ${count} (skip any without a genuine money / protection / planning angle — do not force it). Aim for a spread across trend types and pillars.
+For each video a Singapore financial consultant can HONESTLY ride, write one piece of content. Pick the best ${count}. Skip any without a genuine money / protection / planning angle, and skip any where the caption and transcript don't make clear what the video is about. Aim for a spread of topics and pillars.
 
-POSTS:
+VIDEOS:
 ${lines.join("\n\n")}
 
-Return ONLY a JSON array (no prose before or after). Each object references one post by its index and adds the content kit:
+Return ONLY a JSON array (no prose before or after). Each object references one video by its index and adds the content kit:
 
-- "index": the [n] of the post this is based on (integer)
+- "index": the [n] of the video this is based on (integer)
 - "pillar": one of "interest" | "identity" | "topic" | "market"
 - "trend_type": one of "meme" | "news" | "current-affairs" | "event" | "culture" | "sport"
-- "trend_source": 1-2 sentences describing what the viral post is and the traction that proves it works (reference the real numbers you were given)
+- "trend_source": 1-2 sentences describing what the video says and the traction that proves it works (use the real numbers above, and say when the original is from another country)
 - "title": the advisor's content idea in one punchy line
 - "hooks": array of 2-3 ready-to-use opening lines; the first must stop the scroll on its own, first person, under 25 words, no [brackets]
 - "talking_points": array of 3-4 short concrete points the advisor should make, in order
 - "cta": one strong closing call to action, written as a usable line
 - "cta_type": one of "dm-keyword" | "comment-keyword" | "save-share" | "book-call" | "open-question" (match your cta)
-- "why_it_works": 1-2 sentences on why riding this proven-viral post earns attention honestly
-- "how_to_film": concrete delivery notes for this post's format (framing, first line, pacing)
+- "why_it_works": 1-2 sentences on why riding this proven video earns attention honestly
+- "how_to_film": concrete delivery notes for a short video (framing, first line, pacing)
 
 Rules:
-- Do NOT include a URL, platform, or format — those come from the real post via its index.
+- Do NOT include a URL, platform, or format; those come from the real video via its index.
 - Only reference indexes that exist in the list above.
-- Keep it Singapore-relevant (SG angle, SGD, CPF/SRS/insurance where the bridge is honest).
-- Skip posts with no honest money angle rather than stretching. Quality over hitting ${count}.
+- Build from what the video actually says; never invent details that aren't in its caption or transcript.
+- Keep it Singapore-relevant (SGD, CPF, SRS, HDB, insurance where the bridge is honest). Adapt foreign accounts and figures to Singapore instead of presenting them as local facts.
+- Don't state specific government payouts, interest rates, tax caps or returns as facts; tell viewers to check the official source.
+- Skip recruitment ("join my team") content, paid promotions and affiliate offers.
+- Hooks are for the consultant to say in their own voice; never claim they did something from the source video (like running a street interview) that they didn't.
+- Skip videos with no honest money angle rather than stretching. Quality over hitting ${count}.
 - Output the JSON array and nothing else.`;
 }
 
@@ -345,11 +480,11 @@ const REQUIRED_KIT_STRINGS = [
 
 /**
  * Merge Claude's kits with the real scraped posts (matched by index). The URL
- * and engagement always come from the real post — Claude never supplies them.
+ * and engagement always come from the real post; Claude never supplies them.
  * Drops anything malformed or pointing at a non-existent index. Returns the
  * clean TrendEntry list (may be shorter than `kits`).
  */
-export function finalizeTrends(kits, posts, today, count = 24) {
+export function finalizeTrends(kits, posts, today, count = 12) {
   if (!Array.isArray(kits)) return [];
   const seenSlugs = new Set();
   const usedIndexes = new Set();
@@ -422,87 +557,65 @@ export function singaporeDate(now = new Date()) {
   return new Date(now.getTime() + 8 * 3_600_000).toISOString().slice(0, 10);
 }
 
-/**
- * The scrape plan: which actor gets which input. Pure, so tests can pin each
- * input to the fields its actor actually accepts.
- */
-export function buildScrapeJobs({
-  igHashtags,
-  tiktokHashtags,
-  creatorUrls = [],
-  igLimit,
-  tiktokLimit,
-}) {
-  const jobs = [
-    {
-      label: "IG hashtags",
-      platform: "instagram",
-      actor: IG_HASHTAG_ACTOR,
-      input: { hashtags: igHashtags, resultsType: "posts", resultsLimit: igLimit },
-    },
-    {
-      label: "TikTok hashtags",
-      platform: "tiktok",
-      actor: TIKTOK_ACTOR,
-      input: { hashtags: tiktokHashtags, resultsPerPage: tiktokLimit },
-    },
-  ];
-  if (creatorUrls.length > 0) {
-    jobs.push({
-      label: "IG creators",
-      platform: "instagram",
-      actor: IG_ACTOR,
-      input: { directUrls: creatorUrls, resultsType: "posts", resultsLimit: 4 },
-    });
-  }
-  return jobs;
-}
-
-async function scrapeAll(token, { igLimit, tiktokLimit }) {
-  const igHashtags = csvEnv("IG_HASHTAGS", DEFAULT_IG_HASHTAGS);
-  const tiktokHashtags = csvEnv("TIKTOK_HASHTAGS", DEFAULT_TIKTOK_HASHTAGS);
-
-  // Curated SG finance creators — their recent posts join the hashtag pool.
-  let creatorUrls = [];
+function instagramCreators() {
+  let local = [];
   try {
     const advisors = JSON.parse(
       fs.readFileSync(path.join(ROOT, "src/data/advisors.json"), "utf8"),
     );
-    creatorUrls = advisors
-      .filter(
-        (a) => String(a.platform).toLowerCase() === "instagram" && a.platform_url,
-      )
-      .map((a) => a.platform_url)
-      .slice(0, 30);
+    local = advisors
+      .filter((a) => String(a.platform).toLowerCase() === "instagram")
+      .map((a) => String(a.handle ?? "").replace(/^@/, "").trim())
+      .filter(Boolean);
   } catch {
     // advisors file optional
   }
+  return [...new Set([...local.slice(0, 40), ...GLOBAL_IG_CREATORS, ...csvEnv("IG_CREATORS", [])])];
+}
 
-  const jobs = buildScrapeJobs({
-    igHashtags,
-    tiktokHashtags,
-    creatorUrls,
-    igLimit,
-    tiktokLimit,
+/** Attach transcripts to the shortlisted posts; a missing transcript never fails the run. */
+async function withTranscripts(token, tiktokPosts, igPosts) {
+  const jobs = buildTranscriptJobs({
+    tiktokUrls: tiktokPosts.map((p) => p.url),
+    igUrls: igPosts.map((p) => p.url),
   });
-  // Actors run in parallel on Apify's side; one failing doesn't sink the rest.
-  const results = await Promise.allSettled(
-    jobs.map((job) => runActor(job.actor, job.input, token)),
-  );
+  const results = await Promise.allSettled(jobs.map((j) => runActor(j.actor, j.input, token)));
+  const byUrl = new Map();
 
-  const pool = [];
-  results.forEach((result, i) => {
+  for (const [i, result] of results.entries()) {
     const job = jobs[i];
     if (result.status === "rejected") {
       console.warn(`  ${job.label} failed: ${result.reason?.message ?? result.reason}`);
-      return;
+      continue;
     }
-    const norm = job.platform === "tiktok" ? normalizeTiktokItem : normalizeIgItem;
-    const normed = result.value.map(norm).filter(Boolean);
-    console.log(`  ${job.label}: ${result.value.length} raw -> ${normed.length} usable`);
-    pool.push(...normed);
+    for (const item of result.value) {
+      if (job.platform === "tiktok") {
+        const link = tiktokSubtitleLink(item);
+        if (!link) continue;
+        try {
+          const res = await fetch(link, { headers: { Authorization: `Bearer ${token}` } });
+          const text = res.ok ? vttToText(await res.text()) : "";
+          if (text) {
+            byUrl.set(urlKey(item.submittedVideoUrl), text);
+            byUrl.set(urlKey(item.webVideoUrl), text);
+          }
+        } catch {
+          // no subtitle text: the kit falls back to the caption
+        }
+      } else if (typeof item.transcript === "string" && item.transcript.trim()) {
+        byUrl.set(urlKey(item.inputUrl), item.transcript.trim());
+        byUrl.set(urlKey(item.url), item.transcript.trim());
+      }
+    }
+  }
+
+  const attach = (p) => ({
+    ...p,
+    transcript: (byUrl.get(urlKey(p.url)) ?? "").slice(0, MAX_TRANSCRIPT_CHARS),
   });
-  return pool;
+  const posts = [...tiktokPosts.map(attach), ...igPosts.map(attach)];
+  console.log(`  transcripts found for ${posts.filter((p) => p.transcript).length}/${posts.length} videos`);
+  return posts;
 }
 
 async function writeKits({ apiKey, model, posts, count, today }) {
@@ -543,27 +656,56 @@ async function main() {
     console.error("ANTHROPIC_API_KEY is not set — cannot write content kits.");
     process.exit(1);
   }
-  const count = Number(process.env.TREND_COUNT || 24);
-  const min = Number(process.env.TREND_MIN || 12);
-  const minEngagement = Number(process.env.TREND_MIN_ENGAGEMENT || 3000);
+  const count = Number(process.env.TREND_COUNT || 12);
+  const min = Number(process.env.TREND_MIN || 8);
+  const minEngagement = Number(process.env.TREND_MIN_ENGAGEMENT || 1000);
+  const maxAgeDays = Number(process.env.TREND_MAX_AGE_DAYS || 14);
   const model = process.env.TREND_MODEL || "claude-opus-4-8";
+  const out = process.env.TREND_OUT || DEFAULT_OUT;
   const today = singaporeDate();
+  const now = Date.now();
 
   console.log(`Trend scout: model=${model} target=${count} min=${min} date=${today}`);
-  console.log("Scraping viral posts via Apify...");
-  const pool = await scrapeAll(apifyToken, { igLimit: 40, tiktokLimit: 40 });
-  console.log(`Scraped ${pool.length} posts total.`);
+  console.log("Finding finance videos doing well...");
+  const jobs = buildDiscoveryJobs({
+    tiktokHashtags: csvEnv("TIKTOK_HASHTAGS", DEFAULT_TIKTOK_HASHTAGS),
+    igCreators: instagramCreators(),
+  });
+  const runs = await Promise.allSettled(jobs.map((j) => runActor(j.actor, j.input, apifyToken)));
 
-  const ranked = rankPosts(pool, { minEngagement });
-  console.log(`${ranked.length} posts above engagement floor (${minEngagement}).`);
-  // Send Claude a generous candidate pool so it can be selective.
-  const candidates = ranked.slice(0, Math.max(count * 2, 40));
-  if (candidates.length < min) {
+  let tiktok = [];
+  let instagram = [];
+  runs.forEach((result, i) => {
+    const job = jobs[i];
+    if (result.status === "rejected") {
+      console.warn(`  ${job.label} failed: ${result.reason?.message ?? result.reason}`);
+      return;
+    }
+    if (job.platform === "tiktok") {
+      const fresh = result.value
+        .map(normalizeTiktokItem)
+        .filter(Boolean)
+        .filter((p) => {
+          const age = ageInDays(p.timestamp, now);
+          return age === null || age <= maxAgeDays;
+        });
+      tiktok = rankPosts(fresh, { minEngagement }).slice(0, TIKTOK_SHORTLIST);
+      console.log(`  TikTok: ${result.value.length} videos, ${fresh.length} recent -> ${tiktok.length} shortlisted`);
+    } else {
+      instagram = pickOutlierReels(result.value, { maxAgeDays, now }).slice(0, IG_SHORTLIST);
+      console.log(`  Instagram: ${result.value.length} reels -> ${instagram.length} beat their creator's usual views`);
+    }
+  });
+
+  if (tiktok.length + instagram.length < min) {
     console.error(
-      `Only ${candidates.length} viral posts found (< ${min}); refusing to overwrite the last good drop.`,
+      `Only ${tiktok.length + instagram.length} candidate videos (< ${min}); refusing to overwrite the last good drop.`,
     );
     process.exit(1);
   }
+
+  console.log("Fetching transcripts...");
+  const candidates = await withTranscripts(apifyToken, tiktok, instagram);
 
   const kits = await writeKits({ apiKey, model, posts: candidates, count, today });
   const trends = finalizeTrends(kits, candidates, today, count);
@@ -576,12 +718,11 @@ async function main() {
     process.exit(1);
   }
 
-  fs.writeFileSync(OUT, JSON.stringify(trends, null, 2) + "\n");
-  const platforms = [...new Set(trends.map((t) => t.platform))];
-  const types = [...new Set(trends.map((t) => t.trend_type))];
-  console.log(
-    `Wrote ${trends.length} trends to src/data/trends.json — platforms: ${platforms.join(", ")}; types: ${types.join(", ")}.`,
-  );
+  fs.writeFileSync(out, JSON.stringify(trends, null, 2) + "\n");
+  console.log(`Wrote ${trends.length} trends to ${out}`);
+  for (const t of trends) {
+    console.log(`- [${t.platform}] ${t.title}\n    ${t.author} ${t.source_url} (${fmtNum(t.views)} views, ${fmtNum(t.likes)} likes)\n    hook: ${t.hooks[0]}`);
+  }
 }
 
 // Only run the API path when executed directly, so tests can import the pure
