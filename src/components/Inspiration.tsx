@@ -228,7 +228,7 @@ function InspirationCard({
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              className="inline-flex items-center gap-1 py-1 text-xs font-medium text-primary hover:underline"
             >
               {expanded ? (
                 <>

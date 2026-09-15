@@ -372,7 +372,7 @@ export const MISSIONS: Record<AreaId, Mission> = {
     title: "Turn views into leads",
     objective: "Track what actually converts and add a clear CTA to your next post.",
     effortMins: 10,
-    cta: "See Performance",
+    cta: "See Analytics",
     to: "/analytics",
   },
   compliance: {

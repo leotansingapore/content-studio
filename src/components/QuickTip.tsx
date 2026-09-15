@@ -36,7 +36,7 @@ export default function QuickTip({ context = "any", className = "" }: QuickTipPr
       <button
         type="button"
         onClick={() => setIndex((i) => (i + 1) % tips.length)}
-        className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-background/60 hover:text-foreground"
+        className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-background/60 hover:text-foreground"
         aria-label="Show another tip"
         title="Another tip"
       >

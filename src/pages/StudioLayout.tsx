@@ -55,7 +55,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
       { to: "/coach", label: "Coach", icon: Compass },
       {
         to: "/analytics",
-        label: "Performance",
+        label: "Analytics",
         icon: BarChart3,
       },
       {
@@ -384,7 +384,7 @@ export default function StudioLayout() {
       <div className="lg:pl-60">
         <main
           id="main-content"
-          className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:px-10 lg:pb-8"
+          className="mx-auto max-w-5xl px-4 pb-40 pt-6 sm:px-6 sm:pt-8 lg:px-10 lg:pb-8"
         >
           {/* Lazy route chunks resolve here so the rail/bottom nav never flickers.
               A crash or a chunk missing after a deploy stays inside this area. */}

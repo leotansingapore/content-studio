@@ -269,7 +269,7 @@ function AdvisorCard({
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex h-5 w-5 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             aria-label="Copy handle"
             title="Copy handle"
           >

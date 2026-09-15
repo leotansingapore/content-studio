@@ -212,7 +212,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
                 type="button"
                 onClick={() => copy(hooks[0], "Hook")}
                 aria-label="Copy hook"
-                className="text-muted-foreground transition-colors hover:text-primary"
+                className="-m-1.5 rounded p-1.5 text-muted-foreground transition-colors hover:text-primary"
               >
                 <Copy className="h-3 w-3" />
               </button>
@@ -228,7 +228,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            className="inline-flex w-fit items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
+            className="inline-flex w-fit items-center gap-1 py-1 text-[11px] font-semibold text-primary hover:underline"
           >
             {open ? (
               <>
@@ -415,9 +415,9 @@ export default function TrendsPage() {
           <Flame className="h-6 w-6 text-primary" /> Trends
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          What the world is talking about today - memes, news, and cultural
-          moments - turned into posts you can actually make, with hooks, talking
-          points and a CTA ready to go. Refreshes every morning.
+          TikToks and Reels taking off right now, each turned into a post you
+          can make yourself: the hook, talking points and a CTA, ready to go.
+          Refreshes every morning.
           {latestDate
             ? ` Last drop ${new Date(latestDate).toLocaleDateString(undefined, {
                 month: "long",

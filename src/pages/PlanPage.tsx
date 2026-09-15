@@ -394,9 +394,9 @@ export default function PlanPage() {
             <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-90">
               <Compass className="h-3.5 w-3.5" /> Content system
             </div>
-            <h2 className="mt-1 font-serif text-2xl font-semibold leading-tight">
+            <h1 className="mt-1 font-serif text-2xl font-semibold leading-tight">
               Turn your positioning into a week of posts
-            </h2>
+            </h1>
             <p className="mt-1 max-w-2xl text-sm opacity-90">
               Start with your F.A.D.S. output — who you serve and your edge. The
               studio builds a funnel-balanced plan: Attraction to get seen,

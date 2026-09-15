@@ -1,12 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default function NotFoundPage() {
@@ -20,7 +14,9 @@ export default function NotFoundPage() {
   return (
     <Card className="border-border/60 shadow-card">
       <CardHeader>
-        <CardTitle className="font-serif text-xl">Page not found</CardTitle>
+        <h1 className="font-serif text-xl font-semibold leading-none tracking-tight">
+          Page not found
+        </h1>
         <CardDescription>
           That route does not match anything in the studio. Try one of the tabs
           above, or jump straight to a section below.
