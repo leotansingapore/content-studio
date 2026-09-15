@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
@@ -385,14 +386,17 @@ export default function StudioLayout() {
           id="main-content"
           className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:px-10 lg:pb-8"
         >
-          {/* Lazy route chunks resolve here so the rail/bottom nav never flickers. */}
-          <Suspense
-            fallback={
-              <div className="p-8 text-sm text-muted-foreground">Loading…</div>
-            }
-          >
-            <Outlet />
-          </Suspense>
+          {/* Lazy route chunks resolve here so the rail/bottom nav never flickers.
+              A crash or a chunk missing after a deploy stays inside this area. */}
+          <ErrorBoundary resetKey={pathname}>
+            <Suspense
+              fallback={
+                <div className="p-8 text-sm text-muted-foreground">Loading…</div>
+              }
+            >
+              <Outlet />
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
       <AssistantMount />
