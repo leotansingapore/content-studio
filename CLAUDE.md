@@ -23,6 +23,10 @@
   same as aia-product-compass-hub. Edge functions living there
   (`generate-social-content`, `generate-brand-template`, `generate-collateral`)
   are called with the user's session token; this repo does not deploy them.
+  Exception: the account audit's functions (`audit-social-account`,
+  `refresh-social-audits`, shared code in `supabase/functions/_shared/`) ARE
+  versioned here and deployed with the Supabase CLI. See
+  `docs/account-audit.md`.
 - All user data is localStorage-first under `content-studio-*` keys and
   mirrored cross-device by `src/lib/cloudSync.ts` (prefix-based). New
   persistent features MUST use the `content-studio-` key prefix or they will

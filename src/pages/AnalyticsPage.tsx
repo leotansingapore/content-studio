@@ -25,6 +25,7 @@ import {
 import { RankBars, type RankBarRow } from "@/components/charts/RankBars";
 import { TrendChart, type TrendChartPoint } from "@/components/charts/TrendChart";
 import CreatorLookup from "@/components/CreatorLookup";
+import AccountAudit from "@/components/AccountAudit";
 import {
   SOCIAL_PLATFORMS,
   loadSocialAccounts,
@@ -315,6 +316,8 @@ export default function AnalyticsPage() {
         </p>
       </header>
 
+      {userId && <AccountAudit accounts={accounts} onSaveAccount={saveAccount} />}
+
       <CreatorLookup />
 
       {/* Your accounts — register a handle per platform. */}
@@ -331,9 +334,9 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Add your handle on each platform to link your posts to the right
-            account. Automatic metric sync needs each platform's approval — until
-            that's set up, add your numbers by hand below.
+            Add your handle on each platform. Instagram and TikTok are audited
+            automatically above. LinkedIn and Facebook don't allow that, so add
+            those numbers by hand below.
           </p>
           <div className="space-y-2">
             {SOCIAL_PLATFORMS.map((p) => {
@@ -360,6 +363,8 @@ export default function AnalyticsPage() {
                       )}
                     </div>
                     <input
+                      // Remount when the audit section adds or removes a handle.
+                      key={acct?.handle ?? ""}
                       defaultValue={acct?.handle ?? ""}
                       placeholder={p.placeholder}
                       onBlur={(e) => saveAccount(p.key, e.target.value)}
