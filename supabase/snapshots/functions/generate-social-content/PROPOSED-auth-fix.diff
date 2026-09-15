@@ -1,0 +1,24 @@
+--- a/generate-social-content/index.ts (live v46)
++++ b/generate-social-content/index.ts (proposed)
+@@ -1,5 +1,6 @@
+ import "https://deno.land/x/xhr@0.1.0/mod.ts";
+ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
++import { createClient } from "npm:@supabase/supabase-js@2";
+ 
+ const corsHeaders = {
+   "Access-Control-Allow-Origin": "*",
+@@ -647,6 +648,14 @@
+ serve(async (req) => {
+   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+ 
++  // Only signed-in users may spend OpenAI credits. getUser checks the token with
++  // the auth server, so the public anon key and forged tokens are refused.
++  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
++  if (!jwt) return jsonResponse({ error: "Not signed in" }, 401);
++  const auth = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
++  const { data: userData, error: authError } = await auth.auth.getUser(jwt);
++  if (authError || !userData?.user) return jsonResponse({ error: "Not signed in" }, 401);
++
+   let raw: RequestBody;
+   try {
+     raw = (await req.json()) as RequestBody;
