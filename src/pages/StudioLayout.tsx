@@ -24,6 +24,7 @@ import {
   Flame,
   MessageSquarePlus,
   Gauge,
+  Compass,
 } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 
@@ -51,11 +52,11 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
     heading: "Improve",
     items: [
       { to: "/diagnosis", label: "Diagnosis", icon: Gauge },
+      { to: "/coach", label: "Coach", icon: Compass },
       {
         to: "/analytics",
         label: "Performance",
         icon: BarChart3,
-        also: ["/coach"],
       },
       {
         to: "/academy",

@@ -120,11 +120,19 @@
   body {
     @apply bg-background text-foreground font-sans;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
+  /* Wrap gracefully: break a word only when it would otherwise overflow (long
+     URLs, handles), never mid-word in normal prose — the old `anywhere` +
+     `break-word` combo broke ordinary words and made copy hard to read. */
   p, li, span, h1, h2, h3, h4, h5, h6, dd, dt, blockquote, label, a {
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Comfortable reading rhythm for body copy and list items. */
+  p, li {
+    line-height: 1.6;
   }
 
   *:focus-visible {

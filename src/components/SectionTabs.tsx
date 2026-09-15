@@ -26,11 +26,8 @@ export const PIPELINE_TABS: SectionTab[] = [
   { to: "/drafts", label: "My posts" },
 ];
 
-// Performance group: numbers first, then the craft check.
-export const PERFORMANCE_TABS: SectionTab[] = [
-  { to: "/analytics", label: "Analytics" },
-  { to: "/coach", label: "Coach" },
-];
+// Coach is now its own top-level destination (not a Performance sub-tab), so
+// Performance no longer needs a tab group.
 
 // Learn group: every teaching surface in one place.
 export const LEARN_TABS: SectionTab[] = [
