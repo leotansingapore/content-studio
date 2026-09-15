@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, ArrowRight, Download, User, Briefcase, Users, Target, MessageSquare, Lightbulb, BookOpen, Loader2, Sparkles, Copy, CheckCircle2, Trophy, Flame, Heart, Star, Shield, Zap, FileText, Mail, Layout, Mic, MessageCircle, Presentation, Quote, ListChecks, GraduationCap, Share2, AlertCircle, ChevronRight, Code2, Megaphone, CalendarRange } from "lucide-react";
+import { ThinkingOrb } from "thinking-orbs";
 import { toast as baseToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
@@ -2142,7 +2143,7 @@ export default function FadsPage() {
                   <CardContent>
                     <Button onClick={generateBrandTemplate} disabled={isGenerating} className="w-full" size="lg">
                       {isGenerating ? (
-                        <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+                        <><ThinkingOrb state="working" size={20} theme="dark" aria-hidden className="mr-2" /> Generating...</>
                       ) : (
                         <><Sparkles className="h-4 w-4 mr-2" /> Generate Full Brand Template</>
                       )}

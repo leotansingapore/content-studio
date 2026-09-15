@@ -22,7 +22,6 @@ import {
 import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
 import {
   Layers,
-  Loader2,
   Check,
   Copy,
   Save,
@@ -32,6 +31,7 @@ import {
   Facebook,
   Video,
 } from "lucide-react";
+import { ThinkingOrb } from "thinking-orbs";
 
 type Pillar = "interest" | "identity" | "topic" | "market";
 type Audience = "general" | "young-adult" | "working-adult" | "parent" | "pre-retiree";
@@ -307,7 +307,7 @@ export default function BatchPage() {
           >
             {running ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Generating {activeTargets.length}...
+                <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> Generating {activeTargets.length}...
               </>
             ) : (
               <>
@@ -332,7 +332,7 @@ export default function BatchPage() {
                     <Icon className="h-4 w-4 text-primary" /> {t.label}
                   </CardTitle>
                   {card.status === "streaming" && (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <ThinkingOrb state="composing" size={20} theme="light" aria-label={`Generating ${t.label} draft`} />
                   )}
                   {card.status === "saved" && (
                     <span className="flex items-center gap-1 text-xs font-semibold text-success">

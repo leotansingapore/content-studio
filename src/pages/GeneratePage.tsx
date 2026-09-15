@@ -26,7 +26,6 @@ import {
   Copy,
   Clapperboard,
   RefreshCw,
-  Loader2,
   Heart,
   User,
   BookOpen,
@@ -55,6 +54,7 @@ import {
   Pencil,
   Gauge,
 } from "lucide-react";
+import { ThinkingOrb } from "thinking-orbs";
 import inspirationData from "@/data/inspiration.json";
 import { type InspirationEntry } from "@/components/Inspiration";
 import PostPreview from "@/components/PostPreview";
@@ -1816,8 +1816,8 @@ export default function GeneratePage() {
                   <div className="flex-1 space-y-1">
                     <div className="font-sans text-sm leading-relaxed text-foreground">
                       {h.text || (
-                        <span className="text-muted-foreground">
-                          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary/60" />{" "}
+                        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                          <ThinkingOrb state="composing" size={20} theme="light" aria-hidden />{" "}
                           drafting...
                         </span>
                       )}
@@ -1886,7 +1886,7 @@ export default function GeneratePage() {
                       </span>
                       {!v.complete ? (
                         <span className="flex items-center gap-1 text-[10px] text-primary">
-                          <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />{" "}
+                          <ThinkingOrb state="weaving" size={20} theme="light" aria-hidden />{" "}
                           streaming
                         </span>
                       ) : (
@@ -2165,7 +2165,7 @@ export default function GeneratePage() {
                 </div>
                 {hashtagsLoading && hashtags.length === 0 ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" /> Generating...
+                    <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Generating...
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
@@ -2201,7 +2201,7 @@ export default function GeneratePage() {
                 </div>
                 {imagePromptLoading && !imagePrompt ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Loader2 className="h-3 w-3 animate-spin" /> Generating...
+                    <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Generating...
                   </div>
                 ) : (
                   <p className="text-xs leading-relaxed text-foreground">
@@ -2273,7 +2273,7 @@ export default function GeneratePage() {
             className="gap-2 bg-background shadow-lg"
           >
             <StopCircle className="h-4 w-4" />
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Stop
+            <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> Stop
           </Button>
         </div>
       )}
