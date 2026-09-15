@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { stopCloudSync } from "@/lib/cloudSync";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import {
@@ -123,7 +124,6 @@ function Brandmark() {
 }
 
 export default function StudioLayout() {
-  const navigate = useNavigate();
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const [email, setEmail] = useState<string>("");
@@ -153,8 +153,11 @@ export default function StudioLayout() {
   }, [moreOpen]);
 
   const handleSignOut = async () => {
+    // Send unsaved changes first, then load /auth fresh so whoever signs in
+    // next on this browser starts with a clean app and their own sync.
+    await stopCloudSync();
     await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
+    window.location.replace("/auth");
   };
 
   const railItemClass = (active: boolean) =>
