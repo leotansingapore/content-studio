@@ -33,10 +33,12 @@ permissions:
 jobs:
   scout:
     runs-on: ubuntu-latest
+    # Apify runs (up to 12 min each, in parallel) + one streamed Claude call.
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: "npm"
@@ -60,8 +62,12 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Pull-rebase first: other sessions push to main frequently.
-          git pull --rebase origin "${GITHUB_REF_NAME}"
+          # Commit BEFORE pulling: git refuses to rebase over uncommitted
+          # changes, which failed this step every time it was reached.
           git add src/data/trends.json
-          git commit -m "trends: world-trend drop for $(TZ=Asia/Singapore date +%Y-%m-%d)"
+          git commit -m "trends: viral drop for $(TZ=Asia/Singapore date +%Y-%m-%d)"
+          # Other sessions push to main often. If one touched trends.json since
+          # checkout, keep this run's fresh drop (-X theirs = the commit being
+          # replayed during a rebase, i.e. ours).
+          git pull --rebase -X theirs origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"

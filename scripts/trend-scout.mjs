@@ -24,7 +24,8 @@
 //   TREND_MODEL        (optional) model id, default claude-opus-4-8
 //   TREND_MIN_ENGAGEMENT (optional) minimum (likes+comments) for a post to count
 //                      as viral enough to consider, default 3000
-//   APIFY_IG_ACTOR / APIFY_TIKTOK_ACTOR (optional) override the Apify actors
+//   APIFY_IG_ACTOR / APIFY_IG_HASHTAG_ACTOR / APIFY_TIKTOK_ACTOR (optional)
+//                      override the Apify actors
 //   IG_HASHTAGS / TIKTOK_HASHTAGS (optional) comma-separated hashtag overrides
 //
 // Design notes:
@@ -89,7 +90,13 @@ const DEFAULT_TIKTOK_HASHTAGS = [
   "investing101",
 ];
 
+// Each actor only accepts its own input fields (see the actors' published input
+// schemas). apify~instagram-scraper has no `hashtags` field, so hashtag posts
+// come from the dedicated hashtag actor; the general scraper handles the
+// curated creators' profile URLs.
 const IG_ACTOR = process.env.APIFY_IG_ACTOR || "apify~instagram-scraper";
+const IG_HASHTAG_ACTOR =
+  process.env.APIFY_IG_HASHTAG_ACTOR || "apify~instagram-hashtag-scraper";
 const TIKTOK_ACTOR =
   process.env.APIFY_TIKTOK_ACTOR || "clockworks~tiktok-scraper";
 
@@ -102,22 +109,52 @@ function csvEnv(name, fallback) {
     .filter(Boolean);
 }
 
-/** Run an Apify actor synchronously and return its dataset items. */
-async function runActor(actor, input, token) {
-  const url = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${encodeURIComponent(
-    token,
-  )}`;
+const APIFY_API = "https://api.apify.com/v2";
+// Longest a single actor run may take before the scout gives up on it.
+const ACTOR_MAX_WAIT_MS = 12 * 60_000;
+
+async function apifyFetch(url, token, init = {}) {
   const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(init.body ? { "Content-Type": "application/json" } : {}),
+    },
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Apify ${actor} failed (${res.status}) ${body.slice(0, 300)}`);
+    throw new Error(`Apify ${res.status} ${body.slice(0, 300)}`);
   }
-  const data = await res.json();
-  return Array.isArray(data) ? data : data.items ?? [];
+  return res.json();
+}
+
+/**
+ * Start an Apify actor run, wait for it to finish, and return its dataset
+ * items. An async run + polling rather than run-sync, which Apify cuts off
+ * after 300s: too short for several hashtags' worth of posts.
+ */
+async function runActor(actor, input, token) {
+  const started = await apifyFetch(`${APIFY_API}/acts/${actor}/runs`, token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  let run = started.data;
+  const deadline = Date.now() + ACTOR_MAX_WAIT_MS;
+  while (!["SUCCEEDED", "FAILED", "ABORTED", "TIMED-OUT"].includes(run.status)) {
+    if (Date.now() > deadline) {
+      throw new Error(`${actor} still ${run.status} after ${ACTOR_MAX_WAIT_MS / 60_000} min`);
+    }
+    // waitForFinish holds each request open for up to 60s, so this polls gently.
+    run = (await apifyFetch(`${APIFY_API}/actor-runs/${run.id}?waitForFinish=60`, token)).data;
+  }
+  if (run.status !== "SUCCEEDED") {
+    throw new Error(`${actor} run ${run.id} ended ${run.status}`);
+  }
+  const items = await apifyFetch(
+    `${APIFY_API}/datasets/${run.defaultDatasetId}/items?clean=true&format=json`,
+    token,
+  );
+  return Array.isArray(items) ? items : [];
 }
 
 /** Map an Instagram scraper item to the common viral-post shape (or null). */
@@ -385,6 +422,42 @@ export function singaporeDate(now = new Date()) {
   return new Date(now.getTime() + 8 * 3_600_000).toISOString().slice(0, 10);
 }
 
+/**
+ * The scrape plan: which actor gets which input. Pure, so tests can pin each
+ * input to the fields its actor actually accepts.
+ */
+export function buildScrapeJobs({
+  igHashtags,
+  tiktokHashtags,
+  creatorUrls = [],
+  igLimit,
+  tiktokLimit,
+}) {
+  const jobs = [
+    {
+      label: "IG hashtags",
+      platform: "instagram",
+      actor: IG_HASHTAG_ACTOR,
+      input: { hashtags: igHashtags, resultsType: "posts", resultsLimit: igLimit },
+    },
+    {
+      label: "TikTok hashtags",
+      platform: "tiktok",
+      actor: TIKTOK_ACTOR,
+      input: { hashtags: tiktokHashtags, resultsPerPage: tiktokLimit },
+    },
+  ];
+  if (creatorUrls.length > 0) {
+    jobs.push({
+      label: "IG creators",
+      platform: "instagram",
+      actor: IG_ACTOR,
+      input: { directUrls: creatorUrls, resultsType: "posts", resultsLimit: 4 },
+    });
+  }
+  return jobs;
+}
+
 async function scrapeAll(token, { igLimit, tiktokLimit }) {
   const igHashtags = csvEnv("IG_HASHTAGS", DEFAULT_IG_HASHTAGS);
   const tiktokHashtags = csvEnv("TIKTOK_HASHTAGS", DEFAULT_TIKTOK_HASHTAGS);
@@ -396,73 +469,57 @@ async function scrapeAll(token, { igLimit, tiktokLimit }) {
       fs.readFileSync(path.join(ROOT, "src/data/advisors.json"), "utf8"),
     );
     creatorUrls = advisors
-      .filter((a) => a.platform === "instagram" && a.platform_url)
+      .filter(
+        (a) => String(a.platform).toLowerCase() === "instagram" && a.platform_url,
+      )
       .map((a) => a.platform_url)
       .slice(0, 30);
   } catch {
     // advisors file optional
   }
 
-  const jobs = [
-    {
-      label: "IG hashtags",
-      run: () =>
-        runActor(
-          IG_ACTOR,
-          { hashtags: igHashtags, resultsType: "posts", resultsLimit: igLimit },
-          token,
-        ),
-      norm: normalizeIgItem,
-    },
-    {
-      label: "IG creators",
-      run: () =>
-        creatorUrls.length
-          ? runActor(
-              IG_ACTOR,
-              { directUrls: creatorUrls, resultsType: "posts", resultsLimit: 4 },
-              token,
-            )
-          : Promise.resolve([]),
-      norm: normalizeIgItem,
-    },
-    {
-      label: "TikTok hashtags",
-      run: () =>
-        runActor(
-          TIKTOK_ACTOR,
-          { hashtags: tiktokHashtags, resultsPerPage: tiktokLimit },
-          token,
-        ),
-      norm: normalizeTiktokItem,
-    },
-  ];
+  const jobs = buildScrapeJobs({
+    igHashtags,
+    tiktokHashtags,
+    creatorUrls,
+    igLimit,
+    tiktokLimit,
+  });
+  // Actors run in parallel on Apify's side; one failing doesn't sink the rest.
+  const results = await Promise.allSettled(
+    jobs.map((job) => runActor(job.actor, job.input, token)),
+  );
 
   const pool = [];
-  for (const job of jobs) {
-    try {
-      const items = await job.run();
-      const normed = items.map(job.norm).filter(Boolean);
-      console.log(`  ${job.label}: ${items.length} raw -> ${normed.length} usable`);
-      pool.push(...normed);
-    } catch (err) {
-      console.warn(`  ${job.label} failed: ${err.message}`);
+  results.forEach((result, i) => {
+    const job = jobs[i];
+    if (result.status === "rejected") {
+      console.warn(`  ${job.label} failed: ${result.reason?.message ?? result.reason}`);
+      return;
     }
-  }
+    const norm = job.platform === "tiktok" ? normalizeTiktokItem : normalizeIgItem;
+    const normed = result.value.map(norm).filter(Boolean);
+    console.log(`  ${job.label}: ${result.value.length} raw -> ${normed.length} usable`);
+    pool.push(...normed);
+  });
   return pool;
 }
 
 async function writeKits({ apiKey, model, posts, count, today }) {
   const { default: Anthropic } = await import("@anthropic-ai/sdk");
   const client = new Anthropic({ apiKey });
-  const msg = await client.messages.create({
-    model,
-    max_tokens: 32000,
-    thinking: { type: "adaptive" },
-    output_config: { effort: "medium" },
-    system: SYSTEM,
-    messages: [{ role: "user", content: buildKitPrompt(posts, count, today) }],
-  });
+  // Streamed: the SDK refuses a non-streaming request this large, since it could
+  // outlast the 10-minute HTTP timeout. finalMessage() collects the full reply.
+  const msg = await client.messages
+    .stream({
+      model,
+      max_tokens: 32000,
+      thinking: { type: "adaptive" },
+      output_config: { effort: "medium" },
+      system: SYSTEM,
+      messages: [{ role: "user", content: buildKitPrompt(posts, count, today) }],
+    })
+    .finalMessage();
   if (msg.stop_reason === "refusal") {
     throw new Error(
       `model refused: ${msg.stop_details?.explanation ?? "no explanation"}`,
