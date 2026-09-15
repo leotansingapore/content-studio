@@ -6,22 +6,25 @@ import { Toaster } from "@/components/ui/toaster";
 import Auth from "@/pages/Auth";
 import StudioLayout from "@/pages/StudioLayout";
 import HomePage from "@/pages/HomePage";
-import WelcomePage from "@/pages/WelcomePage";
-import CoachPage from "@/pages/CoachPage";
-import PlaybookPage from "@/pages/PlaybookPage";
-import CalendarPage from "@/pages/CalendarPage";
-import AnalyticsPage from "@/pages/AnalyticsPage";
-import PlanPage from "@/pages/PlanPage";
-import VoicePage from "@/pages/VoicePage";
-import DraftsPage from "@/pages/DraftsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import HubGate from "@/components/hub/HubGate";
-import BoardPage from "@/pages/BoardPage";
 import PublicRoadmap from "@/pages/PublicRoadmap";
 
-// F.A.D.S. is a ~2K-line worksheet most sessions never open — route-level
-// lazy() keeps it out of the main bundle (avoid manualChunks object form,
-// which force-preloads lazy chunks).
+// Every page inside the studio layout except Home is route-level lazy(), so
+// the reference data they import (inspiration, advisors, top posts: ~400 KB)
+// stays out of the main bundle. Auth, Home, the 404 page, the Hub gate and the
+// public roadmap stay eager: they render outside the layout's Suspense or are
+// the landing page. Avoid the manualChunks object form, which force-preloads
+// lazy chunks.
+const WelcomePage = lazy(() => import("@/pages/WelcomePage"));
+const CoachPage = lazy(() => import("@/pages/CoachPage"));
+const PlaybookPage = lazy(() => import("@/pages/PlaybookPage"));
+const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
+const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
+const PlanPage = lazy(() => import("@/pages/PlanPage"));
+const VoicePage = lazy(() => import("@/pages/VoicePage"));
+const DraftsPage = lazy(() => import("@/pages/DraftsPage"));
+const BoardPage = lazy(() => import("@/pages/BoardPage"));
 const GeneratePage = lazy(() => import("@/pages/GeneratePage"));
 const BatchPage = lazy(() => import("@/pages/BatchPage"));
 const SwipeFilePage = lazy(() => import("@/pages/SwipeFilePage"));
