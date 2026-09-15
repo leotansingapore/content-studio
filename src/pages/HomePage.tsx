@@ -17,6 +17,7 @@ import { loadPositioning } from "@/lib/positioning";
 import { loadCoachHistory } from "@/lib/coach";
 import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
 import { isOnboarded } from "@/lib/onboarding";
+import { loadResult, nextAction, type NextAction } from "@/lib/diagnosis";
 import {
   Pencil,
   CalendarRange,
@@ -33,6 +34,7 @@ import {
   Gauge,
   Flame,
   Layers,
+  Target,
 } from "lucide-react";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -102,6 +104,8 @@ export default function HomePage() {
   });
   const [cadence, setCadence] = useState<number>(0);
   const [name, setName] = useState<string>("");
+  const [nextAct, setNextAct] = useState<NextAction | null>(null);
+  const [contentScore, setContentScore] = useState<number | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -130,6 +134,9 @@ export default function HomePage() {
       setCoachRuns(loadCoachHistory(id).length);
       setActivity(getPostingActivity(id));
       setCadence(loadPositioning(id)?.cadence ?? 0);
+      const diag = loadResult(id);
+      setContentScore(diag?.overall ?? null);
+      setNextAct(nextAction(diag));
     })();
     return () => {
       active = false;
@@ -235,6 +242,106 @@ export default function HomePage() {
               : "Let's get your first post out. Pick a topic, answer a few questions, and you'll have a draft in about a minute."}
           </p>
         </header>
+
+        {/* Your next move — the single most important thing to do now. Driven
+            by the Content Diagnosis so the Home never leaves you wondering. */}
+        {nextAct?.kind === "mission" && nextAct.mission && (
+          <Card className="border-primary/30 bg-primary/[0.05] shadow-card">
+            <CardContent className="space-y-3 py-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+                  Your next move
+                </p>
+                {contentScore !== null && (
+                  <Link
+                    to="/diagnosis"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                  >
+                    <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
+                  </Link>
+                )}
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Target className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    {nextAct.headline}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">
+                    Mission: {nextAct.mission.title}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {nextAct.mission.objective}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  asChild
+                  className="gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
+                >
+                  <Link to={nextAct.mission.to}>
+                    Start mission <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" /> ~{nextAct.mission.effortMins} min
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {nextAct?.kind === "diagnose" && (
+          <Card className="border-primary/20 bg-primary/[0.04] shadow-card">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Gauge className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Get your Content Score
+                  </p>
+                  <p className="max-w-md text-xs text-muted-foreground">
+                    {nextAct.detail}
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="sm" className="gap-1.5">
+                <Link to="/diagnosis">
+                  Start diagnosis <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+        {nextAct?.kind === "maintain" && contentScore !== null && (
+          <Card className="border-success/30 bg-success/[0.05] shadow-card">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+              <div className="flex items-start gap-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+                  <Sparkles className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    {nextAct.headline}
+                  </p>
+                  <p className="max-w-md text-xs text-muted-foreground">
+                    {nextAct.detail}
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/diagnosis"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              >
+                <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button

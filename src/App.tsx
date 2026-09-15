@@ -34,6 +34,7 @@ const AcademyPage = lazy(() => import("@/pages/AcademyPage"));
 const TutorialPage = lazy(() => import("@/pages/TutorialPage"));
 const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
 const CreateGuidePage = lazy(() => import("@/pages/CreateGuidePage"));
+const DiagnosisPage = lazy(() => import("@/pages/DiagnosisPage"));
 const HubHomePage = lazy(() => import("@/pages/hub/HubHomePage"));
 const HubTrendsPage = lazy(() => import("@/pages/hub/HubTrendsPage"));
 const HubGuidesPage = lazy(() => import("@/pages/hub/HubGuidesPage"));
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/drafts" element={<DraftsPage />} />
           <Route path="/board" element={<BoardPage />} />
           <Route path="/coach" element={<CoachPage />} />
+          <Route path="/diagnosis" element={<DiagnosisPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/playbook" element={<PlaybookPage />} />
           <Route path="/academy" element={<AcademyPage />} />

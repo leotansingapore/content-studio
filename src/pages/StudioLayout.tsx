@@ -23,6 +23,7 @@ import {
   X,
   Flame,
   MessageSquarePlus,
+  Gauge,
 } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 
@@ -49,6 +50,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
   {
     heading: "Improve",
     items: [
+      { to: "/diagnosis", label: "Diagnosis", icon: Gauge },
       {
         to: "/analytics",
         label: "Performance",
