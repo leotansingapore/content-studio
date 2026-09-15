@@ -787,9 +787,15 @@ export default function GeneratePage() {
     const decoder = new TextDecoder();
     let buffer = "";
 
-    const applyEvent = (evt: { type: string; [k: string]: unknown }) => {
+    // Returns the message of a terminal error event, or null to keep reading.
+    // It must not throw: the parse guard below would swallow it and the read
+    // loop would spin on a dead stream with the rows still animating.
+    const applyEvent = (evt: {
+      type: string;
+      [k: string]: unknown;
+    }): string | null => {
       // A chunk that arrives after a newer run started belongs to nobody.
-      if (streamRunRef.current !== runId) return;
+      if (streamRunRef.current !== runId) return null;
       if (evt.type === "token") {
         const idx = evt.variantIndex as number;
         const text = evt.text as string;
@@ -809,11 +815,12 @@ export default function GeneratePage() {
           ),
         );
       } else if (evt.type === "error") {
-        const message = (evt.message as string) ?? "Stream error";
-        throw new Error(message);
+        return (evt.message as string) ?? "Stream error";
       }
+      return null;
     };
 
+    let failure: string | null = null;
     try {
       while (true) {
         const { value, done } = await reader.read();
@@ -828,11 +835,16 @@ export default function GeneratePage() {
           if (!payloadStr) continue;
           try {
             const evt = JSON.parse(payloadStr);
-            applyEvent(evt);
+            const message = applyEvent(evt);
+            if (message) {
+              failure = message;
+              break;
+            }
           } catch (err) {
             console.error("SSE parse error:", err, payloadStr);
           }
         }
+        if (failure) break;
       }
     } finally {
       try {
@@ -841,6 +853,11 @@ export default function GeneratePage() {
         // ignore
       }
     }
+
+    // Raised out here, after the reader is released, so it lands in the same
+    // place a network failure does: rows get their halt label and the caller
+    // toasts.
+    if (failure) throw new Error(failure);
   };
 
   const validateForm = (): boolean => {
