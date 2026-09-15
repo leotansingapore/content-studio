@@ -50,6 +50,31 @@ with the post's idea.
    opened in the last 30 days. A failed weekly refresh waits a day before
    retrying.
 
+## Post ideas in your style
+
+Under the advice, **Get 5 post ideas** calls `suggest-post-ideas` with the
+audit id. The function:
+
+1. Sends OpenAI (`gpt-4.1`, temperature 0.9) four things:
+   - the account's best posts, with ratios and captions;
+   - the posts that fell flat;
+   - the first line of every other post;
+   - every idea already suggested for this audit, with skipped ones marked.
+2. Asks for 8 ideas and a one-sentence "winning formula". Each idea is a new
+   topic in their winning style, or a clear twist on a winning topic.
+3. Drops ideas that:
+   - trip the compliance rules;
+   - share half or more of their content words with a past idea, an existing
+     post's first line, or an earlier idea in the same batch (`postIdeas.ts`).
+
+   If fewer than 5 survive, it makes one more call.
+4. Stores the batch in `cs_social_ideas` and returns it.
+
+**5 different ideas** repeats this, so a new batch never repeats an earlier one.
+**Skip** marks an idea `dismissed`, and the next prompt tells the model those
+missed the mark. **Write this** marks it `used` and opens Write with the hook
+and brief. Limit: 100 ideas per user per day.
+
 ## Limits and cost
 
 - 6 refreshes per user per 24 hours, counted in `cs_social_audit_runs`.

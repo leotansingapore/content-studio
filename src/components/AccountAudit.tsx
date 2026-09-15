@@ -15,13 +15,16 @@ import { Input } from "@/components/ui/input";
 import {
   BREAKOUT_RATIO,
   MIN_POSTS_FOR_ADVICE,
+  MIN_POSTS_FOR_IDEAS,
   POSTS_TO_READ,
   WEAK_RATIO,
   firstLine,
   formatCount,
   formatWord,
   freshnessOf,
+  ideaWriteUrl,
   loadAudit,
+  loadLatestIdeas,
   loadSnapshots,
   normalizeHandle,
   openAudit,
@@ -29,6 +32,8 @@ import {
   refreshDecision,
   remixUrl,
   removeAudit,
+  requestIdeas,
+  setIdeaStatus,
   shortDate,
   timeAgo,
   timeUntil,
@@ -38,6 +43,7 @@ import {
   type AuditRow,
   type AuditSnapshot,
   type AuditStats,
+  type IdeaRow,
   type RatedPost,
 } from "@/lib/accountAudit";
 import type { SocialAccounts } from "@/lib/socialAccounts";
@@ -393,6 +399,9 @@ function AuditPanel({
             )}
             <Headline stats={stats} followers={profile?.followers ?? null} snapshots={snapshots} />
             <AdviceBlock advice={audit.advice} stats={stats} byId={byId} />
+            {stats.postsAnalyzed >= MIN_POSTS_FOR_IDEAS && (
+              <PostIdeas auditId={audit.id} platform={platform} handle={handle} byId={byId} />
+            )}
             <BestPosts platform={platform} handle={handle} audit={audit} stats={stats} byId={byId} />
             <details className="group rounded-xl border border-border/60">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-2.5 text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
@@ -661,6 +670,157 @@ function BestPosts({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * Five fresh post ideas built from what went furthest on this account. Each
+ * new batch avoids every idea shown before and every post already made.
+ */
+function PostIdeas({
+  auditId,
+  platform,
+  handle,
+  byId,
+}: {
+  auditId: string;
+  platform: AuditPlatform;
+  handle: string;
+  byId: Map<string, RatedPost>;
+}) {
+  const [ideas, setIdeas] = useState<IdeaRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadLatestIdeas(auditId)
+      .then((rows) => {
+        if (!cancelled) setIdeas(rows);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [auditId]);
+
+  const visible = ideas.filter((i) => i.status !== "dismissed");
+  const formula = visible.find((i) => i.formula)?.formula ?? null;
+
+  const generate = async () => {
+    setWorking(true);
+    setError(null);
+    try {
+      setIdeas(await requestIdeas(auditId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't get ideas. Try again.");
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  const skip = (id: string) => {
+    setIdeas((list) => list.map((i) => (i.id === id ? { ...i, status: "dismissed" } : i)));
+    setIdeaStatus(id, "dismissed").catch(() => {});
+  };
+
+  return (
+    <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/[0.03] p-3.5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 max-w-2xl">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+            <Sparkles className="h-4 w-4 text-primary" /> Post ideas in your style
+          </p>
+          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+            {formula
+              ? `What works for you: ${formula}`
+              : "Fresh ideas built from your best posts: new topics or new twists, never ones you've already done."}
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant={visible.length ? "outline" : "default"}
+          onClick={generate}
+          disabled={working || !loaded}
+          className="h-8 shrink-0 gap-1.5"
+        >
+          {working ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : visible.length ? (
+            <RefreshCw className="h-3.5 w-3.5" />
+          ) : (
+            <Sparkles className="h-3.5 w-3.5" />
+          )}
+          {working ? "Thinking…" : visible.length ? "5 different ideas" : "Get 5 post ideas"}
+        </Button>
+      </div>
+
+      {working && visible.length === 0 && (
+        <p className="text-xs text-muted-foreground">Studying your best posts. This takes about 15 seconds.</p>
+      )}
+      {error && <p className="text-xs font-medium text-destructive">{error}</p>}
+
+      {visible.length > 0 && (
+        <ul className={`space-y-2 transition-opacity ${working ? "opacity-50" : ""}`} aria-busy={working}>
+          {visible.map((idea) => {
+            const source = idea.based_on_post_id ? byId.get(idea.based_on_post_id) : undefined;
+            return (
+              <li key={idea.id} className="space-y-1.5 rounded-lg border border-border/60 bg-background p-3">
+                <p className="text-sm font-medium leading-snug text-foreground">{idea.hook}</p>
+                <p className="text-xs leading-relaxed text-muted-foreground">{idea.idea}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                  <p className="min-w-0 text-[11px] text-muted-foreground">
+                    {capitalize(formatWord(platform, idea.format))}
+                    {source && (
+                      <>
+                        {" · in the style of "}
+                        <a
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          “{firstLine(source.caption, 48) || "your best post"}”
+                        </a>
+                      </>
+                    )}
+                  </p>
+                  <div className="flex shrink-0 gap-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => skip(idea.id)}
+                      title="Hide this idea. It won't come back."
+                      className="h-7 px-2.5 text-xs text-muted-foreground"
+                    >
+                      Skip
+                    </Button>
+                    <Button asChild size="sm" className="h-7 gap-1.5 px-2.5 text-xs">
+                      <Link
+                        to={ideaWriteUrl(idea, platform, handle, source)}
+                        onClick={() => {
+                          setIdeaStatus(idea.id, "used").catch(() => {});
+                        }}
+                      >
+                        <Wand2 className="h-3 w-3" /> Write this
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {loaded && !working && ideas.length > 0 && visible.length === 0 && (
+        <p className="text-xs text-muted-foreground">You skipped all of these. Get 5 more whenever you like.</p>
+      )}
     </div>
   );
 }

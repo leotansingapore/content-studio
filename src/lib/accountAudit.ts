@@ -4,6 +4,7 @@
 // Write links. The judging logic is shared with the edge functions.
 
 import { supabase } from "@/lib/supabase";
+import { IDEAS_PER_BATCH } from "../../supabase/functions/_shared/postIdeas.ts";
 import {
   oneLine,
   type AuditAdvice,
@@ -185,4 +186,91 @@ export function shortDate(iso: string | null, now = new Date()): string {
   // A pinned post from last September otherwise reads as this week.
   if (date.getFullYear() !== now.getFullYear()) options.year = "numeric";
   return date.toLocaleDateString(undefined, options);
+}
+
+// ---- Post ideas in your style ------------------------------------------------
+
+export { MIN_POSTS_FOR_IDEAS } from "../../supabase/functions/_shared/postIdeas.ts";
+
+export interface IdeaRow {
+  id: string;
+  audit_id: string;
+  batch: number;
+  position: number;
+  hook: string;
+  idea: string;
+  format: "video" | "carousel" | "image";
+  based_on_post_id: string | null;
+  why: string | null;
+  formula: string | null;
+  status: "new" | "used" | "dismissed";
+  created_at: string;
+}
+
+/** The newest batch of ideas for an audit (including skipped ones). */
+export async function loadLatestIdeas(auditId: string): Promise<IdeaRow[]> {
+  const { data, error } = await supabase
+    .from("cs_social_ideas")
+    .select("*")
+    .eq("audit_id", auditId)
+    .order("batch", { ascending: false })
+    .order("position", { ascending: true })
+    .limit(IDEAS_PER_BATCH * 2);
+  if (error) throw error;
+  const rows = (data as IdeaRow[]) ?? [];
+  return rows.filter((r) => r.batch === rows[0]?.batch);
+}
+
+/** Asks the server for a new batch that repeats nothing shown or posted before. */
+export async function requestIdeas(auditId: string): Promise<IdeaRow[]> {
+  const { data, error } = await supabase.functions.invoke("suggest-post-ideas", {
+    body: { auditId },
+  });
+  if (error) {
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === "function") {
+      const body = await ctx.json().catch(() => null);
+      if (body?.error) throw new Error(body.error);
+    }
+    throw new Error("Couldn't reach the ideas service. Check your connection and try again.");
+  }
+  const res = data as { ideas?: IdeaRow[]; error?: string } | null;
+  if (res?.error) throw new Error(res.error);
+  return res?.ideas ?? [];
+}
+
+export async function setIdeaStatus(id: string, status: "used" | "dismissed"): Promise<void> {
+  const { error } = await supabase.from("cs_social_ideas").update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+/** Deep link into Write with the idea's hook and brief filled in. */
+export function ideaWriteUrl(
+  idea: IdeaRow,
+  platform: AuditPlatform,
+  handle: string,
+  basedOn?: RatedPost,
+): string {
+  const name = platform === "instagram" ? "Instagram" : "TikTok";
+  const ctx = [
+    `Write this ${name} post for me (@${handle}). Open with this hook: "${idea.hook}"`,
+    `What it covers: ${idea.idea}`,
+    basedOn
+      ? `Use the style that made my post "${firstLine(basedOn.caption, 120)}" work${
+          basedOn.ratio !== null ? ` (${basedOn.ratio}x my usual ${basedOn.views !== null ? "views" : "likes and comments"})` : ""
+        }.`
+      : "",
+    idea.why ? `Why it should travel: ${idea.why}` : "",
+    "Match my voice. Keep it compliant for a licensed Singapore financial consultant.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const params = new URLSearchParams({
+    pillar: "topic",
+    detail: idea.hook,
+    ctx,
+    format: idea.format === "video" ? "short-video" : idea.format === "carousel" ? "carousel" : "text-post",
+    platform,
+  });
+  return `/generate?${params.toString()}`;
 }

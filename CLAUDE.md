@@ -24,7 +24,8 @@
   (`generate-social-content`, `generate-brand-template`, `generate-collateral`)
   are called with the user's session token; this repo does not deploy them.
   Exception: the account audit's functions (`audit-social-account`,
-  `refresh-social-audits`, shared code in `supabase/functions/_shared/`) ARE
+  `refresh-social-audits`, `suggest-post-ideas`, shared code in
+  `supabase/functions/_shared/`) ARE
   versioned here and deployed with the Supabase CLI. See
   `docs/account-audit.md`.
 - All user data is localStorage-first under `content-studio-*` keys and

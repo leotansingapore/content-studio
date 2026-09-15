@@ -129,19 +129,21 @@ export async function scrapeAccount(
   return { profile: tiktokProfile(items, handle), posts: dedupe(posts) };
 }
 
-export async function writeAdvice(
-  input: { platform: AuditPlatform; profile: AuditProfile; stats: AuditStats; posts: RatedPost[] },
+/** One JSON-mode chat completion. Returns the raw content, or null on any failure. */
+export async function openAiJson(
+  system: string,
+  user: string,
   apiKey: string,
-): Promise<AuditAdvice | null> {
-  const { system, user } = buildAdvicePrompt(input);
+  opts: { temperature: number; maxTokens: number },
+): Promise<string | null> {
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: OPENAI_MODEL,
-        temperature: 0.4,
-        max_tokens: 2000,
+        temperature: opts.temperature,
+        max_tokens: opts.maxTokens,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: system },
@@ -155,11 +157,20 @@ export async function writeAdvice(
       return null;
     }
     const data = await res.json();
-    return validateAdvice(data?.choices?.[0]?.message?.content ?? "", input.posts.map((p) => p.id));
+    return data?.choices?.[0]?.message?.content ?? null;
   } catch (e) {
     console.error("openai error", e);
     return null;
   }
+}
+
+export async function writeAdvice(
+  input: { platform: AuditPlatform; profile: AuditProfile; stats: AuditStats; posts: RatedPost[] },
+  apiKey: string,
+): Promise<AuditAdvice | null> {
+  const { system, user } = buildAdvicePrompt(input);
+  const content = await openAiJson(system, user, apiKey, { temperature: 0.4, maxTokens: 2000 });
+  return content === null ? null : validateAdvice(content, input.posts.map((p) => p.id));
 }
 
 /**

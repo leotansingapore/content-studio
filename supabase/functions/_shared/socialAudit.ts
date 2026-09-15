@@ -547,7 +547,8 @@ export function parseJsonObject(raw: string): Record<string, unknown> | null {
   return first !== -1 && last > first ? attempt(cleaned.slice(first, last + 1)) : null;
 }
 
-function cleanText(v: unknown, max: number): string {
+/** Trim model text: no em dashes, collapsed whitespace, cut at a word boundary. */
+export function cleanText(v: unknown, max: number): string {
   if (typeof v !== "string") return "";
   const s = v.replace(/\s*—\s*/g, ", ").replace(/\s+/g, " ").trim();
   return s.length > max ? `${s.slice(0, max - 1).replace(/\s+\S*$/, "")}…` : s;
