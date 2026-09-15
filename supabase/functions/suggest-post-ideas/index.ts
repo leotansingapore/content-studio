@@ -12,12 +12,14 @@ import {
   IDEAS_REQUESTED,
   MIN_POSTS_FOR_IDEAS,
   buildIdeasPrompt,
+  buildRepeatCheckPrompt,
+  parseRepeats,
   seenTexts,
   validateIdeas,
   type PostIdea,
   type PreviousIdea,
 } from "../_shared/postIdeas.ts";
-import type { RatedPost } from "../_shared/socialAudit.ts";
+import { oneLine, type RatedPost } from "../_shared/socialAudit.ts";
 import { openAiJson } from "../_shared/auditRunner.ts";
 
 /** About 20 batches a day per consultant. */
@@ -82,14 +84,19 @@ Deno.serve(async (req) => {
 
     const { data: prev, error: prevError } = await admin
       .from("cs_social_ideas")
-      .select("hook, status, batch")
+      .select("hook, idea, status, batch")
       .eq("audit_id", auditId)
       .order("created_at", { ascending: false })
       .limit(300);
     if (prevError) throw prevError;
-    const previous: PreviousIdea[] = (prev ?? []).map((p) => ({ hook: p.hook, status: p.status }));
+    const previous: PreviousIdea[] = (prev ?? []).map((p) => ({ hook: p.hook, idea: p.idea, status: p.status }));
     const nextBatch = (prev ?? []).reduce((m, p) => Math.max(m, p.batch), 0) + 1;
     const seen = seenTexts(posts, previous);
+    // What the meaning check compares against: recent ideas and every post.
+    const earlier = [
+      ...previous.slice(0, 100).map((p) => `${p.hook} (${p.idea})`),
+      ...posts.map((p) => oneLine(p.caption, 160)).filter(Boolean),
+    ];
 
     const accepted: PostIdea[] = [];
     let formula = "";
@@ -99,7 +106,7 @@ Deno.serve(async (req) => {
         profile: audit.profile,
         stats: audit.stats,
         posts,
-        previous: [...accepted.map((i) => ({ hook: i.hook, status: "new" as const })), ...previous],
+        previous: [...accepted.map((i) => ({ hook: i.hook, idea: i.idea, status: "new" as const })), ...previous],
         count: IDEAS_REQUESTED,
       });
       const content = await openAiJson(system, user, apiKey, { temperature: 0.9, maxTokens: 2200 });
@@ -107,11 +114,25 @@ Deno.serve(async (req) => {
       const result = validateIdeas(content, {
         knownPostIds: posts.map((p) => p.id),
         seen: [...seen, ...accepted.map((i) => i.hook)],
-        max: IDEAS_PER_BATCH - accepted.length,
+        max: IDEAS_REQUESTED,
       });
       if (!result) continue;
+
+      // Word overlap misses the same topic reworded or in another language;
+      // a narrow second call catches those. If it fails, keep what passed.
+      let fresh = result.ideas;
+      const check = buildRepeatCheckPrompt(fresh, [...accepted.map((i) => `${i.hook} (${i.idea})`), ...earlier]);
+      const verdict = await openAiJson(check.system, check.user, apiKey, { temperature: 0, maxTokens: 200 });
+      if (verdict !== null) {
+        const repeats = parseRepeats(verdict, fresh.length);
+        fresh = fresh.filter((_, i) => !repeats.has(i));
+        console.log("ideas attempt", attempt + 1, "candidates", result.ideas.length, "repeats dropped", repeats.size);
+      } else {
+        console.error("repeat check failed; keeping word-checked ideas");
+      }
+
       formula ||= result.formula;
-      accepted.push(...result.ideas);
+      accepted.push(...fresh.slice(0, IDEAS_PER_BATCH - accepted.length));
     }
     if (accepted.length === 0) {
       return json({ error: "Couldn't come up with new ideas right now. Try again in a minute." }, 502);

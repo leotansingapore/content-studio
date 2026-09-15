@@ -37,6 +37,7 @@ export interface PostIdea {
 
 export interface PreviousIdea {
   hook: string;
+  idea?: string;
   status: "new" | "used" | "dismissed";
 }
 
@@ -129,10 +130,10 @@ export function buildIdeasPrompt(input: {
     `Step 2: write ${count} post ideas that use that formula. Each idea is either a new topic told in their winning style, or a fresh twist on a winning topic (a new angle, example or audience). Mix both kinds.`,
     "Rules:",
     "- Build every idea to spread: a scroll-stopping first line (curiosity, a surprising number, a myth, a strong opinion or a relatable pain), one clear payoff, and a reason to save it or send it to a friend.",
-    "- Never recreate or lightly reword any post or idea listed below. A twist on a winning topic must change the angle, example or audience enough to feel like a new post.",
+    "- Never recreate or lightly reword any post or idea listed below, and never give an already-suggested topic a new hook. A twist on a winning topic must change the angle, example or audience enough to feel like a new post.",
     "- Avoid what fell flat.",
     "- Stay compliant: no guaranteed or risk-free returns, no specific return percentages, no pressure like 'act now', no calling a product the best.",
-    "- Fit their audience and niche from their bio and posts. Use Singapore context where it suits the account.",
+    "- Fit their audience and niche from their bio and posts. Write in the language their captions use. Only bring in Singapore context if their posts do.",
     "- hook: the exact first line to say or show, under 15 words. idea: what the post covers, 1 or 2 sentences. format: \"video\", \"carousel\" or \"image\". basedOn: the id of the best post whose formula it borrows. why: one short sentence on why it should travel, tied to that post.",
     "- Plain English. No hashtags, no emojis, no em dashes.",
     'Return JSON only: {"formula": "...", "ideas": [{"hook": "...", "idea": "...", "format": "video", "basedOn": "...", "why": "..."}]}',
@@ -154,15 +155,54 @@ export function buildIdeasPrompt(input: {
       : "",
     previous.length
       ? [
-          "Already suggested (don't repeat; rejected ones missed the mark):",
+          "Already suggested (never repeat these topics; rejected ones missed the mark):",
           ...previous
             .slice(0, MAX_PREVIOUS_IN_PROMPT)
-            .map((p) => `- ${p.hook}${p.status === "dismissed" ? " (rejected)" : ""}`),
+            .map(
+              (p) =>
+                `- ${p.hook}${p.idea ? ` (${oneLine(p.idea, 120)})` : ""}${p.status === "dismissed" ? " (rejected)" : ""}`,
+            ),
         ].join("\n")
       : "",
   ].filter(Boolean);
 
   return { system, user: sections.join("\n\n") };
+}
+
+// ---- Repeat check by meaning -------------------------------------------------
+
+/**
+ * A second, narrow model call that catches repeats the word-overlap check
+ * can't: the same topic reworded, or written in another language.
+ */
+export function buildRepeatCheckPrompt(candidates: PostIdea[], earlier: string[]): { system: string; user: string } {
+  const system = [
+    "You check new social media post ideas against ideas and posts that already exist.",
+    "A new idea is a repeat if it covers the same core topic and angle as any earlier item, even when it is worded differently or written in another language.",
+    "A new idea is also a repeat if it covers the same topic as a new idea numbered before it.",
+    "An idea on a related theme with a clearly different angle, example or audience is not a repeat.",
+    'Return JSON only: {"repeats": [the numbers of the new ideas that are repeats]}',
+  ].join("\n");
+  const user = [
+    "Earlier ideas and posts:",
+    ...(earlier.length ? earlier.map((e) => `- ${oneLine(e, 200)}`) : ["- none"]),
+    "",
+    "New ideas:",
+    ...candidates.map((c, i) => `${i + 1}. ${c.hook} (${oneLine(c.idea, 200)})`),
+  ].join("\n");
+  return { system, user };
+}
+
+/** 0-based indexes of the candidates the check marked as repeats. */
+export function parseRepeats(raw: string, count: number): Set<number> {
+  const obj = parseJsonObject(raw);
+  const list = Array.isArray(obj?.repeats) ? obj.repeats : [];
+  return new Set(
+    list
+      .map(Number)
+      .filter((n) => Number.isInteger(n) && n >= 1 && n <= count)
+      .map((n) => n - 1),
+  );
 }
 
 // ---- Validating the model's ideas --------------------------------------------

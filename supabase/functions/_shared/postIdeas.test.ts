@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { buildIdeasPrompt, isRepeat, seenTexts, similarity, validateIdeas } from "./postIdeas.ts";
+import {
+  buildIdeasPrompt,
+  buildRepeatCheckPrompt,
+  isRepeat,
+  parseRepeats,
+  seenTexts,
+  similarity,
+  validateIdeas,
+} from "./postIdeas.ts";
 import type { RatedPost } from "./socialAudit.ts";
 
 function rated(id: string, caption: string, ratio: number | null): RatedPost {
@@ -39,6 +47,26 @@ describe("repeat detection", () => {
     expect(
       seenTexts([rated("p1", "Rent vs buy\nlong caption body", 1)], [{ hook: "3 CPF myths", status: "dismissed" }]),
     ).toEqual(["3 CPF myths", "Rent vs buy"]);
+  });
+});
+
+describe("repeat check by meaning", () => {
+  const idea = (hook: string, text: string) => ({ hook, idea: text, format: "video" as const, basedOn: null, why: "" });
+
+  it("numbers the new ideas and lists what came before", () => {
+    const { system, user } = buildRepeatCheckPrompt(
+      [idea("Small habits keep you broke", "Daily coffee and rides add up."), idea("CPF basics", "Three accounts explained.")],
+      ["Pengeluaran kecil bikin boncos (Kebiasaan kecil tiap hari)"],
+    );
+    expect(system).toContain("another language");
+    expect(user).toContain("Earlier ideas and posts:\n- Pengeluaran kecil bikin boncos");
+    expect(user).toContain("New ideas:\n1. Small habits keep you broke (Daily coffee and rides add up.)\n2. CPF basics");
+  });
+
+  it("reads 1-based repeat numbers and ignores junk", () => {
+    expect([...parseRepeats('{"repeats": [2, "3", 9, 0, "x"]}', 3)].sort()).toEqual([1, 2]);
+    expect(parseRepeats("not json", 3).size).toBe(0);
+    expect(parseRepeats('{"repeats": []}', 3).size).toBe(0);
   });
 });
 
