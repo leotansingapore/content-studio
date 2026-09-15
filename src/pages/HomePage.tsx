@@ -14,6 +14,7 @@ import {
   type PostingActivity,
 } from "@/lib/draftHistory";
 import { loadPositioning } from "@/lib/positioning";
+import { daysOverdue, dueHeading, localDateKey, overdueLabel } from "@/lib/dueDates";
 import { loadCoachHistory } from "@/lib/coach";
 import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
 import { isOnboarded } from "@/lib/onboarding";
@@ -147,7 +148,7 @@ export default function HomePage() {
   const hasPosts = drafts.length > 0;
 
   const upcoming = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateKey();
     return drafts
       .filter(
         (d) =>
@@ -160,15 +161,20 @@ export default function HomePage() {
   }, [drafts]);
 
   // Posts due today or overdue — the in-app reminder that drives the habit.
+  // Most recently due first, each with how late it is.
   const dueNow = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return drafts.filter(
-      (d) =>
-        draftStatus(d) === "scheduled" &&
-        d.scheduledFor &&
-        d.scheduledFor.slice(0, 10) <= today,
-    );
+    const today = localDateKey();
+    return drafts
+      .filter(
+        (d) =>
+          draftStatus(d) === "scheduled" &&
+          d.scheduledFor &&
+          d.scheduledFor.slice(0, 10) <= today,
+      )
+      .map((d) => ({ draft: d, days: daysOverdue(d.scheduledFor!, today) }))
+      .sort((a, b) => a.days - b.days);
   }, [drafts]);
+  const overdueCount = dueNow.filter((d) => d.days > 0).length;
 
   const markDuePosted = (id: string) => {
     if (!userId) return;
@@ -191,12 +197,10 @@ export default function HomePage() {
         <section className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-4">
           <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
             <CalendarClock className="h-4 w-4 text-warning" />
-            {dueNow.length === 1
-              ? "1 post is due to go out"
-              : `${dueNow.length} posts are due to go out`}
+            {dueHeading(dueNow.length, overdueCount)}
           </p>
           <div className="space-y-1.5">
-            {dueNow.slice(0, 3).map((d) => (
+            {dueNow.slice(0, 3).map(({ draft: d, days }) => (
               <div
                 key={d.id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2"
@@ -205,18 +209,29 @@ export default function HomePage() {
                   <p className="truncate text-sm font-medium text-foreground">
                     {d.hook || d.draft.slice(0, 60) || "Untitled"}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Scheduled {new Date(d.scheduledFor!).toLocaleDateString()}
+                  <p
+                    className={`text-[11px] ${days > 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                  >
+                    {overdueLabel(days)} · scheduled{" "}
+                    {new Date(d.scheduledFor!.slice(0, 10) + "T00:00:00").toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short",
+                    })}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <Button asChild variant="outline" size="sm" className="h-7 px-2.5 text-xs">
+                  <Button asChild variant="outline" size="sm" className="h-8 px-2.5 text-xs">
                     <Link to={`/generate?draft=${d.id}`}>Open</Link>
                   </Button>
+                  {days > 0 && (
+                    <Button asChild variant="outline" size="sm" className="h-8 px-2.5 text-xs">
+                      <Link to="/calendar">Reschedule</Link>
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     onClick={() => markDuePosted(d.id)}
-                    className="h-7 gap-1 px-2.5 text-xs"
+                    className="h-8 gap-1 px-2.5 text-xs"
                   >
                     <CheckCircle2 className="h-3 w-3" /> Posted
                   </Button>
@@ -224,6 +239,14 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+          {dueNow.length > 3 && (
+            <Link
+              to="/calendar"
+              className="inline-block py-1 text-xs font-medium text-primary hover:underline"
+            >
+              See all {dueNow.length} on the calendar
+            </Link>
+          )}
         </section>
       )}
 
