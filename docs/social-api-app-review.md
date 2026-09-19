@@ -1,6 +1,6 @@
 # Instagram and TikTok app review: checklist
 
-**For:** Leo · **Written:** 15 September 2026 · **Status:** research and paperwork only; nothing submitted
+**For:** Leo · **Researched:** 15 September 2026 · **Committed:** 20 September 2026 · **Status:** research and paperwork only; nothing submitted
 
 **Goal.** Consultants connect their own Instagram and TikTok accounts through the
 official logins. The account audit then gets real views, reach, saves and watch

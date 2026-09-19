@@ -108,8 +108,8 @@ official APIs instead of scraping:
 
 **Instagram** (via the Instagram API with Instagram Login):
 
-- your Instagram account ID, username, account type, and profile details such as
-  follower and post counts;
+- your Instagram account ID, username, name, profile picture, bio, website, and
+  follower, following and post counts;
 - your posts: caption, media type, link, date posted, like and comment counts,
   and Reels view counts;
 - insights for each post: views, reach, saves, shares, likes, comments, total
@@ -345,3 +345,44 @@ the app before any change that affects how your data is used.
 Data Protection Officer: [DPO NAME], [DPO EMAIL].
 
 You can also contact the Personal Data Protection Commission (www.pdpc.gov.sg).
+
+---
+
+## Drafter's notes (remove before publishing)
+
+Sources for the third-party facts above, all accessed 15 September 2026:
+
+- OpenAI, data controls (API data not used for training by default; kept up to 30
+  days for abuse monitoring): https://developers.openai.com/api/docs/guides/your-data
+- Vercel Web Analytics, Privacy and Compliance (no third-party cookies; visitor
+  hash discarded after 24 hours; data points collected):
+  https://vercel.com/docs/analytics/privacy-policy
+- Apify, storage retention: https://docs.apify.com/platform/storage/usage
+- Meta, IG User fields for Instagram Login:
+  https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/
+- Meta, IG Media fields: https://developers.facebook.com/docs/instagram-platform/reference/instagram-media
+- Meta, IG Media insights metrics: https://developers.facebook.com/docs/instagram-platform/reference/instagram-media/insights
+- Meta, account insights metrics: https://developers.facebook.com/docs/instagram-platform/api-reference/instagram-user/insights
+- Meta, Instagram Platform overview (professional accounts only):
+  https://developers.facebook.com/docs/instagram-platform/overview
+- Meta Platform Terms, section 4 (what the privacy policy must say):
+  https://developers.facebook.com/terms/dfc_platform_terms/
+- TikTok, user info fields by scope: https://developers.tiktok.com/doc/tiktok-api-v2-get-user-info
+- TikTok, video object fields: https://developers.tiktok.com/doc/tiktok-api-v2-video-object
+- PDPC, Data Protection Obligations under the PDPA (PDF):
+  https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/resource-for-organisation/data-protection-obligations-under-the-pdpa.pdf
+- PDPC, Guide on Managing and Notifying Data Breaches (3 calendar days; 500 or
+  more individuals; significant harm):
+  https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf
+- MAS digital advertising guidelines, effective 25 March 2026 (secondary source;
+  the MAS page was unavailable when checked):
+  https://financialregulation.linklaters.com/post/102l7qp/singapore-mas-introduces-comprehensive-framework-to-promote-responsible-online-f
+
+Code this draft was written from (repo `leotansingapore/content-studio`, main at
+`165b98d`): `src/lib/cloudSync.ts`, `src/lib/clientErrors.ts`,
+`src/lib/socialAccounts.ts`, `src/lib/creatorAnalysis.ts`, `src/pages/Auth.tsx`,
+`src/components/feedback/*`, `index.html` (Vercel insights, Google Fonts),
+`supabase/functions/audit-social-account`, `refresh-social-audits`,
+`suggest-post-ideas`, `_shared/auditRunner.ts`, `_shared/socialAudit.ts`,
+`_shared/usageCaps.ts`, `hub-checkout`, `hub-stripe-webhook`,
+`supabase/hub/001` to `009` SQL files, and `supabase/hub/scout/hub-trend-scout.mjs`.
