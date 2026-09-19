@@ -41,6 +41,8 @@ import {
   type DraftStatus,
 } from "@/lib/draftHistory";
 import { repurposeTargetsFor, buildRepurposeUrl } from "@/lib/repurpose";
+import DraftReviewControl from "@/components/team/DraftReviewControl";
+import { useDraftReviews } from "@/hooks/useDraftReviews";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -67,6 +69,7 @@ export default function DraftsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | DraftStatus>("all");
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [repurposeOpenId, setRepurposeOpenId] = useState<string | null>(null);
+  const reviews = useDraftReviews(userId, drafts);
 
   useEffect(() => {
     let active = true;
@@ -324,6 +327,7 @@ export default function DraftsPage() {
                     ))}
                   </div>
                 )}
+                {reviews.enabled && <DraftReviewControl draft={d} reviews={reviews} />}
                 <div className="mt-auto flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"

@@ -38,6 +38,7 @@ const AcademyPage = lazy(() => import("@/pages/AcademyPage"));
 const TutorialPage = lazy(() => import("@/pages/TutorialPage"));
 const FeedbackPage = lazy(() => import("@/pages/FeedbackPage"));
 const CreateGuidePage = lazy(() => import("@/pages/CreateGuidePage"));
+const TeamPage = lazy(() => import("@/pages/TeamPage"));
 const HubHomePage = lazy(() => import("@/pages/hub/HubHomePage"));
 const HubTrendsPage = lazy(() => import("@/pages/hub/HubTrendsPage"));
 const HubGuidesPage = lazy(() => import("@/pages/hub/HubGuidesPage"));
@@ -78,6 +79,7 @@ export default function App() {
           <Route path="/create-guide" element={<CreateGuidePage />} />
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/drafts" element={<DraftsPage />} />
+          <Route path="/team" element={<TeamPage />} />
           <Route path="/board" element={<BoardPage />} />
           <Route path="/coach" element={<CoachPage />} />
           {/* Diagnosis now lives inside the Coach as its first step. */}

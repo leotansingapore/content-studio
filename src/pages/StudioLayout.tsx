@@ -20,6 +20,7 @@ import {
   CalendarClock,
   TrendingUp,
   BarChart3,
+  ShieldCheck,
   Columns3,
   LayoutGrid,
   X,
@@ -59,6 +60,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
         label: "Analytics",
         icon: BarChart3,
       },
+      { to: "/team", label: "Team review", icon: ShieldCheck },
       {
         to: "/academy",
         label: "Learn",
