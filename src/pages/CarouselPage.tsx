@@ -90,6 +90,8 @@ export default function CarouselPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
+  /** Posts that are still just a hook (board ideas), which can't make slides. */
+  const [ideaOnly, setIdeaOnly] = useState(0);
   const [mode, setMode] = useState<"drafts" | "paste">("drafts");
   const [draftId, setDraftId] = useState("");
   const [pasteText, setPasteText] = useState("");
@@ -116,7 +118,10 @@ export default function CarouselPage() {
       const user = data.user;
       const id = user?.id ?? null;
       setUserId(id);
-      setDrafts(draftsWithText(loadDrafts(id)));
+      const all = loadDrafts(id);
+      const withText = draftsWithText(all);
+      setDrafts(withText);
+      setIdeaOnly(all.length - withText.length);
       const meta = (user?.user_metadata ?? {}) as { full_name?: string; name?: string };
       const accounts = loadSocialAccounts(id);
       const initial = loadBrand(id) ?? {
@@ -382,8 +387,13 @@ export default function CarouselPage() {
             ) : drafts.length === 0 ? (
               <div className="flex flex-col gap-3 rounded-lg border border-dashed border-border p-4 sm:flex-row sm:items-center">
                 <p className="flex-1 text-sm text-muted-foreground">
-                  You don't have any written posts yet. Write one first, then turn it into a carousel. Or paste
-                  a post you already have.
+                  {ideaOnly > 0
+                    ? `Your ${ideaOnly === 1 ? "post is" : `${ideaOnly} posts are`} still ${
+                        ideaOnly === 1 ? "an idea" : "ideas"
+                      } with only a hook, so there's no text to turn into slides yet. Write ${
+                        ideaOnly === 1 ? "it" : "one"
+                      } out first, or paste a post you already have.`
+                    : "You don't have any written posts yet. Write one first, then turn it into a carousel. Or paste a post you already have."}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm" className="gap-1.5">
@@ -595,7 +605,7 @@ export default function CarouselPage() {
                   >
                     {busy ? (
                       <>
-                        <ThinkingOrb state="composing" size={16} theme="dark" aria-hidden /> Tightening…
+                        <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> Tightening…
                       </>
                     ) : (
                       <>
