@@ -336,7 +336,7 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
 
 // Characters XML 1.0 forbids; one of these would stop the whole image loading.
 // eslint-disable-next-line no-control-regex
-const INVALID_XML = /[ --￾￿]/g;
+const INVALID_XML = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g;
 
 export function escapeXml(text: string): string {
   return String(text ?? "")
