@@ -254,7 +254,7 @@ export function buildIdeaDumpPrompt(input: Pick<IdeaDumpRequest, "ideas" | "cont
     "- note: the number of the note it came from (the first one, if you merged notes).",
     "- idea: the idea in plain words, at most 15 words.",
     "- angle: one sentence on the specific take that makes this worth reading.",
-    "- hooks: exactly 3 different opening lines, each under 15 words, in different styles: a question, a specific number or detail, and a bold claim or story opener.",
+    "- hooks: exactly 3 different opening lines, each under 15 words, in different styles: a question, a concrete detail taken from the note itself, and a bold claim or story opener. Never invent a number, percentage or statistic for a hook; if the note gives none, use a detail instead.",
     "- talkingPoints: 3 to 5 points the post covers, in order, each under 25 words.",
     "- cta: one low-pressure call to action that fits the funnel stage. ctaType: the closest of open-question, save-share, comment-keyword, dm-keyword or book-call.",
     `- format: ${BRIEF_FORMATS.join(", ")}. platform: ${BRIEF_PLATFORMS.join(", ")}. Prefer the consultant's own platforms when they suit the idea.`,
