@@ -309,15 +309,15 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ code: "bad_request", error: "Use POST." }, 405);
   const startedAt = Date.now();
   try {
-    const body = await req.json().catch(() => ({}));
-    const parsed = parseReelUrl(body?.url);
-    if (parsed.ok === false) return json({ code: "bad_url", error: parsed.message }, 400);
-
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return failure("unauthorized");
+
+    const body = await req.json().catch(() => ({}));
+    const parsed = parseReelUrl(body?.url);
+    if (parsed.ok === false) return json({ code: "bad_url", error: parsed.message }, 400);
 
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
     if (!openaiKey) {
