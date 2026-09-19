@@ -514,14 +514,14 @@ export async function joinTeam(
   if (error) fail(error);
   const result = data as JoinResult | null;
   if (!result) throw new TeamReviewError("Something went wrong. Try again.");
-  if (!result.ok) {
-    let message = result.message || "That code didn't work.";
-    if (result.error === "invalid_code" && typeof result.attempts_left === "number" && result.attempts_left <= 3) {
-      message += ` ${result.attempts_left} ${result.attempts_left === 1 ? "try" : "tries"} left this hour.`;
-    }
-    throw new TeamReviewError(message, result.error);
+  if (result.ok === true) return { teamId: result.team_id, teamName: result.team_name };
+  const failed = result as Extract<JoinResult, { ok: false }>;
+  let message = failed.message || "That code didn't work.";
+  const left = failed.attempts_left;
+  if (failed.error === "invalid_code" && typeof left === "number" && left <= 3) {
+    message += ` ${left} ${left === 1 ? "try" : "tries"} left this hour.`;
   }
-  return { teamId: result.team_id, teamName: result.team_name };
+  throw new TeamReviewError(message, failed.error);
 }
 
 export async function leaveTeam(): Promise<void> {
