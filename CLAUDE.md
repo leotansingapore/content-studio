@@ -24,10 +24,13 @@
   (`generate-social-content`, `generate-brand-template`, `generate-collateral`)
   are called with the user's session token; this repo does not deploy them.
   Exception: the account audit's functions (`audit-social-account`,
-  `refresh-social-audits`, `suggest-post-ideas`, shared code in
-  `supabase/functions/_shared/`) ARE
-  versioned here and deployed with the Supabase CLI. See
-  `docs/account-audit.md`.
+  `refresh-social-audits`, `suggest-post-ideas`), plus `idea-dump`,
+  `clone-reel` and `carousel-copy`, and shared code in
+  `supabase/functions/_shared/`, ARE versioned here and deployed with
+  `supabase functions deploy <name> --project-ref hgdbflprrficdoyxmdxe --use-api`
+  (JWT verification on). Their tables come from `supabase/hub/0NN_*.sql`,
+  applied by hand. See `docs/account-audit.md`. Reference copies of the
+  unversioned functions live in `supabase/snapshots/functions/`.
 - All user data is localStorage-first under `content-studio-*` keys and
   mirrored cross-device by `src/lib/cloudSync.ts` (prefix-based). New
   persistent features MUST use the `content-studio-` key prefix or they will
