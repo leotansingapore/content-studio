@@ -9,6 +9,7 @@ export type SectionTab = { to: string; label: string; end?: boolean };
 export const WRITE_TABS: SectionTab[] = [
   { to: "/generate", label: "Write", end: true },
   { to: "/generate/batch", label: "Batch" },
+  { to: "/carousel", label: "Carousel" },
 ];
 
 // Playbook group: the strategy that steers every draft — positioning, voice,

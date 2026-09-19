@@ -30,6 +30,7 @@ import {
   CalendarClock,
   Wand2,
   X,
+  GalleryHorizontalEnd,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -347,6 +348,16 @@ export default function DraftsPage() {
                   >
                     <Wand2 className="h-3.5 w-3.5" /> Repurpose
                   </Button>
+                  {d.draft?.trim() && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/carousel?draft=${encodeURIComponent(d.id)}`)}
+                      className="gap-1.5"
+                    >
+                      <GalleryHorizontalEnd className="h-3.5 w-3.5" /> Make a carousel
+                    </Button>
+                  )}
                   {s === "posted" ? (
                     <Button
                       size="sm"

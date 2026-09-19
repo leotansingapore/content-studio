@@ -42,7 +42,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
   {
     heading: "Create",
     items: [
-      { to: "/generate", label: "Write", icon: Pencil },
+      { to: "/generate", label: "Write", icon: Pencil, also: ["/carousel"] },
       {
         to: "/calendar",
         label: "Pipeline",
