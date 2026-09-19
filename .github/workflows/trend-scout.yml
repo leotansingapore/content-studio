@@ -16,10 +16,14 @@ on:
   # To stop the news-based drop, pause that Claude routine instead; don't
   # comment this out.
   schedule:
-    # 01:50 UTC = 09:50 SGT. GitHub runs cron in UTC and can start late under
-    # load. Deliberately after 01:30 UTC, so this drop replaces any news-based
-    # drop another scheduled job commits earlier in the morning.
-    - cron: "50 1 * * *"
+    # 01:37 UTC = 09:37 SGT. GitHub runs cron in UTC and can start late under
+    # load: at "50 1" it started around 06:40 UTC every day (17-19 Sep 2026),
+    # so the drop landed mid-afternoon in Singapore. Moved off :50 to test
+    # whether the minute matters; if it's still hours late, trigger this
+    # workflow from a Supabase cron via workflow_dispatch instead. Deliberately
+    # after 01:30 UTC, so this drop replaces any news-based drop another
+    # scheduled job commits earlier in the morning.
+    - cron: "37 1 * * *"
   workflow_dispatch:
     inputs:
       count:
