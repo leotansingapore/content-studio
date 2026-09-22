@@ -24,6 +24,7 @@ import {
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -330,22 +331,20 @@ export default function CarouselPage() {
   return (
     <div className="space-y-6">
       <SectionTabs tabs={WRITE_TABS} />
-      <header className="space-y-1.5">
+      <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <GalleryHorizontalEnd className="h-6 w-6 shrink-0 text-primary" /> Carousel maker
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Turn a finished post into swipeable slides for Instagram or LinkedIn, with your name and brand
-          colour on every slide. Download them as 1080 × 1350 images, ready to upload.
-        </p>
       </header>
 
       <Card className="border-border/60 shadow-card">
         <CardHeader>
-          <CardTitle className="font-serif text-xl">Choose a post</CardTitle>
-          <CardDescription>
-            Your hook becomes the cover, each point gets its own slide, and your call to action closes it.
-          </CardDescription>
+          <div className="flex items-center gap-1">
+            <CardTitle className="font-serif text-xl">Choose a post</CardTitle>
+            <InfoTip label="About how slides are made">
+              Your hook becomes the cover and your call to action closes it.
+            </InfoTip>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div
@@ -587,10 +586,7 @@ export default function CarouselPage() {
 
             <Card className="border-border/60 shadow-card">
               <CardHeader className="gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-1.5">
-                  <CardTitle className="font-serif text-xl">Slides</CardTitle>
-                  <CardDescription>Edit the words, reorder, or add and remove slides.</CardDescription>
-                </div>
+                <CardTitle className="font-serif text-xl">Slides</CardTitle>
                 <div className="flex flex-wrap gap-2">
                   {beforeAi && !busy && (
                     <Button size="sm" variant="ghost" onClick={undoAi} className="gap-1.5 text-muted-foreground">

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -206,18 +206,10 @@ export default function BatchPage() {
   return (
     <div className="space-y-6">
       <SectionTabs tabs={WRITE_TABS} />
-      <header className="space-y-1.5">
+      <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <Layers className="h-6 w-6 text-primary" /> Weekly batch
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          One topic in, a full draft out for every platform you pick — generated
-          together instead of one at a time. Review, tweak, and save each one to
-          My posts.{" "}
-          <Link to="/generate" className="font-semibold text-primary hover:underline">
-            Prefer one careful draft at a time? Use Write instead.
-          </Link>
-        </p>
       </header>
 
       <Card className="border-border/60 shadow-card">

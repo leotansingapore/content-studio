@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -38,7 +39,6 @@ import {
   Instagram,
   Facebook,
   MessageSquare,
-  HelpCircle,
   Lightbulb,
   X as XIcon,
   Check,
@@ -1235,10 +1235,10 @@ export default function GeneratePage() {
 
   // Labels for the 4 guided steps, in the order the consultant fills them in.
   const STEP_META = [
-    { label: "Topic", hint: "What it's about" },
-    { label: "Funnel", hint: "Where they are" },
-    { label: "Idea", hint: "Your angle" },
-    { label: "Format", hint: "Where & how" },
+    { label: "Topic" },
+    { label: "Funnel" },
+    { label: "Idea" },
+    { label: "Format" },
   ];
   const LAST_STEP = STEP_META.length - 1;
   const goNext = () =>
@@ -1248,18 +1248,10 @@ export default function GeneratePage() {
   return (
     <div ref={formAnchorRef} className="space-y-6">
       <SectionTabs tabs={WRITE_TABS} />
-      <header className="space-y-1.5">
+      <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Write a post
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Answer a few quick questions and the studio drafts a post in your
-          voice. Everything has a sensible default, so you can move fast and
-          tweak later.{" "}
-          <Link to="/generate/batch" className="font-semibold text-primary hover:underline">
-            Need one topic across several platforms at once? Try Weekly batch.
-          </Link>
-        </p>
       </header>
 
       {showVoiceNudge && (
@@ -1299,14 +1291,9 @@ export default function GeneratePage() {
         <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs">
           <div className="flex items-start gap-2">
             <Mic className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
-            <div className="space-y-0.5">
-              <p className="font-semibold text-emerald-700 dark:text-emerald-400">
-                Voice profile active
-              </p>
-              <p className="text-muted-foreground">
-                Drafts will be steered toward your tone and structure.
-              </p>
-            </div>
+            <p className="font-semibold text-emerald-700 dark:text-emerald-400">
+              Voice profile active
+            </p>
           </div>
           <Link
             to="/voice"
@@ -1376,17 +1363,12 @@ export default function GeneratePage() {
                   >
                     {done ? <Check className="h-3 w-3" /> : i + 1}
                   </span>
-                  <span className="hidden sm:block">
-                    <span
-                      className={`block text-xs font-semibold leading-none ${
-                        active ? "text-foreground" : "text-muted-foreground"
-                      }`}
-                    >
-                      {s.label}
-                    </span>
-                    <span className="mt-0.5 block text-[10px] leading-none text-muted-foreground">
-                      {s.hint}
-                    </span>
+                  <span
+                    className={`hidden text-xs font-semibold leading-none sm:block ${
+                      active ? "text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {s.label}
                   </span>
                 </button>
               );
@@ -1397,13 +1379,14 @@ export default function GeneratePage() {
             <div className="space-y-6">
       <Card className="border-border/60 shadow-card">
         <CardHeader>
-          <CardTitle className="font-serif text-xl">
-            What&apos;s your post about?
-          </CardTitle>
-          <CardDescription>
-            What is this post centred on? Social pillars (Interest/Identity)
-            humanise you. Authority pillars (Topic/Market) build credibility.
-          </CardDescription>
+          <div className="flex items-center gap-1">
+            <CardTitle className="font-serif text-xl">
+              What&apos;s your post about?
+            </CardTitle>
+            <InfoTip label="About content pillars">
+              Social pillars humanise you; Authority pillars build your credibility.
+            </InfoTip>
+          </div>
         </CardHeader>
         <CardContent className="space-y-5">
           <RadioGroup
@@ -1457,12 +1440,7 @@ export default function GeneratePage() {
             />
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Audience / life-stage</Label>
-              <span className="text-[11px] text-muted-foreground">
-                Tunes voice, examples, pain-points
-              </span>
-            </div>
+            <Label className="text-sm">Audience / life-stage</Label>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {AUDIENCES.map((a) => (
                 <button
@@ -1513,9 +1491,7 @@ export default function GeneratePage() {
         <CardHeader>
           <CardTitle className="font-serif text-xl">Funnel stage</CardTitle>
           <CardDescription>
-            Where is this reader in your funnel? The ABC funnel: Attraction to
-            get seen, Building Trust to earn credibility, Conversion to invite
-            the next step. Optional — but it sharpens the draft.
+            Optional, but it sharpens the draft.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -1604,13 +1580,14 @@ export default function GeneratePage() {
 
       <Card className="border-border/60 shadow-card">
         <CardHeader>
-          <CardTitle className="font-serif text-xl">
-            What&apos;s the spark?
-          </CardTitle>
-          <CardDescription>
-            The 7 idea sources from Day 41. The strongest posts come from
-            real conversations and concrete situations.
-          </CardDescription>
+          <div className="flex items-center gap-1">
+            <CardTitle className="font-serif text-xl">
+              What&apos;s the spark?
+            </CardTitle>
+            <InfoTip label="About idea sources">
+              Day 41&apos;s seven idea sources; real conversations make the strongest posts.
+            </InfoTip>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <Select value={ideaSource} onValueChange={setIdeaSource}>
@@ -1654,10 +1631,6 @@ export default function GeneratePage() {
           <CardTitle className="font-serif text-xl">
             Where and how to post
           </CardTitle>
-          <CardDescription>
-            Match the format to where you're posting and what you want the
-            reader to do next.
-          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
@@ -1724,15 +1697,7 @@ export default function GeneratePage() {
       </Card>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
-        <div className="flex items-start gap-2 text-xs text-muted-foreground">
-          <HelpCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-          <span>
-            The draft is a starting point - never a final post. Edit for your
-            voice. Day 41 is clear: copying generic templates produces generic
-            results.
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="ml-auto flex flex-wrap items-center gap-3">
           <label
             className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-all ${
               hooksFirst
@@ -1839,8 +1804,7 @@ export default function GeneratePage() {
               Pick a hook
             </CardTitle>
             <CardDescription>
-              Five different angles. Click one and we'll draft three full posts
-              that lead with it.
+              Click one and we&apos;ll draft three full posts that lead with it.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -1882,11 +1846,6 @@ export default function GeneratePage() {
                         {h.halted === "stopped" ? "stopped before finishing" : HALT_LABEL.failed}
                       </span>
                     )}
-                    {h.complete && !isPicked && (
-                      <span className="text-[11px] text-muted-foreground group-hover:text-primary">
-                        Click to use this hook
-                      </span>
-                    )}
                     {isPicked && (
                       <span className="flex items-center gap-1 text-[11px] font-semibold text-primary">
                         <Check className="h-3 w-3" /> Chosen
@@ -1903,15 +1862,9 @@ export default function GeneratePage() {
       {variants.length > 0 && (
         <Card className="border-border/60 shadow-card">
           <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1">
-              <CardTitle className="font-serif text-xl">
-                Three variations
-              </CardTitle>
-              <CardDescription>
-                Different angles on the same brief. Pick the one closest to
-                your voice, then edit it. Re-roll for three new takes.
-              </CardDescription>
-            </div>
+            <CardTitle className="font-serif text-xl">
+              Three variations
+            </CardTitle>
             <div className="flex shrink-0 gap-2">
               <Button
                 variant="outline"
@@ -1992,12 +1945,11 @@ export default function GeneratePage() {
       {draft && (
         <Card className="border-border/60 shadow-card">
           <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
-            <div className="space-y-1">
+            <div className="flex items-center gap-1">
               <CardTitle className="font-serif text-xl">Your draft</CardTitle>
-              <CardDescription>
-                Read it, cut 30% of words, edit for your voice, then publish.
-                Re-roll for three new variations if needed.
-              </CardDescription>
+              <InfoTip label="About editing your draft">
+                Cut about 30% of the words and edit for your voice first.
+              </InfoTip>
             </div>
             <div className="flex shrink-0 gap-2">
               {svSplit?.script ? (
