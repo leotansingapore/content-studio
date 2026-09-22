@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import {
   BREAKOUT_RATIO,
@@ -92,14 +93,13 @@ export default function AccountAudit({
 
   return (
     <section className="space-y-3" aria-labelledby="account-audit-heading">
-      <div className="space-y-1">
+      <div className="flex items-center gap-1">
         <h2 id="account-audit-heading" className="font-serif text-lg font-semibold text-foreground">
           Your account audit
         </h2>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Your last {POSTS_TO_READ} posts, compared with your own usual. Updates when you open this
-          page and every week.
-        </p>
+        <InfoTip label="About the account audit">
+          Your last {POSTS_TO_READ} posts, compared with your own usual, updated weekly.
+        </InfoTip>
       </div>
       {connected.map((a) => (
         <AuditPanel

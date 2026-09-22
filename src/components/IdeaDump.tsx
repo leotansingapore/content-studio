@@ -11,6 +11,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ThinkingOrb } from "thinking-orbs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
@@ -489,14 +490,13 @@ export default function IdeaDump() {
 
   return (
     <section id="idea-dump" ref={sectionRef} className="scroll-mt-20 space-y-4" aria-labelledby="idea-dump-title">
-      <div>
+      <div className="flex items-center gap-1">
         <h2 id="idea-dump-title" className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
           <Lightbulb className="h-4 w-4 text-primary" /> Idea Dump
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Get rough thoughts out of your head: one per line, or just talk. Each one comes back as a
-          post brief with an angle, hooks, talking points, a CTA and where it fits in your funnel.
-        </p>
+        <InfoTip label="About Idea Dump">
+          Each idea comes back as a brief: angle, hooks, talking points, CTA.
+        </InfoTip>
       </div>
 
       <Card className="border-border/60 shadow-card">
@@ -581,7 +581,7 @@ export default function IdeaDump() {
             )}
           </div>
           <p id="idea-dump-help" className="text-[11px] text-muted-foreground">
-            Up to {MAX_IDEAS} ideas at a time. Your briefs are saved to your account.
+            One idea per line, up to {MAX_IDEAS} at a time. Your briefs are saved to your account.
           </p>
         </CardContent>
       </Card>
@@ -689,9 +689,7 @@ export default function IdeaDump() {
       ) : (
         !loading && (
           <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-4 text-sm text-muted-foreground" data-testid="idea-dump-empty">
-            Your briefs land here. Each one comes with an angle, three hooks to pick from, talking
-            points, a call to action, the format and platform that suit it, and the funnel stage it
-            serves.
+            Your briefs land here.
           </div>
         )
       )}

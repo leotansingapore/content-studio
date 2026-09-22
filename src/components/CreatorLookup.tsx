@@ -255,15 +255,9 @@ export default function CreatorLookup() {
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <UserSearch className="h-4 w-4" />
           </span>
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              Analyze a creator
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Enter a handle to see what's working, what to steal, and where the
-              gaps are.
-            </p>
-          </div>
+          <p className="text-sm font-semibold text-foreground">
+            Analyze a creator
+          </p>
         </div>
 
         <div className="relative">

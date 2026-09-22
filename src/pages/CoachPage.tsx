@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -298,7 +299,7 @@ export default function CoachPage() {
   if (showQuiz) {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
-        <header className="space-y-2">
+        <header>
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Compass className="h-5 w-5" />
@@ -307,10 +308,6 @@ export default function CoachPage() {
               Coach
             </h1>
           </div>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Let's start with a quick diagnosis so your coach knows exactly where
-            to focus. About two minutes.
-          </p>
         </header>
         <DiagnosisQuiz onComplete={handleDiagComplete} />
         <IdeaDump />
@@ -320,7 +317,7 @@ export default function CoachPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-10">
-      <header className="space-y-2">
+      <header>
         <div className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Compass className="h-5 w-5" />
@@ -329,25 +326,14 @@ export default function CoachPage() {
             Coach
           </h1>
         </div>
-        <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Your personal content coach. The more it knows about you — your story,
-          what's going on in your life, who you're for — the better it can help
-          you make content only you could post. It remembers what you tell it and
-          learns what you like as you go.
-        </p>
       </header>
 
       {/* ---- Coach diagnosis: where you stand + the one thing to do next -- */}
       {diag && (
         <section className="space-y-4">
-          <div>
-            <h2 className="font-serif text-lg font-semibold text-foreground">
-              Coach diagnosis
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Where you stand right now, and the one thing to work on next.
-            </p>
-          </div>
+          <h2 className="font-serif text-lg font-semibold text-foreground">
+            Coach diagnosis
+          </h2>
           <DiagnosisSummary result={diag} role={role} onRetake={retakeDiag} />
         </section>
       )}
@@ -355,14 +341,9 @@ export default function CoachPage() {
       {/* ---- About you: the intake ------------------------------------- */}
       <section className="space-y-4">
         <div className="flex items-end justify-between gap-3">
-          <div>
-            <h2 className="font-serif text-lg font-semibold text-foreground">
-              About you
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Answer what you can — you can always come back and add more.
-            </p>
-          </div>
+          <h2 className="font-serif text-lg font-semibold text-foreground">
+            About you
+          </h2>
           <span className="shrink-0 text-xs font-medium text-muted-foreground">
             {completeness.filled}/{completeness.total} answered
           </span>
@@ -432,14 +413,13 @@ export default function CoachPage() {
 
       {/* ---- What the Coach has learned -------------------------------- */}
       <section className="space-y-4">
-        <div>
+        <div className="flex items-center gap-1">
           <h2 className="font-serif text-lg font-semibold text-foreground">
             What the Coach has learned about you
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Tell it what lands and what to steer clear of. It uses this every time
-            it drafts for you.
-          </p>
+          <InfoTip label="About what the Coach has learned">
+            Drafts you start from the Coach lean into and avoid these.
+          </InfoTip>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <Card className="border-border/60 shadow-card">
@@ -455,7 +435,7 @@ export default function CoachPage() {
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Nothing yet — add what you enjoy making or what performs.
+                  Nothing yet.
                 </p>
               )}
               <div className="flex gap-2">
@@ -490,7 +470,7 @@ export default function CoachPage() {
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Nothing yet — add styles or topics you don't want.
+                  Nothing yet.
                 </p>
               )}
               <div className="flex gap-2">
@@ -517,15 +497,9 @@ export default function CoachPage() {
 
       {/* ---- Review your posts (craft analyzer) ------------------------ */}
       <section className="space-y-4">
-        <div>
-          <h2 className="font-serif text-lg font-semibold text-foreground">
-            Review your posts
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            See how your writing stacks up against what works, and get a short list
-            of fixes. Paste a few recent posts, or grade the ones you made here.
-          </p>
-        </div>
+        <h2 className="font-serif text-lg font-semibold text-foreground">
+          Review your posts
+        </h2>
 
         <Card className="border-border/60 shadow-card">
           <CardContent className="space-y-3 py-5">
@@ -590,13 +564,17 @@ export default function CoachPage() {
               <div className="flex flex-col items-center gap-4 sm:flex-row">
                 <ScoreRing score={report.score} />
                 <div className="flex-1 space-y-1 text-center sm:text-left">
-                  <p className="font-serif text-lg font-semibold text-foreground">
-                    Content score
-                  </p>
+                  <div className="flex items-center justify-center gap-1 sm:justify-start">
+                    <p className="font-serif text-lg font-semibold text-foreground">
+                      Content score
+                    </p>
+                    <InfoTip label="About the content score">
+                      A craft check, not a guarantee of reach.
+                    </InfoTip>
+                  </div>
                   <p className="text-sm leading-relaxed text-muted-foreground">
                     Across {report.postCount} {report.postCount === 1 ? "post" : "posts"} ·
-                    avg {report.avgWords} words. This is a craft check, not a
-                    guarantee of reach — but the craft is what you control.
+                    avg {report.avgWords} words.
                   </p>
                 </div>
               </div>

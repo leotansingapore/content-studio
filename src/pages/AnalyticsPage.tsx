@@ -305,15 +305,10 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1.5">
+      <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Analytics
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          See what's actually landing. Add the real numbers from your posts and
-          the studio surfaces your top performers, what's underperforming, and
-          what to double down on.
-        </p>
       </header>
 
       {userId && <AccountAudit accounts={accounts} onSaveAccount={saveAccount} />}
@@ -334,9 +329,8 @@ export default function AnalyticsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Add your handle on each platform. Instagram and TikTok are audited
-            automatically above. LinkedIn and Facebook don't allow that, so add
-            those numbers by hand below.
+            Instagram and TikTok are audited automatically above. LinkedIn and
+            Facebook don't allow that, so add those numbers by hand below.
           </p>
           <div className="space-y-2">
             {SOCIAL_PLATFORMS.map((p) => {
@@ -401,8 +395,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-xs text-muted-foreground">
-              Fill in what each posted post actually did. Everything below
-              recalculates as soon as you save a row.
+              Everything below recalculates as soon as you save a row.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-left text-xs">
