@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Columns3, GripVertical, Lightbulb, Pencil } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -29,10 +30,10 @@ const PRODUCTION: BoardColumn[] = ["idea", "scripted", "to-film", "editing"];
 
 // Columns grouped into a phase 1 / 2 / 3 flow so the board reads as a
 // pipeline, not six flat buckets.
-const PHASES: { number: number; title: string; blurb: string; columns: BoardColumn[] }[] = [
-  { number: 1, title: "Write it", blurb: "Capture ideas, turn them into scripts", columns: ["idea", "scripted"] },
-  { number: 2, title: "Produce it", blurb: "Film and cut the content", columns: ["to-film", "editing"] },
-  { number: 3, title: "Publish it", blurb: "Schedule, post, track", columns: ["scheduled", "posted"] },
+const PHASES: { number: number; title: string; columns: BoardColumn[] }[] = [
+  { number: 1, title: "Write it", columns: ["idea", "scripted"] },
+  { number: 2, title: "Produce it", columns: ["to-film", "editing"] },
+  { number: 3, title: "Publish it", columns: ["scheduled", "posted"] },
 ];
 
 // One-click advancement per column (drag still works). Scheduled needs a date,
@@ -246,23 +247,19 @@ export default function BoardPage() {
   return (
     <div className="space-y-4">
       <SectionTabs tabs={PIPELINE_TABS} />
-      <div>
+      <div className="flex items-center gap-1">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
           <Columns3 className="h-5 w-5" /> Content board
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Move each post through three phases: write it, produce it, publish it.
-          Drag cards or use the quick-move button on each card.
-        </p>
+        <InfoTip label="About moving cards">
+          Drag a card between columns, or use its quick-move button.
+        </InfoTip>
       </div>
 
       {drafts.length === 0 && (
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-muted-foreground">
-            <p>
-              Nothing in production yet. Type a quick idea below, or write a
-              full post and it lands here.
-            </p>
+            <p>Nothing in production yet.</p>
             <Button asChild size="sm">
               <Link to="/generate">Write a post</Link>
             </Button>
@@ -280,9 +277,6 @@ export default function BoardPage() {
                   {phase.number}
                 </span>
                 <p className="text-sm font-semibold text-foreground">{phase.title}</p>
-                <span className="hidden text-xs text-muted-foreground sm:inline">
-                  {phase.blurb}
-                </span>
               </div>
               <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                 {phase.columns.map((key) => {
@@ -304,14 +298,9 @@ export default function BoardPage() {
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2 px-0.5">
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/60">
-                            {col.label}
-                          </p>
-                          <p className="text-[10px] leading-tight text-muted-foreground/70">
-                            {col.hint}
-                          </p>
-                        </div>
+                        <p className="min-w-0 text-[11px] font-semibold uppercase tracking-wider text-foreground/60">
+                          {col.label}
+                        </p>
                         <span className="shrink-0 rounded-md bg-background px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground shadow-sm">
                           {cards.length}
                         </span>

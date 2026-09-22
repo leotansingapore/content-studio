@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -135,14 +134,10 @@ export default function DraftsPage() {
   return (
     <div className="space-y-6">
       <SectionTabs tabs={PIPELINE_TABS} />
-      <header className="space-y-1.5">
+      <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           My posts
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Everything you draft saves here automatically. Mark posts as done to
-          track what you've shipped and keep your momentum going.
-        </p>
       </header>
 
       {drafts.length > 0 && (
@@ -175,10 +170,6 @@ export default function DraftsPage() {
           <CardTitle className="font-serif text-xl">
             Filter your drafts
           </CardTitle>
-          <CardDescription>
-            Narrow by platform / pillar, or search by keyword across the hook
-            and body.
-          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-1.5">

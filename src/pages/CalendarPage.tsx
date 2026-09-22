@@ -148,14 +148,10 @@ export default function CalendarPage() {
   return (
     <div className="space-y-6">
       <SectionTabs tabs={PIPELINE_TABS} />
-      <header className="space-y-1.5">
+      <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Calendar
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Plan what goes out and when. Schedule a draft, then mark it posted
-          once it's live — this is your running record of what you've shipped.
-        </p>
       </header>
 
       {/* Schedule a draft */}
@@ -340,7 +336,7 @@ export default function CalendarPage() {
           {upcoming.length === 0 ? (
             <Card className="border-border/60 shadow-card">
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                Nothing scheduled yet. Schedule a draft above to see it here.
+                Nothing scheduled yet.
               </CardContent>
             </Card>
           ) : (

@@ -10,13 +10,13 @@ import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 export type ProductionStage = "idea" | "scripted" | "to-film" | "editing";
 export type BoardColumn = ProductionStage | "scheduled" | "posted";
 
-export const BOARD_COLUMNS: { key: BoardColumn; label: string; hint: string }[] = [
-  { key: "idea", label: "Idea", hint: "Rough concepts, not written yet" },
-  { key: "scripted", label: "Scripted", hint: "Written in Write, ready to shoot" },
-  { key: "to-film", label: "To film", hint: "Queued for the camera" },
-  { key: "editing", label: "Editing", hint: "Footage in the cut" },
-  { key: "scheduled", label: "Scheduled", hint: "Has a posting date" },
-  { key: "posted", label: "Posted", hint: "Live on the platform" },
+export const BOARD_COLUMNS: { key: BoardColumn; label: string }[] = [
+  { key: "idea", label: "Idea" },
+  { key: "scripted", label: "Scripted" },
+  { key: "to-film", label: "To film" },
+  { key: "editing", label: "Editing" },
+  { key: "scheduled", label: "Scheduled" },
+  { key: "posted", label: "Posted" },
 ];
 
 const KEY_PREFIX = "content-studio-board-";
