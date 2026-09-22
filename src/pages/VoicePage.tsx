@@ -9,12 +9,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import {
-  Mic,
   Save,
   RefreshCw,
   Loader2,
@@ -173,25 +173,14 @@ export default function VoicePage() {
   return (
     <div className="space-y-6">
       <SectionTabs tabs={PLAYBOOK_TABS} />
-      <header className="space-y-1.5">
-        <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-          Your voice
-        </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Do this once. Paste a few posts you wrote yourself and every future
-          draft will sound like you, not generic AI.
-        </p>
-      </header>
-
-      <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
-        <div className="flex items-start gap-2 text-xs text-muted-foreground">
-          <Mic className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-          <span>
-            Paste {VOICE_MIN_FILLED}-{VOICE_MAX_SLOTS} of your past social posts.
-            We'll distill your tone, hook patterns and structure into a voice
-            profile that steers every future generation toward sounding like
-            YOU, not generic AI.
-          </span>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1">
+          <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+            Your voice
+          </h1>
+          <InfoTip label="About your voice">
+            We turn these posts into a summary that steers every draft.
+          </InfoTip>
         </div>
         <Link
           to="/generate"
@@ -199,7 +188,7 @@ export default function VoicePage() {
         >
           <ArrowLeft className="h-3 w-3" /> Skip for now
         </Link>
-      </div>
+      </header>
 
       <Card className="border-border/60 shadow-card">
         <CardHeader>
@@ -306,10 +295,6 @@ export default function VoicePage() {
             <CardTitle className="font-serif text-xl">
               Your voice summary
             </CardTitle>
-            <CardDescription>
-              This is what we'll inject into every generation as your voice
-              fingerprint. Re-distill anytime you change the past posts.
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-xl border border-border/60 bg-muted/30 p-4 text-sm leading-relaxed text-foreground whitespace-pre-wrap">

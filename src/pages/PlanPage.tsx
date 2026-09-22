@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -397,12 +398,6 @@ export default function PlanPage() {
             <h1 className="mt-1 font-serif text-2xl font-semibold leading-tight">
               Turn your positioning into a week of posts
             </h1>
-            <p className="mt-1 max-w-2xl text-sm opacity-90">
-              Start with your F.A.D.S. output — who you serve and your edge. The
-              studio builds a funnel-balanced plan: Attraction to get seen,
-              Building Trust to earn credibility, Conversion to invite the next
-              step.
-            </p>
           </div>
         </Card>
 
@@ -410,15 +405,9 @@ export default function PlanPage() {
 
         <details className="group rounded-xl border border-border/60 bg-card shadow-card">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-4 [&::-webkit-details-marker]:hidden">
-            <div>
-              <p className="font-serif text-lg font-semibold text-foreground">
-                The two frameworks behind your plan
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Optional background — how the plan balances trust and funnel
-                stage. Skip it and just build.
-              </p>
-            </div>
+            <p className="font-serif text-lg font-semibold text-foreground">
+              The two frameworks behind your plan
+            </p>
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
           </summary>
           <div className="space-y-3 px-5 pb-5">
@@ -485,21 +474,22 @@ export default function PlanPage() {
         ) : (
         <Card className="border-border/60 shadow-card">
           <CardHeader>
-            <CardTitle className="font-serif text-xl">
-              Paste your F.A.D.S. output
-            </CardTitle>
+            <div className="flex items-center gap-1">
+              <CardTitle className="font-serif text-xl">
+                Paste your F.A.D.S. output
+              </CardTitle>
+              <InfoTip label="About F.A.D.S. output">
+                Send to Plan in the F.A.D.S. tool fills these fields for you.
+              </InfoTip>
+            </div>
             <CardDescription>
-              Optional shortcut. Paste the audience / edge / positioning you
-              wrote in the F.A.D.S. tool and we'll prefill the fields. Or just
-              fill them in below. Don't have it yet?{" "}
+              Optional. Don&apos;t have it yet?{" "}
               <Link
                 to="/fads"
                 className="font-semibold text-primary hover:underline"
               >
                 Build it in the F.A.D.S. tool →
-              </Link>{" "}
-              It's built into the studio now — "Send to Plan" on its output tab
-              fills these fields for you.
+              </Link>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -529,9 +519,6 @@ export default function PlanPage() {
             <CardTitle className="font-serif text-xl">
               Your positioning
             </CardTitle>
-            <CardDescription>
-              A clear niche is what makes every idea concrete instead of generic.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">

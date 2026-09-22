@@ -97,15 +97,10 @@ export default function PlaybookPage() {
   return (
     <div className="space-y-6">
       <SectionTabs tabs={PLAYBOOK_TABS} />
-      <header className="space-y-1.5">
+      <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           My Playbook
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Your content strategy in one place: who you're for, how you sound, and
-          the examples and creators you've saved. Come back here whenever you're
-          not sure what to post.
-        </p>
       </header>
 
       {/* Positioning */}
@@ -189,7 +184,7 @@ export default function PlaybookPage() {
         {voiceReady ? (
           <p className="flex items-center gap-2 text-sm text-foreground">
             <CheckCircle2 className="h-4 w-4 text-success" /> Your voice profile
-            is active — drafts are steered toward how you actually write.
+            is active.
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">

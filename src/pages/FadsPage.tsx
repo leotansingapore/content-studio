@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -74,9 +75,6 @@ function DialogHeader({ children }: { children: React.ReactNode }) {
 }
 function DialogTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="text-lg font-semibold">{children}</h2>;
-}
-function DialogDescription({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-muted-foreground">{children}</p>;
 }
 
 const BASE_PATH = "/fads";
@@ -1313,7 +1311,6 @@ export default function FadsPage() {
           <CardTitle className={color}>
             {num === 1 ? "Primary" : "Secondary"} Audience #{num}
           </CardTitle>
-          <CardDescription>Deep profile of your {num === 1 ? "ideal" : "secondary"} client</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-muted/50 p-3 rounded-lg mb-4">
@@ -1372,12 +1369,7 @@ export default function FadsPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-2">F.A.D.S.</h1>
-          <p className="text-xl text-muted-foreground mb-2">Financial Advisor Differentiation Stack</p>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
-            Build your unique personal brand. Define your purpose, understand your audience,
-            and craft compelling messaging that sets you apart. Your completed profile generates
-            a brand brief for content strategists and AI agents.
-          </p>
+          <p className="text-xl text-muted-foreground">Financial Advisor Differentiation Stack</p>
 
           {/* Overall Progress */}
           <div className="mt-6 max-w-lg mx-auto">
@@ -1470,12 +1462,10 @@ export default function FadsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Heart className="h-5 w-5" /> Personality & Identity</CardTitle>
-                <CardDescription>Who you are shapes how you serve. This is the foundation of your personal brand.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label>Personality Style</Label>
-                  <p className="text-xs text-muted-foreground mb-2">Which best describes how you naturally work with clients?</p>
+                  <Label className="mb-2 block">Personality Style</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {PERSONALITY_STYLES.map(s => (
                       <button
@@ -1491,8 +1481,7 @@ export default function FadsPage() {
                 </div>
 
                 <div>
-                  <Label>Core Values (Pick 3-5)</Label>
-                  <p className="text-xs text-muted-foreground mb-2">What principles guide your advisory practice?</p>
+                  <Label className="mb-2 block">Core Values (Pick 3-5)</Label>
                   <div className="flex flex-wrap gap-2 mb-2">
                     {CORE_VALUES_OPTIONS.map(v => {
                       const selected = formData.coreValues.includes(v);
@@ -1537,7 +1526,6 @@ export default function FadsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Flame className="h-5 w-5" /> Purpose & Mission</CardTitle>
-                <CardDescription>Your origin story and driving force. This is what makes people remember you.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {renderField("originStory", "Your Origin Story", "Why did you join this industry? What got you started? How did you feel? What was the turning point?\n\nExample: Used to be a F&B waiter, slogging 14 hours a day. Joined insurance for the money. Only earned $1k/month for first two years. Had to borrow from girlfriend for roadshows. One day received a gratitude text from a client and shifted focus to genuine impact.", 6)}
@@ -1563,7 +1551,6 @@ export default function FadsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Work Experience</CardTitle>
-                  <CardDescription>Your professional journey and expertise</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -1588,7 +1575,6 @@ export default function FadsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Personal Experience</CardTitle>
-                  <CardDescription>Your background beyond financial services</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {renderField("pastJobs", "Past Jobs/Industries", "e.g. Teaching, Engineering, F&B", 1)}
@@ -1626,15 +1612,13 @@ export default function FadsPage() {
           {/* ===== AUDIENCE TAB ===== */}
           <TabsContent value="audience" className="space-y-6">
             <div className="text-center mb-4">
-              <h3 className="text-2xl font-semibold mb-2">Define Your Core Audiences</h3>
-              <p className="text-muted-foreground text-sm">Deeply understand the two primary groups you serve best</p>
+              <h3 className="text-2xl font-semibold">Define Your Core Audiences</h3>
             </div>
 
             {/* Quick Start */}
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Lightbulb className="h-5 w-5" /> Quick Start Profiles</CardTitle>
-                <CardDescription>Choose a common client profile to get started, then customize</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1665,8 +1649,7 @@ export default function FadsPage() {
           {/* ===== SOLUTIONS TAB ===== */}
           <TabsContent value="solutions" className="space-y-6">
             <div className="text-center mb-4">
-              <h3 className="text-2xl font-semibold mb-2">Problem to Solution Mapping</h3>
-              <p className="text-muted-foreground text-sm">Map each audience's specific problems to YOUR unique solutions</p>
+              <h3 className="text-2xl font-semibold">Problem to Solution Mapping</h3>
             </div>
 
             {/* Mindset shift */}
@@ -1717,7 +1700,6 @@ export default function FadsPage() {
                     <Label htmlFor="audience1Differentiators" className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-primary" /> Your Unique Differentiators
                     </Label>
-                    <p className="text-xs text-muted-foreground mb-2">What makes YOUR approach different from every other advisor for this audience?</p>
                     <Textarea
                       id="audience1Differentiators"
                       value={formData.audience1Differentiators}
@@ -1747,7 +1729,6 @@ export default function FadsPage() {
                     <Label htmlFor="audience2Differentiators" className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-orange-500" /> Your Unique Differentiators
                     </Label>
-                    <p className="text-xs text-muted-foreground mb-2">What makes YOUR approach different from every other advisor for this audience?</p>
                     <Textarea
                       id="audience2Differentiators"
                       value={formData.audience2Differentiators}
@@ -1766,7 +1747,6 @@ export default function FadsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5" /> Choose Your Signature Framework</CardTitle>
-                <CardDescription>Select a proven framework or create your own</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -1827,12 +1807,7 @@ export default function FadsPage() {
           {/* ===== BRAND OUTPUT TAB — MARKETING KIT ===== */}
           <TabsContent value="output" className="space-y-8">
             <div className="text-center mb-2">
-              <h3 className="text-2xl font-semibold mb-2">Your Marketing Kit</h3>
-              <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
-                Everything you've answered above gets turned into the actual assets you'll use:
-                social bios, story posts, and your first-appointment deck.
-                {overallProgress < 50 && " The more you fill in, the more specific each asset gets."}
-              </p>
+              <h3 className="text-2xl font-semibold">Your Marketing Kit</h3>
             </div>
 
             {/* Progress gate */}
@@ -1855,7 +1830,6 @@ export default function FadsPage() {
                     <CardTitle className="flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-primary" /> Brand at a Glance
                     </CardTitle>
-                    <CardDescription>The five things every asset below pulls from</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {formData.mission && (
@@ -1922,12 +1896,9 @@ export default function FadsPage() {
                 {/* ----- LAYER 1 — PERSONAL BRANDING ASSET KIT ----- */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h4 className="text-xl font-semibold flex items-center gap-2">
-                        <Megaphone className="h-5 w-5 text-primary" /> Personal Branding Asset Kit
-                      </h4>
-                      <p className="text-sm text-muted-foreground">10 ready-to-customise assets pulled from your answers above.</p>
-                    </div>
+                    <h4 className="text-xl font-semibold flex items-center gap-2">
+                      <Megaphone className="h-5 w-5 text-primary" /> Personal Branding Asset Kit
+                    </h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {buildMarketingAssets().map((a) => {
@@ -2035,11 +2006,13 @@ export default function FadsPage() {
                 {/* ----- LAYER 2 — FIRST-APPOINTMENT DECK ----- */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div>
+                    <div className="flex items-center gap-1">
                       <h4 className="text-xl font-semibold flex items-center gap-2">
                         <Presentation className="h-5 w-5 text-primary" /> First-Appointment Deck
                       </h4>
-                      <p className="text-sm text-muted-foreground">7 slides to walk a prospect through in your first sit-down. Each slide auto-fills from your answers.</p>
+                      <InfoTip label="About the first-appointment deck">
+                        Seven slides for your first sit-down, filled from your answers.
+                      </InfoTip>
                     </div>
                     <Button size="sm" variant="outline" onClick={() => {
                       const md = buildFirstApptDeck().map(s => [
@@ -2170,7 +2143,6 @@ export default function FadsPage() {
                     <div className="flex items-center gap-2 p-3 rounded border border-dashed text-sm text-muted-foreground hover:bg-muted/30 transition-colors">
                       <Code2 className="h-4 w-4" />
                       <span className="font-medium">Advanced: raw brand brief JSON</span>
-                      <span className="text-xs">— for feeding into AI agents or your own content team</span>
                       <ChevronRight className="h-4 w-4 ml-auto transition-transform group-open:rotate-90" />
                     </div>
                   </summary>
@@ -2222,7 +2194,6 @@ export default function FadsPage() {
         <DialogContent className="max-w-full sm:max-w-2xl md:max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Your Personal Brand Template</DialogTitle>
-            <DialogDescription>Your comprehensive brand template based on your FADS responses.</DialogDescription>
           </DialogHeader>
           <div className="mt-4">
             <div className="bg-muted p-6 rounded-lg">
