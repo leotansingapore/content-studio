@@ -74,11 +74,6 @@ export default function WelcomePage() {
         <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground">
           Welcome{name ? <span className="capitalize">, {name}</span> : ""} 👋
         </h1>
-        <p className="mx-auto max-w-md text-sm text-muted-foreground">
-          Content Studio is your home base for showing up online — ideate,
-          write, plan, and track your posts in one place. Here's the fastest way
-          to get value in the next 10 minutes.
-        </p>
       </header>
 
       <div className="space-y-3">

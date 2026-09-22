@@ -23,14 +23,10 @@ export default function FeedbackPage() {
   const meta = (user?.user_metadata ?? {}) as { full_name?: string; name?: string };
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <header className="space-y-1.5">
+      <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Feedback
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Ask for what would make the studio more useful, vote on what others
-          asked for, and follow what's being built.
-        </p>
       </header>
       <FeedbackBoard
         apiUrl={FEEDBACK_API}

@@ -252,18 +252,13 @@ export default function HomePage() {
 
       {/* Greeting + primary actions */}
       <section className="space-y-5">
-        <header className="space-y-1.5">
+        <header>
           <h1 className="font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground">
             {greeting()}
             {name ? (
               <span className="capitalize">, {name}</span>
             ) : null}
           </h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            {hasPosts
-              ? "Here's where your content stands. Keep the streak going — one post beats a perfect post."
-              : "Let's get your first post out. Pick a topic, answer a few questions, and you'll have a draft in about a minute."}
-          </p>
         </header>
 
         {/* Your next move — the single most important thing to do now. Driven
@@ -635,7 +630,7 @@ export default function HomePage() {
                 <Pencil className="h-5 w-5" />
               </span>
               <p className="text-sm text-muted-foreground">
-                No posts yet. Your drafts and published posts will show up here.
+                No posts yet.
               </p>
               <Button asChild size="sm" className="gap-1.5">
                 <Link to="/generate">

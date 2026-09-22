@@ -5,13 +5,13 @@ import { Loader2, Sparkles } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
@@ -88,10 +88,12 @@ export default function Auth() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="font-serif text-xl">Sign in</CardTitle>
-            <CardDescription>
-              One sign-in per device. Session stays until you sign out.
-            </CardDescription>
+            <div className="flex items-center gap-1">
+              <CardTitle className="font-serif text-xl">Sign in</CardTitle>
+              <InfoTip label="About signing in">
+                You stay signed in on this device until you sign out.
+              </InfoTip>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignIn} className="space-y-4">

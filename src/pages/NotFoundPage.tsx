@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 export default function NotFoundPage() {
@@ -17,10 +17,6 @@ export default function NotFoundPage() {
         <h1 className="font-serif text-xl font-semibold leading-none tracking-tight">
           Page not found
         </h1>
-        <CardDescription>
-          That route does not match anything in the studio. Try one of the tabs
-          above, or jump straight to a section below.
-        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
         <Button asChild className="gap-1.5">
