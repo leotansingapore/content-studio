@@ -2005,7 +2005,7 @@ export default function FadsPage() {
 
                 {/* ----- LAYER 2 — FIRST-APPOINTMENT DECK ----- */}
                 <div>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                     <div className="flex items-center gap-1">
                       <h4 className="text-xl font-semibold flex items-center gap-2">
                         <Presentation className="h-5 w-5 text-primary" /> First-Appointment Deck
