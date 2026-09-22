@@ -177,8 +177,7 @@ export default function AuditTrail({ team, refreshKey }: { team: Team; refreshKe
       <CardHeader>
         <CardTitle className="font-serif text-xl">Audit trail</CardTitle>
         <CardDescription>
-          Every team change, submission and decision, with who did it and when. Entries can't
-          be edited or deleted. Times are Singapore time.
+          Entries can&apos;t be edited or deleted. Times are Singapore time.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

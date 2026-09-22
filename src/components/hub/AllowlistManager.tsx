@@ -143,7 +143,7 @@ export default function AllowlistManager() {
         </div>
       ) : rows.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">
-          No clients yet — add the first one above.
+          No clients yet.
         </p>
       ) : (
         <div className="space-y-2">

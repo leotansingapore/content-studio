@@ -73,14 +73,9 @@ export default function HubTrendsPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-          <TrendingUp className="h-5 w-5" /> Trend drops
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Researched every few hours. Newest first.
-        </p>
-      </div>
+      <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
+        <TrendingUp className="h-5 w-5" /> Trend drops
+      </h1>
 
       <HowItWorks />
 

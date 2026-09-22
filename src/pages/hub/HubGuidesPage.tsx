@@ -26,14 +26,9 @@ export default function HubGuidesPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-          <BookOpen className="h-5 w-5" /> Guides
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Editing, videography, and trend playbooks — the exact workflows behind client content.
-        </p>
-      </div>
+      <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
+        <BookOpen className="h-5 w-5" /> Guides
+      </h1>
 
       <div className="flex flex-wrap gap-2">
         <button

@@ -33,14 +33,9 @@ export default function HubAdminPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-          <Shield className="h-5 w-5" /> Hub admin
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Manage clients, write guides, and see who's inside.
-        </p>
-      </div>
+      <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
+        <Shield className="h-5 w-5" /> Hub admin
+      </h1>
 
       <div className="flex gap-2 border-b border-border">
         {TABS.map((t) => (
