@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SectionTabs, { LEARN_TABS } from "@/components/SectionTabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { InfoTip } from "@/components/ui/info-tip";
 import { supabase } from "@/lib/supabase";
 import { ACADEMY } from "@/data/academy";
 import { GraduationCap, Play, CheckCircle2, Circle } from "lucide-react";
@@ -67,19 +68,17 @@ export default function AcademyPage() {
     <div className="space-y-6">
       <SectionTabs tabs={LEARN_TABS} />
       <header className="space-y-3">
-        <div className="space-y-1.5">
-          <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
-            <GraduationCap className="h-6 w-6 text-primary" /> Academy
-          </h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            A short course on creating great content with AI — custom GPTs,
-            carousels, brand voice, and a system to keep it going. Work through
-            it at your own pace; your progress saves automatically.
-          </p>
-        </div>
+        <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+          <GraduationCap className="h-6 w-6 text-primary" /> Academy
+        </h1>
         <div className="max-w-md space-y-1.5">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Your progress</span>
+            <span className="flex items-center gap-1">
+              Your progress
+              <InfoTip label="About your progress">
+                Playing a lesson marks it watched, and progress saves automatically.
+              </InfoTip>
+            </span>
             <span className="font-semibold text-foreground">
               {doneCount} / {ALL_IDS.length} lessons
             </span>

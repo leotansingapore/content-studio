@@ -109,16 +109,11 @@ export default function CreateGuidePage() {
 
   return (
     <div className="space-y-5">
-      <header className="space-y-1.5">
+      <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <Sparkles className="h-6 w-6 text-primary" />
           Create the post, end to end
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          From a proven idea to a published post. Content Studio handles the
-          strategy and the words; for the visuals we point you to the best tool
-          for the job with a tutorial, so you are never stuck.
-        </p>
       </header>
 
       <Step n={1} icon={TrendingUp} title="Find an idea that already works">
