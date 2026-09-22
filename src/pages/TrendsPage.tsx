@@ -423,8 +423,6 @@ export default function TrendsPage() {
           <Flame className="h-6 w-6 text-primary" /> Trends
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          TikToks and Reels taking off right now, each turned into a post you
-          can make yourself: the hook, talking points and a CTA, ready to go.
           Refreshes every morning.
           {latestDate
             ? ` Last drop ${new Date(latestDate).toLocaleDateString(undefined, {

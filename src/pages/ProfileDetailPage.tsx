@@ -268,9 +268,6 @@ export default function ProfileDetailPage() {
               <TrendingUp className="h-4 w-4 text-primary" />
               Top performing posts
             </h2>
-            <span className="text-xs text-muted-foreground">
-              Study the idea, then remix it in your voice.
-            </span>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             {getTopPostsForAdvisor(entry).map((post) => (

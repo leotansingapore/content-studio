@@ -174,8 +174,7 @@ export default function SwipeFilePage() {
           Top posts to swipe
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Real high-performing posts from {ADVISOR_COUNT} SG finance creators. Save the
-          ones you like and remix any into your own — in your voice, for your audience.
+          Real high-performing posts from {ADVISOR_COUNT} SG finance creators.
         </p>
         <p className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
           <Sparkles className="h-3.5 w-3.5" />

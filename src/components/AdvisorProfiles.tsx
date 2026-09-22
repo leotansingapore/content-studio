@@ -78,22 +78,10 @@ export type AdvisorEntry = {
 
 const TIER_ORDER = [1, 2, 3];
 
-const TIER_META: Record<number, { label: string; blurb: string }> = {
-  1: {
-    label: "Financial advisors",
-    blurb:
-      "Licensed advisors and consultants - closest to how you sell and show up.",
-  },
-  2: {
-    label: "Finance creators & media",
-    blurb:
-      "Educators and personalities to mine for hooks, formats and angles.",
-  },
-  3: {
-    label: "Firms & institutions",
-    blurb:
-      "Brand and firm accounts - more macro, useful for positioning cues.",
-  },
+const TIER_META: Record<number, { label: string }> = {
+  1: { label: "Financial advisors" },
+  2: { label: "Finance creators & media" },
+  3: { label: "Firms & institutions" },
 };
 
 const ENTRIES = advisorsData as AdvisorEntry[];
@@ -467,15 +455,10 @@ export default function AdvisorProfiles() {
 
   return (
     <div className="space-y-5">
-      <header className="space-y-1.5">
+      <header>
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Creators to follow
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          SG financial advisors and finance creators worth studying. Filter by
-          who they write for, open a card for the full breakdown, or jump
-          straight to their profile.
-        </p>
       </header>
 
       <Card className="border-border/60 shadow-card">
@@ -635,13 +618,10 @@ export default function AdvisorProfiles() {
             const meta = TIER_META[tier];
             return (
               <section key={tier} className="space-y-3">
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-border/60 pb-1.5">
+                <div className="border-b border-border/60 pb-1.5">
                   <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">
                     {meta.label}
                   </h2>
-                  <span className="text-xs text-muted-foreground">
-                    {meta.blurb}
-                  </span>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {group.map((entry) => (

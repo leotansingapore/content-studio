@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -381,15 +382,13 @@ export default function Inspiration({ onUseAsVibe }: Props) {
 
   return (
     <div className="space-y-5">
-      <header className="space-y-1.5">
+      <header className="flex items-center gap-1">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Inspiration
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Real posts that worked, sorted so you can borrow the pattern. Open one
-          to read the full breakdown, or hit "Use as vibe" to start a draft from
-          it.
-        </p>
+        <InfoTip label="About Use as vibe">
+          Use as vibe starts a draft that borrows the post&apos;s pattern.
+        </InfoTip>
       </header>
 
       {/* Compact toolbar: search + a single row of pillar quick-filters, with

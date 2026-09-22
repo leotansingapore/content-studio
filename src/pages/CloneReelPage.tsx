@@ -774,14 +774,10 @@ export default function CloneReelPage() {
 
   return (
     <div className="space-y-5">
-      <header className="space-y-1.5">
+      <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <Clapperboard className="h-6 w-6 shrink-0 text-primary" /> Clone a reel
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Paste a reel or TikTok that did well. See what it says and why it worked, then get your own version to film,
-          in your voice and checked for compliance.
-        </p>
       </header>
 
       <form onSubmit={onSubmit} noValidate className="space-y-1.5">
