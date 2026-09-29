@@ -128,6 +128,27 @@ function Brandmark() {
   );
 }
 
+/**
+ * Shown while a lazy route chunk loads. A shaped skeleton reads as "the page is
+ * coming" where a bare "Loading…" reads as a broken screen.
+ */
+function RouteSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6 py-2" aria-busy="true" aria-label="Loading page">
+      <div className="space-y-2.5">
+        <div className="h-7 w-1/3 rounded-lg bg-muted" />
+        <div className="h-4 w-2/3 rounded bg-muted/70" />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="h-24 rounded-xl bg-muted/70" />
+        <div className="h-24 rounded-xl bg-muted/70" />
+        <div className="h-24 rounded-xl bg-muted/70" />
+      </div>
+      <div className="h-48 rounded-xl bg-muted/50" />
+    </div>
+  );
+}
+
 export default function StudioLayout() {
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -142,6 +163,11 @@ export default function StudioLayout() {
       active = false;
     };
   }, []);
+
+  // Every navigation should start at the top of the new page.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   // Close the More sheet whenever the route changes.
   useEffect(() => {
@@ -393,12 +419,10 @@ export default function StudioLayout() {
           {/* Lazy route chunks resolve here so the rail/bottom nav never flickers.
               A crash or a chunk missing after a deploy stays inside this area. */}
           <ErrorBoundary resetKey={pathname}>
-            <Suspense
-              fallback={
-                <div className="p-8 text-sm text-muted-foreground">Loading…</div>
-              }
-            >
-              <Outlet />
+            <Suspense fallback={<RouteSkeleton />}>
+              <div key={pathname} className="page-enter">
+                <Outlet />
+              </div>
             </Suspense>
           </ErrorBoundary>
         </main>

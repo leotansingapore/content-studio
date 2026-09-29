@@ -141,6 +141,28 @@
     box-shadow: 0 0 0 4px hsl(var(--primary-glow) / 0.3);
   }
 
+  /* Brand-tinted selection instead of the browser default blue. */
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
+  }
+
+  /* Each route fades up as it mounts. The reduced-motion block above turns
+     this off for anyone who asked for less movement. */
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .page-enter {
+    animation: page-enter 0.28s ease-out both;
+  }
+
   .scrollbar-none {
     -ms-overflow-style: none;
     scrollbar-width: none;

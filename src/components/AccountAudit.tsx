@@ -59,6 +59,8 @@ import {
   Sparkles,
   Trash2,
   TrendingUp,
+  Images,
+  Image as ImageIcon,
   Video,
   Wand2,
   Wrench,
@@ -398,7 +400,7 @@ function AuditPanel({
               <ErrorNote message={`The latest update didn't finish, so this is from ${shortDate(fetchedAt)}.`} />
             )}
             <Headline stats={stats} followers={profile?.followers ?? null} snapshots={snapshots} />
-            <AdviceBlock advice={audit.advice} stats={stats} byId={byId} />
+            <AdviceBlock advice={audit.advice} platform={platform} stats={stats} byId={byId} />
             {stats.postsAnalyzed >= MIN_POSTS_FOR_IDEAS && (
               <PostIdeas auditId={audit.id} platform={platform} handle={handle} byId={byId} />
             )}
@@ -521,10 +523,12 @@ const ADVICE_GROUPS: {
 
 function AdviceBlock({
   advice,
+  platform,
   stats,
   byId,
 }: {
   advice: AuditAdvice | null;
+  platform: AuditPlatform;
   stats: AuditStats;
   byId: Map<string, RatedPost>;
 }) {
@@ -557,7 +561,10 @@ function AdviceBlock({
                     <li key={i} className="space-y-0.5">
                       <p className="text-sm font-medium leading-snug text-foreground">{pt.title}</p>
                       <p className="text-xs leading-relaxed text-muted-foreground">{pt.detail}</p>
-                      <SeePosts posts={pt.postIds.map((id) => byId.get(id)).filter((p): p is RatedPost => !!p)} />
+                      <SeePosts
+                        platform={platform}
+                        posts={pt.postIds.map((id) => byId.get(id)).filter((p): p is RatedPost => !!p)}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -570,35 +577,87 @@ function AdviceBlock({
   );
 }
 
-/** "See post" or "See posts 1 2 3", each linking to the post it cites. */
-function SeePosts({ posts }: { posts: RatedPost[] }) {
+const FORMAT_TILE_ICON: Record<string, typeof Video> = {
+  video: Video,
+  carousel: Images,
+  image: ImageIcon,
+};
+
+/**
+ * "See example posts" — a disclosure rather than a row of bare numbers, which
+ * read as footnotes nobody clicked. Open it and you get the actual posts behind
+ * the point, each one opening on Instagram / TikTok.
+ */
+function SeePosts({ posts, platform }: { posts: RatedPost[]; platform: AuditPlatform }) {
+  const [open, setOpen] = useState(false);
   if (posts.length === 0) return null;
-  const linkClass = "inline-flex items-center gap-0.5 font-medium text-primary hover:underline";
+
   return (
-    <p className="flex flex-wrap items-center gap-x-2 pt-0.5 text-[11px] text-muted-foreground">
-      {posts.length === 1 ? (
-        <a href={posts[0].url} target="_blank" rel="noopener noreferrer" className={linkClass}>
-          See post <ExternalLink className="h-2.5 w-2.5" />
-        </a>
-      ) : (
-        <>
-          <span>See posts</span>
-          {posts.map((p, i) => (
-            <a
-              key={p.id}
-              href={p.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={firstLine(p.caption, 80) || "Open post"}
-              aria-label={`Post ${i + 1}: ${firstLine(p.caption, 80) || "open post"}`}
-              className={linkClass}
-            >
-              {i + 1}
-            </a>
-          ))}
-        </>
+    <div className="pt-1">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-1 rounded-md text-[11px] font-semibold text-primary hover:underline"
+      >
+        {open ? "Hide" : "See"} example post{posts.length === 1 ? "" : "s"}
+        <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] tabular-nums">
+          {posts.length}
+        </span>
+        <ChevronDown
+          className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <ul className="mt-2 space-y-1.5">
+          {posts.map((p) => {
+            const TileIcon = FORMAT_TILE_ICON[p.format] ?? Video;
+            const breakout = p.ratio !== null && p.ratio >= BREAKOUT_RATIO;
+            const counts = [
+              p.views !== null ? `${formatCount(p.views)} views` : null,
+              `${formatCount(p.likes)} likes`,
+              `${formatCount(p.comments)} comments`,
+            ].filter(Boolean);
+            return (
+              <li key={p.id}>
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-start gap-2.5 rounded-lg border border-border/60 bg-background p-2 transition-colors hover:border-primary/40 hover:bg-primary/5"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                    <TileIcon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="line-clamp-2 text-xs font-medium leading-snug text-foreground">
+                        {firstLine(p.caption, 90) || "No caption"}
+                      </span>
+                      {p.ratio !== null && (
+                        <span
+                          className={`shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums ${
+                            breakout ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {times(p.ratio)}
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
+                      {capitalize(formatWord(platform, p.format))} · {shortDate(p.postedAt)}
+                      {counts.length > 0 && ` · ${counts.join(" · ")}`}
+                    </span>
+                  </span>
+                  <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+                </a>
+              </li>
+            );
+          })}
+        </ul>
       )}
-    </p>
+    </div>
   );
 }
 
