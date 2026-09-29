@@ -8,7 +8,8 @@
 // scripts/refresh-top-posts.md). It may be either a bare array of post items or
 // the MCP wrapper { items: [...] }. We keep the top 3 posts per advisor by
 // engagement (likes + 3x comments) and store text only - Instagram CDN image
-// URLs expire, so cards are text-forward and link out to the live post.
+// URLs expire, so covers are downloaded and committed separately by
+// scripts/fetch-covers.mjs (run that after this script).
 
 import fs from "node:fs";
 import path from "node:path";
@@ -68,16 +69,24 @@ for (const u of Object.keys(groups)) {
   total += posts.length;
 }
 
-// Preserve any existing idea breakdowns so a re-scrape does not wipe them.
+// Preserve existing idea breakdowns AND committed cover paths (public/covers/,
+// filled by scripts/fetch-covers.mjs) so a re-scrape does not wipe them.
 const outPath = path.join(ROOT, "src/data/topPosts.json");
 if (fs.existsSync(outPath)) {
   const prev = JSON.parse(fs.readFileSync(outPath, "utf8"));
   const prevIdea = {};
+  const prevCover = {};
   for (const list of Object.values(prev)) {
-    for (const p of list) if (p.idea) prevIdea[p.shortCode] = p.idea;
+    for (const p of list) {
+      if (p.idea) prevIdea[p.shortCode] = p.idea;
+      if (p.cover) prevCover[p.shortCode] = p.cover;
+    }
   }
   for (const list of Object.values(out)) {
-    for (const p of list) if (prevIdea[p.shortCode]) p.idea = prevIdea[p.shortCode];
+    for (const p of list) {
+      if (prevIdea[p.shortCode]) p.idea = prevIdea[p.shortCode];
+      if (prevCover[p.shortCode]) p.cover = prevCover[p.shortCode];
+    }
   }
 }
 

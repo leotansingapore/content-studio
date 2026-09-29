@@ -2,9 +2,11 @@
 // file: browse what worked, read the idea behind it, then remix it in Write.
 //
 // Data is static (src/data/topPosts.json), refreshed on request by re-running
-// the scrape pipeline (see scripts/refresh-top-posts.md) and redeploying. We do
-// NOT store Instagram thumbnail URLs because their CDN links expire within days;
-// cards are text-forward and link out to the live post for the visual.
+// the scrape pipeline (see scripts/refresh-top-posts.md) and redeploying.
+// Instagram's own CDN links expire within days, so we do not store them —
+// instead scripts/fetch-covers.mjs downloads each post's cover ONCE and commits
+// the bytes to public/covers/, and `cover` below points at our copy. A post
+// without a `cover` (deleted, private) falls back to a format placeholder.
 
 import topPostsData from "@/data/topPosts.json";
 import advisorsData from "@/data/advisors.json";
@@ -28,6 +30,8 @@ export interface TopPost {
   timestamp?: string | null;
   caption: string;
   idea?: PostIdea;
+  /** Our committed copy of the post's cover image, e.g. "/covers/ABC123.jpg". */
+  cover?: string;
 }
 
 export interface TopPostWithAdvisor extends TopPost {

@@ -114,8 +114,19 @@ export default function PostDetailDrawer({
 
         <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4">
           {/* Cover */}
-          <div className="relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-brand/10 to-primary/[0.04]">
-            <Icon className="h-12 w-12 text-primary/35" />
+          <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-brand/10 to-primary/[0.04]">
+            {post.cover ? (
+              <>
+                <img
+                  src={post.cover}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <span className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-foreground/35 to-transparent" />
+              </>
+            ) : (
+              <Icon className="h-12 w-12 text-primary/35" />
+            )}
             <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-primary shadow-sm backdrop-blur">
               <Icon className="h-3 w-3" /> {FORMAT_LABEL[fmt] ?? "Post"}
             </span>

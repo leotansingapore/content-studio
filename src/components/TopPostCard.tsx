@@ -87,8 +87,8 @@ export default function TopPostCard({
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card transition-all hover:border-primary/40 hover:shadow-elegant">
-      {/* Cover — no real thumbnail exists (IG CDN links expire), so this is an
-          honest format-styled placeholder; the real visual is one tap away. */}
+      {/* Cover — our committed copy of the post image (public/covers). Posts
+          with no cover (deleted/private) fall back to a format placeholder. */}
       <button
         type="button"
         onClick={onOpen}
@@ -96,7 +96,20 @@ export default function TopPostCard({
         className="group relative flex aspect-[5/3] w-full items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 via-brand/10 to-primary/[0.04] disabled:cursor-default"
         aria-label={onOpen ? "Open post details" : undefined}
       >
-        <Icon className="h-10 w-10 text-primary/35 transition-transform group-hover:scale-110" />
+        {post.cover ? (
+          <>
+            <img
+              src={post.cover}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            {/* Scrim keeps the overlaid badges readable on busy photos. */}
+            <span className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-foreground/35 to-transparent" />
+          </>
+        ) : (
+          <Icon className="h-10 w-10 text-primary/35 transition-transform group-hover:scale-110" />
+        )}
         <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-primary shadow-sm backdrop-blur">
           <Icon className="h-3 w-3" /> {FORMAT_LABEL[fmt] ?? "Post"}
         </span>
@@ -106,7 +119,7 @@ export default function TopPostCard({
           </span>
         )}
         {onOpen && (
-          <span className="absolute bottom-2.5 right-2.5 text-[10px] font-medium text-muted-foreground/80">
+          <span className="absolute bottom-2.5 right-2.5 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground backdrop-blur">
             Tap for details
           </span>
         )}

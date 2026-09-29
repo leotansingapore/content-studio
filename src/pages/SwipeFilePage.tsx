@@ -322,9 +322,9 @@ export default function SwipeFilePage() {
       />
 
       <p className="pt-1 text-center text-xs text-muted-foreground">
-        No preview thumbnails are stored (Instagram's image links expire) — open{" "}
-        <span className="font-medium text-foreground">View original</span> on any post for
-        the real visual. Need a hand turning one into a post?{" "}
+        Covers are our own saved copies, so they never break. For carousels and reels,
+        open <span className="font-medium text-foreground">View original</span> to see the
+        full post. Need a hand turning one into your own?{" "}
         <Link to="/create-guide" className="font-semibold text-primary hover:underline">
           How to create it
         </Link>
