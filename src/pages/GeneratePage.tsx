@@ -88,6 +88,7 @@ import { splitScriptCaption } from "@/lib/scriptCaption";
 import {
   DISCLOSURES,
   stripDashes,
+  tagLinks,
   toPlainText,
   withDisclosure,
   withSignOff,
@@ -953,9 +954,13 @@ export default function GeneratePage() {
 
   // What a copy puts on the clipboard: plain text, the brand kit sign-off and
   // any disclosure line.
-  const brandSignOff = useMemo(() => loadBrand(userId)?.signOff?.trim() ?? "", [userId]);
-  const forPosting = (text: string) =>
-    withDisclosure(withSignOff(toPlainText(text), brandSignOff), disclosure);
+  const brandKit = useMemo(() => loadBrand(userId), [userId]);
+  const brandSignOff = brandKit?.signOff?.trim() ?? "";
+  // ...and, when the brand kit asks for it, UTM tracking on every link
+  const forPosting = (text: string, plat: string = platform) => {
+    const out = withDisclosure(withSignOff(toPlainText(text), brandSignOff), disclosure);
+    return brandKit?.tagLinks ? tagLinks(out, { source: plat, campaign: chosenHook || pillarDetail || "post" }) : out;
+  };
   const limits = checkLimits(forPosting(svSplit ? svSplit.caption : draft), platform);
 
   // Live craft check on the current draft (reuses the Coach engine).
@@ -1505,9 +1510,9 @@ export default function GeneratePage() {
   // Everything copied from here is headed for a social platform, none of which
   // render markdown - strip it so "**hook**" doesn't paste as literal asterisks.
   // A post or caption also gets the brand kit sign-off; a script doesn't.
-  const copyText = async (text: string, title: string, description: string, signOff = false) => {
+  const copyText = async (text: string, title: string, description: string, signOff = false, plat?: string) => {
     try {
-      await navigator.clipboard.writeText(signOff ? forPosting(text) : toPlainText(text));
+      await navigator.clipboard.writeText(signOff ? forPosting(text, plat) : toPlainText(text));
       toast({ title: signOff && brandSignOff ? `${title} with your sign-off` : title, description });
     } catch {
       toast({
@@ -1662,7 +1667,7 @@ export default function GeneratePage() {
 
   const copyVersion = (v: PlatformVersion) => {
     const caption = format === "short-video" ? splitScriptCaption(v.text).caption : v.text;
-    void copyText(caption, "Copied", `Paste into ${platformLabel(v.platform)}.`, true);
+    void copyText(caption, "Copied", `Paste into ${platformLabel(v.platform)}.`, true, v.platform);
   };
 
   // Suppress unused import warning - navigate may be needed by future flows.
@@ -1771,6 +1776,7 @@ export default function GeneratePage() {
       shownVersion && format === "short-video"
         ? splitScriptCaption(shownVersion.text).caption
         : (shownVersion?.text ?? ""),
+      shownVersion?.platform ?? platform,
     ),
     shownVersion?.platform ?? platform,
   );

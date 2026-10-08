@@ -14,7 +14,7 @@ import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { scanCompliance } from "@/lib/compliance";
 import { stripDashes } from "@/lib/recruit";
 import { loadBrand } from "@/lib/carousel";
-import { withSignOff } from "@/lib/plainText";
+import { tagLinks, withSignOff } from "@/lib/plainText";
 import { checkLimits } from "@/lib/platformCounters";
 import { supabase } from "@/lib/supabase";
 import {
@@ -541,7 +541,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   };
   const captionFlags = useMemo(() => scanCompliance(caption), [caption]);
   // what gets pasted: the caption plus the brand kit sign-off
-  const postText = useMemo(() => withSignOff(caption, brandKit?.signOff), [caption, brandKit]);
+  const postText = useMemo(() => {
+    const out = withSignOff(caption, brandKit?.signOff);
+    return brandKit?.tagLinks ? tagLinks(out, { source: "instagram", campaign: project.name }) : out;
+  }, [caption, brandKit, project.name]);
   const copyCaption = () =>
     navigator.clipboard.writeText(postText).then(() => toast({ title: brandKit?.signOff?.trim() ? "Caption copied with your sign-off" : "Caption copied" }));
   const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram").warnings : []), [caption, postText]);

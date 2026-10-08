@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
@@ -245,6 +246,11 @@ export default function BrandPage() {
               placeholder={"DM me PLAN for a free review.\nFor information only, not financial advice.\n#financialplanning #singapore"}
             />
             <p className="text-xs text-muted-foreground">Added to the end of a post when you copy it. Hashtags already in the post aren't repeated.</p>
+            <label className="flex min-h-9 cursor-pointer items-center gap-2 pt-1 text-sm">
+              <input type="checkbox" checked={!!brand.tagLinks} onChange={(e) => update({ tagLinks: e.target.checked })} className="h-4 w-4 accent-primary" />
+              Tag my links for tracking
+              <InfoTip label="About link tracking">Adds utm_source, utm_medium and utm_campaign to links you post.</InfoTip>
+            </label>
           </section>
 
           <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card">

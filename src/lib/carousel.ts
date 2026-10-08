@@ -583,6 +583,8 @@ export interface CarouselBrand {
   logo?: string;
   /** Sign-off added to the end of a post when it is copied: call to action, disclaimer, usual hashtags. */
   signOff?: string;
+  /** Add UTM tracking to links when a post is copied. */
+  tagLinks?: boolean;
 }
 
 export const BRAND_PRESETS: { name: string; color: string }[] = [
@@ -640,6 +642,7 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     photo: "photo" in r ? sanitizeImage(r.photo) : fallback.photo,
     logo: "logo" in r ? sanitizeImage(r.logo) : fallback.logo,
     signOff: typeof r.signOff === "string" ? r.signOff.slice(0, MAX_SIGNOFF_CHARS) : fallback.signOff,
+    tagLinks: typeof r.tagLinks === "boolean" ? r.tagLinks : fallback.tagLinks,
   };
 }
 

@@ -113,3 +113,27 @@ export const stripDashes = (t: string) =>
     .replace(/[ \t]*[—–][ \t]*/g, ", ")
     .replace(/,[ \t]*,/g, ",")
     .replace(/, (?=\n|$)/g, ",");
+
+/**
+ * Adds UTM tracking to every http(s) link in a post, so a website, booking
+ * page or Google Analytics shows which platform and post sent the visit.
+ * Existing query strings are kept and utm_ values already there win.
+ */
+export function tagLinks(text: string, tags: { source: string; campaign: string }): string {
+  // the first five words of the hook or topic: readable in a report, never cut mid-word
+  const campaign = (tags.campaign.toLowerCase().match(/[a-z0-9]+/g) ?? []).slice(0, 5).join("-") || "post";
+  return text.replace(/\bhttps?:\/\/[^\s<>"')\]]+/gi, (raw) => {
+    // a sentence's full stop or comma after a link isn't part of it
+    const trail = raw.match(/[.,;:!?]+$/)?.[0] ?? "";
+    const link = trail ? raw.slice(0, -trail.length) : raw;
+    let url: URL;
+    try {
+      url = new URL(link);
+    } catch {
+      return raw;
+    }
+    const add: [string, string][] = [["utm_source", tags.source.toLowerCase()], ["utm_medium", "social"], ["utm_campaign", campaign]];
+    for (const [k, v] of add) if (!url.searchParams.has(k)) url.searchParams.set(k, v);
+    return url.toString() + trail;
+  });
+}

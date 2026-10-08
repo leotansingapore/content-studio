@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { streamOnePost } from "@/lib/batchGenerate";
-import { stripDashes, toPlainText, withSignOff } from "@/lib/plainText";
+import { stripDashes, tagLinks, toPlainText, withSignOff } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
 import {
   upsertDraft,
@@ -259,11 +259,13 @@ export default function BatchPage() {
     toast({ title: `Saved ${unsaved.length} drafts to My posts` });
   };
 
-  const handleCopy = async (text: string) => {
+  const handleCopy = async (text: string, plat: string, campaign: string) => {
     try {
       const { data } = await supabase.auth.getUser();
-      const sign = loadBrand(data.user?.id)?.signOff?.trim();
-      await navigator.clipboard.writeText(sign ? withSignOff(toPlainText(text), sign) : toPlainText(text));
+      const kit = loadBrand(data.user?.id);
+      const sign = kit?.signOff?.trim();
+      const out = sign ? withSignOff(toPlainText(text), sign) : toPlainText(text);
+      await navigator.clipboard.writeText(kit?.tagLinks ? tagLinks(out, { source: plat, campaign }) : out);
       toast({ title: sign ? "Copied with your sign-off" : "Copied" });
     } catch {
       toast({ title: "Copy failed", variant: "destructive" });
@@ -431,7 +433,7 @@ export default function BatchPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleCopy(card.text)}
+                        onClick={() => handleCopy(card.text, t.platform, topic)}
                         className="gap-1.5"
                       >
                         <Copy className="h-3.5 w-3.5" /> Copy
