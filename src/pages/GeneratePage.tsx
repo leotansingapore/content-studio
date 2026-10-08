@@ -2034,7 +2034,7 @@ export default function GeneratePage() {
                       key={flag.id}
                       className={`flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] ${
                         isError
-                          ? "border-destructive/50 bg-destructive/10 text-destructive-foreground"
+                          ? "border-destructive/50 bg-destructive/10 text-red-700 dark:text-red-300"
                           : "border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200"
                       }`}
                     >
@@ -2061,10 +2061,10 @@ export default function GeneratePage() {
                             return next;
                           })
                         }
-                        className="ml-1 rounded hover:bg-background/40"
+                        className="-my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-background/40"
                         aria-label="Dismiss flag"
                       >
-                        <XIcon className="h-3 w-3" />
+                        <XIcon className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   );
@@ -2106,7 +2106,7 @@ export default function GeneratePage() {
                     ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                     : counters.status === "warn"
                       ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
-                      : "border-destructive/50 bg-destructive/10 text-destructive"
+                      : "border-destructive/50 bg-destructive/10 text-red-700 dark:text-red-300"
                 }`}
               >
                 {counters.status === "good" ? (
