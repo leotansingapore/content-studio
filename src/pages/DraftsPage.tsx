@@ -54,6 +54,7 @@ import DraftReviewControl from "@/components/team/DraftReviewControl";
 import { LabelChip, LabelManager, LabelPicker } from "@/components/Labels";
 import { loadLabels, setDraftLabels, type Label as ContentLabel } from "@/lib/labels";
 import CsvImport from "@/components/CsvImport";
+import DayInput from "@/components/DayInput";
 import { loadPositioning } from "@/lib/positioning";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
 
@@ -428,18 +429,12 @@ export default function DraftsPage() {
                   <label className="mb-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                     <CalendarClock className="h-3.5 w-3.5 shrink-0 text-primary" />
                     {s === "scheduled" ? "Scheduled for" : "Schedule for"}
-                    <input
-                      type="date"
+                    <DayInput
+                      min={today}
                       value={d.scheduledFor?.slice(0, 10) ?? ""}
-                      onChange={(e) =>
-                        e.target.value &&
-                        handleSetStatus(
-                          d.id,
-                          "scheduled",
-                          scheduleAt(e.target.value, scheduleTime(d.scheduledFor)), // keeps a set posting time
-                        )
-                      }
-                      className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      // keeps a set posting time
+                      onPick={(day) => handleSetStatus(d.id, "scheduled", scheduleAt(day, scheduleTime(d.scheduledFor)))}
+                      className="h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8"
                     />
                   </label>
                 )}

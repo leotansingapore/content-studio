@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { InfoTip } from "@/components/ui/info-tip";
+import DayInput from "@/components/DayInput";
 import { ToastAction } from "@/components/ui/toast";
 import {
   Select,
@@ -405,12 +406,10 @@ export default function CalendarPage() {
     <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
       <label className="flex items-center gap-1.5 whitespace-nowrap">
         Move to
-        <input
-          type="date"
+        <DayInput
           min={todayKey}
           value={d.scheduledFor?.slice(0, 10) ?? ""}
-          // Typing a year fires partial dates like 0002-10-09; only a real future day moves it.
-          onChange={(e) => e.target.value >= todayKey && moveTo(d.id, e.target.value)}
+          onPick={(day) => moveTo(d.id, day)}
           className={dateInputClass}
         />
       </label>
@@ -953,12 +952,11 @@ export default function CalendarPage() {
                       <span className="truncate text-[10px] text-muted-foreground">
                         {PLATFORM_LABEL[d.platform] ?? d.platform}
                       </span>
-                      <input
-                        type="date"
+                      <DayInput
                         min={todayKey}
                         value=""
                         aria-label={`Date for ${titleOf(d)}`}
-                        onChange={(e) => e.target.value >= todayKey && moveTo(d.id, e.target.value)}
+                        onPick={(day) => moveTo(d.id, day)}
                         className={dateInputClass}
                       />
                     </div>
