@@ -11,6 +11,7 @@ import { END_CARD_SECONDS, aspectSize, brollAt, duckSpans, exportSize, levelFits
 import { audioPeaks, decodeSound, drawEndCard, drawFrame, loadVideo, measureLevel, planFor, wireVoice, type BrandArt, type Frame } from "@/lib/videoMedia";
 import { dropGain, motionOf, playCue } from "@/lib/videoMotion";
 import { piecesOf } from "@/lib/fastPauses";
+import { denoiseBuffer } from "@/lib/denoise";
 
 /** Frames a second and sound rate, as the real-time export records. */
 export const FPS = 30;
@@ -283,7 +284,18 @@ async function voicePieces(file: Blob, parts: Part[], duration: number): Promise
   return whole && parts.map(() => ({ buf: whole, start: 0 }));
 }
 
-/** The export's sound, rendered offline through the same nodes the real-time export plays it through. */
+/** The pieces with background noise taken out (each distinct recording once); a piece it can't clean stays as filmed. */
+async function denoisePieces(pieces: Piece[]): Promise<Piece[]> {
+  const done = new Map<AudioBuffer, AudioBuffer>();
+  const out: Piece[] = [];
+  for (const p of pieces) {
+    if (!done.has(p.buf)) done.set(p.buf, (await denoiseBuffer(p.buf)) ?? p.buf);
+    out.push({ ...p, buf: done.get(p.buf)! });
+  }
+  return out;
+}
+
+/** The export's sound, rendered offline through the same nodes the real-time export plays it through (noise removal is done on the pieces first). */
 async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds: number, sfx: boolean, parts: Part[], pieces: Piece[] | null): Promise<AudioBuffer> {
   const s = a.settings;
   const ctx = new OfflineAudioContext(2, Math.max(1, Math.ceil(seconds * RATE)), RATE);
@@ -437,7 +449,8 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
     if (signal.aborted) return "stopped";
 
     const parts = voiceParts(plan.segs);
-    const pieces = await voicePieces(a.file, parts, video.duration);
+    const decoded = await voicePieces(a.file, parts, video.duration);
+    const pieces = decoded && decoded !== "long" && a.settings.denoise ? await denoisePieces(decoded) : decoded;
     if (pieces === "long") return no("the sound of a long video can't be read in parts here");
     const mix = await renderMix(a, plan, seconds, kind !== "audio", parts, pieces);
     if (signal.aborted) return "stopped";

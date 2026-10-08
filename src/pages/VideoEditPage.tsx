@@ -141,6 +141,7 @@ import {
 } from "@/lib/videoMedia";
 import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "@/lib/exportCheck";
 import { FAST, isFast } from "@/lib/fastPauses";
+import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
 import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cutTimes, dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
@@ -434,23 +435,41 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const voiceEl = useRef<HTMLAudioElement>(null);
   const [recording, setRecording] = useState<{ rec: MediaRecorder; stream: MediaStream; start: number; t0: number } | null>(null);
   const [recSeconds, setRecSeconds] = useState(0);
-  // the preview's sound goes through the voice polish and the loudness lift once either has been switched on
-  const audio = useRef<{ ctx: AudioContext; src: MediaElementAudioSourceNode; unwire: () => void } | null>(null);
+  // the preview's sound goes through the noise removal, the voice polish and the loudness lift once any has been switched on
+  const audio = useRef<{ ctx: AudioContext; src: MediaElementAudioSourceNode; unwire: () => void; dn?: Promise<AudioNode | null> } | null>(null);
   const polish = !!settings.voicePolish;
+  const denoise = !!settings.denoise;
+  const [denoiseState, setDenoiseState] = useState<"" | "loading" | "failed">("");
   const level = settings.loudness && levelFits(settings.level, polish) ? settings.level : null;
   useEffect(() => {
     const v = video.current;
-    if (!v || (!audio.current && !polish && !level)) return;
+    if (!v || (!audio.current && !polish && !level && !denoise)) return;
+    // 48 kHz, which the noise removal needs; the browser plays it at the device's own rate
     if (!audio.current) {
-      const ctx = new AudioContext();
-      const src = ctx.createMediaElementSource(v);
-      audio.current = { ctx, src, unwire: wireVoice(ctx, src, ctx.destination, polish, level) };
-    } else {
-      audio.current.unwire();
-      audio.current.unwire = wireVoice(audio.current.ctx, audio.current.src, audio.current.ctx.destination, polish, level);
+      const ctx = new AudioContext({ sampleRate: DENOISE_RATE });
+      audio.current = { ctx, src: ctx.createMediaElementSource(v), unwire: () => {} };
     }
-    void audio.current.ctx.resume().catch(() => {});
-  }, [polish, level, file]);
+    const a = audio.current;
+    const wire = (dn: AudioNode | null) => {
+      a.unwire();
+      a.unwire = wireVoice(a.ctx, a.src, a.ctx.destination, polish, level, dn);
+    };
+    let live = true;
+    // the sound keeps playing without it while the noise removal loads (once per page)
+    wire(null);
+    setDenoiseState(denoise ? "loading" : "");
+    if (denoise) {
+      a.dn ??= denoiseNode(a.ctx);
+      void a.dn.then((dn) => {
+        if (!dn) a.dn = undefined;
+        if (!live) return;
+        setDenoiseState(dn ? "" : "failed");
+        if (dn) wire(dn);
+      });
+    }
+    void a.ctx.resume().catch(() => {});
+    return () => { live = false; };
+  }, [polish, level, denoise, file]);
   // even out loudness: measured from the sound this edit keeps whenever it is on and the last measurement no longer fits
   const [measuring, setMeasuring] = useState<"" | "busy" | "none">("");
   const keptRef = useRef<{ from: number; dur: number }[]>([]);
@@ -1816,6 +1835,15 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <InfoTip label="About voice polish">Cuts rumble and hum, lifts clarity and evens out loud and quiet bits.</InfoTip>
                 <Toggle on={!!settings.voicePolish} set={(v) => patch({ voicePolish: v })} />
               </Row>
+              <Row label="Remove background noise">
+                <InfoTip label="About noise removal">Takes out aircon hum, traffic and fans, on this device.</InfoTip>
+                <Toggle on={denoise} set={(v) => patch({ denoise: v })} />
+              </Row>
+              {denoise && denoiseState && (
+                <p className={`text-xs ${denoiseState === "failed" ? "text-destructive" : "text-muted-foreground"}`} aria-live="polite">
+                  {denoiseState === "loading" ? "Loading noise removal..." : "Noise removal didn't load, so the sound plays as filmed. Switch it off and on to try again."}
+                </p>
+              )}
               <Row label="Even out loudness">
                 <InfoTip label="About loudness">Instagram and TikTok play videos at about -14 LUFS.</InfoTip>
                 <Toggle on={!!settings.loudness} set={(v) => patch({ loudness: v })} />

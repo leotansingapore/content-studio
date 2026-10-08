@@ -56,6 +56,7 @@ import { drawBroll } from "@/lib/brollCard";
 import { joinKept, sampleKept, wholeFits, type KeptPart } from "@/lib/keptSound";
 import { clipStats } from "@/lib/exportCheck";
 import { FAST, isFast, segLength } from "@/lib/fastPauses";
+import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
 
 // ---------- sound for captions ----------
 
@@ -297,8 +298,9 @@ export interface Frame {
  * closer together. With a measured level, it then lifts the sound to -14 LUFS
  * into a limiter that holds the peaks down. Returns a function that unwires it all.
  */
-export function wireVoice(ctx: BaseAudioContext, input: AudioNode, output: AudioNode, polish: boolean, level?: Level | null): () => void {
-  const chain: AudioNode[] = [];
+export function wireVoice(ctx: BaseAudioContext, input: AudioNode, output: AudioNode, polish: boolean, level?: Level | null, denoise?: AudioNode | null): () => void {
+  // background noise out first (denoise.ts), so the polish and the loudness lift don't raise it
+  const chain: AudioNode[] = denoise ? [denoise] : [];
   if (polish) {
     // two stages make a 4th-order Butterworth high-pass (24 dB an octave): 50 Hz hum drops about 20 dB
     chain.push(
@@ -323,7 +325,8 @@ export function wireVoice(ctx: BaseAudioContext, input: AudioNode, output: Audio
   last.connect(output);
   return () => {
     input.disconnect(chain[0] ?? output);
-    if (chain.length) last.disconnect(output);
+    // every node lets go of what it fed, so a noise node kept for the next wiring feeds nothing old
+    for (const n of chain) n.disconnect();
   };
 }
 
@@ -1099,7 +1102,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     canvas.width = W;
     canvas.height = H;
     const g = canvas.getContext("2d")!;
-    actx = new AudioContext();
+    actx = new AudioContext(settings.denoise ? { sampleRate: DENOISE_RATE } : undefined);
     await actx.resume(); // allowed once the person has clicked on the page (Export was a click)
     const polish = !!settings.voicePolish;
     const level = settings.loudness ? (levelFits(settings.level, polish) ? settings.level : await measureLevel(file, polish, { parts: plan.segs.map((g) => ({ from: g.start, dur: g.end - g.start })), duration: video.duration })) : null;
@@ -1107,7 +1110,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     // recorded, never played out loud; the gain ramps in and out at every cut so joins don't click
     const gain = actx.createGain();
     gain.gain.value = 0;
-    wireVoice(actx, actx.createMediaElementSource(video), gain, polish, level);
+    wireVoice(actx, actx.createMediaElementSource(video), gain, polish, level, settings.denoise ? await denoiseNode(actx) : null);
     gain.connect(dest);
     const FADE = 0.025;
     const volume = Math.min(1, Math.max(0, settings.volume ?? 1));
