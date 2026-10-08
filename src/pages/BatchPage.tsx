@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { useNavigate } from "react-router-dom";
 import {
@@ -85,6 +85,7 @@ export default function BatchPage() {
   );
   const [cards, setCards] = useState<Record<string, CardState>>({});
   const [running, setRunning] = useState(false);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
 
   const activeTargets = useMemo(
     () => TARGETS.filter((t) => selected.has(t.key)),
@@ -103,6 +104,7 @@ export default function BatchPage() {
   const runBatch = async () => {
     const trimmed = topic.trim();
     if (!trimmed) {
+      document.getElementById("batch-topic")?.focus();
       toast({
         title: "Add a topic",
         description: "One topic, angle, or client scenario is enough to seed the whole batch.",
@@ -121,6 +123,8 @@ export default function BatchPage() {
     const initial: Record<string, CardState> = {};
     for (const t of activeTargets) initial[t.key] = { status: "streaming", text: "" };
     setCards(initial);
+    // On a phone the drafts stream in a screen below the button.
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
 
     const { data } = await supabase.auth.getUser();
     const voiceProfile = loadVoiceProfile(data.user?.id ?? null);
@@ -312,7 +316,7 @@ export default function BatchPage() {
       </Card>
 
       {hasResults && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div ref={resultsRef} className="grid scroll-mt-20 gap-4 lg:grid-cols-2">
           {activeTargets.map((t) => {
             const card = cards[t.key];
             if (!card) return null;
