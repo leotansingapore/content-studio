@@ -863,9 +863,14 @@ export default function GeneratePage() {
 
   const validateForm = (): boolean => {
     if (!pillarDetail.trim()) {
+      // The field lives on step 1: take the user there instead of leaving a
+      // toast on the last step pointing at a box they can't see.
+      setBriefOpen(true);
+      setWizardStep(0);
+      setTimeout(() => document.getElementById("pillar-detail")?.focus(), 50);
       toast({
-        title: "Add a pillar detail",
-        description: `Tell the generator what your ${pillarMeta.label.toLowerCase()} is. ${pillarMeta.placeholder}`,
+        title: `Add your ${pillarMeta.label.toLowerCase()} first`,
+        description: pillarMeta.placeholder,
         variant: "destructive",
       });
       return false;
