@@ -77,7 +77,8 @@ export default function VideoEmbed({
       )}
     </div>
     {playing && original && (
-      <a href={original} target="_blank" rel="noopener noreferrer" className="block text-center text-[11px] font-medium text-muted-foreground hover:text-primary">
+      // Its own background keeps it readable on a light card and on the black post modal alike.
+      <a href={original} target="_blank" rel="noopener noreferrer" className="mx-auto block w-fit rounded-full bg-background px-3 py-1 text-[11px] font-medium text-foreground/80 hover:text-primary">
         Not playing? Watch it on {site}
       </a>
     )}
