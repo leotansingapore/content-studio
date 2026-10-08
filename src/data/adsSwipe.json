@@ -1,4 +1,398 @@
 {
- "fetched": null,
- "ads": []
+ "fetched": "2026-10-08",
+ "ads": [
+  {
+   "adId": "2095783381019179",
+   "advertiser": "Singlife",
+   "industry": "Insurance",
+   "format": "image",
+   "headline": "Singlife CareShield",
+   "body": "57% of Singaporeans underestimate long-term care costs. Don’t be caught off guard.\n\nSinglife CareShield Standard/Plus supports you with additional monthly cash payouts, so you can stay prepared and ease the financial load on your loved ones💛\n\nStrengthen your long-term care coverage today and get up to 35% off lifetime premiums✨\n\nT&Cs apply. Protected up to specified limits by SDIC.",
+   "cta": "Learn more",
+   "link": "https://singlife.com/en/disability-insurance/careshield",
+   "start": "2026-09-10",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "THREADS"
+   ],
+   "image": "/ads/2095783381019179.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=2095783381019179",
+   "hookFamily": "Problem"
+  },
+  {
+   "adId": "955328864288926",
+   "advertiser": "Singlife",
+   "industry": "Insurance",
+   "format": "image",
+   "headline": "Singlife Critical Illness",
+   "body": "Think “the impossible” won’t happen? Think again. Critical illness treatment and recovery can cost around S$169,000*. Be prepared with Singlife’s coverage options today. \n\nT&Cs apply. This advertisement has not been reviewed by the Monetary Authority of Singapore. Protected up to specified limits by SDIC.\n\n*Source: Singlife, “Singlife Critical Illness Report: Closing the Recovery Gap”, information accurate as at August 2026\n \nCTA : singlife.com/ci",
+   "cta": "Learn more",
+   "link": "https://singlife.com/en/critical-illness-insurance",
+   "start": "2026-09-10",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "THREADS"
+   ],
+   "image": "/ads/955328864288926.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=955328864288926",
+   "hookFamily": "Curiosity"
+  },
+  {
+   "adId": "2198047960759886",
+   "advertiser": "Singlife",
+   "industry": "Insurance",
+   "format": "carousel",
+   "headline": "Singlife",
+   "body": "Some things in life are uncertain, but your ability to bounce back from a health setback shouldn’t be. One in four individuals will face a critical illness in their lifetime. Get financial protection today with Singlife’s critical illness coverage. \n\nT&Cs apply. This advertisement has not been reviewed by the Monetary Authority of Singapore. Protected up to specified limits by SDIC.\n \n*Source: https://www.singaporecancersociety.org.sg/learn-about-cancer/cancer-basics/common-types-of-cancer-in-singapore.html",
+   "cta": "Learn more",
+   "link": "https://singlife.com/en/critical-illness-insurance",
+   "start": "2026-09-10",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "image": "/ads/2198047960759886.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=2198047960759886",
+   "hookFamily": "Problem"
+  },
+  {
+   "adId": "1852777915694642",
+   "advertiser": "Prudential Singapore",
+   "industry": "Insurance",
+   "format": "image",
+   "headline": "Promises, made real",
+   "body": "Some promises extend beyond a lifetime through the opportunities they help create. Our wealth and investment solutions seek to grow and safeguard the next generation.\n\nTerms & Conditions apply. Protected up to specified limits by SDIC. This advertisement has not been reviewed by the Monetary Authority of Singapore.\n\n#PromisesMadeReal #BuiltForGenerations",
+   "cta": "Learn more",
+   "link": "https://www.prudential.com.sg/products/promotions/95-anniversary-lucky-draw?utm_source=meta&utm_medium=paid_social&utm_campaign=promises&utm_content=kv2",
+   "start": "2026-09-16",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "image": "/ads/1852777915694642.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1852777915694642",
+   "hookFamily": "Desire"
+  },
+  {
+   "adId": "4597663317217471",
+   "advertiser": "Prudential Singapore",
+   "industry": "Insurance",
+   "format": "video",
+   "headline": null,
+   "body": "the audacity of also having to worry about money while healing 😭 past me would’ve really appreciated this\n\nDisclaimer: I am not licensed to provide regulated financial services. For financial planning advice, please reach out to a Prudential Financial Representative.",
+   "cta": "See details",
+   "link": "https://www.instagram.com/",
+   "start": "2026-09-21",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "AUDIENCE_NETWORK",
+    "THREADS"
+   ],
+   "image": "/ads/4597663317217471.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=4597663317217471",
+   "hookFamily": "Problem"
+  },
+  {
+   "adId": "1731979964550267",
+   "advertiser": "Prudential Singapore",
+   "industry": "Insurance",
+   "format": "carousel",
+   "headline": "Prudential Singapore",
+   "body": "What happens when your health needs a break but the bills don’t? \n\nWe surveyed 1,000 Singapore residents to find out how prepared they are for a potential Health Gap Year: an unexpected pause from work to focus on recovery from a Critical Illness (CI). \n\nThe results? There may be a bigger gap between the recovery we expect and what we’re financially ready for. Are you prepared for your Health Gap Years? \n\n#HealInYourHealthGapYears",
+   "cta": "See details",
+   "link": "https://www.prudential.com.sg/",
+   "start": "2026-10-04",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "image": "/ads/1731979964550267.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1731979964550267",
+   "hookFamily": "Curiosity"
+  },
+  {
+   "adId": "1552615343060172",
+   "advertiser": "DBS",
+   "industry": "Banking",
+   "format": "image",
+   "headline": "DBS Half-priced Holidays",
+   "body": "Enjoy 50% OFF flights, hotels and travel activities every day exclusively with DBS/POSB Cards via Trip​.com, Expedia, Cathay Pacific and more! \n\nUnlock the best travel deals in town with DBS Half-priced Holidays, from now till 31 Dec 2026. T&Cs apply.",
+   "cta": "Learn more",
+   "link": "https://ad.doubleclick.net/ddm/clk/646959043;452721637;s;gdpr=$%7BGDPR%7D;gdpr_consent=$%7BGDPR_CONSENT_755%7D",
+   "start": "2026-08-20",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "image": "/ads/1552615343060172.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1552615343060172",
+   "hookFamily": "Offer"
+  },
+  {
+   "adId": "28079644438365749",
+   "advertiser": "DBS",
+   "industry": "Banking",
+   "format": "image",
+   "headline": "Save with DBS PayLah!",
+   "body": "Enjoy Saturday Savings with DBS PayLah! in the heartlands from now till 19 Dec 2026.",
+   "cta": "Learn more",
+   "link": "https://ad.doubleclick.net/ddm/clk/648977598;454811723;h;gdpr=$%7BGDPR%7D;gdpr_consent=$%7BGDPR_CONSENT_755%7D",
+   "start": "2026-08-26",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "image": "/ads/28079644438365749.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=28079644438365749",
+   "hookFamily": "Offer"
+  },
+  {
+   "adId": "1343702525482412",
+   "advertiser": "DBS",
+   "industry": "Banking",
+   "format": "video",
+   "headline": null,
+   "body": "3.8 million DBS retail customers now have a dedicated Wealth Planning Manager. But what does that actually mean? Jamie Lee, Head of DBS digiWealth, explains how customers can tap on DBS digiWealth to explore investment opportunities, book appointments with their Wealth Planning Manager, and receive personalised support tailored to their goals. \n\nIt's part of DBS' effort to make wealth planning more accessible, approachable and relevant for customers at different stages of their financial journey.",
+   "cta": "Learn more",
+   "link": "https://ad.doubleclick.net/ddm/clk/649385387;455417789;m;gdpr=$%7BGDPR%7D;gdpr_consent=$%7BGDPR_CONSENT_755%7D",
+   "start": "2026-09-01",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "image": "/ads/1343702525482412.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1343702525482412",
+   "hookFamily": "Proof"
+  },
+  {
+   "adId": "2335597717243518",
+   "advertiser": "Virgin Active Singapore",
+   "industry": "Fitness",
+   "format": "image",
+   "headline": "Rest of Year Half Price",
+   "body": "Every day is different. So why stick to the same routine? Train, recover and switch things up at Virgin Active.\nStart now with 50% off for the rest of the year. The sooner you start, the more you save. T&Cs apply.",
+   "cta": "Get offer",
+   "link": "http://fb.me/",
+   "start": "2026-09-30",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "image": "/ads/2335597717243518.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=2335597717243518",
+   "hookFamily": "Curiosity"
+  },
+  {
+   "adId": "4199105440386986",
+   "advertiser": "Virgin Active Singapore",
+   "industry": "Fitness",
+   "format": "video",
+   "headline": "All-inclusive Membership",
+   "body": "Recovery isn’t optional. It’s part of the plan. ⚡️\n\nSee how Cass makes recovery part of her routine, from Reformer Pilates Recovery and Compression Boots to the Hydrotherapy Spa Pool and more.\n\nTrain hard. Recover properly. Come back ready.\n\nWellness fits easier when everything you need is inside.\n👉 Experience it for yourself. Redeem your Free Trial now.\n\n#VirginActiveSG #SocialWellnessClub",
+   "cta": "Get offer",
+   "link": "http://fb.me/",
+   "start": "2026-09-30",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "image": "/ads/4199105440386986.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=4199105440386986",
+   "hookFamily": "Desire"
+  },
+  {
+   "adId": "965462439956189",
+   "advertiser": "Virgin Active Singapore",
+   "industry": "Fitness",
+   "format": "carousel",
+   "headline": "Virgin Active Singapore",
+   "body": "Discover the power of Reformer Pilates. Boost your strength and confidence with our curated classes. Experience real, physical and mental transformation at Virgin Active — Where Wellness Gets Real.",
+   "cta": "Get offer",
+   "link": "http://fb.me/",
+   "start": "2026-09-30",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "image": "/ads/965462439956189.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=965462439956189",
+   "hookFamily": "Desire"
+  },
+  {
+   "adId": "908248645187707",
+   "advertiser": "Thomson Medical",
+   "industry": "Healthcare",
+   "format": "video",
+   "headline": null,
+   "body": "Had a big night out and feeling the after-effects? 😵‍💫\n\nDr Sanjeev, Emergency Medicine Specialist, shares 5 quick tips to ease a hangover, and how to tell when your symptoms might actually be food poisoning.\n\nIf you or a loved one feels unwell, our 24-HR Urgent Care Centre is always here to help.\nLearn more 👉 Link in bio\n\n#ThomsonMedical #24HourUrgentCare #UrgentCareCentre #EmpoweringLifeJourneys #SanjeevSays",
+   "cta": "Visit Instagram profile",
+   "link": "http://instagram.com/thomsonmedical",
+   "start": "2025-12-23",
+   "platforms": [
+    "INSTAGRAM"
+   ],
+   "image": "/ads/908248645187707.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=908248645187707",
+   "hookFamily": "Problem"
+  },
+  {
+   "adId": "1938254387570062",
+   "advertiser": "Thomson Medical",
+   "industry": "Healthcare",
+   "format": "carousel",
+   "headline": null,
+   "body": "Have you looked at your tongue lately? 👅\n\nIn TCM, subtle changes in the tongue can reflect deeper imbalances in the body, often before symptoms become hard to ignore. \n\nThe new year is a good time to check in, rebalance, and build healthier habits from within. If what you see reflects how you’ve been feeling, it might be time to listen. 💜\n\n🦋 Begin your personalised TCM journey with our Body Constitution Assessment.\n👉 Link in bio.\n\n#ThomsonMedical #EmpoweringLifeJourneys #TCM",
+   "cta": "Visit Instagram profile",
+   "link": "http://instagram.com/thomsonmedical",
+   "start": "2026-01-20",
+   "platforms": [
+    "INSTAGRAM"
+   ],
+   "image": "/ads/1938254387570062.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1938254387570062",
+   "hookFamily": "Curiosity"
+  },
+  {
+   "adId": "1108905295051971",
+   "advertiser": "Thomson Medical",
+   "industry": "Healthcare",
+   "format": "image",
+   "headline": "Same-Day MRI Scan Available",
+   "body": "A sprain that never quite healed, joint pain that keeps coming back, or an injury you've been putting off getting checked? \n\nAn MRI scan may be able to help you find out exactly what's going on, and fast.\n\nAt Thomson Medical, our same-day MRI service is designed for busy professionals who need complete orthopaedic diagnostic care within a single day, no multiple trips required.\n\nThe process begins with an early morning consultation with our orthopaedic specialist, followed by your MRI scan when needed, and a follow-up consultation the same afternoon to discuss suitable treatment options.\n\nHere's why patients choose Thomson Medical:\n ✅ Comprehensive diagnostic scans covering the spine, muscles, joints and other soft tissues\n ✅ A professional, experienced orthopaedic care team\n ✅ A comfortable, conducive scanning environment\n ✅ Clear imaging results to support accurate diagnosis and treatment planning\n\n✨ Don't ignore persistent sprains or joint pain. Consult our orthopaedic specialist and enquire about Thomson's same-day MRI scan.\n\nSpecial thanks to Dr Lim Chin Tat, Thomson Medical Centre, for reviewing this content.\n\n#ThomsonMedical #EmpoweringLifeJourneys #Orthopaedic #SameDayMRI #MRIScan #SportsInjury",
+   "cta": "Learn more",
+   "link": "https://www.thomsonmedical.com/centres/mri-suite?&utm_source=meta&utm_medium=paid&utm_campaign_name=awareness_ortho&utm_campaign_content=samedaymriscan",
+   "start": "2026-09-17",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "AUDIENCE_NETWORK",
+    "THREADS"
+   ],
+   "image": "/ads/1108905295051971.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1108905295051971",
+   "hookFamily": "Problem"
+  },
+  {
+   "adId": "2253423575514827",
+   "advertiser": "SleekFlow",
+   "industry": "Software",
+   "format": "image",
+   "headline": "Automate Meeting Booking",
+   "body": "Turn chat enquiries into qualified opportunities 24/7.\n\nLet AI engage visitors, capture lead details, qualify intent and schedule the next step, while your team steps in when it matters most.",
+   "cta": "Learn more",
+   "link": "https://sleekflow.io/solutions/sales",
+   "start": "2026-10-06",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "THREADS"
+   ],
+   "image": "/ads/2253423575514827.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=2253423575514827",
+   "hookFamily": "Desire"
+  },
+  {
+   "adId": "1607648271157184",
+   "advertiser": "SleekFlow",
+   "industry": "Software",
+   "format": "video",
+   "headline": "Sell More on WhatsApp",
+   "body": "Turn more WhatsApp conversations into sales. Qualify leads, automate follow-ups, and keep every opportunity moving.",
+   "cta": "Learn more",
+   "link": "https://sleekflow.io/solutions/whatsapp-chatbot-platform",
+   "start": "2026-10-06",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "AUDIENCE_NETWORK",
+    "WHATSAPP",
+    "THREADS"
+   ],
+   "image": "/ads/1607648271157184.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1607648271157184",
+   "hookFamily": "Desire"
+  },
+  {
+   "adId": "1091447560310394",
+   "advertiser": "SleekFlow",
+   "industry": "Software",
+   "format": "image",
+   "headline": "Unlock More From WhatsApp",
+   "body": "Not ready to give up your WhatsApp Business App? You don’t have to.\n\nKeep your existing number and continue using the app while unlocking automation, broadcasts, CRM and a shared team inbox with SleekFlow.",
+   "cta": "Learn more",
+   "link": "https://sleekflow.io/en-sg/lp/coexistence",
+   "start": "2026-10-06",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "THREADS"
+   ],
+   "image": "/ads/1091447560310394.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1091447560310394",
+   "hookFamily": "Audience"
+  },
+  {
+   "adId": "904267585865119",
+   "advertiser": "WATI - WhatsApp Team Inbox",
+   "industry": "Software",
+   "format": "video",
+   "headline": "Wati - WhatsApp AI, Built For Business",
+   "body": "Turn WhatsApp into your #1 sales channel. Automate chats & support with AI. 16,000+ businesses trust Wati. Free for 7 days.",
+   "cta": "See details",
+   "link": "https://www.wati.io/en/wati-for-marketing/",
+   "start": "2026-09-14",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "WHATSAPP",
+    "THREADS"
+   ],
+   "image": "/ads/904267585865119.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=904267585865119",
+   "hookFamily": "Desire"
+  },
+  {
+   "adId": "1106303478505924",
+   "advertiser": "WATI - WhatsApp Team Inbox",
+   "industry": "Software",
+   "format": "image",
+   "headline": "Wati - All-In-One WhatsApp AI",
+   "body": "Your customers are already on WhatsApp. Wati's AI replies instantly, qualifies leads & closes sales - no code, instant setup.",
+   "cta": "See details",
+   "link": "https://www.wati.io/woocommerce/",
+   "start": "2026-09-14",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "WHATSAPP",
+    "THREADS"
+   ],
+   "image": "/ads/1106303478505924.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1106303478505924",
+   "hookFamily": "Audience"
+  },
+  {
+   "adId": "1761640958369977",
+   "advertiser": "WATI - WhatsApp Team Inbox",
+   "industry": "Software",
+   "format": "image",
+   "headline": "7-Day Free Trial. No Card Needed.",
+   "body": "A comment is a lead. Most of them go unanswered.\n\nWati replies publicly and DMs the commenter in the same second. We'll set it up with you on a free 30-minute call.\n\nSwipe for the steps.",
+   "cta": "See details",
+   "link": "https://www.wati.io/instagram-automation/",
+   "start": "2026-09-29",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM",
+    "WHATSAPP",
+    "THREADS"
+   ],
+   "image": "/ads/1761640958369977.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1761640958369977",
+   "hookFamily": "Problem"
+  }
+ ]
 }
