@@ -166,7 +166,7 @@ function InspirationCard({
               onClick={onToggleSave}
               aria-label={saved ? "Remove bookmark" : "Save for later"}
               title={saved ? "Saved to your Playbook" : "Save for later"}
-              className={`-mr-2 -mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
+              className={`-mr-2 -mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors [@media(pointer:coarse)]:-mr-3 [@media(pointer:coarse)]:-mt-3 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 ${
                 saved
                   ? "text-primary"
                   : "text-muted-foreground hover:text-primary"
@@ -194,7 +194,7 @@ function InspirationCard({
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
-              className="inline-flex min-h-9 items-center gap-1 py-1 text-xs font-medium text-primary hover:underline sm:min-h-0"
+              className="inline-flex min-h-9 items-center gap-1 py-1 text-xs font-medium text-primary hover:underline sm:min-h-0 [@media(pointer:coarse)]:min-h-11"
             >
               {expanded ? (
                 <>
@@ -216,7 +216,7 @@ function InspirationCard({
             asChild
             variant="outline"
             size="sm"
-            className="w-full gap-1.5 sm:w-auto sm:flex-1"
+            className="w-full gap-1.5 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
           >
             <Link to={`/inspiration/${encodeURIComponent(entry.id)}`}>
               <ExternalLink className="h-3.5 w-3.5" />
@@ -226,7 +226,7 @@ function InspirationCard({
           <Button
             size="sm"
             onClick={handleUseAsVibe}
-            className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1"
+            className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
           >
             <Sparkles className="h-3.5 w-3.5" />
             Use as vibe
@@ -381,14 +381,14 @@ export default function Inspiration({ onUseAsVibe }: Props) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search examples (e.g. CPF, BTO, retirement)"
-                className="pl-9"
+                className="pl-9 [@media(pointer:coarse)]:h-11"
               />
             </div>
             <Button
               variant={showFilters || activeFilterCount > 0 ? "default" : "outline"}
               onClick={() => setShowFilters((v) => !v)}
               aria-expanded={showFilters}
-              className="shrink-0 gap-1.5"
+              className="shrink-0 gap-1.5 [@media(pointer:coarse)]:h-11"
             >
               <Filter className="h-3.5 w-3.5" />
               Filters
@@ -532,7 +532,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
               <Button
                 variant="outline"
                 onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-                className="gap-1.5"
+                className="gap-1.5 [@media(pointer:coarse)]:h-11"
               >
                 <ChevronDown className="h-4 w-4" />
                 Show {Math.min(PAGE_SIZE, remaining)} more

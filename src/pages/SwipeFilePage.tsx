@@ -67,7 +67,7 @@ function FilterSelect({
   options: { value: string; label: string }[];
 }) {
   return (
-    <label className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-xs sm:h-8">
+    <label className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
       <span className="font-semibold text-muted-foreground">{label}</span>
       <select
         value={value}
@@ -212,7 +212,7 @@ export default function SwipeFilePage() {
             role="tab"
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
-            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors sm:flex-none ${
+            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors sm:flex-none [@media(pointer:coarse)]:min-h-11 ${
               tab === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -314,14 +314,14 @@ export default function SwipeFilePage() {
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search ideas, captions, creators (e.g. CPF, objection, retirement)"
                     aria-label="Search top posts"
-                    className="pl-9"
+                    className="pl-9 [@media(pointer:coarse)]:h-11"
                   />
                 </div>
                 <Button
                   variant={showFilters || activeFilters > 0 ? "default" : "outline"}
                   onClick={() => setShowFilters((v) => !v)}
                   aria-expanded={showFilters}
-                  className="shrink-0 gap-1.5"
+                  className="shrink-0 gap-1.5 [@media(pointer:coarse)]:h-11"
                 >
                   <Filter className="h-3.5 w-3.5" />
                   Filters
@@ -414,7 +414,7 @@ export default function SwipeFilePage() {
                   <Button
                     variant="outline"
                     onClick={() => setVisible((c) => c + PAGE_SIZE)}
-                    className="gap-1.5"
+                    className="gap-1.5 [@media(pointer:coarse)]:h-11"
                   >
                     <ChevronDown className="h-4 w-4" />
                     Show {Math.min(PAGE_SIZE, remaining)} more

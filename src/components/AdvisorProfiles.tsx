@@ -204,7 +204,7 @@ function AdvisorCard({
               onClick={onToggleSave}
               aria-label={saved ? "Remove bookmark" : "Save creator"}
               title={saved ? "Saved to your Playbook" : "Save creator"}
-              className={`-mr-2 -mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
+              className={`-mr-2 -mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors [@media(pointer:coarse)]:-mr-3 [@media(pointer:coarse)]:-mt-3 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 ${
                 saved ? "text-primary" : "text-muted-foreground hover:text-primary"
               }`}
             >
@@ -222,7 +222,7 @@ function AdvisorCard({
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border sm:h-6 sm:w-6 border-border/60 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border sm:h-6 sm:w-6 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 border-border/60 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             aria-label="Copy handle"
             title="Copy handle"
           >
@@ -268,7 +268,7 @@ function AdvisorCard({
             asChild
             variant="outline"
             size="sm"
-            className="w-full gap-1.5 sm:w-auto sm:flex-1"
+            className="w-full gap-1.5 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
           >
             <Link to={`/profiles/${encodeURIComponent(entry.id)}`}>
               <Eye className="h-3.5 w-3.5" />
@@ -278,7 +278,7 @@ function AdvisorCard({
           <Button
             asChild
             size="sm"
-            className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1"
+            className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
           >
             <a
               href={entry.platform_url}
@@ -438,14 +438,14 @@ export default function AdvisorProfiles() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search names, handles, niches (e.g. CPF, retirement)"
-                className="pl-9"
+                className="pl-9 [@media(pointer:coarse)]:h-11"
               />
             </div>
             <Button
               variant={showFilters || activeFilterCount > 0 ? "default" : "outline"}
               onClick={() => setShowFilters((v) => !v)}
               aria-expanded={showFilters}
-              className="shrink-0 gap-1.5"
+              className="shrink-0 gap-1.5 [@media(pointer:coarse)]:h-11"
             >
               <Filter className="h-3.5 w-3.5" />
               Filters
@@ -609,7 +609,7 @@ export default function AdvisorProfiles() {
               <Button
                 variant="outline"
                 onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-                className="gap-1.5"
+                className="gap-1.5 [@media(pointer:coarse)]:h-11"
               >
                 <ChevronDown className="h-4 w-4" />
                 Show {Math.min(PAGE_SIZE, remaining)} more

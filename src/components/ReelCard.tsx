@@ -81,7 +81,7 @@ export default function ReelCard({ item, onOpen }: { item: ScoredPost; onOpen: (
         to={buildRemixUrl(post, { name: post.advisorName, handle: post.handle }, { angle: insight.angle, structure: insight.structure })}
         onClick={(e) => e.stopPropagation()}
         title="Rewrite this post for your business"
-        className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1.5 text-[11px] font-semibold text-primary shadow-sm backdrop-blur transition-colors hover:bg-background"
+        className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1.5 text-[11px] font-semibold text-primary shadow-sm backdrop-blur [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-2 [@media(pointer:coarse)]:after:content-[''] transition-colors hover:bg-background"
       >
         <Wand2 className="h-3 w-3" /> Remix this
       </Link>
