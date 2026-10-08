@@ -179,15 +179,19 @@ function Stat({
   );
 }
 
-// Editable number cell for the bulk metrics table.
+// Editable number cell for the bulk metrics table. Saves when you leave it.
 function MetricInput({
   value,
   onChange,
+  onSave,
   placeholder,
+  label,
 }: {
   value: string;
   onChange: (v: string) => void;
+  onSave: () => void;
   placeholder: string;
+  label: string;
 }) {
   return (
     <input
@@ -196,8 +200,11 @@ function MetricInput({
       inputMode="numeric"
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onBlur={onSave}
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      aria-label={label}
       placeholder={placeholder}
-      className="w-full min-w-14 rounded-md border border-border/70 bg-background px-2 py-1 text-right text-xs tabular-nums outline-none focus:border-primary/40"
+      className="h-9 w-full min-w-14 rounded-md border border-border/70 bg-background px-2 text-right text-xs tabular-nums outline-none focus:border-primary/40 sm:h-8"
     />
   );
 }
@@ -236,6 +243,13 @@ export default function AnalyticsPage() {
   const setEdit = (id: string, field: string, v: string) =>
     setBulkEdits((prev) => ({ ...prev, [id]: { ...prev[id], [field]: v } }));
 
+  // The row just saved shows "Saved" for a moment.
+  const [savedId, setSavedId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!savedId) return;
+    const t = setTimeout(() => setSavedId(null), 2000);
+    return () => clearTimeout(t);
+  }, [savedId]);
   const saveRow = (id: string) => {
     if (!userId) return;
     const row = bulkEdits[id];
@@ -258,6 +272,7 @@ export default function AnalyticsPage() {
       return next;
     });
     setMetricsVersion((v) => v + 1);
+    setSavedId(id);
   };
 
   useEffect(() => {
@@ -454,11 +469,8 @@ export default function AnalyticsPage() {
             <CardTitle className="font-serif text-lg">Add your numbers</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <p className="text-xs text-muted-foreground">
-              Everything below recalculates as soon as you save a row.
-            </p>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] text-left text-xs">
+              <table className="w-full min-w-[520px] text-left text-xs">
                 <thead>
                   <tr className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                     <th className="py-1.5 pr-2 font-semibold">Post</th>
@@ -486,21 +498,19 @@ export default function AnalyticsPage() {
                             <MetricInput
                               value={editValue(d, f)}
                               onChange={(v) => setEdit(d.id, f, v)}
+                              onSave={() => saveRow(d.id)}
                               placeholder="0"
+                              label={`${f} for ${d.hook || "this post"}`}
                             />
                           </td>
                         ),
                       )}
-                      <td className="px-1 py-1.5 text-right">
-                        <Button
-                          size="sm"
-                          variant={bulkEdits[d.id] ? "default" : "outline"}
-                          disabled={!bulkEdits[d.id]}
-                          onClick={() => saveRow(d.id)}
-                          className="h-7 px-2.5 text-[11px]"
-                        >
-                          Save
-                        </Button>
+                      <td className="px-1 py-1.5 text-right" aria-live="polite">
+                        {savedId === d.id && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
+                            <Check className="h-3 w-3" /> Saved
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
