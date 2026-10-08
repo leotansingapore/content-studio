@@ -39,7 +39,7 @@ function Logo() {
 
 function Brandmark() {
   return (
-    <Link to="/home" className="flex items-center gap-2.5">
+    <Link to="/home" className="flex min-h-11 items-center gap-2.5">
       <Logo />
       <span className="flex flex-col leading-none">
         <span className="text-sm font-bold tracking-tight text-foreground">
@@ -148,7 +148,7 @@ function MoreTileLink({ tile, active }: { tile: MoreTile; active: boolean }) {
     <Link
       to={tile.to}
       aria-current={active ? "true" : undefined}
-      className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
+      className={`flex min-h-11 items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
         active
           ? "border-primary/40 bg-primary/10 text-primary"
           : "border-border/70 bg-card text-foreground hover:border-primary/40"
@@ -248,7 +248,12 @@ export default function StudioLayout() {
           aria-label="Sections"
           className="flex w-[72px] flex-col items-center gap-1 overflow-y-auto border-r border-border/70 bg-rail pb-3 pt-[18px]"
         >
-          <Link to="/home" aria-label="Content Studio home" title="Content Studio" className="mb-3 rounded-xl">
+          <Link
+            to="/home"
+            aria-label="Content Studio home"
+            title="Content Studio"
+            className="mb-3 rounded-xl [@media(pointer:coarse)]:mb-2 [@media(pointer:coarse)]:p-1"
+          >
             <Logo />
           </Link>
           {MAIN_SECTIONS.map((s) => (
@@ -266,7 +271,7 @@ export default function StudioLayout() {
             <ProfileSwitcher />
             <Button
               asChild
-              className="w-full justify-start gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
+              className="w-full justify-start gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:h-11"
             >
               <Link to="/generate">
                 <Plus className="h-4 w-4" /> New post
@@ -284,7 +289,7 @@ export default function StudioLayout() {
                     to={p.to}
                     end={p.end}
                     className={({ isActive }) =>
-                      `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                      `block rounded-lg px-3 py-2 text-sm font-medium transition-colors [@media(pointer:coarse)]:py-3 ${
                         isActive
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -301,7 +306,7 @@ export default function StudioLayout() {
             <button
               type="button"
               onClick={handleSignOut}
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:py-3"
             >
               <LogOut className="h-4 w-4 shrink-0" /> Sign out
             </button>
@@ -316,7 +321,7 @@ export default function StudioLayout() {
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md lg:hidden">
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+        <div className="flex items-center justify-between gap-3 px-4 py-1.5">
           <Brandmark />
           <ProfileSwitcher compact />
         </div>
@@ -339,7 +344,7 @@ export default function StudioLayout() {
               size="sm"
               onClick={() => setMoreOpen(false)}
               aria-label="Close"
-              className="h-9 w-9 p-0 text-muted-foreground"
+              className="h-11 w-11 p-0 text-muted-foreground"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -367,7 +372,7 @@ export default function StudioLayout() {
             <p className="min-w-0 truncate text-xs text-muted-foreground" title={email}>
               {email}
             </p>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="shrink-0 gap-1.5 text-muted-foreground">
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="h-11 shrink-0 gap-1.5 text-muted-foreground">
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </Button>
           </div>

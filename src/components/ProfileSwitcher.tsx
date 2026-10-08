@@ -88,7 +88,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
         aria-expanded={open}
         aria-label={`Profile: ${active?.name}. Switch profile`}
         className={`flex items-center gap-2 rounded-lg border border-border/70 bg-background text-left transition-colors hover:border-primary/40 ${
-          compact ? "h-9 px-1.5" : "w-full px-2.5 py-2"
+          compact ? "h-11 px-2" : "w-full px-2.5 py-2"
         }`}
       >
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
