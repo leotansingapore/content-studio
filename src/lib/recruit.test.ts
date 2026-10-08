@@ -128,3 +128,15 @@ describe("whatsappLink", () => {
   });
 });
 
+describe("draft guards", () => {
+  it("swaps em dashes for commas", async () => {
+    const { stripDashes } = await import("./recruit");
+    expect(stripDashes("Not the best salespeople — the ones who stay.")).toBe("Not the best salespeople, the ones who stay.");
+  });
+  it("flags numbers the user never gave, ignoring single digits", async () => {
+    const { unsupportedNumbers } = await import("./recruit");
+    const ctx = "I taught for 8 years. Team of 12. Joined in 2019.";
+    expect(unsupportedNumbers("My team of 12 spends 80 percent of its time advising. 3 things I learned since 2019.", ctx)).toEqual(["80 percent"]);
+    expect(unsupportedNumbers("Team up 44% this year", "Team up 44 percent")).toEqual([]);
+  });
+});

@@ -13,6 +13,8 @@ import {
   buildRecruitBrief,
   interviewAnswered,
   scanRecruitCompliance,
+  stripDashes,
+  unsupportedNumbers,
   type RecruitBrain,
 } from "@/lib/recruit";
 import { streamOnePost } from "@/lib/batchGenerate";
@@ -44,7 +46,13 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
   const [busy, setBusy] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
-  const flags = useMemo(() => scanRecruitCompliance(draft), [draft]);
+  const flags = useMemo(() => {
+    const f = scanRecruitCompliance(draft);
+    for (const n of busy ? [] : unsupportedNumbers(draft, contextDoc)) {
+      f.push({ id: `num::${n}`, ruleId: "unsupported-number", severity: "warn", match: n, message: "This number isn't in your answers or Brand Brain. Check it, or replace it with one of your own." });
+    }
+    return f;
+  }, [draft, busy, contextDoc]);
 
   const pickAngle = (id: string) => {
     const a = angles.find((x) => x.id === id);
@@ -76,9 +84,9 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
         voiceSummary: loadVoiceProfile(userId)?.voiceSummary || undefined,
       },
       {
-        onToken: setDraft,
+        onToken: (text) => setDraft(stripDashes(text)),
         onComplete: (text) => {
-          setDraft(text);
+          setDraft(stripDashes(text));
           setBusy(false);
         },
         onError: (message) => {
@@ -218,7 +226,7 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
 
         {draft && (
           <div className="space-y-2">
-            <Textarea rows={12} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="Draft" className="font-sans text-sm leading-relaxed" />
+            <Textarea rows={Math.min(30, Math.max(8, draft.split("\n").length + 2))} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="Draft" className="font-sans text-sm leading-relaxed" />
             <Flags flags={flags} />
             {!busy && (
               <div className="flex flex-wrap items-center gap-2">

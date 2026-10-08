@@ -380,3 +380,22 @@ export function stageMix(drafts: DraftLike[], since: Date) {
     share: total ? Math.round((counts[s.id] / total) * 100) : 0,
   }));
 }
+
+/** The kit bans em dashes; the model still slips them in. Swap them for a comma. */
+export const stripDashes = (t: string) => t.replace(/\s*[—–]\s*/g, ", ").replace(/,\s*,/g, ",");
+
+/**
+ * Numbers in a draft that are not in the user's own Context Document. The kit's
+ * rule: never make a claim without a real number from the Context Document.
+ */
+export function unsupportedNumbers(draft: string, context: string): string[] {
+  const norm = (n: string) => n.replace(/[,\s]/g, "").replace(/percent$/i, "%").replace(/\.+$/, "");
+  const have = new Set((context.match(/\d[\d,.]*\s?(%|percent)?/gi) ?? []).map(norm));
+  const out: string[] = [];
+  for (const m of draft.match(/\d[\d,.]*\s?(%|percent)?/gi) ?? []) {
+    const n = norm(m);
+    if (!n || /^[0-9]$/.test(n)) continue; // single digits ("3 things") are structure, not claims
+    if (!have.has(n) && !have.has(n.replace(/%$/, "")) && !out.includes(m.trim())) out.push(m.trim());
+  }
+  return out;
+}
