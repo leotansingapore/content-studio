@@ -21,7 +21,9 @@ export default function VideoEmbed({
   const [loaded, setLoaded] = useState(false);
   const src = embedUrlFor(url);
   if (!src) return null;
+  const site = /tiktok/i.test(src) ? "TikTok" : "Instagram";
   return (
+    <div className="space-y-1">
     <div
       className={cn(
         "relative mx-auto aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-xl border border-border/60 bg-muted/40",
@@ -39,7 +41,8 @@ export default function VideoEmbed({
           src={src}
           title={label ?? "Video"}
           onLoad={() => setLoaded(true)}
-          className="absolute inset-0 h-full w-full"
+          scrolling="no"
+          className="absolute inset-0 h-full w-full overflow-hidden"
           allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
           allowFullScreen
         />
@@ -55,6 +58,12 @@ export default function VideoEmbed({
           Watch the video
         </button>
       )}
+    </div>
+    {playing && url && (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block text-center text-[11px] font-medium text-muted-foreground hover:text-primary">
+        Not playing? Watch it on {site}
+      </a>
+    )}
     </div>
   );
 }
