@@ -2282,7 +2282,7 @@ export default function GeneratePage() {
       )}
 
       {isStreaming && (
-        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 sm:hidden">
+        <div className="fixed bottom-20 left-1/2 z-50 !mt-0 -translate-x-1/2 lg:bottom-6">
           <Button
             size="lg"
             variant="outline"
