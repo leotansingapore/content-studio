@@ -25,6 +25,9 @@ import {
   rankPosts,
   withinDays,
   postsCsv,
+  reachMultiple,
+  commentRatio,
+  type Followers,
   type RankMetric,
   type TrackedPost,
   labelForDimension,
@@ -42,10 +45,14 @@ import { timeLabel } from "@/lib/dueDates";
 import CreatorLookup from "@/components/CreatorLookup";
 import AccountAudit from "@/components/AccountAudit";
 import RecruitNumbers from "@/components/recruit/RecruitNumbers";
+import { normalizeHandle, type AuditPlatform } from "@/lib/accountAudit";
 import {
   SOCIAL_PLATFORMS,
+  loadFollowers,
   loadSocialAccounts,
+  setFollowers,
   setSocialAccount,
+  type FollowerCounts,
   connectedCount,
   accountUrl,
   type SocialAccounts,
@@ -105,9 +112,13 @@ const RANK_UNIT: Record<RankMetric, string> = {
   reactions: "reactions",
   comments: "comments",
   shares: "shares",
+  reachMultiple: "your followers",
+  commentRatio: "comments per like",
 };
-function rankValue(d: TrackedPost, metric: RankMetric): string {
+function rankValue(d: TrackedPost, metric: RankMetric, followers: Followers): string {
   if (metric === "engagementRate") return `${d.engagementRate}%`;
+  if (metric === "reachMultiple") return `${reachMultiple(d, followers)}x`;
+  if (metric === "commentRatio") return String(commentRatio(d));
   const n = metric === "engagementTotal" ? engagement(d.metrics) : metric === "impressions" ? d.impressions : d.metrics?.[metric] ?? 0;
   return n.toLocaleString();
 }
@@ -235,6 +246,21 @@ export default function AnalyticsPage() {
   const [metricsVersion, setMetricsVersion] = useState(0);
   const [accounts, setAccounts] = useState<SocialAccounts>({});
   const [labels, setLabels] = useState<ContentLabel[]>([]);
+  // Followers per platform: typed in Add your numbers, else from the account audit.
+  const [typedFollowers, setTypedFollowers] = useState<FollowerCounts>({});
+  const [auditFollowers, setAuditFollowers] = useState<Followers>({});
+  const [followerEdits, setFollowerEdits] = useState<Partial<Record<SocialPlatform, string>>>({});
+  const followers = useMemo(() => ({ ...auditFollowers, ...typedFollowers }), [auditFollowers, typedFollowers]);
+  const saveFollowers = (p: SocialPlatform) => {
+    const v = followerEdits[p];
+    if (!userId || v === undefined) return;
+    setTypedFollowers(setFollowers(userId, p, v.trim() === "" ? null : Number(v)));
+    setFollowerEdits((e) => {
+      const next = { ...e };
+      delete next[p];
+      return next;
+    });
+  };
 
   const saveAccount = (platform: SocialPlatform, handle: string) => {
     if (!userId) return;
@@ -300,8 +326,25 @@ export default function AnalyticsPage() {
       if (!active) return;
       const id = data.user?.id ?? null;
       setUserId(id);
-      setAccounts(loadSocialAccounts(id));
+      const accts = loadSocialAccounts(id);
+      setAccounts(accts);
       setLabels(loadLabels(id));
+      setTypedFollowers(loadFollowers(id));
+      // the audit's follower count for the audited handle (a read of the user's own rows)
+      if (id) {
+        void supabase
+          .from("cs_social_audits")
+          .select("platform, handle, profile")
+          .then(({ data }) => {
+            if (!active || !data) return;
+            const out: Followers = {};
+            for (const row of data as { platform: AuditPlatform; handle: string; profile: { followers: number | null } | null }[]) {
+              const mine = normalizeHandle(row.platform, accts[row.platform]?.handle ?? "");
+              if (row.profile?.followers && mine === row.handle) out[row.platform] = row.profile.followers;
+            }
+            setAuditFollowers(out);
+          });
+      }
       setPostedCount(
         loadDrafts(id).filter((d) => draftStatus(d) === "posted").length,
       );
@@ -330,7 +373,11 @@ export default function AnalyticsPage() {
   const [period, setPeriod] = useState<0 | 7 | 30 | 90>(30);
   const [rankBy, setRankBy] = useState<RankMetric>("engagementTotal");
   const cmp = useMemo(() => (period ? comparePeriods(tracked, period) : null), [tracked, period]);
-  const ranked = useMemo(() => rankPosts(withinDays(tracked, period), rankBy), [tracked, rankBy, period]);
+  const ranked = useMemo(() => rankPosts(withinDays(tracked, period), rankBy, 5, followers), [tracked, rankBy, period, followers]);
+  const followerPlatforms = useMemo(
+    () => SOCIAL_PLATFORMS.map((p) => p.key).filter((k) => postedDrafts.some((d) => d.platform === k)),
+    [postedDrafts],
+  );
   const allTime = period !== 0 && <AllTimeTag />;
   const mix = useMemo(() => labelMix(loadDrafts(userId), labels, period), [userId, labels, period, metricsVersion]);
   // Shown once there are labels and anything posted, whether or not numbers were logged.
@@ -488,6 +535,28 @@ export default function AnalyticsPage() {
             <CardTitle className="font-serif text-lg">Add your numbers</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Follower counts, for how far each post travelled past them. */}
+            {followerPlatforms.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-3 border-b border-border/50 pb-3">
+              {followerPlatforms.map((p) => (
+                <label key={p} className="w-36 space-y-1">
+                  <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
+                    {PLATFORM_LABEL[p]} followers
+                  </span>
+                  <MetricInput
+                    value={followerEdits[p] ?? (typedFollowers[p] !== undefined ? String(typedFollowers[p]) : "")}
+                    onChange={(v) => setFollowerEdits((e) => ({ ...e, [p]: v }))}
+                    onSave={() => saveFollowers(p)}
+                    placeholder={auditFollowers[p] !== undefined ? String(auditFollowers[p]) : "0"}
+                    label={`${PLATFORM_LABEL[p]} followers`}
+                  />
+                  {typedFollowers[p] === undefined && auditFollowers[p] !== undefined && (
+                    <span className="block text-[10px] text-muted-foreground">From your account audit</span>
+                  )}
+                </label>
+              ))}
+            </div>
+            )}
             {/* One row per post: a table from sm up, stacked on phones (title, then the four numbers). */}
             <div className="hidden grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] gap-x-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:grid">
               <span>Post</span>
@@ -741,6 +810,8 @@ export default function AnalyticsPage() {
                 <option value="reactions">By reactions</option>
                 <option value="comments">By comments</option>
                 <option value="shares">By shares</option>
+                <option value="reachMultiple">By reach past followers</option>
+                <option value="commentRatio">By comments per like</option>
               </select>
               <Button variant="outline" size="sm" onClick={exportCsv} className="h-9 gap-1.5">
                 <Download className="h-3.5 w-3.5" /> Export CSV
@@ -749,7 +820,9 @@ export default function AnalyticsPage() {
             <div className="space-y-2">
               {ranked.length === 0 && (
                 <p className="rounded-xl border border-dashed border-border/70 p-4 text-center text-sm text-muted-foreground">
-                  No posts with numbers in the last {period} days.
+                  {rankBy === "reachMultiple"
+                    ? "Add your follower count in Add your numbers to see reach."
+                    : `No posts with ${rankBy === "commentRatio" ? "likes" : "numbers"} in the last ${period} days.`}
                 </p>
               )}
               {ranked.map((d) => (
@@ -763,15 +836,20 @@ export default function AnalyticsPage() {
                       {d.hook || d.draft.slice(0, 60)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {PLATFORM_LABEL[d.platform] ?? d.platform}
-                      {d.impressions
-                        ? ` · ${d.impressions.toLocaleString()} impressions`
-                        : ""}
+                      {[
+                        PLATFORM_LABEL[d.platform] ?? d.platform,
+                        d.impressions ? `${d.impressions.toLocaleString()} impressions` : null,
+                        d.impressions && rankBy !== "engagementRate" ? `${d.engagementRate}% engagement` : null,
+                        rankBy !== "reachMultiple" && reachMultiple(d, followers) !== null ? `${reachMultiple(d, followers)}x followers` : null,
+                        rankBy !== "commentRatio" && commentRatio(d) !== null ? `${commentRatio(d)} comments per like` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="font-serif text-lg font-semibold text-foreground">
-                      {rankValue(d, rankBy)}
+                      {rankValue(d, rankBy, followers)}
                     </div>
                     <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                       {RANK_UNIT[rankBy]}

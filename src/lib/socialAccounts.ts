@@ -91,3 +91,29 @@ export function accountUrl(platform: SocialPlatform, handle: string): string | n
   if (!meta) return null;
   return meta.base + h.replace(/^@/, "");
 }
+
+// Follower counts typed in Add your numbers, by platform, for reach past
+// followers. Kept apart from the handles: a count may come without a handle.
+const FOLLOWERS_PREFIX = "content-studio-followers-";
+export type FollowerCounts = Partial<Record<SocialPlatform, number>>;
+
+export function loadFollowers(userId: string | null | undefined): FollowerCounts {
+  const s = storage();
+  if (!s || !userId) return {};
+  try {
+    const parsed = JSON.parse(s.getItem(FOLLOWERS_PREFIX + scoped(userId)) ?? "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Sets one platform's count; null, a negative or a non-number clears it. */
+export function setFollowers(userId: string, platform: SocialPlatform, count: number | null): FollowerCounts {
+  const next: FollowerCounts = { ...loadFollowers(userId) };
+  if (count !== null && Number.isFinite(count) && count > 0) next[platform] = Math.round(count);
+  else delete next[platform];
+  const s = storage();
+  if (s) s.setItem(FOLLOWERS_PREFIX + scoped(userId), JSON.stringify(next));
+  return next;
+}

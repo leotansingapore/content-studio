@@ -466,12 +466,45 @@ export function comparePeriods(posts: TrackedPost[], days: number, now = Date.no
   return { current, previous, change: { posts: change("posts"), impressions: change("impressions"), engagements: change("engagements"), rate: change("rate") } };
 }
 
-export type RankMetric = "engagementTotal" | "engagementRate" | "impressions" | "reactions" | "comments" | "shares";
+export type RankMetric =
+  | "engagementTotal"
+  | "engagementRate"
+  | "impressions"
+  | "reactions"
+  | "comments"
+  | "shares"
+  | "reachMultiple"
+  | "commentRatio";
 
-export function rankPosts(posts: TrackedPost[], metric: RankMetric, n = 5): TrackedPost[] {
-  const val = (p: TrackedPost) =>
-    metric === "engagementTotal" || metric === "engagementRate" || metric === "impressions" ? p[metric] : p.metrics?.[metric] ?? 0;
-  return [...posts].sort((a, b) => val(b) - val(a)).slice(0, n);
+/** Follower counts by platform. */
+export type Followers = Partial<Record<string, number>>;
+
+/** Impressions per follower on the post's platform, to one decimal: over 1, it travelled past the people who follow you. Null when either number is missing. */
+export function reachMultiple(p: TrackedPost, followers: Followers): number | null {
+  const f = followers[p.platform] ?? 0;
+  return f > 0 && p.impressions > 0 ? Math.round((p.impressions / f) * 10) / 10 : null;
+}
+
+/** Comments per like (reaction), to two decimals: whether a post started a conversation or got a nod. Null with no likes. */
+export function commentRatio(p: DraftEntry): number | null {
+  const likes = p.metrics?.reactions ?? 0;
+  return likes > 0 ? Math.round(((p.metrics?.comments ?? 0) / likes) * 100) / 100 : null;
+}
+
+/** The top n by a metric. Reach and comments per like leave out posts they can't measure. */
+export function rankPosts(posts: TrackedPost[], metric: RankMetric, n = 5, followers: Followers = {}): TrackedPost[] {
+  const val = (p: TrackedPost): number | null =>
+    metric === "reachMultiple"
+      ? reachMultiple(p, followers)
+      : metric === "commentRatio"
+        ? commentRatio(p)
+        : metric === "engagementTotal" || metric === "engagementRate" || metric === "impressions"
+          ? p[metric]
+          : p.metrics?.[metric] ?? 0;
+  return posts
+    .filter((p) => val(p) !== null)
+    .sort((a, b) => val(b)! - val(a)!)
+    .slice(0, n);
 }
 
 /** A spreadsheet of every tracked post. Quotes, commas and line breaks are escaped. */
