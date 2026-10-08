@@ -68,6 +68,10 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
     }
   }, [memoKey, format, formula, stage, topic, draft, savedId]);
   const abort = useRef<AbortController | null>(null);
+  // The last text the agent wrote and the last text saved: anything else in the
+  // box is the consultant's own edit, which "Write it again" must not wipe silently.
+  const generated = useRef(memo.draft ?? "");
+  const lastSaved = useRef(memo.savedId ? memo.draft ?? "" : "");
   const flags = useMemo(() => {
     const f = scanRecruitCompliance(draft);
     for (const n of busy ? [] : unsupportedNumbers(draft, contextDoc)) {
@@ -86,6 +90,8 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
 
   const write = async () => {
     if (!topic.trim()) return;
+    if (draft.trim() && draft !== generated.current && draft !== lastSaved.current
+      && !window.confirm("Replace the draft below? Your edits to it will be lost.")) return;
     const fmt = RECRUIT_FORMATS.find((f) => f.id === format)!;
     abort.current?.abort();
     const controller = new AbortController();
@@ -106,9 +112,13 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
         voiceSummary: loadVoiceProfile(userId)?.voiceSummary || undefined,
       },
       {
-        onToken: (text) => setDraft(stripDashes(text)),
+        onToken: (text) => {
+          generated.current = stripDashes(text);
+          setDraft(generated.current);
+        },
         onComplete: (text) => {
-          setDraft(stripDashes(text));
+          generated.current = stripDashes(text);
+          setDraft(generated.current);
           setBusy(false);
         },
         onError: (message) => {
@@ -139,6 +149,7 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
       status: "draft",
     });
     setSavedId(id);
+    lastSaved.current = draft;
     toast({ title: "Saved to My posts", description: "Schedule it from Pipeline." });
   };
 
@@ -231,10 +242,12 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
         <p className="text-[11px] text-muted-foreground">{STAGES.find((s) => s.id === stage)?.ask}</p>
 
         <div className="flex flex-wrap gap-2">
+          {/* Once a draft is in, Save leads and writing again steps back. */}
           <Button
             onClick={write}
             disabled={!topic.trim() || busy}
-            className={`gap-1.5 bg-gradient-primary text-primary-foreground ${busy ? "disabled:opacity-100" : ""}`}
+            variant={draft && !busy ? "outline" : "default"}
+            className={`gap-1.5 ${draft && !busy ? "" : "bg-gradient-primary text-primary-foreground"} ${busy ? "disabled:opacity-100" : ""}`}
           >
             {busy ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-4 w-4" />}
             {busy ? "Writing in your voice..." : draft ? "Write it again" : "Draft it"}
