@@ -3,9 +3,13 @@
 // and up to three small stills for "match this reference". Preview and export
 // draw every frame with drawFrame, so what you see is what you get.
 
+import { readableOn } from "@/lib/carouselLayout";
+import type { CarouselBrand } from "@/lib/carousel";
 import {
+  END_CARD_SECONDS,
   STYLES,
   aspectSize,
+  endCardLine,
   buildCaptions,
   captionAt,
   captionCenter,
@@ -174,6 +178,100 @@ export interface Frame {
   total: number;
   /** Second-language line per caption, by captionKey. */
   subs?: Record<string, string>;
+  /** The brand kit, for the logo. */
+  brand?: BrandArt | null;
+}
+
+// ---------- brand kit on video ----------
+
+/** The brand kit with its pictures loaded, ready to paint. */
+export interface BrandArt {
+  logo?: HTMLImageElement;
+  photo?: HTMLImageElement;
+  name: string;
+  handle: string;
+  role: string;
+  color: string;
+  line: string;
+}
+
+function loadImg(src: string | undefined): Promise<HTMLImageElement | undefined> {
+  if (!src) return Promise.resolve(undefined);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(undefined);
+    img.src = src;
+  });
+}
+
+export async function loadBrandArt(brand: CarouselBrand | null): Promise<BrandArt | null> {
+  if (!brand || !(brand.name?.trim() || brand.handle?.trim() || brand.photo || brand.logo)) return null;
+  const [logo, photo] = await Promise.all([loadImg(brand.logo), loadImg(brand.photo)]);
+  return { logo, photo, name: brand.name.trim(), handle: brand.handle.trim(), role: (brand.role ?? "").trim(), color: brand.color, line: endCardLine(brand.signOff) };
+}
+
+/** The closing card: brand colour, round photo, name, handle, role and the sign-off line; fades in over 0.3 s. */
+export function drawEndCard(g: CanvasRenderingContext2D, art: BrandArt, t: number) {
+  const W = g.canvas.width;
+  const H = g.canvas.height;
+  const u = Math.min(W, H) / 1080;
+  g.save();
+  g.fillStyle = "#000";
+  g.fillRect(0, 0, W, H);
+  g.globalAlpha = Math.min(1, Math.max(0, t / 0.3));
+  g.fillStyle = art.color;
+  g.fillRect(0, 0, W, H);
+  const ink = readableOn(art.color);
+  const rows: { text: string; font: string; alpha: number; gap: number }[] = [];
+  if (art.name) rows.push({ text: art.name, font: `800 ${Math.round(76 * u)}px "DM Sans", Inter, system-ui, sans-serif`, alpha: 1, gap: 92 * u });
+  if (art.handle) rows.push({ text: art.handle, font: `600 ${Math.round(44 * u)}px "DM Sans", Inter, system-ui, sans-serif`, alpha: 0.85, gap: 62 * u });
+  if (art.role) rows.push({ text: art.role, font: `500 ${Math.round(38 * u)}px "DM Sans", Inter, system-ui, sans-serif`, alpha: 0.75, gap: 56 * u });
+  const r = art.photo ? 170 * u : 0;
+  const lineH = art.line ? 120 * u : 0;
+  const block = (r ? r * 2 + 60 * u : 0) + rows.reduce((a, b) => a + b.gap, 0) + lineH;
+  let y = (H - block) / 2;
+  if (art.photo) {
+    const cx = W / 2;
+    const cy = y + r;
+    g.save();
+    g.beginPath();
+    g.arc(cx, cy, r, 0, Math.PI * 2);
+    g.clip();
+    const side = Math.min(art.photo.naturalWidth, art.photo.naturalHeight);
+    g.drawImage(art.photo, (art.photo.naturalWidth - side) / 2, (art.photo.naturalHeight - side) / 2, side, side, cx - r, cy - r, r * 2, r * 2);
+    g.restore();
+    g.strokeStyle = ink;
+    g.globalAlpha *= 0.5;
+    g.lineWidth = 6 * u;
+    g.beginPath();
+    g.arc(cx, cy, r + 3 * u, 0, Math.PI * 2);
+    g.stroke();
+    g.globalAlpha = Math.min(1, Math.max(0, t / 0.3));
+    y += r * 2 + 60 * u;
+  }
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  const fade = g.globalAlpha;
+  for (const row of rows) {
+    g.font = row.font;
+    g.fillStyle = ink;
+    g.globalAlpha = fade * row.alpha;
+    g.fillText(row.text, W / 2, y + row.gap / 2, W * 0.88);
+    y += row.gap;
+  }
+  if (art.line) {
+    g.globalAlpha = fade;
+    g.font = `700 ${Math.round(40 * u)}px "DM Sans", Inter, system-ui, sans-serif`;
+    const tw = Math.min(W * 0.84, g.measureText(art.line).width);
+    const bh = 84 * u;
+    const by = y + 36 * u;
+    g.fillStyle = ink;
+    roundRect(g, (W - tw) / 2 - 36 * u, by, tw + 72 * u, bh, bh / 2);
+    g.fillStyle = art.color;
+    g.fillText(art.line, W / 2, by + bh / 2, W * 0.84);
+  }
+  g.restore();
 }
 
 export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
@@ -338,6 +436,22 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     hook.lines.forEach((l, i) => g.fillText(l.join(" "), W / 2, hook!.top + hook!.px * 0.35 + hook!.lh * (i + 0.5)));
   }
 
+  // the brand kit logo, top right, clear of the hook card
+  const logo = s.logo ? f.brand?.logo : undefined;
+  if (logo?.naturalWidth) {
+    const u = Math.min(W, H) / 1080;
+    let lw = 170 * u;
+    let lh = (lw * logo.naturalHeight) / logo.naturalWidth;
+    if (lh > 110 * u) {
+      lh = 110 * u;
+      lw = (lh * logo.naturalWidth) / logo.naturalHeight;
+    }
+    g.save();
+    g.globalAlpha = 0.9;
+    g.drawImage(logo, W - lw - 44 * u, 44 * u, lw, lh);
+    g.restore();
+  }
+
   if (s.progressBar && f.total > 0) {
     g.fillStyle = s.activeColor;
     g.fillRect(0, 0, W * Math.min(1, f.out / f.total), Math.max(6, 10 * k));
@@ -428,7 +542,7 @@ function pickMime(): { mime: string; ext: string } {
 }
 
 /** Renders the edit in real time (a 45 s reel takes about 45 s) and downloads it. */
-export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>) {
+export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null) {
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
   job = { id: String(Date.now()), name, progress: 0, state: "running" };
@@ -461,11 +575,12 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
 
     const v = video;
     let done = 0;
+    const endLen = settings.endCard && brand ? END_CARD_SECONDS : 0;
     const draw = () => {
       const out = Math.min(plan.total, outputTime(plan.segs, v.currentTime) ?? done);
-      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs });
+      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand });
       if (job) {
-        job.progress = Math.min(0.99, out / plan.total);
+        job.progress = Math.min(0.99, out / (plan.total + endLen));
         emit();
       }
     };
@@ -518,6 +633,25 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       v.pause();
       if (rec.state === "recording") rec.pause();
       done += seg.end - seg.start;
+    }
+    if (endLen && brand) {
+      // the end card: painted for its length in real time, over silence
+      drawEndCard(g, brand, 0);
+      rec.resume();
+      const start = performance.now();
+      await new Promise<void>((resolve) => {
+        const tick = () => {
+          const t = (performance.now() - start) / 1000;
+          drawEndCard(g, brand, t);
+          if (job) {
+            job.progress = Math.min(0.99, (plan.total + t) / (plan.total + endLen));
+            emit();
+          }
+          if (t >= endLen) return resolve();
+          window.setTimeout(tick, 1000 / 30);
+        };
+        tick();
+      });
     }
     rec.stop();
     await stopped;

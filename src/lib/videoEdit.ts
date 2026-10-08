@@ -54,6 +54,23 @@ export interface EditSettings {
   captionY?: number;
   /** Second subtitle line under each caption: "" off, or zh / ms / ta (translations live on the project). */
   subLang: "" | "zh" | "ms" | "ta";
+  /** The brand kit logo in the top corner. */
+  logo?: boolean;
+  /** A closing card from the brand kit (photo, name, handle, sign-off line) after the last cut. */
+  endCard?: boolean;
+}
+
+export const END_CARD_SECONDS = 2.5;
+
+/** The edit's full length: what is left after the cuts, plus the end card when it is on and there is a brand to show. */
+export function fullLength(total: number, s: Pick<EditSettings, "endCard">, hasBrand: boolean): number {
+  return total + (s.endCard && hasBrand ? END_CARD_SECONDS : 0);
+}
+
+/** The end card's call to action: the sign-off's first line that isn't only hashtags. */
+export function endCardLine(signOff: string | undefined): string {
+  const line = (signOff ?? "").split("\n").map((l) => l.trim()).find((l) => l && !/^(#[\p{L}\p{N}_]+\s*)+$/u.test(l)) ?? "";
+  return line.length > 60 ? `${line.slice(0, 59).trimEnd()}...` : line;
 }
 
 interface StyleSpec {
@@ -119,6 +136,8 @@ export function defaultSettings(style: StyleId = "bold"): EditSettings {
     roleTag: "",
     nameSeconds: 4,
     subLang: "",
+    logo: false,
+    endCard: false,
   };
 }
 
@@ -272,7 +291,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("wordsPerCaption" in p) set("wordsPerCaption", Math.round(clamp(p.wordsPerCaption, 1, 6, s.wordsPerCaption)));
   if (typeof p.baseColor === "string" && HEX.test(p.baseColor)) set("baseColor", p.baseColor.toUpperCase());
   if (typeof p.activeColor === "string" && HEX.test(p.activeColor)) set("activeColor", p.activeColor.toUpperCase());
-  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade", "highlightNumbers"] as const) {
+  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard"] as const) {
     if (typeof p[k] === "boolean") set(k, p[k] as boolean);
   }
   if (typeof p.hook === "string") set("hook", p.hook.replace(/—/g, ",").slice(0, 90));

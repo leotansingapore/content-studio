@@ -149,3 +149,27 @@ describe("caption pop-in", () => {
     expect(captionIntro(0.9, 1.0)).toBe(0);
   });
 });
+
+describe("brand kit on video", () => {
+  it("adds the end card to the length only when it is on and there is a brand", async () => {
+    const { fullLength, END_CARD_SECONDS } = await import("@/lib/videoEdit");
+    expect(fullLength(20, { endCard: true }, true)).toBe(20 + END_CARD_SECONDS);
+    expect(fullLength(20, { endCard: true }, false)).toBe(20);
+    expect(fullLength(20, {}, true)).toBe(20);
+  });
+
+  it("takes the end card line from the sign-off, skipping hashtag lines", async () => {
+    const { endCardLine } = await import("@/lib/videoEdit");
+    expect(endCardLine("#cpf #sg\nDM me PLAN for a free review.\nNot advice.")).toBe("DM me PLAN for a free review.");
+    expect(endCardLine("#cpf")).toBe("");
+    expect(endCardLine(undefined)).toBe("");
+    expect(endCardLine("x".repeat(80))).toHaveLength(62);
+  });
+
+  it("lets a vibe edit switch the logo and end card", async () => {
+    const { applyPatch, defaultSettings } = await import("@/lib/videoEdit");
+    const { next, changed } = applyPatch(defaultSettings(), { logo: true, endCard: true });
+    expect(next.logo && next.endCard).toBe(true);
+    expect(changed).toEqual(["logo", "endCard"]);
+  });
+});

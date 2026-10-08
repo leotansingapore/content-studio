@@ -24,6 +24,8 @@ import {
   captionCenter,
   captionKey,
   clipSettings,
+  END_CARD_SECONDS,
+  fullLength,
   sentencesOf,
   defaultSettings,
   fmtTime,
@@ -35,8 +37,10 @@ import {
   type StyleId,
 } from "@/lib/videoEdit";
 import {
+  drawEndCard,
   drawFrame,
   ensureCaptionFonts,
+  loadBrandArt,
   exportJob,
   makeCover,
   extractWav,
@@ -46,6 +50,7 @@ import {
   putFile,
   startExport,
   stills,
+  type BrandArt,
   type ExportJob,
 } from "@/lib/videoMedia";
 import { fileKey, findClips, loadProjects, removeProject, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
@@ -224,6 +229,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const canvas = useRef<HTMLCanvasElement>(null);
   const segIdx = useRef(0);
   const drag = useRef<{ startY: number; moved: boolean } | null>(null);
+  // the brand kit (logo, end card, name tag); endAt is the time into the end card while it shows
+  const brandKit = useMemo(() => loadBrand(userId), [userId]);
+  const [art, setArt] = useState<BrandArt | null>(null);
+  const endAt = useRef<number | null>(null);
+  useEffect(() => {
+    void loadBrandArt(brandKit).then(setArt);
+  }, [brandKit]);
 
   useEffect(() => { const off = onExportJob(setJob); return () => { off(); }; }, []);
   useEffect(() => {
@@ -255,25 +267,50 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     const v = video.current;
     const c = canvas.current;
     if (!v || !c) return;
+    if (endAt.current !== null && art) {
+      drawEndCard(c.getContext("2d")!, art, endAt.current);
+      setOutT(plan.total + endAt.current);
+      return;
+    }
     const out = outputTime(plan.segs, v.currentTime) ?? outT;
-    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined });
+    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art });
     setOutT(out);
-  }, [plan, settings, outT, subs]);
+  }, [plan, settings, outT, subs, art]);
+  const total = fullLength(plan.total, settings, !!art);
   paintRef.current = paint;
 
   // playback that skips the cuts
   useEffect(() => {
     if (!playing) return;
     let raf = 0;
+    let endStart = 0;
+    const finish = () => {
+      const v = video.current;
+      v?.pause();
+      // then the end card, if it is on, for its length in real time
+      if (total > plan.total) {
+        endStart = performance.now() - (endAt.current ?? 0) * 1000;
+        endAt.current = endAt.current ?? 0;
+        raf = requestAnimationFrame(endLoop);
+      } else setPlaying(false);
+    };
+    const endLoop = () => {
+      const t = (performance.now() - endStart) / 1000;
+      if (t >= total - plan.total) { setPlaying(false); return; }
+      endAt.current = t;
+      paint();
+      raf = requestAnimationFrame(endLoop);
+    };
     const loop = () => {
       const v = video.current;
       if (!v) return;
+      if (endAt.current !== null) return finish();
       const seg = plan.segs[segIdx.current];
-      if (!seg) { v.pause(); setPlaying(false); return; }
+      if (!seg) return finish();
       if (v.currentTime >= seg.end - 0.03 || v.currentTime < seg.start - 0.2) {
         segIdx.current++;
         const next = plan.segs[segIdx.current];
-        if (!next) { v.pause(); setPlaying(false); return; }
+        if (!next) return finish();
         v.currentTime = next.start;
       }
       paint();
@@ -281,13 +318,19 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [playing, plan, paint]);
+  }, [playing, plan, paint, total]);
 
   useEffect(() => { if (!playing) paint(); }, [settings, plan]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const seekOut = (t: number) => {
     const v = video.current;
     if (!v) return;
+    if (t > plan.total && total > plan.total) {
+      endAt.current = Math.min(t - plan.total, total - plan.total);
+      paint();
+      return;
+    }
+    endAt.current = null;
     const src = sourceTime(plan.segs, t);
     segIdx.current = Math.max(0, plan.segs.findIndex((g) => src >= g.start && src < g.end));
     v.currentTime = src;
@@ -297,7 +340,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     const v = video.current;
     if (!v) return;
     if (playing) { v.pause(); setPlaying(false); return; }
-    if (outT >= plan.total - 0.1) seekOut(0);
+    if (outT >= total - 0.1) seekOut(0);
     else seekOut(outT);
     await v.play().catch(() => {});
     setPlaying(true);
@@ -467,7 +510,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   const doExport = () => {
     if (!file) return;
-    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
+    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
   };
 
   const cutSeconds = Math.max(0, duration - plan.total);
@@ -519,7 +562,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       )}
       {job?.state === "running" && (
         <p className="text-xs text-muted-foreground" aria-live="polite">
-          Exporting in real time ({fmtTime(plan.total)}). You can use other pages; keep this browser tab in front until it finishes.
+          Exporting in real time ({fmtTime(total)}). You can use other pages; keep this browser tab in front until it finishes.
         </p>
       )}
       {job?.state === "done" && job.url && (
@@ -569,9 +612,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             <Button size="sm" variant="outline" onClick={toggle} aria-label={playing ? "Pause" : "Play"} className="h-9 w-9 p-0">
               {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
-            <input type="range" min={0} max={plan.total || 1} step={0.05} value={Math.min(outT, plan.total)} aria-label="Position"
+            <input type="range" min={0} max={total || 1} step={0.05} value={Math.min(outT, total)} aria-label="Position"
               onChange={(e) => seekOut(Number(e.target.value))} className="flex-1 accent-primary" />
-            <span className="w-24 text-right font-mono text-[11px] text-muted-foreground">{fmtTime(outT)} / {fmtTime(plan.total)}</span>
+            <span className="w-24 text-right font-mono text-[11px] text-muted-foreground">{fmtTime(outT)} / {fmtTime(total)}</span>
           </div>
           <p className="text-[11px] text-muted-foreground">
             {fmtTime(duration)} filmed, {fmtTime(plan.total)} after cuts{cutSeconds > 0.5 ? ` (${cutSeconds.toFixed(1)}s cut)` : ""}.
@@ -713,6 +756,21 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                     className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
                 </label>
               </div>
+              {!settings.nameTag?.trim() && brandKit?.name?.trim() && (
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => patch({ nameTag: brandKit.name.trim().slice(0, 40), roleTag: (brandKit.role ?? "").trim().slice(0, 50) })}>
+                  Use {brandKit.name.trim()}{brandKit.role?.trim() ? `, ${brandKit.role.trim()}` : ""}
+                </Button>
+              )}
+              {art ? (
+                <>
+                  <Row label="Logo in the corner">
+                    {art.logo ? <Toggle on={!!settings.logo} set={(v) => patch({ logo: v })} /> : <Link to="/brand" className="text-xs font-semibold text-primary hover:underline">Add a logo</Link>}
+                  </Row>
+                  <Row label={`End card (${END_CARD_SECONDS}s)`}><Toggle on={!!settings.endCard} set={(v) => { endAt.current = v ? 0.6 : null; patch({ endCard: v }); }} /></Row>
+                </>
+              ) : (
+                <p className="text-xs"><Link to="/brand" className="font-semibold text-primary hover:underline">Set up your brand kit</Link> for a logo and an end card.</p>
+              )}
               <Row label="Shape">
                 {(["9:16", "4:5", "1:1", "16:9", "original"] as const).map((a) => <Chip key={a} on={settings.aspect === a} onClick={() => patch({ aspect: a })}>{a}</Chip>)}
               </Row>
