@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -52,6 +53,7 @@ import {
   ChevronRight,
   Pencil,
   Gauge,
+  BookmarkPlus,
 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import inspirationData from "@/data/inspiration.json";
@@ -104,6 +106,12 @@ import {
   type FunnelStageId,
 } from "@/data/funnelFramework";
 import { scoped } from "@/lib/profiles";
+import {
+  deleteTemplate,
+  loadTemplates,
+  saveTemplate,
+  type BriefTemplate,
+} from "@/lib/templates";
 
 type Pillar = "interest" | "identity" | "topic" | "market";
 type Format = "carousel" | "short-video" | "text-post" | "story";
@@ -526,6 +534,10 @@ export default function GeneratePage() {
   const [ctaType, setCtaType] = useState<CtaType>("dm-keyword");
   const [audience, setAudience] = useState<Audience>("general");
   const [singlish, setSinglish] = useState<boolean>(false);
+  // Saved brief templates (per profile), and the save-as-template form.
+  const [templates, setTemplates] = useState<BriefTemplate[]>([]);
+  const [appliedTemplateId, setAppliedTemplateId] = useState<string | null>(null);
+  const [templateForm, setTemplateForm] = useState<{ name: string; keepTopic: boolean } | null>(null);
   // Disclosure labels added to the end of the post on copy. Off by default.
   const [disclosure, setDisclosure] = useState<DisclosureId[]>([]);
   // Funnel stage (Willis Lau's ABC funnel) — steers ideation + the draft.
@@ -672,6 +684,7 @@ export default function GeneratePage() {
       } catch {
         // corrupt prefs or a blocked storage are ignorable
       }
+      setTemplates(loadTemplates(id));
       const profile = loadVoiceProfile(id);
       const usable = isVoiceProfileUsable(profile);
       setVoiceProfileUsable(usable);
@@ -1721,6 +1734,57 @@ export default function GeneratePage() {
   const hasOutput =
     hookOptions.length > 0 || variants.length > 0 || draft.trim().length > 0;
 
+  const defaultTemplateName = () =>
+    `${platformLabel(platform)} ${FORMATS.find((f) => f.value === format)!.label.toLowerCase()}, ${AUDIENCES.find(
+      (a) => a.value === audience,
+    )!.label.toLowerCase()}`;
+
+  const handleSaveTemplate = () => {
+    if (!userId || !templateForm) return;
+    const name = templateForm.name.trim() || defaultTemplateName();
+    const topic = pillarDetail.trim();
+    setTemplates(
+      saveTemplate(userId, {
+        name,
+        pillar,
+        ...(templateForm.keepTopic && topic ? { pillarDetail: topic } : {}),
+        audience,
+        singlish: singlish || undefined,
+        funnelStage,
+        ideaSource,
+        platform,
+        format,
+        ctaType,
+      }),
+    );
+    setTemplateForm(null);
+    toast({ title: "Template saved", description: `Pick "${name}" at the start of your next post.` });
+  };
+
+  // A template sets the brief's choices; its topic only fills an empty box.
+  const applyTemplate = (t: BriefTemplate) => {
+    if (PILLARS.some((p) => p.value === t.pillar)) setPillar(t.pillar as Pillar);
+    if (t.pillarDetail && !pillarDetail.trim()) setPillarDetail(t.pillarDetail);
+    if (AUDIENCES.some((a) => a.value === t.audience)) setAudience(t.audience as Audience);
+    setSinglish(t.singlish === true);
+    setFunnelStage(FUNNEL_STAGES.some((f) => f.id === t.funnelStage) ? (t.funnelStage as FunnelStageId) : null);
+    if (IDEA_SOURCES.some((i) => i.value === t.ideaSource)) setIdeaSource(t.ideaSource);
+    if (PLATFORMS.some((p) => p.value === t.platform)) setPlatform(t.platform as Platform);
+    if (FORMATS.some((f) => f.value === t.format)) setFormat(t.format as Format);
+    if (CTAS.some((c) => c.value === t.ctaType)) setCtaType(t.ctaType as CtaType);
+    setAppliedTemplateId(t.id);
+    toast({ title: `Using "${t.name}"` });
+    if (!pillarDetail.trim() && !t.pillarDetail) {
+      setTimeout(() => document.getElementById("pillar-detail")?.focus(), 50);
+    }
+  };
+
+  const removeTemplate = (t: BriefTemplate) => {
+    if (!userId || !window.confirm(`Delete the template "${t.name}"?`)) return;
+    setTemplates(deleteTemplate(userId, t.id));
+    if (appliedTemplateId === t.id) setAppliedTemplateId(null);
+  };
+
   const goNext = () =>
     setWizardStep((s) => Math.min(LAST_STEP, s + 1));
   const goBack = () => setWizardStep((s) => Math.max(0, s - 1));
@@ -1851,6 +1915,41 @@ export default function GeneratePage() {
 
           {wizardStep === 0 && (
             <div className="space-y-6">
+      {templates.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground">From a template</p>
+          <div className="flex flex-wrap gap-2">
+            {templates.map((t) => (
+              <div
+                key={t.id}
+                className={`flex items-center rounded-full border text-xs font-medium transition-colors ${
+                  appliedTemplateId === t.id
+                    ? "border-primary/60 bg-primary/10 text-primary"
+                    : "border-border/70 text-foreground hover:border-primary/40"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => applyTemplate(t)}
+                  aria-pressed={appliedTemplateId === t.id}
+                  className="flex h-9 max-w-[16rem] items-center gap-1.5 truncate pl-3 pr-1"
+                >
+                  {appliedTemplateId === t.id && <Check className="h-3.5 w-3.5 shrink-0" />}
+                  <span className="truncate">{t.name}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeTemplate(t)}
+                  aria-label={`Delete template ${t.name}`}
+                  className="flex h-9 w-8 items-center justify-center rounded-r-full text-muted-foreground hover:text-destructive"
+                >
+                  <XIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <Card className="border-border/60 shadow-card">
         <CardHeader>
           <div className="flex items-center gap-1">
@@ -2171,6 +2270,18 @@ export default function GeneratePage() {
       </Card>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            setTemplateForm((f) => (f ? null : { name: defaultTemplateName(), keepTopic: false }))
+          }
+          aria-expanded={templateForm !== null}
+          className="gap-1.5 text-muted-foreground"
+        >
+          <BookmarkPlus className="h-4 w-4" /> Save as template
+        </Button>
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <label
             className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-all ${
@@ -2219,6 +2330,39 @@ export default function GeneratePage() {
             </Button>
           )}
         </div>
+        {templateForm && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveTemplate();
+            }}
+            className="flex basis-full flex-wrap items-end gap-3 border-t border-primary/20 pt-3"
+          >
+            <div className="min-w-[12rem] flex-1 space-y-1.5">
+              <Label htmlFor="template-name">Template name</Label>
+              <Input
+                id="template-name"
+                value={templateForm.name}
+                onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                maxLength={60}
+                autoFocus
+              />
+            </div>
+            <label className="flex h-10 cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={templateForm.keepTopic}
+                disabled={!pillarDetail.trim()}
+                onChange={(e) => setTemplateForm({ ...templateForm, keepTopic: e.target.checked })}
+              />
+              Keep the topic
+            </label>
+            <Button type="submit" variant="outline" className="gap-1.5">
+              <Check className="h-4 w-4" /> Save template
+            </Button>
+          </form>
+        )}
       </div>
             </div>
           )}

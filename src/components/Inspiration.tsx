@@ -90,6 +90,12 @@ const PLATFORM_OPTIONS: InspirationEntry["platform"][] = [
   "facebook",
 ];
 
+const FORMAT_OPTIONS: { value: InspirationEntry["format"]; label: string }[] = [
+  { value: "carousel", label: "Carousel" },
+  { value: "short-video", label: "Reel / short video" },
+  { value: "text-only", label: "Text" },
+];
+
 const AUDIENCE_OPTIONS = Array.from(
   new Set(ENTRIES.map((e) => e.audience)),
 ).sort();
@@ -284,6 +290,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
     new Set(),
   );
   const [audiences, setAudiences] = useState<Set<string>>(new Set());
+  const [formats, setFormats] = useState<Set<InspirationEntry["format"]>>(new Set());
   // Collapse the secondary filters and paginate the grid so the page opens
   // as a short, scannable screen instead of one endless wall of cards.
   const [showFilters, setShowFilters] = useState(false);
@@ -330,6 +337,14 @@ export default function Inspiration({ onUseAsVibe }: Props) {
       return next;
     });
   };
+  const toggleFormat = (f: InspirationEntry["format"]) => {
+    setFormats((s) => {
+      const next = new Set(s);
+      if (next.has(f)) next.delete(f);
+      else next.add(f);
+      return next;
+    });
+  };
   const toggleAudience = (a: string) => {
     setAudiences((s) => {
       const next = new Set(s);
@@ -343,6 +358,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
     setPlatforms(new Set());
     setPillars(new Set());
     setAudiences(new Set());
+    setFormats(new Set());
     setSearch("");
   };
 
@@ -353,6 +369,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
       if (platforms.size > 0 && !platforms.has(e.platform)) return false;
       if (pillars.size > 0 && !pillars.has(e.pillar)) return false;
       if (audiences.size > 0 && !audiences.has(e.audience)) return false;
+      if (formats.size > 0 && !formats.has(e.format)) return false;
       if (q.length > 0) {
         const haystack = (
           e.hook +
@@ -367,15 +384,15 @@ export default function Inspiration({ onUseAsVibe }: Props) {
       }
       return true;
     });
-  }, [search, platforms, pillars, audiences, savedOnly, saved.inspiration]);
+  }, [search, platforms, pillars, audiences, formats, savedOnly, saved.inspiration]);
 
   const activeFilterCount =
-    platforms.size + pillars.size + audiences.size + (search.trim() ? 1 : 0);
+    platforms.size + pillars.size + audiences.size + formats.size + (search.trim() ? 1 : 0);
 
   // Any time the filters change, jump back to the first page of results.
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [search, platforms, pillars, audiences]);
+  }, [search, platforms, pillars, audiences, formats]);
 
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visible.length;
@@ -462,6 +479,22 @@ export default function Inspiration({ onUseAsVibe }: Props) {
                       onClick={() => togglePlatform(p)}
                     >
                       {PLATFORM_META[p].label}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                  Format
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {FORMAT_OPTIONS.map((f) => (
+                    <Chip
+                      key={f.value}
+                      active={formats.has(f.value)}
+                      onClick={() => toggleFormat(f.value)}
+                    >
+                      {f.label}
                     </Chip>
                   ))}
                 </div>
