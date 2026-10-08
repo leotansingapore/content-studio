@@ -34,6 +34,16 @@ import {
   type DraftEntry,
 } from "@/lib/draftHistory";
 import {
+  NOTE_COLORS,
+  deleteNote,
+  loadNotes,
+  newNoteId,
+  saveNote,
+  type CalNote,
+  type NoteColor,
+} from "@/lib/calendarNotes";
+import { sgDateLabel, sgDatesBetween, type SgDate } from "@/data/sgDates";
+import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -42,6 +52,8 @@ import {
   CalendarRange,
   List,
   CheckCircle2,
+  Coins,
+  StickyNote,
   X,
 } from "lucide-react";
 
@@ -55,6 +67,24 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DRAG_TYPE = "text/draft-id";
 
 type View = "month" | "week" | "list";
+type NoteForm = { id: string | null; date: string; title: string; color: NoteColor };
+
+// Note colours are theme tokens, spelled out so Tailwind keeps the classes.
+const NOTE_SWATCH: Record<NoteColor, string> = {
+  brand: "bg-brand",
+  primary: "bg-primary",
+  success: "bg-success",
+  warning: "bg-warning",
+  destructive: "bg-destructive",
+};
+const NOTE_COLOR_NAME: Record<NoteColor, string> = {
+  brand: "Purple",
+  primary: "Blue",
+  success: "Green",
+  warning: "Amber",
+  destructive: "Red",
+};
+const KEY_DATE_DAYS = 60; // how far ahead Upcoming lists holidays and money dates
 type StatusFilter = "all" | "scheduled" | "posted";
 
 // The date a post "sits on" in the calendar: scheduled date, else posted date.
@@ -101,6 +131,10 @@ export default function CalendarPage() {
   const [pickDate, setPickDate] = useState<string>("");
   const [pickTime, setPickTime] = useState<string>("");
   const editorRef = useRef<HTMLDivElement>(null);
+  const [notes, setNotes] = useState<CalNote[]>([]);
+  // The note being added or edited; kept until saved or closed, so typed words survive a view change.
+  const [noteForm, setNoteForm] = useState<NoteForm | null>(null);
+  const noteRef = useRef<HTMLDivElement>(null);
   // Reels scheduled on the reels board, for its owner: one calendar for everything that posts.
   const [reels, setReels] = useState<{ id: string; title: string; date: string; posted: boolean }[]>([]);
 
@@ -113,6 +147,7 @@ export default function CalendarPage() {
       const id = data.user?.id ?? null;
       setUserId(id);
       setDrafts(loadDrafts(id));
+      setNotes(loadNotes(id));
       if (REELS_BOARD_OWNERS.includes(data.user?.email?.toLowerCase() ?? "")) {
         fetchBoard()
           .then((b) => {
@@ -233,6 +268,34 @@ export default function CalendarPage() {
     if (!userId) return;
     setDrafts(setDraftStatus(userId, id, "posted"));
     toast({ title: "Marked as posted" });
+  };
+
+  const openNote = (n: CalNote | null, date?: string) => {
+    setNoteForm(n ? { ...n } : { id: null, date: date ?? (anchor > todayKey ? anchor : todayKey), title: "", color: "brand" });
+    requestAnimationFrame(() => noteRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+  };
+
+  const submitNote = () => {
+    if (!userId || !noteForm || !noteForm.title.trim() || !noteForm.date) return;
+    const note: CalNote = { ...noteForm, id: noteForm.id ?? newNoteId() };
+    setNotes(saveNote(userId, note));
+    setNoteForm(null);
+    toast({ title: noteForm.id ? "Note saved" : `Note added to ${dayLabel(note.date)}` });
+  };
+
+  const removeNote = (id: string) => {
+    const prev = notes.find((n) => n.id === id);
+    if (!userId || !prev) return;
+    setNotes(deleteNote(userId, id));
+    setNoteForm(null);
+    toast({
+      title: "Note deleted",
+      action: (
+        <ToastAction altText="Undo" onClick={() => setNotes(saveNote(userId, prev))}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   const select = (id: string) => {
@@ -392,12 +455,89 @@ export default function CalendarPage() {
     </button>
   );
 
+  const keyDateLine = (k: SgDate, roomy: boolean) => (
+    <p
+      key={k.title}
+      title={sgDateLabel(k)}
+      className={`text-[10px] font-medium ${roomy ? "" : "truncate"} ${
+        k.kind === "holiday" ? "text-destructive" : "text-muted-foreground"
+      }`}
+    >
+      {k.kind === "money" && <Coins className="mr-0.5 inline h-2.5 w-2.5 align-[-1px]" aria-hidden />}
+      {sgDateLabel(k)}
+    </p>
+  );
+
+  const noteChip = (n: CalNote, roomy: boolean) => (
+    <button
+      key={n.id}
+      type="button"
+      onClick={() => openNote(n)}
+      className={`flex w-full items-center gap-1 rounded bg-muted/70 px-1.5 text-left font-medium text-foreground hover:bg-muted ${
+        roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "py-0.5 text-[10px]"
+      }`}
+    >
+      <span className={`h-2 w-2 shrink-0 rounded-full ${NOTE_SWATCH[n.color]}`} aria-hidden />
+      <span className={roomy ? "line-clamp-2" : "truncate"}>{n.title}</span>
+    </button>
+  );
+
+  // Day number: tap it to pin a note on that day.
+  const dayNumber = (key: string, className: string) => (
+    <button
+      type="button"
+      onClick={() => openNote(null, key)}
+      aria-label={`Add a note on ${dayLabel(key)}`}
+      title="Add a note"
+      className={`${className} hover:ring-2 hover:ring-border`}
+    >
+      {keyToDate(key).getDate()}
+    </button>
+  );
+
   const anchorDate = keyToDate(anchor);
   const grid = useMemo(() => {
     const d = keyToDate(anchor);
     return monthGrid(d.getFullYear(), d.getMonth());
   }, [anchor]);
   const week = useMemo(() => weekOf(anchor), [anchor]);
+
+  const [rangeFrom, rangeTo] =
+    view === "month" ? [grid[0], grid[41]] : view === "week" ? [week[0], week[6]] : [todayKey, addDays(todayKey, KEY_DATE_DAYS)];
+  const keyDates = useMemo(() => sgDatesBetween(rangeFrom, rangeTo), [rangeFrom, rangeTo]);
+  const notesByDate = useMemo(() => {
+    const map = new Map<string, CalNote[]>();
+    for (const n of notes) map.set(n.date, [...(map.get(n.date) ?? []), n]);
+    return map;
+  }, [notes]);
+
+  // Upcoming: posts, reels, notes and the next few weeks of key dates, in date order
+  // (key dates first in a day, then notes, then posts by time).
+  type ListItem =
+    | { kind: "key"; date: string; item: SgDate }
+    | { kind: "note"; date: string; item: CalNote }
+    | { kind: "reel"; date: string; item: (typeof reels)[number] }
+    | { kind: "post"; date: string; item: DraftEntry };
+  const listItems = useMemo(() => {
+    const items: (ListItem & { order: string })[] = [];
+    if (view !== "list") return items;
+    for (const [date, ks] of keyDates) for (const k of ks) items.push({ kind: "key", date, item: k, order: `${date}|0` });
+    for (const n of notes) if (n.date >= todayKey) items.push({ kind: "note", date: n.date, item: n, order: `${n.date}|1` });
+    for (const r of visibleReels)
+      if (r.date >= todayKey && !r.posted) items.push({ kind: "reel", date: r.date, item: r, order: `${r.date}|2` });
+    for (const d of upcoming) items.push({ kind: "post", date: eventDate(d)!, item: d, order: `${eventDate(d)}|3|${sortKey(d)}` });
+    return items.sort((a, b) => (a.order < b.order ? -1 : a.order > b.order ? 1 : 0));
+  }, [view, keyDates, notes, visibleReels, upcoming, todayKey]);
+
+  const shortDay = (key: string) => keyToDate(key).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  const dateBadge = (key: string) => (
+    <div className="w-14 shrink-0 text-center">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+        {keyToDate(key).toLocaleDateString(undefined, { month: "short" })}
+      </div>
+      <div className="font-serif text-lg font-semibold text-foreground">{keyToDate(key).getDate()}</div>
+    </div>
+  );
 
   const navLabel =
     view === "week"
@@ -516,7 +656,7 @@ export default function CalendarPage() {
         </div>
         <div className="flex gap-2">
           <Select value={platform} onValueChange={setPlatform}>
-            <SelectTrigger aria-label="Platform" className="h-9 w-[9.5rem] text-xs sm:h-8">
+            <SelectTrigger aria-label="Platform" className="h-9 w-[8rem] text-xs sm:h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -529,7 +669,7 @@ export default function CalendarPage() {
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
-            <SelectTrigger aria-label="Status" className="h-9 w-[8.5rem] text-xs sm:h-8">
+            <SelectTrigger aria-label="Status" className="h-9 w-[7rem] text-xs sm:h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -539,6 +679,13 @@ export default function CalendarPage() {
             </SelectContent>
           </Select>
         </div>
+        <button
+          type="button"
+          onClick={() => openNote(null)}
+          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8"
+        >
+          <StickyNote className="h-3.5 w-3.5" /> Add note
+        </button>
         {view !== "list" && (
           <div className="flex items-center gap-1.5 sm:ml-auto">
             <button
@@ -620,6 +767,81 @@ export default function CalendarPage() {
         )}
 
         <div className="min-w-0 space-y-3">
+          {noteForm && (
+            <div ref={noteRef} className="space-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">{noteForm.id ? "Edit note" : "Add a note"}</p>
+                <button
+                  type="button"
+                  onClick={() => setNoteForm(null)}
+                  aria-label="Close note"
+                  className="-mr-1 grid h-9 w-9 place-items-center rounded-md text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitNote();
+                }}
+                className="flex flex-wrap items-center gap-2"
+              >
+                <input
+                  type="date"
+                  value={noteForm.date}
+                  onChange={(e) => e.target.value && setNoteForm({ ...noteForm, date: e.target.value })}
+                  aria-label="Note date"
+                  className={dateInputClass}
+                />
+                <input
+                  autoFocus
+                  value={noteForm.title}
+                  onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
+                  maxLength={80}
+                  placeholder="Campaign or reminder"
+                  aria-label="Note"
+                  className="h-9 min-w-0 flex-1 basis-48 rounded-md border border-input bg-background px-3 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8"
+                />
+                <div role="radiogroup" aria-label="Colour" className="flex">
+                  {NOTE_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      role="radio"
+                      aria-checked={noteForm.color === c}
+                      aria-label={NOTE_COLOR_NAME[c]}
+                      onClick={() => setNoteForm({ ...noteForm, color: c })}
+                      className="grid h-9 w-9 place-items-center rounded-full sm:h-8 sm:w-8"
+                    >
+                      <span
+                        className={`h-5 w-5 rounded-full ${NOTE_SWATCH[c]} ${
+                          noteForm.color === c ? "ring-2 ring-ring ring-offset-2 ring-offset-background" : ""
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <div className="ml-auto flex gap-2">
+                  {noteForm.id && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeNote(noteForm.id!)}
+                      className="h-9 px-3 text-xs text-destructive hover:text-destructive sm:h-8"
+                    >
+                      Delete
+                    </Button>
+                  )}
+                  <Button type="submit" size="sm" disabled={!noteForm.title.trim()} className="h-9 px-3 text-xs sm:h-8">
+                    {noteForm.id ? "Save" : "Add note"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
           {selected && view !== "list" && (
             <div ref={editorRef} className={view === "week" ? "hidden sm:block" : ""}>
               {editor(selected)}
@@ -652,18 +874,19 @@ export default function CalendarPage() {
                             inMonth ? "bg-card" : "bg-muted/20"
                           } ${dropHighlight(key)}`}
                         >
-                          <div
-                            className={`mb-1 flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
+                          {dayNumber(
+                            key,
+                            `mb-1 flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
                               isToday
                                 ? "bg-primary font-bold text-primary-foreground"
                                 : inMonth
                                   ? "text-foreground"
                                   : "text-muted-foreground"
-                            }`}
-                          >
-                            {day.getDate()}
-                          </div>
+                            }`,
+                          )}
                           <div className="space-y-1">
+                            {(keyDates.get(key) ?? []).map((k) => keyDateLine(k, false))}
+                            {(notesByDate.get(key) ?? []).map((n) => noteChip(n, false))}
                             {events.slice(0, 3).map((e) => chip(e, false))}
                             {events.length > 3 && (
                               <button
@@ -708,15 +931,16 @@ export default function CalendarPage() {
                         <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                           {keyToDate(key).toLocaleDateString(undefined, { weekday: "short" })}
                         </div>
-                        <div
-                          className={`mx-auto mt-0.5 grid h-7 w-7 place-items-center rounded-full text-sm sm:mx-0 ${
+                        {dayNumber(
+                          key,
+                          `mx-auto mt-0.5 grid h-9 w-9 place-items-center rounded-full text-sm sm:mx-0 sm:h-7 sm:w-7 ${
                             isToday ? "bg-primary font-bold text-primary-foreground" : "text-foreground"
-                          }`}
-                        >
-                          {keyToDate(key).getDate()}
-                        </div>
+                          }`,
+                        )}
                       </div>
                       <div className="min-w-0 flex-1 space-y-1.5">
+                        {(keyDates.get(key) ?? []).map((k) => keyDateLine(k, true))}
+                        {(notesByDate.get(key) ?? []).map((n) => noteChip(n, true))}
                         {events.map((e) => (
                           <div key={e.id} className="space-y-1.5">
                             {chip(e, true)}
@@ -734,80 +958,88 @@ export default function CalendarPage() {
 
           {view === "list" && (
             <div className="space-y-2">
-              {visibleReels.filter((r) => r.date >= todayKey && !r.posted).map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => navigate(`/reels?card=${encodeURIComponent(r.id)}`)}
-                  className="flex w-full items-center gap-3 rounded-xl border border-brand/30 bg-card p-3 text-left shadow-card"
-                >
-                  <div className="w-14 shrink-0 text-center">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                      {keyToDate(r.date).toLocaleDateString(undefined, { month: "short" })}
-                    </div>
-                    <div className="font-serif text-lg font-semibold text-foreground">{keyToDate(r.date).getDate()}</div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{r.title}</p>
-                    <p className="text-xs text-muted-foreground">Reel - posts automatically</p>
-                  </div>
-                </button>
-              ))}
-              {upcoming.length === 0 && visibleReels.length === 0 ? (
+              {upcoming.length === 0 && !listItems.some((i) => i.kind === "reel") && (
                 <Card className="border-border/60 shadow-card">
                   <CardContent className="py-10 text-center text-sm text-muted-foreground">
                     {platform === "all" && status === "all" ? "Nothing scheduled yet." : "Nothing matches these filters."}
                   </CardContent>
                 </Card>
-              ) : (
-                upcoming.map((e) => {
-                  const posted = draftStatus(e) === "posted";
-                  const date = eventDate(e)!;
+              )}
+              {listItems.map((i) => {
+                if (i.kind === "key")
                   return (
-                    <div
-                      key={e.id}
-                      className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-card"
-                    >
-                      <div className="w-14 shrink-0 text-center">
-                        <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                          {keyToDate(date).toLocaleDateString(undefined, { month: "short" })}
-                        </div>
-                        <div className="font-serif text-lg font-semibold text-foreground">
-                          {keyToDate(date).getDate()}
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/generate?draft=${encodeURIComponent(e.id)}`)}
-                          className="block w-full min-w-0 text-left"
-                        >
-                          <p className="truncate text-sm font-medium text-foreground">{titleOf(e)}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {PLATFORM_LABEL[e.platform] ?? e.platform} ·{" "}
-                            {posted
-                              ? "Posted"
-                              : scheduleTime(e.scheduledFor)
-                                ? `Scheduled ${timeLabel(scheduleTime(e.scheduledFor)!)}`
-                                : "Scheduled"}
-                          </p>
-                        </button>
-                        {!posted && moveInput(e)}
-                      </div>
-                      {!posted && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => markPosted(e.id)}
-                          className="h-9 shrink-0 gap-1.5 px-2.5 text-xs text-success hover:text-success sm:h-8"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Posted
-                        </Button>
-                      )}
+                    <div key={`k${i.date}${i.item.title}`} className="flex items-center gap-3 px-3 py-1">
+                      <span className="w-14 shrink-0 text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                        {shortDay(i.date)}
+                      </span>
+                      <span className="min-w-0 flex-1">{keyDateLine(i.item, true)}</span>
                     </div>
                   );
-                })
-              )}
+                if (i.kind === "note")
+                  return (
+                    <div key={i.item.id} className="flex items-center gap-3 px-3 py-0.5">
+                      <span className="w-14 shrink-0 text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                        {shortDay(i.date)}
+                      </span>
+                      <span className="min-w-0 flex-1">{noteChip(i.item, true)}</span>
+                    </div>
+                  );
+                if (i.kind === "reel") {
+                  const r = i.item;
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => navigate(`/reels?card=${encodeURIComponent(r.id)}`)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-brand/30 bg-card p-3 text-left shadow-card"
+                    >
+                      {dateBadge(r.date)}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{r.title}</p>
+                        <p className="text-xs text-muted-foreground">Reel - posts automatically</p>
+                      </div>
+                    </button>
+                  );
+                }
+                const e = i.item;
+                const posted = draftStatus(e) === "posted";
+                return (
+                  <div
+                    key={e.id}
+                    className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-card"
+                  >
+                    {dateBadge(i.date)}
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/generate?draft=${encodeURIComponent(e.id)}`)}
+                        className="block w-full min-w-0 text-left"
+                      >
+                        <p className="truncate text-sm font-medium text-foreground">{titleOf(e)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {PLATFORM_LABEL[e.platform] ?? e.platform} ·{" "}
+                          {posted
+                            ? "Posted"
+                            : scheduleTime(e.scheduledFor)
+                              ? `Scheduled ${timeLabel(scheduleTime(e.scheduledFor)!)}`
+                              : "Scheduled"}
+                        </p>
+                      </button>
+                      {!posted && moveInput(e)}
+                    </div>
+                    {!posted && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => markPosted(e.id)}
+                        className="h-9 shrink-0 gap-1.5 px-2.5 text-xs text-success hover:text-success sm:h-8"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Posted
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
