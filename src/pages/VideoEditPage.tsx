@@ -4,6 +4,7 @@ import { Check, ChevronDown, ChevronUp, Download, Mic, Music as MusicIcon, Rotat
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
+import YoutubeClips from "@/components/YoutubeClips";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, type VoiceId } from "@/lib/textVoice";
 import { Button } from "@/components/ui/button";
@@ -193,14 +194,15 @@ export default function VideoEditPage() {
           onBack={() => setParams({})}
         />
       ) : (
-        <Start busy={busy} projects={projects} onUpload={upload} onOpen={(id) => setParams({ p: id })}
+        <Start userId={userId} busy={busy} projects={projects} onUpload={upload} onOpen={(id) => setParams({ p: id })}
           onRemove={(id) => userId && setProjects(removeProject(userId, id))} />
       )}
     </div>
   );
 }
 
-function Start({ busy, projects, onUpload, onOpen, onRemove }: {
+function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
+  userId: string | null;
   busy: string;
   projects: VideoProject[];
   onUpload: (f: File) => void;
@@ -265,6 +267,7 @@ function Start({ busy, projects, onUpload, onOpen, onRemove }: {
           </ul>
         </section>
       )}
+      <YoutubeClips userId={userId} />
     </>
   );
 }
