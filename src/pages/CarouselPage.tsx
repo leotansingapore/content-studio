@@ -43,6 +43,7 @@ import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { scanCompliance } from "@/lib/compliance";
 import {
   BRAND_PRESETS,
+  COVER_HOOK_WORDS,
   DEFAULT_BRAND,
   DEFAULT_CTA,
   MAX_HANDLE_CHARS,
@@ -60,6 +61,7 @@ import {
   newSlideId,
   normalizeHandle,
   normalizeHex,
+  recapFits,
   removeSlide,
   saveBrand,
   slideFileName,
@@ -70,6 +72,7 @@ import {
   SLIDE_IMAGE_KEY,
   slideRole,
   splitDraftIntoSlides,
+  withRecap,
   type CarouselBrand,
   type Slide,
   type SplitResult,
@@ -88,7 +91,7 @@ const PLATFORM_LABEL: Record<string, string> = {
   tiktok: "TikTok",
 };
 
-const ROLE_LABEL = { cover: "Cover", point: "Point", cta: "Call to action" } as const;
+const ROLE_LABEL = { cover: "Cover", point: "Point", cta: "Call to action", recap: "Recap" } as const;
 
 type Source = { kind: "draft"; id: string } | { kind: "paste" } | { kind: "ai"; id: string; text: string; title: string; platform: "instagram" | "linkedin" };
 type AiState =
@@ -566,16 +569,27 @@ export default function CarouselPage() {
       return;
     }
     const snapshot = slides;
+    // the recap is rewritten from the other slides each time, so it is not sent
+    const base = snapshot.filter((s) => !s.recap);
+    const old = snapshot.find((s) => s.recap);
     setAi({ status: "loading" });
     try {
-      const copy = await tightenSlides(snapshot, platform);
+      const { slides: copy, recap } = await tightenSlides(base, platform, recapFits(base));
+      const next = withRecap(applyCopy(base, copy), recap ? { ...recap, id: old?.id } : old ?? null);
       setBeforeAi(snapshot);
-      setSlides(applyCopy(snapshot, copy));
+      setSlides(next);
       setEdited(true);
       setAi({ status: "idle" });
+      const at = next.findIndex((s) => s.recap);
       toast({
         title: "Slides tightened",
-        description: "Read them through before you post. Undo brings your version back.",
+        description: `${
+          recap && at >= 0
+            ? `Slide ${at + 1} is a recap people can screenshot. `
+            : base.length >= MAX_SLIDES
+              ? `No room for a recap slide in ${MAX_SLIDES}. `
+              : ""
+        }Read them through before you post. Undo brings your version back.`,
       });
     } catch (err) {
       const e =
@@ -931,7 +945,7 @@ export default function CarouselPage() {
               <CardContent className="space-y-3">
                 {busy && (
                   <p role="status" className="text-xs text-muted-foreground">
-                    Rewriting your slides to be shorter and MAS-safe. This takes a few seconds.
+                    Rewriting your slides to be shorter and MAS-safe{recapFits(slides.filter((s) => !s.recap)) ? ", with a recap" : ""}. This takes a few seconds.
                   </p>
                 )}
                 {aiMessage && (
@@ -1016,8 +1030,10 @@ export default function CarouselPage() {
                 </div>
                 <ol className="space-y-3">
                   {slides.map((s, i) => {
-                    const role = slideRole(i, slides.length);
+                    const position = slideRole(i, slides.length);
+                    const role = s.recap && position === "point" ? "recap" : position;
                     const words = countWords(s.body);
+                    const coverWords = role === "cover" ? countWords(s.title) : 0;
                     const slideFlags = flags[i] ?? [];
                     return (
                       <li
@@ -1072,16 +1088,33 @@ export default function CarouselPage() {
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <Label htmlFor={`slide-title-${s.id}`} className="text-xs text-muted-foreground">
-                            {role === "cover" ? "Hook" : "Title"}
-                          </Label>
+                          <div className="flex items-center justify-between gap-2">
+                            <Label htmlFor={`slide-title-${s.id}`} className="text-xs text-muted-foreground">
+                              {role === "cover" ? "Hook" : "Title"}
+                            </Label>
+                            {role === "cover" && (
+                              <span
+                                className={`text-[11px] tabular-nums ${
+                                  coverWords > COVER_HOOK_WORDS ? "font-semibold text-amber-800" : "text-muted-foreground"
+                                }`}
+                              >
+                                {coverWords}/{COVER_HOOK_WORDS} words
+                              </span>
+                            )}
+                          </div>
                           <Input
                             id={`slide-title-${s.id}`}
                             value={s.title}
                             onChange={(e) => editSlide(s.id, { title: e.target.value })}
                             disabled={busy}
                             placeholder={role === "cover" ? "The hook that makes people swipe" : "A short title"}
+                            aria-describedby={coverWords > COVER_HOOK_WORDS ? `slide-cover-warn-${s.id}` : undefined}
                           />
+                          {coverWords > COVER_HOOK_WORDS && (
+                            <p id={`slide-cover-warn-${s.id}`} className="text-[11px] font-medium text-amber-800">
+                              Over {COVER_HOOK_WORDS} words. Cut it so it reads at thumbnail size.
+                            </p>
+                          )}
                         </div>
                         <div className="space-y-1">
                           <div className="flex items-center justify-between gap-2">
@@ -1125,7 +1158,7 @@ export default function CarouselPage() {
                           </Button>
                           {s.image && (
                             <Button type="button" size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground"
-                              onClick={() => change((prev) => prev.map((x) => (x.id === s.id ? { id: x.id, title: x.title, body: x.body } : x)))}>
+                              onClick={() => change((prev) => prev.map((x) => (x.id === s.id ? { id: x.id, title: x.title, body: x.body, ...(x.recap ? { recap: true as const } : {}) } : x)))}>
                               Remove picture
                             </Button>
                           )}

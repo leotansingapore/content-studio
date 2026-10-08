@@ -5,6 +5,8 @@ import {
   WORDS_PER_SLIDE,
   addSlide,
   applyCopy,
+  recapFits,
+  withRecap,
   countWords,
   draftLabel,
   draftsWithText,
@@ -251,6 +253,21 @@ describe("slide editing", () => {
     ]);
   });
 
+  it("puts the recap just before the call to action, replacing an old one, only when there is room", () => {
+    const r = { title: "Recap", body: "• a\n• b" };
+    const out = withRecap([a, b, c], r);
+    expect(out.map((x) => x.id)).toEqual(["a", "b", out[2].id, "c"]);
+    expect(out[2]).toMatchObject({ title: "Recap", body: "• a\n• b", recap: true });
+    const again = withRecap(out, { title: "New", body: "• x" });
+    expect(again.map((x) => [x.id, x.title])).toEqual([["a", "a"], ["b", "b"], [out[2].id, "New"], ["c", "c"]]);
+    expect(withRecap([a, out[2], c], null)).toEqual([a, out[2], c]);
+    const ten = Array.from({ length: 10 }, (_, i) => s(`s${i}`));
+    expect(withRecap(ten, r)).toEqual(ten);
+    expect([3, 4, 9, 10].map((n) => recapFits(Array.from({ length: n }, (_, i) => s(`n${i}`))))).toEqual([false, true, true, false]);
+    // a new point goes before the recap, not between it and the call to action
+    expect(addSlide(out, s("d")).map((x) => x.id)).toEqual(["a", "b", "d", out[2].id, "c"]);
+  });
+
   it("gives the first slide the cover role and the last the CTA role", () => {
     expect([0, 1, 2, 3].map((i) => slideRole(i, 4))).toEqual(["cover", "point", "point", "cta"]);
   });
@@ -350,8 +367,8 @@ describe("saved carousels", () => {
 
   it("drops malformed entries and removes by id", async () => {
     const { loadCarousels, removeCarousel } = await import("@/lib/carousel");
-    store.set("content-studio-carousels-u1", JSON.stringify([{ id: "x", slides: "no" }, { id: "y", title: 5, slides: [null, { id: "s", title: "T" }] }, { slides: [] }]));
-    expect(loadCarousels("u1")).toEqual([{ id: "y", title: "Carousel", platform: "instagram", slides: [{ id: "s", title: "T", body: "" }], draftId: undefined, updatedAt: "" }]);
+    store.set("content-studio-carousels-u1", JSON.stringify([{ id: "x", slides: "no" }, { id: "y", title: 5, slides: [null, { id: "s", title: "T" }, { id: "r", title: "R", body: "• a", recap: true }] }, { slides: [] }]));
+    expect(loadCarousels("u1")).toEqual([{ id: "y", title: "Carousel", platform: "instagram", slides: [{ id: "s", title: "T", body: "" }, { id: "r", title: "R", body: "• a", recap: true }], draftId: undefined, updatedAt: "" }]);
     expect(removeCarousel("u1", "y")).toEqual([]);
     store.set("content-studio-carousels-u1", "{not json");
     expect(loadCarousels("u1")).toEqual([]);

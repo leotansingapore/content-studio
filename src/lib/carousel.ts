@@ -19,6 +19,8 @@ const TARGET_POINTS = 3;
 export const WORDS_PER_SLIDE = 40;
 export const TITLE_WORDS = 12;
 export const COVER_WORDS = 20;
+/** A cover hook reads at thumbnail size up to this many words; past it the editor warns. */
+export const COVER_HOOK_WORDS = 6;
 /** Paragraphs shorter than this join their neighbour instead of taking a slide alone. */
 const SHORT_PARAGRAPH_WORDS = 8;
 
@@ -28,6 +30,8 @@ export interface Slide {
   body: string;
   /** Key of a picture kept on this device (deviceFiles.ts), shown above the text. */
   image?: string;
+  /** The recap slide carousel-copy writes, just before the call to action. */
+  recap?: true;
 }
 
 /** Device file keys for slide pictures look like this; anything else is ignored. */
@@ -518,12 +522,30 @@ export function removeSlide(slides: Slide[], index: number): Slide[] {
   return slides.filter((_, i) => i !== index);
 }
 
-/** Adds a point slide just before the closing CTA. */
+/** Adds a point slide just before the closing CTA (and before a recap that sits there). */
 export function addSlide(slides: Slide[], slide: Slide): Slide[] {
   if (slides.length >= MAX_SLIDES) return slides;
   const next = slides.slice();
-  next.splice(slides.length >= 2 ? slides.length - 1 : slides.length, 0, slide);
+  const at = slides.length >= 2 ? slides.length - 1 - (slides[slides.length - 2].recap && slides.length >= 3 ? 1 : 0) : slides.length;
+  next.splice(at, 0, slide);
   return next;
+}
+
+/** A recap is worth a slide from two points up (cover, 2 points, CTA), with room for one more. Slides without the recap. */
+export const recapFits = (slides: Slide[]) => slides.length >= 4 && slides.length < MAX_SLIDES;
+
+/**
+ * Puts the recap slide just before the call to action, in place of any recap
+ * already there (keeping its id). Null leaves the slides as they are; so does a
+ * carousel with no room for one more slide.
+ */
+export function withRecap(slides: Slide[], recap: { id?: string; title: string; body: string } | null): Slide[] {
+  if (!recap) return slides;
+  const old = slides.find((s) => s.recap);
+  const rest = slides.filter((s) => !s.recap);
+  if (rest.length < 2 || rest.length >= MAX_SLIDES) return slides;
+  const slide: Slide = { id: old?.id ?? recap.id ?? newSlideId(), title: recap.title, body: recap.body, recap: true };
+  return [...rest.slice(0, -1), slide, rest[rest.length - 1]];
 }
 
 export function newSlideId(): string {
@@ -716,6 +738,7 @@ function sanitizeSaved(raw: unknown): SavedCarousel[] {
         title: String(s.title ?? ""),
         body: String(s.body ?? ""),
         ...(typeof s.image === "string" && SLIDE_IMAGE_KEY.test(s.image) ? { image: s.image } : {}),
+        ...(s.recap === true ? { recap: true as const } : {}),
       }))
       .slice(0, MAX_SLIDES);
     if (slides.length === 0) return [];

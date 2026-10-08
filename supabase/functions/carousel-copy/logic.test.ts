@@ -10,6 +10,7 @@ import {
   messageContent,
   parseCarouselRequest,
   validateCarouselCopy,
+  validateRecap,
 } from "./logic";
 
 const slides = [
@@ -23,7 +24,7 @@ describe("parseCarouselRequest", () => {
     const parsed = parseCarouselRequest({ slides: [{ title: "  Hook ", body: " " }, { title: "", body: "Point" }] });
     expect(parsed).toEqual({
       ok: true,
-      request: { platform: "instagram", slides: [{ title: "Hook", body: "" }, { title: "", body: "Point" }] },
+      request: { platform: "instagram", recap: false, slides: [{ title: "Hook", body: "" }, { title: "", body: "Point" }] },
     });
     const li = parseCarouselRequest({ slides, platform: "linkedin" });
     expect(li.ok && li.request.platform).toBe("linkedin");
@@ -46,7 +47,7 @@ describe("parseCarouselRequest", () => {
 
 describe("prompt and request body", () => {
   it("asks for the same slide count, keeps roles and states the MAS rules", () => {
-    const { system, user } = buildCarouselPrompt({ slides, platform: "instagram" });
+    const { system, user } = buildCarouselPrompt({ slides, platform: "instagram", recap: false });
     expect(system).toContain("exactly 3 slides");
     expect(system).toContain("Instagram");
     expect(system).toMatch(/guarantee/);
@@ -63,7 +64,9 @@ describe("prompt and request body", () => {
     expect(body.response_format).toBe(CAROUSEL_RESPONSE_FORMAT);
     const schema = CAROUSEL_RESPONSE_FORMAT.json_schema;
     expect(schema.strict).toBe(true);
-    expect(schema.schema.required).toEqual(["slides"]);
+    expect(schema.schema.required).toEqual(["slides", "recap"]);
+    expect(schema.schema.properties.recap.required).toEqual(["title", "body"]);
+    expect(schema.schema.properties.recap.additionalProperties).toBe(false);
     expect(schema.schema.properties.slides.items.required).toEqual(["title", "body"]);
     expect(schema.schema.properties.slides.items.additionalProperties).toBe(false);
     expect(body.messages).toEqual([
@@ -127,5 +130,38 @@ describe("carousel-copy handler", () => {
     expect(refusal).toBeGreaterThan(consume);
     expect(openai).toBeGreaterThan(refusal);
     expect(source).toContain('from "../_shared/usageCaps.ts"');
+  });
+});
+
+describe("the recap slide and the six-word cover", () => {
+  const four = [...slides.slice(0, 2), { title: "Second point", body: "More." }, slides[2]];
+
+  it("asks for a recap only when asked, with two points or more and room for one more slide", () => {
+    expect(parseCarouselRequest({ slides: four, recap: true })).toMatchObject({ ok: true, request: { recap: true } });
+    expect(parseCarouselRequest({ slides: four })).toMatchObject({ ok: true, request: { recap: false } });
+    expect(parseCarouselRequest({ slides, recap: true })).toMatchObject({ ok: true, request: { recap: false } });
+    const ten = Array.from({ length: MAX_SLIDES }, (_, i) => ({ title: `S${i}`, body: "" }));
+    expect(parseCarouselRequest({ slides: ten, recap: true })).toMatchObject({ ok: true, request: { recap: false } });
+  });
+
+  it("keeps the cover to six words and writes the recap as a list of the points", () => {
+    const withRecap = buildCarouselPrompt({ slides: four, platform: "linkedin", recap: true }).system;
+    const without = buildCarouselPrompt({ slides: four, platform: "linkedin", recap: false }).system;
+    expect(withRecap).toMatch(/cover.{0,40}at most 6 words/i);
+    expect(withRecap).toMatch(/recap:.*one line per point/i);
+    expect(without).toMatch(/recap: an empty title and body/i);
+  });
+
+  it("tidies the recap into bullet lines and drops an empty one", () => {
+    const reply = (recap: unknown) => JSON.stringify({ slides: [], recap });
+    const many = Array.from({ length: 12 }, (_, i) => `- point number ${i} with a few too many words in it`).join("\n");
+    const out = validateRecap(reply({ title: "**The whole thing.**", body: many }));
+    expect(out?.title).toBe("The whole thing");
+    const lines = out?.body.split("\n") ?? [];
+    expect(lines).toHaveLength(8);
+    expect(lines.every((l) => l.startsWith("• ") && l.split(/\s+/).length <= 9)).toBe(true);
+    expect(validateRecap(reply({ title: "", body: " " }))).toBeNull();
+    expect(validateRecap("not json")).toBeNull();
+    expect(validateRecap(reply({ title: "Recap", body: "• one\n\n• two" }))?.body).toBe("• one\n• two");
   });
 });

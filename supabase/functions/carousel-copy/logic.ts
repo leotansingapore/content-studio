@@ -11,6 +11,9 @@ export const MAX_BODY_CHARS = 600;
 /** Hard caps on what comes back; the prompt asks for less (10 and 30). */
 export const TITLE_MAX_WORDS = 14;
 export const BODY_MAX_WORDS = 40;
+/** The recap slide: one bullet line per point, each kept short. */
+const RECAP_MAX_LINES = 8;
+const RECAP_LINE_WORDS = 8;
 
 export type CarouselPlatform = "instagram" | "linkedin";
 
@@ -22,6 +25,8 @@ export interface CopySlide {
 export interface CarouselRequest {
   slides: CopySlide[];
   platform: CarouselPlatform;
+  /** Also write a recap slide: asked for, two points or more, and room for one more slide. */
+  recap: boolean;
 }
 
 export type ParsedRequest = { ok: true; request: CarouselRequest } | { ok: false; error: string };
@@ -46,7 +51,14 @@ export function parseCarouselRequest(body: unknown): ParsedRequest {
     }
     slides.push({ title, body: text });
   }
-  return { ok: true, request: { slides, platform: b?.platform === "linkedin" ? "linkedin" : "instagram" } };
+  return {
+    ok: true,
+    request: {
+      slides,
+      platform: b?.platform === "linkedin" ? "linkedin" : "instagram",
+      recap: b?.recap === true && slides.length >= 4 && slides.length < MAX_SLIDES,
+    },
+  };
 }
 
 function roleOf(index: number, total: number): string {
@@ -62,12 +74,15 @@ export function buildCarouselPrompt(req: CarouselRequest): { system: string; use
     "Tighten every slide so it reads fast on a phone: a short, punchy title and a plain-language body.",
     "Rules:",
     `- Return exactly ${n} slides in the same order. Slide 1 is the cover hook and the last slide is the call to action; keep those roles.`,
-    "- Title: at most 10 words. Body: at most 30 words. The body can be empty when the title says it all.",
+    "- Title: at most 10 words, and the cover's title (the hook) at most 6 words. Body: at most 30 words. The body can be empty when the title says it all.",
     "- Keep each slide's meaning and the consultant's voice. Don't add facts, numbers, statistics, product names or insurer names that aren't in the original.",
     "- Plain text only: no markdown, no hashtags, no slide numbers. Keep emojis only where the original has them.",
     '- MAS-safe wording: never promise or guarantee returns or outcomes; never say "risk-free", "100% safe", "easy money" or "act now"; no "best" or "number one" claims about products or insurers; label any return figure as projected or illustrated.',
     "- Use Singapore English spelling.",
-    'Reply with JSON only: {"slides":[{"title":"...","body":"..."}]}.',
+    req.recap
+      ? `- recap: one more slide that goes just before the call to action, the one people screenshot. Title: at most 8 words. Body: one line per point slide, in order, each starting with "• " and at most ${RECAP_LINE_WORDS} words. It must make sense on its own. Use only what the slides say.`
+      : "- recap: an empty title and body.",
+    'Reply with JSON only: {"slides":[{"title":"...","body":"..."}],"recap":{"title":"...","body":"..."}}.',
   ].join("\n");
   const user = `Tighten these slides:\n${JSON.stringify(
     req.slides.map((s, i) => ({ slide: i + 1, role: roleOf(i, n), title: s.title, body: s.body })),
@@ -95,8 +110,14 @@ export const CAROUSEL_RESPONSE_FORMAT = {
             additionalProperties: false,
           },
         },
+        recap: {
+          type: "object",
+          properties: { title: { type: "string" }, body: { type: "string" } },
+          required: ["title", "body"],
+          additionalProperties: false,
+        },
       },
-      required: ["slides"],
+      required: ["slides", "recap"],
       additionalProperties: false,
     },
   },
@@ -164,4 +185,24 @@ export function validateCarouselCopy(content: string | null, expected: number): 
     out.push({ title, body });
   }
   return out;
+}
+
+/** The recap slide from the model's reply: a short title and one "• " line per point. Null when empty or unreadable. */
+export function validateRecap(content: string | null): CopySlide | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content ?? "");
+  } catch {
+    return null;
+  }
+  const r = (parsed as { recap?: Record<string, unknown> } | null)?.recap;
+  if (!r || typeof r !== "object") return null;
+  const title = capWords(cleanCopy(r.title), TITLE_MAX_WORDS).replace(/[.:;,]+$/, "");
+  const lines = cleanCopy(r.body)
+    .split("\n")
+    .map((l) => l.replace(/^\s*(?:[-*•·▪]|\d{1,2}[.)])\s*/, "").trim())
+    .filter(Boolean)
+    .slice(0, RECAP_MAX_LINES)
+    .map((l) => `• ${capWords(l, RECAP_LINE_WORDS)}`);
+  return lines.length ? { title, body: lines.join("\n") } : null;
 }

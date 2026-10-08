@@ -1,6 +1,7 @@
 // "Tighten with AI" on the carousel maker (/carousel). A signed-in consultant
-// sends {slides: [{title, body}], platform}; this rewrites the copy tighter and
-// MAS-safe with OpenAI and returns the same number of slides in the same order.
+// sends {slides: [{title, body}], platform, recap}; this rewrites the copy tighter and
+// MAS-safe with OpenAI and returns the same number of slides in the same order,
+// plus, when recap is asked for, a recap slide listing the points (or null).
 // Each call counts against the "carousel" daily cap (cs_ai_usage).
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -15,6 +16,7 @@ import {
   messageContent,
   parseCarouselRequest,
   validateCarouselCopy,
+  validateRecap,
 } from "./logic.ts";
 
 const OPENAI_TIMEOUT_MS = 45_000;
@@ -80,12 +82,15 @@ Deno.serve(async (req) => {
     }
 
     const data = await res.json().catch(() => null);
-    const slides = validateCarouselCopy(messageContent(data), parsed.request.slides.length);
+    const content = messageContent(data);
+    const slides = validateCarouselCopy(content, parsed.request.slides.length);
     if (!slides) {
       console.error("carousel-copy: unusable model output");
       return json({ error: RETRY_LATER }, 502);
     }
-    return json({ slides, usage: { used: usage.used, limit: usage.limit } });
+    // the recap slide is extra: a missing one never fails the tightened slides
+    const recap = parsed.request.recap ? validateRecap(content) : null;
+    return json({ slides, recap, usage: { used: usage.used, limit: usage.limit } });
   } catch (e) {
     console.error("carousel-copy failed", e);
     return json({ error: "Couldn't tighten the slides. Try again in a minute." }, 500);
