@@ -1574,7 +1574,7 @@ export default function GeneratePage() {
               return (
                 <div className="rounded-xl border border-border/60 bg-muted/20 p-3 text-xs">
                   <p className={`font-semibold ${s.accent.text}`}>
-                    {s.letter} · {s.label} — {s.goal}
+                    {s.label}: {s.goal}
                   </p>
                   <p className="mt-1 leading-relaxed text-muted-foreground">
                     {s.description}
@@ -1593,8 +1593,8 @@ export default function GeneratePage() {
                     CTA set to{" "}
                     <span className="font-medium text-foreground">
                       {ctaLabel}
-                    </span>{" "}
-                    for this stage — change it in step 3 if you want.
+                    </span>
+                    . Change it in step {LAST_STEP + 1}.
                   </p>
                 </div>
               );
