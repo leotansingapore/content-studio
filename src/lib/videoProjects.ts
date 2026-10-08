@@ -24,6 +24,8 @@ export interface VideoProject {
   subs?: Record<string, Record<string, string>>;
   /** The IndexedDB key of the video file; clips cut from one upload share it. Defaults to id. */
   fileId?: string;
+  /** A skill whose instructions run once the captions exist (the default skill, on upload). */
+  pendingSkill?: string;
 }
 
 export const fileKey = (p: VideoProject) => p.fileId ?? p.id;
@@ -68,7 +70,7 @@ export function removeProject(userId: string, id: string): VideoProject[] {
   return kept;
 }
 
-// The saved video look (videoEdit.ts lookOf), per profile:
+// The single saved video look from before skills (videoSkills.ts reads it once as "My look"):
 //   key: content-studio-videolook-${scoped(userId)}
 const LOOK_KEY = "content-studio-videolook-";
 
@@ -80,14 +82,6 @@ export function loadLook(userId: string | null | undefined): Record<string, unkn
     return v && typeof v === "object" && !Array.isArray(v) ? v : null;
   } catch {
     return null;
-  }
-}
-
-export function saveLook(userId: string, look: Record<string, unknown>): void {
-  try {
-    store()?.setItem(LOOK_KEY + scoped(userId), JSON.stringify(look));
-  } catch {
-    // storage full: the look still applies to this video
   }
 }
 

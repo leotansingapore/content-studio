@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { streamOnePost } from "@/lib/batchGenerate";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import { upsertDraft } from "@/lib/draftHistory";
@@ -103,7 +104,8 @@ import {
   type BrandArt,
   type ExportJob,
 } from "@/lib/videoMedia";
-import { fileKey, findClips, loadFixes, loadLook, loadProjects, removeProject, saveFixes, saveLook, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, findClips, loadFixes, loadProjects, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 
 const MAX_BYTES = 500 * 1024 * 1024;
 type Tab = "style" | "cuts" | "frame" | "stickers" | "broll" | "words";
@@ -140,7 +142,8 @@ export default function VideoEditPage() {
       const { wav, duration } = await extractWav(file);
       let p: VideoProject = {
         id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration, size: file.size,
-        words: [], settings: withLook(defaultSettings("bold"), loadLook(uid)), thumb,
+        words: [], settings: withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), thumb,
+        ...(defaultSkill(loadSkills(uid))?.prompt ? { pendingSkill: defaultSkill(loadSkills(uid))!.id } : {}),
       };
       setProjects(saveProject(uid, p));
       setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
@@ -307,7 +310,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   // the brand kit (logo, end card, name tag); endAt is the time into the end card while it shows
   const brandKit = useMemo(() => loadBrand(userId), [userId]);
   const [art, setArt] = useState<BrandArt | null>(null);
-  const [myLook, setMyLook] = useState(() => loadLook(userId));
+  // editing skills: this adviser's saved ways of editing (videoSkills.ts)
+  const [skills, setSkills] = useState<VideoSkill[]>(() => loadSkills(userId));
+  const [skillForm, setSkillForm] = useState<{ name: string; prompt: string; isDefault: boolean } | null>(null);
+  const [managing, setManaging] = useState(false);
+  const pendingSkill = useRef(project.pendingSkill);
   const endAt = useRef<number | null>(null);
   // voiceover: the take on this device, an <audio> kept in step with the preview, and a recording in progress
   const [voiceBlob, setVoiceBlob] = useState<Blob | null | undefined>(undefined);
@@ -383,7 +390,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   // save the edit a moment after the last change
   useEffect(() => {
-    const t = window.setTimeout(() => onSave({ ...project, settings, words, subs, caption }), 400);
+    const t = window.setTimeout(() => onSave({ ...project, pendingSkill: pendingSkill.current, settings, words, subs, caption }), 400);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings, words, subs, caption]);
@@ -595,7 +602,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     [words, plan],
   );
 
-  const runVibe = async (frames?: string[], preset?: string) => {
+  const runVibe = async (frames?: string[], preset?: string, label?: string) => {
     const instruction = preset ?? ask.trim();
     if (!instruction && !frames) return;
     setThinking(true);
@@ -603,7 +610,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       const res = await vibeEdit({ instruction, settings, transcript, duration, frames });
       const { next, changed } = applyPatch(settings, res.patch);
       if (changed.length) change(next);
-      setLog((l) => [...l, { me: preset ? "Suggest a hook" : instruction || "Match my reference video", it: changed.length ? res.reply : `${res.reply} (nothing changed)` }]);
+      setLog((l) => [...l, { me: label ?? (preset ? "Suggest a hook" : instruction || "Match my reference video"), it: changed.length ? res.reply : `${res.reply} (nothing changed)` }]);
       if (!preset) setAsk("");
     } catch (e) {
       toast({ title: "That change didn't go through", description: (e as Error).message, variant: "destructive" });
@@ -611,6 +618,43 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       setThinking(false);
     }
   };
+
+  // skills: apply a saved look at once, then run its instructions on this video's words
+  const applySkill = (sk: VideoSkill) => {
+    change(withLook(settings, sk.look));
+    if (sk.prompt && words.length) void runVibe(undefined, sk.prompt, `Skill: ${sk.name}`);
+    else toast({ title: `${sk.name} applied` });
+  };
+  const openSkillForm = () => {
+    const asks = log.map((m) => m.me).filter((m) => !/^Skill: |^Suggest a hook$|^Match my reference video$/.test(m));
+    setSkillForm({ name: suggestName(asks, skills), prompt: "", isDefault: skills.length === 0 });
+  };
+  const keepSkill = () => {
+    if (!skillForm?.name.trim()) return;
+    const id = newSkillId();
+    setSkills(saveSkill(userId, { id, name: skillForm.name, look: lookOf(settings), prompt: skillForm.prompt, isDefault: skillForm.isDefault }));
+    setSkillForm(null);
+    toast({ title: `Saved ${skillForm.name.trim()}`, description: skillForm.isDefault ? "New videos start with it." : "Tap it on any video to use it." });
+  };
+  const dropSkill = (sk: VideoSkill) => {
+    setSkills(removeSkill(userId, sk.id));
+    toast({
+      title: `${sk.name} deleted`,
+      action: (
+        <ToastAction altText="Undo" onClick={() => setSkills(saveSkill(userId, sk))}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+  // the default skill's instructions run once, as soon as a new video has its captions
+  useEffect(() => {
+    if (!pendingSkill.current || !words.length || thinking) return;
+    const sk = skills.find((x) => x.id === pendingSkill.current);
+    pendingSkill.current = undefined;
+    if (sk?.prompt) void runVibe(undefined, sk.prompt, `Skill: ${sk.name}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [words.length]);
 
   const matchReference = async (f: File) => {
     try {
@@ -1081,6 +1125,34 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           <section className="space-y-2 rounded-xl border border-primary/25 bg-primary/5 p-3">
             <p className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="h-4 w-4 text-primary" /> Vibe edit
               <InfoTip label="About vibe edit">Say the change in plain words; Undo puts it back.</InfoTip></p>
+            {skills.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Your editing skills">
+                {skills.map((sk) => (
+                  <button key={sk.id} type="button" onClick={() => applySkill(sk)} disabled={thinking}
+                    aria-pressed={sameLook(settings, sk.look)}
+                    title={sk.prompt ? `${sk.name}: ${sk.prompt}` : sk.name}
+                    className={`min-h-8 rounded-full border px-3 text-xs font-semibold ${sameLook(settings, sk.look) ? "border-primary bg-primary text-primary-foreground" : "border-primary/40 bg-background text-foreground hover:border-primary"}`}>
+                    {sk.name}{sk.isDefault ? " (default)" : ""}
+                  </button>
+                ))}
+                <button type="button" onClick={() => setManaging((m) => !m)} aria-expanded={managing}
+                  className="min-h-8 px-2 text-xs font-semibold text-muted-foreground hover:text-foreground">{managing ? "Done" : "Manage"}</button>
+              </div>
+            )}
+            {managing && (
+              <ul className="space-y-1 rounded-lg border border-border/60 bg-background p-2">
+                {skills.map((sk) => (
+                  <li key={sk.id} className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="mr-auto font-semibold">{sk.name}</span>
+                    <label className="flex min-h-8 items-center gap-1.5">
+                      <input type="radio" name="default-skill" checked={!!sk.isDefault} onChange={() => setSkills(saveSkill(userId, { ...sk, isDefault: true }))} className="accent-primary" />
+                      New videos
+                    </label>
+                    <Button size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground hover:text-destructive" onClick={() => dropSkill(sk)}>Delete</Button>
+                  </li>
+                ))}
+              </ul>
+            )}
             {log.slice(-3).map((m, i) => (
               <p key={i} className="text-xs"><span className="text-muted-foreground">{m.me}</span><br />{m.it}</p>
             ))}
@@ -1094,7 +1166,32 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <Film className="h-3.5 w-3.5" /> Match a reference video
                 <input type="file" accept="video/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void matchReference(f); }} />
               </label>
+              {!skillForm && (
+                <button type="button" onClick={openSkillForm} className="min-h-8 px-1 text-xs font-semibold text-primary hover:underline">Save as a skill</button>
+              )}
             </div>
+            {skillForm && (
+              <form className="space-y-2 rounded-lg border border-border/60 bg-background p-3" onSubmit={(e) => { e.preventDefault(); keepSkill(); }}>
+                <label className="block space-y-1 text-xs font-semibold">
+                  Skill name
+                  <input value={skillForm.name} maxLength={40} autoFocus onChange={(e) => setSkillForm({ ...skillForm, name: e.target.value })}
+                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
+                </label>
+                <label className="block space-y-1 text-xs font-semibold">
+                  Also do this on each video (optional)
+                  <Textarea rows={2} value={skillForm.prompt} maxLength={500} onChange={(e) => setSkillForm({ ...skillForm, prompt: e.target.value })}
+                    placeholder="Hook: the most surprising number I mention. Cut the pauses tight." className="text-sm font-normal" />
+                </label>
+                <label className="flex min-h-8 items-center gap-2 text-xs">
+                  <input type="checkbox" checked={skillForm.isDefault} onChange={(e) => setSkillForm({ ...skillForm, isDefault: e.target.checked })} className="h-4 w-4 accent-primary" />
+                  Start new videos with it
+                </label>
+                <div className="flex gap-2">
+                  <Button size="sm" type="submit" disabled={!skillForm.name.trim()}>Save skill</Button>
+                  <Button size="sm" type="button" variant="ghost" onClick={() => setSkillForm(null)}>Cancel</Button>
+                </div>
+              </form>
+            )}
           </section>
 
           <section className="space-y-2 rounded-xl border border-border/60 p-3">
@@ -1185,17 +1282,6 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </Row>
               <Row label="ALL CAPS"><Toggle on={settings.uppercase} set={(v) => patch({ uppercase: v })} /></Row>
               <Row label="Numbers in the highlight colour"><Toggle on={settings.highlightNumbers} set={(v) => patch({ highlightNumbers: v })} /></Row>
-              <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-                <span className="mr-auto text-sm font-medium">My look
-                  <InfoTip label="About my look">Captions, cuts, shape, name tag, logo and end card. New videos start with it.</InfoTip></span>
-                {myLook && !sameLook(settings, myLook) && (
-                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => change(withLook(settings, myLook))}>Apply my look</Button>
-                )}
-                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={sameLook(settings, myLook)}
-                  onClick={() => { const look = lookOf(settings); saveLook(userId, look); setMyLook(look); toast({ title: "Look saved", description: "New videos start with it." }); }}>
-                  {sameLook(settings, myLook) ? "This is your look" : "Save as my look"}
-                </Button>
-              </div>
             </div>
           )}
 
