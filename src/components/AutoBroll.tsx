@@ -8,10 +8,11 @@ import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { brollJob, onBrollJob, startAutoBroll, stopBrollJob, type BrollJob } from "@/lib/autoBroll";
+import BrollSheet from "@/components/BrollSheet";
+import { brollJob, dismissBrollJob, onBrollJob, startAutoBroll, stopBrollJob, type BrollJob, type Orientation } from "@/lib/autoBroll";
 import { MAX_BROLL, editedSentences, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
 
-export default function AutoBroll({ userId, projectId, settings, words, segs, total, speed }: {
+export default function AutoBroll({ userId, projectId, settings, words, segs, total, speed, apply, seek }: {
   userId: string;
   projectId: string;
   settings: EditSettings;
@@ -19,6 +20,9 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
   segs: Segment[];
   total: number;
   speed: number;
+  /** Merges into the latest settings, with Undo. */
+  apply: (p: Partial<EditSettings>) => void;
+  seek: (t: number) => void;
 }) {
   const [j, setJ] = useState<BrollJob | null>(brollJob());
   useEffect(() => onBrollJob(setJ), []);
@@ -26,6 +30,7 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
   const mine = j?.projectId === projectId ? j : null;
   const left = useUsesLeft(running)("broll-picks");
   const existing = settings.broll ?? [];
+  const orientation: Orientation = settings.aspect === "16:9" ? "landscape" : settings.aspect === "1:1" ? "square" : "portrait";
 
   const start = () =>
     void startAutoBroll(userId, {
@@ -34,7 +39,7 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
       total,
       hookSeconds: settings.hook?.trim() ? settings.hookSeconds : 0,
       existing,
-      orientation: settings.aspect === "16:9" ? "landscape" : settings.aspect === "1:1" ? "square" : "portrait",
+      orientation,
     }).catch(() => {}); // a second start while one runs: the button is disabled then
 
   return (
@@ -55,12 +60,13 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
         </p>
       )}
       {mine?.state === "failed" && <p className="text-xs text-destructive" role="alert">{mine.error}</p>}
-      {mine?.state === "done" && (
+      {mine?.state === "done" && (!mine.placed.length || mine.missed.length > 0) && (
         <p className="text-xs text-muted-foreground" aria-live="polite">
-          {mine.placed.length ? `Added ${mine.placed.length} ${mine.placed.length === 1 ? "clip" : "clips"}.` : "No line needed B-roll this time."}
-          {mine.missed.length > 0 && ` Nothing found for ${mine.missed.map((m) => `"${m}"`).join(", ")}.`}
+          {!mine.placed.length && !mine.missed.length && "No line needed B-roll this time."}
+          {mine.missed.length > 0 && `Nothing found for ${mine.missed.map((m) => `"${m}"`).join(", ")}.`}
         </p>
       )}
+      {mine && !running && <BrollSheet placed={mine.placed} brolls={existing} orientation={orientation} apply={apply} seek={seek} onDone={dismissBrollJob} />}
       {!mine && running && <p className="text-xs text-muted-foreground">Finding B-roll for another video. Try again when it's done.</p>}
     </div>
   );

@@ -9,7 +9,7 @@ vi.mock("@/lib/videoProjects", () => ({ loadProjects: vi.fn(() => []), saveProje
 import { callFn } from "@/lib/edgeFn";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import type { Broll } from "@/lib/videoEdit";
-import { brollJob, brollSpan, chooseClip, onBrollApply, startAutoBroll, stockIdOf } from "./autoBroll";
+import { brollJob, brollSpan, chooseClip, chooseClips, onBrollApply, startAutoBroll, stockIdOf } from "./autoBroll";
 
 const item = (id: string, w: number, h: number, duration?: number): StockItem => ({ id, w, h, duration, alt: "", thumb: `https://images.pexels.com/${id}.jpg`, src: `https://videos.pexels.com/${id}.mp4`, by: "Ann", byUrl: "", url: "" });
 const line = (s: number, e: number, text = "A line here.") => ({ s, e, text });
@@ -35,6 +35,9 @@ describe("choosing the clip", () => {
     expect(chooseClip(items, new Set(["1"]), 4, "portrait")?.id).toBe("4");
     expect(chooseClip(items, new Set(), 4, "landscape")?.id).toBe("2");
     expect(chooseClip(items, new Set(["1", "4"]), 4, "portrait")).toBeNull();
+  });
+  it("offers every other usable clip for a swap, in the search's order", () => {
+    expect(chooseClips([...items, item("5", 720, 1280, 6)], new Set(["1"]), 4, "portrait").map((it) => it.id)).toEqual(["4", "5"]);
   });
 });
 

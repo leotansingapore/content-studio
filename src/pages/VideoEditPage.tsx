@@ -2100,7 +2100,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   placeholder="Singapore skyline, family at home, hospital" onPick={addBroll} onClose={() => setBrollSearch(false)} />
               ) : (
                 <>
-                <AutoBroll userId={userId} projectId={project.id} settings={settings} words={words} segs={plan.segs} total={plan.total} speed={speed} />
+                <AutoBroll userId={userId} projectId={project.id} settings={settings} words={words} segs={plan.segs} total={plan.total} speed={speed} seek={seekOut}
+                  apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }} />
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => setBrollSearch(true)} disabled={brolls.length >= MAX_BROLL}>
                     <Film className="h-3.5 w-3.5" /> Add B-roll at {fmtTime(Math.min(outT, plan.total))}

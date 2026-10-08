@@ -30,14 +30,16 @@ export function brollSpan(line: Sentence, nextStart: number | null, total: numbe
   return to - from >= 1 ? { from, to } : null;
 }
 
-/** The first result not on the video yet, the right way up for the frame and long enough to run without looping. */
-export function chooseClip(items: StockItem[], used: Set<string>, need: number, orientation: Orientation): StockItem | null {
-  return items.find((it) =>
+/** The results not on the video yet, the right way up for the frame and long enough to run without looping. */
+export function chooseClips(items: StockItem[], used: Set<string>, need: number, orientation: Orientation): StockItem[] {
+  return items.filter((it) =>
     !used.has(it.id) &&
     (it.duration === undefined || it.duration >= need - 0.5) &&
     (orientation === "portrait" ? it.h > it.w : orientation === "landscape" ? it.w > it.h : true),
-  ) ?? null;
+  );
 }
+export const chooseClip = (items: StockItem[], used: Set<string>, need: number, orientation: Orientation): StockItem | null =>
+  chooseClips(items, used, need, orientation)[0] ?? null;
 
 // ---------- the job ----------
 
@@ -72,6 +74,13 @@ export function onBrollJob(fn: (j: BrollJob | null) => void) {
 }
 /** Stops after the clip being fetched; what was found so far still goes in. */
 export const stopBrollJob = () => void (stopping = true);
+/** Puts the finished job's sheet away. */
+export function dismissBrollJob() {
+  if (job?.state === "done" || job?.state === "failed") {
+    job = null;
+    emit();
+  }
+}
 
 // the editor registers here while it is open on a video, so new clips go into its live edit
 const appliers = new Map<string, (added: Broll[]) => void>();
