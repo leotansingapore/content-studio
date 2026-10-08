@@ -130,7 +130,7 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
           e.preventDefault();
           openAt(e.key === "ArrowDown" ? 0 : items.length - 1);
         }}
-        className="h-11 gap-1.5 text-xs text-muted-foreground sm:h-9"
+        className="h-11 gap-1.5 text-xs text-muted-foreground sm:h-9 [@media(pointer:coarse)]:h-11"
       >
         <MoreHorizontal className="h-3.5 w-3.5" /> More
       </Button>
@@ -163,7 +163,7 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
                 close();
                 it.onSelect();
               }}
-              className="flex h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-foreground hover:bg-accent focus:bg-accent focus:outline-none sm:h-9"
+              className="flex h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-foreground hover:bg-accent focus:bg-accent focus:outline-none sm:h-9 [@media(pointer:coarse)]:h-11"
             >
               <it.icon className="h-4 w-4 shrink-0 text-muted-foreground" /> {it.label}
             </button>
@@ -377,7 +377,7 @@ export default function DraftsPage() {
           My posts
         </h1>
         {!importOpen && userId && (
-          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5">
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5 [@media(pointer:coarse)]:h-11">
             <Upload className="h-3.5 w-3.5" /> Import CSV
           </Button>
         )}
@@ -406,7 +406,7 @@ export default function DraftsPage() {
             key={key}
             type="button"
             onClick={() => setStatusFilter(key)}
-            className={`h-9 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors sm:h-8 ${
+            className={`h-9 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors sm:h-8 [@media(pointer:coarse)]:h-11 ${
               statusFilter === key
                 ? "border-primary/60 bg-primary/10 text-primary"
                 : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
@@ -422,7 +422,7 @@ export default function DraftsPage() {
             Filter your drafts
           </CardTitle>
           {!manageLabels && (
-            <Button size="sm" variant="ghost" onClick={openManager} className="gap-1.5 text-xs text-muted-foreground">
+            <Button size="sm" variant="ghost" onClick={openManager} className="gap-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11">
               <Tag className="h-3.5 w-3.5" /> Labels
             </Button>
           )}
@@ -431,7 +431,7 @@ export default function DraftsPage() {
           <div className="space-y-1.5">
             <Label>Platform</Label>
             <Select value={platformFilter} onValueChange={setPlatformFilter}>
-              <SelectTrigger aria-label="Platform">
+              <SelectTrigger aria-label="Platform" className="[@media(pointer:coarse)]:h-11">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -446,7 +446,7 @@ export default function DraftsPage() {
           <div className="space-y-1.5">
             <Label>Pillar</Label>
             <Select value={pillarFilter} onValueChange={setPillarFilter}>
-              <SelectTrigger aria-label="Pillar">
+              <SelectTrigger aria-label="Pillar" className="[@media(pointer:coarse)]:h-11">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -462,7 +462,7 @@ export default function DraftsPage() {
             <div className="space-y-1.5">
               <Label>Label</Label>
               <Select value={labelFilter} onValueChange={setLabelFilter}>
-                <SelectTrigger aria-label="Label">
+                <SelectTrigger aria-label="Label" className="[@media(pointer:coarse)]:h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -485,7 +485,7 @@ export default function DraftsPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Hook or body keyword"
-                className="pl-7"
+                className="pl-7 [@media(pointer:coarse)]:h-11"
               />
             </div>
           </div>
@@ -582,7 +582,7 @@ export default function DraftsPage() {
                       value={d.scheduledFor?.slice(0, 10) ?? ""}
                       // keeps a set posting time
                       onPick={(day) => handleSetStatus(d.id, "scheduled", scheduleAt(day, scheduleTime(d.scheduledFor)))}
-                      className="h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8"
+                      className="h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 [@media(pointer:coarse)]:h-11"
                     />
                   </label>
                 )}
@@ -635,7 +635,7 @@ export default function DraftsPage() {
                     type="button"
                     onClick={() => setLabelOpenId((cur) => (cur === d.id ? null : d.id))}
                     aria-expanded={labelOpenId === d.id}
-                    className="inline-flex h-9 items-center gap-1 rounded-full border border-dashed border-border px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground sm:h-7"
+                    className="inline-flex h-9 items-center gap-1 rounded-full border border-dashed border-border px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground sm:h-7 [@media(pointer:coarse)]:h-11"
                   >
                     <Tag className="h-3 w-3" /> {d.labels?.some((id) => labels.some((l) => l.id === id)) ? "Edit labels" : "Add label"}
                   </button>
@@ -657,7 +657,7 @@ export default function DraftsPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleRestore(d.id)}
-                    className="h-11 gap-1.5 sm:h-9"
+                    className="h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Edit
                   </Button>
@@ -666,7 +666,7 @@ export default function DraftsPage() {
                       size="sm"
                       variant="ghost"
                       onClick={() => handleUnpost(d)}
-                      className="h-11 gap-1.5 text-xs text-muted-foreground sm:h-9"
+                      className="h-11 gap-1.5 text-xs text-muted-foreground sm:h-9 [@media(pointer:coarse)]:h-11"
                     >
                       <Undo2 className="h-3.5 w-3.5" /> Mark unposted
                     </Button>
@@ -677,7 +677,7 @@ export default function DraftsPage() {
                       onClick={() => handleSetStatus(d.id, "posted")}
                       disabled={reviews.blockReason(d) !== null}
                       title={reviews.blockReason(d) ?? undefined}
-                      className="h-11 gap-1.5 text-xs text-success hover:text-success sm:h-9"
+                      className="h-11 gap-1.5 text-xs text-success hover:text-success sm:h-9 [@media(pointer:coarse)]:h-11"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
                     </Button>
@@ -698,7 +698,7 @@ export default function DraftsPage() {
                     size="sm"
                     variant="ghost"
                     onClick={() => handleDelete(d.id)}
-                    className={`ml-auto h-11 gap-1.5 text-xs sm:h-9 ${
+                    className={`ml-auto h-11 gap-1.5 text-xs sm:h-9 [@media(pointer:coarse)]:h-11 ${
                       confirmId === d.id
                         ? "text-destructive"
                         : "text-muted-foreground"

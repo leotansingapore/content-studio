@@ -103,7 +103,7 @@ export function LabelPicker({
                 type="button"
                 aria-pressed={on}
                 onClick={() => onChange(on ? selected.filter((x) => x !== l.id) : [...selected, l.id])}
-                className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors sm:h-8 ${
+                className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors sm:h-8 [@media(pointer:coarse)]:h-11 ${
                   on ? LABEL_CHIP[l.color] : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
                 }`}
               >
