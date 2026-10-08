@@ -138,10 +138,11 @@ import {
   type ExportJob,
   type Frame,
 } from "@/lib/videoMedia";
-import { blackStretches, frameTimes, joinTimes, lookAtFrames, pictureAndClipIssues } from "@/lib/exportCheck";
+import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "@/lib/exportCheck";
+import { FAST, isFast } from "@/lib/fastPauses";
 import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
-import { dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
+import { cutTimes, dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, sanitizeTrack } from "@/lib/faceFollow";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
@@ -640,6 +641,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         if (!next) return finish();
         v.currentTime = next.start;
       }
+      // a pause played fast: 4x with the sound out, back to speed a frame early so the next word starts at speed
+      const fast = plan.segs[segIdx.current] && isFast(plan.segs[segIdx.current], v.currentTime, (speed * FAST) / 60);
+      if (v.playbackRate !== speed * (fast ? FAST : 1)) {
+        v.playbackRate = speed * (fast ? FAST : 1);
+        v.volume = fast ? 0 : volume;
+      }
       paint();
       const out = outAt(plan.segs, v.currentTime, speed);
       syncVoice(out);
@@ -653,12 +660,16 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   // (this effect re-runs every frame as the playhead moves, so the voiceover pauses only when playback stops)
   useEffect(() => {
     if (!playing) {
+      if (video.current) {
+        video.current.playbackRate = speed;
+        video.current.volume = volume;
+      }
       voiceEl.current?.pause();
       brollEls.current.forEach((el) => el.pause());
       musicOut.current?.track?.stop();
       sfx.current.sync([], null);
     }
-  }, [playing]);
+  }, [playing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { if (!playing) paint(); }, [settings, plan, backdropImg]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1139,7 +1150,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       size: job.bytes && job.cap ? { bytes: job.bytes, cap: job.cap, label: job.label ?? "" } : undefined };
     setFileCheck({ id, issues: null, read: false });
     // the picture is looked at too, up to the end card; a sound-only source has none of its own
-    const looks = job.kind !== "audio" && !peaks ? lookAtFrames(job.url, frameTimes(plan.total, settings.transition ? joinTimes(plan.segs, speed) : [])) : Promise.resolve(null);
+    const looks = job.kind !== "audio" && !peaks ? lookAtFrames(job.url, frameTimes(plan.total, settings.transition ? cutTimes(plan.segs, speed) : [])) : Promise.resolve(null);
     void Promise.all([measureExport(job.url), looks]).then(([m, l]) =>
       setFileCheck({ id, issues: [...exportIssues(m ?? { seconds: null, level: null, gap: null }, want), ...pictureAndClipIssues(m?.clip ?? null, blackStretches(l ?? []))], read: !!m }));
   }, [job]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1694,6 +1705,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Row label={settings.maxPause ? `Shorten pauses over ${settings.maxPause.toFixed(1)}s` : "Keep every pause"}>
                 <input type="range" min={0} max={2} step={0.1} value={settings.maxPause} onChange={(e) => patch({ maxPause: Number(e.target.value) })} className="w-40 accent-primary" />
               </Row>
+              {settings.maxPause > 0 && <Row label={`Speed them up ${FAST}x instead of cutting`}><Toggle on={!!settings.pauseFast} set={(v) => patch({ pauseFast: v })} /></Row>}
               <Row label={`Trim start ${settings.trimStart.toFixed(1)}s`}><input type="range" min={0} max={Math.min(30, duration / 2)} step={0.1} value={settings.trimStart} onChange={(e) => patch({ trimStart: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label={`Trim end ${settings.trimEnd.toFixed(1)}s`}><input type="range" min={0} max={Math.min(30, duration / 2)} step={0.1} value={settings.trimEnd} onChange={(e) => patch({ trimEnd: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label="Punch in on cuts"><Toggle on={settings.punchIn} set={(v) => patch({ punchIn: v })} /></Row>
@@ -1830,7 +1842,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                           <Button size="sm" variant="ghost" className="h-11 w-11 shrink-0 p-0 sm:h-8 sm:w-8" aria-label={`Listen to ${c.kind === "filler" ? c.word : c.kind === "retake" ? "the first take" : "the pause"} at ${fmtTime(c.start)}`} onClick={() => listen(c.start, c.end)}>
                             <Volume2 className="h-3.5 w-3.5" />
                           </Button>
-                          <Chip on={!kept} onClick={() => toggleCut(c.id)} className="min-h-11 sm:min-h-0">{kept ? "Kept" : "Cut"}</Chip>
+                          <Chip on={!kept} onClick={() => toggleCut(c.id)} className="min-h-11 sm:min-h-0">{kept ? "Kept" : c.kind === "pause" && settings.pauseFast ? `${FAST}x` : "Cut"}</Chip>
                         </li>
                       );
                     })}

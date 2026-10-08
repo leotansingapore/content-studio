@@ -54,6 +54,7 @@ import {
 import { cueTicker, drawMotion, dropGain, hookTop, keyZoom, motionOf, playCue } from "@/lib/videoMotion";
 import { joinKept, sampleKept, wholeFits, type KeptPart } from "@/lib/keptSound";
 import { clipStats } from "@/lib/exportCheck";
+import { FAST, isFast, segLength } from "@/lib/fastPauses";
 
 // ---------- sound for captions ----------
 
@@ -1183,6 +1184,9 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       const seg = plan.segs[i];
       await seek(v, seg.start);
       draw();
+      // a pause played fast: the picture at 4x with the voice faded out, switched back a tick early so the next word starts at speed
+      let fast = isFast(seg, seg.start);
+      v.playbackRate = speed * (fast ? FAST : 1);
       // Play first, record once it is really playing: resuming the recorder before
       // playback starts records a frozen frame at every cut (an 8.6 s edit came out 10.6 s).
       await v.play();
@@ -1190,7 +1194,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       else rec.resume();
       gain.gain.cancelScheduledValues(actx.currentTime);
       gain.gain.setValueAtTime(0, actx.currentTime);
-      gain.gain.linearRampToValueAtTime(volume, actx.currentTime + FADE);
+      gain.gain.linearRampToValueAtTime(fast ? 0 : volume, actx.currentTime + FADE);
       let fading = false;
       // Record media time, not wall time: when playback stalls (buffering, or the
       // audio track ending before the video), pause the recorder so no frozen
@@ -1215,6 +1219,13 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
           }
           if (stalled && v.currentTime >= seg.end - 0.4) return resolve();
           draw();
+          if (!fading && isFast(seg, v.currentTime, (speed * FAST) / 30) !== fast) {
+            fast = !fast;
+            v.playbackRate = speed * (fast ? FAST : 1);
+            gain.gain.cancelScheduledValues(actx!.currentTime);
+            gain.gain.setValueAtTime(gain.gain.value, actx!.currentTime);
+            gain.gain.linearRampToValueAtTime(fast ? 0 : volume, actx!.currentTime + FADE);
+          }
           if (!fading && v.currentTime >= seg.end - FADE - 0.04) {
             fading = true;
             gain.gain.cancelScheduledValues(actx!.currentTime);
@@ -1230,7 +1241,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       v.pause();
       if (rec.state === "recording") rec.pause();
       voStop();
-      done += seg.end - seg.start;
+      done += segLength(seg);
     }
     if (endLen && brand) {
       // the end card: painted for its length in real time, over silence or the music

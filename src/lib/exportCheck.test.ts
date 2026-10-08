@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CLIP_MIN, blackStretches, clipStats, frameTimes, isBlack, joinTimes, pictureAndClipIssues } from "./exportCheck";
+import { CLIP_MIN, blackStretches, clipStats, frameTimes, isBlack, pictureAndClipIssues } from "./exportCheck";
 
 const RATE = 8000;
 const tone = (seconds: number, amp: number) => Float32Array.from({ length: seconds * RATE }, (_, i) => Math.max(-1, Math.min(1, amp * Math.sin((2 * Math.PI * 220 * i) / RATE))));
@@ -50,7 +50,6 @@ describe("black frames", () => {
     const t = frameTimes(10, [2.03]);
     expect(t).toHaveLength(19);
     expect(t.some((x) => Math.abs(x - 2.05) < 0.01)).toBe(false);
-    expect(joinTimes([{ start: 0, end: 2 }, { start: 3, end: 5 }, { start: 6, end: 7 }], 2)).toEqual([1, 2]);
   });
 
   it("joins black looks in a row into stretches", () => {

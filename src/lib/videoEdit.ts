@@ -10,6 +10,7 @@
 import type { FaceBox, KeyLine } from "@/lib/videoMotion";
 import { mergeSlivers, pauseCut } from "@/lib/cutRules";
 import { findRetakes } from "@/lib/retakes";
+import { outWithin, segLength, srcWithin, withFast } from "@/lib/fastPauses";
 
 export interface Word {
   w: string;
@@ -41,6 +42,8 @@ export interface EditSettings {
   removeRetakes?: boolean;
   /** Pauses longer than this many seconds are cut down. 0 = keep every pause. */
   maxPause: number;
+  /** Those pauses play at 4x with the sound out instead of being cut (fastPauses.ts). */
+  pauseFast?: boolean;
   trimStart: number;
   trimEnd: number;
   aspect: Aspect;
@@ -181,7 +184,7 @@ export function distanceToCut(segs: Segment[], out: number): number {
   let acc = 0;
   let best = Infinity;
   for (let i = 0; i < segs.length - 1; i++) {
-    acc += segs[i].end - segs[i].start;
+    acc += segLength(segs[i]);
     best = Math.min(best, Math.abs(out - acc));
   }
   return best;
@@ -270,6 +273,8 @@ export const isNumberWord = (w: string) => /\d|[$%]/.test(w);
 export interface Segment {
   start: number;
   end: number;
+  /** Stretches inside it that play fast (pauses sped up instead of cut), on the source timeline. */
+  fast?: [number, number][];
 }
 
 /**
@@ -290,7 +295,7 @@ export interface Cut {
   again?: number;
 }
 
-type CutSettings = Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "removeRetakes" | "maxPause" | "keepCuts">;
+type CutSettings = Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "removeRetakes" | "maxPause" | "pauseFast" | "keepCuts">;
 
 function window_(words: Word[], duration: number, s: CutSettings) {
   const from = Math.max(0, s.trimStart);
@@ -344,8 +349,11 @@ export function keepSegments(
     from = Math.max(from, said[0].s - 0.25);
     to = Math.min(to, said[said.length - 1].e + 0.35);
   }
+  const listed = listCuts(words, duration, s).filter((c) => !w.kept.has(c.id));
+  // pauses played fast stay in, marked on the parts they fall in
+  const fast = s.pauseFast ? listed.filter((c) => c.kind === "pause") : [];
   const cuts = [
-    ...listCuts(words, duration, s).filter((c) => !w.kept.has(c.id)),
+    ...listed.filter((c) => !fast.includes(c)),
     ...removed.map((r) => ({ start: r.s, end: r.e })),
   ].sort((a, b) => a.start - b.start);
   const out: Segment[] = [];
@@ -358,17 +366,17 @@ export function keepSegments(
     at = Math.max(at, ce);
   }
   if (to > at) out.push({ start: at, end: to });
-  return mergeSlivers(out, said).filter((g) => g.end - g.start > 0.04);
+  return withFast(mergeSlivers(out, said).filter((g) => g.end - g.start > 0.04), fast);
 }
 
-export const totalLength = (segs: Segment[]) => segs.reduce((t, g) => t + (g.end - g.start), 0);
+export const totalLength = (segs: Segment[]) => segs.reduce((t, g) => t + segLength(g), 0);
 
 /** Output time -> source time. Past the end returns the last kept instant. */
 export function sourceTime(segs: Segment[], t: number): number {
   let acc = 0;
   for (const g of segs) {
-    const len = g.end - g.start;
-    if (t < acc + len) return g.start + Math.max(0, t - acc);
+    const len = segLength(g);
+    if (t < acc + len) return srcWithin(g, Math.max(0, t - acc));
     acc += len;
   }
   return segs.length ? segs[segs.length - 1].end : 0;
@@ -392,8 +400,8 @@ export function srcAt(segs: Segment[], t: number, speed = 1): number {
 export function outputTime(segs: Segment[], src: number): number | null {
   let acc = 0;
   for (const g of segs) {
-    if (src >= g.start && src < g.end) return acc + (src - g.start);
-    acc += g.end - g.start;
+    if (src >= g.start && src < g.end) return acc + outWithin(g, src);
+    acc += segLength(g);
   }
   return null;
 }
@@ -470,7 +478,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("wordsPerCaption" in p) set("wordsPerCaption", Math.round(clamp(p.wordsPerCaption, 1, 6, s.wordsPerCaption)));
   if (typeof p.baseColor === "string" && HEX.test(p.baseColor)) set("baseColor", p.baseColor.toUpperCase());
   if (typeof p.activeColor === "string" && HEX.test(p.activeColor)) set("activeColor", p.activeColor.toUpperCase());
-  for (const k of ["uppercase", "captions", "removeFillers", "removeRetakes", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish", "loudness", "keyZooms", "numberCards", "sfx", "musicDrop", "popups"] as const) {
+  for (const k of ["uppercase", "captions", "removeFillers", "removeRetakes", "pauseFast", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish", "loudness", "keyZooms", "numberCards", "sfx", "musicDrop", "popups"] as const) {
     if (typeof p[k] === "boolean") set(k, p[k] as boolean);
   }
   if (typeof p.hook === "string") set("hook", p.hook.replace(/—/g, ",").slice(0, 90));
@@ -500,7 +508,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
 // this one video (its hook, trims or framing). New videos start from it.
 const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
-  "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "removeRetakes", "maxPause", "hookSeconds", "aspect", "fit",
+  "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "removeRetakes", "maxPause", "pauseFast", "hookSeconds", "aspect", "fit",
   "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "loudness", "speed", "captionAnim", "keyZooms", "numberCards", "sfx", "musicDrop", "popups",
 ] as const satisfies readonly (keyof EditSettings)[];
 

@@ -10,6 +10,7 @@ import { demuxAudio, demuxVideo, keyBefore, type VideoTrack } from "@/lib/mp4Dem
 import { END_CARD_SECONDS, aspectSize, brollAt, duckSpans, exportSize, levelFits, musicGainAt, srcAt, speedOf, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
 import { audioPeaks, decodeSound, drawEndCard, drawFrame, loadVideo, measureLevel, planFor, wireVoice, type BrandArt, type Frame } from "@/lib/videoMedia";
 import { dropGain, motionOf, playCue } from "@/lib/videoMotion";
+import { piecesOf } from "@/lib/fastPauses";
 
 /** Frames a second and sound rate, as the real-time export records. */
 export const FPS = 30;
@@ -24,14 +25,17 @@ export function fastBlocker(s: Pick<EditSettings, "speed">): string | null {
   return speedOf(s) !== 1 ? "speed" : null;
 }
 
-/** The filmed sound, cut by cut: where each kept part goes in the export (at), from where in the source, for how long. */
+/** The filmed sound, cut by cut: where each kept part goes in the export (at), from where in the source, for how long. A pause played fast is silent, so it leaves a gap. */
 export function voiceParts(segs: Segment[]): { at: number; from: number; dur: number }[] {
   let at = 0;
-  return segs.map((g) => {
-    const p = { at, from: g.start, dur: g.end - g.start };
-    at += p.dur;
-    return p;
-  });
+  const out: { at: number; from: number; dur: number }[] = [];
+  for (const g of segs) {
+    for (const [s, e, r] of piecesOf(g)) {
+      if (r === 1) out.push({ at, from: s, dur: e - s });
+      at += (e - s) / r;
+    }
+  }
+  return out;
 }
 
 /** The voice's volume over the export: up from 0 over FADE at the start of each part, back to 0 over FADE at its end. */

@@ -1,7 +1,7 @@
 // More of the check on an exported file: sound that clips (sits at full scale)
 // and a black picture. Both are measured from the file itself after the export.
 
-import { fmtTime, type ExportIssue, type Segment } from "@/lib/videoEdit";
+import { fmtTime, type ExportIssue } from "@/lib/videoEdit";
 
 /** A sample this close to full scale counts as clipped. */
 export const CLIP_LEVEL = 0.99;
@@ -43,14 +43,6 @@ export function frameTimes(total: number, dips: number[] = []): number[] {
     const t = Math.min(total - 0.05, 0.05 + i * step);
     if (!dips.some((d) => Math.abs(t - d) < 0.08)) out.push(t);
   }
-  return out;
-}
-
-/** Where the edit cuts from one kept part to the next, in seconds of the finished video. */
-export function joinTimes(segs: Segment[], speed = 1): number[] {
-  const out: number[] = [];
-  let acc = 0;
-  for (const g of segs.slice(0, -1)) out.push((acc += g.end - g.start) / speed);
   return out;
 }
 

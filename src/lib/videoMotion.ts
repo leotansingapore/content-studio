@@ -9,6 +9,7 @@
 import { readableOn } from "@/lib/carouselLayout";
 import { callFn } from "@/lib/edgeFn";
 import { STYLES, frameRect, outAt, srcAt, type Caption, type EditSettings, type Segment, type Sentence, type Word } from "@/lib/videoEdit";
+import { outWithin, segLength } from "@/lib/fastPauses";
 
 /** A key line Jev picked: where it is said on the source timeline, Jev's yes probability and, on the top few, its pop-up. */
 export interface KeyLine {
@@ -50,8 +51,8 @@ const smooth = (t: number) => {
 export function outOfSpan(segs: Segment[], s: number, e: number, speed = 1): number | null {
   let acc = 0;
   for (const g of segs) {
-    if (g.end > s && g.start < e) return (acc + Math.max(0, s - g.start)) / speed;
-    acc += g.end - g.start;
+    if (g.end > s && g.start < e) return (acc + outWithin(g, Math.max(s, g.start))) / speed;
+    acc += segLength(g);
   }
   return null;
 }
@@ -300,7 +301,7 @@ export interface Cue {
 /** The joins between kept stretches, on the edited timeline. */
 export function cutTimes(segs: Segment[], speed = 1): number[] {
   let acc = 0;
-  return segs.slice(0, -1).map((g) => (acc += g.end - g.start) / speed);
+  return segs.slice(0, -1).map((g) => (acc += segLength(g)) / speed);
 }
 
 /** A whoosh as a card comes in, a zoom starts or (with a transition set) at a cut; a pop as a sticker or a pop-up shows. One at a time: a cue within 0.3 s of the last is dropped. */
