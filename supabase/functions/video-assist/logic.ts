@@ -162,9 +162,19 @@ export interface FoundClip {
   score?: number;
 }
 
-export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number } | { ok: false; error: string } {
+/** Word timings for clean clip edges: about 50 minutes of speech, more than the editor can caption. */
+export const MAX_CLIP_WORDS = 8000;
+
+export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number; words: Word[] } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const duration = Number(b.duration);
+  // optional (a YouTube link has captions, not word timings); only well-formed words in time order count
+  const words: Word[] = [];
+  for (const x of (Array.isArray(b.words) ? b.words : []).slice(0, MAX_CLIP_WORDS)) {
+    const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
+    const w = { w: String(o.w ?? "").slice(0, 40), s: Number(o.s), e: Number(o.e) };
+    if (w.w && Number.isFinite(w.s) && Number.isFinite(w.e) && w.e >= w.s && w.s >= (words[words.length - 1]?.s ?? 0)) words.push(w);
+  }
   const sentences = (Array.isArray(b.sentences) ? b.sentences : [])
     .slice(0, MAX_SENTENCES)
     .map((x) => (x && typeof x === "object" ? (x as Record<string, unknown>) : {}))
@@ -172,7 +182,7 @@ export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSen
     .filter((x) => Number.isFinite(x.s) && Number.isFinite(x.e) && x.e > x.s && x.text);
   if (!Number.isFinite(duration) || duration < 45) return { ok: false, error: "Clips need a video of at least 45 seconds." };
   if (sentences.length < 5) return { ok: false, error: "Caption the video first, then find clips." };
-  return { ok: true, sentences, duration };
+  return { ok: true, sentences, duration, words };
 }
 
 /**
@@ -230,9 +240,83 @@ export function parseClipsReply(content: string | null, duration: number, limit 
   return out;
 }
 
-/** What is said in a clip: the sentences inside it. */
-export function clipText(sentences: ClipSentence[], clip: Pick<FoundClip, "start" | "end">): string[] {
-  return sentences.filter((x) => x.s >= clip.start - 0.05 && x.e <= clip.end + 0.05).map((x) => x.text);
+/** What is said in a clip, sentence by sentence: from the word timings when there are some. */
+export function clipText(sentences: ClipSentence[], clip: Pick<FoundClip, "start" | "end">, words: Word[] = []): string[] {
+  if (!words.length) return sentences.filter((x) => x.s >= clip.start - 0.05 && x.e <= clip.end + 0.05).map((x) => x.text);
+  const inside = words.filter((w) => w.s >= clip.start - 0.05 && w.e <= clip.end + 0.05);
+  return sentenceSpans(inside).map(([i, j]) => inside.slice(i, j + 1).map((w) => w.w).join(" "));
+}
+
+// ---------- clean clip edges, from the word timings ----------
+
+/** Shortest and longest clip kept, seconds. */
+export const CLIP_MIN = 18;
+export const CLIP_MAX = 120;
+/** Words a clip never opens on: trimmed from the head of its first sentence. */
+const LEAD_INS = new Set(["so", "yeah", "and", "but", "like", "um", "umm", "uh", "uhh", "er", "erm", "ah", "okay", "ok", "well", "oh"]);
+/** Words that point back to something said before: the clip takes in the sentence before, or skips this one. */
+const BACK_REFS = new Set(["that", "it"]);
+const bare = (w: string) => w.toLowerCase().replace(/[^a-z']/g, "").split("'")[0];
+
+/** Word-index ranges of the sentences: a break after . ! ? or before a pause over a second (as the editor's sentencesOf). */
+export function sentenceSpans(words: Word[]): [number, number][] {
+  const out: [number, number][] = [];
+  let from = 0;
+  for (let i = 0; i < words.length; i++) {
+    const last = i === words.length - 1;
+    if (last || /[.!?]["')\]]?$/.test(words[i].w) || words[i + 1].s - words[i].e > 1) {
+      out.push([from, i]);
+      from = i + 1;
+    }
+  }
+  return out;
+}
+
+/**
+ * A clip on whole sentences, opening on a strong word: an opener that points back
+ * ("That's why") takes in the sentence before, or starts a sentence later; an
+ * answer starts on its question; a question at the end is dropped (it opens the
+ * next topic); leading "so", "and", "um" and the like are cut. Then 0.2-0.35 s of
+ * the pause before the first word and up to 0.45 s after the last, never into a
+ * neighbouring word. Every step keeps the clip CLIP_MIN to CLIP_MAX long, or is skipped.
+ * The lead and trail numbers are OpenShorts' (snap_clip_to_words).
+ */
+export function cleanEdges<T extends { start: number; end: number }>(clip: T, words: Word[], duration: number): T {
+  const spans = sentenceSpans(words);
+  let a = spans.findIndex(([, j]) => words[j].e > clip.start + 0.05);
+  let b = -1;
+  spans.forEach(([i], k) => { if (words[i].s < clip.end - 0.05) b = k; });
+  if (a < 0 || b < a) return clip;
+  const head = (k: number) => words[spans[k][0]].s;
+  const tail = (k: number) => words[spans[k][1]].e;
+  const fits = (x: number, y: number, from = head(x)) => tail(y) - from >= CLIP_MIN && tail(y) - from <= CLIP_MAX;
+  const asks = (k: number) => /\?["')\]]?$/.test(words[spans[k][1]].w);
+  // ponytail: a word list cannot tell "So many people" from "So, many people"; a Jev opener check is the upgrade
+  const firstStrong = (k: number) => {
+    let i = spans[k][0];
+    while (i < spans[k][1] && LEAD_INS.has(bare(words[i].w))) i++;
+    return i;
+  };
+  const only = (k: number) => words.slice(spans[k][0], spans[k][1] + 1).every((w) => LEAD_INS.has(bare(w.w)));
+  if (!fits(a, b)) return clip;
+  // a sentence that is only "Okay, so." or "Yeah." is no start and no end
+  while (a < b && only(a) && fits(a + 1, b)) a++;
+  while (b > a && only(b) && fits(a, b - 1)) b--;
+  if (BACK_REFS.has(bare(words[firstStrong(a)].w))) {
+    if (a > 0 && fits(a - 1, b)) a--;
+    else if (a < b && fits(a + 1, b)) a++;
+  }
+  if (a > 0 && asks(a - 1) && !asks(a) && fits(a - 1, b)) a--;
+  while (b > a && asks(b) && fits(a, b - 1)) b--;
+  let first = firstStrong(a);
+  if (!fits(a, b, words[first].s)) first = spans[a][0];
+  const last = spans[b][1];
+  const before = first > 0 ? words[first].s - words[first - 1].e : words[first].s;
+  const after = last + 1 < words.length ? words[last + 1].s - words[last].e : duration - words[last].e;
+  const lead = Math.max(0, Math.min(0.35, before, Math.max(0.2, before / 2)));
+  const trail = Math.max(0, Math.min(0.45, after / 2));
+  const r = (t: number) => Math.round(t * 1000) / 1000;
+  return { ...clip, start: r(Math.max(0, words[first].s - lead)), end: r(Math.min(duration, words[last].e + trail)) };
 }
 
 /** Who Jev imagines watching. */
@@ -253,10 +337,10 @@ const STOPS_SCROLL = [
 ];
 
 /** Two Scores per candidate: s<i>, does it stand alone; h<i>, does its first line stop the scroll. State: {viewer}. */
-export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[]): Record<string, JevQuestion> {
+export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[], words: Word[] = []): Record<string, JevQuestion> {
   const q: Record<string, JevQuestion> = {};
   cands.forEach((c, i) => {
-    const said = clipText(sentences, c);
+    const said = clipText(sentences, c, words);
     if (!said.length) return;
     q[`s${i}`] = {
       type: "score",
@@ -286,10 +370,16 @@ export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[]): Re
  */
 export const KEEP_SCORE = 40;
 
+/** A quarter of the shorter clip shared with a better one drops it (OpenShorts' dedupe_overlapping ratio). */
+const OVERLAP = 0.25;
+const clash = (x: FoundClip, kept: FoundClip[]) =>
+  kept.some((k) => Math.min(x.end, k.end) - Math.max(x.start, k.start) > OVERLAP * Math.min(x.end - x.start, k.end - k.start));
+
 /**
  * Jev's order, best first, with each score out of 100 (stands alone 60%, first
  * line 40%): at least `min` clips, more up to `max` while they score KEEP_SCORE.
- * Without any answer, the LLM's own order and no scores.
+ * Without any answer, the LLM's own order and no scores. A clip that mostly
+ * repeats a better one (their cleaned edges can meet) is dropped.
  */
 export function rankClips(cands: FoundClip[], answers: Record<string, JevAnswer> | null, count: { min: number; max: number }): FoundClip[] {
   const scored = cands.map((c, i): FoundClip => {
@@ -298,13 +388,18 @@ export function rankClips(cands: FoundClip[], answers: Record<string, JevAnswer>
     if (s === null || h === null) return c;
     return { ...c, score: Math.max(0, Math.min(100, Math.round((100 * (0.6 * s + 0.4 * h)) / 3))) };
   });
-  if (!scored.some((c) => c.score !== undefined)) return cands.slice(0, count.max);
-  return scored
-    .map((c, i) => ({ c, i }))
-    .sort((a, b) => (b.c.score ?? -1) - (a.c.score ?? -1) || a.i - b.i)
-    .map((x) => x.c)
-    .filter((c, i) => i < count.min || (c.score ?? 0) >= KEEP_SCORE)
-    .slice(0, count.max);
+  const jev = scored.some((c) => c.score !== undefined);
+  const order = jev
+    ? scored.map((c, i) => ({ c, i })).sort((a, b) => (b.c.score ?? -1) - (a.c.score ?? -1) || a.i - b.i).map((x) => x.c)
+    : cands;
+  const kept: FoundClip[] = [];
+  for (const c of order) {
+    if (kept.length === count.max) break;
+    if (clash(c, kept)) continue;
+    if (jev && kept.length >= count.min && (c.score ?? 0) < KEEP_SCORE) break;
+    kept.push(c);
+  }
+  return kept;
 }
 
 // ---------- callouts and cutaways for a filmed talking head ----------

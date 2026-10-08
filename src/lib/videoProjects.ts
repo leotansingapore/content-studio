@@ -147,8 +147,9 @@ export async function vibeEdit(req: {
   return res.json();
 }
 
-export async function findClips(sentences: Sentence[], duration: number): Promise<Clip[]> {
-  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "clips", sentences, duration }) });
+/** Clips from what is said; with the word timings, each clip starts and ends cleanly. */
+export async function findClips(sentences: Sentence[], duration: number, words?: Word[]): Promise<Clip[]> {
+  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "clips", sentences, duration, words }) });
   return (await res.json()).clips;
 }
 

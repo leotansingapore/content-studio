@@ -38,7 +38,7 @@ export default function ClipFinder({ project, words, settings, duration, onClips
   const find = async () => {
     setBusy(true);
     try {
-      const clips = await findClips(sentencesOf(words), duration);
+      const clips = await findClips(sentencesOf(words), duration, words);
       const now = Date.now().toString(36);
       const made = clips.map((clip, i): FoundClip => ({
         clip,

@@ -6,10 +6,11 @@
 //        Frames are up to 3 stills from a reference video to match its look.
 //   POST {mode:"translate", lang:"zh"|"ms"|"ta", lines:[...]} -> {lines:[...]}: second-language
 //        caption lines, one per caption ("video-translate" cap).
-//   POST {mode:"clips", sentences:[{s,e,text}], duration} -> {clips:[{start,end,title,hook,reason,score?}]}:
+//   POST {mode:"clips", sentences:[{s,e,text}], duration, words?:[{w,s,e}]} -> {clips:[{start,end,title,hook,reason,score?}]}:
 //        standalone reels cut from one long video, 3-5 under 8 minutes and more beyond: the LLM
 //        proposes about twice that, Jev scores each out of 100 and the best come first (score
 //        unset and the LLM's order when Jev has no answer) ("video-clips" cap, one use per call).
+//        With word timings, each clip's edges are cleaned first (cleanEdges).
 //   POST {mode:"cutaways", sentences:[{s,e,text}] on the edited timeline, duration}
 //        -> {sections:[{at,until,callout,show}]}: a text callout and what to cut away
 //        to, per section of a filmed talking head ("video-cutaways" cap).
@@ -33,6 +34,7 @@ import {
   VIBE_MODEL,
   buildClipsMessages,
   candidateCount,
+  cleanEdges,
   clipCount,
   clipQuestions,
   rankClips,
@@ -164,9 +166,11 @@ Deno.serve(async (req) => {
         if (!clips?.length) console.error("video-assist clips: no usable clip", attempt, String(content).slice(0, 500));
       }
       if (!clips?.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
+      // edges on whole sentences and strong words, before Jev reads them
+      if (c.words.length) clips = clips.map((x) => cleanEdges(x, c.words, c.duration));
       // Jev ranks the candidates (Leo's rule: a ranking is a decision); without an answer, the LLM's order
       const answers = mostlyEnglish(c.sentences.map((x) => x.text).join(" "))
-        ? await askJev({ viewer: CLIP_VIEWER }, clipQuestions(clips, c.sentences), { who: "video-assist clips", timeoutMs: 10_000 })
+        ? await askJev({ viewer: CLIP_VIEWER }, clipQuestions(clips, c.sentences, c.words), { who: "video-assist clips", timeoutMs: 10_000 })
         : null;
       return json({ clips: rankClips(clips, answers, clipCount(c.duration)) });
     }

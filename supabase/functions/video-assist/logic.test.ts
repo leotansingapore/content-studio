@@ -245,3 +245,115 @@ describe("publish: titles and a cover idea", () => {
     expect(coverAt(null, sentences)).toBeNull();
   });
 });
+
+describe("clips: clean edges from the word timings", () => {
+  /** One word every 0.5 s (0.45 s long), sentences `gap` apart. */
+  const talk = (lines: string[], gap = 0.6) => {
+    const out: { w: string; s: number; e: number }[] = [];
+    let at = 0;
+    for (const l of lines) {
+      for (const w of l.split(" ")) {
+        out.push({ w, s: Math.round(at * 1000) / 1000, e: Math.round((at + 0.45) * 1000) / 1000 });
+        at += 0.5;
+      }
+      at += gap - 0.05;
+    }
+    return out;
+  };
+  const firstOf = (words: { w: string; s: number }[], text: string) => words.find((w) => w.w === text)!;
+  const clip = (start: number, end: number) => ({ start, end, title: "t", hook: "", reason: "" });
+  const cover = "Start with how much cover you actually need for your whole family.";
+  const under = "Most people here are underinsured by about half of what they need.";
+  const budget = "Keep premiums under fifteen percent of what you take home each month.";
+  const riders = "Riders come last and most of them are not worth the money at all.";
+
+  it("cuts a leading so, and the like, keeping the gap before the first strong word", async () => {
+    const { cleanEdges } = await import("./logic");
+    const ws = talk(["So, the first thing is how much cover you actually need.", under, budget]);
+    const last = ws[ws.length - 1];
+    const out = cleanEdges(clip(0, last.e), ws, last.e + 5);
+    // "the" starts at 0.5, 0.05 s after "So," ends: the lead is the whole gap
+    expect(out).toMatchObject({ start: 0.45, end: last.e + 0.45 });
+  });
+
+  it("starts an answer on its question", async () => {
+    const { cleanEdges } = await import("./logic");
+    const ws = talk(["What should you check before you buy a policy?", cover, under, budget]);
+    const last = ws[ws.length - 1];
+    expect(cleanEdges(clip(firstOf(ws, "Start").s, last.e), ws, last.e).start).toBe(0);
+  });
+
+  it("takes in the sentence before an opener that points back, or skips it at the very start", async () => {
+    const { cleanEdges } = await import("./logic");
+    const ws = talk([under, "That's why the second check is your budget every single month.", budget, riders]);
+    const last = ws[ws.length - 1];
+    expect(cleanEdges(clip(firstOf(ws, "That's").s, last.e), ws, last.e).start).toBe(0);
+    const ws2 = talk(["It is the one check nobody does before they buy.", under, budget, riders]);
+    const last2 = ws2[ws2.length - 1];
+    const start2 = cleanEdges(clip(0, last2.e), ws2, last2.e).start;
+    expect(start2).toBeCloseTo(firstOf(ws2, "Most").s - 0.3, 3);
+  });
+
+  it("drops a question at the end and a sentence that is only filler", async () => {
+    const { cleanEdges } = await import("./logic");
+    const ws = talk(["Okay, so.", under, budget, riders, "Any questions so far?"]);
+    const out = cleanEdges(clip(0, ws[ws.length - 1].e), ws, 60);
+    const at = (w: string) => ws.find((x) => x.w === w)!;
+    expect(out.start).toBeCloseTo(at("Most").s - 0.3, 3);
+    // ends on "all." with half the 0.6 s gap after it
+    expect(out.end).toBeCloseTo(at("all.").e + 0.3, 3);
+  });
+
+  it("skips a step that would leave the clip under 18 s", async () => {
+    const { cleanEdges, CLIP_MIN } = await import("./logic");
+    const ws = talk([under, budget, "Would you really pay that much every single month for it?"]);
+    const last = ws[ws.length - 1];
+    expect(last.e - ws[0].s).toBeLessThan(CLIP_MIN + 4);
+    expect(cleanEdges(clip(0, last.e), ws, last.e + 2).end).toBe(last.e + 0.45);
+    // 35 words over two sentences run exactly 18 s: cutting the leading "So," would leave 17.5
+    const so = talk(["So, the first thing is how much cover you need for your family and your parents too.", "Most people here are underinsured by about half of what they need to have if something goes wrong."]);
+    expect(so).toHaveLength(35);
+    expect(cleanEdges(clip(0, so[34].e), so, 40).start).toBe(0);
+  });
+
+  it("leads in 0.2 to 0.35 s of the pause before, never into the word before", async () => {
+    const { cleanEdges } = await import("./logic");
+    for (const [gap, lead] of [[1, 0.35], [0.5, 0.25], [0.3, 0.2], [0.1, 0.1]]) {
+      const ws = talk([under, cover, budget, riders], gap);
+      const last = ws[ws.length - 1];
+      expect(cleanEdges(clip(firstOf(ws, "Start").s, last.e), ws, last.e).start).toBeCloseTo(firstOf(ws, "Start").s - lead, 3);
+    }
+  });
+
+  it("leaves a clip alone when there are no words in it or it cannot fit", async () => {
+    const { cleanEdges } = await import("./logic");
+    const ws = talk([under, budget]);
+    expect(cleanEdges(clip(100, 130), ws, 200)).toEqual(clip(100, 130));
+    expect(cleanEdges(clip(0, 5), ws, 200)).toEqual(clip(0, 5));
+    // a clip ending before anyone speaks
+    const later = ws.map((w) => ({ ...w, s: w.s + 30, e: w.e + 30 }));
+    expect(cleanEdges(clip(0, 20), later, 200)).toEqual(clip(0, 20));
+  });
+
+  it("reads the clip's words for Jev when there are word timings", async () => {
+    const { clipText } = await import("./logic");
+    const ws = talk(["So, the first thing is cover.", "Then the budget."]);
+    expect(clipText([], { start: 0.45, end: 10 }, ws)).toEqual(["the first thing is cover.", "Then the budget."]);
+  });
+
+  it("drops a clip that mostly repeats a better one", async () => {
+    const { rankClips } = await import("./logic");
+    const a = clip(0, 40), b = clip(30, 70), c = clip(35, 80);
+    // b shares 10 of its 40 s with a (25%, kept); c shares 35 of 45 with b
+    expect(rankClips([a, b, c], null, { min: 3, max: 5 })).toEqual([a, b]);
+  });
+
+  it("takes word timings in the request only when well formed and in order", async () => {
+    const { parseClipsRequest } = await import("./logic");
+    const sentences = Array.from({ length: 6 }, (_, i) => ({ s: i * 10, e: i * 10 + 9, text: `Line ${i}.` }));
+    const words = [{ w: "a", s: 0, e: 0.4 }, { w: "", s: 1, e: 2 }, { w: "b", s: 3, e: 2 }, { w: "d", s: 5, e: 5.4 }, { w: "c", s: 0.2, e: 0.5 }];
+    const r = parseClipsRequest({ duration: 120, sentences, words });
+    expect(r.ok && r.words).toEqual([{ w: "a", s: 0, e: 0.4 }, { w: "d", s: 5, e: 5.4 }]);
+    expect(parseClipsRequest({ duration: 120, sentences })).toMatchObject({ ok: true, words: [] });
+  });
+});
