@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkLimits, findLinks, foldAt, moveLinksToComment } from "@/lib/platformCounters";
+import { checkLimits, findLinks, foldAt, moveLinksToComment, reelLengthRule, reelTooLong, reelWordRange, spokenWords } from "@/lib/platformCounters";
 
 describe("foldAt", () => {
   it("shows a short post whole", () => {
@@ -88,5 +88,43 @@ describe("links on LinkedIn", () => {
       comment: "https://a.sg\nhttps://b.sg",
     });
     expect(moveLinksToComment("Same https://a.sg", "https://a.sg")?.comment).toBe("https://a.sg");
+  });
+});
+
+describe("reel script length", () => {
+  it("gives the published word ranges at 15, 30 and 60 seconds", () => {
+    expect(reelWordRange(15)).toEqual({ min: 35, max: 40 });
+    expect(reelWordRange(30)).toEqual({ min: 70, max: 80 });
+    expect(reelWordRange(60)).toEqual({ min: 125, max: 150 });
+  });
+
+  it("reads lengths in between off the line, and beyond at the nearest pace", () => {
+    expect(reelWordRange(45)).toEqual({ min: 98, max: 115 });
+    expect(reelWordRange(90)).toEqual({ min: 188, max: 225 });
+    expect(reelWordRange(10)).toEqual({ min: 23, max: 27 });
+  });
+
+  it("counts only the spoken words: no section labels, stage directions or markdown", () => {
+    const script = [
+      "**HOOK (first 3 seconds):** Your CPF is not a savings account.",
+      "",
+      "[Point at camera]",
+      "BODY: It pays you [your number] a year.",
+      "On-screen text: CPF pays",
+      "CTA: Comment CPF.",
+    ].join("\n");
+    expect(spokenWords(script)).toBe(7 + 7 + 2);
+  });
+
+  it("flags a script that runs long for its length and passes one that fits", () => {
+    expect(reelTooLong(80, 30)).toBeNull();
+    expect(reelTooLong(81, 30)).toBe("Long for 30s. Aim for 70-80 words.");
+    expect(reelTooLong(96, 37)).toBeNull();
+    expect(reelTooLong(97, 37)).toBe("Long for 37s. Aim for 83-96 words.");
+  });
+
+  it("tells the writer the length and the word range", () => {
+    expect(reelLengthRule(15)).toContain("15 seconds");
+    expect(reelLengthRule(15)).toContain("35-40 spoken words");
   });
 });

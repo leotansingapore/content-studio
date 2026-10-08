@@ -94,8 +94,14 @@ import {
   findLinks,
   moveLinksToComment,
   readout,
+  REEL_LENGTHS,
+  reelLengthRule,
+  reelTooLong,
+  spokenSeconds,
+  spokenWords,
   type CounterReadout,
   type LimitCheck,
+  type ReelLength,
 } from "@/lib/platformCounters";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import ShotList from "@/components/ShotList";
@@ -260,7 +266,7 @@ const FORMATS: {
   {
     value: "short-video",
     label: "Short video",
-    sub: "30-60 sec script for Reels/Shorts/TikTok",
+    sub: "Script for Reels, Shorts or TikTok",
     icon: Video,
   },
   {
@@ -545,6 +551,31 @@ function LimitChips({ check, platform }: { check: LimitCheck; platform: Platform
   );
 }
 
+const isReelLength = (v: unknown): v is ReelLength => (REEL_LENGTHS as readonly unknown[]).includes(v);
+
+// The length a short-video script is written and counted for.
+function ReelLengthPicker({ value, onChange }: { value: ReelLength; onChange: (s: ReelLength) => void }) {
+  return (
+    <div role="group" aria-label="Video length" className="flex gap-1">
+      {REEL_LENGTHS.map((s) => (
+        <button
+          key={s}
+          type="button"
+          aria-pressed={value === s}
+          onClick={() => onChange(s)}
+          className={`flex h-11 min-w-11 items-center justify-center rounded-full border px-3 text-xs font-semibold transition-colors sm:h-9 ${
+            value === s
+              ? "border-primary/60 bg-primary/10 text-primary"
+              : "border-border/70 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {s}s
+        </button>
+      ))}
+    </div>
+  );
+}
+
 type StreamRequest = BasePayload & {
   mode: "hooks" | "body" | "post";
   n: number;
@@ -578,6 +609,8 @@ export default function GeneratePage() {
   const [ctaType, setCtaType] = useState<CtaType>("dm-keyword");
   const [audience, setAudience] = useState<Audience>("general");
   const [singlish, setSinglish] = useState<boolean>(false);
+  // How long a short video runs: the script is written and counted for it.
+  const [reelSeconds, setReelSeconds] = useState<ReelLength>(30);
   // Saved brief templates (per profile), and the save-as-template form.
   const [templates, setTemplates] = useState<BriefTemplate[]>([]);
   const [appliedTemplateId, setAppliedTemplateId] = useState<string | null>(null);
@@ -738,6 +771,7 @@ export default function GeneratePage() {
           if (prefs?.format && FORMATS.some((f) => f.value === prefs.format)) {
             setFormat(prefs.format as Format);
           }
+          if (isReelLength(prefs?.reelSeconds)) setReelSeconds(prefs.reelSeconds);
           const brief = JSON.parse(sessionStorage.getItem(briefKey(id)) ?? "null");
           if (brief && typeof brief.pillarDetail === "string") {
             if (PILLARS.some((p) => p.value === brief.pillar)) setPillar(brief.pillar);
@@ -749,6 +783,7 @@ export default function GeneratePage() {
             if (typeof brief.ideaContext === "string") setIdeaContext(brief.ideaContext);
             if (PLATFORMS.some((p) => p.value === brief.platform)) setPlatform(brief.platform);
             if (FORMATS.some((f) => f.value === brief.format)) setFormat(brief.format);
+            if (isReelLength(brief.reelSeconds)) setReelSeconds(brief.reelSeconds);
             if (CTAS.some((c) => c.value === brief.ctaType)) setCtaType(brief.ctaType);
             if (Array.isArray(brief.disclosure)) {
               setDisclosure(brief.disclosure.filter((d: string) => d in DISCLOSURES));
@@ -1079,6 +1114,7 @@ export default function GeneratePage() {
             ideaContext,
             platform,
             format,
+            reelSeconds,
             ctaType,
             wizardStep,
             disclosure,
@@ -1104,6 +1140,7 @@ export default function GeneratePage() {
     ideaContext,
     platform,
     format,
+    reelSeconds,
     ctaType,
     wizardStep,
     disclosure,
@@ -1130,6 +1167,7 @@ export default function GeneratePage() {
     if (funnelMeta) ctxParts.push(funnelMeta.directive);
     const trimmedCtx = ideaContext.trim();
     if (trimmedCtx) ctxParts.push(trimmedCtx);
+    if (format === "short-video") ctxParts.push(reelLengthRule(reelSeconds));
 
     // Combine an active vibe reference with a competitor's angle reference.
     const styleParts: string[] = [];
@@ -1361,7 +1399,7 @@ export default function GeneratePage() {
       try {
         localStorage.setItem(
           `content-studio-writeprefs-${scoped(userId)}`,
-          JSON.stringify({ platform, format }),
+          JSON.stringify({ platform, format, reelSeconds }),
         );
       } catch {
         // storage full — defaults just won't stick
@@ -1947,6 +1985,8 @@ export default function GeneratePage() {
 
   // Storyboard: the spoken script of a short video (the whole draft when it has no caption heading).
   const shortScript = format === "short-video" ? (svSplit?.script ?? draft).trim() : "";
+  const scriptWords = shortScript ? spokenWords(shortScript) : 0;
+  const scriptLong = shortScript ? reelTooLong(scriptWords, reelSeconds) : null;
   const storyboardStale = Boolean(storyboard && storyboard.script !== shortScript);
   const storyboardBusy = Boolean(currentDraftId && storyboardFor === currentDraftId);
   const boardColumn = savedEntry ? columnOf(savedEntry, boardStages) : null;
@@ -2516,6 +2556,7 @@ export default function GeneratePage() {
             <p className="text-[11px] text-muted-foreground">
               {FORMATS.find((f) => f.value === format)!.sub}
             </p>
+            {format === "short-video" && <ReelLengthPicker value={reelSeconds} onChange={setReelSeconds} />}
           </div>
           <div className="space-y-1.5">
             <Label>CTA style</Label>
@@ -3106,9 +3147,30 @@ export default function GeneratePage() {
               </div>
             </div>
 
+            {shortScript && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                <span
+                  className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${
+                    scriptLong
+                      ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                      : "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  }`}
+                >
+                  {scriptLong ? <AlertTriangle className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                  Script: {scriptWords} words, about {spokenSeconds(scriptWords)}s
+                </span>
+                <ReelLengthPicker value={reelSeconds} onChange={setReelSeconds} />
+                {scriptLong && (
+                  <span role="alert" className="flex basis-full items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {scriptLong}
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
               <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">
-                Words: {counters.words}
+                {svSplit?.script ? "Caption words" : "Words"}: {counters.words}
               </span>
               <span
                 className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${

@@ -3,9 +3,10 @@
 // for a cloned reel and Write for any short-video draft's storyboard.
 
 import { useEffect, useState } from "react";
-import { Camera, Check, Copy, Eye, Mic } from "lucide-react";
+import { AlertTriangle, Camera, Check, Copy, Eye, Mic } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
+import { countWords, reelTooLong } from "@/lib/platformCounters";
 import { shotListText, type ShotBeat } from "@/lib/reelClone";
 
 const LABEL = "text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
@@ -55,15 +56,24 @@ export default function ShotList({
   matched?: boolean;
 }) {
   const total = beats.reduce((sum, b) => sum + b.seconds, 0);
+  const words = beats.reduce((sum, b) => sum + countWords(b.say), 0);
+  const tooLong = reelTooLong(words, total);
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <p className={LABEL}>Shot list · about {total}s</p>
+        <p className={LABEL}>
+          Shot list · about {total}s · {words} words
+        </p>
         <div className="flex items-center gap-1">
           {script && <CopyButton text={script} label="Script" display="Copy script" />}
           <CopyButton text={shotListText(beats, shots)} label="Shot list" display="Copy shot list" />
         </div>
       </div>
+      {tooLong && (
+        <p role="alert" className="flex items-center gap-1 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="h-3 w-3 shrink-0" /> {tooLong}
+        </p>
+      )}
       {matched && (
         <p className="flex items-center gap-1 text-[11px] font-medium text-primary">
           <Eye className="h-3 w-3 shrink-0" /> Shots match the original's look

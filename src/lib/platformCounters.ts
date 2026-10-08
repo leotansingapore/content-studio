@@ -225,3 +225,55 @@ export function foldAt(text: string, platform: string): number | null {
   const space = text.lastIndexOf(" ", cut);
   return space > cut - 25 && space > 0 && text[cut] !== "\n" && text[cut] !== " " ? space : cut;
 }
+
+// Spoken words that fit a reel at a natural pace: about 35-40 for 15 seconds,
+// 70-80 for 30 and 125-150 for 60. A length in between reads its range off the
+// line joining its neighbours; a shorter or longer one keeps the nearest pace.
+const REEL_WORDS = [
+  { seconds: 15, min: 35, max: 40 },
+  { seconds: 30, min: 70, max: 80 },
+  { seconds: 60, min: 125, max: 150 },
+];
+export const REEL_LENGTHS = [15, 30, 60] as const;
+export type ReelLength = (typeof REEL_LENGTHS)[number];
+
+export function reelWordRange(seconds: number): { min: number; max: number } {
+  const first = REEL_WORDS[0];
+  const last = REEL_WORDS[REEL_WORDS.length - 1];
+  const at = (min: number, max: number) => ({ min: Math.round(min), max: Math.round(max) });
+  if (seconds <= first.seconds) return at((first.min * seconds) / first.seconds, (first.max * seconds) / first.seconds);
+  if (seconds >= last.seconds) return at((last.min * seconds) / last.seconds, (last.max * seconds) / last.seconds);
+  const i = REEL_WORDS.findIndex((r) => r.seconds >= seconds) - 1;
+  const [a, b] = [REEL_WORDS[i], REEL_WORDS[i + 1]];
+  const t = (seconds - a.seconds) / (b.seconds - a.seconds);
+  return at(a.min + t * (b.min - a.min), a.max + t * (b.max - a.max));
+}
+
+// "HOOK (first 3 seconds):", "Body:", "CTA:" in front of a spoken line.
+const SPOKEN_LABEL = /^(?:hook|body|cta|call[\s-]to[\s-]action|intro|outro|close)\b\s*(?:\([^)]*\))?\s*:\s*/i;
+// A line that is a stage direction or a note for the edit, not something said.
+const NOT_SPOKEN =
+  /^(?:\[[^\]]*\]|\([^)]*\)|(?:on[\s-]screen|text on screen|visuals?|b[\s-]?roll|burned[\s-]in|shot|scene|camera)\b[^:]*:.*)$/i;
+
+/** Words said on camera in a short-video script. */
+export function spokenWords(script: string): number {
+  return script.split("\n").reduce((n, raw) => {
+    const line = raw.replace(/[*_#>]/g, "").trim();
+    return !line || NOT_SPOKEN.test(line) ? n : n + countWords(line.replace(SPOKEN_LABEL, ""));
+  }, 0);
+}
+
+/** Seconds a script takes to say at a natural pace (about 2.5 words a second). */
+export const spokenSeconds = (words: number) => Math.round(words / 2.5);
+
+/** A plain warning when a script has more words than its length fits, else null. */
+export function reelTooLong(words: number, seconds: number): string | null {
+  const { min, max } = reelWordRange(seconds);
+  return words > max ? `Long for ${seconds}s. Aim for ${min}-${max} words.` : null;
+}
+
+/** The writer's instruction for a short video of this length. */
+export function reelLengthRule(seconds: number): string {
+  const { min, max } = reelWordRange(seconds);
+  return `Video length: ${seconds} seconds. Keep the spoken script to about ${min}-${max} spoken words. This overrides the 30-60 second guide for the format.`;
+}
