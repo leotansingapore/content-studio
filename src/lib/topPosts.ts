@@ -153,3 +153,19 @@ export function buildRemixUrl(
   });
   return `/generate?${params.toString()}`;
 }
+
+const COMPACT = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+/** 141900 -> "141.9K", 2200 -> "2.2K". */
+export const compactNum = (n: number): string => COMPACT.format(Math.max(0, n || 0));
+
+/** "3d ago", "4w ago", "5mo ago", "2y ago" from an ISO timestamp. */
+export function postAge(iso: string | null | undefined, now = Date.now()): string | null {
+  const t = iso ? Date.parse(iso) : NaN;
+  if (Number.isNaN(t)) return null;
+  const days = Math.max(0, Math.floor((now - t) / 86_400_000));
+  if (days < 1) return "today";
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}

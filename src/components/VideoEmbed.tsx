@@ -1,15 +1,32 @@
 import { useState } from "react";
 import { Play } from "lucide-react";
 import { embedUrlFor } from "@/lib/embed";
+import { cn } from "@/lib/utils";
 
 // Click-to-play: a grid of eight third-party players would load several MB of
-// script up front, so each one loads only when someone taps it.
-export default function VideoEmbed({ url, label }: { url: string | null | undefined; label?: string }) {
-  const [playing, setPlaying] = useState(false);
+// script up front, so each one loads only when someone taps it. A modal the
+// viewer opened on purpose passes autoPlay to load the player straight away.
+export default function VideoEmbed({
+  url,
+  label,
+  autoPlay = false,
+  className,
+}: {
+  url: string | null | undefined;
+  label?: string;
+  autoPlay?: boolean;
+  className?: string;
+}) {
+  const [playing, setPlaying] = useState(autoPlay);
   const src = embedUrlFor(url);
   if (!src) return null;
   return (
-    <div className="relative mx-auto aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-xl border border-border/60 bg-muted/40">
+    <div
+      className={cn(
+        "relative mx-auto aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-xl border border-border/60 bg-muted/40",
+        className,
+      )}
+    >
       {playing ? (
         <iframe
           src={src}

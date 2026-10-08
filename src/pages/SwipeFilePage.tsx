@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, TrendingUp, ChevronDown, Bookmark, Sparkles } from "lucide-react";
-import TopPostCard from "@/components/TopPostCard";
+import ReelCard from "@/components/ReelCard";
 import IndustryNews from "@/components/IndustryNews";
 import { NEWS } from "@/lib/industryNews";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
@@ -63,7 +63,7 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+      className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
         active
           ? "border-primary/60 bg-primary/10 text-primary"
           : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -266,7 +266,9 @@ export default function SwipeFilePage() {
                           : "border-border/60 bg-background hover:border-primary/40"
                       }`}
                     >
-                      <span className="truncate text-[11px] font-medium text-muted-foreground">{f.label}</span>
+                      <span className="truncate text-[11px] font-medium text-muted-foreground">
+                    {FORMAT_CHIPS.find((c) => c.value === f.value)?.label ?? f.label}
+                  </span>
                       <span className="text-lg font-semibold leading-tight text-foreground">{f.ratio.toFixed(1)}x</span>
                       <span className="text-[11px] text-muted-foreground">{f.posts} posts</span>
                     </button>
@@ -278,8 +280,8 @@ export default function SwipeFilePage() {
                 ].map(
                   (row) =>
                     row.items.length > 0 && (
-                      <div key={row.name} className="flex flex-wrap items-center gap-1.5">
-                        <span className="w-14 text-xs font-semibold text-muted-foreground">{row.name}</span>
+                      <div key={row.name} className="scrollbar-none flex items-center gap-1.5 overflow-x-auto">
+                        <span className="w-14 shrink-0 text-xs font-semibold text-muted-foreground">{row.name}</span>
                         {row.items.map((t) => (
                           <Chip
                             key={t.label}
@@ -392,21 +394,10 @@ export default function SwipeFilePage() {
             </Card>
           ) : (
             <>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
                 {shown.map((item) => {
                   const key = postKey(item);
-                  return (
-                    <TopPostCard
-                      key={key}
-                      post={item.post}
-                      insight={item.insight}
-                      advisor={{ name: item.post.advisorName, handle: item.post.handle }}
-                      showAdvisor
-                      saved={savedSet.has(key)}
-                      onToggleSave={userId ? () => toggleSave(key) : undefined}
-                      onOpen={() => setOpenKey(key)}
-                    />
-                  );
+                  return <ReelCard key={key} item={item} onOpen={() => setOpenKey(key)} />;
                 })}
               </div>
               {remaining > 0 && (
@@ -435,9 +426,7 @@ export default function SwipeFilePage() {
           />
 
           <p className="pt-1 text-center text-xs text-muted-foreground">
-            Covers are our own saved copies, so they never break. For carousels and reels,
-            open <span className="font-medium text-foreground">View original</span> to see the
-            full post. Need a hand turning one into your own?{" "}
+            Need a hand turning one into your own?{" "}
             <Link to="/create-guide" className="font-semibold text-primary hover:underline">
               How to create it
             </Link>
