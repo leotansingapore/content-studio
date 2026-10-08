@@ -151,7 +151,7 @@ function Stat({
           <div className="font-serif text-2xl font-semibold leading-none text-foreground">
             {value}
           </div>
-          <div className="mt-1 truncate text-xs text-muted-foreground">{label}</div>
+          <div className="mt-1 text-xs leading-tight text-muted-foreground">{label}</div>
           {delta !== undefined && delta !== null && (
             <div className={`mt-0.5 text-[11px] font-semibold ${delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
               {delta > 0 ? "+" : ""}{delta}% vs previous

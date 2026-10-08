@@ -94,7 +94,7 @@ function StatCard({
           <div className="font-serif text-2xl font-semibold leading-none text-foreground">
             {value}
           </div>
-          <div className="mt-1 truncate text-xs text-muted-foreground">{label}</div>
+          <div className="mt-1 text-xs leading-tight text-muted-foreground">{label}</div>
         </div>
       </CardContent>
     </Card>
