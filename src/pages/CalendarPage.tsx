@@ -126,7 +126,7 @@ const whenLabel = (scheduledFor: string) => {
 };
 
 const dateInputClass =
-  "h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8";
+  "h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 [@media(pointer:coarse)]:h-11";
 
 export default function CalendarPage() {
   const { toast } = useToast();
@@ -447,7 +447,7 @@ export default function CalendarPage() {
         <button
           type="button"
           onClick={() => skip(d, d.scheduledFor!.slice(0, 10))}
-          className="h-9 rounded-md px-2 font-semibold text-muted-foreground hover:text-foreground sm:h-8"
+          className="h-9 rounded-md px-2 font-semibold text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11"
         >
           Skip this one
         </button>
@@ -480,10 +480,10 @@ export default function CalendarPage() {
             </button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8">
+            <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
               <Link to={`/generate?draft=${encodeURIComponent(d.id)}`}>Open</Link>
             </Button>
-            <Button size="sm" variant="outline" onClick={() => skip(d, ghost)} className="h-9 px-3 text-xs sm:h-8">
+            <Button size="sm" variant="outline" onClick={() => skip(d, ghost)} className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
               Skip this one
             </Button>
           </div>
@@ -511,7 +511,7 @@ export default function CalendarPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!posted && moveInput(d)}
-          <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8">
+          <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
             <Link to={`/generate?draft=${encodeURIComponent(d.id)}`}>Open</Link>
           </Button>
           {!posted && (
@@ -520,7 +520,7 @@ export default function CalendarPage() {
               onClick={() => markPosted(d.id)}
               disabled={reviews.blockReason(d) !== null}
               title={reviews.blockReason(d) ?? undefined}
-              className="h-9 gap-1 px-3 text-xs sm:h-8"
+              className="h-9 gap-1 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
             >
               <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
             </Button>
@@ -750,7 +750,7 @@ export default function CalendarPage() {
             onClick={() => markPosted(e.id)}
             disabled={reviews.blockReason(e) !== null}
             title={reviews.blockReason(e) ?? undefined}
-            className="h-9 shrink-0 gap-1.5 px-2.5 text-xs text-success hover:text-success sm:h-8"
+            className="h-9 shrink-0 gap-1.5 px-2.5 text-xs text-success hover:text-success sm:h-8 [@media(pointer:coarse)]:h-11"
           >
             <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
           </Button>
@@ -778,7 +778,7 @@ export default function CalendarPage() {
       type="button"
       onClick={() => setView(v)}
       aria-pressed={view === v}
-      className={`inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold sm:h-8 ${
+      className={`inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold sm:h-8 [@media(pointer:coarse)]:h-11 ${
         view === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
       }`}
     >
@@ -806,7 +806,7 @@ export default function CalendarPage() {
         </div>
         <div className="flex gap-2">
           <Select value={platform} onValueChange={setPlatform}>
-            <SelectTrigger aria-label="Platform" className="h-9 w-[8rem] text-xs sm:h-8">
+            <SelectTrigger aria-label="Platform" className="h-9 w-[8rem] text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -819,7 +819,7 @@ export default function CalendarPage() {
             </SelectContent>
           </Select>
           <Select value={status} onValueChange={(v) => setStatus(v as StatusFilter)}>
-            <SelectTrigger aria-label="Status" className="h-9 w-[7rem] text-xs sm:h-8">
+            <SelectTrigger aria-label="Status" className="h-9 w-[7rem] text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -832,7 +832,7 @@ export default function CalendarPage() {
         <button
           type="button"
           onClick={() => openNote(null)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8"
+          className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11"
         >
           <StickyNote className="h-3.5 w-3.5" /> Add note
         </button>
@@ -841,7 +841,7 @@ export default function CalendarPage() {
             <button
               type="button"
               onClick={() => shift(-1)}
-              className="grid h-9 w-9 place-items-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8"
+              className="grid h-9 w-9 place-items-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
               aria-label={view === "week" ? "Previous week" : "Previous month"}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -850,7 +850,7 @@ export default function CalendarPage() {
             <button
               type="button"
               onClick={() => shift(1)}
-              className="grid h-9 w-9 place-items-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8"
+              className="grid h-9 w-9 place-items-center rounded-md border border-border/70 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
               aria-label={view === "week" ? "Next week" : "Next month"}
             >
               <ChevronRight className="h-4 w-4" />
@@ -858,7 +858,7 @@ export default function CalendarPage() {
             <button
               type="button"
               onClick={() => setAnchor(todayKey)}
-              className="h-9 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8"
+              className="h-9 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11"
             >
               Today
             </button>
@@ -920,7 +920,7 @@ export default function CalendarPage() {
                         title="Time (optional)"
                         className={`${dateInputClass} w-24`}
                       />
-                      <Button type="submit" size="sm" disabled={!rowPick[d.id]?.date} className="h-9 px-3 text-xs sm:h-8">
+                      <Button type="submit" size="sm" disabled={!rowPick[d.id]?.date} className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
                         Schedule
                       </Button>
                     </form>
@@ -966,7 +966,7 @@ export default function CalendarPage() {
                   maxLength={80}
                   placeholder="Campaign or reminder"
                   aria-label="Note"
-                  className="h-9 min-w-0 flex-1 basis-48 rounded-md border border-input bg-background px-3 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8"
+                  className="h-9 min-w-0 flex-1 basis-48 rounded-md border border-input bg-background px-3 text-sm text-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8 [@media(pointer:coarse)]:h-11"
                 />
                 <div role="radiogroup" aria-label="Colour" className="flex">
                   {NOTE_COLORS.map((c) => (
@@ -977,7 +977,7 @@ export default function CalendarPage() {
                       aria-checked={noteForm.color === c}
                       aria-label={NOTE_COLOR_NAME[c]}
                       onClick={() => setNoteForm({ ...noteForm, color: c })}
-                      className="grid h-9 w-9 place-items-center rounded-full sm:h-8 sm:w-8"
+                      className="grid h-9 w-9 place-items-center rounded-full sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                     >
                       <span
                         className={`h-5 w-5 rounded-full ${NOTE_SWATCH[c]} ${
@@ -994,12 +994,12 @@ export default function CalendarPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => removeNote(noteForm.id!)}
-                      className="h-9 px-3 text-xs text-destructive hover:text-destructive sm:h-8"
+                      className="h-9 px-3 text-xs text-destructive hover:text-destructive sm:h-8 [@media(pointer:coarse)]:h-11"
                     >
                       Delete
                     </Button>
                   )}
-                  <Button type="submit" size="sm" disabled={!noteForm.title.trim()} className="h-9 px-3 text-xs sm:h-8">
+                  <Button type="submit" size="sm" disabled={!noteForm.title.trim()} className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
                     {noteForm.id ? "Save" : "Add note"}
                   </Button>
                 </div>
@@ -1188,7 +1188,7 @@ export default function CalendarPage() {
                       <button
                         type="button"
                         onClick={() => skip(i.item, i.date)}
-                        className="h-9 shrink-0 rounded-md px-2 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8"
+                        className="h-9 shrink-0 rounded-md px-2 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11"
                       >
                         Skip
                       </button>
