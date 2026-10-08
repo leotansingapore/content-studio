@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Clapperboard, Images } from "lucide-react";
+import { Clapperboard, Columns3, Images, LayoutGrid } from "lucide-react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import ReelDrawer from "@/components/reels/ReelDrawer";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,25 @@ export default function ReelsPage() {
   const [error, setError] = useState("");
   const [brand, setBrand] = useState<string | null>(params.get("brand"));
   const [showArchived, setShowArchived] = useState(false);
+  // Board (kanban columns, drag between stages) on wide screens, grid on phones; remembered per device.
+  const [view, setView] = useState<"board" | "grid">(() => {
+    try {
+      const v = localStorage.getItem("cs-reels-view");
+      if (v === "board" || v === "grid") return v;
+    } catch {
+      // storage blocked: fall through to the screen-size default
+    }
+    return typeof window !== "undefined" && window.innerWidth >= 1024 ? "board" : "grid";
+  });
+  const [over, setOver] = useState<string | null>(null);
+  const pickView = (v: "board" | "grid") => {
+    setView(v);
+    try {
+      localStorage.setItem("cs-reels-view", v);
+    } catch {
+      // per-device convenience only
+    }
+  };
   const openId = params.get("card");
 
   useEffect(() => {
@@ -134,6 +153,14 @@ export default function ReelsPage() {
               <input type="checkbox" className="h-4 w-4 accent-primary" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
               Archived
             </label>
+            <div className="flex rounded-lg border border-border/60 bg-muted/30 p-0.5" role="group" aria-label="Layout">
+              {([["board", "Board", Columns3], ["grid", "Grid", LayoutGrid]] as const).map(([id, label, Icon]) => (
+                <button key={id} type="button" onClick={() => pickView(id)} aria-pressed={view === id}
+                  className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold ${view === id ? "bg-background shadow-sm" : "text-muted-foreground"}`}>
+                  <Icon className="h-3.5 w-3.5" /> {label}
+                </button>
+              ))}
+            </div>
           </>
         )}
       </header>
@@ -146,7 +173,72 @@ export default function ReelsPage() {
       )}
       {!board && !error && <div className="h-64 animate-pulse rounded-xl bg-muted/50" aria-busy="true" aria-label="Loading reels" />}
 
-      {board &&
+      {board && view === "board" && (
+        <div className="-mx-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+          <div className="flex items-start gap-3">
+            {stages.map((s) => {
+              const cards = cardsIn(board.cards, s.id, brand ?? "");
+              return (
+                <section
+                  key={s.id}
+                  aria-label={s.name}
+                  onDragOver={(e) => { e.preventDefault(); setOver(s.id); }}
+                  onDragLeave={() => setOver((o) => (o === s.id ? null : o))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setOver(null);
+                    const id = e.dataTransfer.getData("text/plain");
+                    if (id) move(id, s.id);
+                  }}
+                  className={`flex w-60 shrink-0 flex-col rounded-xl border bg-muted/30 transition-colors ${over === s.id ? "border-primary bg-primary/5 ring-2 ring-primary/25" : "border-border/60"}`}
+                >
+                  <h2 className="flex items-baseline justify-between px-3 pb-1 pt-2.5 text-sm font-semibold">
+                    {s.name} <span className="text-xs font-normal text-muted-foreground">{cards.length}</span>
+                  </h2>
+                  <ul className="flex max-h-[72vh] min-h-24 flex-col gap-2 overflow-y-auto p-2">
+                    {cards.length === 0 && (
+                      <li className="rounded-lg border border-dashed border-border/70 py-5 text-center text-[11px] text-muted-foreground">Drop a reel here</li>
+                    )}
+                    {cards.map((c) => {
+                      const v = currentVersion(c);
+                      const next = NEXT[c.stage];
+                      const notes = openNotes(c);
+                      const ig = igLine(c);
+                      return (
+                        <li
+                          key={c.id}
+                          draggable
+                          onDragStart={(e) => { e.dataTransfer.setData("text/plain", c.id); e.dataTransfer.effectAllowed = "move"; }}
+                          className="grid cursor-grab grid-cols-[52px_1fr] gap-2 rounded-lg border border-border/60 bg-card p-2 shadow-sm active:cursor-grabbing"
+                        >
+                          <button type="button" onClick={() => open(c.id)} className="block aspect-[9/16] overflow-hidden rounded-md bg-black" aria-label={`Open ${c.title}`}>
+                            {v.thumbUrl && <img src={v.thumbUrl} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                          </button>
+                          <div className="min-w-0 space-y-1">
+                            <button type="button" onClick={() => open(c.id)} className="block text-left text-xs font-semibold leading-snug line-clamp-2 hover:text-primary">{c.title}</button>
+                            <p className="flex flex-wrap gap-1 text-[10px]">
+                              <span className="rounded-full bg-muted px-1.5 py-0.5">{board.brands.find((b) => b.id === brandOf(c))?.name}</span>
+                              {isCarousel(c) && <span className="rounded-full bg-muted px-1.5 py-0.5">Carousel</span>}
+                              {notes > 0 && <span className="rounded-full bg-warning/20 px-1.5 py-0.5 font-semibold">{notes} note{notes > 1 ? "s" : ""}</span>}
+                              {c.schedule && <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-primary">{when(c.schedule)}</span>}
+                            </p>
+                            {ig && <p className={`text-[10px] font-semibold ${ig.href ? "text-primary" : "text-muted-foreground"}`}>{ig.text}</p>}
+                            {next && (
+                              <Button size="sm" variant="outline" className="h-7 w-full text-[11px]" onClick={() => move(c.id, next[0])}>{next[1]}</Button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {board && view === "grid" &&
         stages.map((s) => {
           const cards = cardsIn(board.cards, s.id, brand ?? "");
           return (
