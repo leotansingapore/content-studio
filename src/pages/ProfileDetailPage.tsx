@@ -152,7 +152,7 @@ export default function ProfileDetailPage() {
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border sm:h-6 sm:w-6 border-border/60 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
               aria-label="Copy handle"
               title="Copy handle"
             >

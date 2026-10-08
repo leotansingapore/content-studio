@@ -217,7 +217,7 @@ function AdvisorCard({
               onClick={onToggleSave}
               aria-label={saved ? "Remove bookmark" : "Save creator"}
               title={saved ? "Saved to your Playbook" : "Save creator"}
-              className={`-mr-1 -mt-1 shrink-0 rounded-lg p-1.5 transition-colors ${
+              className={`-mr-2 -mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
                 saved ? "text-primary" : "text-muted-foreground hover:text-primary"
               }`}
             >
@@ -235,7 +235,7 @@ function AdvisorCard({
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border/60 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border sm:h-6 sm:w-6 border-border/60 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
             aria-label="Copy handle"
             title="Copy handle"
           >

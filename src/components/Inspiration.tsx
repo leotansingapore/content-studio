@@ -166,7 +166,7 @@ function InspirationCard({
               onClick={onToggleSave}
               aria-label={saved ? "Remove bookmark" : "Save for later"}
               title={saved ? "Saved to your Playbook" : "Save for later"}
-              className={`-mr-1 -mt-1 shrink-0 rounded-lg p-1.5 transition-colors ${
+              className={`-mr-2 -mt-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
                 saved
                   ? "text-primary"
                   : "text-muted-foreground hover:text-primary"
@@ -194,7 +194,7 @@ function InspirationCard({
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
-              className="inline-flex items-center gap-1 py-1 text-xs font-medium text-primary hover:underline"
+              className="inline-flex min-h-9 items-center gap-1 py-1 text-xs font-medium text-primary hover:underline sm:min-h-0"
             >
               {expanded ? (
                 <>
