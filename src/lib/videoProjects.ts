@@ -37,6 +37,9 @@ export const fileKey = (p: VideoProject) => p.fileId ?? p.id;
 
 const KEY = "content-studio-videoprojects-";
 const MAX_PROJECTS = 12;
+/** Clips cut from an upload are kept apart from the uploads: a 2-hour podcast gives up to 32, each small (its own words only). */
+const MAX_CLIPS = 40;
+const isClip = (p: VideoProject) => !!p.fileId && p.fileId !== p.id;
 
 function store(): Storage | null {
   try {
@@ -59,8 +62,10 @@ export function loadProjects(userId: string | null | undefined): VideoProject[] 
 
 export function saveProject(userId: string, p: VideoProject): VideoProject[] {
   const next = [{ ...p, updatedAt: new Date().toISOString() }, ...loadProjects(userId).filter((x) => x.id !== p.id)];
-  const kept = next.slice(0, MAX_PROJECTS);
-  for (const old of next.slice(MAX_PROJECTS)) if (!kept.some((x) => fileKey(x) === fileKey(old))) void deleteFile(fileKey(old)).catch(() => {});
+  let uploads = 0;
+  let clips = 0;
+  const kept = next.filter((x) => (isClip(x) ? ++clips <= MAX_CLIPS : ++uploads <= MAX_PROJECTS));
+  for (const old of next) if (!kept.includes(old) && !kept.some((x) => fileKey(x) === fileKey(old))) void deleteFile(fileKey(old)).catch(() => {});
   store()?.setItem(KEY + scoped(userId), JSON.stringify(kept));
   return kept;
 }

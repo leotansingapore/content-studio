@@ -3,6 +3,7 @@
 // vitest covers it (logic.test.ts).
 
 import { choiceOf, noulOf, scoreOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { WINDOW_OVERLAP, clipPasses } from "./passes.ts";
 
 export const MAX_AUDIO_BYTES = 24 * 1024 * 1024; // Whisper takes 25 MB
 export const VIBE_MODEL = "gpt-4.1";
@@ -145,7 +146,8 @@ export function parseVibeReply(content: string | null): { patch: Record<string, 
 
 // ---------- clips: one long video -> standalone reels, ranked by Jev ----------
 
-export const MAX_SENTENCES = 600;
+/** Sentences and word timings in a request: a 2-hour podcast's, about 3,000 sentences and 22,000 words. */
+export const MAX_SENTENCES = 4000;
 export interface ClipSentence {
   s: number;
   e: number;
@@ -178,8 +180,8 @@ const playable = (c: Span & { skip?: Span }) => playedLength(c) >= 18 && playedL
 /** What the person typed the clip should be about, at most this long. */
 export const MAX_ABOUT = 200;
 
-/** Word timings for clean clip edges: about 50 minutes of speech, more than the editor can caption. */
-export const MAX_CLIP_WORDS = 8000;
+/** Word timings for clean clip edges: a 2-hour podcast at a fast 200 words a minute. */
+export const MAX_CLIP_WORDS = 25000;
 
 export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number; words: Word[]; about: string } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
@@ -204,20 +206,57 @@ export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSen
 
 /**
  * How many clips a video gives, by its length: 3-5 under 8 minutes, 4-8 up to
- * 30, 6-12 beyond. The tiers follow AutoClip's DurationProfile.
+ * 30, then 6 an hour (at least 6) to 16 an hour (at least 12): 12-32 from 2 hours.
+ * The tiers follow AutoClip's DurationProfile.
  */
 export function clipCount(duration: number): { min: number; max: number } {
   if (duration < 8 * 60) return { min: 3, max: 5 };
   if (duration < 30 * 60) return { min: 4, max: 8 };
-  return { min: 6, max: 12 };
+  const hours = duration / 3600;
+  return { min: Math.max(6, Math.round(6 * hours)), max: Math.max(12, Math.round(16 * hours)) };
 }
 
-/** The LLM proposes about twice the clips kept, so Jev has a choice; at most 20 keeps the reply near 2 cents. */
-export const candidateCount = (duration: number) => Math.min(20, 2 * clipCount(duration).max);
+/** The LLM proposes about twice the clips kept, so Jev has a choice, spread over the passes; at most 20 a pass keeps each reply near 2 cents. */
+export const candidateCount = (duration: number) => Math.min(20, Math.ceil((2 * clipCount(duration).max) / clipPasses(duration)));
 
-export function buildClipsMessages(sentences: ClipSentence[], duration: number, about = ""): { role: string; content: string }[] {
+/** One pass over a long recording: its stretch of the transcript. */
+export interface ClipWindow {
+  from: number;
+  to: number;
+  sentences: ClipSentence[];
+}
+
+/**
+ * The stretches the LLM reads, one per pass (passes.ts): equal lengths of about
+ * 40 minutes, each starting WINDOW_OVERLAP before the last one ended.
+ */
+export function clipWindows(sentences: ClipSentence[], duration: number): ClipWindow[] {
+  const n = clipPasses(duration);
+  const len = duration / n;
+  return Array.from({ length: n }, (_, k) => {
+    const from = Math.max(0, k * len - (k ? WINDOW_OVERLAP : 0));
+    const to = k === n - 1 ? duration : (k + 1) * len;
+    return { from, to, sentences: sentences.filter((x) => x.e > from && x.s < to) };
+  }).filter((w) => w.sentences.length);
+}
+
+/** The passes' candidates, best of each first: each pass's first, then each pass's second, and so on. */
+export function interleave<T>(lists: T[][]): T[] {
+  const out: T[] = [];
+  for (let i = 0; lists.some((l) => i < l.length); i++) for (const l of lists) if (i < l.length) out.push(l[i]);
+  return out;
+}
+
+/** Jev questions in batches of `size`, asked side by side so a long recording's many candidates answer in time. */
+export function batches<T>(questions: Record<string, T>, size = 30): Record<string, T>[] {
+  const keys = Object.keys(questions);
+  return Array.from({ length: Math.ceil(keys.length / size) }, (_, i) => Object.fromEntries(keys.slice(i * size, (i + 1) * size).map((k) => [k, questions[k]])));
+}
+
+export function buildClipsMessages(sentences: ClipSentence[], duration: number, about = "", window?: Pick<ClipWindow, "from" | "to">): { role: string; content: string }[] {
   const lines = sentences.map((x) => `[${x.s.toFixed(1)}-${x.e.toFixed(1)}] ${x.text}`).join("\n");
   const n = candidateCount(duration);
+  const part = window && (window.from > 0 || window.to < duration) ? `This is the stretch from ${clock(window.from)} to ${clock(window.to)} of the video; the other stretches are read separately.` : "";
   const asked = about
     ? `The person wants clips about: ${JSON.stringify(about)}. List first every part of the video about that, best first, then the best of the rest.`
     : "";
@@ -226,17 +265,24 @@ export function buildClipsMessages(sentences: ClipSentence[], duration: number, 
       role: "system",
       content: [
         "You cut short-form reels out of a long talking video by a Singapore financial adviser (podcast, talk or explainer).",
-        `Propose up to ${n} candidate clips from across the whole video (fewer when it is too short to hold that many). Each should stand alone: a viewer with no context understands it, it opens on a strong line (a claim, a question, a number, a story beat) and ends on a complete thought.`,
+        `Propose up to ${n} candidate clips from across the whole ${part ? "stretch" : "video"} (fewer when it is too short to hold that many). Each should stand alone: a viewer with no context understands it, it opens on a strong line (a claim, a question, a number, a story beat) and ends on a complete thought.`,
         "Each clip is 25 to 75 seconds (aim for 30 to 60): join consecutive sentences until the thought is complete. It starts at the start time of a sentence and ends at the end time of a sentence. Clips never overlap. Best clip first.",
         "For each: a title of 3 to 7 words written from the payoff, what the viewer has by the end (the answer, the number, the lesson), not the topic, in sentence case (only the first word capitalised); a hook card of 8 words or fewer made only of the speaker's own words or their plain meaning; and a reason: one plain sentence of 15 words or fewer on why a viewer would watch it to the end. Only what the speaker says. No em dashes. Never promise returns.",
         'A clip may leave out one tangent in its middle (an aside or a detour its point does not need): give it as skip {"start":number,"end":number} on sentence times, with at least one sentence kept on each side, and the clip without it still 25 to 75 seconds. Most clips skip nothing: leave skip out.',
         asked,
+        part,
         'Reply with JSON only: {"clips":[{"start":number,"end":number,"title":string,"hook":string,"reason":string,"skip"?:{"start":number,"end":number}}]}',
       ].filter(Boolean).join("\n"),
     },
     { role: "user", content: `Video length: ${duration.toFixed(1)}s\nTranscript with sentence times in seconds:\n${lines}` },
   ];
 }
+
+const clock = (t: number) => {
+  const s = Math.round(t);
+  const mm = `${Math.floor((s % 3600) / 60)}`.padStart(s >= 3600 ? 2 : 1, "0");
+  return `${s >= 3600 ? `${Math.floor(s / 3600)}:` : ""}${mm}:${`${s % 60}`.padStart(2, "0")}`;
+};
 
 /** Keeps only clips that fit the video, play 18-120 s and do not overlap, in the order given, at most `limit`. */
 export function parseClipsReply(content: string | null, duration: number, limit = 5): FoundClip[] | null {

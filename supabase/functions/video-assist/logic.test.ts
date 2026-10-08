@@ -82,10 +82,46 @@ describe("clips", () => {
     expect(clipCount(7 * 60)).toEqual({ min: 3, max: 5 });
     expect(clipCount(8 * 60)).toEqual({ min: 4, max: 8 });
     expect(clipCount(45 * 60)).toEqual({ min: 6, max: 12 });
-    expect([candidateCount(300), candidateCount(900), candidateCount(3600)]).toEqual([10, 16, 20]);
+    expect([candidateCount(300), candidateCount(900), candidateCount(33 * 60)]).toEqual([10, 16, 20]);
     const [sys] = buildClipsMessages([{ s: 0, e: 5, text: "Hi." }], 900);
     expect(sys.content).toContain("up to 16 candidate clips");
     expect(sys.content).toContain('"reason":string');
+  });
+
+  it("gives up to 16 clips an hour from a long podcast, read in passes of about 40 minutes", async () => {
+    const { candidateCount, clipCount } = await import("./logic");
+    const { clipPasses } = await import("./passes");
+    expect(clipCount(3600)).toEqual({ min: 6, max: 16 });
+    expect(clipCount(2 * 3600)).toEqual({ min: 12, max: 32 });
+    expect([clipPasses(33 * 60), clipPasses(44 * 60), clipPasses(65 * 60), clipPasses(2 * 3600)]).toEqual([1, 1, 2, 3]);
+    // twice the clips kept, shared over the passes, at most 20 a pass
+    expect([candidateCount(3600), candidateCount(2 * 3600)]).toEqual([16, 20]);
+  });
+
+  it("splits a long transcript into overlapping stretches and tells the LLM which stretch it reads", async () => {
+    const { buildClipsMessages, clipWindows } = await import("./logic");
+    const { WINDOW_OVERLAP } = await import("./passes");
+    const sentences = Array.from({ length: 720 }, (_, i) => ({ s: i * 10, e: i * 10 + 9, text: `Line ${i}.` }));
+    const ws = clipWindows(sentences, 7200);
+    expect(ws.map((w) => [w.from, w.to])).toEqual([[0, 2400], [2400 - WINDOW_OVERLAP, 4800], [4800 - WINDOW_OVERLAP, 7200]]);
+    // every sentence is read, the ones near a join twice
+    expect(new Set(ws.flatMap((w) => w.sentences.map((x) => x.s))).size).toBe(720);
+    expect(ws[1].sentences[0].s).toBe(2310);
+    expect(clipWindows(sentences.slice(0, 200), 1990)).toHaveLength(1);
+    const [sys] = buildClipsMessages(ws[1].sentences, 7200, "", ws[1]);
+    expect(sys.content).toContain("This is the stretch from 38:30 to 1:20:00 of the video");
+    expect(sys.content).toContain("candidate clips from across the whole stretch");
+    expect(buildClipsMessages(sentences, 900, "", { from: 0, to: 900 })[0].content).not.toContain("stretch");
+  });
+
+  it("puts each pass's best first, and asks Jev in batches", async () => {
+    const { batches, interleave } = await import("./logic");
+    expect(interleave([["a1", "a2", "a3"], ["b1"], ["c1", "c2"]])).toEqual(["a1", "b1", "c1", "a2", "c2", "a3"]);
+    const q = Object.fromEntries(Array.from({ length: 65 }, (_, i) => [`s${i}`, i]));
+    const parts = batches(q);
+    expect(parts.map((b) => Object.keys(b).length)).toEqual([30, 30, 5]);
+    expect(Object.assign({}, ...parts)).toEqual(q);
+    expect(batches({})).toEqual([]);
   });
 
   it("asks for a title written from the payoff and a one-line reason", async () => {

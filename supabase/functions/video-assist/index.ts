@@ -7,9 +7,10 @@
 //   POST {mode:"translate", lang:"zh"|"ms"|"ta", lines:[...]} -> {lines:[...]}: second-language
 //        caption lines, one per caption ("video-translate" cap).
 //   POST {mode:"clips", sentences:[{s,e,text}], duration, words?:[{w,s,e}], about?} -> {clips:[{start,end,title,hook,reason,score?,onTopic?,skip?}]}:
-//        standalone reels cut from one long video, 3-5 under 8 minutes and more beyond: the LLM
-//        proposes about twice that, Jev scores each out of 100 and the best come first (score
-//        unset and the LLM's order when Jev has no answer) ("video-clips" cap, one use per call).
+//        standalone reels cut from one long video, 3-5 under 8 minutes and up to 16 an hour beyond: the
+//        LLM proposes about twice that, reading a long recording in passes of about 40 minutes
+//        (passes.ts), Jev scores every candidate out of 100 and the best come first (score unset and
+//        the LLM's order when Jev has no answer) ("video-clips" cap, one use per pass).
 //        With word timings, each clip's edges are cleaned first (cleanEdges). With `about` (what the
 //        person typed), the LLM lists those parts first and Jev says which clips are about it. A clip
 //        may skip one tangent in its middle when Jev reads it as an aside (skip:{start,end}).
@@ -33,7 +34,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { askJev } from "../_shared/jev.ts";
+import { askJev, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import {
@@ -43,7 +44,10 @@ import {
   skipQuestions,
   VIBE_MODEL,
   buildClipsMessages,
+  batches,
   candidateCount,
+  clipWindows,
+  interleave,
   cleanEdges,
   clipCount,
   clipQuestions,
@@ -152,48 +156,62 @@ Deno.serve(async (req) => {
     if (body?.mode === "clips") {
       const c = parseClipsRequest(body);
       if (!c.ok) return json({ error: c.error }, 400);
-      const usage = await consumeUsage(admin, uid, "video-clips");
-      if (!usage.allowed) {
-        const r = usageRefusal(usage);
-        return json(r.body, r.status);
+      // a long recording is read in passes of about 40 minutes, each one use of the cap
+      const windows = clipWindows(c.sentences, c.duration);
+      for (let i = 0; i < windows.length; i++) {
+        const usage = await consumeUsage(admin, uid, "video-clips");
+        if (!usage.allowed) {
+          const r = usageRefusal(usage);
+          return json(r.body, r.status);
+        }
       }
+      const limit = candidateCount(c.duration);
       // One more try when no reply clip passes the length and overlap checks: a
       // single run sometimes misses on a perfectly usable video.
-      const limit = candidateCount(c.duration);
-      let clips: ReturnType<typeof parseClipsReply> = null;
-      let proposed = 0;
-      for (let attempt = 0; attempt < 2 && !clips?.length; attempt++) {
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 200 + 120 * limit, response_format: { type: "json_object" }, messages: buildClipsMessages(c.sentences, c.duration, c.about) }),
-          signal: AbortSignal.timeout(60_000),
-        });
-        if (!res.ok) {
-          console.error("video-assist clips", res.status, (await res.text()).slice(0, 300));
-          return json({ error: "Couldn't find clips right now. Try again in a minute." }, 502);
+      const pass = async (w: (typeof windows)[number]) => {
+        let found: ReturnType<typeof parseClipsReply> = null;
+        let proposed = 0;
+        for (let attempt = 0; attempt < 2 && !found?.length; attempt++) {
+          const res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 200 + 120 * limit, response_format: { type: "json_object" }, messages: buildClipsMessages(w.sentences, c.duration, c.about, w) }),
+            signal: AbortSignal.timeout(60_000),
+          }).catch((e) => (console.error("video-assist clips", e), null));
+          if (!res?.ok) {
+            if (res) console.error("video-assist clips", res.status, (await res.text()).slice(0, 300));
+            return { found: null, proposed, failed: true };
+          }
+          const content = (await res.json())?.choices?.[0]?.message?.content ?? null;
+          found = parseClipsReply(content, c.duration, limit);
+          proposed += proposedCount(content);
+          if (!found?.length) console.error("video-assist clips: no usable clip", attempt, String(content).slice(0, 500));
         }
-        const content = (await res.json())?.choices?.[0]?.message?.content ?? null;
-        clips = parseClipsReply(content, c.duration, limit);
-        proposed = proposedCount(content);
-        if (!clips?.length) console.error("video-assist clips: no usable clip", attempt, String(content).slice(0, 500));
-      }
-      if (!clips?.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
+        return { found, proposed, failed: false };
+      };
+      const passes = await Promise.all(windows.map(pass));
+      if (passes.every((x) => x.failed)) return json({ error: "Couldn't find clips right now. Try again in a minute." }, 502);
+      let clips = interleave(passes.map((x) => x.found ?? []));
+      const proposed = passes.reduce((n, x) => n + x.proposed, 0);
+      if (!clips.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
       const usable = clips.length;
       // edges on whole sentences and strong words, before Jev reads them; no word timings, no skips
       clips = c.words.length ? clips.map((x) => cleanEdges(x, c.words, c.duration)) : clips.map(({ skip: _, ...x }) => x);
-      const english = mostlyEnglish(c.sentences.map((x) => x.text).join(" "));
+      const english = mostlyEnglish(c.sentences.slice(0, 400).map((x) => x.text).join(" "));
+      // Jev in batches side by side: a 2-hour podcast has 60 candidates; null when every batch had no answer
+      const ask = async (state: unknown, q: Record<string, JevQuestion>, who: string) => {
+        const parts = await Promise.all(batches(q).map((b) => askJev(state, b, { who, timeoutMs: 10_000 })));
+        return parts.some(Boolean) ? Object.assign({}, ...parts.filter(Boolean)) as Record<string, JevAnswer> : null;
+      };
       // a skipped tangent stays only when Jev reads it as an aside (a decision); without an answer, no skip
-      const skips = english && clips.some((x) => x.skip) ? await askJev({}, skipQuestions(clips, c.sentences, c.words), { who: "video-assist clip skips", timeoutMs: 10_000 }) : null;
+      const skips = english && clips.some((x) => x.skip) ? await ask({}, skipQuestions(clips, c.sentences, c.words), "video-assist clip skips") : null;
       clips = applySkips(clips, skips);
       if (!clips.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
-      // Jev ranks the candidates (Leo's rule: a ranking is a decision); without an answer, the LLM's order
-      const answers = english
-        ? await askJev({ viewer: CLIP_VIEWER }, clipQuestions(clips, c.sentences, c.words, c.about), { who: "video-assist clips", timeoutMs: 10_000 })
-        : null;
+      // Jev ranks the candidates from every pass together (Leo's rule: a ranking is a decision); without an answer, the LLM's order
+      const answers = english ? await ask({ viewer: CLIP_VIEWER }, clipQuestions(clips, c.sentences, c.words, c.about), "video-assist clips") : null;
       const count = clipCount(c.duration);
       const ranked = rankClips(clips, answers, count, c.about);
-      console.log(`video-assist clips: ${proposed} proposed, ${usable} usable, ${clips.length} after cleaning, ${ranked.length} kept (floor ${count.min}, Jev ${answers ? "on" : "off"}, ${Math.round(c.duration)}s)`);
+      console.log(`video-assist clips: ${proposed} proposed in ${windows.length} ${windows.length === 1 ? "pass" : "passes"}${passes.some((x) => x.failed) ? " (one failed)" : ""}, ${usable} usable, ${clips.length} after cleaning, ${ranked.length} kept (floor ${count.min}, Jev ${answers ? "on" : "off"}, ${Math.round(c.duration)}s)`);
       return json({ clips: ranked });
     }
 

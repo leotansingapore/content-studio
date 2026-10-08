@@ -18,6 +18,10 @@ import { loadEffects, paintEffects } from "@/lib/faceVision";
 import { clipSettings, fmtTime, sentencesOf, type Clip, type EditSettings, type Word } from "@/lib/videoEdit";
 import { exportAll, exportJob, exportQueue, getFile, loadBrandArt, onExportJob, startExport, stopExportQueue, type BrandArt, type Frame } from "@/lib/videoMedia";
 import { fileKey, findClips, loadProjects, type VideoProject } from "@/lib/videoProjects";
+import { clipPasses } from "../../supabase/functions/video-assist/passes.ts";
+
+/** A clip's project keeps the words this close to it, not the whole recording's (a 2-hour podcast's run to 800 KB). */
+const WORDS_MARGIN = 60;
 
 export interface FoundClip {
   clip: Clip;
@@ -74,6 +78,9 @@ export default function ClipFinder({ userId, project, words, settings, duration,
   const [about, setAbout] = useState("");
   const left = useUsesLeft(busy);
   const usesLeft = left("video-clips");
+  // a long recording is read in passes, each one use
+  const passes = clipPasses(duration);
+  const short = usesLeft !== null && usesLeft < passes;
   // the export store lives outside React: re-read it whenever it changes
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -104,6 +111,7 @@ export default function ClipFinder({ userId, project, words, settings, duration,
           name: `${project.name} - ${clip.title}`,
           fileId: fileKey(project),
           createdAt: new Date().toISOString(),
+          words: words.filter((w) => w.e > clip.start - WORDS_MARGIN && w.s < clip.end + WORDS_MARGIN),
           settings: clipSettings(settings, clip, duration),
         },
       }));
@@ -123,12 +131,12 @@ export default function ClipFinder({ userId, project, words, settings, duration,
   const offTopic = list.some((f) => f.clip.onTopic === false) && !list.some((f) => f.clip.onTopic);
   return (
     <section aria-label="Clips" className="space-y-2">
-      <form className="flex flex-col gap-2 sm:flex-row sm:items-center" onSubmit={(e) => { e.preventDefault(); if (!busy && usesLeft !== 0) void find(); }}>
+      <form className="flex flex-col gap-2 sm:flex-row sm:items-center" onSubmit={(e) => { e.preventDefault(); if (!busy && !short) void find(); }}>
         <Input value={about} onChange={(e) => setAbout(e.target.value)} maxLength={200} disabled={busy}
           placeholder="What should the clip be about? (optional)" aria-label="What should the clip be about?" className="h-11 sm:h-9 sm:max-w-sm" />
-        <Button type="submit" variant="outline" size="sm" disabled={busy || usesLeft === 0} className={`h-11 shrink-0 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
+        <Button type="submit" variant="outline" size="sm" disabled={busy || short} className={`h-11 shrink-0 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
           {busy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Scissors className="h-3.5 w-3.5" />}
-          {busy ? "Finding clips..." : <>Find clips{usesLeft !== null && <span className={`font-normal ${usesLeft === 0 ? "text-destructive" : "opacity-80"}`}>{usesLeft === 0 ? "none left today" : `${usesLeft} left`}</span>}</>}
+          {busy ? "Finding clips..." : <>Find clips{usesLeft !== null && <span className={`font-normal ${short ? "text-destructive" : "opacity-80"}`}>{usesLeft === 0 ? "none left today" : passes > 1 ? `${passes} uses, ${usesLeft} left` : `${usesLeft} left`}</span>}</>}
         </Button>
       </form>
       {list.length > 0 && (
