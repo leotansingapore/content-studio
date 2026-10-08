@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { scoped } from "@/lib/profiles";
 import { loadDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { scanCompliance } from "@/lib/compliance";
@@ -84,6 +85,10 @@ type SplitInfo = Omit<SplitResult, "slides">;
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const WARN_BOX = "border-amber-200 bg-amber-50 text-amber-900";
+
+// The carousel in progress (pasted text, slide edits), kept for this tab so
+// leaving the page doesn't lose it. sessionStorage, outside the synced prefix.
+const workKey = (userId: string) => `cs-carousel-work-${scoped(userId)}`;
 
 export default function CarouselPage() {
   const { toast } = useToast();
@@ -183,7 +188,26 @@ export default function CarouselPage() {
     if (!ready || deepLinkHandled.current) return;
     deepLinkHandled.current = true;
     const id = searchParams.get("draft");
-    if (!id) return;
+    if (!id) {
+      try {
+        const work = userId ? JSON.parse(sessionStorage.getItem(workKey(userId)) ?? "null") : null;
+        if (work && Array.isArray(work.slides) && typeof work.pasteText === "string") {
+          setMode(work.mode === "paste" ? "paste" : "drafts");
+          setPasteText(work.pasteText);
+          setDraftId(typeof work.draftId === "string" ? work.draftId : "");
+          setSlides(work.slides);
+          setSplit(work.split ?? null);
+          setByHand(work.byHand === true);
+          setEdited(work.edited === true);
+          if (typeof work.fileBase === "string") setFileBase(work.fileBase);
+          setPlatform(work.platform === "linkedin" ? "linkedin" : "instagram");
+          if (work.slides.length > 0) toast({ title: "Your carousel is back" });
+        }
+      } catch {
+        // corrupt or blocked storage: start fresh
+      }
+      return;
+    }
     if (drafts.some((d) => d.id === id)) {
       build({ kind: "draft", id });
       return;
@@ -199,6 +223,22 @@ export default function CarouselPage() {
     setSearchParams(params, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
+  useEffect(() => {
+    if (!ready || !userId || !deepLinkHandled.current) return;
+    try {
+      if (!pasteText.trim() && slides.length === 0) {
+        sessionStorage.removeItem(workKey(userId));
+      } else {
+        sessionStorage.setItem(
+          workKey(userId),
+          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform }),
+        );
+      }
+    } catch {
+      // storage blocked: the work just won't survive a page change
+    }
+  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform]);
 
   const change = (update: (prev: Slide[]) => Slide[]) => {
     setSlides(update);
