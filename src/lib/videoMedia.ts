@@ -22,9 +22,10 @@ import {
   isNumberWord,
   keepSegments,
   nameTagVisible,
+  outAt,
+  speedOf,
   overlaysAt,
   type Overlay,
-  outputTime,
   totalLength,
   zoomAt,
   type Caption,
@@ -349,7 +350,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   }
   // transition at each cut: a quick dip through black or a white flash, 60 ms either side
   if (s.transition) {
-    const d = distanceToCut(f.segs, f.out);
+    const d = distanceToCut(f.segs, f.out * speedOf(s)) / speedOf(s);
     if (d < 0.06) {
       g.save();
       g.globalAlpha = (1 - d / 0.06) * (s.transition === "soft" ? 0.9 : 0.75);
@@ -626,7 +627,7 @@ export async function makeCover(video: HTMLVideoElement, settings: EditSettings,
 
 export function planFor(words: Word[], duration: number, s: EditSettings) {
   const segs = keepSegments(words, duration, s);
-  return { segs, caps: buildCaptions(words, s), total: totalLength(segs) };
+  return { segs, caps: buildCaptions(words, s), total: totalLength(segs) / speedOf(s) };
 }
 
 // ---------- export, kept outside React so it survives moving between pages ----------
@@ -700,10 +701,12 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const stopped = new Promise<void>((r) => (rec.onstop = () => r()));
 
     const v = video;
+    const speed = speedOf(settings);
+    v.defaultPlaybackRate = v.playbackRate = speed; // pitch is kept (preservesPitch is on by default)
     let done = 0;
     const endLen = settings.endCard && brand ? END_CARD_SECONDS : 0;
     const draw = () => {
-      const out = Math.min(plan.total, outputTime(plan.segs, v.currentTime) ?? done);
+      const out = Math.min(plan.total, outAt(plan.segs, v.currentTime, speed) ?? done / speed);
       drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand });
       if (job) {
         job.progress = Math.min(0.99, out / (plan.total + endLen));

@@ -359,3 +359,32 @@ describe("stickers", () => {
     expect(overlayHit([a, b], 9, 0.3, 0.3, 9 / 16)).toBeNull(); // not showing
   });
 });
+
+describe("speed", () => {
+  const segs = [{ start: 0, end: 10 }, { start: 12, end: 24 }]; // 22 s kept
+
+  it("maps both ways at a speed", async () => {
+    const { outAt, srcAt } = await import("@/lib/videoEdit");
+    expect(outAt(segs, 13, 1.1)).toBeCloseTo(11 / 1.1);
+    expect(srcAt(segs, 10, 1.1)).toBeCloseTo(12 + 1);
+    expect(outAt(segs, 11, 1.5)).toBeNull(); // inside the cut
+  });
+
+  it("speeds the length, the subtitle times and the trim-to-fit", async () => {
+    const { trimToLength, toSrt, speedOf } = await import("@/lib/videoEdit");
+    expect(speedOf({})).toBe(1);
+    expect(speedOf({ speed: 9 })).toBe(1);
+    // 22 s at 1.1x is 20 s: already under 20.5
+    expect(trimToLength(segs, 24, 20.5, { trimEnd: 0, speed: 1.1 })).toBe(0);
+    // to land on 10 s at 2 sources' worth: 10 s out at 1.2x is 12 s of source, ending at 14 s
+    expect(trimToLength(segs, 24, 10, { trimEnd: 0, speed: 1.2 })).toBe(10);
+    const srt = toSrt([{ w: "Hi.", s: 12, e: 12.5 }], segs, true, 2);
+    expect(srt).toContain("00:00:05,000 --> 00:00:05,250");
+  });
+
+  it("takes a speed from a vibe edit, kept between 1 and 1.5", async () => {
+    const { applyPatch, defaultSettings } = await import("@/lib/videoEdit");
+    expect(applyPatch(defaultSettings(), { speed: 1.17 }).next.speed).toBe(1.15);
+    expect(applyPatch(defaultSettings(), { speed: 4 }).next.speed).toBe(1.5);
+  });
+});

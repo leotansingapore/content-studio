@@ -62,6 +62,8 @@ export interface EditSettings {
   filter?: FilterId;
   /** What happens at each cut: a hard jump (unset), a quick dip through black, or a white flash. */
   transition?: "soft" | "flash";
+  /** Playback speed, 1 to 1.5 (pitch kept). Unset = 1. */
+  speed?: number;
   /** Voice polish: rumble and hum cut, clarity lifted, loudness evened out. */
   voicePolish?: boolean;
   /** Stickers placed on this video: text callouts, arrows, circles, underlines. */
@@ -303,6 +305,20 @@ export function sourceTime(segs: Segment[], t: number): number {
   return segs.length ? segs[segs.length - 1].end : 0;
 }
 
+export const SPEEDS = [1, 1.1, 1.2, 1.5] as const;
+export const speedOf = (s: Pick<EditSettings, "speed">) => (typeof s.speed === "number" && s.speed >= 1 && s.speed <= 2 ? s.speed : 1);
+
+/** Source time -> seconds into the finished video at this speed, or null inside a cut. */
+export function outAt(segs: Segment[], src: number, speed = 1): number | null {
+  const o = outputTime(segs, src);
+  return o === null ? null : o / speed;
+}
+
+/** Seconds into the finished video at this speed -> source time. */
+export function srcAt(segs: Segment[], t: number, speed = 1): number {
+  return sourceTime(segs, t * speed);
+}
+
 /** Source time -> output time, or null inside a cut. */
 export function outputTime(segs: Segment[], src: number): number | null {
   let acc = 0;
@@ -404,6 +420,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if (typeof p.font === "string" && p.font in FONTS) set("font", p.font as FontId);
   if (typeof p.filter === "string" && p.filter in FILTERS) set("filter", p.filter as FilterId);
   if (p.transition === "soft" || p.transition === "flash") set("transition", p.transition);
+  if (typeof p.speed === "number") set("speed", Math.round(clamp(p.speed, 1, 1.5, 1) * 20) / 20);
   return { next, changed };
 }
 
@@ -412,7 +429,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
 const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
   "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "maxPause", "hookSeconds", "aspect", "fit",
-  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish",
+  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "speed",
 ] as const satisfies readonly (keyof EditSettings)[];
 
 export function lookOf(s: EditSettings): Record<string, unknown> {
@@ -513,15 +530,15 @@ const srtTime = (t: number) => {
  * line style) timed on the output timeline, so cut words drop out and every
  * line lands where it plays after the cuts.
  */
-export function toSrt(words: Word[], segs: Segment[], removeFillers: boolean): string {
+export function toSrt(words: Word[], segs: Segment[], removeFillers: boolean, speed = 1): string {
   const lines = buildCaptions(words, { style: "minimal", wordsPerCaption: 3, removeFillers });
   const cues: { s: number; e: number; text: string }[] = [];
   for (const c of lines) {
     const kept = c.words.filter((w) => outputTime(segs, w.s) !== null);
     if (!kept.length) continue;
     const last = kept[kept.length - 1];
-    const s = outputTime(segs, kept[0].s)!;
-    const e = outputTime(segs, last.s)! + Math.max(0.2, last.e - last.s);
+    const s = outAt(segs, kept[0].s, speed)!;
+    const e = outAt(segs, last.s, speed)! + Math.max(0.2, last.e - last.s) / speed;
     cues.push({ s, e, text: kept.map((w) => w.w).join(" ") });
   }
   return cues
@@ -567,10 +584,11 @@ export function platformFit(seconds: number): { id: string; label: string; fit: 
 }
 
 /** The trimEnd that makes the edit end exactly at `limit` seconds, keeping the cuts. */
-export function trimToLength(segs: Segment[], duration: number, limit: number, s: Pick<EditSettings, "trimEnd">): number {
-  if (totalLength(segs) <= limit) return s.trimEnd;
+export function trimToLength(segs: Segment[], duration: number, limit: number, s: Pick<EditSettings, "trimEnd" | "speed">): number {
+  const speed = speedOf(s);
+  if (totalLength(segs) / speed <= limit) return s.trimEnd;
   // rounded up, so the edit lands on or just under the limit, never a hair over
-  return Math.max(s.trimEnd, Math.ceil((duration - sourceTime(segs, limit)) * 100) / 100);
+  return Math.max(s.trimEnd, Math.ceil((duration - srcAt(segs, limit, speed)) * 100) / 100);
 }
 
 // ---------- stickers ----------

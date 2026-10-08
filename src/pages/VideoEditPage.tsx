@@ -48,8 +48,11 @@ import {
   defaultSettings,
   fmtTime,
   isFiller,
-  outputTime,
-  sourceTime,
+  outAt,
+  srcAt,
+  speedOf,
+  SPEEDS,
+  totalLength,
   withStyle,
   type EditSettings,
   type StyleId,
@@ -297,6 +300,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   const duration = project.duration;
   const plan = useMemo(() => planFor(words, duration, settings), [words, duration, settings]);
+  const speed = speedOf(settings);
+  useEffect(() => {
+    const v = video.current;
+    if (v) v.defaultPlaybackRate = v.playbackRate = speed; // pitch is kept; the default survives a reload
+  }, [speed, file]);
   const [W, H] = useMemo(() => {
     const v = video.current;
     const [w, h] = aspectSize(settings.aspect, v?.videoWidth || 1080, v?.videoHeight || 1920);
@@ -313,10 +321,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       setOutT(plan.total + endAt.current);
       return;
     }
-    const out = outputTime(plan.segs, v.currentTime) ?? outT;
+    const out = outAt(plan.segs, v.currentTime, speed) ?? outT;
     drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing });
     setOutT(out);
-  }, [plan, settings, outT, subs, art, playing]);
+  }, [plan, settings, outT, subs, art, playing, speed]);
   const total = fullLength(plan.total, settings, !!art);
   paintRef.current = paint;
 
@@ -372,7 +380,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       return;
     }
     endAt.current = null;
-    const src = sourceTime(plan.segs, t);
+    const src = srcAt(plan.segs, t, speed);
     segIdx.current = Math.max(0, plan.segs.findIndex((g) => src >= g.start && src < g.end));
     v.currentTime = src;
   };
@@ -573,7 +581,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     const i = ((k % hits.length) + hits.length) % hits.length;
     setHit(i);
     const w = words[hits[i]];
-    const t = outputTime(plan.segs, w.s);
+    const t = outAt(plan.segs, w.s, speed);
     const v = video.current;
     if (t !== null) seekOut(t);
     else if (v) v.currentTime = w.s; // a cut word: show the moment anyway
@@ -581,7 +589,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   };
 
   const downloadSrt = () => {
-    const blob = new Blob([toSrt(words, plan.segs, settings.removeFillers)], { type: "application/x-subrip" });
+    const blob = new Blob([toSrt(words, plan.segs, settings.removeFillers, speed)], { type: "application/x-subrip" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${project.name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}.srt`;
@@ -615,7 +623,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const editOverlay = (id: string, p: Partial<Overlay>) => patch({ overlays: overlays.map((o) => (o.id === id ? { ...o, ...p } : o)) });
   const stickerColours = [...new Set(["#FFFFFF", "#FFD92B", settings.activeColor, art?.color ?? "#2563EB", "#EF4444", "#111827"].map((c) => c.toUpperCase()))];
 
-  const cutSeconds = Math.max(0, duration - plan.total);
+  const cutSeconds = Math.max(0, duration - totalLength(plan.segs));
   // platforms this length is too long for, shortest limit first
   const lengthIssues = useMemo(() => platformFit(plan.total).filter((p) => p.fit !== "ok").sort((a, b) => a.limit - b.limit), [plan.total]);
   const fillers = words.filter((w) => isFiller(w.w)).length;
@@ -751,7 +759,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             <span className="w-24 text-right font-mono text-[11px] text-muted-foreground">{fmtTime(outT)} / {fmtTime(total)}</span>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            {fmtTime(duration)} filmed, {fmtTime(plan.total)} after cuts{cutSeconds > 0.5 ? ` (${cutSeconds.toFixed(1)}s cut)` : ""}.
+            {fmtTime(duration)} filmed, {fmtTime(plan.total)} after cuts{cutSeconds > 0.5 ? ` (${cutSeconds.toFixed(1)}s cut)` : ""}{speed > 1 ? ` at ${speed}x` : ""}.
           </p>
           {lengthIssues.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 text-[11px]" role="status">
@@ -893,6 +901,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Row label={`Trim start ${settings.trimStart.toFixed(1)}s`}><input type="range" min={0} max={Math.min(30, duration / 2)} step={0.1} value={settings.trimStart} onChange={(e) => patch({ trimStart: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label={`Trim end ${settings.trimEnd.toFixed(1)}s`}><input type="range" min={0} max={Math.min(30, duration / 2)} step={0.1} value={settings.trimEnd} onChange={(e) => patch({ trimEnd: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label="Punch in on cuts"><Toggle on={settings.punchIn} set={(v) => patch({ punchIn: v })} /></Row>
+              <Row label="Speed">
+                {SPEEDS.map((x) => <Chip key={x} on={speed === x} onClick={() => patch({ speed: x === 1 ? undefined : x })}>{x}x</Chip>)}
+              </Row>
               <Row label="Voice polish">
                 <InfoTip label="About voice polish">Cuts rumble and hum, lifts clarity and evens out loud and quiet bits.</InfoTip>
                 <Toggle on={!!settings.voicePolish} set={(v) => patch({ voicePolish: v })} />
