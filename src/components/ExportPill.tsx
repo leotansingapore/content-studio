@@ -16,7 +16,7 @@ export default function ExportPill() {
   }, []);
   if (!job || pathname.startsWith("/edit")) return null;
   return (
-    <div className="fixed bottom-20 left-4 z-40 flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs font-semibold shadow-elegant lg:bottom-6 lg:left-64">
+    <div className="fixed bottom-20 left-4 z-40 flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs font-semibold shadow-elegant lg:bottom-6 lg:left-[calc(var(--nav-w)+1rem)]">
       {job.state === "running" && (
         <Link to="/edit" className="flex items-center gap-2">
           <span className="relative h-1.5 w-16 overflow-hidden rounded-full bg-muted">

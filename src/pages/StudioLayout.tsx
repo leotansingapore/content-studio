@@ -1,5 +1,5 @@
-import { Suspense, useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
@@ -7,125 +7,38 @@ import ExportPill from "@/components/ExportPill";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
-import {
-  Sparkles,
-  LogOut,
-  Lightbulb,
-  Pencil,
-  Users as UsersIcon,
-  History,
-  BookOpen,
-  Home,
-  Plus,
-  BookMarked,
-  GraduationCap,
-  CalendarClock,
-  TrendingUp,
-  BarChart3,
-  ShieldCheck,
-  Columns3,
-  LayoutGrid,
-  X,
-  Flame,
-  Clapperboard,
-  MessageSquarePlus,
-  Compass,
-  UserPlus,
-} from "lucide-react";
+import { Sparkles, LogOut, Plus, LayoutGrid, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
+import {
+  MOBILE_TABS,
+  SECTIONS,
+  moreSheet,
+  pathMatches,
+  section,
+  sectionFor,
+  visiblePages,
+  type MoreTile,
+  type NavSection,
+} from "@/lib/nav";
 
-type NavItem = { to: string; label: string; icon: typeof Home; also?: string[]; isNew?: () => boolean };
+// Two rails on desktop, after Slack and Supabase: rail 1 holds the sections,
+// rail 2 the open section's pages. Phones keep a bottom bar and a More sheet.
+// Every page is listed once, in src/lib/nav.ts.
+const MAIN_SECTIONS = SECTIONS.filter((s) => !s.foot);
+const FOOT_SECTIONS = SECTIONS.filter((s) => s.foot);
 
-// Grouped like the leading content tools (Buffer/Typefully/Taplio): a few
-// labelled sections rather than one flat list of tabs. Merged sections keep
-// their routes — `also` lists sibling paths that light this entry up, and
-// SectionTabs on the pages themselves moves between siblings.
-const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
-  { heading: null, items: [{ to: "/home", label: "Home", icon: Home }] },
-  {
-    heading: "Create",
-    items: [
-      { to: "/generate", label: "Write", icon: Pencil, also: ["/carousel", "/edit"] },
-      {
-        to: "/calendar",
-        label: "Pipeline",
-        icon: Columns3,
-        also: ["/plan", "/board", "/drafts", "/reels"],
-      },
-      {
-        to: "/recruit",
-        label: "Recruit",
-        icon: UserPlus,
-        also: ["/recruit/conversations", "/recruit/agent"],
-      },
-    ],
-  },
-  {
-    heading: "Improve",
-    items: [
-      { to: "/coach", label: "Coach", icon: Compass },
-      {
-        to: "/analytics",
-        label: "Analytics",
-        icon: BarChart3,
-      },
-      { to: "/team", label: "Team review", icon: ShieldCheck },
-      {
-        to: "/academy",
-        label: "Learn",
-        icon: GraduationCap,
-        also: ["/create-guide", "/tutorial"],
-      },
-    ],
-  },
-  {
-    heading: "Discover",
-    items: [
-      { to: "/swipe", label: "Top posts", icon: TrendingUp },
-      { to: "/trends", label: "Trends", icon: Flame },
-      { to: "/clone", label: "Clone a reel", icon: Clapperboard },
-      { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
-      { to: "/profiles", label: "Creators", icon: UsersIcon },
-    ],
-  },
-  {
-    heading: "Setup",
-    items: [
-      {
-        to: "/playbook",
-        label: "My Playbook",
-        icon: BookMarked,
-        also: ["/voice", "/brand", "/fads"],
-      },
-      // The public feedback board: marked New until it has been opened once.
-      { to: "/feedback", label: "Feedback", icon: MessageSquarePlus, isNew: feedbackIsNew },
-    ],
-  },
-];
-
-// The four destinations FCs hit daily live on the mobile bottom bar; the rest
-// sit one tap away behind "More". Order mirrors the create-first workflow.
-const MOBILE_PRIMARY: NavItem[] = [
-  { to: "/home", label: "Home", icon: Home },
-  { to: "/generate", label: "Write", icon: Pencil },
-  // The other Pipeline tabs light Calendar up; My posts has its own button.
-  { to: "/calendar", label: "Calendar", icon: CalendarClock, also: ["/plan", "/board", "/reels"] },
-  { to: "/drafts", label: "Posts", icon: History },
-];
-
-const MOBILE_PRIMARY_PATHS = new Set(MOBILE_PRIMARY.map((i) => i.to));
-
-const MOBILE_MORE_GROUPS = NAV_GROUPS.map((g) => ({
-  heading: g.heading,
-  items: g.items.filter((i) => !MOBILE_PRIMARY_PATHS.has(i.to)),
-})).filter((g) => g.items.length > 0);
+function Logo() {
+  return (
+    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
+      <Sparkles className="h-4 w-4" />
+    </span>
+  );
+}
 
 function Brandmark() {
   return (
-    <NavLink to="/home" className="flex items-center gap-2.5">
-      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
-        <Sparkles className="h-4 w-4" />
-      </span>
+    <Link to="/home" className="flex items-center gap-2.5">
+      <Logo />
       <span className="flex flex-col leading-none">
         <span className="text-sm font-bold tracking-tight text-foreground">
           Content Studio
@@ -134,7 +47,7 @@ function Brandmark() {
           for advisors
         </span>
       </span>
-    </NavLink>
+    </Link>
   );
 }
 
@@ -159,10 +72,72 @@ function RouteSkeleton() {
   );
 }
 
+function RailLink({ s, to, active }: { s: NavSection; to: string; active: boolean }) {
+  const Icon = s.icon;
+  const isNew = s.id === "feedback" && feedbackIsNew();
+  return (
+    <Link
+      to={to}
+      aria-current={active ? "true" : undefined}
+      className={`group relative flex w-16 flex-col items-center gap-1 rounded-xl py-1.5 text-[11px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      <span
+        className={`flex h-8 w-11 items-center justify-center rounded-lg transition-colors ${
+          active ? "bg-primary/10 text-primary" : "group-hover:bg-accent"
+        }`}
+      >
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      {s.label}
+      {isNew && (
+        <>
+          <span aria-hidden className="absolute right-2.5 top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-rail" />
+          <span className="sr-only">, new</span>
+        </>
+      )}
+    </Link>
+  );
+}
+
+function MoreTileLink({ tile, active }: { tile: MoreTile; active: boolean }) {
+  const Icon = tile.icon;
+  return (
+    <Link
+      to={tile.to}
+      aria-current={active ? "true" : undefined}
+      className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
+        active
+          ? "border-primary/40 bg-primary/10 text-primary"
+          : "border-border/70 bg-card text-foreground hover:border-primary/40"
+      }`}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      {tile.label}
+      {tile.sectionId === "feedback" && feedbackIsNew() && (
+        <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">New</span>
+      )}
+    </Link>
+  );
+}
+
 export default function StudioLayout() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const [email, setEmail] = useState<string>("");
+  const moreRef = useRef<HTMLDialogElement>(null);
+  // Each section's rail icon reopens the page you last had open there.
+  const lastInSection = useRef<Record<string, string>>({});
+
+  const here = sectionFor(pathname);
+  if (here) lastInSection.current[here.id] = pathname + search;
+  const open = here ?? section("home");
+
+  // Every navigation should start at the top of the new page.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -174,23 +149,18 @@ export default function StudioLayout() {
     };
   }, []);
 
-  // Every navigation should start at the top of the new page.
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-
   // Close the More sheet whenever the route changes.
   useEffect(() => {
     setMoreOpen(false);
   }, [pathname]);
 
+  // The More sheet is a native modal dialog: it traps focus, closes on
+  // Escape and hands focus back to the More button.
   useEffect(() => {
-    if (!moreOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMoreOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const d = moreRef.current;
+    if (!d) return;
+    if (moreOpen && !d.open) d.showModal();
+    if (!moreOpen && d.open) d.close();
   }, [moreOpen]);
 
   const handleSignOut = async () => {
@@ -201,16 +171,9 @@ export default function StudioLayout() {
     window.location.replace("/auth");
   };
 
-  const railItemClass = (active: boolean) =>
-    `flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-      active
-        ? "bg-primary/10 text-primary"
-        : "text-muted-foreground hover:bg-accent hover:text-foreground"
-    }`;
-
-  const onPath = (p: string) => pathname === p || pathname.startsWith(p + "/");
-  const moreActive =
-    !MOBILE_PRIMARY.some((i) => onPath(i.to) || i.also?.some(onPath)) && pathname !== "/welcome";
+  const moreActive = !MOBILE_TABS.some((t) => t.active(pathname));
+  const sheet = moreSheet(email);
+  const tileActive = (t: MoreTile) => (t.whole ? here?.id === t.sectionId : pathMatches(pathname, t.to));
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -221,75 +184,75 @@ export default function StudioLayout() {
         Skip to content
       </a>
 
-      {/* Desktop left sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border/70 bg-sidebar lg:flex">
-        <div className="px-4 pb-3 pt-4">
-          <Brandmark />
-        </div>
-        <div className="px-3 pb-2">
-          <ProfileSwitcher />
-        </div>
-        <div className="px-3 pb-3">
-          <Button
-            asChild
-            className="w-full justify-start gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
-          >
-            <NavLink to="/generate">
-              <Plus className="h-4 w-4" /> New post
-            </NavLink>
-          </Button>
-        </div>
+      {/* Desktop: rail 1 (sections) + rail 2 (the open section's pages) */}
+      <aside data-nav className="fixed inset-y-0 left-0 z-30 hidden lg:flex">
         <nav
-          aria-label="Primary"
-          className="flex-1 space-y-3 overflow-y-auto px-3 py-1"
+          aria-label="Sections"
+          className="flex w-[72px] flex-col items-center gap-1 overflow-y-auto border-r border-border/70 bg-rail pb-3 pt-[18px]"
         >
-          {NAV_GROUPS.map((group, gi) => (
-            <div key={gi} className="space-y-1">
-              {group.heading && (
-                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  {group.heading}
-                </p>
-              )}
-              {group.items.map(({ to, label, icon: Icon, also, isNew }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={({ isActive }) =>
-                    railItemClass(
-                      isActive ||
-                        (also?.some(
-                          (p) => pathname === p || pathname.startsWith(p + "/"),
-                        ) ??
-                          false),
-                    )
-                  }
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {label}
-                  {isNew?.() && (
-                    <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">New</span>
-                  )}
-                </NavLink>
-              ))}
-            </div>
+          <Link to="/home" aria-label="Content Studio home" title="Content Studio" className="mb-3 rounded-xl">
+            <Logo />
+          </Link>
+          {MAIN_SECTIONS.map((s) => (
+            <RailLink key={s.id} s={s} to={lastInSection.current[s.id] ?? s.to} active={here?.id === s.id} />
           ))}
+          <div className="mt-auto flex flex-col items-center gap-1 pt-3">
+            {FOOT_SECTIONS.map((s) => (
+              <RailLink key={s.id} s={s} to={lastInSection.current[s.id] ?? s.to} active={here?.id === s.id} />
+            ))}
+          </div>
         </nav>
-        <div className="space-y-1 border-t border-border/70 px-3 py-3">
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <LogOut className="h-4 w-4 shrink-0" /> Sign out
-          </button>
-          {email && (
-            <p
-              className="truncate px-3 pt-1 text-[11px] text-muted-foreground"
-              title={email}
+
+        <div className="flex w-52 flex-col border-r border-border/70 bg-sidebar xl:w-56">
+          <div className="space-y-2 px-3 pb-2 pt-3.5">
+            <ProfileSwitcher />
+            <Button
+              asChild
+              className="w-full justify-start gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
             >
-              {email}
+              <Link to="/generate">
+                <Plus className="h-4 w-4" /> New post
+              </Link>
+            </Button>
+          </div>
+          <nav aria-label={open.label} className="flex-1 overflow-y-auto px-3 pb-3 pt-3">
+            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              {open.label}
             </p>
-          )}
+            <ul className="space-y-0.5">
+              {visiblePages(open.pages, email).map((p) => (
+                <li key={p.to}>
+                  <NavLink
+                    to={p.to}
+                    end={p.end}
+                    className={({ isActive }) =>
+                      `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        isActive
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      }`
+                    }
+                  >
+                    {p.label}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="border-t border-border/70 px-3 py-3">
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4 shrink-0" /> Sign out
+            </button>
+            {email && (
+              <p className="truncate px-3 pt-1 text-[11px] text-muted-foreground" title={email}>
+                {email}
+              </p>
+            )}
+          </div>
         </div>
       </aside>
 
@@ -297,122 +260,86 @@ export default function StudioLayout() {
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-2.5">
           <Brandmark />
-          <div className="flex items-center gap-1">
-            <ProfileSwitcher compact />
-            <NavLink
-              to="/tutorial"
-              aria-label="How it works"
-              title="How it works"
-              className={({ isActive }) =>
-                `inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium ${
-                  isActive ? "text-primary" : "text-muted-foreground"
-                }`
-              }
-            >
-              <BookOpen className="h-3.5 w-3.5" />
-            </NavLink>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSignOut}
-              aria-label="Sign out"
-              title="Sign out"
-              className="gap-1.5 text-muted-foreground"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          <ProfileSwitcher compact />
         </div>
       </header>
 
-      {/* Mobile "More" sheet */}
-      {moreOpen && (
-        <div
-          className="fixed inset-0 z-40 lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="More pages"
-        >
-          <button
-            type="button"
-            aria-label="Close menu"
-            onClick={() => setMoreOpen(false)}
-            className="absolute inset-0 bg-foreground/40"
-          />
-          <div className="absolute inset-x-0 bottom-0 max-h-[75vh] overflow-y-auto rounded-t-2xl border-t border-border/70 bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-xl">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-foreground">
-                All pages
-              </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setMoreOpen(false)}
-                aria-label="Close"
-                className="h-8 w-8 p-0 text-muted-foreground"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {MOBILE_MORE_GROUPS.map((group, gi) => (
-                <div key={gi} className="space-y-1">
-                  {group.heading && (
-                    <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      {group.heading}
-                    </p>
-                  )}
-                  <div className="grid grid-cols-2 gap-2">
-                    {group.items.map(({ to, label, icon: Icon, isNew }) => (
-                      <NavLink
-                        key={to}
-                        to={to}
-                        className={({ isActive }) =>
-                          `flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
-                            isActive
-                              ? "border-primary/40 bg-primary/10 text-primary"
-                              : "border-border/70 bg-card text-foreground hover:border-primary/40"
-                          }`
-                        }
-                      >
-                        <Icon className="h-4 w-4 shrink-0" />
-                        {label}
-                        {isNew?.() && (
-                          <span className="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">New</span>
-                        )}
-                      </NavLink>
-                    ))}
-                  </div>
-                </div>
+      {/* Mobile "More" sheet. A click on the dialog itself is a click on the backdrop. */}
+      <dialog
+        ref={moreRef}
+        aria-label="More pages"
+        data-nav
+        onClose={() => setMoreOpen(false)}
+        onClick={(e) => e.target === e.currentTarget && setMoreOpen(false)}
+        className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[80vh] w-full max-w-none rounded-t-2xl border-t border-border/70 bg-background p-0 shadow-xl backdrop:bg-foreground/40 lg:hidden"
+      >
+        <div className="p-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-foreground">More pages</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMoreOpen(false)}
+              aria-label="Close"
+              className="h-9 w-9 p-0 text-muted-foreground"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              {sheet.singles.map((t) => (
+                <MoreTileLink key={t.to} tile={t} active={tileActive(t)} />
               ))}
             </div>
+            {sheet.groups.map((g) => (
+              <div key={g.label} className="space-y-1">
+                <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  {g.label}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {g.tiles.map((t) => (
+                    <MoreTileLink key={t.to} tile={t} active={tileActive(t)} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-3">
+            <p className="min-w-0 truncate text-xs text-muted-foreground" title={email}>
+              {email}
+            </p>
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="shrink-0 gap-1.5 text-muted-foreground">
+              <LogOut className="h-3.5 w-3.5" /> Sign out
+            </Button>
           </div>
         </div>
-      )}
+      </dialog>
 
       {/* Mobile bottom tab bar */}
       <nav
         aria-label="Primary"
+        data-nav
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       >
         <div className="grid grid-cols-5">
-          {MOBILE_PRIMARY.map(({ to, label, icon: Icon, also }) => (
-            <NavLink
+          {MOBILE_TABS.map(({ to, label, icon: Icon, active }) => (
+            <Link
               key={to}
               to={to}
-              className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
-                  isActive || also?.some(onPath) ? "text-primary" : "text-muted-foreground"
-                }`
-              }
+              aria-current={active(pathname) ? "true" : undefined}
+              className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
+                active(pathname) ? "text-primary" : "text-muted-foreground"
+              }`}
             >
               <Icon className="h-5 w-5" />
               {label}
-            </NavLink>
+            </Link>
           ))}
           <button
             type="button"
-            onClick={() => setMoreOpen((v) => !v)}
+            onClick={() => setMoreOpen(true)}
+            aria-haspopup="dialog"
             aria-expanded={moreOpen}
             className={`flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
               moreOpen || moreActive ? "text-primary" : "text-muted-foreground"
@@ -424,12 +351,12 @@ export default function StudioLayout() {
         </div>
       </nav>
 
-      <div className="lg:pl-60">
+      <div className="lg:pl-[var(--nav-w)]">
         <main
           id="main-content"
-          className="mx-auto max-w-5xl px-4 pb-40 pt-6 sm:px-6 sm:pt-8 lg:px-10 lg:pb-8"
+          className="mx-auto max-w-5xl px-4 pb-40 pt-6 sm:px-6 sm:pt-8 lg:px-6 lg:pb-8 xl:px-10"
         >
-          {/* Lazy route chunks resolve here so the rail/bottom nav never flickers.
+          {/* Lazy route chunks resolve here so the rails/bottom nav never flicker.
               A crash or a chunk missing after a deploy stays inside this area. */}
           <ErrorBoundary resetKey={pathname}>
             <Suspense fallback={<RouteSkeleton />}>

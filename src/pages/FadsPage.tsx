@@ -1364,9 +1364,7 @@ export default function FadsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-4">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <SectionTabs tabs={PLAYBOOK_TABS} />
-        </div>
+        <SectionTabs tabs={PLAYBOOK_TABS} className="mb-6" />
 
         {/* Header */}
         <div className="text-center mb-8">

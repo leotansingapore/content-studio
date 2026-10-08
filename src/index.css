@@ -47,6 +47,11 @@
     /* App canvas sits a hair off pure white so white cards lift off it. */
     --canvas: 220 33% 99%;
     --sidebar: 220 33% 99%;
+    /* Rail 1 (sections) sits one step darker than rail 2 (pages). */
+    --rail: 220 24% 96%;
+    /* Both rails together; the content column and fixed pills offset by it.
+       Rail 2 is w-52 below xl, w-56 from xl (StudioLayout). */
+    --nav-w: 280px;
 
     --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(255 80% 62%));
     --gradient-hero: linear-gradient(135deg, hsl(221 83% 53%), hsl(255 75% 60%));
@@ -56,6 +61,12 @@
     --shadow-card: 0 1px 2px hsl(220 20% 20% / 0.04), 0 4px 16px -8px hsl(220 20% 20% / 0.10);
 
     --radius: 0.75rem;
+  }
+
+  @media (min-width: 1280px) {
+    :root {
+      --nav-w: 296px;
+    }
   }
 
   .dark {
@@ -85,6 +96,7 @@
     --destructive-foreground: 210 40% 98%;
 
     --border: 217 25% 20%;
+    --rail: 222 40% 5%;
     --input: 217 25% 22%;
     --ring: 215 85% 60%;
 

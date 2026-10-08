@@ -1,69 +1,43 @@
-// Sub-navigation for merged sections. Routes stay intact (deep links, query
-// params keep working) — the sidebar shows one entry per group and these tabs
-// move between the group's pages.
-import { useEffect, useState } from "react";
+// Sub-navigation for tabbed sections on phones and tablets. Routes stay intact
+// (deep links, query params keep working). From lg up, rail 2 of the shell
+// lists the same pages, so these tabs step aside there.
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { NavLink } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { REELS_BOARD_OWNERS } from "@/lib/reelsBoard";
+import { section, visiblePages, type NavPage } from "@/lib/nav";
 
-export type SectionTab = { to: string; label: string; end?: boolean; /** Shown only to these sign-ins. */ owners?: string[] };
+export type SectionTab = NavPage;
 
-// Write group: the drafting surfaces.
-export const WRITE_TABS: SectionTab[] = [
-  { to: "/generate", label: "Write", end: true },
-  { to: "/generate/batch", label: "Batch" },
-  { to: "/carousel", label: "Carousel" },
-  { to: "/edit", label: "Video" },
-];
+export const WRITE_TABS = section("write").pages;
+export const PLAYBOOK_TABS = section("playbook").pages;
+export const PIPELINE_TABS = section("pipeline").pages;
+export const RECRUIT_TABS = section("recruit").pages;
+export const LEARN_TABS = section("learn").pages;
 
-// Playbook group: the strategy that steers every draft — positioning, voice,
-// and the F.A.D.S. worksheet that produces both.
-export const PLAYBOOK_TABS: SectionTab[] = [
-  { to: "/playbook", label: "My Playbook" },
-  { to: "/voice", label: "Your voice" },
-  { to: "/brand", label: "Brand kit" },
-  { to: "/fads", label: "F.A.D.S." },
-];
+// Matches the shell's lg breakpoint, where the two rails appear.
+const RAILS = "(min-width: 1024px)";
+const onRailsChange = (cb: () => void) => {
+  const m = window.matchMedia(RAILS);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
+const railsShown = () => window.matchMedia(RAILS).matches;
 
-// Pipeline group: the plan, calendar, board, and posted.
-export const PIPELINE_TABS: SectionTab[] = [
-  { to: "/plan", label: "Plan" },
-  { to: "/calendar", label: "Calendar" },
-  { to: "/board", label: "Board" },
-  { to: "/drafts", label: "My posts" },
-  { to: "/reels", label: "Reels", owners: REELS_BOARD_OWNERS },
-];
-
-// Recruit group: the #TopofMind recruitment kit, one Brand Brain behind all three.
-export const RECRUIT_TABS: SectionTab[] = [
-  { to: "/recruit", label: "Brand Brain", end: true },
-  { to: "/recruit/conversations", label: "Conversations" },
-  { to: "/recruit/agent", label: "AI agent" },
-];
-
-// Coach is now its own top-level destination (not a Performance sub-tab), so
-// Performance no longer needs a tab group.
-
-// Learn group: every teaching surface in one place.
-export const LEARN_TABS: SectionTab[] = [
-  { to: "/academy", label: "Academy" },
-  { to: "/create-guide", label: "How to post" },
-  { to: "/tutorial", label: "How the studio works" },
-];
-
-export default function SectionTabs({ tabs }: { tabs: SectionTab[] }) {
+export default function SectionTabs({ tabs, className = "" }: { tabs: SectionTab[]; className?: string }) {
   const [email, setEmail] = useState("");
+  const rails = useSyncExternalStore(onRailsChange, railsShown);
   const gated = tabs.some((t) => t.owners);
   useEffect(() => {
-    if (gated) supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email?.toLowerCase() ?? ""));
+    if (gated) supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
   }, [gated]);
-  tabs = tabs.filter((t) => !t.owners || t.owners.includes(email));
+  if (rails) return null;
   return (
     <nav
       aria-label="Section"
-      className="flex w-fit max-w-full flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1"
+      data-nav
+      className={`flex w-fit max-w-full flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1 ${className}`}
     >
-      {tabs.map((t) => (
+      {visiblePages(tabs, email).map((t) => (
         <NavLink
           key={t.to}
           to={t.to}

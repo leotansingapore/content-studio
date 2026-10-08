@@ -919,23 +919,23 @@ export default function CalendarPage() {
         )}
       </div>
 
-      <div className={`grid gap-4 ${unscheduled.length > 0 ? "lg:grid-cols-[minmax(0,1fr)_15rem]" : ""}`}>
-        {/* Unscheduled drafts: a side panel on desktop, a collapsible section on phones */}
+      <div className={`grid gap-4 ${unscheduled.length > 0 ? "xl:grid-cols-[minmax(0,1fr)_15rem]" : ""}`}>
+        {/* Unscheduled drafts: a side panel on wide screens, a collapsible section below that */}
         {unscheduled.length > 0 && (
-          <aside className="lg:order-last lg:sticky lg:top-4 lg:self-start">
+          <aside className="xl:order-last xl:sticky xl:top-4 xl:self-start">
             <button
               type="button"
               onClick={() => setPanelOpen((o) => !o)}
               aria-expanded={panelOpen}
-              className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-card px-4 text-sm font-semibold text-foreground shadow-card lg:hidden"
+              className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-card px-4 text-sm font-semibold text-foreground shadow-card xl:hidden"
             >
               Unscheduled drafts ({unscheduled.length})
               <ChevronDown className={`h-4 w-4 transition-transform ${panelOpen ? "rotate-180" : ""}`} />
             </button>
             <div
-              className={`${panelOpen ? "mt-2" : "hidden"} space-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card lg:mt-0 lg:block`}
+              className={`${panelOpen ? "mt-2" : "hidden"} space-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card xl:mt-0 xl:block`}
             >
-              <p className="hidden items-center gap-1 text-sm font-semibold text-foreground lg:flex">
+              <p className="hidden items-center gap-1 text-sm font-semibold text-foreground xl:flex">
                 Unscheduled drafts ({unscheduled.length})
                 <InfoTip label="About unscheduled drafts">Drag one onto a day, or pick its date.</InfoTip>
               </p>

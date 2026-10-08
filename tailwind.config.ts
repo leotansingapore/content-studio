@@ -22,6 +22,7 @@ export default {
         foreground: "hsl(var(--foreground))",
         canvas: "hsl(var(--canvas))",
         sidebar: "hsl(var(--sidebar))",
+        rail: "hsl(var(--rail))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

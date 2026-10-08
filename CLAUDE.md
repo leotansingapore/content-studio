@@ -35,11 +35,12 @@
   mirrored cross-device by `src/lib/cloudSync.ts` (prefix-based). New
   persistent features MUST use the `content-studio-` key prefix or they will
   not sync.
-- Merged nav: sections are grouped (Write, Pipeline, Performance, Learn,
-  My Playbook) via `src/components/SectionTabs.tsx`. When adding a page, add
-  it to a tab group + the `also:` list of its sidebar entry in
-  `src/pages/StudioLayout.tsx` — do not add new top-level sidebar items
-  without checking the grouping.
+- Nav: every page is listed once, in `src/lib/nav.ts` (SECTIONS). Desktop
+  has two rails (rail 1 = sections, rail 2 = the open section's pages);
+  phones get the bottom bar, the More sheet and, for `tabbed` sections,
+  `SectionTabs` on the page (hidden from lg up, where rail 2 does that job).
+  When adding a page, add it to a section there and keep `src/lib/nav.test.ts`
+  green; do not add a new section without checking the grouping.
 - Heavy pages are route-level `lazy()` in `src/App.tsx`; the `<Suspense>`
   lives around `<Outlet/>` in StudioLayout. Do NOT add a vite `manualChunks`
   object — the object form force-preloads lazy chunks.
