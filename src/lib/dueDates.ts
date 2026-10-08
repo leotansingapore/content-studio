@@ -1,7 +1,28 @@
 // Calendar-day helpers for scheduled posts. scheduledFor comes from a date
 // picker, so it is the consultant's local day ("YYYY-MM-DD"), not a UTC
 // instant: compare it with the local date, or posts due today in Singapore
-// don't show as due until 8am.
+// don't show as due until 8am. With a posting time it is a local datetime
+// ("YYYY-MM-DDTHH:MM"); its first ten characters are still the day, so every
+// reader that slices the day keeps working.
+
+/** "HH:MM" when scheduledFor carries a local posting time, else null. The board's
+ * older full ISO timestamps (a default 9am, not a chosen time) count as date-only. */
+export function scheduleTime(scheduledFor: string | null | undefined): string | null {
+  const m = /^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})$/.exec(scheduledFor ?? "");
+  return m ? m[1] : null;
+}
+
+/** A scheduledFor value: the day alone, or the day and a local "HH:MM" time. */
+export function scheduleAt(day: string, time?: string | null): string {
+  return time ? `${day}T${time}` : day;
+}
+
+/** "7:30pm", "9am", "12pm". */
+export function timeLabel(time: string): string {
+  const h = Number(time.slice(0, 2));
+  const m = time.slice(3, 5);
+  return `${h % 12 || 12}${m === "00" ? "" : `:${m}`}${h < 12 ? "am" : "pm"}`;
+}
 
 export function localDateKey(date: Date = new Date()): string {
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -39,9 +60,9 @@ export function daysOverdue(scheduledFor: string, today: string): number {
   return Math.round((toDay(today) - toDay(scheduledFor.slice(0, 10))) / 86_400_000);
 }
 
-/** "Due today", "3 days overdue", "7 weeks overdue", "2 months overdue". */
-export function overdueLabel(days: number): string {
-  if (days <= 0) return "Due today";
+/** "Due today" (or "Due 7:30pm" with a time), "3 days overdue", "7 weeks overdue", "2 months overdue". */
+export function overdueLabel(days: number, time?: string | null): string {
+  if (days <= 0) return time ? `Due ${timeLabel(time)}` : "Due today";
   if (days < 14) return `${days} day${days === 1 ? "" : "s"} overdue`;
   if (days < 63) return `${Math.floor(days / 7)} weeks overdue`;
   const months = Math.floor(days / 30);

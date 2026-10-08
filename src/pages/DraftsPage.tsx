@@ -40,6 +40,7 @@ import {
   type DraftEntry,
   type DraftStatus,
 } from "@/lib/draftHistory";
+import { scheduleAt, scheduleTime } from "@/lib/dueDates";
 import { repurposeTargetsFor, buildRepurposeUrl } from "@/lib/repurpose";
 import DraftReviewControl from "@/components/team/DraftReviewControl";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
@@ -286,7 +287,11 @@ export default function DraftsPage() {
                       value={d.scheduledFor?.slice(0, 10) ?? ""}
                       onChange={(e) =>
                         e.target.value &&
-                        handleSetStatus(d.id, "scheduled", e.target.value)
+                        handleSetStatus(
+                          d.id,
+                          "scheduled",
+                          scheduleAt(e.target.value, scheduleTime(d.scheduledFor)), // keeps a set posting time
+                        )
                       }
                       className="rounded-md border border-input bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     />

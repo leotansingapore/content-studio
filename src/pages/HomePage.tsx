@@ -14,7 +14,14 @@ import {
   type PostingActivity,
 } from "@/lib/draftHistory";
 import { loadPositioning } from "@/lib/positioning";
-import { daysOverdue, dueHeading, localDateKey, overdueLabel } from "@/lib/dueDates";
+import {
+  daysOverdue,
+  dueHeading,
+  localDateKey,
+  overdueLabel,
+  scheduleTime,
+  timeLabel,
+} from "@/lib/dueDates";
 import { loadCoachHistory } from "@/lib/coach";
 import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
 import { isOnboarded } from "@/lib/onboarding";
@@ -172,7 +179,7 @@ export default function HomePage() {
           d.scheduledFor.slice(0, 10) <= today,
       )
       .map((d) => ({ draft: d, days: daysOverdue(d.scheduledFor!, today) }))
-      .sort((a, b) => a.days - b.days);
+      .sort((a, b) => a.days - b.days || (a.draft.scheduledFor! < b.draft.scheduledFor! ? -1 : 1));
   }, [drafts]);
   const overdueCount = dueNow.filter((d) => d.days > 0).length;
 
@@ -212,11 +219,18 @@ export default function HomePage() {
                   <p
                     className={`text-[11px] ${days > 0 ? "font-medium text-foreground" : "text-muted-foreground"}`}
                   >
-                    {overdueLabel(days)} · scheduled{" "}
-                    {new Date(d.scheduledFor!.slice(0, 10) + "T00:00:00").toLocaleDateString(undefined, {
-                      day: "numeric",
-                      month: "short",
-                    })}
+                    {overdueLabel(days, scheduleTime(d.scheduledFor))}
+                    {days > 0 && (
+                      <>
+                        {" "}
+                        · scheduled{" "}
+                        {new Date(d.scheduledFor!.slice(0, 10) + "T00:00:00").toLocaleDateString(undefined, {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                        {scheduleTime(d.scheduledFor) && `, ${timeLabel(scheduleTime(d.scheduledFor)!)}`}
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
@@ -451,7 +465,7 @@ export default function HomePage() {
                     ? new Date(d.scheduledFor.slice(0, 10) + "T00:00:00").toLocaleDateString(
                         undefined,
                         { weekday: "short", month: "short", day: "numeric" },
-                      )
+                      ) + (scheduleTime(d.scheduledFor) ? `, ${timeLabel(scheduleTime(d.scheduledFor)!)}` : "")
                     : "Scheduled"}
                 </span>
                 <p className="line-clamp-2 text-sm leading-snug text-foreground">

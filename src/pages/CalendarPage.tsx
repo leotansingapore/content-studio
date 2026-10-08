@@ -17,7 +17,16 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { REELS_BOARD_OWNERS, brandForProfile, brandOf, fetchBoard } from "@/lib/reelsBoard";
 import { activeProfile } from "@/lib/profiles";
-import { addDays, keyToDate, localDateKey, monthGrid, weekOf } from "@/lib/dueDates";
+import {
+  addDays,
+  keyToDate,
+  localDateKey,
+  monthGrid,
+  scheduleAt,
+  scheduleTime,
+  timeLabel,
+  weekOf,
+} from "@/lib/dueDates";
 import {
   loadDrafts,
   setDraftStatus,
@@ -56,9 +65,17 @@ function eventDate(d: DraftEntry): string | null {
   return null;
 }
 
+// Orders a day's posts: no set time first, then by time.
+const sortKey = (d: DraftEntry) =>
+  (draftStatus(d) === "posted" ? d.postedAt : d.scheduledFor) ?? "";
+
 const titleOf = (d: DraftEntry) => d.hook || d.draft.slice(0, 60) || "Untitled";
 const dayLabel = (key: string) =>
   keyToDate(key).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+const whenLabel = (scheduledFor: string) => {
+  const time = scheduleTime(scheduledFor);
+  return `${dayLabel(scheduledFor.slice(0, 10))}${time ? `, ${timeLabel(time)}` : ""}`;
+};
 
 const dateInputClass =
   "h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-8";
@@ -82,6 +99,7 @@ export default function CalendarPage() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [pickDraft, setPickDraft] = useState<string>("");
   const [pickDate, setPickDate] = useState<string>("");
+  const [pickTime, setPickTime] = useState<string>("");
   const editorRef = useRef<HTMLDivElement>(null);
   // Reels scheduled on the reels board, for its owner: one calendar for everything that posts.
   const [reels, setReels] = useState<{ id: string; title: string; date: string; posted: boolean }[]>([]);
@@ -145,6 +163,7 @@ export default function CalendarPage() {
       arr.push(d);
       map.set(key, arr);
     }
+    for (const arr of map.values()) arr.sort((a, b) => (sortKey(a) < sortKey(b) ? -1 : 1));
     return map;
   }, [visible]);
 
@@ -160,7 +179,7 @@ export default function CalendarPage() {
           const key = eventDate(d);
           return key !== null && key >= todayKey;
         })
-        .sort((a, b) => (eventDate(a)! < eventDate(b)! ? -1 : 1)),
+        .sort((a, b) => (sortKey(a) < sortKey(b) ? -1 : 1)),
     [visible, todayKey],
   );
 
@@ -175,16 +194,21 @@ export default function CalendarPage() {
     );
   };
 
-  // Puts a draft on a day, or moves a scheduled post to another one. Undo puts it back.
-  const moveTo = (id: string, day: string) => {
-    if (!userId || day < todayKey) return;
+  // Puts a draft on a day (and optional time), or moves a scheduled post. Undo puts it back.
+  const reschedule = (id: string, next: string) => {
+    if (!userId || next.slice(0, 10) < todayKey) return;
     const prev = drafts.find((d) => d.id === id);
     if (!prev || draftStatus(prev) === "posted") return;
     const wasScheduled = draftStatus(prev) === "scheduled";
-    if (wasScheduled && prev.scheduledFor?.slice(0, 10) === day) return;
-    setDrafts(setDraftStatus(userId, id, "scheduled", day));
+    if (
+      wasScheduled &&
+      prev.scheduledFor?.slice(0, 10) === next.slice(0, 10) &&
+      scheduleTime(prev.scheduledFor) === scheduleTime(next)
+    )
+      return;
+    setDrafts(setDraftStatus(userId, id, "scheduled", next));
     toast({
-      title: `${wasScheduled ? "Moved to" : "Scheduled for"} ${dayLabel(day)}`,
+      title: `${wasScheduled ? "Moved to" : "Scheduled for"} ${whenLabel(next)}`,
       action: (
         <ToastAction altText="Undo" onClick={() => undo(prev)}>
           Undo
@@ -193,11 +217,16 @@ export default function CalendarPage() {
     });
   };
 
+  // A drag or a new date moves the day and keeps the posting time.
+  const moveTo = (id: string, day: string) =>
+    reschedule(id, scheduleAt(day, scheduleTime(drafts.find((d) => d.id === id)?.scheduledFor)));
+
   const handleSchedule = () => {
     if (!pickDraft || !pickDate) return;
-    moveTo(pickDraft, pickDate);
+    reschedule(pickDraft, scheduleAt(pickDate, pickTime));
     setPickDraft("");
     setPickDate("");
+    setPickTime("");
   };
 
   const markPosted = (id: string) => {
@@ -248,17 +277,29 @@ export default function CalendarPage() {
         };
 
   const moveInput = (d: DraftEntry) => (
-    <label className="flex items-center gap-1.5 whitespace-nowrap text-[11px] text-muted-foreground">
-      Move to
-      <input
-        type="date"
-        min={todayKey}
-        value={d.scheduledFor?.slice(0, 10) ?? ""}
-        // Typing a year fires partial dates like 0002-10-09; only a real future day moves it.
-        onChange={(e) => e.target.value >= todayKey && moveTo(d.id, e.target.value)}
-        className={dateInputClass}
-      />
-    </label>
+    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
+      <label className="flex items-center gap-1.5 whitespace-nowrap">
+        Move to
+        <input
+          type="date"
+          min={todayKey}
+          value={d.scheduledFor?.slice(0, 10) ?? ""}
+          // Typing a year fires partial dates like 0002-10-09; only a real future day moves it.
+          onChange={(e) => e.target.value >= todayKey && moveTo(d.id, e.target.value)}
+          className={dateInputClass}
+        />
+      </label>
+      <label className="flex items-center gap-1.5 whitespace-nowrap">
+        at
+        <input
+          type="time"
+          value={scheduleTime(d.scheduledFor) ?? ""}
+          onChange={(e) => d.scheduledFor && reschedule(d.id, scheduleAt(d.scheduledFor.slice(0, 10), e.target.value))}
+          aria-label="Posting time"
+          className={dateInputClass}
+        />
+      </label>
+    </div>
   );
 
   const editor = (d: DraftEntry) => {
@@ -299,6 +340,7 @@ export default function CalendarPage() {
   // A post on the month or week grid: drag it to another day, tap it for its controls.
   const chip = (e: DraftEntry, roomy: boolean) => {
     const posted = draftStatus(e) === "posted";
+    const time = posted ? null : scheduleTime(e.scheduledFor);
     return (
       <div
         key={e.id}
@@ -320,11 +362,15 @@ export default function CalendarPage() {
       >
         {roomy ? (
           <>
-            <span className="block text-[10px] opacity-80">{PLATFORM_LABEL[e.platform] ?? e.platform}</span>
+            <span className="block text-[10px] opacity-80">
+              {PLATFORM_LABEL[e.platform] ?? e.platform}
+              {time && ` · ${timeLabel(time)}`}
+            </span>
             <span className="line-clamp-2">{titleOf(e)}</span>
           </>
         ) : (
           <>
+            {time && <span className="font-semibold">{timeLabel(time)} </span>}
             {PLATFORM_LABEL[e.platform] ?? e.platform}: {(e.hook || e.draft).slice(0, 22)}
           </>
         )}
@@ -437,6 +483,16 @@ export default function CalendarPage() {
                   min={todayKey}
                   onChange={(e) => setPickDate(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-44"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sched-time">Time (optional)</Label>
+                <input
+                  id="sched-time"
+                  type="time"
+                  value={pickTime}
+                  onChange={(e) => setPickTime(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-36"
                 />
               </div>
               <Button
@@ -728,7 +784,12 @@ export default function CalendarPage() {
                         >
                           <p className="truncate text-sm font-medium text-foreground">{titleOf(e)}</p>
                           <p className="text-xs text-muted-foreground">
-                            {PLATFORM_LABEL[e.platform] ?? e.platform} · {posted ? "Posted" : "Scheduled"}
+                            {PLATFORM_LABEL[e.platform] ?? e.platform} ·{" "}
+                            {posted
+                              ? "Posted"
+                              : scheduleTime(e.scheduledFor)
+                                ? `Scheduled ${timeLabel(scheduleTime(e.scheduledFor)!)}`
+                                : "Scheduled"}
                           </p>
                         </button>
                         {!posted && moveInput(e)}

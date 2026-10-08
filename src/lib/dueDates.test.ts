@@ -6,6 +6,9 @@ import {
   localDateKey,
   monthGrid,
   overdueLabel,
+  scheduleAt,
+  scheduleTime,
+  timeLabel,
   weekOf,
 } from "./dueDates";
 
@@ -25,6 +28,11 @@ describe("daysOverdue", () => {
 
   it("reads the day part of a full timestamp", () =>
     expect(daysOverdue("2026-09-14T16:00:00.000Z", "2026-09-15")).toBe(1));
+
+  it("reads the day part of a day with a posting time", () => {
+    expect(daysOverdue("2026-09-15T19:30", "2026-09-15")).toBe(0);
+    expect(daysOverdue("2026-09-13T08:00", "2026-09-15")).toBe(2);
+  });
 });
 
 describe("overdueLabel", () => {
@@ -34,6 +42,12 @@ describe("overdueLabel", () => {
     expect(overdueLabel(13)).toBe("13 days overdue");
     expect(overdueLabel(51)).toBe("7 weeks overdue");
     expect(overdueLabel(70)).toBe("2 months overdue");
+  });
+
+  it("names the time when a post due today has one", () => {
+    expect(overdueLabel(0, "19:30")).toBe("Due 7:30pm");
+    expect(overdueLabel(0, null)).toBe("Due today");
+    expect(overdueLabel(3, "19:30")).toBe("3 days overdue");
   });
 });
 
@@ -67,5 +81,27 @@ describe("calendar grids", () => {
     expect(oct[0]).toBe("2026-09-28");
     expect(oct).toContain("2026-10-31");
     expect(monthGrid(2026, 5)[0]).toBe("2026-06-01"); // 1 Jun 2026 is a Monday
+  });
+});
+
+describe("posting times", () => {
+  it("reads a local time and treats every other shape as date-only", () => {
+    expect(scheduleTime("2026-10-09T19:30")).toBe("19:30");
+    expect(scheduleTime("2026-10-09")).toBeNull();
+    expect(scheduleTime("2026-10-09T01:00:00.000Z")).toBeNull(); // the board's default 9am
+    expect(scheduleTime(undefined)).toBeNull();
+  });
+
+  it("joins a day and an optional time", () => {
+    expect(scheduleAt("2026-10-09", "07:05")).toBe("2026-10-09T07:05");
+    expect(scheduleAt("2026-10-09", null)).toBe("2026-10-09");
+    expect(scheduleAt("2026-10-09", "")).toBe("2026-10-09");
+  });
+
+  it("says a time the way people write it", () => {
+    expect(timeLabel("19:30")).toBe("7:30pm");
+    expect(timeLabel("09:00")).toBe("9am");
+    expect(timeLabel("00:15")).toBe("12:15am");
+    expect(timeLabel("12:00")).toBe("12pm");
   });
 });
