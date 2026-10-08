@@ -15,6 +15,7 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
+import { scoped } from "@/lib/profiles";
 import { loadDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { getFunnelStage } from "@/data/funnelFramework";
 import {
@@ -347,6 +348,10 @@ function BriefCard({
 
 // ---- The section ----------------------------------------------------------------
 
+// Ideas typed but not developed, kept for this tab. sessionStorage, outside the
+// synced prefix: it is scratch.
+const textKey = (userId: string) => `cs-idea-dump-${scoped(userId)}`;
+
 export default function IdeaDump() {
   const { hash } = useLocation();
   const sectionRef = useRef<HTMLElement>(null);
@@ -373,12 +378,29 @@ export default function IdeaDump() {
       setUserId(id);
       setBriefs(loadBriefs(id));
       setDrafts(loadDrafts(id));
+      try {
+        const kept = id ? sessionStorage.getItem(textKey(id)) : null;
+        if (kept) setText((cur) => cur || kept);
+      } catch {
+        // blocked storage: start with an empty box
+      }
     });
     return () => {
       active = false;
       recognitionRef.current?.abort();
     };
   }, []);
+
+  // Ideas typed but not developed yet survive leaving the page.
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      if (!text.trim()) sessionStorage.removeItem(textKey(userId));
+      else sessionStorage.setItem(textKey(userId), text);
+    } catch {
+      // storage blocked: the box just won't survive a page change
+    }
+  }, [userId, text]);
 
   // Arriving from the board's "Dump ideas" link.
   useEffect(() => {

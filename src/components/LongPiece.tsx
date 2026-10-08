@@ -14,6 +14,7 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
+import { scoped } from "@/lib/profiles";
 import { loadDrafts, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { HOOK_FORMULAS, hookFormula } from "@/lib/hookFormulas";
 import { buildIdeaDumpContext, preferredAudience } from "@/lib/ideaDump";
@@ -38,6 +39,10 @@ const GROUPS: { key: keyof LongExtracts; one: string; many: string }[] = [
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+// The pasted piece, kept for this tab. sessionStorage, outside the synced
+// prefix: it is scratch.
+const textKey = (userId: string) => `cs-long-piece-${scoped(userId)}`;
+
 export default function LongPiece() {
   const [userId, setUserId] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -55,11 +60,28 @@ export default function LongPiece() {
       setUserId(id);
       setRun(loadLongRun(id));
       setDrafts(loadDrafts(id));
+      try {
+        const kept = id ? sessionStorage.getItem(textKey(id)) : null;
+        if (kept) setText((cur) => cur || kept);
+      } catch {
+        // blocked storage: start with an empty box
+      }
     });
     return () => {
       active = false;
     };
   }, []);
+
+  // A pasted piece survives leaving the page.
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      if (!text.trim()) sessionStorage.removeItem(textKey(userId));
+      else sessionStorage.setItem(textKey(userId), text);
+    } catch {
+      // storage blocked: the box just won't survive a page change
+    }
+  }, [userId, text]);
 
   const kept = (draftId?: string) => Boolean(draftId) && drafts.some((d) => d.id === draftId);
   const unkept = run ? run.posts.filter((p) => !kept(p.draftId)) : [];

@@ -46,6 +46,7 @@ import {
 import DiagnosisQuiz from "@/components/DiagnosisQuiz";
 import DiagnosisSummary from "@/components/DiagnosisSummary";
 import IdeaDump from "@/components/IdeaDump";
+import { scoped } from "@/lib/profiles";
 import LongPiece from "@/components/LongPiece";
 import {
   Gauge,
@@ -63,6 +64,11 @@ import {
   Save,
   BookOpen,
 } from "lucide-react";
+
+// Profile answers not saved yet and posts pasted for review, kept for this tab
+// so leaving the page doesn't throw them away. sessionStorage, outside the
+// synced prefix: the profile itself is saved with Save.
+const workKey = (userId: string) => `cs-coach-work-${scoped(userId)}`;
 
 function scoreTone(score: number): { label: string; text: string; ring: string } {
   if (score >= 80)
@@ -194,6 +200,16 @@ export default function CoachPage() {
       setFields(
         Object.fromEntries(COACH_FIELDS.map((f) => [f.key, p[f.key] as string])),
       );
+      try {
+        const work = id ? JSON.parse(sessionStorage.getItem(workKey(id)) ?? "null") : null;
+        if (work && typeof work.text === "string") setText(work.text);
+        if (work?.fields && typeof work.fields === "object") {
+          setFields(work.fields);
+          setDirty(true);
+        }
+      } catch {
+        // corrupt or blocked storage: show the saved profile
+      }
       const result = loadResult(id);
       setDiag(result);
       setRole(loadDiagnosis(id)?.role);
@@ -206,6 +222,17 @@ export default function CoachPage() {
       active = false;
     };
   }, []);
+
+  // Kept while there are unsaved answers or pasted posts; Save clears the answers.
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      if (!dirty && !text.trim()) sessionStorage.removeItem(workKey(userId));
+      else sessionStorage.setItem(workKey(userId), JSON.stringify({ fields: dirty ? fields : null, text }));
+    } catch {
+      // storage blocked: unsaved text just won't survive a page change
+    }
+  }, [userId, dirty, fields, text]);
 
   const completeness = useMemo(
     () => (profile ? profileCompleteness(profile) : { filled: 0, total: 0, pct: 0 }),
@@ -310,7 +337,10 @@ export default function CoachPage() {
             </h1>
           </div>
         </header>
-        <DiagnosisQuiz onComplete={handleDiagComplete} />
+        <DiagnosisQuiz
+          onComplete={handleDiagComplete}
+          progressKey={userId ? `cs-diagnosis-progress-${scoped(userId)}` : undefined}
+        />
         <IdeaDump />
         <LongPiece />
       </div>

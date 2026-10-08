@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QUESTIONS, type DiagnosisRecord } from "@/lib/diagnosis";
@@ -9,19 +9,45 @@ import { Gauge, ArrowRight, ArrowLeft, CheckCircle2 } from "lucide-react";
  * Collects answers only; the parent decides what to do with the record (persist,
  * score, navigate). Used as the Coach's first-run diagnosis.
  */
+type Progress = { answers: Record<string, number>; step: number; role?: string };
+
+function readProgress(key: string | undefined): Progress | null {
+  if (!key) return null;
+  try {
+    const p = JSON.parse(sessionStorage.getItem(key) ?? "null");
+    return p && typeof p.step === "number" && p.step > 0 && p.step < QUESTIONS.length && p.answers ? p : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function DiagnosisQuiz({
   onComplete,
+  progressKey,
   title = "First, a quick diagnosis",
   intro = "So the Coach knows exactly where to focus. 14 quick questions across ideas, storytelling, camera confidence, consistency, strategy, conversion and compliance — about two minutes.",
 }: {
   onComplete: (record: DiagnosisRecord) => void;
+  /** Where answers so far are kept for this tab, so leaving mid-way resumes at the same question. */
+  progressKey?: string;
   title?: string;
   intro?: string;
 }) {
-  const [started, setStarted] = useState(false);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [step, setStep] = useState(0);
-  const [role, setRole] = useState<string | undefined>();
+  const [saved] = useState(() => readProgress(progressKey));
+  const [started, setStarted] = useState(saved !== null);
+  const [answers, setAnswers] = useState<Record<string, number>>(saved?.answers ?? {});
+  const [step, setStep] = useState(saved?.step ?? 0);
+  const [role, setRole] = useState<string | undefined>(saved?.role);
+
+  useEffect(() => {
+    if (!progressKey) return;
+    try {
+      if (step === 0) sessionStorage.removeItem(progressKey);
+      else sessionStorage.setItem(progressKey, JSON.stringify({ answers, step, role }));
+    } catch {
+      // storage blocked: the quiz just starts over after a page change
+    }
+  }, [progressKey, answers, step, role]);
 
   const question = QUESTIONS[step];
   const progress = Math.round((step / QUESTIONS.length) * 100);
@@ -37,6 +63,11 @@ export default function DiagnosisQuiz({
     if (step < QUESTIONS.length - 1) {
       setStep(step + 1);
     } else {
+      try {
+        if (progressKey) sessionStorage.removeItem(progressKey);
+      } catch {
+        // nothing kept to clear
+      }
       onComplete({
         answers: next,
         completedAt: new Date().toISOString(),
