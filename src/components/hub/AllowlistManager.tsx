@@ -157,7 +157,7 @@ export default function AllowlistManager() {
                   </p>
                   <p className="text-xs text-muted-foreground">{r.niche}</p>
                   {r.brand_notes && (
-                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground/80">
+                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                       {r.brand_notes}
                     </p>
                   )}

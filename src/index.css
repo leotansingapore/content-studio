@@ -14,7 +14,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 24% 12%;
 
-    --primary: 221 83% 53%;
+    /* 48% so blue text on a blue tint (active nav, chips) clears 4.5:1. */
+    --primary: 221 83% 48%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 221 90% 62%;
 
@@ -22,25 +23,26 @@
     --secondary-foreground: 224 24% 16%;
 
     --muted: 220 16% 96%;
-    --muted-foreground: 220 9% 46%;
+    /* 40% clears 4.5:1 on the tinted cards and chips too, not just on white (axe, 2026-10-08). */
+    --muted-foreground: 220 10% 40%;
 
     /* accent = neutral hover surface (shadcn uses it for ghost/outline hover) */
     --accent: 220 16% 95%;
     --accent-foreground: 224 24% 16%;
 
     /* brand = the creative-spark hue, used sparingly (logo, AI affordances) */
-    --brand: 258 89% 66%;
+    --brand: 258 66% 54%;
     --brand-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 60% 40%;
-    --warning: 33 92% 47%;
+    --success: 152 62% 27%;
+    --warning: 26 90% 33%;
 
     --border: 220 13% 91%;
     --input: 220 13% 88%;
-    --ring: 221 83% 53%;
+    --ring: 221 83% 48%;
 
     /* App canvas sits a hair off pure white so white cards lift off it. */
     --canvas: 220 33% 99%;

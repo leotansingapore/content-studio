@@ -90,7 +90,7 @@ function Chip({
         active
           ? "border-primary/60 bg-primary/10 text-primary"
           : disabled
-            ? "cursor-not-allowed border-border/50 bg-background text-muted-foreground/40"
+            ? "cursor-not-allowed border-border/50 bg-background text-muted-foreground"
             : "border-border/70 bg-background text-muted-foreground hover:border-border hover:text-foreground"
       }`}
     >
@@ -98,7 +98,7 @@ function Chip({
       {typeof count === "number" && (
         <span
           className={`tabular-nums text-[10px] ${
-            active ? "text-primary/70" : "text-muted-foreground/55"
+            active ? "text-primary/70" : "text-muted-foreground"
           }`}
         >
           {count}

@@ -193,7 +193,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
       >
         <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           <Users className="h-3.5 w-3.5" /> Reference a competitor's angle
-          <span className="rounded-full border border-border/60 bg-background px-1.5 py-0.5 text-[9px] font-medium normal-case tracking-normal text-muted-foreground/80">
+          <span className="rounded-full border border-border/60 bg-background px-1.5 py-0.5 text-[9px] font-medium normal-case tracking-normal text-muted-foreground">
             optional
           </span>
         </span>

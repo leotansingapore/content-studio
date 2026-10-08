@@ -246,7 +246,7 @@ export default function StudioLayout() {
           {NAV_GROUPS.map((group, gi) => (
             <div key={gi} className="space-y-1">
               {group.heading && (
-                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                   {group.heading}
                 </p>
               )}
@@ -284,7 +284,7 @@ export default function StudioLayout() {
           </button>
           {email && (
             <p
-              className="truncate px-3 pt-1 text-[11px] text-muted-foreground/70"
+              className="truncate px-3 pt-1 text-[11px] text-muted-foreground"
               title={email}
             >
               {email}
@@ -358,7 +358,7 @@ export default function StudioLayout() {
               {MOBILE_MORE_GROUPS.map((group, gi) => (
                 <div key={gi} className="space-y-1">
                   {group.heading && (
-                    <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                    <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                       {group.heading}
                     </p>
                   )}

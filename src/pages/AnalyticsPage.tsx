@@ -369,7 +369,7 @@ export default function AnalyticsPage() {
                         if (e.key === "Enter") e.currentTarget.blur();
                       }}
                       aria-label={`Your ${p.label} handle`}
-                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                     />
                   </div>
                   {url && (

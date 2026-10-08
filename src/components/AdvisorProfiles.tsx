@@ -117,13 +117,13 @@ const COMPANY_OPTIONS: AdvisorCompany[] = [
 const COMPANY_NONE = "__none__";
 
 const COMPANY_BADGE_STYLES: Record<string, string> = {
-  AIA: "border-red-500/40 bg-red-500/10 text-red-500",
-  Prudential: "border-orange-500/40 bg-orange-500/10 text-orange-500",
-  "Great Eastern": "border-amber-500/40 bg-amber-500/10 text-amber-500",
-  Manulife: "border-emerald-500/40 bg-emerald-500/10 text-emerald-500",
+  AIA: "border-red-500/40 bg-red-500/10 text-red-700",
+  Prudential: "border-orange-500/40 bg-orange-500/10 text-orange-700",
+  "Great Eastern": "border-amber-500/40 bg-amber-500/10 text-amber-700",
+  Manulife: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
   "Independent / Fee-only":
-    "border-sky-500/40 bg-sky-500/10 text-sky-500",
-  Other: "border-violet-500/40 bg-violet-500/10 text-violet-500",
+    "border-sky-500/40 bg-sky-500/10 text-sky-700",
+  Other: "border-violet-500/40 bg-violet-500/10 text-violet-700",
 };
 
 const AUDIENCE_OPTIONS = Array.from(
@@ -228,7 +228,7 @@ function AdvisorCard({
                 <CheckCircle2 className="h-3 w-3" /> Verified {entry.last_checked}
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-500">
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">
                 <AlertTriangle className="h-3 w-3" /> Unverified - check activity
               </span>
             )}
@@ -283,16 +283,16 @@ function AdvisorCard({
           <p className="rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5 text-[11px] italic text-muted-foreground">
             Style: {entry.style_notes}
           </p>
-          <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/80">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
             Cadence: {entry.post_cadence.replace(/-/g, " ")}
           </p>
           {entry.verification_note && (
-            <p className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2.5 py-1.5 text-[11px] text-amber-600">
+            <p className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2.5 py-1.5 text-[11px] text-amber-700">
               {entry.verification_note}
             </p>
           )}
           {entry.secondary_platforms && entry.secondary_platforms.length > 0 && (
-            <p className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground/80">
+            <p className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
               <Globe className="h-3 w-3" />
               Also on: {entry.secondary_platforms.join(", ")}
             </p>

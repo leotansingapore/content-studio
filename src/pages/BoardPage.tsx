@@ -74,7 +74,7 @@ function BoardCard({
     >
       <CardContent className="space-y-2.5 p-3">
         <div className="flex items-start gap-1.5">
-          <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-colors group-hover:text-muted-foreground/70" />
+          <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-muted-foreground" />
           {editing ? (
             <input
               value={title}
@@ -298,7 +298,7 @@ export default function BoardPage() {
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2 px-0.5">
-                        <p className="min-w-0 text-[11px] font-semibold uppercase tracking-wider text-foreground/60">
+                        <p className="min-w-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                           {col.label}
                         </p>
                         <span className="shrink-0 rounded-md bg-background px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground shadow-sm">
@@ -373,7 +373,7 @@ export default function BoardPage() {
                             if (e.key === "Enter") addIdea();
                           }}
                           placeholder="+ Quick idea, Enter to add"
-                          className="w-full rounded-lg border border-dashed border-border/70 bg-background/60 px-2.5 py-2 text-xs outline-none placeholder:text-muted-foreground/60 focus:border-primary/40 focus:bg-background"
+                          className="w-full rounded-lg border border-dashed border-border/70 bg-background/60 px-2.5 py-2 text-xs outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:bg-background"
                         />
                       )}
                       {col.key === "idea" && (
@@ -389,7 +389,7 @@ export default function BoardPage() {
                       )}
 
                       {cards.length === 0 && col.key !== "idea" && (
-                        <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-border/50 text-[11px] text-muted-foreground/50">
+                        <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-border/50 text-[11px] text-muted-foreground">
                           Drop posts here
                         </div>
                       )}

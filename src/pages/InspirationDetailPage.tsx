@@ -127,7 +127,7 @@ export default function InspirationDetailPage() {
               {entry.format}
             </span>
           </div>
-          <p className="text-[10px] font-medium text-muted-foreground/80">
+          <p className="text-[10px] font-medium text-muted-foreground">
             Pattern: {formatCurriculumAnchor(entry.curriculum_anchor)} - Source:{" "}
             {entry.source}
           </p>

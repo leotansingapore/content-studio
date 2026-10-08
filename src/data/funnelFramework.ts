@@ -75,7 +75,7 @@ export const FUNNEL_STAGES: FunnelStage[] = [
     ideaSources: ["personal-story", "myth-bust", "three-things"],
     weight: 4,
     accent: {
-      badge: "border-violet-500/40 bg-violet-500/10 text-violet-600 dark:text-violet-300",
+      badge: "border-violet-500/40 bg-violet-500/10 text-violet-700 dark:text-violet-300",
       ring: "ring-violet-500/30",
       dot: "bg-violet-500",
       text: "text-violet-600 dark:text-violet-300",
@@ -104,7 +104,7 @@ export const FUNNEL_STAGES: FunnelStage[] = [
     ideaSources: ["real-question", "common-mistake", "before-after", "three-things"],
     weight: 4,
     accent: {
-      badge: "border-sky-500/40 bg-sky-500/10 text-sky-600 dark:text-sky-300",
+      badge: "border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300",
       ring: "ring-sky-500/30",
       dot: "bg-sky-500",
       text: "text-sky-600 dark:text-sky-300",
@@ -133,7 +133,7 @@ export const FUNNEL_STAGES: FunnelStage[] = [
     ideaSources: ["before-after", "real-question", "news-hook"],
     weight: 2,
     accent: {
-      badge: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+      badge: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
       ring: "ring-emerald-500/30",
       dot: "bg-emerald-500",
       text: "text-emerald-600 dark:text-emerald-300",
@@ -173,7 +173,7 @@ export const TRUST_DIMENSIONS: TrustDimension[] = [
       "A challenge you went through and what changed",
       "A value you refuse to compromise on with clients",
     ],
-    accent: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300",
+    accent: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
   },
   {
     id: "professional",
@@ -187,6 +187,6 @@ export const TRUST_DIMENSIONS: TrustDimension[] = [
       "Why now — what's the cost of a client waiting another year?",
       "Why you — a result, a framework, or proof only you can show",
     ],
-    accent: "border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300",
+    accent: "border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
   },
 ];

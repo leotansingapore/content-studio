@@ -248,7 +248,7 @@ export default function VoicePage() {
             <div className="text-xs text-muted-foreground">
               {filledCount} / {VOICE_MAX_SLOTS} slots ready
               {updatedAt && (
-                <span className="ml-2 text-[10px] text-muted-foreground/80">
+                <span className="ml-2 text-[10px] text-muted-foreground">
                   Last saved {new Date(updatedAt).toLocaleString()}
                 </span>
               )}

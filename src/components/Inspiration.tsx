@@ -210,7 +210,7 @@ function InspirationCard({
             </button>
           )}
         </div>
-        <p className="text-[10px] font-medium text-muted-foreground/80">
+        <p className="text-[10px] font-medium text-muted-foreground">
           Pattern: {formatCurriculumAnchor(entry.curriculum_anchor)}
         </p>
         <CardTitle className="font-serif text-base font-semibold leading-snug">

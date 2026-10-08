@@ -1318,7 +1318,7 @@ export default function GeneratePage() {
                 pillar / context below if you want to steer it.
               </p>
               {vibeSourceId && (
-                <p className="font-mono text-[10px] text-muted-foreground/80">
+                <p className="font-mono text-[10px] text-muted-foreground">
                   ref: {vibeSourceId}
                 </p>
               )}
