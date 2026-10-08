@@ -400,3 +400,48 @@ export function captionIntro(src: number, capStart: number): number {
   const t = Math.min(1, Math.max(0, (src - capStart) / 0.15));
   return 1 - Math.pow(1 - t, 3);
 }
+
+// ---------- subtitle file and transcript search ----------
+
+const srtTime = (t: number) => {
+  const ms = Math.max(0, Math.round(t * 1000));
+  const p = (n: number, w = 2) => String(n).padStart(w, "0");
+  return `${p(Math.floor(ms / 3_600_000))}:${p(Math.floor(ms / 60_000) % 60)}:${p(Math.floor(ms / 1000) % 60)},${p(ms % 1000, 3)}`;
+};
+
+/**
+ * An .srt file for the edited video: sentence-length lines (the "minimal"
+ * line style) timed on the output timeline, so cut words drop out and every
+ * line lands where it plays after the cuts.
+ */
+export function toSrt(words: Word[], segs: Segment[], removeFillers: boolean): string {
+  const lines = buildCaptions(words, { style: "minimal", wordsPerCaption: 3, removeFillers });
+  const cues: { s: number; e: number; text: string }[] = [];
+  for (const c of lines) {
+    const kept = c.words.filter((w) => outputTime(segs, w.s) !== null);
+    if (!kept.length) continue;
+    const last = kept[kept.length - 1];
+    const s = outputTime(segs, kept[0].s)!;
+    const e = outputTime(segs, last.s)! + Math.max(0.2, last.e - last.s);
+    cues.push({ s, e, text: kept.map((w) => w.w).join(" ") });
+  }
+  return cues
+    .map((c, i) => {
+      const end = Math.min(c.e, cues[i + 1] ? cues[i + 1].s - 0.01 : c.e);
+      return `${i + 1}\n${srtTime(c.s)} --> ${srtTime(Math.max(end, c.s + 0.2))}\n${c.text}\n`;
+    })
+    .join("\n");
+}
+
+/** Start indexes of every place the phrase is said (case and punctuation ignored). */
+export function findPhrase(words: Word[], query: string): number[] {
+  const q = query.toLowerCase().split(/\s+/).map((t) => t.replace(/[^\p{L}\p{N}']/gu, "")).filter(Boolean);
+  if (!q.length) return [];
+  const ws = words.map((w) => w.w.toLowerCase().replace(/[^\p{L}\p{N}']/gu, ""));
+  const hits: number[] = [];
+  for (let i = 0; i + q.length <= ws.length; i++) {
+    // the last query word may be half typed: match it as a prefix
+    if (q.every((t, j) => (j === q.length - 1 ? ws[i + j].startsWith(t) : ws[i + j] === t))) hits.push(i);
+  }
+  return hits;
+}

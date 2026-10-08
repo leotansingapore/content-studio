@@ -199,3 +199,29 @@ describe("saved look", () => {
     expect(withLook(defaultSettings("bold"), null)).toEqual(defaultSettings("bold"));
   });
 });
+
+describe("subtitle file and search", () => {
+  const w = (word: string, s: number, e: number) => ({ w: word, s, e });
+  const words = [w("Most", 0, 0.3), w("people", 0.3, 0.7), w("um", 0.8, 1.0), w("think", 1.1, 1.4), w("CPF", 1.5, 1.8), w("is", 1.8, 1.9), w("boring.", 1.9, 2.4), w("It's", 4.0, 4.2), w("not.", 4.2, 4.6)];
+
+  it("writes SRT cues on the edited timeline, without cut words", async () => {
+    const { toSrt } = await import("@/lib/videoEdit");
+    // kept: 0-0.75 and 1.05-2.5 and 3.9-4.7 (the um and the long pause cut)
+    const segs = [{ start: 0, end: 0.75 }, { start: 1.05, end: 2.5 }, { start: 3.9, end: 4.7 }];
+    const srt = toSrt(words, segs, true);
+    expect(srt).toBe(
+      "1\n00:00:00,000 --> 00:00:02,100\nMost people think CPF is boring.\n\n" +
+      "2\n00:00:02,300 --> 00:00:02,900\nIt's not.\n",
+    );
+    expect(srt).not.toContain("um");
+  });
+
+  it("finds a phrase anywhere, ignoring case and punctuation, with the last word as a prefix", async () => {
+    const { findPhrase } = await import("@/lib/videoEdit");
+    expect(findPhrase(words, "cpf IS")).toEqual([4]);
+    expect(findPhrase(words, "bor")).toEqual([6]);
+    expect(findPhrase(words, "it's not")).toEqual([7]);
+    expect(findPhrase(words, "  ")).toEqual([]);
+    expect(findPhrase(words, "pension")).toEqual([]);
+  });
+});

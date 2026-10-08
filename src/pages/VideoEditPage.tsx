@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Download, Film, ImageIcon, Pause, Play, Scissors, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
@@ -26,8 +26,10 @@ import {
   clipSettings,
   END_CARD_SECONDS,
   fullLength,
+  findPhrase,
   lookOf,
   sameLook,
+  toSrt,
   withLook,
   sentencesOf,
   defaultSettings,
@@ -517,6 +519,35 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
   };
 
+  // find a word or phrase in what was said, and jump the video to it
+  const [find, setFind] = useState("");
+  const [hit, setHit] = useState(0);
+  const hits = useMemo(() => findPhrase(words, find), [words, find]);
+  const hitSet = useMemo(() => {
+    const n = find.trim().split(/\s+/).filter(Boolean).length;
+    return new Set(hits.flatMap((i) => Array.from({ length: n }, (_, j) => i + j)));
+  }, [hits, find]);
+  const jumpTo = (k: number) => {
+    if (!hits.length) return;
+    const i = ((k % hits.length) + hits.length) % hits.length;
+    setHit(i);
+    const w = words[hits[i]];
+    const t = outputTime(plan.segs, w.s);
+    const v = video.current;
+    if (t !== null) seekOut(t);
+    else if (v) v.currentTime = w.s; // a cut word: show the moment anyway
+    document.getElementById(`word-${hits[i]}`)?.scrollIntoView({ block: "nearest" });
+  };
+
+  const downloadSrt = () => {
+    const blob = new Blob([toSrt(words, plan.segs, settings.removeFillers)], { type: "application/x-subrip" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${project.name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}.srt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+  };
+
   const cutSeconds = Math.max(0, duration - plan.total);
   const fillers = words.filter((w) => isFiller(w.w)).length;
 
@@ -806,10 +837,23 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               {!words.length ? (
                 <Button size="sm" variant="outline" onClick={recaption} disabled={captioning}>{captioning ? "Captioning..." : "Caption it"}</Button>
               ) : (
+                <>
+                <div className="flex items-center gap-1.5">
+                  <label className="relative flex-1">
+                    <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                    <input value={find} onChange={(e) => { setFind(e.target.value); setHit(0); }} placeholder="Find a word or phrase" aria-label="Find in what you said"
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); jumpTo(hit + (e.shiftKey ? -1 : 1)); } }}
+                      className="h-9 w-full rounded-md border border-input bg-background pl-7 pr-2 text-sm" />
+                  </label>
+                  {find.trim() && <span className="w-14 text-center text-[11px] text-muted-foreground" aria-live="polite">{hits.length ? `${hit + 1} of ${hits.length}` : "None"}</span>}
+                  <Button size="sm" variant="outline" className="h-9 w-9 p-0" aria-label="Previous match" disabled={!hits.length} onClick={() => jumpTo(hit - 1)}><ChevronUp className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="outline" className="h-9 w-9 p-0" aria-label="Next match" disabled={!hits.length} onClick={() => jumpTo(hit + 1)}><ChevronDown className="h-4 w-4" /></Button>
+                </div>
                 <p className="max-h-80 overflow-y-auto rounded-lg border border-border/60 p-3 text-sm leading-7">
                   {words.map((w, i) => (
                     <span
                       key={i}
+                      id={`word-${i}`}
                       contentEditable
                       suppressContentEditableWarning
                       onFocus={() => { const v = video.current; if (v) { v.currentTime = w.s; segIdx.current = 0; } }}
@@ -817,12 +861,16 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                         const t = e.currentTarget.textContent?.trim() ?? "";
                         if (t && t !== w.w) setWords((ws) => ws.map((x, j) => (j === i ? { ...x, w: t } : x)));
                       }}
-                      className={`rounded px-0.5 outline-none focus:bg-primary/10 ${settings.removeFillers && isFiller(w.w) ? "text-muted-foreground line-through" : ""}`}
+                      className={`rounded px-0.5 outline-none focus:bg-primary/10 ${settings.removeFillers && isFiller(w.w) ? "text-muted-foreground line-through" : ""} ${hitSet.has(i) ? (hits[hit] !== undefined && i >= hits[hit] && i < hits[hit] + (find.trim().split(/\s+/).length) ? "bg-warning/50" : "bg-warning/20") : ""}`}
                     >{w.w}</span>
                   )).reduce<React.ReactNode[]>((a, el, i) => (i ? [...a, " ", el] : [el]), [])}
                 </p>
+                </>
               )}
-              <p className="text-[11px] text-muted-foreground">Click a word to fix its spelling in the captions.</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[11px] text-muted-foreground">Click a word to fix its spelling in the captions.</p>
+                {words.length > 0 && <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={downloadSrt}><Download className="h-3.5 w-3.5" /> Subtitles (.srt)</Button>}
+              </div>
             </div>
           )}
         </div>
