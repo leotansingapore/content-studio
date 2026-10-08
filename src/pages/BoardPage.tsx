@@ -123,7 +123,7 @@ function BoardCard({
         <div className="flex items-center justify-between gap-2 pl-5">
           <Link
             to={`/generate?draft=${draft.id}`}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+            className="-ml-2 inline-flex h-9 items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:underline sm:h-7 sm:text-[11px]"
           >
             <Pencil className="h-3 w-3" /> Open
           </Link>
@@ -131,7 +131,7 @@ function BoardCard({
             <button
               type="button"
               onClick={onAdvance}
-              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-border/70 px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+              className="inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-md border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary sm:h-7 sm:px-2 sm:text-[11px]"
             >
               {advanceLabel} <ArrowRight className="h-3 w-3" />
             </button>
