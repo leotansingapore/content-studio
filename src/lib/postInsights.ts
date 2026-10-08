@@ -344,3 +344,62 @@ export function similarPosts(
     .sort((a, b) => b.s - a.s);
   return scored.slice(0, n).map((r) => r.x);
 }
+
+// ---- Formats working now (the panel above the /swipe grid) ----------------
+
+export interface GroupStat {
+  label: string;
+  posts: number;
+  /** Mean engagement vs each creator's own average (1 = their norm). */
+  ratio: number;
+}
+
+export interface WorkingNow {
+  days: number;
+  posts: number;
+  formats: (GroupStat & { value: string })[];
+  topics: GroupStat[];
+  angles: GroupStat[];
+}
+
+function groupStats<T>(items: ScoredPost[], keyOf: (x: ScoredPost) => T | null): Map<T, GroupStat> {
+  const m = new Map<T, { posts: number; sum: number }>();
+  for (const x of items) {
+    const k = keyOf(x);
+    if (k === null) continue;
+    const g = m.get(k) ?? { posts: 0, sum: 0 };
+    g.posts += 1;
+    g.sum += x.insight.ratio;
+    m.set(k, g);
+  }
+  const out = new Map<T, GroupStat>();
+  for (const [k, g] of m) out.set(k, { label: String(k), posts: g.posts, ratio: g.sum / g.posts });
+  return out;
+}
+
+const byPostsThenRatio = (a: GroupStat, b: GroupStat) => b.posts - a.posts || b.ratio - a.ratio;
+
+/**
+ * Which formats beat their creator's norm in the last `days`, and the topics
+ * and angles that recur most. Built on the same ratio as the breakout badge.
+ */
+export function formatsWorkingNow(items: ScoredPost[], now: number, days = 90): WorkingNow {
+  const since = now - days * 86_400_000;
+  const recent = items.filter((x) => {
+    const t = x.post.timestamp ? Date.parse(x.post.timestamp) : NaN;
+    return t >= since && t <= now;
+  });
+  const fmt = groupStats(recent, (x) => generatorFormat(x.post));
+  const formats = FORMAT_OPTIONS.flatMap((f) => {
+    const s = fmt.get(f.value);
+    return s ? [{ ...s, value: f.value, label: f.label }] : [];
+  }).sort((a, b) => b.ratio - a.ratio);
+  const top3 = (m: Map<unknown, GroupStat>) => [...m.values()].sort(byPostsThenRatio).slice(0, 3);
+  return {
+    days,
+    posts: recent.length,
+    formats,
+    topics: top3(groupStats(recent, (x) => x.insight.topic)),
+    angles: top3(groupStats(recent, (x) => x.insight.angle)),
+  };
+}

@@ -202,7 +202,7 @@ export default function TopPostCard({
                 structure: insight.structure,
               })}
             >
-              <Wand2 className="h-3.5 w-3.5" /> Remix this
+              <Wand2 className="h-3.5 w-3.5" /> Rewrite for my business
             </Link>
           </Button>
           {fmt === "short-video" && cloneLinkFor(post.url) && (

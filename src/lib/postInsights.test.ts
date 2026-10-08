@@ -13,6 +13,7 @@ import {
   personalTargetFromPositioning,
   personalMatch,
   BREAKOUT_RATIO,
+  formatsWorkingNow,
   type ScoredPost,
 } from "./postInsights";
 import type { Positioning } from "./positioning";
@@ -148,5 +149,38 @@ describe("personalisation", () => {
   });
   it("returns null for an empty positioning", () => {
     expect(personalTargetFromPositioning(null)).toBeNull();
+  });
+});
+
+describe("formatsWorkingNow", () => {
+  const NOW = Date.parse("2026-10-01T00:00:00.000Z");
+  const day = (n: number) => new Date(NOW - n * 86_400_000).toISOString();
+  const item = (over: Partial<TopPostWithAdvisor>, ratio: number, topic: string | null, angle: string | null): ScoredPost => ({
+    post: post(over),
+    insight: { topic, angle, audiences: [], tags: [], trigger: null, structure: "", ratio, breakout: false } as ScoredPost["insight"],
+  });
+
+  it("ranks formats by mean ratio and ignores posts outside the window", () => {
+    const items = [
+      item({ shortCode: "r1", productType: "clips", type: "Video", timestamp: day(5) }, 2, "CPF", "Educational"),
+      item({ shortCode: "r2", productType: "clips", type: "Video", timestamp: day(40) }, 1, "CPF", null),
+      item({ shortCode: "c1", productType: "carousel_container", type: "Sidecar", timestamp: day(10) }, 0.8, "Insurance", "Educational"),
+      item({ shortCode: "old", productType: "carousel_container", type: "Sidecar", timestamp: day(200) }, 9, "Insurance", null),
+      item({ shortCode: "nots", timestamp: null }, 9, "CPF", null),
+    ];
+    const w = formatsWorkingNow(items, NOW, 90);
+    expect(w.posts).toBe(3);
+    expect(w.formats.map((f) => [f.value, f.posts, f.ratio])).toEqual([
+      ["short-video", 2, 1.5],
+      ["carousel", 1, 0.8],
+    ]);
+    expect(w.formats[0].label).toBe("Reels");
+    expect(w.topics.map((t) => [t.label, t.posts])).toEqual([["CPF", 2], ["Insurance", 1]]);
+    expect(w.angles.map((a) => [a.label, a.posts])).toEqual([["Educational", 2]]);
+  });
+
+  it("is empty, not invented, when nothing is recent", () => {
+    const w = formatsWorkingNow([item({ timestamp: day(400) }, 3, "CPF", null)], NOW, 90);
+    expect(w).toMatchObject({ posts: 0, formats: [], topics: [], angles: [] });
   });
 });

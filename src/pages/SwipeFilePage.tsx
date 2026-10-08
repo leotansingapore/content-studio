@@ -6,14 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Search, TrendingUp, ChevronDown, Bookmark, Sparkles } from "lucide-react";
 import TopPostCard from "@/components/TopPostCard";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
+import { InfoTip } from "@/components/ui/info-tip";
 import { supabase } from "@/lib/supabase";
 import { loadSaved, toggleSaved } from "@/lib/savedItems";
 import { loadPositioning } from "@/lib/positioning";
-import { getAllTopPosts, TOTAL_TOP_POSTS, generatorFormat } from "@/lib/topPosts";
+import { getAllTopPosts, TOTAL_TOP_POSTS, generatorFormat, creatorKind } from "@/lib/topPosts";
 import {
   enrich,
   buildCreatorAverages,
   sortPosts,
+  formatsWorkingNow,
   personalTargetFromPositioning,
   TOPICS,
   ANGLES,
@@ -34,6 +36,12 @@ const FORMAT_CHIPS = [
   { value: "short-video", label: "Reels" },
   { value: "carousel", label: "Carousels" },
   { value: "text-post", label: "Single posts" },
+];
+
+const KIND_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "advisor", label: "Advisors" },
+  { value: "influencer", label: "Influencers" },
 ];
 
 const PAGE_SIZE = 12;
@@ -102,6 +110,7 @@ export default function SwipeFilePage() {
 
   const [search, setSearch] = useState("");
   const [format, setFormat] = useState("all");
+  const [kind, setKind] = useState("all");
   const [topic, setTopic] = useState("all");
   const [angle, setAngle] = useState("all");
   const [audience, setAudience] = useState("all");
@@ -143,6 +152,7 @@ export default function SwipeFilePage() {
     const q = search.trim().toLowerCase();
     const items = ENRICHED.filter(({ post, insight }) => {
       if (savedOnly && !savedSet.has(postKey({ post, insight }))) return false;
+      if (kind !== "all" && creatorKind(post.tier) !== kind) return false;
       if (format !== "all" && generatorFormat(post) !== format) return false;
       if (topic !== "all" && insight.topic !== topic) return false;
       if (angle !== "all" && insight.angle !== angle) return false;
@@ -158,9 +168,18 @@ export default function SwipeFilePage() {
       now: Date.now(),
       target: forYou ? target : null,
     });
-  }, [search, format, topic, angle, audience, sort, savedOnly, savedSet, forYou, target]);
+  }, [search, format, kind, topic, angle, audience, sort, savedOnly, savedSet, forYou, target]);
 
-  useEffect(() => setVisible(PAGE_SIZE), [search, format, topic, angle, audience, sort, savedOnly, forYou]);
+  useEffect(() => setVisible(PAGE_SIZE), [search, format, kind, topic, angle, audience, sort, savedOnly, forYou]);
+
+  const working = useMemo(
+    () =>
+      formatsWorkingNow(
+        kind === "all" ? ENRICHED : ENRICHED.filter((x) => creatorKind(x.post.tier) === kind),
+        Date.now(),
+      ),
+    [kind],
+  );
 
   const shown = filtered.slice(0, visible);
   const remaining = filtered.length - shown.length;
@@ -183,6 +202,59 @@ export default function SwipeFilePage() {
             : "Showing high-performing content relevant to Financial Advisors"}
         </p>
       </header>
+
+      {working.posts >= 5 && (
+        <Card className="border-border/60 shadow-card">
+          <CardContent className="space-y-3 py-4">
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-sm font-semibold text-foreground">Formats working now</h2>
+              <InfoTip label="About formats working now">
+                Last {working.days} days. 1.0x is the creator's usual engagement.
+              </InfoTip>
+              <span className="ml-auto text-xs text-muted-foreground">{working.posts} posts</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {working.formats.map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  onClick={() => setFormat(format === f.value ? "all" : f.value)}
+                  aria-pressed={format === f.value}
+                  className={`flex min-w-0 flex-col items-start rounded-lg border px-3 py-2 text-left transition-colors ${
+                    format === f.value
+                      ? "border-primary/60 bg-primary/10"
+                      : "border-border/60 bg-background hover:border-primary/40"
+                  }`}
+                >
+                  <span className="truncate text-[11px] font-medium text-muted-foreground">{f.label}</span>
+                  <span className="text-lg font-semibold leading-tight text-foreground">{f.ratio.toFixed(1)}x</span>
+                  <span className="text-[11px] text-muted-foreground">{f.posts} posts</span>
+                </button>
+              ))}
+            </div>
+            {[
+              { name: "Topics", items: working.topics, value: topic, set: setTopic },
+              { name: "Angles", items: working.angles, value: angle, set: setAngle },
+            ].map(
+              (row) =>
+                row.items.length > 0 && (
+                  <div key={row.name} className="flex flex-wrap items-center gap-1.5">
+                    <span className="w-14 text-xs font-semibold text-muted-foreground">{row.name}</span>
+                    {row.items.map((t) => (
+                      <Chip
+                        key={t.label}
+                        active={row.value === t.label}
+                        onClick={() => row.set(row.value === t.label ? "all" : t.label)}
+                      >
+                        {t.label} {t.posts}
+                      </Chip>
+                    ))}
+                  </div>
+                ),
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filter bar */}
       <Card className="border-border/60 shadow-card">
@@ -238,6 +310,7 @@ export default function SwipeFilePage() {
 
           {/* Topic / Angle / Audience / Sort */}
           <div className="flex flex-wrap items-center gap-2">
+            <FilterSelect label="From" value={kind} onChange={setKind} options={KIND_OPTIONS} />
             <FilterSelect
               label="Topic"
               value={topic}

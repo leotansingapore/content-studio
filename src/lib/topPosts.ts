@@ -94,6 +94,10 @@ export function hasTopPosts(advisor: AdvisorEntry): boolean {
   return (RAW[key]?.length ?? 0) > 0;
 }
 
+/** Tier-1 profiles are advisors; everyone else (creators, firms) counts as an influencer. */
+export type CreatorKind = "advisor" | "influencer";
+export const creatorKind = (tier?: number): CreatorKind => (tier === 1 ? "advisor" : "influencer");
+
 export const TOTAL_TOP_POSTS = Object.values(RAW).reduce(
   (n, list) => n + list.length,
   0,
@@ -123,12 +127,17 @@ export function buildRemixUrl(
     post.idea?.hook ||
     post.caption.slice(0, 90).replace(/\s+\S*$/, "") ||
     "A proven post idea";
-  // Inspiration, not plagiarism: we pass the idea, why it worked, the angle and
-  // the structure — never the original wording to copy.
+  // Inspiration, not plagiarism: we pass the idea, why it worked, the angle,
+  // the structure and the caption as a style reference (Leo, 2026-10-08:
+  // "the captions can be edited based on their business"), and tell the
+  // writer never to copy the wording.
   const ctxParts = [
     `Reverse-engineer this proven post by ${advisor.name} (${advisor.handle}) and write my OWN version in my voice. Keep the mechanic and structure; do not copy the wording.`,
     post.idea?.hook ? `Original idea: ${post.idea.hook}` : "",
     post.idea?.why ? `Why it worked: ${post.idea.why}` : "",
+    post.caption
+      ? `Original caption, a style reference only (rewrite it for my business, never copy it): "${post.caption.slice(0, 400).replace(/\s+\S*$/, "")}"`
+      : "",
     extras?.angle ? `Content angle to keep: ${extras.angle}` : "",
     extras?.structure ? `Structure to follow: ${extras.structure}` : "",
     post.idea?.adapt ? `How to adapt it for me: ${post.idea.adapt}` : "",
