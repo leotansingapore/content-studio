@@ -33,16 +33,21 @@ describe("dedupeStories", () => {
     expect(out[0]._clips).toEqual(["d1/all/news-r1.jpg", "d2/all/news-r2.jpg"]);
   });
 
-  it("drops a story any district hid, and anything older than the window", () => {
+  it("drops a story any district hid, and anything older than a given window", () => {
     const out = dedupeStories(
       [
         row({}),
         row({ id: "r2", district_id: "d2", hidden_at: "2026-10-07T01:00:00Z" }),
         row({ id: "old", url: "https://example.sg/old", created_at: "2026-08-01T00:00:00Z" }),
       ],
-      { now: NOW },
+      { now: NOW, days: 30 },
     );
     expect(out).toEqual([]);
+  });
+
+  it("keeps the whole library by default, old seeded clippings included", () => {
+    const out = dedupeStories([row({}), row({ id: "old", url: "https://example.sg/old", created_at: "2024-10-01T00:00:00Z" })], { now: NOW });
+    expect(out.map((s) => s.url)).toEqual(["https://example.sg/a", "https://example.sg/old"]);
   });
 
   it("orders newest first, caps the list and falls back to created_at for the date", () => {

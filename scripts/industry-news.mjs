@@ -36,8 +36,11 @@ const REF = "ktxwcxderiomxzfcezmh";
 const SB = `https://${REF}.supabase.co`;
 const OUT = path.join(ROOT, "src/data/industryNews.json");
 const IMG_DIR = path.join(ROOT, "public/news");
-const DAYS = 30;
-const CAP = 20;
+// The whole Industry library, like the bulletin shows it: live stories plus the
+// Newsroom clippings seeded on 2026-10-08 (dated by their source, so many are
+// months old). Leo 2026-10-08: "this can be more comprehensive".
+const DAYS = Infinity;
+const CAP = 300;
 const IMG_WIDTH = 600;
 
 /** Same labels as ActivityTracker's NEWS_TOPIC_LABEL (src/lib/bulletin.ts). */
@@ -56,10 +59,10 @@ export const storyId = (url) => crypto.createHash("sha1").update(url).digest("he
 
 /**
  * One entry per story from the per-district copies: newest first, the last
- * `days`, at most `cap`. A story any district hid is left out.
+ * `days` (all of them by default), at most `cap`. A story any district hid is left out.
  */
 export function dedupeStories(rows, { now = Date.now(), days = DAYS, cap = CAP } = {}) {
-  const since = now - days * 86_400_000;
+  const since = Number.isFinite(days) ? now - days * 86_400_000 : -Infinity;
   const byUrl = new Map();
   for (const r of rows) {
     if (!r.url || !r.title || !r.gist || !r.talking_point) continue;
@@ -144,16 +147,14 @@ async function main() {
   const dry = process.argv.includes("--dry");
   const key = await serviceKey();
   const auth = { apikey: key, authorization: `Bearer ${key}` };
-  const since = new Date(Date.now() - DAYS * 86_400_000).toISOString();
   const q = new URLSearchParams({
     select: "id,district_id,url,source,title,published_at,topic,gist,talking_point,client_message,hidden_at,created_at",
-    created_at: `gte.${since}`,
     order: "created_at.desc",
-    limit: "1000",
+    limit: "5000",
   });
   const rows = await (await get(`${SB}/rest/v1/bulletin_news?${q}`, auth)).json();
   const stories = dedupeStories(rows);
-  console.log(`bulletin_news: ${rows.length} rows -> ${stories.length} stories (last ${DAYS} days, cap ${CAP})`);
+  console.log(`bulletin_news: ${rows.length} rows -> ${stories.length} stories (cap ${CAP})`);
   if (stories.length === 0) {
     // An empty read is far more likely a broken query than a quiet month.
     throw new Error("no stories; industryNews.json left as it was");
