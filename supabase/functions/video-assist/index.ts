@@ -125,17 +125,24 @@ Deno.serve(async (req) => {
         const r = usageRefusal(usage);
         return json(r.body, r.status);
       }
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 900, response_format: { type: "json_object" }, messages: buildClipsMessages(c.sentences, c.duration) }),
-        signal: AbortSignal.timeout(60_000),
-      });
-      if (!res.ok) {
-        console.error("video-assist clips", res.status, (await res.text()).slice(0, 300));
-        return json({ error: "Couldn't find clips right now. Try again in a minute." }, 502);
+      // One more try when no reply clip passes the length and overlap checks: a
+      // single run sometimes misses on a perfectly usable video.
+      let clips: ReturnType<typeof parseClipsReply> = null;
+      for (let attempt = 0; attempt < 2 && !clips?.length; attempt++) {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 900, response_format: { type: "json_object" }, messages: buildClipsMessages(c.sentences, c.duration) }),
+          signal: AbortSignal.timeout(60_000),
+        });
+        if (!res.ok) {
+          console.error("video-assist clips", res.status, (await res.text()).slice(0, 300));
+          return json({ error: "Couldn't find clips right now. Try again in a minute." }, 502);
+        }
+        const content = (await res.json())?.choices?.[0]?.message?.content ?? null;
+        clips = parseClipsReply(content, c.duration);
+        if (!clips?.length) console.error("video-assist clips: no usable clip", attempt, String(content).slice(0, 500));
       }
-      const clips = parseClipsReply((await res.json())?.choices?.[0]?.message?.content ?? null, c.duration);
       if (!clips?.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
       return json({ clips });
     }
