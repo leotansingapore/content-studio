@@ -18,6 +18,8 @@ export interface VideoProject {
   words: Word[];
   settings: EditSettings;
   thumb: string;
+  /** The post caption written for this video (or clip). */
+  caption?: string;
   /** Second-language caption lines, by language then by caption text. */
   subs?: Record<string, Record<string, string>>;
   /** The IndexedDB key of the video file; clips cut from one upload share it. Defaults to id. */

@@ -7,6 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
+import { streamOnePost } from "@/lib/batchGenerate";
+import { splitScriptCaption } from "@/lib/scriptCaption";
+import { upsertDraft } from "@/lib/draftHistory";
+import { loadVoiceProfile } from "@/lib/voiceProfile";
+import { scanCompliance } from "@/lib/compliance";
+import { stripDashes } from "@/lib/recruit";
 import { supabase } from "@/lib/supabase";
 import {
   STYLES,
@@ -198,6 +204,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [settings, setSettings] = useState<EditSettings>(project.settings);
   const [words, setWords] = useState(project.words);
   const [subs, setSubs] = useState<Record<string, Record<string, string>>>(project.subs ?? {});
+  const [caption, setCaption] = useState(project.caption ?? "");
+  const [writingCaption, setWritingCaption] = useState(false);
+  const [savedDraft, setSavedDraft] = useState(false);
   const [translating, setTranslating] = useState<string | null>(null);
   const [history, setHistory] = useState<EditSettings[]>([]);
   const [tab, setTab] = useState<Tab>("style");
@@ -224,10 +233,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   // save the edit a moment after the last change
   useEffect(() => {
-    const t = window.setTimeout(() => onSave({ ...project, settings, words, subs }), 400);
+    const t = window.setTimeout(() => onSave({ ...project, settings, words, subs, caption }), 400);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings, words, subs]);
+  }, [settings, words, subs, caption]);
 
   const duration = project.duration;
   const plan = useMemo(() => planFor(words, duration, settings), [words, duration, settings]);
@@ -406,6 +415,52 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
   };
 
+  // The post caption for this video, written from what is said in it (the clip's words only).
+  const writeCaption = async () => {
+    if (!transcript.trim()) return toast({ title: "Caption the video first", variant: "destructive" });
+    setWritingCaption(true);
+    setSavedDraft(false);
+    let text = "";
+    await streamOnePost(
+      {
+        pillar: "topic",
+        pillarDetail: project.name,
+        ideaSource: "A reel I already filmed",
+        ideaContext: `Write ONLY the post caption for this reel, not a script. What I say in it: ${transcript.slice(0, 1800)}\nShape: a strong first line, 2 to 4 short lines, a soft call to action or question, then 5 to 8 relevant hashtags. Use only facts that are in what I say.`,
+        format: "short-video",
+        platform: "instagram",
+        ctaType: "save-share",
+        audience: "general",
+        voiceSummary: loadVoiceProfile(userId)?.voiceSummary || undefined,
+      },
+      {
+        onToken: (t) => { text = t; },
+        onComplete: (t) => { text = t; },
+        onError: (m) => toast({ title: "The caption didn't come through", description: m, variant: "destructive" }),
+      },
+    );
+    if (text) setCaption(stripDashes(splitScriptCaption(text).caption));
+    setWritingCaption(false);
+  };
+  const captionFlags = useMemo(() => scanCompliance(caption), [caption]);
+  const saveToPosts = () => {
+    upsertDraft(userId, {
+      id: `video-${project.id}`,
+      createdAt: new Date().toISOString(),
+      hook: caption.trim().split("\n")[0].slice(0, 160),
+      draft: caption,
+      pillar: "topic",
+      pillarDetail: project.name,
+      audience: "general",
+      format: "short-video",
+      platform: "instagram",
+      ctaType: "save-share",
+      status: "draft",
+    });
+    setSavedDraft(true);
+    toast({ title: "Saved to My posts", description: "Schedule it from Pipeline when the video is exported." });
+  };
+
   const doExport = () => {
     if (!file) return;
     void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
@@ -413,12 +468,6 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   const cutSeconds = Math.max(0, duration - plan.total);
   const fillers = words.filter((w) => isFiller(w.w)).length;
-  const captionUrl = `/generate?${new URLSearchParams({
-    format: "short-video",
-    platform: "instagram",
-    detail: project.name,
-    ctx: `Write only the post caption for a reel I already filmed. What I say in it: ${transcript.slice(0, 1800)}`,
-  })}`;
 
   if (file === null) {
     return (
@@ -443,7 +492,6 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             {clipping ? "Finding clips..." : "Find clips"}
           </Button>
         )}
-        <Button asChild variant="outline" size="sm" className="gap-1.5"><Link to={captionUrl}><Wand2 className="h-3.5 w-3.5" /> Write the caption</Link></Button>
         <Button variant="outline" size="sm" onClick={saveCover} disabled={!file} className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
         <Button size="sm" onClick={doExport} disabled={!file || job?.state === "running"} className="gap-1.5 bg-gradient-primary text-primary-foreground disabled:opacity-60">
           <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : "Export MP4"}
@@ -514,6 +562,35 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <input type="file" accept="video/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void matchReference(f); }} />
               </label>
             </div>
+          </section>
+
+          <section className="space-y-2 rounded-xl border border-border/60 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold">Post caption</p>
+              <Button size="sm" variant="outline" onClick={writeCaption} disabled={writingCaption || !words.length} className={`gap-1.5 ${writingCaption ? "disabled:opacity-100" : ""}`}>
+                {writingCaption ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
+                {writingCaption ? "Writing..." : caption ? "Write it again" : "Write the caption"}
+              </Button>
+            </div>
+            {caption && (
+              <>
+                <Textarea rows={6} value={caption} onChange={(e) => { setCaption(e.target.value); setSavedDraft(false); }} aria-label="Post caption" className="text-sm" />
+                {captionFlags.length > 0 && (
+                  <ul className="space-y-1 text-[11px]">
+                    {captionFlags.map((f) => (
+                      <li key={f.id} className={`rounded-md border px-2 py-1 ${f.severity === "error" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/40 bg-warning/10"}`}>
+                        <span className="font-semibold">&ldquo;{f.match}&rdquo;</span> {f.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={saveToPosts} disabled={savedDraft}>{savedDraft ? "Saved to My posts" : "Save to My posts"}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(caption).then(() => toast({ title: "Caption copied" }))}>Copy</Button>
+                  {savedDraft && <Link to="/calendar" className="self-center text-xs font-semibold text-primary hover:underline">Schedule it</Link>}
+                </div>
+              </>
+            )}
           </section>
 
           <nav className="flex w-fit gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" aria-label="Edit">
