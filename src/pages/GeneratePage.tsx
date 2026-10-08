@@ -2226,7 +2226,7 @@ export default function GeneratePage() {
           <div className="flex items-center gap-2">
             <Link
               to="/voice"
-              className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-background px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10"
+              className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-background px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:px-3"
             >
               <Mic className="h-3 w-3" /> Set voice
             </Link>
@@ -2234,7 +2234,7 @@ export default function GeneratePage() {
               variant="ghost"
               size="sm"
               onClick={handleDismissNudge}
-              className="h-7 gap-1 text-xs text-muted-foreground"
+              className="h-7 gap-1 text-xs text-muted-foreground [@media(pointer:coarse)]:h-11"
             >
               <XIcon className="h-3 w-3" /> Dismiss
             </Button>
@@ -2297,7 +2297,7 @@ export default function GeneratePage() {
                   key={s.label}
                   type="button"
                   onClick={() => setWizardStep(i)}
-                  className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-left transition-colors ${
+                  className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-left transition-colors [@media(pointer:coarse)]:min-h-11 ${
                     active ? "bg-background shadow-sm" : "hover:bg-background/60"
                   }`}
                 >
@@ -2445,7 +2445,7 @@ export default function GeneratePage() {
               ))}
             </div>
             <label
-              className={`mt-1 flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-all ${
+              className={`mt-1 flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-all [@media(pointer:coarse)]:min-h-11 ${
                 singlish
                   ? "border-primary/60 bg-primary/10 text-primary"
                   : "border-border/70 text-muted-foreground hover:border-primary/40"
@@ -2812,7 +2812,7 @@ export default function GeneratePage() {
               variant="ghost"
               onClick={goBack}
               disabled={wizardStep === 0}
-              className="gap-1.5 text-muted-foreground disabled:opacity-40"
+              className="gap-1.5 text-muted-foreground disabled:opacity-40 [@media(pointer:coarse)]:h-11"
             >
               <ChevronLeft className="h-4 w-4" /> Back
             </Button>
@@ -2825,7 +2825,7 @@ export default function GeneratePage() {
                   type="button"
                   variant={canGenerateEarly ? "outline" : "default"}
                   onClick={goNext}
-                  className="gap-1.5"
+                  className="gap-1.5 [@media(pointer:coarse)]:h-11"
                 >
                   Next <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -2834,7 +2834,7 @@ export default function GeneratePage() {
                     type="button"
                     onClick={() => void handleGenerate()}
                     disabled={checkingIdea}
-                    className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
+                    className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 [@media(pointer:coarse)]:h-11"
                   >
                     <Sparkles className="h-4 w-4" />
                     {generateButtonLabel}
