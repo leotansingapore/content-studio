@@ -14,6 +14,7 @@ import {
   Download,
   FileText,
   GalleryHorizontalEnd,
+  ImagePlus,
   Pencil,
   Plus,
   RotateCcw,
@@ -63,6 +64,7 @@ import {
   removeCarousel,
   saveCarousel,
   type SavedCarousel,
+  SLIDE_IMAGE_KEY,
   slideRole,
   splitDraftIntoSlides,
   type CarouselBrand,
@@ -72,6 +74,7 @@ import {
 import { SLIDE_HEIGHT, SLIDE_WIDTH, layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, downloadBlob, svgDataUrl, svgToJpeg, svgToPng } from "@/lib/carouselRender";
 import { buildPdf } from "@/lib/pdf";
+import { getFile, putFile } from "@/lib/deviceFiles";
 import { CarouselCopyError, tightenSlides } from "@/lib/carouselCopy";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -109,6 +112,11 @@ export default function CarouselPage() {
   const [saved, setSaved] = useState<SavedCarousel[]>([]);
   // which saved carousel this is: "d:<draft id>" or "p:<time>" for pasted text
   const [carouselId, setCarouselId] = useState("");
+  const [align, setAlign] = useState<"left" | "center">("left");
+  const [scale, setScale] = useState(1);
+  // slide pictures live on this device; this maps their keys to data URLs for drawing
+  const [pictures, setPictures] = useState<Record<string, string>>({});
+  const [missing, setMissing] = useState<Set<string>>(new Set());
   const [draftId, setDraftId] = useState("");
   const [pasteText, setPasteText] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -214,6 +222,8 @@ export default function CarouselPage() {
           if (typeof work.fileBase === "string") setFileBase(work.fileBase);
           setPlatform(work.platform === "linkedin" ? "linkedin" : "instagram");
           if (typeof work.carouselId === "string") setCarouselId(work.carouselId);
+          if (work.align === "center") setAlign("center");
+          if (typeof work.scale === "number") setScale(work.scale);
           if (work.slides.length > 0) toast({ title: "Your carousel is back" });
         }
       } catch {
@@ -245,27 +255,83 @@ export default function CarouselPage() {
       } else {
         sessionStorage.setItem(
           workKey(userId),
-          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId }),
+          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale }),
         );
       }
     } catch {
       // storage blocked: the work just won't survive a page change
     }
-  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId]);
+  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale]);
+
+  useEffect(() => {
+    const want = slides.map((x) => x.image).filter((k): k is string => !!k && SLIDE_IMAGE_KEY.test(k) && !pictures[k] && !missing.has(k));
+    if (!want.length) return;
+    let live = true;
+    void Promise.all(
+      want.map(async (k) => {
+        const blob = await getFile(k).catch(() => undefined);
+        if (!blob) return [k, ""] as const;
+        const url = await new Promise<string>((resolve) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = () => resolve("");
+          r.readAsDataURL(blob);
+        });
+        return [k, url] as const;
+      }),
+    ).then((got) => {
+      if (!live) return;
+      setPictures((p) => ({ ...p, ...Object.fromEntries(got.filter(([, u]) => u)) }));
+      const gone = got.filter(([, u]) => !u).map(([k]) => k);
+      if (gone.length) setMissing((m) => new Set([...m, ...gone]));
+    });
+    return () => {
+      live = false;
+    };
+  }, [slides, pictures, missing]);
+
+  const addPicture = async (slideId: string, file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return toast({ title: "Pick an image file", variant: "destructive" });
+    try {
+      const src = URL.createObjectURL(file);
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = () => reject(new Error("That file isn't an image this browser can read."));
+        i.src = src;
+      });
+      URL.revokeObjectURL(src);
+      // the slide shows it 888 x 470, so 1080 wide is plenty
+      const k = Math.min(1, 1080 / img.naturalWidth);
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.naturalWidth * k);
+      c.height = Math.round(img.naturalHeight * k);
+      c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+      const url = c.toDataURL("image/jpeg", 0.85);
+      const blob = await (await fetch(url)).blob();
+      const key = `cimg-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+      await putFile(key, blob);
+      setPictures((p) => ({ ...p, [key]: url }));
+      change((prev) => prev.map((x) => (x.id === slideId ? { ...x, image: key } : x)));
+    } catch (e) {
+      toast({ title: "Couldn't add that picture", description: (e as Error).message, variant: "destructive" });
+    }
+  };
 
   // an edited carousel is kept to come back to (per profile, on every device)
   const keep = (list = slides) => {
     if (!userId || list.length < MIN_SLIDES) return;
     const id = carouselId || `p:${Date.now().toString(36)}`;
     if (!carouselId) setCarouselId(id);
-    setSaved(saveCarousel(userId, { id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined }));
+    setSaved(saveCarousel(userId, { id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined, align, scale }));
   };
   useEffect(() => {
     if (!edited || slides.length < MIN_SLIDES) return;
     const t = window.setTimeout(() => keep(), 800);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slides, edited, platform]);
+  }, [slides, edited, platform, align, scale]);
 
   // the Saved tab goes with the last saved carousel, so don't leave the picker on it
   useEffect(() => {
@@ -284,6 +350,8 @@ export default function CarouselPage() {
     setPlatform(c.platform);
     setCarouselId(c.id);
     setDraftId(c.draftId ?? "");
+    setAlign(c.align ?? "left");
+    setScale(c.scale ?? 1);
     setNotice(null);
   };
   const deleteSaved = (c: SavedCarousel) => {
@@ -342,9 +410,12 @@ export default function CarouselPage() {
   const layouts = useMemo(
     () =>
       slides.map((s, i) =>
-        layoutSlide({ title: s.title, body: s.body, index: i, total: slides.length, brand }, measure),
+        layoutSlide(
+          { title: s.title, body: s.body, index: i, total: slides.length, brand, image: s.image ? pictures[s.image] : undefined, align, scale },
+          measure,
+        ),
       ),
-    [slides, brand, measure],
+    [slides, brand, measure, pictures, align, scale],
   );
   const images = useMemo(
     () =>
@@ -798,6 +869,26 @@ export default function CarouselPage() {
                   </span>
                 </div>
 
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-medium text-muted-foreground">Text</span>
+                    {(["left", "center"] as const).map((a) => (
+                      <button key={a} type="button" aria-pressed={align === a} onClick={() => { setAlign(a); setEdited(true); }}
+                        className={`rounded-full border px-2.5 py-1 font-semibold ${align === a ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                        {a === "left" ? "Left" : "Centre"}
+                      </button>
+                    ))}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-medium text-muted-foreground">Size</span>
+                    {([[0.85, "Smaller"], [1, "Usual"], [1.15, "Larger"]] as const).map(([v, label]) => (
+                      <button key={v} type="button" aria-pressed={scale === v} onClick={() => { setScale(v); setEdited(true); }}
+                        className={`rounded-full border px-2.5 py-1 font-semibold ${scale === v ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </span>
+                </div>
                 <ol className="space-y-3">
                   {slides.map((s, i) => {
                     const role = slideRole(i, slides.length);
@@ -892,6 +983,24 @@ export default function CarouselPage() {
                             }
                             className="min-h-[64px]"
                           />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {s.image && pictures[s.image] && (
+                            <img src={pictures[s.image]} alt="" className="h-12 w-20 rounded-md border border-border/70 object-cover" />
+                          )}
+                          {s.image && missing.has(s.image) && (
+                            <span className="text-[11px] text-muted-foreground">The picture is on the device you added it from.</span>
+                          )}
+                          <label className={`inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-semibold hover:border-primary/40 ${busy ? "pointer-events-none opacity-60" : ""}`}>
+                            <ImagePlus className="h-3.5 w-3.5" /> {s.image ? "Change picture" : "Add a picture"}
+                            <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void addPicture(s.id, f); }} />
+                          </label>
+                          {s.image && (
+                            <Button type="button" size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground"
+                              onClick={() => change((prev) => prev.map((x) => (x.id === s.id ? { id: x.id, title: x.title, body: x.body } : x)))}>
+                              Remove picture
+                            </Button>
+                          )}
                         </div>
                         {layouts[i]?.overflow && (
                           <p className="flex items-start gap-1.5 text-xs text-amber-800">

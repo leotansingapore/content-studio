@@ -137,7 +137,7 @@ describe("brand kit photo", () => {
     const layout = layoutSlide({ title: "T", body: "", index: 1, total: 3, brand: { ...brand, photo: PHOTO } }, measure);
     const img = layout.nodes.find((n) => n.type === "image");
     expect(img).toMatchObject({ type: "image", x: PAD_X, href: PHOTO });
-    expect(img && img.type === "image" && img.y > FOOTER_RULE_Y && img.y + img.size < SLIDE_HEIGHT).toBe(true);
+    expect(img && img.type === "image" && img.shape === "circle" && img.y > FOOTER_RULE_Y && img.y + img.height < SLIDE_HEIGHT).toBe(true);
     expect(textNodes(layout.nodes).find((t) => t.text === "Jane Tan")?.x).toBe(PAD_X + 88 + 24);
     const svg = renderSvg(layout);
     expect(svg).toContain(`<image href="${PHOTO}"`);
@@ -148,6 +148,34 @@ describe("brand kit photo", () => {
     const layout = layoutSlide({ title: "T", body: "", index: 1, total: 3, brand: { ...brand, photo: 'https://x.test/a.png"/><script>' } }, measure);
     expect(layout.nodes.some((n) => n.type === "image")).toBe(false);
     expect(textNodes(layout.nodes).find((t) => t.text === "Jane Tan")?.x).toBe(PAD_X);
+  });
+});
+
+describe("slide picture, alignment and size", () => {
+  const PIC = "data:image/jpeg;base64,/9j/4AAQ";
+
+  it("puts a picture above the text and keeps the text clear of it", () => {
+    const layout = layoutSlide({ title: "A title", body: "Some body text here.", index: 1, total: 3, brand, image: PIC }, measure);
+    const img = layout.nodes.find((n) => n.type === "image" && n.shape === "rounded");
+    expect(img).toMatchObject({ x: PAD_X, width: CONTENT_WIDTH, href: PIC });
+    const below = img && img.type === "image" ? img.y + img.height : 0;
+    const content = textNodes(layout.nodes).filter((t) => t.y < FOOTER_RULE_Y);
+    for (const t of content) expect(t.y - t.font.size).toBeGreaterThan(below);
+    expect(renderSvg(layout)).toMatch(/<rect x="\d+" y="\d+" width="\d+" height="\d+" rx="28"\/><\/clipPath><image /);
+  });
+
+  it("centres the text when asked", () => {
+    const layout = layoutSlide({ title: "A title", body: "Body", index: 1, total: 3, brand, align: "center" }, measure);
+    const content = textNodes(layout.nodes).filter((t) => t.y < FOOTER_RULE_Y);
+    for (const t of content) expect(t).toMatchObject({ x: SLIDE_WIDTH / 2, anchor: "middle" });
+    expect(renderSvg(layout)).toContain('text-anchor="middle"');
+  });
+
+  it("sets the text larger or smaller with the size, within limits", () => {
+    const size = (scale: number) => textNodes(layoutSlide({ title: "Hi", body: "", index: 1, total: 3, brand, scale }, measure).nodes)[0].font.size;
+    expect(size(1.2)).toBeGreaterThan(size(1));
+    expect(size(0.8)).toBeLessThan(size(1));
+    expect(size(9)).toBe(size(1.25));
   });
 });
 

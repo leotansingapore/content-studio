@@ -26,7 +26,12 @@ export interface Slide {
   id: string;
   title: string;
   body: string;
+  /** Key of a picture kept on this device (deviceFiles.ts), shown above the text. */
+  image?: string;
 }
+
+/** Device file keys for slide pictures look like this; anything else is ignored. */
+export const SLIDE_IMAGE_KEY = /^cimg-[a-z0-9]{6,30}$/;
 
 export type SlideRole = "cover" | "point" | "cta";
 
@@ -661,6 +666,8 @@ export interface SavedCarousel {
   platform: "instagram" | "linkedin";
   slides: Slide[];
   draftId?: string;
+  align?: "left" | "center";
+  scale?: number;
   updatedAt: string;
 }
 
@@ -675,7 +682,12 @@ function sanitizeSaved(raw: unknown): SavedCarousel[] {
     if (typeof r.id !== "string" || !Array.isArray(r.slides)) return [];
     const slides = r.slides
       .filter((s): s is Record<string, unknown> => !!s && typeof s === "object")
-      .map((s) => ({ id: String(s.id ?? newSlideId()), title: String(s.title ?? ""), body: String(s.body ?? "") }))
+      .map((s) => ({
+        id: String(s.id ?? newSlideId()),
+        title: String(s.title ?? ""),
+        body: String(s.body ?? ""),
+        ...(typeof s.image === "string" && SLIDE_IMAGE_KEY.test(s.image) ? { image: s.image } : {}),
+      }))
       .slice(0, MAX_SLIDES);
     if (slides.length === 0) return [];
     return [{
@@ -684,6 +696,8 @@ function sanitizeSaved(raw: unknown): SavedCarousel[] {
       platform: r.platform === "linkedin" ? "linkedin" : "instagram",
       slides,
       draftId: typeof r.draftId === "string" ? r.draftId : undefined,
+      ...(r.align === "center" ? { align: "center" as const } : {}),
+      ...(typeof r.scale === "number" && r.scale >= 0.8 && r.scale <= 1.25 ? { scale: r.scale } : {}),
       updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
     }];
   });

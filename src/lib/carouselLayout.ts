@@ -138,10 +138,10 @@ export type SvgNode =
       font: FontSpec;
       fill: string;
       opacity?: number;
-      anchor?: "end";
+      anchor?: "end" | "middle";
     }
-  /** A square picture clipped to a circle (the brand kit headshot). */
-  | { type: "image"; x: number; y: number; size: number; href: string };
+  /** A picture: the brand kit headshot (circle) or a slide image (rounded box, cropped to fill). */
+  | { type: "image"; x: number; y: number; width: number; height: number; href: string; shape: "circle" | "rounded" };
 
 export interface SlideLayout {
   width: number;
@@ -177,7 +177,15 @@ export interface SlideInput {
   index: number;
   total: number;
   brand: CarouselBrand;
+  /** A picture for the slide (data URL), shown above the text. */
+  image?: string;
+  align?: "left" | "center";
+  /** Text size, 0.8 to 1.25 times the usual. */
+  scale?: number;
 }
+
+/** Height of a slide picture and the gap under it. */
+export const SLIDE_IMAGE = { height: 470, gap: 44 };
 
 export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   const role = slideRole(input.index, input.total);
@@ -190,11 +198,19 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   ];
   if (!onBrand) nodes.push({ type: "rect", x: 0, y: 0, width: SLIDE_WIDTH, height: BAR_HEIGHT, fill: brandColor });
 
-  const style = STYLES[role];
+  const scale = Math.min(1.25, Math.max(0.8, input.scale ?? 1));
+  const sized = (list: number[]) => list.map((n) => Math.round(n * scale));
+  const base = STYLES[role];
+  const style = { ...base, title: sized(base.title), body: sized(base.body) };
+  const center = input.align === "center";
   const title = String(input.title ?? "").trim();
   const body = String(input.body ?? "").trim();
   const bottom = role === "cover" ? CONTENT_BOTTOM - SWIPE_SPACE : CONTENT_BOTTOM;
-  const room = bottom - CONTENT_TOP - ACCENT.height - ACCENT.gap;
+  // a slide picture sits above the text, which fits into what is left
+  const pic = sanitizeImage(input.image);
+  const top = pic ? CONTENT_TOP + SLIDE_IMAGE.height + SLIDE_IMAGE.gap : CONTENT_TOP;
+  if (pic) nodes.push({ type: "image", x: PAD_X, y: CONTENT_TOP, width: CONTENT_WIDTH, height: SLIDE_IMAGE.height, href: pic, shape: "rounded" });
+  const room = bottom - top - ACCENT.height - ACCENT.gap;
 
   const options = (
     text: string,
@@ -212,7 +228,7 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   const titles = options(title, style.title, "serif", 600, style.titleLine);
   const bodies = title
     ? options(body, style.body, "sans", 400, style.bodyLine)
-    : options(body, BODY_ONLY.sizes, "serif", 400, BODY_ONLY.line);
+    : options(body, sized(BODY_ONLY.sizes), "serif", 400, BODY_ONLY.line);
   const gap = title && body ? TITLE_BODY_GAP : 0;
 
   const pick = (bodyCount: number): [TextBlock, TextBlock] | null => {
@@ -240,11 +256,11 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   const usedGap = t.lines.length && b.lines.length ? gap : 0;
 
   const blockHeight = ACCENT.height + ACCENT.gap + heightOf(t) + usedGap + heightOf(b);
-  const slack = Math.max(0, bottom - CONTENT_TOP - blockHeight);
-  let y = CONTENT_TOP + Math.round(slack * (role === "point" ? 0.4 : 0.5));
+  const slack = Math.max(0, bottom - top - blockHeight);
+  let y = top + Math.round(slack * (role === "point" && !pic ? 0.4 : pic ? 0.25 : 0.5));
   nodes.push({
     type: "rect",
-    x: PAD_X,
+    x: center ? (SLIDE_WIDTH - ACCENT.width) / 2 : PAD_X,
     y,
     width: ACCENT.width,
     height: ACCENT.height,
@@ -257,12 +273,13 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
     block.lines.forEach((line, i) => {
       nodes.push({
         type: "text",
-        x: PAD_X,
+        x: center ? SLIDE_WIDTH / 2 : PAD_X,
         y: y + i * block.lineHeight + baseline,
         text: line,
         font: block.font,
         fill,
         ...(opacity !== undefined ? { opacity } : {}),
+        ...(center ? { anchor: "middle" as const } : {}),
       });
     });
     y += heightOf(block);
@@ -275,12 +292,13 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   if (role === "cover") {
     nodes.push({
       type: "text",
-      x: PAD_X,
+      x: center ? SLIDE_WIDTH / 2 : PAD_X,
       y: CONTENT_BOTTOM - 24,
       text: "Swipe →",
       font: { family: "sans", weight: 600, size: 36 },
       fill: ink,
       opacity: 0.85,
+      ...(center ? { anchor: "middle" as const } : {}),
     });
   }
 
@@ -312,7 +330,7 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   // the brand kit headshot, a circle left of the name
   const PHOTO = 88;
   const photo = sanitizeImage(input.brand.photo);
-  if (photo) nodes.push({ type: "image", x: PAD_X, y: middle - PHOTO / 2, size: PHOTO, href: photo });
+  if (photo) nodes.push({ type: "image", x: PAD_X, y: middle - PHOTO / 2, width: PHOTO, height: PHOTO, href: photo, shape: "circle" });
   const textX = photo ? PAD_X + PHOTO + 24 : PAD_X;
   const footerWidth = CONTENT_WIDTH - (textX - PAD_X) - measure(numberText, numberFont) - 48;
   const fit = (text: string, font: FontSpec) =>
@@ -361,10 +379,13 @@ export function renderSvg(layout: SlideLayout): string {
   ];
   layout.nodes.forEach((node, i) => {
     if (node.type === "image") {
-      const r = node.size / 2;
+      const clip =
+        node.shape === "circle"
+          ? `<circle cx="${node.x + node.width / 2}" cy="${node.y + node.height / 2}" r="${node.width / 2}"/>`
+          : `<rect x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" rx="28"/>`;
       out.push(
-        `<clipPath id="c${i}"><circle cx="${node.x + r}" cy="${node.y + r}" r="${r}"/></clipPath>`,
-        `<image href="${escapeXml(node.href)}" x="${node.x}" y="${node.y}" width="${node.size}" height="${node.size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#c${i})"/>`,
+        `<clipPath id="c${i}">${clip}</clipPath>`,
+        `<image href="${escapeXml(node.href)}" x="${node.x}" y="${node.y}" width="${node.width}" height="${node.height}" preserveAspectRatio="xMidYMid slice" clip-path="url(#c${i})"/>`,
       );
       return;
     }
@@ -375,7 +396,7 @@ export function renderSvg(layout: SlideLayout): string {
       );
     } else {
       const family = node.font.family === "serif" ? SERIF_STACK : SANS_STACK;
-      const anchor = node.anchor === "end" ? ' text-anchor="end"' : "";
+      const anchor = node.anchor ? ` text-anchor="${node.anchor}"` : "";
       out.push(
         `<text x="${node.x}" y="${node.y}" font-family="${escapeXml(family)}" font-size="${node.font.size}" font-weight="${node.font.weight}" fill="${escapeXml(node.fill)}"${opacity}${anchor}>${escapeXml(node.text)}</text>`,
       );
