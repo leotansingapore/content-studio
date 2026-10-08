@@ -14,7 +14,8 @@ function StoryCard({ s }: { s: NewsStory }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const message = clientMessageText(s);
-  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+  // The share sheet only on phones; a desktop share sheet hides the copy everyone expects.
+  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function" && window.matchMedia("(pointer: coarse)").matches;
   const share = async () => {
     if (!message) return;
     try {
@@ -68,7 +69,14 @@ function StoryCard({ s }: { s: NewsStory }) {
               {open ? "Hide the client message" : "Read the client message"}
               {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
-            {open && <p className="mt-1 whitespace-pre-line rounded-lg border border-border/60 p-2.5 leading-relaxed text-foreground/85">{s.clientMessage}</p>}
+            {open && (
+              <div className="mt-1 rounded-lg border border-border/60 p-2.5">
+                <p className="whitespace-pre-line leading-relaxed text-foreground/85">{s.clientMessage}</p>
+                <button type="button" onClick={copy} className="mt-2 inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                  <Copy className="h-3 w-3" /> Copy this message
+                </button>
+              </div>
+            )}
           </div>
         )}
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
