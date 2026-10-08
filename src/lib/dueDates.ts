@@ -30,6 +30,12 @@ export function localDateKey(date: Date = new Date()): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+/** The local day a post went out. postedAt is a UTC instant, so its first ten
+ * characters are the day before when posted before 8am in Singapore. */
+export function postedDay(postedAt: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(postedAt) ? postedAt : localDateKey(new Date(postedAt));
+}
+
 /** The local Date for a "YYYY-MM-DD" key (midnight, not UTC). */
 export function keyToDate(key: string): Date {
   return new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, Number(key.slice(8, 10)));

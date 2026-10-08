@@ -6,11 +6,23 @@ import {
   localDateKey,
   monthGrid,
   overdueLabel,
+  postedDay,
   scheduleAt,
   scheduleTime,
   timeLabel,
   weekOf,
 } from "./dueDates";
+
+describe("postedDay", () => {
+  it("is the local day of the posting instant, not its UTC day", () => {
+    // 4am on 5 Oct where the test runs: still 4 Oct in UTC east of London.
+    expect(postedDay(new Date(2026, 9, 5, 4, 0).toISOString())).toBe("2026-10-05");
+    expect(postedDay(new Date(2026, 9, 5, 23, 30).toISOString())).toBe("2026-10-05");
+  });
+  it("keeps a bare day as it is", () => {
+    expect(postedDay("2026-10-05")).toBe("2026-10-05");
+  });
+});
 
 describe("localDateKey", () => {
   it("uses the local calendar day, not the UTC one", () => {

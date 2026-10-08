@@ -22,6 +22,7 @@ import {
   keyToDate,
   localDateKey,
   monthGrid,
+  postedDay,
   scheduleAt,
   scheduleTime,
   timeLabel,
@@ -98,11 +99,12 @@ const REPEAT_LABEL: Record<RepeatEvery, string> = {
 const KEY_DATE_DAYS = 60; // how far ahead Upcoming lists holidays and money dates
 type StatusFilter = "all" | "scheduled" | "posted";
 
-// The date a post "sits on" in the calendar: scheduled date, else posted date.
+// The date a post "sits on" in the calendar: scheduled date, else the day it was
+// posted (the same day Home's weekly count uses).
 function eventDate(d: DraftEntry): string | null {
   const s = draftStatus(d);
   if (s === "scheduled" && d.scheduledFor) return d.scheduledFor.slice(0, 10);
-  if (s === "posted" && d.postedAt) return d.postedAt.slice(0, 10);
+  if (s === "posted" && d.postedAt) return postedDay(d.postedAt);
   return null;
 }
 
