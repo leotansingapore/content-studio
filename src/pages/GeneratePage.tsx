@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { imageBusy, imageJob, makeImage, onImageJob, type ImageJob } from "@/lib/aiImage";
+import { FACTORS, loadScores, saveScore, scorePost, textKey } from "@/lib/postScore";
 import {
   Sparkles,
   Copy,
@@ -1015,6 +1016,27 @@ export default function GeneratePage() {
   );
 
   const isStreaming = streamingMode !== "idle";
+
+  // Predicted engagement: Jev's checks on this exact text, remembered on this device per text
+  const [scores, setScores] = useState<ReturnType<typeof loadScores>>({});
+  useEffect(() => setScores(loadScores(userId)), [userId]);
+  const scoreKeyNow = useMemo(() => textKey(platform, draft), [platform, draft]);
+  const postScore = scores[scoreKeyNow] ?? null;
+  const [scoring, setScoring] = useState<string | null>(null);
+  const [scoreError, setScoreError] = useState<{ key: string; message: string } | null>(null);
+  const runScore = async () => {
+    if (!userId || scoring) return;
+    const key = scoreKeyNow;
+    setScoring(key);
+    setScoreError(null);
+    try {
+      setScores(saveScore(userId, key, await scorePost(draft, platform)));
+    } catch (e) {
+      setScoreError({ key, message: (e as Error).message });
+    } finally {
+      setScoring(null);
+    }
+  };
 
   // Keep the unfinished brief, and the hooks and variations it produced, for
   // this tab; drop it once a draft exists (the draft is saved to My posts) or
@@ -3126,6 +3148,59 @@ export default function GeneratePage() {
                 >
                   Full check &rarr;
                 </Link>
+              </div>
+            )}
+
+            {craftCheck && !isStreaming && (
+              <div className="mt-3 rounded-xl border border-border/60 bg-muted/20 p-3" aria-live="polite">
+                {postScore ? (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Gauge className="h-4 w-4 text-primary" />
+                      <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        Predicted engagement
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                          postScore.score >= 7.5
+                            ? "bg-success/15 text-success"
+                            : postScore.score >= 5
+                              ? "bg-primary/15 text-primary"
+                              : "bg-warning/15 text-warning"
+                        }`}
+                      >
+                        {postScore.score.toFixed(1)}/10
+                      </span>
+                      <InfoTip label="About the score">Five checks on this draft, weighed out of 10. A guide, not a promise of reach.</InfoTip>
+                    </div>
+                    {postScore.down.length > 0 ? (
+                      <ul className="mt-2 space-y-1.5" aria-label="What pulled it down">
+                        {postScore.down.map((id) => (
+                          <li key={id} className="text-xs">
+                            <span className="font-semibold">{FACTORS[id].label}:</span>{" "}
+                            <span className="text-muted-foreground">{FACTORS[id].tip}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-xs text-muted-foreground">Nothing big is holding it back.</p>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className={`h-9 gap-1.5 ${scoring === scoreKeyNow ? "disabled:opacity-100" : ""}`}
+                      onClick={() => void runScore()}
+                      disabled={!!scoring || !userId}
+                    >
+                      {scoring === scoreKeyNow ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Gauge className="h-3.5 w-3.5" />}
+                      {scoring === scoreKeyNow ? "Scoring..." : "Predict engagement"}
+                    </Button>
+                    {scoreError?.key === scoreKeyNow && <p className="text-xs text-destructive" role="alert">{scoreError.message}</p>}
+                  </div>
+                )}
               </div>
             )}
 

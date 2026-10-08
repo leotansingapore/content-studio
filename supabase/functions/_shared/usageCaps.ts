@@ -25,6 +25,8 @@ export const DAILY_LIMITS = {
   "ai-image": 5,
   // "Voiceover from text" in the video editor (text-voice, ElevenLabs turbo v2.5).
   "ai-voice": 10,
+  // Predicted engagement score in Write (post-score, Jev); the browser caches it per draft text.
+  "post-score": 40,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
