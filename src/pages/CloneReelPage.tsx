@@ -991,13 +991,15 @@ export default function CloneReelPage() {
     abortRef.current = controller;
     setView({ kind: "loading", url: parsed.url, startedAt: Date.now() });
     try {
-      const voice = voiceForClone(loadVoiceProfile(userId), winnersFor(userId));
+      // A click right after the page opens can beat the getUser() above; the session is local, so read it here.
+      const uid = userId ?? (await supabase.auth.getSession()).data.session?.user.id ?? null;
+      const voice = voiceForClone(loadVoiceProfile(uid), winnersFor(uid));
       const result = await cloneReel(parsed.url, voice, controller.signal);
       if (controller.signal.aborted) return;
       const clone: SavedClone = { id: cloneIdOf(result), savedAt: new Date().toISOString(), result };
-      if (userId) setSaved(rememberClone(userId, clone));
+      if (uid) setSaved(rememberClone(uid, clone));
       setView({ kind: "result", clone });
-      if (userId && canReadVideo(clone)) void startVisualsJob(userId, clone);
+      if (uid && canReadVideo(clone)) void startVisualsJob(uid, clone);
     } catch (e) {
       if (controller.signal.aborted) return;
       const err =
