@@ -5,6 +5,7 @@
 //   POST {mode:"broll", search, line, aspect} -> {token}: an AI B-roll clip for a line stock had nothing
 //        for (broll.ts): a Soul v2 picture, waited for here, then DoP lite moves it; the token is the
 //        motion job's, read with "status". Counts once against "ai-broll" and "ai-broll-global".
+//        Refused unless the AI_BROLL_ENABLED secret is "1" (set it once the Higgsfield pool has credits).
 // The token is the Higgsfield request id signed for the adviser who started it
 // (logic.ts jobToken), so nobody else can read the job.
 // The browser polls status, then downloads the picture straight from Higgsfield's
@@ -16,7 +17,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GLOBAL_COUNTER_USER, consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { MOTION_MODEL, PICTURE_MODEL, motionBody, parseAiBroll, scenePictureBody } from "./broll.ts";
+import { MOTION_MODEL, PICTURE_MODEL, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll.ts";
 import { HF_BASE, HF_MODEL, buildImageBody, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic.ts";
 
 const corsHeaders = {
@@ -56,6 +57,8 @@ Deno.serve(async (req) => {
     const signing = await tokenSecret(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     if (broll?.ok) {
+      // switched on here, not by the browser's flag: a direct call must not spend the credits
+      if (!aiBrollEnabled(Deno.env.get("AI_BROLL_ENABLED"))) return json({ error: "AI clips aren't switched on yet." }, 503);
       // the adviser's own cap first, so someone at their limit can't use up everyone's
       const mine = await consumeUsage(admin, uid, "ai-broll");
       if (!mine.allowed) {

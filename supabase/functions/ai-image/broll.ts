@@ -23,6 +23,10 @@ export interface AiBrollRequest {
   aspect: Aspect;
 }
 
+/** AI B-roll spends the studio's Higgsfield credits, so the server decides, not the browser:
+ * it runs only while the AI_BROLL_ENABLED secret is "1" (off until the API pool is topped up). */
+export const aiBrollEnabled = (flag: string | undefined) => flag?.trim() === "1";
+
 export function parseAiBroll(raw: unknown): { ok: true; request: AiBrollRequest } | { ok: false; error: string } {
   const b = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const clean = (v: unknown, max: number) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "");

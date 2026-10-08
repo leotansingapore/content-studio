@@ -20,9 +20,11 @@ export type Orientation = "portrait" | "landscape" | "square";
 
 /**
  * AI clips (Higgsfield, about USD 0.13 each) are built but held back: the
- * Higgsfield API pool was still empty on 2026-10-09. Switch on here once it is
- * topped up; until then a browser with the cs-flag-ai-broll item set to 1 sees
- * the switch (for testing; that key does not sync).
+ * Higgsfield API pool was still empty on 2026-10-09. Once it is topped up, set
+ * the AI_BROLL_ENABLED secret to 1 on the ai-image function (the server refuses
+ * AI B-roll without it, whatever the browser shows) and switch on here; until
+ * then a browser with the cs-flag-ai-broll item set to 1 sees the switch (for
+ * testing; that key does not sync).
  */
 export const AI_BROLL = false;
 export function aiBrollOn(): boolean {

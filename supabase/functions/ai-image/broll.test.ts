@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CLIP_SECONDS, motionBody, parseAiBroll, scenePictureBody } from "./broll";
+import { CLIP_SECONDS, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll";
 import { PEOPLE_RULE, readStatus } from "./logic";
 import { DAILY_LIMITS } from "../_shared/usageCaps";
 
@@ -24,5 +24,13 @@ describe("an AI B-roll clip", () => {
   it("is capped at 3 a day per adviser and 20 across everyone", () => {
     expect(DAILY_LIMITS["ai-broll"]).toBe(3);
     expect(DAILY_LIMITS["ai-broll-global"]).toBe(20);
+  });
+});
+
+describe("the server switch for AI B-roll", () => {
+  it("is on only when the secret is exactly 1", () => {
+    expect(aiBrollEnabled("1")).toBe(true);
+    expect(aiBrollEnabled(" 1 ")).toBe(true);
+    for (const v of [undefined, "", "0", "true", "yes", "11"]) expect(aiBrollEnabled(v)).toBe(false);
   });
 });
