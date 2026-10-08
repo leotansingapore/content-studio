@@ -14,7 +14,7 @@
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
-import { localDateKey, weekOf } from "@/lib/dueDates";
+import { addDays, localDateKey, weekOf } from "@/lib/dueDates";
 import { MAX_ITEMS, MAX_POSTS, type Pasted } from "../../supabase/functions/engage-assist/logic.ts";
 
 export {
@@ -22,9 +22,12 @@ export {
   MAX_ITEM_CHARS,
   MAX_POST_CHARS,
   MAX_POSTS,
+  NOTE_MAX,
   type CommentItem,
   type CommentKind,
   type CommentType,
+  type ConnectDrafts,
+  type ConnectGoal,
   type DmItem,
   type DmKind,
   type Pasted,
@@ -52,7 +55,7 @@ export function splitPasted(raw: string): Pasted[] {
     });
 }
 
-export type EngageTool = "replies" | "dms" | "comments";
+export type EngageTool = "replies" | "dms" | "comments" | "connect";
 
 /** A tool's last run: what was pasted and the drafts that came back. */
 export interface Run<T> {
@@ -61,12 +64,14 @@ export interface Run<T> {
   pasted: string;
   /** The posts to comment on, one slot each (comments only). */
   posts: Pasted[];
+  /** Named fields (connect: name, about, reason, goal, accepted). */
+  form: Record<string, string>;
   items: T[];
   /** When the drafts came back; "" before the first run. */
   at: string;
 }
 
-const emptyRun = { post: "", pasted: "", posts: [], items: [], at: "" };
+const emptyRun = { post: "", pasted: "", posts: [], form: {}, items: [], at: "" };
 
 const keyFor = (tool: EngageTool, userId: string) => `cs-engage-${tool}-${scoped(userId)}`;
 
@@ -87,6 +92,7 @@ export function loadRun<T>(tool: EngageTool, userId: string | null | undefined):
       post: typeof v.post === "string" ? v.post : "",
       pasted: typeof v.pasted === "string" ? v.pasted : "",
       posts: Array.isArray(v.posts) ? v.posts.filter((p: Pasted) => p && typeof p.text === "string").map((p: Pasted) => ({ name: String(p.name ?? ""), text: p.text })) : [],
+      form: v.form && typeof v.form === "object" ? Object.fromEntries(Object.entries(v.form).filter(([, x]) => typeof x === "string")) as Record<string, string> : {},
       items: Array.isArray(v.items) ? v.items : [],
       at: typeof v.at === "string" ? v.at : "",
     };
@@ -114,20 +120,26 @@ export const runningJob = (tool: EngageTool, userId: string) => running.get(keyF
 const FAILED = "Couldn't write the replies right now. Try again in a minute.";
 
 /** What a tool sends: the pasted text split into items, or the filled post slots. */
-export function requestBody(tool: EngageTool, input: Pick<Run<unknown>, "post" | "pasted" | "posts">) {
+export function requestBody(tool: EngageTool, input: Pick<Run<unknown>, "post" | "pasted" | "posts" | "form">) {
+  if (tool === "connect") {
+    const f = input.form;
+    return { mode: tool, name: f.name ?? "", about: f.about ?? "", reason: f.reason ?? "", goal: f.goal ?? "know" };
+  }
   if (tool === "comments") return { mode: tool, posts: input.posts.filter((p) => p.text.trim()).slice(0, MAX_POSTS) };
   const list = splitPasted(input.pasted).slice(0, MAX_ITEMS);
   return tool === "replies" ? { mode: tool, post: input.post, comments: list } : { mode: tool, messages: list };
 }
 
 /** Sorts and drafts what was pasted; the result is saved even if the page was left meanwhile. */
-export function startRun(tool: EngageTool, userId: string, input: Pick<Run<unknown>, "post" | "pasted" | "posts">): Promise<EngageOutcome> {
+export function startRun(tool: EngageTool, userId: string, input: Pick<Run<unknown>, "post" | "pasted" | "posts" | "form">): Promise<EngageOutcome> {
   const key = keyFor(tool, userId);
   const body = requestBody(tool, input);
-  const job = callFn<{ items?: unknown[] }>("engage-assist", body, FAILED)
+  const job = callFn<{ items?: unknown[]; drafts?: unknown }>("engage-assist", body, FAILED)
     .then((res): EngageOutcome => {
-      if (!Array.isArray(res?.items)) return { kind: "error", message: FAILED };
-      saveRun(tool, userId, { ...loadRun(tool, userId), items: res.items, at: new Date().toISOString() });
+      // connect answers with one set of drafts, the rest with a list
+      const items = tool === "connect" ? (res?.drafts && typeof res.drafts === "object" ? [res.drafts] : null) : res?.items;
+      if (!Array.isArray(items)) return { kind: "error", message: FAILED };
+      saveRun(tool, userId, { ...loadRun(tool, userId), items, at: new Date().toISOString() });
       return { kind: "ok" };
     })
     .catch((e): EngageOutcome => {
@@ -200,3 +212,14 @@ export function thisWeek(entries: LogEntry[], now = new Date()): LogEntry[] {
 /** How many times this week you commented on this name's posts. */
 export const timesThisWeek = (entries: LogEntry[], name: string, now = new Date()) =>
   name.trim() ? thisWeek(entries, now).filter((e) => sameName(e.name, name)).length : 0;
+
+// ---- Connection note follow-ups ---------------------------------------------------
+
+/** The first message goes a day after they accept; the follow-ups 4 and 10 days after that. */
+export function followUpDates(accepted: string): { first: string; day4: string; day10: string } {
+  const first = addDays(accepted, 1);
+  return { first, day4: addDays(first, 4), day10: addDays(first, 10) };
+}
+
+/** The calendar note for a follow-up, e.g. "Follow up with Sarah Chen (1 of 2)". */
+export const followUpTitle = (name: string, n: 1 | 2) => `Follow up with ${name.trim().slice(0, 50)} (${n} of 2)`;

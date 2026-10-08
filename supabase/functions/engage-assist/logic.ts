@@ -14,14 +14,16 @@
 // Mode "comments": someone else's post (or 2-10 of them). Jev picks which kinds
 // of comment fit; the drafts are two comments of different kinds for one post,
 // one each for a batch.
+// Mode "connect": a LinkedIn connection note under 200 characters, the first
+// message after they accept and two follow-ups. Nothing is decided, so no Jev.
 // Ported from Jakeschincariol/linkedin-agent-skill@add2c23 li-reply and
-// li-inbox and li-comment (MIT), rewritten for Singapore financial consultants.
+// li-inbox, li-comment and li-dm (MIT), rewritten for Singapore financial consultants.
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { complianceIssues, parseJsonObject } from "../_shared/socialAudit.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 
-export const MODES = ["replies", "dms", "comments"] as const;
+export const MODES = ["replies", "dms", "comments", "connect"] as const;
 export type EngageMode = (typeof MODES)[number];
 
 export const MAX_ITEMS = 30;
@@ -38,7 +40,8 @@ export interface Pasted {
 export type EngageRequest =
   | { mode: "replies"; post: string; comments: Pasted[] }
   | { mode: "dms"; messages: Pasted[] }
-  | { mode: "comments"; posts: Pasted[] };
+  | { mode: "comments"; posts: Pasted[] }
+  | { mode: "connect"; name: string; about: string; reason: string; goal: ConnectGoal };
 
 /** Posts to comment on in one run: one gets two comments, a batch one each. */
 export const MAX_POSTS = 10;
@@ -73,6 +76,14 @@ export function parseEngageRequest(raw: unknown): { ok: true; request: EngageReq
     if (!posts.length) return { ok: false, error: "Paste the post you want to comment on." };
     if (posts.length > MAX_POSTS) return { ok: false, error: `Paste up to ${MAX_POSTS} posts at a time.` };
     return { ok: true, request: { mode: "comments", posts } };
+  }
+  if (b.mode === "connect") {
+    const name = str(b.name, MAX_NAME);
+    const reason = str(b.reason, 500);
+    if (!name) return { ok: false, error: "Add who you are writing to." };
+    if (!reason) return { ok: false, error: "Add why you are reaching out to them now." };
+    const goal = CONNECT_GOALS.find((g) => g === b.goal) ?? "know";
+    return { ok: true, request: { mode: "connect", name, about: str(b.about, 200), reason, goal } };
   }
   return { ok: false, error: "Pick what to draft." };
 }
@@ -499,4 +510,61 @@ export function readComments(content: string | null, posts: Pasted[], picks: { t
     sorted: picks[i].sorted,
     comments: picks[i].types.map((type) => ({ type, text: cleanDraft(got.get(`p${i}:${type}`), 700, { links: false }) })),
   }));
+}
+
+// ---- Mode "connect" -------------------------------------------------------------
+
+/** LinkedIn's limit on a connection note. */
+export const NOTE_MAX = 200;
+export const CONNECT_GOALS = ["know", "recruit", "client", "referral"] as const;
+export type ConnectGoal = (typeof CONNECT_GOALS)[number];
+
+const GOAL_BRIEF: Record<ConnectGoal, string> = {
+  know: "get to know them",
+  recruit: "see if they might one day join the consultant's team. Come as a researcher, not a recruiter: the first message follows the spirit of this script, in its own words, with no job pitch:",
+  client: "start a conversation that might one day make them a client. No pitch, no product.",
+  referral: "build a relationship that might lead to referrals both ways.",
+};
+
+/**
+ * The recruit kit's opening message (src/data/recruitKit.ts SEND_TEN_SCRIPT; a
+ * test keeps them identical), the model for a first message to a possible recruit.
+ */
+export const SEND_TEN = "Hi [name]! I'm working on a content series about career crossroads for [your ONE candidate], speaking to 10 people with real stories. I've always found yours interesting. Could I borrow 20 minutes, purely to hear your story, no business talk? This week or next?";
+
+export function buildConnectPrompt(r: { name: string; about: string; reason: string; goal: ConnectGoal }): { system: string; user: string } {
+  const system = [
+    "You write LinkedIn outreach for a Singapore financial consultant: a connection note, the first message after they accept, and two follow-ups. They send each one themselves.",
+    `- note: under ${NOTE_MAX - 20} characters including spaces. One specific line about them from the reason given, one line on who the consultant is, and no ask.`,
+    "- first: sent a day after they accept. 2 to 4 sentences. Picks up the same specific thing as the note, gives something before asking (a thought, a resource as [link], an answer), then one small ask such as a 15-minute call. No calendar link.",
+    "- follow4: four days later if there is no reply. Adds one new thing taken from what you were given, or written as [your example] for them to fill in; never a conversation, client or event you made up, never 'just bumping this' or 'following up on my last message'. 1 to 3 sentences.",
+    "- follow10: ten days later. Closes the loop kindly: says you will leave it here, and means it. 1 to 3 sentences.",
+    "- Use their first name. Never invent a mutual connection, a shared school or something you read; use only the reason given. Never open with 'I hope this message finds you well'.",
+    "- Never put income or earnings figures in writing.",
+    ...COMPLIANCE_LINES.map((l) => `- ${l}`),
+    'Reply with JSON only: {"note":"...","first":"...","follow4":"...","follow10":"..."}',
+  ].join("\n");
+  const goal = r.goal === "recruit" ? `${GOAL_BRIEF.recruit} "${SEND_TEN}"` : GOAL_BRIEF[r.goal];
+  const user = [`To: ${r.name}${r.about ? `, ${r.about}` : ""}`, `Why them, why now: ${r.reason}`, `What the consultant wants (never said outright): ${goal}`].join("\n");
+  return { system, user };
+}
+
+export interface ConnectDrafts {
+  note: string;
+  first: string;
+  follow4: string;
+  follow10: string;
+}
+
+/** The four drafts, or null when the note or the first message is missing. The note may run long; the page counts it. */
+export function readConnect(content: string | null): ConnectDrafts | null {
+  const o = content ? parseJsonObject(content) : null;
+  if (!o) return null;
+  const d = {
+    note: cleanDraft(o.note, NOTE_MAX + 100, { links: false }),
+    first: cleanDraft(o.first, 900, { links: false }),
+    follow4: cleanDraft(o.follow4, 600, { links: false }),
+    follow10: cleanDraft(o.follow10, 600, { links: false }),
+  };
+  return d.note && d.first ? d : null;
 }

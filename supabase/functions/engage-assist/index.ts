@@ -20,6 +20,10 @@
 //     spread so no kind fills more than half a batch;
 //     about 580 Jev input tokens a post and one OpenAI call (about 2 US cents
 //     for 10 posts). Cap "engage-comments".
+//   mode "connect" {name, about?, reason, goal} -> {drafts:{note, first,
+//     follow4, follow10}}: a LinkedIn connection note, the first message
+//     after they accept and two follow-ups. No Jev (nothing is decided); one
+//     OpenAI call, under 1 US cent. Cap "engage-connect".
 // Text mostly in another script is "unsorted" and still drafted; without Jev
 // (no key, timeout, outage) everything is unsorted, in paste order.
 //
@@ -33,6 +37,7 @@ import { askJev } from "../_shared/jev.ts";
 import { openAiJson } from "../_shared/auditRunner.ts";
 import {
   buildCommentsPrompt,
+  buildConnectPrompt,
   buildDmsPrompt,
   buildRepliesPrompt,
   commentQuestions,
@@ -42,6 +47,7 @@ import {
   readCommentKinds,
   readCommentTypes,
   readComments,
+  readConnect,
   typeQuestions,
   readDmKinds,
   readDmReplies,
@@ -73,12 +79,20 @@ Deno.serve(async (req) => {
     const key = Deno.env.get("OPENAI_API_KEY");
     if (!key) return json({ error: "Drafting isn't switched on yet." }, 503);
 
-    const usage = await consumeUsage(admin, uid, r.mode === "dms" ? "engage-dms" : r.mode === "comments" ? "engage-comments" : "engage-replies");
+    const feature = r.mode === "dms" ? "engage-dms" : r.mode === "comments" ? "engage-comments" : r.mode === "connect" ? "engage-connect" : "engage-replies";
+    const usage = await consumeUsage(admin, uid, feature);
     if (!usage.allowed) {
       const refusal = usageRefusal(usage);
       return json(refusal.body, refusal.status);
     }
     const used = { used: usage.used, limit: usage.limit };
+
+    if (r.mode === "connect") {
+      const { system, user } = buildConnectPrompt(r);
+      const drafts = readConnect(await openAiJson(system, user, key, { temperature: 0.7, maxTokens: 700 }));
+      if (!drafts) return json({ error: "Couldn't write the note right now. Try again in a minute." }, 502);
+      return json({ drafts, usage: used });
+    }
 
     if (r.mode === "comments") {
       const questions = typeQuestions(r.posts);

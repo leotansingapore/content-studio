@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { REPLY_ANSWERS } from "../../../src/data/recruitKit";
+import { REPLY_ANSWERS, SEND_TEN_SCRIPT } from "../../../src/data/recruitKit";
 import {
   AUTOMATED_MIN,
+  NOTE_MAX,
+  SEND_TEN,
+  buildConnectPrompt,
+  readConnect,
   BATCH_SHARE_MAX,
   COMMENT_TYPES,
   MAX_POSTS,
@@ -259,5 +263,33 @@ describe("comments on other people's posts", () => {
       { ...posts[0], i: 0, sorted: true, comments: [{ type: "disagree", text: "Term fits most people, but not all. See" }, { type: "question", text: "What return are you assuming on the invest-the-rest part?" }] },
       { ...posts[1], i: 1, sorted: false, comments: [{ type: "question", text: "" }] },
     ]);
+  });
+});
+
+describe("connection notes", () => {
+  it("needs a name and a reason, and defaults the goal", () => {
+    expect(parseEngageRequest({ mode: "connect", name: " Sarah Chen ", reason: " Her post on CPF top-ups ", goal: "nope" })).toEqual({
+      ok: true,
+      request: { mode: "connect", name: "Sarah Chen", about: "", reason: "Her post on CPF top-ups", goal: "know" },
+    });
+    expect(parseEngageRequest({ mode: "connect", name: "Sarah", reason: "  " })).toMatchObject({ ok: false });
+    expect(parseEngageRequest({ mode: "connect", name: "", reason: "x" })).toMatchObject({ ok: false });
+  });
+
+  it("keeps the recruit script identical to the recruit kit's and uses it only to recruit", () => {
+    expect(SEND_TEN).toBe(SEND_TEN_SCRIPT);
+    const r = { name: "Sarah", about: "Teacher", reason: "Her post on leaving teaching", goal: "recruit" as const };
+    expect(buildConnectPrompt(r).user).toContain(SEND_TEN);
+    expect(buildConnectPrompt({ ...r, goal: "client" }).user).not.toContain(SEND_TEN);
+    expect(buildConnectPrompt(r).user).toContain("To: Sarah, Teacher");
+    expect(buildConnectPrompt(r).system).toContain(`under ${NOTE_MAX - 20} characters`);
+    expect(buildConnectPrompt(r).system).toMatch(/never a conversation, client or event you made up/);
+  });
+
+  it("reads four clean drafts, and none without a note and a first message", () => {
+    const d = readConnect(JSON.stringify({ note: "Saw your post \u2014 loved it. https://x.co", first: "Hi Sarah, thanks for connecting.", follow4: "One more thing.", follow10: "I'll leave it here." }));
+    expect(d).toEqual({ note: "Saw your post, loved it.", first: "Hi Sarah, thanks for connecting.", follow4: "One more thing.", follow10: "I'll leave it here." });
+    expect(readConnect(JSON.stringify({ note: "Hi", follow4: "x" }))).toBeNull();
+    expect(readConnect("nope")).toBeNull();
   });
 });

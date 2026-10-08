@@ -47,6 +47,7 @@ export const DAILY_LIMITS = {
   "engage-replies": 30,
   "engage-dms": 30,
   "engage-comments": 30,
+  "engage-connect": 30,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

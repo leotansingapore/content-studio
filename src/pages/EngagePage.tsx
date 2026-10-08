@@ -8,12 +8,14 @@ import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
 import Replies from "@/components/engage/Replies";
 import Dms from "@/components/engage/Dms";
 import Comments from "@/components/engage/Comments";
+import Connect from "@/components/engage/Connect";
 import { supabase } from "@/lib/supabase";
 
 const TOOLS = [
   { id: "replies", label: "Comments on my post" },
   { id: "dms", label: "My DMs" },
   { id: "comments", label: "Comment on a post" },
+  { id: "connect", label: "Connection note" },
 ] as const;
 type ToolId = (typeof TOOLS)[number]["id"];
 
@@ -54,6 +56,7 @@ export default function EngagePage() {
       {userId && tool === "replies" && <Replies userId={userId} />}
       {userId && tool === "dms" && <Dms userId={userId} />}
       {userId && tool === "comments" && <Comments userId={userId} />}
+      {userId && tool === "connect" && <Connect userId={userId} />}
     </div>
   );
 }
