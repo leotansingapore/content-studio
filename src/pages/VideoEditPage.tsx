@@ -320,6 +320,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   useEffect(() => {
     if (video.current) video.current.volume = volume;
   }, [volume, file]);
+  const exportLabel = settings.exportAs === "audio" ? "Export sound" : settings.exportAs === "small" ? "Export small MP4" : "Export MP4";
   const [W, H] = useMemo(() => {
     const v = video.current;
     const [w, h] = aspectSize(settings.aspect, v?.videoWidth || 1080, v?.videoHeight || 1920);
@@ -685,7 +686,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         )}
         <Button variant="outline" size="sm" onClick={saveCover} disabled={!file} className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
         <Button size="sm" onClick={doExport} disabled={!file || job?.state === "running"} className="gap-1.5 bg-gradient-primary text-primary-foreground disabled:opacity-60">
-          <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : "Export MP4"}
+          <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : exportLabel}
         </Button>
       </div>
       {clips.length > 0 && (
@@ -713,7 +714,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         <section className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3" aria-label="Ready to post">
           <p className="text-sm font-semibold">Ready to post</p>
           <div className="flex flex-wrap gap-2">
-            <Button asChild size="sm" variant="outline" className="h-9 gap-1.5"><a href={job.url} download={`${project.name}-edited.${job.ext}`}><Download className="h-3.5 w-3.5" /> Video</a></Button>
+            <Button asChild size="sm" variant="outline" className="h-9 gap-1.5"><a href={job.url} download={`${project.name}-${job.kind === "audio" ? "audio" : "edited"}.${job.ext}`}><Download className="h-3.5 w-3.5" /> {job.kind === "audio" ? "Sound" : "Video"}</a></Button>
             <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={saveCover}><ImageIcon className="h-3.5 w-3.5" /> Cover</Button>
             {words.length > 0 && <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={downloadSrt}><Download className="h-3.5 w-3.5" /> Subtitles</Button>}
             {caption ? (
@@ -1025,6 +1026,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               {(settings.fit ?? "fill") === "fill" && (
                 <Row label="Framing"><input type="range" min={0} max={1} step={0.01} value={settings.focusX} onChange={(e) => patch({ focusX: Number(e.target.value) })} aria-label="Move the crop left or right" className="w-40 accent-primary" /></Row>
               )}
+              <Row label="Export as">
+                <Chip on={(settings.exportAs ?? "video") === "video"} onClick={() => patch({ exportAs: undefined })}>Video</Chip>
+                <Chip on={settings.exportAs === "small"} onClick={() => patch({ exportAs: "small" })}>Smaller file</Chip>
+                <Chip on={settings.exportAs === "audio"} onClick={() => patch({ exportAs: "audio" })}>Sound only</Chip>
+              </Row>
               <Row label="Progress bar"><Toggle on={settings.progressBar} set={(v) => patch({ progressBar: v })} /></Row>
               <Row label="Colour grade"><Toggle on={settings.grade} set={(v) => patch({ grade: v })} /></Row>
               {settings.grade && (

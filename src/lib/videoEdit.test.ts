@@ -424,10 +424,11 @@ describe("cutting words from the transcript", () => {
   });
 });
 
-describe("volume", () => {
-  it("takes it from a patch within range", async () => {
+describe("volume and export kind", () => {
+  it("takes them from a patch within range and drops nonsense", async () => {
     const { applyPatch, defaultSettings } = await import("@/lib/videoEdit");
-    expect(applyPatch(defaultSettings(), { volume: 0.333 }).next.volume).toBe(0.33);
+    expect(applyPatch(defaultSettings(), { volume: 0.333, exportAs: "audio" }).next).toMatchObject({ volume: 0.33, exportAs: "audio" });
     expect(applyPatch(defaultSettings(), { volume: 3 }).next.volume).toBe(1);
+    expect(applyPatch(defaultSettings(), { exportAs: "gif" }).changed).toEqual([]);
   });
 });

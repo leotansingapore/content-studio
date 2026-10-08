@@ -64,6 +64,8 @@ export interface EditSettings {
   transition?: "soft" | "flash";
   /** Volume of the filmed sound, 0 to 1. Unset = 1. */
   volume?: number;
+  /** What Export makes: the video, a smaller video (for WhatsApp), or the sound only (for a podcast feed). Unset = video. */
+  exportAs?: "video" | "small" | "audio";
   /** Playback speed, 1 to 1.5 (pitch kept). Unset = 1. */
   speed?: number;
   /** Voice polish: rumble and hum cut, clarity lifted, loudness evened out. */
@@ -437,6 +439,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if (p.transition === "soft" || p.transition === "flash") set("transition", p.transition);
   if (typeof p.speed === "number") set("speed", Math.round(clamp(p.speed, 1, 1.5, 1) * 20) / 20);
   if (typeof p.volume === "number") set("volume", Math.round(clamp(p.volume, 0, 1, 1) * 100) / 100);
+  if (p.exportAs === "video" || p.exportAs === "small" || p.exportAs === "audio") set("exportAs", p.exportAs);
   return { next, changed };
 }
 

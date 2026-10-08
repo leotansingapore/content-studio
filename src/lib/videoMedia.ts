@@ -616,6 +616,7 @@ export function planFor(words: Word[], duration: number, s: EditSettings) {
 export interface ExportJob {
   id: string;
   name: string;
+  kind?: "video" | "small" | "audio";
   progress: number;
   state: "running" | "done" | "failed";
   url?: string;
@@ -636,28 +637,27 @@ export function clearExportJob() {
   emit();
 }
 
-function pickMime(): { mime: string; ext: string } {
-  for (const [mime, ext] of [
-    ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "mp4"],
-    ["video/mp4", "mp4"],
-    ["video/webm;codecs=vp9,opus", "webm"],
-    ["video/webm", "webm"],
-  ] as const) {
+function pickMime(audioOnly = false): { mime: string; ext: string } {
+  const options = audioOnly
+    ? ([["audio/mp4", "m4a"], ["audio/webm;codecs=opus", "webm"], ["audio/webm", "webm"]] as const)
+    : ([["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "mp4"], ["video/mp4", "mp4"], ["video/webm;codecs=vp9,opus", "webm"], ["video/webm", "webm"]] as const);
+  for (const [mime, ext] of options) {
     if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(mime)) return { mime, ext };
   }
-  throw new Error("This browser can't export video. Use Chrome or Safari on a computer.");
+  throw new Error(audioOnly ? "This browser can't export sound only. Use Chrome or Safari." : "This browser can't export video. Use Chrome or Safari on a computer.");
 }
 
 /** Renders the edit in real time (a 45 s reel takes about 45 s) and downloads it. */
 export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null) {
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
-  job = { id: String(Date.now()), name, progress: 0, state: "running" };
+  const kind = settings.exportAs ?? "video";
+  job = { id: String(Date.now()), name, kind, progress: 0, state: "running" };
   emit();
   let video: HTMLVideoElement | null = null;
   let actx: AudioContext | null = null;
   try {
-    const { mime, ext } = pickMime();
+    const { mime, ext } = pickMime(kind === "audio");
     video = await loadVideo(file);
     const plan = planFor(words, video.duration, settings);
     if (plan.total < 0.5) throw new Error("Nothing left to export after the cuts.");
@@ -676,8 +676,9 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     gain.connect(dest);
     const FADE = 0.025;
     const volume = Math.min(1, Math.max(0, settings.volume ?? 1));
-    const stream = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
-    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000, audioBitsPerSecond: 128_000 });
+    const stream = new MediaStream(kind === "audio" ? dest.stream.getAudioTracks() : [...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+    // a smaller file for WhatsApp (about 2.5 Mbps reads fine on a phone), full quality otherwise
+    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: kind === "small" ? 2_500_000 : 8_000_000, audioBitsPerSecond: kind === "small" ? 96_000 : 128_000 });
     const chunks: Blob[] = [];
     rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
     const stopped = new Promise<void>((r) => (rec.onstop = () => r()));
@@ -686,7 +687,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const speed = speedOf(settings);
     v.defaultPlaybackRate = v.playbackRate = speed; // pitch is kept (preservesPitch is on by default)
     let done = 0;
-    const endLen = settings.endCard && brand ? END_CARD_SECONDS : 0;
+    const endLen = settings.endCard && brand && kind !== "audio" ? END_CARD_SECONDS : 0;
     const draw = () => {
       const out = Math.min(plan.total, outAt(plan.segs, v.currentTime, speed) ?? done / speed);
       drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand });
@@ -771,7 +772,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     emit();
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}-edited.${ext}`;
+    a.download = `${name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}-${kind === "audio" ? "audio" : kind === "small" ? "small" : "edited"}.${ext}`;
     a.click();
   } catch (e) {
     job = { ...job!, state: "failed", error: e instanceof Error ? e.message : String(e) };
