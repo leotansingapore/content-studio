@@ -2,7 +2,7 @@
 // word timings, and the "vibe edit" prompt and reply. No Deno or npm imports, so
 // vitest covers it (logic.test.ts).
 
-import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { choiceOf, scoreOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 
 export const MAX_AUDIO_BYTES = 24 * 1024 * 1024; // Whisper takes 25 MB
 export const VIBE_MODEL = "gpt-4.1";
@@ -143,7 +143,7 @@ export function parseVibeReply(content: string | null): { patch: Record<string, 
   }
 }
 
-// ---------- clips: one long video -> a few standalone reels ----------
+// ---------- clips: one long video -> standalone reels, ranked by Jev ----------
 
 export const MAX_SENTENCES = 600;
 export interface ClipSentence {
@@ -156,6 +156,10 @@ export interface FoundClip {
   end: number;
   title: string;
   hook: string;
+  /** One line on why a viewer would watch it to the end, written by the LLM. */
+  reason: string;
+  /** Out of 100, from Jev: how well it stands alone and how strongly it opens. Unset when Jev had no answer. */
+  score?: number;
 }
 
 export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number } | { ok: false; error: string } {
@@ -171,25 +175,39 @@ export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSen
   return { ok: true, sentences, duration };
 }
 
+/**
+ * How many clips a video gives, by its length: 3-5 under 8 minutes, 4-8 up to
+ * 30, 6-12 beyond. The tiers follow AutoClip's DurationProfile.
+ */
+export function clipCount(duration: number): { min: number; max: number } {
+  if (duration < 8 * 60) return { min: 3, max: 5 };
+  if (duration < 30 * 60) return { min: 4, max: 8 };
+  return { min: 6, max: 12 };
+}
+
+/** The LLM proposes about twice the clips kept, so Jev has a choice; at most 20 keeps the reply near 2 cents. */
+export const candidateCount = (duration: number) => Math.min(20, 2 * clipCount(duration).max);
+
 export function buildClipsMessages(sentences: ClipSentence[], duration: number): { role: string; content: string }[] {
   const lines = sentences.map((x) => `[${x.s.toFixed(1)}-${x.e.toFixed(1)}] ${x.text}`).join("\n");
+  const n = candidateCount(duration);
   return [
     {
       role: "system",
       content: [
         "You cut short-form reels out of a long talking video by a Singapore financial adviser (podcast, talk or explainer).",
-        "Pick 3 to 5 clips that each stand alone: a viewer with no context understands it, it opens on a strong line (a claim, a question, a number, a story beat) and ends on a complete thought.",
+        `Propose up to ${n} candidate clips from across the whole video (fewer when it is too short to hold that many). Each should stand alone: a viewer with no context understands it, it opens on a strong line (a claim, a question, a number, a story beat) and ends on a complete thought.`,
         "Each clip is 25 to 75 seconds (aim for 30 to 60): join consecutive sentences until the thought is complete. It starts at the start time of a sentence and ends at the end time of a sentence. Clips never overlap. Best clip first.",
-        "For each: a 3-6 word working title in sentence case (only the first word capitalised) and a hook card of 8 words or fewer made only of the speaker's own words or their plain meaning. No em dashes. Never promise returns.",
-        'Reply with JSON only: {"clips":[{"start":number,"end":number,"title":string,"hook":string}]}',
+        "For each: a 3-6 word working title in sentence case (only the first word capitalised), a hook card of 8 words or fewer made only of the speaker's own words or their plain meaning, and a reason: one plain sentence of 15 words or fewer on why a viewer would watch it to the end. No em dashes. Never promise returns.",
+        'Reply with JSON only: {"clips":[{"start":number,"end":number,"title":string,"hook":string,"reason":string}]}',
       ].join("\n"),
     },
     { role: "user", content: `Video length: ${duration.toFixed(1)}s\nTranscript with sentence times in seconds:\n${lines}` },
   ];
 }
 
-/** Keeps only clips that fit the video, run 18-120 s and do not overlap, best first as given, at most 5. */
-export function parseClipsReply(content: string | null, duration: number): FoundClip[] | null {
+/** Keeps only clips that fit the video, run 18-120 s and do not overlap, in the order given, at most `limit`. */
+export function parseClipsReply(content: string | null, duration: number, limit = 5): FoundClip[] | null {
   if (!content) return null;
   let raw: unknown;
   try {
@@ -205,11 +223,88 @@ export function parseClipsReply(content: string | null, duration: number): Found
     const end = Math.min(duration, Number(o.end));
     if (!Number.isFinite(start) || !Number.isFinite(end) || end - start < 18 || end - start > 120) continue;
     if (out.some((x) => start < x.end && end > x.start)) continue;
-    const clean = (v: unknown, n: number) => String(v ?? "").replace(/—/g, ",").trim().slice(0, n);
-    out.push({ start, end, title: clean(o.title, 60) || "Clip", hook: clean(o.hook, 90) });
-    if (out.length === 5) break;
+    const clean = (v: unknown, n: number) => String(v ?? "").replace(/\s*\u2014\s*/g, ", ").trim().slice(0, n);
+    out.push({ start, end, title: clean(o.title, 60) || "Clip", hook: clean(o.hook, 90), reason: clean(o.reason, 160) });
+    if (out.length === limit) break;
   }
   return out;
+}
+
+/** What is said in a clip: the sentences inside it. */
+export function clipText(sentences: ClipSentence[], clip: Pick<FoundClip, "start" | "end">): string[] {
+  return sentences.filter((x) => x.s >= clip.start - 0.05 && x.e <= clip.end + 0.05).map((x) => x.text);
+}
+
+/** Who Jev imagines watching. */
+export const CLIP_VIEWER = "Singapore working adults scrolling Instagram Reels, TikTok or YouTube Shorts";
+
+const STANDS_ALONE = [
+  "Needs the rest of the talk: starts mid-thought, leans on something said before it, or stops before its point",
+  "Mostly follows, but a reference or the ending is unclear without the rest",
+  "Makes sense alone and makes a point, with a slow start or a loose ending",
+  "Fully self-contained: a clear setup, one point, a complete ending",
+];
+// The levels of Leo's podcast-clips skill (pick.py hooks, "stop").
+const STOPS_SCROLL = [
+  "Swipe past: generic, bland or unclear",
+  "Might pause for a second, weak pull",
+  "Likely to stop: curiosity or relevance to their life",
+  "Stops instantly: hits a fear, desire or curiosity gap they feel right now",
+];
+
+/** Two Scores per candidate: s<i>, does it stand alone; h<i>, does its first line stop the scroll. State: {viewer}. */
+export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[]): Record<string, JevQuestion> {
+  const q: Record<string, JevQuestion> = {};
+  cands.forEach((c, i) => {
+    const said = clipText(sentences, c);
+    if (!said.length) return;
+    q[`s${i}`] = {
+      type: "score",
+      instructions: {
+        clip: said.join(" ").slice(0, 2000),
+        question: "`clip` is cut from a longer talk by a Singapore financial adviser and posted on its own as a short video. How well does it stand alone for a viewer who has seen nothing else of the talk?",
+      },
+      criteria: STANDS_ALONE,
+    };
+    q[`h${i}`] = {
+      type: "score",
+      instructions: {
+        first_line: said[0].slice(0, 300),
+        question: "`viewer` hears `first_line` as the very first words of a short video in their feed. How likely are they to stop scrolling and keep watching?",
+      },
+      criteria: STOPS_SCROLL,
+    };
+  });
+  return q;
+}
+
+/**
+ * Past the first `min` clips, a clip is kept only from this score. Read off 16
+ * real windows of a 33-minute adviser podcast (jev-1.13.0, 2026-10-09): the
+ * window Leo's podcast-clips skill rated best scored 66; ones that open on "So,"
+ * or "That's why" or need the earlier answer scored 20 to 30.
+ */
+export const KEEP_SCORE = 40;
+
+/**
+ * Jev's order, best first, with each score out of 100 (stands alone 60%, first
+ * line 40%): at least `min` clips, more up to `max` while they score KEEP_SCORE.
+ * Without any answer, the LLM's own order and no scores.
+ */
+export function rankClips(cands: FoundClip[], answers: Record<string, JevAnswer> | null, count: { min: number; max: number }): FoundClip[] {
+  const scored = cands.map((c, i): FoundClip => {
+    const s = scoreOf(answers, `s${i}`);
+    const h = scoreOf(answers, `h${i}`);
+    if (s === null || h === null) return c;
+    return { ...c, score: Math.max(0, Math.min(100, Math.round((100 * (0.6 * s + 0.4 * h)) / 3))) };
+  });
+  if (!scored.some((c) => c.score !== undefined)) return cands.slice(0, count.max);
+  return scored
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => (b.c.score ?? -1) - (a.c.score ?? -1) || a.i - b.i)
+    .map((x) => x.c)
+    .filter((c, i) => i < count.min || (c.score ?? 0) >= KEEP_SCORE)
+    .slice(0, count.max);
 }
 
 // ---------- callouts and cutaways for a filmed talking head ----------

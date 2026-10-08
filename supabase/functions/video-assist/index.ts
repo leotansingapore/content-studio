@@ -6,8 +6,10 @@
 //        Frames are up to 3 stills from a reference video to match its look.
 //   POST {mode:"translate", lang:"zh"|"ms"|"ta", lines:[...]} -> {lines:[...]}: second-language
 //        caption lines, one per caption ("video-translate" cap).
-//   POST {mode:"clips", sentences:[{s,e,text}], duration} -> {clips:[{start,end,title,hook}]}:
-//        3-5 standalone reels cut from one long video ("video-clips" cap).
+//   POST {mode:"clips", sentences:[{s,e,text}], duration} -> {clips:[{start,end,title,hook,reason,score?}]}:
+//        standalone reels cut from one long video, 3-5 under 8 minutes and more beyond: the LLM
+//        proposes about twice that, Jev scores each out of 100 and the best come first (score
+//        unset and the LLM's order when Jev has no answer) ("video-clips" cap, one use per call).
 //   POST {mode:"cutaways", sentences:[{s,e,text}] on the edited timeline, duration}
 //        -> {sections:[{at,until,callout,show}]}: a text callout and what to cut away
 //        to, per section of a filmed talking head ("video-cutaways" cap).
@@ -26,9 +28,14 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import {
+  CLIP_VIEWER,
   MAX_AUDIO_BYTES,
   VIBE_MODEL,
   buildClipsMessages,
+  candidateCount,
+  clipCount,
+  clipQuestions,
+  rankClips,
   buildCutawaysMessages,
   buildPublishMessages,
   coverAt,
@@ -139,12 +146,13 @@ Deno.serve(async (req) => {
       }
       // One more try when no reply clip passes the length and overlap checks: a
       // single run sometimes misses on a perfectly usable video.
+      const limit = candidateCount(c.duration);
       let clips: ReturnType<typeof parseClipsReply> = null;
       for (let attempt = 0; attempt < 2 && !clips?.length; attempt++) {
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 900, response_format: { type: "json_object" }, messages: buildClipsMessages(c.sentences, c.duration) }),
+          body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 200 + 120 * limit, response_format: { type: "json_object" }, messages: buildClipsMessages(c.sentences, c.duration) }),
           signal: AbortSignal.timeout(60_000),
         });
         if (!res.ok) {
@@ -152,11 +160,15 @@ Deno.serve(async (req) => {
           return json({ error: "Couldn't find clips right now. Try again in a minute." }, 502);
         }
         const content = (await res.json())?.choices?.[0]?.message?.content ?? null;
-        clips = parseClipsReply(content, c.duration);
+        clips = parseClipsReply(content, c.duration, limit);
         if (!clips?.length) console.error("video-assist clips: no usable clip", attempt, String(content).slice(0, 500));
       }
       if (!clips?.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
-      return json({ clips });
+      // Jev ranks the candidates (Leo's rule: a ranking is a decision); without an answer, the LLM's order
+      const answers = mostlyEnglish(c.sentences.map((x) => x.text).join(" "))
+        ? await askJev({ viewer: CLIP_VIEWER }, clipQuestions(clips, c.sentences), { who: "video-assist clips", timeoutMs: 10_000 })
+        : null;
+      return json({ clips: rankClips(clips, answers, clipCount(c.duration)) });
     }
 
     if (body?.mode === "cutaways") {

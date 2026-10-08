@@ -49,7 +49,10 @@ export default function YoutubeClips({ userId }: { userId: string | null }) {
             {result.clips.map((c) => (
               <li key={`${c.start}-${c.end}`} className="space-y-1.5 rounded-xl bg-secondary/50 p-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <span className="text-sm font-semibold">{c.title}</span>
+                  <span className="text-sm font-semibold">
+                    {typeof c.score === "number" && <span className="mr-1.5 rounded-md bg-background px-1.5 py-0.5 text-xs tabular-nums" aria-label={`Score ${c.score} out of 100`}>{c.score}</span>}
+                    {c.title}
+                  </span>
                   <span className="text-xs tabular-nums text-muted-foreground">{fmtTime(c.start)} to {fmtTime(c.end)}</span>
                 </div>
                 {c.hook && <p className="text-xs">"{c.hook}"</p>}

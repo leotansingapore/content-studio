@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Check, ChevronDown, ChevronUp, Download, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Download, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
 import YoutubeClips from "@/components/YoutubeClips";
 import JoinTakes from "@/components/JoinTakes";
+import ClipFinder from "@/components/ClipFinder";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,6 @@ import {
   aspectSize,
   captionCenter,
   captionKey,
-  clipSettings,
   clearOfApp,
   fixFromEdit,
   END_CARD_SECONDS,
@@ -134,7 +134,7 @@ import {
   type ExportJob,
   type Frame,
 } from "@/lib/videoMedia";
-import { fileKey, findClips, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cropShare, sanitizeTrack } from "@/lib/faceFollow";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
@@ -959,33 +959,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
   };
 
-  const [clips, setClips] = useState<VideoProject[]>([]);
-  const [clipping, setClipping] = useState(false);
   // uses left today beside each AI button, read again after every run
-  const left = useUsesLeft(thinking || clipping || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning);
+  const left = useUsesLeft(thinking || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning);
   const none = (f: Parameters<typeof left>[0]) => left(f) === 0;
-  const makeClips = async () => {
-    setClipping(true);
-    try {
-      const found = await findClips(sentencesOf(words), duration);
-      const now = Date.now().toString(36);
-      const made = found.map((c, i): VideoProject => ({
-        ...project,
-        id: `v${now}${i}`,
-        name: `${project.name} - ${c.title}`,
-        fileId: fileKey(project),
-        createdAt: new Date().toISOString(),
-        settings: clipSettings(settings, c, duration),
-      }));
-      onClips(made);
-      setClips(made);
-    } catch (e) {
-      toast({ title: "Couldn't find clips", description: (e as Error).message, variant: "destructive" });
-    } finally {
-      setClipping(false);
-    }
-  };
-
   // the cover from the frame on screen, or from a moment on the edit (a cover idea's), with the cover text set large
   const saveCover = async (at?: number | null) => {
     const v = video.current;
@@ -1282,33 +1258,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         <Button variant="ghost" size="sm" onClick={onBack}>All videos</Button>
         <h1 className="mr-auto truncate font-serif text-xl font-semibold">{project.name}</h1>
         <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5"><Undo2 className="h-3.5 w-3.5" /> Undo</Button>
-        {duration >= 45 && words.length > 0 && (
-          <Button variant="outline" size="sm" onClick={makeClips} disabled={clipping || none("video-clips")} className={`gap-1.5 ${clipping ? "disabled:opacity-100" : ""}`}>
-            {clipping ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Scissors className="h-3.5 w-3.5" />}
-            {clipping ? "Finding clips..." : <>Find clips{left("video-clips") !== null && <span className={`font-normal ${none("video-clips") ? "text-destructive" : "opacity-80"}`}>{none("video-clips") ? "none left today" : `${left("video-clips")} left`}</span>}</>}
-          </Button>
-        )}
         <Button variant="outline" size="sm" onClick={() => void saveCover()} disabled={!file} className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
         <Button size="sm" onClick={doExport} disabled={!file || job?.state === "running"} className="gap-1.5 bg-gradient-primary text-primary-foreground disabled:opacity-60">
           <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : <>{exportLabel} <span className="font-normal opacity-80">{fmtBytes(size.bytes)}</span></>}
         </Button>
       </div>
-      {clips.length > 0 && (
-        <section className="rounded-xl border border-success/40 bg-success/5 p-3">
-          <p className="mb-2 text-sm font-semibold">{clips.length} clips ready, each with its own hook</p>
-          <ul className="space-y-1.5">
-            {clips.map((c) => (
-              <li key={c.id} className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="font-mono text-[11px] text-muted-foreground">
-                  {fmtTime(c.settings.trimStart)}-{fmtTime(duration - c.settings.trimEnd)}
-                </span>
-                <span className="min-w-0 flex-1 truncate">{c.name.replace(`${project.name} - `, "")}</span>
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onOpen(c.id)}>Open</Button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <ClipFinder project={project} words={words} settings={settings} duration={duration} onClips={onClips} onOpen={onOpen} />
       {job?.state === "running" && (
         <p className="text-xs text-muted-foreground" aria-live="polite">
           Exporting in real time ({fmtTime(total)}). You can use other pages; keep this browser tab in front until it finishes.

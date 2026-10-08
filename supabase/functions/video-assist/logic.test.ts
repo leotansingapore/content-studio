@@ -31,7 +31,7 @@ describe("vibe edit", () => {
     expect(Array.isArray(img[1].content)).toBe(true);
   });
   it("keeps only allowed patch keys and a plain reply", () => {
-    expect(parseVibeReply('{"patch":{"size":1.3,"script":"x"},"reply":"Bigger captions — done"}')).toEqual({
+    expect(parseVibeReply('{"patch":{"size":1.3,"script":"x"},"reply":"Bigger captions \u2014 done"}')).toEqual({
       patch: { size: 1.3 },
       reply: "Bigger captions , done",
     });
@@ -62,17 +62,77 @@ describe("clips", () => {
   it("keeps clips inside the video, 18-120 s long, without overlaps", async () => {
     const { parseClipsReply } = await import("./logic");
     const reply = JSON.stringify({ clips: [
-      { start: 10, end: 50, title: "Quit early", hook: "Most advisors quit — too soon" },
+      { start: 10, end: 50, title: "Quit early", hook: "Most advisors quit \u2014 too soon", reason: "A number \u2014 then the fix" },
       { start: 40, end: 80, title: "Overlaps", hook: "x" },
       { start: 100, end: 105, title: "Too short", hook: "x" },
       { start: 200, end: 290, title: "Runs past the end", hook: "Fees add up" },
       { start: "x", end: 1, title: "junk" },
     ] });
     expect(parseClipsReply(reply, 250)).toEqual([
-      { start: 10, end: 50, title: "Quit early", hook: "Most advisors quit , too soon" },
-      { start: 200, end: 250, title: "Runs past the end", hook: "Fees add up" },
+      { start: 10, end: 50, title: "Quit early", hook: "Most advisors quit, too soon", reason: "A number, then the fix" },
+      { start: 200, end: 250, title: "Runs past the end", hook: "Fees add up", reason: "" },
     ]);
+    expect(parseClipsReply(reply, 250, 1)).toHaveLength(1);
     expect(parseClipsReply("nope", 100)).toBeNull();
+  });
+
+  it("asks for more clips from a longer video, about twice the kept count, at most 20", async () => {
+    const { buildClipsMessages, candidateCount, clipCount } = await import("./logic");
+    expect(clipCount(60)).toEqual({ min: 3, max: 5 });
+    expect(clipCount(7 * 60)).toEqual({ min: 3, max: 5 });
+    expect(clipCount(8 * 60)).toEqual({ min: 4, max: 8 });
+    expect(clipCount(45 * 60)).toEqual({ min: 6, max: 12 });
+    expect([candidateCount(300), candidateCount(900), candidateCount(3600)]).toEqual([10, 16, 20]);
+    const [sys] = buildClipsMessages([{ s: 0, e: 5, text: "Hi." }], 900);
+    expect(sys.content).toContain("up to 16 candidate clips");
+    expect(sys.content).toContain('"reason":string');
+  });
+});
+
+describe("clips: Jev ranks the candidates", () => {
+  const sentences = [
+    { s: 0, e: 20, text: "So that is the second thing." },
+    { s: 20, e: 40, text: "And it keeps going." },
+    { s: 50, e: 60, text: "Most people lose $40,000 to one mistake." },
+    { s: 60, e: 85, text: "Here is the mistake and the fix." },
+    { s: 90, e: 120, text: "Your CPF grows at 4% a year." },
+  ];
+  const cand = (start: number, end: number, title: string) => ({ start, end, title, hook: "", reason: "" });
+  const cands = [cand(0, 40, "Weak one"), cand(50, 85, "Strong one"), cand(90, 120, "Middle one")];
+  const answers = (pairs: [number, number][]) =>
+    Object.fromEntries(pairs.flatMap(([s, h], i) => [[`s${i}`, { type: "score" as const, score: s }], [`h${i}`, { type: "score" as const, score: h }]]));
+
+  it("asks two Scores per candidate: the clip's words for standing alone, its first line for the scroll", async () => {
+    const { clipQuestions } = await import("./logic");
+    const q = clipQuestions(cands, sentences);
+    expect(Object.keys(q)).toEqual(["s0", "h0", "s1", "h1", "s2", "h2"]);
+    expect((q.s1.instructions as { clip: string }).clip).toBe("Most people lose $40,000 to one mistake. Here is the mistake and the fix.");
+    expect((q.h1.instructions as { first_line: string }).first_line).toBe("Most people lose $40,000 to one mistake.");
+    expect(q.s1.type).toBe("score");
+    expect((q.s1 as { criteria: unknown[] }).criteria).toHaveLength(4);
+    // a candidate with no whole sentence inside it gets no question
+    expect(Object.keys(clipQuestions([cand(21, 39, "Inside a sentence")], sentences))).toEqual([]);
+  });
+
+  it("puts the best first with a score out of 100, stands alone weighing 60% and the first line 40%", async () => {
+    const { rankClips } = await import("./logic");
+    const out = rankClips(cands, answers([[0.5, 0.3], [2.7, 2.4], [2, 1.5]]), { min: 3, max: 5 });
+    expect(out.map((c) => [c.title, c.score])).toEqual([["Strong one", 86], ["Middle one", 60], ["Weak one", 14]]);
+  });
+
+  it("keeps clips past the minimum only from the keep score up", async () => {
+    const { rankClips, KEEP_SCORE } = await import("./logic");
+    expect(KEEP_SCORE).toBe(40);
+    const out = rankClips(cands, answers([[0.5, 0.3], [2.7, 2.4], [2, 1.5]]), { min: 1, max: 5 });
+    expect(out.map((c) => c.title)).toEqual(["Strong one", "Middle one"]);
+    expect(rankClips(cands, answers([[0.5, 0.3], [2.7, 2.4], [2, 1.5]]), { min: 1, max: 1 }).map((c) => c.title)).toEqual(["Strong one"]);
+  });
+
+  it("falls back to the LLM's order with no scores when Jev has no answer, and puts unscored ones last", async () => {
+    const { rankClips } = await import("./logic");
+    expect(rankClips(cands, null, { min: 1, max: 2 })).toEqual(cands.slice(0, 2));
+    const partial = { s1: { type: "score" as const, score: 3 }, h1: { type: "score" as const, score: 3 } };
+    expect(rankClips(cands, partial, { min: 3, max: 5 }).map((c) => [c.title, c.score])).toEqual([["Strong one", 100], ["Weak one", undefined], ["Middle one", undefined]]);
   });
 });
 
@@ -118,7 +178,7 @@ describe("cutaways", () => {
   it("keeps sections inside the video, in order, without overlaps, at most 8, with no em dashes", async () => {
     const { parseCutawaysReply } = await import("./logic");
     const reply = JSON.stringify({ sections: [
-      { at: 7.5, until: 12, callout: "Top up early — not late", show: "Screen recording of the CPF app" },
+      { at: 7.5, until: 12, callout: "Top up early \u2014 not late", show: "Screen recording of the CPF app" },
       { at: 3.2, until: 7, callout: "4% a year", show: "show: a simple chart of 4% growth" },
       { at: 5, until: 9, callout: "Overlaps the last", show: "x" },
       { at: 50, until: 60, callout: "Past the end", show: "x" },
@@ -162,7 +222,7 @@ describe("publish: titles and a cover idea", () => {
   it("keeps 3 distinct plain titles and a short cover line, or nothing", async () => {
     const { parsePublishReply } = await import("./logic");
     const reply = JSON.stringify({
-      titles: ['"CPF alone won\'t carry you"', "Why 4% is not enough — yet", "CPF alone won't carry you", "#cpf What to do instead", "A fourth one"],
+      titles: ['"CPF alone won\'t carry you"', "Why 4% is not enough \u2014 yet", "CPF alone won't carry you", "#cpf What to do instead", "A fourth one"],
       cover: "  CPF is not enough  ",
     });
     expect(parsePublishReply(reply)).toEqual({
