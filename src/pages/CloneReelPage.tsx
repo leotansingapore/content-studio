@@ -512,13 +512,13 @@ function ComplianceFlags({ flags }: { flags: ComplianceFlag[] }) {
             className={`flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] ${
               isError
                 ? "border-destructive/50 bg-destructive/10 text-destructive"
-                : "border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+                : "border-warning/40 bg-warning/10 text-foreground"
             }`}
           >
-            <AlertTriangle className={`mt-0.5 h-3 w-3 shrink-0 ${isError ? "text-destructive" : "text-amber-600"}`} />
+            <AlertTriangle className={`mt-0.5 h-3 w-3 shrink-0 ${isError ? "text-destructive" : "text-warning"}`} />
             <div className="min-w-0 space-y-0.5">
               <div className="font-semibold uppercase tracking-[0.14em]">
-                {isError ? "Compliance error" : "Compliance warn"}
+                {isError ? "Compliance error" : "Compliance warning"}
                 <span className="ml-1.5 rounded bg-background/60 px-1 py-0.5 font-mono text-[10px] normal-case tracking-normal">
                   {flag.match}
                 </span>
@@ -839,7 +839,6 @@ export default function CloneReelPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
               Cloned {timeAgo(view.clone.savedAt)}
-              {view.clone.result.cached ? " · post read from cache" : ""}
             </p>
             <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5">
               <RotateCcw className="h-3.5 w-3.5" /> Clone another
