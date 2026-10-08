@@ -651,6 +651,70 @@ export function clearOfApp(y: number, app: CoverApp): number {
   return y > 0.5 ? 1 - z.bottom - 0.05 : z.top + 0.05;
 }
 
+// ---------- saved caption fixes ----------
+
+/** A word or phrase (up to 4 words) the transcription keeps getting wrong, and what it should say. */
+export interface CaptionFix {
+  from: string;
+  to: string;
+}
+
+export const MAX_FIXES = 100;
+
+const bare = (w: string) => w.toLowerCase().replace(/[^\p{L}\p{N}']+/gu, "");
+const tail = (w: string) => w.match(/[.,!?;:]+$/)?.[0] ?? "";
+
+/** The saved fixes applied to a transcript: each heard run becomes one word with the right text,
+ * the run's first start and last end, and the last word's closing punctuation. */
+export function applyFixes(words: Word[], fixes: CaptionFix[]): { words: Word[]; count: number } {
+  const rules = fixes
+    .map((f) => ({ from: f.from.split(/\s+/).map(bare).filter(Boolean), to: f.to }))
+    .filter((r) => r.from.length > 0)
+    .sort((a, b) => b.from.length - a.from.length);
+  if (!rules.length) return { words, count: 0 };
+  const out: Word[] = [];
+  let count = 0;
+  for (let i = 0; i < words.length; ) {
+    const rule = rules.find((r) => r.from.every((t, j) => words[i + j] && bare(words[i + j].w) === t));
+    const run = rule ? words.slice(i, i + rule.from.length) : [];
+    const last = run[run.length - 1];
+    // a run that already reads right is left alone, so a fix that only changes case is not counted again
+    if (!rule || run.map((x) => x.w).join(" ").replace(/[.,!?;:]+$/, "") === rule.to) {
+      out.push(words[i]);
+      i++;
+      continue;
+    }
+    out.push({ w: rule.to + tail(last.w), s: run[0].s, e: last.e });
+    count++;
+    i += run.length;
+  }
+  return { words: count ? out : words, count };
+}
+
+/** A saved fix from one word fixed by hand, or null when nothing really changed. */
+export function fixFromEdit(before: string, after: string): CaptionFix | null {
+  const from = before.trim().replace(/[.,!?;:]+$/, "");
+  const to = after.trim().replace(/[.,!?;:]+$/, "");
+  return from && to && from !== to ? { from, to } : null;
+}
+
+/** Saved fixes from storage: strings, at most 4 words heard and 40 characters each, one per heard text. */
+export function sanitizeFixes(raw: unknown): CaptionFix[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: CaptionFix[] = [];
+  for (const f of raw) {
+    if (!f || typeof f.from !== "string" || typeof f.to !== "string") continue;
+    const from = f.from.trim().replace(/\s+/g, " ").slice(0, 40);
+    const to = f.to.trim().replace(/\s+/g, " ").slice(0, 40);
+    const key = from.split(" ").map(bare).join(" ");
+    if (!from || !to || from.split(" ").length > 4 || !key.trim() || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ from, to });
+  }
+  return out.slice(0, MAX_FIXES);
+}
+
 // ---------- stickers ----------
 
 export type OverlayKind = "text" | "arrow" | "circle" | "underline";

@@ -501,3 +501,34 @@ describe("framed layout", () => {
     expect(applyPatch(defaultSettings(), { fit: "framed" }).next.fit).toBe("framed");
   });
 });
+
+describe("saved caption fixes", () => {
+  const w = (word: string, s: number, e: number) => ({ w: word, s, e });
+
+  it("fixes a word or a run of words everywhere, keeping timing and the full stop", async () => {
+    const { applyFixes } = await import("@/lib/videoEdit");
+    const words = [w("Your", 0, 0.2), w("Medi", 0.3, 0.5), w("Shield", 0.5, 0.8), w("and", 0.9, 1), w("kpf.", 1.1, 1.4), w("medi", 2, 2.2), w("shield.", 2.2, 2.6)];
+    const out = applyFixes(words, [{ from: "medi shield", to: "MediShield" }, { from: "KPF", to: "CPF" }]);
+    expect(out.count).toBe(3);
+    expect(out.words.map((x) => x.w)).toEqual(["Your", "MediShield", "and", "CPF.", "MediShield."]);
+    expect(out.words[1]).toEqual({ w: "MediShield", s: 0.3, e: 0.8 });
+    expect(out.words[4]).toEqual({ w: "MediShield.", s: 2, e: 2.6 });
+  });
+
+  it("leaves words that already read right, and counts nothing", async () => {
+    const { applyFixes } = await import("@/lib/videoEdit");
+    const words = [w("MediShield", 0, 0.5), w("works.", 0.5, 1)];
+    expect(applyFixes(words, [{ from: "medishield", to: "MediShield" }])).toEqual({ words, count: 0 });
+    expect(applyFixes(words, []).count).toBe(0);
+  });
+
+  it("turns a spelling fix into a saved fix, and cleans a stored list", async () => {
+    const { fixFromEdit, sanitizeFixes } = await import("@/lib/videoEdit");
+    expect(fixFromEdit("lio,", "Leo,")).toEqual({ from: "lio", to: "Leo" });
+    expect(fixFromEdit("CPF.", "CPF.")).toBeNull();
+    expect(fixFromEdit("so", "")).toBeNull();
+    expect(sanitizeFixes([{ from: " Lio ", to: "Leo" }, { from: "lio", to: "Leon" }, { from: "", to: "x" }, { from: "a b c d e", to: "x" }, "x", null, { from: "kpf", to: "CPF" }]))
+      .toEqual([{ from: "Lio", to: "Leo" }, { from: "kpf", to: "CPF" }]);
+    expect(sanitizeFixes("nope")).toEqual([]);
+  });
+});

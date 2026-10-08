@@ -6,7 +6,7 @@
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { deleteFile } from "@/lib/videoMedia";
-import type { Clip, EditSettings, Sentence, Word } from "@/lib/videoEdit";
+import { sanitizeFixes, type CaptionFix, type Clip, type EditSettings, type Sentence, type Word } from "@/lib/videoEdit";
 
 export interface VideoProject {
   id: string;
@@ -89,6 +89,30 @@ export function saveLook(userId: string, look: Record<string, unknown>): void {
   } catch {
     // storage full: the look still applies to this video
   }
+}
+
+// Words the captions always get wrong, fixed in every video, per profile:
+//   key: content-studio-captionfixes-${scoped(userId)}
+const FIXES_KEY = "content-studio-captionfixes-";
+
+export function loadFixes(userId: string | null | undefined): CaptionFix[] {
+  const s = store();
+  if (!s || !userId) return [];
+  try {
+    return sanitizeFixes(JSON.parse(s.getItem(FIXES_KEY + scoped(userId)) ?? "[]"));
+  } catch {
+    return [];
+  }
+}
+
+export function saveFixes(userId: string, fixes: CaptionFix[]): CaptionFix[] {
+  const clean = sanitizeFixes(fixes);
+  try {
+    store()?.setItem(FIXES_KEY + scoped(userId), JSON.stringify(clean));
+  } catch {
+    // storage full: the fixes still apply to this video
+  }
+  return clean;
 }
 
 async function call(path: string, init: RequestInit): Promise<Response> {

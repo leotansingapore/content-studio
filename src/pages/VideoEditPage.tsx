@@ -22,12 +22,14 @@ import {
   STYLE_IDS,
   APP_COVER,
   appCover,
+  applyFixes,
   applyPatch,
   aspectSize,
   captionCenter,
   captionKey,
   clipSettings,
   clearOfApp,
+  fixFromEdit,
   END_CARD_SECONDS,
   FONTS,
   FILTERS,
@@ -64,6 +66,7 @@ import {
   SPEEDS,
   totalLength,
   withStyle,
+  type CaptionFix,
   type CoverApp,
   type EditSettings,
   type StyleId,
@@ -86,7 +89,7 @@ import {
   type BrandArt,
   type ExportJob,
 } from "@/lib/videoMedia";
-import { fileKey, findClips, loadLook, loadProjects, removeProject, saveLook, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, findClips, loadFixes, loadLook, loadProjects, removeProject, saveFixes, saveLook, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 
 const MAX_BYTES = 500 * 1024 * 1024;
 type Tab = "style" | "cuts" | "frame" | "stickers" | "words";
@@ -129,8 +132,10 @@ export default function VideoEditPage() {
       setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
       try {
         const t = await transcribe(wav);
-        p = { ...p, words: t.words };
+        const fixed = applyFixes(t.words, loadFixes(uid));
+        p = { ...p, words: fixed.words };
         setProjects(saveProject(uid, p));
+        if (fixed.count) toast({ title: `Fixed ${fixed.count} ${fixed.count === 1 ? "word" : "words"} from your list` });
       } catch (e) {
         toast({ title: "Captions didn't come through", description: `${(e as Error).message} Your video is saved; press Caption it to retry.`, variant: "destructive" });
       }
@@ -250,6 +255,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   }));
   // Words tab: fix spelling, or cut a stretch by tapping its first and last word
   const [wordMode, setWordMode] = useState<"fix" | "cut">("fix");
+  // words the captions always get wrong, fixed in every video; offer = a hand fix not saved yet
+  const [fixes, setFixes] = useState<CaptionFix[]>(() => loadFixes(userId));
+  const [offer, setOffer] = useState<CaptionFix | null>(null);
+  const [heard, setHeard] = useState("");
+  const [should, setShould] = useState("");
   const [cutStart, setCutStart] = useState<number | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [words, setWords] = useState(project.words);
@@ -567,7 +577,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     try {
       const { wav } = await extractWav(file);
       const t = await transcribe(wav);
-      setWords(t.words);
+      const fixed = applyFixes(t.words, fixes);
+      setWords(fixed.words);
+      if (fixed.count) toast({ title: `Fixed ${fixed.count} ${fixed.count === 1 ? "word" : "words"} from your list` });
     } catch (e) {
       toast({ title: "Captions didn't come through", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -722,6 +734,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     if (cutStart === null) return setCutStart(i);
     change({ ...settings, removed: addRemoved(settings.removed, wordRange(words, cutStart, i)) });
     setCutStart(null);
+  };
+  const remember = (fix: CaptionFix) => {
+    setFixes(saveFixes(userId, [...fixes.filter((f) => f.from.toLowerCase() !== fix.from.toLowerCase()), fix]));
+    setOffer(null);
+    const r = applyFixes(words, [fix]);
+    if (r.count) setWords(r.words);
+    toast({ title: `New videos fix "${fix.from}" to "${fix.to}"`, description: r.count ? `${r.count} more fixed in this one.` : undefined });
   };
   const cutWordCount = useMemo(() => words.filter((w) => removedAt(settings.removed, w)).length, [words, settings.removed]);
 
@@ -1314,14 +1333,49 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       onFocus={() => { const v = video.current; if (v) { v.currentTime = w.s; segIdx.current = 0; } }}
                       onBlur={(e) => {
                         const t = e.currentTarget.textContent?.trim() ?? "";
-                        if (t && t !== w.w) setWords((ws) => ws.map((x, j) => (j === i ? { ...x, w: t } : x)));
+                        if (!t || t === w.w) return;
+                        setWords((ws) => ws.map((x, j) => (j === i ? { ...x, w: t } : x)));
+                        const fix = fixFromEdit(w.w, t);
+                        if (fix && !fixes.some((f) => f.from.toLowerCase() === fix.from.toLowerCase() && f.to === fix.to)) setOffer(fix);
                       }}
                       className={`rounded px-0.5 outline-none focus:bg-primary/10 ${wordMode === "cut" ? "cursor-pointer" : ""} ${removedAt(settings.removed, w) ? "bg-destructive/10 text-muted-foreground line-through" : ""} ${cutStart === i ? "ring-2 ring-primary" : ""} ${settings.removeFillers && isFiller(w.w) ? "text-muted-foreground line-through" : ""} ${hitSet.has(i) ? (hits[hit] !== undefined && i >= hits[hit] && i < hits[hit] + (find.trim().split(/\s+/).length) ? "bg-warning/50" : "bg-warning/20") : ""}`}
                     >{w.w}</span>
                   )).reduce<React.ReactNode[]>((a, el, i) => (i ? [...a, " ", el] : [el]), [])}
                 </p>
+                {offer && (
+                  <p className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-xs" role="status">
+                    <span className="mr-auto">Fix &ldquo;{offer.from}&rdquo; to &ldquo;{offer.to}&rdquo; in every video?</span>
+                    <span className="flex gap-1">
+                      <Button size="sm" className="h-8 text-xs" onClick={() => remember(offer)}>Always fix</Button>
+                      <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setOffer(null)}>Just this once</Button>
+                    </span>
+                  </p>
+                )}
                 </>
               )}
+              <details className="rounded-lg border border-border/60">
+                <summary className="cursor-pointer px-3 py-2 text-sm font-medium">Words to fix in every video ({fixes.length})</summary>
+                <div className="space-y-2 border-t border-border/60 p-3">
+                  {fixes.length > 0 && (
+                    <ul className="flex flex-wrap gap-1.5">
+                      {fixes.map((f) => (
+                        <li key={f.from} className="flex items-center gap-1 rounded-full border border-border/70 py-0.5 pl-2.5 pr-1 text-xs">
+                          <span className="text-muted-foreground line-through">{f.from}</span> {f.to}
+                          <button type="button" aria-label={`Stop fixing ${f.from}`} onClick={() => setFixes(saveFixes(userId, fixes.filter((x) => x !== f)))}
+                            className="rounded-full p-1 text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <form className="flex flex-wrap items-center gap-1.5" onSubmit={(e) => { e.preventDefault(); const fix = fixFromEdit(heard, should); if (fix) { remember(fix); setHeard(""); setShould(""); } }}>
+                    <input value={heard} maxLength={40} onChange={(e) => setHeard(e.target.value)} placeholder="Heard as: medi shield" aria-label="What the captions write"
+                      className="h-9 min-w-0 flex-1 basis-32 rounded-md border border-input bg-background px-2 text-sm" />
+                    <input value={should} maxLength={40} onChange={(e) => setShould(e.target.value)} placeholder="Should be: MediShield" aria-label="What it should say"
+                      className="h-9 min-w-0 flex-1 basis-32 rounded-md border border-input bg-background px-2 text-sm" />
+                    <Button type="submit" size="sm" variant="outline" className="h-9" disabled={!fixFromEdit(heard, should)}>Add</Button>
+                  </form>
+                </div>
+              </details>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[11px] text-muted-foreground">{wordMode === "fix" ? "Click a word to fix its spelling in the captions." : ""}</p>
                 {words.length > 0 && <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={downloadSrt}><Download className="h-3.5 w-3.5" /> Subtitles (.srt)</Button>}
