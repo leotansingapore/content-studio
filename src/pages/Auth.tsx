@@ -38,11 +38,16 @@ export default function Auth() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Read what is in the fields: autofill and some password managers fill them
+    // without the input events that update state, which sent an empty email.
+    const form = new FormData(e.currentTarget as HTMLFormElement);
+    const typedEmail = String(form.get("email") ?? email).trim();
+    const typedPassword = String(form.get("password") ?? password);
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
+        email: typedEmail,
+        password: typedPassword,
       });
       if (error) throw error;
       toast({ title: "Signed in", description: "Loading your studio." });
@@ -99,6 +104,7 @@ export default function Auth() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   required
                   autoComplete="email"
@@ -111,6 +117,7 @@ export default function Auth() {
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
+                  name="password"
                   type="password"
                   required
                   autoComplete="current-password"
