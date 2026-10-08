@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { defaultSettings, focusAt } from "./videoEdit";
-import { cropShare, pickFace, sanitizeTrack, smoothTrack, trackStep } from "./faceFollow";
+import { CUT_CHANGE, cropShare, findCuts, frameChange, lookSpans, pickFace, sanitizeTrack, smoothTrack, trackCovers, trackStep } from "./faceFollow";
 
 describe("following the face", () => {
   it("knows how much of a landscape video a 9:16 frame shows", () => {
@@ -54,11 +54,76 @@ describe("following the face", () => {
     expect(focusAt({ ...s, followFace: true, faceTrack: undefined }, 1)).toBe(0.2);
   });
 
+  it("holds through a jump seen in only two looks, and follows one seen in three from its first look", () => {
+    const blip = [...Array(10).fill(0.3), 0.8, 0.8, ...Array(10).fill(0.3)];
+    expect(smoothTrack(blip, 0.5, 0.04)!.every((x) => Math.abs(x - 0.3) < 0.001)).toBe(true);
+    const moved = [...Array(10).fill(0.3), ...Array(12).fill(0.8)];
+    const t = smoothTrack(moved, 0.5, 0.04)!;
+    // the move is placed where it began (look 10), eased either side, not three looks late
+    expect(t[9]).toBeGreaterThan(0.31);
+    expect(t[11]).toBeGreaterThan(0.6);
+    expect(t[t.length - 1]).toBeCloseTo(0.8, 3);
+    // missed looks in between neither confirm nor cancel a move
+    const gappy = [...Array(10).fill(0.3), 0.8, null, null, 0.3, 0.3];
+    expect(smoothTrack(gappy, 0.5, 0.04)!.every((x) => Math.abs(x - 0.3) < 0.001)).toBe(true);
+  });
+
+  it("starts afresh at a camera cut: the new shot's face at once, no easing across", () => {
+    const raw = [...Array(10).fill(0.3), ...Array(10).fill(0.75)];
+    const t = smoothTrack(raw, 0.5, 0.04, [10])!;
+    expect(t.slice(0, 10).every((x) => x === 0.3)).toBe(true);
+    expect(t.slice(10).every((x) => x === 0.75)).toBe(true);
+    // a shot with no face found keeps the last place
+    const blind = smoothTrack([0.4, 0.4, null, null], 0.5, 0.04, [2])!;
+    expect(blind).toEqual([0.4, 0.4, 0.4, 0.4]);
+  });
+
+  it("finds a camera cut as a frame that changes far more than the ones around it", () => {
+    const talk = (t0: number, n: number, d = 5) => Array.from({ length: n }, (_, i) => ({ t: t0 + i * 0.27, d: d + (i % 3) }));
+    expect(findCuts([...talk(0, 20), { t: 5.5, d: 60 }, ...talk(5.8, 20)])).toEqual([5.5]);
+    // a busy shot changes a lot all the time: a bigger change in it is not a cut
+    expect(findCuts([...talk(0, 20, 22), { t: 5.5, d: 40 }, ...talk(5.8, 10, 22)])).toEqual([]);
+    // two cuts within a second (a flash) count once
+    expect(findCuts([...talk(0, 10), { t: 3, d: 70 }, { t: 3.3, d: 70 }, ...talk(3.6, 10)])).toEqual([3]);
+    expect(findCuts([...talk(0, 10), { t: 3, d: CUT_CHANGE - 1 }, ...talk(3.3, 10)])).toEqual([]);
+  });
+
+  it("measures how much two small frames differ, leaving out the alpha", () => {
+    const a = new Uint8ClampedArray([10, 20, 30, 255, 0, 0, 0, 255]);
+    const b = new Uint8ClampedArray([10, 20, 60, 0, 30, 0, 0, 0]);
+    expect(frameChange(a, b)).toBe(10);
+    expect(frameChange(a, a)).toBe(0);
+  });
+
+  it("looks only at the kept parts, playing through short gaps", () => {
+    expect(lookSpans([{ start: 0, end: 4 }, { start: 5, end: 9 }, { start: 30, end: 40 }])).toEqual([{ start: 0, end: 9 }, { start: 30, end: 40 }]);
+    expect(lookSpans([])).toEqual([]);
+  });
+
+  it("jumps at a cut instead of panning, and counts looks from where the track starts", () => {
+    const s = { ...defaultSettings(), followFace: true, faceTrack: { step: 0.5, from: 100, x: [0.3, 0.3, 0.8, 0.8], cuts: [100.7] } };
+    expect(focusAt(s, 100.25)).toBe(0.3);
+    expect(focusAt(s, 100.69)).toBe(0.3);
+    expect(focusAt(s, 100.7)).toBe(0.8);
+    expect(focusAt(s, 50)).toBe(0.3);
+    expect(focusAt({ ...s, faceTrack: { ...s.faceTrack, cuts: undefined } }, 100.75)).toBeCloseTo(0.55, 5);
+  });
+
+  it("knows when a track still covers the edit", () => {
+    const t = { step: 0.5, from: 10, x: Array(41).fill(0.5) }; // 10 s to 30 s
+    expect(trackCovers(t, [{ start: 10, end: 30 }])).toBe(true);
+    expect(trackCovers(t, [{ start: 5, end: 30 }])).toBe(false);
+    expect(trackCovers(t, [{ start: 12, end: 40 }])).toBe(false);
+    expect(trackCovers({ step: 0.5, x: Array(21).fill(0.5) }, [{ start: 0, end: 10 }])).toBe(true); // made before tracks had a start
+    expect(trackCovers(undefined, [{ start: 0, end: 10 }])).toBe(false);
+  });
+
   it("keeps a stored track only when well formed", () => {
     expect(sanitizeTrack({ step: 0.5, x: [0.2, 1.4] })).toEqual({ step: 0.5, x: [0.2, 1] });
     expect(sanitizeTrack({ step: 0.5, x: [0.2, "a"] })).toBeUndefined();
     expect(sanitizeTrack({ step: 0, x: [0.2] })).toBeUndefined();
     expect(sanitizeTrack(null)).toBeUndefined();
+    expect(sanitizeTrack({ step: 0.5, x: [0.2], from: 12, cuts: [14, "x", 13] })).toEqual({ step: 0.5, x: [0.2], from: 12, cuts: [13, 14] });
   });
 });
 

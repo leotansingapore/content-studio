@@ -5,7 +5,7 @@
 
 import type { FaceDetector, FaceLandmarker, FilesetResolver, ImageSegmenter } from "@mediapipe/tasks-vision";
 import { gradeOf, type Backdrop, type EditSettings, type FaceTrack } from "@/lib/videoEdit";
-import { pickFace, smoothTrack, trackStep } from "@/lib/faceFollow";
+import { CUT_CHANGE, findCuts, frameChange, pickFace, smoothTrack, trackStep } from "@/lib/faceFollow";
 import { seek } from "@/lib/videoMedia";
 import { medianBox, type FaceBox } from "@/lib/videoMotion";
 
@@ -32,23 +32,40 @@ const faceDetector = () =>
     .catch((e) => { detector = null; throw e; }));
 
 /**
- * Finds the face across a video and returns the crop's path: the video plays through muted at up
- * to 16x (seeking instead took 200 ms a look on a phone video with keyframes 8 s apart), a 640 px
- * copy of the frame is looked at every trackStep seconds, the face to follow is picked and the
- * path smoothed (faceFollow.ts). `v` is a <video> of its own, not the preview's; `hold` is how far
- * the face may sway before the crop moves. Null when no face shows up at all.
+ * Finds the face across the edit's kept parts (`spans`, source seconds; lookSpans) and returns the
+ * crop's path: the video plays through muted at up to 16x (seeking instead took 200 ms a look on a
+ * phone video with keyframes 8 s apart) and jumps any longer stretch the edit cuts, so a clip of a
+ * two hour podcast looks at the clip only. A 640 px copy of the frame is looked at every trackStep
+ * seconds, the face to follow is picked and the path smoothed (faceFollow.ts); every frame shown is
+ * also compared at 48 x 27 with the one before, to find the camera cuts the crop starts afresh at.
+ * `v` is a <video> of its own, not the preview's; `hold` is how far the face may sway before the
+ * crop moves. Null when no face shows up at all.
  */
-export async function findFaceTrack(v: HTMLVideoElement, duration: number, hold: number, onProgress?: (share: number) => void): Promise<FaceTrack | null> {
+export async function findFaceTrack(v: HTMLVideoElement, spans: { start: number; end: number }[], hold: number, onProgress?: (share: number) => void): Promise<FaceTrack | null> {
+  if (!spans.length) return null;
   const det = await faceDetector();
-  const step = trackStep(duration);
+  const from = spans[0].start;
+  const to = spans[spans.length - 1].end;
+  const step = trackStep(to - from);
   const c = document.createElement("canvas");
   c.width = 640;
   c.height = Math.max(1, Math.round((640 * v.videoHeight) / v.videoWidth));
   const g = c.getContext("2d")!;
-  const n = Math.max(1, Math.floor(duration / step) + 1);
+  const tiny = document.createElement("canvas");
+  tiny.width = 48;
+  tiny.height = 27;
+  const tg = tiny.getContext("2d", { willReadFrequently: true })!;
+  const n = Math.max(1, Math.floor((to - from) / step) + 1);
+  const at = (i: number) => from + i * step;
   const raw: (number | null)[] = [];
+  const seen: { t: number; d: number }[] = [];
+  // the frames either side of each big change, kept to place a cut to the frame afterwards
+  const sides = new Map<number, { t0: number; before: Uint8ClampedArray; after: Uint8ClampedArray }>();
+  let shown: Uint8ClampedArray | null = null;
+  let shownT = from;
   let prev: number | null = null;
   v.muted = true;
+  await seek(v, from);
   try {
     v.playbackRate = 16;
   } catch {
@@ -56,8 +73,27 @@ export async function findFaceTrack(v: HTMLVideoElement, duration: number, hold:
   }
   await new Promise<void>((resolve, reject) => {
     const look = (_: number, frame: { mediaTime: number }) => {
+      const t = frame.mediaTime;
+      const span = spans.find((sp) => sp.end > t);
+      if (!span || t > to) return resolve();
+      if (t < span.start - 0.5) {
+        // a long stretch the edit cuts: its looks stay empty and the video jumps to the next kept part
+        while (raw.length < n && at(raw.length) < span.start - 0.03) raw.push(null);
+        v.currentTime = span.start;
+        v.requestVideoFrameCallback(look);
+        return;
+      }
+      tg.drawImage(v, 0, 0, tiny.width, tiny.height);
+      const px = tg.getImageData(0, 0, tiny.width, tiny.height).data;
+      if (shown) {
+        const d = frameChange(shown, px);
+        seen.push({ t, d });
+        if (d >= CUT_CHANGE) sides.set(t, { t0: shownT, before: shown, after: px });
+      }
+      shown = px;
+      shownT = t;
       // a dropped frame can skip a look or two: they take this frame's answer
-      if (frame.mediaTime >= raw.length * step - 0.03) {
+      if (t >= at(raw.length) - 0.03) {
         g.drawImage(v, 0, 0, c.width, c.height);
         const faces = det.detect(c).detections.flatMap((d) => {
           const b = d.boundingBox;
@@ -65,7 +101,7 @@ export async function findFaceTrack(v: HTMLVideoElement, duration: number, hold:
         });
         const x = pickFace(faces, prev);
         if (x !== null) prev = x;
-        while (raw.length < n && raw.length * step <= frame.mediaTime + 0.03) raw.push(x);
+        while (raw.length < n && at(raw.length) <= t + 0.03) raw.push(x);
         onProgress?.(raw.length / n);
       }
       if (raw.length >= n || v.ended) resolve();
@@ -77,8 +113,25 @@ export async function findFaceTrack(v: HTMLVideoElement, duration: number, hold:
     v.play().catch(reject);
   });
   v.pause();
-  const x = smoothTrack(raw, step, hold);
-  return x ? { step, x } : null;
+  const cuts = findCuts(seen);
+  // at 16x the frames shown are about a quarter second apart: three seeks place each cut to the frame
+  // (a wrong crop for a quarter second after a camera cut shows), the first 40 only
+  for (let k = 0; k < Math.min(40, cuts.length); k++) {
+    const side = sides.get(cuts[k]);
+    if (!side) continue;
+    let [lo, hi] = [side.t0, cuts[k]];
+    for (let i = 0; i < 3; i++) {
+      const mid = (lo + hi) / 2;
+      await seek(v, mid);
+      tg.drawImage(v, 0, 0, tiny.width, tiny.height);
+      const px = tg.getImageData(0, 0, tiny.width, tiny.height).data;
+      if (frameChange(px, side.before) <= frameChange(px, side.after)) lo = mid;
+      else hi = mid;
+    }
+    cuts[k] = Math.round(hi * 1000) / 1000;
+  }
+  const x = smoothTrack(raw, step, hold, cuts.map((t) => Math.ceil((t - from) / step - 1e-6)));
+  return x ? { step, x, ...(from > 0 ? { from } : {}), ...(cuts.length ? { cuts } : {}) } : null;
 }
 
 /**

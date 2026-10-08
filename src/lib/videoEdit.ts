@@ -1382,19 +1382,26 @@ export function joinIssue(takes: Take[]): string | null {
 
 // ---------- following the face (auto-reframe; finding it is in faceFollow.ts and faceVision.ts) ----------
 
-/** Where the face is across the source video: its centre, 0 (left) to 1 (right), every `step` seconds from the start. */
+/** Where the face is across the source video: its centre, 0 (left) to 1 (right), every `step` seconds from `from` (unset = the start). */
 export interface FaceTrack {
   step: number;
   x: number[];
+  from?: number;
+  /** Source seconds where the crop jumps instead of moving: a camera cut. */
+  cuts?: number[];
 }
 
 /** The crop's centre at this point of the source: the face track while following it, else the slider. */
 export function focusAt(s: Pick<EditSettings, "focusX" | "followFace" | "faceTrack">, src: number): number {
   const t = s.followFace ? s.faceTrack : undefined;
   if (!t?.x.length) return s.focusX;
-  const i = Math.max(0, src / t.step);
+  const from = t.from ?? 0;
+  const i = Math.max(0, (src - from) / t.step);
   const a = Math.min(t.x.length - 1, Math.floor(i));
   const b = Math.min(t.x.length - 1, a + 1);
+  // a cut between the two looks: the crop jumps there, it never pans across
+  const cut = t.cuts?.find((c) => c > from + a * t.step && c <= from + b * t.step);
+  if (cut !== undefined) return src < cut ? t.x[a] : t.x[b];
   return t.x[a] + (t.x[b] - t.x[a]) * (i - a);
 }
 

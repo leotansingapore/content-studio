@@ -146,7 +146,7 @@ import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
 import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cutTimes, dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
-import { cropShare, sanitizeTrack } from "@/lib/faceFollow";
+import { cropShare, lookSpans, sanitizeTrack, trackCovers } from "@/lib/faceFollow";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
 import SubtitleImport from "@/components/SubtitleImport";
@@ -878,7 +878,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const crop = cropShare(settings.aspect, dims[0], dims[1]);
   const canFollow = (settings.fit ?? "fill") === "fill" && crop < 0.95;
   const setFollow = async (on: boolean) => {
-    if (!on || settings.faceTrack) return patch({ followFace: on });
+    // looked for over the kept parts only; found again when the trims have moved past what was looked at
+    const spans = lookSpans(plan.segs);
+    if (!on || trackCovers(settings.faceTrack, spans)) return patch({ followFace: on });
     if (!file || finding !== null) return;
     setFinding(0);
     let v: HTMLVideoElement | null = null;
@@ -886,7 +888,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       v = await loadVideo(file);
       // the crop re-centres once the face drifts 12% of the frame's width from its middle
       // progress in 5% steps: redrawing the editor on every look slowed the search down
-      const track = await findFaceTrack(v, duration, crop * 0.12, (p) => setFinding((f) => (f === null || p - f >= 0.05 || p === 1 ? p : f)));
+      const track = await findFaceTrack(v, spans, crop * 0.12, (p) => setFinding((f) => (f === null || p - f >= 0.05 || p === 1 ? p : f)));
       if (!track) return toast({ title: "No face found in this video", description: "Move the crop by hand under Hook and frame.", variant: "destructive" });
       // the latest settings: changes made while it looked must stay
       const cur = settingsRef.current;
