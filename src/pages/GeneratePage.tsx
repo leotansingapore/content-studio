@@ -77,7 +77,9 @@ import {
   loadVoiceProfile,
   isNudgeDismissed,
   dismissNudgeForSession,
+  VOICE_MIN_CHARS,
 } from "@/lib/voiceProfile";
+import HumanCheck from "@/components/HumanCheck";
 import {
   getDraftById,
   loadDrafts,
@@ -448,14 +450,19 @@ const REWRITES = [
   { id: "casual", label: "More casual", instruction: "make the tone more casual and conversational" },
   { id: "formal", label: "More formal", instruction: "make the tone more formal and polished" },
 ] as const;
-type RewriteId = (typeof REWRITES)[number]["id"];
+// "lines": the lines the sounds-human check flagged, rewritten, the rest kept.
+type RewriteId = (typeof REWRITES)[number]["id"] | "lines";
+const rewriteLabel = (id: RewriteId) => (id === "lines" ? "Rewrite flagged lines" : REWRITES.find((r) => r.id === id)!.label);
 
 // The generator's own rules (format length, a framing nudge) win over loose
 // context, so a rewrite states a word target and says it overrides them.
 const REWRITE_LENGTH: Partial<Record<RewriteId, number>> = { shorter: 0.65, longer: 1.35 };
 
-function rewriteFields(post: string, id: RewriteId): { ideaContext: string; styleReference: string } {
-  const instruction = REWRITES.find((r) => r.id === id)!.instruction;
+function rewriteFields(post: string, id: RewriteId, lines: string[] = []): { ideaContext: string; styleReference: string } {
+  const instruction =
+    id === "lines"
+      ? `rewrite only these lines so each sounds like a person talking, and keep every other line word for word: ${lines.map((l) => `"${l}"`).join(" ")}`
+      : REWRITES.find((r) => r.id === id)!.instruction;
   const words = post.split(/\s+/).filter(Boolean).length;
   const target = Math.max(20, Math.round(words * (REWRITE_LENGTH[id] ?? 1)));
   const rule = `This is an edit of an existing post, not a new post. Rewrite instruction: ${instruction}. Target length: about ${target} words. The instruction and target length override the format length, variant tone and framing rules.`;
@@ -661,6 +668,8 @@ export default function GeneratePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [voiceSummary, setVoiceSummary] = useState<string | null>(null);
   const [voiceProfileUsable, setVoiceProfileUsable] = useState<boolean>(false);
+  // Up to three saved voice posts, for the sounds-human check's voice match.
+  const [voiceSamples, setVoiceSamples] = useState<string[]>([]);
   const [voiceNudgeDismissed, setVoiceNudgeDismissed] = useState<boolean>(false);
 
   // Draft history.
@@ -819,6 +828,7 @@ export default function GeneratePage() {
       const usable = isVoiceProfileUsable(profile);
       setVoiceProfileUsable(usable);
       setVoiceSummary(usable ? (profile?.voiceSummary ?? null) : null);
+      setVoiceSamples(usable ? (profile?.posts ?? []).filter((p) => p.trim().length >= VOICE_MIN_CHARS).slice(0, 3) : []);
       setVoiceNudgeDismissed(isNudgeDismissed());
     })();
     return () => {
@@ -1805,7 +1815,7 @@ export default function GeneratePage() {
     void runAdapt(v.platform, v.draftId);
   };
 
-  const handleRewrite = async (id: RewriteId) => {
+  const handleRewrite = async (id: RewriteId, lines?: string[]) => {
     const source = draft.trim();
     if (!source) return;
     rewriteAbortRef.current?.abort();
@@ -1820,7 +1830,7 @@ export default function GeneratePage() {
     };
     try {
       await streamOnePost(
-        { ...buildBasePayload(), ...rewriteFields(source, id) },
+        { ...buildBasePayload(), ...rewriteFields(source, id, lines) },
         {
           onToken: (text) => mine() && setRewrite({ id, text, status: "streaming" }),
           onComplete: (raw) => {
@@ -3144,12 +3154,12 @@ export default function GeneratePage() {
                   </p>
                 )}
                 {rewrite && (
-                  <div className="mt-1.5 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <div id="rewrite-panel" className="mt-1.5 scroll-mt-24 rounded-xl border border-primary/30 bg-primary/5 p-3">
                     <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                       {rewrite.status === "streaming" && (
                         <ThinkingOrb state="weaving" size={20} theme="light" aria-hidden />
                       )}
-                      {REWRITES.find((r) => r.id === rewrite.id)!.label}
+                      {rewriteLabel(rewrite.id)}
                     </p>
                     <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
                       {rewrite.text || <span className="text-muted-foreground">Rewriting...</span>}
@@ -3453,6 +3463,19 @@ export default function GeneratePage() {
                   </div>
                 )}
               </div>
+            )}
+
+            {craftCheck && !isStreaming && (
+              <HumanCheck
+                draft={draft}
+                samples={voiceSamples}
+                disabled={rewrite?.status === "streaming"}
+                onClean={cleanDraft}
+                onRewriteLines={(lines) => {
+                  void handleRewrite("lines", lines);
+                  setTimeout(() => document.getElementById("rewrite-panel")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+                }}
+              />
             )}
 
             {(hashtags.length > 0 || hashtagsLoading) && (

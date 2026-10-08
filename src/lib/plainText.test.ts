@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanAiTells, withDisclosure, withSignOff } from "@/lib/plainText";
+import { cleanAiTells, scanAiTells, withDisclosure, withSignOff } from "@/lib/plainText";
 
 describe("withSignOff", () => {
   const sign = "DM me PLAN for a free review.\nThis is not financial advice.\n#cpf #singapore";
@@ -98,5 +98,15 @@ describe("cleanAiTells", () => {
     const once = cleanAiTells("We leverage the robust \u201Cecosystem\u201D \u2014 additionally, utilise it.");
     expect(once.text).toBe("We use the solid \"system\", also, use it.");
     expect(cleanAiTells(once.text)).toEqual({ text: once.text, changes: 0 });
+  });
+});
+
+describe("scanAiTells", () => {
+  it("says what the clean found by kind: typography, and the stock words in order of the list", () => {
+    const out = scanAiTells("We leverage the robust \u201Cecosystem\u201D \u2014 a testament to it.\u200B");
+    expect(out.typography).toBe(4);
+    expect(out.words).toEqual(["a testament to", "leverage", "robust", "ecosystem"]);
+    expect(out.changes).toBe(8);
+    expect(cleanAiTells("We leverage the robust \u201Cecosystem\u201D \u2014 a testament to it.\u200B")).toEqual({ text: out.text, changes: 8 });
   });
 });

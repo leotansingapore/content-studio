@@ -259,7 +259,18 @@ function matchCase(found: string, plain: string): string {
  * judgment: it counts what it changed and decides nothing.
  */
 export function cleanAiTells(input: string): { text: string; changes: number } {
+  const { text, changes } = scanAiTells(input);
+  return { text, changes };
+}
+
+/**
+ * The clean, with what it found by kind: typography (hidden characters, odd
+ * spaces, curly quotes, dashes, the ellipsis character) and the stock words it
+ * swapped, lower case. Counts for the sounds-human check.
+ */
+export function scanAiTells(input: string): { text: string; changes: number; typography: number; words: string[] } {
   let changes = 0;
+  const words: string[] = [];
   const count = (re: RegExp, s: string) => (changes += s.match(re)?.length ?? 0);
 
   let text = input.replace(INVISIBLE, (m, flag: string | undefined, off: number, s: string) => {
@@ -285,6 +296,7 @@ export function cleanAiTells(input: string): { text: string; changes: number } {
   }
   count(/[\u2014\u2013]/g, text);
   text = stripDashes(text);
+  const typography = changes;
 
   text = text
     .split(PROTECTED)
@@ -293,6 +305,7 @@ export function cleanAiTells(input: string): { text: string; changes: number } {
       for (const [re, plain] of AI_WORD_RES) {
         part = part.replace(re, (found) => {
           changes++;
+          words.push(found.toLowerCase().replace(/\s+/g, " "));
           return matchCase(found, plain);
         });
       }
@@ -300,5 +313,5 @@ export function cleanAiTells(input: string): { text: string; changes: number } {
     })
     .join("");
 
-  return { text, changes };
+  return { text, changes, typography, words };
 }

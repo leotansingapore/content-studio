@@ -35,6 +35,8 @@ export const DAILY_LIMITS = {
   "ai-voice": 10,
   // Predicted engagement score in Write (post-score, Jev); the browser caches it per draft text.
   "post-score": 40,
+  // Jev's judgment calls in Write (writing-judge): the sounds-human check and the rest.
+  "writing-judge": 60,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
