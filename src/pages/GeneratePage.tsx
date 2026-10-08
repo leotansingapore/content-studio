@@ -383,6 +383,38 @@ function adaptContext(post: string, target: Platform): string {
   ].join("\n");
 }
 
+// One-tap rewrites of the draft. Each is one generation; the result is offered
+// beside the draft and only replaces it when the user picks it.
+const REWRITES = [
+  { id: "shorter", label: "Shorter", instruction: "make it about a third shorter" },
+  { id: "longer", label: "Longer", instruction: "make it about a third longer, adding one more concrete detail" },
+  { id: "simpler", label: "Simpler", instruction: "use plain words and short sentences anyone could follow" },
+  { id: "casual", label: "More casual", instruction: "make the tone more casual and conversational" },
+  { id: "formal", label: "More formal", instruction: "make the tone more formal and polished" },
+] as const;
+type RewriteId = (typeof REWRITES)[number]["id"];
+
+// The generator's own rules (format length, a framing nudge) win over loose
+// context, so a rewrite states a word target and says it overrides them.
+const REWRITE_LENGTH: Partial<Record<RewriteId, number>> = { shorter: 0.65, longer: 1.35 };
+
+function rewriteFields(post: string, id: RewriteId): { ideaContext: string; styleReference: string } {
+  const instruction = REWRITES.find((r) => r.id === id)!.instruction;
+  const words = post.split(/\s+/).filter(Boolean).length;
+  const target = Math.max(20, Math.round(words * (REWRITE_LENGTH[id] ?? 1)));
+  const rule = `This is an edit of an existing post, not a new post. Rewrite instruction: ${instruction}. Target length: about ${target} words. The instruction and target length override the format length, variant tone and framing rules.`;
+  return {
+    ideaContext: [
+      rule,
+      "Keep the same opening line idea, the same points in the same order, the same facts and numbers, and the same call to action.",
+      "",
+      "The post:",
+      post,
+    ].join("\n"),
+    styleReference: `${rule} Keep the structure of the post in the context.`,
+  };
+}
+
 function ComplianceChips({
   flags,
   onDismiss,
@@ -547,15 +579,32 @@ export default function GeneratePage() {
   const [activeTab, setActiveTab] = useState<"original" | Platform>("original");
   const versionAbortRef = useRef(new Map<string, AbortController>());
   const versionsTopRef = useRef<HTMLDivElement | null>(null);
-  // A new or re-picked draft starts without versions; the finished ones are
-  // already in My posts.
-  const resetVersions = () => {
+  // A rewrite on offer, and the draft it replaced so it can be undone.
+  const [rewrite, setRewrite] = useState<{
+    id: RewriteId;
+    text: string;
+    status: "streaming" | "done";
+  } | null>(null);
+  const [undoText, setUndoText] = useState<string | null>(null);
+  const rewriteAbortRef = useRef<AbortController | null>(null);
+  // A new or re-picked draft starts without versions or a rewrite on offer;
+  // finished versions are already in My posts.
+  const clearDraftExtras = () => {
     versionAbortRef.current.forEach((c) => c.abort());
     versionAbortRef.current.clear();
     setVersions([]);
     setActiveTab("original");
+    rewriteAbortRef.current?.abort();
+    setRewrite(null);
+    setUndoText(null);
   };
-  useEffect(() => () => versionAbortRef.current.forEach((c) => c.abort()), []);
+  useEffect(
+    () => () => {
+      versionAbortRef.current.forEach((c) => c.abort());
+      rewriteAbortRef.current?.abort();
+    },
+    [],
+  );
 
   // Hashtags + image prompt.
   const [hashtags, setHashtags] = useState<string[]>([]);
@@ -705,7 +754,7 @@ export default function GeneratePage() {
       if (entry.hook) setChosenHook(entry.hook);
     }
     setDraft(entry.draft);
-    resetVersions();
+    clearDraftExtras();
     // A written post opens on its draft, not on step 1 of a brief it already has.
     if (entry.draft.trim()) setBriefOpen(false);
     setCurrentDraftId(entry.id);
@@ -1153,7 +1202,7 @@ export default function GeneratePage() {
     // Collapse the wizard only after validation passes — collapsing first
     // strands the user on a dead brief summary when the topic is missing.
     setBriefOpen(false);
-    resetVersions();
+    clearDraftExtras();
     setSelectedVariantIndex(null);
     setDraft("");
     setChosenHook(null);
@@ -1184,7 +1233,7 @@ export default function GeneratePage() {
   const handlePickHook = async (hookText: string) => {
     if (!hookText.trim()) return;
     setChosenHook(hookText.trim());
-    resetVersions();
+    clearDraftExtras();
     scrollToVariantsRef.current = true;
     setVariants([]);
     setSelectedVariantIndex(null);
@@ -1209,7 +1258,7 @@ export default function GeneratePage() {
   };
 
   const handleReroll = async () => {
-    resetVersions();
+    clearDraftExtras();
     if (!validateForm()) return;
     setSelectedVariantIndex(null);
     setDraft("");
@@ -1373,7 +1422,7 @@ export default function GeneratePage() {
     const v = variants.find((x) => x.index === idx);
     if (!v) return;
     setSelectedVariantIndex(idx);
-    resetVersions();
+    clearDraftExtras();
     setDraft(v.text);
     setTimeout(
       () => draftCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
@@ -1493,6 +1542,61 @@ export default function GeneratePage() {
   const retryVersion = (v: PlatformVersion) => {
     updateVersion(v.draftId, { text: "", status: "streaming" });
     void runAdapt(v.platform, v.draftId);
+  };
+
+  const handleRewrite = async (id: RewriteId) => {
+    const source = draft.trim();
+    if (!source) return;
+    rewriteAbortRef.current?.abort();
+    const controller = new AbortController();
+    rewriteAbortRef.current = controller;
+    setRewrite({ id, text: "", status: "streaming" });
+    const mine = () => rewriteAbortRef.current === controller;
+    const fail = (message: string) => {
+      if (!mine()) return;
+      setRewrite(null);
+      toast({ title: "Couldn't rewrite the draft", description: message, variant: "destructive" });
+    };
+    try {
+      await streamOnePost(
+        { ...buildBasePayload(), ...rewriteFields(source, id) },
+        {
+          onToken: (text) => mine() && setRewrite({ id, text, status: "streaming" }),
+          onComplete: (raw) => {
+            const text = raw.trim();
+            if (!text) return fail("The reply came back empty. Try again.");
+            if (mine()) setRewrite({ id, text, status: "done" });
+          },
+          onError: fail,
+        },
+        controller.signal,
+      );
+    } catch (err) {
+      fail(err instanceof Error ? err.message : "Try again in a moment.");
+    }
+    if (mine()) rewriteAbortRef.current = null;
+  };
+
+  const discardRewrite = () => {
+    rewriteAbortRef.current?.abort();
+    rewriteAbortRef.current = null;
+    setRewrite(null);
+  };
+
+  // The draft as it stands (typed edits included) is what Undo brings back.
+  const acceptRewrite = () => {
+    if (!rewrite || rewrite.status !== "done") return;
+    setUndoText(draft);
+    setDraft(rewrite.text);
+    persistDraftEntry(rewrite.text, chosenHook ?? "");
+    setRewrite(null);
+  };
+
+  const undoRewrite = () => {
+    if (undoText === null) return;
+    setDraft(undoText);
+    persistDraftEntry(undoText, chosenHook ?? "");
+    setUndoText(null);
   };
 
   const copyVersion = (v: PlatformVersion) => {
@@ -2467,11 +2571,71 @@ export default function GeneratePage() {
                 </div>
                 <Textarea
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => {
+                    setDraft(e.target.value);
+                    // Undo would throw away what was just typed.
+                    if (undoText !== null) setUndoText(null);
+                  }}
                   onBlur={handleDraftBlur}
                   rows={Math.min(28, Math.max(12, draft.split("\n").length + 2))}
                   className="flex-1 font-sans text-sm leading-relaxed"
                 />
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-semibold text-muted-foreground">Rewrite</span>
+                  {REWRITES.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      disabled={rewrite?.status === "streaming"}
+                      onClick={() => void handleRewrite(r.id)}
+                      className={`flex h-9 items-center rounded-full border px-3 text-xs font-medium transition-colors disabled:opacity-50 ${
+                        rewrite?.id === r.id
+                          ? "border-primary/60 bg-primary/10 text-primary"
+                          : "border-border/70 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+                {undoText !== null && (
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                    <Check className="h-3.5 w-3.5 text-success" /> Rewritten.
+                    <button
+                      type="button"
+                      onClick={undoRewrite}
+                      className="-my-2 py-2 font-semibold text-primary hover:underline"
+                    >
+                      Undo
+                    </button>
+                  </p>
+                )}
+                {rewrite && (
+                  <div className="mt-1.5 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                    <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {rewrite.status === "streaming" && (
+                        <ThinkingOrb state="weaving" size={20} theme="light" aria-hidden />
+                      )}
+                      {REWRITES.find((r) => r.id === rewrite.id)!.label}
+                    </p>
+                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
+                      {rewrite.text || <span className="text-muted-foreground">Rewriting...</span>}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        disabled={rewrite.status !== "done"}
+                        onClick={acceptRewrite}
+                        className="gap-1.5"
+                      >
+                        <Check className="h-3.5 w-3.5" /> Use this
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={discardRewrite}>
+                        {rewrite.status === "streaming" ? "Stop" : "Discard"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
