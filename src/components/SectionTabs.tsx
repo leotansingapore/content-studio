@@ -43,7 +43,7 @@ export default function SectionTabs({ tabs, className = "" }: { tabs: SectionTab
           to={t.to}
           end={t.end}
           className={({ isActive }) =>
-            `whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+            `flex min-h-10 items-center whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors sm:min-h-0 ${
               isActive
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
