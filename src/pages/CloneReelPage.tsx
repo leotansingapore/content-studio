@@ -66,6 +66,7 @@ import {
   type VisualsJob,
 } from "@/lib/reelClone";
 import { HOOK_FORMULAS, hookFormula, hookFormulaSet } from "@/lib/hookFormulas";
+import { scoped } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
 
@@ -937,6 +938,10 @@ function RecentClones({ clones, onOpen }: { clones: SavedClone[]; onOpen: (clone
 
 // ---- Page ---------------------------------------------------------------------------------------------
 
+// A link pasted but not cloned yet, kept for this tab. sessionStorage, outside
+// the synced prefix: it is scratch.
+const linkKey = (userId: string) => `cs-clone-link-${scoped(userId)}`;
+
 export default function CloneReelPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -966,6 +971,12 @@ export default function CloneReelPage() {
       setUserId(id);
       setSaved(loadSavedClones(id));
       setHasVoice(isVoiceProfileUsable(loadVoiceProfile(id)));
+      try {
+        const link = id && !searchParams.get("url") ? sessionStorage.getItem(linkKey(id)) : null;
+        if (link) setInput((cur) => cur || link);
+      } catch {
+        // blocked storage: start with an empty box
+      }
     });
     return () => {
       active = false;
@@ -992,6 +1003,17 @@ export default function CloneReelPage() {
       }),
     [userId],
   );
+
+  // A pasted link not cloned yet survives leaving the page; a finished clone clears it.
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      if (!input.trim() || view.kind === "result") sessionStorage.removeItem(linkKey(userId));
+      else sessionStorage.setItem(linkKey(userId), input);
+    } catch {
+      // storage blocked: the link just won't survive a page change
+    }
+  }, [userId, input, view.kind]);
 
   // A Clone button elsewhere links here with ?url=; fill it in, but let the
   // consultant start it, since each clone uses one of today's.
