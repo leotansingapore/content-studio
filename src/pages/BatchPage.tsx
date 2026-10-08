@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { scoped } from "@/lib/profiles";
 import { streamOnePost } from "@/lib/batchGenerate";
 import { toPlainText } from "@/lib/plainText";
 import {
@@ -68,6 +69,10 @@ const PILLARS: { value: Pillar; label: string }[] = [
   { value: "interest", label: "Interest (social)" },
 ];
 
+// The batch in progress, kept for this tab so leaving the page doesn't throw
+// away drafts not yet saved to My posts. sessionStorage, outside the synced prefix.
+const workKey = (userId: string) => `cs-batch-work-${scoped(userId)}`;
+
 type CardState = {
   status: "idle" | "streaming" | "done" | "error" | "saved";
   text: string;
@@ -86,6 +91,51 @@ export default function BatchPage() {
   const [cards, setCards] = useState<Record<string, CardState>>({});
   const [running, setRunning] = useState(false);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      const id = data.user?.id ?? null;
+      try {
+        const work = id ? JSON.parse(sessionStorage.getItem(workKey(id)) ?? "null") : null;
+        if (work && typeof work.topic === "string") {
+          setTopic(work.topic);
+          if (PILLARS.some((p) => p.value === work.pillar)) setPillar(work.pillar);
+          if (AUDIENCES.some((a) => a.value === work.audience)) setAudience(work.audience);
+          if (Array.isArray(work.selected)) setSelected(new Set(work.selected));
+          if (work.cards && typeof work.cards === "object" && Object.keys(work.cards).length > 0) {
+            setCards(work.cards);
+            toast({ title: "Your batch is back" });
+          }
+        }
+      } catch {
+        // corrupt or blocked storage: start fresh
+      }
+      setUserId(id);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Saved between runs, not on every streamed token.
+  useEffect(() => {
+    if (!userId || running) return;
+    try {
+      if (!topic.trim() && Object.keys(cards).length === 0) {
+        sessionStorage.removeItem(workKey(userId));
+      } else {
+        sessionStorage.setItem(
+          workKey(userId),
+          JSON.stringify({ topic, pillar, audience, selected: [...selected], cards }),
+        );
+      }
+    } catch {
+      // storage blocked: the batch just won't survive a page change
+    }
+  }, [userId, running, topic, pillar, audience, selected, cards]);
 
   const activeTargets = useMemo(
     () => TARGETS.filter((t) => selected.has(t.key)),
