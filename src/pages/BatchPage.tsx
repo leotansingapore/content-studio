@@ -224,27 +224,39 @@ export default function BatchPage() {
     setRunning(false);
   };
 
-  const handleSave = async (t: BatchTarget) => {
-    const { data } = await supabase.auth.getUser();
-    const userId = data.user?.id;
-    if (!userId) return;
+  const entryFor = (t: BatchTarget, card: CardState): DraftEntry => ({
+    id: newDraftId(),
+    createdAt: new Date().toISOString(),
+    hook: card.text.split("\n")[0]?.slice(0, 120) ?? "",
+    draft: card.text,
+    pillar,
+    pillarDetail: topic.trim(),
+    audience,
+    format: t.format,
+    platform: t.platform,
+    ctaType: "comment-keyword",
+  });
+
+  const handleSave = (t: BatchTarget) => {
     const card = cards[t.key];
-    if (!card || card.status !== "done") return;
-    const entry: DraftEntry = {
-      id: newDraftId(),
-      createdAt: new Date().toISOString(),
-      hook: card.text.split("\n")[0]?.slice(0, 120) ?? "",
-      draft: card.text,
-      pillar,
-      pillarDetail: topic.trim(),
-      audience,
-      format: t.format,
-      platform: t.platform,
-      ctaType: "comment-keyword",
-    };
-    upsertDraft(userId, entry);
+    if (!userId || !card || card.status !== "done") return;
+    upsertDraft(userId, entryFor(t, card));
     setCards((prev) => ({ ...prev, [t.key]: { ...card, status: "saved" } }));
     toast({ title: "Saved to My posts", description: t.label });
+  };
+
+  const unsaved = activeTargets.filter((t) => cards[t.key]?.status === "done");
+
+  const handleSaveAll = () => {
+    if (!userId || unsaved.length === 0) return;
+    // Newest first in My posts, so save from the last card back to keep this order.
+    for (const t of [...unsaved].reverse()) upsertDraft(userId, entryFor(t, cards[t.key]));
+    setCards((prev) => {
+      const next = { ...prev };
+      for (const t of unsaved) next[t.key] = { ...prev[t.key], status: "saved" };
+      return next;
+    });
+    toast({ title: `Saved ${unsaved.length} drafts to My posts` });
   };
 
   const handleCopy = async (text: string) => {
@@ -367,6 +379,14 @@ export default function BatchPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {hasResults && !running && unsaved.length > 1 && (
+        <div className="flex justify-end">
+          <Button onClick={handleSaveAll} className="w-full gap-1.5 sm:w-auto">
+            <Save className="h-4 w-4" /> Save all {unsaved.length} to My posts
+          </Button>
+        </div>
+      )}
 
       {hasResults && (
         <div ref={resultsRef} className="grid scroll-mt-20 gap-4 lg:grid-cols-2">
