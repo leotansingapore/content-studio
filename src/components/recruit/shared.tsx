@@ -82,7 +82,7 @@ export function CopyButton({ text, label, what = "Copied" }: { text: string; lab
       type="button"
       onClick={() => copy(text, what)}
       aria-label={label ?? "Copy"}
-      className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10"
+      className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:min-h-0"
     >
       <Copy className="h-3.5 w-3.5" />
       {label}

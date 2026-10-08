@@ -75,7 +75,7 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
           <span><span className="font-semibold">{counts.replied}</span> replied</span>
           <span><span className="font-semibold">{counts.booked}</span> chats booked</span>
           {missingTrifecta.length > 0 && (
-            <Button size="sm" variant="outline" className="ml-auto h-8 text-xs" onClick={addTrifecta}>
+            <Button size="sm" variant="outline" className="ml-auto h-9 text-xs sm:h-8" onClick={addTrifecta}>
               Add my Trifecta names first
             </Button>
           )}

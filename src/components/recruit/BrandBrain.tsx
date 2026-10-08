@@ -113,7 +113,7 @@ export default function BrandBrain({ brain, update, done }: { brain: RecruitBrai
                 type="button"
                 onClick={() => setTypeOpen(typeOpen === t.name ? null : t.name)}
                 aria-expanded={typeOpen === t.name}
-                className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                className={`inline-flex h-9 items-center rounded-full border px-3 text-[11px] font-medium transition-colors sm:h-7 ${
                   typeOpen === t.name ? "border-primary/50 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:text-foreground"
                 }`}
               >
