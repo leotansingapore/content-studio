@@ -1211,3 +1211,33 @@ export function sanitizeMusic(raw: unknown): Music | undefined {
   if (typeof r.key !== "string" || !/^mu-[a-z0-9-]{4,60}$/i.test(r.key)) return undefined;
   return { key: r.key, name: typeof r.name === "string" ? r.name.slice(0, 80) : "Music", level: clamp(r.level, 0, 1, MUSIC_LEVEL) };
 }
+
+// ---------- callouts and cutaways (video-assist "cutaways") ----------
+
+/** A suggested section: a text callout and what to cut away to, on the edited timeline. */
+export interface Cutaway {
+  at: number;
+  until: number;
+  callout: string;
+  show: string;
+}
+
+/** The sentences still in the edit, timed on the edited timeline, which is where stickers sit. */
+export function editedSentences(words: Word[], segs: Segment[], speed = 1): Sentence[] {
+  return sentencesOf(words.flatMap((w) => {
+    const s = outAt(segs, w.s, speed);
+    return s === null ? [] : [{ ...w, s, e: s + (w.e - w.s) / speed }];
+  }));
+}
+
+/** Stored suggestions, kept only when well formed. */
+export function sanitizeCutaways(raw: unknown): Cutaway[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 8).flatMap((r): Cutaway[] => {
+    const o = r && typeof r === "object" ? (r as Record<string, unknown>) : {};
+    const at = clamp(o.at, 0, 36000, -1);
+    const callout = typeof o.callout === "string" ? o.callout.slice(0, 60) : "";
+    if (at < 0 || !callout) return [];
+    return [{ at, until: clamp(o.until, at, 36000, at + 3), callout, show: typeof o.show === "string" ? o.show.slice(0, 160) : "" }];
+  });
+}

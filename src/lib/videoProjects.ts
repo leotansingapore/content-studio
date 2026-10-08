@@ -6,7 +6,7 @@
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { deleteFile } from "@/lib/videoMedia";
-import { sanitizeFixes, type CaptionFix, type Clip, type EditSettings, type Sentence, type Word } from "@/lib/videoEdit";
+import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSettings, type Sentence, type Word } from "@/lib/videoEdit";
 
 export interface VideoProject {
   id: string;
@@ -22,6 +22,8 @@ export interface VideoProject {
   caption?: string;
   /** Second-language caption lines, by language then by caption text. */
   subs?: Record<string, Record<string, string>>;
+  /** Suggested callouts and cutaways, kept so a second look costs nothing. */
+  cutaways?: Cutaway[];
   /** The IndexedDB key of the video file; clips cut from one upload share it. Defaults to id. */
   fileId?: string;
   /** A skill whose instructions run once the captions exist (the default skill, on upload). */
@@ -145,6 +147,11 @@ export async function vibeEdit(req: {
 export async function findClips(sentences: Sentence[], duration: number): Promise<Clip[]> {
   const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "clips", sentences, duration }) });
   return (await res.json()).clips;
+}
+
+export async function suggestCutaways(sentences: Sentence[], duration: number): Promise<Cutaway[]> {
+  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "cutaways", sentences, duration }) });
+  return (await res.json()).sections;
 }
 
 export async function translateCaptions(lang: string, lines: string[]): Promise<string[]> {

@@ -759,3 +759,24 @@ describe("export size per platform", () => {
     expect(exportIssues(m, { ...base, size: { bytes: 90_000_000, cap: 0, label: "Instagram" } })).toEqual([]);
   });
 });
+
+describe("callouts and cutaways", () => {
+  it("times sentences on the edited timeline, leaving out what was cut", async () => {
+    const { editedSentences } = await import("@/lib/videoEdit");
+    const ws = [W("Most", 1, 1.3), W("people.", 1.3, 1.8), W("um", 2, 2.4), W("CPF", 4, 4.4), W("grows.", 4.4, 5)];
+    expect(editedSentences(ws, [{ start: 0, end: 1.9 }, { start: 2.5, end: 6 }])).toEqual([
+      { s: 1, e: 1.8, text: "Most people." },
+      { s: 3.4, e: 4.4, text: "CPF grows." },
+    ]);
+    expect(editedSentences(ws, [{ start: 0, end: 6 }], 2)[0]).toEqual({ s: 0.5, e: 0.9, text: "Most people." });
+  });
+
+  it("keeps only well-formed stored suggestions", async () => {
+    const { sanitizeCutaways } = await import("@/lib/videoEdit");
+    expect(sanitizeCutaways([{ at: 4, until: 9, callout: "4% a year", show: "A chart" }, { at: "x", callout: "y" }, { at: 2, callout: "" }, null])).toEqual([
+      { at: 4, until: 9, callout: "4% a year", show: "A chart" },
+    ]);
+    expect(sanitizeCutaways({})).toEqual([]);
+    expect(sanitizeCutaways([{ at: 5, until: 1, callout: "Back to front" }])[0].until).toBe(5);
+  });
+});

@@ -8,6 +8,9 @@
 //        caption lines, one per caption ("video-translate" cap).
 //   POST {mode:"clips", sentences:[{s,e,text}], duration} -> {clips:[{start,end,title,hook}]}:
 //        3-5 standalone reels cut from one long video ("video-clips" cap).
+//   POST {mode:"cutaways", sentences:[{s,e,text}] on the edited timeline, duration}
+//        -> {sections:[{at,until,callout,show}]}: a text callout and what to cut away
+//        to, per section of a filmed talking head ("video-cutaways" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -20,6 +23,9 @@ import {
   MAX_AUDIO_BYTES,
   VIBE_MODEL,
   buildClipsMessages,
+  buildCutawaysMessages,
+  parseCutawaysReply,
+  parseCutawaysRequest,
   buildTranslateMessages,
   parseTranslateReply,
   parseTranslateRequest,
@@ -132,6 +138,29 @@ Deno.serve(async (req) => {
       const clips = parseClipsReply((await res.json())?.choices?.[0]?.message?.content ?? null, c.duration);
       if (!clips?.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
       return json({ clips });
+    }
+
+    if (body?.mode === "cutaways") {
+      const c = parseCutawaysRequest(body);
+      if (!c.ok) return json({ error: c.error }, 400);
+      const usage = await consumeUsage(admin, uid, "video-cutaways");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.4, max_tokens: 900, response_format: { type: "json_object" }, messages: buildCutawaysMessages(c.sentences, c.duration) }),
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (!res.ok) {
+        console.error("video-assist cutaways", res.status, (await res.text()).slice(0, 300));
+        return json({ error: "Couldn't read the video for callouts right now. Try again in a minute." }, 502);
+      }
+      const sections = parseCutawaysReply((await res.json())?.choices?.[0]?.message?.content ?? null, c.duration);
+      if (!sections?.length) return json({ error: "No callouts stood out in this video. Try again." }, 422);
+      return json({ sections });
     }
 
     const parsed = parseVibeRequest(body);

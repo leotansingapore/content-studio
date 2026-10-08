@@ -13,6 +13,7 @@ export const DAILY_LIMITS = {
   "vibe-edit": 100,
   "video-clips": 20,
   "video-translate": 30,
+  "video-cutaways": 20,
   // Watching (feed-ideas, mentions, youtube-captions, track-accounts): fetches and paid lookups.
   feeds: 60,
   mentions: 10,

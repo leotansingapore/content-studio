@@ -47,6 +47,9 @@ import {
   duckSpans,
   musicGainAt,
   sanitizeMusic,
+  sanitizeCutaways,
+  editedSentences,
+  type Cutaway,
   MUSIC_LEVEL,
   sanitizeVoiceover,
   voiceAt,
@@ -116,7 +119,7 @@ import {
   type BrandArt,
   type ExportJob,
 } from "@/lib/videoMedia";
-import { fileKey, findClips, loadFixes, loadProjects, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, findClips, suggestCutaways, loadFixes, loadProjects, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 
 const MAX_BYTES = 500 * 1024 * 1024;
@@ -297,6 +300,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [words, setWords] = useState(project.words);
   const [subs, setSubs] = useState<Record<string, Record<string, string>>>(project.subs ?? {});
   const [caption, setCaption] = useState(project.caption ?? "");
+  // suggested callouts and cutaways, read from what is said; the person picks which to add
+  const [cutaways, setCutaways] = useState<Cutaway[]>(() => sanitizeCutaways(project.cutaways));
+  const [suggesting, setSuggesting] = useState(false);
   const [writingCaption, setWritingCaption] = useState(false);
   const [savedDraft, setSavedDraft] = useState(false);
   const [translating, setTranslating] = useState<string | null>(null);
@@ -422,10 +428,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   // save the edit a moment after the last change
   useEffect(() => {
-    const t = window.setTimeout(() => onSave({ ...project, pendingSkill: pendingSkill.current, settings, words, subs, caption }), 400);
+    const t = window.setTimeout(() => onSave({ ...project, pendingSkill: pendingSkill.current, settings, words, subs, caption, cutaways }), 400);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings, words, subs, caption]);
+  }, [settings, words, subs, caption, cutaways]);
 
   const duration = project.duration;
   const plan = useMemo(() => planFor(words, duration, settings), [words, duration, settings]);
@@ -1005,6 +1011,24 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     const o = newOverlay(kind, Math.min(outT, Math.max(0, plan.total - 0.5)), settings.activeColor);
     change({ ...settings, overlays: [...overlays, o] });
     setSelected(o.id);
+  };
+  const suggest = async () => {
+    setSuggesting(true);
+    try {
+      setCutaways(await suggestCutaways(editedSentences(words, plan.segs, speed), plan.total));
+    } catch (e) {
+      toast({ title: "Couldn't suggest callouts", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setSuggesting(false);
+    }
+  };
+  const calloutOf = (c: Cutaway) => overlays.find((o) => o.kind === "text" && o.text === c.callout && Math.abs(o.from - Math.floor(c.at * 10) / 10) < 0.05);
+  const addCallout = (c: Cutaway) => {
+    if (overlays.length >= MAX_OVERLAYS) return toast({ title: `Up to ${MAX_OVERLAYS} stickers on a video`, variant: "destructive" });
+    const o = { ...newOverlay("text", c.at, settings.activeColor), text: c.callout };
+    change({ ...settings, overlays: [...overlays, o] });
+    setSelected(o.id);
+    seekOut(o.from + 0.2);
   };
   const editOverlay = (id: string, p: Partial<Overlay>) => patch({ overlays: overlays.map((o) => (o.id === id ? { ...o, ...p } : o)) });
   // B-roll: a stock clip over the edit from the playhead, the speaker's sound carrying on under it
@@ -1640,6 +1664,36 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   <Button key={k} size="sm" variant="outline" className="h-9" onClick={() => addOverlay(k)}>Add {label.toLowerCase()}</Button>
                 ))}
                 <InfoTip label="About stickers">Added at the playhead for 3 seconds. Drag one on the preview to move it.</InfoTip>
+              </div>
+              <div className="space-y-2 rounded-lg border border-primary/25 bg-primary/5 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="mr-auto text-sm font-medium">Callouts and cutaways
+                    <InfoTip label="About callouts">Read from what you say. Add the ones you want.</InfoTip></span>
+                  <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 ${suggesting ? "disabled:opacity-100" : ""}`} onClick={suggest} disabled={suggesting || !words.length}>
+                    {suggesting ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
+                    {suggesting ? "Reading..." : cutaways.length ? "Suggest again" : "Suggest from what I say"}
+                  </Button>
+                </div>
+                {cutaways.length > 0 && (
+                  <ul className="divide-y divide-border/60" aria-label="Suggested callouts">
+                    {cutaways.map((c) => {
+                      const added = !!calloutOf(c);
+                      return (
+                        <li key={`${c.at}-${c.callout}`} className="flex items-center gap-2 py-2 text-xs">
+                          <button type="button" onClick={() => seekOut(c.at)} aria-label={`Go to ${fmtTime(c.at)}`}
+                            className="min-h-11 w-12 shrink-0 text-left font-mono text-[11px] text-muted-foreground hover:text-foreground sm:min-h-0">{fmtTime(c.at)}</button>
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-semibold">{c.callout}</span>
+                            {c.show && <span className="block text-muted-foreground">Show: {c.show}</span>}
+                          </span>
+                          <Button size="sm" variant={added ? "ghost" : "outline"} className="h-11 shrink-0 gap-1 text-xs sm:h-8" disabled={added} onClick={() => addCallout(c)}>
+                            {added ? <><Check className="h-3.5 w-3.5" /> Added</> : "Add"}
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
               {overlays.length > 0 && (
                 <ul className="divide-y divide-border/60 rounded-lg border border-border/60">

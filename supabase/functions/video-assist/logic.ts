@@ -210,6 +210,83 @@ export function parseClipsReply(content: string | null, duration: number): Found
   return out;
 }
 
+// ---------- callouts and cutaways for a filmed talking head ----------
+
+export interface Cutaway {
+  /** Where the section starts and ends on the edited timeline, seconds. */
+  at: number;
+  until: number;
+  /** On-screen text for the section. */
+  callout: string;
+  /** What to cut away to or put up while they talk. */
+  show: string;
+}
+/** About 6k tokens of transcript, a cent or two a call. */
+export const MAX_CUTAWAY_CHARS = 24_000;
+
+export function parseCutawaysRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number } | { ok: false; error: string } {
+  const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const duration = Number(b.duration);
+  let chars = 0;
+  const sentences = (Array.isArray(b.sentences) ? b.sentences : [])
+    .slice(0, MAX_SENTENCES)
+    .map((x) => (x && typeof x === "object" ? (x as Record<string, unknown>) : {}))
+    .map((x) => ({ s: Number(x.s), e: Number(x.e), text: String(x.text ?? "").slice(0, 400) }))
+    .filter((x) => Number.isFinite(x.s) && Number.isFinite(x.e) && x.e > x.s && x.text)
+    .filter((x) => (chars += x.text.length) <= MAX_CUTAWAY_CHARS);
+  if (!Number.isFinite(duration) || duration < 5) return { ok: false, error: "The video is too short for callouts." };
+  if (sentences.length < 2) return { ok: false, error: "Caption the video first, then ask for callouts." };
+  return { ok: true, sentences, duration };
+}
+
+export function buildCutawaysMessages(sentences: ClipSentence[], duration: number): { role: string; content: string }[] {
+  const lines = sentences.map((x) => `[${x.s.toFixed(1)}-${x.e.toFixed(1)}] ${x.text}`).join("\n");
+  return [
+    {
+      role: "system",
+      content: [
+        "You plan the on-screen extras for a talking-head video a Singapore financial adviser filmed: text callouts and what to cut away to.",
+        "Split the video into sections where the topic or the point changes: 2 to 8 sections, none starting in the first 3 seconds (the hook card is there).",
+        "For each section:",
+        "- at: the start time of the sentence where the section begins; until: the end time of its last sentence. Sections never overlap.",
+        "- callout: on-screen text of 2 to 6 words that lands the point: a number, a term or the takeaway, in sentence case. Only facts and figures the speaker says; never invent a number.",
+        "- show: one short line on what to cut away to or put on screen while they talk, that a solo adviser can film or find: a B-roll shot, a screen recording, a simple chart, a document or a prop.",
+        "Never promise returns or guarantees. No em dashes. Plain words.",
+        'Reply with JSON only: {"sections":[{"at":number,"until":number,"callout":string,"show":string}]}',
+      ].join("\n"),
+    },
+    { role: "user", content: `Video length: ${duration.toFixed(1)}s\nTranscript with sentence times in seconds:\n${lines}` },
+  ];
+}
+
+/** Sections inside the video, in time order, without overlaps, at most 8; text trimmed to fit a sticker. */
+export function parseCutawaysReply(content: string | null, duration: number): Cutaway[] | null {
+  if (!content) return null;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(content);
+  } catch {
+    return null;
+  }
+  const list = Array.isArray((raw as { sections?: unknown })?.sections) ? (raw as { sections: unknown[] }).sections : [];
+  const clean = (v: unknown, n: number) => String(v ?? "").replace(/\s*\u2014\s*/g, ", ").replace(/\s+/g, " ").trim().slice(0, n);
+  const out: Cutaway[] = [];
+  for (const c of list) {
+    const o = c && typeof c === "object" ? (c as Record<string, unknown>) : {};
+    const at = Math.max(0, Number(o.at));
+    const until = Math.min(duration, Number(o.until));
+    const callout = clean(o.callout, 60);
+    if (!Number.isFinite(at) || !Number.isFinite(until) || until <= at || !callout) continue;
+    // "show" sits under a "Show:" label, so a reply that repeats the word loses it
+    const show = clean(o.show, 160).replace(/^show:?\s+/i, "");
+    out.push({ at, until, callout, show: show.charAt(0).toUpperCase() + show.slice(1) });
+  }
+  out.sort((a, b) => a.at - b.at);
+  const kept: Cutaway[] = [];
+  for (const c of out) if (!kept.length || c.at >= kept[kept.length - 1].until - 0.05) kept.push(c);
+  return kept.slice(0, 8);
+}
+
 // ---------- bilingual captions ----------
 
 export const TRANSLATE_LANGS: Record<string, string> = { zh: "Simplified Chinese", ms: "Malay", ta: "Tamil" };

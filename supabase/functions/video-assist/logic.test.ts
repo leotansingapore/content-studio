@@ -90,3 +90,47 @@ describe("translate", () => {
     expect(parseTranslateReply("nope", 1)).toBeNull();
   });
 });
+
+describe("cutaways", () => {
+  const sentences = [
+    { s: 0, e: 3, text: "Most people think CPF is enough." },
+    { s: 3.2, e: 7, text: "It grows at 4% a year." },
+    { s: 7.5, e: 12, text: "Here is what to do instead." },
+  ];
+  it("needs a captioned video and keeps the transcript to a bounded size", async () => {
+    const { parseCutawaysRequest, MAX_CUTAWAY_CHARS } = await import("./logic");
+    expect(parseCutawaysRequest({ duration: 3, sentences })).toMatchObject({ ok: false });
+    expect(parseCutawaysRequest({ duration: 30, sentences: sentences.slice(0, 1) })).toMatchObject({ ok: false, error: "Caption the video first, then ask for callouts." });
+    expect(parseCutawaysRequest({ duration: 30, sentences: [...sentences, { s: 9, e: 2, text: "bad" }] })).toMatchObject({ ok: true, duration: 30, sentences });
+    const long = Array.from({ length: 200 }, (_, i) => ({ s: i, e: i + 0.9, text: "x".repeat(300) }));
+    const r = parseCutawaysRequest({ duration: 200, sentences: long });
+    expect(r.ok && r.sentences.length).toBe(Math.floor(MAX_CUTAWAY_CHARS / 300));
+  });
+
+  it("asks with the sentence times and the rules", async () => {
+    const { buildCutawaysMessages } = await import("./logic");
+    const [sys, user] = buildCutawaysMessages(sentences, 12);
+    expect(sys.content).toContain("never invent a number");
+    expect(sys.content).toContain('"callout"');
+    expect(user.content).toContain("[3.2-7.0] It grows at 4% a year.");
+  });
+
+  it("keeps sections inside the video, in order, without overlaps, at most 8, with no em dashes", async () => {
+    const { parseCutawaysReply } = await import("./logic");
+    const reply = JSON.stringify({ sections: [
+      { at: 7.5, until: 12, callout: "Top up early — not late", show: "Screen recording of the CPF app" },
+      { at: 3.2, until: 7, callout: "4% a year", show: "show: a simple chart of 4% growth" },
+      { at: 5, until: 9, callout: "Overlaps the last", show: "x" },
+      { at: 50, until: 60, callout: "Past the end", show: "x" },
+      { at: 1, until: 2, callout: "", show: "No callout" },
+    ] });
+    expect(parseCutawaysReply(reply, 12)).toEqual([
+      { at: 3.2, until: 7, callout: "4% a year", show: "A simple chart of 4% growth" },
+      { at: 7.5, until: 12, callout: "Top up early, not late", show: "Screen recording of the CPF app" },
+    ]);
+    const many = JSON.stringify({ sections: Array.from({ length: 12 }, (_, i) => ({ at: i * 5, until: i * 5 + 4, callout: `Point ${i}`, show: "" })) });
+    expect(parseCutawaysReply(many, 100)).toHaveLength(8);
+    expect(parseCutawaysReply("nope", 12)).toBeNull();
+    expect(parseCutawaysReply("{}", 12)).toEqual([]);
+  });
+});
