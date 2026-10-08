@@ -12,6 +12,7 @@ import {
   duplicateDraft,
   undoDuplicate,
   undoPosted,
+  markUnposted,
   MAX_DRAFTS,
   type DraftEntry,
 } from "./draftHistory";
@@ -165,6 +166,25 @@ describe("undoPosted", () => {
     setDraftStatus(UID, "p0", "posted");
     expect(loadDrafts(UID).some((d) => d.id === `p${MAX_DRAFTS - 1}`)).toBe(false);
     expect(undoPosted(UID, before[0], before)).toEqual(before);
+  });
+});
+
+describe("markUnposted", () => {
+  it("puts a posted post back on its scheduled day, time and repeat, keeping its numbers", () => {
+    const repeat = { every: "week" as const, start: "2026-10-09" };
+    const metrics = { impressions: 900, reactions: 12 };
+    saveDrafts(UID, [post({ status: "posted", postedAt: "2026-10-09T01:00:00.000Z", scheduledFor: "2026-10-09T08:00", repeat, metrics })]);
+    const [d] = markUnposted(UID, "s");
+    expect(d).toMatchObject({ status: "scheduled", scheduledFor: "2026-10-09T08:00", repeat, metrics });
+    expect(d.postedAt).toBeUndefined();
+    expect(loadDrafts(UID)[0]).toEqual(d);
+  });
+
+  it("sends a post that never had a day back to the drafts", () => {
+    saveDrafts(UID, [post({ status: "posted", postedAt: "2026-10-09T01:00:00.000Z" })]);
+    const [d] = markUnposted(UID, "s");
+    expect(d.status).toBe("draft");
+    expect(d.postedAt).toBeUndefined();
   });
 });
 

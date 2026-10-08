@@ -44,11 +44,13 @@ import {
   draftStatus,
   duplicateDraft,
   undoDuplicate,
+  markUnposted,
+  restoreDraft,
   MAX_DRAFTS,
   type DraftEntry,
   type DraftStatus,
 } from "@/lib/draftHistory";
-import { localDateKey, scheduleAt, scheduleTime } from "@/lib/dueDates";
+import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { repurposeTargetsFor, buildRepurposeUrl } from "@/lib/repurpose";
 import DraftReviewControl from "@/components/team/DraftReviewControl";
 import { LabelChip, LabelManager, LabelPicker } from "@/components/Labels";
@@ -143,6 +145,26 @@ export default function DraftsPage() {
   const handleSetStatus = (id: string, status: DraftStatus, when?: string) => {
     if (!userId) return;
     setDrafts(setDraftStatus(userId, id, status, when));
+  };
+
+  // Back to Scheduled on its day, time and repeat (or to drafts if it never had a day).
+  const handleUnpost = (prev: DraftEntry) => {
+    if (!userId) return;
+    const back = markUnposted(userId, prev.id);
+    setDrafts(back);
+    const when = back.find((d) => d.id === prev.id)?.scheduledFor;
+    const time = scheduleTime(when);
+    toast({
+      title: when ? "Back to scheduled" : "Back to drafts",
+      description: when
+        ? keyToDate(when.slice(0, 10)).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) + (time ? `, ${timeLabel(time)}` : "")
+        : undefined,
+      action: (
+        <ToastAction altText="Undo" onClick={() => setDrafts(restoreDraft(userId, prev))}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   const handleMetric = (
@@ -538,7 +560,7 @@ export default function DraftsPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleSetStatus(d.id, "draft")}
+                      onClick={() => handleUnpost(d)}
                       className="gap-1.5 text-xs text-muted-foreground"
                     >
                       <Undo2 className="h-3.5 w-3.5" /> Mark unposted

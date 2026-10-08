@@ -252,6 +252,7 @@ export function setDraftStatus(
     const updated: DraftEntry = { ...d, status };
     if (status === "posted") updated.postedAt = when ?? new Date().toISOString();
     if (status === "scheduled") {
+      delete updated.postedAt; // back from posted (Mark unposted, a plan slot unticked)
       updated.scheduledFor = when ?? d.scheduledFor;
       // Moving a recurring post moves the whole series to count from the new day.
       if (when && d.repeat) updated.repeat = { every: d.repeat.every, start: when.slice(0, 10) };
@@ -265,6 +266,15 @@ export function setDraftStatus(
   });
   saveDrafts(userId, next);
   return next;
+}
+
+/**
+ * "Mark unposted": back to Scheduled on the day, time and repeat it had, numbers kept.
+ * A post that never had a day goes back to the drafts.
+ */
+export function markUnposted(userId: string, id: string): DraftEntry[] {
+  const d = loadDrafts(userId).find((x) => x.id === id);
+  return setDraftStatus(userId, id, d?.scheduledFor ? "scheduled" : "draft");
 }
 
 /**
