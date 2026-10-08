@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HOOK_FORMULAS, HOOKS_PER_SET, hookFormula, hookFormulaFields, hookFormulaSet } from "@/lib/hookFormulas";
+import { HOOK_FORMULAS, HOOKS_PER_SET, formulaOfHook, hookFormula, hookFormulaFields, hookFormulaSet } from "@/lib/hookFormulas";
 
 describe("hook formulas", () => {
   it("has 21 formulas with unique ids and every field filled", () => {
@@ -46,5 +46,23 @@ describe("hook formulas", () => {
     const bare = hookFormulaFields(f, {});
     expect(bare.ideaContext).toBe("Hook formula: Myth bust. Follow the formula in the style reference.");
     expect(bare.styleReference.startsWith("Write this hook")).toBe(true);
+  });
+});
+
+describe("formulaOfHook", () => {
+  const rows = [
+    { text: "  I reviewed 40 families.  ", formula: "number-reveal" },
+    { text: "Low pay is not why fresh grads can't save.", formula: "myth-bust" },
+    { text: "A hook from an old row", formula: "gone" },
+  ];
+
+  it("finds the formula the chosen hook was written with", () => {
+    expect(formulaOfHook("I reviewed 40 families.", rows)?.name).toBe("Number reveal");
+  });
+
+  it("knows none for a hook that was typed, picked without a formula or names an old id", () => {
+    expect(formulaOfHook("My own hook", rows)).toBeUndefined();
+    expect(formulaOfHook("A hook from an old row", rows)).toBeUndefined();
+    expect(formulaOfHook("", [{ text: "", formula: "list" }])).toBeUndefined();
   });
 });

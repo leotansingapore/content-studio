@@ -217,3 +217,9 @@ export function hookFormulaFields(
     styleReference: base.styleReference ? `${base.styleReference}\n${rule}` : rule,
   };
 }
+
+/** The formula a chosen hook was written with, from the hook rows it was picked from. */
+export function formulaOfHook(hook: string, rows: { text: string; formula?: string }[]): HookFormula | undefined {
+  const h = hook.trim();
+  return h ? hookFormula(rows.find((r) => r.text.trim() === h)?.formula) : undefined;
+}

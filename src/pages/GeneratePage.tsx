@@ -107,10 +107,11 @@ import {
 } from "@/lib/platformCounters";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import ShotList from "@/components/ShotList";
+import PostReceipt from "@/components/PostReceipt";
 import { BOARD_COLUMNS, columnOf, loadStages, setStage, type ProductionStage } from "@/lib/board";
 import { DAILY_LIMITS, ReelCloneError } from "@/lib/reelClone";
 import { makeStoryboard, storyboardRun, type Storyboard } from "@/lib/storyboard";
-import { HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet } from "@/lib/hookFormulas";
+import { formulaOfHook, HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet } from "@/lib/hookFormulas";
 import {
   cleanAiTells,
   DISCLOSURES,
@@ -1994,6 +1995,8 @@ export default function GeneratePage() {
 
   const savedEntry =
     draft && userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
+  // The formula the draft's hook was written with, while its hook rows are on screen.
+  const draftFormula = chosenHook ? formulaOfHook(chosenHook, hookOptions) : undefined;
 
   // Storyboard: the spoken script of a short video (the whole draft when it has no caption heading).
   const shortScript = format === "short-video" ? (svSplit?.script ?? draft).trim() : "";
@@ -3546,6 +3549,30 @@ export default function GeneratePage() {
                   </div>
                 )}
               </div>
+            )}
+
+            {savedEntry && savedEntry.status !== "posted" && !isStreaming && (
+              <PostReceipt
+                formula={draftFormula?.name}
+                chars={limits.chars}
+                maxChars={limits.maxChars}
+                platformName={platformLabel(platform)}
+                when={
+                  savedEntry.status === "scheduled" && savedEntry.scheduledFor
+                    ? `${whenLabel(savedEntry.scheduledFor)}, as scheduled`
+                    : suggestedTime
+                      ? whenLabel(suggestedTime.at)
+                      : null
+                }
+                blanks={draftBlanks}
+                copyLabel={svSplit?.script ? "Copy caption" : "Copy post"}
+                onCopy={() =>
+                  svSplit?.script
+                    ? void copyText(svSplit.caption, "Caption copied", "Paste into the post caption.", true)
+                    : void handleCopy()
+                }
+                copyBlocked={mainCopyBlock}
+              />
             )}
           </CardContent>
         </Card>
