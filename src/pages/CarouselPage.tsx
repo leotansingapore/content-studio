@@ -35,7 +35,10 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
-import { loadDrafts, type DraftEntry } from "@/lib/draftHistory";
+import { loadDrafts, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
+import { streamOnePost } from "@/lib/batchGenerate";
+import { loadVoiceProfile } from "@/lib/voiceProfile";
+import { stripDashes } from "@/lib/plainText";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { scanCompliance } from "@/lib/compliance";
 import {
@@ -86,7 +89,7 @@ const PLATFORM_LABEL: Record<string, string> = {
 
 const ROLE_LABEL = { cover: "Cover", point: "Point", cta: "Call to action" } as const;
 
-type Source = { kind: "draft"; id: string } | { kind: "paste" };
+type Source = { kind: "draft"; id: string } | { kind: "paste" } | { kind: "ai"; id: string; text: string; title: string; platform: "instagram" | "linkedin" };
 type AiState =
   | { status: "idle" | "loading" }
   | { status: "error" | "limit" | "unavailable"; message: string };
@@ -108,7 +111,10 @@ export default function CarouselPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   /** Posts that are still just a hook (board ideas), which can't make slides. */
   const [ideaOnly, setIdeaOnly] = useState(0);
-  const [mode, setMode] = useState<"drafts" | "paste" | "saved">("drafts");
+  const [mode, setMode] = useState<"drafts" | "paste" | "topic" | "saved">("drafts");
+  const [topic, setTopic] = useState("");
+  const [topicPlatform, setTopicPlatform] = useState<"instagram" | "linkedin">("instagram");
+  const [writing, setWriting] = useState<AbortController | null>(null);
   const [saved, setSaved] = useState<SavedCarousel[]>([]);
   // which saved carousel this is: "d:<draft id>" or "p:<time>" for pasted text
   const [carouselId, setCarouselId] = useState("");
@@ -197,13 +203,20 @@ export default function CarouselPage() {
       nextPlatform = d.platform === "linkedin" ? "linkedin" : "instagram";
       setDraftId(d.id);
       params.set("draft", d.id);
+    } else if (source.kind === "ai") {
+      // written from a topic and already saved to My posts
+      text = source.text;
+      base = source.title;
+      nextPlatform = source.platform;
+      setDraftId(source.id);
+      params.set("draft", source.id);
     } else {
       text = pasteText;
       base = pasteText.split("\n").find((l) => l.trim()) ?? "";
       params.delete("draft");
     }
     if (params.toString() !== searchParams.toString()) setSearchParams(params, { replace: true });
-    setCarouselId(source.kind === "draft" ? `d:${source.id}` : `p:${Date.now().toString(36)}`);
+    setCarouselId(source.kind === "paste" ? `p:${Date.now().toString(36)}` : `d:${source.id}`);
     const { slides: made, ...info } = splitDraftIntoSlides(text, { hook });
     setSlides(made);
     setSplit(info);
@@ -337,6 +350,55 @@ export default function CarouselPage() {
     } catch (e) {
       toast({ title: "Couldn't add that picture", description: (e as Error).message, variant: "destructive" });
     }
+  };
+
+  // a carousel from a topic or a pasted article: one AI call writes the post, it is
+  // saved to My posts (so it has a caption and can be scheduled), then split into slides
+  const writeFromTopic = async () => {
+    const input = topic.trim();
+    if (!input || writing || !userId) return;
+    const title = (input.split("\n").find((l) => l.trim()) ?? input).slice(0, 120);
+    const isArticle = input.length > 280;
+    const ctrl = new AbortController();
+    setWriting(ctrl);
+    let text = "";
+    let failed = "";
+    await streamOnePost(
+      {
+        pillar: "topic",
+        pillarDetail: title,
+        ideaSource: isArticle ? "An article I read" : "My own idea",
+        ideaContext: isArticle ? `Turn this into carousel slides, using only what it says:\n${input.slice(0, 6000)}` : undefined,
+        format: "carousel",
+        platform: topicPlatform,
+        ctaType: "comment-keyword",
+        audience: "general",
+        voiceSummary: loadVoiceProfile(userId)?.voiceSummary || undefined,
+      },
+      {
+        onToken: (t) => { text = t; },
+        onComplete: (t) => { text = t; },
+        onError: (m) => { failed = m; },
+      },
+      ctrl.signal,
+    );
+    setWriting(null);
+    if (ctrl.signal.aborted) return;
+    if (failed || !text.trim()) {
+      toast({ title: "The slides didn't come through", description: failed || "Try again in a minute.", variant: "destructive" });
+      return;
+    }
+    const clean = stripDashes(text);
+    const id = newDraftId();
+    const entry: DraftEntry = {
+      id, createdAt: new Date().toISOString(), hook: title, draft: clean, pillar: "topic", pillarDetail: title,
+      audience: "general", format: "carousel", platform: topicPlatform, ctaType: "comment-keyword", status: "draft",
+    };
+    upsertDraft(userId, entry);
+    const all = loadDrafts(userId);
+    setDrafts(draftsWithText(all));
+    build({ kind: "ai", id, text: clean, title, platform: topicPlatform });
+    toast({ title: "Slides written", description: "The post is saved in My posts too." });
   };
 
   // an edited carousel is kept to come back to (per profile, on every device)
@@ -569,6 +631,7 @@ export default function CarouselPage() {
               [
                 ["drafts", "From My posts"],
                 ["paste", "Paste text"],
+                ["topic", "From a topic"],
                 ...(saved.length ? ([["saved", `Saved (${saved.length})`]] as const) : []),
               ] as const
             ).map(([key, label]) => (
@@ -594,7 +657,32 @@ export default function CarouselPage() {
             </p>
           )}
 
-          {mode === "saved" ? (
+          {mode === "topic" ? (
+            <div className="space-y-2">
+              <Label htmlFor="carousel-topic">Topic, or paste an article</Label>
+              <Textarea
+                id="carousel-topic"
+                rows={4}
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                disabled={!!writing}
+                placeholder={"3 CPF moves for people in their 30s\n\nOr paste a news article or your notes and the slides will stick to what it says."}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                {(["instagram", "linkedin"] as const).map((p) => (
+                  <button key={p} type="button" aria-pressed={topicPlatform === p} onClick={() => setTopicPlatform(p)} disabled={!!writing}
+                    className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${topicPlatform === p ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                    {p === "instagram" ? "Instagram" : "LinkedIn"}
+                  </button>
+                ))}
+                <Button onClick={writeFromTopic} disabled={!topic.trim() || !!writing} className={`ml-auto gap-1.5 ${writing ? "disabled:opacity-100" : ""}`}>
+                  {writing ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <Sparkles className="h-4 w-4" />}
+                  {writing ? "Writing the slides..." : "Write slides with AI"}
+                </Button>
+                {writing && <Button variant="outline" onClick={() => writing.abort()}>Stop</Button>}
+              </div>
+            </div>
+          ) : mode === "saved" ? (
             <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
               {saved.map((c) => (
                 <li key={c.id} className={`flex items-center gap-2 px-3 py-2 ${c.id === carouselId ? "bg-primary/5" : ""}`}>
