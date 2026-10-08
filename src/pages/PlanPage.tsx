@@ -370,6 +370,8 @@ export default function PlanPage() {
   }, [searchParams.get("competitor")]);
 
   const postedCount = plan ? plan.items.filter((i) => i.posted).length : 0;
+  // Only the next unposted slot gets the filled button: one clear next step.
+  const nextItemId = plan?.items.find((i) => !i.posted)?.id ?? null;
   const totalCount = plan ? plan.items.length : 0;
   const pct = totalCount > 0 ? Math.round((postedCount / totalCount) * 100) : 0;
 
@@ -927,11 +929,11 @@ export default function PlanPage() {
                         <Button
                           asChild
                           size="sm"
-                          variant={item.posted ? "outline" : "default"}
+                          variant={item.id === nextItemId ? "default" : "outline"}
                           className={`w-full gap-1.5 sm:w-auto ${
-                            item.posted
-                              ? ""
-                              : "bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
+                            item.id === nextItemId
+                              ? "bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
+                              : ""
                           }`}
                         >
                           <Link to={planItemToGenerateUrl(item)}>
