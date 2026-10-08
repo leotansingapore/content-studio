@@ -9,6 +9,7 @@ export const DAILY_LIMITS = {
   // Video editor (/edit): one transcription per uploaded video, and chat edits.
   "video-transcribe": 30,
   "vibe-edit": 100,
+  "video-clips": 20,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

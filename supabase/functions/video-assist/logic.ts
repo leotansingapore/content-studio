@@ -150,3 +150,72 @@ export function parseVibeReply(content: string | null): { patch: Record<string, 
     return null;
   }
 }
+
+// ---------- clips: one long video -> a few standalone reels ----------
+
+export const MAX_SENTENCES = 600;
+export interface ClipSentence {
+  s: number;
+  e: number;
+  text: string;
+}
+export interface FoundClip {
+  start: number;
+  end: number;
+  title: string;
+  hook: string;
+}
+
+export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number } | { ok: false; error: string } {
+  const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const duration = Number(b.duration);
+  const sentences = (Array.isArray(b.sentences) ? b.sentences : [])
+    .slice(0, MAX_SENTENCES)
+    .map((x) => (x && typeof x === "object" ? (x as Record<string, unknown>) : {}))
+    .map((x) => ({ s: Number(x.s), e: Number(x.e), text: String(x.text ?? "").slice(0, 400) }))
+    .filter((x) => Number.isFinite(x.s) && Number.isFinite(x.e) && x.e > x.s && x.text);
+  if (!Number.isFinite(duration) || duration < 45) return { ok: false, error: "Clips need a video of at least 45 seconds." };
+  if (sentences.length < 5) return { ok: false, error: "Caption the video first, then find clips." };
+  return { ok: true, sentences, duration };
+}
+
+export function buildClipsMessages(sentences: ClipSentence[], duration: number): { role: string; content: string }[] {
+  const lines = sentences.map((x) => `[${x.s.toFixed(1)}-${x.e.toFixed(1)}] ${x.text}`).join("\n");
+  return [
+    {
+      role: "system",
+      content: [
+        "You cut short-form reels out of a long talking video by a Singapore financial adviser (podcast, talk or explainer).",
+        "Pick 3 to 5 clips that each stand alone: a viewer with no context understands it, it opens on a strong line (a claim, a question, a number, a story beat) and ends on a complete thought.",
+        "Each clip is 25 to 75 seconds (aim for 30 to 60): join consecutive sentences until the thought is complete. It starts at the start time of a sentence and ends at the end time of a sentence. Clips never overlap. Best clip first.",
+        "For each: a 3-6 word working title in sentence case (only the first word capitalised) and a hook card of 8 words or fewer made only of the speaker's own words or their plain meaning. No em dashes. Never promise returns.",
+        'Reply with JSON only: {"clips":[{"start":number,"end":number,"title":string,"hook":string}]}',
+      ].join("\n"),
+    },
+    { role: "user", content: `Video length: ${duration.toFixed(1)}s\nTranscript with sentence times in seconds:\n${lines}` },
+  ];
+}
+
+/** Keeps only clips that fit the video, run 18-120 s and do not overlap, best first as given, at most 5. */
+export function parseClipsReply(content: string | null, duration: number): FoundClip[] | null {
+  if (!content) return null;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(content);
+  } catch {
+    return null;
+  }
+  const list = Array.isArray((raw as { clips?: unknown })?.clips) ? (raw as { clips: unknown[] }).clips : [];
+  const out: FoundClip[] = [];
+  for (const c of list) {
+    const o = c && typeof c === "object" ? (c as Record<string, unknown>) : {};
+    const start = Math.max(0, Number(o.start));
+    const end = Math.min(duration, Number(o.end));
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end - start < 18 || end - start > 120) continue;
+    if (out.some((x) => start < x.end && end > x.start)) continue;
+    const clean = (v: unknown, n: number) => String(v ?? "").replace(/—/g, ",").trim().slice(0, n);
+    out.push({ start, end, title: clean(o.title, 60) || "Clip", hook: clean(o.hook, 90) });
+    if (out.length === 5) break;
+  }
+  return out;
+}

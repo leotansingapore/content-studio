@@ -4,6 +4,8 @@
 //   POST {mode:"vibe", instruction, settings, transcript, duration, frames?}
 //        -> {patch, reply}: the change to the edit settings, in plain words.
 //        Frames are up to 3 stills from a reference video to match its look.
+//   POST {mode:"clips", sentences:[{s,e,text}], duration} -> {clips:[{start,end,title,hook}]}:
+//        3-5 standalone reels cut from one long video ("video-clips" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -12,7 +14,17 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { MAX_AUDIO_BYTES, VIBE_MODEL, buildVibeMessages, cleanWords, parseVibeReply, parseVibeRequest } from "./logic.ts";
+import {
+  MAX_AUDIO_BYTES,
+  VIBE_MODEL,
+  buildClipsMessages,
+  buildVibeMessages,
+  cleanWords,
+  parseClipsReply,
+  parseClipsRequest,
+  parseVibeReply,
+  parseVibeRequest,
+} from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,7 +83,31 @@ Deno.serve(async (req) => {
       return json({ text: data.text ?? "", duration: data.duration ?? 0, language: data.language ?? "", words: cleanWords(data.words, data.text ?? "") });
     }
 
-    const parsed = parseVibeRequest(await req.json().catch(() => ({})));
+    const body = await req.json().catch(() => ({}));
+    if (body?.mode === "clips") {
+      const c = parseClipsRequest(body);
+      if (!c.ok) return json({ error: c.error }, 400);
+      const usage = await consumeUsage(admin, uid, "video-clips");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 900, response_format: { type: "json_object" }, messages: buildClipsMessages(c.sentences, c.duration) }),
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (!res.ok) {
+        console.error("video-assist clips", res.status, (await res.text()).slice(0, 300));
+        return json({ error: "Couldn't find clips right now. Try again in a minute." }, 502);
+      }
+      const clips = parseClipsReply((await res.json())?.choices?.[0]?.message?.content ?? null, c.duration);
+      if (!clips?.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
+      return json({ clips });
+    }
+
+    const parsed = parseVibeRequest(body);
     if (!parsed.ok) return json({ error: parsed.error }, 400);
     const usage = await consumeUsage(admin, uid, "vibe-edit");
     if (!usage.allowed) {

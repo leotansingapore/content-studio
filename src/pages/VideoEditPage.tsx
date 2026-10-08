@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Download, Film, Pause, Play, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
+import { Download, Film, Pause, Play, Scissors, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import {
   STYLE_IDS,
   applyPatch,
   aspectSize,
+  clipSettings,
+  sentencesOf,
   defaultSettings,
   fmtTime,
   isFiller,
@@ -34,7 +36,7 @@ import {
   stills,
   type ExportJob,
 } from "@/lib/videoMedia";
-import { loadProjects, removeProject, saveProject, transcribe, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, findClips, loadProjects, removeProject, saveProject, transcribe, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 
 const MAX_BYTES = 500 * 1024 * 1024;
 type Tab = "style" | "cuts" | "frame" | "words";
@@ -99,6 +101,8 @@ export default function VideoEditPage() {
           userId={userId}
           project={project}
           onSave={(p) => setProjects(saveProject(userId, p))}
+          onClips={(ps) => { let list = projects; for (const p of [...ps].reverse()) list = saveProject(userId, p); setProjects(list); }}
+          onOpen={(id) => setParams({ p: id })}
           onBack={() => setParams({})}
         />
       ) : (
@@ -173,10 +177,12 @@ function Start({ busy, projects, onUpload, onOpen, onRemove }: {
   );
 }
 
-function Editor({ userId, project, onSave, onBack }: {
+function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   userId: string;
   project: VideoProject;
   onSave: (p: VideoProject) => void;
+  onClips: (ps: VideoProject[]) => void;
+  onOpen: (id: string) => void;
   onBack: () => void;
 }) {
   const { toast } = useToast();
@@ -198,8 +204,8 @@ function Editor({ userId, project, onSave, onBack }: {
 
   useEffect(() => { const off = onExportJob(setJob); return () => { off(); }; }, []);
   useEffect(() => {
-    getFile(project.id).then((f) => setFile(f ?? null)).catch(() => setFile(null));
-  }, [project.id]);
+    getFile(fileKey(project)).then((f) => setFile(f ?? null)).catch(() => setFile(null));
+  }, [project]);
   const url = useMemo(() => (file ? URL.createObjectURL(file) : ""), [file]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
 
@@ -324,6 +330,30 @@ function Editor({ userId, project, onSave, onBack }: {
     }
   };
 
+  const [clips, setClips] = useState<VideoProject[]>([]);
+  const [clipping, setClipping] = useState(false);
+  const makeClips = async () => {
+    setClipping(true);
+    try {
+      const found = await findClips(sentencesOf(words), duration);
+      const now = Date.now().toString(36);
+      const made = found.map((c, i): VideoProject => ({
+        ...project,
+        id: `v${now}${i}`,
+        name: `${project.name} - ${c.title}`,
+        fileId: fileKey(project),
+        createdAt: new Date().toISOString(),
+        settings: clipSettings(settings, c, duration),
+      }));
+      onClips(made);
+      setClips(made);
+    } catch (e) {
+      toast({ title: "Couldn't find clips", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setClipping(false);
+    }
+  };
+
   const doExport = () => {
     if (!file) return;
     void startExport(project.name, file, words, settings).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
@@ -355,11 +385,33 @@ function Editor({ userId, project, onSave, onBack }: {
         <Button variant="ghost" size="sm" onClick={onBack}>All videos</Button>
         <h1 className="mr-auto truncate font-serif text-xl font-semibold">{project.name}</h1>
         <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5"><Undo2 className="h-3.5 w-3.5" /> Undo</Button>
+        {duration >= 45 && words.length > 0 && (
+          <Button variant="outline" size="sm" onClick={makeClips} disabled={clipping} className={`gap-1.5 ${clipping ? "disabled:opacity-100" : ""}`}>
+            {clipping ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Scissors className="h-3.5 w-3.5" />}
+            {clipping ? "Finding clips..." : "Find clips"}
+          </Button>
+        )}
         <Button asChild variant="outline" size="sm" className="gap-1.5"><Link to={captionUrl}><Wand2 className="h-3.5 w-3.5" /> Write the caption</Link></Button>
         <Button size="sm" onClick={doExport} disabled={!file || job?.state === "running"} className="gap-1.5 bg-gradient-primary text-primary-foreground disabled:opacity-60">
           <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : "Export MP4"}
         </Button>
       </div>
+      {clips.length > 0 && (
+        <section className="rounded-xl border border-success/40 bg-success/5 p-3">
+          <p className="mb-2 text-sm font-semibold">{clips.length} clips ready, each with its own hook</p>
+          <ul className="space-y-1.5">
+            {clips.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  {fmtTime(c.settings.trimStart)}-{fmtTime(duration - c.settings.trimEnd)}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{c.name.replace(`${project.name} - `, "")}</span>
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onOpen(c.id)}>Open</Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {job?.state === "running" && (
         <p className="text-xs text-muted-foreground" aria-live="polite">
           Exporting in real time ({fmtTime(plan.total)}). You can use other pages; keep this browser tab in front until it finishes.

@@ -51,3 +51,27 @@ describe("cleanSettings", () => {
     expect(r.ok && JSON.stringify(r.request.settings)).toBe('{"size":1}');
   });
 });
+
+describe("clips", () => {
+  it("needs a long, captioned video", async () => {
+    const { parseClipsRequest } = await import("./logic");
+    expect(parseClipsRequest({ duration: 20, sentences: [] }).ok).toBe(false);
+    const sentences = Array.from({ length: 6 }, (_, i) => ({ s: i * 10, e: i * 10 + 9, text: `Line ${i}.` }));
+    expect(parseClipsRequest({ duration: 120, sentences: [...sentences, { s: 5, e: 1, text: "bad" }] })).toMatchObject({ ok: true, duration: 120 });
+  });
+  it("keeps clips inside the video, 18-120 s long, without overlaps", async () => {
+    const { parseClipsReply } = await import("./logic");
+    const reply = JSON.stringify({ clips: [
+      { start: 10, end: 50, title: "Quit early", hook: "Most advisors quit — too soon" },
+      { start: 40, end: 80, title: "Overlaps", hook: "x" },
+      { start: 100, end: 105, title: "Too short", hook: "x" },
+      { start: 200, end: 290, title: "Runs past the end", hook: "Fees add up" },
+      { start: "x", end: 1, title: "junk" },
+    ] });
+    expect(parseClipsReply(reply, 250)).toEqual([
+      { start: 10, end: 50, title: "Quit early", hook: "Most advisors quit , too soon" },
+      { start: 200, end: 250, title: "Runs past the end", hook: "Fees add up" },
+    ]);
+    expect(parseClipsReply("nope", 100)).toBeNull();
+  });
+});

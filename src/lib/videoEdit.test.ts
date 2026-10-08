@@ -81,3 +81,20 @@ describe("applyPatch", () => {
     expect(applyPatch(s, { style: "minimal" }).next.style).toBe("minimal");
   });
 });
+
+describe("clips", () => {
+  it("splits sentences at punctuation and long pauses", async () => {
+    const { sentencesOf } = await import("./videoEdit");
+    const ws = [W("Most", 0, 0.3), W("people", 0.3, 0.6), W("think.", 0.6, 1), W("Then", 1.2, 1.4), W("again", 1.4, 1.8), W("here", 3.5, 3.8), W("we", 3.8, 4), W("go!", 4, 4.3)];
+    expect(sentencesOf(ws)).toEqual([
+      { s: 0, e: 1, text: "Most people think." },
+      { s: 1.2, e: 1.8, text: "Then again" },
+      { s: 3.5, e: 4.3, text: "here we go!" },
+    ]);
+  });
+  it("turns a clip into trims on the same video", async () => {
+    const { clipSettings } = await import("./videoEdit");
+    const s = clipSettings(defaultSettings("bold"), { start: 30, end: 75, title: "t", hook: "Why most advisors quit" }, 600);
+    expect([s.trimStart, s.trimEnd, s.hook]).toEqual([30, 525, "Why most advisors quit"]);
+  });
+});

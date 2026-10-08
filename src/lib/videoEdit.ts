@@ -272,3 +272,38 @@ export function fmtTime(t: number): string {
   const s = Math.max(0, t);
   return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 }
+
+export interface Sentence {
+  s: number;
+  e: number;
+  text: string;
+}
+
+/** Sentences on the source timeline: break at . ! ? or a pause over a second. Feeds clip finding. */
+export function sentencesOf(words: Word[]): Sentence[] {
+  const out: Sentence[] = [];
+  let cur: Word[] = [];
+  const flush = () => {
+    if (cur.length) out.push({ s: cur[0].s, e: cur[cur.length - 1].e, text: cur.map((w) => w.w).join(" ") });
+    cur = [];
+  };
+  for (const w of words) {
+    if (cur.length && w.s - cur[cur.length - 1].e > 1) flush();
+    cur.push(w);
+    if (/[.!?]["')\]]?$/.test(w.w)) flush();
+  }
+  flush();
+  return out;
+}
+
+export interface Clip {
+  start: number;
+  end: number;
+  title: string;
+  hook: string;
+}
+
+/** A clip as its own edit: the same video, trimmed to the clip, hook set. */
+export function clipSettings(base: EditSettings, clip: Clip, duration: number): EditSettings {
+  return { ...base, trimStart: Math.max(0, clip.start), trimEnd: Math.max(0, duration - clip.end), hook: clip.hook.slice(0, 90) };
+}

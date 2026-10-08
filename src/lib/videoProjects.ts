@@ -6,7 +6,7 @@
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { deleteFile } from "@/lib/videoMedia";
-import type { EditSettings, Word } from "@/lib/videoEdit";
+import type { Clip, EditSettings, Sentence, Word } from "@/lib/videoEdit";
 
 export interface VideoProject {
   id: string;
@@ -18,7 +18,11 @@ export interface VideoProject {
   words: Word[];
   settings: EditSettings;
   thumb: string;
+  /** The IndexedDB key of the video file; clips cut from one upload share it. Defaults to id. */
+  fileId?: string;
 }
+
+export const fileKey = (p: VideoProject) => p.fileId ?? p.id;
 
 const KEY = "content-studio-videoprojects-";
 const MAX_PROJECTS = 12;
@@ -44,15 +48,18 @@ export function loadProjects(userId: string | null | undefined): VideoProject[] 
 
 export function saveProject(userId: string, p: VideoProject): VideoProject[] {
   const next = [{ ...p, updatedAt: new Date().toISOString() }, ...loadProjects(userId).filter((x) => x.id !== p.id)];
-  for (const old of next.slice(MAX_PROJECTS)) void deleteFile(old.id).catch(() => {});
   const kept = next.slice(0, MAX_PROJECTS);
+  for (const old of next.slice(MAX_PROJECTS)) if (!kept.some((x) => fileKey(x) === fileKey(old))) void deleteFile(fileKey(old)).catch(() => {});
   store()?.setItem(KEY + scoped(userId), JSON.stringify(kept));
   return kept;
 }
 
 export function removeProject(userId: string, id: string): VideoProject[] {
-  void deleteFile(id).catch(() => {});
-  const kept = loadProjects(userId).filter((x) => x.id !== id);
+  const all = loadProjects(userId);
+  const gone = all.find((x) => x.id === id);
+  const kept = all.filter((x) => x.id !== id);
+  // a file shared by clips goes only with the last project using it
+  if (gone && !kept.some((x) => fileKey(x) === fileKey(gone))) void deleteFile(fileKey(gone)).catch(() => {});
   store()?.setItem(KEY + scoped(userId), JSON.stringify(kept));
   return kept;
 }
@@ -88,4 +95,9 @@ export async function vibeEdit(req: {
     body: JSON.stringify({ mode: "vibe", ...req }),
   });
   return res.json();
+}
+
+export async function findClips(sentences: Sentence[], duration: number): Promise<Clip[]> {
+  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "clips", sentences, duration }) });
+  return (await res.json()).clips;
 }
