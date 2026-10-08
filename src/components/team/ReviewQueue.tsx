@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, ClipboardCheck, Loader2, MessageSquareWarning } from "lucide-react";
+import { Ban, CheckCircle2, ClipboardCheck, Loader2, MessageSquareWarning } from "lucide-react";
 
 import {
   Card,
@@ -39,10 +39,11 @@ const TABS: { key: ReviewStatus; label: string; empty: string }[] = [
     label: "Changes requested",
     empty: "You haven't asked for changes on any post yet.",
   },
+  { key: "rejected", label: "Rejected", empty: "No rejected posts." },
 ];
 
 type Lists = Record<ReviewStatus, ReviewSubmission[]>;
-const EMPTY: Lists = { pending: [], approved: [], changes_requested: [] };
+const EMPTY: Lists = { pending: [], approved: [], changes_requested: [], rejected: [] };
 
 export default function ReviewQueue({
   teamId,
@@ -62,12 +63,13 @@ export default function ReviewQueue({
     setStatus("loading");
     setError("");
     try {
-      const [pending, approved, changes] = await Promise.all([
+      const [pending, approved, changes, rejected] = await Promise.all([
         fetchTeamSubmissions(teamId, "pending"),
         fetchTeamSubmissions(teamId, "approved"),
         fetchTeamSubmissions(teamId, "changes_requested"),
+        fetchTeamSubmissions(teamId, "rejected"),
       ]);
-      setLists({ pending, approved, changes_requested: changes });
+      setLists({ pending, approved, changes_requested: changes, rejected });
       setStatus("ready");
     } catch (e) {
       setError(friendlyError(e));
@@ -87,6 +89,7 @@ export default function ReviewQueue({
         row.status === "changes_requested"
           ? [row, ...prev.changes_requested]
           : prev.changes_requested,
+      rejected: row.status === "rejected" ? [row, ...prev.rejected] : prev.rejected,
     }));
     onReviewed();
   };
@@ -165,7 +168,8 @@ function SubmissionCard({
   onDecided: (row: ReviewSubmission) => void;
 }) {
   const { toast } = useToast();
-  const [asking, setAsking] = useState(false);
+  // Which decision the comment box is for: changes need a comment, a rejection a reason.
+  const [asking, setAsking] = useState<"changes_requested" | "rejected" | null>(null);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState<ReviewDecision | null>(null);
   const [error, setError] = useState("");
@@ -175,20 +179,16 @@ function SubmissionCard({
   const long = sub.content.length > 500 || sub.content.split("\n").length > 10;
 
   const decide = async (decision: ReviewDecision) => {
-    if (decision === "changes_requested" && !comment.trim()) {
-      setError("Add a comment saying what needs to change.");
+    if (decision !== "approved" && !comment.trim()) {
+      setError(decision === "rejected" ? "Add a reason for rejecting this post." : "Add a comment saying what needs to change.");
       return;
     }
     setBusy(decision);
     setError("");
     try {
-      const row = await reviewSubmission(
-        sub.id,
-        decision,
-        decision === "changes_requested" ? comment : "",
-      );
+      const row = await reviewSubmission(sub.id, decision, decision === "approved" ? "" : comment);
       toast({
-        title: decision === "approved" ? "Post approved" : "Changes requested",
+        title: decision === "approved" ? "Post approved" : decision === "rejected" ? "Post rejected" : "Changes requested",
         description: `${sub.author_name} can see your decision now.`,
       });
       onDecided(row);
@@ -241,12 +241,18 @@ function SubmissionCard({
           </p>
         ) : asking ? (
           <div className="mt-3 space-y-2">
-            <Label htmlFor={commentId}>What needs to change?</Label>
+            <Label htmlFor={commentId}>
+              {asking === "rejected" ? "Why is this post rejected?" : "What needs to change?"}
+            </Label>
             <Textarea
               id={commentId}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="e.g. Remove 'guaranteed' and add the illustrated-returns disclaimer."
+              placeholder={
+                asking === "rejected"
+                  ? "e.g. We can't promise returns in any version of this post."
+                  : "e.g. Remove 'guaranteed' and add the illustrated-returns disclaimer."
+              }
               maxLength={2000}
               autoResize
               autoFocus
@@ -255,22 +261,24 @@ function SubmissionCard({
               <Button
                 size="sm"
                 variant="destructive"
-                onClick={() => decide("changes_requested")}
+                onClick={() => decide(asking)}
                 disabled={busy !== null}
                 className="gap-1.5"
               >
-                {busy === "changes_requested" ? (
+                {busy === asking ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : asking === "rejected" ? (
+                  <Ban className="h-3.5 w-3.5" />
                 ) : (
                   <MessageSquareWarning className="h-3.5 w-3.5" />
                 )}
-                Send request
+                {asking === "rejected" ? "Reject post" : "Send request"}
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  setAsking(false);
+                  setAsking(null);
                   setError("");
                 }}
                 disabled={busy !== null}
@@ -297,11 +305,20 @@ function SubmissionCard({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => setAsking(true)}
+              onClick={() => setAsking("changes_requested")}
               disabled={busy !== null}
               className="gap-1.5"
             >
               <MessageSquareWarning className="h-3.5 w-3.5" /> Request changes
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setAsking("rejected")}
+              disabled={busy !== null}
+              className="gap-1.5 text-destructive hover:text-destructive"
+            >
+              <Ban className="h-3.5 w-3.5" /> Reject
             </Button>
           </div>
         )

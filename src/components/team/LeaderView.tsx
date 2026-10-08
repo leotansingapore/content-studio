@@ -9,16 +9,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import AuditTrail from "@/components/team/AuditTrail";
 import LeaveTeam from "@/components/team/LeaveTeam";
 import ReviewQueue from "@/components/team/ReviewQueue";
 import { ErrorBlock, LoadingBlock, formatWhen } from "@/components/team/shared";
 import {
+  fetchApprovalRules,
   fetchRoster,
   formatInviteCode,
   friendlyError,
   inviteLink,
+  setApprovalRequired,
   type MyTeam,
   type TeamMember,
 } from "@/lib/teamReview";
@@ -35,7 +38,7 @@ export default function LeaderView({
   const [auditKey, setAuditKey] = useState(0);
   return (
     <div className="space-y-6">
-      <TeamCard myTeam={myTeam} userId={userId} onLeft={onLeft} />
+      <TeamCard myTeam={myTeam} userId={userId} onLeft={onLeft} onRuleChanged={() => setAuditKey((k) => k + 1)} />
       <ReviewQueue
         teamId={myTeam.team.id}
         userId={userId}
@@ -60,18 +63,81 @@ function RoleBadge({ role }: { role: TeamMember["role"] }) {
   );
 }
 
+// The team rule "needs approval before posting": a checkbox per member. Never
+// on a leader or the team's owner (the server refuses those too).
+function RuleToggle({
+  member,
+  on,
+  busy,
+  onChange,
+}: {
+  member: TeamMember;
+  on: boolean;
+  busy: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  return (
+    <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 text-xs text-foreground">
+      <input
+        type="checkbox"
+        checked={on}
+        disabled={busy}
+        onChange={(e) => onChange(e.target.checked)}
+        aria-label={`${member.display_name} needs approval before posting`}
+        className="h-4 w-4"
+      />
+      Needs approval before posting
+    </label>
+  );
+}
+
 function TeamCard({
   myTeam,
   userId,
   onLeft,
+  onRuleChanged,
 }: {
   myTeam: MyTeam;
   userId: string;
   onLeft: () => void;
+  onRuleChanged: () => void;
 }) {
   const { toast } = useToast();
   const { team, inviteCode } = myTeam;
   const [roster, setRoster] = useState<TeamMember[]>([]);
+  const [rules, setRules] = useState<Set<string>>(new Set());
+  const [ruleBusy, setRuleBusy] = useState<string | null>(null);
+  const canHaveRule = (m: TeamMember) => m.role === "member" && m.user_id !== team.owner_id && m.user_id !== userId;
+
+  const toggleRule = async (m: TeamMember, on: boolean) => {
+    setRuleBusy(m.user_id);
+    setRules((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(m.user_id);
+      else next.delete(m.user_id);
+      return next;
+    });
+    try {
+      await setApprovalRequired(m.user_id, on);
+      toast({
+        title: on ? "Team rule on" : "Team rule off",
+        description: on
+          ? `${m.display_name}'s posts now show as locked until you approve them.`
+          : `${m.display_name} no longer needs approval before posting.`,
+      });
+      onRuleChanged();
+    } catch (e) {
+      setRules((prev) => {
+        const next = new Set(prev);
+        if (on) next.delete(m.user_id);
+        else next.add(m.user_id);
+        return next;
+      });
+      toast({ title: "Couldn't change the rule", description: friendlyError(e), variant: "destructive" });
+    } finally {
+      setRuleBusy(null);
+    }
+  };
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
 
@@ -79,7 +145,12 @@ function TeamCard({
     setStatus("loading");
     setError("");
     try {
-      setRoster(await fetchRoster(team.id));
+      const [people, ruleSet] = await Promise.all([
+        fetchRoster(team.id),
+        fetchApprovalRules(team.id).catch(() => new Set<string>()),
+      ]);
+      setRoster(people);
+      setRules(ruleSet);
       setStatus("ready");
     } catch (e) {
       setError(friendlyError(e));
@@ -172,7 +243,15 @@ function TeamCard({
                     <tr className="border-b border-border/60 text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                       <th scope="col" className="py-2 pr-3 font-semibold">Name</th>
                       <th scope="col" className="py-2 pr-3 font-semibold">Role</th>
-                      <th scope="col" className="py-2 font-semibold">Joined</th>
+                      <th scope="col" className="py-2 pr-3 font-semibold">Joined</th>
+                      <th scope="col" className="py-2 font-semibold">
+                        <span className="inline-flex items-center gap-1">
+                          Team rule
+                          <InfoTip label="About the team rule">
+                            A reminder in the app: their posts stay locked until you approve them.
+                          </InfoTip>
+                        </span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -187,8 +266,18 @@ function TeamCard({
                         <td className="py-2 pr-3">
                           <RoleBadge role={m.role} />
                         </td>
-                        <td className="whitespace-nowrap py-2 text-muted-foreground">
+                        <td className="whitespace-nowrap py-2 pr-3 text-muted-foreground">
                           {formatWhen(m.joined_at)}
+                        </td>
+                        <td className="py-1">
+                          {canHaveRule(m) ? (
+                            <RuleToggle
+                              member={m}
+                              on={rules.has(m.user_id)}
+                              busy={ruleBusy === m.user_id}
+                              onChange={(on) => void toggleRule(m, on)}
+                            />
+                          ) : null}
                         </td>
                       </tr>
                     ))}
@@ -197,20 +286,27 @@ function TeamCard({
               </div>
               <ul className="space-y-2 sm:hidden">
                 {roster.map((m) => (
-                  <li
-                    key={m.user_id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {m.display_name}
-                        {m.user_id === userId && (
-                          <span className="ml-1.5 text-xs font-normal text-muted-foreground">(you)</span>
-                        )}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">Joined {formatWhen(m.joined_at)}</p>
+                  <li key={m.user_id} className="rounded-lg border border-border/60 px-3 py-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {m.display_name}
+                          {m.user_id === userId && (
+                            <span className="ml-1.5 text-xs font-normal text-muted-foreground">(you)</span>
+                          )}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">Joined {formatWhen(m.joined_at)}</p>
+                      </div>
+                      <RoleBadge role={m.role} />
                     </div>
-                    <RoleBadge role={m.role} />
+                    {canHaveRule(m) && (
+                      <RuleToggle
+                        member={m}
+                        on={rules.has(m.user_id)}
+                        busy={ruleBusy === m.user_id}
+                        onChange={(on) => void toggleRule(m, on)}
+                      />
+                    )}
                   </li>
                 ))}
               </ul>

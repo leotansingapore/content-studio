@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ToastAction } from "@/components/ui/toast";
 import DayInput from "@/components/DayInput";
 import { useToast } from "@/hooks/use-toast";
+import { useDraftReviews } from "@/hooks/useDraftReviews";
 import {
   BOARD_COLUMNS,
   columnOf,
@@ -264,6 +265,9 @@ export default function BoardPage() {
     setNewIdea("");
   };
 
+  // Team rule: members on approval can't mark a post posted until it is approved.
+  const reviews = useDraftReviews(userId, drafts);
+
   const moveTo = (draft: DraftEntry, col: BoardColumn, onCard = false) => {
     if (!userId) return;
     if (col === "scheduled") {
@@ -272,6 +276,11 @@ export default function BoardPage() {
       return;
     }
     if (col === "posted") {
+      const blocked = reviews.blockReason(draft);
+      if (blocked) {
+        toast({ title: "Approval needed before posting", description: `Team rule. ${blocked}` });
+        return;
+      }
       setDrafts(setDraftStatus(userId, draft.id, "posted"));
       toast({ title: "Marked as posted" });
       return;

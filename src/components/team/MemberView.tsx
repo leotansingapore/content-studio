@@ -22,6 +22,7 @@ import {
 import { loadDrafts } from "@/lib/draftHistory";
 import {
   deriveReviewState,
+  fetchApprovalRules,
   fetchMySubmissions,
   fetchRoster,
   friendlyError,
@@ -46,6 +47,7 @@ export default function MemberView({
   const [subs, setSubs] = useState<ReviewSubmission[]>([]);
   const [leaders, setLeaders] = useState<string[]>([]);
   const [editedIds, setEditedIds] = useState<Set<string>>(new Set());
+  const [ruleOn, setRuleOn] = useState(false);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
 
@@ -53,10 +55,12 @@ export default function MemberView({
     setStatus("loading");
     setError("");
     try {
-      const [mine, roster] = await Promise.all([
+      const [mine, roster, rules] = await Promise.all([
         fetchMySubmissions(userId, team.id),
         fetchRoster(team.id),
+        fetchApprovalRules(team.id).catch(() => new Set<string>()),
       ]);
+      setRuleOn(rules.has(userId));
       // "Edited since approval": compare each approved snapshot with the
       // draft as it is saved now.
       const drafts = new Map(loadDrafts(userId).map((d) => [d.id, d]));
@@ -108,6 +112,12 @@ export default function MemberView({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center justify-between gap-3">
+          {ruleOn && (
+            <p className="w-full rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+              Team rule: your posts need your leader's approval before you post them. Copy and Mark posted stay
+              locked until a post is approved.
+            </p>
+          )}
           <Button size="sm" onClick={() => navigate("/drafts")} className="gap-1.5">
             <Send className="h-3.5 w-3.5" /> Submit a draft from My posts
           </Button>
@@ -168,7 +178,7 @@ export default function MemberView({
                     {s.status !== "pending" && (
                       <div className="mt-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs">
                         <p className="text-muted-foreground">
-                          {s.status === "approved" ? "Approved" : "Changes requested"} by{" "}
+                          {s.status === "approved" ? "Approved" : s.status === "rejected" ? "Rejected" : "Changes requested"} by{" "}
                           {s.reviewer_name ?? "your leader"}, {formatWhen(s.reviewed_at)}
                         </p>
                         {s.review_comment && (

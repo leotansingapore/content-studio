@@ -65,6 +65,11 @@ export default function DraftReviewControl({
           You changed this post after it was approved. Resubmit before posting.
         </p>
       )}
+      {reviews.blockReason(draft) && (
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Team rule: approval needed before posting. {reviews.blockReason(draft)}
+        </p>
+      )}
       {error && (
         <p role="alert" className="break-words text-[11px] leading-snug text-destructive">
           {error}

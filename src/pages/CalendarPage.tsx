@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useDraftReviews } from "@/hooks/useDraftReviews";
 import { supabase } from "@/lib/supabase";
 import { REELS_BOARD_OWNERS, brandForProfile, brandOf, fetchBoard } from "@/lib/reelsBoard";
 import { activeProfile } from "@/lib/profiles";
@@ -133,6 +134,8 @@ export default function CalendarPage() {
   const { hash } = useLocation();
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
+  // Team rule: members on approval can't mark a post posted until it is approved.
+  const reviews = useDraftReviews(userId, drafts);
   // Phones open on the list: the month grid only shows Mon-Thu at 390px.
   const [view, setView] = useState<View>(() =>
     typeof window !== "undefined" && window.innerWidth < 640 ? "list" : "month",
@@ -304,6 +307,11 @@ export default function CalendarPage() {
   const markPosted = (id: string) => {
     const prev = drafts.find((d) => d.id === id);
     if (!userId || !prev) return;
+    const blocked = reviews.blockReason(prev);
+    if (blocked) {
+      toast({ title: "Approval needed before posting", description: `Team rule. ${blocked}` });
+      return;
+    }
     const before = drafts;
     const next = setDraftStatus(userId, id, "posted");
     setDrafts(next);
@@ -507,7 +515,13 @@ export default function CalendarPage() {
             <Link to={`/generate?draft=${encodeURIComponent(d.id)}`}>Open</Link>
           </Button>
           {!posted && (
-            <Button size="sm" onClick={() => markPosted(d.id)} className="h-9 gap-1 px-3 text-xs sm:h-8">
+            <Button
+              size="sm"
+              onClick={() => markPosted(d.id)}
+              disabled={reviews.blockReason(d) !== null}
+              title={reviews.blockReason(d) ?? undefined}
+              className="h-9 gap-1 px-3 text-xs sm:h-8"
+            >
               <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
             </Button>
           )}
@@ -734,6 +748,8 @@ export default function CalendarPage() {
             size="sm"
             variant="ghost"
             onClick={() => markPosted(e.id)}
+            disabled={reviews.blockReason(e) !== null}
+            title={reviews.blockReason(e) ?? undefined}
             className="h-9 shrink-0 gap-1.5 px-2.5 text-xs text-success hover:text-success sm:h-8"
           >
             <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted

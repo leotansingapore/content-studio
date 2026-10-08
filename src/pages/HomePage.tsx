@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
+import { useDraftReviews } from "@/hooks/useDraftReviews";
 import { supabase } from "@/lib/supabase";
 import {
   loadDrafts,
@@ -108,6 +109,8 @@ function StatCard({
 export default function HomePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
+  // Team rule: members on approval can't mark a post posted until it is approved.
+  const reviews = useDraftReviews(userId, drafts);
   const [voiceReady, setVoiceReady] = useState<boolean>(true);
   const [coachRuns, setCoachRuns] = useState<number>(0);
   const [goals, setGoals] = useState<WeeklyGoals>({});
@@ -203,6 +206,11 @@ export default function HomePage() {
   const markDuePosted = (id: string) => {
     const prev = drafts.find((d) => d.id === id);
     if (!userId || !prev) return;
+    const blocked = reviews.blockReason(prev);
+    if (blocked) {
+      toast({ title: "Approval needed before posting", description: `Team rule. ${blocked}` });
+      return;
+    }
     const before = drafts;
     setDrafts(setDraftStatus(userId, id, "posted"));
     toast({
@@ -275,6 +283,8 @@ export default function HomePage() {
                   <Button
                     size="sm"
                     onClick={() => markDuePosted(d.id)}
+                    disabled={reviews.blockReason(d) !== null}
+                    title={reviews.blockReason(d) ?? undefined}
                     className="h-9 gap-1 px-3 text-xs sm:h-8 sm:px-2.5"
                   >
                     <CheckCircle2 className="h-3 w-3" /> Mark posted

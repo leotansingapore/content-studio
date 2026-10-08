@@ -85,6 +85,7 @@ import {
   upsertDraft,
   type DraftEntry,
 } from "@/lib/draftHistory";
+import { useDraftReviews } from "@/hooks/useDraftReviews";
 import { getTrackedPosts, suggestPostingTime } from "@/lib/analytics";
 import { scheduleTime, timeLabel } from "@/lib/dueDates";
 import { ToastAction } from "@/components/ui/toast";
@@ -1627,8 +1628,31 @@ export default function GeneratePage() {
     }
   };
 
+  // Team rule "needs approval before posting": a member on it can copy a post
+  // only once its latest submission is approved and unchanged.
+  const gateEntries = useMemo(
+    () =>
+      [
+        ...(currentDraftId && draft ? [{ id: currentDraftId, draft }] : []),
+        ...versions.map((v) => ({ id: v.draftId, draft: v.text })),
+      ] as DraftEntry[],
+    [currentDraftId, draft, versions],
+  );
+  const reviews = useDraftReviews(userId, gateEntries);
+  const copyBlockFor = (id: string | null, text: string): string | null => {
+    if (!reviews.ruleOn) return null;
+    if (!id) return "Save the post and submit it for review first.";
+    return reviews.blockReason({ id, draft: text } as DraftEntry);
+  };
+  const warnBlocked = (reason: string | null): boolean => {
+    if (reason) toast({ title: "Approval needed before posting", description: `Team rule. ${reason}` });
+    return reason !== null;
+  };
+  const mainCopyBlock = copyBlockFor(currentDraftId, draft);
+
   const handleCopy = async () => {
     if (!draft) return;
+    if (warnBlocked(copyBlockFor(currentDraftId, draft))) return;
     await copyText(draft, "Copied", "Paste into your platform of choice.", true);
   };
 
@@ -1794,6 +1818,7 @@ export default function GeneratePage() {
   };
 
   const copyVersion = (v: PlatformVersion) => {
+    if (warnBlocked(copyBlockFor(v.draftId, v.text))) return;
     const caption = format === "short-video" ? splitScriptCaption(v.text).caption : v.text;
     void copyText(caption, "Copied", `Paste into ${platformLabel(v.platform)}.`, true, v.platform);
   };
@@ -2880,6 +2905,8 @@ export default function GeneratePage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    disabled={mainCopyBlock !== null}
+                    title={mainCopyBlock ?? undefined}
                     onClick={() =>
                       void copyText(
                         svSplit.caption,
@@ -2920,6 +2947,8 @@ export default function GeneratePage() {
                   variant="outline"
                   size="sm"
                   onClick={handleCopy}
+                  disabled={mainCopyBlock !== null}
+                  title={mainCopyBlock ?? undefined}
                   className="relative gap-1.5"
                 >
                   <Copy className="h-3.5 w-3.5" /> Copy
@@ -2948,6 +2977,11 @@ export default function GeneratePage() {
             </div>
           </CardHeader>
           <CardContent>
+            {mainCopyBlock && (
+              <p className="mb-3 text-xs text-muted-foreground">
+                Team rule: approval needed before posting. {mainCopyBlock}
+              </p>
+            )}
             {savedEntry && (
               <p className="mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                 <Check className="h-3.5 w-3.5 text-success" />

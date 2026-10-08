@@ -6,10 +6,12 @@ import { scanCompliance } from "@/lib/compliance";
 import type { DraftEntry } from "@/lib/draftHistory";
 import {
   deriveReviewState,
+  fetchApprovalRules,
   fetchMyMembership,
   fetchMySubmissions,
   friendlyError,
   latestSubmissionByDraft,
+  postingBlockReason,
   reviewHash,
   reviewTextForDraft,
   submitForReview,
@@ -31,6 +33,10 @@ export interface DraftReviews {
   submit: (draft: DraftEntry) => Promise<void>;
   submittingId: string | null;
   errors: Record<string, string>;
+  /** The team rule "needs approval before posting" is on for this member. */
+  ruleOn: boolean;
+  /** Why Copy and Mark posted are locked for this draft, or null. */
+  blockReason: (draft: DraftEntry) => string | null;
 }
 
 export function useDraftReviews(userId: string | null, drafts: DraftEntry[]): DraftReviews {
@@ -39,6 +45,7 @@ export function useDraftReviews(userId: string | null, drafts: DraftEntry[]): Dr
   const [hashes, setHashes] = useState<Record<string, string>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [ruleOn, setRuleOn] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -47,9 +54,13 @@ export function useDraftReviews(userId: string | null, drafts: DraftEntry[]): Dr
       try {
         const m = await fetchMyMembership(userId);
         if (!active || !m || m.role !== "member") return;
-        const mine = await fetchMySubmissions(userId, m.team_id);
+        const [mine, rules] = await Promise.all([
+          fetchMySubmissions(userId, m.team_id),
+          fetchApprovalRules(m.team_id).catch(() => new Set<string>()),
+        ]);
         if (!active) return;
         setSubs(mine);
+        setRuleOn(rules.has(userId));
         setMember(m);
       } catch {
         // No team review for this user right now; leave My posts unchanged.
@@ -117,5 +128,10 @@ export function useDraftReviews(userId: string | null, drafts: DraftEntry[]): Dr
     }
   }, []);
 
-  return { enabled: member !== null, infoFor, submit, submittingId, errors };
+  const blockReason = useCallback(
+    (draft: DraftEntry) => (ruleOn ? postingBlockReason(true, infoFor(draft)?.state ?? null) : null),
+    [ruleOn, infoFor],
+  );
+
+  return { enabled: member !== null, infoFor, submit, submittingId, errors, ruleOn, blockReason };
 }

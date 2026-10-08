@@ -12,15 +12,17 @@ import { supabase } from "@/lib/supabase";
 import { toPlainText } from "@/lib/plainText";
 
 export type TeamRole = "leader" | "member";
-export type ReviewStatus = "pending" | "approved" | "changes_requested";
-export type ReviewDecision = "approved" | "changes_requested";
+export type ReviewStatus = "pending" | "approved" | "changes_requested" | "rejected";
+export type ReviewDecision = "approved" | "changes_requested" | "rejected";
 export type ReviewEventKind =
   | "team_created"
   | "member_joined"
   | "member_left"
   | "submitted"
   | "approved"
-  | "changes_requested";
+  | "changes_requested"
+  | "rejected"
+  | "approval_rule_set";
 
 export interface Team {
   id: string;
@@ -122,7 +124,8 @@ export type DraftReviewState =
   | "pending"
   | "approved"
   | "edited_since_approval"
-  | "changes_requested";
+  | "changes_requested"
+  | "rejected";
 
 export const REVIEW_STATE_LABEL: Record<DraftReviewState, string> = {
   none: "Not submitted",
@@ -130,6 +133,7 @@ export const REVIEW_STATE_LABEL: Record<DraftReviewState, string> = {
   approved: "Approved",
   edited_since_approval: "Edited since approval",
   changes_requested: "Changes requested",
+  rejected: "Rejected",
 };
 
 /** Newest submission per draft id. */
@@ -154,11 +158,43 @@ export function deriveReviewState(
   if (!latest) return "none";
   if (latest.status === "pending") return "pending";
   if (latest.status === "changes_requested") return "changes_requested";
+  if (latest.status === "rejected") return "rejected";
   return latest.content_hash === currentHash ? "approved" : "edited_since_approval";
 }
 
+/** A rejected post can come back as a new version; the rejection itself stays on record. */
 export function canSubmitForReview(state: DraftReviewState): boolean {
-  return state === "none" || state === "changes_requested" || state === "edited_since_approval";
+  return (
+    state === "none" ||
+    state === "changes_requested" ||
+    state === "edited_since_approval" ||
+    state === "rejected"
+  );
+}
+
+/**
+ * Why Copy and Mark posted are locked for a member on the team rule "needs
+ * approval before posting", or null when they aren't. `state` is null while
+ * the post's text is still being checked against the approved version.
+ */
+export function postingBlockReason(ruleOn: boolean, state: DraftReviewState | null): string | null {
+  if (!ruleOn) return null;
+  switch (state) {
+    case "approved":
+      return null;
+    case null:
+      return "Checking approval...";
+    case "pending":
+      return "Waiting for your leader's approval.";
+    case "changes_requested":
+      return "Your leader asked for changes. Edit and resubmit.";
+    case "rejected":
+      return "Your leader rejected this post.";
+    case "edited_since_approval":
+      return "You edited it after approval. Resubmit it first.";
+    default:
+      return "Submit it for review first.";
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -199,6 +235,8 @@ export const EVENT_LABEL: Record<ReviewEventKind, string> = {
   submitted: "Submitted for review",
   approved: "Approved",
   changes_requested: "Changes requested",
+  rejected: "Rejected",
+  approval_rule_set: "Approval rule changed",
 };
 
 /**
@@ -303,12 +341,16 @@ export function auditCsv(events: ReviewEvent[]): string {
         EVENT_LABEL[e.kind] ?? e.kind,
         e.actor_name,
         e.actor_id ?? "",
-        detailText(e.detail, "author_name") || (e.kind === "submitted" ? e.actor_name : ""),
+        detailText(e.detail, "author_name") ||
+          detailText(e.detail, "display_name") ||
+          (e.kind === "submitted" ? e.actor_name : ""),
         e.submission_id ?? "",
         detailText(e.detail, "draft_id"),
         detailText(e.detail, "platform"),
         detailText(e.detail, "format"),
-        detailText(e.detail, "comment"),
+        e.kind === "approval_rule_set"
+          ? `Needs approval before posting: ${e.detail?.required ? "on" : "off"}`
+          : detailText(e.detail, "comment"),
         e.content_hash,
       ];
     }),
@@ -552,6 +594,29 @@ export async function submitForReview(input: SubmitInput): Promise<ReviewSubmiss
   });
   if (error) fail(error);
   return data as ReviewSubmission;
+}
+
+// ---------------------------------------------------------------------------
+// Team rule: members who need approval before posting (014_approval_rules.sql)
+// ---------------------------------------------------------------------------
+
+/** Leaders get every rule in their team; a member gets only their own (RLS). */
+export async function fetchApprovalRules(teamId: string): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from("cs_team_approval_rules")
+    .select("user_id")
+    .eq("team_id", teamId)
+    .limit(1000);
+  if (error) fail(error);
+  return new Set((data ?? []).map((r) => r.user_id as string));
+}
+
+export async function setApprovalRequired(userId: string, required: boolean): Promise<void> {
+  const { error } = await supabase.rpc("cs_set_approval_required", {
+    p_user_id: userId,
+    p_required: required,
+  });
+  if (error) fail(error);
 }
 
 export async function reviewSubmission(

@@ -81,6 +81,7 @@ const STATE_STYLE: Record<DraftReviewState, string> = {
   approved: "border-success/40 bg-success/10 text-success",
   edited_since_approval: "border-amber-500/40 bg-amber-500/10 text-amber-700",
   changes_requested: "border-destructive/40 bg-destructive/10 text-destructive",
+  rejected: "border-destructive/60 bg-destructive/15 text-destructive",
 };
 
 export function ReviewStateBadge({ state }: { state: DraftReviewState }) {

@@ -675,6 +675,8 @@ export default function DraftsPage() {
                       size="sm"
                       variant="ghost"
                       onClick={() => handleSetStatus(d.id, "posted")}
+                      disabled={reviews.blockReason(d) !== null}
+                      title={reviews.blockReason(d) ?? undefined}
                       className="h-11 gap-1.5 text-xs text-success hover:text-success sm:h-9"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted

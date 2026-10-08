@@ -41,6 +41,8 @@ const KIND_STYLE: Record<ReviewEventKind, string> = {
   submitted: "border-amber-500/40 bg-amber-500/10 text-amber-700",
   approved: "border-success/40 bg-success/10 text-success",
   changes_requested: "border-destructive/40 bg-destructive/10 text-destructive",
+  rejected: "border-destructive/60 bg-destructive/15 text-destructive",
+  approval_rule_set: "border-primary/30 bg-primary/10 text-primary",
 };
 
 function KindBadge({ kind }: { kind: ReviewEventKind }) {
@@ -74,8 +76,11 @@ function eventDetails(e: ReviewEvent): string {
         .filter(Boolean)
         .join(" · ");
     }
+    case "approval_rule_set":
+      return `${text("display_name") || "A member"}: needs approval before posting ${d.required ? "on" : "off"}`;
     case "approved":
     case "changes_requested":
+    case "rejected":
       return [text("author_name") && `${text("author_name")}'s post`, text("comment")]
         .filter(Boolean)
         .join(": ");

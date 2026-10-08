@@ -14,6 +14,7 @@ import {
   latestSubmissionByDraft,
   normalizeInviteCode,
   normalizeReviewText,
+  postingBlockReason,
   reviewHash,
   reviewTextForDraft,
   sgtDayBounds,
@@ -97,6 +98,20 @@ describe("deriveReviewState", () => {
     expect(canSubmitForReview("edited_since_approval")).toBe(true);
     expect(canSubmitForReview("pending")).toBe(false);
     expect(canSubmitForReview("approved")).toBe(false);
+  });
+  it("a rejected post is final but can come back as a new version", () => {
+    expect(deriveReviewState(sub({ status: "rejected" }), "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824")).toBe(
+      "rejected",
+    );
+    expect(canSubmitForReview("rejected")).toBe(true);
+  });
+  it("locks posting for members on the team rule until the post is approved as-is", () => {
+    expect(postingBlockReason(false, "none")).toBeNull();
+    expect(postingBlockReason(true, "approved")).toBeNull();
+    for (const state of ["none", "pending", "changes_requested", "rejected", "edited_since_approval", null] as const) {
+      expect(postingBlockReason(true, state), String(state)).toMatch(/\w/);
+    }
+    expect(postingBlockReason(true, "rejected")).toMatch(/rejected/);
   });
   it("latestSubmissionByDraft keeps the newest per draft", () => {
     const older = sub({ id: "old", submitted_at: "2026-09-01T02:00:00+00:00" });
@@ -183,6 +198,35 @@ describe("CSV", () => {
     // A submission's consultant is its actor; midnight SGT is the next day.
     expect(lines[2]).toContain('"2026-09-15 00:00:00"');
     expect(lines[2]).toContain('"Submitted for review","Mei","u1","Mei"');
+  });
+  it("exports a rejection and a team rule change", () => {
+    const events: ReviewEvent[] = [
+      {
+        id: 9,
+        team_id: "t1",
+        actor_id: "u2",
+        actor_name: "Lee",
+        submission_id: "s1",
+        kind: "rejected",
+        detail: { draft_id: "d1", author_name: "Mei", comment: "Can't promise returns" },
+        content_hash: "abc",
+        created_at: "2026-09-15T02:00:00+00:00",
+      },
+      {
+        id: 10,
+        team_id: "t1",
+        actor_id: "u2",
+        actor_name: "Lee",
+        submission_id: null,
+        kind: "approval_rule_set",
+        detail: { user_id: "u1", display_name: "Mei", required: true },
+        content_hash: "def",
+        created_at: "2026-09-15T03:00:00+00:00",
+      },
+    ];
+    const lines = auditCsv(events).split("\r\n");
+    expect(lines[1]).toContain('"Rejected","Lee","u2","Mei","s1","d1","","","Can\'t promise returns"');
+    expect(lines[2]).toContain('"Approval rule changed","Lee","u2","Mei","","","","","Needs approval before posting: on"');
   });
   it("names the file after the team and range", () => {
     expect(auditCsvFilename("Lee & Co. Advisers!", "2026-09-01", "2026-09-15")).toBe(
