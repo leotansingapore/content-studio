@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { REELS_BOARD_OWNERS, brandForProfile, brandOf, fetchBoard } from "@/lib/reelsBoard";
+import { activeProfile } from "@/lib/profiles";
 import {
   loadDrafts,
   setDraftStatus,
@@ -59,6 +61,8 @@ export default function CalendarPage() {
   const [cursor, setCursor] = useState({ y: 0, m: 0 });
   const [pickDraft, setPickDraft] = useState<string>("");
   const [pickDate, setPickDate] = useState<string>("");
+  // Reels scheduled on the reels board, for its owner: one calendar for everything that posts.
+  const [reels, setReels] = useState<{ id: string; title: string; date: string; posted: boolean }[]>([]);
 
   useEffect(() => {
     document.title = "Calendar - Content Studio";
@@ -71,6 +75,19 @@ export default function CalendarPage() {
       const id = data.user?.id ?? null;
       setUserId(id);
       setDrafts(loadDrafts(id));
+      if (REELS_BOARD_OWNERS.includes(data.user?.email?.toLowerCase() ?? "")) {
+        fetchBoard()
+          .then((b) => {
+            if (!active) return;
+            const brand = brandForProfile(b.brands, activeProfile(id).name);
+            setReels(
+              b.cards
+                .filter((c) => c.schedule && ["approved", "scheduled", "posted"].includes(c.stage) && (!brand || brandOf(c) === brand))
+                .map((c) => ({ id: c.id, title: c.title, date: c.schedule!.slice(0, 10), posted: c.stage === "posted" })),
+            );
+          })
+          .catch(() => {}); // the calendar works without the board
+      }
     })();
     return () => {
       active = false;
@@ -323,6 +340,19 @@ export default function CalendarPage() {
                         +{events.length - 3} more
                       </span>
                     )}
+                    {reels.filter((r) => r.date === key).map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => navigate(`/reels?card=${encodeURIComponent(r.id)}`)}
+                        title={r.title}
+                        className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
+                          r.posted ? "bg-success/15 text-success" : "bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                        }`}
+                      >
+                        Reel: {r.title.slice(0, 22)}
+                      </button>
+                    ))}
                   </div>
                 </div>
               );
@@ -333,7 +363,26 @@ export default function CalendarPage() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {upcoming.length === 0 ? (
+          {reels.filter((r) => r.date >= todayKey && !r.posted).map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => navigate(`/reels?card=${encodeURIComponent(r.id)}`)}
+              className="flex w-full items-center gap-3 rounded-xl border border-violet-500/30 bg-card p-3 text-left shadow-card"
+            >
+              <div className="w-14 shrink-0 text-center">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                  {new Date(r.date + "T00:00:00").toLocaleDateString(undefined, { month: "short" })}
+                </div>
+                <div className="font-serif text-lg font-semibold text-foreground">{new Date(r.date + "T00:00:00").getDate()}</div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{r.title}</p>
+                <p className="text-xs text-muted-foreground">Reel - posts automatically</p>
+              </div>
+            </button>
+          ))}
+          {upcoming.length === 0 && reels.length === 0 ? (
             <Card className="border-border/60 shadow-card">
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
                 Nothing scheduled yet.
