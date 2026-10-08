@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search,
@@ -133,30 +134,6 @@ const AUDIENCE_OPTIONS = Array.from(
 const NICHE_OPTIONS = Array.from(
   new Set(ENTRIES.flatMap((e) => e.niche)),
 ).sort();
-
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-        active
-          ? "border-primary/60 bg-primary/10 text-primary"
-          : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
 
 function PlatformBadge({ platform }: { platform: AdvisorPlatform }) {
   const meta = PLATFORM_META[platform];

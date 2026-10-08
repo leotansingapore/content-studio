@@ -9,6 +9,7 @@ import IndustryNews from "@/components/IndustryNews";
 import { NEWS } from "@/lib/industryNews";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
 import { InfoTip } from "@/components/ui/info-tip";
+import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { supabase } from "@/lib/supabase";
 import { loadSaved, toggleSaved } from "@/lib/savedItems";
 import { loadPositioning } from "@/lib/positioning";
@@ -49,30 +50,6 @@ const KIND_OPTIONS = [
 const PAGE_SIZE = 12;
 
 const postKey = (p: ScoredPost) => p.post.advisorId + "-" + p.post.shortCode;
-
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-        active
-          ? "border-primary/60 bg-primary/10 text-primary"
-          : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
 
 function FilterSelect({
   label,
@@ -287,8 +264,9 @@ export default function SwipeFilePage() {
                             key={t.label}
                             active={row.value === t.label}
                             onClick={() => row.set(row.value === t.label ? "all" : t.label)}
+                            count={t.posts}
                           >
-                            {t.label} {t.posts}
+                            {t.label}
                           </Chip>
                         ))}
                       </div>

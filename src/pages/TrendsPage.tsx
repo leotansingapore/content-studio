@@ -17,6 +17,7 @@ import {
 } from "@/lib/trends";
 import { cloneLinkFor } from "@/lib/reelClone";
 import VideoEmbed from "@/components/VideoEmbed";
+import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import {
   Flame,
   Wand2,
@@ -66,47 +67,6 @@ const TREND_TYPE_STYLE: Record<string, string> = {
   culture: "border-warning/30 bg-warning/10 text-warning",
   sport: "border-success/30 bg-success/10 text-success",
 };
-
-function Chip({
-  active,
-  disabled,
-  count,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  disabled?: boolean;
-  count?: number;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={active}
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
-        active
-          ? "border-primary/60 bg-primary/10 text-primary"
-          : disabled
-            ? "cursor-not-allowed border-border/50 bg-background text-muted-foreground"
-            : "border-border/70 bg-background text-muted-foreground hover:border-border hover:text-foreground"
-      }`}
-    >
-      <span>{children}</span>
-      {typeof count === "number" && (
-        <span
-          className={`tabular-nums text-[10px] ${
-            active ? "text-primary/70" : "text-muted-foreground"
-          }`}
-        >
-          {count}
-        </span>
-      )}
-    </button>
-  );
-}
 
 function TrendCard({ trend }: { trend: TrendEntry }) {
   const { toast } = useToast();

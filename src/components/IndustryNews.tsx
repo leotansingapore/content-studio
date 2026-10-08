@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Copy, ExternalLink, PenLine, Search, Share2 } f
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { FilterChip } from "@/components/ui/filter-chip";
 import { useToast } from "@/hooks/use-toast";
 import { NEWS, buildNewsWriteUrl, byMonth, clientMessageText, searchStories, topicCounts, type NewsStory } from "@/lib/industryNews";
 
@@ -120,12 +121,7 @@ export default function IndustryNews() {
     );
   }
   const chip = (id: string, label: string, n: number) => (
-    <button key={id} type="button" onClick={() => setTopic(id)} aria-pressed={topic === id}
-      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-        topic === id ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"
-      }`}>
-      {label} <span className="font-normal">{n}</span>
-    </button>
+    <FilterChip key={id} active={topic === id} onClick={() => setTopic(id)} count={n}>{label}</FilterChip>
   );
   return (
     <div className="space-y-4">
