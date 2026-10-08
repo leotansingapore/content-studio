@@ -51,7 +51,7 @@ import {
   peaksFrom,
   waveAt,
 } from "@/lib/videoEdit";
-import { cueTicker, drawMotion, hookTop, keyZoom, motionOf, playCue } from "@/lib/videoMotion";
+import { cueTicker, drawMotion, dropGain, hookTop, keyZoom, motionOf, playCue } from "@/lib/videoMotion";
 
 // ---------- sound for captions ----------
 
@@ -1072,6 +1072,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     }
     // background music: looped along the edit, under the voice while someone talks, on through the end card
     const muBuf = settings.music && music ? await decodeSound(music) : null;
+    const drop = motionOf(settings, plan.segs, plan.caps, plan.total).drop;
     const mu = settings.music && muBuf ? { set: settings.music, gain: new GainNode(actx, { gain: 0 }), spans: duckSpans(words, plan.segs, settings) } : null;
     const muTrack = mu && muBuf && bufferTrack(actx, muBuf, mu.gain, true);
     mu?.gain.connect(dest);
@@ -1085,7 +1086,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       voTrack?.sync(voiceAt(vo!.set, out));
       if (mu && muTrack && actx) {
         muTrack.sync(out);
-        mu.gain.gain.setTargetAtTime(musicGainAt(mu.spans, out, mu.set.level, fullEnd), actx.currentTime, 0.03);
+        mu.gain.gain.setTargetAtTime(musicGainAt(mu.spans, out, mu.set.level, fullEnd) * dropGain(drop, out), actx.currentTime, 0.03);
       }
     };
 

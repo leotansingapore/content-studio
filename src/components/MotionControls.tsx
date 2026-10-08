@@ -63,6 +63,7 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
     }
   };
   const setZooms = (on: boolean) => (on && !picked ? void pick({ keyZooms: true }) : apply({ keyZooms: on }));
+  const setDrop = (on: boolean) => (on && !picked ? void pick({ musicDrop: true }) : apply({ musicDrop: on }));
 
   return (
     <div className="space-y-2 border-t border-border/60 pt-3">
@@ -82,6 +83,11 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
       <Row label={settings.sfx && plan.cues.length ? `Sound effects (${plan.cues.length})` : "Sound effects"}>
         <Toggle label="Sound effects" on={!!settings.sfx} set={(on) => apply({ sfx: on })} />
       </Row>
+      {settings.music && (
+        <Row label="Drop the music on the key line">
+          <Toggle label="Drop the music on the key line" on={plan.drop !== null} disabled={picking || !words.length || (!picked && left === 0)} set={setDrop} />
+        </Row>
+      )}
     </div>
   );
 }

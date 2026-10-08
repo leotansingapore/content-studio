@@ -316,6 +316,20 @@ export function cueTicker() {
   };
 }
 
+// ---------- the music drop ----------
+
+/** The music drops out over 0.15 s as the strongest key line starts, stays out 2 s and comes back over 0.5 s. */
+export const DROP = { fade: 0.15, hold: 2, back: 0.5 };
+
+/** What the music's volume is multiplied by at this point of the edit: 1, down to 0 through the drop. */
+export function dropGain(at: number | null, out: number): number {
+  if (at === null) return 1;
+  const t = out - at;
+  if (t < -DROP.fade || t >= DROP.hold + DROP.back) return 1;
+  if (t < 0) return -t / DROP.fade;
+  return t < DROP.hold ? 0 : smooth((t - DROP.hold) / DROP.back);
+}
+
 export interface MotionPlan {
   /** The zooms on key lines; empty when that is off or nothing was picked (the old punch-in on cuts applies). */
   zooms: Beat[];
@@ -323,9 +337,11 @@ export interface MotionPlan {
   cards: Card[];
   /** Sound effects, when they are on. */
   cues: Cue[];
+  /** Where the music drops out (the strongest key line), when there is music and it is not switched off. */
+  drop: number | null;
 }
 
-const EMPTY: MotionPlan = { zooms: [], cards: [], cues: [] };
+const EMPTY: MotionPlan = { zooms: [], cards: [], cues: [], drop: null };
 let memo: { s: EditSettings; segs: Segment[]; caps: Caption[]; total: number; plan: MotionPlan } | null = null;
 
 /** Everything that moves on this edit, worked out once per edit (drawFrame asks every frame). */
@@ -334,9 +350,17 @@ export function motionOf(s: EditSettings, segs: Segment[], caps: Caption[], tota
   const lines = sanitizeMotion(s.motion)?.lines ?? [];
   const hookEnd = s.hook?.trim() ? s.hookSeconds : 0;
   const speed = typeof s.speed === "number" && s.speed >= 1 ? s.speed : 1;
-  const zooms = s.keyZooms && lines.length ? keyBeats(lines, segs, speed, total, hookEnd) : [];
+  const beats = lines.length ? keyBeats(lines, segs, speed, total, hookEnd) : [];
+  const zooms = s.keyZooms ? beats : [];
   const cards = s.numberCards ? numberCards(caps.flatMap((c) => c.words), segs, speed, total, hookEnd) : [];
-  const plan = !segs.length ? EMPTY : { zooms, cards, cues: s.sfx ? sfxCues({ zooms, cards }, s, segs, speed) : [] };
+  // the strongest line placed on this edit (keyBeats always keeps it)
+  const top = beats.reduce<Beat | null>((a, b) => (!a || b.p > a.p ? b : a), null);
+  const plan = !segs.length ? EMPTY : {
+    zooms,
+    cards,
+    cues: s.sfx ? sfxCues({ zooms, cards }, s, segs, speed) : [],
+    drop: s.music && s.musicDrop !== false && top ? top.at : null,
+  };
   memo = { s, segs, caps, total, plan };
   return plan;
 }

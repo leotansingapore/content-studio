@@ -137,7 +137,7 @@ import {
 } from "@/lib/videoMedia";
 import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
-import { motionOf, previewSfx } from "@/lib/videoMotion";
+import { dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, sanitizeTrack } from "@/lib/faceFollow";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 
@@ -654,7 +654,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
     if (!o.track || out === null) return;
     o.track.sync(out);
-    o.gain.gain.setTargetAtTime(musicGainAt(duck, out, settings.music!.level, total), o.ctx.currentTime, 0.03);
+    o.gain.gain.setTargetAtTime(musicGainAt(duck, out, settings.music!.level, total) * dropGain(motionOf(settings, plan.segs, plan.caps, plan.total).drop, out), o.ctx.currentTime, 0.03);
   };
 
   const addMusic = async (f: File) => {

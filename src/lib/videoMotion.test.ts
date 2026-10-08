@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultSettings, keepSegments, sentencesOf, type EditSettings, type Word } from "./videoEdit";
-import { KEY_ZOOM, ZOOM_GAP, cardText, cueTicker, cutTimes, faceBand, findFigures, fitBlock, hookTop, sfxCues, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
+import { KEY_ZOOM, ZOOM_GAP, cardText, cueTicker, cutTimes, dropGain, faceBand, findFigures, fitBlock, hookTop, sfxCues, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
 
 const K = (s: number, e: number, p: number): KeyLine => ({ s, e, p });
 const one = [{ start: 0, end: 60 }];
@@ -213,5 +213,28 @@ describe("sound effects", () => {
     const caps = [{ words, s: 3.6, e: 4.6 }];
     expect(motionOf(base, [{ start: 0, end: 20 }], caps, 20).cues).toEqual([]);
     expect(motionOf({ ...base, sfx: true }, [{ start: 0, end: 20 }], caps, 20).cues).toEqual([{ at: 3.6, kind: "whoosh" }]);
+  });
+});
+
+describe("the music drop", () => {
+  it("drops out over 0.15 s, stays out 2 s and comes back over 0.5 s", () => {
+    expect(dropGain(null, 10)).toBe(1);
+    expect(dropGain(10, 9.8)).toBe(1);
+    expect(dropGain(10, 9.925)).toBeCloseTo(0.5, 5);
+    expect(dropGain(10, 10.5)).toBe(0);
+    expect(dropGain(10, 11.9)).toBe(0);
+    expect(dropGain(10, 12.25)).toBeCloseTo(0.5, 5);
+    expect(dropGain(10, 12.5)).toBe(1);
+  });
+  it("lands on the strongest key line, only with music, and can be switched off", () => {
+    const segs = [{ start: 0, end: 60 }];
+    const motion = { lines: [K(10, 12, 0.7), K(30, 32, 0.95), K(45, 47, 0.8)] };
+    const music = { key: "mu-qa-1234", name: "Bed", level: 0.35 };
+    const s = { ...defaultSettings("bold"), motion };
+    expect(motionOf(s, segs, [], 60).drop).toBeNull();
+    expect(motionOf({ ...s, music }, segs, [], 60).drop).toBe(30);
+    expect(motionOf({ ...s, music, musicDrop: false }, segs, [], 60).drop).toBeNull();
+    // zooms off does not stop it: the drop is its own switch
+    expect(motionOf({ ...s, music, keyZooms: false }, segs, [], 60).zooms).toEqual([]);
   });
 });
