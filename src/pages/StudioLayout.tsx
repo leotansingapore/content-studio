@@ -201,7 +201,7 @@ export default function StudioLayout() {
   };
 
   const railItemClass = (active: boolean) =>
-    `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+    `flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
       active
         ? "bg-primary/10 text-primary"
         : "text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -223,7 +223,7 @@ export default function StudioLayout() {
 
       {/* Desktop left sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border/70 bg-sidebar lg:flex">
-        <div className="px-4 py-4">
+        <div className="px-4 pb-3 pt-4">
           <Brandmark />
         </div>
         <div className="px-3 pb-2">
@@ -241,7 +241,7 @@ export default function StudioLayout() {
         </div>
         <nav
           aria-label="Primary"
-          className="flex-1 space-y-4 overflow-y-auto px-3 py-2"
+          className="flex-1 space-y-3 overflow-y-auto px-3 py-1"
         >
           {NAV_GROUPS.map((group, gi) => (
             <div key={gi} className="space-y-1">
