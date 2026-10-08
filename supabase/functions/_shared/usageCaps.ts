@@ -27,6 +27,8 @@ export const DAILY_LIMITS = {
   mentions: 10,
   "yt-captions": 10,
   "track-accounts": 10,
+  // Engage this week: one Jev call over the people who commented on your posts.
+  "engage-picks": 20,
   // Free stock photos and B-roll (stock-media, Pexels): searches not already cached.
   "stock-search": 100,
   // "Make the image" on Write (ai-image, Higgsfield Soul v2, about USD 0.006 each).

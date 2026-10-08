@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ExternalLink, Loader2, RefreshCw, Shuffle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import EngageWeek from "@/components/EngageWeek";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
@@ -86,6 +87,8 @@ export default function FollowingPage() {
           </Button>
         )}
       </header>
+
+      <EngageWeek userId={userId} />
 
       {list.length < MAX_FOLLOWED && (
         <form onSubmit={add} className="space-y-2 rounded-2xl border border-border/60 p-4">
