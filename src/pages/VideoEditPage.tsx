@@ -29,6 +29,8 @@ import {
   captionBoxOf,
   fullLength,
   findPhrase,
+  platformFit,
+  trimToLength,
   lookOf,
   sameLook,
   toSrt,
@@ -551,6 +553,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   };
 
   const cutSeconds = Math.max(0, duration - plan.total);
+  // platforms this length is too long for, shortest limit first
+  const lengthIssues = useMemo(() => platformFit(plan.total).filter((p) => p.fit !== "ok").sort((a, b) => a.limit - b.limit), [plan.total]);
   const fillers = words.filter((w) => isFiller(w.w)).length;
 
   if (file === null) {
@@ -656,6 +660,18 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           <p className="text-[11px] text-muted-foreground">
             {fmtTime(duration)} filmed, {fmtTime(plan.total)} after cuts{cutSeconds > 0.5 ? ` (${cutSeconds.toFixed(1)}s cut)` : ""}.
           </p>
+          {lengthIssues.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px]" role="status">
+              {lengthIssues.map((p) => (
+                <span key={p.id} className={`rounded-full border px-2 py-0.5 font-medium ${p.fit === "over" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/50 bg-warning/10"}`}>
+                  {p.fit === "over" ? `Too long for ${p.label} (max ${fmtTime(p.limit).replace(/\.0$/, "")})` : `${p.label} past ${fmtTime(p.limit).replace(/\.0$/, "")} reaches fewer new people`}
+                </span>
+              ))}
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => patch({ trimEnd: trimToLength(plan.segs, duration, lengthIssues[0].limit, settings) })}>
+                Trim to {fmtTime(lengthIssues[0].limit).replace(/\.0$/, "")}
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">

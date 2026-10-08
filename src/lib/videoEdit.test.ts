@@ -242,3 +242,23 @@ describe("caption background and font", () => {
     expect(applyPatch(defaultSettings("bold"), { captionBox: "neon", font: "comic" }).changed).toEqual([]);
   });
 });
+
+describe("platform length rules", () => {
+  it("says which platforms a length fits", async () => {
+    const { platformFit } = await import("@/lib/videoEdit");
+    const fit = (s: number) => Object.fromEntries(platformFit(s).map((p) => [p.id, p.fit]));
+    expect(fit(45)).toEqual({ reels: "ok", shorts: "ok", tiktok: "ok" });
+    expect(fit(240)).toEqual({ reels: "reach", shorts: "over", tiktok: "ok" });
+    expect(fit(900)).toEqual({ reels: "reach", shorts: "over", tiktok: "over" });
+  });
+
+  it("trims the end so the edit lands exactly on the limit, keeping the cuts", async () => {
+    const { trimToLength, totalLength } = await import("@/lib/videoEdit");
+    const segs = [{ start: 0, end: 100 }, { start: 110, end: 250 }]; // 240 s kept of 250
+    const trimEnd = trimToLength(segs, 250, 180, { trimEnd: 0 });
+    expect(trimEnd).toBe(60); // keep 0-100 and 110-190
+    expect(totalLength([{ start: 0, end: 100 }, { start: 110, end: 250 - trimEnd }])).toBe(180);
+    expect(trimToLength([{ start: 0, end: 60 }], 60, 180, { trimEnd: 2 })).toBe(2);
+  });
+});
+

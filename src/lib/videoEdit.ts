@@ -470,3 +470,31 @@ export function findPhrase(words: Word[], query: string): number[] {
   }
   return hits;
 }
+
+// ---------- platform length rules ----------
+// As of Oct 2026: Reels upload up to 20 min but over 3 min isn't shown to new
+// audiences; Shorts up to 3 min; TikTok up to 10 min for most accounts.
+export const PLATFORM_LIMITS = [
+  { id: "reels", label: "Reels", reach: 180, max: 1200 },
+  { id: "shorts", label: "Shorts", reach: 180, max: 180 },
+  { id: "tiktok", label: "TikTok", reach: 600, max: 600 },
+] as const;
+
+export type LengthFit = "ok" | "reach" | "over";
+
+/** How a length sits with each platform: fine, posts but loses reach, or too long. */
+export function platformFit(seconds: number): { id: string; label: string; fit: LengthFit; limit: number }[] {
+  return PLATFORM_LIMITS.map((p) => ({
+    id: p.id,
+    label: p.label,
+    fit: seconds <= p.reach ? "ok" : seconds <= p.max ? "reach" : "over",
+    limit: p.reach,
+  }));
+}
+
+/** The trimEnd that makes the edit end exactly at `limit` seconds, keeping the cuts. */
+export function trimToLength(segs: Segment[], duration: number, limit: number, s: Pick<EditSettings, "trimEnd">): number {
+  if (totalLength(segs) <= limit) return s.trimEnd;
+  // rounded up, so the edit lands on or just under the limit, never a hair over
+  return Math.max(s.trimEnd, Math.ceil((duration - sourceTime(segs, limit)) * 100) / 100);
+}
