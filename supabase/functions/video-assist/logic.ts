@@ -491,12 +491,16 @@ export const KEEP_SCORE = 40;
 
 /** A quarter of the shorter clip shared with a better one drops it (OpenShorts' dedupe_overlapping ratio). */
 const OVERLAP = 0.25;
-const clash = (x: FoundClip, kept: FoundClip[]) =>
-  kept.some((k) => Math.min(x.end, k.end) - Math.max(x.start, k.start) > OVERLAP * Math.min(x.end - x.start, k.end - k.start));
+/** Topping up to the floor, only half of the shorter shared is the same moment (AutoClip's DUPLICATE_OVERLAP). */
+const SAME_MOMENT = 0.5;
+const clash = (x: FoundClip, kept: FoundClip[], ratio = OVERLAP) =>
+  kept.some((k) => Math.min(x.end, k.end) - Math.max(x.start, k.start) > ratio * Math.min(x.end - x.start, k.end - k.start));
 
 /**
  * Jev's order, best first, with each score out of 100 (stands alone 60%, first
  * line 40%): at least `min` clips, more up to `max` while they score KEEP_SCORE.
+ * When overlaps leave fewer than `min`, the best of the rest top it up unless
+ * they share half of a kept clip.
  * With a request, the clips about it come first and are all kept (up to `max`).
  * Without any answer, the LLM's own order and no scores. A clip that mostly
  * repeats a better one (their cleaned edges can meet) is dropped.
@@ -519,7 +523,22 @@ export function rankClips(cands: FoundClip[], answers: Record<string, JevAnswer>
     if (jev && kept.length >= count.min && !c.onTopic && (c.score ?? 0) < KEEP_SCORE) break;
     kept.push(c);
   }
-  return kept;
+  // the floor holds: short of `min`, the best of the rest come back unless they are the same moment as a kept clip
+  for (const c of order) {
+    if (kept.length >= Math.min(count.min, count.max)) break;
+    if (!kept.includes(c) && !clash(c, kept, SAME_MOMENT)) kept.push(c);
+  }
+  return order.filter((c) => kept.includes(c));
+}
+
+/** How many clips the LLM's reply proposed, before any check (for the log). */
+export function proposedCount(content: string | null): number {
+  try {
+    const list = (JSON.parse(content ?? "") as { clips?: unknown })?.clips;
+    return Array.isArray(list) ? list.length : 0;
+  } catch {
+    return 0;
+  }
 }
 
 // ---------- callouts and cutaways for a filmed talking head ----------

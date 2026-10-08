@@ -135,6 +135,17 @@ describe("clips: Jev ranks the candidates", () => {
     expect(rankClips(cands, answers([[0.5, 0.3], [2.7, 2.4], [2, 1.5]]), { min: 1, max: 1 }).map((c) => c.title)).toEqual(["Strong one"]);
   });
 
+  it("holds the floor: overlaps leaving fewer than the minimum are topped up from the best of the rest, never the same moment twice", async () => {
+    const { rankClips, proposedCount } = await import("./logic");
+    // b shares 15 of its 40 s with a (37%): dropped while there are enough, back to reach the floor; d is a's moment again
+    const a = cand(0, 40, "A"), b = cand(25, 65, "B"), c = cand(100, 140, "C"), d = cand(5, 40, "D");
+    expect(rankClips([a, b, c, d], null, { min: 3, max: 5 }).map((x) => x.title)).toEqual(["A", "B", "C"]);
+    expect(rankClips([a, b, c, d], null, { min: 2, max: 5 }).map((x) => x.title)).toEqual(["A", "C"]);
+    // with Jev, the top-up keeps Jev's order: B (60) sits between A (86) and C (14)
+    expect(rankClips([a, b, c, d], answers([[2.7, 2.4], [2, 1.5], [0.5, 0.3], [0.1, 0.1]]), { min: 3, max: 5 }).map((x) => [x.title, x.score])).toEqual([["A", 86], ["B", 60], ["C", 14]]);
+    expect([proposedCount(JSON.stringify({ clips: [{}, {}, {}] })), proposedCount("nope"), proposedCount(null)]).toEqual([3, 0, 0]);
+  });
+
   it("falls back to the LLM's order with no scores when Jev has no answer, and puts unscored ones last", async () => {
     const { rankClips } = await import("./logic");
     expect(rankClips(cands, null, { min: 1, max: 2 })).toEqual(cands.slice(0, 2));

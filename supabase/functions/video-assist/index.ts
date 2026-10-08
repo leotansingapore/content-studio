@@ -64,6 +64,7 @@ import {
   cleanWords,
   parseClipsReply,
   parseClipsRequest,
+  proposedCount,
   parseVibeReply,
   parseVibeRequest,
 } from "./logic.ts";
@@ -160,6 +161,7 @@ Deno.serve(async (req) => {
       // single run sometimes misses on a perfectly usable video.
       const limit = candidateCount(c.duration);
       let clips: ReturnType<typeof parseClipsReply> = null;
+      let proposed = 0;
       for (let attempt = 0; attempt < 2 && !clips?.length; attempt++) {
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
@@ -173,9 +175,11 @@ Deno.serve(async (req) => {
         }
         const content = (await res.json())?.choices?.[0]?.message?.content ?? null;
         clips = parseClipsReply(content, c.duration, limit);
+        proposed = proposedCount(content);
         if (!clips?.length) console.error("video-assist clips: no usable clip", attempt, String(content).slice(0, 500));
       }
       if (!clips?.length) return json({ error: "No clips stood out in this video. Try a longer one." }, 422);
+      const usable = clips.length;
       // edges on whole sentences and strong words, before Jev reads them; no word timings, no skips
       clips = c.words.length ? clips.map((x) => cleanEdges(x, c.words, c.duration)) : clips.map(({ skip: _, ...x }) => x);
       const english = mostlyEnglish(c.sentences.map((x) => x.text).join(" "));
@@ -187,7 +191,10 @@ Deno.serve(async (req) => {
       const answers = english
         ? await askJev({ viewer: CLIP_VIEWER }, clipQuestions(clips, c.sentences, c.words, c.about), { who: "video-assist clips", timeoutMs: 10_000 })
         : null;
-      return json({ clips: rankClips(clips, answers, clipCount(c.duration), c.about) });
+      const count = clipCount(c.duration);
+      const ranked = rankClips(clips, answers, count, c.about);
+      console.log(`video-assist clips: ${proposed} proposed, ${usable} usable, ${clips.length} after cleaning, ${ranked.length} kept (floor ${count.min}, Jev ${answers ? "on" : "off"}, ${Math.round(c.duration)}s)`);
+      return json({ clips: ranked });
     }
 
     if (body?.mode === "cutaways") {
