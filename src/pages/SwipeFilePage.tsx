@@ -227,7 +227,7 @@ export default function SwipeFilePage() {
         <>
           {working.posts >= 5 && (
             <Card className="border-border/60 shadow-card">
-              <CardContent className="space-y-3 !py-4">
+              <CardContent className="space-y-3 py-4">
                 <div className="flex items-center gap-1.5">
                   <h2 className="text-sm font-semibold text-foreground">Formats working now</h2>
                   <InfoTip label="About formats working now">
@@ -285,7 +285,7 @@ export default function SwipeFilePage() {
               format stay out; who / topic / angle / audience fold behind Filters
               so the posts start above the fold on a phone. */}
           <Card className="border-border/60 shadow-card">
-            <CardContent className="space-y-3 !pt-5">
+            <CardContent className="space-y-3 pt-5">
               <div className="flex gap-2">
                 <div className="relative min-w-0 flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -382,7 +382,7 @@ export default function SwipeFilePage() {
 
           {filtered.length === 0 ? (
             <Card className="border-border/60 shadow-card">
-              <CardContent className="flex flex-col items-center gap-3 !py-10 text-center text-sm text-muted-foreground">
+              <CardContent className="flex flex-col items-center gap-3 py-10 text-center text-sm text-muted-foreground">
                 {savedOnly && savedSet.size === 0 ? (
                   <>
                     <p>No saved posts yet. Open a post and tap Save to keep it here.</p>

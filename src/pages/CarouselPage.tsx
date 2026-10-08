@@ -794,7 +794,7 @@ export default function CarouselPage() {
 
       {tooShort && split && (
         <Card className="border-amber-200 bg-amber-50/60 shadow-card">
-          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-5 md:p-5">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-5">
             <TriangleAlert className="h-5 w-5 shrink-0 text-amber-700" aria-hidden />
             <div className="flex-1 space-y-1" role="status">
               <p className="text-sm font-semibold text-foreground">This post is too short for a carousel</p>

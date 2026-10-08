@@ -62,7 +62,12 @@ const CardContent = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("p-3 pt-0 sm:p-4 sm:pt-0 md:p-6 md:pt-0", className)}
+    // The responsive step lives in a CSS variable, not in sm:/md: padding classes, so a page's
+    // own padding (pt-6, py-4, p-0) wins at every width instead of being reset from 640px up.
+    className={cn(
+      "[--card-pad:0.75rem] sm:[--card-pad:1rem] md:[--card-pad:1.5rem] p-[var(--card-pad)] pt-0",
+      className,
+    )}
     {...props}
   />
 ));

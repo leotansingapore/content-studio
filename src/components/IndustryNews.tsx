@@ -116,7 +116,7 @@ export default function IndustryNews() {
   if (NEWS.length === 0) {
     return (
       <Card className="border-border/60 shadow-card">
-        <CardContent className="!py-10 text-center text-sm text-muted-foreground">No industry news yet.</CardContent>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">No industry news yet.</CardContent>
       </Card>
     );
   }

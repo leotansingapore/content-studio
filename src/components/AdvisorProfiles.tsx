@@ -441,7 +441,7 @@ export default function AdvisorProfiles() {
       </header>
 
       <Card className="border-border/60 shadow-card">
-        <CardContent className="space-y-3 !pt-5">
+        <CardContent className="space-y-3 pt-5">
           <div className="flex gap-2">
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -564,7 +564,7 @@ export default function AdvisorProfiles() {
 
       {filtered.length === 0 ? (
         <Card className="border-border/60 shadow-card">
-          <CardContent className="!py-10 text-center text-sm text-muted-foreground">
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
             {savedOnly && saved.creators.length === 0 ? (
               <>
                 Nothing saved yet. Tap the bookmark on any creator to keep it here.{" "}

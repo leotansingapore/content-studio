@@ -71,7 +71,7 @@ export default function TeamPage() {
 
       {status === "loading" ? (
         <Card className="border-border/60 shadow-card">
-          <CardContent className="p-0 sm:p-0 md:p-0">
+          <CardContent className="p-0">
             <LoadingBlock label="Loading your team…" />
           </CardContent>
         </Card>

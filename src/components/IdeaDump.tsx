@@ -180,7 +180,7 @@ function BriefCard({
 
   return (
     <Card className="border-border/60 shadow-card" data-testid="idea-brief">
-      <CardContent className="space-y-4 p-4 sm:p-5 md:p-5">
+      <CardContent className="space-y-4 p-4 sm:p-5">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -500,7 +500,7 @@ export default function IdeaDump() {
       </div>
 
       <Card className="border-border/60 shadow-card">
-        <CardContent className="space-y-3 p-4 sm:p-5 md:p-5">
+        <CardContent className="space-y-3 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Label htmlFor="idea-dump-notes">Your rough ideas</Label>
             {text.trim() && (

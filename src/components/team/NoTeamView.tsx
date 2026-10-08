@@ -204,7 +204,7 @@ export default function NoTeamView({
         )}
       </div>
       <Card className="border-border/60 bg-muted/20">
-        <CardContent className="flex gap-3 p-4 text-sm text-muted-foreground sm:p-4 md:p-4">
+        <CardContent className="flex gap-3 p-4 text-sm text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <ol className="list-decimal space-y-1 pl-4">
             <li>A consultant submits a draft from My posts. The text and its compliance flags are saved as they were.</li>
