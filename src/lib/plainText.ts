@@ -62,3 +62,24 @@ export function toPlainText(input: string): string {
 
   return out.trim();
 }
+
+const HASHTAG = /#[\p{L}\p{N}_]+/gu;
+
+/**
+ * The brand kit sign-off on the end of a post, once. Hashtags the post already
+ * has are left out of the sign-off, and a line left empty by that is dropped,
+ * so a draft ending in #cpf doesn't paste with #cpf twice.
+ */
+export function withSignOff(text: string, signOff: string | null | undefined): string {
+  const body = text.trimEnd();
+  const tail = (signOff ?? "").trim();
+  if (!tail || body.endsWith(tail)) return tail ? body : text;
+  const have = new Set((body.match(HASHTAG) ?? []).map((t) => t.toLowerCase()));
+  const lines = tail.split("\n").flatMap((line) => {
+    if (!/#[\p{L}\p{N}_]/u.test(line)) return [line];
+    const left = line.replace(HASHTAG, (t) => (have.has(t.toLowerCase()) ? "" : t)).replace(/[ \t]{2,}/g, " ").trim();
+    return left ? [left] : [];
+  });
+  const kept = lines.join("\n").trim();
+  return kept ? `${body}\n\n${kept}` : body;
+}

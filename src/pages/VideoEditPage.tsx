@@ -13,6 +13,8 @@ import { upsertDraft } from "@/lib/draftHistory";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { scanCompliance } from "@/lib/compliance";
 import { stripDashes } from "@/lib/recruit";
+import { loadBrand } from "@/lib/carousel";
+import { withSignOff } from "@/lib/plainText";
 import { supabase } from "@/lib/supabase";
 import {
   STYLES,
@@ -618,7 +620,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 )}
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={saveToPosts} disabled={savedDraft}>{savedDraft ? "Saved to My posts" : "Save to My posts"}</Button>
-                  <Button size="sm" variant="ghost" onClick={() => navigator.clipboard.writeText(caption).then(() => toast({ title: "Caption copied" }))}>Copy</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { const sign = loadBrand(userId)?.signOff?.trim(); navigator.clipboard.writeText(sign ? withSignOff(caption, sign) : caption).then(() => toast({ title: sign ? "Caption copied with your sign-off" : "Caption copied" })); }}>Copy</Button>
                   {savedDraft && <Link to="/calendar" className="self-center text-xs font-semibold text-primary hover:underline">Schedule it</Link>}
                 </div>
               </>

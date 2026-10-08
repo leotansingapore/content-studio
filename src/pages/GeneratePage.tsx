@@ -78,7 +78,8 @@ import {
 } from "@/lib/draftHistory";
 import { readout, type CounterReadout } from "@/lib/platformCounters";
 import { splitScriptCaption } from "@/lib/scriptCaption";
-import { toPlainText } from "@/lib/plainText";
+import { toPlainText, withSignOff } from "@/lib/plainText";
+import { loadBrand } from "@/lib/carousel";
 import QuickTip from "@/components/QuickTip";
 import CompetitorReference, {
   buildCompetitorStyleReference,
@@ -1231,10 +1232,12 @@ export default function GeneratePage() {
 
   // Everything copied from here is headed for a social platform, none of which
   // render markdown - strip it so "**hook**" doesn't paste as literal asterisks.
-  const copyText = async (text: string, title: string, description: string) => {
+  // A post or caption also gets the brand kit sign-off; a script doesn't.
+  const copyText = async (text: string, title: string, description: string, signOff = false) => {
     try {
-      await navigator.clipboard.writeText(toPlainText(text));
-      toast({ title, description });
+      const sign = signOff ? loadBrand(userId)?.signOff?.trim() : "";
+      await navigator.clipboard.writeText(sign ? withSignOff(toPlainText(text), sign) : toPlainText(text));
+      toast({ title: sign ? `${title} with your sign-off` : title, description });
     } catch {
       toast({
         title: "Copy failed",
@@ -1246,7 +1249,7 @@ export default function GeneratePage() {
 
   const handleCopy = async () => {
     if (!draft) return;
-    await copyText(draft, "Copied", "Paste into your platform of choice.");
+    await copyText(draft, "Copied", "Paste into your platform of choice.", true);
   };
 
   // Suppress unused import warning - navigate may be needed by future flows.
@@ -2064,6 +2067,7 @@ export default function GeneratePage() {
                         svSplit.caption,
                         "Caption copied",
                         "Paste into the post caption.",
+                        true,
                       )
                     }
                     className="relative gap-1.5"

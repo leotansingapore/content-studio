@@ -9,6 +9,7 @@ import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
@@ -19,6 +20,7 @@ import {
   MAX_IMAGE_CHARS,
   MAX_NAME_CHARS,
   MAX_ROLE_CHARS,
+  MAX_SIGNOFF_CHARS,
   loadBrand,
   normalizeHandle,
   normalizeHex,
@@ -231,6 +233,19 @@ export default function BrandPage() {
                 className="h-9 w-24 font-mono text-xs"
               />
             </div>
+          </section>
+
+          <section className="space-y-2 rounded-xl border border-border/60 p-4 shadow-card">
+            <Label htmlFor="brand-signoff" className="font-serif text-lg font-semibold">Sign-off</Label>
+            <Textarea
+              id="brand-signoff"
+              rows={4}
+              value={brand.signOff ?? ""}
+              maxLength={MAX_SIGNOFF_CHARS}
+              onChange={(e) => update({ signOff: e.target.value })}
+              placeholder={"DM me PLAN for a free review.\nFor information only, not financial advice.\n#financialplanning #singapore"}
+            />
+            <p className="text-xs text-muted-foreground">Added to the end of a post when you copy it. Hashtags already in the post aren't repeated.</p>
           </section>
 
           <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card">

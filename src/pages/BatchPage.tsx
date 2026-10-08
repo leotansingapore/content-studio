@@ -14,7 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { streamOnePost } from "@/lib/batchGenerate";
-import { toPlainText } from "@/lib/plainText";
+import { toPlainText, withSignOff } from "@/lib/plainText";
+import { loadBrand } from "@/lib/carousel";
 import {
   upsertDraft,
   newDraftId,
@@ -248,8 +249,10 @@ export default function BatchPage() {
 
   const handleCopy = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(toPlainText(text));
-      toast({ title: "Copied" });
+      const { data } = await supabase.auth.getUser();
+      const sign = loadBrand(data.user?.id)?.signOff?.trim();
+      await navigator.clipboard.writeText(sign ? withSignOff(toPlainText(text), sign) : toPlainText(text));
+      toast({ title: sign ? "Copied with your sign-off" : "Copied" });
     } catch {
       toast({ title: "Copy failed", variant: "destructive" });
     }
