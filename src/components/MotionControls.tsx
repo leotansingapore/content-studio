@@ -60,6 +60,7 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
       const lines = keyLinesFrom(await pickKeyLines(sent, total, settings.hook?.trim() ? settings.hookSeconds : 0), sent, segs, speed);
       if (!lines) return toast({ title: "No key lines picked", description: "This works on videos in English. Try again in a minute if yours is.", variant: "destructive" });
       apply({ ...then, motion: { lines } });
+      if (then.popups && !lines.some((l) => l.pop)) toast({ title: "No pop-ups written this time", description: "The key lines are kept. Try Pop-up text again in a minute.", variant: "destructive" });
     } catch (e) {
       toast({ title: "Couldn't pick the key lines", description: (e as Error).message, variant: "destructive" });
     } finally {
