@@ -2122,7 +2122,7 @@ export default function GeneratePage() {
             )}
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   <Pencil className="h-3.5 w-3.5" /> Edit
                 </div>
@@ -2131,7 +2131,7 @@ export default function GeneratePage() {
                   onChange={(e) => setDraft(e.target.value)}
                   onBlur={handleDraftBlur}
                   rows={Math.min(28, Math.max(12, draft.split("\n").length + 2))}
-                  className="h-full font-sans text-sm leading-relaxed"
+                  className="flex-1 font-sans text-sm leading-relaxed"
                 />
               </div>
               <div className="space-y-1.5">
@@ -2192,7 +2192,7 @@ export default function GeneratePage() {
                     {craftCheck.score}/100
                   </span>
                 </div>
-                <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                <p className="min-w-[12rem] flex-1 text-xs text-muted-foreground">
                   {craftCheck.fixes[0]}
                 </p>
                 <Link
