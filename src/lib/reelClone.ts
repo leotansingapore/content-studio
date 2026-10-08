@@ -11,10 +11,12 @@ import {
   parseReelUrl,
   type CloneErrorCode,
   type CloneResponse,
+  type HookFormulaInput,
   type MyVersion,
   type VoiceInput,
   type Winner,
 } from "../../supabase/functions/clone-reel/logic.ts";
+import type { HookFormula } from "@/lib/hookFormulas";
 import type { Pacing, Visuals } from "../../supabase/functions/reel-visuals/logic.ts";
 import { scoped } from "@/lib/profiles";
 import { getTrackedPosts } from "@/lib/analytics";
@@ -24,6 +26,7 @@ export { LINK_MESSAGES, parseReelUrl } from "../../supabase/functions/clone-reel
 export type {
   Breakdown,
   CloneResponse,
+  Concept,
   CloneSource,
   MyVersion,
   ReelMetrics,
@@ -99,14 +102,14 @@ function isCloneResponse(v: unknown): v is CloneResponse {
   );
 }
 
-/** Clones one reel. Throws ReelCloneError with a message fit to show. */
-export async function cloneReel(url: string, voice: VoiceInput | null, signal?: AbortSignal): Promise<CloneResponse> {
+/** Calls clone-reel and returns its answer. Throws ReelCloneError with a message fit to show. */
+async function invokeClone(payload: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
   const started = Date.now();
   let data: unknown = null;
   let error: unknown = null;
   try {
     ({ data, error } = await supabase.functions.invoke("clone-reel", {
-      body: { url, voice },
+      body: payload,
       signal,
       timeout: CLIENT_TIMEOUT_MS,
     }));
@@ -135,10 +138,35 @@ export async function cloneReel(url: string, voice: VoiceInput | null, signal?: 
 
   const body = data as { error?: unknown; code?: unknown } | null;
   if (typeof body?.error === "string") throw new ReelCloneError(body.error, errorCodeFor(body.code, 200), 200);
+  return data;
+}
+
+/** What the function needs of each hook formula; hookOptions[i] is written with formulas[i]. */
+const formulaInput = (formulas: HookFormula[]): HookFormulaInput[] =>
+  formulas.map(({ name, template, example, trap }) => ({ name, template, example, trap }));
+
+/** The version with the ids of the formulas its hooks were written with, when they line up. */
+function tagHooks(version: MyVersion, formulas: HookFormula[]): MyVersion {
+  return formulas.length && version.hookOptions?.length === formulas.length
+    ? { ...version, hookFormulas: formulas.map((f) => f.id) }
+    : version;
+}
+
+/** Clones one reel, writing its hooks with `formulas` when given. Throws ReelCloneError with a message fit to show. */
+export async function cloneReel(
+  url: string,
+  voice: VoiceInput | null,
+  signal?: AbortSignal,
+  formulas: HookFormula[] = [],
+): Promise<CloneResponse> {
+  const data = await invokeClone(
+    formulas.length ? { url, voice, formulas: formulaInput(formulas) } : { url, voice },
+    signal,
+  );
   if (!isCloneResponse(data)) {
     throw new ReelCloneError("The clone came back incomplete. Try again.", "server_error", 200);
   }
-  return data;
+  return { ...data, myVersion: tagHooks(data.myVersion, formulas) };
 }
 
 /** Tracked posts needed before "your best posts" means anything. */
@@ -251,6 +279,16 @@ export interface SavedClone {
   /** What the frames showed, with the pacing measured from the video (Instagram reels only). */
   visuals?: Visuals & { measured: Pacing };
   /** The draft made from this result, once opened in Write or added to the board. */
+  draftId?: string;
+  onBoard?: boolean;
+  /** Which of result.concepts result.myVersion is (0 when absent). */
+  concept?: number;
+  /** The versions of the other concepts built so far, by concept index, each with its own draft. */
+  builds?: (ConceptBuild | null)[];
+}
+
+export interface ConceptBuild {
+  version: MyVersion;
   draftId?: string;
   onBoard?: boolean;
 }
@@ -385,7 +423,12 @@ export function onVisualsJob(fn: (job: VisualsJob | null) => void): () => void {
 
 /** True when this clone still carries Instagram's video link and hasn't been read yet. */
 export function canReadVideo(clone: SavedClone): boolean {
-  return Boolean(clone.result.source.videoUrl) && !clone.visuals && Boolean(clone.result.myVersion.beats?.length);
+  return (
+    Boolean(clone.result.source.videoUrl) &&
+    !clone.visuals &&
+    Boolean(clone.result.myVersion.beats?.length) &&
+    (clone.concept ?? 0) === 0
+  );
 }
 
 /**
@@ -432,4 +475,66 @@ export async function startVisualsJob(userId: string, clone: SavedClone): Promis
   } catch (e) {
     set({ phase: "error", error: e instanceof Error && e.message ? e.message : "Couldn't read the video this time. Try again." });
   }
+}
+
+// ---- Concepts --------------------------------------------------------------------------------
+
+/**
+ * The clone showing concept `index`: `version` when it was just written, else
+ * the one built before, each with its own draft. The version it leaves is
+ * kept, so switching back is free. Unchanged when that concept isn't built.
+ */
+export function withConcept(clone: SavedClone, index: number, version?: MyVersion): SavedClone {
+  const current = clone.concept ?? 0;
+  if (!version && index === current) return clone;
+  const builds = Array.from({ length: Math.max(clone.builds?.length ?? 0, current + 1, index + 1) }, (_, i) => clone.builds?.[i] ?? null);
+  const target: ConceptBuild | null = version ? { version } : builds[index];
+  if (!target) return clone;
+  builds[current] = { version: clone.result.myVersion, draftId: clone.draftId, onBoard: clone.onBoard };
+  const next: SavedClone = { ...clone, concept: index, builds, result: { ...clone.result, myVersion: target.version } };
+  delete next.draftId;
+  delete next.onBoard;
+  if (target.draftId) next.draftId = target.draftId;
+  if (target.onBoard) next.onBoard = true;
+  return next;
+}
+
+/** The original's look, read for the first concept's beats, so only shown with that version. */
+export const visualsFor = (clone: SavedClone) => ((clone.concept ?? 0) === 0 ? (clone.visuals ?? null) : null);
+
+const conceptRuns = new Map<string, { index: number; promise: Promise<SavedClone> }>();
+
+/** The concept being written for this clone, if one is. */
+export const conceptRun = (cloneId: string) => conceptRuns.get(cloneId) ?? null;
+
+/**
+ * Writes the version of concept `index` and saves it as the clone's version.
+ * It runs outside the page, so it lands even when the consultant opens
+ * another page meanwhile. One at a time per clone.
+ */
+export function startConceptBuild(
+  userId: string | null,
+  clone: SavedClone,
+  index: number,
+  voice: VoiceInput | null,
+  formulas: HookFormula[] = [],
+): Promise<SavedClone> {
+  const running = conceptRuns.get(clone.id);
+  if (running) return running.promise;
+  const concept = clone.result.concepts?.[index];
+  if (!concept) return Promise.resolve(clone);
+  const promise = invokeClone({ url: clone.result.source.url, voice, formulas: formulaInput(formulas), concept })
+    .then((data) => {
+      const v = (data as { myVersion?: MyVersion } | null)?.myVersion;
+      if (typeof v?.script !== "string" || typeof v?.caption !== "string" || !v.beats?.length) {
+        throw new ReelCloneError("That version came back incomplete. Try again.", "server_error", 200);
+      }
+      const latest = (userId && loadSavedClones(userId).find((c) => c.id === clone.id)) || clone;
+      const updated = withConcept(latest, index, tagHooks(v, formulas));
+      if (userId) rememberClone(userId, updated);
+      return updated;
+    })
+    .finally(() => conceptRuns.delete(clone.id));
+  conceptRuns.set(clone.id, { index, promise });
+  return promise;
 }

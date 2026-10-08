@@ -40,6 +40,7 @@ import {
   cloneIdOf,
   cloneReel,
   cloneStepAt,
+  conceptRun,
   currentVisualsJob,
   loadSavedClones,
   onVisualsJob,
@@ -47,17 +48,22 @@ import {
   rememberClone,
   saveCloneDraft,
   shotListText,
+  startConceptBuild,
   startVisualsJob,
+  visualsFor,
   voiceForClone,
   winnersFor,
+  withConcept,
   withHook,
   type Breakdown,
   type CloneSource,
+  type Concept,
   type ReelCloneErrorCode,
   type ReelPlatform,
   type SavedClone,
   type VisualsJob,
 } from "@/lib/reelClone";
+import { HOOK_FORMULAS, hookFormula, hookFormulaSet } from "@/lib/hookFormulas";
 import { supabase } from "@/lib/supabase";
 import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
 
@@ -137,7 +143,7 @@ function EmptyState({ hasVoice }: { hasVoice: boolean }) {
   const steps = [
     { title: "What it says", body: "The caption, a transcript of the video and its public numbers." },
     { title: "Why it worked", body: "The hook, the beats, the payoff and, for Instagram reels, what's on screen and how fast it cuts." },
-    { title: "Your version", body: "3 hooks, a shot list and a caption in your voice, made for Singapore and checked for compliance." },
+    { title: "Your version", body: "3 concepts to pick from, then hooks, a shot list and a caption in your voice, made for Singapore and checked for compliance." },
   ];
   return (
     <Card className="border-border/60 shadow-card">
@@ -706,7 +712,8 @@ function VersionBlock({ label, text, copyLabel, pre }: { label: string; text: st
 function ShotList({ clone }: { clone: SavedClone }) {
   const v = clone.result.myVersion;
   const beats = v.beats ?? [];
-  const shots = clone.visuals?.myVisuals ?? [];
+  const visuals = visualsFor(clone);
+  const shots = visuals?.myVisuals ?? [];
   const total = beats.reduce((sum, b) => sum + b.seconds, 0);
   return (
     <div className="space-y-2">
@@ -714,10 +721,10 @@ function ShotList({ clone }: { clone: SavedClone }) {
         <p className={LABEL}>Shot list · about {total}s</p>
         <div className="flex items-center gap-1">
           <CopyButton text={v.script} label="Script" display="Copy script" />
-          <CopyButton text={shotListText(v, clone.visuals)} label="Shot list" display="Copy shot list" />
+          <CopyButton text={shotListText(v, visuals)} label="Shot list" display="Copy shot list" />
         </div>
       </div>
-      {clone.visuals && (
+      {visuals && (
         <p className="flex items-center gap-1 text-[11px] font-medium text-primary">
           <Eye className="h-3 w-3 shrink-0" /> Shots match the original's look
         </p>
@@ -759,19 +766,95 @@ function ShotList({ clone }: { clone: SavedClone }) {
   );
 }
 
+function ConceptPicker({
+  concepts,
+  active,
+  building,
+  error,
+  onChoose,
+}: {
+  concepts: Concept[];
+  active: number;
+  building: number | null;
+  error: string | null;
+  onChoose: (index: number) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <p id="concept-options" className={`${LABEL} text-primary`}>
+        Pick a concept
+      </p>
+      <div role="radiogroup" aria-labelledby="concept-options" className="space-y-1.5">
+        {concepts.map((c, i) => {
+          const on = i === active;
+          const busy = i === building;
+          return (
+            <button
+              key={i}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              disabled={building !== null && !busy}
+              onClick={() => onChoose(i)}
+              className={`flex min-h-11 w-full items-start gap-2.5 rounded-lg border p-3 text-left transition-colors disabled:opacity-60 ${
+                on || busy ? "border-primary/40 bg-primary/5" : "border-border/60 hover:bg-accent/60"
+              }`}
+            >
+              <span
+                className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                  on ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"
+                }`}
+              >
+                {busy ? <Loader2 className="h-3 w-3 animate-spin text-primary" /> : on && <Check className="h-3 w-3" />}
+              </span>
+              <span className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">
+                <span className="block text-sm font-semibold leading-snug text-foreground">{c.title}</span>
+                <span className="block text-xs leading-relaxed text-muted-foreground">
+                  <span className="font-medium text-foreground/80">Keeps:</span> {c.keeps}
+                </span>
+                <span className="block text-xs leading-relaxed text-muted-foreground">
+                  <span className="font-medium text-foreground/80">Changes:</span> {c.changes}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {error ? (
+        <p role="alert" className="text-xs font-medium text-destructive">
+          {error}
+        </p>
+      ) : (
+        <p role="status" aria-live="polite" className="text-[11px] text-muted-foreground">
+          {building !== null
+            ? "Writing that version, about 20 seconds..."
+            : `A new concept uses 1 of your ${DAILY_LIMITS["reel-concepts"]} a day.`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function VersionCard({
   clone,
+  building,
+  conceptError,
   onOpenInWrite,
   onAddToBoard,
   onChooseHook,
+  onChooseConcept,
 }: {
   clone: SavedClone;
+  building: number | null;
+  conceptError: string | null;
   onOpenInWrite: () => void;
   onAddToBoard: () => void;
   onChooseHook: (index: number) => void;
+  onChooseConcept: (index: number) => void;
 }) {
   const v = clone.result.myVersion;
   const options = v.hookOptions ?? [];
+  const concepts = clone.result.concepts ?? [];
   const flags = useMemo(
     () =>
       scanCompliance(
@@ -788,6 +871,16 @@ function VersionCard({
           <ComplianceFlags flags={flags} />
         </div>
 
+        {concepts.length > 1 && (
+          <ConceptPicker
+            concepts={concepts}
+            active={clone.concept ?? 0}
+            building={building}
+            error={conceptError}
+            onChoose={onChooseConcept}
+          />
+        )}
+
         {options.length > 1 ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
@@ -799,6 +892,7 @@ function VersionCard({
             <div role="radiogroup" aria-labelledby="hook-options" className="space-y-1.5">
               {options.map((h, i) => {
                 const on = h === v.hook;
+                const formula = hookFormula(v.hookFormulas?.[i]);
                 return (
                   <button
                     key={i}
@@ -817,12 +911,19 @@ function VersionCard({
                     >
                       {on && <Check className="h-3 w-3" />}
                     </span>
-                    <span
-                      className={`min-w-0 [overflow-wrap:anywhere] ${
-                        on ? "font-serif text-base font-semibold leading-snug text-foreground" : "text-sm text-foreground/80"
-                      }`}
-                    >
-                      {h}
+                    <span className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">
+                      <span
+                        className={`block ${
+                          on ? "font-serif text-base font-semibold leading-snug text-foreground" : "text-sm text-foreground/80"
+                        }`}
+                      >
+                        {h}
+                      </span>
+                      {formula && (
+                        <span className="block text-[11px] leading-snug text-muted-foreground">
+                          <span className="font-semibold text-foreground">{formula.name}.</span> Trap: {formula.trap}
+                        </span>
+                      )}
                     </span>
                   </button>
                 );
@@ -925,6 +1026,11 @@ export default function CloneReelPage() {
   const [view, setView] = useState<View>({ kind: "idle" });
   const [saved, setSaved] = useState<SavedClone[]>([]);
   const [visualsJob, setVisualsJob] = useState<VisualsJob | null>(() => currentVisualsJob());
+  // The concept being written, and why the last one failed, for the clone on screen.
+  const [building, setBuilding] = useState<{ cloneId: string; index: number } | null>(null);
+  const [conceptError, setConceptError] = useState<{ cloneId: string; message: string } | null>(null);
+  // Which set of hook formulas the next clone or concept uses; each takes the next.
+  const hookSetRef = useRef(Math.floor(Math.random() * HOOK_FORMULAS.length));
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -994,7 +1100,7 @@ export default function CloneReelPage() {
       // A click right after the page opens can beat the getUser() above; the session is local, so read it here.
       const uid = userId ?? (await supabase.auth.getSession()).data.session?.user.id ?? null;
       const voice = voiceForClone(loadVoiceProfile(uid), winnersFor(uid));
-      const result = await cloneReel(parsed.url, voice, controller.signal);
+      const result = await cloneReel(parsed.url, voice, controller.signal, hookFormulaSet(hookSetRef.current++));
       if (controller.signal.aborted) return;
       const clone: SavedClone = { id: cloneIdOf(result), savedAt: new Date().toISOString(), result };
       if (uid) setSaved(rememberClone(uid, clone));
@@ -1045,6 +1151,49 @@ export default function CloneReelPage() {
     setView({ kind: "result", clone: updated });
     if (userId) setSaved(rememberClone(userId, updated));
   };
+
+  // Shows a concept's version once it's written; the build itself saves it, wherever the consultant is.
+  const followBuild = async (clone: SavedClone, index: number, build: Promise<SavedClone>) => {
+    setBuilding({ cloneId: clone.id, index });
+    setConceptError(null);
+    try {
+      const updated = await build;
+      setSaved(loadSavedClones(userId));
+      setView((prev) =>
+        prev.kind === "result" && prev.clone.id === updated.id
+          ? { kind: "result", clone: { ...updated, result: { ...updated.result, source: prev.clone.result.source } } }
+          : prev,
+      );
+    } catch (e) {
+      setConceptError({
+        cloneId: clone.id,
+        message: e instanceof ReelCloneError ? e.message : "Couldn't write that version. Try again.",
+      });
+    } finally {
+      setBuilding((b) => (b?.cloneId === clone.id ? null : b));
+    }
+  };
+
+  const chooseConcept = (clone: SavedClone, index: number) => {
+    if (building || index === (clone.concept ?? 0)) return;
+    const switched = withConcept(clone, index);
+    if (switched !== clone) {
+      setConceptError(null);
+      setView({ kind: "result", clone: switched });
+      if (userId) setSaved(rememberClone(userId, switched));
+      return;
+    }
+    const voice = voiceForClone(loadVoiceProfile(userId), winnersFor(userId));
+    void followBuild(clone, index, startConceptBuild(userId, clone, index, voice, hookFormulaSet(hookSetRef.current++)));
+  };
+
+  // Back on a clone whose concept is still being written: show it running.
+  const shownId = view.kind === "result" ? view.clone.id : null;
+  useEffect(() => {
+    const running = shownId ? conceptRun(shownId) : null;
+    if (running && view.kind === "result") void followBuild(view.clone, running.index, running.promise);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shownId]);
 
   const openInWrite = (clone: SavedClone) => {
     if (!userId) return;
@@ -1139,9 +1288,12 @@ export default function CloneReelPage() {
             <div className="min-w-0 lg:col-start-2 lg:row-start-2">
               <VersionCard
                 clone={view.clone}
+                building={building?.cloneId === view.clone.id ? building.index : null}
+                conceptError={conceptError?.cloneId === view.clone.id ? conceptError.message : null}
                 onOpenInWrite={() => openInWrite(view.clone)}
                 onAddToBoard={() => addToBoard(view.clone)}
                 onChooseHook={(i) => chooseHook(view.clone, i)}
+                onChooseConcept={(i) => chooseConcept(view.clone, i)}
               />
             </div>
             <div className="min-w-0 lg:col-span-2 lg:row-start-1">

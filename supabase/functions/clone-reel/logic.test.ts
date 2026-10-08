@@ -3,6 +3,7 @@ import {
   BACKGROUND_LIMIT_MS,
   CLONE_ERRORS,
   CLONE_RESPONSE_FORMAT,
+  CONCEPT_RESPONSE_FORMAT,
   FETCH_BUDGET_MS,
   LINK_MESSAGES,
   METRICS_TTL_MS,
@@ -10,15 +11,19 @@ import {
   aiTimeoutMs,
   apifyJob,
   buildClonePrompt,
+  buildConceptPrompt,
   cacheDecision,
+  cleanConcept,
   isApifyStorageUrl,
   mergeSource,
   parseReelUrl,
   pickIgItem,
   pickTiktokItem,
+  sanitizeFormulas,
   sanitizeVoice,
   toCloneSource,
   validateCloneOutput,
+  validateConceptOutput,
   isIgVideoUrl,
   vttToText,
   type CloneSource,
@@ -518,6 +523,55 @@ describe("buildClonePrompt", () => {
     expect(user).toContain('1. """\nYour CPF isn\'t lazy money\n""" 4,200 views');
     expect(buildClonePrompt(source, null).user).not.toContain("did best");
   });
+
+  const formulas = [
+    { name: "Number reveal", template: "I did {X} {N} times.", example: "I reviewed 40 families.", trap: "Hiding the number." },
+    { name: "Mistake confession", template: "{Cost} is what {mistake} cost me.", example: "", trap: "A humblebrag." },
+  ];
+
+  it("asks for concepts and lists the hook formulas in order, the example as shape only", () => {
+    const { system, user } = buildClonePrompt(source, null, formulas);
+    expect(system).toMatch(/Part 2, concepts: 3 original ideas/);
+    expect(system).toMatch(/concepts\[0\] is the one you write as myVersion/);
+    expect(system).toMatch(/hookOptions\[0\] follows formula 1/);
+    expect(user).toContain(
+      "Hook formulas, in order:\n1. Number reveal. Shape: I did {X} {N} times. Example of the shape only, don't reuse its facts or numbers: I reviewed 40 families. Trap: Hiding the number.\n2. Mistake confession. Shape: {Cost} is what {mistake} cost me. Trap: A humblebrag.",
+    );
+    expect(buildClonePrompt(source, null).user).not.toContain("Hook formulas");
+  });
+
+  it("writes one picked concept from the same post, with no breakdown asked for", () => {
+    const concept = { title: "CPF top-ups in 30 seconds", keeps: "Fast cuts and a question hook", changes: "Topic moves to CPF top-ups" };
+    const { system, user } = buildConceptPrompt(source, null, concept, formulas);
+    expect(system).toMatch(/The consultant picked one concept/);
+    expect(system).not.toMatch(/Part 1, breakdown/);
+    expect(system).toMatch(/guaranteed/);
+    expect(user).toContain('"""\nRule one. Pay yourself first.\n"""');
+    expect(user).toContain(
+      "The concept they picked:\nTitle: CPF top-ups in 30 seconds\nKeeps: Fast cuts and a question hook\nChanges: Topic moves to CPF top-ups",
+    );
+    expect(user).toContain("1. Number reveal.");
+  });
+});
+
+describe("sanitizeFormulas and cleanConcept", () => {
+  it("keeps up to 3 formulas with a name and a shape, trimmed", () => {
+    const f = { name: " Number  reveal ", template: "I did {X}.", example: "e", trap: "t" };
+    expect(sanitizeFormulas([f, { name: "No shape" }, f, f, f])).toEqual([
+      { name: "Number reveal", template: "I did {X}.", example: "e", trap: "t" },
+      { name: "Number reveal", template: "I did {X}.", example: "e", trap: "t" },
+      { name: "Number reveal", template: "I did {X}.", example: "e", trap: "t" },
+    ]);
+    expect(sanitizeFormulas("Number reveal")).toEqual([]);
+    expect(sanitizeFormulas([{ name: "x".repeat(200), template: "y" }])[0].name.length).toBeLessThanOrEqual(60);
+  });
+
+  it("needs a title, what it keeps and what it changes", () => {
+    expect(cleanConcept({ title: "A — b", keeps: "Pacing", changes: "Topic" })).toEqual({ title: "A, b", keeps: "Pacing", changes: "Topic" });
+    expect(cleanConcept({ title: "A", keeps: "Pacing", changes: " " })).toBeNull();
+    expect(cleanConcept("A")).toBeNull();
+    expect(cleanConcept(null)).toBeNull();
+  });
 });
 
 describe("CLONE_RESPONSE_FORMAT", () => {
@@ -531,8 +585,14 @@ describe("CLONE_RESPONSE_FORMAT", () => {
       }
       if (node.type === "array") walk(node.items as Record<string, unknown>);
     };
-    expect(CLONE_RESPONSE_FORMAT.json_schema.strict).toBe(true);
-    walk(CLONE_RESPONSE_FORMAT.json_schema.schema as unknown as Record<string, unknown>);
+    for (const format of [CLONE_RESPONSE_FORMAT, CONCEPT_RESPONSE_FORMAT]) {
+      expect(format.json_schema.strict).toBe(true);
+      walk(format.json_schema.schema as unknown as Record<string, unknown>);
+    }
+    expect(CLONE_RESPONSE_FORMAT.json_schema.schema.required).toContain("concepts");
+    expect(CONCEPT_RESPONSE_FORMAT.json_schema.schema.properties.myVersion).toBe(
+      CLONE_RESPONSE_FORMAT.json_schema.schema.properties.myVersion,
+    );
   });
 });
 
@@ -601,6 +661,22 @@ describe("validateCloneOutput", () => {
     expect(validateCloneOutput({ ...good, myVersion: { ...good.myVersion, beats: [good.myVersion.beats[0]] } })).toBeNull();
     expect(validateCloneOutput({ ...good, myVersion: { ...good.myVersion, beats: "one, two" } })).toBeNull();
     expect(validateCloneOutput({ ...good, myVersion: { ...good.myVersion, caption: 7 } })).toBeNull();
+  });
+
+  it("keeps 2 or 3 complete concepts and drops a set that can't be picked from", () => {
+    const concept = (title: string) => ({ title, keeps: "Fast cuts", changes: "New topic" });
+    const out = validateCloneOutput({ ...good, concepts: [concept("One"), { title: "No parts" }, concept("Two"), concept("Three"), concept("Four")] });
+    expect(out?.concepts?.map((c) => c.title)).toEqual(["One", "Two", "Three"]);
+    expect(validateCloneOutput({ ...good, concepts: [concept("One"), { title: "Half" }] })).not.toHaveProperty("concepts");
+    expect(validateCloneOutput({ ...good, concepts: "One, two" })?.myVersion.hook).toBe("Your CPF isn't lazy money");
+  });
+
+  it("checks one concept's version like the clone's", () => {
+    const v = validateConceptOutput(JSON.stringify({ myVersion: good.myVersion }));
+    expect(v).toEqual(validateCloneOutput(good)?.myVersion);
+    expect(validateConceptOutput({ myVersion: { ...good.myVersion, beats: [] } })).toBeNull();
+    expect(validateConceptOutput({ breakdown: good.breakdown })).toBeNull();
+    expect(validateConceptOutput("nope")).toBeNull();
   });
 });
 

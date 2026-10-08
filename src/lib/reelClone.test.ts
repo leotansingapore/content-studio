@@ -6,23 +6,29 @@ import { supabase } from "@/lib/supabase";
 import { loadStages } from "./board";
 import { getDraftById, loadDrafts, saveDrafts } from "./draftHistory";
 import { splitScriptCaption } from "./scriptCaption";
+import { hookFormulaSet } from "./hookFormulas";
 import {
   CLONE_STEPS,
   MAX_SAVED_CLONES,
   ReelCloneError,
   buildCloneDraft,
+  canReadVideo,
   cloneDraftText,
   cloneLinkFor,
   cloneReel,
   cloneStepAt,
+  conceptRun,
   ctaTypeFor,
   errorCodeFor,
   loadSavedClones,
   rememberClone,
   saveCloneDraft,
   shotListText,
+  startConceptBuild,
+  visualsFor,
   voiceForClone,
   winnersFor,
+  withConcept,
   withHook,
   type CloneResponse,
   type SavedClone,
@@ -327,5 +333,96 @@ describe("cloneReel", () => {
     expect(errorCodeFor(undefined, 401)).toBe("unauthorized");
     expect(errorCodeFor(undefined, 503)).toBe("usage_unavailable");
     expect(errorCodeFor(undefined, 418)).toBe("server_error");
+  });
+});
+
+describe("concepts", () => {
+  const concepts = [
+    { title: "Same topic, made for Singapore", keeps: "Pacing", changes: "Figures" },
+    { title: "CPF top-ups instead", keeps: "Hook style", changes: "Topic" },
+    { title: "Shot at the hawker centre", keeps: "Format", changes: "Setting" },
+  ];
+  const base = (): SavedClone => {
+    const r = result();
+    return { id: "tiktok:7682935406396001567", savedAt: "2026-09-15T00:00:00.000Z", result: { ...r, concepts }, draftId: "d0", onBoard: true };
+  };
+  const second = { ...result().myVersion, hook: "Top up your CPF before December", beats: [{ say: "a", onScreen: "", visual: "", seconds: 3 }] };
+
+  it("switches to a version just written, keeping the one it leaves with its draft, and back for free", () => {
+    const c1 = withConcept(base(), 1, second);
+    expect(c1.concept).toBe(1);
+    expect(c1.result.myVersion.hook).toBe("Top up your CPF before December");
+    expect(c1.draftId).toBeUndefined();
+    expect(c1.onBoard).toBeUndefined();
+    expect(c1.builds?.[0]).toEqual({ version: base().result.myVersion, draftId: "d0", onBoard: true });
+
+    const back = withConcept({ ...c1, draftId: "d1" }, 0);
+    expect(back.concept).toBe(0);
+    expect(back.result.myVersion).toEqual(base().result.myVersion);
+    expect(back).toMatchObject({ draftId: "d0", onBoard: true });
+    expect(back.builds?.[1]).toEqual({ version: second, draftId: "d1", onBoard: undefined });
+    expect(JSON.parse(JSON.stringify(back)).builds).toHaveLength(2);
+  });
+
+  it("stays put on the shown concept or one not written yet", () => {
+    const c = base();
+    expect(withConcept(c, 0)).toBe(c);
+    expect(withConcept(c, 2)).toBe(c);
+  });
+
+  it("only uses the original's look with the first concept, whose beats it was read for", () => {
+    const visuals = { format: "f", hookVisual: "h", onScreenText: [], pacing: "p", visualMoves: [], myVisuals: ["x"], measured: { durationSec: 9, cuts: 1, avgShotSec: 4.5, cutsFirst3s: 0 } };
+    const c = { ...base(), visuals };
+    expect(visualsFor(c)).toBe(visuals);
+    expect(visualsFor(withConcept(c, 1, second))).toBeNull();
+    const fresh = { ...base(), result: { ...base().result, source: { ...base().result.source, videoUrl: "https://x.cdninstagram.com/v.mp4" }, myVersion: second } };
+    expect(canReadVideo(fresh)).toBe(true);
+    expect(canReadVideo({ ...fresh, concept: 1 })).toBe(false);
+  });
+
+  it("writes a concept from the post already read, saves it as the version and runs once at a time", async () => {
+    const formulas = hookFormulaSet(0);
+    rememberClone("u1", base());
+    let finish!: (v: unknown) => void;
+    invoke.mockReturnValue(new Promise((r) => (finish = r)));
+    const voice = { summary: "Warm", samples: [] };
+    const run = startConceptBuild("u1", base(), 2, voice, formulas);
+    expect(startConceptBuild("u1", base(), 1, voice, formulas)).toBe(run);
+    expect(conceptRun(base().id)?.index).toBe(2);
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke.mock.calls[0][1].body).toEqual({
+      url: base().result.source.url,
+      voice,
+      formulas: formulas.map(({ name, template, example, trap }) => ({ name, template, example, trap })),
+      concept: concepts[2],
+    });
+    finish({ data: { myVersion: { ...second, hookOptions: ["a", "b", "c"] }, usage: { used: 1, limit: 20 } }, error: null });
+    const updated = await run;
+    expect(updated.concept).toBe(2);
+    expect(updated.result.myVersion.hookFormulas).toEqual(formulas.map((f) => f.id));
+    expect(loadSavedClones("u1")[0].concept).toBe(2);
+    expect(loadSavedClones("u1")[0].builds?.[0]?.draftId).toBe("d0");
+    expect(conceptRun(base().id)).toBeNull();
+  });
+
+  it("refuses an incomplete version and shows the server's refusal", async () => {
+    invoke.mockResolvedValue({ data: { myVersion: { hook: "x" } }, error: null });
+    await expect(startConceptBuild("u1", base(), 1, null)).rejects.toMatchObject({ code: "server_error" });
+    invoke.mockResolvedValue({
+      data: null,
+      error: { context: new Response(JSON.stringify({ code: "daily_limit", error: "You've used all 20 for today." }), { status: 429 }) },
+    });
+    await expect(startConceptBuild("u1", base(), 1, null)).rejects.toMatchObject({ code: "daily_limit", message: "You've used all 20 for today." });
+    expect(loadSavedClones("u1")).toEqual([]);
+  });
+
+  it("sends the hook formulas with a clone and tags the hooks with their ids", async () => {
+    const formulas = hookFormulaSet(1);
+    invoke.mockResolvedValue({ data: { ...result(), myVersion: { ...result().myVersion, hookOptions: ["a", "b", "c"] } }, error: null });
+    const r = await cloneReel("u", null, undefined, formulas);
+    expect(invoke.mock.calls[0][1].body.formulas.map((f: { name: string }) => f.name)).toEqual(formulas.map((f) => f.name));
+    expect(r.myVersion.hookFormulas).toEqual(formulas.map((f) => f.id));
+    invoke.mockResolvedValue({ data: { ...result(), myVersion: { ...result().myVersion, hookOptions: ["a"] } }, error: null });
+    expect((await cloneReel("u", null, undefined, formulas)).myVersion.hookFormulas).toBeUndefined();
   });
 });

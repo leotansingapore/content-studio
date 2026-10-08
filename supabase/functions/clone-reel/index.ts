@@ -1,7 +1,9 @@
-// "Clone a reel" (/clone). A signed-in consultant sends {url, voice}; this reads
-// the public Instagram reel or TikTok video through Apify (caption, transcript,
-// numbers), then asks OpenAI to break down why it worked and write the
-// consultant's own version.
+// "Clone a reel" (/clone). A signed-in consultant sends {url, voice, formulas};
+// this reads the public Instagram reel or TikTok video through Apify (caption,
+// transcript, numbers), then asks OpenAI to break down why it worked, offer 3
+// concepts built on it and write the consultant's own version of the first.
+// With {concept} as well it writes the version of that concept from the cached
+// post, without a new scrape (usageCaps "reel-concepts").
 //
 // - Public post data is cached in cs_reel_sources (supabase/hub/010), so the
 //   same post pasted again skips the scrape. Numbers are re-read after 24 hours;
@@ -23,25 +25,30 @@ import {
   BACKGROUND_LIMIT_MS,
   CLONE_ERRORS,
   CLONE_RESPONSE_FORMAT,
+  CONCEPT_RESPONSE_FORMAT,
   FETCH_BUDGET_MS,
   MAX_TRANSCRIPT_CHARS,
   RUN_REATTACH_MS,
   aiTimeoutMs,
   apifyJob,
   buildClonePrompt,
+  buildConceptPrompt,
   cacheDecision,
+  cleanConcept,
   isApifyStorageUrl,
   mergeSource,
   parseReelUrl,
   pickIgItem,
   pickTiktokItem,
+  sanitizeFormulas,
   sanitizeVoice,
   toCloneSource,
   validateCloneOutput,
+  validateConceptOutput,
   vttToText,
   type CloneErrorCode,
-  type CloneOutput,
   type CloneResponse,
+  type ConceptResponse,
   type ParsedReelUrl,
   type SourceRow,
 } from "./logic.ts";
@@ -263,11 +270,12 @@ function keepRunning(work: Promise<unknown>) {
   if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(settled);
 }
 
-async function writeClone(
+async function write<T>(
   prompt: { system: string; user: string },
+  ask: { format: unknown; maxTokens: number; validate: (raw: unknown) => T | null },
   apiKey: string,
   timeoutMs: number,
-): Promise<CloneOutput> {
+): Promise<T> {
   let res: Response;
   try {
     res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -276,8 +284,8 @@ async function writeClone(
       body: JSON.stringify({
         model: OPENAI_MODEL,
         temperature: 0.7,
-        max_tokens: 2000,
-        response_format: CLONE_RESPONSE_FORMAT,
+        max_tokens: ask.maxTokens,
+        response_format: ask.format,
         messages: [
           { role: "system", content: prompt.system },
           { role: "user", content: prompt.user },
@@ -296,7 +304,7 @@ async function writeClone(
   const data = await res.json().catch(() => null);
   const message = data?.choices?.[0]?.message;
   if (message?.refusal) console.error("openai refused", String(message.refusal).slice(0, 200));
-  const output = validateCloneOutput(message?.content ?? null);
+  const output = ask.validate(message?.content ?? null);
   if (!output) {
     console.error("openai output rejected", String(message?.content ?? "").slice(0, 300));
     throw new CloneFailure("ai_failed");
@@ -325,14 +333,20 @@ Deno.serve(async (req) => {
       return failure("not_configured");
     }
     const voice = sanitizeVoice(body?.voice);
+    const formulas = sanitizeFormulas(body?.formulas);
+    const concept = body?.concept === undefined ? null : cleanConcept(body.concept);
+    if (body?.concept !== undefined && !concept) {
+      return json({ code: "bad_request", error: "Pick one of the concepts first." }, 400);
+    }
 
     let row = await findSource(admin, parsed);
     let videoUrl: string | null = null;
-    const decision = cacheDecision(row, startedAt);
+    // A concept is written from the post already read; only a missing row is fetched.
+    const decision = concept && row ? "use" : cacheDecision(row, startedAt);
 
     // Counted once per request, just before its first paid call.
     let usage: UsageResult | null = null;
-    const charge = async () => (usage ??= await consumeUsage(admin, uid, "reel-clone"));
+    const charge = async () => (usage ??= await consumeUsage(admin, uid, concept ? "reel-concepts" : "reel-clone"));
 
     if (decision !== "use") {
       const apifyKey = Deno.env.get("APIFY_API_KEY");
@@ -374,7 +388,23 @@ Deno.serve(async (req) => {
     if (aiMs === 0) return failure("timeout");
 
     const source = toCloneSource(row!);
-    const output = await writeClone(buildClonePrompt(source, voice), openaiKey, aiMs);
+    if (concept) {
+      const myVersion = await write(
+        buildConceptPrompt(source, voice, concept, formulas),
+        { format: CONCEPT_RESPONSE_FORMAT, maxTokens: 1800, validate: validateConceptOutput },
+        openaiKey,
+        aiMs,
+      );
+      console.log("clone-reel concept ok", parsed.platform, decision, `${Date.now() - startedAt}ms`);
+      const response: ConceptResponse = { myVersion, usage: { used: charged.used, limit: charged.limit } };
+      return json(response);
+    }
+    const output = await write(
+      buildClonePrompt(source, voice, formulas),
+      { format: CLONE_RESPONSE_FORMAT, maxTokens: 2600, validate: validateCloneOutput },
+      openaiKey,
+      aiMs,
+    );
     console.log("clone-reel ok", parsed.platform, decision, `${Date.now() - startedAt}ms`);
     const response: CloneResponse = {
       source: { ...source, videoUrl },
