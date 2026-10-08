@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ToastAction } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import {
   loadDrafts,
@@ -9,6 +11,7 @@ import {
   getPostingActivity,
   draftStatus,
   setDraftStatus,
+  undoPosted,
   type DraftEntry,
   type DraftStats,
   type PostingActivity,
@@ -118,6 +121,7 @@ export default function HomePage() {
   const [nextAct, setNextAct] = useState<NextAction | null>(null);
   const [contentScore, setContentScore] = useState<number | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     document.title = "Home - Content Studio";
@@ -199,8 +203,18 @@ export default function HomePage() {
   };
 
   const markDuePosted = (id: string) => {
-    if (!userId) return;
+    const prev = drafts.find((d) => d.id === id);
+    if (!userId || !prev) return;
+    const before = drafts;
     setDrafts(setDraftStatus(userId, id, "posted"));
+    toast({
+      title: "Marked as posted",
+      action: (
+        <ToastAction altText="Undo" onClick={() => setDrafts(undoPosted(userId, prev, before))}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   const checklist = [

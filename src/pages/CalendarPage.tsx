@@ -40,6 +40,7 @@ import {
   restoreDraft,
   setRepeat,
   skipOccurrence,
+  undoPosted,
   type DraftEntry,
   type RepeatEvery,
 } from "@/lib/draftHistory";
@@ -308,13 +309,20 @@ export default function CalendarPage() {
   };
 
   const markPosted = (id: string) => {
-    if (!userId) return;
+    const prev = drafts.find((d) => d.id === id);
+    if (!userId || !prev) return;
+    const before = drafts;
     const next = setDraftStatus(userId, id, "posted");
     setDrafts(next);
     const series = next.find((d) => d.id === id && d.repeat);
     toast({
       title: "Marked as posted",
       description: series?.scheduledFor ? `Next one: ${whenLabel(series.scheduledFor)}` : undefined,
+      action: (
+        <ToastAction altText="Undo" onClick={() => setDrafts(undoPosted(userId, prev, before))}>
+          Undo
+        </ToastAction>
+      ),
     });
   };
 

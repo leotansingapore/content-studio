@@ -237,6 +237,23 @@ export function undoDuplicate(userId: string, copyId: string, dropped: DraftEntr
   return next.slice(0, MAX_DRAFTS);
 }
 
+/**
+ * Undo for marking a post posted: puts the post back as it was, removes the posted
+ * copy a recurring post leaves, and returns any post that copy pushed past the cap.
+ * `before` is the list as it was just before the post was marked.
+ */
+export function undoPosted(userId: string, prev: DraftEntry, before: DraftEntry[]): DraftEntry[] {
+  const was = new Set(before.map((d) => d.id));
+  const current = loadDrafts(userId);
+  const now = new Set(current.map((d) => d.id));
+  const next = [
+    ...current.filter((d) => was.has(d.id)).map((d) => (d.id === prev.id ? prev : d)),
+    ...before.filter((d) => !now.has(d.id)),
+  ];
+  saveDrafts(userId, next);
+  return next;
+}
+
 /** Puts an entry back exactly as it was (for Undo), in its place in the list. */
 export function restoreDraft(userId: string, entry: DraftEntry): DraftEntry[] {
   const next = loadDrafts(userId).map((d) => (d.id === entry.id ? entry : d));

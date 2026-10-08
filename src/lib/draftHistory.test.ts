@@ -11,6 +11,7 @@ import {
   upsertDraft,
   duplicateDraft,
   undoDuplicate,
+  undoPosted,
   MAX_DRAFTS,
   type DraftEntry,
 } from "./draftHistory";
@@ -137,6 +138,33 @@ describe("upsertDraft", () => {
     saveDrafts(UID, [post({ status: "posted", metrics: { impressions: 900, reactions: 12 } })]);
     upsertDraft(UID, post({ status: "posted", hook: "Edited in Write" }));
     expect(loadDrafts(UID)[0]).toMatchObject({ hook: "Edited in Write", metrics: { impressions: 900, reactions: 12 } });
+  });
+});
+
+describe("undoPosted", () => {
+  it("puts a one-off post back to scheduled", () => {
+    const before = [post({ status: "scheduled", scheduledFor: "2026-10-08T19:30" }), post({ id: "other" })];
+    saveDrafts(UID, before);
+    setDraftStatus(UID, "s", "posted");
+    expect(undoPosted(UID, before[0], before)).toEqual(before);
+    expect(loadDrafts(UID)).toEqual(before);
+  });
+
+  it("removes a recurring post's posted copy and moves the series back", () => {
+    const before = [post({ status: "scheduled", scheduledFor: "2026-10-08", repeat: { every: "week", start: "2026-10-08" } })];
+    saveDrafts(UID, before);
+    expect(setDraftStatus(UID, "s", "posted")).toHaveLength(2);
+    expect(undoPosted(UID, before[0], before)).toEqual(before);
+  });
+
+  it("brings back a post the posted copy pushed past the cap", () => {
+    const before = Array.from({ length: MAX_DRAFTS }, (_, i) =>
+      post(i === 0 ? { id: "p0", status: "scheduled", scheduledFor: "2026-10-08", repeat: { every: "week", start: "2026-10-08" } } : { id: `p${i}` }),
+    );
+    saveDrafts(UID, before);
+    setDraftStatus(UID, "p0", "posted");
+    expect(loadDrafts(UID).some((d) => d.id === `p${MAX_DRAFTS - 1}`)).toBe(false);
+    expect(undoPosted(UID, before[0], before)).toEqual(before);
   });
 });
 
