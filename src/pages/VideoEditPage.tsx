@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronUp, Download, Mic, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Download, Mic, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
   APP_COVER,
   appCover,
   applyFixes,
+  exportIssues,
   applyPatch,
   aspectSize,
   captionCenter,
@@ -68,6 +69,7 @@ import {
   withStyle,
   type CaptionFix,
   type CoverApp,
+  type ExportIssue,
   type EditSettings,
   type StyleId,
 } from "@/lib/videoEdit";
@@ -76,6 +78,7 @@ import {
   drawFrame,
   ensureCaptionFonts,
   loadBrandArt,
+  measureExport,
   wireVoice,
   exportJob,
   makeCover,
@@ -703,6 +706,16 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art, settings.voiceover ? voiceBlob : null).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
   };
 
+  // the exported file read back for what would spoil the post; one check per export, null while it runs
+  const [fileCheck, setFileCheck] = useState<{ id: string; issues: ExportIssue[] | null; read: boolean } | null>(null);
+  useEffect(() => {
+    if (job?.state !== "done" || !job.url || job.name !== project.name || fileCheck?.id === job.id) return;
+    const id = job.id;
+    const want = { seconds: job.seconds ?? total, kind: job.kind ?? "video", captions: settings.captions, hasWords: words.length > 0, sound: (settings.volume ?? 1) > 0 || !!settings.voiceover };
+    setFileCheck({ id, issues: null, read: false });
+    void measureExport(job.url).then((m) => setFileCheck({ id, issues: exportIssues(m ?? { seconds: null, level: null, gap: null }, want), read: !!m }));
+  }, [job]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // find a word or phrase in what was said, and jump the video to it
   const [find, setFind] = useState("");
   const [hit, setHit] = useState(0);
@@ -851,6 +864,27 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             )}
           </div>
           {kitWarnings.map((w) => <p key={w.message} className={`text-xs ${w.level === "over" ? "text-destructive" : ""}`}>{w.message}</p>)}
+          {fileCheck?.id === job.id && (
+            fileCheck.issues === null ? (
+              <p className="text-xs text-muted-foreground" aria-live="polite">Checking the file...</p>
+            ) : fileCheck.issues.length === 0 ? (
+              <p className="flex items-center gap-1.5 text-xs" role="status">
+                {fileCheck.read ? <><Check className="h-3.5 w-3.5 text-success" /> File checked: the right length, and the sound comes through.</> : "Couldn't read the file back to check it."}
+              </p>
+            ) : (
+              <ul className="space-y-1.5" aria-label="Before you post">
+                {fileCheck.issues.map((i) => (
+                  <li key={i.id} className="flex flex-wrap items-center gap-2 rounded-md border border-warning/50 bg-warning/10 px-2 py-1.5 text-xs">
+                    <span className="mr-auto">{i.text}</span>
+                    {i.id === "quiet" && !settings.voicePolish && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { patch({ voicePolish: true }); setTab("cuts"); }}>Turn on voice polish</Button>}
+                    {i.id === "silent" && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTab("cuts")}>Open Cuts</Button>}
+                    {i.id === "gap" && i.at !== undefined && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => seekOut(i.at!)}>Show me</Button>}
+                    {i.id === "captions" && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTab("words")}>Caption it</Button>}
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
         </section>
       )}
       {job?.state === "failed" && <p className="text-xs text-destructive">Export failed: {job.error}</p>}

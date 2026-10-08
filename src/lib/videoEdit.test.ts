@@ -532,3 +532,41 @@ describe("saved caption fixes", () => {
     expect(sanitizeFixes("nope")).toEqual([]);
   });
 });
+
+describe("checking an exported file", () => {
+  // 8 kHz mono: a tone at the given level for each [seconds, amplitude] stretch
+  const pcm = (parts: [number, number][]) => {
+    const rate = 8000;
+    const out: number[] = [];
+    for (const [sec, amp] of parts) for (let i = 0; i < sec * rate; i++) out.push(amp * Math.sin(i / 3));
+    return { samples: Float32Array.from(out), rate };
+  };
+
+  it("measures the sound level and the longest silence inside the file, not at its ends", async () => {
+    const { soundStats } = await import("@/lib/videoEdit");
+    const { samples, rate } = pcm([[0.6, 0], [3, 0.3], [2.5, 0], [3, 0.3], [2.5, 0]]);
+    const s = soundStats(samples, rate);
+    expect(s.seconds).toBeCloseTo(11.6, 1);
+    expect(s.level!).toBeGreaterThan(-14);
+    expect(s.level!).toBeLessThan(-12);
+    expect(s.gap!.at).toBeCloseTo(3.6, 1);
+    expect(s.gap!.length).toBeCloseTo(2.5, 1);
+    expect(soundStats(pcm([[2, 0]]).samples, 8000).level).toBeNull();
+    expect(soundStats(pcm([[2, 0.3]]).samples, 8000).gap).toBeNull();
+  });
+
+  it("says what is wrong with a file and stays quiet when it is fine", async () => {
+    const { exportIssues } = await import("@/lib/videoEdit");
+    const want: Parameters<typeof exportIssues>[1] = { seconds: 20, kind: "video", captions: true, hasWords: true, sound: true };
+    expect(exportIssues({ seconds: 20.4, level: -18, gap: null }, want)).toEqual([]);
+    const ids = (c: Parameters<typeof exportIssues>[0], w = want) => exportIssues(c, w).map((i) => i.id);
+    expect(ids({ seconds: 26, level: -18, gap: null })).toEqual(["length"]);
+    expect(ids({ seconds: 20, level: null, gap: null })).toEqual(["silent"]);
+    expect(ids({ seconds: 20, level: null, gap: null }, { ...want, sound: false })).toEqual([]);
+    expect(ids({ seconds: 20, level: -38, gap: { at: 4, length: 2.6 } })).toEqual(["quiet", "gap"]);
+    expect(ids({ seconds: 20, level: -18, gap: { at: 4, length: 1.2 } })).toEqual([]);
+    expect(ids({ seconds: 20, level: -18, gap: null }, { ...want, hasWords: false })).toEqual(["captions"]);
+    expect(ids({ seconds: 20, level: -18, gap: null }, { ...want, kind: "audio", hasWords: false })).toEqual([]);
+    expect(ids({ seconds: null, level: null, gap: null })).toEqual([]); // the sound could not be read back: nothing claimed
+  });
+});

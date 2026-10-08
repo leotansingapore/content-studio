@@ -651,6 +651,58 @@ export function clearOfApp(y: number, app: CoverApp): number {
   return y > 0.5 ? 1 - z.bottom - 0.05 : z.top + 0.05;
 }
 
+// ---------- checking an exported file ----------
+
+/** How an exported file's sound measures: its length, the level of its sound (dB, null when
+ * silent throughout) and the longest silence inside it (silence at either end, such as the
+ * end card, doesn't count). */
+export function soundStats(samples: Float32Array, rate: number): { seconds: number; level: number | null; gap: { at: number; length: number } | null } {
+  const win = Math.max(1, Math.round(rate * 0.05));
+  const db: number[] = [];
+  for (let i = 0; i + win <= samples.length; i += win) {
+    let sum = 0;
+    for (let j = i; j < i + win; j++) sum += samples[j] * samples[j];
+    db.push(10 * Math.log10(sum / win + 1e-12));
+  }
+  // the level of the parts with sound in them, so pauses don't drag it down
+  const loud = db.filter((d) => d > -50);
+  const level = loud.length ? 10 * Math.log10(loud.reduce((a, d) => a + 10 ** (d / 10), 0) / loud.length) : null;
+  let gap: { at: number; length: number } | null = null;
+  for (let i = 0; i < db.length; ) {
+    if (db[i] >= -45) { i++; continue; }
+    let j = i;
+    while (j < db.length && db[j] < -45) j++;
+    const length = (j - i) * 0.05;
+    if (i > 0 && j < db.length && (!gap || length > gap.length)) gap = { at: i * 0.05, length };
+    i = j;
+  }
+  return { seconds: samples.length / rate, level, gap };
+}
+
+export interface ExportIssue {
+  id: "length" | "silent" | "quiet" | "gap" | "captions";
+  text: string;
+  /** Where in the file it is, for a silence. */
+  at?: number;
+}
+
+/** What is wrong with an exported file, from its measured sound (seconds null = it couldn't be read back). */
+export function exportIssues(
+  m: { seconds: number | null; level: number | null; gap: { at: number; length: number } | null },
+  want: { seconds: number; kind: "video" | "small" | "audio"; captions: boolean; hasWords: boolean; sound: boolean },
+): ExportIssue[] {
+  const out: ExportIssue[] = [];
+  if (m.seconds !== null) {
+    if (Math.abs(m.seconds - want.seconds) > Math.max(1, want.seconds * 0.05))
+      out.push({ id: "length", text: `The file runs ${fmtTime(m.seconds)} but the edit is ${fmtTime(want.seconds)}. Keep this tab in front and export again.` });
+    if (want.sound && m.level === null) out.push({ id: "silent", text: "The file has no sound. Check the volume under Cuts, then export again." });
+    if (want.sound && m.level !== null && m.level < -32) out.push({ id: "quiet", text: `The sound is quiet (${Math.round(m.level)} dB), so people will turn it up or scroll on.` });
+    if (m.gap && m.gap.length >= 2) out.push({ id: "gap", text: `${m.gap.length.toFixed(1)}s of silence at ${fmtTime(m.gap.at)}.`, at: m.gap.at });
+  }
+  if (want.kind !== "audio" && want.captions && !want.hasWords) out.push({ id: "captions", text: "The video has no captions yet." });
+  return out;
+}
+
 // ---------- saved caption fixes ----------
 
 /** A word or phrase (up to 4 words) the transcription keeps getting wrong, and what it should say. */

@@ -25,6 +25,7 @@ import {
   keepSegments,
   nameTagVisible,
   outAt,
+  soundStats,
   speedOf,
   voiceAt,
   overlaysAt,
@@ -684,6 +685,8 @@ export interface ExportJob {
   url?: string;
   ext?: string;
   error?: string;
+  /** How long the edit is, end card included: what the file should run. */
+  seconds?: number;
 }
 
 let job: ExportJob | null = null;
@@ -707,6 +710,17 @@ function pickMime(audioOnly = false): { mime: string; ext: string } {
     if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(mime)) return { mime, ext };
   }
   throw new Error(audioOnly ? "This browser can't export sound only. Use Chrome or Safari." : "This browser can't export video. Use Chrome or Safari on a computer.");
+}
+
+/** Reads an exported file's sound back (decoded at 8 kHz, small even for a long edit): its length,
+ * level and longest silence. Null when the browser can't decode it. */
+export async function measureExport(url: string): Promise<ReturnType<typeof soundStats> | null> {
+  try {
+    const buf = await new OfflineAudioContext(1, 1, 8000).decodeAudioData(await (await fetch(url)).arrayBuffer());
+    return soundStats(buf.getChannelData(0), buf.sampleRate);
+  } catch {
+    return null;
+  }
 }
 
 /** Renders the edit in real time (a 45 s reel takes about 45 s) and downloads it. */
@@ -859,7 +873,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     rec.stop();
     await stopped;
     const url = URL.createObjectURL(new Blob(chunks, { type: mime.split(";")[0] }));
-    job = { ...job!, progress: 1, state: "done", url, ext };
+    job = { ...job!, progress: 1, state: "done", url, ext, seconds: plan.total + endLen };
     emit();
     const a = document.createElement("a");
     a.href = url;
