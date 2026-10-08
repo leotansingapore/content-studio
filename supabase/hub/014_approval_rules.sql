@@ -17,14 +17,25 @@
 --   * cs_review_submission(uuid, text, text): replaced with the same
 --     signature and body except it accepts 'rejected' (live definition was
 --     checked identical to the 011 file before this was written).
+--   * Every other 011 function: ALTER FUNCTION ... SET search_path = public,
+--     pg_temp (pg_temp last). Catalog-only; no body changes.
+--
+-- Before applying live, read the CHECK names on cs_review_submissions and
+-- cs_review_events from pg_constraint: the DROP ... IF EXISTS lines below
+-- must name the live constraints, or an old CHECK would survive next to the
+-- new one. On 2026-10-08 they were cs_review_submissions_status_check,
+-- cs_review_submissions_changes_need_comment and cs_review_events_kind_check.
 --
 -- Security model
 --   * cs_team_approval_rules: one row per (team, member) on approval. RLS
 --     SELECT only: the member reads their own rule, leaders read their
 --     team's. Other members never see who is on approval.
 --   * Rules change only through cs_set_approval_required (leaders of the
---     member's current team; not on themselves), which logs an
---     approval_rule_set event in the same transaction.
+--     member's current team), which logs an approval_rule_set event in the
+--     same transaction. A rule can be turned on only for a plain member:
+--     never the caller, another leader or the team's owner.
+--   * This is a team rule shown in the app, not enforcement: posting happens
+--     outside Content Studio.
 --   * A rule is keyed on (team, user), not on membership, so leaving and
 --     rejoining the team does not clear it. Rows for people no longer in
 --     the team are inert: the app applies the rule for the current team only.
@@ -45,7 +56,12 @@
 --   cs_team_approval_rules_read: user_id = auth.uid() or the caller leads
 --     that team.
 --
--- Idempotent: safe to run again.
+-- Idempotent: safe to run again. One transaction that gives up after 3
+-- seconds waiting for a lock: the constraint swaps take ACCESS EXCLUSIVE on
+-- two live tables, so if it times out nothing changes; retry later.
+
+begin;
+set local lock_timeout = '3s';
 
 -- ---------------------------------------------------------------------------
 -- 1. Reject outright
@@ -80,7 +96,7 @@ create or replace function public.cs_review_submission(
   p_decision text,
   p_comment text default null
 ) returns public.cs_review_submissions
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_uid uuid := auth.uid();
   v_row public.cs_review_submissions%rowtype;
@@ -158,6 +174,10 @@ create table if not exists public.cs_team_approval_rules (
   primary key (team_id, user_id)
 );
 
+-- The member's own lookup ("am I on approval?") filters on user_id alone.
+create index if not exists cs_team_approval_rules_user_idx
+  on public.cs_team_approval_rules (user_id);
+
 alter table public.cs_team_approval_rules enable row level security;
 
 revoke all on table public.cs_team_approval_rules from public, anon, authenticated;
@@ -168,7 +188,7 @@ grant select on table public.cs_team_approval_rules to authenticated;
 -- resulting state.
 create or replace function public.cs_set_approval_required(p_user_id uuid, p_required boolean)
 returns boolean
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_uid uuid := auth.uid();
   v_leader public.cs_team_members%rowtype;
@@ -192,6 +212,12 @@ begin
   select * into v_target from public.cs_team_members where user_id = p_user_id;
   if v_leader.team_id is null or v_target.team_id is distinct from v_leader.team_id then
     raise exception 'Only a leader of this person''s team can change this.' using errcode = '42501';
+  end if;
+
+  if p_required and (
+       v_target.role <> 'member'
+       or exists (select 1 from public.cs_teams where id = v_leader.team_id and owner_id = p_user_id)) then
+    raise exception 'Leaders and the team owner can''t be put on approval.' using errcode = '22023';
   end if;
 
   if p_required then
@@ -225,3 +251,24 @@ drop policy if exists cs_team_approval_rules_read on public.cs_team_approval_rul
 create policy cs_team_approval_rules_read on public.cs_team_approval_rules
   for select to authenticated
   using (user_id = (select auth.uid()) or public.cs_is_team_leader(team_id));
+
+-- ---------------------------------------------------------------------------
+-- 3. pg_temp last in every 011 function's search_path (catalog-only)
+-- ---------------------------------------------------------------------------
+
+alter function public.cs_review_normalize(text) set search_path = public, pg_temp;
+alter function public.cs_review_hash(text) set search_path = public, pg_temp;
+alter function public.cs_clean_label(text) set search_path = public, pg_temp;
+alter function public.cs_generate_invite_code() set search_path = public, pg_temp;
+alter function public.cs_member_display_name(uuid, text) set search_path = public, pg_temp;
+alter function public.cs_log_event(uuid, uuid, text, uuid, text, jsonb, text) set search_path = public, pg_temp;
+alter function public.cs_my_team_id() set search_path = public, pg_temp;
+alter function public.cs_is_team_leader(uuid) set search_path = public, pg_temp;
+alter function public.cs_review_submissions_guard() set search_path = public, pg_temp;
+alter function public.cs_review_events_guard() set search_path = public, pg_temp;
+alter function public.cs_create_team(text, text) set search_path = public, pg_temp;
+alter function public.cs_join_team(text, text) set search_path = public, pg_temp;
+alter function public.cs_leave_team() set search_path = public, pg_temp;
+alter function public.cs_submit_for_review(text, text, text, text, jsonb) set search_path = public, pg_temp;
+
+commit;

@@ -69,11 +69,33 @@ select public.cs_test_assert(
   and not has_function_privilege('anon', 'public.cs_review_submission(uuid, text, text)', 'execute'),
   '0.1 anon holds nothing; authenticated may only select');
 select public.cs_test_assert(
-  (select bool_and(p.prosecdef and p.proconfig @> array['search_path=public'])
+  (select bool_and(p.prosecdef and p.proconfig @> array['search_path=public, pg_temp'])
    from pg_proc p
    where p.pronamespace = 'public'::regnamespace
      and p.proname in ('cs_set_approval_required', 'cs_review_submission')),
   '0.2 both functions are SECURITY DEFINER with search_path pinned');
+select public.cs_test_assert(
+  (select bool_and(p.proconfig @> array['search_path=public, pg_temp'])
+   from pg_proc p
+   where p.pronamespace = 'public'::regnamespace
+     and p.proname in ('cs_review_normalize', 'cs_review_hash', 'cs_clean_label', 'cs_generate_invite_code',
+       'cs_member_display_name', 'cs_log_event', 'cs_my_team_id', 'cs_is_team_leader',
+       'cs_review_submissions_guard', 'cs_review_events_guard', 'cs_create_team', 'cs_join_team',
+       'cs_leave_team', 'cs_submit_for_review'))
+  and (select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname in ('cs_review_normalize', 'cs_review_hash', 'cs_clean_label', 'cs_generate_invite_code',
+       'cs_member_display_name', 'cs_log_event', 'cs_my_team_id', 'cs_is_team_leader',
+       'cs_review_submissions_guard', 'cs_review_events_guard', 'cs_create_team', 'cs_join_team',
+       'cs_leave_team', 'cs_submit_for_review')) = 14,
+  '0.2b every 011 function now ends its search_path with pg_temp');
+select public.cs_test_assert(
+  (select count(*) from pg_constraint where conrelid = 'public.cs_review_submissions'::regclass and contype = 'c'
+     and pg_get_constraintdef(oid) like '%approved%') = 1
+  and (select count(*) from pg_constraint where conrelid = 'public.cs_review_events'::regclass and contype = 'c'
+     and pg_get_constraintdef(oid) like '%team_created%') = 1,
+  '0.2c exactly one status check and one kind check remain (the old ones were dropped)');
+select public.cs_test_assert(
+  exists (select 1 from pg_indexes where schemaname = 'public' and indexname = 'cs_team_approval_rules_user_idx'),
+  '0.2d the rules table is indexed by user');
 
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
@@ -168,6 +190,27 @@ select public.cs_test_assert((select count(*) from public.cs_team_approval_rules
   '2.12 another team''s leader sees no rules');
 select public.cs_test_expect_error($$select public.cs_set_approval_required('7e57c0de-0000-4000-8000-0000000000d2', false)$$,
   '%Only a leader of this person''s team%', '2.13 another team''s leader cannot lift the rule');
+
+-- Never on another leader or on the team's owner (simulated: there is no
+-- promote or transfer function yet).
+reset role;
+update public.cs_team_members set role = 'leader' where user_id = '7e57c0de-0000-4000-8000-0000000000d3';
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000d1","role":"authenticated"}';
+select public.cs_test_expect_error($$select public.cs_set_approval_required('7e57c0de-0000-4000-8000-0000000000d3', true)$$,
+  '%Leaders and the team owner%', '2.13b a leader cannot put another leader on approval');
+reset role;
+update public.cs_team_members set role = 'member' where user_id = '7e57c0de-0000-4000-8000-0000000000d3';
+update public.cs_teams set owner_id = '7e57c0de-0000-4000-8000-0000000000d3' where id = current_setting('cs_test.team_a')::uuid;
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000d1","role":"authenticated"}';
+select public.cs_test_expect_error($$select public.cs_set_approval_required('7e57c0de-0000-4000-8000-0000000000d3', true)$$,
+  '%Leaders and the team owner%', '2.13c a leader cannot put the team owner on approval');
+select public.cs_test_assert(public.cs_set_approval_required('7e57c0de-0000-4000-8000-0000000000d3', false) = false,
+  '2.13d turning a rule off is always allowed');
+reset role;
+update public.cs_teams set owner_id = '7e57c0de-0000-4000-8000-0000000000d1' where id = current_setting('cs_test.team_a')::uuid;
+set local role authenticated;
 
 -- Leaving and rejoining does not clear the rule.
 set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000d2","role":"authenticated"}';
