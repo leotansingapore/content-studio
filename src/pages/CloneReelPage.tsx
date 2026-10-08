@@ -131,7 +131,7 @@ function EmptyState({ hasVoice }: { hasVoice: boolean }) {
   ];
   return (
     <Card className="border-border/60 shadow-card">
-      <CardContent className="space-y-5 p-4 sm:p-6">
+      <CardContent className="space-y-5 p-4 sm:p-6 md:p-6">
         <div className="grid gap-3 sm:grid-cols-3">
           {steps.map((s, i) => (
             <div key={s.title} className="flex gap-3 rounded-xl border border-border/50 bg-muted/20 p-3">
@@ -204,7 +204,7 @@ function LoadingSteps({ startedAt, onCancel }: { startedAt: number; onCancel: ()
 
   return (
     <Card className="border-border/60 shadow-card" aria-busy="true">
-      <CardContent className="space-y-4 p-4 sm:p-6">
+      <CardContent className="space-y-4 p-4 sm:p-6 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0" role="status" aria-live="polite">
             <p className="font-serif text-lg font-semibold text-foreground">{CLONE_STEPS[current].label}…</p>
@@ -295,7 +295,7 @@ function ErrorCard({
       role="alert"
       className={`shadow-card ${soft ? "border-warning/40 bg-warning/[0.04]" : "border-destructive/30 bg-destructive/[0.03]"}`}
     >
-      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-6">
+      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-6 md:p-6">
         {code === "timeout" ? (
           <Clock className="h-5 w-5 shrink-0 text-warning" />
         ) : (
@@ -378,7 +378,7 @@ function SourceCard({ source }: { source: CloneSource }) {
 
   return (
     <Card className="border-border/60 shadow-card">
-      <CardContent className="space-y-4 p-4 sm:p-6">
+      <CardContent className="space-y-4 p-4 sm:p-6 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -449,7 +449,7 @@ function SourceCard({ source }: { source: CloneSource }) {
 function BreakdownCard({ breakdown }: { breakdown: Breakdown }) {
   return (
     <Card className="min-w-0 border-border/60 shadow-card">
-      <CardContent className="space-y-4 p-4 sm:p-6">
+      <CardContent className="space-y-4 p-4 sm:p-6 md:p-6">
         <h2 className="font-serif text-xl font-semibold text-foreground">Why it worked</h2>
 
         <div className="space-y-1 rounded-lg border border-primary/20 bg-primary/5 p-3">
@@ -565,7 +565,7 @@ function VersionCard({
 
   return (
     <Card className="min-w-0 border-primary/25 shadow-card">
-      <CardContent className="space-y-4 p-4 sm:p-6">
+      <CardContent className="space-y-4 p-4 sm:p-6 md:p-6">
         <div className="space-y-2">
           <h2 className="font-serif text-xl font-semibold text-foreground">Your version</h2>
           <ComplianceFlags flags={flags} />

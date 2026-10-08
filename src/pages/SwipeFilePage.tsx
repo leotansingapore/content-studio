@@ -227,7 +227,7 @@ export default function SwipeFilePage() {
         <>
           {working.posts >= 5 && (
             <Card className="border-border/60 shadow-card">
-              <CardContent className="space-y-3 py-4">
+              <CardContent className="space-y-3 !py-4">
                 <div className="flex items-center gap-1.5">
                   <h2 className="text-sm font-semibold text-foreground">Formats working now</h2>
                   <InfoTip label="About formats working now">
