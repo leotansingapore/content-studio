@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, TrendingUp, ChevronDown, Bookmark, Sparkles } from "lucide-react";
+import { Search, TrendingUp, ChevronDown, Bookmark, Filter } from "lucide-react";
 import ReelCard from "@/components/ReelCard";
 import IndustryNews from "@/components/IndustryNews";
 import { NEWS } from "@/lib/industryNews";
@@ -63,12 +63,12 @@ function FilterSelect({
   options: { value: string; label: string }[];
 }) {
   return (
-    <label className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 py-1.5 text-xs">
+    <label className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-xs sm:h-8">
       <span className="font-semibold text-muted-foreground">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="max-w-[9rem] bg-transparent font-medium text-foreground outline-none"
+        className="h-full max-w-[9rem] bg-transparent font-medium text-foreground outline-none"
         aria-label={label}
       >
         {options.map((o) => (
@@ -103,6 +103,7 @@ export default function SwipeFilePage() {
   const [audience, setAudience] = useState("all");
   const [sort, setSort] = useState<SortKey>("engagement");
   const [savedOnly, setSavedOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [openKey, setOpenKey] = useState<string | null>(null);
 
@@ -168,6 +169,7 @@ export default function SwipeFilePage() {
     [kind],
   );
 
+  const activeFilters = [kind, topic, angle, audience].filter((v) => v !== "all").length;
   const shown = filtered.slice(0, visible);
   const remaining = filtered.length - shown.length;
   const openItem = openKey ? ENRICHED.find((p) => postKey(p) === openKey) ?? null : null;
@@ -181,12 +183,6 @@ export default function SwipeFilePage() {
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Real high-performing posts from {ADVISOR_COUNT} SG finance creators.
-        </p>
-        <p className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
-          <Sparkles className="h-3.5 w-3.5" />
-          {forYou && hasPlaybook
-            ? "Showing content relevant to your audience & content pillars"
-            : "Showing high-performing content relevant to Financial Advisors"}
         </p>
       </header>
 
@@ -276,85 +272,98 @@ export default function SwipeFilePage() {
             </Card>
           )}
 
-          {/* Filter bar */}
+          {/* Filter bar: the same shape as Inspiration and Creators. Search and
+              format stay out; who / topic / angle / audience fold behind Filters
+              so the posts start above the fold on a phone. */}
           <Card className="border-border/60 shadow-card">
-            <CardContent className="space-y-3 pt-5">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search ideas, captions, creators (e.g. CPF, objection, retirement)"
-                  className="pl-9"
-                />
+            <CardContent className="space-y-3 !pt-5">
+              <div className="flex gap-2">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search ideas, captions, creators (e.g. CPF, objection, retirement)"
+                    aria-label="Search top posts"
+                    className="pl-9"
+                  />
+                </div>
+                <Button
+                  variant={showFilters || activeFilters > 0 ? "default" : "outline"}
+                  onClick={() => setShowFilters((v) => !v)}
+                  aria-expanded={showFilters}
+                  className="shrink-0 gap-1.5"
+                >
+                  <Filter className="h-3.5 w-3.5" />
+                  Filters
+                  {activeFilters > 0 && (
+                    <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">{activeFilters}</span>
+                  )}
+                </Button>
               </div>
 
-              {/* Format + saved + For You */}
               <div className="flex flex-wrap items-center gap-1.5">
                 {FORMAT_CHIPS.map((f) => (
                   <Chip key={f.value} active={format === f.value} onClick={() => setFormat(f.value)}>
                     {f.label}
                   </Chip>
                 ))}
-                <span className="mx-1 h-4 w-px bg-border" />
-                <button
-                  type="button"
-                  onClick={() => setSavedOnly((v) => !v)}
-                  className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                    savedOnly
-                      ? "border-primary/60 bg-primary/10 text-primary"
-                      : "border-border/60 bg-background text-muted-foreground hover:border-primary/40"
-                  }`}
-                >
-                  <Bookmark className="h-3 w-3" /> Saved{savedSet.size > 0 ? ` (${savedSet.size})` : ""}
-                </button>
-                {hasPlaybook && (
-                  <div className="inline-flex overflow-hidden rounded-full border border-border/60">
-                    <button
-                      type="button"
-                      onClick={() => setForYou(true)}
-                      className={`px-3 py-1 text-xs font-medium ${forYou ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
-                    >
-                      For You
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setForYou(false)}
-                      className={`px-3 py-1 text-xs font-medium ${!forYou ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
-                    >
-                      All
-                    </button>
-                  </div>
-                )}
+                <span className="mx-1 hidden h-4 w-px bg-border sm:block" />
+                <Chip active={savedOnly} onClick={() => setSavedOnly((v) => !v)} count={savedSet.size > 0 ? savedSet.size : undefined}>
+                  <Bookmark className="h-3 w-3" /> Saved
+                </Chip>
               </div>
 
-              {/* Topic / Angle / Audience / Sort */}
+              {showFilters && (
+                <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+                  <FilterSelect label="From" value={kind} onChange={setKind} options={KIND_OPTIONS} />
+                  <FilterSelect
+                    label="Topic"
+                    value={topic}
+                    onChange={setTopic}
+                    options={[{ value: "all", label: "All" }, ...TOPICS.map((t) => ({ value: t, label: t }))]}
+                  />
+                  <FilterSelect
+                    label="Angle"
+                    value={angle}
+                    onChange={setAngle}
+                    options={[{ value: "all", label: "All" }, ...ANGLES.map((a) => ({ value: a, label: a }))]}
+                  />
+                  <FilterSelect
+                    label="Audience"
+                    value={audience}
+                    onChange={setAudience}
+                    options={[{ value: "all", label: "All" }, ...AUDIENCES.map((a) => ({ value: a, label: a }))]}
+                  />
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center gap-2">
-                <FilterSelect label="From" value={kind} onChange={setKind} options={KIND_OPTIONS} />
-                <FilterSelect
-                  label="Topic"
-                  value={topic}
-                  onChange={setTopic}
-                  options={[{ value: "all", label: "All" }, ...TOPICS.map((t) => ({ value: t, label: t }))]}
-                />
-                <FilterSelect
-                  label="Angle"
-                  value={angle}
-                  onChange={setAngle}
-                  options={[{ value: "all", label: "All" }, ...ANGLES.map((a) => ({ value: a, label: a }))]}
-                />
-                <FilterSelect
-                  label="Audience"
-                  value={audience}
-                  onChange={setAudience}
-                  options={[{ value: "all", label: "All" }, ...AUDIENCES.map((a) => ({ value: a, label: a }))]}
-                />
                 <FilterSelect
                   label="Sort"
                   value={sort}
                   onChange={(v) => setSort(v as SortKey)}
                   options={SORTS.map((s) => ({ value: s.value, label: s.label }))}
                 />
+                {/* Personal ranking only changes these two sorts, so the switch shows only there. */}
+                {hasPlaybook && (sort === "engagement" || sort === "trending") && (
+                  <div className="inline-flex overflow-hidden rounded-full border border-border/60" role="group" aria-label="Rank for">
+                    {[
+                      { on: true, label: "For you" },
+                      { on: false, label: "Everyone" },
+                    ].map((o) => (
+                      <button
+                        key={o.label}
+                        type="button"
+                        onClick={() => setForYou(o.on)}
+                        aria-pressed={forYou === o.on}
+                        className={`h-9 px-3 text-xs font-medium sm:h-8 ${forYou === o.on ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <span className="ml-auto text-xs text-muted-foreground">
                   {filtered.length} of {TOTAL_TOP_POSTS} posts
                 </span>

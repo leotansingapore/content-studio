@@ -388,12 +388,13 @@ export default function Inspiration({ onUseAsVibe }: Props) {
       {/* Compact toolbar: search + a single row of pillar quick-filters, with
           platform/audience tucked behind a toggle to keep the top short. */}
       <Card className="border-border/60 shadow-card">
-        <CardContent className="space-y-3 pt-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
+        <CardContent className="space-y-3 !pt-5">
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="inspiration-search"
+                aria-label="Search examples"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search examples (e.g. CPF, BTO, retirement)"
@@ -402,32 +403,15 @@ export default function Inspiration({ onUseAsVibe }: Props) {
             </div>
             <Button
               variant={showFilters || activeFilterCount > 0 ? "default" : "outline"}
-              size="sm"
               onClick={() => setShowFilters((v) => !v)}
-              className="gap-1.5"
+              aria-expanded={showFilters}
+              className="shrink-0 gap-1.5"
             >
               <Filter className="h-3.5 w-3.5" />
               Filters
               {activeFilterCount > 0 && (
                 <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">
                   {activeFilterCount}
-                </span>
-              )}
-            </Button>
-            <Button
-              variant={savedOnly ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSavedOnly((v) => !v)}
-              className="gap-1.5"
-              title="Show only posts you've saved"
-            >
-              <Bookmark
-                className={`h-3.5 w-3.5 ${savedOnly ? "fill-current" : ""}`}
-              />
-              Saved
-              {saved.inspiration.length > 0 && (
-                <span className="ml-0.5 rounded-full bg-background/30 px-1.5 text-[10px] font-bold">
-                  {saved.inspiration.length}
                 </span>
               )}
             </Button>
@@ -440,6 +424,10 @@ export default function Inspiration({ onUseAsVibe }: Props) {
                 {p}
               </Chip>
             ))}
+            <span className="mx-1 hidden h-4 w-px bg-border sm:block" />
+            <Chip active={savedOnly} onClick={() => setSavedOnly((v) => !v)} count={saved.inspiration.length > 0 ? saved.inspiration.length : undefined}>
+              <Bookmark className="h-3 w-3" /> Saved
+            </Chip>
           </div>
 
           {showFilters && (
