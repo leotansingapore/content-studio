@@ -318,6 +318,16 @@ const AUDIENCE_FROM_INSPIRATION: Record<string, Audience> = {
 
 const ENTRIES = inspirationData as InspirationEntry[];
 
+// Labels for the 4 guided steps, in the order the consultant fills them in.
+const STEP_META = [
+  { label: "Topic" },
+  { label: "Funnel" },
+  { label: "Idea" },
+  { label: "Format" },
+];
+const IDEA_STEP = 2;
+const LAST_STEP = STEP_META.length - 1;
+
 interface VariantState {
   index: number;
   text: string;
@@ -472,6 +482,7 @@ export default function GeneratePage() {
     const reference = `Match the structural pattern of this example: ${entry.hook} | ${snippet}`;
     setStyleReference(reference);
     setVibeSourceId(entry.id);
+    setWizardStep(IDEA_STEP);
     setIdeaContext((prev) =>
       prev && prev.trim().length > 0
         ? prev
@@ -508,6 +519,7 @@ export default function GeneratePage() {
     const isBareIdea = !entry.draft && !entry.pillar;
     if (isBareIdea) {
       setPillarDetail(entry.hook);
+      setWizardStep(LAST_STEP);
     } else {
       setPillar(entry.pillar as Pillar);
       setPillarDetail(entry.pillarDetail ?? "");
@@ -518,6 +530,8 @@ export default function GeneratePage() {
       if (entry.hook) setChosenHook(entry.hook);
     }
     setDraft(entry.draft);
+    // A written post opens on its draft, not on step 1 of a brief it already has.
+    if (entry.draft.trim()) setBriefOpen(false);
     setCurrentDraftId(entry.id);
     preserveIdRef.current =
       entry.status === "scheduled" || entry.status === "posted"
@@ -527,7 +541,7 @@ export default function GeneratePage() {
     toast({
       title: isBareIdea ? "Idea loaded" : "Draft restored",
       description: isBareIdea
-        ? "Your board idea is set as the topic — pick a format and generate."
+        ? "Your board idea is the topic. Pick a format and generate."
         : "Form repopulated. Edit and re-roll, or copy as-is.",
     });
     setTimeout(() => {
@@ -557,7 +571,12 @@ export default function GeneratePage() {
       setPillar(pillarParam as Pillar);
     }
     const detailParam = searchParams.get("detail");
-    if (detailParam) setPillarDetail(detailParam);
+    if (detailParam) {
+      setPillarDetail(detailParam);
+      // Every step is filled in: open the one with Generate. The step chips
+      // show the rest as done and stay one tap away.
+      setWizardStep(LAST_STEP);
+    }
 
     const audienceParam = searchParams.get("audience");
     if (audienceParam && AUDIENCES.some((a) => a.value === audienceParam)) {
@@ -1255,14 +1274,6 @@ export default function GeneratePage() {
   const hasOutput =
     hookOptions.length > 0 || variants.length > 0 || draft.trim().length > 0;
 
-  // Labels for the 4 guided steps, in the order the consultant fills them in.
-  const STEP_META = [
-    { label: "Topic" },
-    { label: "Funnel" },
-    { label: "Idea" },
-    { label: "Format" },
-  ];
-  const LAST_STEP = STEP_META.length - 1;
   const goNext = () =>
     setWizardStep((s) => Math.min(LAST_STEP, s + 1));
   const goBack = () => setWizardStep((s) => Math.max(0, s - 1));
