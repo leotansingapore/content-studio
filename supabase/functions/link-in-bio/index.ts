@@ -1,7 +1,8 @@
 // Link-in-bio pages: the public side of /l/<slug>.
 //
 //   GET /link-in-bio/<slug>            the published page (name, line, photo,
-//                                      link labels and ids; never the URLs), or 404
+//                                      link labels and ids; never the URLs), or
+//                                      200 {gone: true} (no console error on the page)
 //   GET /link-in-bio/<slug>/<linkId>   302 to that link's stored URL, counting
 //                                      the click; unknown links go to the page
 //
@@ -52,7 +53,8 @@ Deno.serve(async (req) => {
     if (!route.linkId) {
       const { data, error } = await admin.rpc("cs_bio_page_public", { p_slug: route.slug });
       if (error) throw error;
-      return data ? reply(data, 200, "public, max-age=60") : reply({ error: "not_found" }, 404, "no-store");
+      // no-store: unpublishing or deleting takes effect on the next view.
+      return reply(data ?? { gone: true, error: "not_found" }, 200, "no-store");
     }
 
     const count = req.method === "GET" && !isBot(req.headers.get("user-agent"));

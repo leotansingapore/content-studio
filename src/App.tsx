@@ -55,6 +55,8 @@ const ReelsPage = lazy(() => import("@/pages/ReelsPage"));
 const VideoEditPage = lazy(() => import("@/pages/VideoEditPage"));
 // Public pages (no sign-in), each in its own chunk.
 const PreviewReviewPage = lazy(() => import("@/pages/PreviewReviewPage"));
+const BioPublicPage = lazy(() => import("@/pages/BioPublicPage"));
+const LinkInBioPage = lazy(() => import("@/pages/LinkInBioPage"));
 
 export default function App() {
   return (
@@ -68,6 +70,14 @@ export default function App() {
           element={
             <Suspense fallback={null}>
               <PreviewReviewPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/l/:slug"
+          element={
+            <Suspense fallback={null}>
+              <BioPublicPage />
             </Suspense>
           }
         />
@@ -101,6 +111,7 @@ export default function App() {
           <Route path="/create-guide" element={<CreateGuidePage />} />
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/brand" element={<BrandPage />} />
+          <Route path="/bio" element={<LinkInBioPage />} />
           <Route path="/media" element={<MediaPage />} />
           <Route path="/connect" element={<ConnectPage />} />
           <Route path="/grid" element={<GridPage />} />
