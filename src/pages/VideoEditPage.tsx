@@ -23,6 +23,7 @@ import { loadBrand } from "@/lib/carousel";
 import { tagLinks, withSignOff } from "@/lib/plainText";
 import { checkLimits } from "@/lib/platformCounters";
 import { supabase } from "@/lib/supabase";
+import { useUsesLeft } from "@/lib/aiUsage";
 import {
   STYLES,
   STYLE_IDS,
@@ -230,6 +231,8 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
 }) {
   const [over, setOver] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const left = useUsesLeft(!!busy);
+  const captions = left("video-transcribe");
   return (
     <>
       <header className="space-y-1">
@@ -260,6 +263,7 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
             </span>
             <span className="text-base font-semibold">Upload a video of you talking</span>
             <span className="text-xs text-muted-foreground">MP4 or MOV, up to 500 MB and about 12 minutes. It stays on this device.</span>
+            {captions !== null && <Left n={captions} what="Captioning" />}
           </>
         )}
         <input type="file" accept="video/*" className="sr-only" disabled={!!busy}
@@ -840,6 +844,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   const [clips, setClips] = useState<VideoProject[]>([]);
   const [clipping, setClipping] = useState(false);
+  // uses left today beside each AI button, read again after every run
+  const left = useUsesLeft(thinking || clipping || ideating || suggesting || !!translating || ttsBusy || captioning);
+  const none = (f: Parameters<typeof left>[0]) => left(f) === 0;
   const makeClips = async () => {
     setClipping(true);
     try {
@@ -1138,9 +1145,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         <h1 className="mr-auto truncate font-serif text-xl font-semibold">{project.name}</h1>
         <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5"><Undo2 className="h-3.5 w-3.5" /> Undo</Button>
         {duration >= 45 && words.length > 0 && (
-          <Button variant="outline" size="sm" onClick={makeClips} disabled={clipping} className={`gap-1.5 ${clipping ? "disabled:opacity-100" : ""}`}>
+          <Button variant="outline" size="sm" onClick={makeClips} disabled={clipping || none("video-clips")} className={`gap-1.5 ${clipping ? "disabled:opacity-100" : ""}`}>
             {clipping ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Scissors className="h-3.5 w-3.5" />}
-            {clipping ? "Finding clips..." : "Find clips"}
+            {clipping ? "Finding clips..." : <>Find clips{left("video-clips") !== null && <span className={`font-normal ${none("video-clips") ? "text-destructive" : "opacity-80"}`}>{none("video-clips") ? "none left today" : `${left("video-clips")} left`}</span>}</>}
           </Button>
         )}
         <Button variant="outline" size="sm" onClick={() => void saveCover()} disabled={!file} className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
@@ -1359,13 +1366,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             <Textarea rows={2} value={ask} onChange={(e) => setAsk(e.target.value)} placeholder="Bigger yellow captions at the top, cut the pauses tighter, hook: 3 CPF mistakes"
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), runVibe())} />
             <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={() => runVibe()} disabled={thinking || !ask.trim()} className={thinking ? "gap-1.5 disabled:opacity-100" : "gap-1.5"}>
+              <Button size="sm" onClick={() => runVibe()} disabled={thinking || !ask.trim() || none("vibe-edit")} className={thinking ? "gap-1.5 disabled:opacity-100" : "gap-1.5"}>
                 {thinking ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />} {thinking ? "Editing..." : "Change it"}
               </Button>
-              <label className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold hover:border-primary/40 ${thinking ? "pointer-events-none opacity-60" : ""}`}>
+              <label className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold hover:border-primary/40 ${thinking || none("vibe-edit") ? "pointer-events-none opacity-60" : ""}`}>
                 <Film className="h-3.5 w-3.5" /> Match a reference video
-                <input type="file" accept="video/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void matchReference(f); }} />
+                <input type="file" accept="video/*" className="sr-only" disabled={none("vibe-edit")} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void matchReference(f); }} />
               </label>
+              <Left n={left("vibe-edit")} />
               {!skillForm && (
                 <button type="button" onClick={openSkillForm} className="min-h-8 px-1 text-xs font-semibold text-primary hover:underline">Save as a skill</button>
               )}
@@ -1423,11 +1431,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             )}
             <div className="space-y-2 border-t border-border/60 pt-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold">Title and cover</p>
-                <Button size="sm" variant="outline" onClick={suggestPublish} disabled={ideating || !words.length} className={`h-11 gap-1.5 sm:h-9 ${ideating ? "disabled:opacity-100" : ""}`}>
-                  {ideating ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
-                  {ideating ? "Writing..." : publish ? "Write again" : "Suggest from what I say"}
-                </Button>
+                <p className="mr-auto text-sm font-semibold">Title and cover</p>
+                <span className="flex items-center gap-2">
+                  <Left n={left("video-publish")} />
+                  <Button size="sm" variant="outline" onClick={suggestPublish} disabled={ideating || !words.length || none("video-publish")} className={`h-11 gap-1.5 sm:h-9 ${ideating ? "disabled:opacity-100" : ""}`}>
+                    {ideating ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
+                    {ideating ? "Writing..." : publish ? "Write again" : "Suggest from what I say"}
+                  </Button>
+                </span>
               </div>
               {publish && (
                 <>
@@ -1511,6 +1522,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                     {translating === id ? "Translating..." : label}
                   </Chip>
                 ))}
+                <Left n={left("video-translate")} />
               </Row>
               <Row label="ALL CAPS"><Toggle on={settings.uppercase} set={(v) => patch({ uppercase: v })} /></Row>
               <Row label="Numbers in the highlight colour"><Toggle on={settings.highlightNumbers} set={(v) => patch({ highlightNumbers: v })} /></Row>
@@ -1560,11 +1572,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       {VOICE_IDS.map((v) => <Chip key={v} on={ttsVoice === v} onClick={() => setTtsVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Chip>)}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Button size="sm" className={`h-9 gap-1.5 ${ttsBusy ? "disabled:opacity-100" : ""}`} onClick={() => void makeTts()} disabled={ttsBusy || ttsText.trim().length < 5}>
+                      <Button size="sm" className={`h-9 gap-1.5 ${ttsBusy ? "disabled:opacity-100" : ""}`} onClick={() => void makeTts()} disabled={ttsBusy || ttsText.trim().length < 5 || none("ai-voice")}>
                         {ttsBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
                         {ttsBusy ? "Making the voiceover..." : `Make it from ${fmtTime(Math.min(outT, Math.max(0, plan.total - 0.5)))}`}
                       </Button>
                       <span className="text-[11px] text-muted-foreground">{ttsText.length.toLocaleString("en-US")} / {MAX_SCRIPT.toLocaleString("en-US")}</span>
+                      <Left n={left("ai-voice")} />
                     </div>
                   </div>
                 )}
@@ -1643,9 +1656,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 </details>
               )}
               {!words.length && (
-                <Button size="sm" variant="outline" onClick={recaption} disabled={captioning} className="gap-1.5">
-                  {captioning ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : null} {captioning ? "Captioning..." : "Caption it"}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={recaption} disabled={captioning || none("video-transcribe")} className="gap-1.5">
+                    {captioning ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : null} {captioning ? "Captioning..." : "Caption it"}
+                  </Button>
+                  <Left n={left("video-transcribe")} />
+                </div>
               )}
             </div>
           )}
@@ -1657,10 +1673,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <input value={settings.hook} maxLength={90} onChange={(e) => patch({ hook: e.target.value })} placeholder="3 CPF mistakes I see every week"
                   className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
               </label>
-              <Button size="sm" variant="outline" disabled={thinking || !words.length} className="gap-1.5"
-                onClick={() => runVibe(undefined, "Write the hook card: the most scroll-stopping line in 8 words or fewer, using my own words from the transcript. Change only the hook.")}>
-                <Sparkles className="h-3.5 w-3.5" /> Suggest a hook from what I say
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" variant="outline" disabled={thinking || !words.length || none("vibe-edit")} className="gap-1.5"
+                  onClick={() => runVibe(undefined, "Write the hook card: the most scroll-stopping line in 8 words or fewer, using my own words from the transcript. Change only the hook.")}>
+                  <Sparkles className="h-3.5 w-3.5" /> Suggest a hook from what I say
+                </Button>
+                <Left n={left("vibe-edit")} />
+              </div>
               <Row label={`Hook shows for ${settings.hookSeconds}s`}><input type="range" min={1} max={10} step={0.5} value={settings.hookSeconds} onChange={(e) => patch({ hookSeconds: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block space-y-1 text-xs font-semibold">
@@ -1756,10 +1775,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="mr-auto text-sm font-medium">Callouts and cutaways
                     <InfoTip label="About callouts">Read from what you say. Add the ones you want.</InfoTip></span>
-                  <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 ${suggesting ? "disabled:opacity-100" : ""}`} onClick={suggest} disabled={suggesting || !words.length}>
-                    {suggesting ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
-                    {suggesting ? "Reading..." : cutaways.length ? "Suggest again" : "Suggest from what I say"}
-                  </Button>
+                  <span className="flex items-center gap-2">
+                    <Left n={left("video-cutaways")} />
+                    <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 ${suggesting ? "disabled:opacity-100" : ""}`} onClick={suggest} disabled={suggesting || !words.length || none("video-cutaways")}>
+                      {suggesting ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
+                      {suggesting ? "Reading..." : cutaways.length ? "Suggest again" : "Suggest from what I say"}
+                    </Button>
+                  </span>
                 </div>
                 {cutaways.length > 0 && (
                   <ul className="divide-y divide-border/60" aria-label="Suggested callouts">
@@ -1881,7 +1903,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           {tab === "words" && (
             <div className="space-y-2">
               {!words.length ? (
-                <Button size="sm" variant="outline" onClick={recaption} disabled={captioning}>{captioning ? "Captioning..." : "Caption it"}</Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={recaption} disabled={captioning || none("video-transcribe")}>{captioning ? "Captioning..." : "Caption it"}</Button>
+                  <Left n={left("video-transcribe")} />
+                </div>
               ) : (
                 <>
                 <div className="flex items-center gap-1.5">
@@ -1976,6 +2001,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       </div>
     </div>
   );
+}
+
+/** Uses left today beside an AI button; nothing until today's count has been read. */
+function Left({ n, what }: { n: number | null; what?: string }) {
+  if (n === null) return null;
+  const text = n ? `${n} left today` : "None left today";
+  return <span className={`text-[11px] ${n ? "text-muted-foreground" : "font-medium text-destructive"}`}>{what ? `${what}: ${text.toLowerCase()}` : text}</span>;
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {

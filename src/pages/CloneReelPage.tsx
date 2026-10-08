@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useUsesLeft } from "@/lib/aiUsage";
 import {
   AlertTriangle,
   ArrowRight,
@@ -693,6 +694,7 @@ function ConceptPicker({
   error: string | null;
   onChoose: (index: number) => void;
 }) {
+  const left = useUsesLeft(building !== null)("reel-concepts");
   return (
     <div className="space-y-2">
       <p id="concept-options" className={`${LABEL} text-primary`}>
@@ -742,7 +744,7 @@ function ConceptPicker({
         <p role="status" aria-live="polite" className="text-[11px] text-muted-foreground">
           {building !== null
             ? "Writing that version, about 20 seconds..."
-            : `A new concept uses 1 of your ${DAILY_LIMITS["reel-concepts"]} a day.`}
+            : `A new concept uses 1 of your ${DAILY_LIMITS["reel-concepts"]} a day${left === null ? "" : `, ${left} left today`}.`}
         </p>
       )}
     </div>
@@ -1128,6 +1130,7 @@ export default function CloneReelPage() {
 
   const loading = view.kind === "loading";
   const limit = DAILY_LIMITS["reel-clone"];
+  const clonesLeft = useUsesLeft(loading)("reel-clone");
 
   return (
     <div className="space-y-5">
@@ -1176,9 +1179,11 @@ export default function CloneReelPage() {
         ) : (
           <p id="reel-url-hint" className="text-[11px] text-muted-foreground">
             Instagram reels and TikTok videos only. Each clone uses 1 of your {limit} a day
-            {view.kind === "result" && view.clone.result.usage
-              ? ` (${view.clone.result.usage.used} used today).`
-              : "."}
+            {clonesLeft !== null
+              ? `, ${clonesLeft} left today.`
+              : view.kind === "result" && view.clone.result.usage
+                ? ` (${view.clone.result.usage.used} used today).`
+                : "."}
           </p>
         )}
       </form>
