@@ -37,6 +37,8 @@ export interface DraftEntry {
   repeat?: Repeat;
   // Ids of the user's content labels (labels.ts).
   labels?: string[];
+  // Disclosure lines added on copy (plainText.ts DISCLOSURES ids).
+  disclosure?: string[];
 }
 
 export type RepeatEvery = "week" | "2weeks" | "month";

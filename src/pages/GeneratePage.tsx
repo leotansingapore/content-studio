@@ -594,6 +594,16 @@ export default function GeneratePage() {
 
   // Draft history.
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  // ...and kept with the saved post, so reopening it from My posts keeps the line
+  const savedDisclosure = useRef<string>("");
+  useEffect(() => {
+    if (!userId || !currentDraftId) return;
+    const key = disclosure.join(",");
+    if (key === savedDisclosure.current) return;
+    savedDisclosure.current = key;
+    const e = getDraftById(userId, currentDraftId);
+    if (e && (e.disclosure ?? []).join(",") !== key) upsertDraft(userId, { ...e, disclosure: disclosure.length ? disclosure : undefined });
+  }, [disclosure, userId, currentDraftId]);
 
   // Compliance flags + dismiss tracking.
   const [dismissedFlagIds, setDismissedFlagIds] = useState<Set<string>>(new Set());
@@ -800,6 +810,7 @@ export default function GeneratePage() {
         ? entry.id
         : null;
     setVibeSourceId(entry.vibeSourceId ?? null);
+    setDisclosure((entry.disclosure ?? []).filter((d): d is DisclosureId => d in DISCLOSURES));
     toast({
       title: isBareIdea ? "Idea loaded" : "Draft restored",
       description: isBareIdea
@@ -1449,11 +1460,13 @@ export default function GeneratePage() {
         scheduledFor: existing?.scheduledFor,
         postedAt: existing?.postedAt,
         repeat: existing?.repeat,
+        disclosure: disclosure.length ? disclosure : undefined,
       };
       upsertDraft(userId, entry);
       setCurrentDraftId(id);
     },
     [
+      disclosure,
       audience,
       ctaType,
       currentDraftId,
