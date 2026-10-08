@@ -61,6 +61,8 @@ export interface AuditProfile {
   postsCount: number | null;
   verified: boolean;
   isPrivate: boolean;
+  /** The profile's own link (Instagram's link field, TikTok's bio link); "" when none. Absent on audits read before 2026-10-08. */
+  link?: string;
 }
 
 export interface FormatStat {
@@ -225,6 +227,8 @@ export function normalizeTiktokPost(item: Item, handle: string): SocialPost | nu
   };
 }
 
+const firstLink = (...v: unknown[]) => String(v.find((x) => typeof x === "string" && x.trim()) ?? "").trim().slice(0, 300);
+
 /** The item from apify~instagram-profile-scraper. */
 export function igProfile(item: Item, handle: string): AuditProfile {
   return {
@@ -236,6 +240,7 @@ export function igProfile(item: Item, handle: string): AuditProfile {
     postsCount: countOrNull(item.postsCount),
     verified: Boolean(item.verified),
     isPrivate: Boolean(item.private),
+    link: firstLink(item.externalUrl, ((item.externalUrls ?? []) as Item[])[0]?.url),
   };
 }
 
@@ -254,6 +259,7 @@ export function tiktokProfile(items: Item[], handle: string): AuditProfile {
     postsCount: countOrNull(a.video),
     verified: Boolean(a.verified),
     isPrivate: Boolean(a.privateAccount),
+    link: firstLink(a.bioLink, ((a.bioLink ?? {}) as Item).link),
   };
 }
 

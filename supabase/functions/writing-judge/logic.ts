@@ -13,6 +13,7 @@
 
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
+import { complianceIssues, parseJsonObject } from "../_shared/socialAudit.ts";
 
 export { mostlyEnglish };
 
@@ -22,7 +23,7 @@ export const MAX_TEXT = 5000;
 export const MAX_SENTENCES = 40;
 const MAX_SAMPLES = 3;
 const MAX_SAMPLE_CHARS = 1200;
-export const MODES = ["human", "hooks", "idea"] as const;
+export const MODES = ["human", "hooks", "idea", "profile"] as const;
 export type JudgeMode = (typeof MODES)[number];
 
 /**
@@ -41,7 +42,8 @@ export function splitSentences(text: string): string[] {
 export type JudgeRequest =
   | { mode: "human"; text: string; samples: string[] }
   | { mode: "hooks"; hooks: string[]; audience: string; topic: string; platform: string }
-  | { mode: "idea"; topic: string; notes: string; kind: string };
+  | { mode: "idea"; topic: string; notes: string; kind: string }
+  | ProfileRequest;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -49,6 +51,23 @@ export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeReque
   const b = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const mode = MODES.find((m) => m === b.mode);
   if (!mode) return { ok: false, error: "Unknown check." };
+  if (mode === "profile") {
+    const platform = b.platform === "tiktok" ? "tiktok" : "instagram";
+    const list = (v: unknown, max: number) =>
+      (Array.isArray(v) ? v : []).map((x) => str(x, max)).filter(Boolean).slice(0, 3);
+    return {
+      ok: true,
+      request: {
+        mode,
+        platform,
+        name: str(b.name, 100),
+        bio: str(b.bio, 500),
+        pinned: list(b.pinned, 400),
+        top: list(b.top, 300),
+        link: b.link === null || b.link === undefined ? null : str(b.link, 300),
+      },
+    };
+  }
   if (mode === "idea") {
     const topic = str(b.topic, 300);
     if (topic.length < 2) return { ok: false, error: "Add your topic first." };
@@ -263,4 +282,169 @@ export const IDEA_QUESTIONS: Record<string, JevQuestion> = {
 export function readIdeaThin(answers: Record<string, JevAnswer> | null): boolean | null {
   const p = answers?.specific?.noul;
   return typeof p === "number" && Number.isFinite(p) ? p < IDEA_MIN : null;
+}
+
+// ---- Mode "profile" ---------------------------------------------------------
+// The consultant's own Instagram or TikTok profile out of 100, from what the
+// account audit already read. Name field, bio and pinned posts are Jev score
+// questions; the contact link is measured. The photo is not scored: Jev reads
+// text only. Rubric after Jakeschincariol/linkedin-agent-skill li-profile,
+// cut to what an Instagram or TikTok profile has.
+
+export interface ProfileRequest {
+  mode: "profile";
+  platform: "instagram" | "tiktok";
+  name: string;
+  bio: string;
+  /** Captions of the pinned posts. */
+  pinned: string[];
+  /** Captions of their best posts, context for the rewrites. */
+  top: string[];
+  /** The profile's link; null when the audit predates reading it. */
+  link: string | null;
+}
+
+export const PROFILE_ITEMS = { name: 25, bio: 35, pinned: 20, contact: 20 } as const;
+export type ProfileItemId = keyof typeof PROFILE_ITEMS;
+/** Name and bio length limits, for the rewrites. */
+export const PROFILE_LIMITS = { instagram: { name: 30, bio: 150 }, tiktok: { name: 30, bio: 80 } } as const;
+
+const NAME_LEVELS = [
+  "Only a personal name, a nickname or a handle.",
+  "A name plus a job title or industry only, such as 'Jane Tan | Financial Consultant'.",
+  "Says who they help or with what, such as 'Jane | Retirement plans for SG parents'.",
+  "Says who they help and what changes for them, with a proof point such as years, clients helped or a credential.",
+];
+const BIO_LEVELS = [
+  "Empty, or only a quote, emojis or personal hobbies.",
+  "Describes the writer (job title, company, credentials) but not who they help.",
+  "Says who they help and with what.",
+  "Says who they help and what changes for them, gives one proof point, and tells the reader what to do next (DM, tap the link, book).",
+];
+const PINNED_LEVELS = [
+  "Off-topic or personal posts that say nothing about the work.",
+  "About the work, but generic tips with no proof and no way to get in touch.",
+  "Shows the work with proof (a client story, a result, a number) or a clear way to work with them.",
+  "Together they cover who they help, proof that it works, and how to work with them.",
+];
+
+export function profileState(r: ProfileRequest) {
+  return {
+    platform: r.platform === "tiktok" ? "TikTok" : "Instagram",
+    role: "a financial consultant in Singapore",
+    name: r.name,
+    bio: r.bio,
+    ...(r.pinned.length ? { pinned_posts: r.pinned } : {}),
+  };
+}
+
+export function profileQuestions(r: ProfileRequest): Record<string, JevQuestion> {
+  const q: Record<string, JevQuestion> = {
+    name: {
+      type: "score",
+      instructions: "On `platform` the name field shows beside the photo and is searchable. How well does `name` tell a visitor what this consultant (`role`) does and for whom?",
+      criteria: NAME_LEVELS,
+    },
+    bio: {
+      type: "score",
+      instructions: "How well does `bio` tell a first-time visitor who this consultant (`role`) helps, why to follow, and what to do next?",
+      criteria: BIO_LEVELS,
+    },
+  };
+  if (r.pinned.length) {
+    q.pinned = {
+      type: "score",
+      instructions: "`pinned_posts` are the posts pinned to the top of this consultant's profile. How well do they show a first-time visitor who this consultant helps, proof that it works, and how to work with them?",
+      criteria: PINNED_LEVELS,
+    };
+  }
+  return q;
+}
+
+// Set from a shadow check on 2026-10-08 (jev-1.13.0) over 10 Instagram
+// profiles written for it, from a bare name to a full one. About 800 Jev input
+// tokens a score.
+/**
+ * A level counts once Jev's expected level is within this of it (1.5 rounds
+ * up to 2). Expected levels sat near whole numbers: bare profiles 0.00-0.12,
+ * title only 1.00-1.04, who they help 1.77-2.11, full 2.77-3.00; the
+ * in-between pinned sets (1.34, 1.89) rounded to the level they read as.
+ */
+export const LEVEL_ROUND = 0.5;
+
+/** A link, an email, a phone number or a WhatsApp or Telegram link in the bio counts as a way to reach them. */
+const CONTACT_IN_BIO = /https?:\/\/|www\.|\b[\w.-]+\.(?:com|sg|me|ee|co|io|link|bio|page)\b|@[\w.-]+\.\w{2,}|wa\.me|t\.me|(?:\+65\s?)?\b[689]\d{3}\s?\d{4}\b/i;
+
+export type ProfileItemState = "full" | "partial" | "none" | "unknown";
+export interface ProfileItem {
+  id: ProfileItemId;
+  earned: number;
+  points: number;
+  state: ProfileItemState;
+}
+export interface ProfileScore {
+  /** Out of 100, over the items that could be checked. */
+  score: number;
+  items: ProfileItem[];
+  /** Rewrites the LLM wrote for the name and bio when they lost points. */
+  rewrites: { name?: string; bio?: string };
+}
+
+function levelPoints(score: number | null, levels: number, points: number): number | null {
+  if (score === null) return null;
+  const level = Math.min(levels - 1, Math.max(0, Math.floor(score + LEVEL_ROUND)));
+  return Math.round((level / (levels - 1)) * points);
+}
+
+/** The score out of 100 from Jev's levels and the measured contact link. Null when Jev did not answer. */
+export function composeProfile(answers: Record<string, JevAnswer> | null, r: ProfileRequest): Omit<ProfileScore, "rewrites"> | null {
+  const level = (id: string) => (typeof answers?.[id]?.score === "number" && Number.isFinite(answers[id].score) ? (answers[id].score as number) : null);
+  const name = r.name ? levelPoints(level("name"), NAME_LEVELS.length, PROFILE_ITEMS.name) : 0;
+  const bio = r.bio ? levelPoints(level("bio"), BIO_LEVELS.length, PROFILE_ITEMS.bio) : 0;
+  const pinned = r.pinned.length ? levelPoints(level("pinned"), PINNED_LEVELS.length, PROFILE_ITEMS.pinned) : 0;
+  if (name === null || bio === null || pinned === null) return null;
+  const reachable = Boolean(r.link) || CONTACT_IN_BIO.test(r.bio);
+  const contact = reachable ? PROFILE_ITEMS.contact : r.link === null ? null : 0;
+  const item = (id: ProfileItemId, earned: number | null): ProfileItem => {
+    const points = PROFILE_ITEMS[id];
+    if (earned === null) return { id, earned: 0, points, state: "unknown" };
+    return { id, earned, points, state: earned >= points ? "full" : earned > 0 ? "partial" : "none" };
+  };
+  const items = [item("name", name), item("bio", bio), item("pinned", pinned), item("contact", contact)];
+  const counted = items.filter((i) => i.state !== "unknown");
+  const possible = counted.reduce((a, i) => a + i.points, 0);
+  const earned = counted.reduce((a, i) => a + i.earned, 0);
+  return { score: possible ? Math.round((earned / possible) * 100) : 0, items };
+}
+
+/** The prompt for the name and bio rewrites, for the items that lost points. */
+export function buildProfileRewritePrompt(r: ProfileRequest, want: ("name" | "bio")[]): { system: string; user: string } {
+  const lim = PROFILE_LIMITS[r.platform];
+  const platform = r.platform === "tiktok" ? "TikTok" : "Instagram";
+  const system = [
+    `You rewrite the profile of a financial consultant in Singapore on ${platform}.`,
+    "Name field: keep their own name if they have one, then say who they help or with what.",
+    "Bio: who they help, what changes for them, one proof point, and what to do next (DM, tap the link).",
+    "Use only facts given here. Where a fact is missing, leave a blank in square brackets, like [years] or [number] families.",
+    "Rules: no promised or guaranteed returns, no named insurers or products, no hashtags, no em dashes, plain words.",
+    `Limits: name at most ${lim.name} characters, bio at most ${lim.bio} characters.`,
+    `Reply with JSON only: {${want.map((w) => `"${w}": "..."`).join(", ")}}`,
+  ].join("\n");
+  const user = [
+    `Name now: ${r.name || "(empty)"}`,
+    `Bio now: ${r.bio || "(empty)"}`,
+    r.top.length ? `Their best posts start:\n${r.top.map((t) => `- ${t.slice(0, 200)}`).join("\n")}` : "",
+  ].filter(Boolean).join("\n\n");
+  return { system, user };
+}
+
+/** The rewrites that are usable: within the limits, compliant, dashes made plain. */
+export function readProfileRewrites(raw: string | null, r: ProfileRequest, want: ("name" | "bio")[]): ProfileScore["rewrites"] {
+  const obj = raw ? parseJsonObject(raw) : null;
+  const out: ProfileScore["rewrites"] = {};
+  for (const id of want) {
+    const v = typeof obj?.[id] === "string" ? (obj[id] as string).replace(/\s*[\u2014\u2013]\s*/g, ", ").trim() : "";
+    if (v && v.length <= PROFILE_LIMITS[r.platform][id] && !complianceIssues(v).length) out[id] = v;
+  }
+  return out;
 }

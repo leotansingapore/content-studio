@@ -37,6 +37,8 @@ export const DAILY_LIMITS = {
   "post-score": 40,
   // Jev's judgment calls in Write (writing-judge): the sounds-human check and the rest.
   "writing-judge": 60,
+  // Profile score out of 100 with name and bio rewrites (writing-judge mode "profile", Jev + OpenAI).
+  "profile-score": 10,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

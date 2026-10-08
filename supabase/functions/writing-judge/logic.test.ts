@@ -4,6 +4,12 @@ import {
   MAX_SENTENCES,
   IDEA_MIN,
   IDEA_QUESTIONS,
+  LEVEL_ROUND,
+  PROFILE_LIMITS,
+  buildProfileRewritePrompt,
+  composeProfile,
+  profileQuestions,
+  readProfileRewrites,
   PICK_MARGIN,
   hookQuestions,
   ideaState,
@@ -154,5 +160,65 @@ describe("the thin-idea check", () => {
     expect(readIdeaThin(ans(IDEA_MIN))).toBe(false);
     expect(readIdeaThin(null)).toBeNull();
     expect(readIdeaThin({})).toBeNull();
+  });
+});
+
+describe("the profile score", () => {
+  const base = { mode: "profile" as const, platform: "instagram" as const, name: "Jane Tan", bio: "Financial consultant.", pinned: ["My best post"], top: [], link: "" as string | null };
+  const levels = (name: number, bio: number, pinned?: number) => ({
+    name: { type: "score" as const, score: name },
+    bio: { type: "score" as const, score: bio },
+    ...(pinned === undefined ? {} : { pinned: { type: "score" as const, score: pinned } }),
+  });
+
+  it("parses the profile, keeping at most three pinned and best posts, and an unknown link as null", () => {
+    const r = parseJudgeRequest({ mode: "profile", platform: "tiktok", name: " Jane ", bio: "Hi", pinned: ["a", "b", "c", "d"], top: [], link: undefined });
+    expect(r).toEqual({ ok: true, request: { mode: "profile", platform: "tiktok", name: "Jane", bio: "Hi", pinned: ["a", "b", "c"], top: [], link: null } });
+    expect(parseJudgeRequest({ mode: "profile", platform: "myspace", link: "x.sg" })).toMatchObject({ request: { platform: "instagram", link: "x.sg" } });
+  });
+
+  it("asks about the pinned posts only when there are some", () => {
+    expect(Object.keys(profileQuestions(base))).toEqual(["name", "bio", "pinned"]);
+    expect(Object.keys(profileQuestions({ ...base, pinned: [] }))).toEqual(["name", "bio"]);
+  });
+
+  it("turns each level into points, rounding at LEVEL_ROUND, and adds up to 100", () => {
+    const full = composeProfile(levels(3, 3, 3), { ...base, link: "https://jane.sg" });
+    expect(full).toEqual({
+      score: 100,
+      items: [
+        { id: "name", earned: 25, points: 25, state: "full" },
+        { id: "bio", earned: 35, points: 35, state: "full" },
+        { id: "pinned", earned: 20, points: 20, state: "full" },
+        { id: "contact", earned: 20, points: 20, state: "full" },
+      ],
+    });
+    const mid = composeProfile(levels(2 - LEVEL_ROUND, 2 - LEVEL_ROUND - 0.01, 0), base)!;
+    expect(mid.items.map((i) => i.earned)).toEqual([17, 12, 0, 0]);
+    expect(mid.score).toBe(29);
+  });
+
+  it("counts a contact in the bio, and leaves the link out of the score when the audit never read it", () => {
+    const inBio = composeProfile(levels(0, 0), { ...base, pinned: [], bio: "WhatsApp 9123 4567" })!;
+    expect(inBio.items.find((i) => i.id === "contact")?.state).toBe("full");
+    const unknown = composeProfile(levels(3, 3, 3), { ...base, link: null })!;
+    expect(unknown.items.find((i) => i.id === "contact")).toEqual({ id: "contact", earned: 0, points: 20, state: "unknown" });
+    expect(unknown.score).toBe(100);
+  });
+
+  it("scores an empty name or bio 0 without Jev, and nothing at all when Jev did not answer", () => {
+    expect(composeProfile({}, { ...base, name: "", bio: "", pinned: [] })?.score).toBe(0);
+    expect(composeProfile(null, base)).toBeNull();
+    expect(composeProfile(levels(1, 1), base)).toBeNull();
+  });
+
+  it("asks the rewrite for the lost items only, and keeps a rewrite only within limits and compliant", () => {
+    const { system } = buildProfileRewritePrompt(base, ["bio"]);
+    expect(system).toContain('{"bio": "..."}');
+    expect(system).toContain(`bio at most ${PROFILE_LIMITS.instagram.bio} characters`);
+    const long = "x".repeat(PROFILE_LIMITS.instagram.name + 1);
+    expect(readProfileRewrites(JSON.stringify({ name: long, bio: "I help SG parents \u2014 DM PLAN." }), base, ["name", "bio"])).toEqual({ bio: "I help SG parents, DM PLAN." });
+    expect(readProfileRewrites(JSON.stringify({ bio: "Guaranteed returns of 8% a year." }), base, ["bio"])).toEqual({});
+    expect(readProfileRewrites(null, base, ["bio"])).toEqual({});
   });
 });

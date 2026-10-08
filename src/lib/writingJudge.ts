@@ -4,6 +4,9 @@
 // shows no recommendation.
 
 import { callFn } from "@/lib/edgeFn";
+import type { ProfileScore } from "../../supabase/functions/writing-judge/logic.ts";
+
+export type { ProfileItemId, ProfileScore } from "../../supabase/functions/writing-judge/logic.ts";
 
 /** The index of the hook Jev recommends for this audience, or null. */
 export async function pickHook(hooks: string[], audience: string, topic: string, platform: string): Promise<number | null> {
@@ -25,4 +28,19 @@ export async function ideaIsThin(topic: string, notes: string, kind: string): Pr
     .then((res) => (typeof res?.thin === "boolean" ? res.thin : null))
     .catch(() => null);
   return Promise.race([call, new Promise<null>((done) => setTimeout(() => done(null), IDEA_WAIT_MS))]);
+}
+
+
+/** Your own profile out of 100 from what the account audit read; throws with the function's own words. */
+export async function scoreProfile(input: {
+  platform: "instagram" | "tiktok";
+  name: string;
+  bio: string;
+  pinned: string[];
+  top: string[];
+  link: string | null;
+}): Promise<ProfileScore> {
+  const res = await callFn<ProfileScore>("writing-judge", { mode: "profile", ...input }, "Couldn't score your profile right now. Try again in a minute.");
+  if (typeof res?.score !== "number" || !Array.isArray(res.items)) throw new Error("Couldn't score your profile right now. Try again in a minute.");
+  return res;
 }

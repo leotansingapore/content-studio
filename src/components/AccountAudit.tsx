@@ -48,6 +48,7 @@ import {
   type RatedPost,
 } from "@/lib/accountAudit";
 import type { SocialAccounts } from "@/lib/socialAccounts";
+import ProfileScore from "@/components/ProfileScore";
 import {
   AlertTriangle,
   Ban,
@@ -401,6 +402,16 @@ function AuditPanel({
             )}
             <Headline stats={stats} followers={profile?.followers ?? null} snapshots={snapshots} />
             <AdviceBlock advice={audit.advice} platform={platform} stats={stats} byId={byId} />
+            {profile && (
+              <ProfileScore
+                platform={platform}
+                name={profile.fullName}
+                bio={profile.bio}
+                link={profile.link ?? null}
+                pinned={posts.filter((p) => p.pinned)}
+                best={stats.topIds.map((id) => byId.get(id)).filter((p): p is RatedPost => p !== undefined)}
+              />
+            )}
             {stats.postsAnalyzed >= MIN_POSTS_FOR_IDEAS && (
               <PostIdeas auditId={audit.id} platform={platform} handle={handle} byId={byId} />
             )}

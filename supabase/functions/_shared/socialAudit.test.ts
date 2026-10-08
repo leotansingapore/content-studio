@@ -8,6 +8,7 @@ import {
   normalizeIgPost,
   normalizeTiktokPost,
   refreshDecision,
+  igProfile,
   tiktokProfile,
   validateAdvice,
   type AuditFreshness,
@@ -152,7 +153,16 @@ describe("normalizers", () => {
       followers: 21300,
       postsCount: 468,
       fullName: "Leila Tuck",
+      link: "",
     });
+  });
+
+  it("keeps the profile's own link, from either shape the scrapers send", () => {
+    expect(igProfile({ fullName: "Jane", externalUrl: "https://jane.sg/book" }, "jane").link).toBe("https://jane.sg/book");
+    expect(igProfile({ externalUrl: null, externalUrls: [{ url: "https://wa.me/6591234567" }] }, "jane").link).toBe("https://wa.me/6591234567");
+    expect(igProfile({}, "jane").link).toBe("");
+    expect(tiktokProfile([{ authorMeta: { name: "jane", bioLink: { link: "linktr.ee/jane" } } }], "jane").link).toBe("linktr.ee/jane");
+    expect(tiktokProfile([{ authorMeta: { name: "jane", bioLink: "jane.sg" } }], "jane").link).toBe("jane.sg");
   });
 });
 
