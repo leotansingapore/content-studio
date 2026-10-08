@@ -9,7 +9,7 @@ vi.mock("@/lib/videoProjects", () => ({ loadProjects: vi.fn(() => []), saveProje
 import { callFn } from "@/lib/edgeFn";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import type { Broll } from "@/lib/videoEdit";
-import { brollJob, brollSpan, chooseClip, chooseClips, onBrollApply, startAutoBroll, stockIdOf, type Added } from "./autoBroll";
+import { brollJob, brollSpan, chooseClip, chooseClips, onBrollApply, startAutoBroll, stockIdOf, timing, type Added } from "./autoBroll";
 
 const item = (id: string, w: number, h: number, duration?: number): StockItem => ({ id, w, h, duration, alt: "", thumb: `https://images.pexels.com/${id}.jpg`, src: `https://videos.pexels.com/${id}.mp4`, by: "Ann", byUrl: "", url: "" });
 const line = (s: number, e: number, text = "A line here.") => ({ s, e, text });
@@ -77,5 +77,46 @@ describe("the job", () => {
     vi.mocked(callFn).mockResolvedValueOnce({ picks: null });
     await startAutoBroll("u1", { projectId: "p2", sentences: [line(0, 3), line(5, 8)], total: 10, hookSeconds: 0, existing: [], stickers: 0, color: "#FFD92B", orientation: "portrait" });
     expect(brollJob()).toMatchObject({ state: "failed", placed: [] });
+  });
+});
+
+describe("AI clips when stock has nothing", () => {
+  const sentences = [line(0, 3, "Hook."), line(6, 9, "Buy a home."), line(14, 18, "Save in a jar.")];
+  const ask = (ai: boolean) => ({ projectId: "p4", sentences, total: 30, hookSeconds: 0, existing: [], stickers: 0, color: "#FFD92B", orientation: "portrait" as const, ai });
+  const route = (aiImage: (body: { mode: string }) => unknown) =>
+    vi.mocked(callFn).mockImplementation(async (name: string, body: unknown) => {
+      if (name === "video-assist") return { picks: [{ i: 1, kind: "scene", search: "home" }, { i: 2, kind: "scene", search: "jar" }] };
+      return aiImage(body as { mode: string });
+    });
+  timing.pollMs = 0;
+
+  it("makes one for each scene stock had nothing for, in the right shape, each going in as it lands", async () => {
+    // "home" finds a clip, "jar" finds nothing
+    vi.mocked(searchStock).mockImplementation(async (_k, q) => ({ items: q === "home" ? [item("31", 1080, 1920, 10)] : [], more: false }));
+    vi.mocked(downloadStock).mockResolvedValue(new Blob(["x"]));
+    const asked: unknown[] = [];
+    route((b) => (asked.push(b), b.mode === "broll" ? { token: "t1" } : { state: "done", url: "https://cdn.example/c.mp4" }));
+    const applied: Added[] = [];
+    const off = onBrollApply("p4", (added) => applied.push(added));
+    await startAutoBroll("u1", ask(true));
+    off();
+    expect(asked[0]).toEqual({ mode: "broll", search: "jar", line: "Save in a jar.", aspect: "9:16" });
+    expect(applied.map((x) => x.broll.map((b) => b.key.startsWith("br-ai-")))).toEqual([[false], [true]]);
+    expect(applied[1].broll[0]).toMatchObject({ from: 14, to: 18, by: "", thumb: "" });
+    expect(brollJob()).toMatchObject({ state: "done", missed: [] });
+    expect(brollJob()?.placed.map((p) => !!p.ai)).toEqual([false, true]);
+  });
+  it("stops making them at a refusal and keeps the stock clips, saying why", async () => {
+    vi.mocked(searchStock).mockResolvedValue({ items: [], more: false });
+    route(() => { throw new Error("AI clip credits have run out. Tell your studio admin."); });
+    await startAutoBroll("u1", ask(true));
+    expect(brollJob()).toMatchObject({ state: "done", note: "AI clip credits have run out. Tell your studio admin.", missed: ["home", "jar"] });
+  });
+  it("asks for none when the switch is off", async () => {
+    vi.mocked(searchStock).mockResolvedValue({ items: [], more: false });
+    const asked: unknown[] = [];
+    route((b) => (asked.push(b), { token: "t" }));
+    await startAutoBroll("u1", ask(false));
+    expect(asked).toEqual([]);
   });
 });

@@ -36,13 +36,13 @@ export function buildImageBody(prompt: string): Record<string, unknown> {
 
 export type JobState = { state: "working" } | { state: "done"; url: string } | { state: "failed"; error: string };
 
-/** Higgsfield's request status in the studio's words. Only an https image link counts as done. */
+/** Higgsfield's request status in the studio's words. Only an https image (or, for a B-roll clip, video) link counts as done. */
 export function readStatus(data: unknown): JobState {
   const d = (data ?? {}) as Record<string, unknown>;
   const status = String(d.status ?? "");
   if (status === "queued" || status === "in_progress") return { state: "working" };
   if (status === "completed") {
-    const url = (d.images as { url?: unknown }[] | undefined)?.[0]?.url;
+    const url = (d.images as { url?: unknown }[] | undefined)?.[0]?.url ?? (d.video as { url?: unknown } | undefined)?.url;
     return typeof url === "string" && /^https:\/\//.test(url) ? { state: "done", url } : { state: "failed", error: "The image came back empty. Try again." };
   }
   if (status === "nsfw") return { state: "failed", error: "The image was blocked by the safety filter. Change the prompt and try again." };

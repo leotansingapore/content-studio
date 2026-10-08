@@ -37,6 +37,10 @@ export const DAILY_LIMITS = {
   "broll-picks": 20,
   // "Make the image" on Write (ai-image, Higgsfield Soul v2, about USD 0.006 each).
   "ai-image": 5,
+  // An AI B-roll clip when stock has nothing (ai-image mode "broll": Soul v2 picture + DoP lite, about USD 0.13
+  // each): per adviser, and across everyone on GLOBAL_COUNTER_USER so the prepaid pool can't be drained.
+  "ai-broll": 3,
+  "ai-broll-global": 20,
   // "Voiceover from text" in the video editor (text-voice, ElevenLabs turbo v2.5).
   "ai-voice": 10,
   // Predicted engagement score in Write (post-score, Jev); the browser caches it per draft text.
@@ -55,6 +59,9 @@ export const DAILY_LIMITS = {
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
+
+/** cs_ai_usage.user_id must be a real account, so the across-everyone counters live on the owner's. */
+export const GLOBAL_COUNTER_USER = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
 
 export interface RpcClient {
   rpc(fn: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: unknown }>;

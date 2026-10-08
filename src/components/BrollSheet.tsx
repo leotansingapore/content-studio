@@ -93,14 +93,15 @@ export default function BrollSheet({ placed, brolls, overlays, orientation, appl
                 <button type="button" onClick={() => seek(from + 0.05)} aria-label={`Go to ${fmtTime(from)}`}
                   className="flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-muted" style={o ? { backgroundColor: o.color } : undefined}>
                   {b?.thumb && <img src={b.thumb} alt="" className="h-full w-full object-cover" />}
+                  {p.ai && <span className="text-[11px] font-bold text-muted-foreground">AI</span>}
                   {o && <Type className="h-4 w-4 mix-blend-difference text-white" aria-hidden />}
                 </button>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold">{o ? o.text : p.search}</span>
-                  <span className="line-clamp-2 text-muted-foreground">{o && <span className="font-medium text-foreground">{CARD[p.kind]}: </span>}{p.line}</span>
+                  <span className="line-clamp-2 text-muted-foreground">{(o || p.ai) && <span className="font-medium text-foreground">{p.ai ? "Made by AI" : CARD[p.kind]}: </span>}{p.line}</span>
                   <span className="block font-mono text-[11px] text-muted-foreground">{fmtTime(from)}-{fmtTime(to)}</span>
                 </span>
-                {b && (
+                {b && !p.ai && (
                   <Button size="sm" variant={open === b.id ? "secondary" : "outline"} className="h-11 shrink-0 gap-1 text-xs sm:h-8" aria-expanded={open === b.id}
                     onClick={() => toggle(b.id, p.search)}>
                     <RefreshCw className="h-3.5 w-3.5" /> Swap
