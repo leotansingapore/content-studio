@@ -271,3 +271,34 @@ describe("fmtTime", () => {
     expect(fmtTime(-2)).toBe("0:00.0");
   });
 });
+
+describe("reviewing cuts", () => {
+  const w = (word: string, s: number, e: number) => ({ w: word, s, e });
+  // "I think [1.2 s] um [1.0 s] this works"
+  const words = [w("I", 0, 0.2), w("think", 0.2, 0.6), w("um", 1.8, 2.0), w("this", 3.0, 3.3), w("works.", 3.3, 3.8)];
+  const base = { trimStart: 0, trimEnd: 0, removeFillers: true, maxPause: 0.6 };
+
+  it("lists each filler and long pause with the words around it", async () => {
+    const { listCuts } = await import("@/lib/videoEdit");
+    const cuts = listCuts(words, 4, base);
+    expect(cuts.map((c) => [c.id, c.kind, c.before, c.word, c.after])).toEqual([
+      ["p:0.60", "pause", "think", "", "this"],
+      ["f:1.80", "filler", "think", "um", "this"],
+    ]);
+  });
+
+  it("keeps a reviewed pause", async () => {
+    const { keepSegments, totalLength } = await import("@/lib/videoEdit");
+    const all = totalLength(keepSegments(words, 4, base));
+    const kept = keepSegments(words, 4, { ...base, keepCuts: ["p:0.60"] });
+    expect(totalLength(kept)).toBeGreaterThan(all + 2);
+  });
+
+  it("keeps a reviewed um, and the pause cut around it no longer swallows it", async () => {
+    const { keepSegments, listCuts } = await import("@/lib/videoEdit");
+    const segs = keepSegments(words, 4, { ...base, keepCuts: ["f:1.80"] });
+    expect(segs.some((g) => g.start <= 1.8 && g.end >= 2.0)).toBe(true);
+    // the long pause is now two pauses either side of the kept um
+    expect(listCuts(words, 4, { ...base, keepCuts: ["f:1.80"] }).filter((c) => c.kind === "pause").map((c) => c.id)).toEqual(["p:0.60", "p:2.00"]);
+  });
+});

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronUp, Download, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import {
   captionBoxOf,
   fullLength,
   findPhrase,
+  listCuts,
   platformFit,
   trimToLength,
   lookOf,
@@ -552,6 +553,20 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   };
 
+  // every filler and long pause being cut, for review; kept ones stay in the list
+  const cuts = useMemo(() => listCuts(words, duration, settings), [words, duration, settings]);
+  const keptCuts = new Set(settings.keepCuts ?? []);
+  const toggleCut = (id: string) =>
+    change({ ...settings, keepCuts: keptCuts.has(id) ? [...keptCuts].filter((k) => k !== id) : [...keptCuts, id] });
+  const listen = (from: number, to: number) => {
+    // the original moment, a second either side, so you hear exactly what goes
+    const v = video.current;
+    if (!v || playing) return;
+    v.currentTime = Math.max(0, from - 1);
+    void v.play().catch(() => {});
+    window.setTimeout(() => v.pause(), (to - from + 2) * 1000);
+  };
+
   const cutSeconds = Math.max(0, duration - plan.total);
   // platforms this length is too long for, shortest limit first
   const lengthIssues = useMemo(() => platformFit(plan.total).filter((p) => p.fit !== "ok").sort((a, b) => a.limit - b.limit), [plan.total]);
@@ -800,6 +815,30 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Row label={`Trim start ${settings.trimStart.toFixed(1)}s`}><input type="range" min={0} max={Math.min(30, duration / 2)} step={0.1} value={settings.trimStart} onChange={(e) => patch({ trimStart: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label={`Trim end ${settings.trimEnd.toFixed(1)}s`}><input type="range" min={0} max={Math.min(30, duration / 2)} step={0.1} value={settings.trimEnd} onChange={(e) => patch({ trimEnd: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label="Punch in on cuts"><Toggle on={settings.punchIn} set={(v) => patch({ punchIn: v })} /></Row>
+              {cuts.length > 0 && (
+                <details className="rounded-lg border border-border/60">
+                  <summary className="cursor-pointer px-3 py-2 text-sm font-medium">
+                    Review {cuts.length} {cuts.length === 1 ? "cut" : "cuts"}{keptCuts.size ? ` (${cuts.filter((c) => keptCuts.has(c.id)).length} kept)` : ""}
+                  </summary>
+                  <ul className="max-h-64 divide-y divide-border/60 overflow-y-auto border-t border-border/60">
+                    {cuts.map((c) => {
+                      const kept = keptCuts.has(c.id);
+                      return (
+                        <li key={c.id} className="flex items-center gap-2 px-3 py-1.5 text-xs">
+                          <span className="w-12 shrink-0 font-mono text-[11px] text-muted-foreground">{fmtTime(c.start)}</span>
+                          <span className={`min-w-0 flex-1 truncate ${kept ? "text-muted-foreground" : ""}`}>
+                            {c.before} <mark className="rounded bg-warning/30 px-1 text-foreground">{c.kind === "filler" ? c.word : `${(c.end - c.start).toFixed(1)}s pause`}</mark> {c.after}
+                          </span>
+                          <Button size="sm" variant="ghost" className="h-8 w-8 shrink-0 p-0" aria-label={`Listen to ${c.kind === "filler" ? c.word : "the pause"} at ${fmtTime(c.start)}`} onClick={() => listen(c.start, c.end)}>
+                            <Volume2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Chip on={!kept} onClick={() => toggleCut(c.id)}>{kept ? "Kept" : "Cut"}</Chip>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </details>
+              )}
               {!words.length && (
                 <Button size="sm" variant="outline" onClick={recaption} disabled={captioning} className="gap-1.5">
                   {captioning ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : null} {captioning ? "Captioning..." : "Caption it"}

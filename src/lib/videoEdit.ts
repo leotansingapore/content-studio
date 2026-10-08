@@ -58,6 +58,8 @@ export interface EditSettings {
   captionBox?: CaptionBox;
   /** Caption typeface. Unset = the style's own. */
   font?: FontId;
+  /** Cuts the user reviewed and chose to keep (Cut ids from listCuts). */
+  keepCuts?: string[];
   /** The brand kit logo in the top corner. */
   logo?: boolean;
   /** A closing card from the brand kit (photo, name, handle, sign-off line) after the last cut. */
@@ -186,26 +188,61 @@ const PAD = 0.08;
  * The parts of the source to keep, in order: inside the trims, minus filler
  * words and minus the excess of any pause longer than maxPause.
  */
-export function keepSegments(words: Word[], duration: number, s: Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "maxPause">): Segment[] {
-  let from = Math.max(0, s.trimStart);
-  let to = Math.max(from, duration - Math.max(0, s.trimEnd));
-  const cuts: Segment[] = [];
+export interface Cut {
+  /** Stable across edits: "f:" + the filler's start, "p:" + the end of the word before the pause. */
+  id: string;
+  kind: "filler" | "pause";
+  start: number;
+  end: number;
+  /** The words either side, and the filler itself, for the review list. */
+  before: string;
+  word: string;
+  after: string;
+}
+
+type CutSettings = Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "maxPause" | "keepCuts">;
+
+function window_(words: Word[], duration: number, s: CutSettings) {
+  const from = Math.max(0, s.trimStart);
+  const to = Math.max(from, duration - Math.max(0, s.trimEnd));
+  const kept = new Set(s.keepCuts ?? []);
   const spoken = words.filter((w) => w.e > from && w.s < to);
-  // With pause cutting on, dead air before the first word and after the last goes too.
-  const said = spoken.filter((w) => !(s.removeFillers && isFiller(w.w)));
-  if (s.maxPause > 0 && said.length) {
-    from = Math.max(from, said[0].s - 0.25);
-    to = Math.min(to, said[said.length - 1].e + 0.35);
-  }
-  if (s.removeFillers) for (const w of spoken) if (isFiller(w.w)) cuts.push({ start: w.s, end: w.e });
-  if (s.maxPause > 0) {
-    const real = spoken.filter((w) => !(s.removeFillers && isFiller(w.w)));
-    for (let i = 1; i < real.length; i++) {
-      const gap = real[i].s - real[i - 1].e;
-      if (gap > s.maxPause) cuts.push({ start: real[i - 1].e + PAD, end: real[i].s - PAD });
+  // a filler counts as speech when it isn't being cut, including one the user chose to keep
+  const isCutFiller = (w: Word) => s.removeFillers && isFiller(w.w) && !kept.has(`f:${w.s.toFixed(2)}`);
+  return { from, to, kept, spoken, said: spoken.filter((w) => !isCutFiller(w)), isCutFiller };
+}
+
+/** Every filler and long pause the settings would cut, kept ones included (they are listed for review). */
+export function listCuts(words: Word[], duration: number, s: CutSettings): Cut[] {
+  const { spoken, said } = window_(words, duration, { ...s, keepCuts: (s.keepCuts ?? []).filter((id) => id.startsWith("f:")) });
+  const cuts: Cut[] = [];
+  const ctx = (i: number) => words[i]?.w ?? "";
+  if (s.removeFillers) {
+    for (const w of spoken) {
+      if (!isFiller(w.w)) continue;
+      const i = words.indexOf(w);
+      cuts.push({ id: `f:${w.s.toFixed(2)}`, kind: "filler", start: w.s, end: w.e, before: ctx(i - 1), word: w.w, after: ctx(i + 1) });
     }
   }
-  cuts.sort((a, b) => a.start - b.start);
+  if (s.maxPause > 0) {
+    for (let i = 1; i < said.length; i++) {
+      const a = said[i - 1];
+      const b = said[i];
+      if (b.s - a.e > s.maxPause) cuts.push({ id: `p:${a.e.toFixed(2)}`, kind: "pause", start: a.e + PAD, end: b.s - PAD, before: a.w, word: "", after: b.w });
+    }
+  }
+  return cuts.sort((x, y) => x.start - y.start);
+}
+
+export function keepSegments(words: Word[], duration: number, s: Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "maxPause"> & { keepCuts?: string[] }): Segment[] {
+  const w = window_(words, duration, s);
+  let { from, to } = w;
+  // With pause cutting on, dead air before the first word and after the last goes too.
+  if (s.maxPause > 0 && w.said.length) {
+    from = Math.max(from, w.said[0].s - 0.25);
+    to = Math.min(to, w.said[w.said.length - 1].e + 0.35);
+  }
+  const cuts = listCuts(words, duration, s).filter((c) => !w.kept.has(c.id));
   const out: Segment[] = [];
   let at = from;
   for (const c of cuts) {
