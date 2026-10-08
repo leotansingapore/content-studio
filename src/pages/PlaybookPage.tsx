@@ -12,6 +12,7 @@ import {
 import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
 import { loadGoals, withGoalCadence } from "@/lib/goals";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
+import NotifySettings from "@/components/NotifySettings";
 import inspirationData from "@/data/inspiration.json";
 import advisorsData from "@/data/advisors.json";
 import {
@@ -22,6 +23,7 @@ import {
   CheckCircle2,
   ArrowRight,
   Bookmark,
+  Bell,
 } from "lucide-react";
 
 type Insp = { id: string; hook: string; topic: string };
@@ -65,6 +67,7 @@ function SectionCard({
 export default function PlaybookPage() {
   const [positioning, setPositioning] = useState<Positioning | null>(null);
   const [voiceReady, setVoiceReady] = useState(false);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [saved, setSaved] = useState<SavedItems>({
     inspiration: [],
     creators: [],
@@ -78,6 +81,7 @@ export default function PlaybookPage() {
       const { data } = await supabase.auth.getUser();
       if (!active) return;
       const id = data.user?.id ?? null;
+      if (id) setUser({ id, email: data.user?.email ?? "" });
       const p = loadPositioning(id);
       setPositioning(p && withGoalCadence(p, loadGoals(id)));
       setVoiceReady(isVoiceProfileUsable(loadVoiceProfile(id)));
@@ -256,6 +260,12 @@ export default function PlaybookPage() {
           )}
         </SectionCard>
       </div>
+
+      {user && (
+        <SectionCard icon={Bell} title="Reminders">
+          <NotifySettings userId={user.id} email={user.email} />
+        </SectionCard>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Button asChild className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95">

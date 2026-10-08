@@ -5,6 +5,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
 import ExportPill from "@/components/ExportPill";
 import { stopCloudSync } from "@/lib/cloudSync";
+import { disablePushHere } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import { Sparkles, LogOut, Plus, LayoutGrid, X } from "lucide-react";
@@ -220,6 +221,8 @@ export default function StudioLayout() {
   const handleSignOut = async () => {
     // Send unsaved changes first, then load /auth fresh so whoever signs in
     // next on this browser starts with a clean app and their own sync.
+    // Phone alerts carry post titles: stop them on this browser while still signed in.
+    await Promise.race([disablePushHere().catch(() => undefined), new Promise((r) => setTimeout(r, 2_000))]);
     await stopCloudSync();
     await supabase.auth.signOut();
     window.location.replace("/auth");

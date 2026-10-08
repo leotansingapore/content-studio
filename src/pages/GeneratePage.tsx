@@ -135,7 +135,7 @@ import {
   getFunnelStage,
   type FunnelStageId,
 } from "@/data/funnelFramework";
-import { scoped } from "@/lib/profiles";
+import { activeProfileId, loadProfiles, scoped, setActiveProfile } from "@/lib/profiles";
 import {
   deleteTemplate,
   loadTemplates,
@@ -873,6 +873,16 @@ export default function GeneratePage() {
   useEffect(() => {
     const draftId = searchParams.get("draft");
     if (!draftId || !userId) return;
+    // A phone alert for another profile's post names that profile: open it first.
+    const profile = searchParams.get("profile");
+    if (profile && profile !== activeProfileId(userId) && loadProfiles(userId).some((p) => p.id === profile)) {
+      setActiveProfile(userId, profile);
+      // Reload only if the switch stuck (blocked storage would loop forever).
+      if (activeProfileId(userId) === profile) {
+        window.location.reload();
+        return;
+      }
+    }
     const entry = getDraftById(userId, draftId);
     if (!entry) {
       // Silently strip the param if the id is unknown.
