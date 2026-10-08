@@ -61,9 +61,6 @@ export default function ProfileDetailPage() {
     } else {
       document.title = "Not found - Content Studio";
     }
-    return () => {
-      document.title = "Content Studio";
-    };
   }, [entry]);
 
   if (!entry) {

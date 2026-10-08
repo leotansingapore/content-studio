@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -13,6 +13,7 @@ import {
   MOBILE_TABS,
   SECTIONS,
   moreSheet,
+  pageTitle,
   pathMatches,
   section,
   sectionFor,
@@ -148,6 +149,12 @@ export default function StudioLayout() {
       active = false;
     };
   }, []);
+
+  // Pages that know a better name (a creator, a 404) set theirs in an effect,
+  // which runs after this one.
+  useLayoutEffect(() => {
+    document.title = pageTitle(pathname);
+  }, [pathname]);
 
   // Close the More sheet whenever the route changes.
   useEffect(() => {

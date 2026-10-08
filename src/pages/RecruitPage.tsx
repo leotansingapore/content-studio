@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { Check } from "lucide-react";
 import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
@@ -24,10 +23,6 @@ export default function RecruitPage() {
   const done = partsDone(brain);
   const doneCount = Object.values(done).filter(Boolean).length;
   const tab = pathname.startsWith("/recruit/conversations") ? "conversations" : pathname.startsWith("/recruit/agent") ? "agent" : "brain";
-
-  useEffect(() => {
-    document.title = "Recruit - Content Studio";
-  }, []);
 
   return (
     <div className="space-y-5">

@@ -72,7 +72,6 @@ export default function BrandPage() {
   const measure = useMemo(() => createCanvasMeasure(), []);
 
   useEffect(() => {
-    document.title = "Brand kit - Content Studio";
     supabase.auth.getUser().then(({ data }) => {
       const user = data.user;
       const id = user?.id ?? null;
