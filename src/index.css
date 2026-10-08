@@ -179,6 +179,17 @@
     animation: page-enter 0.28s ease-out backwards;
   }
 
+  /* iOS zooms the page into any field under 16px and leaves it zoomed. On
+     touch screens every field gets 16px unless it is already larger; mouse
+     and trackpad screens keep the compact sizes. */
+  @media (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not(.text-base):not(.text-lg):not(.text-xl):not(.text-2xl):not(.text-3xl),
+    textarea:not(.text-base):not(.text-lg):not(.text-xl):not(.text-2xl):not(.text-3xl),
+    select:not(.text-base):not(.text-lg):not(.text-xl):not(.text-2xl):not(.text-3xl) {
+      font-size: 16px;
+    }
+  }
+
   .scrollbar-none {
     -ms-overflow-style: none;
     scrollbar-width: none;
