@@ -33,6 +33,8 @@ export const DAILY_LIMITS = {
   "engage-picks": 20,
   // Free stock photos and B-roll (stock-media, Pexels): searches not already cached.
   "stock-search": 100,
+  // "Add B-roll for me" in the video editor (video-assist broll): Jev picks the lines, OpenAI writes the searches.
+  "broll-picks": 20,
   // "Make the image" on Write (ai-image, Higgsfield Soul v2, about USD 0.006 each).
   "ai-image": 5,
   // "Voiceover from text" in the video editor (text-voice, ElevenLabs turbo v2.5).

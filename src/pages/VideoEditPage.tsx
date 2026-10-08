@@ -9,6 +9,8 @@ import JoinTakes from "@/components/JoinTakes";
 import ClipFinder from "@/components/ClipFinder";
 import ExportRunning from "@/components/ExportRunning";
 import MotionControls from "@/components/MotionControls";
+import AutoBroll from "@/components/AutoBroll";
+import { onBrollApply } from "@/lib/autoBroll";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
 import { Button } from "@/components/ui/button";
@@ -1240,6 +1242,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const selB = brolls.find((b) => b.id === selBroll) ?? null;
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
+  // "Add B-roll for me" (autoBroll.ts) hands its clips in here while this video is open: one change, one Undo
+  useEffect(() => onBrollApply(project.id, (added) => {
+    const cur = settingsRef.current;
+    setHistory((h) => [...h.slice(-19), cur]);
+    setSettings({ ...cur, broll: [...(cur.broll ?? []), ...added].slice(0, MAX_BROLL) });
+  }), [project.id]);
   const addBroll = async (it: StockItem) => {
     if (brolls.length >= MAX_BROLL) throw new Error(`Up to ${MAX_BROLL} on a video`);
     const blob = await downloadStock(it.src);
@@ -2091,12 +2099,15 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <StockSearch kind="video" orientation={settings.aspect === "16:9" ? "landscape" : settings.aspect === "1:1" ? "square" : "portrait"}
                   placeholder="Singapore skyline, family at home, hospital" onPick={addBroll} onClose={() => setBrollSearch(false)} />
               ) : (
+                <>
+                <AutoBroll userId={userId} projectId={project.id} settings={settings} words={words} segs={plan.segs} total={plan.total} speed={speed} />
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button size="sm" className="h-9 gap-1.5" onClick={() => setBrollSearch(true)} disabled={brolls.length >= MAX_BROLL}>
+                  <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => setBrollSearch(true)} disabled={brolls.length >= MAX_BROLL}>
                     <Film className="h-3.5 w-3.5" /> Add B-roll at {fmtTime(Math.min(outT, plan.total))}
                   </Button>
                   <InfoTip label="About B-roll">A free stock clip over your video from the playhead. Your voice carries on under it.</InfoTip>
                 </div>
+                </>
               )}
               {brolls.length > 0 && (
                 <ul className="divide-y divide-border/60 rounded-lg border border-border/60">

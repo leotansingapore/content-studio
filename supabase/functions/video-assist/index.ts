@@ -26,6 +26,10 @@
 //        that each line is a key line (null when Jev has no answer or the video is not in
 //        English), and pop-up text the LLM writes for the top few, with the emoji Jev picks
 //        ("motion-picks" cap).
+//   POST {mode:"broll", sentences:[{s,e,text}] on the edited timeline, duration, hookSeconds, taken:[{s,e}], room}
+//        -> {picks:[{i,search}] | null}: the lines Jev says a cutaway visual helps (a few a minute, never
+//        the hook, clear of B-roll already there), each with a 1-3 word stock search the LLM writes; null
+//        when Jev has no answer or the video is not in English (broll.ts, "broll-picks" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -36,6 +40,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
+import { brollLines, brollQuestions, buildSearchMessages, parseBrollRequest, parseSearchReply, pickBrollLines, readBroll } from "./broll.ts";
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import {
   CLIP_VIEWER,
@@ -268,6 +273,41 @@ Deno.serve(async (req) => {
         if (written.length) popups = withEmoji(await askJev({ video: "Pop-up text on a short video by a Singapore financial adviser." }, emojiQuestions(m.lines, written), { who: "video-assist motion emoji" }), written);
       }
       return json({ lines, popups });
+    }
+
+    if (body?.mode === "broll") {
+      const b = parseBrollRequest(body);
+      if (!b.ok) return json({ error: b.error }, 400);
+      const usage = await consumeUsage(admin, uid, "broll-picks");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      // Jev picks the lines (Leo's rule: a pick is a decision); without an answer nothing is placed
+      const { lines } = b.request;
+      const idx = brollLines(b.request);
+      if (!idx.length) return json({ picks: [] });
+      if (!mostlyEnglish(lines.map((x) => x.text).join(" "))) return json({ picks: null });
+      const state = keyState(lines);
+      const parts = await Promise.all(brollQuestions(lines, idx).map((q) => askJev(state, q, { who: "video-assist broll", timeoutMs: 10_000 })));
+      const probs = readBroll(parts.some(Boolean) ? Object.assign({}, ...parts.filter(Boolean)) : null, idx);
+      if (!probs) return json({ picks: null });
+      const pick = pickBrollLines(lines, probs, b.request.duration, b.request.room);
+      if (!pick.length) return json({ picks: [] });
+      // the LLM writes the searches only
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 400, response_format: { type: "json_object" }, messages: buildSearchMessages(lines, pick) }),
+        signal: AbortSignal.timeout(45_000),
+      }).catch(() => null);
+      if (!res?.ok) {
+        console.error("video-assist broll", res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
+        return json({ error: "Couldn't find B-roll right now. Try again in a minute." }, 502);
+      }
+      const picks = parseSearchReply((await res.json())?.choices?.[0]?.message?.content ?? null, pick);
+      console.log(`video-assist broll: ${idx.length} lines asked, ${pick.length} picked, ${picks.length} with a search`);
+      return json({ picks });
     }
 
     if (body?.mode === "publish") {
