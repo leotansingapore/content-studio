@@ -325,3 +325,37 @@ describe("colour looks and cut transitions", () => {
     expect(applyPatch(defaultSettings(), { filter: "sepia", transition: "spin" }).changed).toEqual([]);
   });
 });
+
+describe("stickers", () => {
+  it("makes a sticker at the playhead for 3 seconds", async () => {
+    const { newOverlay } = await import("@/lib/videoEdit");
+    const o = newOverlay("arrow", 4.26, "#123abc");
+    expect(o).toMatchObject({ kind: "arrow", from: 4.2, to: 7.2, color: "#123ABC", size: 1, turn: 0 });
+    // a playhead a hair under a tenth still shows the new sticker
+    expect(newOverlay("circle", 4.99999, "#FFFFFF").from).toBeLessThanOrEqual(4.99999);
+    expect(newOverlay("text", 0, "red").color).toBe("#FFD92B");
+  });
+
+  it("keeps only well-formed stickers from storage, clamped", async () => {
+    const { sanitizeOverlays, MAX_OVERLAYS } = await import("@/lib/videoEdit");
+    const list = sanitizeOverlays([
+      { id: "a", kind: "text", text: "Hi", x: 2, y: -1, size: 9, turn: 7, color: "nope", from: 1, to: 0 },
+      { id: "b", kind: "bomb" },
+      null,
+      "x",
+    ]);
+    expect(list).toEqual([{ id: "a", kind: "text", text: "Hi", x: 1, y: 0, size: 2.5, turn: 3, color: "#FFD92B", from: 1, to: 1.3 }]);
+    expect(sanitizeOverlays(Array.from({ length: 30 }, (_, i) => ({ id: `o${i}`, kind: "circle" })))).toHaveLength(MAX_OVERLAYS);
+    expect(sanitizeOverlays("nope")).toEqual([]);
+  });
+
+  it("finds what is showing and what is under a tap", async () => {
+    const { overlaysAt, overlayHit, newOverlay } = await import("@/lib/videoEdit");
+    const a = { ...newOverlay("circle", 1, "#FFFFFF"), id: "a", x: 0.3, y: 0.3 };
+    const b = { ...newOverlay("arrow", 2, "#FFFFFF"), id: "b", x: 0.32, y: 0.31 };
+    expect(overlaysAt([a, b], 1.5).map((o) => o.id)).toEqual(["a"]);
+    expect(overlayHit([a, b], 2.5, 0.31, 0.3, 9 / 16)?.id).toBe("b"); // topmost wins
+    expect(overlayHit([a, b], 2.5, 0.9, 0.9, 9 / 16)).toBeNull();
+    expect(overlayHit([a, b], 9, 0.3, 0.3, 9 / 16)).toBeNull(); // not showing
+  });
+});

@@ -62,6 +62,8 @@ export interface EditSettings {
   filter?: FilterId;
   /** What happens at each cut: a hard jump (unset), a quick dip through black, or a white flash. */
   transition?: "soft" | "flash";
+  /** Stickers placed on this video: text callouts, arrows, circles, underlines. */
+  overlays?: Overlay[];
   /** Cuts the user reviewed and chose to keep (Cut ids from listCuts). */
   keepCuts?: string[];
   /** The brand kit logo in the top corner. */
@@ -567,4 +569,81 @@ export function trimToLength(segs: Segment[], duration: number, limit: number, s
   if (totalLength(segs) <= limit) return s.trimEnd;
   // rounded up, so the edit lands on or just under the limit, never a hair over
   return Math.max(s.trimEnd, Math.ceil((duration - sourceTime(segs, limit)) * 100) / 100);
+}
+
+// ---------- stickers ----------
+
+export type OverlayKind = "text" | "arrow" | "circle" | "underline";
+
+/** A sticker: centre x/y as shares of the frame, size 0.5-2.5, shown from/to on the edited timeline. */
+export interface Overlay {
+  id: string;
+  kind: OverlayKind;
+  text: string;
+  x: number;
+  y: number;
+  size: number;
+  /** Quarter turns clockwise (arrows point down at 0). */
+  turn: number;
+  color: string;
+  from: number;
+  to: number;
+}
+
+export const MAX_OVERLAYS = 20;
+
+export function newOverlay(kind: OverlayKind, at: number, color: string): Overlay {
+  return {
+    id: `o${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
+    kind,
+    text: kind === "text" ? "Your text" : "",
+    x: 0.5,
+    y: kind === "text" ? 0.32 : 0.45,
+    size: 1,
+    turn: 0,
+    color: HEX.test(color) ? color.toUpperCase() : "#FFD92B",
+    // rounded down, so it shows on the frame at the playhead (4.9999 s must not start at 5.0)
+    from: Math.max(0, Math.floor(at * 10) / 10),
+    to: Math.max(0, Math.floor(at * 10) / 10) + 3,
+  };
+}
+
+/** Stickers from storage, kept only when well formed; positions and sizes are clamped. */
+export function sanitizeOverlays(raw: unknown): Overlay[] {
+  if (!Array.isArray(raw)) return [];
+  const kinds: OverlayKind[] = ["text", "arrow", "circle", "underline"];
+  return raw.slice(0, MAX_OVERLAYS).flatMap((o): Overlay[] => {
+    if (!o || typeof o !== "object") return [];
+    const r = o as Record<string, unknown>;
+    if (!kinds.includes(r.kind as OverlayKind) || typeof r.id !== "string") return [];
+    const from = clamp(r.from, 0, 36000, 0);
+    return [{
+      id: r.id.slice(0, 24),
+      kind: r.kind as OverlayKind,
+      text: typeof r.text === "string" ? r.text.slice(0, 60) : "",
+      x: clamp(r.x, 0, 1, 0.5),
+      y: clamp(r.y, 0, 1, 0.5),
+      size: clamp(r.size, 0.5, 2.5, 1),
+      turn: Math.round(clamp(r.turn, 0, 3, 0)),
+      color: typeof r.color === "string" && HEX.test(r.color) ? r.color.toUpperCase() : "#FFD92B",
+      from,
+      to: Math.max(from + 0.3, clamp(r.to, 0, 36000, from + 3)),
+    }];
+  });
+}
+
+export function overlaysAt(list: Overlay[] | undefined, out: number): Overlay[] {
+  return (list ?? []).filter((o) => out >= o.from && out < o.to);
+}
+
+/** The visible sticker under a point (shares of the frame), topmost first, within a reach that grows with its size. */
+export function overlayHit(list: Overlay[] | undefined, out: number, x: number, y: number, aspect: number): Overlay | null {
+  const shown = overlaysAt(list, out);
+  for (let i = shown.length - 1; i >= 0; i--) {
+    const o = shown[i];
+    const reach = 0.09 * o.size;
+    // distances in frame-height units, so a tall frame doesn't stretch the hit area sideways
+    if (Math.hypot((x - o.x) * aspect, y - o.y) <= reach) return o;
+  }
+  return null;
 }

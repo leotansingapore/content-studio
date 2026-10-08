@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronUp, Download, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, RotateCw, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,12 @@ import {
   captionBoxOf,
   fullLength,
   findPhrase,
+  MAX_OVERLAYS,
+  newOverlay,
+  overlayHit,
+  sanitizeOverlays,
+  type Overlay,
+  type OverlayKind,
   listCuts,
   platformFit,
   trimToLength,
@@ -67,7 +73,7 @@ import {
 import { fileKey, findClips, loadLook, loadProjects, removeProject, saveLook, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 
 const MAX_BYTES = 500 * 1024 * 1024;
-type Tab = "style" | "cuts" | "frame" | "words";
+type Tab = "style" | "cuts" | "frame" | "stickers" | "words";
 
 export default function VideoEditPage() {
   const { toast } = useToast();
@@ -220,7 +226,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 }) {
   const { toast } = useToast();
   const [file, setFile] = useState<Blob | null | undefined>(undefined);
-  const [settings, setSettings] = useState<EditSettings>(project.settings);
+  const [settings, setSettings] = useState<EditSettings>(() => ({ ...project.settings, overlays: sanitizeOverlays(project.settings.overlays) }));
+  const [selected, setSelected] = useState<string | null>(null);
   const [words, setWords] = useState(project.words);
   const [subs, setSubs] = useState<Record<string, Record<string, string>>>(project.subs ?? {});
   const [caption, setCaption] = useState(project.caption ?? "");
@@ -239,7 +246,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const segIdx = useRef(0);
-  const drag = useRef<{ startY: number; moved: boolean } | null>(null);
+  const drag = useRef<{ startX: number; startY: number; moved: boolean; overlay?: string } | null>(null);
   // the brand kit (logo, end card, name tag); endAt is the time into the end card while it shows
   const brandKit = useMemo(() => loadBrand(userId), [userId]);
   const [art, setArt] = useState<BrandArt | null>(null);
@@ -568,6 +575,18 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     window.setTimeout(() => v.pause(), (to - from + 2) * 1000);
   };
 
+  // stickers
+  const overlays = settings.overlays ?? [];
+  const sel = overlays.find((o) => o.id === selected) ?? null;
+  const addOverlay = (kind: OverlayKind) => {
+    if (overlays.length >= MAX_OVERLAYS) return toast({ title: `Up to ${MAX_OVERLAYS} stickers on a video`, variant: "destructive" });
+    const o = newOverlay(kind, Math.min(outT, Math.max(0, plan.total - 0.5)), settings.activeColor);
+    change({ ...settings, overlays: [...overlays, o] });
+    setSelected(o.id);
+  };
+  const editOverlay = (id: string, p: Partial<Overlay>) => patch({ overlays: overlays.map((o) => (o.id === id ? { ...o, ...p } : o)) });
+  const stickerColours = [...new Set(["#FFFFFF", "#FFD92B", settings.activeColor, art?.color ?? "#2563EB", "#EF4444", "#111827"].map((c) => c.toUpperCase()))];
+
   const cutSeconds = Math.max(0, duration - plan.total);
   // platforms this length is too long for, shortest limit first
   const lengthIssues = useMemo(() => platformFit(plan.total).filter((p) => p.fit !== "ok").sort((a, b) => a.limit - b.limit), [plan.total]);
@@ -636,17 +655,31 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               height={H}
               onPointerDown={(e) => {
                 const r = e.currentTarget.getBoundingClientRect();
+                const x = (e.clientX - r.left) / r.width;
                 const y = (e.clientY - r.top) / r.height;
-                // a press on the captions starts a drag; anywhere else is a tap to play or pause
-                drag.current = settings.captions && Math.abs(y - captionCenter(settings)) < 0.09 ? { startY: y, moved: false } : null;
+                // a press on a sticker or the captions starts a drag; anywhere else is a tap to play or pause
+                const hit = playing ? null : overlayHit(settings.overlays, outT, x, y, r.width / r.height);
+                if (hit) {
+                  drag.current = { startX: x, startY: y, moved: false, overlay: hit.id };
+                  setSelected(hit.id);
+                  setTab("stickers");
+                } else {
+                  drag.current = settings.captions && Math.abs(y - captionCenter(settings)) < 0.09 ? { startX: x, startY: y, moved: false } : null;
+                }
                 if (drag.current) e.currentTarget.setPointerCapture(e.pointerId);
               }}
               onPointerMove={(e) => {
-                if (!drag.current) return;
+                const d = drag.current;
+                if (!d) return;
                 const r = e.currentTarget.getBoundingClientRect();
+                const x = Math.min(0.97, Math.max(0.03, (e.clientX - r.left) / r.width));
                 const y = (e.clientY - r.top) / r.height;
-                if (Math.abs(y - drag.current.startY) > 0.01) drag.current.moved = true;
-                if (drag.current.moved) setSettings((s) => ({ ...s, captionY: Math.min(0.92, Math.max(0.08, y)) }));
+                if (Math.hypot(x - d.startX, y - d.startY) > 0.01) d.moved = true;
+                if (!d.moved) return;
+                if (d.overlay) {
+                  const oy = Math.min(0.97, Math.max(0.03, y));
+                  setSettings((s) => ({ ...s, overlays: (s.overlays ?? []).map((o) => (o.id === d.overlay ? { ...o, x, y: oy } : o)) }));
+                } else setSettings((s) => ({ ...s, captionY: Math.min(0.92, Math.max(0.08, y)) }));
               }}
               onPointerUp={() => {
                 const d = drag.current;
@@ -655,11 +688,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   setHistory((h) => [...h.slice(-19), settings]);
                   return;
                 }
+                if (d?.overlay) return; // a tap on a sticker selects it
                 void toggle();
               }}
               style={{ touchAction: "none" }}
               className="w-full cursor-pointer rounded-xl bg-black shadow-card"
-              aria-label="Preview: tap to play or pause, drag the captions to move them"
+              aria-label="Preview: tap to play or pause, drag the captions or a sticker to move it"
             />
           </div>
           {file === undefined && <p className="text-xs text-muted-foreground">Loading the video...</p>}
@@ -739,8 +773,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             )}
           </section>
 
-          <nav className="flex w-fit gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" aria-label="Edit">
-            {([["style", "Captions"], ["cuts", "Cuts"], ["frame", "Hook and frame"], ["words", "Words"]] as const).map(([id, label]) => (
+          <nav className="flex w-fit flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" aria-label="Edit">
+            {([["style", "Captions"], ["cuts", "Cuts"], ["frame", "Hook and frame"], ["stickers", "Stickers"], ["words", "Words"]] as const).map(([id, label]) => (
               <button key={id} type="button" onClick={() => setTab(id)} aria-pressed={tab === id}
                 className={`rounded-md px-3 py-1.5 text-xs font-semibold ${tab === id ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
             ))}
@@ -912,6 +946,59 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <Chip on={settings.transition === "soft"} onClick={() => patch({ transition: "soft" })}>Soft dip</Chip>
                 <Chip on={settings.transition === "flash"} onClick={() => patch({ transition: "flash" })}>Flash</Chip>
               </Row>
+            </div>
+          )}
+
+          {tab === "stickers" && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {([["text", "Text"], ["arrow", "Arrow"], ["circle", "Circle"], ["underline", "Underline"]] as const).map(([k, label]) => (
+                  <Button key={k} size="sm" variant="outline" className="h-9" onClick={() => addOverlay(k)}>Add {label.toLowerCase()}</Button>
+                ))}
+                <InfoTip label="About stickers">Added at the playhead for 3 seconds. Drag one on the preview to move it.</InfoTip>
+              </div>
+              {overlays.length > 0 && (
+                <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
+                  {overlays.map((o) => (
+                    <li key={o.id}>
+                      <button type="button" onClick={() => { setSelected(o.id); seekOut(o.from + 0.2); }} aria-pressed={o.id === selected}
+                        className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${o.id === selected ? "bg-primary/5" : ""}`}>
+                        <span className="h-3 w-3 shrink-0 rounded-full border border-border" style={{ backgroundColor: o.color }} />
+                        <span className="min-w-0 flex-1 truncate font-medium">{o.kind === "text" ? o.text || "Text" : o.kind[0].toUpperCase() + o.kind.slice(1)}</span>
+                        <span className="font-mono text-[11px] text-muted-foreground">{fmtTime(o.from)}-{fmtTime(o.to)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {sel && (
+                <div className="space-y-3 rounded-lg border border-primary/25 p-3">
+                  {sel.kind === "text" && (
+                    <input value={sel.text} maxLength={60} onChange={(e) => editOverlay(sel.id, { text: e.target.value })} aria-label="Sticker text"
+                      className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm" />
+                  )}
+                  <Row label="Colour">
+                    {stickerColours.map((c) => (
+                      <button key={c} type="button" aria-label={`Colour ${c}`} aria-pressed={sel.color === c} onClick={() => editOverlay(sel.id, { color: c })}
+                        className={`h-7 w-7 rounded-full border border-border ${sel.color === c ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`} style={{ backgroundColor: c }} />
+                    ))}
+                  </Row>
+                  <Row label={`Size ${sel.size.toFixed(1)}x`}><input type="range" min={0.5} max={2.5} step={0.1} value={sel.size} onChange={(e) => editOverlay(sel.id, { size: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
+                  <Row label={`Shows for ${(sel.to - sel.from).toFixed(1)}s from ${fmtTime(sel.from)}`}>
+                    <input type="range" min={0.5} max={10} step={0.5} value={sel.to - sel.from} onChange={(e) => editOverlay(sel.id, { to: sel.from + Number(e.target.value) })} aria-label="How long it shows" className="w-32 accent-primary" />
+                  </Row>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => editOverlay(sel.id, { from: Math.floor(outT * 10) / 10, to: Math.floor(outT * 10) / 10 + (sel.to - sel.from) })}>Start at {fmtTime(outT)}</Button>
+                    {(sel.kind === "arrow" || sel.kind === "underline") && (
+                      <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => editOverlay(sel.id, { turn: (sel.turn + 1) % 4 })}><RotateCw className="h-3.5 w-3.5" /> Turn</Button>
+                    )}
+                    <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={() => { change({ ...settings, overlays: overlays.filter((o) => o.id !== sel.id) }); setSelected(null); }}>
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -22,6 +22,8 @@ import {
   isNumberWord,
   keepSegments,
   nameTagVisible,
+  overlaysAt,
+  type Overlay,
   outputTime,
   totalLength,
   zoomAt,
@@ -456,6 +458,8 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     }
   }
 
+  for (const o of overlaysAt(s.overlays, f.out)) drawOverlay(g, o, f.still ? 1 : captionIntro(f.out, o.from));
+
   if (hook) {
     g.font = `800 ${Math.round(hook.px)}px "Archivo Black", "Arial Black", system-ui, sans-serif`;
     g.textBaseline = "middle";
@@ -486,6 +490,70 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     g.fillStyle = s.activeColor;
     g.fillRect(0, 0, W * Math.min(1, f.out / f.total), Math.max(6, 10 * k));
   }
+}
+
+/** One sticker, centred on its x/y, popping in over its first 150 ms. */
+export function drawOverlay(g: CanvasRenderingContext2D, o: Overlay, intro = 1) {
+  const W = g.canvas.width;
+  const H = g.canvas.height;
+  const u = (Math.min(W, H) / 1080) * o.size;
+  g.save();
+  g.translate(o.x * W, o.y * H);
+  if (intro < 1) {
+    g.globalAlpha = 0.25 + 0.75 * intro;
+    g.scale(0.85 + 0.15 * intro, 0.85 + 0.15 * intro);
+  }
+  g.shadowColor = "rgba(0,0,0,0.45)";
+  g.shadowBlur = 14 * u;
+  g.strokeStyle = o.color;
+  g.fillStyle = o.color;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  if (o.kind === "text") {
+    const text = o.text.trim() || " ";
+    let px = 52 * u;
+    g.font = `800 ${Math.round(px)}px "DM Sans", Inter, system-ui, sans-serif`;
+    const max = W * 0.86 - 44 * u;
+    const tw = g.measureText(text).width;
+    if (tw > max) {
+      px *= max / tw;
+      g.font = `800 ${Math.round(px)}px "DM Sans", Inter, system-ui, sans-serif`;
+    }
+    const w = g.measureText(text).width + 44 * u;
+    const h = px * 1.5;
+    roundRect(g, -w / 2, -h / 2, w, h, 16 * u);
+    g.shadowColor = "transparent";
+    g.fillStyle = readableOn(o.color);
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillText(text, 0, h * 0.04);
+  } else if (o.kind === "arrow") {
+    g.rotate((o.turn * Math.PI) / 2);
+    g.lineWidth = 22 * u;
+    g.beginPath();
+    g.moveTo(0, -100 * u);
+    g.lineTo(0, 40 * u);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(-58 * u, 20 * u);
+    g.lineTo(0, 100 * u);
+    g.lineTo(58 * u, 20 * u);
+    g.closePath();
+    g.fill();
+  } else if (o.kind === "circle") {
+    g.lineWidth = 14 * u;
+    g.beginPath();
+    g.ellipse(0, 0, 130 * u, 100 * u, 0, 0, Math.PI * 2);
+    g.stroke();
+  } else {
+    g.rotate((o.turn * Math.PI) / 2);
+    g.lineWidth = 18 * u;
+    g.beginPath();
+    g.moveTo(-150 * u, 0);
+    g.lineTo(150 * u, 0);
+    g.stroke();
+  }
+  g.restore();
 }
 
 /**
