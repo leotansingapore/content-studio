@@ -420,6 +420,13 @@ export default function GeneratePage() {
   // the screen stays focused on the output.
   const [wizardStep, setWizardStep] = useState<number>(0);
   const [briefOpen, setBriefOpen] = useState<boolean>(true);
+  // Read once at mount: the prefill effects strip their params from the URL
+  // before the async user lookup below resolves.
+  const [arrivedWithBrief] = useState(() =>
+    ["draft", "platform", "format", "vibe", "pillar", "detail", "funnel", "idea", "ctx"].some(
+      (k) => new URLSearchParams(window.location.search).has(k),
+    ),
+  );
 
   useEffect(() => {
     let active = true;
@@ -431,10 +438,7 @@ export default function GeneratePage() {
       // Restore the user's usual platform/format — most advisors post to one
       // platform 90% of the time. Deep-link params always win.
       try {
-        const hasOverride = ["draft", "platform", "format", "vibe"].some((k) =>
-          new URLSearchParams(window.location.search).has(k),
-        );
-        if (!hasOverride && id) {
+        if (!arrivedWithBrief && id) {
           const prefs = JSON.parse(
             localStorage.getItem(`content-studio-writeprefs-${scoped(id)}`) ?? "null",
           );
