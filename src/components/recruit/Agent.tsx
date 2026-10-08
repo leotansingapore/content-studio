@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Save, Square, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
@@ -20,6 +20,7 @@ import {
 import { streamOnePost } from "@/lib/batchGenerate";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { upsertDraft } from "@/lib/draftHistory";
+import { scoped } from "@/lib/profiles";
 import { CopyButton, Flags, Part } from "./shared";
 
 type Update = (fn: (b: RecruitBrain) => RecruitBrain) => void;
@@ -38,13 +39,34 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
   const contextDoc = useMemo(() => buildContextDocument(brain), [brain]);
   const [showDoc, setShowDoc] = useState(false);
 
-  const [format, setFormat] = useState<RecruitFormat>("li-text");
-  const [formula, setFormula] = useState<FormulaId | null>(null);
-  const [stage, setStage] = useState<RecruitStage>("tofu");
-  const [topic, setTopic] = useState("");
-  const [draft, setDraft] = useState("");
+  // Device-only memory: the topic and the draft (an AI call already paid for)
+  // survive a tab switch or a trip to another page.
+  const memoKey = `cs-recruit-agent-${scoped(userId) ?? "anon"}`;
+  const [memo] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(memoKey) ?? "{}") as Partial<{
+        format: RecruitFormat; formula: FormulaId | null; stage: RecruitStage; topic: string; draft: string; savedId: string | null;
+      }>;
+    } catch {
+      return {};
+    }
+  });
+  const [format, setFormat] = useState<RecruitFormat>(
+    RECRUIT_FORMATS.some((f) => f.id === memo.format) ? memo.format! : "li-text",
+  );
+  const [formula, setFormula] = useState<FormulaId | null>(memo.formula ?? null);
+  const [stage, setStage] = useState<RecruitStage>(memo.stage ?? "tofu");
+  const [topic, setTopic] = useState(memo.topic ?? "");
+  const [draft, setDraft] = useState(memo.draft ?? "");
   const [busy, setBusy] = useState(false);
-  const [savedId, setSavedId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(memo.savedId ?? null);
+  useEffect(() => {
+    try {
+      localStorage.setItem(memoKey, JSON.stringify({ format, formula, stage, topic, draft, savedId }));
+    } catch {
+      // storage full or blocked: the page still works, it just won't remember
+    }
+  }, [memoKey, format, formula, stage, topic, draft, savedId]);
   const abort = useRef<AbortController | null>(null);
   const flags = useMemo(() => {
     const f = scanRecruitCompliance(draft);
