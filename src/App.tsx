@@ -48,6 +48,7 @@ const HubAdminPage = lazy(() => import("@/pages/hub/HubAdminPage"));
 const FadsPage = lazy(() => import("@/pages/FadsPage"));
 const RecruitPage = lazy(() => import("@/pages/RecruitPage"));
 const ReelsPage = lazy(() => import("@/pages/ReelsPage"));
+const VideoEditPage = lazy(() => import("@/pages/VideoEditPage"));
 
 export default function App() {
   return (
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/generate" element={<GeneratePage />} />
           <Route path="/generate/batch" element={<BatchPage />} />
           <Route path="/carousel" element={<CarouselPage />} />
+          <Route path="/edit" element={<VideoEditPage />} />
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/fads" element={<FadsPage />} />
           <Route path="/fads/:tab" element={<FadsPage />} />

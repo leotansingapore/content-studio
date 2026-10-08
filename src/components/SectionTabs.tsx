@@ -13,6 +13,7 @@ export const WRITE_TABS: SectionTab[] = [
   { to: "/generate", label: "Write", end: true },
   { to: "/generate/batch", label: "Batch" },
   { to: "/carousel", label: "Carousel" },
+  { to: "/edit", label: "Video" },
 ];
 
 // Playbook group: the strategy that steers every draft — positioning, voice,

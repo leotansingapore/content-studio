@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
+import ExportPill from "@/components/ExportPill";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
@@ -44,7 +45,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
   {
     heading: "Create",
     items: [
-      { to: "/generate", label: "Write", icon: Pencil, also: ["/carousel"] },
+      { to: "/generate", label: "Write", icon: Pencil, also: ["/carousel", "/edit"] },
       {
         to: "/calendar",
         label: "Pipeline",
@@ -439,6 +440,7 @@ export default function StudioLayout() {
           </ErrorBoundary>
         </main>
       </div>
+      <ExportPill />
       <AssistantMount />
     </div>
   );
