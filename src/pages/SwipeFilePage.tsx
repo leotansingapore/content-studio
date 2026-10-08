@@ -8,6 +8,7 @@ import ReelCard from "@/components/ReelCard";
 import IndustryNews from "@/components/IndustryNews";
 import AdsSwipe from "@/components/AdsSwipe";
 import { ADS, ADS_FETCHED } from "@/lib/adsSwipe";
+import YourFeeds from "@/components/YourFeeds";
 import { NEWS } from "@/lib/industryNews";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -230,13 +231,16 @@ export default function SwipeFilePage() {
           <AdsSwipe />
         </section>
       ) : tab === "news" ? (
-        <section className="space-y-3">
-          <div className="flex items-center gap-1.5">
-            <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">Industry news to talk about</h2>
-            <InfoTip label="About industry news">The ActivityTracker bulletin's Industry picks, synced every morning.</InfoTip>
-          </div>
-          <IndustryNews />
-        </section>
+        <>
+          <section className="space-y-3">
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">Industry news to talk about</h2>
+              <InfoTip label="About industry news">The ActivityTracker bulletin's Industry picks, synced every morning.</InfoTip>
+            </div>
+            <IndustryNews />
+          </section>
+          <YourFeeds />
+        </>
       ) : (
         <>
           {working.posts >= 5 && (
