@@ -68,6 +68,8 @@ export interface EditSettings {
   voicePolish?: boolean;
   /** Stickers placed on this video: text callouts, arrows, circles, underlines. */
   overlays?: Overlay[];
+  /** Stretches cut by hand from the transcript, on the source timeline. */
+  removed?: { s: number; e: number }[];
   /** Cuts the user reviewed and chose to keep (Cut ids from listCuts). */
   keepCuts?: string[];
   /** The brand kit logo in the top corner. */
@@ -270,15 +272,26 @@ export function listCuts(words: Word[], duration: number, s: CutSettings): Cut[]
   return cuts.sort((x, y) => x.start - y.start);
 }
 
-export function keepSegments(words: Word[], duration: number, s: Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "maxPause"> & { keepCuts?: string[] }): Segment[] {
+export function keepSegments(
+  words: Word[],
+  duration: number,
+  s: Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "maxPause"> & { keepCuts?: string[]; removed?: { s: number; e: number }[] },
+): Segment[] {
   const w = window_(words, duration, s);
+  const removed = s.removed ?? [];
+  const isRemoved = (x: Word) => removed.some((r) => x.s >= r.s - 0.001 && x.e <= r.e + 0.001);
   let { from, to } = w;
-  // With pause cutting on, dead air before the first word and after the last goes too.
-  if (s.maxPause > 0 && w.said.length) {
-    from = Math.max(from, w.said[0].s - 0.25);
-    to = Math.min(to, w.said[w.said.length - 1].e + 0.35);
+  // With pause cutting on, dead air before the first word and after the last goes too
+  // (words cut by hand don't count as said).
+  const said = w.said.filter((x) => !isRemoved(x));
+  if (s.maxPause > 0 && said.length) {
+    from = Math.max(from, said[0].s - 0.25);
+    to = Math.min(to, said[said.length - 1].e + 0.35);
   }
-  const cuts = listCuts(words, duration, s).filter((c) => !w.kept.has(c.id));
+  const cuts = [
+    ...listCuts(words, duration, s).filter((c) => !w.kept.has(c.id)),
+    ...removed.map((r) => ({ start: r.s, end: r.e })),
+  ].sort((a, b) => a.start - b.start);
   const out: Segment[] = [];
   let at = from;
   for (const c of cuts) {
@@ -666,4 +679,38 @@ export function overlayHit(list: Overlay[] | undefined, out: number, x: number, 
     if (Math.hypot((x - o.x) * aspect, y - o.y) <= reach) return o;
   }
   return null;
+}
+
+// ---------- cutting words from the transcript ----------
+
+/** The stretch from word a to word b (either order) as a cut, padded a touch so no syllable is left behind. */
+export function wordRange(words: Word[], a: number, b: number): { s: number; e: number } {
+  const [i, j] = a <= b ? [a, b] : [b, a];
+  return { s: Math.max(0, words[i].s - 0.04), e: words[j].e + 0.04 };
+}
+
+/** Adds a cut stretch, merging any it overlaps. */
+export function addRemoved(list: { s: number; e: number }[] | undefined, r: { s: number; e: number }): { s: number; e: number }[] {
+  let merged = { ...r };
+  const rest: { s: number; e: number }[] = [];
+  for (const x of list ?? []) {
+    if (x.e >= merged.s && x.s <= merged.e) merged = { s: Math.min(x.s, merged.s), e: Math.max(x.e, merged.e) };
+    else rest.push(x);
+  }
+  return [...rest, merged].sort((p, q) => p.s - q.s);
+}
+
+/** The cut stretch a word sits in, if any. */
+export function removedAt(list: { s: number; e: number }[] | undefined, w: Word): { s: number; e: number } | null {
+  return (list ?? []).find((r) => w.s >= r.s - 0.001 && w.e <= r.e + 0.001) ?? null;
+}
+
+/** Cut stretches from storage: well-formed, in order, at most 200. */
+export function sanitizeRemoved(raw: unknown): { s: number; e: number }[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((r): r is { s: number; e: number } => !!r && typeof r.s === "number" && typeof r.e === "number" && Number.isFinite(r.s) && r.e > r.s)
+    .slice(0, 200)
+    .map((r) => ({ s: Math.max(0, r.s), e: r.e }))
+    .sort((a, b) => a.s - b.s);
 }

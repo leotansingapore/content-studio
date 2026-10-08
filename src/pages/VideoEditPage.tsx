@@ -31,6 +31,10 @@ import {
   captionBoxOf,
   fullLength,
   findPhrase,
+  addRemoved,
+  removedAt,
+  sanitizeRemoved,
+  wordRange,
   MAX_OVERLAYS,
   newOverlay,
   overlayHit,
@@ -231,7 +235,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 }) {
   const { toast } = useToast();
   const [file, setFile] = useState<Blob | null | undefined>(undefined);
-  const [settings, setSettings] = useState<EditSettings>(() => ({ ...project.settings, overlays: sanitizeOverlays(project.settings.overlays) }));
+  const [settings, setSettings] = useState<EditSettings>(() => ({
+    ...project.settings,
+    overlays: sanitizeOverlays(project.settings.overlays),
+    removed: sanitizeRemoved(project.settings.removed),
+  }));
+  // Words tab: fix spelling, or cut a stretch by tapping its first and last word
+  const [wordMode, setWordMode] = useState<"fix" | "cut">("fix");
+  const [cutStart, setCutStart] = useState<number | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [words, setWords] = useState(project.words);
   const [subs, setSubs] = useState<Record<string, Record<string, string>>>(project.subs ?? {});
@@ -590,6 +601,20 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     else if (v) v.currentTime = w.s; // a cut word: show the moment anyway
     document.getElementById(`word-${hits[i]}`)?.scrollIntoView({ block: "nearest" });
   };
+
+  const tapWord = (i: number) => {
+    const inCut = removedAt(settings.removed, words[i]);
+    if (inCut) {
+      // a cut word: put its whole stretch back
+      change({ ...settings, removed: (settings.removed ?? []).filter((r) => r !== inCut) });
+      setCutStart(null);
+      return;
+    }
+    if (cutStart === null) return setCutStart(i);
+    change({ ...settings, removed: addRemoved(settings.removed, wordRange(words, cutStart, i)) });
+    setCutStart(null);
+  };
+  const cutWordCount = useMemo(() => words.filter((w) => removedAt(settings.removed, w)).length, [words, settings.removed]);
 
   const downloadSrt = () => {
     const blob = new Blob([toSrt(words, plan.segs, settings.removeFillers, speed)], { type: "application/x-subrip" });
@@ -1080,26 +1105,44 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   <Button size="sm" variant="outline" className="h-9 w-9 p-0" aria-label="Previous match" disabled={!hits.length} onClick={() => jumpTo(hit - 1)}><ChevronUp className="h-4 w-4" /></Button>
                   <Button size="sm" variant="outline" className="h-9 w-9 p-0" aria-label="Next match" disabled={!hits.length} onClick={() => jumpTo(hit + 1)}><ChevronDown className="h-4 w-4" /></Button>
                 </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" role="group" aria-label="What a tap on a word does">
+                    {([["fix", "Fix spelling"], ["cut", "Cut words"]] as const).map(([m, label]) => (
+                      <button key={m} type="button" aria-pressed={wordMode === m} onClick={() => { setWordMode(m); setCutStart(null); }}
+                        className={`rounded-md px-3 py-1.5 text-xs font-semibold ${wordMode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
+                    ))}
+                  </div>
+                  {wordMode === "cut" && (
+                    <span className="text-[11px] text-muted-foreground" aria-live="polite">
+                      {cutStart === null ? "Tap the first word to cut, then the last. Tap a cut word to bring it back." : "Now tap the last word."}
+                    </span>
+                  )}
+                  {cutWordCount > 0 && <span className="ml-auto text-[11px] font-medium">{cutWordCount} {cutWordCount === 1 ? "word" : "words"} cut</span>}
+                </div>
                 <p className="max-h-80 overflow-y-auto rounded-lg border border-border/60 p-3 text-sm leading-7">
                   {words.map((w, i) => (
                     <span
                       key={i}
                       id={`word-${i}`}
-                      contentEditable
+                      contentEditable={wordMode === "fix"}
+                      role={wordMode === "cut" ? "button" : undefined}
+                      tabIndex={wordMode === "cut" ? 0 : undefined}
+                      onClick={wordMode === "cut" ? () => tapWord(i) : undefined}
+                      onKeyDown={wordMode === "cut" ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tapWord(i); } } : undefined}
                       suppressContentEditableWarning
                       onFocus={() => { const v = video.current; if (v) { v.currentTime = w.s; segIdx.current = 0; } }}
                       onBlur={(e) => {
                         const t = e.currentTarget.textContent?.trim() ?? "";
                         if (t && t !== w.w) setWords((ws) => ws.map((x, j) => (j === i ? { ...x, w: t } : x)));
                       }}
-                      className={`rounded px-0.5 outline-none focus:bg-primary/10 ${settings.removeFillers && isFiller(w.w) ? "text-muted-foreground line-through" : ""} ${hitSet.has(i) ? (hits[hit] !== undefined && i >= hits[hit] && i < hits[hit] + (find.trim().split(/\s+/).length) ? "bg-warning/50" : "bg-warning/20") : ""}`}
+                      className={`rounded px-0.5 outline-none focus:bg-primary/10 ${wordMode === "cut" ? "cursor-pointer" : ""} ${removedAt(settings.removed, w) ? "bg-destructive/10 text-muted-foreground line-through" : ""} ${cutStart === i ? "ring-2 ring-primary" : ""} ${settings.removeFillers && isFiller(w.w) ? "text-muted-foreground line-through" : ""} ${hitSet.has(i) ? (hits[hit] !== undefined && i >= hits[hit] && i < hits[hit] + (find.trim().split(/\s+/).length) ? "bg-warning/50" : "bg-warning/20") : ""}`}
                     >{w.w}</span>
                   )).reduce<React.ReactNode[]>((a, el, i) => (i ? [...a, " ", el] : [el]), [])}
                 </p>
                 </>
               )}
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[11px] text-muted-foreground">Click a word to fix its spelling in the captions.</p>
+                <p className="text-[11px] text-muted-foreground">{wordMode === "fix" ? "Click a word to fix its spelling in the captions." : ""}</p>
                 {words.length > 0 && <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={downloadSrt}><Download className="h-3.5 w-3.5" /> Subtitles (.srt)</Button>}
               </div>
             </div>

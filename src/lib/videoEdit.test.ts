@@ -388,3 +388,38 @@ describe("speed", () => {
     expect(applyPatch(defaultSettings(), { speed: 4 }).next.speed).toBe(1.5);
   });
 });
+
+describe("cutting words from the transcript", () => {
+  const w = (word: string, s: number, e: number) => ({ w: word, s, e });
+  const words = [w("So", 0.2, 0.4), w("the", 0.5, 0.6), w("wrong", 0.7, 1.0), w("bit", 1.1, 1.3), w("CPF", 1.4, 1.7), w("matters.", 1.8, 2.3)];
+  const base = { trimStart: 0, trimEnd: 0, removeFillers: true, maxPause: 0.6 };
+
+  it("cuts a stretch of words, and its ends are padded", async () => {
+    const { keepSegments, totalLength, wordRange } = await import("@/lib/videoEdit");
+    const r = wordRange(words, 3, 1); // "the wrong bit", picked last word first
+    expect(r.s).toBeCloseTo(0.46);
+    expect(r.e).toBeCloseTo(1.34);
+    const all = totalLength(keepSegments(words, 3, base));
+    const cut = keepSegments(words, 3, { ...base, removed: [r] });
+    expect(totalLength(cut)).toBeCloseTo(all - (r.e - r.s));
+    expect(cut.some((g) => g.start < 0.8 && g.end > 0.8)).toBe(false); // "wrong" never plays
+  });
+
+  it("trims dead air after a cut last word", async () => {
+    const { keepSegments, wordRange } = await import("@/lib/videoEdit");
+    const segs = keepSegments(words, 4, { ...base, removed: [wordRange(words, 5, 5)] });
+    // playback stops where the cut starts: no tail of silence after the cut word
+    expect(segs[segs.length - 1].end).toBeCloseTo(1.76);
+    expect(segs.some((g) => g.end > 2.3)).toBe(false);
+  });
+
+  it("merges overlapping stretches, finds a word's stretch and cleans stored ones", async () => {
+    const { addRemoved, removedAt, sanitizeRemoved } = await import("@/lib/videoEdit");
+    const list = addRemoved(addRemoved(undefined, { s: 1, e: 2 }), { s: 1.5, e: 3 });
+    expect(list).toEqual([{ s: 1, e: 3 }]);
+    expect(addRemoved(list, { s: 5, e: 6 })).toHaveLength(2);
+    expect(removedAt(list, words[4])).toEqual({ s: 1, e: 3 });
+    expect(removedAt(list, words[0])).toBeNull();
+    expect(sanitizeRemoved([{ s: 2, e: 1 }, { s: "x" }, null, { s: 3, e: 4 }, { s: -1, e: 0.5 }])).toEqual([{ s: 0, e: 0.5 }, { s: 3, e: 4 }]);
+  });
+});
