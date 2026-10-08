@@ -117,6 +117,54 @@ export function readout(text: string, platform: PlatformId): CounterReadout {
   return { words, chars, status, message, unit: "chars" };
 }
 
+// What each platform enforces on the text that gets posted (sign-off and
+// disclosure included): a character cap, and Instagram's 30-hashtag cap.
+// LinkedIn takes more hashtags but recommends 3-5.
+export const MAX_CHARS: Record<PlatformId, number> = {
+  instagram: 2200,
+  tiktok: 2200,
+  linkedin: 3000,
+  facebook: 63206,
+};
+
+const NAMES: Record<PlatformId, string> = {
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  linkedin: "LinkedIn",
+  facebook: "Facebook",
+};
+
+export interface LimitCheck {
+  chars: number;
+  maxChars: number;
+  hashtags: number;
+  warnings: { level: "warn" | "over"; message: string }[];
+}
+
+export function countHashtags(text: string): number {
+  return (text.match(/#[\p{L}\p{N}_]+/gu) ?? []).length;
+}
+
+export function checkLimits(text: string, platform: PlatformId): LimitCheck {
+  const chars = countChars(text);
+  const maxChars = MAX_CHARS[platform];
+  const hashtags = countHashtags(text);
+  const warnings: LimitCheck["warnings"] = [];
+  if (chars > maxChars) {
+    warnings.push({
+      level: "over",
+      message: `Over ${NAMES[platform]}'s ${maxChars.toLocaleString("en-US")} character limit by ${(chars - maxChars).toLocaleString("en-US")}. Trim before posting.`,
+    });
+  }
+  if (platform === "instagram" && hashtags > 30) {
+    warnings.push({ level: "over", message: `Instagram allows 30 hashtags. Remove ${hashtags - 30}.` });
+  }
+  if (platform === "linkedin" && hashtags > 5) {
+    warnings.push({ level: "warn", message: `LinkedIn works best with 3-5 hashtags. Remove ${hashtags - 5}.` });
+  }
+  return { chars, maxChars, hashtags, warnings };
+}
+
 // Where the feed cuts a post off behind "...more", roughly: LinkedIn about 210
 // characters or 3 lines, Instagram about 125 characters or 2 lines, Facebook
 // about 480 characters or 5 lines (figures as cited in the platforms' own

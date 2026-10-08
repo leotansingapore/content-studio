@@ -76,7 +76,12 @@ import {
   upsertDraft,
   type DraftEntry,
 } from "@/lib/draftHistory";
-import { readout, type CounterReadout } from "@/lib/platformCounters";
+import {
+  checkLimits,
+  readout,
+  type CounterReadout,
+  type LimitCheck,
+} from "@/lib/platformCounters";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import { toPlainText, withSignOff } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
@@ -419,6 +424,40 @@ function ComplianceChips({
         );
       })}
     </div>
+  );
+}
+
+// Hashtag and character counts of the text a copy puts on the clipboard, with
+// a plain warning past a platform's limit.
+function LimitChips({ check, platform }: { check: LimitCheck; platform: Platform }) {
+  const over = check.chars > check.maxChars;
+  return (
+    <>
+      <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">
+        Hashtags: {check.hashtags}
+        {platform === "instagram" ? "/30" : platform === "linkedin" ? " (3-5 best)" : ""}
+      </span>
+      <span
+        className={`rounded-full border px-2 py-0.5 font-mono ${
+          over
+            ? "border-destructive/50 bg-destructive/10 text-red-700 dark:text-red-300"
+            : "border-border/60 bg-muted/30 text-muted-foreground"
+        }`}
+      >
+        {check.chars.toLocaleString("en-US")}/{check.maxChars.toLocaleString("en-US")} chars
+      </span>
+      {check.warnings.map((w) => (
+        <span
+          key={w.message}
+          role="alert"
+          className={`flex basis-full items-start gap-1.5 text-xs font-medium ${
+            w.level === "over" ? "text-red-700 dark:text-red-300" : "text-amber-800 dark:text-amber-300"
+          }`}
+        >
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {w.message}
+        </span>
+      ))}
+    </>
   );
 }
 
@@ -803,6 +842,11 @@ export default function GeneratePage() {
     () => readout(svSplit ? svSplit.caption : draft, platform),
     [draft, platform, svSplit],
   );
+
+  // What a copy puts on the clipboard: plain text plus the brand kit sign-off.
+  const brandSignOff = useMemo(() => loadBrand(userId)?.signOff?.trim() ?? "", [userId]);
+  const forPosting = (text: string) => withSignOff(toPlainText(text), brandSignOff);
+  const limits = checkLimits(forPosting(svSplit ? svSplit.caption : draft), platform);
 
   // Live craft check on the current draft (reuses the Coach engine).
   const craftCheck = useMemo(
@@ -1338,9 +1382,8 @@ export default function GeneratePage() {
   // A post or caption also gets the brand kit sign-off; a script doesn't.
   const copyText = async (text: string, title: string, description: string, signOff = false) => {
     try {
-      const sign = signOff ? loadBrand(userId)?.signOff?.trim() : "";
-      await navigator.clipboard.writeText(sign ? withSignOff(toPlainText(text), sign) : toPlainText(text));
-      toast({ title: sign ? `${title} with your sign-off` : title, description });
+      await navigator.clipboard.writeText(signOff ? forPosting(text) : toPlainText(text));
+      toast({ title: signOff && brandSignOff ? `${title} with your sign-off` : title, description });
     } catch {
       toast({
         title: "Copy failed",
@@ -1543,6 +1586,14 @@ export default function GeneratePage() {
     versions.find((v) => v.platform === activeTab) ?? versions[versions.length - 1] ?? null;
   const versionSaved =
     shownVersion && userId ? getDraftById(userId, shownVersion.draftId) : null;
+  const versionLimits = checkLimits(
+    forPosting(
+      shownVersion && format === "short-video"
+        ? splitScriptCaption(shownVersion.text).caption
+        : (shownVersion?.text ?? ""),
+    ),
+    shownVersion?.platform ?? platform,
+  );
   const versionFlags =
     shownVersion && shownVersion.status !== "streaming"
       ? scanCompliance(shownVersion.text).filter((f) => !dismissedFlagIds.has(f.id))
@@ -2419,9 +2470,6 @@ export default function GeneratePage() {
               <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">
                 Words: {counters.words}
               </span>
-              <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">
-                Chars: {counters.chars}
-              </span>
               <span
                 className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${
                   counters.status === "good"
@@ -2443,6 +2491,7 @@ export default function GeneratePage() {
                   {counters.firstNote}
                 </span>
               )}
+              <LimitChips check={limits} platform={platform} />
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -2660,6 +2709,11 @@ export default function GeneratePage() {
                 rows={Math.min(28, Math.max(12, shownVersion.text.split("\n").length + 2))}
                 className="font-sans text-sm leading-relaxed"
               />
+              {shownVersion.text.trim() && (
+                <div className="-mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+                  <LimitChips check={versionLimits} platform={shownVersion.platform} />
+                </div>
+              )}
               <PostPreview text={shownVersion.text} platform={shownVersion.platform} format={format} />
             </CardContent>
           </Card>
