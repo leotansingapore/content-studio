@@ -143,6 +143,10 @@ export function upsertDraft(
   entry: DraftEntry,
 ): DraftEntry[] {
   const current = loadDrafts(userId);
+  const prev = current.find((d) => d.id === entry.id);
+  // Write rebuilds an entry from its own fields, which don't include the post's
+  // numbers: keep them rather than wipe them on every edit.
+  if (prev?.metrics && !entry.metrics) entry = { ...entry, metrics: prev.metrics };
   const without = current.filter((d) => d.id !== entry.id);
   const next = [entry, ...without].slice(0, MAX_DRAFTS);
   saveDrafts(userId, next);

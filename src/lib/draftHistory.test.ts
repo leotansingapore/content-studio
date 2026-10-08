@@ -8,6 +8,7 @@ import {
   setDraftStatus,
   setRepeat,
   skipOccurrence,
+  upsertDraft,
   type DraftEntry,
 } from "./draftHistory";
 
@@ -125,5 +126,13 @@ describe("recurring posts", () => {
     setDraftStatus(UID, "s", "scheduled", "2026-10-20");
     expect(restoreDraft(UID, original)).toEqual([post({ id: "first" }), original]);
     expect(loadDrafts(UID)[1]).toEqual(original);
+  });
+});
+
+describe("upsertDraft", () => {
+  it("keeps a post's numbers when the edit doesn't carry them", () => {
+    saveDrafts(UID, [post({ status: "posted", metrics: { impressions: 900, reactions: 12 } })]);
+    upsertDraft(UID, post({ status: "posted", hook: "Edited in Write" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ hook: "Edited in Write", metrics: { impressions: 900, reactions: 12 } });
   });
 });
