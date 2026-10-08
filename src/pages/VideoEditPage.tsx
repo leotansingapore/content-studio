@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Download, Film, Pause, Play, Scissors, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
+import { Download, Film, ImageIcon, Pause, Play, Scissors, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
   drawFrame,
   ensureCaptionFonts,
   exportJob,
+  makeCover,
   extractWav,
   getFile,
   onExportJob,
@@ -369,6 +370,22 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
   };
 
+  const saveCover = async () => {
+    const v = video.current;
+    if (!v) return;
+    try {
+      const blob = await makeCover(v, settings, settings.hook || project.name);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${project.name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}-cover.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+      toast({ title: "Cover saved", description: "Made from the frame on screen. Scrub to another moment for a different one." });
+    } catch (e) {
+      toast({ title: "Couldn't make the cover", description: (e as Error).message, variant: "destructive" });
+    }
+  };
+
   const doExport = () => {
     if (!file) return;
     void startExport(project.name, file, words, settings).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
@@ -407,6 +424,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           </Button>
         )}
         <Button asChild variant="outline" size="sm" className="gap-1.5"><Link to={captionUrl}><Wand2 className="h-3.5 w-3.5" /> Write the caption</Link></Button>
+        <Button variant="outline" size="sm" onClick={saveCover} disabled={!file} className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
         <Button size="sm" onClick={doExport} disabled={!file || job?.state === "running"} className="gap-1.5 bg-gradient-primary text-primary-foreground disabled:opacity-60">
           <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : "Export MP4"}
         </Button>

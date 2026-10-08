@@ -279,6 +279,47 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   }
 }
 
+/**
+ * A cover / thumbnail: the frame on screen (same fit and grade as the video),
+ * a dark band and the title set large in the style's caption face. PNG at the
+ * export size, so it uploads as the reel cover without resizing.
+ */
+export async function makeCover(video: HTMLVideoElement, settings: EditSettings, title: string): Promise<Blob> {
+  await ensureCaptionFonts();
+  const [W, H] = aspectSize(settings.aspect, video.videoWidth, video.videoHeight);
+  const c = document.createElement("canvas");
+  c.width = W;
+  c.height = H;
+  const g = c.getContext("2d")!;
+  drawFrame(g, { video, settings: { ...settings, captions: false, hook: "", progressBar: false }, caps: [], segs: [], src: video.currentTime, out: 99, total: 0 });
+  const k = W / 1080;
+  const text = (title.trim() || " ").toUpperCase();
+  const px = Math.round((settings.aspect === "16:9" ? 92 : 104) * k);
+  g.font = `900 ${px}px "Archivo Black", "Arial Black", Impact, system-ui, sans-serif`;
+  const lines = wrap(g, text.split(/\s+/), W * 0.84).slice(0, 4);
+  const lh = px * 1.08;
+  const blockH = lines.length * lh;
+  const top = H * (settings.aspect === "16:9" ? 0.5 : 0.62) - blockH / 2;
+  const grad = g.createLinearGradient(0, top - px, 0, top + blockH + px);
+  grad.addColorStop(0, "rgba(0,0,0,0)");
+  grad.addColorStop(0.35, "rgba(0,0,0,0.55)");
+  grad.addColorStop(1, "rgba(0,0,0,0.75)");
+  g.fillStyle = grad;
+  g.fillRect(0, top - px, W, blockH + px * 2);
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.lineJoin = "round";
+  lines.forEach((l, i) => {
+    const y = top + lh * (i + 0.5);
+    g.lineWidth = px * 0.12;
+    g.strokeStyle = "rgba(0,0,0,0.85)";
+    g.strokeText(l.join(" "), W / 2, y);
+    g.fillStyle = i === lines.length - 1 && lines.length > 1 ? settings.activeColor : "#FFFFFF";
+    g.fillText(l.join(" "), W / 2, y);
+  });
+  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't make the cover."))), "image/png"));
+}
+
 export function planFor(words: Word[], duration: number, s: EditSettings) {
   const segs = keepSegments(words, duration, s);
   return { segs, caps: buildCaptions(words, s), total: totalLength(segs) };
