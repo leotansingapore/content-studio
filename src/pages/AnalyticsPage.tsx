@@ -820,9 +820,9 @@ export default function AnalyticsPage() {
             <div className="space-y-2">
               {ranked.length === 0 && (
                 <p className="rounded-xl border border-dashed border-border/70 p-4 text-center text-sm text-muted-foreground">
-                  {rankBy === "reachMultiple"
+                  {rankBy === "reachMultiple" && !followerPlatforms.some((p) => followers[p])
                     ? "Add your follower count in Add your numbers to see reach."
-                    : `No posts with ${rankBy === "commentRatio" ? "likes" : "numbers"} in the last ${period} days.`}
+                    : `No posts with ${rankBy === "commentRatio" ? "likes" : "numbers"} ${period ? `in the last ${period} days` : "yet"}.`}
                 </p>
               )}
               {ranked.map((d) => (
