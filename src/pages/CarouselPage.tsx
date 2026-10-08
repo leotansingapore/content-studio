@@ -71,7 +71,7 @@ import {
   type Slide,
   type SplitResult,
 } from "@/lib/carousel";
-import { SLIDE_HEIGHT, SLIDE_WIDTH, layoutSlide, renderSvg } from "@/lib/carouselLayout";
+import { SLIDE_FONTS, SLIDE_HEIGHT, SLIDE_WIDTH, layoutSlide, renderSvg, type SlideFont, type SlidePaper } from "@/lib/carouselLayout";
 import { createCanvasMeasure, downloadBlob, svgDataUrl, svgToJpeg, svgToPng } from "@/lib/carouselRender";
 import { buildPdf } from "@/lib/pdf";
 import { getFile, putFile } from "@/lib/deviceFiles";
@@ -114,6 +114,25 @@ export default function CarouselPage() {
   const [carouselId, setCarouselId] = useState("");
   const [align, setAlign] = useState<"left" | "center">("left");
   const [scale, setScale] = useState(1);
+  // the look: new carousels start with the one last picked on this device
+  const [look, setLook] = useState<{ font: SlideFont; paper: SlidePaper }>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem("cs-carousel-look") ?? "{}");
+      return { font: v.font in SLIDE_FONTS ? v.font : "classic", paper: ["light", "dark", "tint"].includes(v.paper) ? v.paper : "light" };
+    } catch {
+      return { font: "classic", paper: "light" };
+    }
+  });
+  const pickLook = (p: Partial<typeof look>) => {
+    const next = { ...look, ...p };
+    setLook(next);
+    setEdited(true);
+    try {
+      localStorage.setItem("cs-carousel-look", JSON.stringify(next));
+    } catch {
+      // storage blocked: the look still applies to this carousel
+    }
+  };
   // slide pictures live on this device; this maps their keys to data URLs for drawing
   const [pictures, setPictures] = useState<Record<string, string>>({});
   const [missing, setMissing] = useState<Set<string>>(new Set());
@@ -224,6 +243,7 @@ export default function CarouselPage() {
           if (typeof work.carouselId === "string") setCarouselId(work.carouselId);
           if (work.align === "center") setAlign("center");
           if (typeof work.scale === "number") setScale(work.scale);
+          if (work.look && work.look.font in SLIDE_FONTS) setLook({ font: work.look.font, paper: ["dark", "tint"].includes(work.look.paper) ? work.look.paper : "light" });
           if (work.slides.length > 0) toast({ title: "Your carousel is back" });
         }
       } catch {
@@ -255,13 +275,13 @@ export default function CarouselPage() {
       } else {
         sessionStorage.setItem(
           workKey(userId),
-          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale }),
+          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look }),
         );
       }
     } catch {
       // storage blocked: the work just won't survive a page change
     }
-  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale]);
+  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look]);
 
   useEffect(() => {
     const want = slides.map((x) => x.image).filter((k): k is string => !!k && SLIDE_IMAGE_KEY.test(k) && !pictures[k] && !missing.has(k));
@@ -324,14 +344,14 @@ export default function CarouselPage() {
     if (!userId || list.length < MIN_SLIDES) return;
     const id = carouselId || `p:${Date.now().toString(36)}`;
     if (!carouselId) setCarouselId(id);
-    setSaved(saveCarousel(userId, { id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined, align, scale }));
+    setSaved(saveCarousel(userId, { id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined, align, scale, font: look.font, paper: look.paper }));
   };
   useEffect(() => {
     if (!edited || slides.length < MIN_SLIDES) return;
     const t = window.setTimeout(() => keep(), 800);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slides, edited, platform, align, scale]);
+  }, [slides, edited, platform, align, scale, look]);
 
   // the Saved tab goes with the last saved carousel, so don't leave the picker on it
   useEffect(() => {
@@ -352,6 +372,7 @@ export default function CarouselPage() {
     setDraftId(c.draftId ?? "");
     setAlign(c.align ?? "left");
     setScale(c.scale ?? 1);
+    setLook({ font: c.font ?? "classic", paper: c.paper ?? "light" });
     setNotice(null);
   };
   const deleteSaved = (c: SavedCarousel) => {
@@ -411,11 +432,11 @@ export default function CarouselPage() {
     () =>
       slides.map((s, i) =>
         layoutSlide(
-          { title: s.title, body: s.body, index: i, total: slides.length, brand, image: s.image ? pictures[s.image] : undefined, align, scale },
+          { title: s.title, body: s.body, index: i, total: slides.length, brand, image: s.image ? pictures[s.image] : undefined, align, scale, font: look.font, paper: look.paper },
           measure,
         ),
       ),
-    [slides, brand, measure, pictures, align, scale],
+    [slides, brand, measure, pictures, align, scale, look],
   );
   const images = useMemo(
     () =>
@@ -870,6 +891,25 @@ export default function CarouselPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-medium text-muted-foreground">Font</span>
+                    {(Object.keys(SLIDE_FONTS) as SlideFont[]).map((f) => (
+                      <button key={f} type="button" aria-pressed={look.font === f} onClick={() => pickLook({ font: f })}
+                        style={{ fontFamily: SLIDE_FONTS[f].title === "serif" ? "Georgia, serif" : "system-ui, sans-serif" }}
+                        className={`rounded-full border px-2.5 py-1 font-semibold ${look.font === f ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                        {SLIDE_FONTS[f].label}
+                      </button>
+                    ))}
+                  </span>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-medium text-muted-foreground">Background</span>
+                    {([["light", "Light"], ["dark", "Dark"], ["tint", "Brand tint"]] as const).map(([p, label]) => (
+                      <button key={p} type="button" aria-pressed={look.paper === p} onClick={() => pickLook({ paper: p })}
+                        className={`rounded-full border px-2.5 py-1 font-semibold ${look.paper === p ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </span>
                   <span className="flex items-center gap-1.5">
                     <span className="font-medium text-muted-foreground">Text</span>
                     {(["left", "center"] as const).map((a) => (

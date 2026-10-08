@@ -66,8 +66,35 @@ export function readableOn(background: string): string {
 }
 
 /** The brand colour for accents on paper, unless it's too pale to see. */
-export function accentOnPaper(color: string): string {
-  return contrastRatio(color, PAPER) >= 3 ? color : INK;
+export function accentOnPaper(color: string, paper = PAPER): string {
+  return contrastRatio(color, paper) >= 3 ? color : readableOn(paper);
+}
+
+// ---- Looks: font pairing and the point slides' background ---------------------
+
+export type SlideFont = "classic" | "modern" | "serif";
+export type SlidePaper = "light" | "dark" | "tint";
+export const SLIDE_FONTS: Record<SlideFont, { label: string; title: FontSpec["family"]; body: FontSpec["family"] }> = {
+  classic: { label: "Classic", title: "serif", body: "sans" },
+  modern: { label: "Modern", title: "sans", body: "sans" },
+  serif: { label: "Editorial", title: "serif", body: "serif" },
+};
+
+function mix(a: string, b: string, t: number): string {
+  const pa = parseInt(a.slice(1), 16);
+  const pb = parseInt(b.slice(1), 16);
+  const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - t) + ((pb >> shift) & 255) * t);
+  return `#${[16, 8, 0].map((sh) => ch(sh).toString(16).padStart(2, "0")).join("").toUpperCase()}`;
+}
+
+/** Colours of a point slide for each background: light paper, dark, or a light tint of the brand colour. */
+export function paperColors(paper: SlidePaper | undefined, brandColor: string) {
+  if (paper === "dark") return { bg: "#18181B", ink: "#FAFAFA", body: "#D4D4D8", muted: "#A1A1AA", rule: "#3F3F46" };
+  if (paper === "tint") {
+    const bg = mix(PAPER, brandColor, 0.1);
+    return { bg, ink: INK, body: INK_BODY, muted: contrastRatio(INK_MUTED, bg) >= 4.5 ? INK_MUTED : INK_BODY, rule: mix(bg, INK, 0.12) };
+  }
+  return { bg: PAPER, ink: INK, body: INK_BODY, muted: INK_MUTED, rule: RULE };
 }
 
 // ---- Text ---------------------------------------------------------------------
@@ -182,6 +209,8 @@ export interface SlideInput {
   align?: "left" | "center";
   /** Text size, 0.8 to 1.25 times the usual. */
   scale?: number;
+  font?: SlideFont;
+  paper?: SlidePaper;
 }
 
 /** Height of a slide picture and the gap under it. */
@@ -191,8 +220,10 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   const role = slideRole(input.index, input.total);
   const onBrand = role !== "point";
   const brandColor = input.brand.color;
-  const background = onBrand ? brandColor : PAPER;
-  const ink = onBrand ? readableOn(brandColor) : INK;
+  const pc = paperColors(input.paper, brandColor);
+  const fonts = SLIDE_FONTS[input.font ?? "classic"] ?? SLIDE_FONTS.classic;
+  const background = onBrand ? brandColor : pc.bg;
+  const ink = onBrand ? readableOn(brandColor) : pc.ink;
   const nodes: SvgNode[] = [
     { type: "rect", x: 0, y: 0, width: SLIDE_WIDTH, height: SLIDE_HEIGHT, fill: background },
   ];
@@ -225,10 +256,10 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
       return { font, lines: wrapText(text, CONTENT_WIDTH, font, measure), lineHeight: Math.round(size * line) };
     });
   };
-  const titles = options(title, style.title, "serif", 600, style.titleLine);
+  const titles = options(title, style.title, fonts.title, 600, style.titleLine);
   const bodies = title
-    ? options(body, style.body, "sans", 400, style.bodyLine)
-    : options(body, sized(BODY_ONLY.sizes), "serif", 400, BODY_ONLY.line);
+    ? options(body, style.body, fonts.body, 400, style.bodyLine)
+    : options(body, sized(BODY_ONLY.sizes), fonts.title, 400, BODY_ONLY.line);
   const gap = title && body ? TITLE_BODY_GAP : 0;
 
   const pick = (bodyCount: number): [TextBlock, TextBlock] | null => {
@@ -264,7 +295,7 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
     y,
     width: ACCENT.width,
     height: ACCENT.height,
-    fill: onBrand ? ink : accentOnPaper(brandColor),
+    fill: onBrand ? ink : accentOnPaper(brandColor, pc.bg),
   });
   y += ACCENT.height + ACCENT.gap;
 
@@ -287,7 +318,7 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   place(t, ink);
   y += usedGap;
   if (onBrand) place(b, ink, title ? 0.9 : undefined);
-  else place(b, title ? INK_BODY : INK);
+  else place(b, title ? pc.body : pc.ink);
 
   if (role === "cover") {
     nodes.push({
@@ -303,7 +334,7 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   }
 
   // Footer: name and handle on the left, "3/8" on the right.
-  const muted = onBrand ? ink : INK_MUTED;
+  const muted = onBrand ? ink : pc.muted;
   const mutedOpacity = onBrand ? { opacity: 0.8 } : {};
   nodes.push({
     type: "rect",
@@ -311,7 +342,7 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
     y: FOOTER_RULE_Y,
     width: CONTENT_WIDTH,
     height: 2,
-    fill: onBrand ? ink : RULE,
+    fill: onBrand ? ink : pc.rule,
     ...(onBrand ? { opacity: 0.3 } : {}),
   });
   const middle = Math.round((FOOTER_RULE_Y + SLIDE_HEIGHT) / 2);

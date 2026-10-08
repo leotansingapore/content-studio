@@ -668,6 +668,8 @@ export interface SavedCarousel {
   draftId?: string;
   align?: "left" | "center";
   scale?: number;
+  font?: "classic" | "modern" | "serif";
+  paper?: "light" | "dark" | "tint";
   updatedAt: string;
 }
 
@@ -698,6 +700,8 @@ function sanitizeSaved(raw: unknown): SavedCarousel[] {
       draftId: typeof r.draftId === "string" ? r.draftId : undefined,
       ...(r.align === "center" ? { align: "center" as const } : {}),
       ...(typeof r.scale === "number" && r.scale >= 0.8 && r.scale <= 1.25 ? { scale: r.scale } : {}),
+      ...(r.font === "modern" || r.font === "serif" ? { font: r.font } : {}),
+      ...(r.paper === "dark" || r.paper === "tint" ? { paper: r.paper } : {}),
       updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
     }];
   });

@@ -179,6 +179,32 @@ describe("slide picture, alignment and size", () => {
   });
 });
 
+describe("slide looks", () => {
+  it("keeps body and footer text readable on every background, for any brand colour", async () => {
+    const { paperColors } = await import("@/lib/carouselLayout");
+    for (const paper of ["light", "dark", "tint"] as const) {
+      for (const color of ["#1E3A8A", "#B91C1C", "#0F766E", "#FDE047", "#27272A"]) {
+        const c = paperColors(paper, color);
+        expect(contrastRatio(c.ink, c.bg)).toBeGreaterThanOrEqual(7);
+        expect(contrastRatio(c.body, c.bg)).toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(c.muted, c.bg)).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("draws a dark point slide in light text and switches the font pairing", () => {
+    const dark = layoutSlide({ title: "Title", body: "Body", index: 1, total: 3, brand, paper: "dark" }, measure);
+    expect(dark.background).toBe("#18181B");
+    expect(textNodes(dark.nodes).find((t) => t.text === "Title")?.fill).toBe("#FAFAFA");
+    const modern = layoutSlide({ title: "Title", body: "Body", index: 1, total: 3, brand, font: "modern" }, measure);
+    expect(textNodes(modern.nodes).find((t) => t.text === "Title")?.font.family).toBe("sans");
+    const editorial = layoutSlide({ title: "Title", body: "Body", index: 1, total: 3, brand, font: "serif" }, measure);
+    expect(textNodes(editorial.nodes).find((t) => t.text === "Body")?.font.family).toBe("serif");
+    // cover and closing slides stay on the brand colour whatever the background
+    expect(layoutSlide({ title: "Hook", body: "", index: 0, total: 3, brand, paper: "dark" }, measure).background).toBe(brand.color);
+  });
+});
+
 describe("renderSvg", () => {
   it("writes a 1080x1350 SVG with escaped text", () => {
     const layout = layoutSlide({ title: 'Fees <5% & "fair"', body: "", index: 1, total: 3, brand }, measure);
