@@ -6,7 +6,8 @@
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { deleteFile } from "@/lib/videoMedia";
-import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSettings, type Sentence, type Word } from "@/lib/videoEdit";
+import { callFn } from "@/lib/edgeFn";
+import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSettings, type PublishIdea, type Sentence, type Word } from "@/lib/videoEdit";
 
 export interface VideoProject {
   id: string;
@@ -24,6 +25,8 @@ export interface VideoProject {
   subs?: Record<string, Record<string, string>>;
   /** Suggested callouts and cutaways, kept so a second look costs nothing. */
   cutaways?: Cutaway[];
+  /** Post titles and a cover idea, kept so a second look costs nothing. */
+  publish?: PublishIdea;
   /** The IndexedDB key of the video file; clips cut from one upload share it. Defaults to id. */
   fileId?: string;
   /** A skill whose instructions run once the captions exist (the default skill, on upload). */
@@ -157,4 +160,9 @@ export async function suggestCutaways(sentences: Sentence[], duration: number): 
 export async function translateCaptions(lang: string, lines: string[]): Promise<string[]> {
   const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "translate", lang, lines }) });
   return (await res.json()).lines;
+}
+
+/** Three post titles and the cover text from what is said, and the cover moment (null when none was picked). */
+export async function publishIdeas(sentences: Sentence[], duration: number): Promise<PublishIdea> {
+  return callFn<PublishIdea>("video-assist", { mode: "publish", sentences, duration }, "Couldn't write titles right now. Try again in a minute.");
 }

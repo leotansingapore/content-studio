@@ -2,6 +2,8 @@
 // word timings, and the "vibe edit" prompt and reply. No Deno or npm imports, so
 // vitest covers it (logic.test.ts).
 
+import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+
 export const MAX_AUDIO_BYTES = 24 * 1024 * 1024; // Whisper takes 25 MB
 export const VIBE_MODEL = "gpt-4.1";
 export const MAX_INSTRUCTION = 500;
@@ -224,9 +226,9 @@ export interface Cutaway {
 /** About 6k tokens of transcript, a cent or two a call. */
 export const MAX_CUTAWAY_CHARS = 24_000;
 
-export function parseCutawaysRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number } | { ok: false; error: string } {
+/** Well-formed timed sentences, up to about 6k tokens of text, and the video length. */
+function timedSentences(body: unknown): { sentences: ClipSentence[]; duration: number } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
-  const duration = Number(b.duration);
   let chars = 0;
   const sentences = (Array.isArray(b.sentences) ? b.sentences : [])
     .slice(0, MAX_SENTENCES)
@@ -234,6 +236,11 @@ export function parseCutawaysRequest(body: unknown): { ok: true; sentences: Clip
     .map((x) => ({ s: Number(x.s), e: Number(x.e), text: String(x.text ?? "").slice(0, 400) }))
     .filter((x) => Number.isFinite(x.s) && Number.isFinite(x.e) && x.e > x.s && x.text)
     .filter((x) => (chars += x.text.length) <= MAX_CUTAWAY_CHARS);
+  return { sentences, duration: Number(b.duration) };
+}
+
+export function parseCutawaysRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number } | { ok: false; error: string } {
+  const { sentences, duration } = timedSentences(body);
   if (!Number.isFinite(duration) || duration < 5) return { ok: false, error: "The video is too short for callouts." };
   if (sentences.length < 2) return { ok: false, error: "Caption the video first, then ask for callouts." };
   return { ok: true, sentences, duration };
@@ -285,6 +292,77 @@ export function parseCutawaysReply(content: string | null, duration: number): Cu
   const kept: Cutaway[] = [];
   for (const c of out) if (!kept.length || c.at >= kept[kept.length - 1].until - 0.05) kept.push(c);
   return kept.slice(0, 8);
+}
+
+// ---------- a title and a cover idea for a finished video ----------
+
+/** Jev answers a Choice of up to 255 options; each line of the video is one. */
+export const MAX_COVER_LINES = 255;
+
+export function parsePublishRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number } | { ok: false; error: string } {
+  const { sentences, duration } = timedSentences(body);
+  if (!Number.isFinite(duration) || duration < 3) return { ok: false, error: "The video is too short for a title." };
+  if (!sentences.length) return { ok: false, error: "Caption the video first." };
+  return { ok: true, sentences: sentences.slice(0, MAX_COVER_LINES), duration };
+}
+
+export function buildPublishMessages(sentences: ClipSentence[], duration: number): { role: string; content: string }[] {
+  return [
+    {
+      role: "system",
+      content: [
+        "You write the words that go out with a short video a Singapore financial adviser filmed, from what they say in it.",
+        "- titles: 3 titles of 3 to 8 words for the post's title field on YouTube Shorts, TikTok or LinkedIn, in sentence case, each from a different angle: the main point, the question a viewer has, a number or fact the speaker says.",
+        "- cover: the text set large on the cover picture, 2 to 6 words, the line that makes someone tap. Use the speaker's own words or their plain meaning.",
+        "Only facts and figures the speaker says; never invent a number. Never promise returns or guarantees. No em dashes, hashtags, emoji or quote marks.",
+        'Reply with JSON only: {"titles":[string,string,string],"cover":string}',
+      ].join("\n"),
+    },
+    { role: "user", content: `Video length: ${duration.toFixed(1)}s\nWhat they say:\n${sentences.map((x) => x.text).join(" ")}` },
+  ];
+}
+
+const plainLine = (v: unknown, n: number) =>
+  String(v ?? "").replace(/\s*\u2014\s*/g, ", ").replace(/#\w+/g, "").replace(/^["'\u201c\u2018\s]+|["'\u201d\u2019\s]+$/g, "").replace(/\s+/g, " ").trim().slice(0, n);
+
+/** Up to 3 distinct titles and the cover line, or null when either is missing. */
+export function parsePublishReply(content: string | null): { titles: string[]; cover: string } | null {
+  if (!content) return null;
+  let raw: { titles?: unknown; cover?: unknown };
+  try {
+    raw = JSON.parse(content);
+  } catch {
+    return null;
+  }
+  const titles: string[] = [];
+  for (const t of Array.isArray(raw?.titles) ? raw.titles : []) {
+    const clean = plainLine(t, 80);
+    if (clean && !titles.some((x) => x.toLowerCase() === clean.toLowerCase())) titles.push(clean);
+    if (titles.length === 3) break;
+  }
+  const cover = plainLine(raw?.cover, 60);
+  return titles.length && cover ? { titles, cover } : null;
+}
+
+/** What Jev reads to find the cover moment: every line tagged with an id it can point to. */
+export function coverState(sentences: ClipSentence[], cover: string) {
+  return { cover_text: cover, transcript: sentences.map((x, i) => `L${i}| ${x.text}`).join("\n") };
+}
+
+export function coverQuestion(sentences: ClipSentence[]): JevQuestion {
+  return {
+    type: "choice",
+    instructions: "In which line of `transcript` does the speaker say the point that `cover_text` puts on the cover?",
+    criteria: Object.fromEntries(sentences.map((_, i) => [`L${i}`, null])),
+  };
+}
+
+/** The middle of the line Jev picked, on the edited timeline, or null without a usable pick. */
+export function coverAt(answers: Record<string, JevAnswer> | null, sentences: ClipSentence[]): number | null {
+  const pick = choiceOf(answers, "cover_at", sentences.map((_, i) => `L${i}`));
+  if (!pick) return null;
+  const x = sentences[Number(pick.slice(1))];
+  return Math.round(((x.s + x.e) / 2) * 10) / 10;
 }
 
 // ---------- bilingual captions ----------

@@ -11,6 +11,10 @@
 //   POST {mode:"cutaways", sentences:[{s,e,text}] on the edited timeline, duration}
 //        -> {sections:[{at,until,callout,show}]}: a text callout and what to cut away
 //        to, per section of a filmed talking head ("video-cutaways" cap).
+//   POST {mode:"publish", sentences:[{s,e,text}] on the edited timeline, duration}
+//        -> {titles:[3], cover, at}: post titles and the cover text, written by the LLM,
+//        and the cover moment, picked by Jev (null when Jev has no answer or the
+//        video is not in English) ("video-publish" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -19,11 +23,19 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { askJev } from "../_shared/jev.ts";
+import { mostlyEnglish } from "../post-score/logic.ts";
 import {
   MAX_AUDIO_BYTES,
   VIBE_MODEL,
   buildClipsMessages,
   buildCutawaysMessages,
+  buildPublishMessages,
+  coverAt,
+  coverQuestion,
+  coverState,
+  parsePublishReply,
+  parsePublishRequest,
   parseCutawaysReply,
   parseCutawaysRequest,
   buildTranslateMessages,
@@ -168,6 +180,33 @@ Deno.serve(async (req) => {
       const sections = parseCutawaysReply((await res.json())?.choices?.[0]?.message?.content ?? null, c.duration);
       if (!sections?.length) return json({ error: "No callouts stood out in this video. Try again." }, 422);
       return json({ sections });
+    }
+
+    if (body?.mode === "publish") {
+      const p = parsePublishRequest(body);
+      if (!p.ok) return json({ error: p.error }, 400);
+      const usage = await consumeUsage(admin, uid, "video-publish");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.6, max_tokens: 300, response_format: { type: "json_object" }, messages: buildPublishMessages(p.sentences, p.duration) }),
+        signal: AbortSignal.timeout(45_000),
+      });
+      if (!res.ok) {
+        console.error("video-assist publish", res.status, (await res.text()).slice(0, 300));
+        return json({ error: "Couldn't write titles right now. Try again in a minute." }, 502);
+      }
+      const idea = parsePublishReply((await res.json())?.choices?.[0]?.message?.content ?? null);
+      if (!idea) return json({ error: "The titles came back incomplete. Try again." }, 502);
+      // Jev picks the moment (Leo's rule: a pick is a decision); without an answer the person scrubs to one
+      const answers = mostlyEnglish(p.sentences.map((x) => x.text).join(" "))
+        ? await askJev(coverState(p.sentences, idea.cover), { cover_at: coverQuestion(p.sentences) }, { who: "video-assist publish" })
+        : null;
+      return json({ ...idea, at: coverAt(answers, p.sentences) });
     }
 
     const parsed = parseVibeRequest(body);

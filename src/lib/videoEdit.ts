@@ -1241,3 +1241,19 @@ export function sanitizeCutaways(raw: unknown): Cutaway[] {
     return [{ at, until: clamp(o.until, at, 36000, at + 3), callout, show: typeof o.show === "string" ? o.show.slice(0, 160) : "" }];
   });
 }
+
+/** Post titles and the cover text for a finished video, and where on the edited timeline to take the cover frame. */
+export interface PublishIdea {
+  titles: string[];
+  cover: string;
+  at: number | null;
+}
+
+/** A stored idea, kept only when well formed. */
+export function sanitizePublish(raw: unknown): PublishIdea | undefined {
+  const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const titles = (Array.isArray(o.titles) ? o.titles : []).filter((t): t is string => typeof t === "string" && !!t.trim()).slice(0, 3).map((t) => t.slice(0, 80));
+  const cover = typeof o.cover === "string" ? o.cover.slice(0, 60) : "";
+  if (!titles.length || !cover) return undefined;
+  return { titles, cover, at: typeof o.at === "number" && Number.isFinite(o.at) && o.at >= 0 ? o.at : null };
+}

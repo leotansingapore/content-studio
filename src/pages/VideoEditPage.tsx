@@ -49,8 +49,10 @@ import {
   musicGainAt,
   sanitizeMusic,
   sanitizeCutaways,
+  sanitizePublish,
   editedSentences,
   type Cutaway,
+  type PublishIdea,
   MUSIC_LEVEL,
   sanitizeVoiceover,
   voiceAt,
@@ -120,7 +122,7 @@ import {
   type BrandArt,
   type ExportJob,
 } from "@/lib/videoMedia";
-import { fileKey, findClips, suggestCutaways, loadFixes, loadProjects, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, findClips, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 
 const MAX_BYTES = 500 * 1024 * 1024;
@@ -306,6 +308,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   // suggested callouts and cutaways, read from what is said; the person picks which to add
   const [cutaways, setCutaways] = useState<Cutaway[]>(() => sanitizeCutaways(project.cutaways));
   const [suggesting, setSuggesting] = useState(false);
+  // post titles and the cover text, with the moment to take the cover from
+  const [publish, setPublish] = useState<PublishIdea | undefined>(() => sanitizePublish(project.publish));
+  const [ideating, setIdeating] = useState(false);
   const [writingCaption, setWritingCaption] = useState(false);
   const [savedDraft, setSavedDraft] = useState(false);
   const [translating, setTranslating] = useState<string | null>(null);
@@ -431,10 +436,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   // save the edit a moment after the last change
   useEffect(() => {
-    const t = window.setTimeout(() => onSave({ ...project, pendingSkill: pendingSkill.current, settings, words, subs, caption, cutaways }), 400);
+    const t = window.setTimeout(() => onSave({ ...project, pendingSkill: pendingSkill.current, settings, words, subs, caption, cutaways, publish }), 400);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings, words, subs, caption, cutaways]);
+  }, [settings, words, subs, caption, cutaways, publish]);
 
   const duration = project.duration;
   const plan = useMemo(() => planFor(words, duration, settings), [words, duration, settings]);
@@ -834,11 +839,21 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
   };
 
-  const saveCover = async () => {
+  // the cover from the frame on screen, or from a moment on the edit (a cover idea's), with the cover text set large
+  const saveCover = async (at?: number | null) => {
     const v = video.current;
     if (!v) return;
     try {
-      const blob = await makeCover(v, settings, settings.hook || project.name);
+      if (typeof at === "number") {
+        if (playing) { v.pause(); setPlaying(false); }
+        seekOut(at);
+        await new Promise<void>((done) => {
+          if (!v.seeking) return done();
+          v.addEventListener("seeked", () => done(), { once: true });
+          window.setTimeout(done, 2000);
+        });
+      }
+      const blob = await makeCover(v, settings, publish?.cover.trim() || settings.hook || project.name);
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = `${project.name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}-cover.png`;
@@ -849,6 +864,20 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       toast({ title: "Couldn't make the cover", description: (e as Error).message, variant: "destructive" });
     }
   };
+
+  const suggestPublish = async () => {
+    setIdeating(true);
+    try {
+      const idea = sanitizePublish(await publishIdeas(editedSentences(words, plan.segs, speed), plan.total));
+      if (!idea) throw new Error("The titles came back incomplete. Try again.");
+      setPublish(idea);
+    } catch (e) {
+      toast({ title: "Couldn't write titles", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setIdeating(false);
+    }
+  };
+  const copyTitle = (t: string) => navigator.clipboard.writeText(t).then(() => toast({ title: "Title copied" }));
 
   const pickSubLang = async (lang: EditSettings["subLang"]) => {
     if (!lang) return patch({ subLang: "" });
@@ -1091,7 +1120,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             {clipping ? "Finding clips..." : "Find clips"}
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={saveCover} disabled={!file} className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
+        <Button variant="outline" size="sm" onClick={() => void saveCover()} disabled={!file} className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
         <Button size="sm" onClick={doExport} disabled={!file || job?.state === "running"} className="gap-1.5 bg-gradient-primary text-primary-foreground disabled:opacity-60">
           <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : <>{exportLabel} <span className="font-normal opacity-80">{fmtBytes(size.bytes)}</span></>}
         </Button>
@@ -1122,7 +1151,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           <p className="text-sm font-semibold">Ready to post</p>
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="outline" className="h-9 gap-1.5"><a href={job.url} download={`${project.name}-${job.kind === "audio" ? "audio" : "edited"}.${job.ext}`}><Download className="h-3.5 w-3.5" /> {job.kind === "audio" ? "Sound" : "Video"}{job.bytes ? `, ${fmtBytes(job.bytes)}` : ""}</a></Button>
-            <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={saveCover}><ImageIcon className="h-3.5 w-3.5" /> Cover</Button>
+            <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => void saveCover()}><ImageIcon className="h-3.5 w-3.5" /> Cover</Button>
             {words.length > 0 && <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={downloadSrt}><Download className="h-3.5 w-3.5" /> Subtitles</Button>}
             {caption ? (
               <Button size="sm" className="h-9" onClick={copyCaption}>Copy caption</Button>
@@ -1369,6 +1398,38 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 </div>
               </>
             )}
+            <div className="space-y-2 border-t border-border/60 pt-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold">Title and cover</p>
+                <Button size="sm" variant="outline" onClick={suggestPublish} disabled={ideating || !words.length} className={`h-11 gap-1.5 sm:h-9 ${ideating ? "disabled:opacity-100" : ""}`}>
+                  {ideating ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
+                  {ideating ? "Writing..." : publish ? "Write again" : "Suggest from what I say"}
+                </Button>
+              </div>
+              {publish && (
+                <>
+                  <ul className="divide-y divide-border/60" aria-label="Titles">
+                    {publish.titles.map((t) => (
+                      <li key={t} className="flex items-center gap-2 py-1 text-sm">
+                        <span className="min-w-0 flex-1">{t}</span>
+                        <Button size="sm" variant="ghost" className="h-11 shrink-0 text-xs sm:h-8" onClick={() => copyTitle(t)} aria-label={`Copy ${t}`}>Copy</Button>
+                      </li>
+                    ))}
+                  </ul>
+                  <label className="block space-y-1 text-xs font-semibold">
+                    Cover text
+                    <input value={publish.cover} maxLength={60} onChange={(e) => setPublish({ ...publish, cover: e.target.value })}
+                      className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal sm:h-9" />
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button size="sm" className="h-11 gap-1.5 sm:h-9" onClick={() => void saveCover(publish.at)} disabled={!file || !publish.cover.trim()}>
+                      <ImageIcon className="h-3.5 w-3.5" /> {publish.at !== null ? `Make the cover at ${fmtTime(publish.at)}` : "Make the cover from this frame"}
+                    </Button>
+                    {publish.at !== null && <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-8" onClick={() => seekOut(publish.at!)}>Show me</Button>}
+                  </div>
+                </>
+              )}
+            </div>
           </section>
 
           <nav className="flex w-fit flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" aria-label="Edit">

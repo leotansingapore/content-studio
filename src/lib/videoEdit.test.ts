@@ -780,3 +780,13 @@ describe("callouts and cutaways", () => {
     expect(sanitizeCutaways([{ at: 5, until: 1, callout: "Back to front" }])[0].until).toBe(5);
   });
 });
+
+describe("title and cover ideas", () => {
+  it("keeps only a well-formed stored idea", async () => {
+    const { sanitizePublish } = await import("@/lib/videoEdit");
+    expect(sanitizePublish({ titles: ["One", 5, "Two", "Three", "Four"], cover: "Cover line", at: 4.2 })).toEqual({ titles: ["One", "Two", "Three"], cover: "Cover line", at: 4.2 });
+    expect(sanitizePublish({ titles: ["One"], cover: "x", at: "soon" })).toEqual({ titles: ["One"], cover: "x", at: null });
+    expect(sanitizePublish({ titles: [], cover: "x" })).toBeUndefined();
+    expect(sanitizePublish(null)).toBeUndefined();
+  });
+});

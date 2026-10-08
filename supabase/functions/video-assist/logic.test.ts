@@ -134,3 +134,54 @@ describe("cutaways", () => {
     expect(parseCutawaysReply("{}", 12)).toEqual([]);
   });
 });
+
+describe("publish: titles and a cover idea", () => {
+  const sentences = [
+    { s: 0, e: 3, text: "Most people think CPF is enough." },
+    { s: 3.2, e: 7, text: "It grows at 4% a year." },
+    { s: 7.5, e: 12, text: "Here is what to do instead." },
+  ];
+  it("needs a captioned video and keeps at most 255 lines, Jev's limit for one Choice", async () => {
+    const { parsePublishRequest } = await import("./logic");
+    expect(parsePublishRequest({ duration: 1, sentences })).toMatchObject({ ok: false });
+    expect(parsePublishRequest({ duration: 30, sentences: [] })).toMatchObject({ ok: false, error: "Caption the video first." });
+    expect(parsePublishRequest({ duration: 30, sentences: [...sentences, { s: 9, e: 2, text: "bad" }] })).toEqual({ ok: true, duration: 30, sentences });
+    const many = Array.from({ length: 400 }, (_, i) => ({ s: i, e: i + 0.9, text: `Line ${i}.` }));
+    const r = parsePublishRequest({ duration: 400, sentences: many });
+    expect(r.ok && r.sentences.length).toBe(255);
+  });
+
+  it("asks for 3 titles and a cover line from the speaker's own words", async () => {
+    const { buildPublishMessages } = await import("./logic");
+    const [sys, user] = buildPublishMessages(sentences, 12);
+    expect(sys.content).toContain("never invent a number");
+    expect(sys.content).toContain('"titles"');
+    expect(user.content).toContain("It grows at 4% a year.");
+  });
+
+  it("keeps 3 distinct plain titles and a short cover line, or nothing", async () => {
+    const { parsePublishReply } = await import("./logic");
+    const reply = JSON.stringify({
+      titles: ['"CPF alone won\'t carry you"', "Why 4% is not enough — yet", "CPF alone won't carry you", "#cpf What to do instead", "A fourth one"],
+      cover: "  CPF is not enough  ",
+    });
+    expect(parsePublishReply(reply)).toEqual({
+      titles: ["CPF alone won't carry you", "Why 4% is not enough, yet", "What to do instead"],
+      cover: "CPF is not enough",
+    });
+    expect(parsePublishReply(JSON.stringify({ titles: ["A title"], cover: "" }))).toBeNull();
+    expect(parsePublishReply(JSON.stringify({ titles: [], cover: "x" }))).toBeNull();
+    expect(parsePublishReply("nope")).toBeNull();
+  });
+
+  it("lets Jev point to the line the cover comes from, and times the cover at its middle", async () => {
+    const { coverQuestion, coverState, coverAt } = await import("./logic");
+    const q = coverQuestion(sentences);
+    expect(q.type).toBe("choice");
+    expect(Object.keys((q as { criteria: Record<string, unknown> }).criteria)).toEqual(["L0", "L1", "L2"]);
+    expect(coverState(sentences, "4% a year").transcript).toBe("L0| Most people think CPF is enough.\nL1| It grows at 4% a year.\nL2| Here is what to do instead.");
+    expect(coverAt({ cover_at: { type: "choice", choice: "L1" } }, sentences)).toBe(5.1);
+    expect(coverAt({ cover_at: { type: "choice", choice: "L9" } }, sentences)).toBeNull();
+    expect(coverAt(null, sentences)).toBeNull();
+  });
+});

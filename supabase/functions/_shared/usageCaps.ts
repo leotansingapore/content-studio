@@ -18,6 +18,8 @@ export const DAILY_LIMITS = {
   "video-clips": 20,
   "video-translate": 30,
   "video-cutaways": 20,
+  // Titles and a cover idea for a finished video (video-assist publish).
+  "video-publish": 30,
   // Watching (feed-ideas, mentions, youtube-captions, track-accounts): fetches and paid lookups.
   feeds: 60,
   mentions: 10,
