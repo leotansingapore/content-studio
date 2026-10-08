@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { loadGoals, setPlatformGoal, withGoalCadence, type WeeklyGoals } from "@/lib/goals";
+import { scoped } from "@/lib/profiles";
 import QuickTip from "@/components/QuickTip";
 import {
   getBreakdown,
@@ -127,6 +128,11 @@ const CTA_LABEL: Record<string, string> = {
 
 const WEEK_OPTIONS = [1, 2, 4];
 
+// The positioning form while it is open, kept for this tab so leaving the page
+// doesn't throw away what was typed before the plan is built. sessionStorage,
+// outside the synced prefix: positioning itself is saved on Build.
+const workKey = (userId: string) => `cs-plan-work-${scoped(userId)}`;
+
 export default function PlanPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -173,11 +179,34 @@ export default function PlanPage() {
         // last week's story is not this week's
         if (Date.now() - new Date(savedPlan.createdAt).getTime() < 7 * 86_400_000) setThisWeek(savedPlan.thisWeek ?? "");
       }
+      try {
+        const work = id ? JSON.parse(sessionStorage.getItem(workKey(id)) ?? "null") : null;
+        if (work && typeof work.topicsRaw === "string" && work.positioning && typeof work.positioning === "object") {
+          setPositioning({ ...EMPTY_POSITIONING, ...work.positioning });
+          setTopicsRaw(work.topicsRaw);
+          if (typeof work.thisWeek === "string") setThisWeek(work.thisWeek);
+          if (typeof work.fadsPaste === "string") setFadsPaste(work.fadsPaste);
+          setEditing(true);
+        }
+      } catch {
+        // corrupt or blocked storage: show the saved positioning
+      }
     })();
     return () => {
       active = false;
     };
   }, []);
+
+  // Kept while the form is open; building the plan or going back to it clears it.
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      if (!editing) sessionStorage.removeItem(workKey(userId));
+      else sessionStorage.setItem(workKey(userId), JSON.stringify({ positioning, topicsRaw, thisWeek, fadsPaste }));
+    } catch {
+      // storage blocked: the form just won't survive a page change
+    }
+  }, [userId, editing, positioning, topicsRaw, thisWeek, fadsPaste]);
 
   const usable = useMemo(
     () => isPositioningUsable({ ...positioning, topics: parseTopics(topicsRaw) }),
