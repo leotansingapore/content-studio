@@ -26,3 +26,6 @@ supabase/.temp/
 *.tsbuildinfo
 excalidraw.log
 .verify/
+
+# made by `deno check` on the edge functions
+deno.lock
