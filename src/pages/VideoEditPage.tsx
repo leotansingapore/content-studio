@@ -26,6 +26,7 @@ import {
   clipSettings,
   END_CARD_SECONDS,
   FONTS,
+  FILTERS,
   captionBoxOf,
   fullLength,
   findPhrase,
@@ -898,6 +899,19 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               )}
               <Row label="Progress bar"><Toggle on={settings.progressBar} set={(v) => patch({ progressBar: v })} /></Row>
               <Row label="Colour grade"><Toggle on={settings.grade} set={(v) => patch({ grade: v })} /></Row>
+              {settings.grade && (
+                <Row label="Look">
+                  <Chip on={!settings.filter} onClick={() => patch({ filter: undefined })}>Style&apos;s own</Chip>
+                  {(Object.keys(FILTERS) as (keyof typeof FILTERS)[]).map((id) => (
+                    <Chip key={id} on={settings.filter === id} onClick={() => patch({ filter: id })}>{FILTERS[id].label}</Chip>
+                  ))}
+                </Row>
+              )}
+              <Row label="Between cuts">
+                <Chip on={!settings.transition} onClick={() => patch({ transition: undefined })}>Hard cut</Chip>
+                <Chip on={settings.transition === "soft"} onClick={() => patch({ transition: "soft" })}>Soft dip</Chip>
+                <Chip on={settings.transition === "flash"} onClick={() => patch({ transition: "flash" })}>Flash</Chip>
+              </Row>
             </div>
           )}
 

@@ -302,3 +302,26 @@ describe("reviewing cuts", () => {
     expect(listCuts(words, 4, { ...base, keepCuts: ["f:1.80"] }).filter((c) => c.kind === "pause").map((c) => c.id)).toEqual(["p:0.60", "p:2.00"]);
   });
 });
+
+describe("colour looks and cut transitions", () => {
+  it("grades with the chosen look, the style's own, or nothing", async () => {
+    const { gradeOf, defaultSettings, FILTERS, STYLES } = await import("@/lib/videoEdit");
+    expect(gradeOf(defaultSettings("bold"))).toBe(STYLES.bold.grade);
+    expect(gradeOf({ ...defaultSettings("bold"), filter: "mono" })).toBe(FILTERS.mono.css);
+    expect(gradeOf({ ...defaultSettings("bold"), filter: "mono", grade: false })).toBe("none");
+  });
+
+  it("measures the distance to the nearest join between kept segments", async () => {
+    const { distanceToCut } = await import("@/lib/videoEdit");
+    const segs = [{ start: 0, end: 2 }, { start: 3, end: 5 }, { start: 6, end: 7 }]; // joins at 2 and 4 out
+    expect(distanceToCut(segs, 2.03)).toBeCloseTo(0.03);
+    expect(distanceToCut(segs, 3.9)).toBeCloseTo(0.1);
+    expect(distanceToCut([{ start: 0, end: 5 }], 1)).toBe(Infinity);
+  });
+
+  it("takes looks and transitions from a vibe edit and drops unknown ones", async () => {
+    const { applyPatch, defaultSettings } = await import("@/lib/videoEdit");
+    expect(applyPatch(defaultSettings(), { filter: "warm", transition: "soft" }).changed).toEqual(["filter", "transition"]);
+    expect(applyPatch(defaultSettings(), { filter: "sepia", transition: "spin" }).changed).toEqual([]);
+  });
+});

@@ -58,6 +58,10 @@ export interface EditSettings {
   captionBox?: CaptionBox;
   /** Caption typeface. Unset = the style's own. */
   font?: FontId;
+  /** Colour look over the style's grade (when grade is on). Unset = the style's own. */
+  filter?: FilterId;
+  /** What happens at each cut: a hard jump (unset), a quick dip through black, or a white flash. */
+  transition?: "soft" | "flash";
   /** Cuts the user reviewed and chose to keep (Cut ids from listCuts). */
   keepCuts?: string[];
   /** The brand kit logo in the top corner. */
@@ -102,6 +106,32 @@ interface StyleSpec {
 const SANS_HEAVY = '900 {px}px "Archivo Black", "Arial Black", Impact, system-ui, sans-serif';
 const SANS = '600 {px}px "DM Sans", Inter, system-ui, sans-serif';
 const SERIF = '600 {px}px Fraunces, Georgia, "Times New Roman", serif';
+
+export type FilterId = "warm" | "cool" | "vivid" | "mono" | "film";
+export const FILTERS: Record<FilterId, { label: string; css: string }> = {
+  warm: { label: "Warm", css: "contrast(1.05) saturate(1.1) sepia(0.18) brightness(1.02)" },
+  cool: { label: "Cool", css: "contrast(1.04) saturate(0.95) hue-rotate(-8deg) brightness(1.02)" },
+  vivid: { label: "Vivid", css: "contrast(1.12) saturate(1.35)" },
+  mono: { label: "Black and white", css: "grayscale(1) contrast(1.12)" },
+  film: { label: "Film", css: "contrast(0.94) saturate(0.8) sepia(0.12) brightness(1.04)" },
+};
+
+/** The canvas filter for the picture: off, the style's own grade, or the chosen look. */
+export function gradeOf(s: Pick<EditSettings, "style" | "grade" | "filter">): string {
+  if (!s.grade) return "none";
+  return s.filter && FILTERS[s.filter] ? FILTERS[s.filter].css : STYLES[s.style].grade;
+}
+
+/** Seconds from the output time to the nearest cut (a join between kept segments), or Infinity with none. */
+export function distanceToCut(segs: Segment[], out: number): number {
+  let acc = 0;
+  let best = Infinity;
+  for (let i = 0; i < segs.length - 1; i++) {
+    acc += segs[i].end - segs[i].start;
+    best = Math.min(best, Math.abs(out - acc));
+  }
+  return best;
+}
 
 export type CaptionBox = "none" | "pill" | "word";
 export type FontId = "heavy" | "clean" | "serif";
@@ -368,6 +398,8 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if (typeof p.captionY === "number") set("captionY", clamp(p.captionY, 0.08, 0.92, s.captionY ?? 0.5));
   if (["none", "pill", "word"].includes(p.captionBox as string)) set("captionBox", p.captionBox as CaptionBox);
   if (typeof p.font === "string" && p.font in FONTS) set("font", p.font as FontId);
+  if (typeof p.filter === "string" && p.filter in FILTERS) set("filter", p.filter as FilterId);
+  if (p.transition === "soft" || p.transition === "flash") set("transition", p.transition);
   return { next, changed };
 }
 
@@ -376,7 +408,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
 const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
   "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "maxPause", "hookSeconds", "aspect", "fit",
-  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font",
+  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition",
 ] as const satisfies readonly (keyof EditSettings)[];
 
 export function lookOf(s: EditSettings): Record<string, unknown> {

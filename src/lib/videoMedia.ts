@@ -17,6 +17,8 @@ import {
   captionBoxOf,
   captionFont,
   captionKey,
+  distanceToCut,
+  gradeOf,
   isNumberWord,
   keepSegments,
   nameTagVisible,
@@ -295,13 +297,14 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       // the whole picture, over a darkened, blurred copy filling the frame
       const bw = v.videoWidth * cover;
       const bh = v.videoHeight * cover;
-      g.filter = `blur(${Math.round(36 * k)}px) brightness(0.62)`;
+      const look = gradeOf(s);
+      g.filter = `blur(${Math.round(36 * k)}px) brightness(0.62)${look === "none" ? "" : ` ${look}`}`;
       g.drawImage(v, (W - bw) / 2, (H - bh) / 2, bw, bh);
       g.filter = "none";
       const scale = Math.min(W / v.videoWidth, H / v.videoHeight) * zoom;
       const dw = v.videoWidth * scale;
       const dh = v.videoHeight * scale;
-      if (s.grade) g.filter = spec.grade;
+      g.filter = gradeOf(s);
       g.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
       g.filter = "none";
     } else {
@@ -310,9 +313,20 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       const dh = v.videoHeight * scale;
       const dx = Math.min(0, Math.max(W - dw, W / 2 - dw * s.focusX));
       const dy = (H - dh) / 2;
-      if (s.grade) g.filter = spec.grade;
+      g.filter = gradeOf(s);
       g.drawImage(v, dx, dy, dw, dh);
       g.filter = "none";
+    }
+  }
+  // transition at each cut: a quick dip through black or a white flash, 60 ms either side
+  if (s.transition) {
+    const d = distanceToCut(f.segs, f.out);
+    if (d < 0.06) {
+      g.save();
+      g.globalAlpha = (1 - d / 0.06) * (s.transition === "soft" ? 0.9 : 0.75);
+      g.fillStyle = s.transition === "soft" ? "#000" : "#FFF";
+      g.fillRect(0, 0, W, H);
+      g.restore();
     }
   }
   if (spec.bars && s.grade) {
