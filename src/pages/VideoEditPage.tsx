@@ -137,6 +137,7 @@ import {
 } from "@/lib/videoMedia";
 import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
+import { motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, sanitizeTrack } from "@/lib/faceFollow";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 
@@ -491,6 +492,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     return () => { live = false; };
   }, [musicBlob]);
   useEffect(() => () => void musicOut.current?.ctx.close(), []);
+  // sound effects on cards, zooms, cuts and stickers, made as the preview plays past them
+  const sfx = useRef(previewSfx());
+  useEffect(() => () => sfx.current.close(), []);
   useEffect(() => {
     if (!pictureKey) return setBackdropImg(undefined);
     let live = true;
@@ -607,6 +611,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       const out = outAt(plan.segs, v.currentTime, speed);
       syncVoice(out);
       syncMusic(out);
+      sfx.current.sync(motionOf(settings, plan.segs, plan.caps, plan.total).cues, out);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -618,6 +623,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       voiceEl.current?.pause();
       brollEls.current.forEach((el) => el.pause());
       musicOut.current?.track?.stop();
+      sfx.current.sync([], null);
     }
   }, [playing]);
 

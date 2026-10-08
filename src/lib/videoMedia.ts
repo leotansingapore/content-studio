@@ -51,7 +51,7 @@ import {
   peaksFrom,
   waveAt,
 } from "@/lib/videoEdit";
-import { drawMotion, hookTop, keyZoom, motionOf } from "@/lib/videoMotion";
+import { cueTicker, drawMotion, hookTop, keyZoom, motionOf, playCue } from "@/lib/videoMotion";
 
 // ---------- sound for captions ----------
 
@@ -1054,13 +1054,18 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const v = video;
     const speed = speedOf(settings);
     v.defaultPlaybackRate = v.playbackRate = speed; // pitch is kept (preservesPitch is on by default)
+    // sound effects, made as the edit plays past each one, straight into the recording (not through the voice's fades)
+    const cues = kind === "audio" ? [] : motionOf(settings, plan.segs, plan.caps, plan.total).cues;
+    const sfxTick = cueTicker();
     let done = 0;
     const endLen = settings.endCard && brand && kind !== "audio" ? END_CARD_SECONDS : 0;
     const draw = () => {
       const out = Math.min(plan.total, outAt(plan.segs, v.currentTime, speed) ?? done / speed);
       drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand, broll: syncBroll(brEls, settings.broll, out, rec.state === "recording"), fx, peaks });
-      if (rec.state === "recording") voSync(out);
-      else voStop();
+      if (rec.state === "recording") {
+        voSync(out);
+        for (const c of sfxTick(cues, out)) playCue(actx!, dest, c.kind);
+      } else voStop();
       if (job) {
         job.progress = Math.min(0.99, out / (plan.total + endLen));
         emit();

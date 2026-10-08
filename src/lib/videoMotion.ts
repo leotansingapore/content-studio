@@ -278,14 +278,54 @@ export function hookTop(s: EditSettings, W: number, H: number, vw: number, vh: n
   return face ? placeBlock(h, [face, capBand], [0.11]) ?? 0.11 : 0.11;
 }
 
+// ---------- sound effects, made in Web Audio (no files) ----------
+
+export type CueKind = "whoosh" | "pop";
+export interface Cue {
+  at: number;
+  kind: CueKind;
+}
+
+/** The joins between kept stretches, on the edited timeline. */
+export function cutTimes(segs: Segment[], speed = 1): number[] {
+  let acc = 0;
+  return segs.slice(0, -1).map((g) => (acc += g.end - g.start) / speed);
+}
+
+/** A whoosh as a card comes in, a zoom starts or (with a transition set) at a cut; a pop as a sticker shows. One at a time: a cue within 0.3 s of the last is dropped. */
+export function sfxCues(m: Pick<MotionPlan, "zooms" | "cards">, s: Pick<EditSettings, "transition" | "overlays">, segs: Segment[], speed = 1): Cue[] {
+  const all: Cue[] = [
+    ...m.zooms.map((z) => ({ at: z.at, kind: "whoosh" as const })),
+    ...m.cards.map((c) => ({ at: c.from, kind: "whoosh" as const })),
+    ...(s.transition ? cutTimes(segs, speed).map((at) => ({ at, kind: "whoosh" as const })) : []),
+    ...(s.overlays ?? []).map((o) => ({ at: o.from, kind: "pop" as const })),
+  ].sort((a, b) => a.at - b.at);
+  const out: Cue[] = [];
+  for (const c of all) if (!out.length || c.at - out[out.length - 1].at >= 0.3) out.push({ at: Math.round(c.at * 100) / 100, kind: c.kind });
+  return out;
+}
+
+/** Feeds the playhead in; hands back the cues it just passed. A jump (a seek, a restart) plays nothing. */
+export function cueTicker() {
+  let last: number | null = null;
+  return (cues: Cue[], out: number | null): Cue[] => {
+    const prev = last;
+    last = out;
+    if (out === null || prev === null || out <= prev || out - prev > 0.5) return [];
+    return cues.filter((c) => c.at > prev && c.at <= out);
+  };
+}
+
 export interface MotionPlan {
   /** The zooms on key lines; empty when that is off or nothing was picked (the old punch-in on cuts applies). */
   zooms: Beat[];
   /** Number cards, when they are on. */
   cards: Card[];
+  /** Sound effects, when they are on. */
+  cues: Cue[];
 }
 
-const EMPTY: MotionPlan = { zooms: [], cards: [] };
+const EMPTY: MotionPlan = { zooms: [], cards: [], cues: [] };
 let memo: { s: EditSettings; segs: Segment[]; caps: Caption[]; total: number; plan: MotionPlan } | null = null;
 
 /** Everything that moves on this edit, worked out once per edit (drawFrame asks every frame). */
@@ -294,10 +334,9 @@ export function motionOf(s: EditSettings, segs: Segment[], caps: Caption[], tota
   const lines = sanitizeMotion(s.motion)?.lines ?? [];
   const hookEnd = s.hook?.trim() ? s.hookSeconds : 0;
   const speed = typeof s.speed === "number" && s.speed >= 1 ? s.speed : 1;
-  const plan = !segs.length ? EMPTY : {
-    zooms: s.keyZooms && lines.length ? keyBeats(lines, segs, speed, total, hookEnd) : [],
-    cards: s.numberCards ? numberCards(caps.flatMap((c) => c.words), segs, speed, total, hookEnd) : [],
-  };
+  const zooms = s.keyZooms && lines.length ? keyBeats(lines, segs, speed, total, hookEnd) : [];
+  const cards = s.numberCards ? numberCards(caps.flatMap((c) => c.words), segs, speed, total, hookEnd) : [];
+  const plan = !segs.length ? EMPTY : { zooms, cards, cues: s.sfx ? sfxCues({ zooms, cards }, s, segs, speed) : [] };
   memo = { s, segs, caps, total, plan };
   return plan;
 }
@@ -387,4 +426,64 @@ export function drawMotion(
     g.fillText(c.fig.label, 0, ny + numPx * 0.55 + labPx * 0.8, W * 0.84);
   }
   g.restore();
+}
+
+// Peak gains, set from an export so each sound sits about 18 dB under a voice at the -14 LUFS the apps
+// play at: a whoosh alone peaks near -31 LUFS momentary, a pop (shorter, so it reads lower) near -33.
+export const SFX_GAIN = { whoosh: 0.2, pop: 0.14 };
+const noise = new WeakMap<BaseAudioContext, AudioBuffer>();
+
+/** One sound effect into `out` at `t0`: a filtered-noise whoosh sweeping up, or a short falling sine pop. */
+export function playCue(ctx: BaseAudioContext, out: AudioNode, kind: CueKind, t0 = ctx.currentTime) {
+  const g = new GainNode(ctx, { gain: 0 });
+  g.connect(out);
+  if (kind === "whoosh") {
+    let buf = noise.get(ctx);
+    if (!buf) {
+      buf = ctx.createBuffer(1, Math.round(ctx.sampleRate * 0.6), ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      noise.set(ctx, buf);
+    }
+    const src = new AudioBufferSourceNode(ctx, { buffer: buf });
+    const bp = new BiquadFilterNode(ctx, { type: "bandpass", Q: 0.8, frequency: 300 });
+    bp.frequency.setValueAtTime(300, t0);
+    bp.frequency.exponentialRampToValueAtTime(2800, t0 + 0.32);
+    bp.frequency.exponentialRampToValueAtTime(900, t0 + 0.55);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(SFX_GAIN.whoosh, t0 + 0.22);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
+    src.connect(bp).connect(g);
+    src.start(t0);
+    src.stop(t0 + 0.57);
+  } else {
+    const osc = new OscillatorNode(ctx, { type: "sine", frequency: 1200 });
+    osc.frequency.setValueAtTime(1200, t0);
+    osc.frequency.exponentialRampToValueAtTime(320, t0 + 0.08);
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(SFX_GAIN.pop, t0 + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
+    osc.connect(g);
+    osc.start(t0);
+    osc.stop(t0 + 0.14);
+  }
+}
+
+/** The preview's sound effects, on their own audio context made with the first one played. */
+export function previewSfx() {
+  const tick = cueTicker();
+  let ctx: AudioContext | null = null;
+  return {
+    sync(cues: Cue[], out: number | null) {
+      for (const c of tick(cues, out)) {
+        ctx ??= new AudioContext();
+        void ctx.resume().catch(() => {});
+        playCue(ctx, ctx.destination, c.kind);
+      }
+    },
+    close() {
+      void ctx?.close();
+      ctx = null;
+    },
+  };
 }

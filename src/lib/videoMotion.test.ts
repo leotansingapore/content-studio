@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultSettings, keepSegments, sentencesOf, type EditSettings, type Word } from "./videoEdit";
-import { KEY_ZOOM, ZOOM_GAP, cardText, faceBand, findFigures, fitBlock, hookTop, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
+import { KEY_ZOOM, ZOOM_GAP, cardText, cueTicker, cutTimes, faceBand, findFigures, fitBlock, hookTop, sfxCues, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
 
 const K = (s: number, e: number, p: number): KeyLine => ({ s, e, p });
 const one = [{ start: 0, end: 60 }];
@@ -179,5 +179,39 @@ describe("the hook card clear of the face", () => {
     const face = { x0: 0.3, y0: 0.3, x1: 0.7, y1: 0.5 };
     expect(hookTop(s({ faceBox: face }), 1080, 1920, 720, 1280, 0.1, null)).toBe(0.11);
     expect(hookTop(s({ faceBox: face, punchIn: true }), 1080, 1920, 720, 1280, 0.1, null)).not.toBe(0.11);
+  });
+});
+
+describe("sound effects", () => {
+  const fig = findFigures([{ w: "$500", s: 0, e: 0.4 }])[0];
+  const m = { zooms: [{ at: 10, p: 0.9 }], cards: [{ from: 4, land: 5, to: 7, fig }] };
+  const segs = [{ start: 0, end: 6 }, { start: 8, end: 20 }];
+  it("whooshes on cards and zooms, pops on stickers, and on cuts only with a transition set", () => {
+    const sticker = { id: "o1", kind: "text" as const, text: "Hi", x: 0.5, y: 0.3, size: 1, turn: 0, color: "#FFD92B", from: 12, to: 15 };
+    expect(sfxCues(m, { overlays: [sticker] }, segs)).toEqual([{ at: 4, kind: "whoosh" }, { at: 10, kind: "whoosh" }, { at: 12, kind: "pop" }]);
+    expect(sfxCues(m, { transition: "soft" }, segs).map((c) => c.at)).toEqual([4, 6, 10]);
+    expect(cutTimes(segs, 2)).toEqual([3]);
+  });
+  it("plays one sound at a time", () => {
+    expect(sfxCues({ zooms: [{ at: 4.1, p: 1 }], cards: m.cards }, {}, segs)).toEqual([{ at: 4, kind: "whoosh" }]);
+  });
+  it("plays the cues the playhead passes, never on a jump", () => {
+    const tick = cueTicker();
+    const cues = [{ at: 1, kind: "pop" as const }, { at: 5, kind: "whoosh" as const }];
+    expect(tick(cues, 0.9)).toEqual([]);
+    expect(tick(cues, 1.02)).toEqual([cues[0]]);
+    expect(tick(cues, 1.05)).toEqual([]);
+    expect(tick(cues, 6.0)).toEqual([]); // a seek past the whoosh plays nothing
+    expect(tick(cues, 4.8)).toEqual([]); // nor one back
+    expect(tick(cues, 5.01)).toEqual([cues[1]]);
+    expect(tick(cues, null)).toEqual([]);
+    expect(tick(cues, 0.95)).toEqual([]);
+  });
+  it("are made only with the toggle on", () => {
+    const words = [{ w: "only", s: 3.6, e: 4.0 }, { w: "$500.", s: 4.0, e: 4.6 }];
+    const base = { ...defaultSettings("bold"), numberCards: true };
+    const caps = [{ words, s: 3.6, e: 4.6 }];
+    expect(motionOf(base, [{ start: 0, end: 20 }], caps, 20).cues).toEqual([]);
+    expect(motionOf({ ...base, sfx: true }, [{ start: 0, end: 20 }], caps, 20).cues).toEqual([{ at: 3.6, kind: "whoosh" }]);
   });
 });

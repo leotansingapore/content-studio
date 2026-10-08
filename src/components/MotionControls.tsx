@@ -29,7 +29,8 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
   const [picking, setPicking] = useState(false);
   const left = useUsesLeft(picking)("motion-picks");
   const picked = !!sanitizeMotion(settings.motion)?.lines.length;
-  const zooms = motionOf(settings, segs, caps, total).zooms.length;
+  const plan = motionOf(settings, segs, caps, total);
+  const zooms = plan.zooms.length;
   const hookEnd = settings.hook?.trim() ? settings.hookSeconds : 0;
   const figures = numberCards(caps.flatMap((c) => c.words), segs, speed, total, hookEnd).length;
 
@@ -77,6 +78,9 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
       </Row>
       <Row label={figures ? `Number cards (${figures} found)` : "Number cards"}>
         <Toggle label="Number cards" on={!!settings.numberCards} set={(on) => apply({ numberCards: on })} />
+      </Row>
+      <Row label={settings.sfx && plan.cues.length ? `Sound effects (${plan.cues.length})` : "Sound effects"}>
+        <Toggle label="Sound effects" on={!!settings.sfx} set={(on) => apply({ sfx: on })} />
       </Row>
     </div>
   );
