@@ -81,11 +81,18 @@ select public.cs_test_assert(
   and has_function_privilege('authenticated', 'public.cs_delete_push_subscription(text)', 'execute'),
   '0.4 anon executes nothing; signed-in users may call the two functions');
 select public.cs_test_assert(
-  (select count(*) = 2 and bool_and(p.prosecdef and p.proconfig @> array['search_path=public, pg_temp'])
+  (select count(*) = 2 and bool_and(p.prosecdef and p.proconfig @> array['search_path=pg_catalog, public, pg_temp'])
    from pg_proc p
    where p.pronamespace = 'public'::regnamespace
      and p.proname in ('cs_save_push_subscription', 'cs_delete_push_subscription')),
-  '0.5 both functions are SECURITY DEFINER with search_path pinned');
+  '0.5 both device functions are SECURITY DEFINER with search_path pinned to pg_catalog first');
+select public.cs_test_assert(
+  (select not p.prosecdef and p.proconfig @> array['search_path=pg_catalog, public, pg_temp']
+   from pg_proc p where p.oid = 'public.cs_notify_claim(uuid, text[], interval)'::regprocedure)
+  and not has_function_privilege('anon', 'public.cs_notify_claim(uuid, text[], interval)', 'execute')
+  and not has_function_privilege('authenticated', 'public.cs_notify_claim(uuid, text[], interval)', 'execute')
+  and has_function_privilege('service_role', 'public.cs_notify_claim(uuid, text[], interval)', 'execute'),
+  '0.5b the claim function runs as its caller, search_path pinned, service role only');
 
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
@@ -291,29 +298,70 @@ select public.cs_test_assert(
 -- 6. The sent log claims once
 -- ---------------------------------------------------------------------------
 
-set local role service_role;
-with ins as (
-  insert into public.cs_notify_sent (user_id, item)
-  values ('7e57c0de-0000-4000-8000-0000000000d1', 'email:2026-10-05'),
-         ('7e57c0de-0000-4000-8000-0000000000d1', 'due:me:p1:2026-10-08T19:30')
-  on conflict do nothing returning item)
-select public.cs_test_assert(count(*) = 2, '6.1 the service role claims new items') from ins;
-with ins as (
-  insert into public.cs_notify_sent (user_id, item)
-  values ('7e57c0de-0000-4000-8000-0000000000d1', 'email:2026-10-05'),
-         ('7e57c0de-0000-4000-8000-0000000000d2', 'email:2026-10-05')
-  on conflict do nothing returning user_id)
-select public.cs_test_assert(
-  count(*) = 1 and bool_and(user_id = '7e57c0de-0000-4000-8000-0000000000d2'),
-  '6.2 a second claim of the same item returns nothing; another user''s is separate')
-from ins;
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000d1","role":"authenticated"}';
 select public.cs_test_expect_error(
-  $$insert into public.cs_notify_sent (user_id, item) values ('7e57c0de-0000-4000-8000-0000000000d1', repeat('x', 201))$$,
-  '%check constraint%', '6.3 an item over 200 characters is refused');
+  $$select public.cs_notify_claim('7e57c0de-0000-4000-8000-0000000000d1', array['email:2026-10-05'])$$,
+  '%permission denied%', '6.0 a signed-in user cannot claim');
+reset role;
+
+set local role service_role;
+select public.cs_test_assert(
+  (select array_agg(c order by c) = array['due:me:p1:2026-10-08T19:30', 'email:2026-10-05']
+   from public.cs_notify_claim('7e57c0de-0000-4000-8000-0000000000d1',
+     array['email:2026-10-05', 'due:me:p1:2026-10-08T19:30', 'email:2026-10-05']) c),
+  '6.1 new items are claimed once each, a repeated item in one call included');
+select public.cs_test_assert(
+  (select count(*) = 0 from public.cs_notify_claim('7e57c0de-0000-4000-8000-0000000000d1',
+     array['email:2026-10-05', 'due:me:p1:2026-10-08T19:30'])),
+  '6.2 a second claim returns nothing');
+select public.cs_test_assert(
+  (select array_agg(c) = array['email:2026-10-05']
+   from public.cs_notify_claim('7e57c0de-0000-4000-8000-0000000000d2', array['email:2026-10-05']) c),
+  '6.3 another user''s item is separate');
+select public.cs_test_assert(
+  (select bool_and(sent_at is null) from public.cs_notify_sent),
+  '6.4 a fresh claim is not marked sent');
+reset role;
+
+-- A run was killed between claim and send 31 minutes ago.
+update public.cs_notify_sent set claimed_at = now() - interval '31 minutes'
+where user_id = '7e57c0de-0000-4000-8000-0000000000d1';
+set local role service_role;
+select public.cs_test_assert(
+  (select count(*) = 0 from public.cs_notify_claim('7e57c0de-0000-4000-8000-0000000000d1',
+     array['due:me:p1:2026-10-08T19:30'])),
+  '6.5 a phone-alert claim is final, however old');
+select public.cs_test_assert(
+  (select array_agg(c) = array['email:2026-10-05']
+   from public.cs_notify_claim('7e57c0de-0000-4000-8000-0000000000d1', array['email:2026-10-05'], interval '30 minutes') c),
+  '6.6 an unsent email claim older than 30 minutes is taken again');
+select public.cs_test_assert(
+  (select count(*) = 0 from public.cs_notify_claim('7e57c0de-0000-4000-8000-0000000000d1',
+     array['email:2026-10-05'], interval '30 minutes')),
+  '6.7 and only once: the retake refreshed claimed_at');
+reset role;
+
+update public.cs_notify_sent set claimed_at = now() - interval '29 minutes'
+where user_id = '7e57c0de-0000-4000-8000-0000000000d2';
+set local role service_role;
+select public.cs_test_assert(
+  (select count(*) = 0 from public.cs_notify_claim('7e57c0de-0000-4000-8000-0000000000d2',
+     array['email:2026-10-05'], interval '30 minutes')),
+  '6.8 a claim 29 minutes old is still the other run''s');
+update public.cs_notify_sent set sent_at = now(), claimed_at = now() - interval '2 days'
+where user_id = '7e57c0de-0000-4000-8000-0000000000d2' and item = 'email:2026-10-05';
+select public.cs_test_assert(
+  (select count(*) = 0 from public.cs_notify_claim('7e57c0de-0000-4000-8000-0000000000d2',
+     array['email:2026-10-05'], interval '30 minutes')),
+  '6.9 a sent email is never taken again');
+select public.cs_test_expect_error(
+  format('select public.cs_notify_claim(%L, array[%L])', '7e57c0de-0000-4000-8000-0000000000d1', repeat('x', 201)),
+  '%check constraint%', '6.10 an item over 200 characters is refused');
 reset role;
 
 -- ---------------------------------------------------------------------------
--- 7. The hourly job
+-- 7. The jobs
 -- ---------------------------------------------------------------------------
 
 select public.cs_test_assert(
@@ -321,16 +369,22 @@ select public.cs_test_assert(
      and command like '%/functions/v1/notify''%'
      and command like '%x-notify-secret%'
      and command like '%name = ''cs_notify_cron_secret''%'
-     and command like '%delete from public.cs_notify_sent where sent_at < now() - interval ''90 days''%'),
-  '7.1 one hourly job posts with the Vault secret and prunes the log');
+     and command not like '%delete%'),
+  '7.1 one hourly job posts with the Vault secret and does nothing else');
+select public.cs_test_assert(
+  (select count(*) = 1 from cron.job where jobname = 'notify-sent-prune' and schedule = '41 3 * * *'
+     and command not like '%net.http_post%' and command not like '%vault%'),
+  '7.2 the prune is its own daily job, independent of the post and the secret');
 
--- Pruning keeps the last 90 days.
-update public.cs_notify_sent set sent_at = now() - interval '91 days' where item = 'due:me:p1:2026-10-08T19:30';
-delete from public.cs_notify_sent where sent_at < now() - interval '90 days';
+-- Run the prune job's own command: only rows claimed more than 90 days ago go.
+update public.cs_notify_sent set claimed_at = now() - interval '91 days' where item = 'due:me:p1:2026-10-08T19:30';
+update public.cs_notify_sent set claimed_at = now() - interval '89 days'
+where user_id = '7e57c0de-0000-4000-8000-0000000000d2';
+do $$ begin execute (select command from cron.job where jobname = 'notify-sent-prune'); end $$;
 select public.cs_test_assert(
   (select count(*) = 2 from public.cs_notify_sent)
   and not exists (select 1 from public.cs_notify_sent where item like 'due:%'),
-  '7.2 the prune drops only rows older than 90 days');
+  '7.3 the prune drops only rows claimed more than 90 days ago');
 
 -- ---------------------------------------------------------------------------
 -- 8. Deleting an account takes its rows with it

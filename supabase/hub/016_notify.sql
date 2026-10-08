@@ -28,9 +28,11 @@
 --   * At most 10 devices per account; saving an 11th drops the oldest.
 --   * cs_notify_sent is the sent log, service role only: one row per user
 --     and item (due:<profile>:<post>:<time>, goal:<day>, email:<monday>).
---     The function inserts the row BEFORE sending (insert ... on conflict do
---     nothing), so two overlapping runs cannot both send. Rows older than
---     90 days are pruned by the hourly job.
+--     The function claims the row BEFORE sending (cs_notify_claim), so two
+--     overlapping runs cannot both send, and stamps sent_at after. An email
+--     claim with no sent_at after 30 minutes may be taken again (the run that
+--     claimed it was killed before sending); a push claim never is, since an
+--     alert an hour late is noise. Rows older than 90 days are pruned daily.
 --   * Nobody can make the function email anyone but themselves: it reads the
 --     preference only from the key named after the row's own user_id and
 --     sends to that user's sign-in email.
@@ -42,11 +44,21 @@
 --   functions
 --     cs_save_push_subscription, cs_delete_push_subscription: revoked from
 --       public and anon, granted to authenticated.
+--     cs_notify_claim: revoked from public, anon and authenticated, granted
+--       to service_role only (SECURITY INVOKER; the service role owns the
+--       table access).
 --
 -- Cron: notify-hourly at minute 0 posts to the notify function with the
 -- shared secret read from Vault (cs_notify_cron_secret), which matches the
 -- function secret NOTIFY_CRON_SECRET. The secret is never stored in this
 -- file. Deploy the function and set both secrets before applying this.
+-- notify-sent-prune runs on its own daily, so a missing secret or a failed
+-- post can never roll the prune back.
+--
+-- Locks: the two foreign keys to auth.users take SHARE ROW EXCLUSIVE on
+-- auth.users for the length of this transaction; it is short, and
+-- lock_timeout gives up after 3 seconds rather than queue sign-ins behind it.
+-- Run it again later if it times out.
 --
 -- Idempotent: safe to run again. One transaction; gives up after 3 seconds
 -- waiting for a lock.
@@ -78,7 +90,9 @@ create index if not exists cs_push_subscriptions_user_idx
 create table if not exists public.cs_notify_sent (
   user_id uuid not null references auth.users(id) on delete cascade,
   item text not null check (char_length(item) between 1 and 200),
-  sent_at timestamptz not null default now(),
+  claimed_at timestamptz not null default now(),
+  -- Null until the send went through.
+  sent_at timestamptz,
   primary key (user_id, item)
 );
 
@@ -100,7 +114,7 @@ create or replace function public.cs_save_push_subscription(
   p_p256dh text,
   p_auth text
 ) returns boolean
-language plpgsql security definer set search_path = public, pg_temp as $$
+language plpgsql security definer set search_path = pg_catalog, public, pg_temp as $$
 declare
   c_device_limit constant int := 10;
   v_uid uuid := auth.uid();
@@ -141,7 +155,7 @@ end $$;
 
 -- Forgets one of the caller's devices. Returns whether there was one.
 create or replace function public.cs_delete_push_subscription(p_endpoint text) returns boolean
-language plpgsql security definer set search_path = public, pg_temp as $$
+language plpgsql security definer set search_path = pg_catalog, public, pg_temp as $$
 declare
   v_uid uuid := auth.uid();
   v_count int;
@@ -161,15 +175,41 @@ grant execute on function public.cs_save_push_subscription(text, text, text) to 
 grant execute on function public.cs_delete_push_subscription(text) to authenticated;
 
 -- ---------------------------------------------------------------------------
--- Hourly job
+-- Sent log (service_role only, called by the notify function)
 -- ---------------------------------------------------------------------------
 
-select cron.unschedule(jobid) from cron.job where jobname = 'notify-hourly';
+-- Claims the items not claimed yet and returns them; only the caller that gets
+-- an item back may send it. With p_retake_after, an item claimed longer ago
+-- than that and never marked sent is claimed again (emails); without it, a
+-- claim is final (phone alerts). The row lock of ON CONFLICT DO UPDATE makes
+-- a retake race-free: the second of two callers sees the fresh claimed_at.
+create or replace function public.cs_notify_claim(
+  p_user uuid,
+  p_items text[],
+  p_retake_after interval default null
+) returns setof text
+language sql set search_path = pg_catalog, public, pg_temp as $$
+  insert into public.cs_notify_sent as s (user_id, item)
+  select distinct p_user, i from unnest(p_items) i
+  on conflict (user_id, item) do update set claimed_at = now()
+    -- A null p_retake_after makes this null, so a claim without it is final.
+    where s.sent_at is null
+      and s.claimed_at < now() - p_retake_after
+  returning s.item
+$$;
+
+revoke all on function public.cs_notify_claim(uuid, text[], interval) from public, anon, authenticated;
+grant execute on function public.cs_notify_claim(uuid, text[], interval) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- Jobs
+-- ---------------------------------------------------------------------------
+
+select cron.unschedule(jobid) from cron.job where jobname in ('notify-hourly', 'notify-sent-prune');
 select cron.schedule(
   'notify-hourly',
   '0 * * * *',
   $$
-  delete from public.cs_notify_sent where sent_at < now() - interval '90 days';
   select net.http_post(
     url := 'https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/notify',
     headers := jsonb_build_object(
@@ -181,6 +221,11 @@ select cron.schedule(
     timeout_milliseconds := 10000
   );
   $$
+);
+select cron.schedule(
+  'notify-sent-prune',
+  '41 3 * * *',
+  $$ delete from public.cs_notify_sent where claimed_at < now() - interval '90 days' $$
 );
 
 commit;

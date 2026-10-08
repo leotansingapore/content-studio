@@ -1,7 +1,7 @@
 #!/bin/bash
 # Concurrency checks for 016: the 10-device cap holds when saves arrive in
-# parallel, and a sent-log item is claimed by exactly one of many parallel
-# runs (so an alert or email cannot go out twice).
+# parallel, and a sent-log item is claimed, or an abandoned email claim taken
+# again, by exactly one of many parallel runs (so nothing goes out twice).
 #
 # THROWAWAY DATABASES ONLY. It commits rows and needs superuser to seed. Run it
 # on a fresh local cluster with 016 applied:
@@ -37,12 +37,18 @@ check "1 device cap holds under parallel saves" 10 \
   "$(q "select count(*) from public.cs_push_subscriptions where user_id = '$A';")"
 
 # 2. 20 parallel claims of one item: one row, and exactly one claimer got it back.
-CLAIMS=$(seq 20 | xargs -P 20 -I{} "${P[@]}" -qtA -c "set role service_role;
-  insert into public.cs_notify_sent (user_id, item) values ('$A', 'email:conc')
-  on conflict do nothing returning item;" 2>/dev/null | grep -c '^email:conc$')
-check "2 one parallel claimer wins the item" 1 "$CLAIMS"
+claimers() { # sql -> how many parallel callers got 'email:conc' back
+  seq 20 | xargs -P 20 -I{} "${P[@]}" -qtA -c "set role service_role; $1" 2>/dev/null | grep -c '^email:conc$'
+}
+check "2 one parallel claimer wins the item" 1 \
+  "$(claimers "select public.cs_notify_claim('$A', array['email:conc'], interval '30 minutes');")"
 check "2b the item is stored once" 1 \
   "$(q "select count(*) from public.cs_notify_sent where user_id = '$A' and item = 'email:conc';")"
+
+# 3. The run that claimed it died 31 minutes ago: 20 parallel runs retake it, one wins.
+q "update public.cs_notify_sent set claimed_at = now() - interval '31 minutes' where user_id = '$A';" >/dev/null
+check "3 one parallel run retakes an abandoned email claim" 1 \
+  "$(claimers "select public.cs_notify_claim('$A', array['email:conc'], interval '30 minutes');")"
 
 q "delete from auth.users where id = '$A';" >/dev/null
 [ "$fails" -eq 0 ] && echo "concurrency checks: all passed" || { echo "concurrency checks: $fails failed"; exit 1; }
