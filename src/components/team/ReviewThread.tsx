@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { AtSign, Loader2, MessageSquare, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -65,30 +65,31 @@ export default function ReviewThread({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
+  // Loads once, the first time the thread is opened. Results are applied even
+  // if the parent re-renders meanwhile (React drops updates after unmount).
+  const loaded = useRef(false);
+  const seenCallback = useRef(onSeen);
+  seenCallback.current = onSeen;
   useEffect(() => {
-    if (!open || status !== "idle") return;
-    let active = true;
+    if (!open || loaded.current) return;
+    loaded.current = true;
     setStatus("loading");
     fetchThread(sub.id)
       .then(async (t) => {
-        if (!active) return;
         setComments(t.comments);
         setMentions(t.mentions);
         setStatus("ready");
         if (t.mentions.some((m) => m.user_id === userId && !m.seen_at)) {
           await markMentionsSeen(sub.id).catch(() => 0);
-          onSeen?.(sub.id);
+          seenCallback.current?.(sub.id);
         }
       })
       .catch((e) => {
-        if (!active) return;
+        loaded.current = false;
         setError(friendlyError(e));
         setStatus("error");
       });
-    return () => {
-      active = false;
-    };
-  }, [open, status, sub.id, userId, onSeen]);
+  }, [open, sub.id, userId]);
 
   const mentioned = useMemo(() => new Set(mentions.map((m) => m.user_id)), [mentions]);
   const candidates = useMemo(() => mentionCandidates(roster, userId, sub, mentioned), [roster, userId, sub, mentioned]);
