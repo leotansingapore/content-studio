@@ -445,13 +445,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
     void audio.current.ctx.resume().catch(() => {});
   }, [polish, level, file]);
-  // even out loudness: measured from this video's sound whenever it is on and the last measurement no longer fits
+  // even out loudness: measured from the sound this edit keeps whenever it is on and the last measurement no longer fits
   const [measuring, setMeasuring] = useState<"" | "busy" | "none">("");
+  const keptRef = useRef<{ from: number; dur: number }[]>([]);
   useEffect(() => {
     if (!settings.loudness || !file || levelFits(settings.level, polish)) return;
     let live = true;
     setMeasuring("busy");
-    measureLevel(file, polish)
+    measureLevel(file, polish, { parts: keptRef.current, duration })
       .then((l) => {
         if (!live) return;
         setMeasuring(l ? "" : "none");
@@ -559,6 +560,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   const duration = project.duration;
   const plan = useMemo(() => planFor(words, duration, settings), [words, duration, settings]);
+  keptRef.current = plan.segs.map((g) => ({ from: g.start, dur: g.end - g.start }));
   const speed = speedOf(settings);
   const duck = useMemo(() => duckSpans(words, plan.segs, settings), [words, plan, settings]);
   useEffect(() => {
@@ -1787,7 +1789,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </Row>
               {settings.loudness && (
                 <p className="text-xs text-muted-foreground" aria-live="polite">
-                  {measuring === "busy" ? "Measuring the sound..." : measuring === "none" ? "No sound to measure in this video." : level ? `${Math.round(level.before)} LUFS -> ${Math.round(level.after)} LUFS, peak ${level.peak.toFixed(1)} dB` : ""}
+                  {measuring === "busy" ? "Measuring the sound..." : measuring === "none" ? "Couldn't measure the sound in this video." : level ? `${Math.round(level.before)} LUFS -> ${Math.round(level.after)} LUFS, peak ${level.peak.toFixed(1)} dB` : ""}
                 </p>
               )}
               {cuts.length > 0 && (

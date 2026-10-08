@@ -52,6 +52,7 @@ import {
   waveAt,
 } from "@/lib/videoEdit";
 import { cueTicker, drawMotion, dropGain, hookTop, keyZoom, motionOf, playCue } from "@/lib/videoMotion";
+import { joinKept, sampleKept, wholeFits, type KeptPart } from "@/lib/keptSound";
 
 // ---------- sound for captions ----------
 
@@ -324,23 +325,19 @@ export function wireVoice(ctx: BaseAudioContext, input: AudioNode, output: Audio
 }
 
 /**
- * Measures the video's sound as the edit plays it (voice polish as set), then
- * finds the lift that brings it to -14 LUFS through the limiter, rendering it
- * offline to check (two or three quick passes), and a trim that keeps the true
- * peak under -1 dB. Null when the video has no sound.
+ * Measures the sound the edit keeps (keep.parts, source seconds) as the edit
+ * plays it (voice polish as set), then finds the lift that brings it to -14 LUFS
+ * through the limiter, rendering it offline to check (two or three quick passes),
+ * and a trim that keeps the true peak under -1 dB. Null when the video has no
+ * sound, or runs over 15 minutes and its sound can't be read in parts.
  */
-export async function measureLevel(file: Blob, polish: boolean): Promise<Level | null> {
+export async function measureLevel(file: Blob, polish: boolean, keep: { parts: KeptPart[]; duration?: number; pieces?: { buf: AudioBuffer; start: number }[] }): Promise<Level | null> {
   const rate = 48000;
-  let buf: AudioBuffer;
-  try {
-    buf = await new OfflineAudioContext(1, 1, rate).decodeAudioData(await file.arrayBuffer());
-  } catch {
-    return null; // no sound track the browser can read
-  }
-  // ponytail: the whole file at 48 kHz in memory, as extractWav does; a 12 minute video is about 280 MB a pass
+  const buf = await keptSound(file, keep);
+  if (!buf) return null;
   const render = async (lvl: Level | null) => {
     // stereo, as the export records it: a mono phone recording plays in both channels and the apps count both
-    const ctx = new OfflineAudioContext(2, buf.length, rate);
+    const ctx = new OfflineAudioContext(2, Math.max(1, Math.ceil(buf.duration * rate)), rate);
     const src = new AudioBufferSourceNode(ctx, { buffer: buf });
     wireVoice(ctx, src, ctx.destination, polish, lvl);
     src.start();
@@ -365,6 +362,34 @@ export async function measureLevel(file: Blob, polish: boolean): Promise<Level |
   level.after += level.trim;
   level.peak += level.trim;
   return level;
+}
+
+/**
+ * The sound the edit keeps (keptSound.ts), back to back: decoded part by part from an
+ * MP4 or MOV (fastExport's decoder, or the pieces it already has), else the whole
+ * file when it runs up to 15 minutes; null for a longer one, so it is never decoded whole.
+ */
+async function keptSound(file: Blob, keep: { parts: KeptPart[]; duration?: number; pieces?: { buf: AudioBuffer; start: number }[] }): Promise<AudioBuffer | null> {
+  const parts = sampleKept(keep.parts);
+  let pieces = keep.pieces ? parts.map((w) => keep.pieces![w.part]) : null;
+  if (!pieces && parts.length) {
+    const { decodeParts } = await import("@/lib/fastExport");
+    pieces = await decodeParts(file, parts.map((w) => ({ at: 0, from: w.from, dur: w.dur }))).catch(() => null);
+  }
+  if (!pieces) {
+    if (!wholeFits(keep.duration)) return null;
+    try {
+      const whole = await new OfflineAudioContext(1, 1, 48000).decodeAudioData(await file.arrayBuffer());
+      pieces = parts.map(() => ({ buf: whole, start: 0 }));
+    } catch {
+      return null; // no sound track the browser can read
+    }
+  }
+  const ch = joinKept(pieces.map((p) => ({ start: p.start, rate: p.buf.sampleRate, channels: Array.from({ length: p.buf.numberOfChannels }, (_, c) => p.buf.getChannelData(c)) })), parts);
+  if (!ch) return null;
+  const buf = new AudioBuffer({ length: ch[0].length, sampleRate: pieces[0].buf.sampleRate, numberOfChannels: ch.length });
+  ch.forEach((d, c) => buf.copyToChannel(d, c));
+  return buf;
 }
 
 // ---------- brand kit on video ----------
@@ -1080,7 +1105,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     actx = new AudioContext();
     await actx.resume(); // allowed once the person has clicked on the page (Export was a click)
     const polish = !!settings.voicePolish;
-    const level = settings.loudness ? (levelFits(settings.level, polish) ? settings.level : await measureLevel(file, polish)) : null;
+    const level = settings.loudness ? (levelFits(settings.level, polish) ? settings.level : await measureLevel(file, polish, { parts: plan.segs.map((g) => ({ from: g.start, dur: g.end - g.start })), duration: video.duration })) : null;
     const dest = actx.createMediaStreamDestination();
     // recorded, never played out loud; the gain ramps in and out at every cut so joins don't click
     const gain = actx.createGain();

@@ -214,7 +214,7 @@ type Piece = { buf: AudioBuffer; start: number };
 const WHOLE_SECONDS = 15 * 60;
 
 /** The sound under each kept part, decoded from the file's AAC packets for that part only. Null when it can't be read that way. */
-async function decodeParts(file: Blob, parts: Part[]): Promise<Piece[] | null> {
+export async function decodeParts(file: Blob, parts: Part[]): Promise<Piece[] | null> {
   if (typeof AudioDecoder === "undefined" || typeof EncodedAudioChunk === "undefined") return null;
   const track = await demuxAudio(file);
   if (!track) return null;
@@ -284,7 +284,7 @@ async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds:
   const s = a.settings;
   const ctx = new OfflineAudioContext(2, Math.max(1, Math.ceil(seconds * RATE)), RATE);
   const polish = !!s.voicePolish;
-  const level = s.loudness ? (levelFits(s.level, polish) ? s.level : await measureLevel(a.file, polish)) : null;
+  const level = s.loudness && pieces ? (levelFits(s.level, polish) ? s.level : await measureLevel(a.file, polish, { parts, pieces })) : null;
   if (pieces) {
     const bus = new GainNode(ctx);
     const env = new GainNode(ctx, { gain: 0 });
