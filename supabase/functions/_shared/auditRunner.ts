@@ -87,13 +87,14 @@ export async function scrapeAccount(
   platform: AuditPlatform,
   handle: string,
   token: string,
+  limit = POSTS_TO_READ,
 ): Promise<{ profile: AuditProfile; posts: SocialPost[] }> {
   if (platform === "instagram") {
     const [profiles, items] = await Promise.all([
       apifyItems(IG_PROFILE_ACTOR, { usernames: [handle] }, token),
       apifyItems(
         IG_POSTS_ACTOR,
-        { username: [handle], resultsLimit: POSTS_TO_READ, dataDetailLevel: "detailedData" },
+        { username: [handle], resultsLimit: limit, dataDetailLevel: "detailedData" },
         token,
       ),
     ]);
@@ -114,7 +115,7 @@ export async function scrapeAccount(
   const items = (
     await apifyItems(
       TIKTOK_ACTOR,
-      { profiles: [handle], resultsPerPage: POSTS_TO_READ, profileSorting: "latest", excludePinnedPosts: false },
+      { profiles: [handle], resultsPerPage: limit, profileSorting: "latest", excludePinnedPosts: false },
       token,
     )
   ).filter((i) => !i.error);

@@ -21,6 +21,7 @@ import {
   Sparkles,
   Target,
   TrendingUp,
+  UserCheck,
   UserPlus,
   Users,
   type LucideIcon,
@@ -127,6 +128,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/clone", label: "Clone a reel", icon: Clapperboard },
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
       { to: "/profiles", label: "Creators", icon: Users },
+      { to: "/following", label: "Following", icon: UserCheck },
     ],
   },
   {
