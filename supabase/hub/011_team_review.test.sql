@@ -342,8 +342,8 @@ select public.cs_test_expect_error(
   format('select public.cs_review_submission(%L, %L, %L)', current_setting('cs_test.sub_1'), 'changes_requested', '   '),
   '%Add a comment%', '8.3 requesting changes needs a comment');
 select public.cs_test_expect_error(
-  format('select public.cs_review_submission(%L, %L)', current_setting('cs_test.sub_1'), 'rejected'),
-  '%approve or request changes%', '8.4 unknown decision rejected');
+  format('select public.cs_review_submission(%L, %L)', current_setting('cs_test.sub_1'), 'binned'),
+  '%Choose approve%', '8.4 unknown decision rejected');
 select public.cs_test_expect_error(
   format('update public.cs_review_submissions set status = %L where id = %L', 'approved', current_setting('cs_test.sub_1')),
   '%permission denied%', '8.5 leader cannot approve through the table');
