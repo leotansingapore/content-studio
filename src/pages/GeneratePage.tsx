@@ -1820,7 +1820,8 @@ export default function GeneratePage() {
             type="button"
             onClick={() => setShowShortcuts(true)}
             title="Keyboard shortcuts"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/70 text-muted-foreground hover:border-primary/40 hover:text-primary"
+            aria-label="Keyboard shortcuts"
+            className="hidden h-8 w-8 items-center justify-center rounded-lg border border-border/70 text-muted-foreground hover:border-primary/40 hover:text-primary sm:inline-flex"
           >
             <Keyboard className="h-3.5 w-3.5" />
           </button>
@@ -2352,7 +2353,7 @@ export default function GeneratePage() {
 
       {showShortcuts && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 !mt-0 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
           onClick={() => setShowShortcuts(false)}
           role="dialog"
           aria-modal="true"
