@@ -78,6 +78,8 @@ export interface EditSettings {
   loudness?: boolean;
   /** The measurement behind it, taken in the browser from this video's sound. */
   level?: Level;
+  /** Background music from the user's own file, under the voice. */
+  music?: Music;
   /** Stickers placed on this video: text callouts, arrows, circles, underlines. */
   overlays?: Overlay[];
   /** Stretches cut by hand from the transcript, on the source timeline. */
@@ -1100,4 +1102,57 @@ export function sanitizeBroll(raw: unknown): Broll[] {
       url: link(r.url, /^https:\/\/(www\.)?pexels\.com\//),
     }];
   });
+}
+
+// ---------- background music ----------
+
+/** A track from the user's own file: its file on this device, its name, and its volume (0 to 1) when no one is talking. */
+export interface Music {
+  key: string;
+  name: string;
+  level: number;
+}
+
+export const MUSIC_LEVEL = 0.35;
+/** Under speech the music drops to a quarter of its level, about 12 dB. */
+export const MUSIC_DUCK = 0.25;
+
+/** When someone is talking, on the edited timeline: the words still in the edit, joined across gaps under 0.8 s. */
+export function speechSpans(words: Word[], segs: Segment[], speed = 1): { s: number; e: number }[] {
+  const out: { s: number; e: number }[] = [];
+  for (const w of words) {
+    const s = outAt(segs, w.s, speed);
+    if (s === null) continue;
+    const e = s + (w.e - w.s) / speed;
+    const last = out[out.length - 1];
+    if (last && s - last.e < 0.8) last.e = Math.max(last.e, e);
+    else out.push({ s, e });
+  }
+  return out;
+}
+
+/** Everywhere the music drops: what is said on camera, plus the voiceover, in time order. */
+export function duckSpans(words: Word[], segs: Segment[], s: Pick<EditSettings, "speed" | "voiceover">): { s: number; e: number }[] {
+  const spans = speechSpans(words, segs, speedOf(s));
+  if (s.voiceover) spans.push({ s: s.voiceover.start, e: s.voiceover.start + s.voiceover.length });
+  return spans.sort((a, b) => a.s - b.s);
+}
+
+/** The music's volume at this point of the edit: its level, dropping to a quarter over 0.15 s before
+ * someone talks and coming back over 0.5 s after, faded out over the last second before `end`. */
+export function musicGainAt(spans: { s: number; e: number }[], out: number, level: number, end: number): number {
+  let duck = 1;
+  for (const sp of spans) {
+    if (out < sp.s - 0.15) break;
+    duck = Math.min(duck, out < sp.s ? (sp.s - out) / 0.15 : out <= sp.e ? 0 : Math.min(1, (out - sp.e) / 0.5));
+  }
+  return level * (MUSIC_DUCK + (1 - MUSIC_DUCK) * duck) * Math.min(1, Math.max(0, end - out));
+}
+
+/** A stored track, kept only when well formed. */
+export function sanitizeMusic(raw: unknown): Music | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.key !== "string" || !/^mu-[a-z0-9-]{4,60}$/i.test(r.key)) return undefined;
+  return { key: r.key, name: typeof r.name === "string" ? r.name.slice(0, 80) : "Music", level: clamp(r.level, 0, 1, MUSIC_LEVEL) };
 }

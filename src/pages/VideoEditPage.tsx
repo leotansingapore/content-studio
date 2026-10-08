@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Check, ChevronDown, ChevronUp, Download, Mic, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Download, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
@@ -43,6 +43,10 @@ import {
   findPhrase,
   levelFits,
   sanitizeLevel,
+  duckSpans,
+  musicGainAt,
+  sanitizeMusic,
+  MUSIC_LEVEL,
   sanitizeVoiceover,
   voiceAt,
   MAX_BROLL,
@@ -83,6 +87,8 @@ import {
   type StyleId,
 } from "@/lib/videoEdit";
 import {
+  bufferTrack,
+  decodeSound,
   drawEndCard,
   drawFrame,
   ensureCaptionFonts,
@@ -271,6 +277,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     voiceover: sanitizeVoiceover(project.settings.voiceover),
     level: sanitizeLevel(project.settings.level),
     broll: sanitizeBroll(project.settings.broll),
+    music: sanitizeMusic(project.settings.music),
   }));
   // Words tab: fix spelling, or cut a stretch by tapping its first and last word
   const [wordMode, setWordMode] = useState<"fix" | "cut">("fix");
@@ -387,6 +394,25 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const brollUrlsRef = useRef(brollUrls);
   brollUrlsRef.current = brollUrls;
   useEffect(() => () => Object.values(brollUrlsRef.current).forEach((u) => u && URL.revokeObjectURL(u)), []);
+  // background music: the track on this device, decoded once, played through its own audio context (made on the first Play)
+  const musicKey = settings.music?.key;
+  const [musicBlob, setMusicBlob] = useState<Blob | null | undefined>(undefined);
+  const [musicBusy, setMusicBusy] = useState(false);
+  const musicInput = useRef<HTMLInputElement>(null);
+  const musicBuf = useRef<AudioBuffer | null>(null);
+  const musicOut = useRef<{ ctx: AudioContext; gain: GainNode; buf?: AudioBuffer; track?: ReturnType<typeof bufferTrack> } | null>(null);
+  useEffect(() => {
+    if (!musicKey) return setMusicBlob(undefined);
+    getFile(musicKey).then((b) => setMusicBlob(b ?? null)).catch(() => setMusicBlob(null));
+  }, [musicKey]);
+  useEffect(() => {
+    musicBuf.current = null;
+    if (!musicBlob) return;
+    let live = true;
+    void decodeSound(musicBlob).then((b) => { if (live) musicBuf.current = b; });
+    return () => { live = false; };
+  }, [musicBlob]);
+  useEffect(() => () => void musicOut.current?.ctx.close(), []);
 
   // save the edit a moment after the last change
   useEffect(() => {
@@ -398,6 +424,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const duration = project.duration;
   const plan = useMemo(() => planFor(words, duration, settings), [words, duration, settings]);
   const speed = speedOf(settings);
+  const duck = useMemo(() => duckSpans(words, plan.segs, settings), [words, plan, settings]);
   useEffect(() => {
     const v = video.current;
     if (v) v.defaultPlaybackRate = v.playbackRate = speed; // pitch is kept; the default survives a reload
@@ -451,6 +478,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       if (t >= total - plan.total) { setPlaying(false); return; }
       endAt.current = t;
       paint();
+      syncMusic(plan.total + t);
       raf = requestAnimationFrame(endLoop);
     };
     const loop = () => {
@@ -466,7 +494,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         v.currentTime = next.start;
       }
       paint();
-      syncVoice(outAt(plan.segs, v.currentTime, speed));
+      const out = outAt(plan.segs, v.currentTime, speed);
+      syncVoice(out);
+      syncMusic(out);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -477,6 +507,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     if (!playing) {
       voiceEl.current?.pause();
       brollEls.current.forEach((el) => el.pause());
+      musicOut.current?.track?.stop();
     }
   }, [playing]);
 
@@ -493,6 +524,37 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     el.volume = Math.min(1, settings.voiceover?.gain ?? 1);
     if (Math.abs(el.currentTime - rel) > 0.15) el.currentTime = rel;
     if (el.paused) void el.play().catch(() => {});
+  };
+
+  // the music follows the edit's clock, so a cut never restarts it; it drops while someone talks
+  const syncMusic = (out: number | null) => {
+    const o = musicOut.current;
+    if (!o) return;
+    const buf = settings.music && !recording ? musicBuf.current : null;
+    if ((o.buf ?? null) !== buf) {
+      o.track?.stop();
+      o.buf = buf ?? undefined;
+      o.track = buf ? bufferTrack(o.ctx, buf, o.gain, true, 0.5) : undefined;
+    }
+    if (!o.track || out === null) return;
+    o.track.sync(out);
+    o.gain.gain.setTargetAtTime(musicGainAt(duck, out, settings.music!.level, total), o.ctx.currentTime, 0.03);
+  };
+
+  const addMusic = async (f: File) => {
+    if (f.size > 20 * 1024 * 1024) return toast({ title: "That track is over 20 MB", variant: "destructive" });
+    setMusicBusy(true);
+    try {
+      if (!(await decodeSound(f))) return toast({ title: "Couldn't read that sound file", description: "Try an MP3, M4A or WAV.", variant: "destructive" });
+      const key = `mu-${project.id}-${Date.now().toString(36)}`;
+      await putFile(key, f);
+      // the previous track's file stays, so Undo can bring it back (ponytail: tracks accumulate per video, like voiceover takes)
+      change({ ...settings, music: { key, name: f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Music", level: settings.music?.level ?? MUSIC_LEVEL } });
+    } catch (e) {
+      toast({ title: "Couldn't keep the track", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setMusicBusy(false);
+    }
   };
 
   const startVoice = async () => {
@@ -578,6 +640,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     if (recording) return stopVoice();
     if (playing) { v.pause(); voiceEl.current?.pause(); setPlaying(false); return; }
     void audio.current?.ctx.resume().catch(() => {});
+    if (settings.music && !musicOut.current) {
+      const ctx = new AudioContext();
+      const gain = new GainNode(ctx, { gain: 0 });
+      gain.connect(ctx.destination);
+      musicOut.current = { ctx, gain };
+    }
+    void musicOut.current?.ctx.resume().catch(() => {});
     if (outT >= total - 0.1) seekOut(0);
     else seekOut(outT);
     await v.play().catch(() => {});
@@ -800,7 +869,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       const f = await getFile(b.key).catch(() => undefined);
       if (f) brollFiles[b.key] = f;
     }
-    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art, settings.voiceover ? voiceBlob : null, brollFiles).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
+    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art, settings.voiceover ? voiceBlob : null, brollFiles, settings.music ? musicBlob : null).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
   };
 
   // the exported file read back for what would spoil the post; one check per export, null while it runs
@@ -808,7 +877,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   useEffect(() => {
     if (job?.state !== "done" || !job.url || job.name !== project.name || fileCheck?.id === job.id) return;
     const id = job.id;
-    const want = { seconds: job.seconds ?? total, kind: job.kind ?? "video", captions: settings.captions, hasWords: words.length > 0, sound: (settings.volume ?? 1) > 0 || !!settings.voiceover };
+    const want = { seconds: job.seconds ?? total, kind: job.kind ?? "video", captions: settings.captions, hasWords: words.length > 0, sound: (settings.volume ?? 1) > 0 || !!settings.voiceover || !!settings.music };
     setFileCheck({ id, issues: null, read: false });
     void measureExport(job.url).then((m) => setFileCheck({ id, issues: exportIssues(m ?? { seconds: null, level: null, gap: null }, want), read: !!m }));
   }, [job]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -1325,6 +1394,29 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       <input type="range" min={0} max={1.5} step={0.05} value={settings.voiceover.gain ?? 1} aria-label="Voiceover volume"
                         onChange={(e) => patch({ voiceover: { ...settings.voiceover!, gain: Number(e.target.value) } })} className="w-32 accent-primary" />
                       <Button size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground" onClick={removeVoice}>Remove</Button>
+                    </Row>
+                  </>
+                )}
+              </div>
+              <div className="space-y-2 rounded-lg border border-border/60 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="mr-auto text-sm font-medium">Background music
+                    <InfoTip label="About background music">Your own track, looped. It drops while you talk.</InfoTip></span>
+                  <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => musicInput.current?.click()} disabled={musicBusy}>
+                    <MusicIcon className="h-3.5 w-3.5" /> {musicBusy ? "Reading..." : settings.music ? "Change track" : "Add a track"}
+                  </Button>
+                  <input ref={musicInput} type="file" accept="audio/*" className="sr-only" tabIndex={-1} aria-hidden
+                    onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void addMusic(f); }} />
+                </div>
+                {settings.music && (
+                  <>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {settings.music.name}{musicBlob === null ? ". The track is on the device you added it on." : ""}
+                    </p>
+                    <Row label={`Music ${Math.round(settings.music.level * 100)}%`}>
+                      <input type="range" min={0} max={1} step={0.05} value={settings.music.level} aria-label="Music volume"
+                        onChange={(e) => patch({ music: { ...settings.music!, level: Number(e.target.value) } })} className="h-11 w-32 accent-primary sm:h-auto" />
+                      <Button size="sm" variant="ghost" className="h-11 text-xs text-muted-foreground sm:h-8" onClick={() => patch({ music: undefined })}>Remove</Button>
                     </Row>
                   </>
                 )}

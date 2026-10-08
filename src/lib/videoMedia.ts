@@ -24,6 +24,8 @@ import {
   integratedLoudness,
   isNumberWord,
   levelFits,
+  musicGainAt,
+  duckSpans,
   nextGain,
   PEAK_CEILING,
   truePeak,
@@ -764,6 +766,43 @@ export function planFor(words: Word[], duration: number, s: EditSettings) {
   return { segs, caps: buildCaptions(words, s), total: totalLength(segs) / speedOf(s) };
 }
 
+/**
+ * A sound from a buffer played along the edited timeline: sync(t) starts it at
+ * t seconds in (wrapped round when it loops) and restarts it only when it has
+ * drifted more than `slack` seconds, so a cut, a stall or a seek never leaves it out of step; sync(null) stops it.
+ */
+export function bufferTrack(ctx: BaseAudioContext, buf: AudioBuffer, out: AudioNode, loop = false, slack = 0.08) {
+  let cur: { node: AudioBufferSourceNode; at: number; t0: number } | null = null;
+  const stop = () => {
+    cur?.node.stop();
+    cur = null;
+  };
+  const sync = (t: number | null) => {
+    if (t === null || (!loop && t >= buf.duration)) return stop();
+    const pos = loop ? t % buf.duration : t;
+    if (cur) {
+      const d = buf.duration;
+      const drift = cur.at + (ctx.currentTime - cur.t0) - pos;
+      if (Math.abs(loop ? ((((drift % d) + d * 1.5) % d) - d / 2) : drift) < slack) return;
+    }
+    stop();
+    const node = new AudioBufferSourceNode(ctx, { buffer: buf, loop });
+    node.connect(out);
+    node.start(0, pos);
+    cur = { node, at: pos, t0: ctx.currentTime };
+  };
+  return { sync, stop };
+}
+
+/** A sound file decoded for playing in any audio context; null when the browser can't read it. */
+export async function decodeSound(file: Blob): Promise<AudioBuffer | null> {
+  try {
+    return await new OfflineAudioContext(2, 1, 48000).decodeAudioData(await file.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
 // ---------- export, kept outside React so it survives moving between pages ----------
 
 export interface ExportJob {
@@ -814,7 +853,7 @@ export async function measureExport(url: string): Promise<ReturnType<typeof soun
 }
 
 /** Renders the edit in real time (a 45 s reel takes about 45 s) and downloads it. */
-export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null, voice?: Blob | null, brollFiles?: Record<string, Blob>) {
+export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null, voice?: Blob | null, brollFiles?: Record<string, Blob>, music?: Blob | null) {
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
   const kind = settings.exportAs ?? "video";
@@ -855,27 +894,29 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
 
     // the voiceover: decoded once, restarted at the right point whenever the recorder
     // resumes (after a cut or a stall) so it never drifts from the picture
-    const vo = settings.voiceover && voice ? { set: settings.voiceover, buf: await actx.decodeAudioData(await voice.arrayBuffer()), gain: actx.createGain() } : null;
-    let voSrc: { node: AudioBufferSourceNode; at: number; ctx: number } | null = null;
+    const vo = settings.voiceover && voice ? { set: settings.voiceover, gain: actx.createGain(), buf: await actx.decodeAudioData(await voice.arrayBuffer()) } : null;
+    const voTrack = vo && bufferTrack(actx, vo.buf, vo.gain);
     if (vo) {
       vo.gain.gain.value = vo.set.gain ?? 1;
       vo.gain.connect(dest);
     }
+    // background music: looped along the edit, under the voice while someone talks, on through the end card
+    const muBuf = settings.music && music ? await decodeSound(music) : null;
+    const mu = settings.music && muBuf ? { set: settings.music, gain: new GainNode(actx, { gain: 0 }), spans: duckSpans(words, plan.segs, settings) } : null;
+    const muTrack = mu && muBuf && bufferTrack(actx, muBuf, mu.gain, true);
+    mu?.gain.connect(dest);
+    const fullEnd = plan.total + (settings.endCard && brand && kind !== "audio" ? END_CARD_SECONDS : 0);
+    // voSync and voStop drive both the voiceover and the music
     const voStop = () => {
-      voSrc?.node.stop();
-      voSrc = null;
+      voTrack?.stop();
+      muTrack?.stop();
     };
     const voSync = (out: number) => {
-      if (!vo || !actx) return;
-      const rel = voiceAt(vo.set, out);
-      if (rel === null || rel >= vo.buf.duration) return voStop();
-      if (voSrc && Math.abs(voSrc.at + (actx.currentTime - voSrc.ctx) - rel) < 0.08) return;
-      voStop();
-      const node = actx.createBufferSource();
-      node.buffer = vo.buf;
-      node.connect(vo.gain);
-      node.start(0, rel);
-      voSrc = { node, at: rel, ctx: actx.currentTime };
+      voTrack?.sync(voiceAt(vo!.set, out));
+      if (mu && muTrack && actx) {
+        muTrack.sync(out);
+        mu.gain.gain.setTargetAtTime(musicGainAt(mu.spans, out, mu.set.level, fullEnd), actx.currentTime, 0.03);
+      }
     };
 
     if (kind !== "audio") {
@@ -956,7 +997,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       done += seg.end - seg.start;
     }
     if (endLen && brand) {
-      // the end card: painted for its length in real time, over silence
+      // the end card: painted for its length in real time, over silence or the music
       drawEndCard(g, brand, 0);
       rec.resume();
       const start = performance.now();
@@ -964,6 +1005,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
         const tick = () => {
           const t = (performance.now() - start) / 1000;
           drawEndCard(g, brand, t);
+          voSync(plan.total + t);
           if (job) {
             job.progress = Math.min(0.99, (plan.total + t) / (plan.total + endLen));
             emit();

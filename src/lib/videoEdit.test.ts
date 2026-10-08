@@ -667,3 +667,48 @@ describe("B-roll cutaways", () => {
     expect(sanitizeBroll("x")).toEqual([]);
   });
 });
+
+describe("background music", () => {
+  it("finds when someone is talking on the edited timeline, joining short gaps and skipping cut words", async () => {
+    const { speechSpans } = await import("@/lib/videoEdit");
+    const ws = [W("So", 1, 1.4), W("this", 1.6, 2), W("works.", 2.1, 2.5), W("Next", 4, 4.5), W("um", 6, 6.3), W("bit.", 8, 8.4)];
+    expect(speechSpans(ws, [{ start: 0, end: 10 }])).toEqual([{ s: 1, e: 2.5 }, { s: 4, e: 4.5 }, { s: 6, e: 6.3 }, { s: 8, e: 8.4 }]);
+    // the um cut out, the rest moved up by its length; at 2x everything halves
+    const segs = [{ start: 0, end: 5.9 }, { start: 6.4, end: 10 }];
+    expect(speechSpans(ws, segs).map((x) => x.s)).toEqual([1, 4, 7.5]);
+    const late = speechSpans([W("um", 0.2, 0.5), W("Hi", 1, 1.3)], [{ start: 0.6, end: 5 }]);
+    expect(late).toHaveLength(1);
+    expect(late[0].s).toBeCloseTo(0.4, 5);
+    expect(late[0].e).toBeCloseTo(0.7, 5);
+    // at 2x the gaps halve too, so more of it joins up
+    expect(speechSpans(ws, [{ start: 0, end: 10 }], 2)).toEqual([{ s: 0.5, e: 3.15 }, { s: 4, e: 4.2 }]);
+  });
+
+  it("plays at its level, drops to a quarter under speech with short ramps, and fades out at the end", async () => {
+    const { musicGainAt, MUSIC_DUCK } = await import("@/lib/videoEdit");
+    const spans = [{ s: 2, e: 4 }, { s: 8, e: 9 }];
+    expect(musicGainAt(spans, 1, 0.4, 20)).toBeCloseTo(0.4, 5);
+    expect(musicGainAt(spans, 3, 0.4, 20)).toBeCloseTo(0.4 * MUSIC_DUCK, 5);
+    expect(musicGainAt(spans, 2 - 0.075, 0.4, 20)).toBeCloseTo(0.4 * (MUSIC_DUCK + (1 - MUSIC_DUCK) * 0.5), 5);
+    expect(musicGainAt(spans, 4.25, 0.4, 20)).toBeCloseTo(0.4 * (MUSIC_DUCK + (1 - MUSIC_DUCK) * 0.5), 5);
+    expect(musicGainAt(spans, 6, 0.4, 20)).toBeCloseTo(0.4, 5);
+    expect(musicGainAt([], 19.5, 0.4, 20)).toBeCloseTo(0.2, 5);
+    expect(musicGainAt([], 21, 0.4, 20)).toBe(0);
+  });
+
+  it("drops under the voiceover too, in time order", async () => {
+    const { duckSpans, musicGainAt, MUSIC_DUCK } = await import("@/lib/videoEdit");
+    const spans = duckSpans([W("Hi", 1, 1.5), W("there", 9, 9.5)], [{ start: 0, end: 12 }], { voiceover: { key: "vo-abcd", start: 4, length: 2 } });
+    expect(spans).toEqual([{ s: 1, e: 1.5 }, { s: 4, e: 6 }, { s: 9, e: 9.5 }]);
+    expect(musicGainAt(spans, 5, 0.4, 20)).toBeCloseTo(0.4 * MUSIC_DUCK, 5);
+    expect(duckSpans([W("Hi", 2, 3)], [{ start: 0, end: 12 }], { speed: 2 })).toEqual([{ s: 1, e: 1.5 }]);
+  });
+
+  it("keeps only a well-formed stored track", async () => {
+    const { sanitizeMusic } = await import("@/lib/videoEdit");
+    expect(sanitizeMusic({ key: "mu-v1-abc", name: "Lofi.mp3", level: 0.5 })).toEqual({ key: "mu-v1-abc", name: "Lofi.mp3", level: 0.5 });
+    expect(sanitizeMusic({ key: "mu-v1-abc", level: 7 })).toEqual({ key: "mu-v1-abc", name: "Music", level: 1 });
+    expect(sanitizeMusic({ key: "../etc", name: "x" })).toBeUndefined();
+    expect(sanitizeMusic(null)).toBeUndefined();
+  });
+});
