@@ -351,3 +351,9 @@ const Y_FOR: Record<Position, number> = { top: 0.26, middle: 0.64, bottom: 0.8 }
 /** Where the captions sit, as a share of the frame height. */
 export const captionCenter = (s: Pick<EditSettings, "position" | "captionY">) =>
   typeof s.captionY === "number" ? Math.min(0.92, Math.max(0.08, s.captionY)) : Y_FOR[s.position];
+
+/** Caption entrance: 0 -> 1 over the first 150 ms of a caption (eased), for the pop-in. */
+export function captionIntro(src: number, capStart: number): number {
+  const t = Math.min(1, Math.max(0, (src - capStart) / 0.15));
+  return 1 - Math.pow(1 - t, 3);
+}

@@ -139,3 +139,13 @@ describe("dragged captions", () => {
     expect([top.captionY, captionCenter(top)]).toEqual([undefined, 0.26]);
   });
 });
+
+describe("caption pop-in", () => {
+  it("eases from 0 to 1 over the first 150 ms", async () => {
+    const { captionIntro } = await import("./videoEdit");
+    expect(captionIntro(1.0, 1.0)).toBe(0);
+    expect(captionIntro(1.15, 1.0)).toBe(1);
+    expect(captionIntro(1.075, 1.0)).toBeGreaterThan(0.8);
+    expect(captionIntro(0.9, 1.0)).toBe(0);
+  });
+});

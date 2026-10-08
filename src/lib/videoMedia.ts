@@ -9,6 +9,7 @@ import {
   buildCaptions,
   captionAt,
   captionCenter,
+  captionIntro,
   captionKey,
   isNumberWord,
   keepSegments,
@@ -237,6 +238,16 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     g.textBaseline = "middle";
     const text = cap.words.map((w) => (s.uppercase ? w.w.toUpperCase() : w.w));
     const lines = wrap(g, text, W * (spec.mode === "words" ? 0.86 : 0.84));
+    // pop in: word styles scale up from 85% and fade in over the first 150 ms of each caption
+    const intro = spec.mode === "words" ? captionIntro(f.src, cap.s) : 1;
+    g.save();
+    if (intro < 1) {
+      const cy = H * captionCenter(s);
+      g.globalAlpha = 0.25 + 0.75 * intro;
+      g.translate(W / 2, cy);
+      g.scale(0.85 + 0.15 * intro, 0.85 + 0.15 * intro);
+      g.translate(-W / 2, -cy);
+    }
     const lh = px * 1.18;
     let y = H * captionCenter(s) - ((lines.length - 1) * lh) / 2;
     if (hook && captionCenter(s) < 0.4) y = Math.max(y, hook.top + hook.bh + lh * 0.75);
@@ -265,6 +276,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       }
       y += lh;
     }
+    g.restore();
     const sub = s.subLang && f.subs ? f.subs[captionKey(cap)] : "";
     if (sub) {
       const spx = Math.round(px * (spec.mode === "words" ? 0.5 : 0.75));
