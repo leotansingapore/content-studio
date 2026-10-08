@@ -37,7 +37,7 @@ function StoryCard({ s }: { s: NewsStory }) {
   };
 
   return (
-    <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
+    <article className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
       {s.clipping && (
         <a href={safeExternalUrl(s.url) ?? undefined} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true" className="block aspect-[5/3] overflow-hidden bg-muted">
           <img src={s.clipping} alt="" loading="lazy" className="h-full w-full object-cover object-top" />
@@ -67,7 +67,7 @@ function StoryCard({ s }: { s: NewsStory }) {
         {s.clientMessage && (
           <div className="text-xs">
             <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
-              className="inline-flex items-center gap-1 py-1 font-semibold text-primary hover:underline">
+              className="inline-flex min-h-9 items-center gap-1 py-1 font-semibold text-primary hover:underline sm:min-h-0">
               {open ? "Hide the client message" : "Read the client message"}
               {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
@@ -148,7 +148,8 @@ export default function IndustryNews() {
             <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               {m.label} <span className="font-normal">{m.stories.length}</span>
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* items-start: opening one client message must not stretch the cards beside it. */}
+            <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {m.stories.map((s) => <StoryCard key={s.id} s={s} />)}
             </div>
           </section>
