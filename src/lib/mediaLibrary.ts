@@ -15,6 +15,25 @@ export interface MediaItem {
   width: number;
   height: number;
   addedAt: string;
+  /** A free stock photo's credit: who took it and its page on Pexels. */
+  credit?: MediaCredit;
+}
+
+export interface MediaCredit {
+  by: string;
+  byUrl: string;
+  url: string;
+}
+
+const PEXELS = /^https:\/\/(www\.)?pexels\.com\//;
+
+/** A stored credit, kept only with Pexels links (it is shown as a link). */
+export function sanitizeCredit(raw: unknown): MediaCredit | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const by = typeof r.by === "string" ? r.by.slice(0, 80) : "";
+  const link = (v: unknown) => (typeof v === "string" && PEXELS.test(v) ? v : "");
+  return by ? { by, byUrl: link(r.byUrl), url: link(r.url) } : undefined;
 }
 
 export const MAX_MEDIA = 300;
@@ -42,6 +61,7 @@ export function loadMedia(userId: string | null | undefined): MediaItem[] {
       width: Number(m.width) || 0,
       height: Number(m.height) || 0,
       addedAt: String(m.addedAt ?? ""),
+      ...(sanitizeCredit(m.credit) ? { credit: sanitizeCredit(m.credit) } : {}),
     }));
   } catch {
     return [];

@@ -88,6 +88,8 @@ export interface EditSettings {
   logo?: boolean;
   /** A closing card from the brand kit (photo, name, handle, sign-off line) after the last cut. */
   endCard?: boolean;
+  /** B-roll cutaways: stock clips shown full-frame, muted, over stretches of the edit. */
+  broll?: Broll[];
 }
 
 export const END_CARD_SECONDS = 2.5;
@@ -1029,4 +1031,73 @@ export function sanitizeLevel(raw: unknown): Level | undefined {
   const before = n(r.before, -90, 10), after = n(r.after, -90, 10), peak = n(r.peak, -90, 10), gain = n(r.gain, -MAX_LIFT, MAX_LIFT), trim = n(r.trim, -40, 0);
   if (before === null || after === null || peak === null || gain === null || trim === null) return undefined;
   return { polish: r.polish === true, before, after, peak, gain, trim };
+}
+
+// ---------- B-roll ----------
+
+/** A stock clip shown full-frame over from-to on the edited timeline; the speaker's sound carries on under it. */
+export interface Broll {
+  id: string;
+  /** The clip's file on this device (deviceFiles). */
+  key: string;
+  from: number;
+  to: number;
+  /** The clip's own length in seconds; it loops when the cutaway runs longer. */
+  length: number;
+  /** Pexels preview picture, for the list. */
+  thumb: string;
+  /** Who filmed it and the clip's page on Pexels. */
+  by: string;
+  byUrl: string;
+  url: string;
+}
+
+export const MAX_BROLL = 10;
+
+/** A cutaway from the playhead for up to 4 seconds (the clip's length if shorter), kept inside the edit. */
+export function newBroll(key: string, at: number, length: number, total: number, credit: Pick<Broll, "thumb" | "by" | "byUrl" | "url">): Broll {
+  const from = Math.max(0, Math.min(Math.floor(at * 10) / 10, total - 0.5));
+  const span = Math.min(4, length > 0.5 ? length : 4);
+  return {
+    id: `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
+    key,
+    from,
+    to: Math.max(from + 0.5, Math.min(total, from + span)),
+    length: Math.max(0.5, length || 4),
+    ...credit,
+  };
+}
+
+/** The cutaway showing at this point of the edit (the later one when two overlap) and the time into its clip. */
+export function brollAt(list: Broll[] | undefined, out: number): { b: Broll; t: number } | null {
+  const all = list ?? [];
+  for (let i = all.length - 1; i >= 0; i--) {
+    const b = all[i];
+    if (out >= b.from && out < b.to) return { b, t: (out - b.from) % b.length };
+  }
+  return null;
+}
+
+/** Cutaways from storage, kept only when well formed; credit links must point at Pexels. */
+export function sanitizeBroll(raw: unknown): Broll[] {
+  if (!Array.isArray(raw)) return [];
+  const link = (v: unknown, re: RegExp) => (typeof v === "string" && re.test(v) ? v : "");
+  return raw.slice(0, MAX_BROLL).flatMap((x): Broll[] => {
+    if (!x || typeof x !== "object") return [];
+    const r = x as Record<string, unknown>;
+    if (typeof r.id !== "string" || typeof r.key !== "string" || !/^br-[a-z0-9-]{4,60}$/i.test(r.key)) return [];
+    const from = clamp(r.from, 0, 36000, -1);
+    if (from < 0) return [];
+    return [{
+      id: r.id.slice(0, 24),
+      key: r.key,
+      from,
+      to: Math.max(from + 0.5, clamp(r.to, 0, 36000, from + 4)),
+      length: clamp(r.length, 0.5, 3600, 4),
+      thumb: link(r.thumb, /^https:\/\/images\.pexels\.com\//),
+      by: typeof r.by === "string" ? r.by.slice(0, 80) : "",
+      byUrl: link(r.byUrl, /^https:\/\/(www\.)?pexels\.com\//),
+      url: link(r.url, /^https:\/\/(www\.)?pexels\.com\//),
+    }];
+  });
 }

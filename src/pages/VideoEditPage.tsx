@@ -3,6 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Check, ChevronDown, ChevronUp, Download, Mic, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
+import StockSearch from "@/components/StockSearch";
+import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -42,6 +44,10 @@ import {
   sanitizeLevel,
   sanitizeVoiceover,
   voiceAt,
+  MAX_BROLL,
+  newBroll,
+  sanitizeBroll,
+  type Broll,
   addRemoved,
   removedAt,
   sanitizeRemoved,
@@ -87,18 +93,20 @@ import {
   makeCover,
   extractWav,
   getFile,
+  loadVideo,
   onExportJob,
   planFor,
   putFile,
   startExport,
   stills,
+  syncBroll,
   type BrandArt,
   type ExportJob,
 } from "@/lib/videoMedia";
 import { fileKey, findClips, loadFixes, loadLook, loadProjects, removeProject, saveFixes, saveLook, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 
 const MAX_BYTES = 500 * 1024 * 1024;
-type Tab = "style" | "cuts" | "frame" | "stickers" | "words";
+type Tab = "style" | "cuts" | "frame" | "stickers" | "broll" | "words";
 
 export default function VideoEditPage() {
   const { toast } = useToast();
@@ -259,6 +267,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     removed: sanitizeRemoved(project.settings.removed),
     voiceover: sanitizeVoiceover(project.settings.voiceover),
     level: sanitizeLevel(project.settings.level),
+    broll: sanitizeBroll(project.settings.broll),
   }));
   // Words tab: fix spelling, or cut a stretch by tapping its first and last word
   const [wordMode, setWordMode] = useState<"fix" | "cut">("fix");
@@ -286,6 +295,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [job, setJob] = useState<ExportJob | null>(exportJob());
   // a guide over the 9:16 preview: where Instagram or TikTok's own buttons and caption sit
   const [coverApp, setCoverApp] = useState<CoverApp | null>(null);
+  // B-roll: each cutaway's clip from this device, a muted <video> per cutaway kept in step with the preview
+  const [brollUrls, setBrollUrls] = useState<Record<string, string>>({});
+  const brollEls = useRef(new Map<string, HTMLVideoElement>());
+  const [brollSearch, setBrollSearch] = useState(false);
+  const [selBroll, setSelBroll] = useState<string | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const segIdx = useRef(0);
@@ -356,6 +370,16 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     getFile(voiceKey).then((b) => setVoiceBlob(b ?? null)).catch(() => setVoiceBlob(null));
   }, [voiceKey]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  const brollKeys = (settings.broll ?? []).map((b) => b.key).join(",");
+  useEffect(() => {
+    const want = brollKeys.split(",").filter((k) => k && !(k in brollUrls));
+    if (!want.length) return;
+    void Promise.all(want.map(async (k) => [k, await getFile(k).catch(() => undefined)] as const)).then((got) =>
+      setBrollUrls((u) => ({ ...u, ...Object.fromEntries(got.map(([k, b]) => [k, b ? URL.createObjectURL(b) : ""])) })));
+  }, [brollKeys]); // eslint-disable-line react-hooks/exhaustive-deps
+  const brollUrlsRef = useRef(brollUrls);
+  brollUrlsRef.current = brollUrls;
+  useEffect(() => () => Object.values(brollUrlsRef.current).forEach((u) => u && URL.revokeObjectURL(u)), []);
 
   // save the edit a moment after the last change
   useEffect(() => {
@@ -393,7 +417,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       return;
     }
     const out = outAt(plan.segs, v.currentTime, speed) ?? outT;
-    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing });
+    const broll = syncBroll(brollEls.current, settings.broll, out, playing);
+    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing, broll });
     setOutT(out);
   }, [plan, settings, outT, subs, art, playing, speed]);
   const total = fullLength(plan.total, settings, !!art);
@@ -442,7 +467,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   }, [playing, plan, paint, total]);
   // (this effect re-runs every frame as the playhead moves, so the voiceover pauses only when playback stops)
   useEffect(() => {
-    if (!playing) voiceEl.current?.pause();
+    if (!playing) {
+      voiceEl.current?.pause();
+      brollEls.current.forEach((el) => el.pause());
+    }
   }, [playing]);
 
   useEffect(() => { if (!playing) paint(); }, [settings, plan]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -721,9 +749,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     toast({ title: "Saved to My posts", description: "Schedule it from Pipeline when the video is exported." });
   };
 
-  const doExport = () => {
+  const doExport = async () => {
     if (!file) return;
-    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art, settings.voiceover ? voiceBlob : null).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
+    const brollFiles: Record<string, Blob> = {};
+    for (const b of settings.broll ?? []) {
+      const f = await getFile(b.key).catch(() => undefined);
+      if (f) brollFiles[b.key] = f;
+    }
+    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art, settings.voiceover ? voiceBlob : null, brollFiles).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
   };
 
   // the exported file read back for what would spoil the post; one check per export, null while it runs
@@ -810,6 +843,31 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     setSelected(o.id);
   };
   const editOverlay = (id: string, p: Partial<Overlay>) => patch({ overlays: overlays.map((o) => (o.id === id ? { ...o, ...p } : o)) });
+  // B-roll: a stock clip over the edit from the playhead, the speaker's sound carrying on under it
+  const brolls = settings.broll ?? [];
+  const selB = brolls.find((b) => b.id === selBroll) ?? null;
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  const addBroll = async (it: StockItem) => {
+    if (brolls.length >= MAX_BROLL) throw new Error(`Up to ${MAX_BROLL} on a video`);
+    const blob = await downloadStock(it.src);
+    const probe = await loadVideo(blob).catch(() => null);
+    const length = probe && Number.isFinite(probe.duration) ? probe.duration : it.duration ?? 4;
+    if (probe) URL.revokeObjectURL(probe.src);
+    const key = `br-${it.id}-${Date.now().toString(36)}`;
+    await putFile(key, blob);
+    const b = newBroll(key, outT, length, plan.total, { thumb: it.thumb, by: it.by, byUrl: it.byUrl, url: it.url });
+    // the latest settings: other changes made while the clip downloaded must stay
+    const cur = settingsRef.current;
+    setHistory((h) => [...h.slice(-19), cur]);
+    setSettings({ ...cur, broll: [...(cur.broll ?? []), b] });
+    setBrollUrls((u) => ({ ...u, [key]: URL.createObjectURL(blob) }));
+    setSelBroll(b.id);
+    setBrollSearch(false);
+    toast({ title: `B-roll added at ${fmtTime(b.from)}` });
+  };
+  const editBroll = (id: string, p: Partial<Broll>) => patch({ broll: brolls.map((b) => (b.id === id ? { ...b, ...p } : b)) });
+
   const stickerColours = [...new Set(["#FFFFFF", "#FFD92B", settings.activeColor, art?.color ?? "#2563EB", "#EF4444", "#111827"].map((c) => c.toUpperCase()))];
 
   const cutSeconds = Math.max(0, duration - totalLength(plan.segs));
@@ -968,6 +1026,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           </div>
           {file === undefined && <p className="text-xs text-muted-foreground">Loading the video...</p>}
           {voiceUrl && <audio ref={voiceEl} src={voiceUrl} preload="auto" className="hidden" />}
+          {brolls.map((b) => (
+            <video key={b.id} src={brollUrls[b.key] || undefined} muted playsInline preload="auto" aria-hidden className="pointer-events-none absolute h-px w-px opacity-0"
+              ref={(el) => { if (el) brollEls.current.set(b.id, el); else brollEls.current.delete(b.id); }}
+              onLoadedData={() => !playing && paint()} onSeeked={() => !playing && paint()} />
+          ))}
           <video ref={video} src={url} playsInline preload="auto" className="pointer-events-none absolute h-px w-px opacity-0"
             onLoadedData={() => paint()} onSeeked={() => paint()} />
           <div className="flex items-center gap-2">
@@ -1064,7 +1127,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           </section>
 
           <nav className="flex w-fit flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" aria-label="Edit">
-            {([["style", "Captions"], ["cuts", "Cuts"], ["frame", "Hook and frame"], ["stickers", "Stickers"], ["words", "Words"]] as const).map(([id, label]) => (
+            {([["style", "Captions"], ["cuts", "Cuts"], ["frame", "Hook and frame"], ["stickers", "Stickers"], ["broll", "B-roll"], ["words", "Words"]] as const).map(([id, label]) => (
               <button key={id} type="button" onClick={() => setTab(id)} aria-pressed={tab === id}
                 className={`rounded-md px-3 py-1.5 text-xs font-semibold ${tab === id ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
             ))}
@@ -1346,6 +1409,57 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       <Trash2 className="h-3.5 w-3.5" /> Delete
                     </Button>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "broll" && (
+            <div className="space-y-3">
+              {brollSearch ? (
+                <StockSearch kind="video" orientation={settings.aspect === "16:9" ? "landscape" : settings.aspect === "1:1" ? "square" : "portrait"}
+                  placeholder="Singapore skyline, family at home, hospital" onPick={addBroll} onClose={() => setBrollSearch(false)} />
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" className="h-9 gap-1.5" onClick={() => setBrollSearch(true)} disabled={brolls.length >= MAX_BROLL}>
+                    <Film className="h-3.5 w-3.5" /> Add B-roll at {fmtTime(Math.min(outT, plan.total))}
+                  </Button>
+                  <InfoTip label="About B-roll">A free stock clip over your video from the playhead. Your voice carries on under it.</InfoTip>
+                </div>
+              )}
+              {brolls.length > 0 && (
+                <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
+                  {brolls.map((b) => (
+                    <li key={b.id}>
+                      <button type="button" onClick={() => { setSelBroll(b.id); seekOut(b.from + 0.05); }} aria-pressed={b.id === selBroll}
+                        className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${b.id === selBroll ? "bg-primary/5" : ""}`}>
+                        <span className="h-10 w-8 shrink-0 overflow-hidden rounded bg-muted">{b.thumb && <img src={b.thumb} alt="" className="h-full w-full object-cover" />}</span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{b.by ? `Clip by ${b.by}` : "Clip"}{brollUrls[b.key] === "" ? " (on another device)" : ""}</span>
+                        <span className="font-mono text-[11px] text-muted-foreground">{fmtTime(b.from)}-{fmtTime(b.to)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {selB && (
+                <div className="space-y-3 rounded-lg border border-primary/25 p-3">
+                  <Row label={`Shows for ${(selB.to - selB.from).toFixed(1)}s from ${fmtTime(selB.from)}`}>
+                    <input type="range" min={0.5} max={10} step={0.5} value={selB.to - selB.from} aria-label="How long the B-roll shows"
+                      onChange={(e) => editBroll(selB.id, { to: selB.from + Number(e.target.value) })} className="w-32 accent-primary" />
+                  </Row>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => { const from = Math.floor(Math.min(outT, plan.total) * 10) / 10; editBroll(selB.id, { from, to: from + (selB.to - selB.from) }); }}>Start at {fmtTime(Math.min(outT, plan.total))}</Button>
+                    <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={() => { change({ ...settings, broll: brolls.filter((b) => b.id !== selB.id) }); setSelBroll(null); }}>
+                      <Trash2 className="h-3.5 w-3.5" /> Delete
+                    </Button>
+                  </div>
+                  {selB.by && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Video by {selB.byUrl ? <a href={selB.byUrl} target="_blank" rel="noreferrer" className="hover:underline">{selB.by}</a> : selB.by} on{" "}
+                      {selB.url ? <a href={selB.url} target="_blank" rel="noreferrer" className="hover:underline">Pexels</a> : "Pexels"}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

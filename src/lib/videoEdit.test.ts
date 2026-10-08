@@ -635,3 +635,35 @@ describe("loudness", () => {
     expect(lookOf({ ...on, level })).not.toHaveProperty("level");
   });
 });
+
+describe("B-roll cutaways", () => {
+  const credit = { thumb: "https://images.pexels.com/videos/1/p.jpeg", by: "Richard L", byUrl: "https://www.pexels.com/@r", url: "https://www.pexels.com/video/x-1/" };
+
+  it("starts at the playhead for up to 4 seconds and stays inside the edit", async () => {
+    const { newBroll } = await import("@/lib/videoEdit");
+    expect(newBroll("br-1-abc", 2.37, 9, 30, credit)).toMatchObject({ key: "br-1-abc", from: 2.3, to: 6.3, length: 9, by: "Richard L" });
+    expect(newBroll("br-1-abc", 1, 2, 30, credit)).toMatchObject({ from: 1, to: 3 }); // a 2 s clip covers 2 s
+    expect(newBroll("br-1-abc", 29.9, 9, 30, credit)).toMatchObject({ from: 29.5, to: 30 });
+  });
+
+  it("shows the later cutaway where two overlap, and loops a short clip", async () => {
+    const { brollAt } = await import("@/lib/videoEdit");
+    const a = { id: "a", key: "br-a-1111", from: 1, to: 6, length: 2, ...credit };
+    const b = { id: "b", key: "br-b-2222", from: 4, to: 5, length: 8, ...credit };
+    expect(brollAt([a, b], 0.9)).toBeNull();
+    expect(brollAt([a, b], 1.5)).toEqual({ b: a, t: 0.5 });
+    expect(brollAt([a, b], 3.5)?.t).toBeCloseTo(0.5); // 2.5 s in, looped on a 2 s clip
+    expect(brollAt([a, b], 4.2)?.b.id).toBe("b");
+    expect(brollAt([a, b], 6)).toBeNull();
+    expect(brollAt(undefined, 2)).toBeNull();
+  });
+
+  it("drops malformed cutaways and links that aren't Pexels", async () => {
+    const { sanitizeBroll } = await import("@/lib/videoEdit");
+    const ok = { id: "a", key: "br-a-1111", from: 1, to: 0, length: 0, ...credit, byUrl: "javascript:alert(1)" };
+    expect(sanitizeBroll([ok, { ...ok, key: "../x" }, { ...ok, from: "soon" }, null])).toEqual([
+      { id: "a", key: "br-a-1111", from: 1, to: 1.5, length: 0.5, thumb: credit.thumb, by: "Richard L", byUrl: "", url: credit.url },
+    ]);
+    expect(sanitizeBroll("x")).toEqual([]);
+  });
+});

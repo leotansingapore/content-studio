@@ -4,12 +4,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { ImagePlus, Search, Trash2 } from "lucide-react";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
+import StockSearch from "@/components/StockSearch";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
 import { getFile } from "@/lib/deviceFiles";
 import { addMedia, filterMedia, foldersOf, loadMedia, removeMedia, storePicture, updateMedia, type MediaItem } from "@/lib/mediaLibrary";
+import { downloadStock, type StockItem } from "@/lib/stockMedia";
 
 export default function MediaPage() {
   const { toast } = useToast();
@@ -19,6 +21,7 @@ export default function MediaPage() {
   const [query, setQuery] = useState("");
   const [folder, setFolder] = useState("");
   const [adding, setAdding] = useState(0);
+  const [stock, setStock] = useState(false);
 
   useEffect(() => {
     document.title = "Media - Content Studio";
@@ -65,6 +68,18 @@ export default function MediaPage() {
     if (added) toast({ title: added === 1 ? "Photo added" : `${added} photos added` });
   };
 
+  // a free Pexels photo: kept on this device like an upload, with its credit
+  const addStock = async (it: StockItem, query: string) => {
+    const uid = userId ?? (await supabase.auth.getUser()).data.user?.id ?? null;
+    if (!uid) throw new Error("Sign in again to add photos");
+    const pic = await storePicture(await downloadStock(it.src));
+    const name = (it.alt || query || "Stock photo").replace(/\.$/, "").slice(0, 80);
+    setItems(addMedia(uid, {
+      key: pic.key, name, folder: folder !== "-" ? folder : "", alt: it.alt, width: pic.width, height: pic.height,
+      addedAt: new Date().toISOString(), credit: { by: it.by, byUrl: it.byUrl, url: it.url },
+    }));
+  };
+
   const edit = (key: string, patch: Partial<Pick<MediaItem, "name" | "folder" | "alt">>) => {
     if (userId) setItems(updateMedia(userId, key, patch));
   };
@@ -94,8 +109,14 @@ export default function MediaPage() {
           <ImagePlus className="h-4 w-4" /> {adding ? `Adding ${adding}...` : "Add photos"}
           <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
         </label>
+        {!stock && (
+          <Button variant="outline" className="h-10 gap-2" onClick={() => setStock(true)}>
+            <Search className="h-4 w-4" /> Search free photos
+          </Button>
+        )}
       </header>
       <p className="text-xs text-muted-foreground">Photos stay on this device. Use them on carousel slides with From media.</p>
+      {stock && <StockSearch kind="photo" placeholder="Family dinner, office, Singapore skyline" onPick={addStock} onClose={() => setStock(false)} />}
 
       {items.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
@@ -130,6 +151,12 @@ export default function MediaPage() {
                   <span className="flex h-full items-center justify-center p-2 text-center text-[11px] text-muted-foreground">Not on this device</span>
                 ) : null}
               </div>
+              {m.credit && (
+                <p className="truncate text-[11px] text-muted-foreground">
+                  Photo by {m.credit.byUrl ? <a href={m.credit.byUrl} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">{m.credit.by}</a> : m.credit.by} on{" "}
+                  {m.credit.url ? <a href={m.credit.url} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">Pexels</a> : "Pexels"}
+                </p>
+              )}
               <input value={m.name} onChange={(e) => edit(m.key, { name: e.target.value.slice(0, 80) })} aria-label="Name"
                 className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs font-semibold" />
               <input value={m.folder} list="media-folders" onChange={(e) => edit(m.key, { folder: e.target.value.slice(0, 40) })} placeholder="Folder" aria-label="Folder"

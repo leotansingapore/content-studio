@@ -34,6 +34,8 @@ import {
   soundStats,
   speedOf,
   voiceAt,
+  brollAt,
+  type Broll,
   overlaysAt,
   type Overlay,
   totalLength,
@@ -180,6 +182,8 @@ export interface Frame {
   brand?: BrandArt | null;
   /** A paused or scrubbed preview: captions drawn fully in, without the pop-in. */
   still?: boolean;
+  /** The B-roll clip showing now (kept in step by syncBroll), drawn full-frame over the speaker. */
+  broll?: HTMLVideoElement | null;
 }
 
 // ---------- voice polish ----------
@@ -413,6 +417,14 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       g.drawImage(v, dx, dy, dw, dh);
       g.filter = "none";
     }
+  }
+  // a B-roll cutaway covers the whole frame; captions and the rest still go on top
+  const b = f.broll;
+  if (b?.videoWidth) {
+    const cover = Math.max(W / b.videoWidth, H / b.videoHeight);
+    g.filter = gradeOf(s);
+    g.drawImage(b, (W - b.videoWidth * cover) / 2, (H - b.videoHeight * cover) / 2, b.videoWidth * cover, b.videoHeight * cover);
+    g.filter = "none";
   }
   // transition at each cut: a quick dip through black or a white flash, 60 ms either side
   if (s.transition) {
@@ -731,6 +743,22 @@ export async function makeCover(video: HTMLVideoElement, settings: EditSettings,
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't make the cover."))), "image/png"));
 }
 
+/**
+ * Keeps the B-roll clips in step with the edit (preview and export alike) and
+ * returns the one to draw: seeks it when it has drifted, plays it while the edit
+ * plays, and pauses every clip not on screen.
+ */
+export function syncBroll(els: Map<string, HTMLVideoElement>, list: Broll[] | undefined, out: number | null, playing: boolean): HTMLVideoElement | null {
+  const on = out === null ? null : brollAt(list, out);
+  for (const [id, el] of els) if ((!playing || id !== on?.b.id) && !el.paused) el.pause();
+  const el = on ? els.get(on.b.id) : undefined;
+  if (!on || !el) return null;
+  // a paused frame must be exact; a playing clip may run a touch ahead or behind
+  if (Math.abs(el.currentTime - on.t) > (playing ? 0.25 : 0.04)) el.currentTime = on.t;
+  if (playing && el.paused) void el.play().catch(() => {});
+  return el;
+}
+
 export function planFor(words: Word[], duration: number, s: EditSettings) {
   const segs = keepSegments(words, duration, s);
   return { segs, caps: buildCaptions(words, s), total: totalLength(segs) / speedOf(s) };
@@ -786,7 +814,7 @@ export async function measureExport(url: string): Promise<ReturnType<typeof soun
 }
 
 /** Renders the edit in real time (a 45 s reel takes about 45 s) and downloads it. */
-export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null, voice?: Blob | null) {
+export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null, voice?: Blob | null, brollFiles?: Record<string, Blob>) {
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
   const kind = settings.exportAs ?? "video";
@@ -794,6 +822,8 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
   emit();
   let video: HTMLVideoElement | null = null;
   let actx: AudioContext | null = null;
+  // B-roll clips, muted, played in step with the picture
+  const brEls = new Map<string, HTMLVideoElement>();
   try {
     const { mime, ext } = pickMime(kind === "audio");
     video = await loadVideo(file);
@@ -848,6 +878,16 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       voSrc = { node, at: rel, ctx: actx.currentTime };
     };
 
+    if (kind !== "audio") {
+      for (const b of settings.broll ?? []) {
+        const blob = brollFiles?.[b.key];
+        if (!blob) continue;
+        const el = await loadVideo(blob);
+        el.muted = true;
+        brEls.set(b.id, el);
+      }
+    }
+
     const v = video;
     const speed = speedOf(settings);
     v.defaultPlaybackRate = v.playbackRate = speed; // pitch is kept (preservesPitch is on by default)
@@ -855,7 +895,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const endLen = settings.endCard && brand && kind !== "audio" ? END_CARD_SECONDS : 0;
     const draw = () => {
       const out = Math.min(plan.total, outAt(plan.segs, v.currentTime, speed) ?? done / speed);
-      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand });
+      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand, broll: syncBroll(brEls, settings.broll, out, rec.state === "recording") });
       if (rec.state === "recording") voSync(out);
       else voStop();
       if (job) {
@@ -949,6 +989,10 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
   } finally {
     video?.pause();
     if (video) URL.revokeObjectURL(video.src);
+    for (const el of brEls.values()) {
+      el.pause();
+      URL.revokeObjectURL(el.src);
+    }
     void actx?.close();
   }
 }

@@ -37,4 +37,16 @@ describe("media library", () => {
     expect(filterMedia(list, "", "-").map((m) => m.name)).toEqual(["Desk"]);
     expect(foldersOf(list)).toEqual(["Events", "Me"]);
   });
+
+  it("keeps a stock photo's credit, only with Pexels links", async () => {
+    const { addMedia, loadMedia } = await import("@/lib/mediaLibrary");
+    const credit = { by: "Shlok Rana", byUrl: "https://www.pexels.com/@shlok", url: "https://www.pexels.com/photo/x-1/" };
+    addMedia("u1", { ...item("cimg-dddddd4"), credit });
+    addMedia("u1", { ...item("cimg-eeeeee5"), credit: { by: "X", byUrl: "javascript:alert(1)", url: "https://evil.example/" } });
+    addMedia("u1", { ...item("cimg-ffffff6"), credit: { by: "", byUrl: "", url: "" } });
+    const [noName, evil, kept] = loadMedia("u1");
+    expect(kept.credit).toEqual(credit);
+    expect(evil.credit).toEqual({ by: "X", byUrl: "", url: "" });
+    expect(noName.credit).toBeUndefined();
+  });
 });

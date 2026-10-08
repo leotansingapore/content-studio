@@ -18,6 +18,8 @@ export const DAILY_LIMITS = {
   mentions: 10,
   "yt-captions": 10,
   "track-accounts": 10,
+  // Free stock photos and B-roll (stock-media, Pexels): searches not already cached.
+  "stock-search": 100,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
