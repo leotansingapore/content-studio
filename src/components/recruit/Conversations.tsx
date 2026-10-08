@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,8 @@ type Row = RecruitBrain["conversations"][number];
 
 export default function Conversations({ brain, update, done }: { brain: RecruitBrain; update: Update; done: boolean }) {
   const script = useMemo(() => personalisedScript(SEND_TEN_SCRIPT, brain.icp), [brain.icp]);
+  // With no ICP the script still says "[your ONE candidate]": never hand that to WhatsApp.
+  const unfilled = script.includes("[your ONE candidate]");
   const rows = brain.conversations;
   const counts = {
     sent: rows.filter((r) => r.sent).length,
@@ -56,7 +59,15 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
             <CopyButton text={script} label="Copy" what="Script copied" />
           </div>
           <p className="mt-1 text-sm leading-relaxed text-foreground">{script}</p>
-          <p className="mt-2 text-[11px] text-muted-foreground">Personalise the first line, keep the rest. WhatsApp or LinkedIn.</p>
+          {unfilled ? (
+            <p className="mt-2 text-[11px] font-medium text-warning">
+              Fill in My ICP on{" "}
+              <Link to="/recruit" className="underline">Brand Brain</Link>{" "}
+              first, so the script says who it's for. WhatsApp sending opens after that.
+            </p>
+          ) : (
+            <p className="mt-2 text-[11px] text-muted-foreground">Personalise the first line, keep the rest. WhatsApp or LinkedIn.</p>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -82,7 +93,7 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
                   aria-label={`Conversation ${i + 1} name`}
                   className="h-9 min-w-0 flex-1 basis-40"
                 />
-                {r.name.trim() && (
+                {r.name.trim() && !unfilled && (
                   <a
                     href={whatsappLink(script, r.name)}
                     target="_blank"
