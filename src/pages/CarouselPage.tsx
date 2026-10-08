@@ -31,6 +31,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { loadDrafts, type DraftEntry } from "@/lib/draftHistory";
@@ -58,6 +59,10 @@ import {
   removeSlide,
   saveBrand,
   slideFileName,
+  loadCarousels,
+  removeCarousel,
+  saveCarousel,
+  type SavedCarousel,
   slideRole,
   splitDraftIntoSlides,
   type CarouselBrand,
@@ -100,7 +105,10 @@ export default function CarouselPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   /** Posts that are still just a hook (board ideas), which can't make slides. */
   const [ideaOnly, setIdeaOnly] = useState(0);
-  const [mode, setMode] = useState<"drafts" | "paste">("drafts");
+  const [mode, setMode] = useState<"drafts" | "paste" | "saved">("drafts");
+  const [saved, setSaved] = useState<SavedCarousel[]>([]);
+  // which saved carousel this is: "d:<draft id>" or "p:<time>" for pasted text
+  const [carouselId, setCarouselId] = useState("");
   const [draftId, setDraftId] = useState("");
   const [pasteText, setPasteText] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -139,6 +147,7 @@ export default function CarouselPage() {
       };
       setBrand(initial);
       setHexInput(initial.color);
+      setSaved(loadCarousels(id));
       setReady(true);
     });
     return () => {
@@ -167,6 +176,7 @@ export default function CarouselPage() {
       params.delete("draft");
     }
     if (params.toString() !== searchParams.toString()) setSearchParams(params, { replace: true });
+    setCarouselId(source.kind === "draft" ? `d:${source.id}` : `p:${Date.now().toString(36)}`);
     const { slides: made, ...info } = splitDraftIntoSlides(text, { hook });
     setSlides(made);
     setSplit(info);
@@ -203,6 +213,7 @@ export default function CarouselPage() {
           setEdited(work.edited === true);
           if (typeof work.fileBase === "string") setFileBase(work.fileBase);
           setPlatform(work.platform === "linkedin" ? "linkedin" : "instagram");
+          if (typeof work.carouselId === "string") setCarouselId(work.carouselId);
           if (work.slides.length > 0) toast({ title: "Your carousel is back" });
         }
       } catch {
@@ -234,13 +245,59 @@ export default function CarouselPage() {
       } else {
         sessionStorage.setItem(
           workKey(userId),
-          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform }),
+          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId }),
         );
       }
     } catch {
       // storage blocked: the work just won't survive a page change
     }
-  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform]);
+  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId]);
+
+  // an edited carousel is kept to come back to (per profile, on every device)
+  const keep = (list = slides) => {
+    if (!userId || list.length < MIN_SLIDES) return;
+    const id = carouselId || `p:${Date.now().toString(36)}`;
+    if (!carouselId) setCarouselId(id);
+    setSaved(saveCarousel(userId, { id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined }));
+  };
+  useEffect(() => {
+    if (!edited || slides.length < MIN_SLIDES) return;
+    const t = window.setTimeout(() => keep(), 800);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slides, edited, platform]);
+
+  // the Saved tab goes with the last saved carousel, so don't leave the picker on it
+  useEffect(() => {
+    if (mode === "saved" && saved.length === 0) setMode("drafts");
+  }, [mode, saved.length]);
+
+  const openSaved = (c: SavedCarousel) => {
+    setSlides(c.slides);
+    setSplit(null);
+    setByHand(true);
+    setEdited(false);
+    setPending(null);
+    setBeforeAi(null);
+    setAi({ status: "idle" });
+    setFileBase(c.title);
+    setPlatform(c.platform);
+    setCarouselId(c.id);
+    setDraftId(c.draftId ?? "");
+    setNotice(null);
+  };
+  const deleteSaved = (c: SavedCarousel) => {
+    if (!userId) return;
+    setSaved(removeCarousel(userId, c.id));
+    toast({
+      title: "Carousel deleted",
+      action: (
+        <ToastAction altText="Undo" onClick={() => setSaved(saveCarousel(userId, c, new Date(c.updatedAt || Date.now())))}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
 
   const change = (update: (prev: Slide[]) => Slide[]) => {
     setSlides(update);
@@ -302,6 +359,7 @@ export default function CarouselPage() {
 
   const exportSlides = async (indexes: number[]) => {
     if (exporting || indexes.length === 0) return;
+    keep();
     const jobs = indexes.map((i) => ({ svg: images[i].svg, name: slideFileName(fileBase, i) }));
     setExporting({ done: 0, total: jobs.length });
     try {
@@ -331,6 +389,7 @@ export default function CarouselPage() {
   // one PDF of every slide: how LinkedIn takes a carousel (a document post)
   const exportPdf = async () => {
     if (exporting) return;
+    keep();
     setExporting({ done: 0, total: images.length });
     try {
       const pages = [];
@@ -418,6 +477,7 @@ export default function CarouselPage() {
               [
                 ["drafts", "From My posts"],
                 ["paste", "Paste text"],
+                ...(saved.length ? ([["saved", `Saved (${saved.length})`]] as const) : []),
               ] as const
             ).map(([key, label]) => (
               <button
@@ -442,7 +502,25 @@ export default function CarouselPage() {
             </p>
           )}
 
-          {mode === "drafts" ? (
+          {mode === "saved" ? (
+            <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
+              {saved.map((c) => (
+                <li key={c.id} className={`flex items-center gap-2 px-3 py-2 ${c.id === carouselId ? "bg-primary/5" : ""}`}>
+                  <button type="button" onClick={() => openSaved(c)} className="min-w-0 flex-1 text-left">
+                    <span className="block truncate text-sm font-medium">{c.title}</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      {c.slides.length} slides, {c.platform === "linkedin" ? "LinkedIn" : "Instagram"}
+                      {c.updatedAt ? `, ${new Date(c.updatedAt).toLocaleDateString("en-SG", { day: "numeric", month: "short" })}` : ""}
+                    </span>
+                  </button>
+                  <Button size="sm" variant="outline" className="h-8" onClick={() => openSaved(c)}>Open</Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" aria-label={`Delete ${c.title}`} onClick={() => deleteSaved(c)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : mode === "drafts" ? (
             !ready ? (
               <p className="text-sm text-muted-foreground">Loading your posts…</p>
             ) : drafts.length === 0 ? (

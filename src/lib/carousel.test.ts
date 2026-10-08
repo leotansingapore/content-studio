@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_CTA,
   MAX_SLIDES,
@@ -318,5 +318,42 @@ describe("brand", () => {
     store.set("content-studio-carousel-brand-u1", "{bad json");
     expect(loadBrand("u1")).toBeNull();
     expect(loadBrand(null)).toBeNull();
+  });
+});
+
+describe("saved carousels", () => {
+  const store = new Map<string, string>();
+  beforeEach(() => {
+    store.clear();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => void store.set(k, v),
+        removeItem: (k: string) => void store.delete(k),
+      },
+    });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const slides = [{ id: "a", title: "Hook", body: "" }, { id: "b", title: "Point", body: "Body" }];
+
+  it("saves newest first, replaces by id and keeps the latest 20", async () => {
+    const { saveCarousel, loadCarousels, MAX_SAVED_CAROUSELS } = await import("@/lib/carousel");
+    saveCarousel("u1", { id: "d:1", title: "One", platform: "instagram", slides }, new Date("2026-10-01"));
+    saveCarousel("u1", { id: "p:2", title: "Two", platform: "linkedin", slides }, new Date("2026-10-02"));
+    saveCarousel("u1", { id: "d:1", title: "One again", platform: "instagram", slides }, new Date("2026-10-03"));
+    expect(loadCarousels("u1").map((c) => c.title)).toEqual(["One again", "Two"]);
+    expect([...store.keys()]).toEqual(["content-studio-carousels-u1"]);
+    for (let i = 0; i < 25; i++) saveCarousel("u1", { id: `p:${i + 10}`, title: `n${i}`, platform: "instagram", slides });
+    expect(loadCarousels("u1")).toHaveLength(MAX_SAVED_CAROUSELS);
+  });
+
+  it("drops malformed entries and removes by id", async () => {
+    const { loadCarousels, removeCarousel } = await import("@/lib/carousel");
+    store.set("content-studio-carousels-u1", JSON.stringify([{ id: "x", slides: "no" }, { id: "y", title: 5, slides: [null, { id: "s", title: "T" }] }, { slides: [] }]));
+    expect(loadCarousels("u1")).toEqual([{ id: "y", title: "Carousel", platform: "instagram", slides: [{ id: "s", title: "T", body: "" }], draftId: undefined, updatedAt: "" }]);
+    expect(removeCarousel("u1", "y")).toEqual([]);
+    store.set("content-studio-carousels-u1", "{not json");
+    expect(loadCarousels("u1")).toEqual([]);
   });
 });

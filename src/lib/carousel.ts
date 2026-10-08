@@ -649,3 +649,65 @@ export function saveBrand(userId: string, brand: CarouselBrand): void {
     // storage full or blocked: the brand still applies for this visit
   }
 }
+
+// ---- Saved carousels -------------------------------------------------------------
+// Carousels kept to come back to, per profile (synced like everything else):
+//   key: content-studio-carousels-${scoped(userId)}
+
+export interface SavedCarousel {
+  /** "d:<draft id>" for one made from a post, "p:<time>" for pasted text. */
+  id: string;
+  title: string;
+  platform: "instagram" | "linkedin";
+  slides: Slide[];
+  draftId?: string;
+  updatedAt: string;
+}
+
+export const MAX_SAVED_CAROUSELS = 20;
+const SAVED_KEY_PREFIX = "content-studio-carousels-";
+
+function sanitizeSaved(raw: unknown): SavedCarousel[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((c): SavedCarousel[] => {
+    if (!c || typeof c !== "object") return [];
+    const r = c as Record<string, unknown>;
+    if (typeof r.id !== "string" || !Array.isArray(r.slides)) return [];
+    const slides = r.slides
+      .filter((s): s is Record<string, unknown> => !!s && typeof s === "object")
+      .map((s) => ({ id: String(s.id ?? newSlideId()), title: String(s.title ?? ""), body: String(s.body ?? "") }))
+      .slice(0, MAX_SLIDES);
+    if (slides.length === 0) return [];
+    return [{
+      id: r.id,
+      title: typeof r.title === "string" ? r.title.slice(0, 120) : "Carousel",
+      platform: r.platform === "linkedin" ? "linkedin" : "instagram",
+      slides,
+      draftId: typeof r.draftId === "string" ? r.draftId : undefined,
+      updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
+    }];
+  });
+}
+
+export function loadCarousels(userId: string | null | undefined): SavedCarousel[] {
+  const s = storage();
+  if (!s || !userId) return [];
+  try {
+    return sanitizeSaved(JSON.parse(s.getItem(SAVED_KEY_PREFIX + scoped(userId)) ?? "[]"));
+  } catch {
+    return [];
+  }
+}
+
+/** Saves (or replaces) one carousel, newest first, keeping the latest 20. */
+export function saveCarousel(userId: string, c: Omit<SavedCarousel, "updatedAt">, now = new Date()): SavedCarousel[] {
+  const next = [{ ...c, updatedAt: now.toISOString() }, ...loadCarousels(userId).filter((x) => x.id !== c.id)].slice(0, MAX_SAVED_CAROUSELS);
+  storage()?.setItem(SAVED_KEY_PREFIX + scoped(userId), JSON.stringify(next));
+  return next;
+}
+
+export function removeCarousel(userId: string, id: string): SavedCarousel[] {
+  const next = loadCarousels(userId).filter((x) => x.id !== id);
+  storage()?.setItem(SAVED_KEY_PREFIX + scoped(userId), JSON.stringify(next));
+  return next;
+}
