@@ -581,7 +581,7 @@ export default function PlanPage() {
                     setPositioning((p) => ({ ...p, audience: v as PlanAudience }))
                   }
                 >
-                  <SelectTrigger aria-label="Audience / life-stage">
+                  <SelectTrigger aria-label="Audience / life-stage" className="[@media(pointer:coarse)]:h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -605,6 +605,7 @@ export default function PlanPage() {
                     }))
                   }
                   placeholder="e.g. fresh grads earning $3.5-4.5K"
+                  className="[@media(pointer:coarse)]:h-11"
                 />
               </div>
             </div>
@@ -644,7 +645,7 @@ export default function PlanPage() {
                     setPositioning((p) => withGoalCadence({ ...p, platform: v as PlanPlatform }, goals))
                   }
                 >
-                  <SelectTrigger aria-label="Primary platform">
+                  <SelectTrigger aria-label="Primary platform" className="[@media(pointer:coarse)]:h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -667,7 +668,7 @@ export default function PlanPage() {
                     setPositioning((p) => ({ ...p, cadence: Number(v) }))
                   }
                 >
-                  <SelectTrigger aria-label="Posts per week">
+                  <SelectTrigger aria-label="Posts per week" className="[@media(pointer:coarse)]:h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -736,7 +737,7 @@ export default function PlanPage() {
           <div className="flex items-center gap-3">
             <Label className="text-sm">Plan length</Label>
             <Select value={String(weeks)} onValueChange={(v) => setWeeks(Number(v))}>
-              <SelectTrigger aria-label="Plan length" className="w-36">
+              <SelectTrigger aria-label="Plan length" className="w-36 [@media(pointer:coarse)]:h-11">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

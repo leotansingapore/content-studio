@@ -189,7 +189,7 @@ export default function CompetitorReference({ selectedId, onSelect }: Props) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 text-left"
+        className="flex w-full items-center justify-between gap-2 text-left [@media(pointer:coarse)]:min-h-11"
       >
         <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           <Users className="h-3.5 w-3.5" /> Reference a competitor's angle
