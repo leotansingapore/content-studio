@@ -1,9 +1,12 @@
 // Sub-navigation for merged sections. Routes stay intact (deep links, query
 // params keep working) — the sidebar shows one entry per group and these tabs
 // move between the group's pages.
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
+import { REELS_BOARD_OWNERS } from "@/lib/reelsBoard";
 
-export type SectionTab = { to: string; label: string; end?: boolean };
+export type SectionTab = { to: string; label: string; end?: boolean; /** Shown only to these sign-ins. */ owners?: string[] };
 
 // Write group: the drafting surfaces.
 export const WRITE_TABS: SectionTab[] = [
@@ -25,6 +28,7 @@ export const PIPELINE_TABS: SectionTab[] = [
   { to: "/calendar", label: "Calendar" },
   { to: "/board", label: "Board" },
   { to: "/drafts", label: "My posts" },
+  { to: "/reels", label: "Reels", owners: REELS_BOARD_OWNERS },
 ];
 
 // Recruit group: the #TopofMind recruitment kit, one Brand Brain behind all three.
@@ -45,6 +49,12 @@ export const LEARN_TABS: SectionTab[] = [
 ];
 
 export default function SectionTabs({ tabs }: { tabs: SectionTab[] }) {
+  const [email, setEmail] = useState("");
+  const gated = tabs.some((t) => t.owners);
+  useEffect(() => {
+    if (gated) supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email?.toLowerCase() ?? ""));
+  }, [gated]);
+  tabs = tabs.filter((t) => !t.owners || t.owners.includes(email));
   return (
     <nav
       aria-label="Section"

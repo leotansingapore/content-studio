@@ -2,12 +2,24 @@
   "redirects": [
     {
       "source": "/(.*)",
-      "has": [{ "type": "host", "value": "content-studio-beige-eta.vercel.app" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "content-studio-beige-eta.vercel.app"
+        }
+      ],
       "destination": "https://consultant-content-studio.vercel.app/generate",
       "permanent": false
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/mb-studio/api/:path*",
+      "destination": "https://moneybees-studio.vercel.app/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
   ]
 }

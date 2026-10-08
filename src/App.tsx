@@ -47,6 +47,7 @@ const HubGuideDetailPage = lazy(() => import("@/pages/hub/HubGuideDetailPage"));
 const HubAdminPage = lazy(() => import("@/pages/hub/HubAdminPage"));
 const FadsPage = lazy(() => import("@/pages/FadsPage"));
 const RecruitPage = lazy(() => import("@/pages/RecruitPage"));
+const ReelsPage = lazy(() => import("@/pages/ReelsPage"));
 
 export default function App() {
   return (
@@ -86,6 +87,7 @@ export default function App() {
           <Route path="/drafts" element={<DraftsPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/board" element={<BoardPage />} />
+          <Route path="/reels" element={<ReelsPage />} />
           <Route path="/coach" element={<CoachPage />} />
           {/* Diagnosis now lives inside the Coach as its first step. */}
           <Route path="/diagnosis" element={<Navigate to="/coach" replace />} />

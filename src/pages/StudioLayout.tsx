@@ -49,7 +49,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
         to: "/calendar",
         label: "Pipeline",
         icon: Columns3,
-        also: ["/board", "/drafts"],
+        also: ["/board", "/drafts", "/reels"],
       },
       {
         to: "/recruit",
