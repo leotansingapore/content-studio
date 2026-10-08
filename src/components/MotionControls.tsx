@@ -33,8 +33,8 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
   const hookEnd = settings.hook?.trim() ? settings.hookSeconds : 0;
   const figures = numberCards(caps.flatMap((c) => c.words), segs, speed, total, hookEnd).length;
 
-  // where the face sits, found once on this device, so cards keep clear of it
-  const needFace = !!settings.numberCards && settings.faceBox === undefined && !!file && !file.type.startsWith("audio/");
+  // where the face sits, found once on this device, so cards and the hook keep clear of it
+  const needFace = (!!settings.numberCards || !!settings.hook?.trim()) && settings.faceBox === undefined && !!file && !file.type.startsWith("audio/");
   useEffect(() => {
     if (!needFace || !file) return;
     let live = true;

@@ -8,7 +8,7 @@
 
 import { readableOn } from "@/lib/carouselLayout";
 import { callFn } from "@/lib/edgeFn";
-import { frameRect, outAt, srcAt, type Caption, type EditSettings, type Segment, type Sentence, type Word } from "@/lib/videoEdit";
+import { STYLES, frameRect, outAt, srcAt, type Caption, type EditSettings, type Segment, type Sentence, type Word } from "@/lib/videoEdit";
 
 /** A key line Jev picked: where it is said on the source timeline and Jev's yes probability. */
 export interface KeyLine {
@@ -262,6 +262,22 @@ export function fitBlock(h: number, avoid: ([number, number] | null)[], prefer: 
   return { top: prefer[0], scale: 1 };
 }
 
+/** A band on the frame as it reads zoomed in by z about the row cy. */
+export const zoomBand = (b: [number, number] | null, z: number, cy: number): [number, number] | null =>
+  b && [cy + (b[0] - cy) * z, cy + (b[1] - cy) * z];
+
+/**
+ * Where the hook card goes (share of the frame height): today's place, 11% from
+ * the top, unless the face is there; then the first spot clear of the face (and
+ * of the captions, when given). Without a face found it stays where it was.
+ */
+export function hookTop(s: EditSettings, W: number, H: number, vw: number, vh: number, h: number, capBand: [number, number] | null): number {
+  // the hook shows before any zoom on a key line; the punch-in on cuts may run under it
+  const z = s.punchIn && !s.keyZooms ? STYLES[s.style].punch : 1;
+  const face = zoomBand(faceBand(s.faceBox, s, W, H, vw, vh), z, 0.5);
+  return face ? placeBlock(h, [face, capBand], [0.11]) ?? 0.11 : 0.11;
+}
+
 export interface MotionPlan {
   /** The zooms on key lines; empty when that is off or nothing was picked (the old punch-in on cuts applies). */
   zooms: Beat[];
@@ -341,8 +357,7 @@ export function drawMotion(
   const bh = numPx * 1.05 + (c.fig.label ? labPx * 1.5 : 0) + 64 * u;
   // the face as big as a zoom on a key line makes it, so the card keeps its place through one
   const face = faceBand(s.faceBox, s, W, H, f.video.videoWidth, f.video.videoHeight);
-  const z = m.zooms.length ? KEY_ZOOM.peak : 1;
-  const fit = fitBlock(bh / H, [face && [0.42 + (face[0] - 0.42) * z, 0.42 + (face[1] - 0.42) * z], capBand], [0.12]);
+  const fit = fitBlock(bh / H, [zoomBand(face, m.zooms.length ? KEY_ZOOM.peak : 1, 0.42), capBand], [0.12]);
   const top = fit.top * H;
   const t = f.out - c.from;
   const alpha = Math.min(ease(t / CARD.arrive), Math.min(1, Math.max(0, (c.to - f.out) / CARD.leave)));

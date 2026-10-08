@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultSettings, keepSegments, sentencesOf, type EditSettings, type Word } from "./videoEdit";
-import { KEY_ZOOM, ZOOM_GAP, cardText, faceBand, findFigures, fitBlock, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
+import { KEY_ZOOM, ZOOM_GAP, cardText, faceBand, findFigures, fitBlock, hookTop, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
 
 const K = (s: number, e: number, p: number): KeyLine => ({ s, e, p });
 const one = [{ start: 0, end: 60 }];
@@ -159,5 +159,25 @@ describe("keeping clear of the face and the captions", () => {
     expect(fit.top).toBeCloseTo(0.72, 5);
     expect(fitBlock(0.15, [null], [0.12])).toEqual({ top: 0.12, scale: 1 });
     expect(fitBlock(0.5, [[0.1, 0.84]], [0.12])).toEqual({ top: 0.12, scale: 1 });
+  });
+});
+
+describe("the hook card clear of the face", () => {
+  const s = (p: Partial<EditSettings>): EditSettings => ({ ...defaultSettings("bold"), punchIn: false, ...p });
+  const closeUp = { x0: 0.2, y0: 0.2, x1: 0.8, y1: 0.54 };
+  it("stays at today's place without a face found, or when the face is lower down", () => {
+    expect(hookTop(s({}), 1080, 1920, 720, 1280, 0.1, null)).toBe(0.11);
+    expect(hookTop(s({ faceBox: null }), 1080, 1920, 720, 1280, 0.1, null)).toBe(0.11);
+    expect(hookTop(s({ faceBox: { x0: 0.3, y0: 0.45, x1: 0.7, y1: 0.7 } }), 1080, 1920, 720, 1280, 0.1, null)).toBe(0.11);
+  });
+  it("moves under a face that fills the top, and under the captions when they are in the way", () => {
+    const under = hookTop(s({ faceBox: closeUp }), 1080, 1920, 720, 1280, 0.1, null);
+    expect(under).toBeGreaterThan(0.57);
+    expect(hookTop(s({ faceBox: closeUp }), 1080, 1920, 720, 1280, 0.1, [0.58, 0.7])).toBeCloseTo(0.72, 5);
+  });
+  it("allows for the punch-in on cuts, which makes the face bigger under the hook", () => {
+    const face = { x0: 0.3, y0: 0.3, x1: 0.7, y1: 0.5 };
+    expect(hookTop(s({ faceBox: face }), 1080, 1920, 720, 1280, 0.1, null)).toBe(0.11);
+    expect(hookTop(s({ faceBox: face, punchIn: true }), 1080, 1920, 720, 1280, 0.1, null)).not.toBe(0.11);
   });
 });

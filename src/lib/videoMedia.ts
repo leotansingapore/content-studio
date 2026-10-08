@@ -51,7 +51,7 @@ import {
   peaksFrom,
   waveAt,
 } from "@/lib/videoEdit";
-import { drawMotion, keyZoom, motionOf } from "@/lib/videoMotion";
+import { drawMotion, hookTop, keyZoom, motionOf } from "@/lib/videoMotion";
 
 // ---------- sound for captions ----------
 
@@ -551,14 +551,20 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     g.fillRect(0, H * 0.91, W, H * 0.09);
   }
 
-  // hook title: a white card at the top for the first seconds of the edit (laid out first so captions avoid it)
+  // where the captions sit: about two lines either side of their centre (cards and the hook keep clear)
+  const capHalf = (BASE_PX[s.style] * s.size * k * 1.18) / H;
+  const capBand: [number, number] | null = s.captions ? [captionCenter(s) - capHalf, captionCenter(s) + capHalf] : null;
+
+  // hook title: a white card for the first seconds of the edit, 11% from the top unless the face is there
+  // (laid out first so captions avoid it)
   let hook: { lines: string[][]; px: number; lh: number; bw: number; bh: number; top: number } | null = null;
   if (s.hook.trim() && f.out < s.hookSeconds) {
     const px = 60 * k;
     g.font = `800 ${Math.round(px)}px "Archivo Black", "Arial Black", system-ui, sans-serif`;
     const lines = wrap(g, s.hook.trim().split(/\s+/), W * 0.8);
     const lh = px * 1.2;
-    hook = { lines, px, lh, bw: Math.max(...lines.map((l) => g.measureText(l.join(" ")).width)) + px * 1.2, bh: lines.length * lh + px * 0.7, top: H * 0.11 };
+    hook = { lines, px, lh, bw: Math.max(...lines.map((l) => g.measureText(l.join(" ")).width)) + px * 1.2, bh: lines.length * lh + px * 0.7, top: 0 };
+    hook.top = H * hookTop(s, W, H, v.videoWidth, v.videoHeight, hook.bh / H, captionCenter(s) >= 0.4 ? capBand : null);
   }
 
   // captions
@@ -590,7 +596,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     }
     const lh = px * 1.18;
     let y = H * captionCenter(s) - ((lines.length - 1) * lh) / 2;
-    if (hook && captionCenter(s) < 0.4) y = Math.max(y, hook.top + hook.bh + lh * 0.75);
+    if (hook && captionCenter(s) < 0.4 && hook.top < H * 0.3) y = Math.max(y, hook.top + hook.bh + lh * 0.75);
     let wi = 0;
     for (const line of lines) {
       const full = line.join(" ");
@@ -685,11 +691,8 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
 
   for (const o of overlaysAt(s.overlays, f.out)) drawOverlay(g, o, f.still ? 1 : captionIntro(f.out, o.from));
 
-  // number cards, clear of the face and of the captions (about two lines either side of their centre)
-  if (motion.cards.length) {
-    const half = (BASE_PX[s.style] * s.size * k * 1.18) / H;
-    drawMotion(g, motion, f, s.captions ? [captionCenter(s) - half, captionCenter(s) + half] : null);
-  }
+  // number cards, clear of the face and the captions
+  if (motion.cards.length) drawMotion(g, motion, f, capBand);
 
   if (hook) {
     // the hook card follows the caption animation: in over 250 ms, out over its last 200 ms
