@@ -93,7 +93,6 @@ export default function SwipeFilePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
   const [hasPlaybook, setHasPlaybook] = useState(false);
-  const [forYou, setForYou] = useState(false);
 
   const [search, setSearch] = useState("");
   const [format, setFormat] = useState("all");
@@ -122,7 +121,7 @@ export default function SwipeFilePage() {
       setSavedSet(new Set(loadSaved(id).topPosts));
       const t = personalTargetFromPositioning(loadPositioning(id));
       setHasPlaybook(Boolean(t));
-      setForYou(Boolean(t)); // default to personalised when a Playbook exists
+      if (t) setSort("for-you"); // personalised by default once a Playbook exists
     });
     return () => {
       active = false;
@@ -154,11 +153,11 @@ export default function SwipeFilePage() {
     return sortPosts(items, sort, {
       averages: AVERAGES,
       now: Date.now(),
-      target: forYou ? target : null,
+      target,
     });
-  }, [search, format, kind, topic, angle, audience, sort, savedOnly, savedSet, forYou, target]);
+  }, [search, format, kind, topic, angle, audience, sort, savedOnly, savedSet, target]);
 
-  useEffect(() => setVisible(PAGE_SIZE), [search, format, kind, topic, angle, audience, sort, savedOnly, forYou]);
+  useEffect(() => setVisible(PAGE_SIZE), [search, format, kind, topic, angle, audience, sort, savedOnly]);
 
   const working = useMemo(
     () =>
@@ -352,27 +351,8 @@ export default function SwipeFilePage() {
                   label="Sort"
                   value={sort}
                   onChange={(v) => setSort(v as SortKey)}
-                  options={SORTS.map((s) => ({ value: s.value, label: s.label }))}
+                  options={SORTS.filter((s) => hasPlaybook || s.value !== "for-you").map((s) => ({ value: s.value, label: s.label }))}
                 />
-                {/* Personal ranking only changes these two sorts, so the switch shows only there. */}
-                {hasPlaybook && (sort === "engagement" || sort === "trending") && (
-                  <div className="inline-flex overflow-hidden rounded-full border border-border/60" role="group" aria-label="Rank for">
-                    {[
-                      { on: true, label: "For you" },
-                      { on: false, label: "Everyone" },
-                    ].map((o) => (
-                      <button
-                        key={o.label}
-                        type="button"
-                        onClick={() => setForYou(o.on)}
-                        aria-pressed={forYou === o.on}
-                        className={`h-9 px-3 text-xs font-medium sm:h-8 ${forYou === o.on ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
-                      >
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
                 <span className="ml-auto text-xs text-muted-foreground">
                   {filtered.length} of {TOTAL_TOP_POSTS} posts
                 </span>

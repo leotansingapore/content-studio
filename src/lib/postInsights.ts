@@ -54,6 +54,7 @@ export const FORMAT_OPTIONS = [
 ] as const;
 
 export const SORTS = [
+  { value: "for-you", label: "Best for you" },
   { value: "engagement", label: "Highest engagement" },
   { value: "viewed", label: "Most viewed" },
   { value: "liked", label: "Most liked" },
@@ -316,12 +317,15 @@ export function sortPosts(
     case "trending":
       return arr.sort(
         (a, b) =>
-          postScore(b, { ...ctx, trending: true }) -
-          postScore(a, { ...ctx, trending: true }),
+          postScore(b, { ...ctx, target: null, trending: true }) -
+          postScore(a, { ...ctx, target: null, trending: true }),
       );
+    case "for-you":
+      // Highest engagement, lifted by how well each post matches the Playbook.
+      return arr.sort((a, b) => postScore(b, ctx) - postScore(a, ctx));
     case "engagement":
     default:
-      return arr.sort((a, b) => postScore(b, ctx) - postScore(a, ctx));
+      return arr.sort((a, b) => postScore(b, { ...ctx, target: null }) - postScore(a, { ...ctx, target: null }));
   }
 }
 

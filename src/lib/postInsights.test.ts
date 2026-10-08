@@ -150,6 +150,17 @@ describe("personalisation", () => {
   it("returns null for an empty positioning", () => {
     expect(personalTargetFromPositioning(null)).toBeNull();
   });
+  it("lifts matching posts only under Best for you", () => {
+    const target = personalTargetFromPositioning(positioning);
+    const items: ScoredPost[] = [
+      post({ shortCode: "loud", likes: 120, caption: "my weekend cooking haul" }),
+      post({ shortCode: "mine", likes: 100, caption: "term life insurance for your family", audience: ["parent"] }),
+    ].map((p) => ({ post: p, insight: enrich(p, {}) }));
+    const ctx = { averages: {}, now: Date.parse("2026-06-02T00:00:00Z"), target };
+    expect(sortPosts(items, "for-you", ctx)[0].post.shortCode).toBe("mine");
+    expect(sortPosts(items, "engagement", ctx)[0].post.shortCode).toBe("loud");
+    expect(sortPosts(items, "trending", ctx)[0].post.shortCode).toBe("loud");
+  });
 });
 
 describe("formatsWorkingNow", () => {
