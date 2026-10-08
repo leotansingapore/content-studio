@@ -3,9 +3,9 @@
 // "**CAPTION:**" or "Suggested caption:". Only the caption is what actually
 // gets posted, so previews need the two halves separated.
 
-// Also "SUGGESTED POST CAPTION:" / "Post caption:", which the generator writes too.
+// Also "SUGGESTED POST CAPTION:" / "Post caption:" and "[CAPTION SUGGESTION]", which the generator writes too.
 const CAPTION_HEADING =
-  /^[\s>#*-]*(?:suggested\s+)?(?:post\s+)?caption\s*\**\s*(?::\s*\**\s*(.*))?$/i;
+  /^[\s>#*[-]*(?:suggested\s+)?(?:post\s+)?caption(?:\s+suggestions?)?\s*[\]*]*\s*(?::\s*\**\s*(.*))?$/i;
 
 export function splitScriptCaption(text: string): {
   script: string | null;
