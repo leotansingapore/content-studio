@@ -298,7 +298,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     setSettings(prev);
   };
 
-  const transcript = useMemo(() => words.map((w) => w.w).join(" "), [words]);
+  // Only what survives the trims and cuts: a clip's caption is about the clip, not the whole video.
+  const transcript = useMemo(
+    () => words.filter((w) => plan.segs.some((g) => w.s >= g.start - 0.05 && w.e <= g.end + 0.05)).map((w) => w.w).join(" "),
+    [words, plan],
+  );
 
   const runVibe = async (frames?: string[], preset?: string) => {
     const instruction = preset ?? ask.trim();
