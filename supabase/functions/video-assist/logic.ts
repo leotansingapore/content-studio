@@ -160,12 +160,17 @@ export interface FoundClip {
   reason: string;
   /** Out of 100, from Jev: how well it stands alone and how strongly it opens. Unset when Jev had no answer. */
   score?: number;
+  /** When the person said what they want: whether Jev reads this clip as about it. */
+  onTopic?: boolean;
 }
+
+/** What the person typed the clip should be about, at most this long. */
+export const MAX_ABOUT = 200;
 
 /** Word timings for clean clip edges: about 50 minutes of speech, more than the editor can caption. */
 export const MAX_CLIP_WORDS = 8000;
 
-export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number; words: Word[] } | { ok: false; error: string } {
+export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSentence[]; duration: number; words: Word[]; about: string } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const duration = Number(b.duration);
   // optional (a YouTube link has captions, not word timings); only well-formed words in time order count
@@ -182,7 +187,8 @@ export function parseClipsRequest(body: unknown): { ok: true; sentences: ClipSen
     .filter((x) => Number.isFinite(x.s) && Number.isFinite(x.e) && x.e > x.s && x.text);
   if (!Number.isFinite(duration) || duration < 45) return { ok: false, error: "Clips need a video of at least 45 seconds." };
   if (sentences.length < 5) return { ok: false, error: "Caption the video first, then find clips." };
-  return { ok: true, sentences, duration, words };
+  const about = String(b.about ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_ABOUT);
+  return { ok: true, sentences, duration, words, about };
 }
 
 /**
@@ -198,9 +204,12 @@ export function clipCount(duration: number): { min: number; max: number } {
 /** The LLM proposes about twice the clips kept, so Jev has a choice; at most 20 keeps the reply near 2 cents. */
 export const candidateCount = (duration: number) => Math.min(20, 2 * clipCount(duration).max);
 
-export function buildClipsMessages(sentences: ClipSentence[], duration: number): { role: string; content: string }[] {
+export function buildClipsMessages(sentences: ClipSentence[], duration: number, about = ""): { role: string; content: string }[] {
   const lines = sentences.map((x) => `[${x.s.toFixed(1)}-${x.e.toFixed(1)}] ${x.text}`).join("\n");
   const n = candidateCount(duration);
+  const asked = about
+    ? `The person wants clips about: ${JSON.stringify(about)}. List first every part of the video about that, best first, then the best of the rest.`
+    : "";
   return [
     {
       role: "system",
@@ -209,8 +218,9 @@ export function buildClipsMessages(sentences: ClipSentence[], duration: number):
         `Propose up to ${n} candidate clips from across the whole video (fewer when it is too short to hold that many). Each should stand alone: a viewer with no context understands it, it opens on a strong line (a claim, a question, a number, a story beat) and ends on a complete thought.`,
         "Each clip is 25 to 75 seconds (aim for 30 to 60): join consecutive sentences until the thought is complete. It starts at the start time of a sentence and ends at the end time of a sentence. Clips never overlap. Best clip first.",
         "For each: a 3-6 word working title in sentence case (only the first word capitalised), a hook card of 8 words or fewer made only of the speaker's own words or their plain meaning, and a reason: one plain sentence of 15 words or fewer on why a viewer would watch it to the end. No em dashes. Never promise returns.",
+        asked,
         'Reply with JSON only: {"clips":[{"start":number,"end":number,"title":string,"hook":string,"reason":string}]}',
-      ].join("\n"),
+      ].filter(Boolean).join("\n"),
     },
     { role: "user", content: `Video length: ${duration.toFixed(1)}s\nTranscript with sentence times in seconds:\n${lines}` },
   ];
@@ -328,6 +338,7 @@ const STANDS_ALONE = [
   "Makes sense alone and makes a point, with a slow start or a loose ending",
   "Fully self-contained: a clear setup, one point, a complete ending",
 ];
+const MATCHES = ["A different topic", "Touches the topic in passing", "On the topic, though not exactly what was asked", "Exactly the part asked for"];
 // The levels of Leo's podcast-clips skill (pick.py hooks, "stop").
 const STOPS_SCROLL = [
   "Swipe past: generic, bland or unclear",
@@ -336,8 +347,11 @@ const STOPS_SCROLL = [
   "Stops instantly: hits a fear, desire or curiosity gap they feel right now",
 ];
 
-/** Two Scores per candidate: s<i>, does it stand alone; h<i>, does its first line stop the scroll. State: {viewer}. */
-export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[], words: Word[] = []): Record<string, JevQuestion> {
+/**
+ * Two Scores per candidate: s<i>, does it stand alone; h<i>, does its first line
+ * stop the scroll. With a request, a third, r<i>: how well it matches what was asked. State: {viewer}.
+ */
+export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[], words: Word[] = [], about = ""): Record<string, JevQuestion> {
   const q: Record<string, JevQuestion> = {};
   cands.forEach((c, i) => {
     const said = clipText(sentences, c, words);
@@ -358,9 +372,29 @@ export function clipQuestions(cands: FoundClip[], sentences: ClipSentence[], wor
       },
       criteria: STOPS_SCROLL,
     };
+    if (about) {
+      q[`r${i}`] = {
+        type: "score",
+        instructions: {
+          clip: said.join(" ").slice(0, 2000),
+          request: about,
+          question: "Someone typed `request` to find a part of a longer talk. How well does `clip` match what they are looking for?",
+        },
+        criteria: MATCHES,
+      };
+    }
   });
   return q;
 }
+
+/**
+ * A clip is on topic from this match level up (0-3). Read off 14 real podcast
+ * clips against 6 typed requests (jev-1.13.0, 2026-10-09): the clips about the
+ * request 1.54-3.00 ("why schools don't teach financial literacy" 1.60 on a clip
+ * saying schools don't teach it), clips merely near it 1.14-1.38, the rest under 0.6.
+ * A yes/no question asked first read that same clip 0.36, too strict for loose wording.
+ */
+export const ON_TOPIC = 1.5;
 
 /**
  * Past the first `min` clips, a clip is kept only from this score. Read off 16
@@ -378,25 +412,26 @@ const clash = (x: FoundClip, kept: FoundClip[]) =>
 /**
  * Jev's order, best first, with each score out of 100 (stands alone 60%, first
  * line 40%): at least `min` clips, more up to `max` while they score KEEP_SCORE.
+ * With a request, the clips about it come first and are all kept (up to `max`).
  * Without any answer, the LLM's own order and no scores. A clip that mostly
  * repeats a better one (their cleaned edges can meet) is dropped.
  */
-export function rankClips(cands: FoundClip[], answers: Record<string, JevAnswer> | null, count: { min: number; max: number }): FoundClip[] {
+export function rankClips(cands: FoundClip[], answers: Record<string, JevAnswer> | null, count: { min: number; max: number }, about = ""): FoundClip[] {
   const scored = cands.map((c, i): FoundClip => {
     const s = scoreOf(answers, `s${i}`);
     const h = scoreOf(answers, `h${i}`);
     if (s === null || h === null) return c;
-    return { ...c, score: Math.max(0, Math.min(100, Math.round((100 * (0.6 * s + 0.4 * h)) / 3))) };
+    const r = about ? scoreOf(answers, `r${i}`) : null;
+    return { ...c, score: Math.max(0, Math.min(100, Math.round((100 * (0.6 * s + 0.4 * h)) / 3))), ...(r === null ? {} : { onTopic: r >= ON_TOPIC }) };
   });
   const jev = scored.some((c) => c.score !== undefined);
-  const order = jev
-    ? scored.map((c, i) => ({ c, i })).sort((a, b) => (b.c.score ?? -1) - (a.c.score ?? -1) || a.i - b.i).map((x) => x.c)
-    : cands;
+  const rank = (c: FoundClip) => (c.onTopic ? 1000 : 0) + (c.score ?? -1);
+  const order = jev ? scored.map((c, i) => ({ c, i })).sort((a, b) => rank(b.c) - rank(a.c) || a.i - b.i).map((x) => x.c) : cands;
   const kept: FoundClip[] = [];
   for (const c of order) {
     if (kept.length === count.max) break;
     if (clash(c, kept)) continue;
-    if (jev && kept.length >= count.min && (c.score ?? 0) < KEEP_SCORE) break;
+    if (jev && kept.length >= count.min && !c.onTopic && (c.score ?? 0) < KEEP_SCORE) break;
     kept.push(c);
   }
   return kept;

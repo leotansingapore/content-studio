@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Scissors } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
@@ -32,13 +33,14 @@ export default function ClipFinder({ project, words, settings, duration, onClips
   const { toast } = useToast();
   const [list, setList] = useState<FoundClip[]>(() => found.get(project.id) ?? []);
   const [busy, setBusy] = useState(false);
+  const [about, setAbout] = useState("");
   const left = useUsesLeft(busy);
   const usesLeft = left("video-clips");
 
   const find = async () => {
     setBusy(true);
     try {
-      const clips = await findClips(sentencesOf(words), duration, words);
+      const clips = await findClips(sentencesOf(words), duration, words, about);
       const now = Date.now().toString(36);
       const made = clips.map((clip, i): FoundClip => ({
         clip,
@@ -63,18 +65,25 @@ export default function ClipFinder({ project, words, settings, duration, onClips
 
   if (duration < 45 || !words.length) return null;
   const scored = list.some((f) => typeof f.clip.score === "number");
+  // a clip was asked for and Jev found none about it
+  const offTopic = list.some((f) => f.clip.onTopic === false) && !list.some((f) => f.clip.onTopic);
   return (
     <section aria-label="Clips" className="space-y-2">
-      <Button variant="outline" size="sm" onClick={find} disabled={busy || usesLeft === 0} className={`h-11 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
-        {busy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Scissors className="h-3.5 w-3.5" />}
-        {busy ? "Finding clips..." : <>Find clips{usesLeft !== null && <span className={`font-normal ${usesLeft === 0 ? "text-destructive" : "opacity-80"}`}>{usesLeft === 0 ? "none left today" : `${usesLeft} left`}</span>}</>}
-      </Button>
+      <form className="flex flex-col gap-2 sm:flex-row sm:items-center" onSubmit={(e) => { e.preventDefault(); if (!busy && usesLeft !== 0) void find(); }}>
+        <Input value={about} onChange={(e) => setAbout(e.target.value)} maxLength={200} disabled={busy}
+          placeholder="What should the clip be about? (optional)" aria-label="What should the clip be about?" className="h-11 sm:h-9 sm:max-w-sm" />
+        <Button type="submit" variant="outline" size="sm" disabled={busy || usesLeft === 0} className={`h-11 shrink-0 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
+          {busy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Scissors className="h-3.5 w-3.5" />}
+          {busy ? "Finding clips..." : <>Find clips{usesLeft !== null && <span className={`font-normal ${usesLeft === 0 ? "text-destructive" : "opacity-80"}`}>{usesLeft === 0 ? "none left today" : `${usesLeft} left`}</span>}</>}
+        </Button>
+      </form>
       {list.length > 0 && (
         <div className="rounded-xl border border-success/40 bg-success/5 p-3">
           <p className="mb-2 flex items-center gap-1 text-sm font-semibold">
             {list.length} clips ready{scored ? ", best first" : ", each with its own hook"}
             {scored && <InfoTip label="About the scores">Out of 100: how well it stands alone and how strongly it opens.</InfoTip>}
           </p>
+          {offTopic && <p className="mb-2 text-xs text-muted-foreground">Nothing in this video is about that, so these are its best clips.</p>}
           <ul className="space-y-1.5">
             {list.map(({ clip, project: c }) => (
               <li key={c.id} className="flex flex-wrap items-center gap-2 text-sm">
@@ -85,6 +94,7 @@ export default function ClipFinder({ project, words, settings, duration, onClips
                   {fmtTime(c.settings.trimStart)}-{fmtTime(duration - c.settings.trimEnd)}
                 </span>
                 <span className="min-w-0 flex-1 truncate">{clip.title}</span>
+                {clip.onTopic && <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">On topic</span>}
                 <Button size="sm" variant="outline" className="h-11 text-xs sm:h-8" onClick={() => onOpen(c.id)}>Open</Button>
               </li>
             ))}

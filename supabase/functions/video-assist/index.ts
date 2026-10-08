@@ -6,11 +6,12 @@
 //        Frames are up to 3 stills from a reference video to match its look.
 //   POST {mode:"translate", lang:"zh"|"ms"|"ta", lines:[...]} -> {lines:[...]}: second-language
 //        caption lines, one per caption ("video-translate" cap).
-//   POST {mode:"clips", sentences:[{s,e,text}], duration, words?:[{w,s,e}]} -> {clips:[{start,end,title,hook,reason,score?}]}:
+//   POST {mode:"clips", sentences:[{s,e,text}], duration, words?:[{w,s,e}], about?} -> {clips:[{start,end,title,hook,reason,score?,onTopic?}]}:
 //        standalone reels cut from one long video, 3-5 under 8 minutes and more beyond: the LLM
 //        proposes about twice that, Jev scores each out of 100 and the best come first (score
 //        unset and the LLM's order when Jev has no answer) ("video-clips" cap, one use per call).
-//        With word timings, each clip's edges are cleaned first (cleanEdges).
+//        With word timings, each clip's edges are cleaned first (cleanEdges). With `about` (what the
+//        person typed), the LLM lists those parts first and Jev says which clips are about it.
 //   POST {mode:"cutaways", sentences:[{s,e,text}] on the edited timeline, duration}
 //        -> {sections:[{at,until,callout,show}]}: a text callout and what to cut away
 //        to, per section of a filmed talking head ("video-cutaways" cap).
@@ -158,7 +159,7 @@ Deno.serve(async (req) => {
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 200 + 120 * limit, response_format: { type: "json_object" }, messages: buildClipsMessages(c.sentences, c.duration) }),
+          body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 200 + 120 * limit, response_format: { type: "json_object" }, messages: buildClipsMessages(c.sentences, c.duration, c.about) }),
           signal: AbortSignal.timeout(60_000),
         });
         if (!res.ok) {
@@ -174,9 +175,9 @@ Deno.serve(async (req) => {
       if (c.words.length) clips = clips.map((x) => cleanEdges(x, c.words, c.duration));
       // Jev ranks the candidates (Leo's rule: a ranking is a decision); without an answer, the LLM's order
       const answers = mostlyEnglish(c.sentences.map((x) => x.text).join(" "))
-        ? await askJev({ viewer: CLIP_VIEWER }, clipQuestions(clips, c.sentences, c.words), { who: "video-assist clips", timeoutMs: 10_000 })
+        ? await askJev({ viewer: CLIP_VIEWER }, clipQuestions(clips, c.sentences, c.words, c.about), { who: "video-assist clips", timeoutMs: 10_000 })
         : null;
-      return json({ clips: rankClips(clips, answers, clipCount(c.duration)) });
+      return json({ clips: rankClips(clips, answers, clipCount(c.duration), c.about) });
     }
 
     if (body?.mode === "cutaways") {

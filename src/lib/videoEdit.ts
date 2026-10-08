@@ -548,6 +548,8 @@ export interface Clip {
   reason?: string;
   /** Out of 100, from Jev: stands alone and opens strong. Unset when Jev had no answer. */
   score?: number;
+  /** When a clip was asked for by typing: whether Jev reads this one as about it. */
+  onTopic?: boolean;
 }
 
 /** A clip as its own edit: the same video, trimmed to the clip, hook set. */

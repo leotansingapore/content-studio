@@ -357,3 +357,48 @@ describe("clips: clean edges from the word timings", () => {
     expect(parseClipsRequest({ duration: 120, sentences })).toMatchObject({ ok: true, words: [] });
   });
 });
+
+describe("clips: ask for a clip by typing", () => {
+  const sentences = [
+    { s: 0, e: 20, text: "Here is how a CPF top-up cuts your tax." },
+    { s: 20, e: 40, text: "You can put in up to $8,000 a year." },
+    { s: 50, e: 70, text: "Most people lose money to one insurance mistake." },
+    { s: 70, e: 90, text: "Here is the mistake and the fix." },
+  ];
+  const cand = (start: number, end: number, title: string) => ({ start, end, title, hook: "", reason: "" });
+  const cands = [cand(50, 90, "Insurance mistake"), cand(0, 40, "CPF top-up")];
+
+  it("takes a short request and tells the LLM to list those parts first", async () => {
+    const { parseClipsRequest, buildClipsMessages, MAX_ABOUT } = await import("./logic");
+    const many = Array.from({ length: 6 }, (_, i) => ({ s: i * 10, e: i * 10 + 9, text: `Line ${i}.` }));
+    const r = parseClipsRequest({ duration: 120, sentences: many, about: "  the part on\n CPF top-ups " + "x".repeat(300) });
+    expect(r.ok && r.about.startsWith("the part on CPF top-ups x")).toBe(true);
+    expect(r.ok && r.about.length).toBe(MAX_ABOUT);
+    expect(parseClipsRequest({ duration: 120, sentences: many })).toMatchObject({ about: "" });
+    const [sys] = buildClipsMessages(sentences, 120, "CPF top-ups");
+    expect(sys.content).toContain('The person wants clips about: "CPF top-ups". List first every part of the video about that');
+    expect(buildClipsMessages(sentences, 120)[0].content).not.toContain("wants clips about");
+  });
+
+  it("asks Jev whether each clip is the one asked for, only when something was typed", async () => {
+    const { clipQuestions } = await import("./logic");
+    const q = clipQuestions(cands, sentences, [], "CPF top-ups");
+    expect(Object.keys(q)).toEqual(["s0", "h0", "r0", "s1", "h1", "r1"]);
+    expect(q.r1).toMatchObject({ type: "score", instructions: { request: "CPF top-ups", clip: "Here is how a CPF top-up cuts your tax. You can put in up to $8,000 a year." } });
+    expect((q.r1 as { criteria: unknown[] }).criteria).toHaveLength(4);
+    expect(Object.keys(clipQuestions(cands, sentences))).toEqual(["s0", "h0", "s1", "h1"]);
+  });
+
+  it("puts the clips about the request first and keeps them whatever their score", async () => {
+    const { rankClips, ON_TOPIC } = await import("./logic");
+    expect(ON_TOPIC).toBe(1.5);
+    const answers = {
+      s0: { type: "score" as const, score: 3 }, h0: { type: "score" as const, score: 3 }, r0: { type: "score" as const, score: 1.4 },
+      s1: { type: "score" as const, score: 0.6 }, h1: { type: "score" as const, score: 0.6 }, r1: { type: "score" as const, score: 1.6 },
+    };
+    const out = rankClips(cands, answers, { min: 0, max: 5 }, "CPF top-ups");
+    expect(out.map((c) => [c.title, c.score, c.onTopic])).toEqual([["CPF top-up", 20, true], ["Insurance mistake", 100, false]]);
+    // nothing typed: no onTopic, plain score order
+    expect(rankClips(cands, answers, { min: 0, max: 5 }).map((c) => [c.title, c.onTopic])).toEqual([["Insurance mistake", undefined]]);
+  });
+});
