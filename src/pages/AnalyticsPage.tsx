@@ -312,9 +312,9 @@ export default function AnalyticsPage() {
         </h1>
       </header>
 
-      {userId && <AccountAudit accounts={accounts} onSaveAccount={saveAccount} />}
-
       <RecruitNumbers />
+
+      {userId && <AccountAudit accounts={accounts} onSaveAccount={saveAccount} />}
 
       <CreatorLookup />
 

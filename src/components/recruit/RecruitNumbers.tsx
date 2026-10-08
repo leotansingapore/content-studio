@@ -22,7 +22,7 @@ const fmtWeek = (w: string) => {
 // The kit's "one system": three numbers every Friday, the 3C path and the
 // 50/30/20 mix. Shown only to people who have opened the recruit kit.
 export default function RecruitNumbers() {
-  const { userId, brain, update, ready } = useRecruitBrain();
+  const { userId, brain, update, ready, savedAt } = useRecruitBrain();
   const thisWeek = weekOf(new Date());
   const drafts = useMemo(() => loadDrafts(userId), [userId]);
   const autoPosts = useMemo(() => recruitPostsInWeek(drafts, thisWeek), [drafts, thisWeek]);
@@ -56,7 +56,10 @@ export default function RecruitNumbers() {
       </CardHeader>
       <CardContent className="space-y-5">
         <div>
-          <p className="mb-2 text-xs font-semibold text-muted-foreground">Week of {fmtWeek(thisWeek)}</p>
+          <p className="mb-2 flex justify-between text-xs font-semibold text-muted-foreground">
+            <span>Week of {fmtWeek(thisWeek)}</span>
+            {savedAt && <span aria-live="polite" className="font-normal">Saved {new Date(savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>}
+          </p>
           <div className="grid grid-cols-3 items-end gap-2 sm:gap-3">
             {FIELDS.map((f) => (
               <label key={f.key} className="space-y-1">
