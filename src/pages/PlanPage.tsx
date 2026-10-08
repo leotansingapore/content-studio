@@ -542,7 +542,7 @@ export default function PlanPage() {
                     setPositioning((p) => ({ ...p, audience: v as PlanAudience }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Audience / life-stage">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -605,7 +605,7 @@ export default function PlanPage() {
                     setPositioning((p) => ({ ...p, platform: v as PlanPlatform }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Primary platform">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -625,7 +625,7 @@ export default function PlanPage() {
                     setPositioning((p) => ({ ...p, cadence: Number(v) }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Posts per week">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -694,7 +694,7 @@ export default function PlanPage() {
           <div className="flex items-center gap-3">
             <Label className="text-sm">Plan length</Label>
             <Select value={String(weeks)} onValueChange={(v) => setWeeks(Number(v))}>
-              <SelectTrigger className="w-36">
+              <SelectTrigger aria-label="Plan length" className="w-36">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -760,7 +760,7 @@ export default function PlanPage() {
             <div className="text-right">
               <div className="font-serif text-3xl font-semibold leading-none">
                 {postedCount}
-                <span className="text-lg opacity-70">/{totalCount}</span>
+                <span className="text-lg">/{totalCount}</span>
               </div>
               <div className="text-[11px] uppercase tracking-[0.14em] opacity-90">
                 posted
@@ -790,7 +790,7 @@ export default function PlanPage() {
                 >
                   <span className={`h-2 w-2 rounded-full ${s.accent.dot}`} />
                   {s.letter} · {s.label}
-                  <span className="text-muted-foreground/70">({n})</span>
+                  <span className="text-muted-foreground">({n})</span>
                 </span>
               );
             })}
@@ -865,7 +865,7 @@ export default function PlanPage() {
                         {item.posted ? (
                           <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                         ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground/50 hover:text-primary" />
+                          <Circle className="h-5 w-5 text-muted-foreground hover:text-primary" />
                         )}
                       </button>
 

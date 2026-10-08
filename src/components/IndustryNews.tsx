@@ -38,7 +38,7 @@ function StoryCard({ s }: { s: NewsStory }) {
   return (
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
       {s.clipping && (
-        <a href={safeExternalUrl(s.url) ?? undefined} target="_blank" rel="noopener noreferrer" className="block aspect-[5/3] overflow-hidden bg-muted">
+        <a href={safeExternalUrl(s.url) ?? undefined} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true" className="block aspect-[5/3] overflow-hidden bg-muted">
           <img src={s.clipping} alt="" loading="lazy" className="h-full w-full object-cover object-top" />
         </a>
       )}
@@ -101,12 +101,16 @@ function StoryCard({ s }: { s: NewsStory }) {
 }
 
 export default function IndustryNews() {
-  const [query, setQuery] = useState("");
-  const [topic, setTopic] = useState("all");
+  const [query, setQueryRaw] = useState("");
+  const [topic, setTopicRaw] = useState("all");
   const found = useMemo(() => searchStories(NEWS, query), [query]);
   const topics = useMemo(() => topicCounts(found), [found]);
   const shown = topic === "all" || !topics.some((t) => t.topic === topic) ? found : found.filter((s) => s.topic === topic);
-  const months = useMemo(() => byMonth(shown), [shown]);
+  // 39+ stories made a 33,000px page on a phone: start with the newest 12.
+  const [limit, setLimit] = useState(12);
+  const setTopic = (t: string) => { setTopicRaw(t); setLimit(12); };
+  const setQuery = (q: string) => { setQueryRaw(q); setLimit(12); };
+  const months = useMemo(() => byMonth(shown.slice(0, limit)), [shown, limit]);
 
   if (NEWS.length === 0) {
     return (
@@ -120,7 +124,7 @@ export default function IndustryNews() {
       className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
         topic === id ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"
       }`}>
-      {label} <span className="font-normal opacity-70">{n}</span>
+      {label} <span className="font-normal">{n}</span>
     </button>
   );
   return (
@@ -142,7 +146,8 @@ export default function IndustryNews() {
           <button type="button" className="font-semibold text-primary" onClick={() => { setQuery(""); setTopic("all"); }}>Clear the search</button>
         </p>
       ) : (
-        months.map((m) => (
+        <>
+        {months.map((m) => (
           <section key={m.label} className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               {m.label} <span className="font-normal">{m.stories.length}</span>
@@ -151,7 +156,16 @@ export default function IndustryNews() {
               {m.stories.map((s) => <StoryCard key={s.id} s={s} />)}
             </div>
           </section>
-        ))
+        ))}
+        {shown.length > limit && (
+          <div className="flex justify-center">
+            <button type="button" onClick={() => setLimit((n) => n + 12)}
+              className="h-10 rounded-lg border border-border/70 px-4 text-sm font-semibold hover:border-primary/40">
+              Show {Math.min(12, shown.length - limit)} more of {shown.length - limit}
+            </button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

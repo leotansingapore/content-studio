@@ -175,7 +175,7 @@ export default function DraftsPage() {
           <div className="space-y-1.5">
             <Label>Platform</Label>
             <Select value={platformFilter} onValueChange={setPlatformFilter}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Platform">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -190,7 +190,7 @@ export default function DraftsPage() {
           <div className="space-y-1.5">
             <Label>Pillar</Label>
             <Select value={pillarFilter} onValueChange={setPillarFilter}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="Pillar">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
