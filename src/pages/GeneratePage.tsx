@@ -38,7 +38,6 @@ import {
   Linkedin,
   Instagram,
   Facebook,
-  MessageSquare,
   Lightbulb,
   X as XIcon,
   Check,
@@ -1135,13 +1134,9 @@ export default function GeneratePage() {
     // it so it stays put on the calendar.
     if (!preserveIdRef.current) setCurrentDraftId(null);
     persistDraftEntry(v.text, chosenHook ?? "");
-    // Fire hashtags + image-prompt in parallel; failures don't block.
+    // Fire hashtags + image-prompt in parallel; failures don't block. The
+    // draft card's saved line confirms the pick, so no toast over the editor.
     void fetchAuxForDraft(v.text);
-    toast({
-      title: "Draft selected",
-      description:
-        "Edit inline, copy to your platform, or re-roll for new options.",
-    });
   };
 
   // Everything copied from here is headed for a social platform, none of which
@@ -1252,6 +1247,10 @@ export default function GeneratePage() {
 
   const showVoiceNudge =
     !voiceProfileUsable && !voiceNudgeDismissed && userId !== null;
+
+  // The saved entry behind the draft card, for its "saved / scheduled" line.
+  const savedEntry =
+    draft && userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
 
   const hasOutput =
     hookOptions.length > 0 || variants.length > 0 || draft.trim().length > 0;
@@ -2047,6 +2046,34 @@ export default function GeneratePage() {
             </div>
           </CardHeader>
           <CardContent>
+            {savedEntry && (
+              <p className="mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+                <Check className="h-3.5 w-3.5 text-success" />
+                {savedEntry.status === "posted" ? (
+                  "Posted. Edits save to My posts."
+                ) : savedEntry.status === "scheduled" && savedEntry.scheduledFor ? (
+                  <>
+                    Scheduled for{" "}
+                    {new Date(`${savedEntry.scheduledFor.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                    .
+                    <Link to="/calendar" className="-my-2 py-2 font-semibold text-primary hover:underline">
+                      Open calendar
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    Saved to My posts.
+                    <Link to="/calendar" className="-my-2 py-2 font-semibold text-primary hover:underline">
+                      Schedule it
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
             {visibleFlags.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">
                 {visibleFlags.map((flag) => {
@@ -2145,14 +2172,6 @@ export default function GeneratePage() {
               )}
             </div>
 
-            <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
-              <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>
-                Edit inline before copying. Reminder from Day 41: every post
-                needs Authority + Social + a soft CTA. If the draft missed any,
-                rewrite that part.
-              </span>
-            </div>
 
             {craftCheck && (
               <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/20 p-3">
