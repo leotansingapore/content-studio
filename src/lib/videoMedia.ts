@@ -8,6 +8,7 @@ import {
   aspectSize,
   buildCaptions,
   captionAt,
+  captionCenter,
   captionKey,
   isNumberWord,
   keepSegments,
@@ -144,7 +145,6 @@ export function ensureCaptionFonts(): Promise<void> {
 // ---------- drawing ----------
 
 const BASE_PX: Record<string, number> = { bold: 92, cutout: 84, minimal: 46, editorial: 54, native: 54, documentary: 42 };
-const Y: Record<string, number> = { top: 0.26, middle: 0.64, bottom: 0.8 };
 
 function wrap(g: CanvasRenderingContext2D, words: string[], maxW: number): string[][] {
   const lines: string[][] = [[]];
@@ -238,8 +238,8 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     const text = cap.words.map((w) => (s.uppercase ? w.w.toUpperCase() : w.w));
     const lines = wrap(g, text, W * (spec.mode === "words" ? 0.86 : 0.84));
     const lh = px * 1.18;
-    let y = H * Y[s.position] - ((lines.length - 1) * lh) / 2;
-    if (hook && s.position === "top") y = Math.max(y, hook.top + hook.bh + lh * 0.75);
+    let y = H * captionCenter(s) - ((lines.length - 1) * lh) / 2;
+    if (hook && captionCenter(s) < 0.4) y = Math.max(y, hook.top + hook.bh + lh * 0.75);
     let wi = 0;
     for (const line of lines) {
       const full = line.join(" ");

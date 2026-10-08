@@ -50,6 +50,8 @@ export interface EditSettings {
   nameTag: string;
   roleTag: string;
   nameSeconds: number;
+  /** Captions dragged on the preview: vertical centre as a share of the frame height (overrides position). */
+  captionY?: number;
   /** Second subtitle line under each caption: "" off, or zh / ms / ta (translations live on the project). */
   subLang: "" | "zh" | "ms" | "ta";
 }
@@ -262,7 +264,10 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
     changed.push(k);
   };
   const p = patch;
-  if (["top", "middle", "bottom"].includes(p.position as string)) set("position", p.position as Position);
+  if (["top", "middle", "bottom"].includes(p.position as string)) {
+    set("position", p.position as Position);
+    if (next.captionY !== undefined) { next.captionY = undefined; changed.push("captionY"); } // a named position replaces a dragged one
+  }
   if ("size" in p) set("size", clamp(p.size, 0.6, 1.6, s.size));
   if ("wordsPerCaption" in p) set("wordsPerCaption", Math.round(clamp(p.wordsPerCaption, 1, 6, s.wordsPerCaption)));
   if (typeof p.baseColor === "string" && HEX.test(p.baseColor)) set("baseColor", p.baseColor.toUpperCase());
@@ -341,3 +346,8 @@ export function nameTagVisible(s: Pick<EditSettings, "nameTag" | "hook" | "hookS
 
 /** The text a caption is translated by (and looked up by): its words as transcribed. */
 export const captionKey = (c: Caption) => c.words.map((w) => w.w).join(" ");
+
+const Y_FOR: Record<Position, number> = { top: 0.26, middle: 0.64, bottom: 0.8 };
+/** Where the captions sit, as a share of the frame height. */
+export const captionCenter = (s: Pick<EditSettings, "position" | "captionY">) =>
+  typeof s.captionY === "number" ? Math.min(0.92, Math.max(0.08, s.captionY)) : Y_FOR[s.position];

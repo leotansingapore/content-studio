@@ -19,6 +19,7 @@ import {
   STYLE_IDS,
   applyPatch,
   aspectSize,
+  captionCenter,
   captionKey,
   clipSettings,
   sentencesOf,
@@ -220,6 +221,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const segIdx = useRef(0);
+  const drag = useRef<{ startY: number; moved: boolean } | null>(null);
 
   useEffect(() => { const off = onExportJob(setJob); return () => { off(); }; }, []);
   useEffect(() => {
@@ -526,7 +528,37 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,360px)_1fr]">
         <div className="space-y-2">
           <div className="mx-auto w-full max-w-[360px]">
-            <canvas ref={canvas} width={W} height={H} onClick={toggle} className="w-full cursor-pointer rounded-xl bg-black shadow-card" aria-label="Preview, click to play or pause" />
+            <canvas
+              ref={canvas}
+              width={W}
+              height={H}
+              onPointerDown={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                const y = (e.clientY - r.top) / r.height;
+                // a press on the captions starts a drag; anywhere else is a tap to play or pause
+                drag.current = settings.captions && Math.abs(y - captionCenter(settings)) < 0.09 ? { startY: y, moved: false } : null;
+                if (drag.current) e.currentTarget.setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                if (!drag.current) return;
+                const r = e.currentTarget.getBoundingClientRect();
+                const y = (e.clientY - r.top) / r.height;
+                if (Math.abs(y - drag.current.startY) > 0.01) drag.current.moved = true;
+                if (drag.current.moved) setSettings((s) => ({ ...s, captionY: Math.min(0.92, Math.max(0.08, y)) }));
+              }}
+              onPointerUp={() => {
+                const d = drag.current;
+                drag.current = null;
+                if (d?.moved) {
+                  setHistory((h) => [...h.slice(-19), settings]);
+                  return;
+                }
+                void toggle();
+              }}
+              style={{ touchAction: "none" }}
+              className="w-full cursor-pointer rounded-xl bg-black shadow-card"
+              aria-label="Preview: tap to play or pause, drag the captions to move them"
+            />
           </div>
           {file === undefined && <p className="text-xs text-muted-foreground">Loading the video...</p>}
           <video ref={video} src={url} playsInline preload="auto" className="pointer-events-none absolute h-px w-px opacity-0"
@@ -616,7 +648,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </div>
               <Row label="Captions"><Toggle on={settings.captions} set={(v) => patch({ captions: v })} /></Row>
               <Row label="Position">
-                {(["top", "middle", "bottom"] as const).map((p) => <Chip key={p} on={settings.position === p} onClick={() => patch({ position: p })}>{p}</Chip>)}
+                {(["top", "middle", "bottom"] as const).map((p) => <Chip key={p} on={settings.captionY === undefined && settings.position === p} onClick={() => patch({ position: p, captionY: undefined })}>{p}</Chip>)}
               </Row>
               <Row label={`Size ${settings.size.toFixed(1)}x`}><input type="range" min={0.6} max={1.6} step={0.1} value={settings.size} onChange={(e) => patch({ size: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               {STYLES[settings.style].mode === "words" && (

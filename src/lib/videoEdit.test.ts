@@ -128,3 +128,14 @@ describe("dead air at the ends", () => {
     expect(keepSegments(ws, 6, { trimStart: 0, trimEnd: 0, removeFillers: true, maxPause: 0 })).toEqual([{ start: 0, end: 6 }]);
   });
 });
+
+describe("dragged captions", () => {
+  it("a dragged height wins until a named position is picked again", async () => {
+    const { applyPatch, captionCenter, defaultSettings } = await import("./videoEdit");
+    const s = { ...defaultSettings("bold"), captionY: 0.4 };
+    expect(captionCenter(s)).toBe(0.4);
+    expect(captionCenter({ ...s, captionY: 2 })).toBe(0.92);
+    const top = applyPatch(s, { position: "top" }).next;
+    expect([top.captionY, captionCenter(top)]).toEqual([undefined, 0.26]);
+  });
+});
