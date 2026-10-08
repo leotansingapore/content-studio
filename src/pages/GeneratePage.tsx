@@ -1337,6 +1337,9 @@ export default function GeneratePage() {
   const showVoiceNudge =
     !voiceProfileUsable && !voiceNudgeDismissed && userId !== null;
 
+  // The example a locked vibe copies, shown by its hook rather than its id.
+  const vibeHook = vibeSourceId ? ENTRIES.find((e) => e.id === vibeSourceId)?.hook : undefined;
+
   // The saved entry behind the draft card, for its "saved / scheduled" line.
   const savedEntry =
     draft && userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
@@ -1415,14 +1418,8 @@ export default function GeneratePage() {
               <p className="font-semibold text-accent-foreground">
                 Vibe locked in
               </p>
-              <p className="text-muted-foreground">
-                The generator will match this example's pattern. Edit your
-                pillar / context below if you want to steer it.
-              </p>
-              {vibeSourceId && (
-                <p className="font-mono text-[10px] text-muted-foreground">
-                  ref: {vibeSourceId}
-                </p>
+              {vibeHook && (
+                <p className="line-clamp-2 text-muted-foreground">{vibeHook}</p>
               )}
             </div>
           </div>
