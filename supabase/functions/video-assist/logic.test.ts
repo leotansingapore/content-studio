@@ -409,3 +409,87 @@ describe("clips: ask for a clip by typing", () => {
     expect(rankClips(cands, answers, { min: 0, max: 5 }).map((c) => [c.title, c.onTopic])).toEqual([["Insurance mistake", undefined]]);
   });
 });
+
+describe("clips: skip a tangent in the middle", () => {
+  /** One word every 0.5 s (0.45 s long), sentences 0.6 s apart. */
+  const talk = (lines: string[]) => {
+    const out: { w: string; s: number; e: number }[] = [];
+    let at = 0;
+    for (const l of lines) {
+      for (const w of l.split(" ")) {
+        out.push({ w, s: Math.round(at * 1000) / 1000, e: Math.round((at + 0.45) * 1000) / 1000 });
+        at += 0.5;
+      }
+      at += 0.55;
+    }
+    return out;
+  };
+  const point = "Most people here are underinsured by about half of what they need.";
+  const aside = "By the way I also play tennis on weekends which is another story.";
+  const fix = "So check your cover against your income once every single year.";
+  const base = { title: "t", hook: "", reason: "" };
+
+  it("takes one skip inside the clip and judges length by what plays", async () => {
+    const { parseClipsReply, playedLength } = await import("./logic");
+    const reply = JSON.stringify({ clips: [
+      { start: 0, end: 150, ...base, skip: { start: 40, end: 80 } },
+      { start: 200, end: 350, ...base },
+      { start: 400, end: 450, ...base, skip: { start: 380, end: 420 } },
+      { start: 500, end: 540, ...base, skip: { start: 510, end: 511 } },
+    ] });
+    const out = parseClipsReply(reply, 600, 10)!;
+    expect(out.map((c) => [c.start, c.end, c.skip ?? null])).toEqual([[0, 150, { start: 40, end: 80 }], [400, 450, null], [500, 540, null]]);
+    expect(playedLength(out[0])).toBe(110);
+  });
+
+  it("puts a skip on whole sentences and keeps a sentence either side, or drops it", async () => {
+    const { cleanEdges } = await import("./logic");
+    const ws = talk([point, aside, fix, "Then put the gap into one plan you can actually pay for."]);
+    const at = (w: string) => ws.find((x) => x.w === w)!;
+    const end = ws[ws.length - 1].e;
+    const out = cleanEdges({ start: 0, end, skip: { start: at("By").s + 0.3, end: at("story.").e - 0.02 } }, ws, end + 5);
+    expect(out.skip).toEqual({ start: at("By").s, end: at("story.").e });
+    // a skip over the first sentence would leave nothing before it
+    expect(cleanEdges({ start: 0, end, skip: { start: 0, end: at("need.").e } }, ws, end + 5).skip).toBeUndefined();
+    // over 120 s end to end, but under it without the 4 aside sentences: still cleaned
+    const long = talk([...Array(8).fill(point), ...Array(4).fill(aside), ...Array(7).fill(fix)]);
+    const from = long.find((w) => w.w === "By")!;
+    const to = long.filter((w) => w.w === "story.").pop()!;
+    const longEnd = long[long.length - 1].e;
+    expect(longEnd).toBeGreaterThan(120);
+    expect(cleanEdges({ start: 0, end: longEnd, skip: { start: from.s + 0.3, end: to.e - 0.3 } }, long, longEnd + 5).skip).toEqual({ start: from.s, end: to.e });
+  });
+
+  it("never moves an edge onto the skipped tangent", async () => {
+    const { cleanEdges } = await import("./logic");
+    // opens on "It" with nothing before it: starting a sentence later would start on the tangent
+    const ws = talk(["It is the one check nobody does before they buy a policy.", aside, fix, point, point]);
+    const from = ws.find((w) => w.w === "By")!;
+    const to = ws.find((w) => w.w === "story.")!;
+    const end = ws[ws.length - 1].e;
+    expect(cleanEdges({ start: 0, end, skip: { start: from.s, end: to.e } }, ws, end + 5)).toMatchObject({ start: 0, skip: { start: from.s, end: to.e } });
+  });
+
+  it("reads the clip without its skip, and the skip on its own, for Jev", async () => {
+    const { clipText, skipQuestions } = await import("./logic");
+    const ws = talk([point, aside, fix]);
+    const skip = { start: ws.find((x) => x.w === "By")!.s, end: ws.find((x) => x.w === "story.")!.e };
+    const clip = { start: 0, end: ws[ws.length - 1].e, ...base, skip };
+    expect(clipText([], clip, ws)).toEqual([point, fix]);
+    const q = skipQuestions([{ start: 0, end: 30, ...base }, clip], [], ws);
+    expect(Object.keys(q)).toEqual(["k1"]);
+    expect(q.k1).toMatchObject({ type: "noul", instructions: { clip: `${point} ${fix}`, skipped: aside } });
+  });
+
+  it("keeps a skip only when Jev reads it as an aside, and drops a clip too long without it", async () => {
+    const { applySkips, SKIP_OK } = await import("./logic");
+    expect(SKIP_OK).toBe(0.7);
+    const a = { start: 0, end: 60, ...base, skip: { start: 20, end: 30 } };
+    const b = { start: 100, end: 260, ...base, skip: { start: 120, end: 170 } };
+    const keep = { k0: { type: "noul" as const, noul: 0.86 }, k1: { type: "noul" as const, noul: 0.86 } };
+    expect(applySkips([a, b], keep)).toEqual([a, b]);
+    // no answer, or a low one: no skips, and b (160 s straight through) no longer fits
+    expect(applySkips([a, b], null)).toEqual([{ start: 0, end: 60, ...base }]);
+    expect(applySkips([a], { k0: { type: "noul" as const, noul: 0.48 } })).toEqual([{ start: 0, end: 60, ...base }]);
+  });
+});

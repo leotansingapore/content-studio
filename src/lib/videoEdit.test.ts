@@ -100,6 +100,10 @@ describe("clips", () => {
     const { clipSettings } = await import("./videoEdit");
     const s = clipSettings(defaultSettings("bold"), { start: 30, end: 75, title: "t", hook: "Why most advisors quit" }, 600);
     expect([s.trimStart, s.trimEnd, s.hook]).toEqual([30, 525, "Why most advisors quit"]);
+    // a skipped tangent is cut like words cut by hand, after any the video already had
+    const base = { ...defaultSettings("bold"), removed: [{ s: 5, e: 6 }] };
+    expect(clipSettings(base, { start: 30, end: 120, title: "t", hook: "", skip: { start: 50, end: 70 } }, 600).removed).toEqual([{ s: 5, e: 6 }, { s: 50, e: 70 }]);
+    expect(clipSettings(base, { start: 30, end: 120, title: "t", hook: "" }, 600).removed).toEqual([{ s: 5, e: 6 }]);
   });
 });
 

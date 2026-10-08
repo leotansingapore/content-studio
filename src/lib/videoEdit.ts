@@ -558,11 +558,14 @@ export interface Clip {
   score?: number;
   /** When a clip was asked for by typing: whether Jev reads this one as about it. */
   onTopic?: boolean;
+  /** A tangent in the middle the clip leaves out (source seconds), cut like words cut by hand. */
+  skip?: { start: number; end: number };
 }
 
-/** A clip as its own edit: the same video, trimmed to the clip, hook set. */
+/** A clip as its own edit: the same video, trimmed to the clip, hook set, a skipped tangent cut. */
 export function clipSettings(base: EditSettings, clip: Clip, duration: number): EditSettings {
-  return { ...base, trimStart: Math.max(0, clip.start), trimEnd: Math.max(0, duration - clip.end), hook: clip.hook.slice(0, 90) };
+  const removed = clip.skip ? [...(base.removed ?? []), { s: clip.skip.start, e: clip.skip.end }] : base.removed;
+  return { ...base, trimStart: Math.max(0, clip.start), trimEnd: Math.max(0, duration - clip.end), hook: clip.hook.slice(0, 90), removed };
 }
 
 /** When the name tag is on screen: from the end of the hook for nameSeconds. */

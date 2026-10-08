@@ -2,7 +2,7 @@
 // word timings, and the "vibe edit" prompt and reply. No Deno or npm imports, so
 // vitest covers it (logic.test.ts).
 
-import { choiceOf, scoreOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { choiceOf, noulOf, scoreOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 
 export const MAX_AUDIO_BYTES = 24 * 1024 * 1024; // Whisper takes 25 MB
 export const VIBE_MODEL = "gpt-4.1";
@@ -162,7 +162,18 @@ export interface FoundClip {
   score?: number;
   /** When the person said what they want: whether Jev reads this clip as about it. */
   onTopic?: boolean;
+  /** A tangent in the middle that the clip leaves out, seconds on the source. */
+  skip?: Span;
 }
+export interface Span {
+  start: number;
+  end: number;
+}
+
+/** How long a clip plays: its span less the tangent it skips. */
+export const playedLength = (c: Span & { skip?: Span }) => c.end - c.start - (c.skip ? c.skip.end - c.skip.start : 0);
+/** A clip that plays 18 to 120 s; with a skip its span may run to 180. */
+const playable = (c: Span & { skip?: Span }) => playedLength(c) >= 18 && playedLength(c) <= 120 && c.end - c.start <= 180;
 
 /** What the person typed the clip should be about, at most this long. */
 export const MAX_ABOUT = 200;
@@ -218,15 +229,16 @@ export function buildClipsMessages(sentences: ClipSentence[], duration: number, 
         `Propose up to ${n} candidate clips from across the whole video (fewer when it is too short to hold that many). Each should stand alone: a viewer with no context understands it, it opens on a strong line (a claim, a question, a number, a story beat) and ends on a complete thought.`,
         "Each clip is 25 to 75 seconds (aim for 30 to 60): join consecutive sentences until the thought is complete. It starts at the start time of a sentence and ends at the end time of a sentence. Clips never overlap. Best clip first.",
         "For each: a title of 3 to 7 words written from the payoff, what the viewer has by the end (the answer, the number, the lesson), not the topic, in sentence case (only the first word capitalised); a hook card of 8 words or fewer made only of the speaker's own words or their plain meaning; and a reason: one plain sentence of 15 words or fewer on why a viewer would watch it to the end. Only what the speaker says. No em dashes. Never promise returns.",
+        'A clip may leave out one tangent in its middle (an aside or a detour its point does not need): give it as skip {"start":number,"end":number} on sentence times, with at least one sentence kept on each side, and the clip without it still 25 to 75 seconds. Most clips skip nothing: leave skip out.',
         asked,
-        'Reply with JSON only: {"clips":[{"start":number,"end":number,"title":string,"hook":string,"reason":string}]}',
+        'Reply with JSON only: {"clips":[{"start":number,"end":number,"title":string,"hook":string,"reason":string,"skip"?:{"start":number,"end":number}}]}',
       ].filter(Boolean).join("\n"),
     },
     { role: "user", content: `Video length: ${duration.toFixed(1)}s\nTranscript with sentence times in seconds:\n${lines}` },
   ];
 }
 
-/** Keeps only clips that fit the video, run 18-120 s and do not overlap, in the order given, at most `limit`. */
+/** Keeps only clips that fit the video, play 18-120 s and do not overlap, in the order given, at most `limit`. */
 export function parseClipsReply(content: string | null, duration: number, limit = 5): FoundClip[] | null {
   if (!content) return null;
   let raw: unknown;
@@ -241,25 +253,40 @@ export function parseClipsReply(content: string | null, duration: number, limit 
     const o = c && typeof c === "object" ? (c as Record<string, unknown>) : {};
     const start = Math.max(0, Number(o.start));
     const end = Math.min(duration, Number(o.end));
-    if (!Number.isFinite(start) || !Number.isFinite(end) || end - start < 18 || end - start > 120) continue;
+    if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+    // a tangent left out: inside the clip, at least 3 s
+    const k = o.skip && typeof o.skip === "object" ? (o.skip as Record<string, unknown>) : {};
+    const skip = { start: Number(k.start), end: Number(k.end) };
+    const skips = skip.start > start && skip.end < end && skip.end - skip.start >= 3;
+    const clip = { start, end, ...(skips ? { skip } : {}) };
+    if (!playable(clip)) continue;
     if (out.some((x) => start < x.end && end > x.start)) continue;
     const clean = (v: unknown, n: number) => String(v ?? "").replace(/\s*\u2014\s*/g, ", ").trim().slice(0, n);
-    out.push({ start, end, title: clean(o.title, 60) || "Clip", hook: clean(o.hook, 90), reason: clean(o.reason, 160) });
+    out.push({ ...clip, title: clean(o.title, 60) || "Clip", hook: clean(o.hook, 90), reason: clean(o.reason, 160) });
     if (out.length === limit) break;
   }
   return out;
 }
 
 /** What is said in a clip, sentence by sentence: from the word timings when there are some. */
-export function clipText(sentences: ClipSentence[], clip: Pick<FoundClip, "start" | "end">, words: Word[] = []): string[] {
-  if (!words.length) return sentences.filter((x) => x.s >= clip.start - 0.05 && x.e <= clip.end + 0.05).map((x) => x.text);
-  const inside = words.filter((w) => w.s >= clip.start - 0.05 && w.e <= clip.end + 0.05);
+export function clipText(sentences: ClipSentence[], clip: Pick<FoundClip, "start" | "end" | "skip">, words: Word[] = []): string[] {
+  const within = (x: { s: number; e: number }, r: Span) => x.s >= r.start - 0.05 && x.e <= r.end + 0.05;
+  const kept = (x: { s: number; e: number }) => within(x, clip) && !(clip.skip && within(x, clip.skip));
+  if (!words.length) return sentences.filter(kept).map((x) => x.text);
+  const inside = words.filter(kept);
   return sentenceSpans(inside).map(([i, j]) => inside.slice(i, j + 1).map((w) => w.w).join(" "));
 }
 
 // ---------- clean clip edges, from the word timings ----------
 
-/** Shortest and longest clip kept, seconds. */
+/**
+ * p(what is skipped is only an aside) from this up keeps the skip. Read off 6
+ * real podcast passages (jev-1.13.0, 2026-10-09): asides left out 0.86-0.90; a
+ * step, example or reason left out 0.15-0.48.
+ */
+export const SKIP_OK = 0.7;
+
+/** Shortest and longest clip kept, seconds (played, a skip left out). */
 export const CLIP_MIN = 18;
 export const CLIP_MAX = 120;
 /** Words a clip never opens on: trimmed from the head of its first sentence. */
@@ -291,7 +318,7 @@ export function sentenceSpans(words: Word[]): [number, number][] {
  * neighbouring word. Every step keeps the clip CLIP_MIN to CLIP_MAX long, or is skipped.
  * The lead and trail numbers are OpenShorts' (snap_clip_to_words).
  */
-export function cleanEdges<T extends { start: number; end: number }>(clip: T, words: Word[], duration: number): T {
+export function cleanEdges<T extends Span & { skip?: Span }>(clip: T, words: Word[], duration: number): T {
   const spans = sentenceSpans(words);
   let a = spans.findIndex(([, j]) => words[j].e > clip.start + 0.05);
   let b = -1;
@@ -299,7 +326,18 @@ export function cleanEdges<T extends { start: number; end: number }>(clip: T, wo
   if (a < 0 || b < a) return clip;
   const head = (k: number) => words[spans[k][0]].s;
   const tail = (k: number) => words[spans[k][1]].e;
-  const fits = (x: number, y: number, from = head(x)) => tail(y) - from >= CLIP_MIN && tail(y) - from <= CLIP_MAX;
+  // the tangent left out, on the whole sentences it touches, with at least one kept on each side; otherwise none
+  let sk: [number, number] | null = null;
+  if (clip.skip) {
+    const x = spans.findIndex(([, j]) => words[j].e > clip.skip!.start + 0.05);
+    let y = -1;
+    spans.forEach(([i], k) => { if (words[i].s < clip.skip!.end - 0.05) y = k; });
+    if (x > a && y >= x && y < b) sk = [x, y];
+  }
+  const skipped = sk ? tail(sk[1]) - head(sk[0]) : 0;
+  const fits = (x: number, y: number, from = head(x)) => tail(y) - from - skipped >= CLIP_MIN && tail(y) - from - skipped <= CLIP_MAX;
+  // moving an edge inward never reaches the tangent
+  const clearOf = (x: number, y: number) => !sk || (x < sk[0] && y > sk[1]);
   const asks = (k: number) => /\?["')\]]?$/.test(words[spans[k][1]].w);
   // ponytail: a word list cannot tell "So many people" from "So, many people"; a Jev opener check is the upgrade
   const firstStrong = (k: number) => {
@@ -310,14 +348,14 @@ export function cleanEdges<T extends { start: number; end: number }>(clip: T, wo
   const only = (k: number) => words.slice(spans[k][0], spans[k][1] + 1).every((w) => LEAD_INS.has(bare(w.w)));
   if (!fits(a, b)) return clip;
   // a sentence that is only "Okay, so." or "Yeah." is no start and no end
-  while (a < b && only(a) && fits(a + 1, b)) a++;
-  while (b > a && only(b) && fits(a, b - 1)) b--;
+  while (a < b && only(a) && fits(a + 1, b) && clearOf(a + 1, b)) a++;
+  while (b > a && only(b) && fits(a, b - 1) && clearOf(a, b - 1)) b--;
   if (BACK_REFS.has(bare(words[firstStrong(a)].w))) {
     if (a > 0 && fits(a - 1, b)) a--;
-    else if (a < b && fits(a + 1, b)) a++;
+    else if (a < b && fits(a + 1, b) && clearOf(a + 1, b)) a++;
   }
   if (a > 0 && asks(a - 1) && !asks(a) && fits(a - 1, b)) a--;
-  while (b > a && asks(b) && fits(a, b - 1)) b--;
+  while (b > a && asks(b) && fits(a, b - 1) && clearOf(a, b - 1)) b--;
   let first = firstStrong(a);
   if (!fits(a, b, words[first].s)) first = spans[a][0];
   const last = spans[b][1];
@@ -326,7 +364,54 @@ export function cleanEdges<T extends { start: number; end: number }>(clip: T, wo
   const lead = Math.max(0, Math.min(0.35, before, Math.max(0.2, before / 2)));
   const trail = Math.max(0, Math.min(0.45, after / 2));
   const r = (t: number) => Math.round(t * 1000) / 1000;
-  return { ...clip, start: r(Math.max(0, words[first].s - lead)), end: r(Math.min(duration, words[last].e + trail)) };
+  const { skip: _, ...rest } = clip;
+  return {
+    ...rest,
+    start: r(Math.max(0, words[first].s - lead)),
+    end: r(Math.min(duration, words[last].e + trail)),
+    ...(sk ? { skip: { start: r(head(sk[0])), end: r(tail(sk[1])) } } : {}),
+  } as T;
+}
+
+/**
+ * A skip stays only when Jev reads the clip as whole without it (p from SKIP_OK);
+ * without an answer, no skip (the clip plays straight through, as before skips).
+ * Then only clips that play 18 to 120 s are kept.
+ */
+export function applySkips(cands: FoundClip[], answers: Record<string, JevAnswer> | null): FoundClip[] {
+  return cands
+    .map((c, i) => {
+      if (!c.skip) return c;
+      const p = noulOf(answers, `k${i}`);
+      if (p !== null && p >= SKIP_OK) return c;
+      const { skip: _, ...whole } = c;
+      return whole;
+    })
+    .filter(playable);
+}
+
+/** One Noul per clip that skips: k<i>, was what it leaves out only an aside. */
+export function skipQuestions(cands: FoundClip[], sentences: ClipSentence[], words: Word[] = []): Record<string, JevQuestion> {
+  const q: Record<string, JevQuestion> = {};
+  cands.forEach((c, i) => {
+    if (!c.skip) return;
+    const said = clipText(sentences, c, words).join(" ");
+    const skipped = clipText(sentences, { start: c.skip.start, end: c.skip.end }, words).join(" ");
+    if (!said || !skipped) return;
+    q[`k${i}`] = {
+      type: "noul",
+      instructions: {
+        clip: said.slice(0, 2000),
+        skipped: skipped.slice(0, 1500),
+        question: "`skipped` was cut out of the middle of a short video, leaving `clip`. Was `skipped` only an aside, a detour or a repeat, so that `clip` loses no step of its point and reads as if nothing was cut?",
+      },
+      criteria: {
+        true: "`skipped` adds nothing the point needs, and the sentences either side of the cut join naturally.",
+        false: "`skipped` holds a step, example or reason the point uses, or the join across the cut is abrupt.",
+      },
+    };
+  });
+  return q;
 }
 
 /** Who Jev imagines watching. */
