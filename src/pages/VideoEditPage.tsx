@@ -26,6 +26,9 @@ import {
   clipSettings,
   END_CARD_SECONDS,
   fullLength,
+  lookOf,
+  sameLook,
+  withLook,
   sentencesOf,
   defaultSettings,
   fmtTime,
@@ -53,7 +56,7 @@ import {
   type BrandArt,
   type ExportJob,
 } from "@/lib/videoMedia";
-import { fileKey, findClips, loadProjects, removeProject, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, findClips, loadLook, loadProjects, removeProject, saveLook, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 
 const MAX_BYTES = 500 * 1024 * 1024;
 type Tab = "style" | "cuts" | "frame" | "words";
@@ -90,7 +93,7 @@ export default function VideoEditPage() {
       const { wav, duration } = await extractWav(file);
       let p: VideoProject = {
         id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration, size: file.size,
-        words: [], settings: defaultSettings("bold"), thumb,
+        words: [], settings: withLook(defaultSettings("bold"), loadLook(uid)), thumb,
       };
       setProjects(saveProject(uid, p));
       setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
@@ -232,6 +235,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   // the brand kit (logo, end card, name tag); endAt is the time into the end card while it shows
   const brandKit = useMemo(() => loadBrand(userId), [userId]);
   const [art, setArt] = useState<BrandArt | null>(null);
+  const [myLook, setMyLook] = useState(() => loadLook(userId));
   const endAt = useRef<number | null>(null);
   useEffect(() => {
     void loadBrandArt(brandKit).then(setArt);
@@ -712,6 +716,17 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </Row>
               <Row label="ALL CAPS"><Toggle on={settings.uppercase} set={(v) => patch({ uppercase: v })} /></Row>
               <Row label="Numbers in the highlight colour"><Toggle on={settings.highlightNumbers} set={(v) => patch({ highlightNumbers: v })} /></Row>
+              <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+                <span className="mr-auto text-sm font-medium">My look
+                  <InfoTip label="About my look">Captions, cuts, shape, name tag, logo and end card. New videos start with it.</InfoTip></span>
+                {myLook && !sameLook(settings, myLook) && (
+                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => change(withLook(settings, myLook))}>Apply my look</Button>
+                )}
+                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={sameLook(settings, myLook)}
+                  onClick={() => { const look = lookOf(settings); saveLook(userId, look); setMyLook(look); toast({ title: "Look saved", description: "New videos start with it." }); }}>
+                  {sameLook(settings, myLook) ? "This is your look" : "Save as my look"}
+                </Button>
+              </div>
             </div>
           )}
 

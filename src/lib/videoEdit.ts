@@ -305,7 +305,31 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if (typeof p.nameTag === "string") set("nameTag", p.nameTag.slice(0, 40));
   if (typeof p.roleTag === "string") set("roleTag", p.roleTag.slice(0, 50));
   if ("nameSeconds" in p) set("nameSeconds", clamp(p.nameSeconds, 1, 10, s.nameSeconds ?? 4));
+  if (typeof p.captionY === "number") set("captionY", clamp(p.captionY, 0.08, 0.92, s.captionY ?? 0.5));
   return { next, changed };
+}
+
+// A saved look: everything about how a video looks and is cut, nothing about
+// this one video (its hook, trims or framing). New videos start from it.
+const LOOK_KEYS = [
+  "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
+  "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "maxPause", "hookSeconds", "aspect", "fit",
+  "nameTag", "roleTag", "nameSeconds", "logo", "endCard",
+] as const satisfies readonly (keyof EditSettings)[];
+
+export function lookOf(s: EditSettings): Record<string, unknown> {
+  const look: Record<string, unknown> = {};
+  for (const k of LOOK_KEYS) if (s[k] !== undefined) look[k] = s[k];
+  return look;
+}
+
+/** Settings with a saved look laid over them, through applyPatch so a bad saved value can't break the editor. */
+export function withLook(s: EditSettings, look: Record<string, unknown> | null | undefined): EditSettings {
+  return look && typeof look === "object" ? applyPatch(s, look).next : s;
+}
+
+export function sameLook(s: EditSettings, look: Record<string, unknown> | null | undefined): boolean {
+  return !!look && JSON.stringify(lookOf(withLook(s, look))) === JSON.stringify(lookOf(s));
 }
 
 export function aspectSize(aspect: Aspect, srcW: number, srcH: number): [number, number] {

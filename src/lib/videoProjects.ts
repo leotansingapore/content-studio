@@ -68,6 +68,29 @@ export function removeProject(userId: string, id: string): VideoProject[] {
   return kept;
 }
 
+// The saved video look (videoEdit.ts lookOf), per profile:
+//   key: content-studio-videolook-${scoped(userId)}
+const LOOK_KEY = "content-studio-videolook-";
+
+export function loadLook(userId: string | null | undefined): Record<string, unknown> | null {
+  const s = store();
+  if (!s || !userId) return null;
+  try {
+    const v = JSON.parse(s.getItem(LOOK_KEY + scoped(userId)) ?? "null");
+    return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveLook(userId: string, look: Record<string, unknown>): void {
+  try {
+    store()?.setItem(LOOK_KEY + scoped(userId), JSON.stringify(look));
+  } catch {
+    // storage full: the look still applies to this video
+  }
+}
+
 async function call(path: string, init: RequestInit): Promise<Response> {
   const token = (await supabase.auth.getSession()).data.session?.access_token ?? SUPABASE_ANON_KEY;
   const res = await fetch(`${SUPABASE_URL}/functions/v1/video-assist${path}`, {

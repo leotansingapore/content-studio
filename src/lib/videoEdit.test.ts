@@ -173,3 +173,29 @@ describe("brand kit on video", () => {
     expect(changed).toEqual(["logo", "endCard"]);
   });
 });
+
+describe("saved look", () => {
+  it("keeps how the video looks, not this video's hook, trims or framing", async () => {
+    const { defaultSettings, lookOf, withLook, sameLook } = await import("@/lib/videoEdit");
+    const mine = { ...defaultSettings("minimal"), size: 1.3, baseColor: "#FFEE00", captionY: 0.2, logo: true, endCard: true, nameTag: "Jane Tan", aspect: "4:5" as const, hook: "3 CPF mistakes", trimStart: 4, focusX: 0.2 };
+    const look = lookOf(mine);
+    expect(look).not.toHaveProperty("hook");
+    expect(look).not.toHaveProperty("trimStart");
+    expect(look).not.toHaveProperty("focusX");
+    const fresh = withLook(defaultSettings("bold"), look);
+    expect(fresh).toMatchObject({ style: "minimal", size: 1.3, baseColor: "#FFEE00", captionY: 0.2, logo: true, endCard: true, nameTag: "Jane Tan", aspect: "4:5", hook: "", trimStart: 0 });
+    expect(sameLook(fresh, look)).toBe(true);
+    expect(sameLook(defaultSettings("bold"), look)).toBe(false);
+  });
+
+  it("drops bad saved values instead of breaking the editor", async () => {
+    const { defaultSettings, withLook } = await import("@/lib/videoEdit");
+    const fresh = withLook(defaultSettings("bold"), { style: "neon", size: 99, baseColor: "red", aspect: "3:2", captionY: -4 });
+    expect(fresh.style).toBe("bold");
+    expect(fresh.size).toBe(1.6);
+    expect(fresh.baseColor).toBe("#FFFFFF");
+    expect(fresh.aspect).toBe("9:16");
+    expect(fresh.captionY).toBe(0.08);
+    expect(withLook(defaultSettings("bold"), null)).toEqual(defaultSettings("bold"));
+  });
+});
