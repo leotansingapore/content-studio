@@ -86,7 +86,7 @@ select public.cs_test_assert(
   and not has_sequence_privilege('authenticated', 'public.cs_review_comments_id_seq', 'usage,update'),
   '0.2 anon executes nothing; nobody client-side uses the sequence');
 select public.cs_test_assert(
-  (select bool_and(p.prosecdef and p.proconfig @> array['search_path=public'])
+  (select bool_and(p.prosecdef and p.proconfig @> array['search_path=public, pg_temp'])
    from pg_proc p
    where p.pronamespace = 'public'::regnamespace
      and p.proname in ('cs_add_review_comment', 'cs_mark_review_mentions_seen',
@@ -200,6 +200,12 @@ select public.cs_test_expect_error(format('select public.cs_add_review_comment(%
   '%up to 2,000%', '6.4 an empty comment is refused');
 select public.cs_test_expect_error(format('select public.cs_add_review_comment(%L, %L)', current_setting('cs_test.sub'), repeat('x', 2001)),
   '%up to 2,000%', '6.5 a comment over 2,000 characters is refused');
+select public.cs_test_expect_error(format('select public.cs_add_review_comment(%L, %L)', current_setting('cs_test.sub'), repeat(' ', 4001) || 'x'),
+  '%up to 2,000%', '6.5b an oversized raw comment is refused before normalising');
+select public.cs_test_expect_error(
+  format('select public.cs_add_review_comment(%L, %L, %L::uuid[])', current_setting('cs_test.sub'), 'hi',
+    (select array_agg('7e57c0de-0000-4000-8000-0000000000c3'::uuid)::text from generate_series(1, 11))),
+  '%up to 10 people%', '6.5c more than 10 raw mentions refused before de-duplicating');
 select public.cs_test_expect_error(format('select public.cs_add_review_comment(%L, %L)', gen_random_uuid(), 'hi'),
   '%can''t comment on this post%', '6.6 an unknown submission gives the same refusal');
 
@@ -276,6 +282,22 @@ select public.cs_test_assert(
   and (select count(*) from public.cs_review_comments) = 0
   and (select count(*) from public.cs_review_mentions) = 0,
   '10.1 a mentioned member who leaves loses the thread and the post');
+
+-- Rejoining does not bring the old thread back. now() is fixed inside this
+-- transaction, so age P's old mentions to before the new joined_at.
+reset role;
+update public.cs_review_mentions set created_at = now() - interval '1 hour'
+where user_id = '7e57c0de-0000-4000-8000-0000000000c3';
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000c3","role":"authenticated"}';
+select public.cs_join_team(current_setting('cs_test.code_a'), 'Pat Peer');
+select public.cs_test_assert(
+  (select count(*) from public.cs_review_submissions) = 0
+  and (select count(*) from public.cs_review_comments) = 0
+  and (select count(*) from public.cs_review_mentions) = 0,
+  '10.1b a member who rejoins does not get old threads back');
+select public.cs_test_expect_error(format('select public.cs_add_review_comment(%L, %L)', current_setting('cs_test.sub'), 'back'),
+  '%can''t comment on this post%', '10.1c nor can they comment on them');
 
 set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000c2","role":"authenticated"}';
 select public.cs_leave_team();

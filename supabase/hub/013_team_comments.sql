@@ -12,6 +12,9 @@
 --   * current leaders of the submission's team,
 --   * current members of that team who are mentioned in the thread; they
 --     can also read that one submission (new policy on cs_review_submissions).
+--   A mention counts only if it was made after the person's current
+--   joined_at, so leaving the team ends that access for good: rejoining
+--   does not bring old threads back (cs_leave_team itself is unchanged).
 --   Other members never see the thread or the post. Only the author or a
 --   leader can bring a new reader in: a mentioned member may mention only
 --   people who can already read the thread (the author, a leader, or someone
@@ -27,7 +30,8 @@
 --     review record. Mentions change only through cs_mark_review_mentions_seen.
 --   * Caps: comment 1-2,000 characters, up to 10 mentions per comment, 60
 --     comments per person per rolling hour (counted under a per-user
---     advisory lock).
+--     advisory lock). Oversized input is refused before normalising.
+--   * Every function pins search_path = public, pg_temp.
 --   * anon gets nothing.
 --
 -- Grants, one by one
@@ -52,7 +56,11 @@
 --     ORs with the existing author/leader policy): a current team member reads
 --     a submission they are mentioned on.
 --
--- Idempotent: safe to run again.
+-- Idempotent: safe to run again. One transaction; gives up after 3 seconds
+-- waiting for a lock (the FK and the new policy touch cs_review_submissions).
+
+begin;
+set local lock_timeout = '3s';
 
 -- ---------------------------------------------------------------------------
 -- Tables
@@ -113,16 +121,19 @@ create trigger cs_review_comments_no_truncate
 -- answer for the caller)
 -- ---------------------------------------------------------------------------
 
+-- Mentions from before the caller's current joined_at do not count.
 create or replace function public.cs_review_mentioned(p_submission_id uuid) returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, pg_temp as $$
   select exists (
-    select 1 from public.cs_review_mentions
-    where submission_id = p_submission_id and user_id = auth.uid()
+    select 1 from public.cs_review_mentions m
+    join public.cs_team_members t on t.user_id = m.user_id
+    where m.submission_id = p_submission_id and m.user_id = auth.uid()
+      and m.created_at >= t.joined_at
   )
 $$;
 
 create or replace function public.cs_can_read_review_thread(p_submission_id uuid) returns boolean
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, pg_temp as $$
   select exists (
     select 1 from public.cs_review_submissions s
     where s.id = p_submission_id
@@ -143,11 +154,11 @@ create or replace function public.cs_add_review_comment(
   p_body text,
   p_mentions uuid[] default '{}'
 ) returns public.cs_review_comments
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   c_hourly_limit constant int := 60;
   v_uid uuid := auth.uid();
-  v_body text := public.cs_review_normalize(p_body);
+  v_body text;
   v_sub public.cs_review_submissions%rowtype;
   v_me public.cs_team_members%rowtype;
   v_mentions uuid[];
@@ -166,6 +177,14 @@ begin
     raise exception 'You can''t comment on this post.' using errcode = '42501';
   end if;
 
+  -- Bound the raw input before normalising it.
+  if char_length(p_body) > 4000 then
+    raise exception 'Write a comment of up to 2,000 characters.' using errcode = '22023';
+  end if;
+  if cardinality(p_mentions) > 10 then
+    raise exception 'Mention up to 10 people in one comment.' using errcode = '22023';
+  end if;
+  v_body := public.cs_review_normalize(p_body);
   if char_length(v_body) not between 1 and 2000 then
     raise exception 'Write a comment of up to 2,000 characters.' using errcode = '22023';
   end if;
@@ -174,9 +193,6 @@ begin
     select distinct m from unnest(coalesce(p_mentions, '{}'::uuid[])) m
     where m is not null and m <> v_uid
   );
-  if cardinality(v_mentions) > 10 then
-    raise exception 'Mention up to 10 people in one comment.' using errcode = '22023';
-  end if;
   if exists (
     select 1 from unnest(v_mentions) m
     where not exists (
@@ -195,7 +211,8 @@ begin
       )
       and not exists (
         select 1 from public.cs_review_mentions x
-        where x.submission_id = v_sub.id and x.user_id = m
+        join public.cs_team_members t on t.user_id = x.user_id
+        where x.submission_id = v_sub.id and x.user_id = m and x.created_at >= t.joined_at
       )
   ) then
     raise exception 'Only the author or a team leader can bring someone new into this thread.'
@@ -221,7 +238,7 @@ end $$;
 
 -- Clears the caller's "mentioned you" for one thread. Returns how many it cleared.
 create or replace function public.cs_mark_review_mentions_seen(p_submission_id uuid) returns integer
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_uid uuid := auth.uid();
   v_count integer;
@@ -267,3 +284,5 @@ drop policy if exists cs_review_submissions_mentioned_read on public.cs_review_s
 create policy cs_review_submissions_mentioned_read on public.cs_review_submissions
   for select to authenticated
   using (team_id = (select public.cs_my_team_id()) and public.cs_review_mentioned(id));
+
+commit;
