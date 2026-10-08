@@ -31,6 +31,12 @@
   (JWT verification on). Their tables come from `supabase/hub/0NN_*.sql`,
   applied by hand. See `docs/account-audit.md`. Reference copies of the
   unversioned functions live in `supabase/snapshots/functions/`.
+- `content-studio-mcp` (Connect Claude) is the one function deployed WITHOUT
+  JWT verification (`--no-verify-jwt`): Claude sends no Supabase token, the
+  connection link in the URL is the credential. Links are revoked by a
+  `content-studio-mcprevoked-` row that is never deleted, because the sync has
+  no tombstones and re-uploads deleted keys from other devices. Never make
+  revocation (or any security state) depend on deleting a synced key.
 - All user data is localStorage-first under `content-studio-*` keys and
   mirrored cross-device by `src/lib/cloudSync.ts` (prefix-based). New
   persistent features MUST use the `content-studio-` key prefix or they will
