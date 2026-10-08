@@ -762,7 +762,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </div>
               <Row label="Captions"><Toggle on={settings.captions} set={(v) => patch({ captions: v })} /></Row>
               <Row label="Position">
-                {(["top", "middle", "bottom"] as const).map((p) => <Chip key={p} on={settings.captionY === undefined && settings.position === p} onClick={() => patch({ position: p, captionY: undefined })}>{p}</Chip>)}
+                {(["top", "middle", "bottom"] as const).map((p) => <Chip key={p} on={settings.captionY === undefined && settings.position === p} onClick={() => patch({ position: p, captionY: undefined })}>{p[0].toUpperCase() + p.slice(1)}</Chip>)}
               </Row>
               <Row label={`Size ${settings.size.toFixed(1)}x`}><input type="range" min={0.6} max={1.6} step={0.1} value={settings.size} onChange={(e) => patch({ size: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               {STYLES[settings.style].mode === "words" && (
@@ -888,7 +888,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <p className="text-xs"><Link to="/brand" className="font-semibold text-primary hover:underline">Set up your brand kit</Link> for a logo and an end card.</p>
               )}
               <Row label="Shape">
-                {(["9:16", "4:5", "1:1", "16:9", "original"] as const).map((a) => <Chip key={a} on={settings.aspect === a} onClick={() => patch({ aspect: a })}>{a}</Chip>)}
+                {(["9:16", "4:5", "1:1", "16:9", "original"] as const).map((a) => <Chip key={a} on={settings.aspect === a} onClick={() => patch({ aspect: a })}>{a === "original" ? "Original" : a}</Chip>)}
               </Row>
               <Row label="Fit">
                 <Chip on={(settings.fit ?? "fill") === "fill"} onClick={() => patch({ fit: "fill" })}>Crop to fill</Chip>
@@ -974,7 +974,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
-      className={`rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>{children}</button>
+      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>{children}</button>
   );
 }
 
