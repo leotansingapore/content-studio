@@ -25,6 +25,7 @@ import {
   rankPosts,
   postsCsv,
   type RankMetric,
+  type TrackedPost,
   labelForDimension,
   MIN_GROUP_SAMPLE,
   type BreakdownDimension,
@@ -94,6 +95,21 @@ const LENGTH_LABEL: Record<string, string> = {
   warn: "A bit long",
   over: "Too long",
 };
+
+// Top posts show the number they are ranked by.
+const RANK_UNIT: Record<RankMetric, string> = {
+  engagementTotal: "engagements",
+  engagementRate: "engagement rate",
+  impressions: "impressions",
+  reactions: "reactions",
+  comments: "comments",
+  shares: "shares",
+};
+function rankValue(d: TrackedPost, metric: RankMetric): string {
+  if (metric === "engagementRate") return `${d.engagementRate}%`;
+  const n = metric === "engagementTotal" ? engagement(d.metrics) : metric === "impressions" ? d.impressions : d.metrics?.[metric] ?? 0;
+  return n.toLocaleString();
+}
 
 const DIMENSION_TABS: { id: BreakdownDimension; label: string }[] = [
   { id: "platform", label: "Platform" },
@@ -717,10 +733,10 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="font-serif text-lg font-semibold text-foreground">
-                      {engagement(d.metrics)}
+                      {rankValue(d, rankBy)}
                     </div>
                     <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      engagements
+                      {RANK_UNIT[rankBy]}
                     </div>
                   </div>
                 </Link>
