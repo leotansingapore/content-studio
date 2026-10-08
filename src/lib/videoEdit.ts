@@ -70,6 +70,8 @@ export interface EditSettings {
   volume?: number;
   /** What Export makes: the video, a smaller video (for WhatsApp), or the sound only (for a podcast feed). Unset = video. */
   exportAs?: "video" | "small" | "audio";
+  /** Which app the video is exported for, which sets its size; "small" above is WhatsApp. Unset = Instagram Reels. */
+  exportFor?: ExportTarget;
   /** Playback speed, 1 to 1.5 (pitch kept). Unset = 1. */
   speed?: number;
   /** Voice polish: rumble and hum cut, clarity lifted, loudness evened out. */
@@ -688,18 +690,71 @@ export function soundStats(samples: Float32Array, rate: number): { seconds: numb
 }
 
 export interface ExportIssue {
-  id: "length" | "silent" | "quiet" | "gap" | "captions";
+  id: "length" | "silent" | "quiet" | "gap" | "captions" | "size";
   text: string;
   /** Where in the file it is, for a silence. */
   at?: number;
 }
 
+// ---------- export size per platform ----------
+// What one upload can be, as of Oct 2026: WhatsApp plays a video in the chat up
+// to 16 MB (bigger goes as a document), TikTok's Android app takes up to 72 MB.
+// Instagram, YouTube and LinkedIn take far more than a reel at 8 Mbps comes to.
+export const EXPORT_TARGETS = {
+  reels: { label: "Instagram", capMB: 0, mbps: 8, short: 0 },
+  tiktok: { label: "TikTok", capMB: 72, mbps: 8, short: 0 },
+  shorts: { label: "YouTube Shorts", capMB: 0, mbps: 8, short: 0 },
+  whatsapp: { label: "WhatsApp", capMB: 16, mbps: 2.5, short: 720 },
+  linkedin: { label: "LinkedIn", capMB: 0, mbps: 8, short: 0 },
+} as const;
+export type ExportTarget = keyof typeof EXPORT_TARGETS;
+/** Below this the picture breaks up, so a longer video can't fit the cap. */
+export const MIN_VIDEO_BPS = 600_000;
+
+export function targetOf(s: Pick<EditSettings, "exportAs" | "exportFor">): ExportTarget {
+  if (s.exportAs === "small") return "whatsapp";
+  return s.exportFor && s.exportFor in EXPORT_TARGETS ? s.exportFor : "reels";
+}
+
+/**
+ * The file an export makes for its platform: frame size, bitrates and the
+ * expected bytes, with the bitrate lowered so a capped platform's file lands
+ * 10% under its cap (the recorder's rate is a target, not a promise).
+ */
+export function exportSize(s: Pick<EditSettings, "exportAs" | "exportFor" | "aspect">, seconds: number, srcW: number, srcH: number) {
+  const id = targetOf(s);
+  const t = EXPORT_TARGETS[id];
+  const sec = Math.max(1, seconds);
+  if (s.exportAs === "audio") return { id, label: t.label, w: 0, h: 0, videoBps: 0, audioBps: 128_000, bytes: Math.round((128_000 * sec) / 8), capBytes: 0, fits: true, maxSeconds: Infinity };
+  let [w, h] = aspectSize(s.aspect ?? "9:16", srcW, srcH);
+  if (t.short && Math.min(w, h) > t.short) {
+    const k = t.short / Math.min(w, h);
+    [w, h] = [Math.round((w * k) / 2) * 2, Math.round((h * k) / 2) * 2];
+  }
+  const audioBps = id === "whatsapp" ? 96_000 : 128_000;
+  const capBytes = t.capMB * 1_000_000;
+  const budget = capBytes ? (capBytes * 0.9 * 8) / sec - audioBps : Infinity;
+  const videoBps = Math.round(Math.max(MIN_VIDEO_BPS, Math.min(t.mbps * 1_000_000, budget)));
+  const bytes = Math.round(((videoBps + audioBps) * sec) / 8);
+  const maxSeconds = capBytes ? Math.floor((capBytes * 0.9 * 8) / (MIN_VIDEO_BPS + audioBps)) : Infinity;
+  return { id, label: t.label, w, h, videoBps, audioBps, bytes, capBytes, fits: sec <= maxSeconds, maxSeconds };
+}
+
+/** Bytes as people read them: 850 KB, 14 MB, 1.2 GB. */
+export function fmtBytes(n: number): string {
+  if (n < 1_000_000) return `${Math.max(1, Math.round(n / 1000))} KB`;
+  if (n < 1_000_000_000) return `${n < 10_000_000 ? (n / 1_000_000).toFixed(1) : Math.round(n / 1_000_000)} MB`;
+  return `${(n / 1_000_000_000).toFixed(1)} GB`;
+}
+
 /** What is wrong with an exported file, from its measured sound (seconds null = it couldn't be read back). */
 export function exportIssues(
   m: { seconds: number | null; level: number | null; gap: { at: number; length: number } | null },
-  want: { seconds: number; kind: "video" | "small" | "audio"; captions: boolean; hasWords: boolean; sound: boolean },
+  want: { seconds: number; kind: "video" | "small" | "audio"; captions: boolean; hasWords: boolean; sound: boolean; size?: { bytes: number; cap: number; label: string } },
 ): ExportIssue[] {
   const out: ExportIssue[] = [];
+  if (want.size?.cap && want.size.bytes > want.size.cap)
+    out.push({ id: "size", text: `The file is ${fmtBytes(want.size.bytes)}, over the ${fmtBytes(want.size.cap)} ${want.size.label} takes. Trim it, then export again.` });
   if (m.seconds !== null) {
     if (Math.abs(m.seconds - want.seconds) > Math.max(1, want.seconds * 0.05))
       out.push({ id: "length", text: `The file runs ${fmtTime(m.seconds)} but the edit is ${fmtTime(want.seconds)}. Keep this tab in front and export again.` });

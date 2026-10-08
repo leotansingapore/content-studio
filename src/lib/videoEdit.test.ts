@@ -712,3 +712,50 @@ describe("background music", () => {
     expect(sanitizeMusic(null)).toBeUndefined();
   });
 });
+
+describe("export size per platform", () => {
+  it("keeps the old WhatsApp choice and falls back to Instagram", async () => {
+    const { targetOf } = await import("@/lib/videoEdit");
+    expect(targetOf({ exportAs: "small", exportFor: "tiktok" })).toBe("whatsapp");
+    expect(targetOf({})).toBe("reels");
+    expect(targetOf({ exportFor: "linkedin" })).toBe("linkedin");
+    expect(targetOf({ exportFor: "myspace" as never })).toBe("reels");
+  });
+
+  it("sizes WhatsApp at 720p, lowering the bitrate to land under 16 MB, and says when it can't", async () => {
+    const { exportSize, MIN_VIDEO_BPS } = await import("@/lib/videoEdit");
+    const short = exportSize({ exportAs: "small", aspect: "9:16" }, 20, 1080, 1920);
+    expect([short.w, short.h]).toEqual([720, 1280]);
+    expect(short.videoBps).toBe(2_500_000);
+    expect(short.fits).toBe(true);
+    const minute = exportSize({ exportFor: "whatsapp", aspect: "9:16" }, 60, 1080, 1920);
+    expect(minute.videoBps).toBeLessThan(2_500_000);
+    expect(minute.bytes).toBeLessThanOrEqual(16_000_000 * 0.9 + 1);
+    expect(minute.bytes).toBeGreaterThan(16_000_000 * 0.85);
+    const long = exportSize({ exportFor: "whatsapp", aspect: "9:16" }, 600, 1080, 1920);
+    expect(long.videoBps).toBe(MIN_VIDEO_BPS);
+    expect(long.fits).toBe(false);
+    expect(long.maxSeconds).toBe(165);
+    expect(exportSize({ exportFor: "whatsapp", aspect: "16:9" }, 10, 1920, 1080)).toMatchObject({ w: 1280, h: 720 });
+  });
+
+  it("keeps full quality where the cap is far off, and fits a long TikTok under 72 MB", async () => {
+    const { exportSize } = await import("@/lib/videoEdit");
+    expect(exportSize({ aspect: "9:16" }, 600, 1080, 1920)).toMatchObject({ w: 1080, h: 1920, videoBps: 8_000_000, fits: true, capBytes: 0 });
+    const tt = exportSize({ exportFor: "tiktok", aspect: "9:16" }, 180, 1080, 1920);
+    expect(tt.videoBps).toBeLessThan(8_000_000);
+    expect(tt.bytes).toBeLessThanOrEqual(72_000_000 * 0.9 + 1);
+    expect(exportSize({ exportFor: "tiktok", aspect: "9:16" }, 30, 1080, 1920).videoBps).toBe(8_000_000);
+    expect(exportSize({ exportAs: "audio", aspect: "9:16" }, 80, 1080, 1920)).toMatchObject({ videoBps: 0, bytes: 1_280_000, fits: true });
+  });
+
+  it("reads sizes plainly and flags a file over the cap", async () => {
+    const { fmtBytes, exportIssues } = await import("@/lib/videoEdit");
+    expect([fmtBytes(850_000), fmtBytes(4_260_000), fmtBytes(14_400_000), fmtBytes(1_230_000_000)]).toEqual(["850 KB", "4.3 MB", "14 MB", "1.2 GB"]);
+    const base = { seconds: 10, kind: "small" as const, captions: false, hasWords: true, sound: true };
+    const m = { seconds: 10, level: -14, gap: null };
+    expect(exportIssues(m, { ...base, size: { bytes: 17_300_000, cap: 16_000_000, label: "WhatsApp" } }).map((i) => i.text)).toEqual(["The file is 17 MB, over the 16 MB WhatsApp takes. Trim it, then export again."]);
+    expect(exportIssues(m, { ...base, size: { bytes: 15_000_000, cap: 16_000_000, label: "WhatsApp" } })).toEqual([]);
+    expect(exportIssues(m, { ...base, size: { bytes: 90_000_000, cap: 0, label: "Instagram" } })).toEqual([]);
+  });
+});

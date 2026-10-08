@@ -9,6 +9,7 @@ import {
   END_CARD_SECONDS,
   STYLES,
   aspectSize,
+  exportSize,
   endCardLine,
   buildCaptions,
   captionAt,
@@ -816,6 +817,10 @@ export interface ExportJob {
   error?: string;
   /** How long the edit is, end card included: what the file should run. */
   seconds?: number;
+  /** The file's size, and the most its platform takes (0 = no cap that matters). */
+  bytes?: number;
+  cap?: number;
+  label?: string;
 }
 
 let job: ExportJob | null = null;
@@ -868,7 +873,9 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     video = await loadVideo(file);
     const plan = planFor(words, video.duration, settings);
     if (plan.total < 0.5) throw new Error("Nothing left to export after the cuts.");
-    const [W, H] = aspectSize(settings.aspect, video.videoWidth, video.videoHeight);
+    // sized for the platform it is for: frame, bitrates, and under its upload cap
+    const size = exportSize(settings, plan.total + (settings.endCard && brand ? END_CARD_SECONDS : 0), video.videoWidth, video.videoHeight);
+    const [W, H] = size.w ? [size.w, size.h] : aspectSize(settings.aspect, video.videoWidth, video.videoHeight);
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
@@ -886,8 +893,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const FADE = 0.025;
     const volume = Math.min(1, Math.max(0, settings.volume ?? 1));
     const stream = new MediaStream(kind === "audio" ? dest.stream.getAudioTracks() : [...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
-    // a smaller file for WhatsApp (about 2.5 Mbps reads fine on a phone), full quality otherwise
-    const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: kind === "small" ? 2_500_000 : 8_000_000, audioBitsPerSecond: kind === "small" ? 96_000 : 128_000 });
+    const rec = new MediaRecorder(stream, { mimeType: mime, ...(size.videoBps ? { videoBitsPerSecond: size.videoBps } : {}), audioBitsPerSecond: size.audioBps });
     const chunks: Blob[] = [];
     rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
     const stopped = new Promise<void>((r) => (rec.onstop = () => r()));
@@ -1018,8 +1024,9 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     }
     rec.stop();
     await stopped;
-    const url = URL.createObjectURL(new Blob(chunks, { type: mime.split(";")[0] }));
-    job = { ...job!, progress: 1, state: "done", url, ext, seconds: plan.total + endLen };
+    const out = new Blob(chunks, { type: mime.split(";")[0] });
+    const url = URL.createObjectURL(out);
+    job = { ...job!, progress: 1, state: "done", url, ext, seconds: plan.total + endLen, bytes: out.size, cap: size.capBytes, label: size.label };
     emit();
     const a = document.createElement("a");
     a.href = url;
