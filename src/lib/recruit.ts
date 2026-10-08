@@ -342,3 +342,40 @@ export function weekOf(d: Date): string {
 export function upsertWeek(weeks: WeekNumbers[], row: WeekNumbers): WeekNumbers[] {
   return [row, ...weeks.filter((w) => w.week !== row.week)].sort((a, b) => b.week.localeCompare(a.week));
 }
+
+/** Recruitment drafts carry their stage in pillarDetail ("Recruitment - TOFU - Myth Bust"). */
+export function recruitStageOf(pillarDetail: string | undefined): RecruitStage | null {
+  const m = /^Recruitment - (TOFU|MOFU|BOFU)\b/.exec(pillarDetail ?? "");
+  return m ? (m[1].toLowerCase() as RecruitStage) : null;
+}
+
+type DraftLike = { pillarDetail: string; status?: string; postedAt?: string; createdAt: string };
+
+/** Recruitment posts marked posted inside the week starting `week` (YYYY-MM-DD, local). */
+export function recruitPostsInWeek(drafts: DraftLike[], week: string): number {
+  const [y, m, d] = week.split("-").map(Number);
+  const start = new Date(y, m - 1, d).getTime();
+  const end = start + 7 * 86_400_000;
+  return drafts.filter((x) => {
+    if (x.status !== "posted" || !recruitStageOf(x.pillarDetail) || !x.postedAt) return false;
+    const t = new Date(x.postedAt).getTime();
+    return t >= start && t < end;
+  }).length;
+}
+
+/** Share of recruitment drafts per funnel stage since `since`, against the 50/30/20 target. */
+export function stageMix(drafts: DraftLike[], since: Date) {
+  const counts: Record<RecruitStage, number> = { tofu: 0, mofu: 0, bofu: 0 };
+  for (const x of drafts) {
+    const s = recruitStageOf(x.pillarDetail);
+    if (s && new Date(x.postedAt ?? x.createdAt) >= since) counts[s]++;
+  }
+  const total = counts.tofu + counts.mofu + counts.bofu;
+  return STAGES.map((s) => ({
+    id: s.id,
+    label: s.label,
+    target: s.share,
+    count: counts[s.id],
+    share: total ? Math.round((counts[s.id] / total) * 100) : 0,
+  }));
+}

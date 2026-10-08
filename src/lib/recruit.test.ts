@@ -10,6 +10,8 @@ import {
   scanRecruitCompliance,
   upsertWeek,
   weekOf,
+  recruitPostsInWeek,
+  stageMix,
 } from "./recruit";
 import { SEND_TEN_SCRIPT } from "@/data/recruitKit";
 
@@ -93,5 +95,26 @@ describe("helpers", () => {
     expect(Object.values(partsDone(b)).some(Boolean)).toBe(false);
     b.conversations = b.conversations.map((c) => ({ ...c, sent: true }));
     expect(partsDone(b).conversations).toBe(true);
+  });
+});
+
+describe("recruitment analytics", () => {
+  const drafts = [
+    { pillarDetail: "Recruitment - TOFU - Myth Bust", status: "posted", postedAt: new Date(2026, 9, 6, 20).toISOString(), createdAt: "2026-10-01T00:00:00Z" },
+    { pillarDetail: "Recruitment - BOFU - Best-fit formula", status: "posted", postedAt: new Date(2026, 9, 12, 9).toISOString(), createdAt: "2026-10-01T00:00:00Z" },
+    { pillarDetail: "Recruitment - MOFU - The Hard Truth", status: "draft", createdAt: new Date(2026, 9, 7).toISOString() },
+    { pillarDetail: "CPF top-ups", status: "posted", postedAt: new Date(2026, 9, 6).toISOString(), createdAt: "2026-10-01T00:00:00Z" },
+  ];
+  it("counts only posted recruitment posts inside the week", () => {
+    expect(recruitPostsInWeek(drafts, "2026-10-05")).toBe(1);
+    expect(recruitPostsInWeek(drafts, "2026-10-12")).toBe(1);
+  });
+  it("splits recruitment drafts by stage against 50/30/20", () => {
+    const mix = stageMix(drafts, new Date(2026, 8, 1));
+    expect(mix.map((m) => [m.id, m.count, m.share, m.target])).toEqual([
+      ["tofu", 1, 33, 50],
+      ["mofu", 1, 33, 30],
+      ["bofu", 1, 33, 20],
+    ]);
   });
 });

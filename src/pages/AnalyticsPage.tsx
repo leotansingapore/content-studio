@@ -26,6 +26,7 @@ import { RankBars, type RankBarRow } from "@/components/charts/RankBars";
 import { TrendChart, type TrendChartPoint } from "@/components/charts/TrendChart";
 import CreatorLookup from "@/components/CreatorLookup";
 import AccountAudit from "@/components/AccountAudit";
+import RecruitNumbers from "@/components/recruit/RecruitNumbers";
 import {
   SOCIAL_PLATFORMS,
   loadSocialAccounts,
@@ -312,6 +313,8 @@ export default function AnalyticsPage() {
       </header>
 
       {userId && <AccountAudit accounts={accounts} onSaveAccount={saveAccount} />}
+
+      <RecruitNumbers />
 
       <CreatorLookup />
 
