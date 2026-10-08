@@ -17,13 +17,10 @@ export default function NotFoundPage() {
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
         <Button asChild className="gap-1.5">
+          <Link to="/home">Go to Home</Link>
+        </Button>
+        <Button asChild variant="outline" className="gap-1.5">
           <Link to="/generate">Write a post</Link>
-        </Button>
-        <Button asChild variant="outline" className="gap-1.5">
-          <Link to="/inspiration">Inspiration</Link>
-        </Button>
-        <Button asChild variant="outline" className="gap-1.5">
-          <Link to="/profiles">Creators</Link>
         </Button>
       </CardContent>
     </Card>
