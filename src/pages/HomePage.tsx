@@ -155,7 +155,11 @@ export default function HomePage() {
     };
   }, []);
 
-  const recent = useMemo(() => drafts.slice(0, 3), [drafts]);
+  // Unfinished drafts first: scheduled posts already show in the due card and Coming up.
+  const recent = useMemo(() => {
+    const inProgress = drafts.filter((d) => draftStatus(d) === "draft");
+    return (inProgress.length ? inProgress : drafts).slice(0, 3);
+  }, [drafts]);
   const hasPosts = drafts.length > 0;
 
   const upcoming = useMemo(() => {
@@ -165,7 +169,7 @@ export default function HomePage() {
         (d) =>
           draftStatus(d) === "scheduled" &&
           d.scheduledFor &&
-          d.scheduledFor.slice(0, 10) >= today,
+          d.scheduledFor.slice(0, 10) > today, // today's are in the due card
       )
       .sort((a, b) => (a.scheduledFor! < b.scheduledFor! ? -1 : 1))
       .slice(0, 3);
