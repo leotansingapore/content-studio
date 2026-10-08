@@ -14,12 +14,47 @@
   ],
   "rewrites": [
     {
-      "source": "/mb-studio/api/:path*",
-      "destination": "https://moneybees-studio.vercel.app/api/:path*"
+      "source": "/mb-studio/api/board",
+      "destination": "https://moneybees-studio.vercel.app/api/board"
+    },
+    {
+      "source": "/mb-studio/api/cards/:id",
+      "destination": "https://moneybees-studio.vercel.app/api/cards/:id"
+    },
+    {
+      "source": "/mb-studio/api/cards/:id/comments",
+      "destination": "https://moneybees-studio.vercel.app/api/cards/:id/comments"
+    },
+    {
+      "source": "/mb-studio/api/cards/:id/comments/:cid",
+      "destination": "https://moneybees-studio.vercel.app/api/cards/:id/comments/:cid"
     },
     {
       "source": "/(.*)",
       "destination": "/"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/mb-studio/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "sandbox; default-src 'none'"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
   ]
 }
