@@ -1785,6 +1785,10 @@ export default function GeneratePage() {
     if (appliedTemplateId === t.id) setAppliedTemplateId(null);
   };
 
+  // The topic is the only required field: once it is in, Generate is one tap
+  // from any step and the optional steps stay a Next away.
+  const canGenerateEarly = wizardStep < LAST_STEP && pillarDetail.trim().length > 0 && !isStreaming;
+
   const goNext = () =>
     setWizardStep((s) => Math.min(LAST_STEP, s + 1));
   const goBack = () => setWizardStep((s) => Math.max(0, s - 1));
@@ -2378,13 +2382,30 @@ export default function GeneratePage() {
             >
               <ChevronLeft className="h-4 w-4" /> Back
             </Button>
-            <span className="text-xs text-muted-foreground">
+            <span className={`text-xs text-muted-foreground ${canGenerateEarly ? "hidden sm:inline" : ""}`}>
               Step {wizardStep + 1} of {STEP_META.length}
             </span>
             {wizardStep < LAST_STEP ? (
-              <Button type="button" onClick={goNext} className="gap-1.5">
-                Next <ChevronRight className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={canGenerateEarly ? "outline" : "default"}
+                  onClick={goNext}
+                  className="gap-1.5"
+                >
+                  Next <ChevronRight className="h-4 w-4" />
+                </Button>
+                {canGenerateEarly && (
+                  <Button
+                    type="button"
+                    onClick={() => void handleGenerate()}
+                    className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {generateButtonLabel}
+                  </Button>
+                )}
+              </div>
             ) : (
               <span className="w-[74px]" aria-hidden />
             )}
