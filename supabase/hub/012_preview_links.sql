@@ -22,12 +22,15 @@
 --   * authenticated users read their own links and the comments on them
 --     through RLS (SELECT only) and write only through the SECURITY DEFINER
 --     functions, which check auth.uid() themselves.
---   * Caps: 50 new links per adviser per rolling 24 hours; 50 comments per
---     link per rolling 24 hours and 300 per link in total (both sides count);
---     names 1-80 characters, comments 1-2,000, post text 1-20,000. The
---     comment cap is counted under a row lock on the link, so concurrent
---     posts cannot overshoot it. The honeypot and request-size limit live in
---     the edge function.
+--   * Caps: 50 new links per adviser per rolling 24 hours. Per link, the
+--     reviewer side and the adviser side are capped separately, each at 50
+--     comments per rolling 24 hours and 300 in total, so a flood from the
+--     public page can never stop the adviser replying. Names 1-80
+--     characters, comments 1-2,000, post text 1-20,000; oversized input is
+--     refused before any normalising regex runs. Counts run under a row lock
+--     on the link, so concurrent posts cannot overshoot. The honeypot and
+--     request-size limit live in the edge function.
+--   * Every function pins search_path = public, pg_temp.
 --
 -- Grants, one by one
 --   tables cs_preview_links, cs_preview_comments
@@ -52,7 +55,11 @@
 --   cs_preview_comments_owner_read: a user reads comments whose link they own.
 --   No INSERT/UPDATE/DELETE policies (and no privileges for them).
 --
--- Idempotent: safe to run again.
+-- Idempotent: safe to run again. One transaction; gives up after 3 seconds
+-- waiting for a lock rather than queueing behind live traffic.
+
+begin;
+set local lock_timeout = '3s';
 
 -- ---------------------------------------------------------------------------
 -- Tables
@@ -105,7 +112,7 @@ revoke all on sequence public.cs_preview_comments_id_seq from public, anon, auth
 -- ---------------------------------------------------------------------------
 
 create or replace function public.cs_preview_token_hash(p_token text) returns text
-language sql immutable parallel safe set search_path = public as $$
+language sql immutable parallel safe set search_path = public, pg_temp as $$
   select encode(sha256(convert_to(coalesce(p_token, ''), 'UTF8')), 'hex')
 $$;
 
@@ -123,11 +130,11 @@ create or replace function public.cs_create_preview_link(
   p_sender_name text default null,
   p_days integer default 14
 ) returns jsonb
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   c_daily_limit constant int := 50;
   v_uid uuid := auth.uid();
-  v_content text := public.cs_review_normalize(p_content);
+  v_content text;
   v_sender text;
   v_token text;
   v_row public.cs_preview_links%rowtype;
@@ -144,6 +151,11 @@ begin
   if coalesce(p_format, '') !~ '^[a-z0-9-]{1,40}$' then
     raise exception 'This draft has no valid format.' using errcode = '22023';
   end if;
+  -- Bound the raw input before any regex runs over it.
+  if char_length(p_content) > 40000 or char_length(p_title) > 1000 or char_length(p_sender_name) > 400 then
+    raise exception 'This post is too long to share (20,000 characters at most).' using errcode = '22023';
+  end if;
+  v_content := public.cs_review_normalize(p_content);
   if char_length(v_content) = 0 then
     raise exception 'There is no post text to share.' using errcode = '22023';
   end if;
@@ -189,7 +201,7 @@ end $$;
 
 -- Turns a link off for good. Idempotent for the owner.
 create or replace function public.cs_revoke_preview_link(p_link_id uuid) returns void
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_uid uuid := auth.uid();
 begin
@@ -207,12 +219,12 @@ end $$;
 -- The adviser answers on a live link; the reviewer sees it on the page.
 create or replace function public.cs_reply_preview_link(p_link_id uuid, p_body text)
 returns public.cs_preview_comments
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   c_daily_limit constant int := 50;
   c_total_limit constant int := 300;
   v_uid uuid := auth.uid();
-  v_body text := public.cs_review_normalize(p_body);
+  v_body text;
   v_link public.cs_preview_links%rowtype;
   v_recent int;
   v_total int;
@@ -221,6 +233,10 @@ begin
   if v_uid is null then
     raise exception 'Sign in first.' using errcode = '42501';
   end if;
+  if char_length(p_body) > 4000 then
+    raise exception 'Write a reply of up to 2,000 characters.' using errcode = '22023';
+  end if;
+  v_body := public.cs_review_normalize(p_body);
   select * into v_link from public.cs_preview_links
   where id = p_link_id and owner_id = v_uid
   for update;
@@ -236,9 +252,9 @@ begin
 
   select count(*) filter (where created_at > now() - interval '1 day'), count(*)
   into v_recent, v_total
-  from public.cs_preview_comments where link_id = v_link.id;
+  from public.cs_preview_comments where link_id = v_link.id and from_owner;
   if v_recent >= c_daily_limit or v_total >= c_total_limit then
-    raise exception 'This link has reached its comment limit. Share a new version to keep going.'
+    raise exception 'You''ve reached the reply limit on this link. Share a new version to keep going.'
       using errcode = '54000';
   end if;
 
@@ -255,7 +271,7 @@ end $$;
 -- The page for a live token, or null for an unknown, expired or revoked one
 -- (the caller cannot tell which). No ids, owner or draft details leave here.
 create or replace function public.cs_preview_link_view(p_token text) returns jsonb
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, pg_temp as $$
   select jsonb_build_object(
     'sender_name', l.sender_name,
     'title', l.title,
@@ -292,12 +308,12 @@ $$;
 -- edge function can map each case to a status code.
 create or replace function public.cs_preview_link_comment(p_token text, p_name text, p_body text)
 returns jsonb
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   c_daily_limit constant int := 50;
   c_total_limit constant int := 300;
-  v_name text := public.cs_clean_label(p_name);
-  v_body text := public.cs_review_normalize(p_body);
+  v_name text;
+  v_body text;
   v_link public.cs_preview_links%rowtype;
   v_recent int;
   v_total int;
@@ -313,6 +329,17 @@ begin
     return jsonb_build_object('ok', false, 'error', 'not_found',
       'message', 'This preview link has expired or been turned off.');
   end if;
+  -- Bound the raw input before any regex runs over it.
+  if char_length(p_name) > 400 then
+    return jsonb_build_object('ok', false, 'error', 'invalid',
+      'message', 'Add your name (up to 80 characters).');
+  end if;
+  if char_length(p_body) > 4000 then
+    return jsonb_build_object('ok', false, 'error', 'invalid',
+      'message', 'Write a comment of up to 2,000 characters.');
+  end if;
+  v_name := public.cs_clean_label(p_name);
+  v_body := public.cs_review_normalize(p_body);
   if char_length(v_name) not between 1 and 80 then
     return jsonb_build_object('ok', false, 'error', 'invalid',
       'message', 'Add your name (up to 80 characters).');
@@ -324,7 +351,7 @@ begin
 
   select count(*) filter (where created_at > now() - interval '1 day'), count(*)
   into v_recent, v_total
-  from public.cs_preview_comments where link_id = v_link.id;
+  from public.cs_preview_comments where link_id = v_link.id and not from_owner;
   if v_recent >= c_daily_limit or v_total >= c_total_limit then
     return jsonb_build_object('ok', false, 'error', 'rate_limited',
       'message', 'This link has had too many comments. Ask the adviser for a new link.');
@@ -378,3 +405,5 @@ create policy cs_preview_comments_owner_read on public.cs_preview_comments
     select 1 from public.cs_preview_links l
     where l.id = link_id and l.owner_id = (select auth.uid())
   ));
+
+commit;

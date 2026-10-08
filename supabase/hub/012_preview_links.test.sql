@@ -76,7 +76,7 @@ select public.cs_test_assert(
   and has_function_privilege('service_role', 'public.cs_preview_link_comment(text, text, text)', 'execute'),
   '0.5 the public-page functions are service_role only');
 select public.cs_test_assert(
-  (select bool_and(p.prosecdef and p.proconfig @> array['search_path=public'])
+  (select bool_and(p.prosecdef and p.proconfig @> array['search_path=public, pg_temp'])
    from pg_proc p
    where p.pronamespace = 'public'::regnamespace
      and p.proname in ('cs_create_preview_link', 'cs_revoke_preview_link', 'cs_reply_preview_link',
@@ -162,6 +162,9 @@ select public.cs_test_expect_error($$select public.cs_create_preview_link('d', '
 select public.cs_test_expect_error(format('select public.cs_create_preview_link(%L, %L, %L, %L, %L)',
     'd', 't', 'linkedin', 'text-post', repeat('x', 20001)),
   '%too long%', '2.14 post over 20,000 characters refused');
+select public.cs_test_expect_error(format('select public.cs_create_preview_link(%L, %L, %L, %L, %L)',
+    'd', 't', 'linkedin', 'text-post', repeat(' ', 40001) || 'x'),
+  '%too long%', '2.15 oversized raw post refused before normalising');
 
 reset role;
 
@@ -199,6 +202,12 @@ select public.cs_test_assert(
 select public.cs_test_assert(
   (public.cs_preview_link_comment(current_setting('cs_test.token_1'), 'Carol', repeat('b', 2001)) ->> 'error') = 'invalid',
   '3.8 a comment over 2,000 characters is refused');
+select public.cs_test_assert(
+  (public.cs_preview_link_comment(current_setting('cs_test.token_1'), repeat('n', 401), 'x') ->> 'error') = 'invalid',
+  '3.8b an oversized raw name is refused before normalising');
+select public.cs_test_assert(
+  (public.cs_preview_link_comment(current_setting('cs_test.token_1'), 'Carol', repeat(' ', 3990) || 'ok' || repeat(E'\n', 20)) ->> 'error') = 'invalid',
+  '3.8c an oversized raw comment is refused even if it would trim short');
 select public.cs_test_assert(
   (public.cs_preview_link_comment(current_setting('cs_test.token_1'), 'Carol', E' \n ') ->> 'error') = 'invalid',
   '3.9 an empty comment is refused');
@@ -336,12 +345,21 @@ reset role;
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b1","role":"authenticated"}';
+select public.cs_test_assert(
+  (select from_owner from public.cs_reply_preview_link(current_setting('cs_test.link_3_id')::uuid, 'Still here')),
+  '6.3 a flood of reviewer comments does not block the adviser''s reply');
+do $$
+begin
+  for i in 2..50 loop
+    perform public.cs_reply_preview_link(current_setting('cs_test.link_3_id')::uuid, 'reply ' || i);
+  end loop;
+end $$;
 select public.cs_test_expect_error(
   format('select public.cs_reply_preview_link(%L, %L)', current_setting('cs_test.link_3_id'), 'hi'),
-  '%comment limit%', '6.3 owner replies count towards the same cap');
+  '%reply limit%', '6.3b the adviser''s 51st reply in 24 hours is refused');
 reset role;
 
--- Age those 50 out of the 24-hour window and fill the link to 300 in total.
+-- Age all 100 out of the 24-hour window and fill the reviewer side to 300.
 update public.cs_preview_comments set created_at = now() - interval '2 days'
 where link_id = current_setting('cs_test.link_3_id')::uuid;
 insert into public.cs_preview_comments (link_id, author_name, body, created_at)
@@ -352,7 +370,14 @@ from generate_series(1, 250) g;
 set local role service_role;
 select public.cs_test_assert(
   (public.cs_preview_link_comment(current_setting('cs_test.token_3'), 'Bot', 'over the total') ->> 'error') = 'rate_limited',
-  '6.4 a link with 300 comments takes no more, however old they are');
+  '6.4 a link with 300 reviewer comments takes no more, however old they are');
+reset role;
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b1","role":"authenticated"}';
+select public.cs_test_assert(
+  (select from_owner from public.cs_reply_preview_link(current_setting('cs_test.link_3_id')::uuid, 'Replying after the reviewer cap')),
+  '6.4b the adviser''s own total is counted separately');
 reset role;
 
 -- Daily link cap: fill A's last 24 hours to exactly 50 links.
