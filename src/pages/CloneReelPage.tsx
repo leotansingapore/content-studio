@@ -1134,9 +1134,20 @@ export default function CloneReelPage() {
               <RotateCcw className="h-3.5 w-3.5" /> Clone another
             </Button>
           </div>
-          <SourceCard source={view.clone.result.source} />
+          {/* Phones read "Your version" first; from lg the source spans the top and the version sits right. */}
           <div className="grid items-start gap-4 lg:grid-cols-2">
-            <div className="min-w-0 space-y-4">
+            <div className="min-w-0 lg:col-start-2 lg:row-start-2">
+              <VersionCard
+                clone={view.clone}
+                onOpenInWrite={() => openInWrite(view.clone)}
+                onAddToBoard={() => addToBoard(view.clone)}
+                onChooseHook={(i) => chooseHook(view.clone, i)}
+              />
+            </div>
+            <div className="min-w-0 lg:col-span-2 lg:row-start-1">
+              <SourceCard source={view.clone.result.source} />
+            </div>
+            <div className="min-w-0 space-y-4 lg:col-start-1 lg:row-start-2">
               <BreakdownCard breakdown={view.clone.result.breakdown} />
               <VisualsCard
                 clone={view.clone}
@@ -1144,12 +1155,6 @@ export default function CloneReelPage() {
                 onRetry={() => userId && void startVisualsJob(userId, view.clone)}
               />
             </div>
-            <VersionCard
-              clone={view.clone}
-              onOpenInWrite={() => openInWrite(view.clone)}
-              onAddToBoard={() => addToBoard(view.clone)}
-              onChooseHook={(i) => chooseHook(view.clone, i)}
-            />
           </div>
         </div>
       )}
