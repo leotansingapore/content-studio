@@ -33,10 +33,12 @@ import {
   GalleryHorizontalEnd,
   Tag,
   CopyPlus,
+  Upload,
 } from "lucide-react";
 import {
   deleteDraft,
   loadDrafts,
+  saveDrafts,
   setDraftStatus,
   setDraftMetrics,
   draftStatus,
@@ -51,6 +53,8 @@ import { repurposeTargetsFor, buildRepurposeUrl } from "@/lib/repurpose";
 import DraftReviewControl from "@/components/team/DraftReviewControl";
 import { LabelChip, LabelManager, LabelPicker } from "@/components/Labels";
 import { loadLabels, setDraftLabels, type Label as ContentLabel } from "@/lib/labels";
+import CsvImport from "@/components/CsvImport";
+import { loadPositioning } from "@/lib/positioning";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -84,6 +88,7 @@ export default function DraftsPage() {
   const [manageLabels, setManageLabels] = useState(false);
   // A just-made copy: scrolled to and outlined for a moment.
   const [flashId, setFlashId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     if (!flashId) return;
@@ -168,6 +173,37 @@ export default function DraftsPage() {
     });
   };
 
+  const handleImport = (entries: DraftEntry[]) => {
+    if (!userId || !entries.length) return;
+    saveDrafts(userId, [...entries, ...loadDrafts(userId)]);
+    setDrafts(loadDrafts(userId));
+    setImportOpen(false);
+    // Show everything so the new posts are in view at the top.
+    setStatusFilter("all");
+    setPlatformFilter("all");
+    setPillarFilter("all");
+    setLabelFilter("all");
+    setSearch("");
+    setFlashId(entries[0].id);
+    const ids = new Set(entries.map((e) => e.id));
+    const scheduled = entries.filter((e) => e.scheduledFor).length;
+    toast({
+      title: `Imported ${entries.length} post${entries.length === 1 ? "" : "s"}`,
+      description: `${scheduled} scheduled, ${entries.length - scheduled} saved as drafts.`,
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            saveDrafts(userId, loadDrafts(userId).filter((d) => !ids.has(d.id)));
+            setDrafts(loadDrafts(userId));
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
   const handleDelete = (id: string) => {
     if (!userId) return;
     if (confirmId !== id) {
@@ -186,11 +222,24 @@ export default function DraftsPage() {
   return (
     <div className="space-y-6">
       <SectionTabs tabs={PIPELINE_TABS} />
-      <header>
+      <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           My posts
         </h1>
+        {!importOpen && userId && (
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)} className="gap-1.5">
+            <Upload className="h-3.5 w-3.5" /> Import CSV
+          </Button>
+        )}
       </header>
+      {importOpen && userId && (
+        <CsvImport
+          postCount={drafts.length}
+          defaultPlatform={loadPositioning(userId)?.platform ?? "linkedin"}
+          onImport={handleImport}
+          onClose={() => setImportOpen(false)}
+        />
+      )}
 
       {drafts.length > 0 && (
         <>
