@@ -3,6 +3,8 @@
 //   mode "human" {text, samples?} -> {aiSounding, specific, voiceMatch, shapes}
 //     the judged half of the "sounds human" check (the measured half is
 //     counted in the browser). About 3,000 Jev input tokens (USD 0.00013).
+//   mode "hooks" {hooks, audience, topic, platform} -> {pick: {index, p} | null}
+//     the hook Jev recommends for this audience. About 560 tokens.
 // Counts against the "writing-judge" daily cap. A draft mostly not in English
 // gets {code: "not_english"} and no judgment. Without Jev (no key, timeout,
 // outage) it says the check is unavailable and the page keeps what it measured.
@@ -14,7 +16,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
-import { humanQuestions, humanState, mostlyEnglish, parseJudgeRequest, readHuman } from "./logic.ts";
+import {
+  hookQuestions,
+  hookState,
+  humanQuestions,
+  humanState,
+  mostlyEnglish,
+  parseJudgeRequest,
+  readHookPick,
+  readHuman,
+} from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,7 +45,7 @@ Deno.serve(async (req) => {
     const parsed = parseJudgeRequest(await req.json().catch(() => ({})));
     if (!parsed.ok) return json({ error: parsed.error }, 400);
     const r = parsed.request;
-    if (!mostlyEnglish(r.text)) return json({ code: "not_english", error: "This check reads English posts only." }, 422);
+    if (!mostlyEnglish(r.mode === "hooks" ? r.hooks.join("\n") : r.text)) return json({ code: "not_english", error: "This check reads English posts only." }, 422);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
@@ -50,6 +61,12 @@ Deno.serve(async (req) => {
     if (!usage.allowed) {
       const refusal = usageRefusal(usage);
       return json(refusal.body, refusal.status);
+    }
+
+    if (r.mode === "hooks") {
+      const answers = await askJev(hookState(r), hookQuestions(r.hooks), { who: "writing-judge hooks" });
+      if (!answers) return json({ error: UNAVAILABLE }, 503);
+      return json({ pick: readHookPick(answers, r.hooks.length) });
     }
 
     const { sentences, state } = humanState(r.text, r.samples);

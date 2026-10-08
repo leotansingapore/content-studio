@@ -60,6 +60,7 @@ import {
   Eraser,
   Columns3,
   ArrowRight,
+  Star,
 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import inspirationData from "@/data/inspiration.json";
@@ -80,6 +81,7 @@ import {
   VOICE_MIN_CHARS,
 } from "@/lib/voiceProfile";
 import HumanCheck from "@/components/HumanCheck";
+import { pickHook } from "@/lib/writingJudge";
 import {
   getDraftById,
   loadDrafts,
@@ -659,6 +661,9 @@ export default function GeneratePage() {
   const hookSetRef = useRef(Math.floor(Math.random() * HOOK_FORMULAS.length));
   // A plan slot's formula: the first Generate opens its set with it.
   const planFormulaRef = useRef<string | null>(null);
+  // Jev's recommended hook for the set just written (key: the hooks' texts).
+  const [hookPick, setHookPick] = useState<{ key: string; index: number } | null>(null);
+  const pickPendingRef = useRef(false);
   const prefillAppliedRef = useRef<boolean>(false);
   // When a scheduled/posted slot is loaded, keep updating that same entry on
   // re-roll/pick (so it stays on the calendar) instead of forking a new draft.
@@ -1101,6 +1106,21 @@ export default function GeneratePage() {
 
   const isStreaming = streamingMode !== "idle";
 
+  // Once a fresh set of hooks has all finished, Jev picks the strongest for
+  // this audience. No pick (a failed call, or no clear leader) shows nothing.
+  const hookKey = hookOptions.map((h) => h.text.trim()).join("\n");
+  useEffect(() => {
+    if (!pickPendingRef.current || isStreaming || !hookOptions.length || hookOptions.some((h) => !h.complete && !h.halted)) return;
+    pickPendingRef.current = false;
+    const hooks = hookOptions.map((h) => h.text.trim());
+    if (hooks.length < 2 || hookOptions.some((h) => !h.complete || !h.text.trim())) return;
+    const aud = AUDIENCES.find((a) => a.value === audience);
+    void pickHook(hooks, aud ? `${aud.label}: ${aud.sub}` : "", pillarDetail.trim(), platformLabel(platform)).then((index) => {
+      if (index !== null) setHookPick({ key: hooks.join("\n"), index });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hookOptions, isStreaming]);
+
   // Predicted engagement: Jev's checks on this exact text, remembered on this device per text
   const [scores, setScores] = useState<ReturnType<typeof loadScores>>({});
   useEffect(() => setScores(loadScores(userId)), [userId]);
@@ -1451,6 +1471,8 @@ export default function GeneratePage() {
         // one call per hook, each with its own formula
         const set = planFormulaRef.current ? hookFormulasFrom(planFormulaRef.current) : hookFormulaSet(hookSetRef.current++);
         planFormulaRef.current = null;
+        setHookPick(null);
+        pickPendingRef.current = true;
         await runStream(
           set.map((f) => ({ ...base, mode: "hooks" as const, n: 1, ...hookFormulaFields(f, base) })),
           "hooks",
@@ -2835,6 +2857,11 @@ export default function GeneratePage() {
                     {h.halted && h.text && (
                       <span className="text-[11px] text-muted-foreground">
                         {h.halted === "stopped" ? "stopped before finishing" : HALT_LABEL.failed}
+                      </span>
+                    )}
+                    {hookPick?.key === hookKey && hookPick.index === h.index && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                        <Star className="h-3 w-3" aria-hidden /> Recommended
                       </span>
                     )}
                     {formula && (

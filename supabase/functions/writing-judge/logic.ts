@@ -22,7 +22,7 @@ export const MAX_TEXT = 5000;
 export const MAX_SENTENCES = 40;
 const MAX_SAMPLES = 3;
 const MAX_SAMPLE_CHARS = 1200;
-export const MODES = ["human"] as const;
+export const MODES = ["human", "hooks"] as const;
 export type JudgeMode = (typeof MODES)[number];
 
 /**
@@ -38,12 +38,21 @@ export function splitSentences(text: string): string[] {
     .filter((s) => /\p{L}/u.test(s));
 }
 
-export type JudgeRequest = { mode: "human"; text: string; samples: string[] };
+export type JudgeRequest =
+  | { mode: "human"; text: string; samples: string[] }
+  | { mode: "hooks"; hooks: string[]; audience: string; topic: string; platform: string };
+
+const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeRequest } | { ok: false; error: string } {
   const b = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const mode = MODES.find((m) => m === b.mode);
   if (!mode) return { ok: false, error: "Unknown check." };
+  if (mode === "hooks") {
+    const hooks = (Array.isArray(b.hooks) ? b.hooks : []).map((h) => str(h, 400));
+    if (hooks.length < 2 || hooks.length > 5 || hooks.some((h) => h.length < 3)) return { ok: false, error: "Send two to five hooks." };
+    return { ok: true, request: { mode, hooks, audience: str(b.audience, 120), topic: str(b.topic, 300), platform: str(b.platform, 20) } };
+  }
   const text = typeof b.text === "string" ? b.text.trim() : "";
   if (text.length < MIN_TEXT) return { ok: false, error: "Write a bit more before checking it." };
   if (text.length > MAX_TEXT) return { ok: false, error: `Checks read posts up to ${MAX_TEXT.toLocaleString("en-US")} characters.` };
@@ -171,3 +180,46 @@ export function readHuman(answers: Record<string, JevAnswer> | null, sentences: 
   };
 }
 
+// ---- Mode "hooks" -----------------------------------------------------------
+
+/** Option keys for the hooks, in the order they were written. */
+const LETTERS = ["A", "B", "C", "D", "E"];
+
+// Set from a shadow check on 2026-10-08 (jev-1.13.0): 8 sets of three hooks
+// written for it, 6 with one clearly strongest and 2 with three good ones.
+// About 560 Jev input tokens a pick.
+/**
+ * The recommended hook must lead the next one by this much (average
+ * probability over both option orders). The clear sets were picked right
+ * every time, leading by 0.90-1.00; of the two even sets one led by 0.40
+ * (recommended) and one by 0.03 (a tie, no recommendation).
+ */
+export const PICK_MARGIN = 0.2;
+
+export function hookState(r: { hooks: string[]; audience: string; topic: string; platform: string }) {
+  return { platform: r.platform || "social media", audience: r.audience || "Singapore working adults", topic: r.topic };
+}
+
+/**
+ * One choice asked twice, the options in written and in reversed order: Jev
+ * leans toward the first option, so the pick is read off both together.
+ */
+export function hookQuestions(hooks: string[]): Record<string, JevQuestion> {
+  const options = hooks.map((h, i) => [LETTERS[i], h] as const);
+  const ask = (order: (readonly [string, string])[]): JevQuestion => ({
+    type: "choice",
+    instructions: "Which hook would make someone in `audience`, scrolling `platform`, most likely to stop and read a post about `topic`?",
+    criteria: Object.fromEntries(order),
+  });
+  return { pick_fwd: ask(options), pick_rev: ask([...options].reverse()) };
+}
+
+/** The recommended hook's index, or null when Jev did not answer or no hook clearly leads. */
+export function readHookPick(answers: Record<string, JevAnswer> | null, count: number): { index: number; p: number } | null {
+  const f = answers?.pick_fwd?.probabilities;
+  const r = answers?.pick_rev?.probabilities;
+  if (!f || !r) return null;
+  const avg = Array.from({ length: count }, (_, i) => ((f[LETTERS[i]] ?? 0) + (r[LETTERS[i]] ?? 0)) / 2);
+  const order = avg.map((p, i) => ({ index: i, p: Math.round(p * 100) / 100 })).sort((a, b) => b.p - a.p);
+  return order.length > 1 && Math.round((order[0].p - order[1].p) * 100) / 100 >= PICK_MARGIN ? order[0] : null;
+}

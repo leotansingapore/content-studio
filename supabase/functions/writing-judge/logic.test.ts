@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   AI_MAX,
   MAX_SENTENCES,
+  PICK_MARGIN,
+  hookQuestions,
+  hookState,
+  readHookPick,
   SHAPE_MIN,
   SPECIFIC_MIN,
   VOICE_MIN,
@@ -89,5 +93,42 @@ describe("readHuman", () => {
   it("gives null for anything Jev did not answer, and nothing at all when Jev is down", () => {
     expect(readHuman({ ai: { type: "noul", noul: 0.1 } }, sentences)).toEqual({ aiSounding: false, specific: null, voiceMatch: null, shapes: [] });
     expect(readHuman(null, sentences)).toBeNull();
+  });
+});
+
+describe("the hook pick", () => {
+  const hooks = ["Your first pay is $4,200.", "CPF is important.", "Most people say ignore CPF."];
+
+  it("takes two to five hooks with the audience, topic and platform", () => {
+    expect(parseJudgeRequest({ mode: "hooks", hooks: [" a hook ", "b hook"], audience: "Parent", topic: "CPF", platform: "LinkedIn" })).toEqual({
+      ok: true,
+      request: { mode: "hooks", hooks: ["a hook", "b hook"], audience: "Parent", topic: "CPF", platform: "LinkedIn" },
+    });
+    expect(parseJudgeRequest({ mode: "hooks", hooks: ["only one"] })).toMatchObject({ ok: false });
+    expect(parseJudgeRequest({ mode: "hooks", hooks: ["a hook", ""] })).toMatchObject({ ok: false });
+    expect(hookState({ hooks, audience: "", topic: "CPF", platform: "" })).toEqual({ platform: "social media", audience: "Singapore working adults", topic: "CPF" });
+  });
+
+  it("asks the same choice in written and reversed order", () => {
+    const q = hookQuestions(hooks) as Record<string, { criteria: Record<string, string> }>;
+    expect(Object.entries(q.pick_fwd.criteria)).toEqual([["A", hooks[0]], ["B", hooks[1]], ["C", hooks[2]]]);
+    expect(Object.keys(q.pick_rev.criteria)).toEqual(["C", "B", "A"]);
+  });
+
+  const both = (f: Record<string, number>, r: Record<string, number>) => ({
+    pick_fwd: { type: "choice" as const, probabilities: f },
+    pick_rev: { type: "choice" as const, probabilities: r },
+  });
+
+  it("recommends the hook that leads on both orders by the margin", () => {
+    expect(readHookPick(both({ A: 0.18, B: 0.51, C: 0.31 }, { A: 0.19, B: 0.7, C: 0.11 }), 3)).toEqual({ index: 1, p: 0.61 });
+    const lead = 0.5 + PICK_MARGIN / 2;
+    expect(readHookPick(both({ A: lead, B: 1 - lead }, { A: lead, B: 1 - lead }), 2)).toEqual({ index: 0, p: lead });
+  });
+
+  it("recommends nothing on a near tie or without an answer", () => {
+    expect(readHookPick(both({ A: 0.47, B: 0.01, C: 0.52 }, { A: 0.55, B: 0.01, C: 0.44 }), 3)).toBeNull();
+    expect(readHookPick(null, 3)).toBeNull();
+    expect(readHookPick({ pick_fwd: both({ A: 1 }, {}).pick_fwd }, 3)).toBeNull();
   });
 });
