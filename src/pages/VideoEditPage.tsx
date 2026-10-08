@@ -1257,7 +1257,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   useEffect(() => onBrollApply(project.id, (added) => {
     const cur = settingsRef.current;
     setHistory((h) => [...h.slice(-19), cur]);
-    setSettings({ ...cur, broll: [...(cur.broll ?? []), ...added].slice(0, MAX_BROLL) });
+    setSettings({ ...cur, broll: [...(cur.broll ?? []), ...added.broll].slice(0, MAX_BROLL), overlays: [...(cur.overlays ?? []), ...added.overlays].slice(0, MAX_OVERLAYS) });
   }), [project.id]);
   const addBroll = async (it: StockItem) => {
     if (brolls.length >= MAX_BROLL) throw new Error(`Up to ${MAX_BROLL} on a video`);

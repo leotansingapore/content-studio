@@ -9,7 +9,7 @@ vi.mock("@/lib/videoProjects", () => ({ loadProjects: vi.fn(() => []), saveProje
 import { callFn } from "@/lib/edgeFn";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import type { Broll } from "@/lib/videoEdit";
-import { brollJob, brollSpan, chooseClip, chooseClips, onBrollApply, startAutoBroll, stockIdOf } from "./autoBroll";
+import { brollJob, brollSpan, chooseClip, chooseClips, onBrollApply, startAutoBroll, stockIdOf, type Added } from "./autoBroll";
 
 const item = (id: string, w: number, h: number, duration?: number): StockItem => ({ id, w, h, duration, alt: "", thumb: `https://images.pexels.com/${id}.jpg`, src: `https://videos.pexels.com/${id}.mp4`, by: "Ann", byUrl: "", url: "" });
 const line = (s: number, e: number, text = "A line here.") => ({ s, e, text });
@@ -49,17 +49,33 @@ describe("the job", () => {
     vi.mocked(searchStock).mockResolvedValue({ items: [item("11", 1080, 1920, 10), item("12", 1080, 1920, 10)], more: false });
     vi.mocked(downloadStock).mockResolvedValue(new Blob(["x"]));
     const applied: Broll[][] = [];
-    const off = onBrollApply("p1", (added) => applied.push(added));
-    await startAutoBroll("u1", { projectId: "p1", sentences, total: 30, hookSeconds: 0, existing: [], orientation: "portrait" });
+    const off = onBrollApply("p1", (added) => applied.push(added.broll));
+    await startAutoBroll("u1", { projectId: "p1", sentences, total: 30, hookSeconds: 0, existing: [], stickers: 0, color: "#FFD92B", orientation: "portrait" });
     off();
     expect(applied).toHaveLength(1);
     expect(applied[0].map((b) => stockIdOf(b.key))).toEqual(["11", "12"]);
     expect(applied[0].map((b) => [b.from, b.to])).toEqual([[6, 9], [14, 18]]);
     expect(brollJob()).toMatchObject({ state: "done", done: 3, of: 3, missed: ["kids"] });
   });
+  it("puts a text card, not a clip, over an idea or a named product, in the same change", async () => {
+    const sentences = [line(0, 3, "Hook."), line(6, 9, "Buy a home."), line(14, 18, "Start at 25."), line(24, 27, "MediShield Life covers it.")];
+    vi.mocked(callFn).mockResolvedValueOnce({ picks: [{ i: 1, kind: "scene", search: "home" }, { i: 2, kind: "idea", callout: "Start at 25" }, { i: 3, kind: "product", callout: "MediShield Life" }] });
+    vi.mocked(searchStock).mockClear();
+    vi.mocked(searchStock).mockResolvedValue({ items: [item("21", 1080, 1920, 10)], more: false });
+    const applied: Added[] = [];
+    const off = onBrollApply("p3", (added) => applied.push(added));
+    await startAutoBroll("u1", { projectId: "p3", sentences, total: 30, hookSeconds: 0, existing: [], stickers: 19, color: "#FFD92B", orientation: "portrait" });
+    off();
+    expect(vi.mocked(searchStock)).toHaveBeenCalledTimes(1);
+    expect(applied).toHaveLength(1);
+    expect(applied[0].broll.map((b) => b.from)).toEqual([6]);
+    // one sticker slot left (19 of 20): the first card takes it, the second is not placed
+    expect(applied[0].overlays.map((o) => [o.kind, o.text, o.from, o.to, o.color])).toEqual([["text", "Start at 25", 14, 18, "#FFD92B"]]);
+    expect(brollJob()?.placed.map((p) => p.kind)).toEqual(["scene", "idea"]);
+  });
   it("says so when Jev had no answer, and places nothing", async () => {
     vi.mocked(callFn).mockResolvedValueOnce({ picks: null });
-    await startAutoBroll("u1", { projectId: "p2", sentences: [line(0, 3), line(5, 8)], total: 10, hookSeconds: 0, existing: [], orientation: "portrait" });
+    await startAutoBroll("u1", { projectId: "p2", sentences: [line(0, 3), line(5, 8)], total: 10, hookSeconds: 0, existing: [], stickers: 0, color: "#FFD92B", orientation: "portrait" });
     expect(brollJob()).toMatchObject({ state: "failed", placed: [] });
   });
 });

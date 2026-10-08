@@ -39,6 +39,8 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
       total,
       hookSeconds: settings.hook?.trim() ? settings.hookSeconds : 0,
       existing,
+      stickers: settings.overlays?.length ?? 0,
+      color: settings.activeColor,
       orientation,
     }).catch(() => {}); // a second start while one runs: the button is disabled then
 
@@ -50,7 +52,7 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
           {running && mine ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
           {running && mine ? "Finding B-roll..." : "Add B-roll for me"}
         </Button>
-        <InfoTip label="About B-roll for me">Clips go over the lines a picture helps. Undo takes them all off.</InfoTip>
+        <InfoTip label="About B-roll for me">Puts a clip or a text card over each line a visual helps.</InfoTip>
         {left !== null && !running && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>}
       </div>
       {mine && running && (
@@ -66,7 +68,7 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
           {mine.missed.length > 0 && `Nothing found for ${mine.missed.map((m) => `"${m}"`).join(", ")}.`}
         </p>
       )}
-      {mine && !running && <BrollSheet placed={mine.placed} brolls={existing} orientation={orientation} apply={apply} seek={seek} onDone={dismissBrollJob} />}
+      {mine && !running && <BrollSheet placed={mine.placed} brolls={existing} overlays={settings.overlays ?? []} orientation={orientation} apply={apply} seek={seek} onDone={dismissBrollJob} />}
       {!mine && running && <p className="text-xs text-muted-foreground">Finding B-roll for another video. Try again when it's done.</p>}
     </div>
   );

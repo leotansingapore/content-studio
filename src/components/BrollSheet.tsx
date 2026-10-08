@@ -1,29 +1,36 @@
-// The clips "Add B-roll for me" placed, on one sheet: each one's frame, the
-// search behind it, the line it covers and when. Swap shows the next clips for
+// The clips and text cards "Add B-roll for me" placed, on one sheet: each
+// clip's frame and the search behind it (a card's text), the line it covers and
+// when. Swap shows the next clips for
 // the same search (searches are remembered, so this costs nothing until More);
 // Remove takes one off; Remove all takes the lot off (one Undo brings them back).
 
 import { useRef, useState } from "react";
-import { Check, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { Check, Loader2, RefreshCw, Trash2, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { chooseClips, stockIdOf, type Orientation, type Placed } from "@/lib/autoBroll";
 import { downloadStock, searchStock, type StockItem } from "@/lib/stockMedia";
 import { putFile } from "@/lib/deviceFiles";
 import { loadVideo } from "@/lib/videoMedia";
-import { fmtTime, type Broll, type EditSettings } from "@/lib/videoEdit";
+import { fmtTime, type Broll, type EditSettings, type Overlay } from "@/lib/videoEdit";
 
-export default function BrollSheet({ placed, brolls, orientation, apply, seek, onDone }: {
+const CARD: Record<Placed["kind"], string> = { scene: "", idea: "Text card", product: "Product name" };
+
+export default function BrollSheet({ placed, brolls, overlays, orientation, apply, seek, onDone }: {
   placed: Placed[];
   brolls: Broll[];
+  overlays: Overlay[];
   orientation: Orientation;
   /** Merges into the latest settings, with Undo. */
   apply: (p: Partial<EditSettings>) => void;
   seek: (t: number) => void;
   onDone: () => void;
 }) {
+  // a clip, or a card (a text sticker); either may have been removed since
   const rows = placed.flatMap((p) => {
-    const b = brolls.find((x) => x.id === p.id);
-    return b ? [{ p, b }] : [];
+    const b = p.kind === "scene" ? brolls.find((x) => x.id === p.id) : undefined;
+    const o = p.kind !== "scene" ? overlays.find((x) => x.id === p.id) : undefined;
+    const at = b ?? o;
+    return at ? [{ p, b, o, from: at.from, to: at.to }] : [];
   });
   const [open, setOpen] = useState<string | null>(null);
   const [results, setResults] = useState<{ items: StockItem[]; page: number; more: boolean; busy: boolean; error: string }>({ items: [], page: 0, more: false, busy: false, error: "" });
@@ -72,34 +79,39 @@ export default function BrollSheet({ placed, brolls, orientation, apply, seek, o
       <div className="flex flex-wrap items-center gap-2">
         <p className="mr-auto text-sm font-medium">Placed for you ({rows.length})</p>
         <Button size="sm" variant="ghost" className="h-11 gap-1.5 text-xs text-muted-foreground hover:text-destructive sm:h-8"
-          onClick={() => apply({ broll: brolls.filter((b) => !rows.some((r) => r.b.id === b.id)) })}>
+          onClick={() => apply({ broll: brolls.filter((b) => !rows.some((r) => r.p.id === b.id)), overlays: overlays.filter((o) => !rows.some((r) => r.p.id === o.id)) })}>
           <Trash2 className="h-3.5 w-3.5" /> Remove all
         </Button>
         <Button size="sm" variant="outline" className="h-11 gap-1.5 text-xs sm:h-8" onClick={onDone}><Check className="h-3.5 w-3.5" /> Done</Button>
       </div>
       <ul className="divide-y divide-border/60">
-        {rows.map(({ p, b }) => {
-          const next = open === b.id ? chooseClips(results.items, used, b.to - b.from, orientation) : [];
+        {rows.map(({ p, b, o, from, to }) => {
+          const next = b && open === b.id ? chooseClips(results.items, used, b.to - b.from, orientation) : [];
           return (
-            <li key={b.id} className="space-y-2 py-2">
+            <li key={p.id} className="space-y-2 py-2">
               <div className="flex items-center gap-2 text-xs">
-                <button type="button" onClick={() => seek(b.from + 0.05)} aria-label={`Go to ${fmtTime(b.from)}`}
-                  className="h-14 w-10 shrink-0 overflow-hidden rounded bg-muted">{b.thumb && <img src={b.thumb} alt="" className="h-full w-full object-cover" />}</button>
+                <button type="button" onClick={() => seek(from + 0.05)} aria-label={`Go to ${fmtTime(from)}`}
+                  className="flex h-14 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-muted" style={o ? { backgroundColor: o.color } : undefined}>
+                  {b?.thumb && <img src={b.thumb} alt="" className="h-full w-full object-cover" />}
+                  {o && <Type className="h-4 w-4 mix-blend-difference text-white" aria-hidden />}
+                </button>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-semibold">{p.search}</span>
-                  <span className="line-clamp-2 text-muted-foreground">{p.line}</span>
-                  <span className="block font-mono text-[11px] text-muted-foreground">{fmtTime(b.from)}-{fmtTime(b.to)}</span>
+                  <span className="block truncate font-semibold">{o ? o.text : p.search}</span>
+                  <span className="line-clamp-2 text-muted-foreground">{o && <span className="font-medium text-foreground">{CARD[p.kind]}: </span>}{p.line}</span>
+                  <span className="block font-mono text-[11px] text-muted-foreground">{fmtTime(from)}-{fmtTime(to)}</span>
                 </span>
-                <Button size="sm" variant={open === b.id ? "secondary" : "outline"} className="h-11 shrink-0 gap-1 text-xs sm:h-8" aria-expanded={open === b.id}
-                  onClick={() => toggle(b.id, p.search)}>
-                  <RefreshCw className="h-3.5 w-3.5" /> Swap
-                </Button>
-                <Button size="sm" variant="ghost" className="h-11 w-11 shrink-0 p-0 text-muted-foreground hover:text-destructive sm:h-8 sm:w-8" aria-label={`Remove the clip at ${fmtTime(b.from)}`}
-                  onClick={() => apply({ broll: brolls.filter((x) => x.id !== b.id) })}>
+                {b && (
+                  <Button size="sm" variant={open === b.id ? "secondary" : "outline"} className="h-11 shrink-0 gap-1 text-xs sm:h-8" aria-expanded={open === b.id}
+                    onClick={() => toggle(b.id, p.search)}>
+                    <RefreshCw className="h-3.5 w-3.5" /> Swap
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" className="h-11 w-11 shrink-0 p-0 text-muted-foreground hover:text-destructive sm:h-8 sm:w-8" aria-label={`Remove the ${b ? "clip" : "card"} at ${fmtTime(from)}`}
+                  onClick={() => apply(b ? { broll: brolls.filter((x) => x.id !== b.id) } : { overlays: overlays.filter((x) => x.id !== p.id) })}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
-              {open === b.id && (
+              {b && open === b.id && (
                 <div className="space-y-2">
                   {results.error && <p className="text-xs text-destructive" role="alert">{results.error}</p>}
                   {!results.busy && !next.length && !results.error && <p className="text-xs text-muted-foreground">No other clips for "{p.search}".</p>}

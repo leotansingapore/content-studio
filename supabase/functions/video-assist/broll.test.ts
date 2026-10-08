@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BROLL_GAP, brollLines, brollQuestions, buildSearchMessages, parseBrollRequest, parseSearchReply, pickBrollLines, readBroll } from "./broll";
+import { BROLL_GAP, KINDS, brollLines, brollQuestions, buildBrollMessages, kindQuestions, parseBrollReply, parseBrollRequest, pickBrollLines, readBroll, readKinds } from "./broll";
 import type { MotionLine } from "./motion";
 
 const L = (s: number, e: number, text: string): MotionLine => ({ s, e, text });
@@ -56,19 +56,42 @@ describe("picking the lines", () => {
   });
 });
 
-describe("search terms", () => {
-  it("asks the LLM for the words only, line by line with the one before", () => {
-    expect(buildSearchMessages(many, [3])[1].content).toBe("L3: Line 3 says something here.\n(said just before: Line 2 says something here.)");
+describe("what each line shows", () => {
+  it("asks Jev one Choice per picked line among scene, idea and product", () => {
+    const q = kindQuestions(many, [3, 10]);
+    expect(Object.keys(q)).toEqual(["kind_3", "kind_10"]);
+    expect(q.kind_3.type).toBe("choice");
+    expect(Object.keys((q.kind_3 as { criteria: Record<string, unknown> }).criteria)).toEqual(Object.keys(KINDS));
   });
-  it("keeps a clean 1 to 3 word search for each asked line, in order", () => {
-    const reply = JSON.stringify({ terms: [
+  it("reads each kind, a scene clip when Jev has no answer or picks something else", () => {
+    expect(readKinds({ kind_3: { type: "choice", choice: "idea" }, kind_10: { type: "choice", choice: "chart" } }, [3, 10, 15])).toEqual({ 3: "idea", 10: "scene", 15: "scene" });
+    expect(readKinds(null, [3])).toEqual({ 3: "scene" });
+  });
+});
+
+describe("the words for each line", () => {
+  const kinds = { 3: "scene", 10: "scene", 12: "idea", 15: "product" } as const;
+  it("asks the LLM for the words only, each line tagged with its kind and the line before", () => {
+    expect(buildBrollMessages(many, [3, 12], kinds)[1].content).toBe("L3 [scene]: Line 3 says something here.\n(said just before: Line 2 says something here.)\nL12 [idea]: Line 12 says something here.\n(said just before: Line 11 says something here.)");
+  });
+  it("keeps a clean 1 to 3 word search for a scene and card text for the rest, in order", () => {
+    const reply = JSON.stringify({ items: [
       { id: "L10", search: "Hospital bed, ward & nurse" },
       { id: "L3", search: "Family Dinner" },
       { id: "L4", search: "not asked" },
       { id: "L3", search: "twice" },
-      { id: "L15", search: "!!!" },
+      { id: "L12", callout: "\u201cStart at 25\u201d \u2014 it costs you less over time." },
+      { id: "L15", callout: "MediShield Life" },
     ] });
-    expect(parseSearchReply(reply, [3, 10, 15])).toEqual([{ i: 3, search: "family dinner" }, { i: 10, search: "hospital bed ward" }]);
-    expect(parseSearchReply("not json", [3])).toEqual([]);
+    expect(parseBrollReply(reply, [3, 10, 12, 15], kinds)).toEqual([
+      { i: 3, kind: "scene", search: "family dinner" },
+      { i: 10, kind: "scene", search: "hospital bed ward" },
+      { i: 12, kind: "idea", callout: "Start at 25, it costs you less" },
+      { i: 15, kind: "product", callout: "MediShield Life" },
+    ]);
+  });
+  it("drops a line whose words did not come back, and a reply that is not JSON", () => {
+    expect(parseBrollReply(JSON.stringify({ items: [{ id: "L12", search: "jar" }, { id: "L3", callout: "x" }] }), [3, 12], kinds)).toEqual([]);
+    expect(parseBrollReply("not json", [3], kinds)).toEqual([]);
   });
 });

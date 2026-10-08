@@ -3,7 +3,9 @@
 // the LLM writes a 1 to 3 word English stock search for each, in script order
 // (the idea of MoneyPrinterTurbo's generate_terms); the editor finds the clips
 // with stock-media and places them (src/lib/autoBroll.ts). Pure, so vitest
-// covers it (broll.test.ts).
+// covers it (broll.test.ts). Jev also says what each picked line needs (a scene
+// clip, an idea card or the named product): only scene lines get stock video,
+// the others a text card the LLM writes.
 
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
 import { KEY_CHUNK, MAX_KEY_LINES, parseMotionRequest, type MotionLine } from "./motion.ts";
@@ -98,23 +100,61 @@ export function pickBrollLines(lines: MotionLine[], probs: { i: number; p: numbe
   return out.sort((a, b) => a - b);
 }
 
-export function buildSearchMessages(lines: MotionLine[], pick: number[]): { role: string; content: string }[] {
+// ---------- what each picked line shows ----------
+
+/** What Jev may say a picked line needs; only scene lines get a stock clip, the rest a text card. */
+export const KINDS = {
+  scene: "A real-world moment a stock video can film: people, a place, an object or an everyday activity (a family at dinner, a hospital ward, a couple buying a home).",
+  idea: "An abstract point, a rule, a figure or a comparison that reads best as a few words on screen (a percentage, a tip, a myth and the fact).",
+  product: "A specific product, plan, policy, scheme or app named in the line (a named insurance plan, MediShield Life, CPF LIFE, an app), best shown by its name or a screenshot.",
+} as const;
+export type LineKind = keyof typeof KINDS;
+export const CALLOUT_CHARS = 32;
+
+/** One Choice per picked line: a clip, an idea card or the named product. */
+export function kindQuestions(lines: MotionLine[], pick: number[]): Record<string, JevQuestion> {
+  return Object.fromEntries(pick.map((i) => [
+    `kind_${i}`,
+    {
+      type: "choice",
+      instructions: { line: lines[i].text, line_before: i > 0 ? lines[i - 1].text : "", question: "While `line` is said, which visual fits it best?" },
+      criteria: { ...KINDS },
+    } satisfies JevQuestion,
+  ]));
+}
+
+/** Each picked line's kind; a scene clip when Jev has no answer, as before kinds were asked. */
+export function readKinds(answers: Record<string, JevAnswer> | null, pick: number[]): Record<number, LineKind> {
+  return Object.fromEntries(pick.map((i) => {
+    const c = answers?.[`kind_${i}`]?.choice;
+    return [i, typeof c === "string" && c in KINDS ? (c as LineKind) : "scene"];
+  }));
+}
+
+export function buildBrollMessages(lines: MotionLine[], pick: number[], kinds: Record<number, LineKind>): { role: string; content: string }[] {
   return [
     {
       role: "system",
       content: [
-        "You write stock video search terms for the B-roll in a short video a Singapore financial adviser filmed. A stock clip plays over each line while it is said.",
-        "For each line: search, 1 to 3 English words a stock video library such as Pexels would match. Name something a camera can film (people, places, objects, actions), never an abstract word alone. Keep it general enough to find: family dinner, hospital bed, coins in jar, couple signing papers.",
-        "Never a brand, a company, a person's name or words on screen. Keep the terms in the order of the lines: earlier terms show earlier moments.",
-        'Reply with JSON only: {"terms":[{"id":"L3","search":string}]}',
+        "You write for the B-roll in a short video a Singapore financial adviser filmed. Each line below is tagged with what shows while it is said.",
+        "For a [scene] line: search, 1 to 3 English words a stock video library such as Pexels would match. Name something a camera can film (people, places, objects, actions), never an abstract word alone. Keep it general enough to find: family dinner, hospital bed, coins in jar, couple signing papers. Never a brand, a company, a person's name or words on screen. Keep the terms in the order of the lines: earlier terms show earlier moments.",
+        `For an [idea] line: callout, the point in at most ${CALLOUT_CHARS} characters, in sentence case. For a [product] line: callout, the product's name as said, at most ${CALLOUT_CHARS} characters.`,
+        "Only facts and figures the speaker says; never invent a number. Never promise returns or guarantees. No emoji, em dashes, quote marks or hashtags.",
+        'Reply with JSON only: {"items":[{"id":"L3","search":string},{"id":"L7","callout":string}]}',
       ].join("\n"),
     },
-    { role: "user", content: pick.map((i) => `L${i}: ${lines[i].text}${i > 0 ? `\n(said just before: ${lines[i - 1].text})` : ""}`).join("\n") },
+    { role: "user", content: pick.map((i) => `L${i} [${kinds[i] ?? "scene"}]: ${lines[i].text}${i > 0 ? `\n(said just before: ${lines[i - 1].text})` : ""}`).join("\n") },
   ];
 }
 
-/** A search for each asked line: letters, digits, spaces and hyphens only, 3 words at most. Lines left out are dropped. */
-export function parseSearchReply(content: string | null, pick: number[]): { i: number; search: string }[] {
+export type BrollPick = { i: number; kind: "scene"; search: string } | { i: number; kind: "idea" | "product"; callout: string };
+
+/**
+ * What to place on each asked line, in line order: a clean 1 to 3 word search
+ * (letters, digits, spaces, hyphens) for a scene, card text cut at a word for
+ * the rest. A line whose words did not come back is dropped.
+ */
+export function parseBrollReply(content: string | null, pick: number[], kinds: Record<number, LineKind>): BrollPick[] {
   if (!content) return [];
   let raw: unknown;
   try {
@@ -122,14 +162,21 @@ export function parseSearchReply(content: string | null, pick: number[]): { i: n
   } catch {
     return [];
   }
-  const list = Array.isArray((raw as { terms?: unknown })?.terms) ? (raw as { terms: unknown[] }).terms : [];
-  const out: { i: number; search: string }[] = [];
+  const list = Array.isArray((raw as { items?: unknown })?.items) ? (raw as { items: unknown[] }).items : [];
+  const out: BrollPick[] = [];
   for (const x of list) {
     const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
     const i = Number(String(o.id ?? "").replace(/^L/, ""));
     if (!pick.includes(i) || out.some((p) => p.i === i)) continue;
-    const search = String(o.search ?? "").toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter(Boolean).slice(0, 3).join(" ").slice(0, SEARCH_CHARS).trim();
-    if (search) out.push({ i, search });
+    const kind = kinds[i] ?? "scene";
+    if (kind === "scene") {
+      const search = String(o.search ?? "").toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter(Boolean).slice(0, 3).join(" ").slice(0, SEARCH_CHARS).trim();
+      if (search) out.push({ i, kind, search });
+    } else {
+      let callout = String(o.callout ?? "").replace(/\s*\u2014\s*/g, ", ").replace(/["\u201c\u201d#]/g, "").replace(/\s+/g, " ").trim().replace(/[.]$/, "");
+      if (callout.length > CALLOUT_CHARS) callout = callout.slice(0, CALLOUT_CHARS + 1).replace(/\s+\S*$/, "");
+      if (callout) out.push({ i, kind, callout });
+    }
   }
   return out.sort((a, b) => a.i - b.i);
 }
