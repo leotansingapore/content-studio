@@ -24,6 +24,7 @@ import {
   nameTagVisible,
   outAt,
   speedOf,
+  voiceAt,
   overlaysAt,
   type Overlay,
   totalLength,
@@ -648,7 +649,7 @@ function pickMime(audioOnly = false): { mime: string; ext: string } {
 }
 
 /** Renders the edit in real time (a 45 s reel takes about 45 s) and downloads it. */
-export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null) {
+export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null, voice?: Blob | null) {
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
   const kind = settings.exportAs ?? "video";
@@ -683,6 +684,31 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
     const stopped = new Promise<void>((r) => (rec.onstop = () => r()));
 
+    // the voiceover: decoded once, restarted at the right point whenever the recorder
+    // resumes (after a cut or a stall) so it never drifts from the picture
+    const vo = settings.voiceover && voice ? { set: settings.voiceover, buf: await actx.decodeAudioData(await voice.arrayBuffer()), gain: actx.createGain() } : null;
+    let voSrc: { node: AudioBufferSourceNode; at: number; ctx: number } | null = null;
+    if (vo) {
+      vo.gain.gain.value = vo.set.gain ?? 1;
+      vo.gain.connect(dest);
+    }
+    const voStop = () => {
+      voSrc?.node.stop();
+      voSrc = null;
+    };
+    const voSync = (out: number) => {
+      if (!vo || !actx) return;
+      const rel = voiceAt(vo.set, out);
+      if (rel === null || rel >= vo.buf.duration) return voStop();
+      if (voSrc && Math.abs(voSrc.at + (actx.currentTime - voSrc.ctx) - rel) < 0.08) return;
+      voStop();
+      const node = actx.createBufferSource();
+      node.buffer = vo.buf;
+      node.connect(vo.gain);
+      node.start(0, rel);
+      voSrc = { node, at: rel, ctx: actx.currentTime };
+    };
+
     const v = video;
     const speed = speedOf(settings);
     v.defaultPlaybackRate = v.playbackRate = speed; // pitch is kept (preservesPitch is on by default)
@@ -691,6 +717,8 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const draw = () => {
       const out = Math.min(plan.total, outAt(plan.segs, v.currentTime, speed) ?? done / speed);
       drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand });
+      if (rec.state === "recording") voSync(out);
+      else voStop();
       if (job) {
         job.progress = Math.min(0.99, out / (plan.total + endLen));
         emit();
@@ -727,6 +755,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
             }
           } else if (!stalled && nowMs - lastMove > 120) {
             rec.pause();
+            voStop();
             stalled = true;
           }
           if (stalled && v.currentTime >= seg.end - 0.4) return resolve();
@@ -744,6 +773,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       });
       v.pause();
       if (rec.state === "recording") rec.pause();
+      voStop();
       done += seg.end - seg.start;
     }
     if (endLen && brand) {

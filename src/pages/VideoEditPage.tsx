@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ChevronDown, ChevronUp, Download, RotateCw, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, Mic, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,8 @@ import {
   captionBoxOf,
   fullLength,
   findPhrase,
+  sanitizeVoiceover,
+  voiceAt,
   addRemoved,
   removedAt,
   sanitizeRemoved,
@@ -239,6 +241,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     ...project.settings,
     overlays: sanitizeOverlays(project.settings.overlays),
     removed: sanitizeRemoved(project.settings.removed),
+    voiceover: sanitizeVoiceover(project.settings.voiceover),
   }));
   // Words tab: fix spelling, or cut a stretch by tapping its first and last word
   const [wordMode, setWordMode] = useState<"fix" | "cut">("fix");
@@ -268,6 +271,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [art, setArt] = useState<BrandArt | null>(null);
   const [myLook, setMyLook] = useState(() => loadLook(userId));
   const endAt = useRef<number | null>(null);
+  // voiceover: the take on this device, an <audio> kept in step with the preview, and a recording in progress
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null | undefined>(undefined);
+  const voiceUrl = useMemo(() => (voiceBlob ? URL.createObjectURL(voiceBlob) : ""), [voiceBlob]);
+  useEffect(() => () => { if (voiceUrl) URL.revokeObjectURL(voiceUrl); }, [voiceUrl]);
+  const voiceEl = useRef<HTMLAudioElement>(null);
+  const [recording, setRecording] = useState<{ rec: MediaRecorder; stream: MediaStream; start: number; t0: number } | null>(null);
+  const [recSeconds, setRecSeconds] = useState(0);
   // the preview's sound goes through the voice polish once it has been switched on
   const audio = useRef<{ ctx: AudioContext; src: MediaElementAudioSourceNode; unwire: () => void } | null>(null);
   useEffect(() => {
@@ -300,6 +310,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     getFile(fk).then((f) => setFile(f ?? null)).catch(() => setFile(null));
   }, [fk]);
   const url = useMemo(() => (file ? URL.createObjectURL(file) : ""), [file]);
+  const voiceKey = settings.voiceover?.key;
+  useEffect(() => {
+    if (!voiceKey) return setVoiceBlob(undefined);
+    getFile(voiceKey).then((b) => setVoiceBlob(b ?? null)).catch(() => setVoiceBlob(null));
+  }, [voiceKey]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
 
   // save the edit a moment after the last change
@@ -379,13 +394,94 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         v.currentTime = next.start;
       }
       paint();
+      syncVoice(outAt(plan.segs, v.currentTime, speed));
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, [playing, plan, paint, total]);
+  // (this effect re-runs every frame as the playhead moves, so the voiceover pauses only when playback stops)
+  useEffect(() => {
+    if (!playing) voiceEl.current?.pause();
+  }, [playing]);
 
   useEffect(() => { if (!playing) paint(); }, [settings, plan]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const syncVoice = (out: number | null) => {
+    const el = voiceEl.current;
+    if (!el || !voiceUrl || recording) return;
+    const rel = out === null ? null : voiceAt(settings.voiceover, out);
+    if (rel === null || rel >= (el.duration || Infinity)) {
+      if (!el.paused) el.pause();
+      return;
+    }
+    el.volume = Math.min(1, settings.voiceover?.gain ?? 1);
+    if (Math.abs(el.currentTime - rel) > 0.15) el.currentTime = rel;
+    if (el.paused) void el.play().catch(() => {});
+  };
+
+  const startVoice = async () => {
+    const v = video.current;
+    if (!v || playing) return;
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch {
+      return toast({ title: "No microphone", description: "Allow the microphone for this site in the browser, then try again.", variant: "destructive" });
+    }
+    const mime = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
+    const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    const chunks: Blob[] = [];
+    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    const start = Math.min(outT, Math.max(0, plan.total - 0.5));
+    const t0 = performance.now();
+    rec.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      v.muted = false;
+      const length = Math.min((performance.now() - t0) / 1000, plan.total - start);
+      if (length < 0.5) return;
+      const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+      const key = `vo-${project.id}-${Date.now().toString(36)}`;
+      try {
+        await putFile(key, blob);
+        // the previous take's file stays, so Undo can bring it back (ponytail: takes accumulate per video; prune on project delete if storage ever matters)
+        change({ ...settings, voiceover: { key, start, length, ...(settings.voiceover?.gain !== undefined ? { gain: settings.voiceover.gain } : {}) } });
+        toast({ title: "Voiceover added", description: "Turn the original sound down under it if you need to." });
+      } catch (e) {
+        toast({ title: "Couldn't keep the recording", description: (e as Error).message, variant: "destructive" });
+      }
+    };
+    // the edit plays muted from the playhead while you talk over it
+    v.muted = true;
+    seekOut(start);
+    rec.start(500);
+    setRecording({ rec, stream, start, t0 });
+    setRecSeconds(0);
+    await v.play().catch(() => {});
+    setPlaying(true);
+  };
+  const stopVoice = () => {
+    const r = recording;
+    if (!r) return;
+    setRecording(null);
+    if (r.rec.state !== "inactive") r.rec.stop();
+    video.current?.pause();
+    setPlaying(false);
+  };
+  useEffect(() => {
+    if (!recording) return;
+    const t = window.setInterval(() => setRecSeconds((performance.now() - recording.t0) / 1000), 250);
+    return () => window.clearInterval(t);
+  }, [recording]);
+  // the edit reached its end while recording: stop there
+  useEffect(() => {
+    if (recording && !playing) stopVoice();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing]);
+  const removeVoice = () => {
+    if (!settings.voiceover) return;
+    change({ ...settings, voiceover: undefined }); // the file stays until Undo is out of reach; it is small
+  };
 
   const seekOut = (t: number) => {
     const v = video.current;
@@ -404,7 +500,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const toggle = async () => {
     const v = video.current;
     if (!v) return;
-    if (playing) { v.pause(); setPlaying(false); return; }
+    if (recording) return stopVoice();
+    if (playing) { v.pause(); voiceEl.current?.pause(); setPlaying(false); return; }
     void audio.current?.ctx.resume().catch(() => {});
     if (outT >= total - 0.1) seekOut(0);
     else seekOut(outT);
@@ -584,7 +681,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   const doExport = () => {
     if (!file) return;
-    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
+    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art, settings.voiceover ? voiceBlob : null).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
   };
 
   // find a word or phrase in what was said, and jump the video to it
@@ -781,6 +878,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             />
           </div>
           {file === undefined && <p className="text-xs text-muted-foreground">Loading the video...</p>}
+          {voiceUrl && <audio ref={voiceEl} src={voiceUrl} preload="auto" className="hidden" />}
           <video ref={video} src={url} playsInline preload="auto" className="pointer-events-none absolute h-px w-px opacity-0"
             onLoadedData={() => paint()} onSeeked={() => paint()} />
           <div className="flex items-center gap-2">
@@ -941,6 +1039,34 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Row label="Speed">
                 {SPEEDS.map((x) => <Chip key={x} on={speed === x} onClick={() => patch({ speed: x === 1 ? undefined : x })}>{x}x</Chip>)}
               </Row>
+              <div className="space-y-2 rounded-lg border border-border/60 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="mr-auto text-sm font-medium">Voiceover
+                    <InfoTip label="About voiceover">The edit plays muted from the playhead while you talk over it.</InfoTip></span>
+                  {recording ? (
+                    <Button size="sm" variant="destructive" className="h-9 gap-1.5" onClick={stopVoice}>
+                      <Square className="h-3.5 w-3.5" /> Stop {fmtTime(recSeconds).replace(/\.\d$/, "")}
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={startVoice} disabled={!file || playing}>
+                      <Mic className="h-3.5 w-3.5" /> {settings.voiceover ? "Record again" : "Record from the mic"}
+                    </Button>
+                  )}
+                </div>
+                {settings.voiceover && !recording && (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      {fmtTime(settings.voiceover.length)} from {fmtTime(settings.voiceover.start)}
+                      {voiceBlob === null ? ". The recording is on the device you made it on." : ""}
+                    </p>
+                    <Row label={`Voiceover ${Math.round((settings.voiceover.gain ?? 1) * 100)}%`}>
+                      <input type="range" min={0} max={1.5} step={0.05} value={settings.voiceover.gain ?? 1} aria-label="Voiceover volume"
+                        onChange={(e) => patch({ voiceover: { ...settings.voiceover!, gain: Number(e.target.value) } })} className="w-32 accent-primary" />
+                      <Button size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground" onClick={removeVoice}>Remove</Button>
+                    </Row>
+                  </>
+                )}
+              </div>
               <Row label="Voice polish">
                 <InfoTip label="About voice polish">Cuts rumble and hum, lifts clarity and evens out loud and quiet bits.</InfoTip>
                 <Toggle on={!!settings.voicePolish} set={(v) => patch({ voicePolish: v })} />

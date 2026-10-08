@@ -432,3 +432,23 @@ describe("volume and export kind", () => {
     expect(applyPatch(defaultSettings(), { exportAs: "gif" }).changed).toEqual([]);
   });
 });
+
+describe("voiceover", () => {
+  it("knows where in the take a point of the edit falls", async () => {
+    const { voiceAt } = await import("@/lib/videoEdit");
+    const vo = { key: "vo-abc-123", start: 2, length: 3 };
+    expect(voiceAt(vo, 1.9)).toBeNull();
+    expect(voiceAt(vo, 2)).toBe(0);
+    expect(voiceAt(vo, 4.5)).toBe(2.5);
+    expect(voiceAt(vo, 5)).toBeNull();
+    expect(voiceAt(undefined, 3)).toBeNull();
+  });
+
+  it("keeps only a well-formed stored voiceover", async () => {
+    const { sanitizeVoiceover } = await import("@/lib/videoEdit");
+    expect(sanitizeVoiceover({ key: "vo-v1-abc", start: 1, length: 4, gain: 9 })).toEqual({ key: "vo-v1-abc", start: 1, length: 4, gain: 1.5 });
+    for (const bad of [null, "x", { key: "../x", start: 0, length: 2 }, { key: "vo-ok-1", start: "x", length: 2 }, { key: "vo-ok-1", start: 0, length: 0.1 }]) {
+      expect(sanitizeVoiceover(bad)).toBeUndefined();
+    }
+  });
+});

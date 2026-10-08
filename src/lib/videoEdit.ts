@@ -62,6 +62,8 @@ export interface EditSettings {
   filter?: FilterId;
   /** What happens at each cut: a hard jump (unset), a quick dip through black, or a white flash. */
   transition?: "soft" | "flash";
+  /** A voiceover recorded over the edit: its file on this device, where it starts on the edited timeline and how long it runs (seconds). */
+  voiceover?: Voiceover;
   /** Volume of the filmed sound, 0 to 1. Unset = 1. */
   volume?: number;
   /** What Export makes: the video, a smaller video (for WhatsApp), or the sound only (for a podcast feed). Unset = video. */
@@ -719,4 +721,32 @@ export function sanitizeRemoved(raw: unknown): { s: number; e: number }[] {
     .slice(0, 200)
     .map((r) => ({ s: Math.max(0, r.s), e: r.e }))
     .sort((a, b) => a.s - b.s);
+}
+
+// ---------- voiceover ----------
+
+export interface Voiceover {
+  key: string;
+  start: number;
+  length: number;
+  /** 0 to 1.5; unset = 1. */
+  gain?: number;
+}
+
+/** Seconds into the voiceover at this point of the edited video, or null when it isn't playing there. */
+export function voiceAt(vo: Voiceover | undefined, out: number): number | null {
+  if (!vo) return null;
+  const rel = out - vo.start;
+  return rel >= 0 && rel < vo.length ? rel : null;
+}
+
+/** A stored voiceover, kept only when well formed. */
+export function sanitizeVoiceover(raw: unknown): Voiceover | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.key !== "string" || !/^vo-[a-z0-9-]{4,60}$/i.test(r.key)) return undefined;
+  const start = clamp(r.start, 0, 36000, -1);
+  const length = clamp(r.length, 0, 3600, 0);
+  if (start < 0 || length < 0.3) return undefined;
+  return { key: r.key, start, length, ...(typeof r.gain === "number" ? { gain: clamp(r.gain, 0, 1.5, 1) } : {}) };
 }
