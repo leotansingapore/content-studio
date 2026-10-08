@@ -373,6 +373,14 @@ export default function BatchPage() {
           variant="ghost"
           size="sm"
           onClick={() => {
+            const unsaved = Object.values(cards).filter((c) => c.status === "done").length;
+            if (
+              unsaved > 0 &&
+              !window.confirm(
+                `Start over? ${unsaved} draft${unsaved === 1 ? " isn't" : "s aren't"} saved to My posts yet and will be lost.`,
+              )
+            )
+              return;
             setCards({});
             navigate("/generate/batch", { replace: true });
           }}
