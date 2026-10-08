@@ -23,6 +23,7 @@ import {
   DAY_LABELS,
   comparePeriods,
   rankPosts,
+  withinDays,
   postsCsv,
   type RankMetric,
   type TrackedPost,
@@ -142,6 +143,15 @@ const INSIGHT_STYLE: Record<
     icon_: "bg-muted text-muted-foreground",
   },
 };
+
+// On the cards the period pills don't filter.
+function AllTimeTag() {
+  return (
+    <span className="whitespace-nowrap rounded-full border border-border/70 bg-muted/40 px-2 py-0.5 font-sans text-[10px] font-semibold leading-4 uppercase tracking-[0.12em] text-muted-foreground">
+      All time
+    </span>
+  );
+}
 
 function Stat({
   icon: Icon,
@@ -312,7 +322,8 @@ export default function AnalyticsPage() {
   const [period, setPeriod] = useState<0 | 7 | 30 | 90>(30);
   const [rankBy, setRankBy] = useState<RankMetric>("engagementTotal");
   const cmp = useMemo(() => (period ? comparePeriods(tracked, period) : null), [tracked, period]);
-  const ranked = useMemo(() => rankPosts(tracked, rankBy), [tracked, rankBy]);
+  const ranked = useMemo(() => rankPosts(withinDays(tracked, period), rankBy), [tracked, rankBy, period]);
+  const allTime = period !== 0 && <AllTimeTag />;
   const mix = useMemo(() => labelMix(loadDrafts(userId), labels, period), [userId, labels, period, metricsVersion]);
   // Shown once there are labels and anything posted, whether or not numbers were logged.
   const showMix = labels.length > 0 && postedCount > 0;
@@ -572,8 +583,8 @@ export default function AnalyticsPage() {
 
           {/* Insights */}
           <section className="space-y-3">
-            <h2 className="font-serif text-lg font-semibold text-foreground">
-              What's working, what's not
+            <h2 className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+              What's working, what's not {allTime}
             </h2>
             <div className="space-y-2.5">
               {insights.map((insight, i) => {
@@ -605,8 +616,8 @@ export default function AnalyticsPage() {
           {/* Trend */}
           <Card className="border-border/60 shadow-card">
             <CardHeader>
-              <CardTitle className="font-serif text-lg">
-                Engagement rate over time
+              <CardTitle className="flex items-center gap-2 font-serif text-lg">
+                Engagement rate over time {allTime}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -617,8 +628,8 @@ export default function AnalyticsPage() {
           {/* Breakdown by dimension */}
           <Card className="border-border/60 shadow-card">
             <CardHeader className="space-y-2.5">
-              <CardTitle className="font-serif text-lg">
-                Engagement rate by {DIMENSION_TABS.find((t) => t.id === dimension)?.label.toLowerCase()}
+              <CardTitle className="flex items-center gap-2 font-serif text-lg">
+                Engagement rate by {DIMENSION_TABS.find((t) => t.id === dimension)?.label.toLowerCase()} {allTime}
               </CardTitle>
               <div className="flex gap-1.5">
                 {DIMENSION_TABS.map((t) => (
@@ -648,7 +659,7 @@ export default function AnalyticsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-serif text-lg">
                   <Ruler className="h-4 w-4 text-muted-foreground" /> Length vs
-                  engagement
+                  engagement {allTime}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -664,7 +675,7 @@ export default function AnalyticsPage() {
               <Card className="border-border/60 shadow-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 font-serif text-lg">
-                    <Hash className="h-4 w-4 text-muted-foreground" /> Hashtags
+                    <Hash className="h-4 w-4 text-muted-foreground" /> Hashtags {allTime}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -680,6 +691,7 @@ export default function AnalyticsPage() {
                 <CardTitle className="flex items-center gap-1.5 font-serif text-lg">
                   <CalendarDays className="mr-0.5 h-4 w-4 text-muted-foreground" /> Best time to post
                   <InfoTip label="About best time to post">From the scheduled time, or else when you marked it posted.</InfoTip>
+                  {allTime && <span className="ml-1.5 flex">{allTime}</span>}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -724,6 +736,11 @@ export default function AnalyticsPage() {
               </Button>
             </div>
             <div className="space-y-2">
+              {ranked.length === 0 && (
+                <p className="rounded-xl border border-dashed border-border/70 p-4 text-center text-sm text-muted-foreground">
+                  No posts with numbers in the last {period} days.
+                </p>
+              )}
               {ranked.map((d) => (
                 <Link
                   key={d.id}

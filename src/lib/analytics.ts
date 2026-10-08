@@ -443,10 +443,17 @@ function totals(posts: TrackedPost[]): PeriodTotals {
   return { posts: posts.length, impressions, engagements, rate: impressions ? Math.round((engagements / impressions) * 1000) / 10 : 0 };
 }
 
+const postedTime = (p: DraftEntry) => new Date(p.postedAt ?? p.createdAt).getTime();
+
+/** Posts from the last `days` days, by posted date; every post for 0 (All time). */
+export function withinDays<T extends DraftEntry>(posts: T[], days: number, now = Date.now()): T[] {
+  return days ? posts.filter((p) => postedTime(p) > now - days * DAY && postedTime(p) <= now) : posts;
+}
+
 /** This window and the one before it, plus % change (null when there is nothing to compare to). */
 export function comparePeriods(posts: TrackedPost[], days: number, now = Date.now()) {
-  const at = (p: TrackedPost) => new Date(p.postedAt ?? p.createdAt).getTime();
-  const current = totals(posts.filter((p) => at(p) > now - days * DAY && at(p) <= now));
+  const at = postedTime;
+  const current = totals(withinDays(posts, days, now));
   const previous = totals(posts.filter((p) => at(p) > now - 2 * days * DAY && at(p) <= now - days * DAY));
   const change = (k: keyof PeriodTotals) => (previous[k] ? Math.round(((current[k] - previous[k]) / previous[k]) * 100) : null);
   return { current, previous, change: { posts: change("posts"), impressions: change("impressions"), engagements: change("engagements"), rate: change("rate") } };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { comparePeriods, postsCsv, rankPosts, type TrackedPost } from "./analytics";
+import { comparePeriods, postsCsv, rankPosts, withinDays, type TrackedPost } from "./analytics";
 
 const NOW = Date.parse("2026-10-08T12:00:00Z");
 const p = (id: string, daysAgo: number, impressions: number, reactions: number, comments = 0, hook = id): TrackedPost =>
@@ -17,6 +17,15 @@ describe("comparePeriods", () => {
   });
   it("has no change to show when the previous window is empty", () => {
     expect(comparePeriods([p("a", 1, 10, 1)], 7, NOW).change.posts).toBeNull();
+  });
+});
+
+describe("withinDays", () => {
+  it("keeps the posts from the period's days, or every post for All time", () => {
+    const posts = [p("a", 2, 1, 0), p("b", 10, 1, 0), p("c", 40, 1, 0), p("future", -1, 1, 0)];
+    expect(withinDays(posts, 7, NOW).map((x) => x.id)).toEqual(["a"]);
+    expect(withinDays(posts, 30, NOW).map((x) => x.id)).toEqual(["a", "b"]);
+    expect(withinDays(posts, 0, NOW)).toBe(posts);
   });
 });
 
