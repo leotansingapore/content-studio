@@ -632,3 +632,149 @@ export async function reviewSubmission(
   if (error) fail(error);
   return data as ReviewSubmission;
 }
+
+// ---------------------------------------------------------------------------
+// Comment threads with @mentions (013_team_comments.sql)
+//
+// A thread is read by the post's author, the team's leaders and teammates
+// mentioned in it. Only the author or a leader can bring someone new in, so
+// the composer offers other people only the names they may mention.
+// ---------------------------------------------------------------------------
+
+export interface ReviewComment {
+  id: number;
+  submission_id: string;
+  author_id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+}
+
+export interface ReviewMention {
+  comment_id: number;
+  user_id: string;
+  submission_id: string;
+  created_at: string;
+  seen_at: string | null;
+}
+
+export const MAX_MENTIONS = 10;
+
+/** Who the viewer may @mention on this post (never themselves). */
+export function mentionCandidates(
+  roster: TeamMember[],
+  viewerId: string,
+  sub: Pick<ReviewSubmission, "author_id">,
+  alreadyMentioned: Set<string>,
+): TeamMember[] {
+  const viewer = roster.find((m) => m.user_id === viewerId);
+  const canWiden = sub.author_id === viewerId || viewer?.role === "leader";
+  return roster.filter(
+    (m) =>
+      m.user_id !== viewerId &&
+      (canWiden || m.user_id === sub.author_id || m.role === "leader" || alreadyMentioned.has(m.user_id)),
+  );
+}
+
+/**
+ * User ids whose "@Display Name" appears in the text (any case, followed by
+ * a non-letter or the end). Longer names are matched first, so "@Mei Lin"
+ * is not also read as "@Mei".
+ */
+export function extractMentions(body: string, candidates: TeamMember[]): string[] {
+  let rest = ` ${body ?? ""} `;
+  const found: string[] = [];
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  for (const m of [...candidates].sort((a, b) => b.display_name.length - a.display_name.length)) {
+    const re = new RegExp(`@${escape(m.display_name)}(?![\\p{L}\\p{N}])`, "giu");
+    if (re.test(rest)) {
+      found.push(m.user_id);
+      rest = rest.replace(re, " ");
+    }
+  }
+  return found.slice(0, MAX_MENTIONS);
+}
+
+/** Adds "@Name " to the end of the text, with a space before it when needed. */
+export function insertMention(body: string, name: string): string {
+  const base = body ?? "";
+  return `${base}${base && !/\s$/.test(base) ? " " : ""}@${name} `;
+}
+
+const COMMENT_COLS = "id,submission_id,author_id,author_name,body,created_at";
+const MENTION_COLS = "comment_id,user_id,submission_id,created_at,seen_at";
+
+export async function fetchThread(
+  submissionId: string,
+): Promise<{ comments: ReviewComment[]; mentions: ReviewMention[] }> {
+  const [c, m] = await Promise.all([
+    supabase
+      .from("cs_review_comments")
+      .select(COMMENT_COLS)
+      .eq("submission_id", submissionId)
+      .order("created_at", { ascending: true })
+      .limit(500),
+    supabase.from("cs_review_mentions").select(MENTION_COLS).eq("submission_id", submissionId).limit(2000),
+  ]);
+  if (c.error) fail(c.error);
+  if (m.error) fail(m.error);
+  return { comments: (c.data ?? []) as ReviewComment[], mentions: (m.data ?? []) as ReviewMention[] };
+}
+
+/** Comments per submission id, for the "Comments (n)" buttons. */
+export async function fetchCommentCounts(submissionIds: string[]): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  if (submissionIds.length === 0) return counts;
+  const { data, error } = await supabase
+    .from("cs_review_comments")
+    .select("submission_id")
+    .in("submission_id", submissionIds.slice(0, 200))
+    .limit(5000);
+  if (error) fail(error);
+  for (const r of data ?? []) counts.set(r.submission_id as string, (counts.get(r.submission_id as string) ?? 0) + 1);
+  return counts;
+}
+
+export async function addReviewComment(
+  submissionId: string,
+  body: string,
+  mentions: string[],
+): Promise<ReviewComment> {
+  const { data, error } = await supabase.rpc("cs_add_review_comment", {
+    p_submission_id: submissionId,
+    p_body: body,
+    p_mentions: mentions,
+  });
+  if (error) fail(error);
+  return data as ReviewComment;
+}
+
+/** The viewer's unseen mentions (RLS shows only threads they can still read). */
+export async function fetchMyUnseenMentions(userId: string): Promise<ReviewMention[]> {
+  const { data, error } = await supabase
+    .from("cs_review_mentions")
+    .select(MENTION_COLS)
+    .eq("user_id", userId)
+    .is("seen_at", null)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) fail(error);
+  return (data ?? []) as ReviewMention[];
+}
+
+export async function markMentionsSeen(submissionId: string): Promise<number> {
+  const { data, error } = await supabase.rpc("cs_mark_review_mentions_seen", { p_submission_id: submissionId });
+  if (error) fail(error);
+  return Number(data ?? 0);
+}
+
+export async function fetchSubmissionsByIds(ids: string[]): Promise<ReviewSubmission[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from("cs_review_submissions")
+    .select(SUBMISSION_COLS)
+    .in("id", ids.slice(0, 100))
+    .order("submitted_at", { ascending: false });
+  if (error) fail(error);
+  return (data ?? []) as ReviewSubmission[];
+}

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import LeaveTeam from "@/components/team/LeaveTeam";
+import ReviewThread from "@/components/team/ReviewThread";
 import {
   EmptyBlock,
   ErrorBlock,
@@ -23,6 +24,7 @@ import { loadDrafts } from "@/lib/draftHistory";
 import {
   deriveReviewState,
   fetchApprovalRules,
+  fetchCommentCounts,
   fetchMySubmissions,
   fetchRoster,
   friendlyError,
@@ -31,6 +33,7 @@ import {
   reviewTextForDraft,
   type MyTeam,
   type ReviewSubmission,
+  type TeamMember,
 } from "@/lib/teamReview";
 
 export default function MemberView({
@@ -48,6 +51,8 @@ export default function MemberView({
   const [leaders, setLeaders] = useState<string[]>([]);
   const [editedIds, setEditedIds] = useState<Set<string>>(new Set());
   const [ruleOn, setRuleOn] = useState(false);
+  const [roster, setRoster] = useState<TeamMember[]>([]);
+  const [counts, setCounts] = useState<Map<string, number>>(new Map());
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
 
@@ -77,6 +82,8 @@ export default function MemberView({
       );
       setSubs(mine);
       setLeaders(roster.filter((m) => m.role === "leader").map((m) => m.display_name));
+      setRoster(roster);
+      void fetchCommentCounts(mine.map((s) => s.id)).then(setCounts).catch(() => {});
       setEditedIds(edited);
       setStatus("ready");
     } catch (e) {
@@ -194,6 +201,7 @@ export default function MemberView({
                         posting.
                       </p>
                     )}
+                    <ReviewThread sub={s} userId={userId} roster={roster} canComment count={counts.get(s.id)} />
                     {isLatest && localDraftIds.has(s.draft_id) && (
                       <Button
                         size="sm"

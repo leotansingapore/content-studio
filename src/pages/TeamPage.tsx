@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import LeaderView from "@/components/team/LeaderView";
 import MemberView from "@/components/team/MemberView";
+import MentionsCard from "@/components/team/MentionsCard";
 import NoTeamView from "@/components/team/NoTeamView";
 import { ErrorBlock, LoadingBlock } from "@/components/team/shared";
 import { supabase } from "@/lib/supabase";
@@ -103,6 +104,7 @@ export default function TeamPage() {
               </button>
             </div>
           )}
+          <MentionsCard myTeam={myTeam} userId={viewer.id} />
           {myTeam.me.role === "leader" ? (
             <LeaderView myTeam={myTeam} userId={viewer.id} onLeft={handleChanged} />
           ) : (

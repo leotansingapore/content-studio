@@ -14,6 +14,9 @@ import {
   latestSubmissionByDraft,
   normalizeInviteCode,
   normalizeReviewText,
+  extractMentions,
+  insertMention,
+  mentionCandidates,
   postingBlockReason,
   reviewHash,
   reviewTextForDraft,
@@ -21,6 +24,7 @@ import {
   sha256Hex,
   type ReviewEvent,
   type ReviewSubmission,
+  type TeamMember,
 } from "./teamReview";
 
 const sub = (over: Partial<ReviewSubmission> = {}): ReviewSubmission => ({
@@ -281,5 +285,38 @@ describe("friendlyError", () => {
       "You don't have access to do that.",
     );
     expect(friendlyError(null)).toBe("Something went wrong. Try again.");
+  });
+});
+
+describe("mentions", () => {
+  const member = (id: string, name: string, role: "leader" | "member" = "member"): TeamMember => ({
+    team_id: "t1",
+    user_id: id,
+    role,
+    display_name: name,
+    joined_at: "2026-10-01T00:00:00Z",
+  });
+  const roster = [member("L", "Lee", "leader"), member("A", "Mei"), member("B", "Mei Lin"), member("C", "Pat")];
+
+  it("lets the author or a leader mention anyone, others only people already in the thread", () => {
+    const sub = { author_id: "A" };
+    expect(mentionCandidates(roster, "A", sub, new Set()).map((m) => m.user_id)).toEqual(["L", "B", "C"]);
+    expect(mentionCandidates(roster, "L", sub, new Set()).map((m) => m.user_id)).toEqual(["A", "B", "C"]);
+    // C was brought in; C may mention the author, the leader and B (already mentioned), never themselves.
+    expect(mentionCandidates(roster, "C", sub, new Set(["C", "B"])).map((m) => m.user_id)).toEqual(["L", "A", "B"]);
+    expect(mentionCandidates(roster, "C", sub, new Set(["C"])).map((m) => m.user_id)).toEqual(["L", "A"]);
+  });
+
+  it("reads @names, longest first, in any case", () => {
+    expect(extractMentions("Thoughts @mei lin? cc @Lee.", roster)).toEqual(["B", "L"]);
+    expect(extractMentions("@Mei, see this", roster)).toEqual(["A"]);
+    expect(extractMentions("@Meiling is someone else", roster)).toEqual([]);
+    expect(extractMentions("email mei@x.com", roster)).toEqual([]);
+  });
+
+  it("inserts a mention with a space before and after", () => {
+    expect(insertMention("", "Pat")).toBe("@Pat ");
+    expect(insertMention("Looks good", "Pat")).toBe("Looks good @Pat ");
+    expect(insertMention("Looks good ", "Pat")).toBe("Looks good @Pat ");
   });
 });

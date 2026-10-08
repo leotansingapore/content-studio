@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import ReviewThread from "@/components/team/ReviewThread";
 import {
   EmptyBlock,
   ErrorBlock,
@@ -23,12 +24,15 @@ import {
 } from "@/components/team/shared";
 import {
   QUEUE_LIMIT,
+  fetchCommentCounts,
+  fetchRoster,
   fetchTeamSubmissions,
   friendlyError,
   reviewSubmission,
   type ReviewDecision,
   type ReviewStatus,
   type ReviewSubmission,
+  type TeamMember,
 } from "@/lib/teamReview";
 
 const TABS: { key: ReviewStatus; label: string; empty: string }[] = [
@@ -58,6 +62,8 @@ export default function ReviewQueue({
   const [lists, setLists] = useState<Lists>(EMPTY);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
+  const [roster, setRoster] = useState<TeamMember[]>([]);
+  const [counts, setCounts] = useState<Map<string, number>>(new Map());
 
   const load = useCallback(async () => {
     setStatus("loading");
@@ -71,6 +77,14 @@ export default function ReviewQueue({
       ]);
       setLists({ pending, approved, changes_requested: changes, rejected });
       setStatus("ready");
+      // Comment threads are extras: the queue works without them.
+      const ids = [...pending, ...approved, ...changes, ...rejected].map((s) => s.id);
+      void Promise.all([fetchRoster(teamId), fetchCommentCounts(ids)])
+        .then(([people, n]) => {
+          setRoster(people);
+          setCounts(n);
+        })
+        .catch(() => {});
     } catch (e) {
       setError(friendlyError(e));
       setStatus("error");
@@ -148,7 +162,13 @@ export default function ReviewQueue({
           <ul className="space-y-3">
             {current.map((s) => (
               <li key={s.id}>
-                <SubmissionCard sub={s} userId={userId} onDecided={handleDecided} />
+                <SubmissionCard
+                  sub={s}
+                  userId={userId}
+                  roster={roster}
+                  commentCount={counts.get(s.id)}
+                  onDecided={handleDecided}
+                />
               </li>
             ))}
           </ul>
@@ -161,10 +181,14 @@ export default function ReviewQueue({
 function SubmissionCard({
   sub,
   userId,
+  roster,
+  commentCount,
   onDecided,
 }: {
   sub: ReviewSubmission;
   userId: string;
+  roster: TeamMember[];
+  commentCount?: number;
   onDecided: (row: ReviewSubmission) => void;
 }) {
   const { toast } = useToast();
@@ -344,6 +368,8 @@ function SubmissionCard({
           {error}
         </p>
       )}
+
+      <ReviewThread sub={sub} userId={userId} roster={roster} canComment count={commentCount} />
     </article>
   );
 }
