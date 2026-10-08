@@ -182,6 +182,8 @@ export interface Frame {
   subs?: Record<string, string>;
   /** The brand kit, for the logo. */
   brand?: BrandArt | null;
+  /** A paused or scrubbed preview: captions drawn fully in, without the pop-in. */
+  still?: boolean;
 }
 
 // ---------- brand kit on video ----------
@@ -341,7 +343,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     const text = cap.words.map((w) => (s.uppercase ? w.w.toUpperCase() : w.w));
     const lines = wrap(g, text, W * (spec.mode === "words" ? 0.86 : 0.84));
     // pop in: word styles scale up from 85% and fade in over the first 150 ms of each caption
-    const intro = spec.mode === "words" ? captionIntro(f.src, cap.s) : 1;
+    const intro = spec.mode === "words" && !f.still ? captionIntro(f.src, cap.s) : 1;
     g.save();
     if (intro < 1) {
       const cy = H * captionCenter(s);

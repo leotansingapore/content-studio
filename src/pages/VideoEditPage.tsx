@@ -281,9 +281,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       return;
     }
     const out = outputTime(plan.segs, v.currentTime) ?? outT;
-    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art });
+    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing });
     setOutT(out);
-  }, [plan, settings, outT, subs, art]);
+  }, [plan, settings, outT, subs, art, playing]);
   const total = fullLength(plan.total, settings, !!art);
   paintRef.current = paint;
 
