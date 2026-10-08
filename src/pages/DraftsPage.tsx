@@ -35,6 +35,8 @@ import {
   CopyPlus,
   Upload,
   MoreHorizontal,
+  Link2,
+  MessageSquareText,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -60,6 +62,14 @@ import CsvImport from "@/components/CsvImport";
 import DayInput from "@/components/DayInput";
 import { loadPositioning } from "@/lib/positioning";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
+import PreviewLinkPanel from "@/components/review/PreviewLinkPanel";
+import {
+  fetchMyPreviewLinks,
+  linksByDraft,
+  reviewerCommentCount,
+  type PreviewComment,
+  type PreviewLink,
+} from "@/lib/previewLinks";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -182,6 +192,26 @@ export default function DraftsPage() {
   // A just-made copy: scrolled to and outlined for a moment.
   const [flashId, setFlashId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [previewOpenId, setPreviewOpenId] = useState<string | null>(null);
+  const [previewLinks, setPreviewLinks] = useState<PreviewLink[]>([]);
+  const [previewComments, setPreviewComments] = useState<PreviewComment[]>([]);
+  const linksForDraft = useMemo(() => linksByDraft(previewLinks), [previewLinks]);
+
+  // Preview links and their comments; silent when unavailable (My posts works without them).
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    fetchMyPreviewLinks()
+      .then((r) => {
+        if (!active) return;
+        setPreviewLinks(r.links);
+        setPreviewComments(r.comments);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (!flashId) return;
@@ -584,6 +614,19 @@ export default function DraftsPage() {
                   </div>
                 )}
                 {reviews.enabled && <DraftReviewControl draft={d} reviews={reviews} />}
+                {(() => {
+                  const ids = new Set((linksForDraft.get(d.id) ?? []).map((l) => l.id));
+                  const n = ids.size ? reviewerCommentCount(previewComments, ids) : 0;
+                  return n > 0 && previewOpenId !== d.id ? (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewOpenId(d.id)}
+                      className="mb-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 text-[11px] font-semibold text-primary sm:h-7"
+                    >
+                      <MessageSquareText className="h-3.5 w-3.5" /> {n} reviewer {n === 1 ? "comment" : "comments"}
+                    </button>
+                  ) : null;
+                })()}
                 <div className="mb-3 flex flex-wrap items-center gap-1.5">
                   {labels.filter((l) => d.labels?.includes(l.id)).map((l) => (
                     <LabelChip key={l.id} label={l} />
@@ -643,6 +686,9 @@ export default function DraftsPage() {
                       ...(d.draft?.trim()
                         ? [{ label: "Make a carousel", icon: GalleryHorizontalEnd, onSelect: () => navigate(`/carousel?draft=${encodeURIComponent(d.id)}`) }]
                         : []),
+                      ...(d.draft?.trim()
+                        ? [{ label: "Share for review", icon: Link2, onSelect: () => setPreviewOpenId(d.id) }]
+                        : []),
                       { label: "Duplicate", icon: CopyPlus, onSelect: () => handleDuplicate(d.id) },
                     ]}
                   />
@@ -660,6 +706,19 @@ export default function DraftsPage() {
                     {confirmId === d.id ? "Confirm" : "Delete"}
                   </Button>
                 </div>
+                {previewOpenId === d.id && userId && (
+                  <PreviewLinkPanel
+                    userId={userId}
+                    draft={d}
+                    links={linksForDraft.get(d.id) ?? []}
+                    comments={previewComments}
+                    onLink={(link) =>
+                      setPreviewLinks((prev) => [link, ...prev.filter((l) => l.id !== link.id)])
+                    }
+                    onComment={(c) => setPreviewComments((prev) => [...prev, c])}
+                    onClose={() => setPreviewOpenId(null)}
+                  />
+                )}
                 {repurposeOpenId === d.id && (
                   <div className="mt-3 space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
                     <div className="flex items-center justify-between">

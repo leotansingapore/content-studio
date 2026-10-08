@@ -2,7 +2,9 @@
 // compliance officer with no account reads a post an adviser shared and
 // leaves comments. The token in the URL is the only credential.
 //
-//   GET  /preview-link/<token>   the snapshot and its comments, or 404
+//   GET  /preview-link/<token>   the snapshot and its comments, or 200
+//                                {gone: true} for an unknown, expired or
+//                                turned-off link (no console error on the page)
 //   POST /preview-link/<token>   {name, body, website} adds a comment
 //
 // No Supabase JWT arrives from a visitor, so this deploys WITHOUT JWT
@@ -78,7 +80,7 @@ Deno.serve(async (req) => {
     if (req.method === "GET") {
       const { data, error } = await admin.rpc("cs_preview_link_view", { p_token: token });
       if (error) throw error;
-      return data ? reply(data) : reply(NOT_FOUND, 404);
+      return data ? reply(data) : reply({ gone: true, ...NOT_FOUND });
     }
 
     if (Number(req.headers.get("content-length") ?? 0) > MAX_BODY) {

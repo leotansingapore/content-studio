@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -53,6 +53,8 @@ const FadsPage = lazy(() => import("@/pages/FadsPage"));
 const RecruitPage = lazy(() => import("@/pages/RecruitPage"));
 const ReelsPage = lazy(() => import("@/pages/ReelsPage"));
 const VideoEditPage = lazy(() => import("@/pages/VideoEditPage"));
+// Public pages (no sign-in), each in its own chunk.
+const PreviewReviewPage = lazy(() => import("@/pages/PreviewReviewPage"));
 
 export default function App() {
   return (
@@ -61,6 +63,14 @@ export default function App() {
         {/* Public: what people asked for, what is being built, what shipped. */}
         <Route path="/roadmap" element={<PublicRoadmap />} />
         <Route path="/auth" element={<Auth />} />
+        <Route
+          path="/review/:token"
+          element={
+            <Suspense fallback={null}>
+              <PreviewReviewPage />
+            </Suspense>
+          }
+        />
         <Route
           element={
             <ProtectedRoute>
