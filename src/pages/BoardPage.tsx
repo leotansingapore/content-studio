@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link } from "react-router-dom";
 import { ArrowRight, Columns3, GripVertical, Lightbulb, Pencil } from "lucide-react";
@@ -6,6 +6,8 @@ import { ArrowRight, Columns3, GripVertical, Lightbulb, Pencil } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Card, CardContent } from "@/components/ui/card";
+import { ToastAction } from "@/components/ui/toast";
+import DayInput from "@/components/DayInput";
 import { useToast } from "@/hooks/use-toast";
 import {
   BOARD_COLUMNS,
@@ -19,6 +21,7 @@ import {
   draftStatus,
   loadDrafts,
   newDraftId,
+  restoreDraft,
   saveDrafts,
   setDraftStatus,
   upsertDraft,
@@ -37,26 +40,61 @@ const PHASES: { number: number; title: string; columns: BoardColumn[] }[] = [
   { number: 3, title: "Publish it", columns: ["scheduled", "posted"] },
 ];
 
-// One-click advancement per column (drag still works). Scheduled needs a date,
-// so the editing column jumps straight to posted.
+// One-tap advancement per column (drag still works). Scheduled asks for a date on the card.
 const NEXT_STEP: Partial<Record<BoardColumn, { to: BoardColumn; label: string }>> = {
   idea: { to: "scripted", label: "Scripted" },
   scripted: { to: "to-film", label: "To film" },
   "to-film": { to: "editing", label: "Editing" },
-  editing: { to: "posted", label: "Mark posted" },
+  editing: { to: "scheduled", label: "Schedule" },
   scheduled: { to: "posted", label: "Mark posted" },
 };
+
+const fieldClass =
+  "h-9 rounded-md border border-border/70 bg-background px-2 text-xs outline-none focus:border-primary/40 sm:h-8";
+
+// A posting day and optional time, for a card being scheduled.
+function ScheduleForm({ title, onSchedule, onCancel }: { title?: string; onSchedule: (day: string, time: string) => void; onCancel: () => void }) {
+  const [day, setDay] = useState("");
+  const [time, setTime] = useState("");
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (day) onSchedule(day, time);
+      }}
+      className="space-y-1.5 rounded-lg border border-primary/40 bg-primary/5 p-2"
+    >
+      <p className="text-[11px] font-semibold text-primary">Pick a posting date</p>
+      {title && <p className="line-clamp-1 text-[11px] text-muted-foreground">{title}</p>}
+      <div className="flex flex-wrap gap-1.5">
+        <DayInput min={localDateKey()} value={day} onPick={setDay} aria-label="Posting date" autoFocus className={`${fieldClass} min-w-[8rem] flex-1`} />
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Posting time (optional)" title="Time (optional)" className={`${fieldClass} w-24`} />
+      </div>
+      <div className="flex gap-1.5">
+        <button type="submit" disabled={!day} className="h-9 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50 sm:h-8">
+          Schedule
+        </button>
+        <button type="button" onClick={onCancel} className="h-9 rounded-md px-3 text-xs font-medium text-muted-foreground hover:text-foreground sm:h-8">
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
 
 function BoardCard({
   draft,
   onAdvance,
   advanceLabel,
   onRename,
+  children,
 }: {
   draft: DraftEntry;
   onAdvance?: () => void;
   advanceLabel?: string;
   onRename?: (hook: string) => void;
+  /** Shown under the card's actions in place of its next-step button (the schedule form). */
+  children?: ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
@@ -78,7 +116,7 @@ function BoardCard({
 
   return (
     <Card
-      draggable={!editing}
+      draggable={!editing && !children}
       onDragStart={(e) => e.dataTransfer.setData("text/draft-id", draft.id)}
       className="group min-w-0 cursor-grab border-border/60 shadow-sm transition-shadow hover:shadow-card active:cursor-grabbing"
     >
@@ -138,7 +176,7 @@ function BoardCard({
           >
             <Pencil className="h-3 w-3" /> Open
           </Link>
-          {onAdvance && advanceLabel && (
+          {onAdvance && advanceLabel && !children && (
             <button
               type="button"
               onClick={onAdvance}
@@ -148,6 +186,7 @@ function BoardCard({
             </button>
           )}
         </div>
+        {children}
       </CardContent>
     </Card>
   );
@@ -179,23 +218,23 @@ export default function BoardPage() {
   }, [drafts, stages]);
 
   const [newIdea, setNewIdea] = useState("");
-  // Draft awaiting a posting date after being dropped on Scheduled.
-  const [scheduling, setScheduling] = useState<string | null>(null);
-  const [scheduleDate, setScheduleDate] = useState("");
+  // Draft awaiting a posting date: asked on its card (Schedule button) or in the
+  // Scheduled column (dropped there).
+  const [scheduling, setScheduling] = useState<{ id: string; onCard: boolean } | null>(null);
 
-  const confirmSchedule = () => {
-    if (!userId || !scheduling || !scheduleDate) return;
-    setDrafts(
-      setDraftStatus(
-        userId,
-        scheduling,
-        "scheduled",
-        scheduleAt(scheduleDate),
-      ),
-    );
+  const confirmSchedule = (day: string, time: string) => {
+    const prev = drafts.find((d) => d.id === scheduling?.id);
+    if (!userId || !prev) return;
+    setDrafts(setDraftStatus(userId, prev.id, "scheduled", scheduleAt(day, time)));
     setScheduling(null);
-    setScheduleDate("");
-    toast({ title: "Scheduled" });
+    toast({
+      title: `Scheduled for ${keyToDate(day).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}${time ? `, ${timeLabel(time)}` : ""}`,
+      action: (
+        <ToastAction altText="Undo" onClick={() => setDrafts(restoreDraft(userId, prev))}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   // Capture a rough concept straight on the board — it lands in Idea and can
@@ -225,12 +264,11 @@ export default function BoardPage() {
     setNewIdea("");
   };
 
-  const moveTo = (draft: DraftEntry, col: BoardColumn) => {
+  const moveTo = (draft: DraftEntry, col: BoardColumn, onCard = false) => {
     if (!userId) return;
     if (col === "scheduled") {
-      // Finish the thought in place: ask for the date right in the column.
-      setScheduling(draft.id);
-      setScheduleDate("");
+      // Finish the thought in place: ask for the date on the card, or in the column it was dropped on.
+      setScheduling({ id: draft.id, onCard });
       return;
     }
     if (col === "posted") {
@@ -323,7 +361,7 @@ export default function BoardPage() {
                           <BoardCard
                             key={d.id}
                             draft={d}
-                            onAdvance={step ? () => moveTo(d, step.to) : undefined}
+                            onAdvance={step ? () => moveTo(d, step.to, true) : undefined}
                             advanceLabel={step?.label}
                             onRename={(hook) => {
                               if (!userId) return;
@@ -337,43 +375,21 @@ export default function BoardPage() {
                                 return next;
                               });
                             }}
-                          />
+                          >
+                            {scheduling?.onCard && scheduling.id === d.id && (
+                              <ScheduleForm onSchedule={confirmSchedule} onCancel={() => setScheduling(null)} />
+                            )}
+                          </BoardCard>
                         );
                       })}
 
-                      {col.key === "scheduled" && scheduling && (
-                        <div className="space-y-1.5 rounded-lg border border-primary/40 bg-primary/5 p-2">
-                          <p className="text-[11px] font-semibold text-primary">
-                            Pick a posting date
-                          </p>
-                          <p className="line-clamp-1 text-[11px] text-muted-foreground">
-                            {drafts.find((d) => d.id === scheduling)?.hook || "Selected post"}
-                          </p>
-                          <input
-                            type="date"
-                            value={scheduleDate}
-                            min={localDateKey()}
-                            onChange={(e) => setScheduleDate(e.target.value)}
-                            className="w-full rounded-md border border-border/70 bg-background px-2 py-1 text-xs outline-none focus:border-primary/40"
-                          />
-                          <div className="flex gap-1.5">
-                            <button
-                              type="button"
-                              onClick={confirmSchedule}
-                              disabled={!scheduleDate}
-                              className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
-                            >
-                              Schedule
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setScheduling(null)}
-                              className="rounded-md px-2 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
+                      {col.key === "scheduled" && scheduling && !scheduling.onCard && (
+                        <ScheduleForm
+                          key={scheduling.id}
+                          title={drafts.find((d) => d.id === scheduling.id)?.hook || "Selected post"}
+                          onSchedule={confirmSchedule}
+                          onCancel={() => setScheduling(null)}
+                        />
                       )}
 
                       {col.key === "idea" && (
