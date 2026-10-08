@@ -8,6 +8,7 @@
 // native (TikTok) and documentary.
 
 import type { FaceBox, KeyLine } from "@/lib/videoMotion";
+import { mergeSlivers, pauseCut } from "@/lib/cutRules";
 
 export interface Word {
   w: string;
@@ -267,8 +268,6 @@ export interface Segment {
   end: number;
 }
 
-const PAD = 0.08;
-
 /**
  * The parts of the source to keep, in order: inside the trims, minus filler
  * words and minus the excess of any pause longer than maxPause.
@@ -313,7 +312,8 @@ export function listCuts(words: Word[], duration: number, s: CutSettings): Cut[]
     for (let i = 1; i < said.length; i++) {
       const a = said[i - 1];
       const b = said[i];
-      if (b.s - a.e > s.maxPause) cuts.push({ id: `p:${a.e.toFixed(2)}`, kind: "pause", start: a.e + PAD, end: b.s - PAD, before: a.w, word: "", after: b.w });
+      const cut = b.s - a.e > s.maxPause ? pauseCut(a, b) : null;
+      if (cut) cuts.push({ id: `p:${a.e.toFixed(2)}`, kind: "pause", ...cut, before: a.w, word: "", after: b.w });
     }
   }
   return cuts.sort((x, y) => x.start - y.start);
@@ -349,7 +349,7 @@ export function keepSegments(
     at = Math.max(at, ce);
   }
   if (to > at) out.push({ start: at, end: to });
-  return out.filter((g) => g.end - g.start > 0.04);
+  return mergeSlivers(out, said).filter((g) => g.end - g.start > 0.04);
 }
 
 export const totalLength = (segs: Segment[]) => segs.reduce((t, g) => t + (g.end - g.start), 0);
