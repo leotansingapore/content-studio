@@ -260,9 +260,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   useEffect(() => {
     void ensureCaptionFonts().then(() => paintRef.current?.());
   }, []);
+  // load the file once per file: every save hands back a new project object, and
+  // reloading on that sent the preview back to 0:00 after each edit
+  const fk = fileKey(project);
   useEffect(() => {
-    getFile(fileKey(project)).then((f) => setFile(f ?? null)).catch(() => setFile(null));
-  }, [project]);
+    getFile(fk).then((f) => setFile(f ?? null)).catch(() => setFile(null));
+  }, [fk]);
   const url = useMemo(() => (file ? URL.createObjectURL(file) : ""), [file]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
 
