@@ -96,3 +96,24 @@ describe("what is behind you", () => {
   });
 });
 
+
+describe("touch-up", () => {
+  it("is off at 0 and stays light at full strength", async () => {
+    const { touchAmounts } = await import("./faceVision");
+    expect(touchAmounts(0)).toEqual({ skin: 0, bright: 1, contrast: 1 });
+    const full = touchAmounts(1);
+    expect(full.skin).toBeLessThanOrEqual(0.45);
+    expect(full.bright).toBeLessThanOrEqual(1.15);
+    expect(full.contrast).toBeLessThanOrEqual(1.08);
+    expect(touchAmounts(5)).toEqual(full);
+    expect(touchAmounts(0.5).skin).toBeCloseTo(full.skin / 2, 5);
+  });
+
+  it("walks a landmark outline round in order, from the model's list of edges", async () => {
+    const { ringOf } = await import("./faceVision");
+    expect(ringOf([{ start: 10, end: 11 }, { start: 12, end: 10 }, { start: 11, end: 12 }])).toEqual([10, 11, 12]);
+    expect(ringOf([])).toEqual([]);
+    // a broken outline stops where it breaks rather than looping forever
+    expect(ringOf([{ start: 1, end: 2 }, { start: 2, end: 3 }])).toEqual([1, 2, 3]);
+  });
+});

@@ -241,7 +241,7 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
       <header className="space-y-1">
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Edit a video</h1>
         <ul className="flex flex-wrap gap-1.5 pt-1" aria-label="What it does">
-          {["Auto captions", "Cuts um and long pauses", "Hook on screen", "9:16 reframe that follows your face", "Blur or swap your background", "Find clips in a long video", "Vibe edit by chat", "MP4 export"].map((t) => (
+          {["Auto captions", "Cuts um and long pauses", "Hook on screen", "9:16 reframe that follows your face", "Blur or swap your background", "Skin and eye touch-up", "Find clips in a long video", "Vibe edit by chat", "MP4 export"].map((t) => (
             <li key={t} className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{t}</li>
           ))}
         </ul>
@@ -373,7 +373,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [backdropImg, setBackdropImg] = useState<HTMLImageElement | null | undefined>(undefined);
   const pictureInput = useRef<HTMLInputElement>(null);
   const [fxState, setFxState] = useState<"" | "loading" | "failed">("");
-  const wantFx = !!settings.backdrop;
+  // which models the edit needs: the person finder for the backdrop, the face finder for the touch-up
+  const wantFx = `${settings.backdrop ? "b" : ""}${settings.touchUp ? "t" : ""}`;
   const segIdx = useRef(0);
   const drag = useRef<{ startX: number; startY: number; moved: boolean; overlay?: string } | null>(null);
   // the brand kit (logo, end card, name tag); endAt is the time into the end card while it shows
@@ -501,7 +502,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     if (wantFx) void loadFx();
     else setFxState("");
   }, [wantFx, loadFx]);
-  const fx = useMemo<Frame["fx"]>(() => (settings.backdrop ? (g, r) => paintEffects(g, r, settings, backdropImg) : null), [settings, backdropImg]);
+  const fx = useMemo<Frame["fx"]>(() => (settings.backdrop || settings.touchUp ? (g, r) => paintEffects(g, r, settings, backdropImg) : null), [settings, backdropImg]);
 
   // save the edit a moment after the last change
   useEffect(() => {
@@ -1055,11 +1056,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       const f = await getFile(b.key).catch(() => undefined);
       if (f) brollFiles[b.key] = f;
     }
-    if (settings.backdrop) {
+    if (settings.backdrop || settings.touchUp) {
       try {
         await loadEffects(settings);
       } catch {
-        return toast({ title: "Couldn't load the background effect", description: "Check the connection, then export again.", variant: "destructive" });
+        return toast({ title: "Couldn't load the face and background effects", description: "Check the connection, then export again.", variant: "destructive" });
       }
     }
     void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art, settings.voiceover ? voiceBlob : null, brollFiles, settings.music ? musicBlob : null, fx).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
@@ -1908,10 +1909,15 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   </Button>
                 </div>
               )}
-              {fxState === "loading" && <p className="text-xs text-muted-foreground" aria-live="polite">Loading the background finder (about 4 MB, once)...</p>}
+              <Row label={settings.touchUp ? `Touch-up ${Math.round(settings.touchUp * 100)}%` : "Touch-up off"}>
+                <InfoTip label="About touch-up">Smooths skin a little and brightens eyes. Face shape never changes.</InfoTip>
+                <input type="range" min={0} max={1} step={0.05} value={settings.touchUp ?? 0} aria-label="Touch-up strength"
+                  onChange={(e) => patch({ touchUp: Number(e.target.value) || undefined })} className="h-11 w-40 accent-primary sm:h-auto" />
+              </Row>
+              {fxState === "loading" && <p className="text-xs text-muted-foreground" aria-live="polite">Loading the effect (the first time takes a few seconds)...</p>}
               {fxState === "failed" && (
                 <p className="flex flex-wrap items-center gap-2 text-xs text-destructive" role="status">
-                  Couldn&apos;t load the background finder. Check the connection.
+                  Couldn&apos;t load the effect. Check the connection.
                   <Button size="sm" variant="outline" className="h-11 text-xs text-foreground sm:h-7" onClick={() => void loadFx()}>Try again</Button>
                 </p>
               )}

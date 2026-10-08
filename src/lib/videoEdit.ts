@@ -47,6 +47,8 @@ export interface EditSettings {
   faceTrack?: FaceTrack;
   /** What shows behind the speaker: their own background blurred, a plain colour, or a picture on this device. Unset = as filmed. */
   backdrop?: Backdrop;
+  /** Skin smoothed a little and eyes brightened, 0 to 1 (faceVision.ts). Unset or 0 = off. */
+  touchUp?: number;
   punchIn: boolean;
   progressBar: boolean;
   grade: boolean;

@@ -3,7 +3,7 @@
 // is first used, so it never lands in the main bundle; its wasm comes from
 // jsDelivr at the same version and its models from Google's model bucket.
 
-import type { FaceDetector, FilesetResolver, ImageSegmenter } from "@mediapipe/tasks-vision";
+import type { FaceDetector, FaceLandmarker, FilesetResolver, ImageSegmenter } from "@mediapipe/tasks-vision";
 import { gradeOf, type Backdrop, type EditSettings, type FaceTrack } from "@/lib/videoEdit";
 import { pickFace, smoothTrack, trackStep } from "@/lib/faceFollow";
 
@@ -111,13 +111,54 @@ const personFinder = () =>
     .then((x) => (segmenter = x))
     .catch((e) => { segmenterP = null; throw e; }));
 
-/** Loads what the edit's effects need (the first time downloads about 4 MB, then the browser keeps it). */
-export async function loadEffects(s: Pick<EditSettings, "backdrop">): Promise<void> {
-  if (s.backdrop) await personFinder();
+// ---------- touch-up (skin and eyes) ----------
+
+/** How strong each part of the touch-up is at strength t (0-1): the share of softened skin laid
+ * over the face, and the lift in the eyes' brightness and contrast. Kept light on purpose. */
+export function touchAmounts(t: number): { skin: number; bright: number; contrast: number } {
+  const k = Math.min(1, Math.max(0, t || 0));
+  return { skin: 0.45 * k, bright: 1 + 0.15 * k, contrast: 1 + 0.08 * k };
+}
+
+/** A landmark outline (the model's list of edges, a ring) as point numbers in order round it. */
+export function ringOf(edges: { start: number; end: number }[]): number[] {
+  if (!edges.length) return [];
+  const next = new Map(edges.map((e) => [e.start, e.end]));
+  const ring = [edges[0].start];
+  for (let at = next.get(ring[0]); at !== undefined && at !== ring[0] && ring.length <= edges.length; at = next.get(at)) ring.push(at);
+  return ring;
+}
+
+let landmarkerP: Promise<FaceLandmarker> | null = null;
+let landmarker: FaceLandmarker | null = null;
+// the outlines touch-up uses, as rings of point numbers, read from the library once it loads
+let rings: { oval: number[]; holes: number[][]; eyes: number[][] } | null = null;
+// face_landmarker: 3.7 MB, about 12 ms a frame on the CPU; up to two faces (an interview)
+const faceFinder = () =>
+  (landmarkerP ??= Promise.all([lib(), files()])
+    .then(([m, fs]) => {
+      const L = m.FaceLandmarker;
+      rings = {
+        oval: ringOf(L.FACE_LANDMARKS_FACE_OVAL),
+        holes: [L.FACE_LANDMARKS_LEFT_EYE, L.FACE_LANDMARKS_RIGHT_EYE, L.FACE_LANDMARKS_LEFT_EYEBROW, L.FACE_LANDMARKS_RIGHT_EYEBROW, L.FACE_LANDMARKS_LIPS].map(ringOf),
+        eyes: [L.FACE_LANDMARKS_LEFT_EYE, L.FACE_LANDMARKS_RIGHT_EYE].map(ringOf),
+      };
+      return L.createFromOptions(fs, {
+        baseOptions: { modelAssetPath: `${MODELS}/face_landmarker/face_landmarker/float16/1/face_landmarker.task`, delegate: "CPU" },
+        runningMode: "IMAGE",
+        numFaces: 2,
+      });
+    })
+    .then((x) => (landmarker = x))
+    .catch((e) => { landmarkerP = null; throw e; }));
+
+/** Loads what the edit's effects need (the first time downloads a few MB, then the browser keeps it). */
+export async function loadEffects(s: Pick<EditSettings, "backdrop" | "touchUp">): Promise<void> {
+  await Promise.all([s.backdrop ? personFinder() : null, s.touchUp ? faceFinder() : null]);
 }
 
 /** Every effect the edit uses is loaded. */
-export const effectsReady = (s: Pick<EditSettings, "backdrop">) => !s.backdrop || !!segmenter;
+export const effectsReady = (s: Pick<EditSettings, "backdrop" | "touchUp">) => (!s.backdrop || !!segmenter) && (!s.touchUp || !!landmarker);
 
 // scratch canvases, kept between frames (resizing clears one, so only when the size changes)
 const pads = new Map<string, HTMLCanvasElement>();
@@ -138,7 +179,106 @@ let maskData: ImageData | null = null;
 export function paintEffects(g: CanvasRenderingContext2D, r: { x: number; y: number; w: number; h: number }, s: EditSettings, picture?: HTMLImageElement | null) {
   const x = Math.round(r.x), y = Math.round(r.y), w = Math.round(r.w), h = Math.round(r.h);
   if (w < 16 || h < 16) return;
+  // the touch-up first, so the person the backdrop cuts out is the touched-up one
+  if (s.touchUp && landmarker && rings) paintTouchUp(g, x, y, w, h, s.touchUp);
   if (s.backdrop && segmenter) paintBackdrop(g, x, y, w, h, s, s.backdrop, picture);
+}
+
+const trace = (g: CanvasRenderingContext2D, pts: [number, number][], ring: number[]) => {
+  ring.forEach((i, j) => (j ? g.lineTo(pts[i][0], pts[i][1]) : g.moveTo(pts[i][0], pts[i][1])));
+  g.closePath();
+};
+
+/**
+ * Light skin smoothing and eye brightening on each face in the picture. Nothing moves: the
+ * skin gets a share of a softened copy of itself inside the face outline (pulled in 6% and
+ * feathered, so the jaw and hairline stay sharp), with eyes, brows and lips left out, and the
+ * eyes get a small lift in brightness and contrast.
+ */
+function paintTouchUp(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, t: number) {
+  const k = Math.min(1, 960 / Math.max(w, h));
+  const lw = Math.max(1, Math.round(w * k)), lh = Math.max(1, Math.round(h * k));
+  const look = pad("look", lw, lh);
+  look.getContext("2d")!.drawImage(g.canvas, x, y, w, h, 0, 0, lw, lh);
+  const faces = landmarker!.detect(look).faceLandmarks;
+  const a = touchAmounts(t);
+  const r = rings!;
+  for (const lm of faces) {
+    const pts = lm.map((p): [number, number] => [x + p.x * w, y + p.y * h]);
+    const ox = r.oval.map((i) => pts[i][0]), oy = r.oval.map((i) => pts[i][1]);
+    const fw = Math.max(...ox) - Math.min(...ox);
+    if (fw < 24) continue; // too small to see a difference
+    const bx = Math.max(x, Math.floor(Math.min(...ox) - fw * 0.06)), by = Math.max(y, Math.floor(Math.min(...oy) - fw * 0.06));
+    const bw = Math.min(x + w, Math.ceil(Math.max(...ox) + fw * 0.06)) - bx, bh = Math.min(y + h, Math.ceil(Math.max(...oy) + fw * 0.06)) - by;
+    if (bw < 8 || bh < 8) continue;
+    // where the skin is: the outline pulled 6% towards its middle, less the eyes, brows and lips, feathered
+    const cx = ox.reduce((s, v) => s + v, 0) / ox.length, cy = oy.reduce((s, v) => s + v, 0) / oy.length;
+    const inner = pts.map(([px, py]): [number, number] => [cx + (px - cx) * 0.94, cy + (py - cy) * 0.94]);
+    const shape = pad("skin-shape", bw, bh);
+    const sg = shape.getContext("2d")!;
+    sg.setTransform(1, 0, 0, 1, -bx, -by);
+    sg.clearRect(bx, by, bw, bh);
+    sg.fillStyle = "#fff";
+    sg.beginPath();
+    trace(sg, inner, r.oval);
+    sg.fill();
+    sg.globalCompositeOperation = "destination-out";
+    for (const hole of r.holes) {
+      sg.beginPath();
+      trace(sg, pts, hole);
+      sg.fill();
+    }
+    sg.globalCompositeOperation = "source-over";
+    sg.setTransform(1, 0, 0, 1, 0, 0);
+    const skin = pad("skin", bw, bh);
+    const kg = skin.getContext("2d")!;
+    kg.clearRect(0, 0, bw, bh);
+    kg.filter = `blur(${Math.max(1, fw * 0.025)}px)`;
+    kg.drawImage(shape, 0, 0);
+    kg.filter = "none";
+    // the softened face, kept only on the skin
+    const soft = pad("skin-soft", bw, bh);
+    const fg = soft.getContext("2d")!;
+    fg.globalCompositeOperation = "copy";
+    fg.filter = `blur(${Math.max(1, fw * 0.01)}px)`;
+    fg.drawImage(g.canvas, bx, by, bw, bh, 0, 0, bw, bh);
+    fg.filter = "none";
+    fg.globalCompositeOperation = "destination-in";
+    fg.drawImage(skin, 0, 0);
+    fg.globalCompositeOperation = "source-over";
+    g.save();
+    g.globalAlpha = a.skin;
+    g.drawImage(soft, bx, by);
+    g.restore();
+    // the eyes, a touch brighter
+    for (const eye of r.eyes) {
+      const ex = eye.map((i) => pts[i][0]), ey = eye.map((i) => pts[i][1]);
+      const pad8 = fw * 0.03;
+      const x0 = Math.max(x, Math.floor(Math.min(...ex) - pad8)), y0 = Math.max(y, Math.floor(Math.min(...ey) - pad8));
+      const ew = Math.min(x + w, Math.ceil(Math.max(...ex) + pad8)) - x0, eh = Math.min(y + h, Math.ceil(Math.max(...ey) + pad8)) - y0;
+      if (ew < 4 || eh < 4) continue;
+      const em = pad("eye-shape", ew, eh);
+      const mg = em.getContext("2d")!;
+      mg.setTransform(1, 0, 0, 1, -x0, -y0);
+      mg.clearRect(x0, y0, ew, eh);
+      mg.fillStyle = "#fff";
+      mg.beginPath();
+      trace(mg, pts, eye);
+      mg.fill();
+      mg.setTransform(1, 0, 0, 1, 0, 0);
+      const lit = pad("eye", ew, eh);
+      const lg = lit.getContext("2d")!;
+      lg.globalCompositeOperation = "copy";
+      lg.filter = `brightness(${a.bright}) contrast(${a.contrast})`;
+      lg.drawImage(g.canvas, x0, y0, ew, eh, 0, 0, ew, eh);
+      lg.filter = `blur(${Math.max(0.5, fw * 0.004)}px)`;
+      lg.globalCompositeOperation = "destination-in";
+      lg.drawImage(em, 0, 0);
+      lg.filter = "none";
+      lg.globalCompositeOperation = "source-over";
+      g.drawImage(lit, x0, y0);
+    }
+  }
 }
 
 function paintBackdrop(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, s: EditSettings, b: Backdrop, picture?: HTMLImageElement | null) {
