@@ -13,7 +13,7 @@ import {
   type DraftStats,
   type PostingActivity,
 } from "@/lib/draftHistory";
-import { loadPositioning } from "@/lib/positioning";
+import { GOAL_PLATFORMS, MAX_WEEKLY_GOAL, loadGoals, saveGoals, weekProgress, type WeeklyGoals } from "@/lib/goals";
 import {
   daysOverdue,
   dueHeading,
@@ -43,6 +43,8 @@ import {
   Flame,
   Layers,
   Target,
+  Minus,
+  Plus,
 } from "lucide-react";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -110,7 +112,9 @@ export default function HomePage() {
     thisWeekPosted: 0,
     weekStreak: 0,
   });
-  const [cadence, setCadence] = useState<number>(0);
+  const [goals, setGoals] = useState<WeeklyGoals>({});
+  // Goal being edited on the This week card (null = not editing).
+  const [goalDraft, setGoalDraft] = useState<WeeklyGoals | null>(null);
   const [name, setName] = useState<string>("");
   const [nextAct, setNextAct] = useState<NextAction | null>(null);
   const [contentScore, setContentScore] = useState<number | null>(null);
@@ -141,7 +145,7 @@ export default function HomePage() {
       setVoiceReady(isVoiceProfileUsable(loadVoiceProfile(id)));
       setCoachRuns(loadCoachHistory(id).length);
       setActivity(getPostingActivity(id));
-      setCadence(loadPositioning(id)?.cadence ?? 0);
+      setGoals(loadGoals(id));
       const diag = loadResult(id);
       setContentScore(diag?.overall ?? null);
       setNextAct(nextAction(diag));
@@ -182,6 +186,14 @@ export default function HomePage() {
       .sort((a, b) => a.days - b.days || (a.draft.scheduledFor! < b.draft.scheduledFor! ? -1 : 1));
   }, [drafts]);
   const overdueCount = dueNow.filter((d) => d.days > 0).length;
+
+  const week = useMemo(() => weekProgress(drafts, goals), [drafts, goals]);
+  const goalHit = week.goal > 0 && week.rows.every((r) => r.posted >= r.goal);
+  const saveGoal = () => {
+    if (!userId || !goalDraft) return;
+    setGoals(saveGoals(userId, goalDraft));
+    setGoalDraft(null);
+  };
 
   const markDuePosted = (id: string) => {
     if (!userId) return;
@@ -508,40 +520,101 @@ export default function HomePage() {
       )}
 
       {/* Weekly rhythm: consistency vs goal + streak */}
-      {(hasPosts || cadence > 0) && (
+      {(hasPosts || week.goal > 0) && (
         <section className="grid gap-3 sm:grid-cols-2">
           <Card className="border-border/60 shadow-card">
-            <CardContent className="space-y-2 py-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-semibold text-foreground">This week</span>
-                <span className="text-muted-foreground">
-                  {activity.thisWeekPosted}
-                  {cadence > 0 ? ` / ${cadence}` : ""} posted
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-gradient-primary transition-all duration-500"
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      cadence > 0
-                        ? (activity.thisWeekPosted / cadence) * 100
-                        : activity.thisWeekPosted > 0
-                          ? 100
-                          : 0,
-                    )}%`,
-                  }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {cadence > 0
-                  ? activity.thisWeekPosted >= cadence
-                    ? "Goal hit for the week. Nice."
-                    : `${cadence - activity.thisWeekPosted} to go to hit your weekly goal.`
-                  : "Set a weekly goal in Plan to track your rhythm."}
-              </p>
-            </CardContent>
+            {goalDraft ? (
+              <CardContent className="space-y-2 py-4">
+                <p className="text-sm font-semibold text-foreground">Posts per week</p>
+                {GOAL_PLATFORMS.map((p) => {
+                  const n = goalDraft[p] ?? 0;
+                  const set = (v: number) => setGoalDraft({ ...goalDraft, [p]: Math.max(0, Math.min(MAX_WEEKLY_GOAL, v)) });
+                  return (
+                    <div key={p} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-foreground">{PLATFORM_LABEL[p]}</span>
+                      <span className="flex items-center gap-1">
+                        <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => set(n - 1)} disabled={n <= 0} aria-label={`Fewer ${PLATFORM_LABEL[p]} posts`}>
+                          <Minus className="h-3.5 w-3.5" />
+                        </Button>
+                        <span className={`w-8 text-center font-semibold tabular-nums ${n ? "text-foreground" : "text-muted-foreground"}`} aria-live="polite">
+                          {n}
+                        </span>
+                        <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => set(n + 1)} disabled={n >= MAX_WEEKLY_GOAL} aria-label={`More ${PLATFORM_LABEL[p]} posts`}>
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </span>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button variant="outline" size="sm" onClick={() => setGoalDraft(null)}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={saveGoal}>
+                    Save goal
+                  </Button>
+                </div>
+              </CardContent>
+            ) : (
+              <CardContent className="space-y-2 py-4">
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="font-semibold text-foreground">This week</span>
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    {week.posted}
+                    {week.goal > 0 ? ` / ${week.goal}` : ""} posted
+                    {week.goal > 0 && (
+                      <Button variant="ghost" size="icon" className="-my-2 -mr-2 h-9 w-9" onClick={() => setGoalDraft(goals)} aria-label="Edit weekly goal">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </span>
+                </div>
+                <div className="flex h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-gradient-primary transition-all duration-500"
+                    style={{ width: `${week.goal > 0 ? (week.met / week.goal) * 100 : week.posted > 0 ? 100 : 0}%` }}
+                  />
+                  {week.goal > 0 && (
+                    <div
+                      className="h-full bg-primary/30 transition-all duration-500"
+                      style={{ width: `${((week.goal - week.toDo - week.met) / week.goal) * 100}%` }}
+                    />
+                  )}
+                </div>
+                {week.rows.length > 0 && week.goal > 0 && (
+                  <ul className="space-y-1 pt-0.5">
+                    {week.rows.map((r) => (
+                      <li key={r.platform} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-medium text-foreground">{PLATFORM_LABEL[r.platform]}</span>
+                        <span className="text-right tabular-nums text-muted-foreground">
+                          {r.posted} posted · {r.scheduled} scheduled
+                          {r.goal > 0 &&
+                            (r.toDo > 0 ? (
+                              <>
+                                {" · "}
+                                <span className="font-semibold text-foreground">{r.toDo} to do</span>
+                              </>
+                            ) : r.posted >= r.goal ? (
+                              <span className="font-semibold text-success"> · done</span>
+                            ) : (
+                              " · all planned"
+                            ))}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {goalHit ? (
+                  <p className="text-xs text-muted-foreground">Goal hit for the week. Nice.</p>
+                ) : (
+                  week.goal === 0 && (
+                    <Button variant="link" size="sm" className="h-9 px-0 text-xs" onClick={() => setGoalDraft(goals)}>
+                      Set a weekly goal
+                    </Button>
+                  )
+                )}
+              </CardContent>
+            )}
           </Card>
           <Card className="border-border/60 shadow-card">
             <CardContent className="flex items-center gap-3 py-4">
