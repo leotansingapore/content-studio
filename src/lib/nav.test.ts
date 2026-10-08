@@ -3,7 +3,7 @@ import { MOBILE_TABS, moreSheet, pageFor, pageTitle, SECTIONS, sectionFor } from
 
 const routes = [
   "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/edit", "/plan", "/calendar", "/board",
-  "/drafts", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/coach", "/analytics", "/team",
+  "/drafts", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/playbook", "/voice", "/brand", "/bio", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback",
 ];

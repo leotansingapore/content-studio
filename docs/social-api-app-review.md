@@ -216,6 +216,8 @@ owned by personal Instagram accounts" [M6].
 [M2, M9]. Content Studio doesn't publish, comment or message. Meta: "If you request
 permissions or features that your app does not use … your submission will not be
 approved" [M10].
+The Engage page's drafts (replies, DMs, comments, connection notes) are copy and
+paste only: the consultant pastes text in, copies each draft out and posts or sends it by hand.
 
 The old Instagram Login scope values were deprecated on 27 January 2025. Use the
 `instagram_business_*` names [M2].

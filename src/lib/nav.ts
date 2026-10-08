@@ -104,6 +104,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/recruit", label: "Brand Brain", end: true },
       { to: "/recruit/conversations", label: "Conversations" },
       { to: "/recruit/agent", label: "AI agent" },
+      { to: "/recruit/engage", label: "Engage" },
     ],
   },
   {

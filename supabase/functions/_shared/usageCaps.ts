@@ -43,6 +43,8 @@ export const DAILY_LIMITS = {
   "profile-score": 10,
   // Stated facts flagged to check before posting (writing-judge mode "facts", Jev).
   "fact-check": 60,
+  // Engage (engage-assist): Jev sorts, OpenAI drafts; about 2 US cents a run at most.
+  "engage-replies": 30,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

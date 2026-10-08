@@ -52,6 +52,7 @@ const HubGuideDetailPage = lazy(() => import("@/pages/hub/HubGuideDetailPage"));
 const HubAdminPage = lazy(() => import("@/pages/hub/HubAdminPage"));
 const FadsPage = lazy(() => import("@/pages/FadsPage"));
 const RecruitPage = lazy(() => import("@/pages/RecruitPage"));
+const EngagePage = lazy(() => import("@/pages/EngagePage"));
 const ReelsPage = lazy(() => import("@/pages/ReelsPage"));
 const VideoEditPage = lazy(() => import("@/pages/VideoEditPage"));
 // Public pages (no sign-in), each in its own chunk.
@@ -100,6 +101,7 @@ export default function App() {
           <Route path="/fads" element={<FadsPage />} />
           <Route path="/fads/:tab" element={<FadsPage />} />
           <Route path="/recruit" element={<RecruitPage />} />
+          <Route path="/recruit/engage" element={<EngagePage />} />
           <Route path="/recruit/:tab" element={<RecruitPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/inspiration" element={<InspirationPage />} />
