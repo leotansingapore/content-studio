@@ -17,6 +17,10 @@ import {
   getLengthCorrelation,
   getDayOfWeekBreakdown,
   getInsights,
+  comparePeriods,
+  rankPosts,
+  postsCsv,
+  type RankMetric,
   labelForDimension,
   MIN_GROUP_SAMPLE,
   type BreakdownDimension,
@@ -54,6 +58,7 @@ import {
   Info,
   Ruler,
   CalendarDays,
+  Download,
 } from "lucide-react";
 
 const ACCOUNT_ICON: Record<SocialPlatform, typeof Linkedin> = {
@@ -113,11 +118,14 @@ function Stat({
   value,
   label,
   tint,
+  delta,
 }: {
   icon: typeof Eye;
   value: string;
   label: string;
   tint: string;
+  /** % change against the previous period; null = nothing to compare to. */
+  delta?: number | null;
 }) {
   return (
     <Card className="border-border/60 shadow-card">
@@ -130,6 +138,11 @@ function Stat({
             {value}
           </div>
           <div className="mt-1 truncate text-xs text-muted-foreground">{label}</div>
+          {delta !== undefined && delta !== null && (
+            <div className={`mt-0.5 text-[11px] font-semibold ${delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+              {delta > 0 ? "+" : ""}{delta}% vs previous
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -249,13 +262,18 @@ export default function AnalyticsPage() {
     };
   }, [tracked]);
 
-  const top = useMemo(
-    () =>
-      [...tracked]
-        .sort((a, b) => b.engagementTotal - a.engagementTotal)
-        .slice(0, 5),
-    [tracked],
-  );
+  const [period, setPeriod] = useState<0 | 7 | 30 | 90>(30);
+  const [rankBy, setRankBy] = useState<RankMetric>("engagementTotal");
+  const cmp = useMemo(() => (period ? comparePeriods(tracked, period) : null), [tracked, period]);
+  const ranked = useMemo(() => rankPosts(tracked, rankBy), [tracked, rankBy]);
+  const exportCsv = () => {
+    const blob = new Blob([postsCsv(tracked)], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `content-studio-posts-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+  };
 
   const insights = useMemo(() => getInsights(userId), [userId, metricsVersion]);
 
@@ -456,30 +474,42 @@ export default function AnalyticsPage() {
 
       {hasData ? (
         <>
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
+            {([[30, "30 days"], [7, "7 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
+              <button key={d} type="button" onClick={() => setPeriod(d)} aria-pressed={period === d}
+                className={`h-9 rounded-full border px-3 text-xs font-semibold ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
           <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Stat
               icon={BarChart3}
-              value={String(tracked.length)}
+              value={String(cmp ? cmp.current.posts : tracked.length)}
               label="Posts tracked"
               tint="bg-muted text-foreground"
+              delta={cmp?.change.posts}
             />
             <Stat
               icon={Eye}
-              value={totals.totalImpressions.toLocaleString()}
+              value={(cmp ? cmp.current.impressions : totals.totalImpressions).toLocaleString()}
               label="Impressions tracked"
               tint="bg-primary/10 text-primary"
+              delta={cmp?.change.impressions}
             />
             <Stat
               icon={Heart}
-              value={totals.totalEngagement.toLocaleString()}
+              value={(cmp ? cmp.current.engagements : totals.totalEngagement).toLocaleString()}
               label="Total engagement"
               tint="bg-brand/10 text-brand"
+              delta={cmp?.change.engagements}
             />
             <Stat
               icon={TrendingUp}
-              value={`${totals.avgEngagementRate}%`}
+              value={`${cmp ? cmp.current.rate : totals.avgEngagementRate}%`}
               label="Avg engagement rate"
               tint="bg-success/10 text-success"
+              delta={cmp?.change.rate}
             />
           </section>
 
@@ -593,11 +623,25 @@ export default function AnalyticsPage() {
 
           {/* Top posts */}
           <section className="space-y-3">
-            <h2 className="font-serif text-lg font-semibold text-foreground">
-              Top posts
-            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="mr-auto font-serif text-lg font-semibold text-foreground">
+                Top posts
+              </h2>
+              <select value={rankBy} onChange={(e) => setRankBy(e.target.value as RankMetric)} aria-label="Rank top posts by"
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                <option value="engagementTotal">By engagements</option>
+                <option value="engagementRate">By engagement rate</option>
+                <option value="impressions">By impressions</option>
+                <option value="reactions">By reactions</option>
+                <option value="comments">By comments</option>
+                <option value="shares">By shares</option>
+              </select>
+              <Button variant="outline" size="sm" onClick={exportCsv} className="h-9 gap-1.5">
+                <Download className="h-3.5 w-3.5" /> Export CSV
+              </Button>
+            </div>
             <div className="space-y-2">
-              {top.map((d) => (
+              {ranked.map((d) => (
                 <Link
                   key={d.id}
                   to={`/generate?draft=${encodeURIComponent(d.id)}`}

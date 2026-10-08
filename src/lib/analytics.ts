@@ -419,3 +419,56 @@ export function getInsights(userId: string | null | undefined): Insight[] {
   };
   return insights.sort((a, b) => priority[a.tone] - priority[b.tone]).slice(0, 5);
 }
+
+// ---------------------------------------------------------------------------
+// Period comparison, ranking and CSV export (gap s43, after TryPost's
+// analytics: compare to the previous period, top posts by a chosen metric,
+// export). Windows are by posted date.
+// ---------------------------------------------------------------------------
+
+export interface PeriodTotals {
+  posts: number;
+  impressions: number;
+  engagements: number;
+  /** % of impressions that engaged, across the window. */
+  rate: number;
+}
+
+const DAY = 86_400_000;
+
+function totals(posts: TrackedPost[]): PeriodTotals {
+  const impressions = posts.reduce((s, p) => s + p.impressions, 0);
+  const engagements = posts.reduce((s, p) => s + p.engagementTotal, 0);
+  return { posts: posts.length, impressions, engagements, rate: impressions ? Math.round((engagements / impressions) * 1000) / 10 : 0 };
+}
+
+/** This window and the one before it, plus % change (null when there is nothing to compare to). */
+export function comparePeriods(posts: TrackedPost[], days: number, now = Date.now()) {
+  const at = (p: TrackedPost) => new Date(p.postedAt ?? p.createdAt).getTime();
+  const current = totals(posts.filter((p) => at(p) > now - days * DAY && at(p) <= now));
+  const previous = totals(posts.filter((p) => at(p) > now - 2 * days * DAY && at(p) <= now - days * DAY));
+  const change = (k: keyof PeriodTotals) => (previous[k] ? Math.round(((current[k] - previous[k]) / previous[k]) * 100) : null);
+  return { current, previous, change: { posts: change("posts"), impressions: change("impressions"), engagements: change("engagements"), rate: change("rate") } };
+}
+
+export type RankMetric = "engagementTotal" | "engagementRate" | "impressions" | "reactions" | "comments" | "shares";
+
+export function rankPosts(posts: TrackedPost[], metric: RankMetric, n = 5): TrackedPost[] {
+  const val = (p: TrackedPost) =>
+    metric === "engagementTotal" || metric === "engagementRate" || metric === "impressions" ? p[metric] : p.metrics?.[metric] ?? 0;
+  return [...posts].sort((a, b) => val(b) - val(a)).slice(0, n);
+}
+
+/** A spreadsheet of every tracked post. Quotes, commas and line breaks are escaped. */
+export function postsCsv(posts: TrackedPost[]): string {
+  const esc = (v: unknown) => {
+    const s = String(v ?? "");
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const head = ["Posted", "Platform", "Format", "Hook", "Impressions", "Reactions", "Comments", "Shares", "Engagements", "Engagement rate %"];
+  const rows = posts.map((p) => [
+    (p.postedAt ?? p.createdAt).slice(0, 10), p.platform, p.format, p.hook || p.draft.slice(0, 80),
+    p.impressions, p.metrics?.reactions ?? 0, p.metrics?.comments ?? 0, p.metrics?.shares ?? 0, p.engagementTotal, p.engagementRate,
+  ]);
+  return [head, ...rows].map((r) => r.map(esc).join(",")).join("\n");
+}
