@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Play } from "lucide-react";
-import { embedUrlFor } from "@/lib/embed";
+import { embedUrlFor, originalUrlFor } from "@/lib/embed";
 import { cn } from "@/lib/utils";
 
 // Click-to-play: a grid of eight third-party players would load several MB of
@@ -21,7 +21,8 @@ export default function VideoEmbed({
   const [loaded, setLoaded] = useState(false);
   const src = embedUrlFor(url);
   if (!src) return null;
-  const site = /tiktok/i.test(src) ? "TikTok" : "Instagram";
+  const site = src.startsWith("https://www.tiktok.com/") ? "TikTok" : "Instagram";
+  const original = originalUrlFor(url);
   return (
     <div className="space-y-1">
     <div
@@ -59,8 +60,8 @@ export default function VideoEmbed({
         </button>
       )}
     </div>
-    {playing && url && (
-      <a href={url} target="_blank" rel="noopener noreferrer" className="block text-center text-[11px] font-medium text-muted-foreground hover:text-primary">
+    {playing && original && (
+      <a href={original} target="_blank" rel="noopener noreferrer" className="block text-center text-[11px] font-medium text-muted-foreground hover:text-primary">
         Not playing? Watch it on {site}
       </a>
     )}

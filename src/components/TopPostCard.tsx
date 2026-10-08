@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { safeExternalUrl } from "@/lib/embed";
 import { Button } from "@/components/ui/button";
 import {
   Heart,
@@ -236,7 +237,7 @@ export default function TopPostCard({
             className="shrink-0 gap-1.5"
             title="View original post"
           >
-            <a href={post.url} target="_blank" rel="noopener noreferrer">
+            <a href={safeExternalUrl(post.url) ?? undefined} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </Button>

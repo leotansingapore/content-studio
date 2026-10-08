@@ -19,7 +19,7 @@ import {
   Instagram,
 } from "lucide-react";
 import { buildRemixUrl, compactNum, generatorFormat } from "@/lib/topPosts";
-import { embedUrlFor } from "@/lib/embed";
+import { embedUrlFor, safeExternalUrl } from "@/lib/embed";
 import { similarPosts, type ScoredPost } from "@/lib/postInsights";
 
 const FORMAT_LABEL: Record<string, string> = {
@@ -178,7 +178,7 @@ export default function PostDetailDrawer({
               </Button>
               <div className="flex gap-2">
                 <Button asChild variant="outline" className="flex-1 gap-2">
-                  <a href={post.url} target="_blank" rel="noopener noreferrer">
+                  <a href={safeExternalUrl(post.url) ?? undefined} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4" /> Open original
                   </a>
                 </Button>

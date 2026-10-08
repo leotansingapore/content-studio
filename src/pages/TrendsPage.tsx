@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { safeExternalUrl } from "@/lib/embed";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -352,7 +353,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
             </Button>
           )}
           <Button asChild variant="outline" size="sm" className="gap-1.5">
-            <a href={trend.source_url} target="_blank" rel="noopener noreferrer">
+            <a href={safeExternalUrl(trend.source_url) ?? undefined} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-3.5 w-3.5" /> Source
             </a>
           </Button>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { safeExternalUrl } from "@/lib/embed";
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Copy, ExternalLink, PenLine, Search, Share2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -37,7 +38,7 @@ function StoryCard({ s }: { s: NewsStory }) {
   return (
     <article className="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
       {s.clipping && (
-        <a href={s.url} target="_blank" rel="noopener noreferrer" className="block aspect-[5/3] overflow-hidden bg-muted">
+        <a href={safeExternalUrl(s.url) ?? undefined} target="_blank" rel="noopener noreferrer" className="block aspect-[5/3] overflow-hidden bg-muted">
           <img src={s.clipping} alt="" loading="lazy" className="h-full w-full object-cover object-top" />
         </a>
       )}
@@ -49,7 +50,7 @@ function StoryCard({ s }: { s: NewsStory }) {
           <span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">{s.topic}</span>
         </p>
         <a
-          href={s.url}
+          href={safeExternalUrl(s.url) ?? undefined}
           target="_blank"
           rel="noopener noreferrer"
           className="font-serif text-base font-semibold leading-snug text-foreground hover:text-primary"
