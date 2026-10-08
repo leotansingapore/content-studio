@@ -205,8 +205,8 @@ export default function HomePage() {
                 key={d.id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">
+                <div className="w-full min-w-0 sm:w-auto sm:flex-1">
+                  <p className="line-clamp-2 text-sm font-medium text-foreground sm:truncate">
                     {d.hook || d.draft.slice(0, 60) || "Untitled"}
                   </p>
                   <p
@@ -220,18 +220,18 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <Button asChild variant="outline" size="sm" className="h-8 px-2.5 text-xs">
+                  <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5">
                     <Link to={`/generate?draft=${d.id}`}>Open</Link>
                   </Button>
                   {days > 0 && (
-                    <Button asChild variant="outline" size="sm" className="h-8 px-2.5 text-xs">
+                    <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5">
                       <Link to="/calendar">Reschedule</Link>
                     </Button>
                   )}
                   <Button
                     size="sm"
                     onClick={() => markDuePosted(d.id)}
-                    className="h-8 gap-1 px-2.5 text-xs"
+                    className="h-9 gap-1 px-3 text-xs sm:h-8 sm:px-2.5"
                   >
                     <CheckCircle2 className="h-3 w-3" /> Posted
                   </Button>

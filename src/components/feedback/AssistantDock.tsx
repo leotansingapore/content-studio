@@ -265,12 +265,13 @@ export function AssistantDock({
           onClick={() => setOpen(true)}
           aria-label={`Ask the ${appName} assistant`}
           style={{ position: "fixed", bottom, zIndex: 60, ...side }}
-          className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0"
+          className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 sm:w-auto sm:px-4"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M21 11.5a8.38 8.38 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.38 8.38 0 0 1 4 11.5a8.5 8.5 0 0 1 8.5-8.5 8.38 8.38 0 0 1 8.5 8.5z" />
           </svg>
-          {label}
+          {/* Icon only on phones: the labelled pill covered buttons and fields on every screen. */}
+          <span className="hidden sm:inline">{label}</span>
         </button>
       ) : null}
 

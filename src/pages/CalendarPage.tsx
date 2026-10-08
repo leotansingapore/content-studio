@@ -57,7 +57,10 @@ export default function CalendarPage() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
-  const [view, setView] = useState<"month" | "list">("month");
+  // Phones open on the list: the month grid only shows Mon-Thu at 390px.
+  const [view, setView] = useState<"month" | "list">(() =>
+    typeof window !== "undefined" && window.innerWidth < 640 ? "list" : "month",
+  );
   const [cursor, setCursor] = useState({ y: 0, m: 0 });
   const [pickDraft, setPickDraft] = useState<string>("");
   const [pickDate, setPickDate] = useState<string>("");
@@ -196,7 +199,7 @@ export default function CalendarPage() {
               <div className="flex-1 space-y-1.5">
                 <Label>Draft</Label>
                 <Select value={pickDraft} onValueChange={setPickDraft}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label="Draft to schedule">
                     <SelectValue placeholder="Pick a draft to schedule" />
                   </SelectTrigger>
                   <SelectContent>
@@ -280,7 +283,7 @@ export default function CalendarPage() {
 
       {view === "month" ? (
         <Card className="overflow-hidden border-border/60 shadow-card">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Month calendar">
             <div className="min-w-[620px]">
           <div className="grid grid-cols-7 border-b border-border/60 bg-muted/30 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             {WEEKDAYS.map((w) => (
@@ -308,7 +311,7 @@ export default function CalendarPage() {
                         ? "bg-primary font-bold text-primary-foreground"
                         : inMonth
                           ? "text-foreground"
-                          : "text-muted-foreground/50"
+                          : "text-muted-foreground"
                     }`}
                   >
                     {day.getDate()}
