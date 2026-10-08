@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, TrendingUp, ChevronDown, Bookmark, Sparkles } from "lucide-react";
 import TopPostCard from "@/components/TopPostCard";
+import IndustryNews from "@/components/IndustryNews";
+import { NEWS } from "@/lib/industryNews";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
 import { InfoTip } from "@/components/ui/info-tip";
 import { supabase } from "@/lib/supabase";
@@ -103,6 +105,14 @@ function FilterSelect({
 }
 
 export default function SwipeFilePage() {
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === "news" ? "news" : "posts";
+  const setTab = (t: "posts" | "news") => {
+    const next = new URLSearchParams(params);
+    if (t === "news") next.set("tab", "news");
+    else next.delete("tab");
+    setParams(next, { replace: true });
+  };
   const [userId, setUserId] = useState<string | null>(null);
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
   const [hasPlaybook, setHasPlaybook] = useState(false);
@@ -203,206 +213,238 @@ export default function SwipeFilePage() {
         </p>
       </header>
 
-      {working.posts >= 5 && (
-        <Card className="border-border/60 shadow-card">
-          <CardContent className="space-y-3 py-4">
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-sm font-semibold text-foreground">Formats working now</h2>
-              <InfoTip label="About formats working now">
-                Last {working.days} days. 1.0x is the creator's usual engagement.
-              </InfoTip>
-              <span className="ml-auto text-xs text-muted-foreground">{working.posts} posts</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {working.formats.map((f) => (
-                <button
-                  key={f.value}
-                  type="button"
-                  onClick={() => setFormat(format === f.value ? "all" : f.value)}
-                  aria-pressed={format === f.value}
-                  className={`flex min-w-0 flex-col items-start rounded-lg border px-3 py-2 text-left transition-colors ${
-                    format === f.value
-                      ? "border-primary/60 bg-primary/10"
-                      : "border-border/60 bg-background hover:border-primary/40"
-                  }`}
-                >
-                  <span className="truncate text-[11px] font-medium text-muted-foreground">{f.label}</span>
-                  <span className="text-lg font-semibold leading-tight text-foreground">{f.ratio.toFixed(1)}x</span>
-                  <span className="text-[11px] text-muted-foreground">{f.posts} posts</span>
-                </button>
-              ))}
-            </div>
-            {[
-              { name: "Topics", items: working.topics, value: topic, set: setTopic },
-              { name: "Angles", items: working.angles, value: angle, set: setAngle },
-            ].map(
-              (row) =>
-                row.items.length > 0 && (
-                  <div key={row.name} className="flex flex-wrap items-center gap-1.5">
-                    <span className="w-14 text-xs font-semibold text-muted-foreground">{row.name}</span>
-                    {row.items.map((t) => (
-                      <Chip
-                        key={t.label}
-                        active={row.value === t.label}
-                        onClick={() => row.set(row.value === t.label ? "all" : t.label)}
-                      >
-                        {t.label} {t.posts}
-                      </Chip>
-                    ))}
-                  </div>
-                ),
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <div role="tablist" aria-label="Swipe file" className="flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto">
+        {[
+          { id: "posts" as const, label: "Top posts", n: TOTAL_TOP_POSTS },
+          { id: "news" as const, label: "Industry news", n: NEWS.length },
+        ].map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors sm:flex-none ${
+              tab === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t.label} <span className="text-xs text-muted-foreground">{t.n}</span>
+          </button>
+        ))}
+      </div>
 
-      {/* Filter bar */}
-      <Card className="border-border/60 shadow-card">
-        <CardContent className="space-y-3 pt-5">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search ideas, captions, creators (e.g. CPF, objection, retirement)"
-              className="pl-9"
-            />
+      {tab === "news" ? (
+        <section className="space-y-3">
+          <div className="flex items-center gap-1.5">
+            <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">Industry news to talk about</h2>
+            <InfoTip label="About industry news">Picked each morning from SG news for client conversations.</InfoTip>
           </div>
-
-          {/* Format + saved + For You */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {FORMAT_CHIPS.map((f) => (
-              <Chip key={f.value} active={format === f.value} onClick={() => setFormat(f.value)}>
-                {f.label}
-              </Chip>
-            ))}
-            <span className="mx-1 h-4 w-px bg-border" />
-            <button
-              type="button"
-              onClick={() => setSavedOnly((v) => !v)}
-              className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                savedOnly
-                  ? "border-primary/60 bg-primary/10 text-primary"
-                  : "border-border/60 bg-background text-muted-foreground hover:border-primary/40"
-              }`}
-            >
-              <Bookmark className="h-3 w-3" /> Saved{savedSet.size > 0 ? ` (${savedSet.size})` : ""}
-            </button>
-            {hasPlaybook && (
-              <div className="inline-flex overflow-hidden rounded-full border border-border/60">
-                <button
-                  type="button"
-                  onClick={() => setForYou(true)}
-                  className={`px-3 py-1 text-xs font-medium ${forYou ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
-                >
-                  For You
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForYou(false)}
-                  className={`px-3 py-1 text-xs font-medium ${!forYou ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
-                >
-                  All
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Topic / Angle / Audience / Sort */}
-          <div className="flex flex-wrap items-center gap-2">
-            <FilterSelect label="From" value={kind} onChange={setKind} options={KIND_OPTIONS} />
-            <FilterSelect
-              label="Topic"
-              value={topic}
-              onChange={setTopic}
-              options={[{ value: "all", label: "All" }, ...TOPICS.map((t) => ({ value: t, label: t }))]}
-            />
-            <FilterSelect
-              label="Angle"
-              value={angle}
-              onChange={setAngle}
-              options={[{ value: "all", label: "All" }, ...ANGLES.map((a) => ({ value: a, label: a }))]}
-            />
-            <FilterSelect
-              label="Audience"
-              value={audience}
-              onChange={setAudience}
-              options={[{ value: "all", label: "All" }, ...AUDIENCES.map((a) => ({ value: a, label: a }))]}
-            />
-            <FilterSelect
-              label="Sort"
-              value={sort}
-              onChange={(v) => setSort(v as SortKey)}
-              options={SORTS.map((s) => ({ value: s.value, label: s.label }))}
-            />
-            <span className="ml-auto text-xs text-muted-foreground">
-              {filtered.length} of {TOTAL_TOP_POSTS} posts
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {filtered.length === 0 ? (
-        <Card className="border-border/60 shadow-card">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            {savedOnly
-              ? "No saved posts yet. Tap the bookmark on any card to build your swipe library."
-              : "No posts match those filters."}
-          </CardContent>
-        </Card>
+          <IndustryNews />
+        </section>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {shown.map((item) => {
-              const key = postKey(item);
-              return (
-                <TopPostCard
-                  key={key}
-                  post={item.post}
-                  insight={item.insight}
-                  advisor={{ name: item.post.advisorName, handle: item.post.handle }}
-                  showAdvisor
-                  saved={savedSet.has(key)}
-                  onToggleSave={userId ? () => toggleSave(key) : undefined}
-                  onOpen={() => setOpenKey(key)}
-                />
-              );
-            })}
-          </div>
-          {remaining > 0 && (
-            <div className="flex justify-center pt-1">
-              <Button
-                variant="outline"
-                onClick={() => setVisible((c) => c + PAGE_SIZE)}
-                className="gap-1.5"
-              >
-                <ChevronDown className="h-4 w-4" />
-                Show {Math.min(PAGE_SIZE, remaining)} more
-                <span className="text-muted-foreground">({remaining} left)</span>
-              </Button>
-            </div>
+          {working.posts >= 5 && (
+            <Card className="border-border/60 shadow-card">
+              <CardContent className="space-y-3 py-4">
+                <div className="flex items-center gap-1.5">
+                  <h2 className="text-sm font-semibold text-foreground">Formats working now</h2>
+                  <InfoTip label="About formats working now">
+                    Last {working.days} days. 1.0x is the creator's usual engagement.
+                  </InfoTip>
+                  <span className="ml-auto text-xs text-muted-foreground">{working.posts} posts</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {working.formats.map((f) => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      onClick={() => setFormat(format === f.value ? "all" : f.value)}
+                      aria-pressed={format === f.value}
+                      className={`flex min-w-0 flex-col items-start rounded-lg border px-3 py-2 text-left transition-colors ${
+                        format === f.value
+                          ? "border-primary/60 bg-primary/10"
+                          : "border-border/60 bg-background hover:border-primary/40"
+                      }`}
+                    >
+                      <span className="truncate text-[11px] font-medium text-muted-foreground">{f.label}</span>
+                      <span className="text-lg font-semibold leading-tight text-foreground">{f.ratio.toFixed(1)}x</span>
+                      <span className="text-[11px] text-muted-foreground">{f.posts} posts</span>
+                    </button>
+                  ))}
+                </div>
+                {[
+                  { name: "Topics", items: working.topics, value: topic, set: setTopic },
+                  { name: "Angles", items: working.angles, value: angle, set: setAngle },
+                ].map(
+                  (row) =>
+                    row.items.length > 0 && (
+                      <div key={row.name} className="flex flex-wrap items-center gap-1.5">
+                        <span className="w-14 text-xs font-semibold text-muted-foreground">{row.name}</span>
+                        {row.items.map((t) => (
+                          <Chip
+                            key={t.label}
+                            active={row.value === t.label}
+                            onClick={() => row.set(row.value === t.label ? "all" : t.label)}
+                          >
+                            {t.label} {t.posts}
+                          </Chip>
+                        ))}
+                      </div>
+                    ),
+                )}
+              </CardContent>
+            </Card>
           )}
+
+          {/* Filter bar */}
+          <Card className="border-border/60 shadow-card">
+            <CardContent className="space-y-3 pt-5">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search ideas, captions, creators (e.g. CPF, objection, retirement)"
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Format + saved + For You */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {FORMAT_CHIPS.map((f) => (
+                  <Chip key={f.value} active={format === f.value} onClick={() => setFormat(f.value)}>
+                    {f.label}
+                  </Chip>
+                ))}
+                <span className="mx-1 h-4 w-px bg-border" />
+                <button
+                  type="button"
+                  onClick={() => setSavedOnly((v) => !v)}
+                  className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    savedOnly
+                      ? "border-primary/60 bg-primary/10 text-primary"
+                      : "border-border/60 bg-background text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  <Bookmark className="h-3 w-3" /> Saved{savedSet.size > 0 ? ` (${savedSet.size})` : ""}
+                </button>
+                {hasPlaybook && (
+                  <div className="inline-flex overflow-hidden rounded-full border border-border/60">
+                    <button
+                      type="button"
+                      onClick={() => setForYou(true)}
+                      className={`px-3 py-1 text-xs font-medium ${forYou ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                    >
+                      For You
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForYou(false)}
+                      className={`px-3 py-1 text-xs font-medium ${!forYou ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                    >
+                      All
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Topic / Angle / Audience / Sort */}
+              <div className="flex flex-wrap items-center gap-2">
+                <FilterSelect label="From" value={kind} onChange={setKind} options={KIND_OPTIONS} />
+                <FilterSelect
+                  label="Topic"
+                  value={topic}
+                  onChange={setTopic}
+                  options={[{ value: "all", label: "All" }, ...TOPICS.map((t) => ({ value: t, label: t }))]}
+                />
+                <FilterSelect
+                  label="Angle"
+                  value={angle}
+                  onChange={setAngle}
+                  options={[{ value: "all", label: "All" }, ...ANGLES.map((a) => ({ value: a, label: a }))]}
+                />
+                <FilterSelect
+                  label="Audience"
+                  value={audience}
+                  onChange={setAudience}
+                  options={[{ value: "all", label: "All" }, ...AUDIENCES.map((a) => ({ value: a, label: a }))]}
+                />
+                <FilterSelect
+                  label="Sort"
+                  value={sort}
+                  onChange={(v) => setSort(v as SortKey)}
+                  options={SORTS.map((s) => ({ value: s.value, label: s.label }))}
+                />
+                <span className="ml-auto text-xs text-muted-foreground">
+                  {filtered.length} of {TOTAL_TOP_POSTS} posts
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {filtered.length === 0 ? (
+            <Card className="border-border/60 shadow-card">
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                {savedOnly
+                  ? "No saved posts yet. Tap the bookmark on any card to build your swipe library."
+                  : "No posts match those filters."}
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {shown.map((item) => {
+                  const key = postKey(item);
+                  return (
+                    <TopPostCard
+                      key={key}
+                      post={item.post}
+                      insight={item.insight}
+                      advisor={{ name: item.post.advisorName, handle: item.post.handle }}
+                      showAdvisor
+                      saved={savedSet.has(key)}
+                      onToggleSave={userId ? () => toggleSave(key) : undefined}
+                      onOpen={() => setOpenKey(key)}
+                    />
+                  );
+                })}
+              </div>
+              {remaining > 0 && (
+                <div className="flex justify-center pt-1">
+                  <Button
+                    variant="outline"
+                    onClick={() => setVisible((c) => c + PAGE_SIZE)}
+                    className="gap-1.5"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                    Show {Math.min(PAGE_SIZE, remaining)} more
+                    <span className="text-muted-foreground">({remaining} left)</span>
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+
+          <PostDetailDrawer
+            item={openItem}
+            all={ENRICHED}
+            saved={openKey ? savedSet.has(openKey) : false}
+            onToggleSave={() => openKey && toggleSave(openKey)}
+            onOpen={(next) => setOpenKey(postKey(next))}
+            onClose={() => setOpenKey(null)}
+          />
+
+          <p className="pt-1 text-center text-xs text-muted-foreground">
+            Covers are our own saved copies, so they never break. For carousels and reels,
+            open <span className="font-medium text-foreground">View original</span> to see the
+            full post. Need a hand turning one into your own?{" "}
+            <Link to="/create-guide" className="font-semibold text-primary hover:underline">
+              How to create it
+            </Link>
+            .
+          </p>
         </>
       )}
-
-      <PostDetailDrawer
-        item={openItem}
-        all={ENRICHED}
-        saved={openKey ? savedSet.has(openKey) : false}
-        onToggleSave={() => openKey && toggleSave(openKey)}
-        onOpen={(next) => setOpenKey(postKey(next))}
-        onClose={() => setOpenKey(null)}
-      />
-
-      <p className="pt-1 text-center text-xs text-muted-foreground">
-        Covers are our own saved copies, so they never break. For carousels and reels,
-        open <span className="font-medium text-foreground">View original</span> to see the
-        full post. Need a hand turning one into your own?{" "}
-        <Link to="/create-guide" className="font-semibold text-primary hover:underline">
-          How to create it
-        </Link>
-        .
-      </p>
     </div>
   );
 }

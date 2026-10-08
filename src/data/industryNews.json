@@ -1,0 +1,38 @@
+[
+  {
+    "id": "62a45de75cd4",
+    "title": "IMF warns cost-of-living shocks cause ‘lasting deterioration’ in affordability",
+    "gist": "On Oct 6, the International Monetary Fund warned that price increases for essentials like food and energy are lasting longer than expected. Global inflation is now forecast at 4.7% in 2026, compared with 4.1% the year before, driven by conflicts in Ukraine and Iran. This means households face a lasting deterioration in the affordability of necessities as wages struggle to keep up.",
+    "talkingPoint": "Clients may be concerned about how persistent prices for daily essentials affect their long-term cash flow. You can ask how recent cost increases have affected their regular budget and offer to review their existing savings goals together.",
+    "clientMessage": "Hi [Client name], a recent global report warned that higher prices for basic goods like food and energy may last longer than expected worldwide. Because everyday expenses may stay elevated for some time, it can put extra pressure on household budgets. I wanted to share this update with you. If you would like, we can look at your current financial plan together to see how your budget is tracking against these changing living costs. Let me know if you would like to chat. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/business/economy/imf-warns-cost-of-living-shocks-cause-lasting-deterioration-in-affordability",
+    "publishedAt": "2026-10-06T13:46:31+00:00",
+    "topic": "Cost of living",
+    "clipping": "/news/62a45de75cd4.jpg"
+  },
+  {
+    "id": "960f28246a4a",
+    "title": "S'pore Life Insurance Association to consider if critical illnesses claims should rely more on disease severity over procedures: Gan Kim Yong",
+    "gist": "In an Oct. 7 parliamentary response, Deputy Prime Minister Gan Kim Yong said the Life Insurance Association, Singapore will review critical illness definitions in 2027. The review will consider defining claimable conditions by disease severity rather than specific procedures, following a March case where a woman sued Prudential after her stroke claim was denied. Any changes will apply to new products and could affect coverage scope and premiums.",
+    "talkingPoint": "Clients may be concerned about whether their critical illness payouts depend on undergoing specific medical procedures rather than the severity of their condition. You can ask if they would like to review the claim definitions in their current critical illness policies together.",
+    "clientMessage": "Hi [Client name], there was recent news about a court case over a critical illness claim with one of the big insurers. A patient had her claim denied because her stroke surgery used a different procedure than the one listed in her policy. Parliament discussed this, and industry definitions will be reviewed in 2027. This matters because some plans pay out based on specific surgical procedures rather than disease severity. If you like, we can look at the definitions in your own plan together. [Your name]",
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/10/spore-life-insurance-critical-illness",
+    "publishedAt": "2026-10-07T14:54:45.699+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/960f28246a4a.jpg"
+  },
+  {
+    "id": "4e1e61ce24bb",
+    "title": "What is the cut-off yield of the latest T-bill?",
+    "gist": "The 6-month T-bill issued on 29 September 2026, BS26119F, was cut off at 1.92 per cent a year. The one issued a fortnight earlier, BS26118E on 15 September 2026, was cut off at 1.70 per cent. MAS answers this question itself on ask.gov.sg, and had both of September's results up on 24 September 2026.",
+    "talkingPoint": "Read this one beside the fixed deposit list. A client who wants their money safe and liquid is choosing between a bank at 1.0 to 1.7 per cent and the Government at 1.92 per cent for six months. Neither is the number they remember from 2023, and that is the whole conversation. Careful: A cut-off yield is set at one auction and the next is a fortnight away, so it has a very short shelf life. Open the MAS page on the day before you quote it, and never set a T-bill yield against an insurance return as though they were the same thing.",
+    "clientMessage": "Hi [Client name],\n\nThe 6-month Singapore T-bill issued on 29 September 2026 was cut off at 1.92 per cent a year, up from 1.70 per cent a fortnight earlier. That is what the Government is paying right now for six months of your cash.\n\nSource: MAS, 24 Sep 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
+    "source": "MAS",
+    "url": "https://ask.gov.sg/mas/questions/clx8ktirr005tryoz2yzyrvl6",
+    "publishedAt": "2026-09-23T16:00:00+00:00",
+    "topic": "Rates and markets",
+    "clipping": "/news/4e1e61ce24bb.jpg"
+  }
+]
