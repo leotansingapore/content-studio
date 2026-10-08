@@ -106,7 +106,7 @@ function PillarBadge({ pillar }: { pillar: InspirationEntry["pillar"] }) {
     pillar === "Authority" || pillar === "Tip"
       ? "border-primary/40 bg-primary/10 text-primary"
       : pillar === "Social"
-        ? "border-accent/50 bg-accent/15 text-accent-foreground"
+        ? "border-brand/30 bg-brand/10 text-brand"
         : "border-border/60 bg-muted text-muted-foreground";
   return (
     <span
