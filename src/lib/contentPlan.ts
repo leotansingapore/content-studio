@@ -15,7 +15,9 @@ import inspirationData from "@/data/inspiration.json";
 import { FUNNEL_STAGES, type FunnelStageId } from "@/data/funnelFramework";
 import type { Positioning } from "@/lib/positioning";
 import { scoped } from "@/lib/profiles";
-import type { DraftEntry } from "@/lib/draftHistory";
+import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
+import { HOOK_FORMULAS } from "@/lib/hookFormulas";
+import { addDays, localDateKey, postedDay, scheduleAt } from "@/lib/dueDates";
 
 export type PlanPillar = "interest" | "identity" | "topic" | "market";
 export type PlanFormat = "carousel" | "short-video" | "text-post" | "story";
@@ -42,6 +44,10 @@ export interface PlanItem {
   hook: string;
   seedId?: string;
   competitorHandle?: string;
+  /** hookFormulas.ts id: each slot gets a different one. */
+  formulaId?: string;
+  /** "HH:MM" local posting time for the slot's day. */
+  time?: string;
   posted: boolean;
 }
 
@@ -55,6 +61,10 @@ export interface ContentPlan {
   items: PlanItem[];
   /** Human-readable note when the plan was weighted by the user's own analytics. */
   performanceNote?: string;
+  /** What happened to the user this week, in their words; week 1's drafts start from it. */
+  thisWeek?: string;
+  /** Topics left out because a post used them in the last two weeks. */
+  restedThemes?: string[];
 }
 
 interface InspirationSeed {
@@ -185,6 +195,41 @@ export interface GeneratePlanOptions {
     bestFormat?: PlanFormat | null;
     bestDays?: string[];
   };
+  /** Index into HOOK_FORMULAS for the first slot; the rest follow in order. */
+  formulaStart?: number;
+  /** Themes (themeKey) of posts posted or scheduled in the last two weeks: left out while others remain. */
+  recentThemes?: Set<string>;
+  /** Weekdays the adviser set posting times for ("Tue"): the plan's days start with these. */
+  postingDays?: string[];
+  /** The "HH:MM" to post on a weekday (0 = Mon). */
+  postingTime?: (weekday: number) => string | null;
+}
+
+export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+export const themeKey = (s: string) => s.trim().toLowerCase();
+
+/**
+ * Themes of posts posted in the last 14 days or scheduled for any day from then on.
+ * An untouched plan placeholder (plan_ id, nothing written) is not a post yet.
+ */
+export function recentThemes(drafts: DraftEntry[], now = new Date()): Set<string> {
+  const from = addDays(localDateKey(now), -14);
+  const out = new Set<string>();
+  for (const d of drafts) {
+    const st = draftStatus(d);
+    const day = st === "posted" && d.postedAt ? postedDay(d.postedAt) : st === "scheduled" ? d.scheduledFor?.slice(0, 10) : undefined;
+    if (!day || day < from) continue;
+    if (st === "scheduled" && d.id.startsWith("plan_") && !d.draft.trim()) continue;
+    if (themeKey(d.pillarDetail ?? "")) out.add(themeKey(d.pillarDetail));
+  }
+  return out;
+}
+
+/** Where the next plan's formula rotation starts: after the last slot of this one. */
+export function nextFormulaStart(plan: ContentPlan | null): number {
+  const last = plan?.items[plan.items.length - 1]?.formulaId;
+  return (HOOK_FORMULAS.findIndex((f) => f.id === last) + 1) % HOOK_FORMULAS.length;
 }
 
 export function generatePlan(
@@ -195,7 +240,16 @@ export function generatePlan(
   const salt = opts.salt ?? 0;
   const competitors = opts.competitors ?? [];
   const cadence = positioning.cadence || 3;
-  const topics = positioning.topics.filter((t) => t.trim().length > 0);
+  // Skip themes a post used in the last two weeks, unless that would leave none.
+  const recent = opts.recentThemes ?? new Set<string>();
+  const fresh = <T extends string>(list: T[]) => {
+    const kept = list.filter((t) => !recent.has(themeKey(t)));
+    return kept.length ? kept : list;
+  };
+  const allTopics = positioning.topics.filter((t) => t.trim().length > 0);
+  const topics = fresh(allTopics);
+  const socialSubjects = fresh(SOCIAL_SUBJECTS);
+  const formulaStart = opts.formulaStart ?? 0;
 
   // Performance weighting: interleave the user's winning format into every
   // other rotation slot, and start the week on their best posting days.
@@ -206,14 +260,14 @@ export function generatePlan(
         f,
       ])
     : FORMAT_ROTATION;
-  const bestDays = (opts.performance?.bestDays ?? []).filter((d) =>
-    ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].includes(d),
-  );
-  let days = dayPattern(cadence);
-  if (bestDays.length > 0) {
-    const rest = days.filter((d) => !bestDays.includes(d));
-    days = [...bestDays, ...rest].slice(0, days.length);
-  }
+  const bestDays = (opts.performance?.bestDays ?? []).filter((d) => WEEKDAYS.includes(d));
+  const postingDays = (opts.postingDays ?? []).filter((d) => WEEKDAYS.includes(d));
+  // The adviser's own posting days first, then their best days, then the default
+  // pattern; the week then runs Mon to Sun so the funnel arcs through it.
+  const pattern = dayPattern(cadence);
+  const days = [...new Set([...postingDays, ...bestDays, ...pattern])]
+    .slice(0, pattern.length)
+    .sort((a, b) => WEEKDAYS.indexOf(a) - WEEKDAYS.indexOf(b));
 
   const items: PlanItem[] = [];
   let globalIndex = 0;
@@ -234,7 +288,7 @@ export function generatePlan(
       let pillarDetail: string;
       if (isSocial) {
         pillarDetail =
-          SOCIAL_SUBJECTS[(socialIndex + salt) % SOCIAL_SUBJECTS.length];
+          socialSubjects[(socialIndex + salt) % socialSubjects.length];
         socialIndex++;
       } else if (topics.length > 0) {
         pillarDetail = topics[(authIndex + salt) % topics.length];
@@ -269,10 +323,12 @@ export function generatePlan(
           ? competitors[globalIndex % competitors.length]
           : undefined;
 
+      const day = days[slot % days.length];
+      const time = opts.postingTime?.(WEEKDAYS.indexOf(day)) ?? undefined;
       items.push({
         id: `plan-${w}-${slot}-${globalIndex}`,
         week: w,
-        dayLabel: `Wk ${w} · ${days[slot % days.length]}`,
+        dayLabel: `Wk ${w} · ${day}`,
         stage: stageId,
         pillar,
         pillarDetail,
@@ -285,6 +341,8 @@ export function generatePlan(
         hook,
         seedId: seed?.id,
         competitorHandle: competitor?.handle,
+        formulaId: HOOK_FORMULAS[(formulaStart + globalIndex) % HOOK_FORMULAS.length].id,
+        ...(time ? { time } : {}),
         posted: false,
       });
       globalIndex++;
@@ -316,11 +374,12 @@ export function generatePlan(
     performanceNote: noteParts.length
       ? `Weighted by your analytics: ${noteParts.join("; ")}.`
       : undefined,
+    ...(topics.length < allTopics.length ? { restedThemes: allTopics.filter((t) => !topics.includes(t)) } : {}),
   };
 }
 
 /** Build the /generate deep-link that prefills the studio for a plan item. */
-export function planItemToGenerateUrl(item: PlanItem): string {
+export function planItemToGenerateUrl(item: PlanItem, thisWeek?: string): string {
   const params = new URLSearchParams({
     pillar: item.pillar,
     detail: item.pillarDetail,
@@ -331,7 +390,10 @@ export function planItemToGenerateUrl(item: PlanItem): string {
     funnel: item.stage,
     idea: item.ideaSource,
   });
-  if (item.angle) params.set("ctx", item.angle);
+  const story = item.week === 1 ? thisWeek?.trim() : "";
+  const ctx = [item.angle, story ? `What happened this week: ${story}` : ""].filter(Boolean).join("\n\n");
+  if (ctx) params.set("ctx", ctx);
+  if (item.formulaId) params.set("formula", item.formulaId);
   if (item.competitorHandle) params.set("ref", item.competitorHandle);
   return `/generate?${params.toString()}`;
 }
@@ -400,7 +462,7 @@ export function planCalendarEntries(
       ctaType: item.ctaType,
       vibeSourceId: item.seedId,
       status: "scheduled",
-      scheduledFor: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+      scheduledFor: scheduleAt(localDateKey(date), item.time),
     });
   }
   return { entries, kept };

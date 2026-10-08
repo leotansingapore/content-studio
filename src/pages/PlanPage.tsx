@@ -28,8 +28,13 @@ import QuickTip from "@/components/QuickTip";
 import {
   getBreakdown,
   getDayOfWeekBreakdown,
+  getTrackedPosts,
   MIN_GROUP_SAMPLE,
+  postingTimeOn,
 } from "@/lib/analytics";
+import { loadBrand } from "@/lib/carousel";
+import { hookFormula } from "@/lib/hookFormulas";
+import { timeLabel } from "@/lib/dueDates";
 import CompetitorReference, {
   customInstagramRef,
   findCompetitorByHandle,
@@ -61,6 +66,9 @@ import {
   planItemToGenerateUrl,
   planCalendarEntries,
   upcomingMonday,
+  recentThemes,
+  nextFormulaStart,
+  WEEKDAYS,
   type ContentPlan,
   type PlanFormat,
   type PlanItem,
@@ -130,6 +138,7 @@ export default function PlanPage() {
   const [competitors, setCompetitors] = useState<CompetitorRef[]>([]);
   const [weeks, setWeeks] = useState(2);
   const [plan, setPlan] = useState<ContentPlan | null>(null);
+  const [thisWeek, setThisWeek] = useState("");
   const [editing, setEditing] = useState(true);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // Home's weekly goals: "Posts per week" here is the goal for the primary platform.
@@ -161,6 +170,8 @@ export default function PlanPage() {
       if (savedPlan) {
         setPlan(savedPlan);
         setEditing(false);
+        // last week's story is not this week's
+        if (Date.now() - new Date(savedPlan.createdAt).getTime() < 7 * 86_400_000) setThisWeek(savedPlan.thisWeek ?? "");
       }
     })();
     return () => {
@@ -231,6 +242,25 @@ export default function PlanPage() {
     });
   };
 
+  // Each slot: the next hook formula in the rotation, a posting time on its day,
+  // and a theme no post used in the last two weeks.
+  const planOptions = (id: string, platform: string) => {
+    const slots = loadBrand(id)?.slots ?? [];
+    const posts = getTrackedPosts(id);
+    return {
+      competitors: competitors.map((c) => ({
+        name: c.name,
+        handle: c.handle,
+        styleNotes: c.styleNotes,
+      })),
+      performance,
+      formulaStart: nextFormulaStart(plan),
+      recentThemes: recentThemes(loadDrafts(id)),
+      postingDays: slots.map((x) => WEEKDAYS[Number(x[0])]),
+      postingTime: (day: number) => postingTimeOn(posts, platform, day, slots).time,
+    };
+  };
+
   const handleGenerate = () => {
     if (!userId) return;
     const topics = parseTopics(topicsRaw);
@@ -248,16 +278,11 @@ export default function PlanPage() {
     setGoals(setPlatformGoal(userId, merged.platform, merged.cadence));
     setPositioning(merged);
     const salt = plan ? plan.salt : 0;
-    const newPlan = generatePlan(merged, {
-      weeks,
-      salt,
-      competitors: competitors.map((c) => ({
-        name: c.name,
-        handle: c.handle,
-        styleNotes: c.styleNotes,
-      })),
-      performance,
-    });
+    const story = thisWeek.trim();
+    const newPlan: ContentPlan = {
+      ...generatePlan(merged, { weeks, salt, ...planOptions(userId, merged.platform) }),
+      ...(story ? { thisWeek: story } : {}),
+    };
     savePlan(userId, newPlan);
     setPlan(newPlan);
     setEditing(false);
@@ -271,16 +296,10 @@ export default function PlanPage() {
     if (!userId || !plan) return;
     const topics = parseTopics(topicsRaw);
     const merged: Positioning = { ...positioning, topics };
-    const newPlan = generatePlan(merged, {
-      weeks: plan.weeks,
-      salt: plan.salt + 1,
-      competitors: competitors.map((c) => ({
-        name: c.name,
-        handle: c.handle,
-        styleNotes: c.styleNotes,
-      })),
-      performance,
-    });
+    const newPlan: ContentPlan = {
+      ...generatePlan(merged, { weeks: plan.weeks, salt: plan.salt + 1, ...planOptions(userId, merged.platform) }),
+      ...(plan.thisWeek ? { thisWeek: plan.thisWeek } : {}),
+    };
     savePlan(userId, newPlan);
     setPlan(newPlan);
     toast({
@@ -400,6 +419,25 @@ export default function PlanPage() {
               Turn your positioning into a week of posts
             </h1>
           </div>
+        </Card>
+
+        <Card className="border-border/60 shadow-card">
+          <CardHeader>
+            <CardTitle className="font-serif text-xl">
+              <label htmlFor="this-week">What happened this week?</label>
+            </CardTitle>
+            <CardDescription>Optional. Week 1&apos;s drafts start from it.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              id="this-week"
+              value={thisWeek}
+              onChange={(e) => setThisWeek(e.target.value)}
+              placeholder="e.g. A client asked if her company insurance is enough. 3 of my 5 reviews found no will in place."
+              rows={3}
+              maxLength={1000}
+            />
+          </CardContent>
         </Card>
 
         <QuickTip context="plan" />
@@ -760,6 +798,14 @@ export default function PlanPage() {
                   <TrendingUp className="h-3 w-3" /> {plan.performanceNote}
                 </p>
               )}
+              {plan.thisWeek && (
+                <p className="line-clamp-2 max-w-2xl text-xs opacity-90">This week: {plan.thisWeek}</p>
+              )}
+              {plan.restedThemes && (
+                <p className="text-xs opacity-90">
+                  Left out for now, used in the last 2 weeks: {plan.restedThemes.join(", ")}
+                </p>
+              )}
             </div>
             <div className="text-right">
               <div className="font-serif text-3xl font-semibold leading-none">
@@ -853,6 +899,7 @@ export default function PlanPage() {
             <div className="grid gap-3">
               {items.map((item) => {
                 const stage = getFunnelStage(item.stage as FunnelStageId);
+                const formula = hookFormula(item.formulaId);
                 return (
                   <Card
                     key={item.id}
@@ -884,6 +931,7 @@ export default function PlanPage() {
                           </span>
                           <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                             {item.dayLabel}
+                            {item.time && ` · ${timeLabel(item.time)}`}
                           </span>
                           <span className="rounded-full border border-border/60 bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
                             {FORMAT_LABEL[item.format] ?? item.format}
@@ -906,9 +954,15 @@ export default function PlanPage() {
                         >
                           {item.angle}
                         </p>
-                        <p className="rounded-lg border border-border/50 bg-muted/20 px-2.5 py-1.5 text-[11px] italic leading-snug text-muted-foreground">
-                          Hook idea: {item.hook}
-                        </p>
+                        {formula ? (
+                          <p className="rounded-lg border border-border/50 bg-muted/20 px-2.5 py-1.5 text-[11px] leading-snug text-muted-foreground">
+                            <span className="font-semibold text-foreground/80">Hook: {formula.name}.</span> {formula.template}
+                          </p>
+                        ) : (
+                          <p className="rounded-lg border border-border/50 bg-muted/20 px-2.5 py-1.5 text-[11px] italic leading-snug text-muted-foreground">
+                            Hook idea: {item.hook}
+                          </p>
+                        )}
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
                           <span>
                             CTA:{" "}
@@ -938,7 +992,7 @@ export default function PlanPage() {
                               : ""
                           }`}
                         >
-                          <Link to={planItemToGenerateUrl(item)}>
+                          <Link to={planItemToGenerateUrl(item, plan.thisWeek)}>
                             Draft in Studio
                             <ArrowRight className="h-3.5 w-3.5" />
                           </Link>

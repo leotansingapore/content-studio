@@ -121,3 +121,18 @@ describe("suggestPostingTime with the adviser's own posting times", () => {
     expect(suggestPostingTime([], "instagram", [], now, ["7T09:00", "1T25:00", "x"]).why).toBe("common");
   });
 });
+
+describe("postingTimeOn (a plan slot's time on its day)", () => {
+  it("uses the adviser's own time that day, else the best-landing hour, else the common hour", async () => {
+    const { postingTimeOn } = await import("./analytics");
+    const slots = ["1T08:30", "1T19:00", "3T20:00"];
+    expect(postingTimeOn([], "linkedin", 1, slots)).toEqual({ time: "08:30", why: "slot" });
+    expect(postingTimeOn([], "linkedin", 0, slots)).toEqual({ time: "08:30", why: "common" });
+    expect(postingTimeOn([], "instagram", 4, [])).toEqual({ time: "19:30", why: "common" });
+    const posts = [
+      p("a", "x", 1000, 120, { scheduledFor: "2026-09-24T20:00" }),
+      p("b", "x", 1000, 100, { scheduledFor: "2026-10-01T20:00" }),
+    ];
+    expect(postingTimeOn(posts, "linkedin", 0, [])).toEqual({ time: "20:00", why: "best" });
+  });
+});

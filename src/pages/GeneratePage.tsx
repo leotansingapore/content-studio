@@ -111,7 +111,7 @@ import PostReceipt from "@/components/PostReceipt";
 import { BOARD_COLUMNS, columnOf, loadStages, setStage, type ProductionStage } from "@/lib/board";
 import { DAILY_LIMITS, ReelCloneError } from "@/lib/reelClone";
 import { makeStoryboard, storyboardRun, type Storyboard } from "@/lib/storyboard";
-import { formulaOfHook, HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet } from "@/lib/hookFormulas";
+import { formulaOfHook, HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet, hookFormulasFrom } from "@/lib/hookFormulas";
 import {
   cleanAiTells,
   DISCLOSURES,
@@ -650,6 +650,8 @@ export default function GeneratePage() {
   const streamRunRef = useRef(0);
   // Which set of hook formulas the next Generate uses; each run takes the next.
   const hookSetRef = useRef(Math.floor(Math.random() * HOOK_FORMULAS.length));
+  // A plan slot's formula: the first Generate opens its set with it.
+  const planFormulaRef = useRef<string | null>(null);
   const prefillAppliedRef = useRef<boolean>(false);
   // When a scheduled/posted slot is loaded, keep updating that same entry on
   // re-roll/pick (so it stays on the calendar) instead of forking a new draft.
@@ -927,7 +929,7 @@ export default function GeneratePage() {
   }, [userId, searchParams.get("draft")]);
 
   // Prefill from a Plan deep-link: /generate?pillar=&detail=&audience=&format=
-  // &platform=&cta=&funnel=&idea=&ctx=&ref=  (runs once, then strips params).
+  // &platform=&cta=&funnel=&idea=&ctx=&ref=&formula=  (runs once, then strips params).
   useEffect(() => {
     if (prefillAppliedRef.current) return;
     const has =
@@ -983,9 +985,10 @@ export default function GeneratePage() {
       const found = findCompetitorByHandle(refParam);
       if (found) setCompetitorRef(found);
     }
+    planFormulaRef.current = hookFormula(searchParams.get("formula") ?? undefined)?.id ?? null;
 
     const next = new URLSearchParams(searchParams);
-    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref"].forEach(
+    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula"].forEach(
       (k) => next.delete(k),
     );
     setSearchParams(next, { replace: true });
@@ -1426,7 +1429,8 @@ export default function GeneratePage() {
     try {
       if (hooksFirst) {
         // one call per hook, each with its own formula
-        const set = hookFormulaSet(hookSetRef.current++);
+        const set = planFormulaRef.current ? hookFormulasFrom(planFormulaRef.current) : hookFormulaSet(hookSetRef.current++);
+        planFormulaRef.current = null;
         await runStream(
           set.map((f) => ({ ...base, mode: "hooks" as const, n: 1, ...hookFormulaFields(f, base) })),
           "hooks",

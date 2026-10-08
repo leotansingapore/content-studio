@@ -193,6 +193,13 @@ export function hookFormulaSet(n: number): HookFormula[] {
   return Array.from({ length: HOOKS_PER_SET }, (_, k) => HOOK_FORMULAS[(start + k) % len]);
 }
 
+/** A set that opens with this formula, then the next ones in the list (a plan slot's formula in Write). */
+export function hookFormulasFrom(id: string): HookFormula[] {
+  const len = HOOK_FORMULAS.length;
+  const start = Math.max(0, HOOK_FORMULAS.findIndex((f) => f.id === id));
+  return Array.from({ length: HOOKS_PER_SET }, (_, k) => HOOK_FORMULAS[(start + k) % len]);
+}
+
 export const hookFormula = (id: string | undefined) => HOOK_FORMULAS.find((f) => f.id === id);
 
 /**

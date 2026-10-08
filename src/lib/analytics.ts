@@ -655,6 +655,26 @@ export interface SuggestedTime {
 /** A weekly posting time: "<day 0 = Mon>T<HH:MM>", e.g. "1T08:30" for Tuesday 8:30am. */
 export const SLOT = /^[0-6]T([01]\d|2[0-3]):[0-5]\d$/;
 
+/** With no posting times of the adviser's own: the best-landing day and hour from results, else the platform's common slot. */
+function resultsSlot(posts: TrackedPost[], platform: string): { slot: { day: number; hour: number; minute: number }; why: "best" | "common" } {
+  const grid = postingTimeGrid(posts);
+  const cell = grid.hasTimes ? bestCell(grid.hours) : null;
+  return cell
+    ? { slot: { day: cell[0], hour: cell[1], minute: 0 }, why: "best" }
+    : { slot: COMMON_SLOT[platform] ?? COMMON_SLOT.linkedin, why: "common" };
+}
+
+/**
+ * A plan slot's time on its weekday (0 = Mon), by suggestPostingTime's sources: the
+ * adviser's own time that day, else the best-landing hour, else the platform's common hour.
+ */
+export function postingTimeOn(posts: TrackedPost[], platform: string, weekday: number, slots: string[] = []): { time: string; why: SuggestedTime["why"] } {
+  const mine = slots.filter((x) => SLOT.test(x) && Number(x[0]) === weekday).sort();
+  if (mine.length) return { time: mine[0].slice(2), why: "slot" };
+  const { slot, why } = resultsSlot(posts, platform);
+  return { time: `${String(slot.hour).padStart(2, "0")}:${String(slot.minute).padStart(2, "0")}`, why };
+}
+
 export function suggestPostingTime(posts: TrackedPost[], platform: string, taken: string[], now: Date = new Date(), slots: string[] = []): SuggestedTime {
   // the adviser's own weekly posting times win: the next one on a day with nothing scheduled
   const mine = slots.filter((x) => SLOT.test(x)).sort((a, b) => a.slice(2).localeCompare(b.slice(2)));
@@ -675,9 +695,7 @@ export function suggestPostingTime(posts: TrackedPost[], platform: string, taken
       }
     }
   }
-  const grid = postingTimeGrid(posts);
-  const cell = grid.hasTimes ? bestCell(grid.hours) : null;
-  const slot = cell ? { day: cell[0], hour: cell[1], minute: 0 } : COMMON_SLOT[platform] ?? COMMON_SLOT.linkedin;
+  const { slot, why } = resultsSlot(posts, platform);
   const busy = new Set(taken.map((t) => t.slice(0, 10)));
   const earliest = now.getTime() + 2 * 3_600_000;
   const today = localDateKey(now);
@@ -688,12 +706,12 @@ export function suggestPostingTime(posts: TrackedPost[], platform: string, taken
     if (new Date(d.getFullYear(), d.getMonth(), d.getDate(), slot.hour, slot.minute).getTime() < earliest) continue;
     const hh = String(slot.hour).padStart(2, "0");
     const mm = String(slot.minute).padStart(2, "0");
-    return { at: `${day}T${hh}:${mm}`, why: cell ? "best" : "common" };
+    return { at: `${day}T${hh}:${mm}`, why };
   }
   // every matching day in four weeks is taken: the first free day at that time
   for (let i = 1; i < 60; i++) {
     const day = addDays(today, i);
-    if (!busy.has(day)) return { at: `${day}T${String(slot.hour).padStart(2, "0")}:${String(slot.minute).padStart(2, "0")}`, why: cell ? "best" : "common" };
+    if (!busy.has(day)) return { at: `${day}T${String(slot.hour).padStart(2, "0")}:${String(slot.minute).padStart(2, "0")}`, why };
   }
   return { at: `${addDays(today, 1)}T09:00`, why: "common" };
 }
