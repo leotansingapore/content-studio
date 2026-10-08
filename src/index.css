@@ -162,7 +162,9 @@
     }
   }
   .page-enter {
-    animation: page-enter 0.28s ease-out both;
+    /* backwards, not both: a held end transform makes this box the containing
+       block for every position:fixed child, pinning overlays to the page. */
+    animation: page-enter 0.28s ease-out backwards;
   }
 
   .scrollbar-none {
