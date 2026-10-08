@@ -237,7 +237,7 @@ export default function SwipeFilePage() {
         <section className="space-y-3">
           <div className="flex items-center gap-1.5">
             <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">Industry news to talk about</h2>
-            <InfoTip label="About industry news">Picked each morning from SG news for client conversations.</InfoTip>
+            <InfoTip label="About industry news">The ActivityTracker bulletin's Industry picks, synced every morning.</InfoTip>
           </div>
           <IndustryNews />
         </section>

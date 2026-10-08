@@ -1,16 +1,28 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Copy, ExternalLink, PenLine } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, ExternalLink, PenLine, Search, Share2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { NEWS, buildNewsWriteUrl, clientMessageText, type NewsStory } from "@/lib/industryNews";
+import { NEWS, buildNewsWriteUrl, byMonth, clientMessageText, searchStories, topicCounts, type NewsStory } from "@/lib/industryNews";
 
 const when = (iso: string) =>
   new Date(iso).toLocaleDateString("en-SG", { day: "numeric", month: "short", timeZone: "Asia/Singapore" });
 
 function StoryCard({ s }: { s: NewsStory }) {
   const { toast } = useToast();
+  const [open, setOpen] = useState(false);
   const message = clientMessageText(s);
+  const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+  const share = async () => {
+    if (!message) return;
+    try {
+      await navigator.share({ text: message });
+    } catch {
+      // closed the share sheet: nothing to do
+    }
+  };
   const copy = async () => {
     if (!message) return;
     try {
@@ -49,6 +61,16 @@ function StoryCard({ s }: { s: NewsStory }) {
           <span className="font-semibold text-primary">Talking point: </span>
           {s.talkingPoint}
         </p>
+        {s.clientMessage && (
+          <div className="text-xs">
+            <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+              className="inline-flex items-center gap-1 py-1 font-semibold text-primary hover:underline">
+              {open ? "Hide the client message" : "Read the client message"}
+              {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+            {open && <p className="mt-1 whitespace-pre-line rounded-lg border border-border/60 p-2.5 leading-relaxed text-foreground/85">{s.clientMessage}</p>}
+          </div>
+        )}
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
           <Button asChild size="sm" className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
             <Link to={buildNewsWriteUrl(s)}>
@@ -56,8 +78,9 @@ function StoryCard({ s }: { s: NewsStory }) {
             </Link>
           </Button>
           {message && (
-            <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={copy}>
-              <Copy className="h-3.5 w-3.5" /> Copy client message
+            <Button type="button" variant="outline" size="sm" className="gap-1.5" onClick={canShare ? share : copy}>
+              {canShare ? <Share2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {canShare ? "Send to a client" : "Copy client message"}
             </Button>
           )}
         </div>
@@ -67,20 +90,58 @@ function StoryCard({ s }: { s: NewsStory }) {
 }
 
 export default function IndustryNews() {
+  const [query, setQuery] = useState("");
+  const [topic, setTopic] = useState("all");
+  const found = useMemo(() => searchStories(NEWS, query), [query]);
+  const topics = useMemo(() => topicCounts(found), [found]);
+  const shown = topic === "all" || !topics.some((t) => t.topic === topic) ? found : found.filter((s) => s.topic === topic);
+  const months = useMemo(() => byMonth(shown), [shown]);
+
   if (NEWS.length === 0) {
     return (
       <Card className="border-border/60 shadow-card">
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          No industry news in the last 30 days.
-        </CardContent>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">No industry news yet.</CardContent>
       </Card>
     );
   }
+  const chip = (id: string, label: string, n: number) => (
+    <button key={id} type="button" onClick={() => setTopic(id)} aria-pressed={topic === id}
+      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+        topic === id ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"
+      }`}>
+      {label} <span className="font-normal opacity-70">{n}</span>
+    </button>
+  );
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {NEWS.map((s) => (
-        <StoryCard key={s.id} s={s} />
-      ))}
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search the news (e.g. MediShield, CPF, scams)"
+          aria-label="Search industry news" className="pl-9" />
+      </div>
+      {topics.length > 1 && (
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Topic">
+          {chip("all", "All", found.length)}
+          {topics.map((t) => chip(t.topic, t.topic, t.n))}
+        </div>
+      )}
+      {shown.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          No stories match.{" "}
+          <button type="button" className="font-semibold text-primary" onClick={() => { setQuery(""); setTopic("all"); }}>Clear the search</button>
+        </p>
+      ) : (
+        months.map((m) => (
+          <section key={m.label} className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {m.label} <span className="font-normal">{m.stories.length}</span>
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {m.stories.map((s) => <StoryCard key={s.id} s={s} />)}
+            </div>
+          </section>
+        ))
+      )}
     </div>
   );
 }

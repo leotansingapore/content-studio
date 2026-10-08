@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNewsWriteUrl, clientMessageText, type NewsStory } from "./industryNews";
+import { buildNewsWriteUrl, byMonth, clientMessageText, searchStories, topicCounts, type NewsStory } from "./industryNews";
 
 const story: NewsStory = {
   id: "abc",
@@ -32,5 +32,27 @@ describe("clientMessageText", () => {
   it("puts the article link on its own line, and offers nothing without a message", () => {
     expect(clientMessageText(story)).toBe(`${story.clientMessage}\n\nhttps://mothership.sg/x`);
     expect(clientMessageText({ ...story, clientMessage: null })).toBeNull();
+  });
+});
+
+describe("finding stories", () => {
+  const list: NewsStory[] = [
+    story,
+    { ...story, id: "b", title: "CPF payouts rise", topic: "CPF and retirement", publishedAt: "2026-09-12T08:00:00+08:00", gist: "Payouts go up." },
+    { ...story, id: "c", title: "MediShield premiums", topic: "Insurance", publishedAt: "2026-10-01T08:00:00+08:00", source: "CNA" },
+  ];
+  it("matches every word across title, gist, talking point and source", () => {
+    expect(searchStories(list, "cpf payouts").map((s) => s.id)).toEqual(["b"]);
+    expect(searchStories(list, "cna").map((s) => s.id)).toEqual(["c"]);
+    expect(searchStories(list, "  ").length).toBe(3);
+  });
+  it("counts topics, most first", () => {
+    expect(topicCounts(list)).toEqual([{ topic: "Insurance", n: 2 }, { topic: "CPF and retirement", n: 1 }]);
+  });
+  it("groups by month, newest first", () => {
+    expect(byMonth(list).map((g) => [g.label, g.stories.map((s) => s.id)])).toEqual([
+      ["October 2026", ["abc", "c"]],
+      ["September 2026", ["b"]],
+    ]);
   });
 });
