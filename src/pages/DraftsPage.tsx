@@ -30,6 +30,7 @@ import {
   Wand2,
   X,
   GalleryHorizontalEnd,
+  Tag,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -43,6 +44,8 @@ import {
 import { scheduleAt, scheduleTime } from "@/lib/dueDates";
 import { repurposeTargetsFor, buildRepurposeUrl } from "@/lib/repurpose";
 import DraftReviewControl from "@/components/team/DraftReviewControl";
+import { LabelChip, LabelManager, LabelPicker } from "@/components/Labels";
+import { loadLabels, setDraftLabels, type Label as ContentLabel } from "@/lib/labels";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -70,6 +73,10 @@ export default function DraftsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | DraftStatus>("all");
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [repurposeOpenId, setRepurposeOpenId] = useState<string | null>(null);
+  const [labels, setLabels] = useState<ContentLabel[]>([]);
+  const [labelFilter, setLabelFilter] = useState<string>("all");
+  const [labelOpenId, setLabelOpenId] = useState<string | null>(null);
+  const [manageLabels, setManageLabels] = useState(false);
   const reviews = useDraftReviews(userId, drafts);
 
   useEffect(() => {
@@ -80,6 +87,7 @@ export default function DraftsPage() {
       const id = data.user?.id ?? null;
       setUserId(id);
       setDrafts(loadDrafts(id));
+      setLabels(loadLabels(id));
     })();
     return () => {
       active = false;
@@ -92,11 +100,18 @@ export default function DraftsPage() {
       if (statusFilter !== "all" && draftStatus(d) !== statusFilter) return false;
       if (platformFilter !== "all" && d.platform !== platformFilter) return false;
       if (pillarFilter !== "all" && d.pillar !== pillarFilter) return false;
+      if (labelFilter === "none" ? labels.some((l) => d.labels?.includes(l.id)) : labelFilter !== "all" && !d.labels?.includes(labelFilter)) return false;
       if (!q) return true;
       const blob = `${d.hook} ${d.draft}`.toLowerCase();
       return blob.includes(q);
     });
-  }, [drafts, statusFilter, platformFilter, pillarFilter, search]);
+  }, [drafts, statusFilter, platformFilter, pillarFilter, labelFilter, labels, search]);
+
+  const openManager = () => {
+    setManageLabels(true);
+    setLabelOpenId(null);
+    requestAnimationFrame(() => document.getElementById("label-manager")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  };
 
   const handleSetStatus = (id: string, status: DraftStatus, when?: string) => {
     if (!userId) return;
@@ -167,12 +182,17 @@ export default function DraftsPage() {
         ))}
       </div>
       <Card className="border-border/60 shadow-card">
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
           <CardTitle className="font-serif text-xl">
             Filter your drafts
           </CardTitle>
+          {!manageLabels && (
+            <Button size="sm" variant="ghost" onClick={openManager} className="gap-1.5 text-xs text-muted-foreground">
+              <Tag className="h-3.5 w-3.5" /> Labels
+            </Button>
+          )}
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-3">
+        <CardContent className={`grid gap-3 ${labels.length ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
           <div className="space-y-1.5">
             <Label>Platform</Label>
             <Select value={platformFilter} onValueChange={setPlatformFilter}>
@@ -203,6 +223,25 @@ export default function DraftsPage() {
               </SelectContent>
             </Select>
           </div>
+          {labels.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Label</Label>
+              <Select value={labelFilter} onValueChange={setLabelFilter}>
+                <SelectTrigger aria-label="Label">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All labels</SelectItem>
+                  {labels.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="none">No label</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label>Search</Label>
             <div className="relative">
@@ -217,6 +256,21 @@ export default function DraftsPage() {
           </div>
         </CardContent>
       </Card>
+      {manageLabels && userId && (
+        <LabelManager
+          userId={userId}
+          labels={labels}
+          drafts={drafts}
+          onLabelsChange={setLabels}
+          onDeleted={(nextLabels, nextDrafts, name, posts) => {
+            setLabels(nextLabels);
+            setDrafts(nextDrafts);
+            if (labelFilter !== "all" && !nextLabels.some((l) => l.id === labelFilter)) setLabelFilter("all");
+            toast({ title: `Deleted "${name}"`, description: posts ? `Taken off ${posts} post${posts === 1 ? "" : "s"}.` : undefined });
+          }}
+          onClose={() => setManageLabels(false)}
+        />
+      )}
         </>
       )}
 
@@ -325,6 +379,31 @@ export default function DraftsPage() {
                   </div>
                 )}
                 {reviews.enabled && <DraftReviewControl draft={d} reviews={reviews} />}
+                <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                  {labels.filter((l) => d.labels?.includes(l.id)).map((l) => (
+                    <LabelChip key={l.id} label={l} />
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setLabelOpenId((cur) => (cur === d.id ? null : d.id))}
+                    aria-expanded={labelOpenId === d.id}
+                    className="inline-flex h-9 items-center gap-1 rounded-full border border-dashed border-border px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground sm:h-7"
+                  >
+                    <Tag className="h-3 w-3" /> {d.labels?.some((id) => labels.some((l) => l.id === id)) ? "Edit labels" : "Add label"}
+                  </button>
+                </div>
+                {labelOpenId === d.id && userId && (
+                  <LabelPicker
+                    className="mb-3"
+                    userId={userId}
+                    labels={labels}
+                    selected={d.labels ?? []}
+                    onChange={(ids) => setDrafts(setDraftLabels(userId, d.id, ids))}
+                    onLabelsChange={setLabels}
+                    onManage={openManager}
+                    onClose={() => setLabelOpenId(null)}
+                  />
+                )}
                 <div className="mt-auto flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"

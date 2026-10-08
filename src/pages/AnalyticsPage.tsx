@@ -34,6 +34,8 @@ import { RankBars, type RankBarRow } from "@/components/charts/RankBars";
 import { TrendChart, type TrendChartPoint } from "@/components/charts/TrendChart";
 import { TimeHeatmap } from "@/components/charts/TimeHeatmap";
 import { InfoTip } from "@/components/ui/info-tip";
+import LabelMixCard from "@/components/LabelMixCard";
+import { labelMix, loadLabels, type Label as ContentLabel } from "@/lib/labels";
 import { timeLabel } from "@/lib/dueDates";
 import CreatorLookup from "@/components/CreatorLookup";
 import AccountAudit from "@/components/AccountAudit";
@@ -191,6 +193,7 @@ export default function AnalyticsPage() {
   // Bumps whenever bulk metrics are saved so every derived memo recomputes.
   const [metricsVersion, setMetricsVersion] = useState(0);
   const [accounts, setAccounts] = useState<SocialAccounts>({});
+  const [labels, setLabels] = useState<ContentLabel[]>([]);
 
   const saveAccount = (platform: SocialPlatform, handle: string) => {
     if (!userId) return;
@@ -249,6 +252,7 @@ export default function AnalyticsPage() {
       const id = data.user?.id ?? null;
       setUserId(id);
       setAccounts(loadSocialAccounts(id));
+      setLabels(loadLabels(id));
       setPostedCount(
         loadDrafts(id).filter((d) => draftStatus(d) === "posted").length,
       );
@@ -278,6 +282,9 @@ export default function AnalyticsPage() {
   const [rankBy, setRankBy] = useState<RankMetric>("engagementTotal");
   const cmp = useMemo(() => (period ? comparePeriods(tracked, period) : null), [tracked, period]);
   const ranked = useMemo(() => rankPosts(tracked, rankBy), [tracked, rankBy]);
+  const mix = useMemo(() => labelMix(loadDrafts(userId), labels, period), [userId, labels, period, metricsVersion]);
+  // Shown once there are labels and anything posted, whether or not numbers were logged.
+  const showMix = labels.length > 0 && postedCount > 0;
   const exportCsv = () => {
     const blob = new Blob([postsCsv(tracked)], { type: "text/csv" });
     const a = document.createElement("a");
@@ -488,46 +495,54 @@ export default function AnalyticsPage() {
         </Card>
       )}
 
+      {(hasData || showMix) && (
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
+          {([[30, "30 days"], [7, "7 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
+            <button key={d} type="button" onClick={() => setPeriod(d)} aria-pressed={period === d}
+              className={`h-9 rounded-full border px-3 text-xs font-semibold ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      {hasData && (
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat
+            icon={BarChart3}
+            value={String(cmp ? cmp.current.posts : tracked.length)}
+            label="Posts tracked"
+            tint="bg-muted text-foreground"
+            delta={cmp?.change.posts}
+          />
+          <Stat
+            icon={Eye}
+            value={(cmp ? cmp.current.impressions : totals.totalImpressions).toLocaleString()}
+            label="Impressions tracked"
+            tint="bg-primary/10 text-primary"
+            delta={cmp?.change.impressions}
+          />
+          <Stat
+            icon={Heart}
+            value={(cmp ? cmp.current.engagements : totals.totalEngagement).toLocaleString()}
+            label="Total engagement"
+            tint="bg-brand/10 text-brand"
+            delta={cmp?.change.engagements}
+          />
+          <Stat
+            icon={TrendingUp}
+            value={`${cmp ? cmp.current.rate : totals.avgEngagementRate}%`}
+            label="Avg engagement rate"
+            tint="bg-success/10 text-success"
+            delta={cmp?.change.rate}
+          />
+        </section>
+      )}
+      {showMix && userId && (
+        <LabelMixCard userId={userId} rows={mix.rows} posts={mix.posts} unlabelled={mix.unlabelled} onLabelsChange={setLabels} />
+      )}
+
       {hasData ? (
         <>
-          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
-            {([[30, "30 days"], [7, "7 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
-              <button key={d} type="button" onClick={() => setPeriod(d)} aria-pressed={period === d}
-                className={`h-9 rounded-full border px-3 text-xs font-semibold ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat
-              icon={BarChart3}
-              value={String(cmp ? cmp.current.posts : tracked.length)}
-              label="Posts tracked"
-              tint="bg-muted text-foreground"
-              delta={cmp?.change.posts}
-            />
-            <Stat
-              icon={Eye}
-              value={(cmp ? cmp.current.impressions : totals.totalImpressions).toLocaleString()}
-              label="Impressions tracked"
-              tint="bg-primary/10 text-primary"
-              delta={cmp?.change.impressions}
-            />
-            <Stat
-              icon={Heart}
-              value={(cmp ? cmp.current.engagements : totals.totalEngagement).toLocaleString()}
-              label="Total engagement"
-              tint="bg-brand/10 text-brand"
-              delta={cmp?.change.engagements}
-            />
-            <Stat
-              icon={TrendingUp}
-              value={`${cmp ? cmp.current.rate : totals.avgEngagementRate}%`}
-              label="Avg engagement rate"
-              tint="bg-success/10 text-success"
-              delta={cmp?.change.rate}
-            />
-          </section>
 
           {/* Insights */}
           <section className="space-y-3">

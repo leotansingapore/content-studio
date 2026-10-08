@@ -35,6 +35,8 @@ export interface DraftEntry {
   // A recurring post: this entry is the series' next occurrence (scheduledFor).
   // Marking it posted records a posted copy and moves it to the following one.
   repeat?: Repeat;
+  // Ids of the user's content labels (labels.ts).
+  labels?: string[];
 }
 
 export type RepeatEvery = "week" | "2weeks" | "month";
@@ -145,8 +147,9 @@ export function upsertDraft(
   const current = loadDrafts(userId);
   const prev = current.find((d) => d.id === entry.id);
   // Write rebuilds an entry from its own fields, which don't include the post's
-  // numbers: keep them rather than wipe them on every edit.
+  // numbers or labels: keep them rather than wipe them on every edit.
   if (prev?.metrics && !entry.metrics) entry = { ...entry, metrics: prev.metrics };
+  if (prev?.labels && !entry.labels) entry = { ...entry, labels: prev.labels };
   const without = current.filter((d) => d.id !== entry.id);
   const next = [entry, ...without].slice(0, MAX_DRAFTS);
   saveDrafts(userId, next);
