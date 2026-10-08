@@ -9,6 +9,7 @@
 // across devices. loadCoachProfile / coachContext are pure and exported so the
 // build into a Write brief is unit-testable.
 
+import { scoped } from "@/lib/profiles";
 export interface CoachProfile {
   /** How they got started / their "why". */
   origin: string;
@@ -144,7 +145,7 @@ export function loadCoachProfile(
   if (!userId) return base;
   const storage = safeStorage();
   if (!storage) return base;
-  const raw = storage.getItem(`${KEY_PREFIX}${userId}`);
+  const raw = storage.getItem(`${KEY_PREFIX}${scoped(userId)}`);
   if (!raw) return base;
   try {
     const parsed = JSON.parse(raw) as Partial<CoachProfile>;
@@ -165,7 +166,7 @@ export function loadCoachProfile(
 export function saveCoachProfile(userId: string, profile: CoachProfile): CoachProfile {
   const storage = safeStorage();
   const next = { ...profile, updatedAt: new Date().toISOString() };
-  if (storage) storage.setItem(`${KEY_PREFIX}${userId}`, JSON.stringify(next));
+  if (storage) storage.setItem(`${KEY_PREFIX}${scoped(userId)}`, JSON.stringify(next));
   return next;
 }
 

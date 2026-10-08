@@ -6,6 +6,7 @@
 // Once the SUPABASE handoff lands (content_studio_voice_profiles table),
 // this module can swap to Supabase reads/writes without touching callers.
 
+import { scoped } from "@/lib/profiles";
 export interface VoiceProfile {
   posts: string[];
   voiceSummary?: string;
@@ -31,7 +32,7 @@ export function loadVoiceProfile(userId: string | null | undefined): VoiceProfil
   if (!userId) return null;
   const storage = safeStorage();
   if (!storage) return null;
-  const raw = storage.getItem(`${KEY_PREFIX}${userId}`);
+  const raw = storage.getItem(`${KEY_PREFIX}${scoped(userId)}`);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as VoiceProfile;
@@ -49,7 +50,7 @@ export function saveVoiceProfile(
   const storage = safeStorage();
   if (!storage) return;
   storage.setItem(
-    `${KEY_PREFIX}${userId}`,
+    `${KEY_PREFIX}${scoped(userId)}`,
     JSON.stringify({ ...profile, updatedAt: new Date().toISOString() }),
   );
 }
@@ -57,7 +58,7 @@ export function saveVoiceProfile(
 export function clearVoiceProfile(userId: string): void {
   const storage = safeStorage();
   if (!storage) return;
-  storage.removeItem(`${KEY_PREFIX}${userId}`);
+  storage.removeItem(`${KEY_PREFIX}${scoped(userId)}`);
 }
 
 export function isVoiceProfileUsable(profile: VoiceProfile | null): boolean {

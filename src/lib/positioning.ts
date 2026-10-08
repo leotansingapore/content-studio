@@ -7,6 +7,7 @@
 // One positioning per authenticated user, persisted to localStorage:
 //   key: content-studio-positioning-${userId}
 
+import { scoped } from "@/lib/profiles";
 export type PlanPlatform = "linkedin" | "instagram" | "facebook" | "tiktok";
 export type PlanAudience =
   | "young-adult"
@@ -61,7 +62,7 @@ export function loadPositioning(userId: string | null | undefined): Positioning 
   if (!userId) return null;
   const storage = safeStorage();
   if (!storage) return null;
-  const raw = storage.getItem(`${KEY_PREFIX}${userId}`);
+  const raw = storage.getItem(`${KEY_PREFIX}${scoped(userId)}`);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Positioning;
@@ -76,7 +77,7 @@ export function savePositioning(userId: string, positioning: Positioning): void 
   const storage = safeStorage();
   if (!storage) return;
   storage.setItem(
-    `${KEY_PREFIX}${userId}`,
+    `${KEY_PREFIX}${scoped(userId)}`,
     JSON.stringify({ ...positioning, updatedAt: new Date().toISOString() }),
   );
 }

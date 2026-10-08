@@ -7,6 +7,7 @@
 
 import { scanCompliance, hasComplianceErrors } from "@/lib/compliance";
 import { readout, type PlatformId } from "@/lib/platformCounters";
+import { scoped } from "@/lib/profiles";
 
 export interface CoachInput {
   text: string;
@@ -266,7 +267,7 @@ export function loadCoachHistory(
   if (!userId) return [];
   const storage = safeStorage();
   if (!storage) return [];
-  const raw = storage.getItem(`${KEY_PREFIX}${userId}`);
+  const raw = storage.getItem(`${KEY_PREFIX}${scoped(userId)}`);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as CoachHistoryEntry[];
@@ -294,6 +295,6 @@ export function addCoachEntry(
     report,
   };
   const next = [entry, ...loadCoachHistory(userId)].slice(0, MAX_HISTORY);
-  storage.setItem(`${KEY_PREFIX}${userId}`, JSON.stringify(next));
+  storage.setItem(`${KEY_PREFIX}${scoped(userId)}`, JSON.stringify(next));
   return next;
 }

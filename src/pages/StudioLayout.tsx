@@ -2,6 +2,7 @@ import { Suspense, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import ProfileSwitcher from "@/components/ProfileSwitcher";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
@@ -224,6 +225,9 @@ export default function StudioLayout() {
         <div className="px-4 py-4">
           <Brandmark />
         </div>
+        <div className="px-3 pb-2">
+          <ProfileSwitcher />
+        </div>
         <div className="px-3 pb-3">
           <Button
             asChild
@@ -293,6 +297,7 @@ export default function StudioLayout() {
         <div className="flex items-center justify-between gap-3 px-4 py-2.5">
           <Brandmark />
           <div className="flex items-center gap-1">
+            <ProfileSwitcher compact />
             <NavLink
               to="/tutorial"
               aria-label="How it works"

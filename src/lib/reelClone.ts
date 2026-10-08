@@ -14,6 +14,7 @@ import {
   type MyVersion,
   type VoiceInput,
 } from "../../supabase/functions/clone-reel/logic.ts";
+import { scoped } from "@/lib/profiles";
 
 export { LINK_MESSAGES, parseReelUrl } from "../../supabase/functions/clone-reel/logic.ts";
 export type {
@@ -206,7 +207,7 @@ export function loadSavedClones(userId: string | null | undefined): SavedClone[]
   const s = storage();
   if (!s || !userId) return [];
   try {
-    const parsed = JSON.parse(s.getItem(SAVED_PREFIX + userId) ?? "[]");
+    const parsed = JSON.parse(s.getItem(SAVED_PREFIX + scoped(userId)) ?? "[]");
     return Array.isArray(parsed) ? parsed.filter((c) => c && typeof c.id === "string" && isCloneResponse(c.result)) : [];
   } catch {
     return [];
@@ -229,7 +230,7 @@ export function rememberClone(userId: string, clone: SavedClone): SavedClone[] {
   const s = storage();
   if (s) {
     try {
-      s.setItem(SAVED_PREFIX + userId, JSON.stringify(next));
+      s.setItem(SAVED_PREFIX + scoped(userId), JSON.stringify(next));
     } catch {
       // Storage full: the result still shows, it just isn't kept.
     }

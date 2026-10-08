@@ -7,6 +7,7 @@
 // Once the SUPABASE handoff lands (content_studio_drafts table), this
 // module can swap to Supabase reads/writes without touching callers.
 
+import { scoped } from "@/lib/profiles";
 export const MAX_DRAFTS = 50;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
@@ -64,7 +65,7 @@ export function loadDrafts(userId: string | null | undefined): DraftEntry[] {
   if (!userId) return [];
   const storage = safeStorage();
   if (!storage) return [];
-  const raw = storage.getItem(`${KEY_PREFIX}${userId}`);
+  const raw = storage.getItem(`${KEY_PREFIX}${scoped(userId)}`);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as DraftEntry[];
@@ -80,7 +81,7 @@ export function saveDrafts(userId: string, drafts: DraftEntry[]): void {
   if (!storage) return;
   // Trim to MAX_DRAFTS, newest first.
   const trimmed = drafts.slice(0, MAX_DRAFTS);
-  storage.setItem(`${KEY_PREFIX}${userId}`, JSON.stringify(trimmed));
+  storage.setItem(`${KEY_PREFIX}${scoped(userId)}`, JSON.stringify(trimmed));
 }
 
 export function upsertDraft(

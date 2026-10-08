@@ -31,6 +31,7 @@ import {
   type SkippedNote,
   type SplitResult,
 } from "../../supabase/functions/idea-dump/logic.ts";
+import { scoped } from "@/lib/profiles";
 
 export { MAX_IDEAS, MAX_NOTES_CHARS, NO_IDEAS_MESSAGE, splitIdeas };
 export type { SkippedNote, SplitResult };
@@ -110,7 +111,7 @@ export function loadBriefs(userId: string | null | undefined): IdeaBrief[] {
   const storage = safeStorage();
   if (!storage || !userId) return [];
   try {
-    const parsed = JSON.parse(storage.getItem(KEY_PREFIX + userId) ?? "[]");
+    const parsed = JSON.parse(storage.getItem(KEY_PREFIX + scoped(userId)) ?? "[]");
     return Array.isArray(parsed)
       ? parsed.map(toBrief).filter((b): b is IdeaBrief => b !== null)
       : [];
@@ -124,7 +125,7 @@ export function saveBriefs(userId: string, briefs: IdeaBrief[]): IdeaBrief[] {
   const storage = safeStorage();
   if (storage) {
     try {
-      storage.setItem(KEY_PREFIX + userId, JSON.stringify(next));
+      storage.setItem(KEY_PREFIX + scoped(userId), JSON.stringify(next));
     } catch {
       // storage full or unavailable; the briefs still show this session
     }

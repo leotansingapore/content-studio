@@ -3,6 +3,7 @@
 // auto-sync of metrics. Stored under the content-studio- prefix so cloudSync
 // mirrors it across devices (see src/lib/cloudSync.ts).
 
+import { scoped } from "@/lib/profiles";
 export type SocialPlatform = "linkedin" | "tiktok" | "instagram" | "facebook";
 
 export const SOCIAL_PLATFORMS: {
@@ -41,7 +42,7 @@ export function loadSocialAccounts(userId: string | null | undefined): SocialAcc
   const s = storage();
   if (!s || !userId) return {};
   try {
-    const parsed = JSON.parse(s.getItem(KEY_PREFIX + userId) ?? "{}");
+    const parsed = JSON.parse(s.getItem(KEY_PREFIX + scoped(userId)) ?? "{}");
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
@@ -53,7 +54,7 @@ export function saveSocialAccounts(
   accounts: SocialAccounts,
 ): SocialAccounts {
   const s = storage();
-  if (s) s.setItem(KEY_PREFIX + userId, JSON.stringify(accounts));
+  if (s) s.setItem(KEY_PREFIX + scoped(userId), JSON.stringify(accounts));
   return accounts;
 }
 

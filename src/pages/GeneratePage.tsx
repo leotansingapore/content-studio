@@ -91,6 +91,7 @@ import {
   getFunnelStage,
   type FunnelStageId,
 } from "@/data/funnelFramework";
+import { scoped } from "@/lib/profiles";
 
 type Pillar = "interest" | "identity" | "topic" | "market";
 type Format = "carousel" | "short-video" | "text-post" | "story";
@@ -421,7 +422,7 @@ export default function GeneratePage() {
         );
         if (!hasOverride && id) {
           const prefs = JSON.parse(
-            localStorage.getItem(`content-studio-writeprefs-${id}`) ?? "null",
+            localStorage.getItem(`content-studio-writeprefs-${scoped(id)}`) ?? "null",
           );
           if (prefs?.platform && PLATFORMS.some((p) => p.value === prefs.platform)) {
             setPlatform(prefs.platform as Platform);
@@ -878,7 +879,7 @@ export default function GeneratePage() {
     if (userId) {
       try {
         localStorage.setItem(
-          `content-studio-writeprefs-${userId}`,
+          `content-studio-writeprefs-${scoped(userId)}`,
           JSON.stringify({ platform, format }),
         );
       } catch {

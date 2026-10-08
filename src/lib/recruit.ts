@@ -21,6 +21,7 @@ import {
   type StarlKey,
 } from "@/data/recruitKit";
 import { scanCompliance, type ComplianceFlag } from "@/lib/compliance";
+import { scoped } from "@/lib/profiles";
 
 export interface TrifectaRow {
   name: string;
@@ -103,7 +104,7 @@ export function loadBrain(userId: string | null | undefined): RecruitBrain {
   const s = storage();
   if (!s || !userId) return emptyBrain();
   try {
-    const parsed = JSON.parse(s.getItem(KEY_PREFIX + userId) ?? "null");
+    const parsed = JSON.parse(s.getItem(KEY_PREFIX + scoped(userId)) ?? "null");
     // Merge over the empty shape so a doc saved by an older version still has every field.
     return parsed && typeof parsed === "object" ? { ...emptyBrain(), ...parsed } : emptyBrain();
   } catch {
@@ -113,7 +114,7 @@ export function loadBrain(userId: string | null | undefined): RecruitBrain {
 
 export function saveBrain(userId: string, brain: RecruitBrain): RecruitBrain {
   const next = { ...brain, updatedAt: new Date().toISOString() };
-  storage()?.setItem(KEY_PREFIX + userId, JSON.stringify(next));
+  storage()?.setItem(KEY_PREFIX + scoped(userId), JSON.stringify(next));
   return next;
 }
 

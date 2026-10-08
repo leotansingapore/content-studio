@@ -6,6 +6,7 @@
 import { toPlainText } from "@/lib/plainText";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import type { DraftEntry } from "@/lib/draftHistory";
+import { scoped } from "@/lib/profiles";
 
 export const MAX_SLIDES = 10;
 export const MIN_SLIDES = 2;
@@ -607,7 +608,7 @@ export function loadBrand(userId: string | null | undefined): CarouselBrand | nu
   const s = storage();
   if (!s || !userId) return null;
   try {
-    const raw = s.getItem(BRAND_KEY_PREFIX + userId);
+    const raw = s.getItem(BRAND_KEY_PREFIX + scoped(userId));
     return raw ? sanitizeBrand(JSON.parse(raw)) : null;
   } catch {
     return null;
@@ -618,7 +619,7 @@ export function saveBrand(userId: string, brand: CarouselBrand): void {
   const s = storage();
   if (!s) return;
   try {
-    s.setItem(BRAND_KEY_PREFIX + userId, JSON.stringify(sanitizeBrand(brand)));
+    s.setItem(BRAND_KEY_PREFIX + scoped(userId), JSON.stringify(sanitizeBrand(brand)));
   } catch {
     // storage full or blocked: the brand still applies for this visit
   }

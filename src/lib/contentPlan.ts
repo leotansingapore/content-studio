@@ -14,6 +14,7 @@
 import inspirationData from "@/data/inspiration.json";
 import { FUNNEL_STAGES, type FunnelStageId } from "@/data/funnelFramework";
 import type { Positioning } from "@/lib/positioning";
+import { scoped } from "@/lib/profiles";
 
 export type PlanPillar = "interest" | "identity" | "topic" | "market";
 export type PlanFormat = "carousel" | "short-video" | "text-post" | "story";
@@ -378,7 +379,7 @@ export function loadPlan(userId: string | null | undefined): ContentPlan | null 
   if (!userId) return null;
   const storage = safeStorage();
   if (!storage) return null;
-  const raw = storage.getItem(`${KEY_PREFIX}${userId}`);
+  const raw = storage.getItem(`${KEY_PREFIX}${scoped(userId)}`);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as ContentPlan;
@@ -392,11 +393,11 @@ export function loadPlan(userId: string | null | undefined): ContentPlan | null 
 export function savePlan(userId: string, plan: ContentPlan): void {
   const storage = safeStorage();
   if (!storage) return;
-  storage.setItem(`${KEY_PREFIX}${userId}`, JSON.stringify(plan));
+  storage.setItem(`${KEY_PREFIX}${scoped(userId)}`, JSON.stringify(plan));
 }
 
 export function clearPlan(userId: string): void {
   const storage = safeStorage();
   if (!storage) return;
-  storage.removeItem(`${KEY_PREFIX}${userId}`);
+  storage.removeItem(`${KEY_PREFIX}${scoped(userId)}`);
 }

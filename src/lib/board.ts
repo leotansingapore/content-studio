@@ -6,6 +6,7 @@
 //     content-studio-board-${userId} (synced across devices by cloudSync)
 
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
+import { scoped } from "@/lib/profiles";
 
 export type ProductionStage = "idea" | "scripted" | "to-film" | "editing";
 export type BoardColumn = ProductionStage | "scheduled" | "posted";
@@ -36,7 +37,7 @@ export function loadStages(userId: string | null | undefined): StageMap {
   const s = storage();
   if (!s || !userId) return {};
   try {
-    return JSON.parse(s.getItem(KEY_PREFIX + userId) ?? "{}");
+    return JSON.parse(s.getItem(KEY_PREFIX + scoped(userId)) ?? "{}");
   } catch {
     return {};
   }
@@ -45,7 +46,7 @@ export function loadStages(userId: string | null | undefined): StageMap {
 export function setStage(userId: string, draftId: string, stage: ProductionStage): StageMap {
   const s = storage();
   const next = { ...loadStages(userId), [draftId]: stage };
-  if (s) s.setItem(KEY_PREFIX + userId, JSON.stringify(next));
+  if (s) s.setItem(KEY_PREFIX + scoped(userId), JSON.stringify(next));
   return next;
 }
 

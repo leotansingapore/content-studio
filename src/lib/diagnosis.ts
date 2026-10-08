@@ -13,6 +13,7 @@
 // scoreDiagnosis / scoreArea / nextAction are pure and exported so the scoring
 // is unit-testable without a browser (see diagnosis.test.ts).
 
+import { scoped } from "@/lib/profiles";
 export type AreaId =
   | "ideas"
   | "storytelling"
@@ -445,7 +446,7 @@ export function loadDiagnosis(
   if (!userId) return null;
   const storage = safeStorage();
   if (!storage) return null;
-  const raw = storage.getItem(`${KEY_PREFIX}${userId}`);
+  const raw = storage.getItem(`${KEY_PREFIX}${scoped(userId)}`);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<DiagnosisRecord>;
@@ -464,12 +465,12 @@ export function loadDiagnosis(
 
 export function saveDiagnosis(userId: string, record: DiagnosisRecord): void {
   const storage = safeStorage();
-  if (storage) storage.setItem(`${KEY_PREFIX}${userId}`, JSON.stringify(record));
+  if (storage) storage.setItem(`${KEY_PREFIX}${scoped(userId)}`, JSON.stringify(record));
 }
 
 export function clearDiagnosis(userId: string): void {
   const storage = safeStorage();
-  if (storage) storage.removeItem(`${KEY_PREFIX}${userId}`);
+  if (storage) storage.removeItem(`${KEY_PREFIX}${scoped(userId)}`);
 }
 
 /** Convenience: the scored result for a stored diagnosis, or null. */
