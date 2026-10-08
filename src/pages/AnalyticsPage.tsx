@@ -189,6 +189,13 @@ function Stat({
   );
 }
 
+const METRIC_FIELDS = [
+  ["impressions", "Impressions"],
+  ["reactions", "Reactions"],
+  ["comments", "Comments"],
+  ["shares", "Shares"],
+] as const;
+
 // Editable number cell for the bulk metrics table. Saves when you leave it.
 function MetricInput({
   value,
@@ -479,55 +486,50 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle className="font-serif text-lg">Add your numbers</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] text-left text-xs">
-                <thead>
-                  <tr className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                    <th className="py-1.5 pr-2 font-semibold">Post</th>
-                    <th className="w-20 px-1 py-1.5 font-semibold">Impressions</th>
-                    <th className="w-20 px-1 py-1.5 font-semibold">Reactions</th>
-                    <th className="w-20 px-1 py-1.5 font-semibold">Comments</th>
-                    <th className="w-20 px-1 py-1.5 font-semibold">Shares</th>
-                    <th className="w-16 px-1 py-1.5" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {postedDrafts.map((d) => (
-                    <tr key={d.id} className="border-t border-border/50">
-                      <td className="max-w-[220px] py-1.5 pr-2">
-                        <p className="truncate font-medium text-foreground">
-                          {d.hook || d.draft.slice(0, 50) || "Untitled"}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {PLATFORM_LABEL[d.platform] ?? d.platform}
-                        </p>
-                      </td>
-                      {(["impressions", "reactions", "comments", "shares"] as const).map(
-                        (f) => (
-                          <td key={f} className="px-1 py-1.5">
-                            <MetricInput
-                              value={editValue(d, f)}
-                              onChange={(v) => setEdit(d.id, f, v)}
-                              onSave={() => saveRow(d.id)}
-                              placeholder="0"
-                              label={`${f} for ${d.hook || "this post"}`}
-                            />
-                          </td>
-                        ),
-                      )}
-                      <td className="px-1 py-1.5 text-right" aria-live="polite">
-                        {savedId === d.id && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success">
-                            <Check className="h-3 w-3" /> Saved
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <CardContent>
+            {/* One row per post: a table from sm up, stacked on phones (title, then the four numbers). */}
+            <div className="hidden grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] gap-x-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:grid">
+              <span>Post</span>
+              {METRIC_FIELDS.map(([f, label]) => (
+                <span key={f}>{label}</span>
+              ))}
             </div>
+            {postedDrafts.map((d) => (
+              <div
+                key={d.id}
+                className="grid grid-cols-2 gap-2 border-t border-border/50 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] sm:items-center sm:py-1.5"
+              >
+                <div className="col-span-2 min-w-0 sm:col-span-1">
+                  <p className="truncate text-sm font-medium text-foreground sm:text-xs">
+                    {d.hook || d.draft.slice(0, 50) || "Untitled"}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground sm:text-[10px]">
+                    {PLATFORM_LABEL[d.platform] ?? d.platform}
+                    <span aria-live="polite">
+                      {savedId === d.id && (
+                        <span className="ml-2 inline-flex items-center gap-1 font-medium text-success">
+                          <Check className="h-3 w-3" /> Saved
+                        </span>
+                      )}
+                    </span>
+                  </p>
+                </div>
+                {METRIC_FIELDS.map(([f, label]) => (
+                  <label key={f} className="space-y-1 sm:space-y-0">
+                    <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:sr-only">
+                      {label}
+                    </span>
+                    <MetricInput
+                      value={editValue(d, f)}
+                      onChange={(v) => setEdit(d.id, f, v)}
+                      onSave={() => saveRow(d.id)}
+                      placeholder="0"
+                      label={`${f} for ${d.hook || "this post"}`}
+                    />
+                  </label>
+                ))}
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
