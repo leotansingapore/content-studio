@@ -540,6 +540,7 @@ export function buildConnectPrompt(r: { name: string; about: string; reason: str
     "- follow4: four days later if there is no reply. Adds one new thing taken from what you were given, or written as [your example] for them to fill in; never a conversation, client or event you made up, never 'just bumping this' or 'following up on my last message'. 1 to 3 sentences.",
     "- follow10: ten days later. Closes the loop kindly: says you will leave it here, and means it. 1 to 3 sentences.",
     "- Use their first name. Never invent a mutual connection, a shared school or something you read; use only the reason given. Never open with 'I hope this message finds you well'.",
+    "- All four drafts: you know only their name, the line about them and the reason given. Nothing else exists: no other interest or post of theirs, and nothing the consultant ran, led, saw, heard or was told (a workshop, a talk, a client, an earlier chat, what other people found useful). Where the consultant's own experience would help, write [your example]. Never write 'I recently spoke with', 'as we discussed', 'I also noticed' or 'after a workshop I ran'.",
     "- Never put income or earnings figures in writing.",
     ...COMPLIANCE_LINES.map((l) => `- ${l}`),
     'Reply with JSON only: {"note":"...","first":"...","follow4":"...","follow10":"..."}',

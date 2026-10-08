@@ -286,6 +286,14 @@ describe("connection notes", () => {
     expect(buildConnectPrompt(r).system).toMatch(/never a conversation, client or event you made up/);
   });
 
+  it("tells every draft that nothing exists beyond what was given: no workshop, no other interest of theirs", () => {
+    // live check 2026-10-09: first said "After a recent workshop I led", follow4 "I also noticed your interest in"
+    const { system } = buildConnectPrompt({ name: "Rachel", about: "HR manager", reason: "posted about burnout", goal: "client" });
+    expect(system).toMatch(/All four drafts: you know only their name, the line about them and the reason given\. Nothing else exists/);
+    expect(system).toContain("'I also noticed'");
+    expect(system).toContain("[your example]");
+  });
+
   it("reads four clean drafts, and none without a note and a first message", () => {
     const d = readConnect(JSON.stringify({ note: "Saw your post \u2014 loved it. https://x.co", first: "Hi Sarah, thanks for connecting.", follow4: "One more thing.", follow10: "I'll leave it here." }));
     expect(d).toEqual({ note: "Saw your post, loved it.", first: "Hi Sarah, thanks for connecting.", follow4: "One more thing.", follow10: "I'll leave it here." });
