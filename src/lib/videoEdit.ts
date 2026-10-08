@@ -45,6 +45,8 @@ export interface EditSettings {
   followFace?: boolean;
   /** Where the face is across the source video, found on this device; kept when following is off so it comes straight back. */
   faceTrack?: FaceTrack;
+  /** What shows behind the speaker: their own background blurred, a plain colour, or a picture on this device. Unset = as filmed. */
+  backdrop?: Backdrop;
   punchIn: boolean;
   progressBar: boolean;
   grade: boolean;
@@ -1314,3 +1316,6 @@ export function focusAt(s: Pick<EditSettings, "focusX" | "followFace" | "faceTra
   const b = Math.min(t.x.length - 1, a + 1);
   return t.x[a] + (t.x[b] - t.x[a]) * (i - a);
 }
+
+/** Behind the speaker, found on this device (faceVision.ts): blur 0-1, a #RRGGBB colour, or a picture's file key. */
+export type Backdrop = { kind: "blur"; amount: number } | { kind: "colour"; color: string } | { kind: "picture"; key: string };

@@ -69,3 +69,30 @@ describe("the face effects library", () => {
     expect(pkg.dependencies["@mediapipe/tasks-vision"]).toBe(MP_VERSION);
   });
 });
+
+describe("what is behind you", () => {
+  it("keeps a stored backdrop only when well formed", async () => {
+    const { sanitizeBackdrop } = await import("./faceVision");
+    expect(sanitizeBackdrop({ kind: "blur", amount: 3 })).toEqual({ kind: "blur", amount: 1 });
+    expect(sanitizeBackdrop({ kind: "blur" })).toEqual({ kind: "blur", amount: 0.6 });
+    expect(sanitizeBackdrop({ kind: "colour", color: "#0f172a" })).toEqual({ kind: "colour", color: "#0F172A" });
+    expect(sanitizeBackdrop({ kind: "colour", color: "red" })).toBeUndefined();
+    expect(sanitizeBackdrop({ kind: "picture", key: "bd-v1abc-x2" })).toEqual({ kind: "picture", key: "bd-v1abc-x2" });
+    expect(sanitizeBackdrop({ kind: "picture", key: "vo-v1abc-x2" })).toBeUndefined();
+    expect(sanitizeBackdrop(undefined)).toBeUndefined();
+  });
+
+  it("cuts the person out with a soft edge that is never see-through", async () => {
+    const { maskAlpha } = await import("./faceVision");
+    expect(maskAlpha(0.3)).toBe(0);
+    expect(Math.abs(maskAlpha(0.6) - 128)).toBeLessThanOrEqual(1);
+    expect(maskAlpha(0.85)).toBe(255);
+  });
+
+  it("blurs by the same share of the picture in the preview and the export", async () => {
+    const { blurPx } = await import("./faceVision");
+    expect(blurPx(0.6, 1080, 1920)).toBe(2 * blurPx(0.6, 540, 960));
+    expect(blurPx(0, 1080, 1920)).toBeLessThan(blurPx(1, 1080, 1920));
+  });
+});
+

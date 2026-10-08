@@ -127,14 +127,15 @@ import {
   syncBroll,
   type BrandArt,
   type ExportJob,
+  type Frame,
 } from "@/lib/videoMedia";
 import { fileKey, findClips, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
-import { findFaceTrack } from "@/lib/faceVision";
+import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cropShare, sanitizeTrack } from "@/lib/faceFollow";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 
 const MAX_BYTES = 500 * 1024 * 1024;
-type Tab = "style" | "cuts" | "frame" | "stickers" | "broll" | "words";
+type Tab = "style" | "cuts" | "frame" | "face" | "stickers" | "broll" | "words";
 
 export default function VideoEditPage() {
   const { toast } = useToast();
@@ -240,7 +241,7 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
       <header className="space-y-1">
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Edit a video</h1>
         <ul className="flex flex-wrap gap-1.5 pt-1" aria-label="What it does">
-          {["Auto captions", "Cuts um and long pauses", "Hook on screen", "9:16 reframe that follows your face", "Find clips in a long video", "Vibe edit by chat", "MP4 export"].map((t) => (
+          {["Auto captions", "Cuts um and long pauses", "Hook on screen", "9:16 reframe that follows your face", "Blur or swap your background", "Find clips in a long video", "Vibe edit by chat", "MP4 export"].map((t) => (
             <li key={t} className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{t}</li>
           ))}
         </ul>
@@ -322,6 +323,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     broll: sanitizeBroll(project.settings.broll),
     music: sanitizeMusic(project.settings.music),
     faceTrack: sanitizeTrack(project.settings.faceTrack),
+    backdrop: sanitizeBackdrop(project.settings.backdrop),
   }));
   // Words tab: fix spelling, or cut a stretch by tapping its first and last word
   const [wordMode, setWordMode] = useState<"fix" | "cut">("fix");
@@ -366,6 +368,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [dims, setDims] = useState<[number, number]>([0, 0]);
   // looking for the face across the video (share done), for the crop to follow it
   const [finding, setFinding] = useState<number | null>(null);
+  // behind you: the picture (from this device) and the model that finds who is in front, loaded on first use
+  const pictureKey = settings.backdrop?.kind === "picture" ? settings.backdrop.key : "";
+  const [backdropImg, setBackdropImg] = useState<HTMLImageElement | null | undefined>(undefined);
+  const pictureInput = useRef<HTMLInputElement>(null);
+  const [fxState, setFxState] = useState<"" | "loading" | "failed">("");
+  const wantFx = !!settings.backdrop;
   const segIdx = useRef(0);
   const drag = useRef<{ startX: number; startY: number; moved: boolean; overlay?: string } | null>(null);
   // the brand kit (logo, end card, name tag); endAt is the time into the end card while it shows
@@ -467,6 +475,33 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     return () => { live = false; };
   }, [musicBlob]);
   useEffect(() => () => void musicOut.current?.ctx.close(), []);
+  useEffect(() => {
+    if (!pictureKey) return setBackdropImg(undefined);
+    let live = true;
+    let src = "";
+    getFile(pictureKey)
+      .then((b) => {
+        if (!live) return;
+        if (!b) return setBackdropImg(null);
+        const img = new Image();
+        img.onload = () => live && setBackdropImg(img);
+        img.onerror = () => live && setBackdropImg(null);
+        img.src = src = URL.createObjectURL(b);
+      })
+      .catch(() => live && setBackdropImg(null));
+    return () => { live = false; if (src) URL.revokeObjectURL(src); };
+  }, [pictureKey]);
+  const loadFx = useCallback(() => {
+    setFxState("loading");
+    return loadEffects(settingsRef.current)
+      .then(() => { setFxState(""); paintRef.current?.(); })
+      .catch(() => setFxState("failed"));
+  }, []);
+  useEffect(() => {
+    if (wantFx) void loadFx();
+    else setFxState("");
+  }, [wantFx, loadFx]);
+  const fx = useMemo<Frame["fx"]>(() => (settings.backdrop ? (g, r) => paintEffects(g, r, settings, backdropImg) : null), [settings, backdropImg]);
 
   // save the edit a moment after the last change
   useEffect(() => {
@@ -506,9 +541,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
     const out = outAt(plan.segs, v.currentTime, speed) ?? outT;
     const broll = syncBroll(brollEls.current, settings.broll, out, playing);
-    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing, broll });
+    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing, broll, fx });
     setOutT(out);
-  }, [plan, settings, outT, subs, art, playing, speed]);
+  }, [plan, settings, outT, subs, art, playing, speed, fx]);
   const total = fullLength(plan.total, settings, !!art);
   // what Export will make for the platform picked: its frame, and about how big the file comes out
   const size = useMemo(
@@ -570,7 +605,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
   }, [playing]);
 
-  useEffect(() => { if (!playing) paint(); }, [settings, plan]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!playing) paint(); }, [settings, plan, backdropImg]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const syncVoice = (out: number | null) => {
     const el = voiceEl.current;
@@ -916,7 +951,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           window.setTimeout(done, 2000);
         });
       }
-      const blob = await makeCover(v, settings, publish?.cover.trim() || settings.hook || project.name);
+      const blob = await makeCover(v, settings, publish?.cover.trim() || settings.hook || project.name, fx);
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = `${project.name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}-cover.png`;
@@ -1020,7 +1055,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       const f = await getFile(b.key).catch(() => undefined);
       if (f) brollFiles[b.key] = f;
     }
-    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art, settings.voiceover ? voiceBlob : null, brollFiles, settings.music ? musicBlob : null).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
+    if (settings.backdrop) {
+      try {
+        await loadEffects(settings);
+      } catch {
+        return toast({ title: "Couldn't load the background effect", description: "Check the connection, then export again.", variant: "destructive" });
+      }
+    }
+    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art, settings.voiceover ? voiceBlob : null, brollFiles, settings.music ? musicBlob : null, fx).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
   };
 
   // the exported file read back for what would spoil the post; one check per export, null while it runs
@@ -1150,6 +1192,20 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     toast({ title: `B-roll added at ${fmtTime(b.from)}` });
   };
   const editBroll = (id: string, p: Partial<Broll>) => patch({ broll: brolls.map((b) => (b.id === id ? { ...b, ...p } : b)) });
+  const addPicture = async (f: File) => {
+    if (!f.type.startsWith("image/")) return toast({ title: "That isn't a picture", variant: "destructive" });
+    if (f.size > 15 * 1024 * 1024) return toast({ title: "That picture is over 15 MB", variant: "destructive" });
+    try {
+      const key = `bd-${project.id}-${Date.now().toString(36)}`;
+      await putFile(key, f);
+      // the previous picture's file stays, so Undo can bring it back (ponytail: pictures accumulate per video, like voiceover takes)
+      const cur = settingsRef.current;
+      setHistory((h) => [...h.slice(-19), cur]);
+      setSettings({ ...cur, backdrop: { kind: "picture", key } });
+    } catch (e) {
+      toast({ title: "Couldn't keep the picture", description: (e as Error).message, variant: "destructive" });
+    }
+  };
 
   const stickerColours = [...new Set(["#FFFFFF", "#FFD92B", settings.activeColor, art?.color ?? "#2563EB", "#EF4444", "#111827"].map((c) => c.toUpperCase()))];
 
@@ -1513,7 +1569,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           </section>
 
           <nav className="flex w-fit flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" aria-label="Edit">
-            {([["style", "Captions"], ["cuts", "Cuts"], ["frame", "Hook and frame"], ["stickers", "Stickers"], ["broll", "B-roll"], ["words", "Words"]] as const).map(([id, label]) => (
+            {([["style", "Captions"], ["cuts", "Cuts"], ["frame", "Hook and frame"], ["face", "Face and background"], ["stickers", "Stickers"], ["broll", "B-roll"], ["words", "Words"]] as const).map(([id, label]) => (
               <button key={id} type="button" onClick={() => setTab(id)} aria-pressed={tab === id}
                 className={`rounded-md px-3 py-1.5 text-xs font-semibold ${tab === id ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
             ))}
@@ -1815,6 +1871,50 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <Chip on={settings.transition === "soft"} onClick={() => patch({ transition: "soft" })}>Soft dip</Chip>
                 <Chip on={settings.transition === "flash"} onClick={() => patch({ transition: "flash" })}>Flash</Chip>
               </Row>
+            </div>
+          )}
+
+          {tab === "face" && (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <p className="flex items-center text-sm font-medium">Behind you
+                  <InfoTip label="About behind you">Found on this device, frame by frame. Best with one person.</InfoTip></p>
+                <div className="flex flex-wrap gap-1.5 [&>button]:min-h-11 sm:[&>button]:min-h-0" role="group" aria-label="Behind you">
+                  <Chip on={!settings.backdrop} onClick={() => patch({ backdrop: undefined })}>As filmed</Chip>
+                  <Chip on={settings.backdrop?.kind === "blur"} onClick={() => patch({ backdrop: { kind: "blur", amount: 0.6 } })}>Blur</Chip>
+                  <Chip on={settings.backdrop?.kind === "colour"} onClick={() => patch({ backdrop: { kind: "colour", color: (art?.color ?? "#111827").toUpperCase() } })}>Colour</Chip>
+                  <Chip on={settings.backdrop?.kind === "picture"} onClick={() => pictureInput.current?.click()}>Picture</Chip>
+                </div>
+                <input ref={pictureInput} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-hidden
+                  onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void addPicture(f); }} />
+              </div>
+              {settings.backdrop?.kind === "blur" && (
+                <Row label={`Blur ${Math.round(settings.backdrop.amount * 100)}%`}>
+                  <input type="range" min={0} max={1} step={0.05} value={settings.backdrop.amount} aria-label="How much to blur behind you"
+                    onChange={(e) => patch({ backdrop: { kind: "blur", amount: Number(e.target.value) } })} className="h-11 w-40 accent-primary sm:h-auto" />
+                </Row>
+              )}
+              {settings.backdrop?.kind === "colour" && (
+                <Row label="Colour">
+                  <input type="color" aria-label="Colour behind you" value={settings.backdrop.color}
+                    onChange={(e) => patch({ backdrop: { kind: "colour", color: e.target.value.toUpperCase() } })} className="h-11 w-14 rounded sm:h-8 sm:w-10" />
+                </Row>
+              )}
+              {settings.backdrop?.kind === "picture" && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {backdropImg === null && <span className="text-xs text-muted-foreground">The picture is on the device you added it on.</span>}
+                  <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => pictureInput.current?.click()}>
+                    <ImageIcon className="h-3.5 w-3.5" /> Change picture
+                  </Button>
+                </div>
+              )}
+              {fxState === "loading" && <p className="text-xs text-muted-foreground" aria-live="polite">Loading the background finder (about 4 MB, once)...</p>}
+              {fxState === "failed" && (
+                <p className="flex flex-wrap items-center gap-2 text-xs text-destructive" role="status">
+                  Couldn&apos;t load the background finder. Check the connection.
+                  <Button size="sm" variant="outline" className="h-11 text-xs text-foreground sm:h-7" onClick={() => void loadFx()}>Try again</Button>
+                </p>
+              )}
             </div>
           )}
 

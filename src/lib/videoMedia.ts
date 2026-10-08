@@ -188,6 +188,8 @@ export interface Frame {
   still?: boolean;
   /** The B-roll clip showing now (kept in step by syncBroll), drawn full-frame over the speaker. */
   broll?: HTMLVideoElement | null;
+  /** Face and background effects (faceVision.ts), painted over the speaker's picture once it is drawn; r is where it shows. */
+  fx?: ((g: CanvasRenderingContext2D, r: { x: number; y: number; w: number; h: number }) => void) | null;
 }
 
 // ---------- voice polish ----------
@@ -375,6 +377,9 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   g.fillRect(0, 0, W, H);
 
   // the picture: cover the frame, crop centred on focusX (or on the face, when following it), punch in on alternate cuts
+  // (effects are skipped under a B-roll cutaway, which covers the picture anyway)
+  const fx = f.broll?.videoWidth ? null : f.fx;
+  const shown = (x: number, y: number, w: number, h: number) => ({ x: Math.max(0, x), y: Math.max(0, y), w: Math.min(W, x + w) - Math.max(0, x), h: Math.min(H, y + h) - Math.max(0, y) });
   if (v.videoWidth) {
     const zoom = s.punchIn ? zoomAt(f.segs, f.src, spec.punch) : 1;
     const cover = Math.max(W / v.videoWidth, H / v.videoHeight);
@@ -396,6 +401,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       g.filter = gradeOf(s);
       g.drawImage(v, r.x - (zw - r.w) / 2, r.y - (zh - r.h) / 2, zw, zh);
       g.filter = "none";
+      fx?.(g, shown(r.x, r.y, r.w, r.h));
       g.restore();
     } else if (s.fit === "blur") {
       // the whole picture, over a darkened, blurred copy filling the frame
@@ -411,6 +417,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       g.filter = gradeOf(s);
       g.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
       g.filter = "none";
+      fx?.(g, shown((W - dw) / 2, (H - dh) / 2, dw, dh));
     } else {
       const scale = cover * zoom;
       const dw = v.videoWidth * scale;
@@ -420,6 +427,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       g.filter = gradeOf(s);
       g.drawImage(v, dx, dy, dw, dh);
       g.filter = "none";
+      fx?.(g, shown(0, 0, W, H));
     }
   }
   // a B-roll cutaway covers the whole frame; captions and the rest still go on top
@@ -711,14 +719,14 @@ export function drawOverlay(g: CanvasRenderingContext2D, o: Overlay, intro = 1) 
  * a dark band and the title set large in the style's caption face. PNG at the
  * export size, so it uploads as the reel cover without resizing.
  */
-export async function makeCover(video: HTMLVideoElement, settings: EditSettings, title: string): Promise<Blob> {
+export async function makeCover(video: HTMLVideoElement, settings: EditSettings, title: string, fx?: Frame["fx"]): Promise<Blob> {
   await ensureCaptionFonts();
   const [W, H] = aspectSize(settings.aspect, video.videoWidth, video.videoHeight);
   const c = document.createElement("canvas");
   c.width = W;
   c.height = H;
   const g = c.getContext("2d")!;
-  drawFrame(g, { video, settings: { ...settings, captions: false, hook: "", progressBar: false }, caps: [], segs: [], src: video.currentTime, out: 99, total: 0 });
+  drawFrame(g, { video, settings: { ...settings, captions: false, hook: "", progressBar: false }, caps: [], segs: [], src: video.currentTime, out: 99, total: 0, fx });
   const k = W / 1080;
   const text = (title.trim() || " ").toUpperCase();
   const px = Math.round((settings.aspect === "16:9" ? 92 : 104) * k);
@@ -859,7 +867,7 @@ export async function measureExport(url: string): Promise<ReturnType<typeof soun
 }
 
 /** Renders the edit in real time (a 45 s reel takes about 45 s) and downloads it. */
-export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null, voice?: Blob | null, brollFiles?: Record<string, Blob>, music?: Blob | null) {
+export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null, voice?: Blob | null, brollFiles?: Record<string, Blob>, music?: Blob | null, fx?: Frame["fx"]) {
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
   const kind = settings.exportAs ?? "video";
@@ -943,7 +951,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const endLen = settings.endCard && brand && kind !== "audio" ? END_CARD_SECONDS : 0;
     const draw = () => {
       const out = Math.min(plan.total, outAt(plan.segs, v.currentTime, speed) ?? done / speed);
-      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand, broll: syncBroll(brEls, settings.broll, out, rec.state === "recording") });
+      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand, broll: syncBroll(brEls, settings.broll, out, rec.state === "recording"), fx });
       if (rec.state === "recording") voSync(out);
       else voStop();
       if (job) {
@@ -994,7 +1002,8 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
             gain.gain.linearRampToValueAtTime(0, actx!.currentTime + FADE);
           }
           if (v.currentTime >= seg.end - 0.02 || v.ended) return resolve();
-          timer = window.setTimeout(tick, 1000 / 30);
+          // the next frame 1/30 s after this one began, not after it was drawn (face effects take a few ms)
+          timer = window.setTimeout(tick, Math.max(0, 1000 / 30 - (performance.now() - nowMs)));
         };
         let timer = window.setTimeout(tick, 0);
       });
