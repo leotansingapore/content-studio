@@ -1270,8 +1270,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : <>{exportLabel} <span className="font-normal opacity-80">{fmtBytes(size.bytes)}</span></>}
         </Button>
       </div>
-      <ClipFinder project={project} words={words} settings={settings} duration={duration} onClips={onClips} onOpen={onOpen} />
-      {job?.state === "running" && (
+      <ClipFinder userId={userId} project={project} words={words} settings={settings} duration={duration} onClips={onClips} onOpen={onOpen} />
+      {job?.state === "running" && job.name === project.name && (
         <p className="text-xs text-muted-foreground" aria-live="polite">
           Exporting in real time ({fmtTime(total)}). You can use other pages; keep this browser tab in front until it finishes.
         </p>

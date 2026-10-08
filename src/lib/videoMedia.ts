@@ -950,6 +950,54 @@ export function clearExportJob() {
   emit();
 }
 
+// Export all: several exports one after another (each its own startExport), still outside React.
+export interface ExportQueue {
+  /** The export running, counted from 1, and how many there are. */
+  at: number;
+  of: number;
+  /** The ids of the exports, in order. */
+  ids: string[];
+  running: boolean;
+  /** Asked to stop: the export running finishes and no more start. */
+  stopping: boolean;
+  /** What each export made, by its id. */
+  files: Record<string, { url: string; ext: string }>;
+  failed: Record<string, string>;
+}
+let queue: ExportQueue | null = null;
+export const exportQueue = () => queue;
+export function stopExportQueue() {
+  if (!queue?.running) return;
+  queue.stopping = true;
+  emit();
+}
+/** Runs each export in turn; one that fails is noted and the rest still run. */
+export async function exportAll(runs: { id: string; run: () => Promise<void> }[]): Promise<void> {
+  if (job?.state === "running" || queue?.running) throw new Error("An export is already running.");
+  const q: ExportQueue = { at: 0, of: runs.length, ids: runs.map((r) => r.id), running: true, stopping: false, files: {}, failed: {} };
+  queue = q;
+  try {
+    for (const r of runs) {
+      if (q.stopping) break;
+      q.at++;
+      emit();
+      const before = job?.id;
+      try {
+        await r.run();
+      } catch (e) {
+        q.failed[r.id] = e instanceof Error ? e.message : String(e);
+        continue;
+      }
+      const made = job && job.id !== before ? job : null;
+      if (made?.state === "done" && made.url) q.files[r.id] = { url: made.url, ext: made.ext ?? "mp4" };
+      else q.failed[r.id] = made?.error ?? "The export did not finish.";
+    }
+  } finally {
+    q.running = false;
+    emit();
+  }
+}
+
 function pickMime(audioOnly = false): { mime: string; ext: string } {
   const options = audioOnly
     ? ([["audio/mp4", "m4a"], ["audio/webm;codecs=opus", "webm"], ["audio/webm", "webm"]] as const)

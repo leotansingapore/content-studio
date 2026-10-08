@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Download, X } from "lucide-react";
-import { clearExportJob, exportJob, onExportJob, type ExportJob } from "@/lib/videoMedia";
+import { clearExportJob, exportJob, exportQueue, onExportJob, type ExportJob } from "@/lib/videoMedia";
 
 // A video export keeps running while you use other pages; this says how far it
 // has got, and offers the file when it is done. Hidden on the editor itself.
@@ -22,7 +22,7 @@ export default function ExportPill() {
           <span className="relative h-1.5 w-16 overflow-hidden rounded-full bg-muted">
             <span className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${Math.round(job.progress * 100)}%` }} />
           </span>
-          Exporting {job.name} {Math.round(job.progress * 100)}%
+          {exportQueue()?.running ? `Exporting ${exportQueue()!.at} of ${exportQueue()!.of}` : `Exporting ${job.name}`} {Math.round(job.progress * 100)}%
         </Link>
       )}
       {job.state === "done" && job.url && (
