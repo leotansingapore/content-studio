@@ -34,6 +34,13 @@ export interface ReelComment {
   resolved: boolean;
 }
 
+/**
+ * Board brand -> Instagram handle the Mac publisher posts to at the slot
+ * (moneybees-reels/tools/publish_ig.py keeps the same map). A brand missing here
+ * is posted by hand.
+ */
+export const IG_HANDLES: Record<string, string> = { moneybees: "the_moneybees", finternship: "finternshipofficial" };
+
 export interface ReelCard {
   id: string;
   title: string;
@@ -48,6 +55,16 @@ export interface ReelCard {
   versions: ReelVersion[];
   comments: ReelComment[];
   history: { at: string; from?: string; to: string; note?: string }[];
+  /** Written by the publisher once the post is live. */
+  ig?: { state: "publishing" | "posted"; permalink?: string; account?: string; mediaId?: string };
+}
+
+/** Where an approved card will go, or went, on Instagram. */
+export function igLine(c: ReelCard): { text: string; href?: string } | null {
+  const handle = IG_HANDLES[brandOf(c)];
+  if (c.ig?.state === "posted") return { text: `On Instagram @${c.ig.account ?? handle}`, href: c.ig.permalink };
+  if (c.stage !== "scheduled" && c.stage !== "approved") return null;
+  return handle ? { text: `Posts to @${handle} automatically` } : { text: "Not linked to Instagram: post it by hand" };
 }
 
 export interface Board {

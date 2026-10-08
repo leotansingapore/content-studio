@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { brandForProfile, cardsIn, mmss, type ReelCard } from "./reelsBoard";
+import { brandForProfile, cardsIn, igLine, mmss, type ReelCard } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -30,5 +30,17 @@ describe("reels board helpers", () => {
   it("formats a timestamp as m:ss", () => {
     expect(mmss(75.9)).toBe("1:15");
     expect(mmss(null)).toBe("0:00");
+  });
+});
+
+describe("igLine", () => {
+  it("says where a scheduled reel posts, or that it is posted by hand", () => {
+    expect(igLine(card("a", "scheduled", "moneybees"))?.text).toBe("Posts to @the_moneybees automatically");
+    expect(igLine(card("a", "scheduled", "leo"))?.text).toBe("Not linked to Instagram: post it by hand");
+    expect(igLine(card("a", "review", "moneybees"))).toBeNull();
+  });
+  it("links a posted reel to its Instagram post", () => {
+    const c = { ...card("a", "posted", "finternship"), ig: { state: "posted" as const, permalink: "https://instagram.com/p/x", account: "finternshipofficial" } };
+    expect(igLine(c)).toEqual({ text: "On Instagram @finternshipofficial", href: "https://instagram.com/p/x" });
   });
 });

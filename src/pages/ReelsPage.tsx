@@ -16,6 +16,8 @@ import {
   cardsIn,
   currentVersion,
   fetchBoard,
+  IG_HANDLES,
+  igLine,
   isCarousel,
   openNotes,
   updateCard,
@@ -68,7 +70,10 @@ export default function ReelsPage() {
           if (quiet) return;
           const name = board?.stages.find((s) => s.id === fresh.stage)?.name ?? fresh.stage;
           toast({
-            title: fresh.stage === "scheduled" && fresh.schedule ? `Scheduled for ${when(fresh.schedule)}` : `Moved to ${name}`,
+            title:
+              fresh.stage === "scheduled" && fresh.schedule
+                ? `Scheduled for ${when(fresh.schedule)}${IG_HANDLES[brandOf(fresh)] ? `, posts to @${IG_HANDLES[brandOf(fresh)]}` : ""}`
+                : `Moved to ${name}`,
             action: <ToastAction altText="Undo" onClick={() => move(id, from, true)}>Undo</ToastAction>,
           });
         })
@@ -176,6 +181,11 @@ export default function ReelsPage() {
                           <span className="block px-2.5 text-[11px] text-muted-foreground">
                             {c.styleName ?? c.style}{c.schedule ? ` - ${when(c.schedule)}` : ""}
                           </span>
+                          {igLine(c) && (
+                            <span className={`block px-2.5 text-[11px] font-semibold ${igLine(c)!.href ? "text-primary" : "text-muted-foreground"}`}>
+                              {igLine(c)!.text}
+                            </span>
+                          )}
                         </button>
                         {next && (
                           <div className="mt-auto p-2.5 pt-2">

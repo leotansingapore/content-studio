@@ -9,6 +9,7 @@ import {
   addNote,
   brandOf,
   currentVersion,
+  igLine,
   isCarousel,
   mmss,
   openNotes,
@@ -183,6 +184,15 @@ export default function ReelDrawer({
                   <li className="rounded-full border border-warning/60 bg-warning/15 px-2 py-0.5 font-semibold">{stageName(card.stage)}</li>
                 )}
               </ol>
+              {(() => {
+                const ig = igLine(card);
+                if (!ig) return null;
+                return ig.href ? (
+                  <a href={ig.href} target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold text-primary hover:underline">{ig.text}</a>
+                ) : (
+                  <p className="text-xs font-semibold text-muted-foreground">{ig.text}{card.schedule ? `, ${when(card.schedule)}` : ""}</p>
+                );
+              })()}
               <div className="flex flex-wrap gap-2">
                 {next && <Button size="sm" onClick={() => onMove(card.id, next[0])}>{next[1]}</Button>}
                 {card.stage !== "changes" && card.stage !== "posted" && (
