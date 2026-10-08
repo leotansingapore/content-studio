@@ -170,7 +170,7 @@ function EmptyState({ hasVoice }: { hasVoice: boolean }) {
             <Link to="/swipe" className="font-semibold text-primary hover:underline">
               Top posts
             </Link>{" "}
-            and tap Clone on any video.
+            and tap Clone on any reel.
           </p>
         </div>
 

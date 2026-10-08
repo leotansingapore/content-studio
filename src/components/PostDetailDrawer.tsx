@@ -17,9 +17,11 @@ import {
   Images,
   FileText,
   Instagram,
+  Clapperboard,
 } from "lucide-react";
 import { buildRemixUrl, compactNum, generatorFormat } from "@/lib/topPosts";
 import { embedUrlFor, safeExternalUrl } from "@/lib/embed";
+import { cloneLinkFor } from "@/lib/reelClone";
 import { similarPosts, type ScoredPost } from "@/lib/postInsights";
 
 const FORMAT_LABEL: Record<string, string> = {
@@ -91,6 +93,7 @@ export default function PostDetailDrawer({
   const similar = similarPosts(item, all, 5);
   const remixUrl = buildRemixUrl(post, advisor, { angle: insight.angle, structure: insight.structure });
   const canEmbed = embedUrlFor(post.url) !== null;
+  const cloneUrl = fmt === "short-video" ? cloneLinkFor(post.url) : null;
 
   // Portalled to <body>: inside the page the sidebar's stacking context sits
   // above the backdrop, so a backdrop click landed on a nav link. z-[70] puts
@@ -139,14 +142,15 @@ export default function PostDetailDrawer({
                 )}
               </div>
             )}
-            <div className="pointer-events-none absolute left-3 top-3 z-10 flex gap-1.5">
+            {/* Over a cover only: on the live embed they hid the creator's name. */}
+            {!canEmbed && <div className="pointer-events-none absolute left-3 top-3 z-10 flex gap-1.5">
               <span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur">
                 <Instagram className="h-3 w-3" /> Instagram
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur">
                 <Icon className="h-3 w-3" /> {fmt === "short-video" ? "Video" : FORMAT_LABEL[fmt] ?? "Post"}
               </span>
-            </div>
+            </div>}
           </div>
 
           <div className="space-y-5 p-4">
@@ -182,6 +186,13 @@ export default function PostDetailDrawer({
                     <ExternalLink className="h-4 w-4" /> Open original
                   </a>
                 </Button>
+                {cloneUrl && (
+                  <Button asChild variant="outline" className="gap-1.5" title="Clone this reel">
+                    <Link to={cloneUrl}>
+                      <Clapperboard className="h-4 w-4" /> Clone
+                    </Link>
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={onToggleSave}
