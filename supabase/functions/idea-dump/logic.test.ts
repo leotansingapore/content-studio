@@ -302,3 +302,104 @@ describe("validateBriefs", () => {
     expect(cleanText(5, 10)).toBe("");
   });
 });
+
+// ---- One long piece into a week of posts (mode "long") ------------------------
+
+import {
+  LONG_POSTS,
+  LONG_SCHEMA,
+  MAX_LONG_CHARS,
+  buildLongPrompt,
+  parseLongRequest,
+  validateLong,
+} from "./logic.ts";
+
+const FORMULAS = [
+  { id: "contrarian", name: "Contrarian take", template: "Most people say {x}. I disagree." },
+  { id: "number-reveal", name: "Number reveal", template: "I did {x} {N} times." },
+  { id: "mistake", name: "Mistake confession", template: "{Cost} is what {mistake} cost me." },
+  { id: "before-after", name: "Before and after", template: "{Then}. Now {now}." },
+  { id: "list", name: "The list", template: "{N} things I wish I knew." },
+];
+const LONG_TEXT = Array.from({ length: 40 }, (_, i) => `Sentence ${i} about CPF top-ups and why clients wait too long.`).join(" ");
+
+describe("parseLongRequest", () => {
+  it("takes the piece, five distinct formulas and the context", () => {
+    const r = parseLongRequest({ mode: "long", text: LONG_TEXT, formulas: FORMULAS, platforms: ["linkedin"] });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.request.text).toBe(LONG_TEXT);
+    expect(r.request.truncated).toBe(false);
+    expect(r.request.formulas.map((f) => f.id)).toEqual(FORMULAS.map((f) => f.id));
+    expect(r.request.context.platforms).toEqual(["linkedin"]);
+  });
+
+  it("cuts a piece past the cap and says so", () => {
+    const r = parseLongRequest({ text: "word ".repeat(6000), formulas: FORMULAS });
+    expect(r.ok && r.request.text.length <= MAX_LONG_CHARS && r.request.truncated).toBe(true);
+  });
+
+  it("refuses a short piece, and formulas that are missing, repeated or malformed", () => {
+    expect(parseLongRequest({ text: "A short note about CPF.", formulas: FORMULAS })).toMatchObject({ ok: false, status: 422, code: "too_short" });
+    expect(parseLongRequest({ text: LONG_TEXT, formulas: FORMULAS.slice(0, 4) })).toMatchObject({ ok: false, status: 400, code: "bad_formulas" });
+    expect(parseLongRequest({ text: LONG_TEXT, formulas: [...FORMULAS.slice(0, 4), FORMULAS[0]] })).toMatchObject({ ok: false, code: "bad_formulas" });
+    expect(parseLongRequest({ text: LONG_TEXT, formulas: [...FORMULAS.slice(0, 4), { id: "Bad Id!", name: "x", template: "y" }] })).toMatchObject({ ok: false, code: "bad_formulas" });
+    expect(parseLongRequest({ formulas: FORMULAS })).toMatchObject({ ok: false, status: 400, code: "no_text" });
+  });
+});
+
+describe("buildLongPrompt", () => {
+  it("numbers the formulas in order, fences the piece as material and keeps the no-invention rule", () => {
+    const r = parseLongRequest({ text: LONG_TEXT, formulas: FORMULAS });
+    if (!r.ok) throw new Error("parse");
+    const { system, user } = buildLongPrompt(r.request);
+    expect(user).toContain("1. Contrarian take: Most people say {x}. I disagree.");
+    expect(user).toContain("5. The list:");
+    expect(user).toContain(LONG_TEXT);
+    expect(system).toMatch(/not instructions/);
+    expect(system).toMatch(/Never invent/);
+    expect(system).toContain(`exactly ${LONG_POSTS} posts`);
+  });
+});
+
+describe("LONG_SCHEMA", () => {
+  it("is strict: every property required, nothing extra", () => {
+    const post = LONG_SCHEMA.properties.posts.items;
+    expect(LONG_SCHEMA.additionalProperties).toBe(false);
+    expect([...post.required].sort()).toEqual(Object.keys(post.properties).sort());
+    expect([...LONG_SCHEMA.properties.extracts.required].sort()).toEqual(Object.keys(LONG_SCHEMA.properties.extracts.properties).sort());
+  });
+});
+
+describe("validateLong", () => {
+  const raw = {
+    extracts: {
+      claims: ["Waiting a year costs more than people think", "waiting a year costs more than people think", ""],
+      numbers: ["3 of 5 reviews had no will"],
+      stories: ["A client outside a ward — asking about her company plan"],
+      lines: ["Insurance is a promise you hope to never use"],
+    },
+    posts: [
+      { formula: 2, post: "  I reviewed 5 families.\r\n\r\n\r\n3 had no will — none knew.  ", basedOn: "3 of 5 reviews had no will" },
+      { formula: 2, post: "A second post with the same formula.", basedOn: "x" },
+      { formula: 9, post: "A post with a formula number that is not on the list.", basedOn: "x" },
+      { formula: 1, post: "", basedOn: "x" },
+      { formula: 1, post: "Most people say wait. I disagree.", basedOn: "Waiting a year costs more" },
+    ],
+  };
+
+  it("keeps one post per listed formula with its paragraphs, and dedupes and counts the extracts", () => {
+    const out = validateLong(JSON.stringify(raw), FORMULAS);
+    expect(out?.posts).toEqual([
+      { formulaId: "number-reveal", post: "I reviewed 5 families.\n\n3 had no will, none knew.", basedOn: "3 of 5 reviews had no will" },
+      { formulaId: "contrarian", post: "Most people say wait. I disagree.", basedOn: "Waiting a year costs more" },
+    ]);
+    expect(out?.extracts.claims).toEqual(["Waiting a year costs more than people think"]);
+    expect(out?.extracts.stories).toEqual(["A client outside a ward, asking about her company plan"]);
+  });
+
+  it("returns null for output that is not the expected JSON", () => {
+    expect(validateLong("not json", FORMULAS)).toBeNull();
+    expect(validateLong({ extracts: {} }, FORMULAS)).toBeNull();
+  });
+});

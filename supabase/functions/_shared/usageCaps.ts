@@ -11,6 +11,8 @@ export const DAILY_LIMITS = {
   // The frames read after each Instagram clone (reel-visuals).
   "reel-visuals": 20,
   "idea-dump": 30,
+  // One long piece into 5 posts (idea-dump mode "long"), about 4 US cents a run.
+  "repurpose-long": 20,
   carousel: 30,
   // Video editor (/edit): one transcription per uploaded video, and chat edits.
   "video-transcribe": 30,

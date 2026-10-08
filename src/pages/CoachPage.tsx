@@ -46,6 +46,7 @@ import {
 import DiagnosisQuiz from "@/components/DiagnosisQuiz";
 import DiagnosisSummary from "@/components/DiagnosisSummary";
 import IdeaDump from "@/components/IdeaDump";
+import LongPiece from "@/components/LongPiece";
 import {
   Gauge,
   Sparkles,
@@ -311,6 +312,7 @@ export default function CoachPage() {
         </header>
         <DiagnosisQuiz onComplete={handleDiagComplete} />
         <IdeaDump />
+        <LongPiece />
       </div>
     );
   }
@@ -713,6 +715,8 @@ export default function CoachPage() {
       </section>
 
       <IdeaDump />
+
+      <LongPiece />
 
       <p className="flex items-center justify-center gap-1.5 pt-2 text-xs text-muted-foreground">
         <BookOpen className="h-3.5 w-3.5" /> Everything here is saved to your

@@ -4,18 +4,27 @@
 // post brief for each idea. Nothing is stored here: the app saves the briefs
 // under content-studio-ideadump-<userId>, which syncs across devices.
 //
+// mode "long": one long piece (a talk transcript, newsletter, webinar notes)
+// comes back as its claims, numbers, stories and quotable lines, and 5
+// standalone posts, each opening with one of the 5 hook formulas the app sent.
+// The app saves the posts the consultant keeps as drafts.
+//
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification.
-// Daily cap: "idea-dump" in ../_shared/usageCaps.ts (needs migration 009).
+// Daily caps: "idea-dump" and "repurpose-long" in ../_shared/usageCaps.ts (migration 009).
 // Logic: ./logic.ts (tested).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { consumeUsage, usageRefusal, type RpcClient } from "../_shared/usageCaps.ts";
 import {
   IDEA_BRIEF_SCHEMA,
+  LONG_SCHEMA,
   NO_IDEAS_MESSAGE,
   buildIdeaDumpPrompt,
+  buildLongPrompt,
   parseIdeaDumpRequest,
+  parseLongRequest,
   validateBriefs,
+  validateLong,
 } from "./logic.ts";
 
 const OPENAI_MODEL = "gpt-4.1";
@@ -34,7 +43,12 @@ function json(body: unknown, status = 200): Response {
 }
 
 /** One structured-output call. Returns the JSON text, or null on any failure. */
-async function developWithOpenAi(system: string, user: string, apiKey: string): Promise<string | null> {
+async function developWithOpenAi(
+  system: string,
+  user: string,
+  apiKey: string,
+  out: { name: string; schema: unknown; maxTokens: number } = { name: "idea_briefs", schema: IDEA_BRIEF_SCHEMA, maxTokens: 6000 },
+): Promise<string | null> {
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -42,10 +56,10 @@ async function developWithOpenAi(system: string, user: string, apiKey: string): 
       body: JSON.stringify({
         model: OPENAI_MODEL,
         temperature: 0.7,
-        max_tokens: 6000,
+        max_tokens: out.maxTokens,
         response_format: {
           type: "json_schema",
-          json_schema: { name: "idea_briefs", strict: true, schema: IDEA_BRIEF_SCHEMA },
+          json_schema: { name: out.name, strict: true, schema: out.schema },
         },
         messages: [
           { role: "system", content: system },
@@ -72,6 +86,31 @@ async function developWithOpenAi(system: string, user: string, apiKey: string): 
   }
 }
 
+async function repurposeLong(admin: RpcClient, uid: string, body: unknown): Promise<Response> {
+  const parsed = parseLongRequest(body);
+  if (!parsed.ok) return json({ error: parsed.error, code: parsed.code }, parsed.status);
+  const { request } = parsed;
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  if (!apiKey) {
+    console.error("OPENAI_API_KEY is not set");
+    return json({ error: "This isn't switched on yet.", code: "not_configured" }, 503);
+  }
+  // Counted before the paid call (fails closed). About 6k tokens in, 4.5k out at most.
+  const usage = await consumeUsage(admin, uid, "repurpose-long");
+  if (!usage.allowed) {
+    const refusal = usageRefusal(usage);
+    return json(refusal.body, refusal.status);
+  }
+  const { system, user } = buildLongPrompt(request);
+  const content = await developWithOpenAi(system, user, apiKey, { name: "long_piece_week", schema: LONG_SCHEMA, maxTokens: 4500 });
+  const result = content === null ? null : validateLong(content, request.formulas);
+  if (!result || result.posts.length === 0) {
+    return json({ error: "Couldn't write posts from this piece right now. Try again in a minute.", code: "ai_failed" }, 502);
+  }
+  console.log("idea-dump long", uid, "chars", request.text.length, "posts", result.posts.length);
+  return json({ ...result, truncated: request.truncated, usage: { used: usage.used, limit: usage.limit } });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -86,6 +125,9 @@ Deno.serve(async (req) => {
     if (!uid) return json({ error: "Sign in to develop your ideas." }, 401);
 
     const body = await req.json().catch(() => null);
+    if (body && typeof body === "object" && (body as { mode?: unknown }).mode === "long") {
+      return await repurposeLong(admin, uid, body);
+    }
     const parsed = parseIdeaDumpRequest(body);
     if (!parsed.ok) return json({ error: parsed.error, code: parsed.code }, parsed.status);
     const { request } = parsed;
