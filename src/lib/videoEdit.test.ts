@@ -120,3 +120,11 @@ describe("name tag", () => {
   });
 });
 
+describe("dead air at the ends", () => {
+  it("starts just before the first word and ends just after the last when pause cutting is on", async () => {
+    const { keepSegments } = await import("./videoEdit");
+    const ws = [W("Hello", 2.0, 2.4), W("there.", 2.4, 2.9)];
+    expect(keepSegments(ws, 6, { trimStart: 0, trimEnd: 0, removeFillers: true, maxPause: 0.6 })).toEqual([{ start: 1.75, end: 3.25 }]);
+    expect(keepSegments(ws, 6, { trimStart: 0, trimEnd: 0, removeFillers: true, maxPause: 0 })).toEqual([{ start: 0, end: 6 }]);
+  });
+});

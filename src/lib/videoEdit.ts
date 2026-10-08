@@ -140,10 +140,16 @@ const PAD = 0.08;
  * words and minus the excess of any pause longer than maxPause.
  */
 export function keepSegments(words: Word[], duration: number, s: Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "maxPause">): Segment[] {
-  const from = Math.max(0, s.trimStart);
-  const to = Math.max(from, duration - Math.max(0, s.trimEnd));
+  let from = Math.max(0, s.trimStart);
+  let to = Math.max(from, duration - Math.max(0, s.trimEnd));
   const cuts: Segment[] = [];
   const spoken = words.filter((w) => w.e > from && w.s < to);
+  // With pause cutting on, dead air before the first word and after the last goes too.
+  const said = spoken.filter((w) => !(s.removeFillers && isFiller(w.w)));
+  if (s.maxPause > 0 && said.length) {
+    from = Math.max(from, said[0].s - 0.25);
+    to = Math.min(to, said[said.length - 1].e + 0.35);
+  }
   if (s.removeFillers) for (const w of spoken) if (isFiller(w.w)) cuts.push({ start: w.s, end: w.e });
   if (s.maxPause > 0) {
     const real = spoken.filter((w) => !(s.removeFillers && isFiller(w.w)));

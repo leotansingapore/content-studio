@@ -413,7 +413,11 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     actx = new AudioContext();
     await actx.resume(); // allowed once the person has clicked on the page (Export was a click)
     const dest = actx.createMediaStreamDestination();
-    actx.createMediaElementSource(video).connect(dest); // recorded, never played out loud
+    // recorded, never played out loud; the gain ramps in and out at every cut so joins don't click
+    const gain = actx.createGain();
+    gain.gain.value = 0;
+    actx.createMediaElementSource(video).connect(gain).connect(dest);
+    const FADE = 0.025;
     const stream = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000, audioBitsPerSecond: 128_000 });
     const chunks: Blob[] = [];
@@ -434,19 +438,50 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       const seg = plan.segs[i];
       await seek(v, seg.start);
       draw();
+      // Play first, record once it is really playing: resuming the recorder before
+      // playback starts records a frozen frame at every cut (an 8.6 s edit came out 10.6 s).
+      await v.play();
       if (i === 0) rec.start(1000);
       else rec.resume();
-      await v.play();
+      gain.gain.cancelScheduledValues(actx.currentTime);
+      gain.gain.setValueAtTime(0, actx.currentTime);
+      gain.gain.linearRampToValueAtTime(1, actx.currentTime + FADE);
+      let fading = false;
+      // Record media time, not wall time: when playback stalls (buffering, or the
+      // audio track ending before the video), pause the recorder so no frozen
+      // frames are recorded, and treat a stall at the very end as the end.
+      let lastT = v.currentTime;
+      let lastMove = performance.now();
+      let stalled = false;
       await new Promise<void>((resolve) => {
         const tick = () => {
+          const nowMs = performance.now();
+          if (v.currentTime > lastT + 0.001) {
+            lastT = v.currentTime;
+            lastMove = nowMs;
+            if (stalled) {
+              rec.resume();
+              stalled = false;
+            }
+          } else if (!stalled && nowMs - lastMove > 120) {
+            rec.pause();
+            stalled = true;
+          }
+          if (stalled && v.currentTime >= seg.end - 0.4) return resolve();
           draw();
+          if (!fading && v.currentTime >= seg.end - FADE - 0.04) {
+            fading = true;
+            gain.gain.cancelScheduledValues(actx!.currentTime);
+            gain.gain.setValueAtTime(gain.gain.value, actx!.currentTime);
+            gain.gain.linearRampToValueAtTime(0, actx!.currentTime + FADE);
+          }
           if (v.currentTime >= seg.end - 0.02 || v.ended) return resolve();
           timer = window.setTimeout(tick, 1000 / 30);
         };
         let timer = window.setTimeout(tick, 0);
       });
       v.pause();
-      rec.pause();
+      if (rec.state === "recording") rec.pause();
       done += seg.end - seg.start;
     }
     rec.stop();
