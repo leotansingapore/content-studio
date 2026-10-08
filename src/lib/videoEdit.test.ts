@@ -887,3 +887,32 @@ describe("dubbing", () => {
     expect(dubPlacement([{ s: 0, e: 20 }], [{ s: 1 }], 10)).toEqual([{ at: 1, from: 0, dur: 9 }]);
   });
 });
+
+describe("videos made without filming", () => {
+  it("cuts a voiceover at its quietest moment before each 9.5 second limit", async () => {
+    const { planSlices } = await import("@/lib/videoEdit");
+    const frame = 0.02;
+    const total = 26;
+    const energy = Array.from({ length: total / frame }, (_, i) => ([420, 860].includes(i) ? 0.001 : 0.2));
+    const slices = planSlices(energy, frame, total, 9.5);
+    expect(slices.map((s) => [s.start, s.end].map((t) => Math.round(t * 100) / 100))).toEqual([[0, 8.41], [8.41, 17.21], [17.21, 26]]);
+    expect(slices.every((s) => s.end - s.start <= 9.5)).toBe(true);
+  });
+
+  it("keeps a short voiceover whole, cuts flat sound at the limit and never leaves a tail under half a second", async () => {
+    const { planSlices } = await import("@/lib/videoEdit");
+    expect(planSlices([], 0.02, 6, 9.5)).toEqual([{ start: 0, end: 6 }]);
+    const flat = new Array(1000).fill(0.1);
+    const s = planSlices(flat, 0.02, 19.7, 9.5);
+    expect(s.length).toBe(3);
+    expect(s.every((x) => x.end - x.start <= 9.5 && x.end - x.start >= 0.5)).toBe(true);
+    const tail = planSlices(flat, 0.02, 9.8, 9.5);
+    expect(tail[1].end - tail[1].start).toBeGreaterThanOrEqual(0.5);
+  });
+
+  it("shares the voiceover across scenes by their words", async () => {
+    const { sceneSeconds } = await import("@/lib/videoEdit");
+    expect(sceneSeconds(["one two three", "four", "five six seven eight nine ten"], 20)).toEqual([6, 2, 12]);
+    expect(sceneSeconds(["", "a b"], 9)).toEqual([3, 6]);
+  });
+});

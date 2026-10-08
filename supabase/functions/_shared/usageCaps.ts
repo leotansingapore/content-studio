@@ -64,6 +64,12 @@ export const DAILY_LIMITS = {
   "engage-dms": 30,
   "engage-comments": 30,
   "engage-connect": 30,
+  // Videos made without filming (ai-video, Higgsfield): per adviser, and across everyone on the owner's
+  // account so the prepaid pool can't be drained (an avatar video is up to 88 credits, about USD 5.50).
+  "ai-video": 2,
+  "ai-video-global": 20,
+  // The explainer's script and scene pictures, written by OpenAI (ai-video mode "script").
+  "ai-video-script": 10,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

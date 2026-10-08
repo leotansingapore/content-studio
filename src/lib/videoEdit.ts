@@ -1496,3 +1496,34 @@ export function waveAt(peaks: number[], t: number, n = 41, perSecond = PEAKS_PER
   const half = Math.floor(n / 2);
   return Array.from({ length: n }, (_, i) => peaks[mid - half + i] ?? 0);
 }
+
+// ---------- videos made without filming (ai-video) ----------
+
+/**
+ * Where to cut a voiceover into Higgsfield Speak slices of at most `max` seconds: each cut is the
+ * quietest 20 ms frame in the last 2 seconds before the limit, so a word is rarely split and only
+ * the final slice runs short (a slice of 4.5 s or less is billed as 5 seconds, not 10).
+ * `energy` is the loudness of each `frame`-second frame.
+ */
+export function planSlices(energy: ArrayLike<number>, frame: number, total: number, max: number): { start: number; end: number }[] {
+  const out: { start: number; end: number }[] = [];
+  let s = 0;
+  while (total - s > max) {
+    const lo = Math.ceil((s + max - 2) / frame);
+    const hi = Math.floor(Math.min(s + max, total - 0.5) / frame) - 1;
+    let best = hi;
+    for (let i = hi; i >= lo; i--) if ((energy[i] ?? 0) < (energy[best] ?? 0)) best = i;
+    const cut = (best + 0.5) * frame;
+    out.push({ start: s, end: cut });
+    s = cut;
+  }
+  out.push({ start: s, end: total });
+  return out;
+}
+
+/** How long each explainer scene stays on screen: the voiceover shared out by the words each scene says. */
+export function sceneSeconds(says: string[], total: number): number[] {
+  const w = says.map((s) => Math.max(1, s.split(/\s+/).filter(Boolean).length));
+  const sum = w.reduce((a, b) => a + b, 0);
+  return w.map((n) => (total * n) / sum);
+}

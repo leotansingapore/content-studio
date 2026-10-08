@@ -65,6 +65,12 @@ import { withColdOpen } from "@/lib/coldOpen";
 // ---------- sound for captions ----------
 
 export async function extractWav(file: Blob): Promise<{ wav: Blob; duration: number }> {
+  const { pcm, duration } = await monoPcm(file, 16000);
+  return { wav: encodeWav(pcm, 16000), duration };
+}
+
+/** The file's sound, mixed to one channel at `rate`. */
+export async function monoPcm(file: Blob, rate: number): Promise<{ pcm: Float32Array; duration: number }> {
   const ctx = new AudioContext();
   let audio: AudioBuffer;
   try {
@@ -72,14 +78,12 @@ export async function extractWav(file: Blob): Promise<{ wav: Blob; duration: num
   } finally {
     void ctx.close();
   }
-  const rate = 16000;
   const off = new OfflineAudioContext(1, Math.max(1, Math.ceil(audio.duration * rate)), rate);
   const src = off.createBufferSource();
   src.buffer = audio;
   src.connect(off.destination);
   src.start();
-  const pcm = (await off.startRendering()).getChannelData(0);
-  return { wav: encodeWav(pcm, rate), duration: audio.duration };
+  return { pcm: (await off.startRendering()).getChannelData(0), duration: audio.duration };
 }
 
 /** Mono 16-bit WAV from samples. */
@@ -1308,6 +1312,8 @@ export interface JoinJob {
   state: "running" | "done" | "failed";
   file?: File;
   error?: string;
+  /** What is being put together, when it isn't takes (an AI video). */
+  label?: string;
 }
 let joinJob: JoinJob | null = null;
 const joinListeners = new Set<(j: JoinJob | null) => void>();
@@ -1332,9 +1338,9 @@ export function endJoin(): JoinJob | null {
  * The frame is the first take's, at most 1920 on the long side; a take of
  * another shape fits inside it. The sound fades for 25 ms at each join so it doesn't click.
  */
-export async function startJoin(name: string, takes: { file: Blob; start: number; end: number }[]) {
+export async function startJoin(name: string, takes: { file: Blob; start: number; end: number }[], label?: string) {
   if (joinJob?.state === "running") throw new Error("Takes are already being joined.");
-  joinJob = { progress: 0, state: "running" };
+  joinJob = { progress: 0, state: "running", label };
   emitJoin();
   const els: HTMLVideoElement[] = [];
   let actx: AudioContext | null = null;
@@ -1424,14 +1430,85 @@ export async function startJoin(name: string, takes: { file: Blob; start: number
     }
     rec.stop();
     await stopped;
-    joinJob = { progress: 1, state: "done", file: new File(chunks, `${name}.${ext}`, { type: mime.split(";")[0] }) };
+    joinJob = { progress: 1, state: "done", label, file: new File(chunks, `${name}.${ext}`, { type: mime.split(";")[0] }) };
   } catch (e) {
-    joinJob = { progress: 0, state: "failed", error: e instanceof Error ? e.message : String(e) };
+    joinJob = { progress: 0, state: "failed", label, error: e instanceof Error ? e.message : String(e) };
   } finally {
     for (const v of els) {
       v.pause();
       URL.revokeObjectURL(v.src);
     }
+    void actx?.close();
+    emitJoin();
+  }
+}
+
+/**
+ * An explainer: each picture fills a 1080x1920 frame with a slow push in, for its share of one
+ * voiceover, recorded in real time as one video (like startJoin) and kept in the same job, so the
+ * editor picks it up as an upload. The voiceover's own clock times the pictures.
+ */
+export async function startSlides(name: string, scenes: { image: Blob; seconds: number }[], voice: Blob, label: string) {
+  if (joinJob?.state === "running") throw new Error("Another video is being put together.");
+  joinJob = { progress: 0, state: "running", label };
+  emitJoin();
+  let actx: AudioContext | null = null;
+  const pics: ImageBitmap[] = [];
+  try {
+    const avc3 = "video/mp4;codecs=avc3.42E01E,mp4a.40.2";
+    const { mime, ext } = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(avc3) ? { mime: avc3, ext: "mp4" } : pickMime();
+    for (const s of scenes) pics.push(await createImageBitmap(s.image));
+    const W = 1080;
+    const H = 1920;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const g = canvas.getContext("2d")!;
+    actx = new AudioContext();
+    await actx.resume();
+    const sound = await actx.decodeAudioData(await voice.arrayBuffer());
+    const dest = actx.createMediaStreamDestination();
+    const src = actx.createBufferSource();
+    src.buffer = sound;
+    src.connect(dest);
+    const total = sound.duration;
+    let at = 0;
+    const ends = scenes.map((s) => (at += s.seconds));
+    const draw = (t: number) => {
+      let i = ends.findIndex((e) => t < e);
+      if (i < 0) i = pics.length - 1;
+      const start = i ? ends[i - 1] : 0;
+      const zoom = 1 + 0.08 * Math.min(1, Math.max(0, (t - start) / Math.max(0.1, ends[i] - start)));
+      const p = pics[i];
+      const k = Math.max(W / p.width, H / p.height) * zoom;
+      g.drawImage(p, (W - p.width * k) / 2, (H - p.height * k) / 2, p.width * k, p.height * k);
+    };
+    const rec = new MediaRecorder(new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]), { mimeType: mime, videoBitsPerSecond: 6_000_000, audioBitsPerSecond: 160_000 });
+    const chunks: Blob[] = [];
+    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    const stopped = new Promise<void>((r) => (rec.onstop = () => r()));
+    draw(0);
+    rec.start(1000);
+    const t0 = actx.currentTime;
+    src.start();
+    await new Promise<void>((resolve) => {
+      const tick = () => {
+        const t = actx!.currentTime - t0;
+        if (t >= total) return resolve();
+        draw(t);
+        joinJob!.progress = Math.min(0.99, t / total);
+        emitJoin();
+        window.setTimeout(tick, 1000 / 30);
+      };
+      tick();
+    });
+    rec.stop();
+    await stopped;
+    joinJob = { progress: 1, state: "done", label, file: new File(chunks, `${name}.${ext}`, { type: mime.split(";")[0] }) };
+  } catch (e) {
+    joinJob = { progress: 0, state: "failed", label, error: e instanceof Error ? e.message : String(e) };
+  } finally {
+    pics.forEach((p) => p.close());
     void actx?.close();
     emitJoin();
   }

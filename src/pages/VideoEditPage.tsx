@@ -20,6 +20,8 @@ import PlatformCaptions from "@/components/PlatformCaptions";
 import { coldLength } from "@/lib/coldOpen";
 import { coverTimes, findCoverFrame } from "@/lib/coverFrame";
 import { onBrollApply } from "@/lib/autoBroll";
+import AiVideo from "@/components/AiVideo";
+import { aiBusy, aiJob, pendingAvatar } from "@/lib/aiVideo";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
 import { Button } from "@/components/ui/button";
@@ -250,10 +252,10 @@ export default function VideoEditPage() {
     if (!join || join.state === "running") return;
     const j = endJoin();
     if (j?.file) void upload(j.file);
-    else if (j?.error) toast({ title: "Couldn't join the takes", description: j.error, variant: "destructive" });
+    else if (j?.error) toast({ title: j.label ? "Couldn't put the video together" : "Couldn't join the takes", description: j.error, variant: "destructive" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [join?.state]);
-  const joining = join?.state === "running" ? `Joining your takes, ${Math.round(join.progress * 100)}%...` : "";
+  const joining = join?.state === "running" ? `${join.label ?? "Joining your takes"}, ${Math.round(join.progress * 100)}%...` : "";
 
   return (
     <div className="space-y-5">
@@ -286,6 +288,8 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
 }) {
   const [over, setOver] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  // reopened while a video is being made, or to show why the last one failed
+  const [aiOpen, setAiOpen] = useState(() => aiBusy() || !!pendingAvatar() || aiJob()?.state === "failed");
   const left = useUsesLeft(!!busy);
   const captions = left("video-transcribe");
   return (
@@ -324,10 +328,13 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
         <input type="file" accept="video/*,audio/*" className="sr-only" disabled={!!busy}
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onUpload(f); }} />
       </label>
-      {joinOpen ? (
-        <JoinTakes onClose={() => setJoinOpen(false)} />
-      ) : (
-        !busy && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => setJoinOpen(true)}>Join several takes into one video</Button>
+      {joinOpen && <JoinTakes onClose={() => setJoinOpen(false)} />}
+      {aiOpen && <AiVideo onClose={() => setAiOpen(false)} />}
+      {!busy && (!joinOpen || !aiOpen) && (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {!joinOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => setJoinOpen(true)}>Join several takes into one video</Button>}
+          {!aiOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => setAiOpen(true)}>Make a video without filming</Button>}
+        </div>
       )}
       <CaptionJobStatus onOpen={onOpen} />
       {projects.length > 0 && (
