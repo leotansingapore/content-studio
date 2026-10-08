@@ -1257,3 +1257,38 @@ export function sanitizePublish(raw: unknown): PublishIdea | undefined {
   if (!titles.length || !cover) return undefined;
   return { titles, cover, at: typeof o.at === "number" && Number.isFinite(o.at) && o.at >= 0 ? o.at : null };
 }
+
+// ---------- joining takes into one video (rendered on the device, then captioned like an upload) ----------
+
+/** The part of a take that is kept, in seconds of that take. */
+export interface Take {
+  duration: number;
+  start: number;
+  end: number;
+}
+export const MAX_TAKES = 8;
+/** The joined video is captioned in one go, and the captioner takes about 12 minutes. */
+export const MAX_JOIN_SECONDS = 720;
+
+/** Moves the start or end of a take to `at`, keeping at least half a second and staying inside the take. */
+export function trimTake<T extends Take>(t: T, edge: "start" | "end", at: number): T {
+  const x = Math.min(t.duration, Math.max(0, at));
+  return edge === "start" ? { ...t, start: Math.max(0, Math.min(x, t.end - 0.5)) } : { ...t, end: Math.min(t.duration, Math.max(x, t.start + 0.5)) };
+}
+
+export function moveTake<T>(list: T[], i: number, dir: -1 | 1): T[] {
+  const j = i + dir;
+  if (j < 0 || j >= list.length) return list;
+  const next = [...list];
+  [next[i], next[j]] = [next[j], next[i]];
+  return next;
+}
+
+export const joinedLength = (takes: Take[]) => takes.reduce((n, t) => n + Math.max(0, t.end - t.start), 0);
+
+/** Why the takes can't be joined yet, or null. */
+export function joinIssue(takes: Take[]): string | null {
+  if (takes.length < 2) return "Add at least 2 takes.";
+  const len = joinedLength(takes);
+  return len > MAX_JOIN_SECONDS ? `Together they run ${fmtTime(len)}. Trim them under 12 minutes so they can be captioned.` : null;
+}

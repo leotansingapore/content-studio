@@ -1045,3 +1045,139 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     void actx?.close();
   }
 }
+
+// ---------- joining takes, kept outside React like the export ----------
+
+export interface JoinJob {
+  progress: number;
+  state: "running" | "done" | "failed";
+  file?: File;
+  error?: string;
+}
+let joinJob: JoinJob | null = null;
+const joinListeners = new Set<(j: JoinJob | null) => void>();
+const emitJoin = () => joinListeners.forEach((l) => l(joinJob && { ...joinJob }));
+export const currentJoin = () => joinJob;
+export function onJoinJob(fn: (j: JoinJob | null) => void) {
+  joinListeners.add(fn);
+  return () => joinListeners.delete(fn);
+}
+/** A finished or failed join, handed over once; a running one stays. */
+export function endJoin(): JoinJob | null {
+  const j = joinJob;
+  if (!j || j.state === "running") return null;
+  joinJob = null;
+  emitJoin();
+  return j;
+}
+
+/**
+ * Plays each take's kept part in order and records them as one file, in real
+ * time (no new dependency can join MP4s in the browser without re-encoding).
+ * The frame is the first take's, at most 1920 on the long side; a take of
+ * another shape fits inside it. The sound fades for 25 ms at each join so it doesn't click.
+ */
+export async function startJoin(name: string, takes: { file: Blob; start: number; end: number }[]) {
+  if (joinJob?.state === "running") throw new Error("Takes are already being joined.");
+  joinJob = { progress: 0, state: "running" };
+  emitJoin();
+  const els: HTMLVideoElement[] = [];
+  let actx: AudioContext | null = null;
+  try {
+    // avc3 carries the codec setup in the stream, so pausing between takes doesn't trip Chrome's "codec description changed" warning
+    const avc3 = "video/mp4;codecs=avc3.42E01E,mp4a.40.2";
+    const { mime, ext } = typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(avc3) ? { mime: avc3, ext: "mp4" } : pickMime();
+    for (const t of takes) els.push(await loadVideo(t.file));
+    const total = takes.reduce((n, t) => n + (t.end - t.start), 0);
+    const k = Math.min(1, 1920 / Math.max(els[0].videoWidth, els[0].videoHeight));
+    const W = Math.round((els[0].videoWidth * k) / 2) * 2;
+    const H = Math.round((els[0].videoHeight * k) / 2) * 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const g = canvas.getContext("2d")!;
+    actx = new AudioContext();
+    await actx.resume(); // allowed: Join was a click
+    const dest = actx.createMediaStreamDestination();
+    const gain = actx.createGain();
+    gain.gain.value = 0;
+    gain.connect(dest);
+    // 4.5 Mbps keeps 12 minutes under the 500 MB an upload takes; the export re-encodes it anyway
+    const rec = new MediaRecorder(new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]), { mimeType: mime, videoBitsPerSecond: 4_500_000, audioBitsPerSecond: 160_000 });
+    const chunks: Blob[] = [];
+    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    const stopped = new Promise<void>((r) => (rec.onstop = () => r()));
+    const draw = (v: HTMLVideoElement) => {
+      const s = Math.min(W / v.videoWidth, H / v.videoHeight);
+      g.fillStyle = "#000";
+      g.fillRect(0, 0, W, H);
+      g.drawImage(v, (W - v.videoWidth * s) / 2, (H - v.videoHeight * s) / 2, v.videoWidth * s, v.videoHeight * s);
+    };
+    const FADE = 0.025;
+    let done = 0;
+    for (let i = 0; i < takes.length; i++) {
+      const v = els[i];
+      const { start, end } = takes[i];
+      const src = actx.createMediaElementSource(v);
+      src.connect(gain);
+      await seek(v, start);
+      draw(v);
+      await v.play();
+      if (i === 0) rec.start(1000);
+      else rec.resume();
+      gain.gain.cancelScheduledValues(actx.currentTime);
+      gain.gain.setValueAtTime(0, actx.currentTime);
+      gain.gain.linearRampToValueAtTime(1, actx.currentTime + FADE);
+      // as in the export: a stall pauses the recorder, so no frozen frames go in
+      let lastT = v.currentTime;
+      let lastMove = performance.now();
+      let stalled = false;
+      let fading = false;
+      await new Promise<void>((resolve) => {
+        const tick = () => {
+          const now = performance.now();
+          if (v.currentTime > lastT + 0.001) {
+            lastT = v.currentTime;
+            lastMove = now;
+            if (stalled) {
+              rec.resume();
+              stalled = false;
+            }
+          } else if (!stalled && now - lastMove > 120) {
+            rec.pause();
+            stalled = true;
+          }
+          if (stalled && v.currentTime >= end - 0.4) return resolve();
+          draw(v);
+          joinJob!.progress = Math.min(0.99, (done + v.currentTime - start) / total);
+          emitJoin();
+          if (!fading && v.currentTime >= end - FADE - 0.04) {
+            fading = true;
+            gain.gain.cancelScheduledValues(actx!.currentTime);
+            gain.gain.setValueAtTime(gain.gain.value, actx!.currentTime);
+            gain.gain.linearRampToValueAtTime(0, actx!.currentTime + FADE);
+          }
+          if (v.currentTime >= end - 0.02 || v.ended) return resolve();
+          window.setTimeout(tick, 1000 / 30);
+        };
+        tick();
+      });
+      v.pause();
+      if (rec.state === "recording") rec.pause();
+      src.disconnect();
+      done += end - start;
+    }
+    rec.stop();
+    await stopped;
+    joinJob = { progress: 1, state: "done", file: new File(chunks, `${name}.${ext}`, { type: mime.split(";")[0] }) };
+  } catch (e) {
+    joinJob = { progress: 0, state: "failed", error: e instanceof Error ? e.message : String(e) };
+  } finally {
+    for (const v of els) {
+      v.pause();
+      URL.revokeObjectURL(v.src);
+    }
+    void actx?.close();
+    emitJoin();
+  }
+}

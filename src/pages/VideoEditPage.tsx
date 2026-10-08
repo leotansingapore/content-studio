@@ -5,6 +5,7 @@ import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
 import YoutubeClips from "@/components/YoutubeClips";
+import JoinTakes from "@/components/JoinTakes";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, type VoiceId } from "@/lib/textVoice";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,10 @@ import {
   wireVoice,
   exportJob,
   makeCover,
+  currentJoin,
+  endJoin,
+  onJoinJob,
+  type JoinJob,
   extractWav,
   getFile,
   loadVideo,
@@ -182,6 +187,18 @@ export default function VideoEditPage() {
     }
   };
 
+  // takes joined into one video (videoMedia, outside React): the file goes through upload once it is ready
+  const [join, setJoin] = useState<JoinJob | null>(currentJoin());
+  useEffect(() => { const off = onJoinJob(setJoin); return () => { off(); }; }, []);
+  useEffect(() => {
+    if (!join || join.state === "running") return;
+    const j = endJoin();
+    if (j?.file) void upload(j.file);
+    else if (j?.error) toast({ title: "Couldn't join the takes", description: j.error, variant: "destructive" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [join?.state]);
+  const joining = join?.state === "running" ? `Joining your takes, ${Math.round(join.progress * 100)}%...` : "";
+
   return (
     <div className="space-y-5">
       <SectionTabs tabs={WRITE_TABS} />
@@ -196,7 +213,7 @@ export default function VideoEditPage() {
           onBack={() => setParams({})}
         />
       ) : (
-        <Start userId={userId} busy={busy} projects={projects} onUpload={upload} onOpen={(id) => setParams({ p: id })}
+        <Start userId={userId} busy={busy || joining} projects={projects} onUpload={upload} onOpen={(id) => setParams({ p: id })}
           onRemove={(id) => userId && setProjects(removeProject(userId, id))} />
       )}
     </div>
@@ -212,6 +229,7 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
   onRemove: (id: string) => void;
 }) {
   const [over, setOver] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
   return (
     <>
       <header className="space-y-1">
@@ -247,6 +265,11 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
         <input type="file" accept="video/*" className="sr-only" disabled={!!busy}
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onUpload(f); }} />
       </label>
+      {joinOpen ? (
+        <JoinTakes onClose={() => setJoinOpen(false)} />
+      ) : (
+        !busy && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => setJoinOpen(true)}>Join several takes into one video</Button>
+      )}
       {projects.length > 0 && (
         <section className="space-y-2">
           <h2 className="text-sm font-semibold">Recent</h2>

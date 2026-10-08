@@ -790,3 +790,29 @@ describe("title and cover ideas", () => {
     expect(sanitizePublish(null)).toBeUndefined();
   });
 });
+
+describe("joining takes", () => {
+  const take = (duration: number, start = 0, end = duration) => ({ duration, start, end });
+  it("moves a trim edge to the playhead, keeping at least half a second and inside the take", async () => {
+    const { trimTake } = await import("@/lib/videoEdit");
+    expect(trimTake(take(10), "start", 3)).toEqual(take(10, 3, 10));
+    expect(trimTake(take(10, 3, 10), "end", 2)).toEqual(take(10, 3, 3.5));
+    expect(trimTake(take(10, 0, 4), "start", 9)).toEqual(take(10, 3.5, 4));
+    expect(trimTake(take(10), "end", 12)).toEqual(take(10, 0, 10));
+    expect(trimTake(take(10), "start", -1)).toEqual(take(10, 0, 10));
+  });
+  it("moves a take up or down and stays put at either end", async () => {
+    const { moveTake } = await import("@/lib/videoEdit");
+    expect(moveTake(["a", "b", "c"], 2, -1)).toEqual(["a", "c", "b"]);
+    expect(moveTake(["a", "b", "c"], 0, 1)).toEqual(["b", "a", "c"]);
+    expect(moveTake(["a", "b", "c"], 0, -1)).toEqual(["a", "b", "c"]);
+    expect(moveTake(["a", "b", "c"], 2, 1)).toEqual(["a", "b", "c"]);
+  });
+  it("needs two takes and a joined length that can still be captioned", async () => {
+    const { joinIssue, joinedLength, MAX_JOIN_SECONDS } = await import("@/lib/videoEdit");
+    expect(joinIssue([take(10)])).toBe("Add at least 2 takes.");
+    expect(joinedLength([take(10, 2, 6), take(5)])).toBe(9);
+    expect(joinIssue([take(10, 2, 6), take(5)])).toBeNull();
+    expect(joinIssue([take(MAX_JOIN_SECONDS), take(5)])).toBe("Together they run 12:05.0. Trim them under 12 minutes so they can be captioned.");
+  });
+});
