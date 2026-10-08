@@ -72,9 +72,11 @@ function StoryCard({ s }: { s: NewsStory }) {
             {open && (
               <div className="mt-1 rounded-lg border border-border/60 p-2.5">
                 <p className="whitespace-pre-line leading-relaxed text-foreground/85">{s.clientMessage}</p>
-                <button type="button" onClick={copy} className="mt-2 inline-flex items-center gap-1 font-semibold text-primary hover:underline">
-                  <Copy className="h-3 w-3" /> Copy this message
-                </button>
+                {canShare && (
+                  <button type="button" onClick={copy} className="mt-2 inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                    <Copy className="h-3 w-3" /> Copy this message
+                  </button>
+                )}
               </div>
             )}
           </div>
