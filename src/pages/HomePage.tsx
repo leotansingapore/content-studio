@@ -587,17 +587,17 @@ export default function HomePage() {
                       <li key={r.platform} className="flex items-center justify-between gap-2 text-xs">
                         <span className="font-medium text-foreground">{PLATFORM_LABEL[r.platform]}</span>
                         <span className="text-right tabular-nums text-muted-foreground">
-                          {r.posted} posted · {r.scheduled} scheduled
+                          {r.posted} posted, {r.scheduled} scheduled
                           {r.goal > 0 &&
                             (r.toDo > 0 ? (
                               <>
-                                {" · "}
+                                {", "}
                                 <span className="font-semibold text-foreground">{r.toDo} to do</span>
                               </>
                             ) : r.posted >= r.goal ? (
-                              <span className="font-semibold text-success"> · done</span>
+                              <span className="font-semibold text-success">, done</span>
                             ) : (
-                              " · all planned"
+                              ", all planned"
                             ))}
                         </span>
                       </li>

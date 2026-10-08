@@ -73,7 +73,7 @@ export default function LabelMixCard({
                 </label>
               ) : (
                 <span className="shrink-0 tabular-nums text-muted-foreground">
-                  {r.count} post{r.count === 1 ? "" : "s"} ·{" "}
+                  {r.count} post{r.count === 1 ? "" : "s"},{" "}
                   <span className="font-semibold text-foreground">{r.share}%</span> of {r.target}% target
                 </span>
               )}
