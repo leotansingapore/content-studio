@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkLimits, findLinks, foldAt, moveLinksToComment, reelLengthRule, reelTooLong, reelWordRange, spokenWords } from "@/lib/platformCounters";
+import { BLANKS_RULE, blankRanges, checkLimits, findBlanks, findLinks, foldAt, moveLinksToComment, reelLengthRule, reelTooLong, reelWordRange, spokenWords } from "@/lib/platformCounters";
 
 describe("foldAt", () => {
   it("shows a short post whole", () => {
@@ -126,5 +126,33 @@ describe("reel script length", () => {
   it("tells the writer the length and the word range", () => {
     expect(reelLengthRule(15)).toContain("15 seconds");
     expect(reelLengthRule(15)).toContain("35-40 spoken words");
+  });
+});
+
+describe("blanks left for the adviser", () => {
+  it("finds each bracketed blank once, in order", () => {
+    const post = "I reviewed [number] families. [number] had no will.\nAt [client's age] she asked me.";
+    expect(findBlanks(post)).toEqual(["[number]", "[client's age]"]);
+  });
+
+  it("gives where each blank sits so it can be marked", () => {
+    const post = "Pays [your number] a year.";
+    expect(blankRanges(post)).toEqual([[5, 18]]);
+    expect(post.slice(5, 18)).toBe("[your number]");
+  });
+
+  it("leaves out links, empty or numeric brackets and a stage direction on its own line", () => {
+    const post = [
+      "[Point at the camera]",
+      "See [the guide](https://example.com) and tick [ ] or [3].",
+      "  [Cut to the chart]  ",
+      "Then [your number].",
+    ].join("\n");
+    expect(findBlanks(post)).toEqual(["[your number]"]);
+  });
+
+  it("tells the writer to leave a blank instead of inventing a fact", () => {
+    expect(BLANKS_RULE).toContain("[your number]");
+    expect(BLANKS_RULE).toMatch(/never invent/i);
   });
 });

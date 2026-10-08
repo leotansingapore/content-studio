@@ -90,7 +90,9 @@ import { getTrackedPosts, suggestPostingTime } from "@/lib/analytics";
 import { scheduleTime, timeLabel } from "@/lib/dueDates";
 import { ToastAction } from "@/components/ui/toast";
 import {
+  BLANKS_RULE,
   checkLimits,
+  findBlanks,
   findLinks,
   moveLinksToComment,
   readout,
@@ -429,6 +431,7 @@ function adaptContext(post: string, target: Platform): string {
   return [
     `Adapt the post below for ${name}. Keep its idea, facts, numbers and call to action.`,
     `Rewrite the opening, length, line breaks and tone so it reads like a native ${name} post. Do not mention any other platform.`,
+    BLANKS_RULE,
     "",
     "The post:",
     post,
@@ -459,6 +462,7 @@ function rewriteFields(post: string, id: RewriteId): { ideaContext: string; styl
     ideaContext: [
       rule,
       "Keep the same opening line idea, the same points in the same order, the same facts and numbers, and the same call to action.",
+      BLANKS_RULE,
       "",
       "The post:",
       post,
@@ -1056,6 +1060,7 @@ export default function GeneratePage() {
     return brandKit?.tagLinks ? tagLinks(out, { source: plat, campaign: chosenHook || pillarDetail || "post" }) : out;
   };
   const limits = checkLimits(forPosting(svSplit ? svSplit.caption : draft), platform);
+  const draftBlanks = useMemo(() => findBlanks(draft), [draft]);
   // tracked the same way the post's own links would have been
   const commentText = firstComment && brandKit?.tagLinks
     ? tagLinks(firstComment, { source: platform, campaign: chosenHook || pillarDetail || "post" })
@@ -1168,6 +1173,7 @@ export default function GeneratePage() {
     const trimmedCtx = ideaContext.trim();
     if (trimmedCtx) ctxParts.push(trimmedCtx);
     if (format === "short-video") ctxParts.push(reelLengthRule(reelSeconds));
+    ctxParts.push(BLANKS_RULE);
 
     // Combine an active vibe reference with a competitor's angle reference.
     const styleParts: string[] = [];
@@ -1656,7 +1662,13 @@ export default function GeneratePage() {
   const copyText = async (text: string, title: string, description: string, signOff = false, plat?: string) => {
     try {
       await navigator.clipboard.writeText(signOff ? forPosting(text, plat) : toPlainText(text));
-      toast({ title: signOff && brandSignOff ? `${title} with your sign-off` : title, description });
+      const done = signOff && brandSignOff ? `${title} with your sign-off` : title;
+      const left = findBlanks(text);
+      toast(
+        left.length
+          ? { title: `${done}. Fill ${left.length === 1 ? "1 blank" : `${left.length} blanks`} first`, description: left.join(", "), variant: "destructive" }
+          : { title: done, description },
+      );
     } catch {
       toast({
         title: "Copy failed",
@@ -3194,6 +3206,12 @@ export default function GeneratePage() {
                 </span>
               )}
               <LimitChips check={limits} platform={platform} />
+              {draftBlanks.length > 0 && (
+                <span role="status" className="flex basis-full items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {draftBlanks.length === 1 ? "1 blank" : `${draftBlanks.length} blanks`} to fill before posting: {draftBlanks.join(", ")}
+                </span>
+              )}
               {platform === "linkedin" && findLinks(draft).length > 0 && (
                 <Button variant="outline" size="sm" onClick={moveLinkToComment} className="h-11 gap-1.5 sm:h-9">
                   <MessageSquare className="h-3.5 w-3.5" />

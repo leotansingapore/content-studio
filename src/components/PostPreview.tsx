@@ -15,7 +15,7 @@ import { splitScriptCaption } from "@/lib/scriptCaption";
 import { supabase } from "@/lib/supabase";
 import { loadBrand, type CarouselBrand } from "@/lib/carousel";
 import { withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
-import { foldAt } from "@/lib/platformCounters";
+import { blankRanges, foldAt } from "@/lib/platformCounters";
 
 // A lightweight, platform-flavoured preview of a draft so the consultant can
 // see roughly how the post will land as they edit. Not pixel-perfect — enough
@@ -32,6 +32,25 @@ const MEDIA_LABELS: Record<string, string> = {
   "text-post": "Your image",
 };
 
+/** The text with each blank still to fill ("[your number]") marked. */
+function marked(text: string): React.ReactNode {
+  const ranges = blankRanges(text);
+  if (!ranges.length) return text;
+  const out: React.ReactNode[] = [];
+  let at = 0;
+  for (const [a, b] of ranges) {
+    out.push(
+      text.slice(at, a),
+      <mark key={a} className="rounded bg-amber-200 px-0.5 text-foreground dark:bg-amber-500/30">
+        {text.slice(a, b)}
+      </mark>,
+    );
+    at = b;
+  }
+  out.push(text.slice(at));
+  return out;
+}
+
 function ScriptBlock({ script }: { script: string }) {
   return (
     <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
@@ -40,7 +59,7 @@ function ScriptBlock({ script }: { script: string }) {
         camera, not posted as text
       </p>
       <p className="whitespace-pre-line font-sans text-xs leading-relaxed text-muted-foreground">
-        {script}
+        {marked(script)}
       </p>
     </div>
   );
@@ -75,7 +94,7 @@ function Folded({ text, platform, more, lead }: { text: string; platform: string
   return (
     <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
       {lead}
-      {cut === null ? text : text.slice(0, cut).trimEnd()}
+      {marked(cut === null ? text : text.slice(0, cut).trimEnd())}
       {cut !== null && (
         <button type="button" onClick={() => setOpen(true)} className="text-muted-foreground hover:underline">
           {more}

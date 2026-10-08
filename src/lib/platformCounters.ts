@@ -277,3 +277,32 @@ export function reelLengthRule(seconds: number): string {
   const { min, max } = reelWordRange(seconds);
   return `Video length: ${seconds} seconds. Keep the spoken script to about ${min}-${max} spoken words. This overrides the 30-60 second guide for the format.`;
 }
+
+// A fact the writer left for the adviser to fill, like "[your number]" or
+// "[client's age]". Not a markdown link, a bracket with no letter in it, or a
+// bracket alone on its line (a stage direction or a note for the designer).
+const BLANK = /\[[^[\]\n]*\p{L}[^[\]\n]*\](?!\()/gu;
+const MAX_BLANK_CHARS = 60;
+
+/** Where each blank sits in the text, as [start, end). */
+export function blankRanges(text: string): [number, number][] {
+  const out: [number, number][] = [];
+  for (const m of text.matchAll(BLANK)) {
+    const start = m.index ?? 0;
+    const end = start + m[0].length;
+    const lineStart = text.lastIndexOf("\n", start - 1) + 1;
+    const lineEnd = text.indexOf("\n", end);
+    const alone = !text.slice(lineStart, start).trim() && !text.slice(end, lineEnd === -1 ? undefined : lineEnd).trim();
+    if (m[0].length <= MAX_BLANK_CHARS && !alone) out.push([start, end]);
+  }
+  return out;
+}
+
+/** Each blank still in the text, once, in order. */
+export function findBlanks(text: string): string[] {
+  return [...new Set(blankRanges(text).map(([a, b]) => text.slice(a, b)))];
+}
+
+/** The writer's rule: a blank in place of any fact the brief does not give. */
+export const BLANKS_RULE =
+  "Never invent a number, statistic, date, name, quote or client story. When the post needs one this brief does not give, write a short blank in square brackets that says what goes there, such as [your number], [client's age] or [latest CPF figure], and keep writing around it. Use a blank only where a real fact is needed.";
