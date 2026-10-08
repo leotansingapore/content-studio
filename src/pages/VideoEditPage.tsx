@@ -20,11 +20,14 @@ import { supabase } from "@/lib/supabase";
 import {
   STYLES,
   STYLE_IDS,
+  APP_COVER,
+  appCover,
   applyPatch,
   aspectSize,
   captionCenter,
   captionKey,
   clipSettings,
+  clearOfApp,
   END_CARD_SECONDS,
   FONTS,
   FILTERS,
@@ -61,6 +64,7 @@ import {
   SPEEDS,
   totalLength,
   withStyle,
+  type CoverApp,
   type EditSettings,
   type StyleId,
 } from "@/lib/videoEdit";
@@ -263,6 +267,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [thinking, setThinking] = useState(false);
   const [captioning, setCaptioning] = useState(false);
   const [job, setJob] = useState<ExportJob | null>(exportJob());
+  // a guide over the 9:16 preview: where Instagram or TikTok's own buttons and caption sit
+  const [coverApp, setCoverApp] = useState<CoverApp | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const segIdx = useRef(0);
@@ -758,6 +764,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   // platforms this length is too long for, shortest limit first
   const lengthIssues = useMemo(() => platformFit(plan.total).filter((p) => p.fit !== "ok").sort((a, b) => a.limit - b.limit), [plan.total]);
   const fillers = words.filter((w) => isFiller(w.w)).length;
+  const zone = coverApp && settings.aspect === "9:16" ? APP_COVER[coverApp] : null;
+  const covered = coverApp ? appCover(settings, coverApp) : null;
 
   if (file === null) {
     return (
@@ -830,7 +838,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,360px)_1fr]">
         <div className="space-y-2">
-          <div className="mx-auto w-full max-w-[360px]">
+          <div className="relative mx-auto w-full max-w-[360px]">
             <canvas
               ref={canvas}
               width={W}
@@ -877,6 +885,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               className="w-full cursor-pointer rounded-xl bg-black shadow-card"
               aria-label="Preview: tap to play or pause, drag the captions or a sticker to move it"
             />
+            {zone && (
+              <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl text-[10px] font-semibold text-white">
+                <div className="absolute inset-x-0 top-0 bg-black/55" style={{ height: `${zone.top * 100}%` }} />
+                <div className="absolute right-0 bg-black/40" style={{ top: `${zone.top * 100}%`, bottom: `${zone.bottom * 100}%`, width: `${zone.right * 100}%` }} />
+                <div className="absolute inset-x-0 bottom-0 bg-black/55 pt-1 text-center" style={{ height: `${zone.bottom * 100}%` }}>{zone.label} covers this</div>
+              </div>
+            )}
           </div>
           {file === undefined && <p className="text-xs text-muted-foreground">Loading the video...</p>}
           {voiceUrl && <audio ref={voiceEl} src={voiceUrl} preload="auto" className="hidden" />}
@@ -903,6 +918,25 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => patch({ trimEnd: trimToLength(plan.segs, duration, lengthIssues[0].limit, settings) })}>
                 Trim to {fmtTime(lengthIssues[0].limit).replace(/\.0$/, "")}
               </Button>
+            </div>
+          )}
+          {settings.aspect === "9:16" && (
+            <div className="space-y-1.5">
+              <Row label="Show the app's buttons">
+                <Chip on={!coverApp} onClick={() => setCoverApp(null)}>Off</Chip>
+                {(Object.keys(APP_COVER) as CoverApp[]).map((a) => <Chip key={a} on={coverApp === a} onClick={() => setCoverApp(a)}>{APP_COVER[a].label}</Chip>)}
+              </Row>
+              {zone && covered?.captions && (
+                <p className="flex flex-wrap items-center gap-2 text-[11px]" role="status">
+                  Captions sit under {zone.label}&apos;s {captionCenter(settings) > 0.5 ? "caption area" : "top bar"}.
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => patch({ captionY: clearOfApp(captionCenter(settings), coverApp!) })}>Move captions clear</Button>
+                </p>
+              )}
+              {zone && !!covered?.stickers && (
+                <p className="text-[11px]" role="status">
+                  {covered.stickers} {covered.stickers === 1 ? "sticker sits" : "stickers sit"} under {zone.label}&apos;s buttons. Drag {covered.stickers === 1 ? "it" : "them"} clear on the preview.
+                </p>
+              )}
             </div>
           )}
         </div>

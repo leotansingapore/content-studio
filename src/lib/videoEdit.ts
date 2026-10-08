@@ -620,6 +620,37 @@ export function trimToLength(segs: Segment[], duration: number, limit: number, s
   return Math.max(s.trimEnd, Math.ceil((duration - srcAt(segs, limit, speed)) * 100) / 100);
 }
 
+// ---------- app buttons over a 9:16 video ----------
+
+export type CoverApp = "instagram" | "tiktok";
+
+/** Where each app's own top bar, bottom caption area and button column cover a full-screen
+ * 9:16 video, as shares of the frame (from 1080x1920 guides; the apps move them a little). */
+export const APP_COVER: Record<CoverApp, { label: string; top: number; bottom: number; right: number }> = {
+  instagram: { label: "Instagram", top: 210 / 1920, bottom: 310 / 1920, right: 84 / 1080 },
+  tiktok: { label: "TikTok", top: 108 / 1920, bottom: 320 / 1920, right: 120 / 1080 },
+};
+
+// about half a caption line's height
+const CAPTION_HALF = 0.03;
+
+/** What the app would cover: the captions, and how many stickers. */
+export function appCover(s: Pick<EditSettings, "captions" | "position" | "captionY" | "overlays">, app: CoverApp): { captions: boolean; stickers: number } {
+  const z = APP_COVER[app];
+  const c = captionCenter(s);
+  const under = (x: number, y: number) => y < z.top || y > 1 - z.bottom || x > 1 - z.right;
+  return {
+    captions: s.captions && (c + CAPTION_HALF > 1 - z.bottom || c - CAPTION_HALF < z.top),
+    stickers: (s.overlays ?? []).filter((o) => under(o.x, o.y)).length,
+  };
+}
+
+/** A caption height just clear of the app's covered band nearest to y. */
+export function clearOfApp(y: number, app: CoverApp): number {
+  const z = APP_COVER[app];
+  return y > 0.5 ? 1 - z.bottom - 0.05 : z.top + 0.05;
+}
+
 // ---------- stickers ----------
 
 export type OverlayKind = "text" | "arrow" | "circle" | "underline";
