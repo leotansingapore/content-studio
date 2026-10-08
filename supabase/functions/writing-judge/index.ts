@@ -13,6 +13,9 @@
 //     questions, about 800 tokens) with the name and bio rewritten by OpenAI
 //     (the audit's key) where they lost points, about 0.3 US cents. Counts
 //     against "profile-score", not "writing-judge".
+//   mode "carousel" {idea} -> {textPostBetter: boolean | null}
+//     whether a carousel idea has no sequence and would read better as a
+//     text post. About 420 tokens.
 // Counts against the "writing-judge" daily cap. A draft mostly not in English
 // gets {code: "not_english"} and no judgment. Without Jev (no key, timeout,
 // outage) it says the check is unavailable and the page keeps what it measured.
@@ -26,12 +29,14 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import { openAiJson } from "../_shared/auditRunner.ts";
 import {
+  CAROUSEL_QUESTIONS,
   IDEA_QUESTIONS,
   buildProfileRewritePrompt,
   composeProfile,
   profileQuestions,
   profileState,
   readProfileRewrites,
+  readTextPostBetter,
   hookQuestions,
   hookState,
   humanQuestions,
@@ -66,6 +71,7 @@ Deno.serve(async (req) => {
       r.mode === "hooks" ? r.hooks.join("\n")
       : r.mode === "idea" ? `${r.topic}\n${r.notes}`
       : r.mode === "profile" ? [r.name, r.bio, ...r.pinned].join("\n")
+      : r.mode === "carousel" ? r.idea
       : r.text;
     // an empty profile has nothing to read and scores 0 on its own
     const empty = r.mode === "profile" && !/\p{L}/u.test(english);
@@ -99,6 +105,11 @@ Deno.serve(async (req) => {
         rewrites = readProfileRewrites(await openAiJson(system, user, key, { temperature: 0.5, maxTokens: 300 }), r, want);
       }
       return json({ ...scored, rewrites });
+    }
+    if (r.mode === "carousel") {
+      const answers = await askJev({ idea: r.idea }, CAROUSEL_QUESTIONS, { who: "writing-judge carousel" });
+      if (!answers) return json({ error: UNAVAILABLE }, 503);
+      return json({ textPostBetter: readTextPostBetter(answers) });
     }
     if (r.mode === "idea") {
       const answers = await askJev(ideaState(r), IDEA_QUESTIONS, { who: "writing-judge idea" });

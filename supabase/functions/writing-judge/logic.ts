@@ -23,7 +23,7 @@ export const MAX_TEXT = 5000;
 export const MAX_SENTENCES = 40;
 const MAX_SAMPLES = 3;
 const MAX_SAMPLE_CHARS = 1200;
-export const MODES = ["human", "hooks", "idea", "profile"] as const;
+export const MODES = ["human", "hooks", "idea", "profile", "carousel"] as const;
 export type JudgeMode = (typeof MODES)[number];
 
 /**
@@ -43,6 +43,7 @@ export type JudgeRequest =
   | { mode: "human"; text: string; samples: string[] }
   | { mode: "hooks"; hooks: string[]; audience: string; topic: string; platform: string }
   | { mode: "idea"; topic: string; notes: string; kind: string }
+  | { mode: "carousel"; idea: string }
   | ProfileRequest;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -67,6 +68,11 @@ export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeReque
         link: b.link === null || b.link === undefined ? null : str(b.link, 300),
       },
     };
+  }
+  if (mode === "carousel") {
+    const idea = str(b.idea, 3000);
+    if (idea.length < 3) return { ok: false, error: "Add a topic first." };
+    return { ok: true, request: { mode, idea } };
   }
   if (mode === "idea") {
     const topic = str(b.topic, 300);
@@ -447,4 +453,35 @@ export function readProfileRewrites(raw: string | null, r: ProfileRequest, want:
     if (v && v.length <= PROFILE_LIMITS[r.platform][id] && !complianceIssues(v).length) out[id] = v;
   }
   return out;
+}
+
+// ---- Mode "carousel" --------------------------------------------------------
+// A carousel works when the idea has a sequence; one claim cut into slides is
+// the usual way carousels fail, and it reads better as a text post. After
+// Jakeschincariol/linkedin-agent-skill li-carousel "when to use it".
+
+// Set from a shadow check on 2026-10-08 (jev-1.13.0): 14 carousel ideas
+// written for it, 7 with a sequence and 7 that are one point. About 420 Jev
+// input tokens a check.
+/**
+ * p(the idea has a sequence) below this suggests a text post instead. Steps,
+ * lists, ages and before-and-after 0.91-0.98; one claim or story 0.06-0.31.
+ */
+export const SEQUENCE_MIN = 0.5;
+
+export const CAROUSEL_QUESTIONS: Record<string, JevQuestion> = {
+  sequence: {
+    type: "noul",
+    instructions: "Does `idea` have a sequence that suits a swipeable carousel of several slides: steps, a numbered list or countdown, a before-and-after progression, or a framework with parts?",
+    criteria: {
+      true: "Several distinct parts in an order, one per slide, such as '5 steps to claim from your hospital plan', '3 mistakes fresh grads make', or how something changes from age 55 to 65 to 70.",
+      false: "One claim, opinion or story that would have to be cut into pieces across slides, such as 'insurance is not an investment' or 'my first client'.",
+    },
+  },
+};
+
+/** True when the idea would work better as a text post, null without an answer. */
+export function readTextPostBetter(answers: Record<string, JevAnswer> | null): boolean | null {
+  const p = answers?.sequence?.noul;
+  return typeof p === "number" && Number.isFinite(p) ? p < SEQUENCE_MIN : null;
 }

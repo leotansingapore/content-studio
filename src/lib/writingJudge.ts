@@ -44,3 +44,11 @@ export async function scoreProfile(input: {
   if (typeof res?.score !== "number" || !Array.isArray(res.items)) throw new Error("Couldn't score your profile right now. Try again in a minute.");
   return res;
 }
+
+/** True when Jev reads a carousel idea as one point that would work better as a text post; null when it can't say in time. */
+export async function textPostBetter(idea: string): Promise<boolean | null> {
+  const call = callFn<{ textPostBetter: boolean | null }>("writing-judge", { mode: "carousel", idea })
+    .then((res) => (typeof res?.textPostBetter === "boolean" ? res.textPostBetter : null))
+    .catch(() => null);
+  return Promise.race([call, new Promise<null>((done) => setTimeout(() => done(null), IDEA_WAIT_MS))]);
+}

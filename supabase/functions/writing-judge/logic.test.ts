@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   AI_MAX,
   MAX_SENTENCES,
+  CAROUSEL_QUESTIONS,
   IDEA_MIN,
   IDEA_QUESTIONS,
+  SEQUENCE_MIN,
+  readTextPostBetter,
   LEVEL_ROUND,
   PROFILE_LIMITS,
   buildProfileRewritePrompt,
@@ -220,5 +223,20 @@ describe("the profile score", () => {
     expect(readProfileRewrites(JSON.stringify({ name: long, bio: "I help SG parents \u2014 DM PLAN." }), base, ["name", "bio"])).toEqual({ bio: "I help SG parents, DM PLAN." });
     expect(readProfileRewrites(JSON.stringify({ bio: "Guaranteed returns of 8% a year." }), base, ["bio"])).toEqual({});
     expect(readProfileRewrites(null, base, ["bio"])).toEqual({});
+  });
+});
+
+describe("the carousel or text post check", () => {
+  it("takes the idea, and needs one", () => {
+    expect(parseJudgeRequest({ mode: "carousel", idea: " Insurance is not an investment " })).toEqual({ ok: true, request: { mode: "carousel", idea: "Insurance is not an investment" } });
+    expect(parseJudgeRequest({ mode: "carousel", idea: " " })).toMatchObject({ ok: false });
+    expect(Object.keys(CAROUSEL_QUESTIONS)).toEqual(["sequence"]);
+  });
+
+  it("suggests a text post below the threshold, and says nothing without an answer", () => {
+    const ans = (p: number) => ({ sequence: { type: "noul" as const, noul: p } });
+    expect(readTextPostBetter(ans(SEQUENCE_MIN - 0.01))).toBe(true);
+    expect(readTextPostBetter(ans(SEQUENCE_MIN))).toBe(false);
+    expect(readTextPostBetter(null)).toBeNull();
   });
 });

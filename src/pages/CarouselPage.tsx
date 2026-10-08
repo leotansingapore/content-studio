@@ -39,6 +39,7 @@ import { loadDrafts, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draf
 import { streamOnePost } from "@/lib/batchGenerate";
 import { loadVoiceProfile } from "@/lib/voiceProfile";
 import { stripDashes } from "@/lib/plainText";
+import { textPostBetter } from "@/lib/writingJudge";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { scanCompliance } from "@/lib/compliance";
 import {
@@ -119,6 +120,10 @@ export default function CarouselPage() {
   const [topic, setTopic] = useState("");
   const [topicPlatform, setTopicPlatform] = useState<"instagram" | "linkedin">("instagram");
   const [writing, setWriting] = useState<AbortController | null>(null);
+  // A topic Jev read as one point, not steps: offered as a text post instead (each topic checked once).
+  const [onePoint, setOnePoint] = useState<string | null>(null);
+  const [checkingTopic, setCheckingTopic] = useState(false);
+  const checkedTopics = useRef(new Set<string>());
   const [saved, setSaved] = useState<SavedCarousel[]>([]);
   // which saved carousel this is: "d:<draft id>" or "p:<time>" for pasted text
   const [carouselId, setCarouselId] = useState("");
@@ -354,11 +359,23 @@ export default function CarouselPage() {
 
   // a carousel from a topic or a pasted article: one AI call writes the post, it is
   // saved to My posts (so it has a caption and can be scheduled), then split into slides
-  const writeFromTopic = async () => {
+  const writeFromTopic = async (anyway = false) => {
     const input = topic.trim();
-    if (!input || writing || !userId) return;
+    if (!input || writing || checkingTopic || !userId) return;
     const title = (input.split("\n").find((l) => l.trim()) ?? input).slice(0, 120);
     const isArticle = input.length > 280;
+    // a short idea with no steps reads better as a text post; an article is left alone
+    if (!anyway && !isArticle && !checkedTopics.current.has(input)) {
+      checkedTopics.current.add(input);
+      setCheckingTopic(true);
+      const better = await textPostBetter(input);
+      setCheckingTopic(false);
+      if (better) {
+        setOnePoint(input);
+        return;
+      }
+    }
+    setOnePoint(null);
     const ctrl = new AbortController();
     setWriting(ctrl);
     let text = "";
@@ -686,12 +703,29 @@ export default function CarouselPage() {
                     {p === "instagram" ? "Instagram" : "LinkedIn"}
                   </button>
                 ))}
-                <Button onClick={writeFromTopic} disabled={!topic.trim() || !!writing} className={`ml-auto gap-1.5 ${writing ? "disabled:opacity-100" : ""}`}>
-                  {writing ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <Sparkles className="h-4 w-4" />}
-                  {writing ? "Writing the slides..." : "Write slides with AI"}
+                <Button onClick={() => void writeFromTopic()} disabled={!topic.trim() || !!writing || checkingTopic} className={`ml-auto gap-1.5 ${writing || checkingTopic ? "disabled:opacity-100" : ""}`}>
+                  {writing || checkingTopic ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <Sparkles className="h-4 w-4" />}
+                  {checkingTopic ? "Reading your idea..." : writing ? "Writing the slides..." : "Write slides with AI"}
                 </Button>
                 {writing && <Button variant="outline" onClick={() => writing.abort()}>Stop</Button>}
               </div>
+              {onePoint !== null && onePoint === topic.trim() && !writing && (
+                <div role="status" className="space-y-2 rounded-lg border border-warning/50 bg-warning/5 p-3">
+                  <p className="flex items-start gap-1.5 text-sm font-medium">
+                    <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> This is one point, not steps. It would read better as a text post.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild size="sm" className="h-11 gap-1.5 sm:h-9">
+                      <Link to={`/generate?pillar=topic&detail=${encodeURIComponent(onePoint.slice(0, 200))}&format=text-post&platform=${topicPlatform}`}>
+                        <FileText className="h-3.5 w-3.5" /> Write it as a text post
+                      </Link>
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={() => void writeFromTopic(true)}>
+                      Make the carousel anyway
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : mode === "saved" ? (
             <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
