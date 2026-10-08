@@ -107,13 +107,8 @@ function StatCard({
 export default function HomePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
-  const [stats, setStats] = useState<DraftStats | null>(null);
   const [voiceReady, setVoiceReady] = useState<boolean>(true);
   const [coachRuns, setCoachRuns] = useState<number>(0);
-  const [activity, setActivity] = useState<PostingActivity>({
-    thisWeekPosted: 0,
-    weekStreak: 0,
-  });
   const [goals, setGoals] = useState<WeeklyGoals>({});
   // Goal being edited on the This week card (null = not editing).
   const [goalDraft, setGoalDraft] = useState<WeeklyGoals | null>(null);
@@ -144,10 +139,8 @@ export default function HomePage() {
       const prefix = email.split("@")[0].replace(/[._-]+/g, " ").trim();
       setName(/^[a-zA-Z ]{2,18}$/.test(prefix) ? prefix : "");
       setDrafts(loadDrafts(id));
-      setStats(getDraftStats(id));
       setVoiceReady(isVoiceProfileUsable(loadVoiceProfile(id)));
       setCoachRuns(loadCoachHistory(id).length);
-      setActivity(getPostingActivity(id));
       setGoals(loadGoals(id));
       const diag = loadResult(id);
       setContentScore(diag?.overall ?? null);
@@ -159,6 +152,10 @@ export default function HomePage() {
   }, []);
 
   // Unfinished drafts first: scheduled posts already show in the due card and Coming up.
+  // Recounted from the saved posts whenever they change, so Mark posted here moves the numbers too.
+  const stats = useMemo<DraftStats | null>(() => (userId ? getDraftStats(userId) : null), [userId, drafts]);
+  const activity = useMemo<PostingActivity>(() => getPostingActivity(userId), [userId, drafts]);
+
   const recent = useMemo(() => {
     const inProgress = drafts.filter((d) => draftStatus(d) === "draft");
     return (inProgress.length ? inProgress : drafts).slice(0, 3);
