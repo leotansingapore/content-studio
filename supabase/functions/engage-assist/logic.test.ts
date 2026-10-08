@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { REPLY_ANSWERS } from "../../../src/data/recruitKit";
 import {
   AUTOMATED_MIN,
+  BATCH_SHARE_MAX,
+  COMMENT_TYPES,
+  MAX_POSTS,
+  UNSORTED_TYPES,
+  buildCommentsPrompt,
+  readCommentTypes,
+  readComments,
+  typeQuestions,
   CLIENT_MIN,
   DM_KINDS,
   buildDmsPrompt,
@@ -188,5 +196,68 @@ describe("direct messages", () => {
     expect(items[2].reply).toBe("");
     expect(items[3].reply).toBeNull();
     expect(items[4].reply).toBeNull();
+  });
+});
+
+describe("comments on other people's posts", () => {
+  const posts = [
+    { name: "FinBro SG", text: "Whole life insurance is a waste of money. Buy term and invest the rest." },
+    { name: "陈老师", text: "退休规划越早开始越好，很多人到五十岁才开始想。" },
+  ];
+  const probs = (p: Record<string, number>): JevAnswer => ({ type: "choice", choice: Object.entries(p).sort((a, b) => b[1] - a[1])[0][0], probabilities: p });
+
+  it("takes 1 to MAX_POSTS posts", () => {
+    expect(parseEngageRequest({ mode: "comments", posts: [{ name: "A", text: " Post " }] })).toEqual({ ok: true, request: { mode: "comments", posts: [{ name: "A", text: "Post" }] } });
+    expect(parseEngageRequest({ mode: "comments", posts: [] })).toMatchObject({ ok: false });
+    expect(parseEngageRequest({ mode: "comments", posts: Array(MAX_POSTS + 1).fill({ text: "x" }) })).toMatchObject({ ok: false });
+  });
+
+  it("asks each English post twice, the kinds in written and in reversed order", () => {
+    const q = typeQuestions(posts);
+    expect(Object.keys(q)).toEqual(["f0", "r0"]);
+    expect(Object.keys((q.f0 as { criteria: object }).criteria)).toEqual([...COMMENT_TYPES]);
+    expect(Object.keys((q.r0 as { criteria: object }).criteria)).toEqual([...COMMENT_TYPES].reverse());
+  });
+
+  it("takes the two likeliest kinds over both orders for one post, one each in a batch", () => {
+    // written order leans question, reversed leans disagree: averaged, disagree leads
+    const answers = { f0: probs({ question: 0.55, disagree: 0.28, number: 0.13, result: 0.04 }), r0: probs({ disagree: 0.6, question: 0.3, number: 0.06, result: 0.04 }) };
+    expect(readCommentTypes(answers, [posts[0]])).toEqual([{ types: ["disagree", "question"], sorted: true }]);
+    expect(readCommentTypes(answers, posts)).toEqual([
+      { types: ["disagree"], sorted: true },
+      { types: [UNSORTED_TYPES[0]], sorted: false },
+    ]);
+    expect(readCommentTypes({ f0: answers.f0 }, [posts[0]])).toEqual([{ types: UNSORTED_TYPES, sorted: false }]);
+  });
+
+  it("in a batch, uses no kind for more than BATCH_SHARE_MAX of the posts, the surest picks placed first", () => {
+    const lean = (q: number, second: string): JevAnswer => probs({ question: q, [second]: 1 - q });
+    const four = Array.from({ length: 4 }, (_, i) => ({ name: `A${i}`, text: `Post ${i}` }));
+    const answers = Object.fromEntries(
+      [lean(0.9, "number"), lean(0.6, "result"), lean(0.8, "disagree"), lean(0.7, "number")].flatMap((a, i) => [[`f${i}`, a], [`r${i}`, a]]),
+    );
+    const types = readCommentTypes(answers, four).map((x) => x.types[0]);
+    expect(types).toEqual(["question", "result", "question", "number"]);
+    expect(types.filter((t) => t === "question").length).toBeLessThanOrEqual(Math.ceil(4 * BATCH_SHARE_MAX));
+  });
+
+  it("asks for each kind per post and reads the drafts back in that order", () => {
+    const picks = [{ types: ["disagree", "question"] as const, sorted: true }, { types: ["question"] as const, sorted: false }].map((x) => ({ ...x, types: [...x.types] }));
+    const { system, user } = buildCommentsPrompt(posts, picks);
+    expect(user).toContain("[p0] kinds: disagree, question | by FinBro SG");
+    expect(user).toContain("[p1] kinds: question | by 陈老师");
+    expect(system).toMatch(/never a figure of your own/);
+    expect(system).toMatch(/Never runs down another adviser/);
+    const content = JSON.stringify({
+      comments: [
+        { id: "p0", type: "question", text: "What return are you assuming on the invest-the-rest part?" },
+        { id: "p0", type: "disagree", text: "Term fits most people \u2014 but not all. See https://x.co" },
+        { id: "p1", type: "number", text: "wrong kind, dropped" },
+      ],
+    });
+    expect(readComments(content, posts, picks)).toEqual([
+      { ...posts[0], i: 0, sorted: true, comments: [{ type: "disagree", text: "Term fits most people, but not all. See" }, { type: "question", text: "What return are you assuming on the invest-the-rest part?" }] },
+      { ...posts[1], i: 1, sorted: false, comments: [{ type: "question", text: "" }] },
+    ]);
   });
 });

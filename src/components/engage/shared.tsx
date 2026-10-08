@@ -43,7 +43,7 @@ export function useEngageRun<T>(tool: EngageTool, userId: string) {
     busy,
     outcome,
     edit: (patch: Partial<Run<T>>) => setRun((r) => saveRun(tool, userId, { ...r, ...patch })),
-    start: () => void follow(startRun(tool, userId, run.pasted, run.post)),
+    start: () => void follow(startRun(tool, userId, run)),
   };
 }
 
@@ -87,7 +87,7 @@ export function Quote({ name, text, tag }: { name: string; text: string; tag?: s
 }
 
 /** A draft to paste, with its Copy button (44px on phones). Empty: the one line that says so. */
-export function Draft({ label, text }: { label: string; text: string }) {
+export function Draft({ label, text, onCopy }: { label: string; text: string; onCopy?: () => void }) {
   const copy = useCopy();
   if (!text)
     return <p className="text-xs italic text-muted-foreground">No safe draft came back for this one. Run it again or write your own.</p>;
@@ -97,7 +97,10 @@ export function Draft({ label, text }: { label: string; text: string }) {
         <p className="min-w-0 flex-1 whitespace-pre-line text-sm leading-relaxed text-foreground [overflow-wrap:anywhere]">{text}</p>
         <button
           type="button"
-          onClick={() => copy(text, `${label} copied`)}
+          onClick={() => {
+            void copy(text, `${label} copied`);
+            onCopy?.();
+          }}
           aria-label={`Copy ${label.toLowerCase()}`}
           className="inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:h-8"
         >

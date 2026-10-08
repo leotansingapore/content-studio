@@ -13,6 +13,13 @@
 //     favour or spam, with automated sequences flagged; spam and automated
 //     ones get no draft. About 520 Jev input tokens a message and one OpenAI
 //     call. Cap "engage-dms".
+//   mode "comments" {posts:[{name?, text}]} -> {items:[{i, name, text, sorted,
+//     comments:[{type, text}]}]}: comments for other people's posts, two of
+//     different kinds for one post, one each for 2-10. Jev picks the kinds
+//     (number, question, disagree, result), asked in both option orders and
+//     spread so no kind fills more than half a batch;
+//     about 580 Jev input tokens a post and one OpenAI call (about 2 US cents
+//     for 10 posts). Cap "engage-comments".
 // Text mostly in another script is "unsorted" and still drafted; without Jev
 // (no key, timeout, outage) everything is unsorted, in paste order.
 //
@@ -25,6 +32,7 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import { openAiJson } from "../_shared/auditRunner.ts";
 import {
+  buildCommentsPrompt,
   buildDmsPrompt,
   buildRepliesPrompt,
   commentQuestions,
@@ -32,6 +40,9 @@ import {
   dmQuestions,
   parseEngageRequest,
   readCommentKinds,
+  readCommentTypes,
+  readComments,
+  typeQuestions,
   readDmKinds,
   readDmReplies,
   readReplies,
@@ -62,12 +73,22 @@ Deno.serve(async (req) => {
     const key = Deno.env.get("OPENAI_API_KEY");
     if (!key) return json({ error: "Drafting isn't switched on yet." }, 503);
 
-    const usage = await consumeUsage(admin, uid, r.mode === "dms" ? "engage-dms" : "engage-replies");
+    const usage = await consumeUsage(admin, uid, r.mode === "dms" ? "engage-dms" : r.mode === "comments" ? "engage-comments" : "engage-replies");
     if (!usage.allowed) {
       const refusal = usageRefusal(usage);
       return json(refusal.body, refusal.status);
     }
     const used = { used: usage.used, limit: usage.limit };
+
+    if (r.mode === "comments") {
+      const questions = typeQuestions(r.posts);
+      const answers = Object.keys(questions).length ? await askJev({}, questions, { who: "engage-assist comments" }) : null;
+      const picks = readCommentTypes(answers, r.posts);
+      const { system, user } = buildCommentsPrompt(r.posts, picks);
+      const content = await openAiJson(system, user, key, { temperature: 0.7, maxTokens: 3000 });
+      if (content === null) return json({ error: "Couldn't write the comments right now. Try again in a minute." }, 502);
+      return json({ items: readComments(content, r.posts, picks), usage: used });
+    }
 
     if (r.mode === "dms") {
       const questions = dmQuestions(r.messages);

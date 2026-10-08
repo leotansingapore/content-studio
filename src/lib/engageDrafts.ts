@@ -7,16 +7,24 @@
 // (it holds other people's names and words):
 //   key: cs-engage-${tool}-${scoped(userId)}
 // A run keeps going when the page is left, and lands in storage when it ends.
+//
+// Who you commented on (a comment copied from Engage counts), per profile and
+// synced across devices, so the same few people don't get a comment every day:
+//   key: content-studio-commentlog-${scoped(userId)}
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
-import { MAX_ITEMS, type Pasted } from "../../supabase/functions/engage-assist/logic.ts";
+import { localDateKey, weekOf } from "@/lib/dueDates";
+import { MAX_ITEMS, MAX_POSTS, type Pasted } from "../../supabase/functions/engage-assist/logic.ts";
 
 export {
   MAX_ITEMS,
   MAX_ITEM_CHARS,
   MAX_POST_CHARS,
+  MAX_POSTS,
+  type CommentItem,
   type CommentKind,
+  type CommentType,
   type DmItem,
   type DmKind,
   type Pasted,
@@ -44,19 +52,21 @@ export function splitPasted(raw: string): Pasted[] {
     });
 }
 
-export type EngageTool = "replies" | "dms";
+export type EngageTool = "replies" | "dms" | "comments";
 
 /** A tool's last run: what was pasted and the drafts that came back. */
 export interface Run<T> {
   /** The post the comments sit under (replies only). */
   post: string;
   pasted: string;
+  /** The posts to comment on, one slot each (comments only). */
+  posts: Pasted[];
   items: T[];
   /** When the drafts came back; "" before the first run. */
   at: string;
 }
 
-const emptyRun = { post: "", pasted: "", items: [], at: "" };
+const emptyRun = { post: "", pasted: "", posts: [], items: [], at: "" };
 
 const keyFor = (tool: EngageTool, userId: string) => `cs-engage-${tool}-${scoped(userId)}`;
 
@@ -76,6 +86,7 @@ export function loadRun<T>(tool: EngageTool, userId: string | null | undefined):
     return {
       post: typeof v.post === "string" ? v.post : "",
       pasted: typeof v.pasted === "string" ? v.pasted : "",
+      posts: Array.isArray(v.posts) ? v.posts.filter((p: Pasted) => p && typeof p.text === "string").map((p: Pasted) => ({ name: String(p.name ?? ""), text: p.text })) : [],
       items: Array.isArray(v.items) ? v.items : [],
       at: typeof v.at === "string" ? v.at : "",
     };
@@ -102,11 +113,17 @@ export const runningJob = (tool: EngageTool, userId: string) => running.get(keyF
 
 const FAILED = "Couldn't write the replies right now. Try again in a minute.";
 
+/** What a tool sends: the pasted text split into items, or the filled post slots. */
+export function requestBody(tool: EngageTool, input: Pick<Run<unknown>, "post" | "pasted" | "posts">) {
+  if (tool === "comments") return { mode: tool, posts: input.posts.filter((p) => p.text.trim()).slice(0, MAX_POSTS) };
+  const list = splitPasted(input.pasted).slice(0, MAX_ITEMS);
+  return tool === "replies" ? { mode: tool, post: input.post, comments: list } : { mode: tool, messages: list };
+}
+
 /** Sorts and drafts what was pasted; the result is saved even if the page was left meanwhile. */
-export function startRun(tool: EngageTool, userId: string, pasted: string, post = ""): Promise<EngageOutcome> {
+export function startRun(tool: EngageTool, userId: string, input: Pick<Run<unknown>, "post" | "pasted" | "posts">): Promise<EngageOutcome> {
   const key = keyFor(tool, userId);
-  const list = splitPasted(pasted).slice(0, MAX_ITEMS);
-  const body = tool === "replies" ? { mode: tool, post, comments: list } : { mode: tool, messages: list };
+  const body = requestBody(tool, input);
   const job = callFn<{ items?: unknown[] }>("engage-assist", body, FAILED)
     .then((res): EngageOutcome => {
       if (!Array.isArray(res?.items)) return { kind: "error", message: FAILED };
@@ -121,3 +138,65 @@ export function startRun(tool: EngageTool, userId: string, pasted: string, post 
   running.set(key, job);
   return job;
 }
+
+// ---- Who you commented on this week ---------------------------------------------
+
+export interface LogEntry {
+  id: string;
+  /** Whose post, as typed ("" when no name was given). */
+  name: string;
+  /** The post's first words, to tell entries apart. */
+  post: string;
+  at: string;
+}
+
+const LOG_KEY = "content-studio-commentlog-";
+const LOG_KEEP_DAYS = 56;
+const LOG_MAX = 300;
+
+export function loadLog(userId: string | null | undefined): LogEntry[] {
+  if (!userId) return [];
+  try {
+    const v = JSON.parse(store()?.getItem(LOG_KEY + scoped(userId)) ?? "[]");
+    return Array.isArray(v) ? v.filter((e) => e && typeof e.id === "string" && typeof e.at === "string" && typeof e.name === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLog(userId: string, entries: LogEntry[]): LogEntry[] {
+  try {
+    store()?.setItem(LOG_KEY + scoped(userId), JSON.stringify(entries));
+  } catch {
+    // storage full: the log still shows for this visit
+  }
+  return entries;
+}
+
+const sameName = (a: string, b: string) => a.trim().replace(/^@/, "").toLowerCase() === b.trim().replace(/^@/, "").toLowerCase();
+
+/**
+ * Notes a comment copied for someone's post. Copying a second option for the
+ * same post the same day is not a second comment. Entries older than 8 weeks go.
+ */
+export function logComment(userId: string, name: string, post: string, now = new Date()): LogEntry[] {
+  const snippet = post.trim().replace(/\s+/g, " ").slice(0, 80);
+  const today = localDateKey(now);
+  const cutoff = now.getTime() - LOG_KEEP_DAYS * 86_400_000;
+  const kept = loadLog(userId).filter((e) => new Date(e.at).getTime() >= cutoff);
+  if (kept.some((e) => sameName(e.name, name) && e.post === snippet && localDateKey(new Date(e.at)) === today)) return kept;
+  const entry: LogEntry = { id: `c${now.getTime().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name: name.trim().slice(0, 60), post: snippet, at: now.toISOString() };
+  return saveLog(userId, [entry, ...kept].slice(0, LOG_MAX));
+}
+
+export const unlog = (userId: string, id: string) => saveLog(userId, loadLog(userId).filter((e) => e.id !== id));
+
+/** This week's entries (Monday first, the consultant's own days), newest first. */
+export function thisWeek(entries: LogEntry[], now = new Date()): LogEntry[] {
+  const days = new Set(weekOf(localDateKey(now)));
+  return entries.filter((e) => days.has(localDateKey(new Date(e.at)))).sort((a, b) => b.at.localeCompare(a.at));
+}
+
+/** How many times this week you commented on this name's posts. */
+export const timesThisWeek = (entries: LogEntry[], name: string, now = new Date()) =>
+  name.trim() ? thisWeek(entries, now).filter((e) => sameName(e.name, name)).length : 0;

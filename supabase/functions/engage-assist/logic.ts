@@ -11,14 +11,17 @@
 // Mode "dms": direct messages. Jev sorts each into lead, recruiter, peer,
 // favour or spam and flags automated sequences; spam and automated ones get
 // no draft.
+// Mode "comments": someone else's post (or 2-10 of them). Jev picks which kinds
+// of comment fit; the drafts are two comments of different kinds for one post,
+// one each for a batch.
 // Ported from Jakeschincariol/linkedin-agent-skill@add2c23 li-reply and
-// li-inbox (MIT), rewritten for Singapore financial consultants.
+// li-inbox and li-comment (MIT), rewritten for Singapore financial consultants.
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { complianceIssues, parseJsonObject } from "../_shared/socialAudit.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 
-export const MODES = ["replies", "dms"] as const;
+export const MODES = ["replies", "dms", "comments"] as const;
 export type EngageMode = (typeof MODES)[number];
 
 export const MAX_ITEMS = 30;
@@ -32,15 +35,21 @@ export interface Pasted {
   text: string;
 }
 
-export type EngageRequest = { mode: "replies"; post: string; comments: Pasted[] } | { mode: "dms"; messages: Pasted[] };
+export type EngageRequest =
+  | { mode: "replies"; post: string; comments: Pasted[] }
+  | { mode: "dms"; messages: Pasted[] }
+  | { mode: "comments"; posts: Pasted[] };
+
+/** Posts to comment on in one run: one gets two comments, a batch one each. */
+export const MAX_POSTS = 10;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
-function pastedList(v: unknown): Pasted[] {
+function pastedList(v: unknown, max = MAX_ITEM_CHARS): Pasted[] {
   return (Array.isArray(v) ? v : [])
     .map((x) => {
       const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
-      return { name: str(o.name, MAX_NAME), text: str(o.text, MAX_ITEM_CHARS) };
+      return { name: str(o.name, MAX_NAME), text: str(o.text, max) };
     })
     .filter((p) => p.text);
 }
@@ -58,6 +67,12 @@ export function parseEngageRequest(raw: unknown): { ok: true; request: EngageReq
     if (!messages.length) return { ok: false, error: "Paste at least one message." };
     if (messages.length > MAX_ITEMS) return { ok: false, error: `Paste up to ${MAX_ITEMS} messages at a time.` };
     return { ok: true, request: { mode: "dms", messages } };
+  }
+  if (b.mode === "comments") {
+    const posts = pastedList(b.posts, MAX_POST_CHARS);
+    if (!posts.length) return { ok: false, error: "Paste the post you want to comment on." };
+    if (posts.length > MAX_POSTS) return { ok: false, error: `Paste up to ${MAX_POSTS} posts at a time.` };
+    return { ok: true, request: { mode: "comments", posts } };
   }
   return { ok: false, error: "Pick what to draft." };
 }
@@ -359,4 +374,129 @@ export function readDmReplies(content: string | null, messages: Pasted[], sorted
       return { ...m, i, kind, automated, reply: skip ? null : cleanDraft(byId.get(`m${i}`)?.reply, 900) };
     })
     .sort((a, b) => rank(a) - rank(b) || a.i - b.i);
+}
+
+// ---- Mode "comments" ------------------------------------------------------------
+
+export const COMMENT_TYPES = ["number", "question", "disagree", "result"] as const;
+export type CommentType = (typeof COMMENT_TYPES)[number];
+
+const TYPE_CRITERIA: Record<CommentType, string> = {
+  number: "Add a number: the post makes a claim the commenter could back up or test with a figure from their own work with clients.",
+  question: "Ask the real question: the post skips the hard part or leaves an obvious next question a reader would want answered.",
+  disagree: "Respectfully disagree: the post makes a claim a thoughtful adviser could reasonably push back on, in part or in full.",
+  result: "Share your own result: the post describes something the commenter has likely done or seen with clients, so a short account of what happened to them adds most.",
+};
+
+// Shadow check on 2026-10-08 against jev-1.13.0: 10 posts written for it (a
+// retirement claim, "whole life is a waste", a client's CI payout, an ILP
+// list, a career switch, an MDRT thank-you, a protection-gap claim, "emergency
+// fund first", a hiring post, "50/30/20 fails in Singapore"). Jev leans toward
+// the option listed first: "disagree" rose from 0.28 to 0.49 and 0.33 to 0.47
+// when it came first. So the Choice is asked in both orders and averaged, like
+// the hook pick; averaged, the top two held an acceptable kind on 9 of 10
+// posts and the top one on 8. No threshold: the likeliest kinds are taken as
+// they come. About 290 Jev input tokens a post per order.
+/** A Choice per post in written order (f<i>) and reversed (r<i>). */
+export function typeQuestions(posts: Pasted[]): Record<string, JevQuestion> {
+  const q: Record<string, JevQuestion> = {};
+  const ask = (p: Pasted, order: CommentType[]): JevQuestion => ({
+    type: "choice",
+    instructions: {
+      post: p.text,
+      author: p.name || "(no name)",
+      question: "A Singapore financial consultant wants to leave a comment under `post` that the author and their readers find useful. Which kind of comment would add the most?",
+    },
+    criteria: Object.fromEntries(order.map((t) => [t, TYPE_CRITERIA[t]])),
+  });
+  posts.forEach((p, i) => {
+    if (!jevReads(p.text)) return;
+    q[`f${i}`] = ask(p, [...COMMENT_TYPES]);
+    q[`r${i}`] = ask(p, [...COMMENT_TYPES].reverse());
+  });
+  return q;
+}
+
+/** Without a pick (not English, or no answer from Jev): ask the real question, then share a result. */
+export const UNSORTED_TYPES: CommentType[] = ["question", "result"];
+
+/**
+ * In a batch no kind is used for more than this share of the posts: in the
+ * live check on 2026-10-08 four posts all came back "question", which reads
+ * like a script. The likeliest pairs are placed first, the rest take their
+ * next-likeliest kind.
+ */
+export const BATCH_SHARE_MAX = 0.5;
+
+/**
+ * The kinds to write for each post, likeliest first: two for a single post,
+ * one each in a batch. `sorted` is false when Jev did not pick.
+ */
+export function readCommentTypes(answers: Record<string, JevAnswer> | null, posts: Pasted[]): { types: CommentType[]; sorted: boolean }[] {
+  const ranked = posts.map((_, i) => {
+    const f = answers?.[`f${i}`]?.probabilities;
+    const r = answers?.[`r${i}`]?.probabilities;
+    if (!f || !r) return null;
+    return COMMENT_TYPES.map((t) => ({ t, p: ((f[t] ?? 0) + (r[t] ?? 0)) / 2 })).sort((a, b) => b.p - a.p);
+  });
+  if (posts.length === 1) return [ranked[0] ? { types: ranked[0].slice(0, 2).map((x) => x.t), sorted: true } : { types: UNSORTED_TYPES, sorted: false }];
+  const cap = Math.max(1, Math.ceil(posts.length * BATCH_SHARE_MAX));
+  const used = new Map<CommentType, number>();
+  const pick = new Map<number, CommentType>();
+  const pairs = ranked.flatMap((list, i) => (list ?? []).map((x) => ({ i, ...x }))).sort((a, b) => b.p - a.p);
+  for (const { i, t } of pairs) {
+    if (pick.has(i) || (used.get(t) ?? 0) >= cap) continue;
+    pick.set(i, t);
+    used.set(t, (used.get(t) ?? 0) + 1);
+  }
+  return posts.map((_, i) => (pick.has(i) ? { types: [pick.get(i)!], sorted: true } : { types: [UNSORTED_TYPES[0]], sorted: false }));
+}
+
+const TYPE_BRIEF: Record<CommentType, string> = {
+  number: "number: add one figure from the consultant's own work that backs or tests the post's claim. Write it as [your number] for them to fill in, never a figure of your own.",
+  question: "question: one specific question about the hard part the post skipped. No 'curious to hear'.",
+  disagree: "disagree: agree with what is true first, for real, then say kindly where you see it differently and why.",
+  result: "result: what happened with the consultant's own clients, in two sentences, as [your result] or [your example] where the detail goes, never a story of your own.",
+};
+
+export function buildCommentsPrompt(posts: Pasted[], picks: { types: CommentType[] }[]): { system: string; user: string } {
+  const system = [
+    "You draft comments a Singapore financial consultant will post under other people's LinkedIn or Instagram posts. They read each draft and post it themselves.",
+    "Each post comes with the kinds of comment to write, one comment per kind:",
+    ...COMMENT_TYPES.map((t) => `- ${TYPE_BRIEF[t]}`),
+    "Every comment:",
+    "- Is 2 to 4 sentences and makes one point that only fits under this post. Never restate the post.",
+    "- Never opens with 'Great post', 'Love this', 'So true', 'Couldn't agree more', 'This resonates' or the author's name and an exclamation mark.",
+    "- Holds no link, and gives the author's readers no advice on their own situation and no 'DM me'.",
+    "- Never runs down another adviser, company or the author.",
+    "- Is in the post's own language.",
+    ...COMPLIANCE_LINES.map((l) => `- ${l}`),
+    'Reply with JSON only: {"comments":[{"id":"p0","type":"number","text":"..."}]}, one per post id and kind given.',
+  ].join("\n");
+  const blocks = posts.map((p, i) => `[p${i}] kinds: ${picks[i].types.join(", ")} | by ${p.name || "(no name)"}\n${p.text}`);
+  return { system, user: ["The posts:", ...blocks].join("\n\n") };
+}
+
+export interface CommentItem extends Pasted {
+  i: number;
+  /** False when Jev did not pick the kinds. */
+  sorted: boolean;
+  /** In the order Jev ranked the kinds; text "" when no usable draft came back. */
+  comments: { type: CommentType; text: string }[];
+}
+
+/** Each post with its comment drafts, in paste order. */
+export function readComments(content: string | null, posts: Pasted[], picks: { types: CommentType[]; sorted: boolean }[]): CommentItem[] {
+  const obj = content ? parseJsonObject(content) : null;
+  const got = new Map<string, unknown>();
+  for (const c of Array.isArray(obj?.comments) ? obj.comments : []) {
+    const o = c && typeof c === "object" ? (c as Record<string, unknown>) : {};
+    if (typeof o.id === "string" && typeof o.type === "string" && !got.has(`${o.id}:${o.type}`)) got.set(`${o.id}:${o.type}`, o.text);
+  }
+  return posts.map((p, i) => ({
+    ...p,
+    i,
+    sorted: picks[i].sorted,
+    comments: picks[i].types.map((type) => ({ type, text: cleanDraft(got.get(`p${i}:${type}`), 700, { links: false }) })),
+  }));
 }

@@ -46,6 +46,7 @@ export const DAILY_LIMITS = {
   // Engage (engage-assist): Jev sorts, OpenAI drafts; about 2 US cents a run at most.
   "engage-replies": 30,
   "engage-dms": 30,
+  "engage-comments": 30,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
