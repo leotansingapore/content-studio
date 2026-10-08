@@ -41,6 +41,10 @@ export interface EditSettings {
   fit: Fit;
   /** Horizontal centre of the crop, 0 (left) to 1 (right). */
   focusX: number;
+  /** The crop follows the face (faceTrack) instead of focusX. */
+  followFace?: boolean;
+  /** Where the face is across the source video, found on this device; kept when following is off so it comes straight back. */
+  faceTrack?: FaceTrack;
   punchIn: boolean;
   progressBar: boolean;
   grade: boolean;
@@ -1291,4 +1295,22 @@ export function joinIssue(takes: Take[]): string | null {
   if (takes.length < 2) return "Add at least 2 takes.";
   const len = joinedLength(takes);
   return len > MAX_JOIN_SECONDS ? `Together they run ${fmtTime(len)}. Trim them under 12 minutes so they can be captioned.` : null;
+}
+
+// ---------- following the face (auto-reframe; finding it is in faceFollow.ts and faceVision.ts) ----------
+
+/** Where the face is across the source video: its centre, 0 (left) to 1 (right), every `step` seconds from the start. */
+export interface FaceTrack {
+  step: number;
+  x: number[];
+}
+
+/** The crop's centre at this point of the source: the face track while following it, else the slider. */
+export function focusAt(s: Pick<EditSettings, "focusX" | "followFace" | "faceTrack">, src: number): number {
+  const t = s.followFace ? s.faceTrack : undefined;
+  if (!t?.x.length) return s.focusX;
+  const i = Math.max(0, src / t.step);
+  const a = Math.min(t.x.length - 1, Math.floor(i));
+  const b = Math.min(t.x.length - 1, a + 1);
+  return t.x[a] + (t.x[b] - t.x[a]) * (i - a);
 }

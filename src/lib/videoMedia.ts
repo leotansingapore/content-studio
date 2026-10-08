@@ -21,6 +21,7 @@ import {
   captionFont,
   captionKey,
   distanceToCut,
+  focusAt,
   gradeOf,
   integratedLoudness,
   isNumberWord,
@@ -373,7 +374,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   g.fillStyle = "#000";
   g.fillRect(0, 0, W, H);
 
-  // the picture: cover the frame, crop centred on focusX, punch in on alternate cuts
+  // the picture: cover the frame, crop centred on focusX (or on the face, when following it), punch in on alternate cuts
   if (v.videoWidth) {
     const zoom = s.punchIn ? zoomAt(f.segs, f.src, spec.punch) : 1;
     const cover = Math.max(W / v.videoWidth, H / v.videoHeight);
@@ -414,7 +415,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       const scale = cover * zoom;
       const dw = v.videoWidth * scale;
       const dh = v.videoHeight * scale;
-      const dx = Math.min(0, Math.max(W - dw, W / 2 - dw * s.focusX));
+      const dx = Math.min(0, Math.max(W - dw, W / 2 - dw * focusAt(s, f.src)));
       const dy = (H - dh) / 2;
       g.filter = gradeOf(s);
       g.drawImage(v, dx, dy, dw, dh);

@@ -129,6 +129,8 @@ import {
   type ExportJob,
 } from "@/lib/videoMedia";
 import { fileKey, findClips, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { findFaceTrack } from "@/lib/faceVision";
+import { cropShare, sanitizeTrack } from "@/lib/faceFollow";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 
 const MAX_BYTES = 500 * 1024 * 1024;
@@ -238,7 +240,7 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
       <header className="space-y-1">
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Edit a video</h1>
         <ul className="flex flex-wrap gap-1.5 pt-1" aria-label="What it does">
-          {["Auto captions", "Cuts um and long pauses", "Hook on screen", "9:16 reframe", "Find clips in a long video", "Vibe edit by chat", "MP4 export"].map((t) => (
+          {["Auto captions", "Cuts um and long pauses", "Hook on screen", "9:16 reframe that follows your face", "Find clips in a long video", "Vibe edit by chat", "MP4 export"].map((t) => (
             <li key={t} className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{t}</li>
           ))}
         </ul>
@@ -319,6 +321,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     level: sanitizeLevel(project.settings.level),
     broll: sanitizeBroll(project.settings.broll),
     music: sanitizeMusic(project.settings.music),
+    faceTrack: sanitizeTrack(project.settings.faceTrack),
   }));
   // Words tab: fix spelling, or cut a stretch by tapping its first and last word
   const [wordMode, setWordMode] = useState<"fix" | "cut">("fix");
@@ -359,6 +362,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [selBroll, setSelBroll] = useState<string | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  // the source's size, once it has loaded: what a crop to the frame leaves out
+  const [dims, setDims] = useState<[number, number]>([0, 0]);
+  // looking for the face across the video (share done), for the crop to follow it
+  const [finding, setFinding] = useState<number | null>(null);
   const segIdx = useRef(0);
   const drag = useRef<{ startX: number; startY: number; moved: boolean; overlay?: string } | null>(null);
   // the brand kit (logo, end card, name tag); endAt is the time into the end card while it shows
@@ -709,6 +716,32 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const removeVoice = () => {
     if (!settings.voiceover) return;
     change({ ...settings, voiceover: undefined }); // the file stays until Undo is out of reach; it is small
+  };
+
+  // follow the face: found once on this device (a second or two a minute of video), then on or off at once
+  const crop = cropShare(settings.aspect, dims[0], dims[1]);
+  const canFollow = (settings.fit ?? "fill") === "fill" && crop < 0.95;
+  const setFollow = async (on: boolean) => {
+    if (!on || settings.faceTrack) return patch({ followFace: on });
+    if (!file || finding !== null) return;
+    setFinding(0);
+    let v: HTMLVideoElement | null = null;
+    try {
+      v = await loadVideo(file);
+      // the crop re-centres once the face drifts 12% of the frame's width from its middle
+      // progress in 5% steps: redrawing the editor on every look slowed the search down
+      const track = await findFaceTrack(v, duration, crop * 0.12, (p) => setFinding((f) => (f === null || p - f >= 0.05 || p === 1 ? p : f)));
+      if (!track) return toast({ title: "No face found in this video", description: "Move the crop by hand under Hook and frame.", variant: "destructive" });
+      // the latest settings: changes made while it looked must stay
+      const cur = settingsRef.current;
+      setHistory((h) => [...h.slice(-19), cur]);
+      setSettings({ ...cur, followFace: true, faceTrack: track });
+    } catch (e) {
+      toast({ title: "Couldn't look for your face", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      if (v) URL.revokeObjectURL(v.src);
+      setFinding(null);
+    }
   };
 
   const seekOut = (t: number) => {
@@ -1283,6 +1316,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               onLoadedData={() => !playing && paint()} onSeeked={() => !playing && paint()} />
           ))}
           <video ref={video} src={url} playsInline preload="auto" className="pointer-events-none absolute h-px w-px opacity-0"
+            onLoadedMetadata={(e) => setDims([e.currentTarget.videoWidth, e.currentTarget.videoHeight])}
             onLoadedData={() => paint()} onSeeked={() => paint()} />
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={toggle} aria-label={playing ? "Pause" : "Play"} className="h-9 w-9 p-0">
@@ -1305,6 +1339,18 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => patch({ trimEnd: trimToLength(plan.segs, duration, lengthIssues[0].limit, settings) })}>
                 Trim to {fmtTime(lengthIssues[0].limit).replace(/\.0$/, "")}
               </Button>
+            </div>
+          )}
+          {canFollow && (
+            <div className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2">
+              <Row label="Follow my face">
+                {finding !== null ? (
+                  <span className="text-xs text-muted-foreground" aria-live="polite">Finding your face {Math.round(finding * 100)}%</span>
+                ) : (
+                  <InfoTip label="About follow my face">The crop moves with you when you shift in the frame.</InfoTip>
+                )}
+                <Toggle on={!!settings.followFace} disabled={finding !== null || !file} set={(v) => void setFollow(v)} />
+              </Row>
             </div>
           )}
           {settings.aspect === "9:16" && (
@@ -1717,7 +1763,16 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <Chip on={settings.fit === "framed"} onClick={() => patch({ fit: "framed", ...(settings.captionY === undefined ? { captionY: 0.68 } : {}) })}>Framed window</Chip>
               </Row>
               {(settings.fit ?? "fill") === "fill" && (
-                <Row label="Framing"><input type="range" min={0} max={1} step={0.01} value={settings.focusX} onChange={(e) => patch({ focusX: Number(e.target.value) })} aria-label="Move the crop left or right" className="w-40 accent-primary" /></Row>
+                <Row label="Framing">
+                  {settings.followFace ? (
+                    <>
+                      <span className="text-xs text-muted-foreground">Follows your face</span>
+                      <Button size="sm" variant="outline" className="h-11 text-xs sm:h-8" onClick={() => patch({ followFace: false })}>Set by hand</Button>
+                    </>
+                  ) : (
+                    <input type="range" min={0} max={1} step={0.01} value={settings.focusX} onChange={(e) => patch({ focusX: Number(e.target.value) })} aria-label="Move the crop left or right" className="w-40 accent-primary" />
+                  )}
+                </Row>
               )}
               <div className="space-y-1.5">
                 <p className="text-sm font-medium">Export for</p>
@@ -2026,10 +2081,10 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
   );
 }
 
-function Toggle({ on, set }: { on: boolean; set: (v: boolean) => void }) {
+function Toggle({ on, set, disabled }: { on: boolean; set: (v: boolean) => void; disabled?: boolean }) {
   return (
-    <button type="button" role="switch" aria-checked={on} onClick={() => set(!on)}
-      className={`relative h-6 w-11 rounded-full transition-colors after:absolute after:-inset-y-2.5 after:inset-x-0 after:content-[''] ${on ? "bg-primary" : "bg-muted"}`}>
+    <button type="button" role="switch" aria-checked={on} onClick={() => set(!on)} disabled={disabled}
+      className={`relative h-6 w-11 rounded-full transition-colors after:absolute after:-inset-y-2.5 after:inset-x-0 after:content-[''] disabled:opacity-50 ${on ? "bg-primary" : "bg-muted"}`}>
       <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
     </button>
   );
