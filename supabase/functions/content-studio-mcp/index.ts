@@ -9,7 +9,7 @@
 
 // pinned: this runs with the service key
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
-import { handleRpc, linkKey, parseToken, sha256Hex, type Store } from "./logic.ts";
+import { handleRpc, linkIsLive, linkKey, parseToken, revokedKey, sha256Hex, type Store } from "./logic.ts";
 
 const MAX_BODY = 64 * 1024;
 const headers = {
@@ -73,14 +73,14 @@ Deno.serve(async (req) => {
   });
   const table = () => admin.from("cs_user_data");
   try {
-    // the link is live only while its hashed row exists for this very user
+    // live only while its hashed row exists for this very user and it hasn't been turned off
+    const hash = await sha256Hex(link.secret);
     const { data: found, error: linkError } = await table()
       .select("key")
       .eq("user_id", link.userId)
-      .eq("key", linkKey(await sha256Hex(link.secret), link.scope))
-      .maybeSingle();
+      .in("key", [linkKey(hash, link.scope), revokedKey(hash, link.scope)]);
     if (linkError) throw linkError;
-    if (!found) return json(DEAD_LINK, 404);
+    if (!linkIsLive((found ?? []).map((r) => r.key), hash, link.scope)) return json(DEAD_LINK, 404);
 
     const store: Store = {
       async get(key) {

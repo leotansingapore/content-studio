@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { INBOX_PREFIX, MAX_INBOX, callTool, handleRpc, inboxKey, linkKey, parseToken, sgToday, sha256Hex, type Link, type Store } from "./logic";
+import { INBOX_PREFIX, MAX_INBOX, callTool, handleRpc, inboxKey, linkIsLive, linkKey, parseToken, revokedKey, sgToday, sha256Hex, type Link, type Store } from "./logic";
 
 const UID = "ff72c375-389e-4dd0-86c4-a166307b8751";
 const SECRET = "a".repeat(40) + "b-_";
@@ -44,6 +44,18 @@ describe("connection token", () => {
     const hash = await sha256Hex("abc");
     expect(hash).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     expect(linkKey(hash, UID)).toBe(`content-studio-mcplink-${hash}-${UID}`);
+  });
+});
+
+describe("turning a link off", () => {
+  it("is final: a revoked row beats the link row, even if a device re-uploads the link", () => {
+    const h = "c".repeat(64);
+    expect(linkIsLive([linkKey(h, UID)], h, UID)).toBe(true);
+    expect(linkIsLive([linkKey(h, UID), revokedKey(h, UID)], h, UID)).toBe(false);
+    expect(linkIsLive([revokedKey(h, UID)], h, UID)).toBe(false);
+    expect(linkIsLive([], h, UID)).toBe(false);
+    // another profile's revoked row doesn't touch this one
+    expect(linkIsLive([linkKey(h, UID), revokedKey(h, `${UID}~p1`)], h, UID)).toBe(true);
   });
 });
 

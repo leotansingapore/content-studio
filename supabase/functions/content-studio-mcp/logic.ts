@@ -7,8 +7,8 @@
 // token = "<scope>.<secret>" where scope is the adviser's user id, or
 // "<user id>~<profile id>" for a second brand profile (profiles.ts scoped()).
 // The app stores only SHA-256(secret), under the synced key
-// content-studio-mcplink-<hash>-<scope>, so the link works only while that row
-// exists for that user and a removed link is dead at once.
+// content-studio-mcplink-<hash>-<scope>; the link works only while that row
+// exists for that user and no content-studio-mcprevoked-<hash>-<scope> row does.
 
 export const LINK_PREFIX = "content-studio-mcplink-";
 /** Drafts Claude adds: one row per slot, merged into My posts by the app (draftHistory.ts). */
@@ -42,6 +42,19 @@ export async function sha256Hex(text: string): Promise<string> {
 }
 
 export const linkKey = (hash: string, scope: string) => `${LINK_PREFIX}${hash}-${scope}`;
+/**
+ * Turning a link off writes this row and never deletes it. The sync has no
+ * tombstones (another device re-uploads a deleted key it still holds), so a
+ * revocation that relied on deleting the link row could come back; a stray
+ * copy of this row can only ever turn a link off again.
+ */
+export const REVOKED_PREFIX = "content-studio-mcprevoked-";
+export const revokedKey = (hash: string, scope: string) => `${REVOKED_PREFIX}${hash}-${scope}`;
+
+/** Live only when the link row is there and no revoked row is. */
+export function linkIsLive(keysFound: string[], hash: string, scope: string): boolean {
+  return keysFound.includes(linkKey(hash, scope)) && !keysFound.includes(revokedKey(hash, scope));
+}
 
 /** One adviser's synced rows. Implementations must stay inside that adviser's user id. */
 export interface Store {

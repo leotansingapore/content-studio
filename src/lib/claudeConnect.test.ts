@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createLink, loadLinks, MCP_ENDPOINT, newSecret, removeLink, saveLink } from "@/lib/claudeConnect";
-import { parseToken, sha256Hex, linkKey } from "../../supabase/functions/content-studio-mcp/logic";
+import { createLink, loadLinks, MCP_ENDPOINT, newSecret, removeLink, restoreLink } from "@/lib/claudeConnect";
+import { linkIsLive, parseToken, sha256Hex, linkKey } from "../../supabase/functions/content-studio-mcp/logic";
 
 const UID = "ff72c375-389e-4dd0-86c4-a166307b8751";
 let map: Map<string, string>;
@@ -32,13 +32,24 @@ describe("Claude connection links", () => {
     expect(map.get(key)).not.toContain(parsed.secret);
   });
 
-  it("lists, removes and puts back this profile's links", async () => {
+  it("lists, turns off and puts back this profile's links", async () => {
     const { link } = await createLink(UID);
     map.set(`content-studio-mcplink-${"a".repeat(64)}-${UID}~p9`, "{}"); // another profile's
     expect(loadLinks(UID).map((l) => l.hash)).toEqual([link.hash]);
     removeLink(UID, link.hash);
     expect(loadLinks(UID)).toEqual([]);
-    saveLink(UID, link);
+    restoreLink(UID, link);
     expect(loadLinks(UID)).toEqual([link]);
+  });
+
+  it("stays off when another device re-uploads the deleted link key", async () => {
+    const { link } = await createLink(UID);
+    const linkRow = `content-studio-mcplink-${link.hash}-${UID}`;
+    const copy = map.get(linkRow)!;
+    removeLink(UID, link.hash);
+    map.set(linkRow, copy); // the sync brings the old key back from a device that still had it
+    expect(loadLinks(UID)).toEqual([]);
+    // and the server, seeing both rows, refuses it
+    expect(linkIsLive([...map.keys()], link.hash, UID)).toBe(false);
   });
 });

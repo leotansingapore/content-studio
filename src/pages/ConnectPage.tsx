@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
 import { activeProfile, DEFAULT_PROFILE_ID } from "@/lib/profiles";
-import { createLink, linkIsLive, loadLinks, removeLink, saveLink, type ClaudeLink } from "@/lib/claudeConnect";
+import { createLink, linkIsLive, loadLinks, removeLink, restoreLink, type ClaudeLink } from "@/lib/claudeConnect";
 
 const TRY = ["What's on my calendar this week?", "Which of my posts did best, and why?", "Write a LinkedIn post about CPF top-ups in my voice and save it as a draft."];
 
@@ -69,7 +69,7 @@ export default function ConnectPage() {
       title: "Link turned off",
       description: "Claude can no longer reach your posts with it.",
       action: (
-        <ToastAction altText="Undo" onClick={() => { saveLink(userId, link); setLinks(loadLinks(userId)); }}>
+        <ToastAction altText="Undo" onClick={() => { restoreLink(userId, link); setLinks(loadLinks(userId)); }}>
           Undo
         </ToastAction>
       ),
