@@ -22,6 +22,8 @@ export const DAILY_LIMITS = {
   "stock-search": 100,
   // "Make the image" on Write (ai-image, Higgsfield Soul v2, about USD 0.006 each).
   "ai-image": 5,
+  // "Voiceover from text" in the video editor (text-voice, ElevenLabs turbo v2.5).
+  "ai-voice": 10,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

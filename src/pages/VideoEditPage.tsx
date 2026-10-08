@@ -5,6 +5,7 @@ import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
+import { MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, type VoiceId } from "@/lib/textVoice";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -625,6 +626,45 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     if (recording && !playing) stopVoice();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing]);
+  // voiceover from text: a script (the kept words by default) spoken by an AI voice, placed like a recording
+  const [ttsOpen, setTtsOpen] = useState(false);
+  const [ttsText, setTtsText] = useState("");
+  const [ttsVoice, setTtsVoice] = useState<VoiceId>("alice");
+  const [ttsBusy, setTtsBusy] = useState(false);
+  const openTts = () => {
+    setTtsText((t) => t || transcript.slice(0, MAX_SCRIPT));
+    setTtsOpen((o) => !o);
+  };
+  const makeTts = async () => {
+    setTtsBusy(true);
+    try {
+      const blob = await speak(ttsText, ttsVoice);
+      const secs = await audioSeconds(blob).catch(() => 0);
+      const start = Math.min(outT, Math.max(0, plan.total - 0.5));
+      const length = Math.min(secs, plan.total - start);
+      if (length < 0.3) throw new Error("The voiceover came back silent. Try again.");
+      const key = `vo-${project.id}-${Date.now().toString(36)}`;
+      await putFile(key, blob);
+      // the latest settings: changes made while it was being made must stay
+      const cur = settingsRef.current;
+      setHistory((h) => [...h.slice(-19), cur]);
+      setSettings({ ...cur, voiceover: { key, start, length, ...(cur.voiceover?.gain !== undefined ? { gain: cur.voiceover.gain } : {}) } });
+      setTtsOpen(false);
+      toast({
+        title: `Voiceover added from ${fmtTime(start)}`,
+        description: secs > length + 0.5 ? `It runs ${fmtTime(secs)}; the video ends first, so the end is cut.` : undefined,
+        action: (cur.volume ?? 1) > 0 ? (
+          <ToastAction altText="Mute the filmed sound" onClick={() => { setHistory((h) => [...h.slice(-19), settingsRef.current]); setSettings((x) => ({ ...x, volume: 0 })); }}>
+            Mute filmed sound
+          </ToastAction>
+        ) : undefined,
+      });
+    } catch (e) {
+      toast({ title: "Couldn't make the voiceover", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setTtsBusy(false);
+    }
+  };
   const removeVoice = () => {
     if (!settings.voiceover) return;
     change({ ...settings, voiceover: undefined }); // the file stays until Undo is out of reach; it is small
@@ -1395,7 +1435,28 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       <Mic className="h-3.5 w-3.5" /> {settings.voiceover ? "Record again" : "Record from the mic"}
                     </Button>
                   )}
+                  {!recording && (
+                    <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={openTts} disabled={!file || playing} aria-expanded={ttsOpen}>
+                      <Sparkles className="h-3.5 w-3.5" /> Voiceover from text
+                    </Button>
+                  )}
                 </div>
+                {ttsOpen && !recording && (
+                  <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-2.5">
+                    <Textarea rows={4} value={ttsText} maxLength={MAX_SCRIPT} onChange={(e) => setTtsText(e.target.value)} aria-label="Voiceover script"
+                      placeholder="What the voice says" className="text-sm" />
+                    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
+                      {VOICE_IDS.map((v) => <Chip key={v} on={ttsVoice === v} onClick={() => setTtsVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Chip>)}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" className={`h-9 gap-1.5 ${ttsBusy ? "disabled:opacity-100" : ""}`} onClick={() => void makeTts()} disabled={ttsBusy || ttsText.trim().length < 5}>
+                        {ttsBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
+                        {ttsBusy ? "Making the voiceover..." : `Make it from ${fmtTime(Math.min(outT, Math.max(0, plan.total - 0.5)))}`}
+                      </Button>
+                      <span className="text-[11px] text-muted-foreground">{ttsText.length.toLocaleString("en-US")} / {MAX_SCRIPT.toLocaleString("en-US")}</span>
+                    </div>
+                  </div>
+                )}
                 {settings.voiceover && !recording && (
                   <>
                     <p className="text-xs text-muted-foreground">
