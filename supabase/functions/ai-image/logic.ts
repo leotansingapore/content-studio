@@ -13,14 +13,15 @@ export const PEOPLE_RULE =
   "each one clearly different from the others in age, build, face, hair and clothes; good-looking, well-groomed, natural expressions. " +
   "Polished lifestyle photograph. No text, no words, no logos, no watermarks.";
 
-export type ImageRequest = { mode: "start"; prompt: string } | { mode: "status"; id: string };
+export type ImageRequest = { mode: "start"; prompt: string } | { mode: "status"; token: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function parseImageRequest(raw: unknown): { ok: true; request: ImageRequest } | { ok: false; error: string } {
   const b = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   if (b.mode === "status") {
-    return typeof b.id === "string" && UUID.test(b.id) ? { ok: true, request: { mode: "status", id: b.id.toLowerCase() } } : { ok: false, error: "That image job isn't known." };
+    // the owner check (openJobToken) needs the caller's uid, so it happens in index.ts
+    return typeof b.token === "string" && b.token.length <= 120 ? { ok: true, request: { mode: "status", token: b.token } } : { ok: false, error: "That image job isn't known." };
   }
   const prompt = typeof b.prompt === "string" ? b.prompt.replace(/\s+/g, " ").trim() : "";
   if (prompt.length < MIN_PROMPT) return { ok: false, error: "Write a longer image prompt first." };
@@ -46,4 +47,35 @@ export function readStatus(data: unknown): JobState {
   }
   if (status === "nsfw") return { state: "failed", error: "The image was blocked by the safety filter. Change the prompt and try again." };
   return { state: "failed", error: "The image didn't come through. Try again." };
+}
+
+// ---------- job tokens ----------
+// A Higgsfield request id alone would let anyone signed in read any job made with
+// the shared key. Start hands back id.HMAC(uid:id) instead; status recomputes it
+// for the caller and refuses a token made for someone else. No table needed.
+
+const enc = new TextEncoder();
+
+async function hmacHex(secret: string, message: string): Promise<string> {
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(message)));
+  return Array.from(sig, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** The signing secret, derived from a server-only key under a fixed label (so no extra secret to manage). */
+export const tokenSecret = (serverKey: string) => hmacHex(serverKey, "content-studio ai-image job token v1");
+
+export async function jobToken(secret: string, uid: string, id: string): Promise<string> {
+  const lower = id.toLowerCase();
+  return `${lower}.${await hmacHex(secret, `${uid}:${lower}`)}`;
+}
+
+/** The job id when the token was made for this user, else null. Compared in constant time. */
+export async function openJobToken(secret: string, uid: string, token: string): Promise<string | null> {
+  const m = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.([0-9a-f]{64})$/.exec(token.toLowerCase());
+  if (!m || !UUID.test(m[1])) return null;
+  const want = await hmacHex(secret, `${uid}:${m[1]}`);
+  let diff = 0;
+  for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ m[2].charCodeAt(i);
+  return diff === 0 ? m[1] : null;
 }

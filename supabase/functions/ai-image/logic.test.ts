@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PEOPLE_RULE, buildImageBody, parseImageRequest, readStatus } from "./logic";
+import { PEOPLE_RULE, buildImageBody, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic";
 
 describe("parseImageRequest", () => {
   it("starts a job from a tidied prompt", () => {
@@ -13,11 +13,9 @@ describe("parseImageRequest", () => {
   it("refuses a short or overlong prompt and a status id that isn't a UUID", () => {
     expect(parseImageRequest({ prompt: "cat" })).toMatchObject({ ok: false });
     expect(parseImageRequest({ prompt: "x".repeat(1201) })).toMatchObject({ ok: false });
-    expect(parseImageRequest({ mode: "status", id: "../balance" })).toMatchObject({ ok: false });
-    expect(parseImageRequest({ mode: "status", id: "4CAA5951-46AE-4D65-9F8F-7B05DD4207CB" })).toEqual({
-      ok: true,
-      request: { mode: "status", id: "4caa5951-46ae-4d65-9f8f-7b05dd4207cb" },
-    });
+    expect(parseImageRequest({ mode: "status" })).toMatchObject({ ok: false });
+    expect(parseImageRequest({ mode: "status", token: "x".repeat(121) })).toMatchObject({ ok: false });
+    expect(parseImageRequest({ mode: "status", token: "abc.def" })).toEqual({ ok: true, request: { mode: "status", token: "abc.def" } });
   });
 });
 
@@ -47,5 +45,26 @@ describe("readStatus", () => {
   it("never calls a job done without an https picture", () => {
     expect(readStatus({ status: "completed", images: [] })).toMatchObject({ state: "failed" });
     expect(readStatus({ status: "completed", images: [{ url: "javascript:alert(1)" }] })).toMatchObject({ state: "failed" });
+  });
+});
+
+describe("job tokens", () => {
+  const id = "4caa5951-46ae-4d65-9f8f-7b05dd4207cb";
+
+  it("opens only for the adviser it was made for", async () => {
+    const secret = await tokenSecret("service-role-key");
+    const forA = await jobToken(secret, "user-a", id.toUpperCase());
+    expect(forA.startsWith(`${id}.`)).toBe(true);
+    expect(await openJobToken(secret, "user-a", forA)).toBe(id);
+    expect(await openJobToken(secret, "user-b", forA)).toBeNull();
+  });
+
+  it("refuses a bare id, a tampered signature and another server's token", async () => {
+    const secret = await tokenSecret("service-role-key");
+    const forA = await jobToken(secret, "user-a", id);
+    expect(await openJobToken(secret, "user-a", id)).toBeNull();
+    expect(await openJobToken(secret, "user-a", `${forA.slice(0, -1)}${forA.endsWith("0") ? "1" : "0"}`)).toBeNull();
+    const other = await jobToken(await tokenSecret("another-key"), "user-a", id);
+    expect(await openJobToken(secret, "user-a", other)).toBeNull();
   });
 });

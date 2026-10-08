@@ -1,7 +1,9 @@
 // "Make the image" on Write: one picture from the post's image prompt, with
 // Higgsfield Soul v2 (about USD 0.006 each at 1080p, by Higgsfield's estimate).
-//   POST {mode:"start", prompt} -> {id}: counts against the "ai-image" daily cap
-//   POST {mode:"status", id}    -> {state:"working"} | {state:"done", url} | {state:"failed", error}
+//   POST {mode:"start", prompt} -> {token}: counts against the "ai-image" daily cap
+//   POST {mode:"status", token} -> {state:"working"} | {state:"done", url} | {state:"failed", error}
+// The token is the Higgsfield request id signed for the adviser who started it
+// (logic.ts jobToken), so nobody else can read the job.
 // The browser polls status, then downloads the picture straight from Higgsfield's
 // CDN (it allows any site) into the media library.
 //
@@ -11,7 +13,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { HF_BASE, HF_MODEL, buildImageBody, parseImageRequest, readStatus } from "./logic.ts";
+import { HF_BASE, HF_MODEL, buildImageBody, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,12 +46,14 @@ Deno.serve(async (req) => {
       return json({ error: "Making images isn't switched on yet." }, 503);
     }
     const auth = { Authorization: `Key ${key}:${secret}` };
+    const signing = await tokenSecret(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     if (parsed.request.mode === "status") {
-      // ponytail: any signed-in user holding a job id can read its status; ids are random UUIDs handed only to their maker
+      const id = await openJobToken(signing, uid, parsed.request.token);
+      if (!id) return json({ error: "That image job isn't known." }, 404);
       let res: Response;
       try {
-        res = await fetch(`${HF_BASE}/requests/${parsed.request.id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) });
+        res = await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) });
       } catch {
         return json({ state: "working" }); // a blip: the browser asks again
       }
@@ -81,7 +85,7 @@ Deno.serve(async (req) => {
     }
     const id = (await res.json().catch(() => null))?.request_id;
     if (typeof id !== "string") return json({ error: RETRY }, 502);
-    return json({ id, usage: { used: usage.used, limit: usage.limit } });
+    return json({ token: await jobToken(signing, uid, id), usage: { used: usage.used, limit: usage.limit } });
   } catch (e) {
     console.error("ai-image failed", e);
     return json({ error: RETRY }, 500);

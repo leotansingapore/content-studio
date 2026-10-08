@@ -37,12 +37,12 @@ export async function makeImage(userId: string, prompt: string, name: string): P
   if (imageBusy()) return;
   set({ prompt, state: "working" });
   try {
-    const { id } = await callFn<{ id: string }>("ai-image", { mode: "start", prompt }, "Couldn't make the image right now. Try again in a minute.");
+    const { token } = await callFn<{ token: string }>("ai-image", { mode: "start", prompt }, "Couldn't make the image right now. Try again in a minute.");
     let url = "";
     for (const until = Date.now() + GIVE_UP_MS; !url && Date.now() < until; ) {
       await new Promise((r) => setTimeout(r, POLL_MS));
       // a dropped status check is retried on the next round, not a failure
-      const s = await callFn<JobState>("ai-image", { mode: "status", id }).catch((): JobState => ({ state: "working" }));
+      const s = await callFn<JobState>("ai-image", { mode: "status", token }).catch((): JobState => ({ state: "working" }));
       if (s.state === "failed") throw new Error(s.error);
       if (s.state === "done") url = s.url;
     }
