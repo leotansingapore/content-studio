@@ -272,11 +272,11 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5">
+                  <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11">
                     <Link to={`/generate?draft=${d.id}`}>Open</Link>
                   </Button>
                   {days > 0 && (
-                    <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5">
+                    <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11">
                       <Link to="/calendar#overdue">Reschedule</Link>
                     </Button>
                   )}
@@ -285,7 +285,7 @@ export default function HomePage() {
                     onClick={() => markDuePosted(d.id)}
                     disabled={reviews.blockReason(d) !== null}
                     title={reviews.blockReason(d) ?? undefined}
-                    className="h-9 gap-1 px-3 text-xs sm:h-8 sm:px-2.5"
+                    className="h-9 gap-1 px-3 text-xs sm:h-8 sm:px-2.5 [@media(pointer:coarse)]:h-11"
                   >
                     <CheckCircle2 className="h-3 w-3" /> Mark posted
                   </Button>
@@ -296,7 +296,7 @@ export default function HomePage() {
           {dueNow.length > 3 && (
             <Link
               to="/calendar"
-              className="inline-block py-1 text-xs font-medium text-primary hover:underline"
+              className="inline-block py-1 text-xs font-medium text-primary hover:underline [@media(pointer:coarse)]:py-3"
             >
               See all {dueNow.length} on the calendar
             </Link>
@@ -327,7 +327,7 @@ export default function HomePage() {
                 {contentScore !== null && (
                   <Link
                     to="/coach"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
                   >
                     <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
                   </Link>
@@ -381,7 +381,7 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
-              <Button asChild size="sm" variant="outline" className="gap-1.5">
+              <Button asChild size="sm" variant="outline" className="gap-1.5 [@media(pointer:coarse)]:h-11">
                 <Link to="/coach">
                   Start diagnosis <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
@@ -407,7 +407,7 @@ export default function HomePage() {
               </div>
               <Link
                 to="/coach"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
               >
                 <Gauge className="h-3.5 w-3.5" /> Score {contentScore}/100
               </Link>
@@ -455,7 +455,7 @@ export default function HomePage() {
                 <Link
                   key={c.label}
                   to={c.to}
-                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors [@media(pointer:coarse)]:min-h-11 ${
                     c.done
                       ? "border-success/30 bg-success/5 text-muted-foreground"
                       : "border-border/70 bg-card text-foreground hover:border-primary/40"
@@ -488,7 +488,7 @@ export default function HomePage() {
             </h2>
             <Link
               to="/calendar"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
             >
               Calendar <ArrowRight className="h-3 w-3" />
             </Link>
@@ -561,13 +561,13 @@ export default function HomePage() {
                     <div key={p} className="flex items-center justify-between gap-2 text-sm">
                       <span className="text-foreground">{PLATFORM_LABEL[p]}</span>
                       <span className="flex items-center gap-1">
-                        <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => set(n - 1)} disabled={n <= 0} aria-label={`Fewer ${PLATFORM_LABEL[p]} posts`}>
+                        <Button type="button" variant="outline" size="icon" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={() => set(n - 1)} disabled={n <= 0} aria-label={`Fewer ${PLATFORM_LABEL[p]} posts`}>
                           <Minus className="h-3.5 w-3.5" />
                         </Button>
                         <span className={`w-8 text-center font-semibold tabular-nums ${n ? "text-foreground" : "text-muted-foreground"}`} aria-live="polite">
                           {n}
                         </span>
-                        <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => set(n + 1)} disabled={n >= MAX_WEEKLY_GOAL} aria-label={`More ${PLATFORM_LABEL[p]} posts`}>
+                        <Button type="button" variant="outline" size="icon" className="h-9 w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={() => set(n + 1)} disabled={n >= MAX_WEEKLY_GOAL} aria-label={`More ${PLATFORM_LABEL[p]} posts`}>
                           <Plus className="h-3.5 w-3.5" />
                         </Button>
                       </span>
@@ -575,10 +575,10 @@ export default function HomePage() {
                   );
                 })}
                 <div className="flex justify-end gap-2 pt-1">
-                  <Button variant="outline" size="sm" onClick={() => setGoalDraft(null)}>
+                  <Button variant="outline" size="sm" className="[@media(pointer:coarse)]:h-11" onClick={() => setGoalDraft(null)}>
                     Cancel
                   </Button>
-                  <Button size="sm" onClick={saveGoal}>
+                  <Button size="sm" className="[@media(pointer:coarse)]:h-11" onClick={saveGoal}>
                     Save goal
                   </Button>
                 </div>
@@ -591,7 +591,7 @@ export default function HomePage() {
                     {week.posted}
                     {week.goal > 0 ? ` / ${week.goal}` : ""} posted
                     {week.goal > 0 && (
-                      <Button variant="ghost" size="icon" className="-my-2 -mr-2 h-9 w-9" onClick={() => setGoalDraft(goals)} aria-label="Edit weekly goal">
+                      <Button variant="ghost" size="icon" className="-my-2 -mr-2 h-9 w-9 [@media(pointer:coarse)]:-my-3 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" onClick={() => setGoalDraft(goals)} aria-label="Edit weekly goal">
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     )}
@@ -636,7 +636,7 @@ export default function HomePage() {
                   <p className="text-xs text-muted-foreground">Goal hit for the week. Nice.</p>
                 ) : (
                   week.goal === 0 && (
-                    <Button variant="link" size="sm" className="h-9 px-0 text-xs" onClick={() => setGoalDraft(goals)}>
+                    <Button variant="link" size="sm" className="h-9 px-0 text-xs [@media(pointer:coarse)]:h-11" onClick={() => setGoalDraft(goals)}>
                       Set a weekly goal
                     </Button>
                   )
@@ -676,7 +676,7 @@ export default function HomePage() {
           {hasPosts && (
             <Link
               to="/drafts"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
             >
               See all <ArrowRight className="h-3 w-3" />
             </Link>
@@ -722,7 +722,7 @@ export default function HomePage() {
               <p className="text-sm text-muted-foreground">
                 No posts yet.
               </p>
-              <Button asChild size="sm" className="gap-1.5">
+              <Button asChild size="sm" className="gap-1.5 [@media(pointer:coarse)]:h-11">
                 <Link to="/generate">
                   <Pencil className="h-3.5 w-3.5" /> Write your first post
                 </Link>
