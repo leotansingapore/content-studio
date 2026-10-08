@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { upsertDraft, type DraftEntry } from "@/lib/draftHistory";
+import { loadDrafts, upsertDraft } from "@/lib/draftHistory";
 import {
   Card,
   CardContent,
@@ -58,7 +58,7 @@ import {
   savePlan,
   clearPlan,
   planItemToGenerateUrl,
-  planItemDate,
+  planCalendarEntries,
   upcomingMonday,
   type ContentPlan,
   type PlanFormat,
@@ -301,35 +301,16 @@ export default function PlanPage() {
   };
 
   // Push every plan slot onto the calendar as a scheduled post (dated from the
-  // upcoming Monday). Re-running updates the same slots instead of duplicating.
+  // upcoming Monday). Re-running updates untouched slots and keeps written ones.
   const handleAddToCalendar = () => {
     if (!userId || !plan) return;
-    const week1 = upcomingMonday(new Date());
-    let count = 0;
-    for (const item of plan.items) {
-      const date = planItemDate(item, week1);
-      const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-      const entry: DraftEntry = {
-        id: `plan_${item.id}`,
-        createdAt: new Date().toISOString(),
-        hook: item.hook || item.angle,
-        draft: "",
-        pillar: item.pillar,
-        pillarDetail: item.pillarDetail,
-        audience: item.audience,
-        format: item.format,
-        platform: item.platform,
-        ctaType: item.ctaType,
-        vibeSourceId: item.seedId,
-        status: "scheduled",
-        scheduledFor: iso,
-      };
-      upsertDraft(userId, entry);
-      count++;
-    }
+    const { entries, kept } = planCalendarEntries(plan.items, upcomingMonday(new Date()), loadDrafts(userId));
+    for (const entry of entries) upsertDraft(userId, entry);
     toast({
-      title: `${count} posts added to your calendar`,
-      description: "Open one to write it. It stays on its scheduled day.",
+      title: `${entries.length} post${entries.length === 1 ? "" : "s"} added to your calendar`,
+      description: kept
+        ? `${kept} you've already written or posted stay as they are.`
+        : "Open one to write it. It stays on its scheduled day.",
     });
     navigate("/calendar");
   };

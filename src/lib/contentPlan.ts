@@ -15,6 +15,7 @@ import inspirationData from "@/data/inspiration.json";
 import { FUNNEL_STAGES, type FunnelStageId } from "@/data/funnelFramework";
 import type { Positioning } from "@/lib/positioning";
 import { scoped } from "@/lib/profiles";
+import type { DraftEntry } from "@/lib/draftHistory";
 
 export type PlanPillar = "interest" | "identity" | "topic" | "market";
 export type PlanFormat = "carousel" | "short-video" | "text-post" | "story";
@@ -362,6 +363,47 @@ export function planItemDate(item: PlanItem, week1Monday: Date): Date {
   const d = new Date(week1Monday);
   d.setDate(d.getDate() + (item.week - 1) * 7 + off);
   return d;
+}
+
+/**
+ * The plan's slots as scheduled posts (ids plan_<slot>, so adding again updates
+ * rather than duplicates). A slot already written, posted or taken off the
+ * calendar is left alone: only untouched placeholders are refreshed.
+ */
+export function planCalendarEntries(
+  items: PlanItem[],
+  week1Monday: Date,
+  existing: DraftEntry[],
+  now = new Date(),
+): { entries: DraftEntry[]; kept: number } {
+  const byId = new Map(existing.map((d) => [d.id, d]));
+  const entries: DraftEntry[] = [];
+  let kept = 0;
+  for (const item of items) {
+    const id = `plan_${item.id}`;
+    const prev = byId.get(id);
+    if (prev && (prev.draft.trim() || prev.status !== "scheduled")) {
+      kept++;
+      continue;
+    }
+    const date = planItemDate(item, week1Monday);
+    entries.push({
+      id,
+      createdAt: prev?.createdAt ?? now.toISOString(),
+      hook: item.hook || item.angle,
+      draft: "",
+      pillar: item.pillar,
+      pillarDetail: item.pillarDetail,
+      audience: item.audience,
+      format: item.format,
+      platform: item.platform,
+      ctaType: item.ctaType,
+      vibeSourceId: item.seedId,
+      status: "scheduled",
+      scheduledFor: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+    });
+  }
+  return { entries, kept };
 }
 
 // ---- store ----
