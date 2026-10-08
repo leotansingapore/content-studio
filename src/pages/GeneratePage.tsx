@@ -1189,6 +1189,7 @@ export default function GeneratePage() {
         status: existing?.status,
         scheduledFor: existing?.scheduledFor,
         postedAt: existing?.postedAt,
+        repeat: existing?.repeat,
       };
       upsertDraft(userId, entry);
       setCurrentDraftId(id);

@@ -8,6 +8,7 @@
 // module can swap to Supabase reads/writes without touching callers.
 
 import { scoped } from "@/lib/profiles";
+import { addDays, localDateKey, scheduleAt, scheduleTime } from "@/lib/dueDates";
 export const MAX_DRAFTS = 50;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
@@ -31,6 +32,59 @@ export interface DraftEntry {
   postedAt?: string;
   // Self-reported performance (until a real platform integration lands).
   metrics?: PostMetrics;
+  // A recurring post: this entry is the series' next occurrence (scheduledFor).
+  // Marking it posted records a posted copy and moves it to the following one.
+  repeat?: Repeat;
+}
+
+export type RepeatEvery = "week" | "2weeks" | "month";
+
+export interface Repeat {
+  every: RepeatEvery;
+  start: string; // YYYY-MM-DD: the day the series counts from
+  skip?: string[]; // occurrences skipped with "Skip this one"
+}
+
+// The n-th occurrence of a series (n = 0 is its start). Monthly keeps the start's
+// day of the month, on the last day of a shorter month (31 Jan, 28 Feb, 31 Mar).
+function occurrence(r: Repeat, n: number): string {
+  if (r.every !== "month") return addDays(r.start, n * (r.every === "week" ? 7 : 14));
+  const y = Number(r.start.slice(0, 4));
+  const m = Number(r.start.slice(5, 7)) - 1 + n;
+  const lastDay = new Date(y, m + 1, 0).getDate();
+  const day = Math.min(Number(r.start.slice(8, 10)), lastDay);
+  return localDateKey(new Date(y, m, day));
+}
+
+/** A series' occurrences after `after` and up to `until` (day keys), skipped ones left out. */
+export function occurrencesBetween(r: Repeat, after: string, until: string): string[] {
+  const out: string[] = [];
+  // ponytail: walks from the start; ~5 years of weekly posts is 260 steps, fine on a page render.
+  for (let n = 0, day = r.start; day <= until && n < 2000; day = occurrence(r, ++n)) {
+    if (day > after && !r.skip?.includes(day)) out.push(day);
+  }
+  return out;
+}
+
+/** The first occurrence after `after` that is not skipped. */
+export function nextOccurrence(r: Repeat, after: string): string {
+  for (let n = 0, day = r.start; n < 2000; day = occurrence(r, ++n)) {
+    if (day > after && !r.skip?.includes(day)) return day;
+  }
+  return addDays(after, 7); // unreachable for a sane series
+}
+
+// Moves a series entry on to its next occurrence after `after`, keeping the time
+// and dropping skips it has passed.
+function advance(d: DraftEntry, after: string): DraftEntry {
+  const r = d.repeat!;
+  const day = nextOccurrence(r, after);
+  const skip = r.skip?.filter((s) => s > day);
+  return {
+    ...d,
+    scheduledFor: scheduleAt(day, scheduleTime(d.scheduledFor)),
+    repeat: { every: r.every, start: r.start, ...(skip?.length ? { skip } : {}) },
+  };
 }
 
 export interface PostMetrics {
@@ -117,16 +171,69 @@ export function setDraftStatus(
   when?: string,
 ): DraftEntry[] {
   const current = loadDrafts(userId);
+  const series = current.find((d) => d.id === id);
+  // Posting one occurrence of a recurring post: record it as its own posted entry
+  // and move the series on. A post made today covers every occurrence up to today.
+  if (status === "posted" && series?.repeat && series.scheduledFor) {
+    const record: DraftEntry = { ...series, id: newDraftId(), status: "posted", postedAt: when ?? new Date().toISOString() };
+    delete record.repeat;
+    delete record.metrics;
+    const day = series.scheduledFor.slice(0, 10);
+    const today = localDateKey();
+    const moved = advance(series, day > today ? day : today);
+    const next = [record, ...current.map((d) => (d.id === id ? moved : d))];
+    saveDrafts(userId, next);
+    return next;
+  }
   const next = current.map((d) => {
     if (d.id !== id) return d;
     const updated: DraftEntry = { ...d, status };
     if (status === "posted") updated.postedAt = when ?? new Date().toISOString();
-    if (status === "scheduled") updated.scheduledFor = when ?? d.scheduledFor;
+    if (status === "scheduled") {
+      updated.scheduledFor = when ?? d.scheduledFor;
+      // Moving a recurring post moves the whole series to count from the new day.
+      if (when && d.repeat) updated.repeat = { every: d.repeat.every, start: when.slice(0, 10) };
+    }
     if (status === "draft") {
       delete updated.postedAt;
       delete updated.scheduledFor;
+      delete updated.repeat;
     }
     return updated;
+  });
+  saveDrafts(userId, next);
+  return next;
+}
+
+/** Puts an entry back exactly as it was (for Undo), in its place in the list. */
+export function restoreDraft(userId: string, entry: DraftEntry): DraftEntry[] {
+  const next = loadDrafts(userId).map((d) => (d.id === entry.id ? entry : d));
+  saveDrafts(userId, next);
+  return next;
+}
+
+/** Makes a scheduled post repeat from its scheduled day, or stops it repeating. */
+export function setRepeat(userId: string, id: string, every: RepeatEvery | null): DraftEntry[] {
+  const next = loadDrafts(userId).map((d) => {
+    if (d.id !== id) return d;
+    const updated: DraftEntry = { ...d };
+    if (every && d.scheduledFor) updated.repeat = { every, start: d.scheduledFor.slice(0, 10) };
+    else delete updated.repeat;
+    return updated;
+  });
+  saveDrafts(userId, next);
+  return next;
+}
+
+/** "Skip this one": the series' next occurrence moves on; a later one is left out. */
+export function skipOccurrence(userId: string, id: string, day: string): DraftEntry[] {
+  const next = loadDrafts(userId).map((d) => {
+    if (d.id !== id || !d.repeat || !d.scheduledFor) return d;
+    if (day === d.scheduledFor.slice(0, 10)) {
+      const today = localDateKey();
+      return advance(d, day > today ? day : today);
+    }
+    return { ...d, repeat: { ...d.repeat, skip: [...(d.repeat.skip ?? []), day] } };
   });
   saveDrafts(userId, next);
   return next;

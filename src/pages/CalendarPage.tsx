@@ -31,7 +31,12 @@ import {
   loadDrafts,
   setDraftStatus,
   draftStatus,
+  occurrencesBetween,
+  restoreDraft,
+  setRepeat,
+  skipOccurrence,
   type DraftEntry,
+  type RepeatEvery,
 } from "@/lib/draftHistory";
 import {
   NOTE_COLORS,
@@ -53,6 +58,7 @@ import {
   List,
   CheckCircle2,
   Coins,
+  Repeat as RepeatIcon,
   StickyNote,
   X,
 } from "lucide-react";
@@ -83,6 +89,11 @@ const NOTE_COLOR_NAME: Record<NoteColor, string> = {
   success: "Green",
   warning: "Amber",
   destructive: "Red",
+};
+const REPEAT_LABEL: Record<RepeatEvery, string> = {
+  week: "weekly",
+  "2weeks": "every 2 weeks",
+  month: "monthly",
 };
 const KEY_DATE_DAYS = 60; // how far ahead Upcoming lists holidays and money dates
 type StatusFilter = "all" | "scheduled" | "posted";
@@ -124,6 +135,8 @@ export default function CalendarPage() {
   const [platform, setPlatform] = useState("all");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Set when the selected chip is a future occurrence of a recurring post (its day).
+  const [selectedGhost, setSelectedGhost] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -218,16 +231,26 @@ export default function CalendarPage() {
     [visible, todayKey],
   );
 
+  // Recurring posts: their future occurrences for the next 3 months, shown as ghosts.
+  const ghostsByDate = useMemo(() => {
+    const t = keyToDate(todayKey);
+    const until = localDateKey(new Date(t.getFullYear(), t.getMonth() + 3, t.getDate()));
+    const map = new Map<string, DraftEntry[]>();
+    for (const d of visible) {
+      if (!d.repeat || draftStatus(d) !== "scheduled" || !d.scheduledFor) continue;
+      for (const day of occurrencesBetween(d.repeat, d.scheduledFor.slice(0, 10), until))
+        map.set(day, [...(map.get(day) ?? []), d]);
+    }
+    return map;
+  }, [visible, todayKey]);
+
   const selected = drafts.find((d) => d.id === selectedId) ?? null;
 
-  const undo = (prev: DraftEntry) => {
-    if (!userId) return;
-    setDrafts(
-      draftStatus(prev) === "scheduled"
-        ? setDraftStatus(userId, prev.id, "scheduled", prev.scheduledFor)
-        : setDraftStatus(userId, prev.id, "draft"),
-    );
-  };
+  const undoAction = (prev: DraftEntry) => (
+    <ToastAction altText="Undo" onClick={() => userId && setDrafts(restoreDraft(userId, prev))}>
+      Undo
+    </ToastAction>
+  );
 
   // Puts a draft on a day (and optional time), or moves a scheduled post. Undo puts it back.
   const reschedule = (id: string, next: string) => {
@@ -244,11 +267,8 @@ export default function CalendarPage() {
     setDrafts(setDraftStatus(userId, id, "scheduled", next));
     toast({
       title: `${wasScheduled ? "Moved to" : "Scheduled for"} ${whenLabel(next)}`,
-      action: (
-        <ToastAction altText="Undo" onClick={() => undo(prev)}>
-          Undo
-        </ToastAction>
-      ),
+      description: prev.repeat ? `Repeats ${REPEAT_LABEL[prev.repeat.every]} from here` : undefined,
+      action: undoAction(prev),
     });
   };
 
@@ -266,8 +286,26 @@ export default function CalendarPage() {
 
   const markPosted = (id: string) => {
     if (!userId) return;
-    setDrafts(setDraftStatus(userId, id, "posted"));
-    toast({ title: "Marked as posted" });
+    const next = setDraftStatus(userId, id, "posted");
+    setDrafts(next);
+    const series = next.find((d) => d.id === id && d.repeat);
+    toast({
+      title: "Marked as posted",
+      description: series?.scheduledFor ? `Next one: ${whenLabel(series.scheduledFor)}` : undefined,
+    });
+  };
+
+  const changeRepeat = (d: DraftEntry, every: RepeatEvery | null) => {
+    if (!userId) return;
+    setDrafts(setRepeat(userId, d.id, every));
+    toast({ title: every ? `Repeats ${REPEAT_LABEL[every]}` : "No longer repeats", action: undoAction(d) });
+  };
+
+  const skip = (d: DraftEntry, day: string) => {
+    if (!userId) return;
+    setDrafts(skipOccurrence(userId, d.id, day));
+    if (selectedGhost === day) setSelectedId(null);
+    toast({ title: `Skipped ${dayLabel(day)}`, action: undoAction(d) });
   };
 
   const openNote = (n: CalNote | null, date?: string) => {
@@ -298,8 +336,10 @@ export default function CalendarPage() {
     });
   };
 
-  const select = (id: string) => {
-    setSelectedId((cur) => (cur === id ? null : id));
+  const select = (id: string, ghostDay: string | null = null) => {
+    const same = selectedId === id && selectedGhost === ghostDay;
+    setSelectedId(same ? null : id);
+    setSelectedGhost(ghostDay);
     // On a phone the editor can sit above the fold of a long week.
     requestAnimationFrame(() => editorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   };
@@ -362,17 +402,71 @@ export default function CalendarPage() {
           className={dateInputClass}
         />
       </label>
+      <select
+        value={d.repeat?.every ?? ""}
+        onChange={(e) => changeRepeat(d, (e.target.value || null) as RepeatEvery | null)}
+        aria-label="Repeat"
+        className={dateInputClass}
+      >
+        <option value="">Doesn't repeat</option>
+        <option value="week">Weekly</option>
+        <option value="2weeks">Every 2 weeks</option>
+        <option value="month">Monthly</option>
+      </select>
+      {d.repeat && d.scheduledFor && (
+        <button
+          type="button"
+          onClick={() => skip(d, d.scheduledFor!.slice(0, 10))}
+          className="h-9 rounded-md px-2 font-semibold text-muted-foreground hover:text-foreground sm:h-8"
+        >
+          Skip this one
+        </button>
+      )}
     </div>
   );
 
   const editor = (d: DraftEntry) => {
     const posted = draftStatus(d) === "posted";
+    const ghost = selectedGhost && d.repeat ? selectedGhost : null;
+    if (ghost) {
+      const time = scheduleTime(d.scheduledFor);
+      return (
+        <div className="space-y-2 rounded-xl border border-dashed border-primary/50 bg-card p-3 shadow-card">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] text-muted-foreground">
+                {dayLabel(ghost)}
+                {time && `, ${timeLabel(time)}`} · repeats {REPEAT_LABEL[d.repeat!.every]}
+              </p>
+              <p className="line-clamp-2 text-sm font-medium text-foreground">{titleOf(d)}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedId(null)}
+              aria-label="Close"
+              className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8">
+              <Link to={`/generate?draft=${encodeURIComponent(d.id)}`}>Open</Link>
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => skip(d, ghost)} className="h-9 px-3 text-xs sm:h-8">
+              Skip this one
+            </Button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="space-y-2 rounded-xl border border-primary/30 bg-card p-3 shadow-card">
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-muted-foreground">
               {PLATFORM_LABEL[d.platform] ?? (d.platform || "Post")} · {posted ? "Posted" : "Scheduled"}
+              {!posted && d.repeat && ` · repeats ${REPEAT_LABEL[d.repeat.every]}`}
             </p>
             <p className="line-clamp-2 text-sm font-medium text-foreground">{titleOf(d)}</p>
           </div>
@@ -421,11 +515,12 @@ export default function CalendarPage() {
           posted ? "bg-success/15 text-success" : "cursor-grab bg-primary/15 text-primary active:cursor-grabbing"
         } ${roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"} ${
           dragging === e.id ? "opacity-40" : ""
-        } ${selectedId === e.id ? "ring-2 ring-primary" : ""}`}
+        } ${selectedId === e.id && !selectedGhost ? "ring-2 ring-primary" : ""}`}
       >
         {roomy ? (
           <>
             <span className="block text-[10px] opacity-80">
+              {e.repeat && <RepeatIcon className="mr-1 inline h-2.5 w-2.5 align-[-1px]" aria-label="Repeats" />}
               {PLATFORM_LABEL[e.platform] ?? e.platform}
               {time && ` · ${timeLabel(time)}`}
             </span>
@@ -454,6 +549,42 @@ export default function CalendarPage() {
       Reel: {roomy ? r.title : r.title.slice(0, 22)}
     </button>
   );
+
+  // A future occurrence of a recurring post: not draggable (move the real one), tap to skip it.
+  const ghostChip = (e: DraftEntry, day: string, roomy: boolean) => {
+    const time = scheduleTime(e.scheduledFor);
+    return (
+      <div
+        key={`${e.id}@${day}`}
+        role="button"
+        tabIndex={0}
+        onClick={() => select(e.id, day)}
+        onKeyDown={(k) => {
+          if (k.key !== "Enter" && k.key !== " ") return;
+          k.preventDefault();
+          select(e.id, day);
+        }}
+        title={`Repeats ${REPEAT_LABEL[e.repeat!.every]}: ${titleOf(e)}`}
+        className={`w-full rounded border border-dashed border-primary/50 px-1.5 text-left font-medium text-primary ${
+          roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate py-0.5 text-[10px]"
+        } ${selectedId === e.id && selectedGhost === day ? "ring-2 ring-primary" : ""}`}
+      >
+        <RepeatIcon className="mr-1 inline h-2.5 w-2.5 align-[-1px]" aria-label="Repeats" />
+        {roomy ? (
+          <>
+            {PLATFORM_LABEL[e.platform] ?? e.platform}
+            {time && ` · ${timeLabel(time)}`}
+            <span className="line-clamp-2">{titleOf(e)}</span>
+          </>
+        ) : (
+          <>
+            {time && `${timeLabel(time)} `}
+            {(e.hook || e.draft).slice(0, 22)}
+          </>
+        )}
+      </div>
+    );
+  };
 
   const keyDateLine = (k: SgDate, roomy: boolean) => (
     <p
@@ -517,7 +648,8 @@ export default function CalendarPage() {
     | { kind: "key"; date: string; item: SgDate }
     | { kind: "note"; date: string; item: CalNote }
     | { kind: "reel"; date: string; item: (typeof reels)[number] }
-    | { kind: "post"; date: string; item: DraftEntry };
+    | { kind: "post"; date: string; item: DraftEntry }
+    | { kind: "ghost"; date: string; item: DraftEntry };
   const listItems = useMemo(() => {
     const items: (ListItem & { order: string })[] = [];
     if (view !== "list") return items;
@@ -526,8 +658,9 @@ export default function CalendarPage() {
     for (const r of visibleReels)
       if (r.date >= todayKey && !r.posted) items.push({ kind: "reel", date: r.date, item: r, order: `${r.date}|2` });
     for (const d of upcoming) items.push({ kind: "post", date: eventDate(d)!, item: d, order: `${eventDate(d)}|3|${sortKey(d)}` });
+    for (const [date, gs] of ghostsByDate) for (const g of gs) items.push({ kind: "ghost", date, item: g, order: `${date}|4` });
     return items.sort((a, b) => (a.order < b.order ? -1 : a.order > b.order ? 1 : 0));
-  }, [view, keyDates, notes, visibleReels, upcoming, todayKey]);
+  }, [view, keyDates, notes, visibleReels, upcoming, ghostsByDate, todayKey]);
 
   const shortDay = (key: string) => keyToDate(key).toLocaleDateString(undefined, { day: "numeric", month: "short" });
   const dateBadge = (key: string) => (
@@ -865,6 +998,7 @@ export default function CalendarPage() {
                       const inMonth = day.getMonth() === anchorDate.getMonth();
                       const isToday = key === todayKey;
                       const events = byDate.get(key) ?? [];
+                      const ghosts = ghostsByDate.get(key) ?? [];
                       return (
                         <div
                           key={key}
@@ -888,7 +1022,8 @@ export default function CalendarPage() {
                             {(keyDates.get(key) ?? []).map((k) => keyDateLine(k, false))}
                             {(notesByDate.get(key) ?? []).map((n) => noteChip(n, false))}
                             {events.slice(0, 3).map((e) => chip(e, false))}
-                            {events.length > 3 && (
+                            {ghosts.slice(0, Math.max(0, 3 - events.length)).map((g) => ghostChip(g, key, false))}
+                            {events.length + ghosts.length > 3 && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -897,7 +1032,7 @@ export default function CalendarPage() {
                                 }}
                                 className="px-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
                               >
-                                +{events.length - 3} more
+                                +{events.length + ghosts.length - 3} more
                               </button>
                             )}
                             {visibleReels.filter((r) => r.date === key).map((r) => reelChip(r, false))}
@@ -944,7 +1079,13 @@ export default function CalendarPage() {
                         {events.map((e) => (
                           <div key={e.id} className="space-y-1.5">
                             {chip(e, true)}
-                            {selectedId === e.id && <div className="sm:hidden">{editor(e)}</div>}
+                            {selectedId === e.id && !selectedGhost && <div className="sm:hidden">{editor(e)}</div>}
+                          </div>
+                        ))}
+                        {(ghostsByDate.get(key) ?? []).map((g) => (
+                          <div key={`${g.id}@${key}`} className="space-y-1.5">
+                            {ghostChip(g, key, true)}
+                            {selectedId === g.id && selectedGhost === key && <div className="sm:hidden">{editor(g)}</div>}
                           </div>
                         ))}
                         {dayReels.map((r) => reelChip(r, true))}
@@ -982,6 +1123,28 @@ export default function CalendarPage() {
                         {shortDay(i.date)}
                       </span>
                       <span className="min-w-0 flex-1">{noteChip(i.item, true)}</span>
+                    </div>
+                  );
+                if (i.kind === "ghost")
+                  return (
+                    <div key={`${i.item.id}@${i.date}`} className="flex items-center gap-3 px-3 py-0.5">
+                      <span className="w-14 shrink-0 text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                        {shortDay(i.date)}
+                      </span>
+                      <span
+                        title={`Repeats ${REPEAT_LABEL[i.item.repeat!.every]}`}
+                        className="min-w-0 flex-1 truncate rounded border border-dashed border-primary/50 px-1.5 py-1.5 text-xs font-medium text-primary"
+                      >
+                        <RepeatIcon className="mr-1 inline h-3 w-3 align-[-2px]" aria-label="Repeats" />
+                        {titleOf(i.item)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => skip(i.item, i.date)}
+                        className="h-9 shrink-0 rounded-md px-2 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8"
+                      >
+                        Skip
+                      </button>
                     </div>
                   );
                 if (i.kind === "reel") {
@@ -1023,6 +1186,7 @@ export default function CalendarPage() {
                             : scheduleTime(e.scheduledFor)
                               ? `Scheduled ${timeLabel(scheduleTime(e.scheduledFor)!)}`
                               : "Scheduled"}
+                          {!posted && e.repeat && ` · repeats ${REPEAT_LABEL[e.repeat.every]}`}
                         </p>
                       </button>
                       {!posted && moveInput(e)}
