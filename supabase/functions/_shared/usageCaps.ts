@@ -4,6 +4,8 @@
 
 export const DAILY_LIMITS = {
   "reel-clone": 20,
+  // The frames read after each Instagram clone (reel-visuals).
+  "reel-visuals": 20,
   "idea-dump": 30,
   carousel: 30,
   // Video editor (/edit): one transcription per uploaded video, and chat edits.

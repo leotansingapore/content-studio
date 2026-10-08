@@ -140,6 +140,28 @@ export function isApifyStorageUrl(link: unknown): boolean {
   }
 }
 
+/**
+ * True only for an https link on Instagram's video CDN. The link comes out of
+ * the scraper's data and the app's browser loads it to read frames (the CDN
+ * sends CORS headers), so nothing else may pass through.
+ */
+export function isIgVideoUrl(link: unknown): boolean {
+  if (typeof link !== "string" || link.length > MAX_URL_LENGTH) return false;
+  try {
+    const u = new URL(link);
+    const host = u.hostname.toLowerCase();
+    return (
+      u.protocol === "https:" &&
+      !u.port &&
+      !u.username &&
+      !u.password &&
+      (host.endsWith(".fbcdn.net") || host.endsWith(".cdninstagram.com"))
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Plain text from a WebVTT file: no header, cue numbers, timings, tags or repeats. */
 export function vttToText(vtt: unknown): string {
   const lines = String(vtt ?? "")
@@ -192,9 +214,17 @@ export interface SourceRow {
 
 export type CacheDecision = "use" | "refresh" | "fetch";
 
-/** "fetch" with no row, "refresh" when its numbers are over a day old (or unreadable), else "use". */
-export function cacheDecision(row: Pick<SourceRow, "metrics_fetched_at"> | null, now: number): CacheDecision {
+/**
+ * "fetch" with no row, "refresh" when its numbers are over a day old (or
+ * unreadable), else "use". An Instagram reel is always refreshed: its video
+ * link expires, so it isn't cached, and the visual breakdown needs a fresh one.
+ */
+export function cacheDecision(
+  row: Pick<SourceRow, "metrics_fetched_at"> & Partial<Pick<SourceRow, "platform" | "is_video">> | null,
+  now: number,
+): CacheDecision {
   if (!row) return "fetch";
+  if (row.platform === "instagram" && row.is_video) return "refresh";
   const at = row.metrics_fetched_at ? Date.parse(row.metrics_fetched_at) : NaN;
   if (!Number.isFinite(at) || at > now + 60_000) return "refresh";
   return now - at < METRICS_TTL_MS ? "use" : "refresh";
@@ -236,6 +266,8 @@ export interface FetchedSource {
   transcript: string | null;
   /** TikTok subtitle file on Apify storage, still to download. */
   subtitleLink: string | null;
+  /** Instagram's video file, for the frames. Expires, so never cached. */
+  videoUrl: string | null;
   isVideo: boolean;
   postedAt: string | null;
   durationSec: number | null;
@@ -288,6 +320,7 @@ export function pickIgItem(items: unknown[], shortCode: string): FetchedSource |
       caption: clip(item.caption, MAX_CAPTION_CHARS),
       transcript: clip(item.transcript, MAX_TRANSCRIPT_CHARS) || null,
       subtitleLink: null,
+      videoUrl: isVideo && isIgVideoUrl(item.videoUrl) ? (item.videoUrl as string) : null,
       isVideo,
       postedAt: isoOrNull(item.timestamp),
       durationSec: countOrNull(item.videoDuration),
@@ -339,6 +372,7 @@ export function pickTiktokItem(items: unknown[], expectedId: string | null): Fet
       caption: clip(item.text, MAX_CAPTION_CHARS),
       transcript: null,
       subtitleLink: tiktokSubtitleLink(item),
+      videoUrl: null,
       isVideo: !slideshow,
       postedAt: isoOrNull(item.createTimeISO) ?? isoOrNull(item.createTime),
       durationSec: slideshow ? null : countOrNull((item.videoMeta as Item | undefined)?.duration),
@@ -393,6 +427,8 @@ export interface CloneSource {
   durationSec: number | null;
   metrics: ReelMetrics | null;
   metricsAsOf: string | null;
+  /** Instagram's video file when the post was just read; the app samples frames from it. */
+  videoUrl?: string | null;
 }
 
 export interface Breakdown {
@@ -403,12 +439,25 @@ export interface Breakdown {
   whyItWorked: string;
 }
 
+/** One row of the shot list: what to say, the text on screen, what to show, roughly how long. */
+export interface ShotBeat {
+  say: string;
+  onScreen: string;
+  visual: string;
+  seconds: number;
+}
+
 export interface MyVersion {
+  /** The chosen opener: hookOptions[0] until the consultant picks another. */
   hook: string;
+  /** The spoken lines, one beat per line. */
   script: string;
   caption: string;
   cta: string;
   filmingNotes: string;
+  /** Older clones have neither of these. */
+  hookOptions?: string[];
+  beats?: ShotBeat[];
 }
 
 export interface CloneOutput {
@@ -492,9 +541,17 @@ export function aiTimeoutMs(elapsedMs: number): number {
 
 // ---- Voice ----------------------------------------------------------------------
 
+/** One of the consultant's own posts that did well, with its numbers in words. */
+export interface Winner {
+  hook: string;
+  result: string;
+}
+
 export interface VoiceInput {
   summary: string;
   samples: string[];
+  /** Their best posts so far, so each clone leans on what already works for them. */
+  winners?: Winner[];
 }
 
 /** The consultant's voice as sent by the app, trimmed to sane sizes. */
@@ -508,7 +565,14 @@ export function sanitizeVoice(raw: unknown): VoiceInput | null {
         .slice(0, 3)
         .map((s) => clip(s, 900))
     : [];
-  return summary || samples.length ? { summary, samples } : null;
+  const winners = Array.isArray(r.winners)
+    ? r.winners
+        .map((w) => ({ hook: oneLineText((w as Item)?.hook, 200), result: oneLineText((w as Item)?.result, 80) }))
+        .filter((w) => w.hook.length >= 8 && w.result)
+        .slice(0, 3)
+    : [];
+  if (!summary && !samples.length && !winners.length) return null;
+  return winners.length ? { summary, samples, winners } : { summary, samples };
 }
 
 // ---- Prompt -----------------------------------------------------------------------
@@ -532,12 +596,17 @@ const SYSTEM_PROMPT = [
   "- New wording throughout. Never copy lines from the original.",
   "- Make it Singapore-relevant (SGD, CPF, SRS, HDB, MediShield Life, Integrated Shield plans) where the link is honest. Swap foreign accounts and figures for Singapore ones instead of presenting them as local facts.",
   "- Write in the consultant's voice described below, in the first person, with short plain sentences.",
-  "- hook: the first line they say, under 20 words, strong enough on its own.",
-  "- script: the full spoken script for a 30 to 60 second video, one beat per line, starting with the hook and ending with the call to action. No stage directions.",
+  "- hookOptions: 3 different first lines they could say, each under 20 words and strong enough on its own, strongest first. Vary the angle (a result, a question, a mistake).",
+  "- beats: the whole 30 to 60 second video as 4 to 8 beats in order, built to be filmed as is. The first beat says hookOptions[0] and the last beat is the call to action. For each beat:",
+  "  - say: the spoken line, in their voice. No stage directions.",
+  "  - onScreen: the short text on screen for that beat, under 8 words, readable on mute. Empty when the beat needs none.",
+  "  - visual: what the viewer sees, filmable alone with a phone (to camera, a screen recording, a prop, b-roll). The shot changes every beat.",
+  "  - seconds: roughly how long the beat runs. The total matches the original's length within a few seconds when it's known.",
   "- caption: the post caption, under 120 words, ending with the call to action and at most 3 relevant hashtags.",
   "- cta: the call to action as one usable line, such as a comment or DM keyword, or asking viewers to save it.",
   "- filmingNotes: 2 to 4 concrete delivery notes: framing, on-screen text, pacing, b-roll.",
   "- Never claim the consultant did something from the original (like a street interview) unless their voice notes say so.",
+  "- When their own best posts are listed, lean towards the topics and hook styles that worked for them. Don't copy those lines either.",
   "",
   "Compliance (the consultant is licensed and regulated in Singapore):",
   '- Never write "guaranteed", "risk-free", "no risk", "100% safe", "act now", "best policy", "best plan", "best fund", "best insurance", or a specific % return or interest rate, even when the original does.',
@@ -593,6 +662,10 @@ export function buildClonePrompt(source: CloneSource, voice: VoiceInput | null):
   } else {
     lines.push("No voice profile yet. Write in a warm, plain-spoken first person.");
   }
+  if (voice?.winners?.length) {
+    lines.push("", "Their own posts that did best (their numbers):");
+    voice.winners.forEach((w, i) => lines.push(`${i + 1}. ${quote(w.hook)} ${w.result}`));
+  }
 
   return { system: SYSTEM_PROMPT, user: lines.filter((l, i, all) => l !== "" || all[i - 1] !== "").join("\n") };
 }
@@ -625,10 +698,24 @@ export const CLONE_RESPONSE_FORMAT = {
         myVersion: {
           type: "object",
           additionalProperties: false,
-          required: ["hook", "script", "caption", "cta", "filmingNotes"],
+          required: ["hookOptions", "beats", "caption", "cta", "filmingNotes"],
           properties: {
-            hook: str("First spoken line, under 20 words"),
-            script: str("Full spoken script, one beat per line"),
+            hookOptions: { type: "array", description: "3 first lines, strongest first", items: { type: "string" } },
+            beats: {
+              type: "array",
+              description: "4 to 8 beats in order, hook first, call to action last",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["say", "onScreen", "visual", "seconds"],
+                properties: {
+                  say: str("Spoken line"),
+                  onScreen: str("Text on screen, under 8 words, or empty"),
+                  visual: str("What the viewer sees"),
+                  seconds: { type: "number", description: "Roughly how long the beat runs" },
+                },
+              },
+            },
             caption: str("Post caption ending with the call to action"),
             cta: str("The call to action as one line"),
             filmingNotes: str("2 to 4 delivery notes"),
@@ -692,14 +779,35 @@ export function validateCloneOutput(raw: unknown): CloneOutput | null {
     cta: oneLineText(bd.cta, 300),
     whyItWorked: oneLineText(bd.whyItWorked, 900),
   };
+  const hookOptions = (Array.isArray(mv.hookOptions) ? mv.hookOptions : [])
+    .map((h) => oneLineText(h, 300))
+    .filter(Boolean)
+    .slice(0, 3);
+  const beats: ShotBeat[] = (Array.isArray(mv.beats) ? mv.beats : [])
+    .map((b) => {
+      const beat = (b && typeof b === "object" ? b : {}) as Item;
+      const secs = Number(beat.seconds);
+      return {
+        say: oneLineText(beat.say, 400),
+        onScreen: oneLineText(beat.onScreen, 80),
+        visual: oneLineText(beat.visual, 300),
+        seconds: Number.isFinite(secs) ? Math.min(30, Math.max(1, Math.round(secs))) : 4,
+      };
+    })
+    .filter((b) => b.say)
+    .slice(0, 10);
+  // The opener is the first spoken line; keep the two in step.
+  if (beats.length && hookOptions.length) beats[0] = { ...beats[0], say: hookOptions[0] };
   const myVersion: MyVersion = {
-    hook: oneLineText(mv.hook, 300),
-    script: blockText(mv.script, 3000),
+    hook: hookOptions[0] ?? "",
+    script: blockText(beats.map((b) => b.say).join("\n"), 3000),
     caption: blockText(mv.caption, MAX_CAPTION_CHARS),
     cta: oneLineText(mv.cta, 300),
     filmingNotes: blockText(mv.filmingNotes, 1000),
+    hookOptions,
+    beats,
   };
   if (!breakdown.hook || breakdown.beats.length === 0 || !breakdown.whyItWorked) return null;
-  if (!myVersion.hook || !myVersion.script || !myVersion.caption) return null;
+  if (!myVersion.hook || beats.length < 2 || !myVersion.caption) return null;
   return { breakdown, myVersion };
 }

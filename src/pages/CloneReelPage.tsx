@@ -4,12 +4,14 @@ import {
   AlertTriangle,
   ArrowRight,
   Bookmark,
+  Camera,
   Check,
   Clapperboard,
   Clock,
   Columns3,
   Copy,
   ExternalLink,
+  Eye,
   Heart,
   Info,
   Instagram,
@@ -34,19 +36,27 @@ import {
   CLONE_STEPS,
   DAILY_LIMITS,
   ReelCloneError,
+  canReadVideo,
   cloneIdOf,
   cloneReel,
   cloneStepAt,
+  currentVisualsJob,
   loadSavedClones,
+  onVisualsJob,
   parseReelUrl,
   rememberClone,
   saveCloneDraft,
+  shotListText,
+  startVisualsJob,
   voiceForClone,
+  winnersFor,
+  withHook,
   type Breakdown,
   type CloneSource,
   type ReelCloneErrorCode,
   type ReelPlatform,
   type SavedClone,
+  type VisualsJob,
 } from "@/lib/reelClone";
 import { supabase } from "@/lib/supabase";
 import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
@@ -66,7 +76,7 @@ function PlatformIcon({ platform, className }: { platform: ReelPlatform; classNa
   return platform === "instagram" ? <Instagram className={className} /> : <Video className={className} />;
 }
 
-function CopyButton({ text, label }: { text: string; label: string }) {
+function CopyButton({ text, label, display = "Copy" }: { text: string; label: string; display?: string }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   useEffect(() => {
@@ -90,7 +100,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
       className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
     >
       {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      {copied ? "Copied" : "Copy"}
+      {copied ? "Copied" : display}
     </button>
   );
 }
@@ -126,8 +136,8 @@ function ExpandableText({ text, clampAt = 280 }: { text: string; clampAt?: numbe
 function EmptyState({ hasVoice }: { hasVoice: boolean }) {
   const steps = [
     { title: "What it says", body: "The caption, a transcript of the video and its public numbers." },
-    { title: "Why it worked", body: "The hook, the beats, the payoff and the call to action." },
-    { title: "Your version", body: "A script and caption in your voice, made for Singapore and checked for compliance." },
+    { title: "Why it worked", body: "The hook, the beats, the payoff and, for Instagram reels, what's on screen and how fast it cuts." },
+    { title: "Your version", body: "3 hooks, a shot list and a caption in your voice, made for Singapore and checked for compliance." },
   ];
   return (
     <Card className="border-border/60 shadow-card">
@@ -492,6 +502,151 @@ function BreakdownCard({ breakdown }: { breakdown: Breakdown }) {
   );
 }
 
+// ---- Result: what's on screen (Instagram reels) ------------------------------------------------------
+
+const VISUAL_STEPS = [
+  { phase: "download", label: "Downloading the video" },
+  { phase: "scan", label: "Finding the scene changes" },
+  { phase: "read", label: "Reading the frames" },
+] as const;
+
+const clock = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+
+function Filmstrip({ frames }: { frames: string[] }) {
+  if (frames.length === 0) return null;
+  return (
+    <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" aria-label={`${frames.length} frames from the video`}>
+      {frames.map((src, i) => (
+        <img key={i} src={src} alt="" className="h-24 w-auto shrink-0 rounded-md border border-border/60 object-cover" />
+      ))}
+    </div>
+  );
+}
+
+function VisualsCard({ clone, job, onRetry }: { clone: SavedClone; job: VisualsJob | null; onRetry: () => void }) {
+  const v = clone.visuals;
+  const mine = job?.cloneId === clone.id ? job : null;
+  const running = mine && mine.phase !== "done" && mine.phase !== "error" ? mine : null;
+  const failed = !v && mine?.phase === "error" ? mine : null;
+  if (!v && !running && !failed) return null;
+  const current = running ? VISUAL_STEPS.findIndex((st) => st.phase === running.phase) : -1;
+
+  return (
+    <Card className="min-w-0 border-border/60 shadow-card">
+      <CardContent className="space-y-4 p-4 sm:p-6 md:p-6">
+        <h2 className="flex items-center gap-2 font-serif text-xl font-semibold text-foreground">
+          <Eye className="h-5 w-5 shrink-0 text-primary" /> What's on screen
+        </h2>
+
+        {running && (
+          <div className="space-y-3" role="status" aria-live="polite">
+            <ol className="space-y-2">
+              {VISUAL_STEPS.map((step, i) => {
+                const done = i < current;
+                const active = i === current;
+                return (
+                  <li key={step.phase} className="flex items-center gap-2.5 text-sm">
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${
+                        done
+                          ? "border-success/40 bg-success/10 text-success"
+                          : active
+                            ? "border-primary/40 bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground"
+                      }`}
+                    >
+                      {done ? <Check className="h-3 w-3" /> : active ? <Loader2 className="h-3 w-3 animate-spin" /> : i + 1}
+                    </span>
+                    <span className={active ? "font-medium text-foreground" : done ? "text-foreground/70" : "text-muted-foreground"}>
+                      {step.label}
+                      {active && step.phase === "scan" ? ` ${Math.round(running.progress * 100)}%` : ""}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+            <Filmstrip frames={running.frames} />
+          </div>
+        )}
+
+        {failed && (
+          <div
+            role="alert"
+            className="flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning/[0.06] p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="min-w-0 text-foreground/85">{failed.error}</p>
+            {canReadVideo(clone) && (
+              <Button size="sm" variant="outline" onClick={onRetry} className="shrink-0 gap-1.5">
+                <RotateCcw className="h-3.5 w-3.5" /> Try again
+              </Button>
+            )}
+          </div>
+        )}
+
+        {v && (
+          <>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                `${v.measured.cuts} cut${v.measured.cuts === 1 ? "" : "s"}`,
+                `a new shot every ${v.measured.avgShotSec}s`,
+                `${v.measured.cutsFirst3s} in the first 3s`,
+              ].map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground/80"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+            <Filmstrip frames={mine?.frames ?? []} />
+
+            <div className="space-y-1">
+              <p className={LABEL}>Format</p>
+              <p className="text-sm leading-relaxed text-foreground/85">{v.format}</p>
+            </div>
+
+            <div className="space-y-1 rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <p className={`${LABEL} text-primary`}>First second</p>
+              <p className="text-sm leading-relaxed text-foreground [overflow-wrap:anywhere]">{v.hookVisual}</p>
+            </div>
+
+            {v.onScreenText.length > 0 && (
+              <div className="space-y-2">
+                <p className={LABEL}>Text on screen</p>
+                <ul className="space-y-1.5">
+                  {v.onScreenText.map((o, i) => (
+                    <li key={i} className="flex gap-2.5 text-sm">
+                      <span className="w-9 shrink-0 pt-0.5 font-mono text-xs tabular-nums text-muted-foreground">{clock(o.t)}</span>
+                      <span className="min-w-0 font-medium text-foreground [overflow-wrap:anywhere]">{o.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <p className={LABEL}>Pacing</p>
+              <p className="text-sm leading-relaxed text-foreground/85">{v.pacing}</p>
+            </div>
+
+            {v.visualMoves.length > 0 && (
+              <div className="space-y-1 rounded-lg border border-border/50 bg-muted/20 p-3">
+                <p className={LABEL}>Moves to borrow</p>
+                <ul className="list-disc space-y-1 pl-4 text-sm leading-relaxed text-foreground/85">
+                  {v.visualMoves.map((m, i) => (
+                    <li key={i}>{m}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ---- Result: the consultant's version --------------------------------------------------------------
 
 function ComplianceFlags({ flags }: { flags: ComplianceFlag[] }) {
@@ -548,18 +703,80 @@ function VersionBlock({ label, text, copyLabel, pre }: { label: string; text: st
   );
 }
 
+function ShotList({ clone }: { clone: SavedClone }) {
+  const v = clone.result.myVersion;
+  const beats = v.beats ?? [];
+  const shots = clone.visuals?.myVisuals ?? [];
+  const total = beats.reduce((sum, b) => sum + b.seconds, 0);
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+        <p className={LABEL}>Shot list · about {total}s</p>
+        <div className="flex items-center gap-1">
+          <CopyButton text={v.script} label="Script" display="Copy script" />
+          <CopyButton text={shotListText(v, clone.visuals)} label="Shot list" display="Copy shot list" />
+        </div>
+      </div>
+      {clone.visuals && (
+        <p className="flex items-center gap-1 text-[11px] font-medium text-primary">
+          <Eye className="h-3 w-3 shrink-0" /> Shots match the original's look
+        </p>
+      )}
+      <ol className="space-y-2">
+        {beats.map((b, i) => {
+          const shot = shots[i] || b.visual;
+          return (
+            <li key={i} className="flex gap-2.5 rounded-lg border border-border/50 bg-muted/10 p-2.5">
+              <div className="flex w-8 shrink-0 flex-col items-center gap-1 pt-0.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                  {i + 1}
+                </span>
+                <span className="text-[10px] tabular-nums text-muted-foreground">{b.seconds}s</span>
+              </div>
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <p className="text-sm font-medium leading-relaxed text-foreground [overflow-wrap:anywhere]">{b.say}</p>
+                {b.onScreen && (
+                  <p className="w-fit max-w-full rounded bg-foreground px-1.5 py-0.5 text-[11px] font-semibold text-background [overflow-wrap:anywhere]">
+                    <span className="sr-only">On screen: </span>
+                    {b.onScreen}
+                  </p>
+                )}
+                {shot && (
+                  <p className="flex gap-1.5 text-xs leading-relaxed text-muted-foreground">
+                    <Camera className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
+                    <span className="min-w-0 [overflow-wrap:anywhere]">
+                      <span className="sr-only">Show: </span>
+                      {shot}
+                    </span>
+                  </p>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 function VersionCard({
   clone,
   onOpenInWrite,
   onAddToBoard,
+  onChooseHook,
 }: {
   clone: SavedClone;
   onOpenInWrite: () => void;
   onAddToBoard: () => void;
+  onChooseHook: (index: number) => void;
 }) {
   const v = clone.result.myVersion;
+  const options = v.hookOptions ?? [];
   const flags = useMemo(
-    () => scanCompliance([v.hook, v.script, v.caption, v.cta, v.filmingNotes].join("\n")),
+    () =>
+      scanCompliance(
+        [v.hook, ...(v.hookOptions ?? []), v.script, ...(v.beats ?? []).map((b) => b.onScreen), v.caption, v.cta, v.filmingNotes].join("\n"),
+      ),
     [v],
   );
 
@@ -571,15 +788,58 @@ function VersionCard({
           <ComplianceFlags flags={flags} />
         </div>
 
-        <div className="space-y-1 rounded-lg border border-primary/20 bg-primary/5 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className={`${LABEL} text-primary`}>Hook</p>
-            <CopyButton text={v.hook} label="Hook" />
+        {options.length > 1 ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p id="hook-options" className={`${LABEL} text-primary`}>
+                Pick your hook
+              </p>
+              <CopyButton text={v.hook} label="Hook" />
+            </div>
+            <div role="radiogroup" aria-labelledby="hook-options" className="space-y-1.5">
+              {options.map((h, i) => {
+                const on = h === v.hook;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    onClick={() => onChooseHook(i)}
+                    className={`flex min-h-11 w-full items-start gap-2.5 rounded-lg border p-3 text-left transition-colors ${
+                      on ? "border-primary/40 bg-primary/5" : "border-border/60 hover:bg-accent/60"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                        on ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/40"
+                      }`}
+                    >
+                      {on && <Check className="h-3 w-3" />}
+                    </span>
+                    <span
+                      className={`min-w-0 [overflow-wrap:anywhere] ${
+                        on ? "font-serif text-base font-semibold leading-snug text-foreground" : "text-sm text-foreground/80"
+                      }`}
+                    >
+                      {h}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <p className="font-serif text-base font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">{v.hook}</p>
-        </div>
+        ) : (
+          <div className="space-y-1 rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className={`${LABEL} text-primary`}>Hook</p>
+              <CopyButton text={v.hook} label="Hook" />
+            </div>
+            <p className="font-serif text-base font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">{v.hook}</p>
+          </div>
+        )}
 
-        <VersionBlock label="Script" text={v.script} copyLabel="Script" pre />
+        {v.beats?.length ? <ShotList clone={clone} /> : <VersionBlock label="Script" text={v.script} copyLabel="Script" pre />}
         <VersionBlock label="Caption" text={v.caption} copyLabel="Caption" pre />
         {v.cta && <VersionBlock label="Call to action" text={v.cta} />}
         {v.filmingNotes && (
@@ -664,6 +924,7 @@ export default function CloneReelPage() {
   const [linkError, setLinkError] = useState<string | null>(null);
   const [view, setView] = useState<View>({ kind: "idle" });
   const [saved, setSaved] = useState<SavedClone[]>([]);
+  const [visualsJob, setVisualsJob] = useState<VisualsJob | null>(() => currentVisualsJob());
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -684,6 +945,25 @@ export default function CloneReelPage() {
       document.title = "Content Studio";
     };
   }, []);
+
+  // Reading the video runs outside the page; show its progress, and the saved result when it lands.
+  useEffect(
+    () =>
+      onVisualsJob((job) => {
+        setVisualsJob(job);
+        if (job?.phase !== "done" || !userId) return;
+        const all = loadSavedClones(userId);
+        setSaved(all);
+        const fresh = all.find((c) => c.id === job.cloneId);
+        if (!fresh) return;
+        setView((prev) =>
+          prev.kind === "result" && prev.clone.id === job.cloneId
+            ? { kind: "result", clone: { ...fresh, result: { ...fresh.result, source: prev.clone.result.source } } }
+            : prev,
+        );
+      }),
+    [userId],
+  );
 
   // A Clone button elsewhere links here with ?url=; fill it in, but let the
   // consultant start it, since each clone uses one of today's.
@@ -711,11 +991,13 @@ export default function CloneReelPage() {
     abortRef.current = controller;
     setView({ kind: "loading", url: parsed.url, startedAt: Date.now() });
     try {
-      const result = await cloneReel(parsed.url, voiceForClone(loadVoiceProfile(userId)), controller.signal);
+      const voice = voiceForClone(loadVoiceProfile(userId), winnersFor(userId));
+      const result = await cloneReel(parsed.url, voice, controller.signal);
       if (controller.signal.aborted) return;
       const clone: SavedClone = { id: cloneIdOf(result), savedAt: new Date().toISOString(), result };
       if (userId) setSaved(rememberClone(userId, clone));
       setView({ kind: "result", clone });
+      if (userId && canReadVideo(clone)) void startVisualsJob(userId, clone);
     } catch (e) {
       if (controller.signal.aborted) return;
       const err =
@@ -754,6 +1036,12 @@ export default function CloneReelPage() {
   const updateClone = (clone: SavedClone) => {
     setView({ kind: "result", clone });
     setSaved(loadSavedClones(userId));
+  };
+
+  const chooseHook = (clone: SavedClone, index: number) => {
+    const updated: SavedClone = { ...clone, result: { ...clone.result, myVersion: withHook(clone.result.myVersion, index) } };
+    setView({ kind: "result", clone: updated });
+    if (userId) setSaved(rememberClone(userId, updated));
   };
 
   const openInWrite = (clone: SavedClone) => {
@@ -846,11 +1134,19 @@ export default function CloneReelPage() {
           </div>
           <SourceCard source={view.clone.result.source} />
           <div className="grid items-start gap-4 lg:grid-cols-2">
-            <BreakdownCard breakdown={view.clone.result.breakdown} />
+            <div className="min-w-0 space-y-4">
+              <BreakdownCard breakdown={view.clone.result.breakdown} />
+              <VisualsCard
+                clone={view.clone}
+                job={visualsJob}
+                onRetry={() => userId && void startVisualsJob(userId, view.clone)}
+              />
+            </div>
             <VersionCard
               clone={view.clone}
               onOpenInWrite={() => openInWrite(view.clone)}
               onAddToBoard={() => addToBoard(view.clone)}
+              onChooseHook={(i) => chooseHook(view.clone, i)}
             />
           </div>
         </div>

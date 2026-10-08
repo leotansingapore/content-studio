@@ -19,6 +19,7 @@ import {
   sanitizeVoice,
   toCloneSource,
   validateCloneOutput,
+  isIgVideoUrl,
   vttToText,
   type CloneSource,
   type ParsedReelUrl,
@@ -220,6 +221,34 @@ describe("cacheDecision", () => {
     expect(cacheDecision({ metrics_fetched_at: "garbage" }, now)).toBe("refresh");
     expect(cacheDecision({ metrics_fetched_at: new Date(now + 86_400_000).toISOString() }, now)).toBe("refresh");
   });
+
+  it("always re-reads an Instagram reel, whose video link isn't cached, but not a photo post or TikTok", () => {
+    const fresh = new Date(now - 3_600_000).toISOString();
+    expect(cacheDecision({ metrics_fetched_at: fresh, platform: "instagram", is_video: true }, now)).toBe("refresh");
+    expect(cacheDecision({ metrics_fetched_at: fresh, platform: "instagram", is_video: false }, now)).toBe("use");
+    expect(cacheDecision({ metrics_fetched_at: fresh, platform: "tiktok", is_video: true }, now)).toBe("use");
+  });
+});
+
+describe("isIgVideoUrl", () => {
+  it("allows Instagram's video CDN over https only", () => {
+    expect(isIgVideoUrl("https://instagram.fsin3-1.fna.fbcdn.net/o1/v/t16/f2/m86/a.mp4?oe=1")).toBe(true);
+    expect(isIgVideoUrl("https://scontent-sin6-2.cdninstagram.com/v/t50/a.mp4")).toBe(true);
+    for (const bad of [
+      "http://instagram.fsin3-1.fna.fbcdn.net/a.mp4",
+      "https://fbcdn.net.evil.com/a.mp4",
+      "https://evilfbcdn.net/a.mp4",
+      "https://user:pw@x.fbcdn.net/a.mp4",
+      "https://x.fbcdn.net:8443/a.mp4",
+      "javascript:alert(1)",
+      "https://api.apify.com/v2/x",
+      42,
+      null,
+      `https://x.fbcdn.net/${"a".repeat(3000)}`,
+    ]) {
+      expect(isIgVideoUrl(bad)).toBe(false);
+    }
+  });
 });
 
 describe("apifyJob", () => {
@@ -261,6 +290,7 @@ describe("pickIgItem", () => {
     commentsCount: 1_300,
     videoDuration: 41.6,
     timestamp: "2026-09-10T08:00:00.000Z",
+    videoUrl: "https://instagram.fsin3-1.fna.fbcdn.net/o1/v/t16/reel.mp4?oe=1",
   };
 
   it("maps the reel for the requested shortcode", () => {
@@ -272,6 +302,7 @@ describe("pickIgItem", () => {
       caption: "3 money rules I wish I knew at 22",
       transcript: "Rule one. Pay yourself first.",
       subtitleLink: null,
+      videoUrl: "https://instagram.fsin3-1.fna.fbcdn.net/o1/v/t16/reel.mp4?oe=1",
       isVideo: true,
       postedAt: "2026-09-10T08:00:00.000Z",
       durationSec: 42,
@@ -295,6 +326,11 @@ describe("pickIgItem", () => {
     const photo = pickIgItem([{ ...reel, type: "Sidecar", productType: "carousel_container" }], "C8xYz12AbCd");
     expect(photo).toMatchObject({ isVideo: false, url: "https://www.instagram.com/p/C8xYz12AbCd/" });
     expect(photo?.metrics.views).toBeNull();
+    expect(photo?.videoUrl).toBeNull();
+  });
+
+  it("drops a video link that isn't on Instagram's CDN", () => {
+    expect(pickIgItem([{ ...reel, videoUrl: "https://evil.example/reel.mp4" }], "C8xYz12AbCd")?.videoUrl).toBeNull();
   });
 });
 
@@ -328,6 +364,7 @@ describe("pickTiktokItem", () => {
       caption: "Stop paying this fee",
       transcript: null,
       subtitleLink: "https://api.apify.com/v2/key-value-stores/k1/records/en.vtt",
+      videoUrl: null,
       isVideo: true,
       postedAt: "2026-09-12T01:00:00.000Z",
       durationSec: 35,
@@ -416,6 +453,23 @@ describe("sanitizeVoice", () => {
     expect(sanitizeVoice("voice")).toBeNull();
     expect(sanitizeVoice({ summary: "  ", samples: ["short"] })).toBeNull();
   });
+
+  it("keeps up to 3 best posts with their numbers, even with no voice profile", () => {
+    const winners = [
+      { hook: "Your CPF isn't lazy money", result: "4,200 views, 6.1% engaged" },
+      { hook: "short", result: "9 views" },
+      { hook: "No numbers on this one", result: "" },
+      { hook: "Three money rules for your first job", result: "2,900 views" },
+      { hook: "The HDB loan question nobody asks", result: "2,100 views" },
+      { hook: "One more than allowed here", result: "1,000 views" },
+    ];
+    expect(sanitizeVoice({ winners })).toEqual({
+      summary: "",
+      samples: [],
+      winners: [winners[0], winners[3], winners[4]],
+    });
+    expect(sanitizeVoice({ summary: "Warm", winners: "nope" })).toEqual({ summary: "Warm", samples: [] });
+  });
 });
 
 describe("buildClonePrompt", () => {
@@ -453,6 +507,17 @@ describe("buildClonePrompt", () => {
     expect(noTranscript).toContain("No voice profile yet.");
     expect(buildClonePrompt({ ...source, transcript: null, isVideo: false }, null).user).toContain("this post isn't a video");
   });
+
+  it("lists the consultant's own best posts so the version leans on what works for them", () => {
+    const user = buildClonePrompt(source, {
+      summary: "",
+      samples: [],
+      winners: [{ hook: "Your CPF isn't lazy money", result: "4,200 views" }],
+    }).user;
+    expect(user).toContain("Their own posts that did best (their numbers):");
+    expect(user).toContain('1. """\nYour CPF isn\'t lazy money\n""" 4,200 views');
+    expect(buildClonePrompt(source, null).user).not.toContain("did best");
+  });
 });
 
 describe("CLONE_RESPONSE_FORMAT", () => {
@@ -481,8 +546,14 @@ describe("validateCloneOutput", () => {
       whyItWorked: "Specific and fast.",
     },
     myVersion: {
-      hook: "Your CPF isn't lazy money",
-      script: "Your CPF isn't lazy money.\r\n\r\n\r\nHere's why —  it compounds.\nComment CPF for my checklist.",
+      hookOptions: ["Your CPF isn't lazy money", "  ", "Stop topping up — read this first", "Is your CPF working?", "A fourth"],
+      beats: [
+        { say: "This line is replaced by the first hook", onScreen: "CPF is not lazy", visual: "To camera, close up", seconds: 3.4 },
+        { say: "  Here's why —  it compounds. ", onScreen: "", visual: "Screen recording of the calculator", seconds: 90 },
+        { say: "", onScreen: "dropped", visual: "dropped", seconds: 2 },
+        { say: "Comment CPF for my checklist.", onScreen: "Comment CPF", visual: "Point down", seconds: "x" },
+        "not a beat",
+      ],
       caption: "CPF isn't lazy money. Comment CPF. #cpf",
       cta: "Comment CPF for my checklist",
       filmingNotes: "Face camera, text on screen.",
@@ -493,7 +564,14 @@ describe("validateCloneOutput", () => {
     const out = validateCloneOutput(JSON.stringify(good));
     expect(out?.breakdown.hook).toBe("Opens with, a question");
     expect(out?.breakdown.beats).toEqual(["Names the mistake", "Shows the fix"]);
-    expect(out?.myVersion.script).toBe("Your CPF isn't lazy money.\n\nHere's why, it compounds.\nComment CPF for my checklist.");
+    expect(out?.myVersion.hookOptions).toEqual(["Your CPF isn't lazy money", "Stop topping up, read this first", "Is your CPF working?"]);
+    expect(out?.myVersion.hook).toBe("Your CPF isn't lazy money");
+    expect(out?.myVersion.beats).toEqual([
+      { say: "Your CPF isn't lazy money", onScreen: "CPF is not lazy", visual: "To camera, close up", seconds: 3 },
+      { say: "Here's why, it compounds.", onScreen: "", visual: "Screen recording of the calculator", seconds: 30 },
+      { say: "Comment CPF for my checklist.", onScreen: "Comment CPF", visual: "Point down", seconds: 4 },
+    ]);
+    expect(out?.myVersion.script).toBe("Your CPF isn't lazy money\nHere's why, it compounds.\nComment CPF for my checklist.");
     expect(validateCloneOutput("```json\n" + JSON.stringify(good) + "\n```")).toEqual(out);
     expect(validateCloneOutput(good)).toEqual(out);
   });
@@ -502,9 +580,14 @@ describe("validateCloneOutput", () => {
     const out = validateCloneOutput({
       ...good,
       breakdown: { ...good.breakdown, beats: Array.from({ length: 20 }, (_, i) => `Beat ${i}`) },
-      myVersion: { ...good.myVersion, script: "word ".repeat(2000) },
+      myVersion: {
+        ...good.myVersion,
+        beats: Array.from({ length: 14 }, () => ({ say: "word ".repeat(200), onScreen: "x", visual: "y", seconds: 3 })),
+      },
     });
     expect(out?.breakdown.beats).toHaveLength(8);
+    expect(out?.myVersion.beats).toHaveLength(10);
+    expect(out!.myVersion.beats![1].say.length).toBeLessThanOrEqual(400);
     expect(out!.myVersion.script.length).toBeLessThanOrEqual(3000);
   });
 
@@ -514,7 +597,9 @@ describe("validateCloneOutput", () => {
     expect(validateCloneOutput({ breakdown: good.breakdown })).toBeNull();
     expect(validateCloneOutput({ ...good, breakdown: { ...good.breakdown, beats: "one, two" } })).toBeNull();
     expect(validateCloneOutput({ ...good, breakdown: { ...good.breakdown, beats: ["", " "] } })).toBeNull();
-    expect(validateCloneOutput({ ...good, myVersion: { ...good.myVersion, script: "  " } })).toBeNull();
+    expect(validateCloneOutput({ ...good, myVersion: { ...good.myVersion, hookOptions: [" "] } })).toBeNull();
+    expect(validateCloneOutput({ ...good, myVersion: { ...good.myVersion, beats: [good.myVersion.beats[0]] } })).toBeNull();
+    expect(validateCloneOutput({ ...good, myVersion: { ...good.myVersion, beats: "one, two" } })).toBeNull();
     expect(validateCloneOutput({ ...good, myVersion: { ...good.myVersion, caption: 7 } })).toBeNull();
   });
 });

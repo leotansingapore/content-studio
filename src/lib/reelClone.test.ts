@@ -20,7 +20,10 @@ import {
   loadSavedClones,
   rememberClone,
   saveCloneDraft,
+  shotListText,
   voiceForClone,
+  winnersFor,
+  withHook,
   type CloneResponse,
   type SavedClone,
 } from "./reelClone";
@@ -159,6 +162,13 @@ describe("recent clones", () => {
     expect(saved[0].result.source.transcript).toHaveLength(4000);
   });
 
+  it("never keeps Instagram's expiring video link", () => {
+    const r = result({ platform: "instagram", postId: "C8xYz12AbCd", videoUrl: "https://x.fbcdn.net/a.mp4" });
+    rememberClone("u1", { id: "instagram:C8xYz12AbCd", savedAt: "now", result: r });
+    expect(loadSavedClones("u1")[0].result.source.videoUrl).toBeNull();
+    expect(r.source.videoUrl).toBe("https://x.fbcdn.net/a.mp4");
+  });
+
   it("ignores corrupt storage and other users", () => {
     window.localStorage.setItem("content-studio-reel-clones-u1", "{not json");
     expect(loadSavedClones("u1")).toEqual([]);
@@ -175,6 +185,76 @@ describe("voiceForClone", () => {
     expect(voiceForClone({ posts: [post, "short"], voiceSummary: "Warm", updatedAt: "" })).toBeNull();
     const voice = voiceForClone({ posts: [post, post, post, post, "short"], voiceSummary: " Warm ", updatedAt: "" });
     expect(voice).toEqual({ summary: "Warm", samples: [post, post, post] });
+  });
+
+  it("sends the best posts even without a usable profile", () => {
+    const winners = [{ hook: "Your CPF isn't lazy money", result: "4,200 views" }];
+    expect(voiceForClone(null, winners)).toEqual({ summary: "", samples: [], winners });
+    expect(voiceForClone(null, [])).toBeNull();
+  });
+});
+
+describe("winnersFor", () => {
+  const posted = (id: string, hook: string, impressions: number, reactions: number) => ({
+    id,
+    createdAt: "2026-09-01T00:00:00.000Z",
+    hook,
+    draft: hook,
+    pillar: "topic",
+    pillarDetail: "",
+    audience: "general",
+    format: "short-video",
+    platform: "instagram",
+    ctaType: "dm-keyword",
+    status: "posted" as const,
+    postedAt: "2026-09-02T00:00:00.000Z",
+    metrics: { impressions, reactions, comments: 0, shares: 0 },
+  });
+
+  it("waits for 3 tracked posts, then sends the top 3 by engagement with their numbers", () => {
+    saveDrafts("u1", [posted("a", "Your CPF isn't lazy money", 4200, 300), posted("b", "Three money rules", 900, 40)]);
+    expect(winnersFor("u1")).toEqual([]);
+    saveDrafts("u1", [
+      posted("a", "Your CPF isn't lazy money", 4200, 300),
+      posted("b", "Three money rules", 900, 40),
+      posted("c", "The HDB loan question", 0, 90),
+      posted("d", "Hi", 9000, 900),
+      posted("e", "Why I stopped buying ILPs", 300, 5),
+    ]);
+    expect(winnersFor("u1")).toEqual([
+      { hook: "Your CPF isn't lazy money", result: "4,200 views, 300 engagements, 7.1% engaged" },
+      { hook: "The HDB loan question", result: "90 engagements" },
+      { hook: "Three money rules", result: "900 views, 40 engagements, 4.4% engaged" },
+    ]);
+  });
+});
+
+describe("withHook and shotListText", () => {
+  const version = {
+    ...result().myVersion,
+    hookOptions: ["Your CPF isn't lazy money", "Is your CPF working?", "Stop topping up blind"],
+    beats: [
+      { say: "Your CPF isn't lazy money", onScreen: "CPF is not lazy", visual: "To camera", seconds: 3 },
+      { say: "Here's why.", onScreen: "", visual: "", seconds: 6 },
+    ],
+  };
+
+  it("makes the picked hook the opener and the first spoken line", () => {
+    const v = withHook(version, 2);
+    expect(v.hook).toBe("Stop topping up blind");
+    expect(v.beats![0].say).toBe("Stop topping up blind");
+    expect(v.script).toBe("Stop topping up blind\nHere's why.");
+    expect(withHook(version, 7)).toBe(version);
+    expect(withHook(result().myVersion, 1)).toEqual(result().myVersion);
+  });
+
+  it("writes one block per beat, preferring the shot planned from the original's look", () => {
+    expect(shotListText(version)).toBe(
+      "1. (3s) Your CPF isn't lazy money\n   On screen: CPF is not lazy\n   Show: To camera\n\n2. (6s) Here's why.",
+    );
+    const visuals = { format: "f", hookVisual: "h", onScreenText: [], pacing: "p", visualMoves: [], myVisuals: ["", "Screen recording"] };
+    expect(shotListText(version, visuals)).toContain("2. (6s) Here's why.\n   Show: Screen recording");
+    expect(shotListText(version, visuals)).toContain("Show: To camera");
   });
 });
 

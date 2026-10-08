@@ -13,8 +13,12 @@ import {
   type CloneResponse,
   type MyVersion,
   type VoiceInput,
+  type Winner,
 } from "../../supabase/functions/clone-reel/logic.ts";
+import type { Pacing, Visuals } from "../../supabase/functions/reel-visuals/logic.ts";
 import { scoped } from "@/lib/profiles";
+import { getTrackedPosts } from "@/lib/analytics";
+import { sampleReelFrames } from "@/lib/reelFrames";
 
 export { LINK_MESSAGES, parseReelUrl } from "../../supabase/functions/clone-reel/logic.ts";
 export type {
@@ -24,7 +28,9 @@ export type {
   MyVersion,
   ReelMetrics,
   ReelPlatform,
+  ShotBeat,
 } from "../../supabase/functions/clone-reel/logic.ts";
+export type { Pacing, Visuals };
 export { DAILY_LIMITS } from "../../supabase/functions/_shared/usageCaps.ts";
 
 /** A little over the server's 90s budget, so its own timeout answer arrives first. */
@@ -135,16 +141,73 @@ export async function cloneReel(url: string, voice: VoiceInput | null, signal?: 
   return data;
 }
 
-/** The voice the function writes in: GeneratePage's rule, a usable profile or nothing. */
-export function voiceForClone(profile: VoiceProfile | null): VoiceInput | null {
-  if (!profile || !isVoiceProfileUsable(profile)) return null;
-  const samples = profile.posts
-    .map((p) => (p ?? "").trim())
-    .filter((p) => p.length >= VOICE_MIN_CHARS)
+/** Tracked posts needed before "your best posts" means anything. */
+export const MIN_POSTS_FOR_WINNERS = 3;
+
+const fmt = (n: number) => n.toLocaleString("en-US");
+
+/**
+ * The consultant's 3 best posted hooks by engagement, with their numbers in
+ * words, once they've logged numbers for enough posts. Each clone leans on
+ * these, so the next one starts from what already worked for them.
+ */
+export function winnersFor(userId: string | null | undefined): Winner[] {
+  const posts = getTrackedPosts(userId).filter((p) => (p.hook ?? "").trim().length >= 8);
+  if (posts.length < MIN_POSTS_FOR_WINNERS) return [];
+  return [...posts]
+    .sort((a, b) => b.engagementTotal - a.engagementTotal || b.impressions - a.impressions)
     .slice(0, 3)
-    .map((p) => p.slice(0, 900));
-  const summary = (profile.voiceSummary ?? "").trim().slice(0, 1200);
-  return summary || samples.length ? { summary, samples } : null;
+    .map((p) => ({
+      hook: p.hook.trim().slice(0, 200),
+      result: [
+        p.impressions ? `${fmt(p.impressions)} views` : null,
+        `${fmt(p.engagementTotal)} engagements`,
+        p.engagementRate ? `${p.engagementRate}% engaged` : null,
+      ]
+        .filter(Boolean)
+        .join(", "),
+    }));
+}
+
+/** The voice the function writes in: GeneratePage's rule, a usable profile, plus their best posts. */
+export function voiceForClone(profile: VoiceProfile | null, winners: Winner[] = []): VoiceInput | null {
+  const usable = Boolean(profile && isVoiceProfileUsable(profile));
+  const samples = usable
+    ? profile!.posts
+        .map((p) => (p ?? "").trim())
+        .filter((p) => p.length >= VOICE_MIN_CHARS)
+        .slice(0, 3)
+        .map((p) => p.slice(0, 900))
+    : [];
+  const summary = usable ? (profile!.voiceSummary ?? "").trim().slice(0, 1200) : "";
+  if (!summary && !samples.length && !winners.length) return null;
+  return winners.length ? { summary, samples, winners } : { summary, samples };
+}
+
+// ---- Hooks and the shot list ---------------------------------------------------------
+
+/** The version with hook option `index` as its opener and first spoken line. */
+export function withHook(version: MyVersion, index: number): MyVersion {
+  const hook = version.hookOptions?.[index];
+  if (!hook || !version.beats?.length) return version;
+  const beats = version.beats.map((b, i) => (i === 0 ? { ...b, say: hook } : b));
+  return { ...version, hook, beats, script: beats.map((b) => b.say).join("\n") };
+}
+
+/** The shot list as plain text for a notes app: one block per beat. */
+export function shotListText(version: MyVersion, visuals?: Visuals | null): string {
+  return (version.beats ?? [])
+    .map((b, i) => {
+      const visual = visuals?.myVisuals[i] || b.visual;
+      return [
+        `${i + 1}. (${b.seconds}s) ${b.say}`,
+        b.onScreen ? `   On screen: ${b.onScreen}` : null,
+        visual ? `   Show: ${visual}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n\n");
 }
 
 /** "/clone?url=..." for a link the page can clone, else null. */
@@ -185,6 +248,8 @@ export interface SavedClone {
   id: string;
   savedAt: string;
   result: CloneResponse;
+  /** What the frames showed, with the pacing measured from the video (Instagram reels only). */
+  visuals?: Visuals & { measured: Pacing };
   /** The draft made from this result, once opened in Write or added to the board. */
   draftId?: string;
   onBoard?: boolean;
@@ -223,6 +288,8 @@ export function rememberClone(userId: string, clone: SavedClone): SavedClone[] {
       source: {
         ...clone.result.source,
         transcript: clone.result.source.transcript?.slice(0, SAVED_TRANSCRIPT_CHARS) ?? null,
+        // Instagram's video link expires within days; never keep it.
+        videoUrl: null,
       },
     },
   };
@@ -287,4 +354,82 @@ export function saveCloneDraft(userId: string, clone: SavedClone, stage?: Produc
   const updated: SavedClone = { ...clone, draftId, onBoard: clone.onBoard || Boolean(stage) };
   rememberClone(userId, updated);
   return updated;
+}
+
+// ---- Reading the video (Instagram reels) ---------------------------------------------------
+
+export type VisualsPhase = "download" | "scan" | "read" | "done" | "error";
+
+export interface VisualsJob {
+  cloneId: string;
+  phase: VisualsPhase;
+  /** 0 to 1 through the scene scan. */
+  progress: number;
+  /** The frames being read, kept for this session only (too big to sync). */
+  frames: string[];
+  error?: string;
+}
+
+let visualsJob: VisualsJob | null = null;
+let visualsToken: object | null = null;
+const visualsListeners = new Set<(job: VisualsJob | null) => void>();
+
+export const currentVisualsJob = () => visualsJob;
+
+export function onVisualsJob(fn: (job: VisualsJob | null) => void): () => void {
+  visualsListeners.add(fn);
+  return () => {
+    visualsListeners.delete(fn);
+  };
+}
+
+/** True when this clone still carries Instagram's video link and hasn't been read yet. */
+export function canReadVideo(clone: SavedClone): boolean {
+  return Boolean(clone.result.source.videoUrl) && !clone.visuals && Boolean(clone.result.myVersion.beats?.length);
+}
+
+/**
+ * Samples the reel's frames in this tab, has reel-visuals read them, and saves
+ * the result onto the clone. It lives outside the page, so it keeps going when
+ * the consultant opens another page meanwhile. Starting another replaces it.
+ */
+export async function startVisualsJob(userId: string, clone: SavedClone): Promise<void> {
+  const url = clone.result.source.videoUrl;
+  const beats = (clone.result.myVersion.beats ?? []).map((b) => b.say);
+  if (!url || !beats.length) return;
+  if (visualsJob?.cloneId === clone.id && !["done", "error"].includes(visualsJob.phase)) return;
+
+  const token = {};
+  visualsToken = token;
+  let job: VisualsJob = { cloneId: clone.id, phase: "download", progress: 0, frames: [] };
+  const set = (patch: Partial<VisualsJob>) => {
+    job = { ...job, ...patch };
+    if (visualsToken !== token) return;
+    visualsJob = job;
+    visualsListeners.forEach((fn) => fn(job));
+  };
+  set({});
+
+  try {
+    const { frames, pacing } = await sampleReelFrames(url, (phase, fraction) => set({ phase, progress: fraction }));
+    set({ phase: "read", progress: 1, frames: frames.map((f) => f.image) });
+    const { data, error } = await supabase.functions.invoke("reel-visuals", {
+      body: { frames, pacing, beats },
+      timeout: 90_000,
+    });
+    if (error) {
+      const ctx = (error as { context?: unknown }).context;
+      const body = looksLikeResponse(ctx) ? ((await ctx.json().catch(() => null)) as { error?: unknown } | null) : null;
+      throw new Error(typeof body?.error === "string" && body.error ? body.error : "Couldn't read the video this time. Try again.");
+    }
+    const visuals = (data as { visuals?: Visuals } | null)?.visuals;
+    if (!visuals?.format || !Array.isArray(visuals.myVisuals)) {
+      throw new Error("The video breakdown came back incomplete. Try again.");
+    }
+    const latest = loadSavedClones(userId).find((c) => c.id === clone.id) ?? clone;
+    rememberClone(userId, { ...latest, visuals: { ...visuals, measured: pacing } });
+    set({ phase: "done" });
+  } catch (e) {
+    set({ phase: "error", error: e instanceof Error && e.message ? e.message : "Couldn't read the video this time. Try again." });
+  }
 }

@@ -82,7 +82,7 @@ export function loadVideo(file: Blob): Promise<HTMLVideoElement> {
   });
 }
 
-const seek = (v: HTMLVideoElement, t: number) =>
+export const seek = (v: HTMLVideoElement, t: number) =>
   new Promise<void>((resolve) => {
     if (Math.abs(v.currentTime - t) < 0.01) return resolve();
     v.addEventListener("seeked", () => resolve(), { once: true });

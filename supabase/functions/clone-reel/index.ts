@@ -155,7 +155,7 @@ async function fetchSource(opts: {
   parsed: ParsedReelUrl;
   existing: SourceRow | null;
   deadline: number;
-}): Promise<SourceRow> {
+}): Promise<{ row: SourceRow; videoUrl: string | null }> {
   const { admin, token, parsed, existing, deadline } = opts;
   const remaining = () => deadline - Date.now();
 
@@ -229,7 +229,7 @@ async function fetchSource(opts: {
   const row = mergeSource(fresh, base, parsed.postId ? null : parsed.lookupKey, now);
   const saved = await admin.from("cs_reel_sources").upsert({ ...row, updated_at: now }, { onConflict: "platform,post_id" });
   if (saved.error) console.error("cache write failed", saved.error);
-  return row;
+  return { row, videoUrl: fresh.videoUrl };
 }
 
 type Raced<T> = { kind: "done"; value: T } | { kind: "timeout" } | { kind: "failed"; code: CloneErrorCode };
@@ -327,6 +327,7 @@ Deno.serve(async (req) => {
     const voice = sanitizeVoice(body?.voice);
 
     let row = await findSource(admin, parsed);
+    let videoUrl: string | null = null;
     const decision = cacheDecision(row, startedAt);
 
     // Counted once per request, just before its first paid call.
@@ -353,7 +354,7 @@ Deno.serve(async (req) => {
         });
         const outcome = await withinBudget(work, FETCH_BUDGET_MS - (Date.now() - startedAt));
         if (outcome.kind === "done") {
-          row = outcome.value;
+          ({ row, videoUrl } = outcome.value);
         } else {
           if (outcome.kind === "timeout") keepRunning(work);
           const code = outcome.kind === "timeout" ? "timeout" : outcome.code;
@@ -376,7 +377,7 @@ Deno.serve(async (req) => {
     const output = await writeClone(buildClonePrompt(source, voice), openaiKey, aiMs);
     console.log("clone-reel ok", parsed.platform, decision, `${Date.now() - startedAt}ms`);
     const response: CloneResponse = {
-      source,
+      source: { ...source, videoUrl },
       ...output,
       cached: decision === "use",
       usage: { used: charged.used, limit: charged.limit },

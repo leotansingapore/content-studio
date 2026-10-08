@@ -25,7 +25,7 @@
   are called with the user's session token; this repo does not deploy them.
   Exception: the account audit's functions (`audit-social-account`,
   `refresh-social-audits`, `suggest-post-ideas`), plus `idea-dump`,
-  `clone-reel` and `carousel-copy`, and shared code in
+  `clone-reel`, `reel-visuals` and `carousel-copy`, and shared code in
   `supabase/functions/_shared/`, ARE versioned here and deployed with
   `supabase functions deploy <name> --project-ref hgdbflprrficdoyxmdxe --use-api`
   (JWT verification on). Their tables come from `supabase/hub/0NN_*.sql`,
