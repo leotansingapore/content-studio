@@ -42,6 +42,11 @@
   `link-in-bio` (/l/<slug>, 015). Each holds the service key but may only
   call its two service_role-only SQL functions; anon has no grant on any
   table or function from 012-015. Design and caps: `docs/gap-tables-design.md`.
+- `notify` (phone alerts and the Monday results email, 016) is deployed
+  `--no-verify-jwt` too: pg_cron calls it hourly with the `x-notify-secret`
+  header (NOTIFY_CRON_SECRET, also in Vault as `cs_notify_cron_secret`), and
+  it refuses anything without it. VAPID_KEYS holds the web push key pair; the
+  public half is in `src/lib/notify.ts`. Test it with `{"dryRun": true}`.
 - Decisions in edge functions (classify, detect yes/no, score, rank, route,
   pick one) go through `supabase/functions/_shared/jev.ts` (TypeSafe Jev,
   pinned jev-1.13.0, TYPESAFE_API_KEY set as a secret 2026-10-08), never an
