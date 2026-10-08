@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { imageBusy, imageJob, makeImage, onImageJob, type ImageJob } from "@/lib/aiImage";
 import {
   Sparkles,
   Copy,
@@ -675,6 +676,14 @@ export default function GeneratePage() {
   const [hashtagsLoading, setHashtagsLoading] = useState<boolean>(false);
   const [imagePrompt, setImagePrompt] = useState<string>("");
   const [imagePromptLoading, setImagePromptLoading] = useState<boolean>(false);
+  // "Make the image": one job at a time, kept outside React so it survives leaving the page
+  const [imgJob, setImgJob] = useState<ImageJob | null>(imageJob);
+  useEffect(() => {
+    const off = onImageJob(setImgJob);
+    return () => {
+      off();
+    };
+  }, []);
 
   // Keyboard shortcuts dialog visibility.
   const [showShortcuts, setShowShortcuts] = useState<boolean>(false);
@@ -3163,14 +3172,27 @@ export default function GeneratePage() {
                     <ImageWandIcon className="h-3.5 w-3.5" /> Image prompt
                   </div>
                   {imagePrompt && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleCopyImagePrompt}
-                      className="h-7 gap-1 text-xs"
-                    >
-                      <Copy className="h-3 w-3" /> Copy
-                    </Button>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleCopyImagePrompt}
+                        className="h-9 gap-1 text-xs"
+                      >
+                        <Copy className="h-3 w-3" /> Copy
+                      </Button>
+                      {!(imgJob?.prompt === imagePrompt && imgJob.state === "done") && (
+                        <Button
+                          size="sm"
+                          disabled={imageBusy() || !userId}
+                          onClick={() => userId && void makeImage(userId, imagePrompt, (chosenHook || draft.trim().split("\n")[0] || "AI image").slice(0, 80))}
+                          className="h-9 gap-1.5 text-xs"
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          {imgJob?.prompt === imagePrompt && imgJob.state === "failed" ? "Try again" : "Make the image"}
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
                 {imagePromptLoading && !imagePrompt ? (
@@ -3181,6 +3203,40 @@ export default function GeneratePage() {
                   <p className="text-xs leading-relaxed text-foreground">
                     {imagePrompt}
                   </p>
+                )}
+                {imgJob && (imgJob.prompt === imagePrompt || imageBusy()) && (
+                  <div className="mt-3" aria-live="polite">
+                    {imgJob.state === "working" || imgJob.state === "saving" ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <ThinkingOrb state="working" size={20} theme="light" aria-hidden />
+                        {imgJob.prompt !== imagePrompt
+                          ? "Making the image for your earlier draft..."
+                          : imgJob.state === "saving"
+                            ? "Saving it to Media..."
+                            : "Making the image, about 30 seconds. You can keep working."}
+                      </div>
+                    ) : imgJob.state === "failed" ? (
+                      <p className="text-xs text-destructive" role="alert">{imgJob.error}</p>
+                    ) : (
+                      <div className="flex flex-wrap items-end gap-3">
+                        {imgJob.preview && (
+                          <img
+                            src={imgJob.preview}
+                            alt={imagePrompt.slice(0, 120)}
+                            className="max-h-64 rounded-lg border border-border/60"
+                          />
+                        )}
+                        <div className="space-y-1.5 text-xs">
+                          <p className="flex items-center gap-1 font-semibold">
+                            <Check className="h-3.5 w-3.5 text-success" /> Saved to Media, in AI images
+                          </p>
+                          <Link to="/carousel" className="font-semibold text-primary hover:underline">
+                            Use it on a carousel slide
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             )}

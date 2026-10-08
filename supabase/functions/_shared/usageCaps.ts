@@ -20,6 +20,8 @@ export const DAILY_LIMITS = {
   "track-accounts": 10,
   // Free stock photos and B-roll (stock-media, Pexels): searches not already cached.
   "stock-search": 100,
+  // "Make the image" on Write (ai-image, Higgsfield Soul v2, about USD 0.006 each).
+  "ai-image": 5,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
