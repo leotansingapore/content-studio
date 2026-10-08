@@ -84,7 +84,25 @@ export function parseVibeRequest(body: unknown): { ok: true; request: VibeReques
     .filter((f): f is string => typeof f === "string" && /^data:image\/(jpeg|png);base64,/.test(f) && f.length <= MAX_FRAME_CHARS)
     .slice(0, MAX_FRAMES);
   if (!instruction && !frames.length) return { ok: false, error: "Say what to change, or add a reference video." };
-  const settings = b.settings && typeof b.settings === "object" ? (b.settings as Record<string, unknown>) : {};
+  return { ok: true, request: { instruction, settings: cleanSettings(b.settings), transcript: String(b.transcript ?? "").slice(0, MAX_TRANSCRIPT), duration: Number(b.duration) || 0, frames } };
+}
+
+/**
+ * Only the known keys, only short plain values, at most 2 KB: the settings go
+ * into a paid prompt, and the daily cap counts calls, not tokens.
+ */
+export function cleanSettings(raw: unknown): Record<string, unknown> {
+  const src = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(VIBE_KEYS)) {
+    const v = src[k];
+    if (typeof v === "boolean" || (typeof v === "number" && Number.isFinite(v))) out[k] = v;
+    else if (typeof v === "string") out[k] = v.slice(0, 100);
+  }
+  return JSON.stringify(out).length <= 2048 ? out : {};
+}
+
+function unused() {
   return {
     ok: true,
     request: {

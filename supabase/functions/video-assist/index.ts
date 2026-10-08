@@ -37,7 +37,9 @@ Deno.serve(async (req) => {
 
     const mode = new URL(req.url).searchParams.get("mode");
     if (mode === "transcribe") {
-      const len = Number(req.headers.get("content-length") ?? 0);
+      const lenHeader = req.headers.get("content-length");
+      if (!lenHeader) return json({ error: "Send the sound file with its length." }, 411);
+      const len = Number(lenHeader);
       if (len > MAX_AUDIO_BYTES) return json({ error: "That video is too long to caption. Keep it under about 12 minutes." }, 413);
       const audio = new Uint8Array(await req.arrayBuffer());
       if (audio.byteLength < 1000) return json({ error: "No sound found in that video." }, 400);
