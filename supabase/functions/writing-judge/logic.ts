@@ -23,7 +23,7 @@ export const MAX_TEXT = 5000;
 export const MAX_SENTENCES = 40;
 const MAX_SAMPLES = 3;
 const MAX_SAMPLE_CHARS = 1200;
-export const MODES = ["human", "hooks", "idea", "profile", "carousel"] as const;
+export const MODES = ["human", "hooks", "idea", "profile", "carousel", "facts"] as const;
 export type JudgeMode = (typeof MODES)[number];
 
 /**
@@ -44,6 +44,7 @@ export type JudgeRequest =
   | { mode: "hooks"; hooks: string[]; audience: string; topic: string; platform: string }
   | { mode: "idea"; topic: string; notes: string; kind: string }
   | { mode: "carousel"; idea: string }
+  | { mode: "facts"; text: string }
   | ProfileRequest;
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -68,6 +69,11 @@ export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeReque
         link: b.link === null || b.link === undefined ? null : str(b.link, 300),
       },
     };
+  }
+  if (mode === "facts") {
+    const text = str(b.text, MAX_TEXT);
+    if (text.length < 20) return { ok: false, error: "Nothing to check yet." };
+    return { ok: true, request: { mode, text } };
   }
   if (mode === "carousel") {
     const idea = str(b.idea, 3000);
@@ -484,4 +490,50 @@ export const CAROUSEL_QUESTIONS: Record<string, JevQuestion> = {
 export function readTextPostBetter(answers: Record<string, JevAnswer> | null): boolean | null {
   const p = answers?.sequence?.noul;
   return typeof p === "number" && Number.isFinite(p) ? p < SEQUENCE_MIN : null;
+}
+
+// ---- Mode "facts" -----------------------------------------------------------
+// Sentences that state a checkable fact about CPF, SRS, HDB, MediShield Life,
+// insurance rules, government schemes, rates or caps, flagged so the
+// consultant checks them before posting. It never rewrites or blocks.
+
+// Set from a shadow check on 2026-10-08 (jev-1.13.0): 22 sentences written for
+// it in one request, 12 checkable facts (one wrong on purpose, one that needs
+// the sentence before it) and 10 opinions, stories, questions and asks. About
+// 230 Jev input tokens a sentence.
+/**
+ * p(the sentence states a checkable fact) at or above this flags it. Facts
+ * 0.82-0.97 ("most hospital claims are paid within 2 weeks" the lowest),
+ * everything else 0.03-0.05, and "your SA is not like a savings account" 0.29.
+ */
+export const FACT_MIN = 0.5;
+
+export function factQuestions(sentences: string[]): Record<string, JevQuestion> {
+  return Object.fromEntries(
+    sentences.map((s, i) => [
+      `fact_${i}`,
+      {
+        type: "noul",
+        instructions: {
+          sentence: s,
+          sentence_before: i > 0 ? sentences[i - 1] : "",
+          question:
+            "Does `sentence` (read with `sentence_before` for context) state a checkable fact about CPF, SRS, HDB, MediShield Life, insurance rules, a government scheme, an interest rate, a payout, or a limit or cap in Singapore?",
+        },
+        criteria: {
+          true: "A specific claim that could be right or wrong: a rate (SA earns 4%), an amount or cap ($8,000 tax relief), an age rule (CPF LIFE starts at 65), what a scheme or policy covers, how a rule works.",
+          false: "An opinion, a story about a client or the writer, a question, advice, an ask, or a general statement that cannot be checked.",
+        },
+      } satisfies JevQuestion,
+    ]),
+  );
+}
+
+/** The sentences to check before posting, in order. Null when Jev did not answer. */
+export function readFacts(answers: Record<string, JevAnswer> | null, sentences: string[]): string[] | null {
+  if (!answers) return null;
+  return sentences.filter((_, i) => {
+    const p = answers[`fact_${i}`]?.noul;
+    return typeof p === "number" && p >= FACT_MIN;
+  });
 }

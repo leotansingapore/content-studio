@@ -52,3 +52,10 @@ export async function textPostBetter(idea: string): Promise<boolean | null> {
     .catch(() => null);
   return Promise.race([call, new Promise<null>((done) => setTimeout(() => done(null), IDEA_WAIT_MS))]);
 }
+
+/** The sentences that state a checkable CPF, insurance or scheme fact; throws with the function's own words. */
+export async function factLines(text: string): Promise<string[]> {
+  const res = await callFn<{ lines: string[] }>("writing-judge", { mode: "facts", text }, "Facts weren't checked this time.");
+  if (!Array.isArray(res?.lines)) throw new Error("Facts weren't checked this time.");
+  return res.lines.filter((l): l is string => typeof l === "string");
+}

@@ -3,6 +3,9 @@ import {
   AI_MAX,
   MAX_SENTENCES,
   CAROUSEL_QUESTIONS,
+  FACT_MIN,
+  factQuestions,
+  readFacts,
   IDEA_MIN,
   IDEA_QUESTIONS,
   SEQUENCE_MIN,
@@ -238,5 +241,28 @@ describe("the carousel or text post check", () => {
     expect(readTextPostBetter(ans(SEQUENCE_MIN - 0.01))).toBe(true);
     expect(readTextPostBetter(ans(SEQUENCE_MIN))).toBe(false);
     expect(readTextPostBetter(null)).toBeNull();
+  });
+});
+
+describe("the stated-facts check", () => {
+  const sentences = ["Your SA is not like a savings account.", "It pays 4% a year.", "DM me PLAN."];
+
+  it("takes the post, and needs something to check", () => {
+    expect(parseJudgeRequest({ mode: "facts", text: " CPF LIFE payouts start at 65. " })).toEqual({ ok: true, request: { mode: "facts", text: "CPF LIFE payouts start at 65." } });
+    expect(parseJudgeRequest({ mode: "facts", text: "Too short" })).toMatchObject({ ok: false });
+  });
+
+  it("asks one yes/no per sentence, with the sentence before it", () => {
+    const q = factQuestions(sentences);
+    expect(Object.keys(q)).toEqual(["fact_0", "fact_1", "fact_2"]);
+    expect(q.fact_1).toMatchObject({ type: "noul", instructions: { sentence: "It pays 4% a year.", sentence_before: "Your SA is not like a savings account." } });
+    expect(q.fact_0).toMatchObject({ instructions: { sentence_before: "" } });
+  });
+
+  it("flags the sentences at or above the threshold, in order, and nothing without an answer", () => {
+    const n = (p: number) => ({ type: "noul" as const, noul: p });
+    expect(readFacts({ fact_0: n(FACT_MIN - 0.01), fact_1: n(FACT_MIN), fact_2: n(0.03) }, sentences)).toEqual(["It pays 4% a year."]);
+    expect(readFacts({}, sentences)).toEqual([]);
+    expect(readFacts(null, sentences)).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import FactFlags from "@/components/FactFlags";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
@@ -785,6 +786,7 @@ function VersionCard({
         <div className="space-y-2">
           <h2 className="font-serif text-xl font-semibold text-foreground">Your version</h2>
           <ComplianceFlags flags={flags} />
+          <FactFlags text={[v.hook, v.script, v.caption, v.cta].filter(Boolean).join("\n")} />
         </div>
 
         {concepts.length > 1 && (

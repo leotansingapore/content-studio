@@ -16,6 +16,10 @@
 //   mode "carousel" {idea} -> {textPostBetter: boolean | null}
 //     whether a carousel idea has no sequence and would read better as a
 //     text post. About 420 tokens.
+//   mode "facts" {text} -> {lines: string[]}
+//     the sentences (split in code) that state a checkable CPF, SRS, HDB,
+//     MediShield Life, insurance, scheme, rate or cap fact, flagged to check
+//     before posting. About 230 tokens a sentence. Counts against "fact-check".
 // Counts against the "writing-judge" daily cap. A draft mostly not in English
 // gets {code: "not_english"} and no judgment. Without Jev (no key, timeout,
 // outage) it says the check is unavailable and the page keeps what it measured.
@@ -30,6 +34,10 @@ import { askJev } from "../_shared/jev.ts";
 import { openAiJson } from "../_shared/auditRunner.ts";
 import {
   CAROUSEL_QUESTIONS,
+  MAX_SENTENCES,
+  factQuestions,
+  readFacts,
+  splitSentences,
   IDEA_QUESTIONS,
   buildProfileRewritePrompt,
   composeProfile,
@@ -87,7 +95,7 @@ Deno.serve(async (req) => {
       console.error("TYPESAFE_API_KEY is not set");
       return json({ error: UNAVAILABLE }, 503);
     }
-    const usage = await consumeUsage(admin, uid, r.mode === "profile" ? "profile-score" : "writing-judge");
+    const usage = await consumeUsage(admin, uid, r.mode === "profile" ? "profile-score" : r.mode === "facts" ? "fact-check" : "writing-judge");
     if (!usage.allowed) {
       const refusal = usageRefusal(usage);
       return json(refusal.body, refusal.status);
@@ -105,6 +113,13 @@ Deno.serve(async (req) => {
         rewrites = readProfileRewrites(await openAiJson(system, user, key, { temperature: 0.5, maxTokens: 300 }), r, want);
       }
       return json({ ...scored, rewrites });
+    }
+    if (r.mode === "facts") {
+      const sentences = splitSentences(r.text).slice(0, MAX_SENTENCES);
+      const answers = sentences.length ? await askJev({ draft: r.text }, factQuestions(sentences), { who: "writing-judge facts" }) : {};
+      const lines = readFacts(answers, sentences);
+      if (!lines) return json({ error: UNAVAILABLE }, 503);
+      return json({ lines });
     }
     if (r.mode === "carousel") {
       const answers = await askJev({ idea: r.idea }, CAROUSEL_QUESTIONS, { who: "writing-judge carousel" });

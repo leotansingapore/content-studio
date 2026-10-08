@@ -81,6 +81,7 @@ import {
   VOICE_MIN_CHARS,
 } from "@/lib/voiceProfile";
 import HumanCheck from "@/components/HumanCheck";
+import FactFlags from "@/components/FactFlags";
 import { ideaIsThin, pickHook } from "@/lib/writingJudge";
 import {
   getDraftById,
@@ -3565,6 +3566,12 @@ export default function GeneratePage() {
                   setTimeout(() => document.getElementById("rewrite-panel")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
                 }}
               />
+            )}
+
+            {craftCheck && !isStreaming && (
+              <div className="mt-3">
+                <FactFlags text={draft} live={false} />
+              </div>
             )}
 
             {(hashtags.length > 0 || hashtagsLoading) && (

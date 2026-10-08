@@ -5,6 +5,7 @@
 // supabase/functions/idea-dump (mode "long", cap "repurpose-long").
 
 import { useEffect, useState } from "react";
+import FactFlags from "@/components/FactFlags";
 import { Link } from "react-router-dom";
 import { ThinkingOrb } from "thinking-orbs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -242,6 +243,7 @@ export default function LongPiece() {
                     )}
                   </div>
                   <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground [overflow-wrap:anywhere]">{p.post}</p>
+                  <FactFlags text={p.post} />
                   {p.basedOn && (
                     <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">Built on: {p.basedOn}</p>
                   )}

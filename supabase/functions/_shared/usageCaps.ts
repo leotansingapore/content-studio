@@ -39,6 +39,8 @@ export const DAILY_LIMITS = {
   "writing-judge": 60,
   // Profile score out of 100 with name and bio rewrites (writing-judge mode "profile", Jev + OpenAI).
   "profile-score": 10,
+  // Stated facts flagged to check before posting (writing-judge mode "facts", Jev).
+  "fact-check": 60,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
