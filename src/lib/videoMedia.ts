@@ -15,6 +15,7 @@ import {
   captionCenter,
   captionIntro,
   animOf,
+  frameRect,
   captionBoxOf,
   captionFont,
   captionKey,
@@ -306,7 +307,26 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   if (v.videoWidth) {
     const zoom = s.punchIn ? zoomAt(f.segs, f.src, spec.punch) : 1;
     const cover = Math.max(W / v.videoWidth, H / v.videoHeight);
-    if (s.fit === "blur") {
+    if (s.fit === "framed") {
+      // the whole picture in a rounded window on the brand colour, darker at the foot
+      const base = f.brand?.color ?? "#0F172A";
+      const grad = g.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, base);
+      grad.addColorStop(1, "#05070D");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, W, H);
+      const r = frameRect(W, H, v.videoWidth, v.videoHeight);
+      const zw = r.w * zoom;
+      const zh = r.h * zoom;
+      g.save();
+      g.beginPath();
+      g.roundRect(r.x, r.y, r.w, r.h, 28 * k);
+      g.clip();
+      g.filter = gradeOf(s);
+      g.drawImage(v, r.x - (zw - r.w) / 2, r.y - (zh - r.h) / 2, zw, zh);
+      g.filter = "none";
+      g.restore();
+    } else if (s.fit === "blur") {
       // the whole picture, over a darkened, blurred copy filling the frame
       const bw = v.videoWidth * cover;
       const bh = v.videoHeight * cover;

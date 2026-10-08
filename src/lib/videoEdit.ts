@@ -15,8 +15,8 @@ export interface Word {
 
 export type StyleId = "bold" | "cutout" | "minimal" | "editorial" | "native" | "documentary";
 export type Aspect = "9:16" | "4:5" | "1:1" | "16:9" | "original";
-/** fill = crop to the frame; blur = the whole picture over a blurred copy of itself (landscape podcasts in a vertical reel). */
-export type Fit = "fill" | "blur";
+/** fill = crop to the frame; blur = the whole picture over a blurred copy of itself (landscape podcasts in a vertical reel); framed = the whole picture in a rounded window on the brand colour (interview clips). */
+export type Fit = "fill" | "blur" | "framed";
 export type Position = "top" | "middle" | "bottom";
 
 export interface EditSettings {
@@ -436,7 +436,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("trimStart" in p) set("trimStart", clamp(p.trimStart, 0, 3600, s.trimStart));
   if ("trimEnd" in p) set("trimEnd", clamp(p.trimEnd, 0, 3600, s.trimEnd));
   if (["9:16", "4:5", "1:1", "16:9", "original"].includes(p.aspect as string)) set("aspect", p.aspect as Aspect);
-  if (p.fit === "fill" || p.fit === "blur") set("fit", p.fit);
+  if (p.fit === "fill" || p.fit === "blur" || p.fit === "framed") set("fit", p.fit);
   if ("focusX" in p) set("focusX", clamp(p.focusX, 0, 1, s.focusX));
   if (typeof p.nameTag === "string") set("nameTag", p.nameTag.slice(0, 40));
   if (typeof p.roleTag === "string") set("roleTag", p.roleTag.slice(0, 50));
@@ -788,4 +788,12 @@ export function sanitizeVoiceover(raw: unknown): Voiceover | undefined {
   const length = clamp(r.length, 0, 3600, 0);
   if (start < 0 || length < 0.3) return undefined;
   return { key: r.key, start, length, ...(typeof r.gain === "number" ? { gain: clamp(r.gain, 0, 1.5, 1) } : {}) };
+}
+
+/** Where the framed layout's window sits: full width less a margin, centred a little above the middle. */
+export function frameRect(W: number, H: number, srcW: number, srcH: number): { x: number; y: number; w: number; h: number } {
+  const w = W * 0.88;
+  const h = Math.min(H * 0.6, (w * srcH) / srcW);
+  const fw = (h * srcW) / srcH; // a tall source is limited by height
+  return { x: (W - fw) / 2, y: H * 0.44 - h / 2, w: fw, h };
 }

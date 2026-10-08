@@ -1188,6 +1188,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Row label="Fit">
                 <Chip on={(settings.fit ?? "fill") === "fill"} onClick={() => patch({ fit: "fill" })}>Crop to fill</Chip>
                 <Chip on={settings.fit === "blur"} onClick={() => patch({ fit: "blur" })}>Whole video, blurred behind</Chip>
+                <Chip on={settings.fit === "framed"} onClick={() => patch({ fit: "framed", ...(settings.captionY === undefined ? { captionY: 0.68 } : {}) })}>Framed window</Chip>
               </Row>
               {(settings.fit ?? "fill") === "fill" && (
                 <Row label="Framing"><input type="range" min={0} max={1} step={0.01} value={settings.focusX} onChange={(e) => patch({ focusX: Number(e.target.value) })} aria-label="Move the crop left or right" className="w-40 accent-primary" /></Row>

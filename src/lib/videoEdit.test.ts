@@ -485,5 +485,16 @@ describe("app buttons over a 9:16 video", () => {
     const at = (x: number, y: number) => ({ ...newOverlay("text", 0, "#FFFFFF"), x, y });
     const s = { ...defaultSettings(), overlays: [at(0.5, 0.5), at(0.5, 0.95), at(0.97, 0.5), at(0.3, 0.03)] };
     expect(appCover(s, "instagram").stickers).toBe(3);
+describe("framed layout", () => {
+  it("fits a landscape clip across a vertical frame with a margin, and a tall one by height", async () => {
+    const { frameRect, applyPatch, defaultSettings } = await import("@/lib/videoEdit");
+    const r = frameRect(1080, 1920, 1920, 1080);
+    expect(r.w).toBeCloseTo(950.4);
+    expect(r.h).toBeCloseTo(534.6);
+    expect(r.x).toBeCloseTo(64.8);
+    const tall = frameRect(1080, 1920, 1080, 1920);
+    expect(tall.h).toBeCloseTo(1152);
+    expect(tall.x + tall.w).toBeLessThanOrEqual(1080);
+    expect(applyPatch(defaultSettings(), { fit: "framed" }).next.fit).toBe("framed");
   });
 });
