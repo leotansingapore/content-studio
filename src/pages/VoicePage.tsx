@@ -22,6 +22,7 @@ import {
   Check,
   ArrowLeft,
 } from "lucide-react";
+import { scoped } from "@/lib/profiles";
 import {
   loadVoiceProfile,
   saveVoiceProfile,
@@ -38,6 +39,11 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhnZGJmbHBycmZpY2RveXhtZHhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3NjY0NDAsImV4cCI6MjA2NzM0MjQ0MH0.2qwUbh0nkFyOLzzZgXk7bedINzHSf2ULMBUECOqWmIw";
 
 const SLOT_INDICES = Array.from({ length: VOICE_MAX_SLOTS }, (_, i) => i);
+
+// Posts pasted but not saved yet, kept for this tab so leaving the page (to
+// check a draft, copy another post) doesn't throw them away. sessionStorage,
+// outside the synced prefix: it is scratch until Save.
+const workKey = (userId: string) => `cs-voice-work-${scoped(userId)}`;
 
 export default function VoicePage() {
   const { toast } = useToast();
@@ -65,11 +71,34 @@ export default function VoicePage() {
         setVoiceSummary(profile.voiceSummary ?? "");
         setUpdatedAt(profile.updatedAt ?? null);
       }
+      try {
+        const work = id ? JSON.parse(sessionStorage.getItem(workKey(id)) ?? "null") : null;
+        if (Array.isArray(work) && work.every((w) => typeof w === "string")) {
+          const restored = work.slice(0, VOICE_MAX_SLOTS);
+          while (restored.length < VOICE_MAX_SLOTS) restored.push("");
+          setPosts(restored);
+        }
+      } catch {
+        // corrupt or blocked storage: show the saved posts
+      }
     })();
     return () => {
       active = false;
     };
   }, []);
+
+  // Kept while the posts differ from the saved profile; Save clears it.
+  useEffect(() => {
+    if (!userId) return;
+    const saved = loadVoiceProfile(userId)?.posts ?? [];
+    const same = posts.every((p, i) => p === (saved[i] ?? ""));
+    try {
+      if (same) sessionStorage.removeItem(workKey(userId));
+      else sessionStorage.setItem(workKey(userId), JSON.stringify(posts));
+    } catch {
+      // storage blocked: unsaved posts just won't survive a page change
+    }
+  }, [userId, posts, updatedAt]);
 
   const filledCount = useMemo(
     () => posts.filter((p) => p.trim().length >= VOICE_MIN_CHARS).length,
