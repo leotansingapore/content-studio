@@ -48,6 +48,7 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
+import { loadBrand } from "@/lib/carousel";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -214,8 +215,11 @@ export default function HomePage() {
     });
   };
 
+  const kit = loadBrand(userId);
   const checklist = [
     { done: voiceReady, label: "Set your voice", to: "/voice" },
+    // the brand kit puts your photo, name and sign-off on every carousel, video and copied post
+    { done: !!kit && !!(kit.photo || kit.signOff?.trim()), label: "Set up your brand kit", to: "/brand" },
     { done: hasPosts, label: "Write your first post", to: "/generate" },
     { done: upcoming.length > 0 || (stats?.scheduled ?? 0) > 0, label: "Schedule a post", to: "/calendar" },
     { done: coachRuns > 0, label: "Check your content in Coach", to: "/coach" },
@@ -424,7 +428,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Get-started checklist (until all four are done) */}
+      {/* Get-started checklist (until every step is done) */}
       {showChecklist && (
         <Card className="border-primary/20 bg-primary/[0.04] shadow-card">
           <CardContent className="space-y-3 py-4">
