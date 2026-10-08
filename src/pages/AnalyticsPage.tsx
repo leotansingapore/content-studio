@@ -762,14 +762,16 @@ export default function AnalyticsPage() {
             </span>
             <p className="max-w-sm text-sm text-muted-foreground">
               {postedCount > 0
-                ? "You've marked posts as posted — now add their numbers in My posts to see what's working."
+                ? "Add the numbers for a posted post in Add your numbers above to see what's working."
                 : "Once you publish and mark posts as posted, add their real numbers to track what lands."}
             </p>
-            <Button asChild size="sm" className="gap-1.5">
-              <Link to="/drafts">
-                Go to My posts <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
+            {postedCount === 0 && (
+              <Button asChild size="sm" className="gap-1.5">
+                <Link to="/drafts">
+                  Go to My posts <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
