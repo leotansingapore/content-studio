@@ -73,7 +73,7 @@ select public.cs_test_assert(
   and has_function_privilege('service_role', 'public.cs_bio_click(text, uuid, boolean)', 'execute'),
   '0.2 anon executes nothing; the public functions are service_role only');
 select public.cs_test_assert(
-  (select bool_and(p.prosecdef and p.proconfig @> array['search_path=public'])
+  (select bool_and(p.prosecdef and p.proconfig @> array['search_path=public, pg_temp'])
    from pg_proc p
    where p.pronamespace = 'public'::regnamespace
      and p.proname in ('cs_save_bio_page', 'cs_delete_bio_page', 'cs_bio_page_public', 'cs_bio_click')),
@@ -164,7 +164,27 @@ select public.cs_test_expect_error($$select public.cs_test_save_url('//example.c
   '%starting with https%', '1.22 a scheme-relative URL refused');
 select public.cs_test_expect_error(format('select public.cs_test_save_url(%L)', 'https://example.com/' || repeat('a', 2030)),
   '%starting with https%', '1.23 a URL over 2,048 characters refused');
+select public.cs_test_expect_error($$select public.cs_test_save_url('https://example.com\@evil.example/')$$,
+  '%starting with https%', '1.23b a backslash after the host refused');
+select public.cs_test_expect_error($$select public.cs_test_save_url('https://example.com\evil.example')$$,
+  '%starting with https%', '1.23c a backslash in the host refused');
+select public.cs_test_expect_error($$select public.cs_test_save_url('https://exa_mple.com/')$$,
+  '%starting with https%', '1.23d a host with an underscore refused');
+select public.cs_test_expect_error($$select public.cs_test_save_url('https://bücher.example/')$$,
+  '%starting with https%', '1.23e a non-ASCII host refused (punycode works)');
+select public.cs_test_expect_error($$select public.cs_test_save_url('https://example.com:123456/')$$,
+  '%starting with https%', '1.23f a 6-digit port refused');
+select public.cs_test_save_url('https://xn--bcher-kva.example:8443/a?b=c#d');
+select public.cs_test_save_url('https://example.com');
 select public.cs_test_save_url('HTTP://Example.com/path?q=1#top');
+select public.cs_test_expect_error($$select public.cs_save_bio_page('me', 'admin', 'Ada', '', null, '[]')$$,
+  '%reserved%', '1.23g admin is reserved');
+select public.cs_test_expect_error($$select public.cs_save_bio_page('me', 'Review', 'Ada', '', null, '[]')$$,
+  '%reserved%', '1.23h review is reserved');
+select public.cs_test_expect_error($$select public.cs_save_bio_page('me', 'team', 'Ada', '', null, '[]')$$,
+  '%reserved%', '1.23i app routes are reserved');
+select public.cs_test_expect_error(format('select public.cs_save_bio_page(%L, %L, %L, %L, null, %L)', 'me', 'ada-tan', repeat(' ', 401) || 'Ada', '', '[]'),
+  '%far too long%', '1.23j an oversized raw name is refused before normalising');
 
 -- Put the real page back (the URL checks above replaced its links).
 select public.cs_save_bio_page('me', 'ada-tan', 'Ada Tan', 'Financial adviser, Singapore',
@@ -299,7 +319,34 @@ select public.cs_test_assert(public.cs_delete_bio_page('me') = false, '4.8 delet
 reset role;
 select public.cs_test_assert(
   (select count(*) from public.cs_bio_clicks) = 0 and (select count(*) from public.cs_bio_pages where slug = 'ada-tan') = 0,
-  '4.9 deleting a page removes its click counts and frees its slug');
+  '4.9 deleting a page removes its click counts');
+
+-- ---------------------------------------------------------------------------
+-- 5. Released slugs are held for 30 days
+-- ---------------------------------------------------------------------------
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000e2","role":"authenticated"}';
+select public.cs_test_expect_error($$select public.cs_save_bio_page('me', 'ada-tan', 'Not Ada', '', null, '[]')$$,
+  '%in use recently%', '5.1 a deleted page''s slug is held from others');
+select public.cs_test_expect_error($$select public.cs_save_bio_page('me', 'ada-brand-9', 'Not Ada', '', null, '[]')$$,
+  '%in use recently%', '5.2 a renamed page''s old slug is held from others');
+
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000e1","role":"authenticated"}';
+select public.cs_test_assert(
+  (select slug from public.cs_save_bio_page('p9', 'ada-brand-9', 'Ada', '', null, '[]')) = 'ada-brand-9',
+  '5.3 the owner can take their own released slug back');
+reset role;
+update public.cs_bio_slug_holds set released_at = now() - interval '31 days' where slug = 'ada-tan';
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000e2","role":"authenticated"}';
+select public.cs_test_assert(
+  (select slug from public.cs_save_bio_page('me', 'ada-tan', 'Someone else', '', null, '[]')) = 'ada-tan',
+  '5.4 after 30 days the slug is free again');
+select public.cs_test_expect_error($$select count(*) from public.cs_bio_slug_holds$$,
+  '%permission denied%', '5.5 nobody client-side reads the holds');
+reset role;
 
 -- ---------------------------------------------------------------------------
 

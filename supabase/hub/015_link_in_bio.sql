@@ -16,11 +16,22 @@
 --   * Clicks go through the edge function's redirect, which looks up the
 --     link's URL by (slug, link id) on the server. It never redirects to a
 --     URL taken from the request, so it is not an open redirect. Saved URLs
---     must be http(s) with no spaces, control characters or user@ part, so
---     javascript:, data: and look-alike login URLs cannot be stored.
+--     must be http(s), with a host of letters, digits, dots and hyphens and
+--     an optional port, and no spaces, control characters or backslashes
+--     after it; javascript:, data:, user@host and backslash tricks cannot be
+--     stored. The edge function re-parses the URL with new URL(), requires
+--     http/https again and redirects to url.href.
+--   * Slugs: the app's own route names and words like admin, api, login,
+--     review, help or settings are reserved. A slug that is released (renamed
+--     or deleted) is held for 30 days, so nobody else can pick up an address
+--     still printed in someone's Instagram bio. The owner can take it back.
+--     Changes take advisory locks per slug in sorted order, so a release and
+--     a grab cannot race.
 --   * The owner reads their pages and click counts through RLS (SELECT only)
 --     and writes only through the SECURITY DEFINER functions. Unpublishing or
 --     deleting is a server-side change, never a synced localStorage key.
+--   * Every function pins search_path = public, pg_temp. Oversized raw input
+--     is refused before any normalising regex runs.
 --   * Caps: 10 pages per account, 20 links per page, labels 1-60 characters,
 --     URLs up to 2,048, name 1-80, line up to 160, photo a PNG/JPEG/WebP data
 --     URL up to 350,000 characters (the brand kit's own cap). Click counting
@@ -32,7 +43,12 @@
 --     revoke all from public, anon, authenticated: undoes Supabase's default
 --       ALL grant; no client role can write.
 --     grant select to authenticated: for RLS reads of the caller's own rows.
+--   table cs_bio_slug_holds
+--     revoke all from public, anon, authenticated, and no policy: only the
+--       definer functions read or write it.
 --   functions
+--     cs_bio_lock_slugs: internal helper, revoked from public, anon and
+--       authenticated.
 --     cs_save_bio_page, cs_delete_bio_page: revoked from public and anon,
 --       granted to authenticated.
 --     cs_bio_page_public, cs_bio_click: revoked from public, anon and
@@ -42,7 +58,11 @@
 --   cs_bio_pages_owner_read: owner_id = auth.uid().
 --   cs_bio_clicks_owner_read: clicks on a page the caller owns.
 --
--- Idempotent: safe to run again.
+-- Idempotent: safe to run again. One transaction; gives up after 3 seconds
+-- waiting for a lock.
+
+begin;
+set local lock_timeout = '3s';
 
 -- ---------------------------------------------------------------------------
 -- Tables
@@ -77,11 +97,31 @@ create table if not exists public.cs_bio_clicks (
   primary key (page_id, link_id, day)
 );
 
+-- Slugs released in the last 30 days, kept for their last owner.
+create table if not exists public.cs_bio_slug_holds (
+  slug text primary key,
+  owner_id uuid not null,
+  released_at timestamptz not null default now()
+);
+
 alter table public.cs_bio_pages enable row level security;
 alter table public.cs_bio_clicks enable row level security;
+alter table public.cs_bio_slug_holds enable row level security;
 
-revoke all on table public.cs_bio_pages, public.cs_bio_clicks from public, anon, authenticated;
+revoke all on table public.cs_bio_pages, public.cs_bio_clicks, public.cs_bio_slug_holds
+  from public, anon, authenticated;
 grant select on table public.cs_bio_pages, public.cs_bio_clicks to authenticated;
+
+-- Locks the given slugs in sorted order (no deadlocks between two saves).
+create or replace function public.cs_bio_lock_slugs(p_slugs text[]) returns void
+language plpgsql set search_path = public, pg_temp as $$
+declare
+  v_slug text;
+begin
+  for v_slug in select distinct s from unnest(p_slugs) s where s is not null order by s loop
+    perform pg_advisory_xact_lock(hashtextextended('cs_bio_slug:' || v_slug, 0));
+  end loop;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- Owner (authenticated) functions
@@ -99,15 +139,25 @@ create or replace function public.cs_save_bio_page(
   p_links jsonb,
   p_published boolean default true
 ) returns public.cs_bio_pages
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   c_page_limit constant int := 10;
-  c_url_re constant text := '^https?://[^[:space:][:cntrl:]/?#@]+([/?#][^[:space:][:cntrl:]]*)?$';
+  c_url_re constant text := '^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?([/?#][^[:space:][:cntrl:]\\]*)?$';
+  -- Admin-ish words and every top-level route in src/App.tsx.
+  c_reserved constant text[] := array[
+    'admin', 'api', 'login', 'logout', 'signup', 'auth', 'app', 'l', 'review', 'www', 'help',
+    'support', 'settings', 'bio', 'mb-studio', 'content-studio',
+    'academy', 'analytics', 'board', 'brand', 'calendar', 'carousel', 'clone', 'coach',
+    'connect', 'create-guide', 'diagnosis', 'drafts', 'edit', 'fads', 'feedback', 'generate',
+    'grid', 'home', 'hub', 'inspiration', 'media', 'plan', 'playbook', 'profiles', 'recruit',
+    'reels', 'roadmap', 'swipe', 'team', 'trends', 'tutorial', 'voice', 'welcome'
+  ];
   v_uid uuid := auth.uid();
-  v_slug text := lower(btrim(coalesce(p_slug, '')));
-  v_name text := public.cs_clean_label(p_display_name);
-  v_headline text := public.cs_clean_label(p_headline);
-  v_photo text := nullif(btrim(coalesce(p_photo, '')), '');
+  v_slug text;
+  v_old_slug text;
+  v_name text;
+  v_headline text;
+  v_photo text;
   v_links jsonb := '[]'::jsonb;
   v_ids uuid[] := '{}';
   v_item jsonb;
@@ -122,8 +172,20 @@ begin
   if coalesce(p_profile_id, '') !~ '^[a-z0-9]{1,40}$' then
     raise exception 'This profile has no valid id.' using errcode = '22023';
   end if;
+  -- Bound the raw input before any regex runs over it.
+  if char_length(p_slug) > 200 or char_length(p_display_name) > 400
+     or char_length(p_headline) > 1000 or char_length(p_photo) > 350100 then
+    raise exception 'Something on this page is far too long. Shorten it and try again.' using errcode = '22023';
+  end if;
+  v_slug := lower(btrim(coalesce(p_slug, '')));
+  v_name := public.cs_clean_label(p_display_name);
+  v_headline := public.cs_clean_label(p_headline);
+  v_photo := nullif(btrim(coalesce(p_photo, '')), '');
   if v_slug !~ '^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$' then
     raise exception 'Use 3 to 40 lowercase letters, numbers or hyphens for your address.' using errcode = '22023';
+  end if;
+  if v_slug = any (c_reserved) then
+    raise exception 'That address is reserved. Try another.' using errcode = '22023';
   end if;
   if char_length(v_name) not between 1 and 80 then
     raise exception 'Add your name (up to 80 characters).' using errcode = '22023';
@@ -165,9 +227,18 @@ begin
   end loop;
 
   perform pg_advisory_xact_lock(hashtextextended('cs_bio_page:' || v_uid::text, 0));
-  if not exists (select 1 from public.cs_bio_pages where owner_id = v_uid and profile_id = p_profile_id)
+  select slug into v_old_slug from public.cs_bio_pages where owner_id = v_uid and profile_id = p_profile_id;
+  if v_old_slug is null
      and (select count(*) from public.cs_bio_pages where owner_id = v_uid) >= c_page_limit then
     raise exception 'You already have 10 link-in-bio pages. Delete one to make another.' using errcode = '54000';
+  end if;
+
+  perform public.cs_bio_lock_slugs(array[v_old_slug, v_slug]);
+  if exists (
+    select 1 from public.cs_bio_slug_holds
+    where slug = v_slug and owner_id <> v_uid and released_at > now() - interval '30 days'
+  ) then
+    raise exception 'That address was in use recently. Try another.' using errcode = '23505';
   end if;
 
   begin
@@ -188,21 +259,37 @@ begin
   exception when unique_violation then
     raise exception 'That address is taken. Try another.' using errcode = '23505';
   end;
+
+  if v_old_slug is not null and v_old_slug <> v_slug then
+    insert into public.cs_bio_slug_holds (slug, owner_id, released_at)
+    values (v_old_slug, v_uid, now())
+    on conflict (slug) do update set owner_id = excluded.owner_id, released_at = excluded.released_at;
+  end if;
   return v_row;
 end $$;
 
--- Deletes the caller's page for one profile, with its click counts. Returns
--- whether there was one.
+-- Deletes the caller's page for one profile, with its click counts, and
+-- holds its slug for 30 days. Returns whether there was one.
 create or replace function public.cs_delete_bio_page(p_profile_id text) returns boolean
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v_uid uuid := auth.uid();
+  v_slug text;
 begin
   if v_uid is null then
     raise exception 'Sign in first.' using errcode = '42501';
   end if;
+  perform pg_advisory_xact_lock(hashtextextended('cs_bio_page:' || v_uid::text, 0));
+  select slug into v_slug from public.cs_bio_pages where owner_id = v_uid and profile_id = p_profile_id;
+  if v_slug is null then
+    return false;
+  end if;
+  perform public.cs_bio_lock_slugs(array[v_slug]);
   delete from public.cs_bio_pages where owner_id = v_uid and profile_id = p_profile_id;
-  return found;
+  insert into public.cs_bio_slug_holds (slug, owner_id, released_at)
+  values (v_slug, v_uid, now())
+  on conflict (slug) do update set owner_id = excluded.owner_id, released_at = excluded.released_at;
+  return true;
 end $$;
 
 -- ---------------------------------------------------------------------------
@@ -212,7 +299,7 @@ end $$;
 -- The published page for a slug, or null. Link URLs stay on the server: the
 -- page links to the redirect, which counts the click.
 create or replace function public.cs_bio_page_public(p_slug text) returns jsonb
-language sql stable security definer set search_path = public as $$
+language sql stable security definer set search_path = public, pg_temp as $$
   select jsonb_build_object(
     'slug', p.slug,
     'display_name', p.display_name,
@@ -233,7 +320,7 @@ $$;
 -- concurrent clicks. p_count = false (a bot) returns the URL without counting.
 create or replace function public.cs_bio_click(p_slug text, p_link_id uuid, p_count boolean default true)
 returns text
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   c_daily_cap constant int := 5000;
   v_page_id uuid;
@@ -261,6 +348,7 @@ end $$;
 -- Function privileges
 -- ---------------------------------------------------------------------------
 
+revoke all on function public.cs_bio_lock_slugs(text[]) from public, anon, authenticated;
 revoke all on function public.cs_save_bio_page(text, text, text, text, text, jsonb, boolean) from public, anon;
 revoke all on function public.cs_delete_bio_page(text) from public, anon;
 grant execute on function public.cs_save_bio_page(text, text, text, text, text, jsonb, boolean) to authenticated;
@@ -287,3 +375,5 @@ create policy cs_bio_clicks_owner_read on public.cs_bio_clicks
     select 1 from public.cs_bio_pages p
     where p.id = page_id and p.owner_id = (select auth.uid())
   ));
+
+commit;
