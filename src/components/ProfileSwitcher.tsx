@@ -152,6 +152,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                         setEditName(p.name);
                       }}
                       aria-label={`Rename ${p.name}`}
+                      title={`Rename ${p.name}`}
                       className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
                     >
                       <Pencil className="h-3.5 w-3.5" />
@@ -161,6 +162,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                         type="button"
                         onClick={() => remove(p)}
                         aria-label={`Remove ${p.name}`}
+                        title={`Remove ${p.name}`}
                         className="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -181,7 +183,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="New profile, e.g. a brand"
+              placeholder="Profile name"
               aria-label="New profile name"
               maxLength={40}
               className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"

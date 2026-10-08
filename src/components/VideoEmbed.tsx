@@ -18,6 +18,7 @@ export default function VideoEmbed({
   className?: string;
 }) {
   const [playing, setPlaying] = useState(autoPlay);
+  const [loaded, setLoaded] = useState(false);
   const src = embedUrlFor(url);
   if (!src) return null;
   return (
@@ -27,10 +28,17 @@ export default function VideoEmbed({
         className,
       )}
     >
+      {playing && !loaded && (
+        <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-xs font-semibold text-white/80" aria-live="polite">
+          <span className="h-8 w-8 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          Loading the video...
+        </span>
+      )}
       {playing ? (
         <iframe
           src={src}
           title={label ?? "Video"}
+          onLoad={() => setLoaded(true)}
           className="absolute inset-0 h-full w-full"
           allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
           allowFullScreen

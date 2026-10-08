@@ -128,10 +128,10 @@ export default function PostDetailDrawer({
                 url={post.url}
                 autoPlay
                 label={`${post.handle} ${FORMAT_LABEL[fmt] ?? "post"}`}
-                className="max-w-[calc(70vh*0.5625)] rounded-none border-0 bg-black"
+                className="max-w-[calc(60vh*0.5625)] rounded-none border-0 bg-black"
               />
             ) : (
-              <div className="relative mx-auto flex aspect-[9/16] w-full max-w-[calc(70vh*0.5625)] items-center justify-center">
+              <div className="relative mx-auto flex aspect-[9/16] w-full max-w-[calc(60vh*0.5625)] items-center justify-center">
                 {post.cover ? (
                   <img src={post.cover} alt="" className="absolute inset-0 h-full w-full object-contain" />
                 ) : (
