@@ -824,6 +824,8 @@ export default function PlanPage() {
               size="sm"
               onClick={handleDeletePlan}
               className="gap-1.5 text-muted-foreground"
+              aria-label="Delete plan"
+              title="Delete plan"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -858,7 +860,7 @@ export default function PlanPage() {
                       <button
                         type="button"
                         onClick={() => togglePosted(item.id)}
-                        className="mt-0.5 shrink-0 self-start text-primary"
+                        className="-m-3 mt-[-0.625rem] shrink-0 self-start p-3 text-primary"
                         aria-label={item.posted ? "Mark not posted" : "Mark posted"}
                         title={item.posted ? "Posted" : "Mark posted"}
                       >
