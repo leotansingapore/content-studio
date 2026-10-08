@@ -124,6 +124,10 @@ const SCRIPT_LABEL = new RegExp(
   `^(?:\\[(${LABEL_WORDS})\\]\\s*:?|(${LABEL_WORDS})\\s*(?:\\([^)]*\\))?\\s*:)\\s*(.*)$`,
   "i",
 );
+/** "Title: ..." or "Text: ..." on a generated slide: the label goes, the text stays. */
+const FIELD_LABEL = /^(?:title|headline|heading|sub-?heading|subtitle|text|sub-?text|copy|slide text|on-screen text)\s*:\s*(.*)$/i;
+/** "Visual: ..." or "Image idea: ..." are notes for whoever designs the slide, not slide text. */
+const DESIGN_NOTE = /^(?:visuals?|images?|graphics?|design|background|photo|icon|layout)(?:\s+(?:idea|note|suggestion|direction))?\s*:/i;
 const LIST_ITEM =
   /^(?:(?:[•●▪◦‣*+-]|\d{1,2}[.)]|step\s+\d{1,2}\s*[:.\-–—])\s+|(?:\d️?⃣|[✅✔☑👉➡→▶🔹🔸📌💡⭐✨]️?)\s*)(.+)$/iu;
 const CTA_PATTERN =
@@ -185,6 +189,14 @@ function parseBlocks(lines: string[]): Block[] {
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) {
+      flush();
+      continue;
+    }
+    if (DESIGN_NOTE.test(line)) continue;
+    const field = line.match(FIELD_LABEL);
+    if (field) {
+      flush();
+      if (field[1].trim()) para.push(field[1].trim());
       flush();
       continue;
     }
@@ -259,7 +271,12 @@ function splitInHalf(text: string): [string, string] | null {
 
 // ---- Slide text ---------------------------------------------------------------
 
-const tidyTitle = (s: string) => s.trim().replace(/[.:;,]+$/, "");
+// trailing punctuation goes, and quote marks wrapping the whole title ("Move #1: Top up early")
+const tidyTitle = (s: string) => {
+  const t = s.trim().replace(/[.:;,]+$/, "");
+  const m = t.match(/^["“'‘](.+)["”'’]$/);
+  return m && !/["“”]/.test(m[1]) ? m[1].trim() : t;
+};
 const capitalise = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Title and body for one point: a short opening sentence becomes the title. */
@@ -347,8 +364,10 @@ function fromSlideMarkers(lines: string[]): Parts {
   const cover = texts.shift() ?? "";
   const last = texts[texts.length - 1];
   const cta = texts.length >= 2 && last && CTA_PATTERN.test(last) ? (texts.pop() as string) : "";
-  const points = texts.flatMap((t) => (countWords(t) > WORDS_PER_SLIDE ? chunkByWords(t, WORDS_PER_SLIDE) : [t]));
-  return { cover, points, cta };
+  // The draft marks its own slides: keep one slide per marker. A long one stays whole
+  // (the editor flags it over the word count) rather than spilling its last sentence
+  // onto a slide of its own.
+  return { cover, points: texts, cta };
 }
 
 function fromBlocks(blocks: Block[], hook: string): Parts {

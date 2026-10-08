@@ -357,3 +357,85 @@ describe("saved carousels", () => {
     expect(loadCarousels("u1")).toEqual([]);
   });
 });
+
+describe("generated carousel labels", () => {
+  it("drops Title/Text labels and design notes from slide-by-slide drafts", async () => {
+    const { splitDraftIntoSlides } = await import("@/lib/carousel");
+    const draft = [
+      "Slide 1",
+      "Title: Think CPF is only for retirement?",
+      "Visual: a calendar with a red circle",
+      "",
+      "Slide 2",
+      "Title: Move #1: Top up your SA early",
+      "Text: Compounding at 4% does the heavy lifting over 30 years.",
+      "",
+      "Slide 3",
+      "Headline: Move #2: Keep an OA buffer",
+      "Body: Use your OA for the flat, but leave some for emergencies.",
+      "Image idea: an HDB block",
+      "",
+      "Slide 4",
+      "Title: Move #3: Nominate your beneficiaries",
+      "Copy: It takes five minutes online.",
+      "",
+      "Slide 5",
+      "Title: Want the full checklist?",
+      "Text: Comment PLAN and I'll send it.",
+    ].join("\n");
+    const { slides } = splitDraftIntoSlides(draft);
+    const all = slides.map((x) => `${x.title}|${x.body}`).join("\n");
+    expect(all).not.toMatch(/\b(Title|Text|Headline|Body|Copy|Visual|Image idea):/);
+    expect(slides[0].title).toBe("Think CPF is only for retirement?");
+    expect(slides[1]).toMatchObject({ title: "Move #1: Top up your SA early", body: "Compounding at 4% does the heavy lifting over 30 years." });
+    expect(slides[2].title).toBe("Move #2: Keep an OA buffer");
+    expect(all).not.toContain("calendar");
+    expect(all).not.toContain("HDB block");
+  });
+});
+
+describe("generated carousels keep their own slides", () => {
+  // real output of the generate function for "3 CPF moves for people in their 30s" (2026-10-08)
+  const raw = [
+    "SLIDE 1:  ",
+    "Think CPF Is Just “For Retirement”? \u{1F914}  ",
+    "Most Singaporeans in their 30s only see CPF as a savings pot for age 65. But you could be missing 3 powerful moves your future self will thank you for!",
+    "",
+    "SLIDE 2:  ",
+    "Myth #1: “I can’t touch my CPF before 55 anyway.”  ",
+    "Reality: Did you know you can use your OA for your first home, and every extra $1,000 OA repayment now knocks years off your mortgage? Even a small top-up or prepayment makes a dent.",
+    "",
+    "SLIDE 3:  ",
+    "Myth #2: “Top-ups are only for those with spare cash.”  ",
+    "Fact: If you transfer just $100/month from your OA to your SA in your 30s, that’s $1,200 a year compounding at 4%, not 2.5%. Over 10 years, that ‘small’ shift could mean over $1,500 in extra interest.",
+    "",
+    "SLIDE 4:  ",
+    "Myth #3: “CPF has nothing to do with my family right now.”  ",
+    "Correction: Nominate your CPF! If you haven’t yet, your savings go to the public distribution process (not your loved ones) if anything happens. Takes 5 minutes, saves months of legal hassle.",
+    "",
+    "SLIDE 5:  ",
+    "Real Talk: My Friends Waited…  ",
+    "As an FC, I’ve seen friends in their 30s regret not moving early on these. Most wish they’d started those OA-to-SA transfers sooner, or sorted out nominations before life got complicated.",
+    "",
+    "SLIDE 6:  ",
+    "Want My CPF Moves Checklist?  ",
+    "Comment “CPF30s” below and I’ll DM you my quick guide to these 3 moves!  ",
+    "",
+    "#CPF #CPFSingapore #SingaporeFinance",
+  ].join("\n");
+
+  it("makes one slide per SLIDE marker, even when a slide runs long", async () => {
+    const { splitDraftIntoSlides } = await import("@/lib/carousel");
+    const { slides, dropped } = splitDraftIntoSlides(raw);
+    expect(slides).toHaveLength(6);
+    expect(dropped).toBe(0);
+    expect(slides.map((x) => x.title.slice(0, 9))).toEqual(["Think CPF", "Myth #1: ", "Myth #2: ", "Myth #3: ", "Real Talk", "Want My C"]);
+    expect(slides[1].body).toContain("Even a small top-up");
+  });
+
+  it("drops quote marks that wrap a whole title, not ones inside it", async () => {
+    const { toSlideText } = await import("@/lib/carousel");
+    expect(toSlideText("“Move #1: Top up early”\nBody text here.").title).toBe("Move #1: Top up early");
+    expect(toSlideText("Myth #1: “I can’t touch my CPF”\nBody.").title).toBe("Myth #1: “I can’t touch my CPF”");
+  });
+});
