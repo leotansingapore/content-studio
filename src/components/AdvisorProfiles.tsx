@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { humanLabel } from "@/lib/utils";
+import { NICHE_GROUPS, inNicheGroups, nicheGroup } from "@/lib/nicheGroups";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search,
@@ -132,9 +133,8 @@ const AUDIENCE_OPTIONS = Array.from(
   new Set(ENTRIES.flatMap((e) => e.audience)),
 ).sort();
 
-const NICHE_OPTIONS = Array.from(
-  new Set(ENTRIES.flatMap((e) => e.niche)),
-).sort();
+const IN_DATA = new Set(ENTRIES.flatMap((e) => e.niche.map(nicheGroup)));
+const NICHE_OPTIONS = NICHE_GROUPS.map((g) => g.label).filter((l) => IN_DATA.has(l));
 
 function PlatformBadge({ platform }: { platform: AdvisorPlatform }) {
   const meta = PLATFORM_META[platform];
@@ -397,7 +397,7 @@ export default function AdvisorProfiles() {
       }
       if (audiences.size > 0 && !e.audience.some((a) => audiences.has(a)))
         return false;
-      if (niches.size > 0 && !e.niche.some((n) => niches.has(n))) return false;
+      if (!inNicheGroups(e.niche, niches)) return false;
       if (q.length > 0) {
         const haystack = (
           e.name +
@@ -535,7 +535,7 @@ export default function AdvisorProfiles() {
                       active={niches.has(n)}
                       onClick={() => toggleNiche(n)}
                     >
-                      {humanLabel(n)}
+                      {n}
                     </Chip>
                   ))}
                 </div>
