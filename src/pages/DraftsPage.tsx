@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { useNavigate } from "react-router-dom";
 import {
@@ -34,6 +34,7 @@ import {
   Tag,
   CopyPlus,
   Upload,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -73,6 +74,95 @@ const PILLAR_LABEL: Record<string, string> = {
   topic: "Topic",
   market: "Market",
 };
+
+type MenuItem = { label: string; icon: typeof Pencil; onSelect: () => void };
+
+// A card's less-used actions behind one "More" button (menu button pattern: Enter,
+// Space or the arrow keys open it, arrows move, Escape closes and returns focus).
+function MoreMenu({ items }: { items: MenuItem[] }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const menuId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!root.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  const focusItem = (i: number) => itemRefs.current[(i + items.length) % items.length]?.focus();
+  const openAt = (i: number) => {
+    setOpen(true);
+    requestAnimationFrame(() => focusItem(i));
+  };
+  const close = () => {
+    setOpen(false);
+    button.current?.focus();
+  };
+
+  return (
+    <div ref={root} className="relative">
+      <Button
+        ref={button}
+        size="sm"
+        variant="ghost"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        onClick={() => (open ? setOpen(false) : openAt(0))}
+        onKeyDown={(e) => {
+          if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+          e.preventDefault();
+          openAt(e.key === "ArrowDown" ? 0 : items.length - 1);
+        }}
+        className="h-11 gap-1.5 text-xs text-muted-foreground sm:h-9"
+      >
+        <MoreHorizontal className="h-3.5 w-3.5" /> More
+      </Button>
+      {open && (
+        <div
+          id={menuId}
+          role="menu"
+          aria-label="More actions"
+          onKeyDown={(e) => {
+            const i = itemRefs.current.indexOf(document.activeElement as HTMLButtonElement);
+            const to = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[e.key];
+            if (to !== undefined) {
+              e.preventDefault();
+              focusItem(to);
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              close();
+            } else if (e.key === "Tab") setOpen(false);
+          }}
+          className="absolute bottom-full right-0 z-30 mb-1 w-52 rounded-xl border border-border/70 bg-popover p-1 shadow-elegant"
+        >
+          {items.map((it, i) => (
+            <button
+              key={it.label}
+              ref={(el) => (itemRefs.current[i] = el)}
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              onClick={() => {
+                close();
+                it.onSelect();
+              }}
+              className="flex h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-foreground hover:bg-accent focus:bg-accent focus:outline-none sm:h-9"
+            >
+              <it.icon className="h-4 w-4 shrink-0 text-muted-foreground" /> {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DraftsPage() {
   const { toast } = useToast();
@@ -524,44 +614,16 @@ export default function DraftsPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleRestore(d.id)}
-                    className="gap-1.5"
+                    className="h-11 gap-1.5 sm:h-9"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      setRepurposeOpenId((cur) => (cur === d.id ? null : d.id))
-                    }
-                    className="gap-1.5"
-                  >
-                    <Wand2 className="h-3.5 w-3.5" /> Repurpose
-                  </Button>
-                  {d.draft?.trim() && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => navigate(`/carousel?draft=${encodeURIComponent(d.id)}`)}
-                      className="gap-1.5"
-                    >
-                      <GalleryHorizontalEnd className="h-3.5 w-3.5" /> Make a carousel
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDuplicate(d.id)}
-                    className="gap-1.5 text-xs text-muted-foreground"
-                  >
-                    <CopyPlus className="h-3.5 w-3.5" /> Duplicate
                   </Button>
                   {s === "posted" ? (
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => handleUnpost(d)}
-                      className="gap-1.5 text-xs text-muted-foreground"
+                      className="h-11 gap-1.5 text-xs text-muted-foreground sm:h-9"
                     >
                       <Undo2 className="h-3.5 w-3.5" /> Mark unposted
                     </Button>
@@ -570,16 +632,25 @@ export default function DraftsPage() {
                       size="sm"
                       variant="ghost"
                       onClick={() => handleSetStatus(d.id, "posted")}
-                      className="gap-1.5 text-xs text-success hover:text-success"
+                      className="h-11 gap-1.5 text-xs text-success hover:text-success sm:h-9"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
                     </Button>
                   )}
+                  <MoreMenu
+                    items={[
+                      { label: "Repurpose", icon: Wand2, onSelect: () => setRepurposeOpenId(d.id) },
+                      ...(d.draft?.trim()
+                        ? [{ label: "Make a carousel", icon: GalleryHorizontalEnd, onSelect: () => navigate(`/carousel?draft=${encodeURIComponent(d.id)}`) }]
+                        : []),
+                      { label: "Duplicate", icon: CopyPlus, onSelect: () => handleDuplicate(d.id) },
+                    ]}
+                  />
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => handleDelete(d.id)}
-                    className={`ml-auto gap-1.5 text-xs ${
+                    className={`ml-auto h-11 gap-1.5 text-xs sm:h-9 ${
                       confirmId === d.id
                         ? "text-destructive"
                         : "text-muted-foreground"
