@@ -382,7 +382,8 @@ export function stageMix(drafts: DraftLike[], since: Date) {
 }
 
 /** The kit bans em dashes; the model still slips them in. Swap them for a comma. */
-export const stripDashes = (t: string) => t.replace(/\s*[—–]\s*/g, ", ").replace(/,\s*,/g, ",");
+// Lives with the other text cleaning so Write and Batch need not load the recruit kit.
+export { stripDashes } from "@/lib/plainText";
 
 /**
  * Numbers in a draft that are not in the user's own Context Document. The kit's

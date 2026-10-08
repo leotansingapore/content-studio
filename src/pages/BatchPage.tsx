@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { streamOnePost } from "@/lib/batchGenerate";
-import { toPlainText, withSignOff } from "@/lib/plainText";
+import { stripDashes, toPlainText, withSignOff } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
 import {
   upsertDraft,
@@ -201,7 +201,7 @@ export default function BatchPage() {
               onToken: (text) =>
                 setCards((prev) => ({ ...prev, [t.key]: { status: "streaming", text } })),
               onComplete: (text) =>
-                setCards((prev) => ({ ...prev, [t.key]: { status: "done", text } })),
+                setCards((prev) => ({ ...prev, [t.key]: { status: "done", text: stripDashes(text) } })),
               onError: (message) =>
                 setCards((prev) => ({
                   ...prev,

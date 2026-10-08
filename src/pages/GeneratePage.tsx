@@ -87,6 +87,7 @@ import {
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import {
   DISCLOSURES,
+  stripDashes,
   toPlainText,
   withDisclosure,
   withSignOff,
@@ -1162,7 +1163,8 @@ export default function GeneratePage() {
         );
       } else if (evt.type === "variant_complete") {
         const idx = evt.variantIndex as number;
-        const finalText = evt.text as string;
+        // Dashes go before the text is shown or saved.
+        const finalText = stripDashes(evt.text as string);
         const setter = target === "hooks" ? setHookOptions : setVariants;
         setter((prev) =>
           prev.map((v) =>
@@ -1556,7 +1558,7 @@ export default function GeneratePage() {
         {
           onToken: (text) => updateVersion(id, { text }),
           onComplete: (raw) => {
-            const text = raw.trim();
+            const text = stripDashes(raw).trim();
             if (!text) return fail("The reply came back empty. Try again.");
             settled = true;
             updateVersion(id, { text, status: "done" });
@@ -1609,7 +1611,7 @@ export default function GeneratePage() {
         {
           onToken: (text) => mine() && setRewrite({ id, text, status: "streaming" }),
           onComplete: (raw) => {
-            const text = raw.trim();
+            const text = stripDashes(raw).trim();
             if (!text) return fail("The reply came back empty. Try again.");
             if (mine()) setRewrite({ id, text, status: "done" });
           },

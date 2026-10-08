@@ -133,6 +133,11 @@ describe("draft guards", () => {
     const { stripDashes } = await import("./recruit");
     expect(stripDashes("Not the best salespeople — the ones who stay.")).toBe("Not the best salespeople, the ones who stay.");
   });
+  it("keeps number ranges and line breaks when it swaps dashes", async () => {
+    const { stripDashes } = await import("./recruit");
+    expect(stripDashes("A 30–60 sec reel for ages 21 — 27, $3.5–$4.5K.")).toBe("A 30-60 sec reel for ages 21-27, $3.5-$4.5K.");
+    expect(stripDashes("Here is the thing —\n— start early\n\nDone.")).toBe("Here is the thing,\nstart early\n\nDone.");
+  });
   it("flags numbers the user never gave, ignoring single digits", async () => {
     const { unsupportedNumbers } = await import("./recruit");
     const ctx = "I taught for 8 years. Team of 12. Joined in 2019.";

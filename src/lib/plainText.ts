@@ -103,3 +103,13 @@ export function withDisclosure(text: string, ids: readonly DisclosureId[]): stri
   if (body.endsWith(line)) return body;
   return body ? `${body}\n\n${line}` : line;
 }
+
+// Em and en dashes read as AI. A range between numbers keeps a hyphen, a dash
+// opening a line goes, and any other becomes a comma; line breaks stay.
+export const stripDashes = (t: string) =>
+  t
+    .replace(/(\d)[ \t]*[—–][ \t]*(?=\$?\d)/g, "$1-")
+    .replace(/^[ \t]*[—–][ \t]*/gm, "")
+    .replace(/[ \t]*[—–][ \t]*/g, ", ")
+    .replace(/,[ \t]*,/g, ",")
+    .replace(/, (?=\n|$)/g, ",");
