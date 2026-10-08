@@ -51,6 +51,7 @@ import {
   peaksFrom,
   waveAt,
 } from "@/lib/videoEdit";
+import { keyZoom, motionOf } from "@/lib/videoMotion";
 
 // ---------- sound for captions ----------
 
@@ -472,8 +473,11 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   const fx = f.broll?.videoWidth ? null : f.fx;
   const shown = (x: number, y: number, w: number, h: number) => ({ x: Math.max(0, x), y: Math.max(0, y), w: Math.min(W, x + w) - Math.max(0, x), h: Math.min(H, y + h) - Math.max(0, y) });
   if (!v.videoWidth && f.peaks?.length) drawAudioScene(g, W, H, f.peaks, f.src, f.brand);
+  // zooms on key lines (eased, held a little above the middle, where a face sits) replace the punch-in on cuts
+  const motion = motionOf(s, f.segs, f.caps, f.total);
   if (v.videoWidth) {
-    const zoom = s.punchIn ? zoomAt(f.segs, f.src, spec.punch) : 1;
+    const zoom = motion.zooms.length ? keyZoom(motion.zooms, f.out) : s.punchIn ? zoomAt(f.segs, f.src, spec.punch) : 1;
+    const zy = motion.zooms.length ? 0.42 : 0.5;
     const cover = Math.max(W / v.videoWidth, H / v.videoHeight);
     if (s.fit === "framed") {
       // the whole picture in a rounded window on the brand colour, darker at the foot
@@ -515,7 +519,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       const dw = v.videoWidth * scale;
       const dh = v.videoHeight * scale;
       const dx = Math.min(0, Math.max(W - dw, W / 2 - dw * focusAt(s, f.src)));
-      const dy = (H - dh) / 2;
+      const dy = Math.min(0, Math.max(H - dh, H * zy - dh * zy));
       g.filter = gradeOf(s);
       g.drawImage(v, dx, dy, dw, dh);
       g.filter = "none";

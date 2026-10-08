@@ -7,6 +7,7 @@ import StockSearch from "@/components/StockSearch";
 import YoutubeClips from "@/components/YoutubeClips";
 import JoinTakes from "@/components/JoinTakes";
 import ClipFinder from "@/components/ClipFinder";
+import MotionControls from "@/components/MotionControls";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
 import { Button } from "@/components/ui/button";
@@ -1897,6 +1898,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <Chip on={settings.transition === "soft"} onClick={() => patch({ transition: "soft" })}>Soft dip</Chip>
                 <Chip on={settings.transition === "flash"} onClick={() => patch({ transition: "flash" })}>Flash</Chip>
               </Row>
+              <MotionControls settings={settings} words={words} segs={plan.segs} caps={plan.caps} total={plan.total} speed={speed}
+                apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }} />
             </div>
           )}
 

@@ -22,6 +22,8 @@ export const DAILY_LIMITS = {
   "video-cutaways": 20,
   // Titles and a cover idea for a finished video (video-assist publish).
   "video-publish": 30,
+  // Key lines for zooms, the music drop and pop-ups (video-assist motion, Jev): one use per pick.
+  "motion-picks": 20,
   // Watching (feed-ideas, mentions, youtube-captions, track-accounts): fetches and paid lookups.
   feeds: 60,
   mentions: 10,

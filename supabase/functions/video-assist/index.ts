@@ -18,6 +18,9 @@
 //        -> {titles:[3], cover, at}: post titles and the cover text, written by the LLM,
 //        and the cover moment, picked by Jev (null when Jev has no answer or the
 //        video is not in English) ("video-publish" cap).
+//   POST {mode:"motion", sentences:[{s,e,text}] on the edited timeline, duration, hookSeconds}
+//        -> {lines:[{i,p}] | null}: Jev's yes probability that each line is a key line
+//        (null when Jev has no answer or the video is not in English) ("motion-picks" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -28,6 +31,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
+import { eligibleLines, keyQuestions, keyState, parseMotionRequest, readKeyLines } from "./motion.ts";
 import {
   CLIP_VIEWER,
   MAX_AUDIO_BYTES,
@@ -196,6 +200,23 @@ Deno.serve(async (req) => {
       const sections = parseCutawaysReply((await res.json())?.choices?.[0]?.message?.content ?? null, c.duration);
       if (!sections?.length) return json({ error: "No callouts stood out in this video. Try again." }, 422);
       return json({ sections });
+    }
+
+    if (body?.mode === "motion") {
+      const m = parseMotionRequest(body);
+      if (!m.ok) return json({ error: m.error }, 400);
+      const usage = await consumeUsage(admin, uid, "motion-picks");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      // Jev picks the key lines (Leo's rule: a pick is a decision); the editor lays them out
+      const idx = eligibleLines(m.lines, m.hookSeconds);
+      if (!idx.length || !mostlyEnglish(m.lines.map((x) => x.text).join(" "))) return json({ lines: null });
+      const state = keyState(m.lines);
+      const parts = await Promise.all(keyQuestions(m.lines, idx).map((q) => askJev(state, q, { who: "video-assist motion", timeoutMs: 10_000 })));
+      const answers = parts.some(Boolean) ? Object.assign({}, ...parts.filter(Boolean)) : null;
+      return json({ lines: readKeyLines(answers, idx) });
     }
 
     if (body?.mode === "publish") {
