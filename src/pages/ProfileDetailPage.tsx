@@ -42,15 +42,6 @@ const PLATFORM_META: Record<
   youtube: { label: "YouTube", Icon: Youtube },
 };
 
-const COMPANY_BADGE_STYLES: Record<string, string> = {
-  AIA: "border-red-500/40 bg-red-500/10 text-red-700",
-  Prudential: "border-orange-500/40 bg-orange-500/10 text-orange-700",
-  "Great Eastern": "border-amber-500/40 bg-amber-500/10 text-amber-700",
-  Manulife: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
-  "Independent / Fee-only": "border-sky-500/40 bg-sky-500/10 text-sky-700",
-  Other: "border-violet-500/40 bg-violet-500/10 text-violet-700",
-};
-
 export default function ProfileDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
@@ -88,9 +79,6 @@ export default function ProfileDetailPage() {
 
   const platformMeta = PLATFORM_META[entry.platform];
   const PlatformIcon = platformMeta.Icon;
-  const companyStyle = entry.company
-    ? COMPANY_BADGE_STYLES[entry.company as string] ?? COMPANY_BADGE_STYLES.Other
-    : "";
 
   const handleCopy = async () => {
     try {
@@ -126,9 +114,7 @@ export default function ProfileDetailPage() {
               {platformMeta.label}
             </span>
             {entry.company && (
-              <span
-                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${companyStyle}`}
-              >
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary-foreground">
                 {entry.company}
               </span>
             )}
