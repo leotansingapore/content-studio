@@ -116,3 +116,31 @@ export function readout(text: string, platform: PlatformId): CounterReadout {
   }
   return { words, chars, status, message, unit: "chars" };
 }
+
+// Where the feed cuts a post off behind "...more", roughly: LinkedIn about 210
+// characters or 3 lines, Instagram about 125 characters or 2 lines, Facebook
+// about 480 characters or 5 lines (figures as cited in the platforms' own
+// creator guides; they shift by device, so treat them as a guide).
+const FOLD: Record<string, { chars: number; lines: number }> = {
+  linkedin: { chars: 210, lines: 3 },
+  instagram: { chars: 125, lines: 2 },
+  facebook: { chars: 480, lines: 5 },
+};
+
+/** The index the post is cut at before "...more", or null when the whole post shows. */
+export function foldAt(text: string, platform: string): number | null {
+  const rule = FOLD[platform];
+  if (!rule || !text) return null;
+  let cut = Math.min(text.length, rule.chars);
+  let from = 0;
+  for (let line = 0; line < rule.lines; line++) {
+    const nl = text.indexOf("\n", from);
+    if (nl === -1) break;
+    if (line === rule.lines - 1) cut = Math.min(cut, nl);
+    from = nl + 1;
+  }
+  if (cut >= text.trimEnd().length) return null;
+  // break at a word, not mid-word
+  const space = text.lastIndexOf(" ", cut);
+  return space > cut - 25 && space > 0 && text[cut] !== "\n" && text[cut] !== " " ? space : cut;
+}
