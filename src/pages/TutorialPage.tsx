@@ -172,7 +172,7 @@ export default function TutorialPage() {
 
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
             <p>
-              Hit <strong>Generate 5 hooks</strong>. Pick the one you&apos;d
+              Hit <strong>Generate 3 hooks</strong>. Pick the one you&apos;d
               actually write. Three full-body drafts stream in side-by-side.
               Click <strong>Use this</strong> on the strongest. Edit, copy,
               post.

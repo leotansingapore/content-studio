@@ -92,6 +92,7 @@ import {
   type LimitCheck,
 } from "@/lib/platformCounters";
 import { splitScriptCaption } from "@/lib/scriptCaption";
+import { HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet } from "@/lib/hookFormulas";
 import {
   DISCLOSURES,
   stripDashes,
@@ -364,6 +365,7 @@ function restoreRows(raw: unknown): VariantState[] {
       text: r.text,
       complete: r.complete === true,
       ...(r.complete === true ? {} : { halted: r.halted === "failed" ? ("failed" as const) : ("stopped" as const) }),
+      ...(hookFormula(r.formula) ? { formula: r.formula as string } : {}),
     }));
 }
 
@@ -383,6 +385,8 @@ interface VariantState {
   complete: boolean;
   // Set when the request ended (Stop, error, early close) before this row finished.
   halted?: "stopped" | "failed";
+  // The hook formula a hook row was written with (hookFormulas.ts id).
+  formula?: string;
 }
 
 // A copy of the finished post rewritten for another platform. It is saved to
@@ -530,6 +534,12 @@ function LimitChips({ check, platform }: { check: LimitCheck; platform: Platform
   );
 }
 
+type StreamRequest = BasePayload & {
+  mode: "hooks" | "body" | "post";
+  n: number;
+  chosenHook?: string;
+};
+
 interface BasePayload {
   pillar: Pillar;
   pillarDetail: string;
@@ -589,6 +599,8 @@ export default function GeneratePage() {
   const scrollToVariantsRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const streamRunRef = useRef(0);
+  // Which set of hook formulas the next Generate uses; each run takes the next.
+  const hookSetRef = useRef(Math.floor(Math.random() * HOOK_FORMULAS.length));
   const prefillAppliedRef = useRef<boolean>(false);
   // When a scheduled/posted slot is loaded, keep updating that same entry on
   // re-roll/pick (so it stays on the calendar) instead of forking a new draft.
@@ -1090,14 +1102,13 @@ export default function GeneratePage() {
     setStreamingMode("idle");
   };
 
+  // Each request fills its own rows, in order: request k's variant v is the row
+  // after every earlier request's rows. A hook row keeps the formula it was
+  // written with (formulas[row]).
   const runStream = async (
-    payload: BasePayload & {
-      mode: "hooks" | "body" | "post";
-      n: number;
-      chosenHook?: string;
-    },
+    requests: StreamRequest[],
     target: "hooks" | "variants",
-    initialCount: number,
+    formulas?: string[],
   ) => {
     const runId = ++streamRunRef.current;
     const setRows = target === "hooks" ? setHookOptions : setVariants;
@@ -1106,7 +1117,7 @@ export default function GeneratePage() {
     abortControllerRef.current?.abort();
     const controller = new AbortController();
     try {
-      await streamRows(payload, target, initialCount, controller, runId);
+      await streamRows(requests, target, controller, runId, formulas);
     } finally {
       // Only the newest run owns the rows and the Stop control. An older run
       // finishing later must not clear the label or the controller under it.
@@ -1122,33 +1133,54 @@ export default function GeneratePage() {
   };
 
   const streamRows = async (
-    payload: BasePayload & {
-      mode: "hooks" | "body" | "post";
-      n: number;
-      chosenHook?: string;
-    },
+    requests: StreamRequest[],
     target: "hooks" | "variants",
-    initialCount: number,
     controller: AbortController,
     runId: number,
+    formulas?: string[],
   ) => {
-    const url = `${SUPABASE_URL}/functions/v1/generate-social-content`;
     const session = (await supabase.auth.getSession()).data.session;
     // A second click while the session was resolving already started a newer
     // run. Drop this one before it costs a call or overwrites the new rows.
     if (streamRunRef.current !== runId) return;
     const token = session?.access_token ?? SUPABASE_ANON_KEY;
 
-    const initial: VariantState[] = Array.from(
-      { length: initialCount },
-      (_, i) => ({ index: i, text: "", complete: false }),
-    );
+    const total = requests.reduce((sum, r) => sum + r.n, 0);
+    const initial: VariantState[] = Array.from({ length: total }, (_, i) => ({
+      index: i,
+      text: "",
+      complete: false,
+      ...(formulas?.[i] ? { formula: formulas[i] } : {}),
+    }));
     if (target === "hooks") setHookOptions(initial);
     else setVariants(initial);
 
     abortControllerRef.current = controller;
     setStreamingMode(target);
 
+    // Every request runs to its end before a failure is raised, so a row that
+    // finished is never labelled "didn't finish".
+    let firstRow = 0;
+    const results = await Promise.allSettled(
+      requests.map((payload) => {
+        const first = firstRow;
+        firstRow += payload.n;
+        return streamRequest(payload, first, target, controller, runId, token);
+      }),
+    );
+    const failed = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+    if (failed) throw failed.reason;
+  };
+
+  const streamRequest = async (
+    payload: StreamRequest,
+    firstRow: number,
+    target: "hooks" | "variants",
+    controller: AbortController,
+    runId: number,
+    token: string,
+  ) => {
+    const url = `${SUPABASE_URL}/functions/v1/generate-social-content`;
     let res: Response;
     try {
       res = await fetch(url, {
@@ -1186,7 +1218,7 @@ export default function GeneratePage() {
       // A chunk that arrives after a newer run started belongs to nobody.
       if (streamRunRef.current !== runId) return null;
       if (evt.type === "token") {
-        const idx = evt.variantIndex as number;
+        const idx = firstRow + (evt.variantIndex as number);
         const text = evt.text as string;
         const setter = target === "hooks" ? setHookOptions : setVariants;
         setter((prev) =>
@@ -1195,7 +1227,7 @@ export default function GeneratePage() {
           ),
         );
       } else if (evt.type === "variant_complete") {
-        const idx = evt.variantIndex as number;
+        const idx = firstRow + (evt.variantIndex as number);
         // Dashes go before the text is shown or saved.
         const finalText = stripDashes(evt.text as string);
         const setter = target === "hooks" ? setHookOptions : setVariants;
@@ -1293,9 +1325,15 @@ export default function GeneratePage() {
 
     try {
       if (hooksFirst) {
-        await runStream({ ...base, mode: "hooks", n: 5 }, "hooks", 5);
+        // one call per hook, each with its own formula
+        const set = hookFormulaSet(hookSetRef.current++);
+        await runStream(
+          set.map((f) => ({ ...base, mode: "hooks" as const, n: 1, ...hookFormulaFields(f, base) })),
+          "hooks",
+          set.map((f) => f.id),
+        );
       } else {
-        await runStream({ ...base, mode: "post", n: 3 }, "variants", 3);
+        await runStream([{ ...base, mode: "post", n: 3 }], "variants");
       }
     } catch (err) {
       if ((err as Error).name === "AbortError") {
@@ -1321,11 +1359,7 @@ export default function GeneratePage() {
     setDraft("");
     const base = buildBasePayload();
     try {
-      await runStream(
-        { ...base, mode: "body", n: 3, chosenHook: hookText.trim() },
-        "variants",
-        3,
-      );
+      await runStream([{ ...base, mode: "body", n: 3, chosenHook: hookText.trim() }], "variants");
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       console.error(err);
@@ -1346,13 +1380,9 @@ export default function GeneratePage() {
     const base = buildBasePayload();
     try {
       if (chosenHook) {
-        await runStream(
-          { ...base, mode: "body", n: 3, chosenHook },
-          "variants",
-          3,
-        );
+        await runStream([{ ...base, mode: "body", n: 3, chosenHook }], "variants");
       } else {
-        await runStream({ ...base, mode: "post", n: 3 }, "variants", 3);
+        await runStream([{ ...base, mode: "post", n: 3 }], "variants");
       }
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
@@ -1781,9 +1811,9 @@ export default function GeneratePage() {
   const generateButtonLabel = (() => {
     if (isStreaming) return hooksFirst ? "Drafting hooks..." : "Drafting variations...";
     if (draft || variants.length > 0 || hookOptions.length > 0) {
-      return hooksFirst ? "Start over: 5 hooks" : "Generate 3 new variations";
+      return hooksFirst ? "Start over: 3 hooks" : "Generate 3 new variations";
     }
-    return hooksFirst ? "Generate 5 hooks" : "Generate 3 variations";
+    return hooksFirst ? "Generate 3 hooks" : "Generate 3 variations";
   })();
 
   const showVoiceNudge =
@@ -2403,7 +2433,7 @@ export default function GeneratePage() {
                 ? "border-primary/60 bg-primary/10 text-primary"
                 : "border-border/70 text-muted-foreground hover:border-primary/40"
             }`}
-            title="Generate 5 hook options first, pick one, then 3 full drafts off that hook."
+            title="Generate 3 hooks first, each from a named formula, pick one, then 3 full drafts off that hook."
           >
             <input
               type="checkbox"
@@ -2560,6 +2590,7 @@ export default function GeneratePage() {
           <CardContent className="space-y-2">
             {hookOptions.map((h) => {
               const isPicked = chosenHook && chosenHook === h.text.trim();
+              const formula = hookFormula(h.formula);
               return (
                 <button
                   key={h.index}
@@ -2594,6 +2625,11 @@ export default function GeneratePage() {
                     {h.halted && h.text && (
                       <span className="text-[11px] text-muted-foreground">
                         {h.halted === "stopped" ? "stopped before finishing" : HALT_LABEL.failed}
+                      </span>
+                    )}
+                    {formula && (
+                      <span className="block text-[11px] leading-snug text-muted-foreground">
+                        <span className="font-semibold text-foreground">{formula.name}.</span> Trap: {formula.trap}
                       </span>
                     )}
                     {isPicked && (
