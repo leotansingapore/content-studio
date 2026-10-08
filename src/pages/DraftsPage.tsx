@@ -48,7 +48,7 @@ import {
   type DraftEntry,
   type DraftStatus,
 } from "@/lib/draftHistory";
-import { scheduleAt, scheduleTime } from "@/lib/dueDates";
+import { localDateKey, scheduleAt, scheduleTime } from "@/lib/dueDates";
 import { repurposeTargetsFor, buildRepurposeUrl } from "@/lib/repurpose";
 import DraftReviewControl from "@/components/team/DraftReviewControl";
 import { LabelChip, LabelManager, LabelPicker } from "@/components/Labels";
@@ -113,6 +113,7 @@ export default function DraftsPage() {
     };
   }, []);
 
+  const today = localDateKey();
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return drafts.filter((d) => {
@@ -381,12 +382,16 @@ export default function DraftsPage() {
             const preview = d.draft.replace(/\s+/g, " ").slice(0, 100);
             const ts = new Date(d.createdAt);
             const s = draftStatus(d);
+            // Same rule as Home's due card: a scheduled day before today is overdue.
+            const late = s === "scheduled" && (d.scheduledFor ?? "").slice(0, 10) < today;
             const statusStyle =
               s === "posted"
                 ? "border-success/40 bg-success/10 text-success"
-                : s === "scheduled"
-                  ? "border-primary/40 bg-primary/10 text-primary"
-                  : "border-border/60 bg-muted/40 text-muted-foreground";
+                : late
+                  ? "border-warning/40 bg-warning/10 text-warning"
+                  : s === "scheduled"
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border/60 bg-muted/40 text-muted-foreground";
             return (
               <div
                 key={d.id}
@@ -399,7 +404,7 @@ export default function DraftsPage() {
                   <span
                     className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${statusStyle}`}
                   >
-                    {s === "posted" ? "Posted" : s === "scheduled" ? "Scheduled" : "Draft"}
+                    {s === "posted" ? "Posted" : late ? "Overdue" : s === "scheduled" ? "Scheduled" : "Draft"}
                   </span>
                   {[PLATFORM_LABEL[d.platform] ?? d.platform, PILLAR_LABEL[d.pillar] ?? d.pillar].filter(Boolean).map((tag) => (
                     <span key={tag} className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
