@@ -690,9 +690,10 @@ export default function CalendarPage() {
     for (const r of visibleReels)
       if (r.date >= todayKey && !r.posted) items.push({ kind: "reel", date: r.date, item: r, order: `${r.date}|2` });
     for (const d of upcoming) items.push({ kind: "post", date: eventDate(d)!, item: d, order: `${eventDate(d)}|3|${sortKey(d)}` });
-    for (const [date, gs] of ghostsByDate) for (const g of gs) items.push({ kind: "ghost", date, item: g, order: `${date}|4` });
+    // Repeats run as far ahead as the key dates do, so one weekly post doesn't fill three months.
+    for (const [date, gs] of ghostsByDate) if (date <= rangeTo) for (const g of gs) items.push({ kind: "ghost", date, item: g, order: `${date}|4` });
     return items.sort((a, b) => (a.order < b.order ? -1 : a.order > b.order ? 1 : 0));
-  }, [view, keyDates, notes, visibleReels, upcoming, ghostsByDate, todayKey]);
+  }, [view, keyDates, notes, visibleReels, upcoming, ghostsByDate, todayKey, rangeTo]);
 
   const shortDay = (key: string) => keyToDate(key).toLocaleDateString(undefined, { day: "numeric", month: "short" });
   const dateBadge = (key: string) => (
