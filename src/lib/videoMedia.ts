@@ -74,7 +74,7 @@ export async function extractWav(file: Blob): Promise<{ wav: Blob; duration: num
 }
 
 /** Mono 16-bit WAV from samples. */
-function encodeWav(pcm: Float32Array, rate: number): Blob {
+export function encodeWav(pcm: Float32Array, rate: number): Blob {
   const out = new DataView(new ArrayBuffer(44 + pcm.length * 2));
   const str = (o: number, s: string) => [...s].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
   str(0, "RIFF");

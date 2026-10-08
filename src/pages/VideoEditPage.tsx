@@ -141,8 +141,12 @@ import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/li
 import { dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, sanitizeTrack } from "@/lib/faceFollow";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
+import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
+import { onCaptionJob } from "@/lib/captionJob";
+import { MAX_LONG_BYTES, MAX_LONG_SECONDS, hoursMinutes, isLong } from "@/lib/longCaptions";
+import { RATE, mediaLength, openSound } from "@/lib/longAudio";
+import { peaksFrom } from "@/lib/videoEdit";
 
-const MAX_BYTES = 500 * 1024 * 1024;
 type Tab = "style" | "cuts" | "frame" | "face" | "stickers" | "broll" | "words";
 
 export default function VideoEditPage() {
@@ -162,6 +166,11 @@ export default function VideoEditPage() {
       setProjects(loadProjects(id));
     });
   }, []);
+  // a long recording's captions land in the saved project while this page may be open
+  useEffect(() => {
+    const off = onCaptionJob((j) => { if (j?.state === "done") void supabase.auth.getUser().then(({ data }) => setProjects(loadProjects(data.user?.id ?? null))); });
+    return () => { off(); };
+  }, []);
 
   const upload = async (file: File) => {
     // A file picked before the sign-in check finished must not be dropped.
@@ -169,10 +178,26 @@ export default function VideoEditPage() {
     if (!uid) return toast({ title: "Sign in again to edit videos", variant: "destructive" });
     const sound = file.type.startsWith("audio/");
     if (!file.type.startsWith("video/") && !sound) return toast({ title: "That isn't a video or sound file", variant: "destructive" });
-    if (file.size > MAX_BYTES) return toast({ title: "That video is over 500 MB", description: "Trim it or export a smaller copy first.", variant: "destructive" });
+    if (file.size > MAX_LONG_BYTES) return toast({ title: "That file is over 4 GB", description: "Trim it or export a smaller copy first.", variant: "destructive" });
     const id = `v${Date.now().toString(36)}`;
     try {
       setBusy("Reading your video...");
+      const length = await mediaLength(file);
+      if (isLong(length, file.size)) {
+        // a long recording: saved first, then captioned in parts once the adviser has seen how many
+        if (!Number.isFinite(length)) throw new Error("This browser can't open that video. Try an MP4 or MOV.");
+        if (length > MAX_LONG_SECONDS) return toast({ title: `That recording runs ${hoursMinutes(length)}`, description: "The editor takes up to about 2 hours. Trim it first.", variant: "destructive" });
+        const thumb = sound ? waveThumb(peaksFrom(await (await openSound(file, length)).read(0, 120), RATE)) : (await stills(file, [0.3], 240))[0];
+        setBusy("Saving it on this device...");
+        await putFile(id, file);
+        setProjects(saveProject(uid, {
+          id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration: length, size: file.size,
+          words: [], settings: withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), thumb,
+          ...(defaultSkill(loadSkills(uid))?.prompt ? { pendingSkill: defaultSkill(loadSkills(uid))!.id } : {}),
+        }));
+        setParams({ p: id });
+        return;
+      }
       await putFile(id, file);
       const thumb = sound ? waveThumb(await audioPeaks(file)) : (await stills(file, [0.3], 240))[0];
       const { wav, duration } = await extractWav(file);
@@ -274,7 +299,7 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
               <Upload className="h-6 w-6" />
             </span>
             <span className="text-base font-semibold">Upload a video of you talking</span>
-            <span className="text-xs text-muted-foreground">A video, or a podcast or voice clip (MP3, M4A, WAV). Up to 500 MB and about 12 minutes. It stays on this device.</span>
+            <span className="text-xs text-muted-foreground">A video, or a podcast or voice clip (MP3, M4A, WAV). Up to 4 GB and about 2 hours. It stays on this device.</span>
             {captions !== null && <Left n={captions} what="Captioning" />}
           </>
         )}
@@ -286,6 +311,7 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
       ) : (
         !busy && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => setJoinOpen(true)}>Join several takes into one video</Button>
       )}
+      <CaptionJobStatus onOpen={onOpen} />
       {projects.length > 0 && (
         <section className="space-y-2">
           <h2 className="text-sm font-semibold">Recent</h2>
@@ -1272,6 +1298,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         </Button>
       </div>
       <ClipFinder userId={userId} project={project} words={words} settings={settings} duration={duration} onClips={onClips} onOpen={onOpen} />
+      {!words.length && isLong(duration, project.size) && <LongCaptions userId={userId} project={project} file={file} onWords={setWords} />}
       {job?.state === "running" && job.name === project.name && <ExportRunning job={job} total={total} />}
       {job?.state === "done" && job.url && job.name === project.name && (
         <section className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3" aria-label="Ready to post">
@@ -1787,7 +1814,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   </ul>
                 </details>
               )}
-              {!words.length && (
+              {!words.length && !isLong(duration, project.size) && (
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" variant="outline" onClick={recaption} disabled={captioning || none("video-transcribe")} className="gap-1.5">
                     {captioning ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : null} {captioning ? "Captioning..." : "Caption it"}
@@ -2096,10 +2123,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           {tab === "words" && (
             <div className="space-y-2">
               {!words.length ? (
+                isLong(duration, project.size) ? null : (
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" variant="outline" onClick={recaption} disabled={captioning || none("video-transcribe")}>{captioning ? "Captioning..." : "Caption it"}</Button>
                   <Left n={left("video-transcribe")} />
                 </div>
+                )
               ) : (
                 <>
                 <div className="flex items-center gap-1.5">
