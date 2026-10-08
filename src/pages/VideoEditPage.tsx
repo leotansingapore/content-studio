@@ -15,6 +15,7 @@ import { scanCompliance } from "@/lib/compliance";
 import { stripDashes } from "@/lib/recruit";
 import { loadBrand } from "@/lib/carousel";
 import { withSignOff } from "@/lib/plainText";
+import { checkLimits } from "@/lib/platformCounters";
 import { supabase } from "@/lib/supabase";
 import {
   STYLES,
@@ -512,6 +513,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     setWritingCaption(false);
   };
   const captionFlags = useMemo(() => scanCompliance(caption), [caption]);
+  // what gets pasted: the caption plus the brand kit sign-off
+  const postText = useMemo(() => withSignOff(caption, brandKit?.signOff), [caption, brandKit]);
+  const copyCaption = () =>
+    navigator.clipboard.writeText(postText).then(() => toast({ title: brandKit?.signOff?.trim() ? "Caption copied with your sign-off" : "Caption copied" }));
+  const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram").warnings : []), [caption, postText]);
   const saveToPosts = () => {
     upsertDraft(userId, {
       id: `video-${project.id}`,
@@ -644,8 +650,23 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           Exporting in real time ({fmtTime(total)}). You can use other pages; keep this browser tab in front until it finishes.
         </p>
       )}
-      {job?.state === "done" && job.url && (
-        <p className="text-xs">Exported. <a href={job.url} download={`${project.name}-edited.${job.ext}`} className="font-semibold text-primary">Download again</a></p>
+      {job?.state === "done" && job.url && job.name === project.name && (
+        <section className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3" aria-label="Ready to post">
+          <p className="text-sm font-semibold">Ready to post</p>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline" className="h-9 gap-1.5"><a href={job.url} download={`${project.name}-edited.${job.ext}`}><Download className="h-3.5 w-3.5" /> Video</a></Button>
+            <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={saveCover}><ImageIcon className="h-3.5 w-3.5" /> Cover</Button>
+            {words.length > 0 && <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={downloadSrt}><Download className="h-3.5 w-3.5" /> Subtitles</Button>}
+            {caption ? (
+              <Button size="sm" className="h-9" onClick={copyCaption}>Copy caption</Button>
+            ) : (
+              <Button size="sm" className="h-9 gap-1.5" onClick={writeCaption} disabled={writingCaption || !words.length}>
+                {writingCaption ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />} {writingCaption ? "Writing..." : "Write the caption"}
+              </Button>
+            )}
+          </div>
+          {kitWarnings.map((w) => <p key={w.message} className={`text-xs ${w.level === "over" ? "text-destructive" : ""}`}>{w.message}</p>)}
+        </section>
       )}
       {job?.state === "failed" && <p className="text-xs text-destructive">Export failed: {job.error}</p>}
 
@@ -769,7 +790,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 )}
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={saveToPosts} disabled={savedDraft}>{savedDraft ? "Saved to My posts" : "Save to My posts"}</Button>
-                  <Button size="sm" variant="ghost" onClick={() => { const sign = loadBrand(userId)?.signOff?.trim(); navigator.clipboard.writeText(sign ? withSignOff(caption, sign) : caption).then(() => toast({ title: sign ? "Caption copied with your sign-off" : "Caption copied" })); }}>Copy</Button>
+                  <Button size="sm" variant="ghost" onClick={copyCaption}>Copy</Button>
                   {savedDraft && <Link to="/calendar" className="self-center text-xs font-semibold text-primary hover:underline">Schedule it</Link>}
                 </div>
               </>
