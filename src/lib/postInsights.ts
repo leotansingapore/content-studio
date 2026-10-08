@@ -55,6 +55,7 @@ export const FORMAT_OPTIONS = [
 
 export const SORTS = [
   { value: "engagement", label: "Highest engagement" },
+  { value: "viewed", label: "Most viewed" },
   { value: "liked", label: "Most liked" },
   { value: "commented", label: "Most commented" },
   { value: "newest", label: "Newest" },
@@ -300,6 +301,8 @@ export function sortPosts(
 ): ScoredPost[] {
   const arr = [...items];
   switch (sort) {
+    case "viewed":
+      return arr.sort((a, b) => (b.post.views || 0) - (a.post.views || 0));
     case "liked":
       return arr.sort((a, b) => (b.post.likes || 0) - (a.post.likes || 0));
     case "commented":
