@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { DraftEntry } from "./draftHistory";
-import { loadGoals, saveGoals, sgDay, weekProgress } from "./goals";
+import { loadGoals, saveGoals, setPlatformGoal, sgDay, weekProgress, withGoalCadence } from "./goals";
+import { EMPTY_POSITIONING, loadPositioning } from "./positioning";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -30,6 +31,34 @@ describe("goals store", () => {
     expect(loadGoals(UID)).toEqual({ instagram: 4 });
     saveGoals(UID, { linkedin: 3, instagram: 0, tiktok: 99, facebook: -1 } as never);
     expect(loadGoals(UID)).toEqual({ linkedin: 3, tiktok: 21 });
+  });
+});
+
+describe("one weekly goal for Home and Plan", () => {
+  const pos = (platform: "linkedin" | "instagram", cadence: number) =>
+    mem.setItem(`content-studio-positioning-${UID}`, JSON.stringify({ ...EMPTY_POSITIONING, platform, cadence }));
+
+  it("Plan reads Home's saved goal over its own number, and its own number where there is no goal", () => {
+    pos("linkedin", 5);
+    saveGoals(UID, { linkedin: 3, instagram: 2 });
+    expect(withGoalCadence(loadPositioning(UID)!, loadGoals(UID)).cadence).toBe(3);
+    expect(withGoalCadence({ ...EMPTY_POSITIONING, platform: "instagram", cadence: 7 }, loadGoals(UID)).cadence).toBe(2);
+    expect(withGoalCadence({ ...EMPTY_POSITIONING, platform: "instagram", cadence: 7 }, { linkedin: 3 }).cadence).toBe(7);
+  });
+
+  it("an older Plan number becomes the goal when Home never saved one", () => {
+    pos("instagram", 4);
+    expect(withGoalCadence(loadPositioning(UID)!, loadGoals(UID)).cadence).toBe(4);
+    expect(setPlatformGoal(UID, "instagram", 5)).toEqual({ instagram: 5 });
+  });
+
+  it("Plan's posts per week writes the goal, keeps other platforms and keeps positioning's copy in step", () => {
+    pos("linkedin", 5);
+    saveGoals(UID, { linkedin: 3, tiktok: 2 });
+    expect(loadPositioning(UID)!.cadence).toBe(3); // Home's save brought the copy in line
+    expect(setPlatformGoal(UID, "linkedin", 4)).toEqual({ linkedin: 4, tiktok: 2 });
+    expect(loadGoals(UID)).toEqual({ linkedin: 4, tiktok: 2 });
+    expect(loadPositioning(UID)!.cadence).toBe(4);
   });
 });
 

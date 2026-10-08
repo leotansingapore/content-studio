@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { loadGoals, setPlatformGoal, withGoalCadence, type WeeklyGoals } from "@/lib/goals";
 import QuickTip from "@/components/QuickTip";
 import {
   getBreakdown,
@@ -131,6 +132,8 @@ export default function PlanPage() {
   const [plan, setPlan] = useState<ContentPlan | null>(null);
   const [editing, setEditing] = useState(true);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
+  // Home's weekly goals: "Posts per week" here is the goal for the primary platform.
+  const [goals, setGoals] = useState<WeeklyGoals>({});
   // Slots count as posted when ticked here or when their calendar post is marked posted.
   const items = useMemo(
     () =>
@@ -149,10 +152,10 @@ export default function PlanPage() {
       const id = data.user?.id ?? null;
       setUserId(id);
       const savedPositioning = loadPositioning(id);
-      if (savedPositioning) {
-        setPositioning(savedPositioning);
-        setTopicsRaw(savedPositioning.topics.join("\n"));
-      }
+      const savedGoals = loadGoals(id);
+      setGoals(savedGoals);
+      setPositioning(withGoalCadence(savedPositioning ?? EMPTY_POSITIONING, savedGoals));
+      if (savedPositioning) setTopicsRaw(savedPositioning.topics.join("\n"));
       setDrafts(loadDrafts(id));
       const savedPlan = loadPlan(id);
       if (savedPlan) {
@@ -242,6 +245,7 @@ export default function PlanPage() {
       return;
     }
     savePositioning(userId, merged);
+    setGoals(setPlatformGoal(userId, merged.platform, merged.cadence));
     setPositioning(merged);
     const salt = plan ? plan.salt : 0;
     const newPlan = generatePlan(merged, {
@@ -599,7 +603,7 @@ export default function PlanPage() {
                 <Select
                   value={positioning.platform}
                   onValueChange={(v) =>
-                    setPositioning((p) => ({ ...p, platform: v as PlanPlatform }))
+                    setPositioning((p) => withGoalCadence({ ...p, platform: v as PlanPlatform }, goals))
                   }
                 >
                   <SelectTrigger aria-label="Primary platform">
@@ -615,7 +619,10 @@ export default function PlanPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Posts per week</Label>
+                <div className="flex items-center gap-1">
+                  <Label>Posts per week</Label>
+                  <InfoTip label="About posts per week">The same weekly goal as on Home.</InfoTip>
+                </div>
                 <Select
                   value={String(positioning.cadence)}
                   onValueChange={(v) =>
@@ -626,7 +633,7 @@ export default function PlanPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CADENCE_OPTIONS.map((c) => (
+                    {[...new Set([...CADENCE_OPTIONS, positioning.cadence])].sort((a, b) => a - b).map((c) => (
                       <SelectItem key={c} value={String(c)}>
                         {c} posts / week
                       </SelectItem>

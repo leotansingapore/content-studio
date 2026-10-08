@@ -10,6 +10,7 @@ import {
   type Positioning,
 } from "@/lib/positioning";
 import { loadVoiceProfile, isVoiceProfileUsable } from "@/lib/voiceProfile";
+import { loadGoals, withGoalCadence } from "@/lib/goals";
 import { loadSaved, type SavedItems } from "@/lib/savedItems";
 import inspirationData from "@/data/inspiration.json";
 import advisorsData from "@/data/advisors.json";
@@ -77,7 +78,8 @@ export default function PlaybookPage() {
       const { data } = await supabase.auth.getUser();
       if (!active) return;
       const id = data.user?.id ?? null;
-      setPositioning(loadPositioning(id));
+      const p = loadPositioning(id);
+      setPositioning(p && withGoalCadence(p, loadGoals(id)));
       setVoiceReady(isVoiceProfileUsable(loadVoiceProfile(id)));
       setSaved(loadSaved(id));
     })();

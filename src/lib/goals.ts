@@ -2,9 +2,11 @@
 //   key: content-studio-goals-${scoped(userId)}
 // Until the user saves goals they come from positioning: its cadence on its
 // platform. Weeks run Monday to Sunday in Singapore time.
+// The goal is the one source for posts per week: Home edits it, Plan's "Posts per
+// week" reads and writes it, and positioning.cadence is only a copy kept in step.
 
 import { scoped } from "@/lib/profiles";
-import { loadPositioning, type PlanPlatform } from "@/lib/positioning";
+import { loadPositioning, savePositioning, type PlanPlatform, type Positioning } from "@/lib/positioning";
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { weekOf } from "@/lib/dueDates";
 
@@ -52,7 +54,21 @@ export function loadGoals(userId: string | null | undefined): WeeklyGoals {
 export function saveGoals(userId: string, goals: WeeklyGoals): WeeklyGoals {
   const tidy = clean(goals);
   storage()?.setItem(KEY_PREFIX + scoped(userId), JSON.stringify(tidy));
+  // Keep positioning's copy in step for readers that only see it (the Claude connector).
+  const p = loadPositioning(userId);
+  const n = p ? tidy[p.platform] : undefined;
+  if (p && n && n !== p.cadence) savePositioning(userId, { ...p, cadence: n });
   return tidy;
+}
+
+/** Sets one platform's goal and keeps the others (Plan's posts per week). */
+export function setPlatformGoal(userId: string, platform: PlanPlatform, n: number): WeeklyGoals {
+  return saveGoals(userId, { ...loadGoals(userId), [platform]: n });
+}
+
+/** Positioning with posts per week read from the goal; its own number only counts where there is no goal. */
+export function withGoalCadence(p: Positioning, goals: WeeklyGoals): Positioning {
+  return { ...p, cadence: goals[p.platform] ?? p.cadence };
 }
 
 /** The Singapore calendar day ("YYYY-MM-DD") of an instant. */
