@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
 import {
   Trash2,
@@ -31,6 +32,7 @@ import {
   X,
   GalleryHorizontalEnd,
   Tag,
+  CopyPlus,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -38,6 +40,9 @@ import {
   setDraftStatus,
   setDraftMetrics,
   draftStatus,
+  duplicateDraft,
+  undoDuplicate,
+  MAX_DRAFTS,
   type DraftEntry,
   type DraftStatus,
 } from "@/lib/draftHistory";
@@ -77,6 +82,15 @@ export default function DraftsPage() {
   const [labelFilter, setLabelFilter] = useState<string>("all");
   const [labelOpenId, setLabelOpenId] = useState<string | null>(null);
   const [manageLabels, setManageLabels] = useState(false);
+  // A just-made copy: scrolled to and outlined for a moment.
+  const [flashId, setFlashId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!flashId) return;
+    document.getElementById(`post-${flashId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const t = setTimeout(() => setFlashId(null), 2400);
+    return () => clearTimeout(t);
+  }, [flashId]);
   const reviews = useDraftReviews(userId, drafts);
 
   useEffect(() => {
@@ -130,6 +144,28 @@ export default function DraftsPage() {
 
   const handleRestore = (id: string) => {
     navigate(`/generate?draft=${encodeURIComponent(id)}`);
+  };
+
+  const handleDuplicate = (id: string) => {
+    if (!userId) return;
+    const r = duplicateDraft(userId, id);
+    if (!r) return;
+    setDrafts(r.drafts);
+    // The copy is a draft: make sure the list is showing drafts.
+    if (statusFilter !== "all" && statusFilter !== "draft") setStatusFilter("all");
+    setFlashId(r.copy.id);
+    const pushedOut = r.dropped[0];
+    toast({
+      title: "Copy made",
+      description: pushedOut
+        ? `It's at the top as a draft. My posts keeps ${MAX_DRAFTS}, so "${(pushedOut.hook || pushedOut.draft).slice(0, 40) || "your oldest post"}" was removed. Undo brings it back.`
+        : "It's at the top as a draft.",
+      action: (
+        <ToastAction altText="Undo" onClick={() => setDrafts(undoDuplicate(userId, r.copy.id, r.dropped))}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   const handleDelete = (id: string) => {
@@ -305,7 +341,10 @@ export default function DraftsPage() {
             return (
               <div
                 key={d.id}
-                className="flex flex-col rounded-xl border border-border/70 bg-card p-4 shadow-card transition-colors hover:border-primary/40"
+                id={`post-${d.id}`}
+                className={`flex flex-col rounded-xl border bg-card p-4 shadow-card transition-colors hover:border-primary/40 ${
+                  flashId === d.id ? "border-primary ring-2 ring-primary/40" : "border-border/70"
+                }`}
               >
                 <div className="mb-2 flex flex-wrap items-center gap-1.5">
                   <span
@@ -433,6 +472,14 @@ export default function DraftsPage() {
                       <GalleryHorizontalEnd className="h-3.5 w-3.5" /> Make a carousel
                     </Button>
                   )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDuplicate(d.id)}
+                    className="gap-1.5 text-xs text-muted-foreground"
+                  >
+                    <CopyPlus className="h-3.5 w-3.5" /> Duplicate
+                  </Button>
                   {s === "posted" ? (
                     <Button
                       size="sm"

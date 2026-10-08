@@ -9,6 +9,9 @@ import {
   setRepeat,
   skipOccurrence,
   upsertDraft,
+  duplicateDraft,
+  undoDuplicate,
+  MAX_DRAFTS,
   type DraftEntry,
 } from "./draftHistory";
 
@@ -134,5 +137,29 @@ describe("upsertDraft", () => {
     saveDrafts(UID, [post({ status: "posted", metrics: { impressions: 900, reactions: 12 } })]);
     upsertDraft(UID, post({ status: "posted", hook: "Edited in Write" }));
     expect(loadDrafts(UID)[0]).toMatchObject({ hook: "Edited in Write", metrics: { impressions: 900, reactions: 12 } });
+  });
+});
+
+describe("duplicateDraft", () => {
+  it("copies the content as a fresh draft at the top, without schedule or numbers", () => {
+    const original = post({ id: "o", status: "scheduled", scheduledFor: "2026-10-15T09:00", repeat: { every: "week", start: "2026-10-15" }, metrics: { impressions: 5 }, labels: ["l1"] });
+    saveDrafts(UID, [post({ id: "first" }), original]);
+    const r = duplicateDraft(UID, "o")!;
+    expect(r.copy.id).not.toBe("o");
+    expect(r.copy).toMatchObject({ hook: "Weekly tip (copy)", draft: "Body", platform: "linkedin", labels: ["l1"], status: "draft" });
+    for (const k of ["scheduledFor", "postedAt", "repeat", "metrics"]) expect(r.copy).not.toHaveProperty(k);
+    expect(loadDrafts(UID).map((d) => d.id)).toEqual([r.copy.id, "first", "o"]);
+    expect(loadDrafts(UID)[2]).toEqual(original);
+    expect(duplicateDraft(UID, "missing")).toBeNull();
+  });
+
+  it("undo removes the copy and puts back a post the cap pushed out", () => {
+    const full = Array.from({ length: MAX_DRAFTS }, (_, i) => post({ id: `p${i}` }));
+    saveDrafts(UID, full);
+    const r = duplicateDraft(UID, "p0")!;
+    expect(r.dropped.map((d) => d.id)).toEqual([`p${MAX_DRAFTS - 1}`]);
+    expect(loadDrafts(UID)).toHaveLength(MAX_DRAFTS);
+    expect(undoDuplicate(UID, r.copy.id, r.dropped)).toEqual(full);
+    expect(loadDrafts(UID)).toEqual(full);
   });
 });

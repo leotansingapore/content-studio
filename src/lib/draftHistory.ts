@@ -212,6 +212,29 @@ export function setDraftStatus(
   return next;
 }
 
+/**
+ * A copy of a post as a fresh draft at the top of the list: same content and
+ * labels, " (copy)" on the title, no schedule, posting record or numbers.
+ * `dropped` is whatever the cap pushed off the end, so Undo can put it back.
+ */
+export function duplicateDraft(userId: string, id: string): { drafts: DraftEntry[]; copy: DraftEntry; dropped: DraftEntry[] } | null {
+  const current = loadDrafts(userId);
+  const src = current.find((d) => d.id === id);
+  if (!src) return null;
+  const copy: DraftEntry = { ...src, id: newDraftId(), createdAt: new Date().toISOString(), hook: `${src.hook} (copy)`.trim(), status: "draft" };
+  for (const k of ["scheduledFor", "postedAt", "repeat", "metrics"] as const) delete copy[k];
+  const next = [copy, ...current];
+  saveDrafts(userId, next);
+  return { drafts: next.slice(0, MAX_DRAFTS), copy, dropped: next.slice(MAX_DRAFTS) };
+}
+
+/** Undo for duplicateDraft: removes the copy and puts back anything it pushed off the end. */
+export function undoDuplicate(userId: string, copyId: string, dropped: DraftEntry[]): DraftEntry[] {
+  const next = [...loadDrafts(userId).filter((d) => d.id !== copyId), ...dropped];
+  saveDrafts(userId, next);
+  return next.slice(0, MAX_DRAFTS);
+}
+
 /** Puts an entry back exactly as it was (for Undo), in its place in the list. */
 export function restoreDraft(userId: string, entry: DraftEntry): DraftEntry[] {
   const next = loadDrafts(userId).map((d) => (d.id === entry.id ? entry : d));
