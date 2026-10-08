@@ -59,6 +59,7 @@ import {
   drawFrame,
   ensureCaptionFonts,
   loadBrandArt,
+  wireVoice,
   exportJob,
   makeCover,
   extractWav,
@@ -253,6 +254,23 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [art, setArt] = useState<BrandArt | null>(null);
   const [myLook, setMyLook] = useState(() => loadLook(userId));
   const endAt = useRef<number | null>(null);
+  // the preview's sound goes through the voice polish once it has been switched on
+  const audio = useRef<{ ctx: AudioContext; src: MediaElementAudioSourceNode; unwire: () => void } | null>(null);
+  useEffect(() => {
+    const v = video.current;
+    const polish = !!settings.voicePolish;
+    if (!v || (!audio.current && !polish)) return;
+    if (!audio.current) {
+      const ctx = new AudioContext();
+      const src = ctx.createMediaElementSource(v);
+      audio.current = { ctx, src, unwire: wireVoice(ctx, src, ctx.destination, polish) };
+    } else {
+      audio.current.unwire();
+      audio.current.unwire = wireVoice(audio.current.ctx, audio.current.src, audio.current.ctx.destination, polish);
+    }
+    void audio.current.ctx.resume().catch(() => {});
+  }, [settings.voicePolish, file]);
+  useEffect(() => () => void audio.current?.ctx.close(), []);
   useEffect(() => {
     void loadBrandArt(brandKit).then(setArt);
   }, [brandKit]);
@@ -363,6 +381,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     const v = video.current;
     if (!v) return;
     if (playing) { v.pause(); setPlaying(false); return; }
+    void audio.current?.ctx.resume().catch(() => {});
     if (outT >= total - 0.1) seekOut(0);
     else seekOut(outT);
     await v.play().catch(() => {});
@@ -874,6 +893,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Row label={`Trim start ${settings.trimStart.toFixed(1)}s`}><input type="range" min={0} max={Math.min(30, duration / 2)} step={0.1} value={settings.trimStart} onChange={(e) => patch({ trimStart: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label={`Trim end ${settings.trimEnd.toFixed(1)}s`}><input type="range" min={0} max={Math.min(30, duration / 2)} step={0.1} value={settings.trimEnd} onChange={(e) => patch({ trimEnd: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label="Punch in on cuts"><Toggle on={settings.punchIn} set={(v) => patch({ punchIn: v })} /></Row>
+              <Row label="Voice polish">
+                <InfoTip label="About voice polish">Cuts rumble and hum, lifts clarity and evens out loud and quiet bits.</InfoTip>
+                <Toggle on={!!settings.voicePolish} set={(v) => patch({ voicePolish: v })} />
+              </Row>
               {cuts.length > 0 && (
                 <details className="rounded-lg border border-border/60">
                   <summary className="cursor-pointer px-3 py-2 text-sm font-medium">

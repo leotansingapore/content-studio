@@ -62,6 +62,8 @@ export interface EditSettings {
   filter?: FilterId;
   /** What happens at each cut: a hard jump (unset), a quick dip through black, or a white flash. */
   transition?: "soft" | "flash";
+  /** Voice polish: rumble and hum cut, clarity lifted, loudness evened out. */
+  voicePolish?: boolean;
   /** Stickers placed on this video: text callouts, arrows, circles, underlines. */
   overlays?: Overlay[];
   /** Cuts the user reviewed and chose to keep (Cut ids from listCuts). */
@@ -383,7 +385,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("wordsPerCaption" in p) set("wordsPerCaption", Math.round(clamp(p.wordsPerCaption, 1, 6, s.wordsPerCaption)));
   if (typeof p.baseColor === "string" && HEX.test(p.baseColor)) set("baseColor", p.baseColor.toUpperCase());
   if (typeof p.activeColor === "string" && HEX.test(p.activeColor)) set("activeColor", p.activeColor.toUpperCase());
-  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard"] as const) {
+  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish"] as const) {
     if (typeof p[k] === "boolean") set(k, p[k] as boolean);
   }
   if (typeof p.hook === "string") set("hook", p.hook.replace(/—/g, ",").slice(0, 90));
@@ -410,7 +412,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
 const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
   "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "maxPause", "hookSeconds", "aspect", "fit",
-  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition",
+  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish",
 ] as const satisfies readonly (keyof EditSettings)[];
 
 export function lookOf(s: EditSettings): Record<string, unknown> {

@@ -190,6 +190,33 @@ export interface Frame {
   still?: boolean;
 }
 
+// ---------- voice polish ----------
+
+/**
+ * Wires input to output, through the voice polish when on: a high-pass at
+ * 90 Hz (rumble, 50 Hz mains hum), a small cut at 250 Hz (boxiness), a lift at
+ * 3 kHz (clarity), then a gentle compressor so quiet and loud moments sit
+ * closer together. Returns a function that unwires it all.
+ */
+export function wireVoice(ctx: BaseAudioContext, input: AudioNode, output: AudioNode, polish: boolean): () => void {
+  if (!polish) {
+    input.connect(output);
+    return () => input.disconnect(output);
+  }
+  // two stages make a 4th-order Butterworth high-pass (24 dB an octave): 50 Hz hum drops about 20 dB
+  const hp = new BiquadFilterNode(ctx, { type: "highpass", frequency: 90, Q: 0.54 });
+  const hp2 = new BiquadFilterNode(ctx, { type: "highpass", frequency: 90, Q: 1.31 });
+  const mud = new BiquadFilterNode(ctx, { type: "peaking", frequency: 250, Q: 1, gain: -2.5 });
+  const presence = new BiquadFilterNode(ctx, { type: "peaking", frequency: 3000, Q: 0.9, gain: 3 });
+  // the compressor applies its own make-up gain (Web Audio spec), so no extra gain stage: loud sources keep headroom
+  const comp = new DynamicsCompressorNode(ctx, { threshold: -26, knee: 10, ratio: 3.5, attack: 0.005, release: 0.2 });
+  input.connect(hp).connect(hp2).connect(mud).connect(presence).connect(comp).connect(output);
+  return () => {
+    input.disconnect(hp);
+    comp.disconnect(output);
+  };
+}
+
 // ---------- brand kit on video ----------
 
 /** The brand kit with its pictures loaded, ready to paint. */
@@ -663,7 +690,8 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     // recorded, never played out loud; the gain ramps in and out at every cut so joins don't click
     const gain = actx.createGain();
     gain.gain.value = 0;
-    actx.createMediaElementSource(video).connect(gain).connect(dest);
+    wireVoice(actx, actx.createMediaElementSource(video), gain, !!settings.voicePolish);
+    gain.connect(dest);
     const FADE = 0.025;
     const stream = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000, audioBitsPerSecond: 128_000 });
