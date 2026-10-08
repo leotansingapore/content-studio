@@ -318,6 +318,11 @@ const AUDIENCE_FROM_INSPIRATION: Record<string, Audience> = {
 
 const ENTRIES = inspirationData as InspirationEntry[];
 
+// An unfinished brief, kept for this tab until a draft is picked so leaving
+// Write (to set a voice, check a post) doesn't throw away what was typed.
+// sessionStorage, outside the synced content-studio- prefix: it is scratch.
+const briefKey = (userId: string) => `cs-write-brief-${scoped(userId)}`;
+
 // Labels for the 4 guided steps, in the order the consultant fills them in.
 const STEP_META = [
   { label: "Topic" },
@@ -448,9 +453,26 @@ export default function GeneratePage() {
           if (prefs?.format && FORMATS.some((f) => f.value === prefs.format)) {
             setFormat(prefs.format as Format);
           }
+          const brief = JSON.parse(sessionStorage.getItem(briefKey(id)) ?? "null");
+          if (brief && typeof brief.pillarDetail === "string") {
+            if (PILLARS.some((p) => p.value === brief.pillar)) setPillar(brief.pillar);
+            setPillarDetail(brief.pillarDetail);
+            if (AUDIENCES.some((a) => a.value === brief.audience)) setAudience(brief.audience);
+            setSinglish(brief.singlish === true);
+            if (FUNNEL_STAGES.some((f) => f.id === brief.funnelStage)) setFunnelStage(brief.funnelStage);
+            if (IDEA_SOURCES.some((i) => i.value === brief.ideaSource)) setIdeaSource(brief.ideaSource);
+            if (typeof brief.ideaContext === "string") setIdeaContext(brief.ideaContext);
+            if (PLATFORMS.some((p) => p.value === brief.platform)) setPlatform(brief.platform);
+            if (FORMATS.some((f) => f.value === brief.format)) setFormat(brief.format);
+            if (CTAS.some((c) => c.value === brief.ctaType)) setCtaType(brief.ctaType);
+            if (typeof brief.wizardStep === "number") {
+              setWizardStep(Math.min(LAST_STEP, Math.max(0, brief.wizardStep)));
+            }
+            toast({ title: "Your unfinished brief is back" });
+          }
         }
       } catch {
-        // corrupt prefs are ignorable
+        // corrupt prefs or a blocked storage are ignorable
       }
       const profile = loadVoiceProfile(id);
       const usable = isVoiceProfileUsable(profile);
@@ -692,6 +714,50 @@ export default function GeneratePage() {
   );
 
   const isStreaming = streamingMode !== "idle";
+
+  // Keep the unfinished brief for this tab; drop it once a draft exists (the
+  // draft is saved to My posts) or the typed fields are empty.
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      if (draft || (!pillarDetail.trim() && !ideaContext.trim())) {
+        sessionStorage.removeItem(briefKey(userId));
+      } else {
+        sessionStorage.setItem(
+          briefKey(userId),
+          JSON.stringify({
+            pillar,
+            pillarDetail,
+            audience,
+            singlish,
+            funnelStage,
+            ideaSource,
+            ideaContext,
+            platform,
+            format,
+            ctaType,
+            wizardStep,
+          }),
+        );
+      }
+    } catch {
+      // storage blocked: the brief just won't survive a page change
+    }
+  }, [
+    userId,
+    draft,
+    pillar,
+    pillarDetail,
+    audience,
+    singlish,
+    funnelStage,
+    ideaSource,
+    ideaContext,
+    platform,
+    format,
+    ctaType,
+    wizardStep,
+  ]);
 
   // The variant rows mount once the stream starts, after an async session read.
   useEffect(() => {
