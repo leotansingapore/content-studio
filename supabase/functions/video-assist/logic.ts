@@ -209,3 +209,43 @@ export function parseClipsReply(content: string | null, duration: number): Found
   }
   return out;
 }
+
+// ---------- bilingual captions ----------
+
+export const TRANSLATE_LANGS: Record<string, string> = { zh: "Simplified Chinese", ms: "Malay", ta: "Tamil" };
+export const MAX_TRANSLATE_LINES = 400;
+
+export function parseTranslateRequest(body: unknown): { ok: true; lang: string; lines: string[] } | { ok: false; error: string } {
+  const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
+  const lang = String(b.lang ?? "");
+  if (!(lang in TRANSLATE_LANGS)) return { ok: false, error: "Pick Chinese, Malay or Tamil." };
+  const lines = (Array.isArray(b.lines) ? b.lines : []).slice(0, MAX_TRANSLATE_LINES).map((l) => String(l ?? "").slice(0, 300));
+  if (!lines.length) return { ok: false, error: "Caption the video first." };
+  return { ok: true, lang, lines };
+}
+
+export function buildTranslateMessages(lang: string, lines: string[]): { role: string; content: string }[] {
+  return [
+    {
+      role: "system",
+      content: [
+        `Translate short video captions spoken by a Singapore financial adviser into ${TRANSLATE_LANGS[lang]} as subtitles.`,
+        "Keep each line short and natural for on-screen subtitles, keep numbers and dollar amounts exact, keep CPF, MediShield, HDB and other Singapore terms as locals write them.",
+        'Return JSON only: {"lines":[...]} with exactly one translation per input line, in the same order.',
+      ].join("\n"),
+    },
+    { role: "user", content: JSON.stringify({ lines }) },
+  ];
+}
+
+/** Exactly one translation per line, or null (a short or long array is unusable). */
+export function parseTranslateReply(content: string | null, n: number): string[] | null {
+  if (!content) return null;
+  try {
+    const out = JSON.parse(content)?.lines;
+    if (!Array.isArray(out) || out.length !== n) return null;
+    return out.map((l: unknown) => String(l ?? "").replace(/—/g, ",").slice(0, 300));
+  } catch {
+    return null;
+  }
+}

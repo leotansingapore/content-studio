@@ -4,6 +4,8 @@
 //   POST {mode:"vibe", instruction, settings, transcript, duration, frames?}
 //        -> {patch, reply}: the change to the edit settings, in plain words.
 //        Frames are up to 3 stills from a reference video to match its look.
+//   POST {mode:"translate", lang:"zh"|"ms"|"ta", lines:[...]} -> {lines:[...]}: second-language
+//        caption lines, one per caption ("video-translate" cap).
 //   POST {mode:"clips", sentences:[{s,e,text}], duration} -> {clips:[{start,end,title,hook}]}:
 //        3-5 standalone reels cut from one long video ("video-clips" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
@@ -18,6 +20,9 @@ import {
   MAX_AUDIO_BYTES,
   VIBE_MODEL,
   buildClipsMessages,
+  buildTranslateMessages,
+  parseTranslateReply,
+  parseTranslateRequest,
   buildVibeMessages,
   cleanWords,
   parseClipsReply,
@@ -84,6 +89,28 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
+    if (body?.mode === "translate") {
+      const t = parseTranslateRequest(body);
+      if (!t.ok) return json({ error: t.error }, 400);
+      const usage = await consumeUsage(admin, uid, "video-translate");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.2, max_tokens: 4000, response_format: { type: "json_object" }, messages: buildTranslateMessages(t.lang, t.lines) }),
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (!res.ok) {
+        console.error("video-assist translate", res.status, (await res.text()).slice(0, 300));
+        return json({ error: "Couldn't translate right now. Try again in a minute." }, 502);
+      }
+      const lines = parseTranslateReply((await res.json())?.choices?.[0]?.message?.content ?? null, t.lines.length);
+      if (!lines) return json({ error: "The translation came back incomplete. Try again." }, 502);
+      return json({ lines });
+    }
     if (body?.mode === "clips") {
       const c = parseClipsRequest(body);
       if (!c.ok) return json({ error: c.error }, 400);

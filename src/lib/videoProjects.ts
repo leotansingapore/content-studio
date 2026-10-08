@@ -18,6 +18,8 @@ export interface VideoProject {
   words: Word[];
   settings: EditSettings;
   thumb: string;
+  /** Second-language caption lines, by language then by caption text. */
+  subs?: Record<string, Record<string, string>>;
   /** The IndexedDB key of the video file; clips cut from one upload share it. Defaults to id. */
   fileId?: string;
 }
@@ -100,4 +102,9 @@ export async function vibeEdit(req: {
 export async function findClips(sentences: Sentence[], duration: number): Promise<Clip[]> {
   const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "clips", sentences, duration }) });
   return (await res.json()).clips;
+}
+
+export async function translateCaptions(lang: string, lines: string[]): Promise<string[]> {
+  const res = await call("", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "translate", lang, lines }) });
+  return (await res.json()).lines;
 }

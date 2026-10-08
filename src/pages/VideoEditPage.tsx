@@ -13,6 +13,7 @@ import {
   STYLE_IDS,
   applyPatch,
   aspectSize,
+  captionKey,
   clipSettings,
   sentencesOf,
   defaultSettings,
@@ -38,7 +39,7 @@ import {
   stills,
   type ExportJob,
 } from "@/lib/videoMedia";
-import { fileKey, findClips, loadProjects, removeProject, saveProject, transcribe, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, findClips, loadProjects, removeProject, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 
 const MAX_BYTES = 500 * 1024 * 1024;
 type Tab = "style" | "cuts" | "frame" | "words";
@@ -196,6 +197,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [file, setFile] = useState<Blob | null | undefined>(undefined);
   const [settings, setSettings] = useState<EditSettings>(project.settings);
   const [words, setWords] = useState(project.words);
+  const [subs, setSubs] = useState<Record<string, Record<string, string>>>(project.subs ?? {});
+  const [translating, setTranslating] = useState<string | null>(null);
   const [history, setHistory] = useState<EditSettings[]>([]);
   const [tab, setTab] = useState<Tab>("style");
   const [playing, setPlaying] = useState(false);
@@ -221,10 +224,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   // save the edit a moment after the last change
   useEffect(() => {
-    const t = window.setTimeout(() => onSave({ ...project, settings, words }), 400);
+    const t = window.setTimeout(() => onSave({ ...project, settings, words, subs }), 400);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings, words]);
+  }, [settings, words, subs]);
 
   const duration = project.duration;
   const plan = useMemo(() => planFor(words, duration, settings), [words, duration, settings]);
@@ -240,9 +243,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     const c = canvas.current;
     if (!v || !c) return;
     const out = outputTime(plan.segs, v.currentTime) ?? outT;
-    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out });
+    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined });
     setOutT(out);
-  }, [plan, settings, outT]);
+  }, [plan, settings, outT, subs]);
   paintRef.current = paint;
 
   // playback that skips the cuts
@@ -386,9 +389,26 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
   };
 
+  const pickSubLang = async (lang: EditSettings["subLang"]) => {
+    if (!lang) return patch({ subLang: "" });
+    const keys = [...new Set(plan.caps.map(captionKey))];
+    const have = subs[lang] ?? {};
+    if (keys.length && keys.filter((k) => have[k]).length / keys.length >= 0.8) return patch({ subLang: lang });
+    setTranslating(lang);
+    try {
+      const lines = await translateCaptions(lang, keys);
+      setSubs((prev) => ({ ...prev, [lang]: { ...(prev[lang] ?? {}), ...Object.fromEntries(keys.map((k, i) => [k, lines[i]])) } }));
+      patch({ subLang: lang });
+    } catch (e) {
+      toast({ title: "Couldn't translate the captions", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setTranslating(null);
+    }
+  };
+
   const doExport = () => {
     if (!file) return;
-    void startExport(project.name, file, words, settings).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
+    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
   };
 
   const cutSeconds = Math.max(0, duration - plan.total);
@@ -528,6 +548,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Row label="Colours">
                 <input type="color" aria-label="Caption colour" value={settings.baseColor} onChange={(e) => patch({ baseColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded" />
                 {STYLES[settings.style].mode === "words" && <input type="color" aria-label="Spoken word colour" value={settings.activeColor} onChange={(e) => patch({ activeColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded" />}
+              </Row>
+              <Row label="Second language">
+                {([["", "Off"], ["zh", "\u4e2d\u6587"], ["ms", "Melayu"], ["ta", "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"]] as const).map(([id, label]) => (
+                  <Chip key={id || "off"} on={(settings.subLang ?? "") === id} onClick={() => void pickSubLang(id)}>
+                    {translating === id ? "Translating..." : label}
+                  </Chip>
+                ))}
               </Row>
               <Row label="ALL CAPS"><Toggle on={settings.uppercase} set={(v) => patch({ uppercase: v })} /></Row>
               <Row label="Numbers in the highlight colour"><Toggle on={settings.highlightNumbers} set={(v) => patch({ highlightNumbers: v })} /></Row>

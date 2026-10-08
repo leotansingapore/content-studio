@@ -75,3 +75,18 @@ describe("clips", () => {
     expect(parseClipsReply("nope", 100)).toBeNull();
   });
 });
+
+describe("translate", () => {
+  it("accepts only the three languages and needs lines", async () => {
+    const { parseTranslateRequest } = await import("./logic");
+    expect(parseTranslateRequest({ lang: "fr", lines: ["x"] }).ok).toBe(false);
+    expect(parseTranslateRequest({ lang: "zh", lines: [] }).ok).toBe(false);
+    expect(parseTranslateRequest({ lang: "zh", lines: ["Most people think", 5] })).toEqual({ ok: true, lang: "zh", lines: ["Most people think", "5"] });
+  });
+  it("keeps the reply only when it has one line per caption", async () => {
+    const { parseTranslateReply } = await import("./logic");
+    expect(parseTranslateReply('{"lines":["a","b"]}', 2)).toEqual(["a", "b"]);
+    expect(parseTranslateReply('{"lines":["a"]}', 2)).toBeNull();
+    expect(parseTranslateReply("nope", 1)).toBeNull();
+  });
+});

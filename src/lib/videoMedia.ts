@@ -8,6 +8,7 @@ import {
   aspectSize,
   buildCaptions,
   captionAt,
+  captionKey,
   isNumberWord,
   keepSegments,
   nameTagVisible,
@@ -170,6 +171,8 @@ export interface Frame {
   src: number;
   out: number;
   total: number;
+  /** Second-language line per caption, by captionKey. */
+  subs?: Record<string, string>;
 }
 
 export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
@@ -261,6 +264,26 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
         x += g.measureText(word + " ").width;
       }
       y += lh;
+    }
+    const sub = s.subLang && f.subs ? f.subs[captionKey(cap)] : "";
+    if (sub) {
+      const spx = Math.round(px * (spec.mode === "words" ? 0.5 : 0.75));
+      const face = s.subLang === "zh" ? '"PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif'
+        : s.subLang === "ta" ? '"Tamil Sangam MN", "Noto Sans Tamil", "Latha", sans-serif' : '"DM Sans", Inter, system-ui, sans-serif';
+      g.font = `700 ${spx}px ${face}`;
+      g.textAlign = "center";
+      const subLines = wrap(g, sub.split(s.subLang === "zh" ? "" : /\s+/), W * 0.86).map((l) => l.join(s.subLang === "zh" ? "" : " "));
+      let sy = y - lh / 2 + spx * 0.9;
+      for (const l of subLines.slice(0, 2)) {
+        g.lineJoin = "round";
+        g.lineWidth = spx * 0.16;
+        g.strokeStyle = "rgba(0,0,0,0.9)";
+        g.strokeText(l, W / 2, sy);
+        g.fillStyle = "#FFFFFF";
+        g.fillText(l, W / 2, sy);
+        sy += spx * 1.25;
+      }
+      g.textAlign = "left";
     }
   }
 
@@ -393,7 +416,7 @@ function pickMime(): { mime: string; ext: string } {
 }
 
 /** Renders the edit in real time (a 45 s reel takes about 45 s) and downloads it. */
-export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings) {
+export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>) {
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
   job = { id: String(Date.now()), name, progress: 0, state: "running" };
@@ -428,7 +451,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     let done = 0;
     const draw = () => {
       const out = Math.min(plan.total, outputTime(plan.segs, v.currentTime) ?? done);
-      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out });
+      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs });
       if (job) {
         job.progress = Math.min(0.99, out / plan.total);
         emit();

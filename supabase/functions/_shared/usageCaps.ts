@@ -10,6 +10,7 @@ export const DAILY_LIMITS = {
   "video-transcribe": 30,
   "vibe-edit": 100,
   "video-clips": 20,
+  "video-translate": 30,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

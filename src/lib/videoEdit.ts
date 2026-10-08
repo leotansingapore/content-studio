@@ -50,6 +50,8 @@ export interface EditSettings {
   nameTag: string;
   roleTag: string;
   nameSeconds: number;
+  /** Second subtitle line under each caption: "" off, or zh / ms / ta (translations live on the project). */
+  subLang: "" | "zh" | "ms" | "ta";
 }
 
 interface StyleSpec {
@@ -114,6 +116,7 @@ export function defaultSettings(style: StyleId = "bold"): EditSettings {
     nameTag: "",
     roleTag: "",
     nameSeconds: 4,
+    subLang: "",
   };
 }
 
@@ -335,3 +338,6 @@ export function nameTagVisible(s: Pick<EditSettings, "nameTag" | "hook" | "hookS
   const from = s.hook?.trim() ? s.hookSeconds : 0.3;
   return out >= from && out < from + (s.nameSeconds ?? 4);
 }
+
+/** The text a caption is translated by (and looked up by): its words as transcribed. */
+export const captionKey = (c: Caption) => c.words.map((w) => w.w).join(" ");
