@@ -415,7 +415,7 @@ export default function PlanPage() {
                   className={`rounded-xl border p-3 ${d.accent}`}
                 >
                   <p className="text-sm font-semibold">
-                    {d.label} — {d.heading}
+                    {d.label}: {d.heading}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {d.blurb}
@@ -494,7 +494,7 @@ export default function PlanPage() {
               value={fadsPaste}
               onChange={(e) => setFadsPaste(e.target.value)}
               placeholder={
-                "e.g.\nI help young families with kids under 7 protect their income without overpaying.\nTopics: critical illness, hospital plans, CPF for parents, term vs whole life\nEdge: ex-nurse turned FC — I've seen what underinsurance does up close"
+                "e.g.\nI help young families with kids under 7 protect their income without overpaying.\nTopics: critical illness, hospital plans, CPF for parents, term vs whole life\nEdge: ex-nurse turned FC, I've seen what underinsurance does up close"
               }
               rows={4}
             />
@@ -648,7 +648,7 @@ export default function PlanPage() {
             </CardTitle>
             <CardDescription>
               Pick up to 3 creators whose angles you want to learn from. The plan
-              will borrow their structure — in your voice, never copied.
+              will borrow their structure, in your voice, never copied.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -772,7 +772,7 @@ export default function PlanPage() {
           </div>
           <p className="mt-1.5 text-[11px] opacity-90">
             {pct === 100
-              ? "Every slot posted. That's a full funnel shipped — reshuffle for next week."
+              ? "Every slot posted. That's a full funnel shipped. Reshuffle for next week."
               : `${pct}% shipped. Draft the next one and check it off when it's live.`}
           </p>
         </div>

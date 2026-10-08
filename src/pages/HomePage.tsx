@@ -633,7 +633,7 @@ export default function HomePage() {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {activity.weekStreak > 0
-                    ? "Posting streak — keep it alive."
+                    ? "Posting streak. Keep it alive."
                     : "Post once this week to start a streak."}
                 </p>
               </div>

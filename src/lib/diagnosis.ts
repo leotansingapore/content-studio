@@ -404,7 +404,7 @@ export function nextAction(result: DiagnosisResult | null): NextAction {
       kind: "diagnose",
       headline: "Find out what to work on first",
       detail:
-        "Answer 14 quick questions and get your Content Score — then we'll tell you the single thing to fix next.",
+        "Answer 14 quick questions and get your Content Score. Then we'll tell you the single thing to fix next.",
     };
   }
   const weakest = result.weaknesses[0];

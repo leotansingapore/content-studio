@@ -73,7 +73,7 @@ export default function RecruitNumbers() {
                   className="h-10 font-serif text-lg"
                 />
                 <span className="hidden text-[11px] text-muted-foreground sm:block">
-                  {f.key === "posts" && autoPosts > 0 ? `${autoPosts} recruitment posts marked posted` : f.hint}
+                  {f.key === "posts" && autoPosts > 0 ? `${autoPosts} recruitment post${autoPosts === 1 ? "" : "s"} marked posted` : f.hint}
                 </span>
               </label>
             ))}
@@ -106,7 +106,7 @@ export default function RecruitNumbers() {
         {mixTotal > 0 && (
           <div className="space-y-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              Your mix, last 28 days ({mixTotal} recruitment posts)
+              Your mix, last 28 days ({mixTotal} recruitment post{mixTotal === 1 ? "" : "s"})
             </p>
             {mix.map((m) => (
               <div key={m.id} className="flex items-center gap-2 text-xs">
