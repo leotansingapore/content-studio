@@ -31,7 +31,6 @@ import {
   CalendarRange,
   Lightbulb,
   Users as UsersIcon,
-  Mic,
   ArrowRight,
   CheckCircle2,
   Circle,
@@ -641,31 +640,6 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </section>
-      )}
-
-      {/* Set-your-voice nudge */}
-      {!voiceReady && (
-        <Card className="border-primary/20 bg-primary/5 shadow-card">
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-            <div className="flex items-start gap-2.5">
-              <Mic className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  Make every draft sound like you
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Paste a few of your past posts once. It's the biggest quality
-                  lever in the whole tool.
-                </p>
-              </div>
-            </div>
-            <Button asChild size="sm" variant="outline" className="gap-1.5">
-              <Link to="/voice">
-                <Mic className="h-3.5 w-3.5" /> Set your voice
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
       )}
 
       {/* Pick up where you left off */}
