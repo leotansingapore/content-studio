@@ -115,6 +115,12 @@ export default function DraftsPage() {
   }, []);
 
   const today = localDateKey();
+  // The same counts as Home's stat cards.
+  const counts = useMemo(() => {
+    const c = { draft: 0, scheduled: 0, posted: 0 };
+    for (const d of drafts) c[draftStatus(d)]++;
+    return c;
+  }, [drafts]);
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return drafts.filter((d) => {
@@ -249,16 +255,16 @@ export default function DraftsPage() {
         {(
           [
             ["all", `All (${drafts.length})`],
-            ["draft", "Drafts"],
-            ["scheduled", "Scheduled"],
-            ["posted", "Posted"],
+            ["draft", `Drafts (${counts.draft})`],
+            ["scheduled", `Scheduled (${counts.scheduled})`],
+            ["posted", `Posted (${counts.posted})`],
           ] as [("all" | DraftStatus), string][]
         ).map(([key, label]) => (
           <button
             key={key}
             type="button"
             onClick={() => setStatusFilter(key)}
-            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+            className={`h-9 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors sm:h-8 ${
               statusFilter === key
                 ? "border-primary/60 bg-primary/10 text-primary"
                 : "border-border/70 bg-background text-muted-foreground hover:text-foreground"
