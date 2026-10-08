@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigationType } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
@@ -73,6 +73,45 @@ function RouteSkeleton() {
   );
 }
 
+/**
+ * A new page starts at the top; Back and Forward return to where you were.
+ * Filter changes on the same page leave the scroll alone.
+ */
+function useScrollMemory() {
+  const { pathname, key } = useLocation();
+  const navType = useNavigationType();
+  const saved = useRef(new Map<string, number>());
+  const current = useRef({ key, pathname });
+
+  useEffect(() => {
+    window.history.scrollRestoration = "manual";
+    const onScroll = () => saved.current.set(current.current.key, window.scrollY);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useLayoutEffect(() => {
+    const samePage = current.current.pathname === pathname;
+    current.current = { key, pathname };
+    if (navType !== "POP") {
+      if (!samePage) window.scrollTo(0, 0);
+      return;
+    }
+    const y = saved.current.get(key);
+    if (y === undefined) return;
+    // The page may still be loading its chunk or data: wait until it is tall enough.
+    const started = performance.now();
+    let frame = 0;
+    const restore = () => {
+      const room = document.documentElement.scrollHeight - window.innerHeight;
+      if (room >= y || performance.now() - started > 1500) window.scrollTo(0, y);
+      else frame = requestAnimationFrame(restore);
+    };
+    restore();
+    return () => cancelAnimationFrame(frame);
+  }, [key, pathname, navType]);
+}
+
 function RailLink({ s, to, active }: { s: NavSection; to: string; active: boolean }) {
   const Icon = s.icon;
   const isNew = s.id === "feedback" && feedbackIsNew();
@@ -127,7 +166,9 @@ export default function StudioLayout() {
   const { pathname, search } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const [email, setEmail] = useState<string>("");
+  const mainRef = useRef<HTMLElement>(null);
   const moreRef = useRef<HTMLDialogElement>(null);
+  const prevPath = useRef(pathname);
   // Each section's rail icon reopens the page you last had open there.
   const lastInSection = useRef<Record<string, string>>({});
 
@@ -135,10 +176,7 @@ export default function StudioLayout() {
   if (here) lastInSection.current[here.id] = pathname + search;
   const open = here ?? section("home");
 
-  // Every navigation should start at the top of the new page.
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+  useScrollMemory();
 
   useEffect(() => {
     let active = true;
@@ -156,9 +194,18 @@ export default function StudioLayout() {
     document.title = pageTitle(pathname);
   }, [pathname]);
 
-  // Close the More sheet whenever the route changes.
   useEffect(() => {
+    if (prevPath.current === pathname) return;
+    prevPath.current = pathname;
+    // After a nav click, move focus to the new page so keyboard and screen
+    // reader users land on it, not back in the menu. A page that focused its
+    // own field keeps it.
+    const el = document.activeElement;
+    const fromMenu = !el || el === document.body || !!el.closest("[data-nav]");
+    // Close the sheet first: closing hands focus back to the More button.
+    moreRef.current?.close();
     setMoreOpen(false);
+    if (fromMenu) mainRef.current?.focus({ preventScroll: true });
   }, [pathname]);
 
   // The More sheet is a native modal dialog: it traps focus, closes on
@@ -361,7 +408,9 @@ export default function StudioLayout() {
       <div className="lg:pl-[var(--nav-w)]">
         <main
           id="main-content"
-          className="mx-auto max-w-5xl px-4 pb-40 pt-6 sm:px-6 sm:pt-8 lg:px-6 lg:pb-8 xl:px-10"
+          ref={mainRef}
+          tabIndex={-1}
+          className="mx-auto max-w-5xl px-4 pb-40 pt-6 focus:outline-none sm:px-6 sm:pt-8 lg:px-6 lg:pb-8 xl:px-10"
         >
           {/* Lazy route chunks resolve here so the rails/bottom nav never flicker.
               A crash or a chunk missing after a deploy stays inside this area. */}
