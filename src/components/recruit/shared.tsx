@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { ComplianceFlag } from "@/lib/compliance";
 
 export function Part({
+  id,
   n,
   title,
   question,
@@ -13,6 +14,7 @@ export function Part({
   done,
   children,
 }: {
+  id?: string;
   n: number | string;
   title: string;
   question?: string;
@@ -21,7 +23,7 @@ export function Part({
   children: ReactNode;
 }) {
   return (
-    <Card className="border-border/60 shadow-card">
+    <Card id={id} className="scroll-mt-20 border-border/60 shadow-card">
       <CardHeader className="space-y-1">
         <CardTitle className="flex items-center gap-2 font-serif text-lg">
           <span

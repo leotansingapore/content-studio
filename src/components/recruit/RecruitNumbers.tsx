@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,12 @@ export default function RecruitNumbers() {
   const autoPosts = useMemo(() => recruitPostsInWeek(drafts, thisWeek), [drafts, thisWeek]);
   const mix = useMemo(() => stageMix(drafts, new Date(Date.now() - 28 * 86_400_000)), [drafts]);
   const mixTotal = mix.reduce((s, m) => s + m.count, 0);
+  // The recruit page's "One system" link lands here.
+  const { hash } = useLocation();
+  const shown = ready && Boolean(brain.updatedAt);
+  useEffect(() => {
+    if (shown && hash === "#recruit-numbers") document.getElementById("recruit-numbers")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [shown, hash]);
 
   if (!ready || !brain.updatedAt) return null;
 
@@ -46,7 +52,7 @@ export default function RecruitNumbers() {
   const yourPostsPerChat = totals.conversations ? totals.posts / totals.conversations : null;
 
   return (
-    <Card className="border-border/60 shadow-card">
+    <Card id="recruit-numbers" className="scroll-mt-20 border-border/60 shadow-card">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
         <CardTitle className="flex items-center gap-2 font-serif text-lg">
           Recruitment: 3 numbers every Friday

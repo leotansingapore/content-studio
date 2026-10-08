@@ -40,7 +40,7 @@ export default function BrandBrain({ brain, update, done }: { brain: RecruitBrai
 
   return (
     <div className="space-y-5">
-      <Part n={1} title="One candidate" question="Is this for someone like me?" done={done.candidate}
+      <Part id="part-1" n={1} title="One candidate" question="Is this for someone like me?" done={done.candidate}
         tip="Score 3 real people. The one in the centre of all three is your ONE candidate.">
         <div className="space-y-2">
           <div className="hidden grid-cols-[1fr_repeat(3,7.5rem)] gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:grid">
@@ -127,7 +127,7 @@ export default function BrandBrain({ brain, update, done }: { brain: RecruitBrai
         </div>
       </Part>
 
-      <Part n={2} title="One promise" question="Why you, and not another leader?" done={done.promise}>
+      <Part id="part-2" n={2} title="One promise" question="Why you, and not another leader?" done={done.promise}>
         <div className="grid gap-2 sm:grid-cols-3">
           {PATHWAYS.map((p) => {
             const active = brain.pathway === p.id;
@@ -197,7 +197,7 @@ export default function BrandBrain({ brain, update, done }: { brain: RecruitBrai
         </div>
       </Part>
 
-      <Part n={4} title="One story" question="Can I trust you?" done={done.story}
+      <Part id="part-4" n={4} title="One story" question="Can I trust you?" done={done.story}
         tip="STARL in 45 seconds. Phone vertical, captions on, eyes on the lens.">
         <div className="flex flex-wrap gap-1.5">
           {STORY_STARTERS.map((s) => (
