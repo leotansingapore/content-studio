@@ -13,6 +13,11 @@ export const DAILY_LIMITS = {
   "vibe-edit": 100,
   "video-clips": 20,
   "video-translate": 30,
+  // Watching (feed-ideas, mentions, youtube-captions, track-accounts): fetches and paid lookups.
+  feeds: 60,
+  mentions: 10,
+  "yt-captions": 10,
+  "track-accounts": 10,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
