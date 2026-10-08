@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { daysOverdue, dueHeading, localDateKey, overdueLabel } from "./dueDates";
+import {
+  addDays,
+  daysOverdue,
+  dueHeading,
+  localDateKey,
+  monthGrid,
+  overdueLabel,
+  weekOf,
+} from "./dueDates";
 
 describe("localDateKey", () => {
   it("uses the local calendar day, not the UTC one", () => {
@@ -36,5 +44,28 @@ describe("dueHeading", () => {
     expect(dueHeading(1, 1)).toBe("1 post is overdue");
     expect(dueHeading(2, 2)).toBe("2 posts are overdue");
     expect(dueHeading(2, 1)).toBe("2 posts are due or overdue");
+  });
+});
+
+describe("calendar grids", () => {
+  it("steps days across month and year ends", () => {
+    expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+    expect(addDays("2026-03-01", -1)).toBe("2026-02-28");
+    expect(addDays("2026-10-08", 7)).toBe("2026-10-15");
+  });
+
+  it("gives the Monday-to-Sunday week of any day", () => {
+    const week = ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11"];
+    expect(weekOf("2026-10-08")).toEqual(week);
+    expect(weekOf("2026-10-05")).toEqual(week);
+    expect(weekOf("2026-10-11")).toEqual(week);
+  });
+
+  it("lays a month out from the Monday on or before the 1st", () => {
+    const oct = monthGrid(2026, 9); // 1 Oct 2026 is a Thursday
+    expect(oct).toHaveLength(42);
+    expect(oct[0]).toBe("2026-09-28");
+    expect(oct).toContain("2026-10-31");
+    expect(monthGrid(2026, 5)[0]).toBe("2026-06-01"); // 1 Jun 2026 is a Monday
   });
 });

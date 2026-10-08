@@ -9,6 +9,29 @@ export function localDateKey(date: Date = new Date()): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+/** The local Date for a "YYYY-MM-DD" key (midnight, not UTC). */
+export function keyToDate(key: string): Date {
+  return new Date(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, Number(key.slice(8, 10)));
+}
+
+/** The day `n` days after a "YYYY-MM-DD" key; negative goes back. */
+export function addDays(key: string, n: number): string {
+  const d = keyToDate(key);
+  return localDateKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() + n));
+}
+
+/** The seven day keys, Monday first, of the week that holds `key`. */
+export function weekOf(key: string): string[] {
+  const monday = addDays(key, -((keyToDate(key).getDay() + 6) % 7));
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+}
+
+/** The 42 day keys (six Monday-first weeks) of a month grid; month is 0-based. */
+export function monthGrid(year: number, month: number): string[] {
+  const start = weekOf(localDateKey(new Date(year, month, 1)))[0];
+  return Array.from({ length: 42 }, (_, i) => addDays(start, i));
+}
+
 /** Whole days from a scheduled day to today: 0 is due today, negative is still ahead. */
 export function daysOverdue(scheduledFor: string, today: string): number {
   const toDay = (key: string) =>
