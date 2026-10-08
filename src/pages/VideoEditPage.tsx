@@ -563,6 +563,18 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <Sparkles className="h-3.5 w-3.5" /> Suggest a hook from what I say
               </Button>
               <Row label={`Hook shows for ${settings.hookSeconds}s`}><input type="range" min={1} max={10} step={0.5} value={settings.hookSeconds} onChange={(e) => patch({ hookSeconds: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block space-y-1 text-xs font-semibold">
+                  Name tag
+                  <input value={settings.nameTag ?? ""} maxLength={40} onChange={(e) => patch({ nameTag: e.target.value })} placeholder="Your name"
+                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
+                </label>
+                <label className="block space-y-1 text-xs font-semibold">
+                  Role
+                  <input value={settings.roleTag ?? ""} maxLength={50} onChange={(e) => patch({ roleTag: e.target.value })} placeholder="Financial adviser"
+                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
+                </label>
+              </div>
               <Row label="Shape">
                 {(["9:16", "4:5", "1:1", "16:9", "original"] as const).map((a) => <Chip key={a} on={settings.aspect === a} onClick={() => patch({ aspect: a })}>{a}</Chip>)}
               </Row>

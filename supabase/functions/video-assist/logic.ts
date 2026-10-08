@@ -68,6 +68,8 @@ export const VIBE_KEYS: Record<string, string> = {
   punchIn: "boolean, zoom in on alternate cuts",
   progressBar: "boolean",
   grade: "boolean, the style's colour grade",
+  nameTag: "lower-third name shown after the hook, max 40 chars, empty = off (only the person's real name if they gave it)",
+  roleTag: "the role line under the name tag, max 50 chars",
   highlightNumbers: "boolean, numbers and $ or % words shown in the highlight colour",
 };
 

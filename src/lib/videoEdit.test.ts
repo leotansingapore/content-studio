@@ -109,3 +109,14 @@ describe("fit and landscape", () => {
     expect(aspectSize("16:9", 720, 1280)).toEqual([1920, 1080]);
   });
 });
+
+describe("name tag", () => {
+  it("shows after the hook for nameSeconds, and only when a name is set", async () => {
+    const { nameTagVisible } = await import("./videoEdit");
+    const s = { nameTag: "Leo Tan", hook: "Hook", hookSeconds: 3, nameSeconds: 4 };
+    expect([2.9, 3, 6.9, 7].map((t) => nameTagVisible(s, t))).toEqual([false, true, true, false]);
+    expect(nameTagVisible({ ...s, hook: "" }, 0.5)).toBe(true);
+    expect(nameTagVisible({ ...s, nameTag: " " }, 4)).toBe(false);
+  });
+});
+

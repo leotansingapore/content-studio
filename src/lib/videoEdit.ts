@@ -46,6 +46,10 @@ export interface EditSettings {
   grade: boolean;
   /** Numbers, $ and % words shown in the highlight colour and a touch bigger. */
   highlightNumbers: boolean;
+  /** Lower-third name tag shown after the hook, e.g. "Leo Tan" / "Financial adviser". Empty = off. */
+  nameTag: string;
+  roleTag: string;
+  nameSeconds: number;
 }
 
 interface StyleSpec {
@@ -107,6 +111,9 @@ export function defaultSettings(style: StyleId = "bold"): EditSettings {
     progressBar: style === "bold",
     grade: true,
     highlightNumbers: s.mode === "words",
+    nameTag: "",
+    roleTag: "",
+    nameSeconds: 4,
   };
 }
 
@@ -262,6 +269,9 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if (["9:16", "4:5", "1:1", "16:9", "original"].includes(p.aspect as string)) set("aspect", p.aspect as Aspect);
   if (p.fit === "fill" || p.fit === "blur") set("fit", p.fit);
   if ("focusX" in p) set("focusX", clamp(p.focusX, 0, 1, s.focusX));
+  if (typeof p.nameTag === "string") set("nameTag", p.nameTag.slice(0, 40));
+  if (typeof p.roleTag === "string") set("roleTag", p.roleTag.slice(0, 50));
+  if ("nameSeconds" in p) set("nameSeconds", clamp(p.nameSeconds, 1, 10, s.nameSeconds ?? 4));
   return { next, changed };
 }
 
@@ -311,4 +321,11 @@ export interface Clip {
 /** A clip as its own edit: the same video, trimmed to the clip, hook set. */
 export function clipSettings(base: EditSettings, clip: Clip, duration: number): EditSettings {
   return { ...base, trimStart: Math.max(0, clip.start), trimEnd: Math.max(0, duration - clip.end), hook: clip.hook.slice(0, 90) };
+}
+
+/** When the name tag is on screen: from the end of the hook for nameSeconds. */
+export function nameTagVisible(s: Pick<EditSettings, "nameTag" | "hook" | "hookSeconds" | "nameSeconds">, out: number): boolean {
+  if (!s.nameTag?.trim()) return false;
+  const from = s.hook?.trim() ? s.hookSeconds : 0.3;
+  return out >= from && out < from + (s.nameSeconds ?? 4);
 }

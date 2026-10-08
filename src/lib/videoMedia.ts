@@ -10,6 +10,7 @@ import {
   captionAt,
   isNumberWord,
   keepSegments,
+  nameTagVisible,
   outputTime,
   totalLength,
   zoomAt,
@@ -260,6 +261,35 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
         x += g.measureText(word + " ").width;
       }
       y += lh;
+    }
+  }
+
+  // name tag: a lower-third card, left-aligned, clear of the captions
+  if (nameTagVisible(s, f.out)) {
+    const npx = Math.round(40 * k);
+    const rpx = Math.round(28 * k);
+    g.textAlign = "left";
+    g.textBaseline = "middle";
+    g.font = `800 ${npx}px "DM Sans", Inter, system-ui, sans-serif`;
+    const nw = g.measureText(s.nameTag.trim()).width;
+    g.font = `600 ${rpx}px "DM Sans", Inter, system-ui, sans-serif`;
+    const rw = s.roleTag.trim() ? g.measureText(s.roleTag.trim()).width : 0;
+    const pad = 22 * k;
+    const bw = Math.max(nw, rw) + pad * 2 + 10 * k;
+    const bh = (s.roleTag.trim() ? npx + rpx + 14 * k : npx) + pad * 1.4;
+    const x = 48 * k;
+    const y = H * (s.position === "bottom" ? 0.6 : 0.74) - bh / 2;
+    g.fillStyle = "rgba(10,12,18,0.82)";
+    roundRect(g, x, y, bw, bh, 16 * k);
+    g.fillStyle = s.activeColor;
+    g.fillRect(x, y + 14 * k, 8 * k, bh - 28 * k);
+    g.fillStyle = "#FFFFFF";
+    g.font = `800 ${npx}px "DM Sans", Inter, system-ui, sans-serif`;
+    g.fillText(s.nameTag.trim(), x + pad + 10 * k, y + pad * 0.7 + npx / 2);
+    if (s.roleTag.trim()) {
+      g.fillStyle = "rgba(255,255,255,0.82)";
+      g.font = `600 ${rpx}px "DM Sans", Inter, system-ui, sans-serif`;
+      g.fillText(s.roleTag.trim(), x + pad + 10 * k, y + pad * 0.7 + npx + 10 * k + rpx / 2);
     }
   }
 
