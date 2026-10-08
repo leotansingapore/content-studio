@@ -251,7 +251,7 @@ export default function HomePage() {
                   </Button>
                   {days > 0 && (
                     <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 sm:px-2.5">
-                      <Link to="/calendar">Reschedule</Link>
+                      <Link to="/calendar#overdue">Reschedule</Link>
                     </Button>
                   )}
                   <Button

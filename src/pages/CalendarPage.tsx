@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -19,9 +19,12 @@ import { REELS_BOARD_OWNERS, brandForProfile, brandOf, fetchBoard } from "@/lib/
 import { activeProfile } from "@/lib/profiles";
 import {
   addDays,
+  daysOverdue,
+  dueHeading,
   keyToDate,
   localDateKey,
   monthGrid,
+  overdueLabel,
   postedDay,
   scheduleAt,
   scheduleTime,
@@ -126,6 +129,7 @@ const dateInputClass =
 export default function CalendarPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { hash } = useLocation();
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // Phones open on the list: the month grid only shows Mon-Thu at 390px.
@@ -232,6 +236,22 @@ export default function CalendarPage() {
         .sort((a, b) => (sortKey(a) < sortKey(b) ? -1 : 1)),
     [visible, todayKey],
   );
+
+  // Scheduled posts whose day has passed: listed above every view, so a post Home
+  // calls overdue is never off-screen in a past month or missing from Upcoming.
+  const overdue = useMemo(
+    () =>
+      visible
+        .filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor && d.scheduledFor.slice(0, 10) < todayKey)
+        .sort((a, b) => (sortKey(a) < sortKey(b) ? -1 : 1)),
+    [visible, todayKey],
+  );
+
+  // Home's Reschedule links to #overdue: bring the block into view once it has loaded.
+  const hasOverdue = overdue.length > 0;
+  useEffect(() => {
+    if (hash === "#overdue" && hasOverdue) document.getElementById("overdue")?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [hash, hasOverdue]);
 
   // Recurring posts: their future occurrences for the next 3 months, shown as ghosts.
   const ghostsByDate = useMemo(() => {
@@ -499,6 +519,7 @@ export default function CalendarPage() {
   // A post on the month or week grid: drag it to another day, tap it for its controls.
   const chip = (e: DraftEntry, roomy: boolean) => {
     const posted = draftStatus(e) === "posted";
+    const late = !posted && (e.scheduledFor ?? "").slice(0, 10) < todayKey;
     const time = posted ? null : scheduleTime(e.scheduledFor);
     return (
       <div
@@ -514,7 +535,9 @@ export default function CalendarPage() {
         }}
         title={e.hook || e.draft.slice(0, 60)}
         className={`w-full rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
-          posted ? "bg-success/15 text-success" : "cursor-grab bg-primary/15 text-primary active:cursor-grabbing"
+          posted
+            ? "bg-success/15 text-success"
+            : `cursor-grab active:cursor-grabbing ${late ? "bg-warning/15 text-warning" : "bg-primary/15 text-primary"}`
         } ${roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"} ${
           dragging === e.id ? "opacity-40" : ""
         } ${selectedId === e.id && !selectedGhost ? "ring-2 ring-primary" : ""}`}
@@ -673,6 +696,51 @@ export default function CalendarPage() {
       <div className="font-serif text-lg font-semibold text-foreground">{keyToDate(key).getDate()}</div>
     </div>
   );
+
+  // A post as a row (Upcoming list and the overdue block): open it, move it, mark it posted.
+  const postRow = (e: DraftEntry, date: string) => {
+    const posted = draftStatus(e) === "posted";
+    const late = !posted && date < todayKey;
+    const time = scheduleTime(e.scheduledFor);
+    return (
+      <div key={e.id} className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-card">
+        {dateBadge(date)}
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <button
+            type="button"
+            onClick={() => navigate(`/generate?draft=${encodeURIComponent(e.id)}`)}
+            className="block w-full min-w-0 text-left"
+          >
+            <p className="truncate text-sm font-medium text-foreground">{titleOf(e)}</p>
+            <p className="text-xs text-muted-foreground">
+              {PLATFORM_LABEL[e.platform] ?? e.platform} ·{" "}
+              {posted ? (
+                "Posted"
+              ) : late ? (
+                <span className="font-medium text-warning">{overdueLabel(daysOverdue(date, todayKey))}</span>
+              ) : time ? (
+                `Scheduled ${timeLabel(time)}`
+              ) : (
+                "Scheduled"
+              )}
+              {!posted && e.repeat && ` · repeats ${REPEAT_LABEL[e.repeat.every]}`}
+            </p>
+          </button>
+          {!posted && moveInput(e)}
+        </div>
+        {!posted && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => markPosted(e.id)}
+            className="h-9 shrink-0 gap-1.5 px-2.5 text-xs text-success hover:text-success sm:h-8"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" /> Posted
+          </Button>
+        )}
+      </div>
+    );
+  };
 
   const navLabel =
     view === "week"
@@ -983,6 +1051,16 @@ export default function CalendarPage() {
             </div>
           )}
 
+          {overdue.length > 0 && (
+            <section id="overdue" aria-label="Overdue posts" className="scroll-mt-4 space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-3">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <CalendarClock className="h-4 w-4 text-warning" />
+                {dueHeading(overdue.length, overdue.length)}
+              </p>
+              {overdue.map((d) => postRow(d, d.scheduledFor!.slice(0, 10)))}
+            </section>
+          )}
+
           {view === "month" && (
             <Card className="overflow-hidden border-border/60 shadow-card">
               <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Month calendar">
@@ -1101,7 +1179,7 @@ export default function CalendarPage() {
 
           {view === "list" && (
             <div className="space-y-2">
-              {upcoming.length === 0 && !listItems.some((i) => i.kind === "reel") && (
+              {upcoming.length === 0 && overdue.length === 0 && !listItems.some((i) => i.kind === "reel") && (
                 <Card className="border-border/60 shadow-card">
                   <CardContent className="py-10 text-center text-sm text-muted-foreground">
                     {platform === "all" && status === "all" ? "Nothing scheduled yet." : "Nothing matches these filters."}
@@ -1166,45 +1244,7 @@ export default function CalendarPage() {
                     </button>
                   );
                 }
-                const e = i.item;
-                const posted = draftStatus(e) === "posted";
-                return (
-                  <div
-                    key={e.id}
-                    className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3 shadow-card"
-                  >
-                    {dateBadge(i.date)}
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/generate?draft=${encodeURIComponent(e.id)}`)}
-                        className="block w-full min-w-0 text-left"
-                      >
-                        <p className="truncate text-sm font-medium text-foreground">{titleOf(e)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {PLATFORM_LABEL[e.platform] ?? e.platform} ·{" "}
-                          {posted
-                            ? "Posted"
-                            : scheduleTime(e.scheduledFor)
-                              ? `Scheduled ${timeLabel(scheduleTime(e.scheduledFor)!)}`
-                              : "Scheduled"}
-                          {!posted && e.repeat && ` · repeats ${REPEAT_LABEL[e.repeat.every]}`}
-                        </p>
-                      </button>
-                      {!posted && moveInput(e)}
-                    </div>
-                    {!posted && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => markPosted(e.id)}
-                        className="h-9 shrink-0 gap-1.5 px-2.5 text-xs text-success hover:text-success sm:h-8"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Posted
-                      </Button>
-                    )}
-                  </div>
-                );
+                return postRow(i.item, i.date);
               })}
             </div>
           )}
