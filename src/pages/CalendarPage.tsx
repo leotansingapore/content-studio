@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { InfoTip } from "@/components/ui/info-tip";
 import DayInput from "@/components/DayInput";
 import { ToastAction } from "@/components/ui/toast";
@@ -148,9 +147,8 @@ export default function CalendarPage() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
-  const [pickDraft, setPickDraft] = useState<string>("");
-  const [pickDate, setPickDate] = useState<string>("");
-  const [pickTime, setPickTime] = useState<string>("");
+  // Day and optional time picked on an Unscheduled drafts row, until Schedule is tapped.
+  const [rowPick, setRowPick] = useState<Record<string, { date: string; time: string }>>({});
   const editorRef = useRef<HTMLDivElement>(null);
   const [notes, setNotes] = useState<CalNote[]>([]);
   // The note being added or edited; kept until saved or closed, so typed words survive a view change.
@@ -300,13 +298,8 @@ export default function CalendarPage() {
   const moveTo = (id: string, day: string) =>
     reschedule(id, scheduleAt(day, scheduleTime(drafts.find((d) => d.id === id)?.scheduledFor)));
 
-  const handleSchedule = () => {
-    if (!pickDraft || !pickDate) return;
-    reschedule(pickDraft, scheduleAt(pickDate, pickTime));
-    setPickDraft("");
-    setPickDate("");
-    setPickTime("");
-  };
+  const setPick = (id: string, patch: Partial<{ date: string; time: string }>) =>
+    setRowPick((m) => ({ ...m, [id]: { date: "", time: "", ...m[id], ...patch } }));
 
   const markPosted = (id: string) => {
     const prev = drafts.find((d) => d.id === id);
@@ -788,76 +781,6 @@ export default function CalendarPage() {
         </h1>
       </header>
 
-      {/* Schedule a draft */}
-      <Card className="border-border/60 shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-serif text-lg">
-            <CalendarClock className="h-4 w-4 text-primary" /> Schedule a post
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {unscheduled.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No unscheduled drafts right now.{" "}
-              <button
-                type="button"
-                onClick={() => navigate("/generate")}
-                className="font-semibold text-primary hover:underline"
-              >
-                Write a post
-              </button>{" "}
-              to schedule one.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="flex-1 space-y-1.5">
-                <Label>Draft</Label>
-                <Select value={pickDraft} onValueChange={setPickDraft}>
-                  <SelectTrigger aria-label="Draft to schedule">
-                    <SelectValue placeholder="Pick a draft to schedule" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {unscheduled.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {(d.hook || d.draft).slice(0, 50)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sched-date">Date</Label>
-                <input
-                  id="sched-date"
-                  type="date"
-                  value={pickDate}
-                  min={todayKey}
-                  onChange={(e) => setPickDate(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-44"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sched-time">Time (optional)</Label>
-                <input
-                  id="sched-time"
-                  type="time"
-                  value={pickTime}
-                  onChange={(e) => setPickTime(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-36"
-                />
-              </div>
-              <Button
-                onClick={handleSchedule}
-                disabled={!pickDraft || !pickDate || pickDate < todayKey}
-                className="gap-1.5"
-              >
-                <CalendarClock className="h-4 w-4" /> Schedule
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       {/* View, filters, navigation */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-lg border border-border/70 bg-muted/30 p-0.5">
@@ -957,18 +880,34 @@ export default function CalendarPage() {
                     }`}
                   >
                     <p className="line-clamp-2 text-xs font-medium text-foreground">{titleOf(d)}</p>
-                    <div className="mt-1.5 flex items-center justify-between gap-2">
-                      <span className="truncate text-[10px] text-muted-foreground">
-                        {PLATFORM_LABEL[d.platform] ?? d.platform}
-                      </span>
+                    <p className="truncate text-[10px] text-muted-foreground">{PLATFORM_LABEL[d.platform] ?? d.platform}</p>
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const pick = rowPick[d.id];
+                        if (pick?.date) reschedule(d.id, scheduleAt(pick.date, pick.time));
+                      }}
+                      className="mt-1.5 flex flex-wrap items-center gap-1.5"
+                    >
                       <DayInput
                         min={todayKey}
-                        value=""
+                        value={rowPick[d.id]?.date ?? ""}
                         aria-label={`Date for ${titleOf(d)}`}
-                        onPick={(day) => moveTo(d.id, day)}
-                        className={dateInputClass}
+                        onPick={(day) => setPick(d.id, { date: day })}
+                        className={`${dateInputClass} min-w-[8rem] flex-1`}
                       />
-                    </div>
+                      <input
+                        type="time"
+                        value={rowPick[d.id]?.time ?? ""}
+                        onChange={(e) => setPick(d.id, { time: e.target.value })}
+                        aria-label={`Time for ${titleOf(d)} (optional)`}
+                        title="Time (optional)"
+                        className={`${dateInputClass} w-24`}
+                      />
+                      <Button type="submit" size="sm" disabled={!rowPick[d.id]?.date} className="h-9 px-3 text-xs sm:h-8">
+                        Schedule
+                      </Button>
+                    </form>
                   </div>
                 ))}
               </div>
@@ -1190,6 +1129,11 @@ export default function CalendarPage() {
                 <Card className="border-border/60 shadow-card">
                   <CardContent className="py-10 text-center text-sm text-muted-foreground">
                     {platform === "all" && status === "all" ? "Nothing scheduled yet." : "Nothing matches these filters."}
+                    {unscheduled.length === 0 && platform === "all" && status === "all" && (
+                      <Button asChild size="sm" className="mx-auto mt-3 flex w-fit">
+                        <Link to="/generate">Write a post</Link>
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               )}
