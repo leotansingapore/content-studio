@@ -675,6 +675,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     wireVoice(actx, actx.createMediaElementSource(video), gain, !!settings.voicePolish);
     gain.connect(dest);
     const FADE = 0.025;
+    const volume = Math.min(1, Math.max(0, settings.volume ?? 1));
     const stream = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
     const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000, audioBitsPerSecond: 128_000 });
     const chunks: Blob[] = [];
@@ -705,7 +706,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       else rec.resume();
       gain.gain.cancelScheduledValues(actx.currentTime);
       gain.gain.setValueAtTime(0, actx.currentTime);
-      gain.gain.linearRampToValueAtTime(1, actx.currentTime + FADE);
+      gain.gain.linearRampToValueAtTime(volume, actx.currentTime + FADE);
       let fading = false;
       // Record media time, not wall time: when playback stalls (buffering, or the
       // audio track ending before the video), pause the recorder so no frozen

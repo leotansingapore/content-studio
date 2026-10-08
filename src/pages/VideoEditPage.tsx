@@ -316,6 +316,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     const v = video.current;
     if (v) v.defaultPlaybackRate = v.playbackRate = speed; // pitch is kept; the default survives a reload
   }, [speed, file]);
+  const volume = settings.volume ?? 1;
+  useEffect(() => {
+    if (video.current) video.current.volume = volume;
+  }, [volume, file]);
   const [W, H] = useMemo(() => {
     const v = video.current;
     const [w, h] = aspectSize(settings.aspect, v?.videoWidth || 1080, v?.videoHeight || 1920);
@@ -929,6 +933,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Row label={`Trim start ${settings.trimStart.toFixed(1)}s`}><input type="range" min={0} max={Math.min(30, duration / 2)} step={0.1} value={settings.trimStart} onChange={(e) => patch({ trimStart: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label={`Trim end ${settings.trimEnd.toFixed(1)}s`}><input type="range" min={0} max={Math.min(30, duration / 2)} step={0.1} value={settings.trimEnd} onChange={(e) => patch({ trimEnd: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label="Punch in on cuts"><Toggle on={settings.punchIn} set={(v) => patch({ punchIn: v })} /></Row>
+              <Row label={`Original sound ${Math.round(volume * 100)}%`}>
+                <input type="range" min={0} max={1} step={0.05} value={volume} aria-label="Volume of the filmed sound"
+                  onChange={(e) => patch({ volume: Number(e.target.value) === 1 ? undefined : Number(e.target.value) })} className="w-40 accent-primary" />
+              </Row>
               <Row label="Speed">
                 {SPEEDS.map((x) => <Chip key={x} on={speed === x} onClick={() => patch({ speed: x === 1 ? undefined : x })}>{x}x</Chip>)}
               </Row>

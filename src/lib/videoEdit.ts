@@ -62,6 +62,8 @@ export interface EditSettings {
   filter?: FilterId;
   /** What happens at each cut: a hard jump (unset), a quick dip through black, or a white flash. */
   transition?: "soft" | "flash";
+  /** Volume of the filmed sound, 0 to 1. Unset = 1. */
+  volume?: number;
   /** Playback speed, 1 to 1.5 (pitch kept). Unset = 1. */
   speed?: number;
   /** Voice polish: rumble and hum cut, clarity lifted, loudness evened out. */
@@ -434,6 +436,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if (typeof p.filter === "string" && p.filter in FILTERS) set("filter", p.filter as FilterId);
   if (p.transition === "soft" || p.transition === "flash") set("transition", p.transition);
   if (typeof p.speed === "number") set("speed", Math.round(clamp(p.speed, 1, 1.5, 1) * 20) / 20);
+  if (typeof p.volume === "number") set("volume", Math.round(clamp(p.volume, 0, 1, 1) * 100) / 100);
   return { next, changed };
 }
 

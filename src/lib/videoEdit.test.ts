@@ -423,3 +423,11 @@ describe("cutting words from the transcript", () => {
     expect(sanitizeRemoved([{ s: 2, e: 1 }, { s: "x" }, null, { s: 3, e: 4 }, { s: -1, e: 0.5 }])).toEqual([{ s: 0, e: 0.5 }, { s: 3, e: 4 }]);
   });
 });
+
+describe("volume", () => {
+  it("takes it from a patch within range", async () => {
+    const { applyPatch, defaultSettings } = await import("@/lib/videoEdit");
+    expect(applyPatch(defaultSettings(), { volume: 0.333 }).next.volume).toBe(0.33);
+    expect(applyPatch(defaultSettings(), { volume: 3 }).next.volume).toBe(1);
+  });
+});
