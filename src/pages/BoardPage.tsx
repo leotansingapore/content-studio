@@ -51,7 +51,7 @@ const NEXT_STEP: Partial<Record<BoardColumn, { to: BoardColumn; label: string }>
 };
 
 const fieldClass =
-  "h-9 rounded-md border border-border/70 bg-background px-2 text-xs outline-none focus:border-primary/40 sm:h-8";
+  "h-9 rounded-md border border-border/70 bg-background px-2 text-xs outline-none focus:border-primary/40 sm:h-8 [@media(pointer:coarse)]:h-11";
 
 // A posting day and optional time, for a card being scheduled.
 function ScheduleForm({ title, onSchedule, onCancel }: { title?: string; onSchedule: (day: string, time: string) => void; onCancel: () => void }) {
@@ -72,10 +72,10 @@ function ScheduleForm({ title, onSchedule, onCancel }: { title?: string; onSched
         <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Posting time (optional)" title="Time (optional)" className={`${fieldClass} w-24`} />
       </div>
       <div className="flex gap-1.5">
-        <button type="submit" disabled={!day} className="h-9 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50 sm:h-8">
+        <button type="submit" disabled={!day} className="h-9 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50 sm:h-8 [@media(pointer:coarse)]:h-11">
           Schedule
         </button>
-        <button type="button" onClick={onCancel} className="h-9 rounded-md px-3 text-xs font-medium text-muted-foreground hover:text-foreground sm:h-8">
+        <button type="button" onClick={onCancel} className="h-9 rounded-md px-3 text-xs font-medium text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11">
           Cancel
         </button>
       </div>
@@ -173,7 +173,7 @@ function BoardCard({
         <div className="flex items-center justify-between gap-2 pl-5">
           <Link
             to={`/generate?draft=${draft.id}`}
-            className="-ml-2 inline-flex h-9 items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:underline sm:h-7 sm:text-[11px]"
+            className="-ml-2 inline-flex h-9 items-center gap-1 rounded-md px-2 text-xs font-medium text-primary hover:underline sm:h-7 sm:text-[11px] [@media(pointer:coarse)]:h-11"
           >
             <Pencil className="h-3 w-3" /> Open
           </Link>
@@ -181,7 +181,7 @@ function BoardCard({
             <button
               type="button"
               onClick={onAdvance}
-              className="inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-md border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary sm:h-7 sm:px-2 sm:text-[11px]"
+              className="inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-md border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary sm:h-7 sm:px-2 sm:text-[11px] [@media(pointer:coarse)]:h-11"
             >
               {advanceLabel} <ArrowRight className="h-3 w-3" />
             </button>
@@ -409,13 +409,13 @@ export default function BoardPage() {
                             if (e.key === "Enter") addIdea();
                           }}
                           placeholder="+ Quick idea, Enter to add"
-                          className="w-full rounded-lg border border-dashed border-border/70 bg-background/60 px-2.5 py-2 text-xs outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:bg-background"
+                          className="w-full rounded-lg border border-dashed border-border/70 bg-background/60 px-2.5 py-2 text-xs outline-none [@media(pointer:coarse)]:min-h-11 placeholder:text-muted-foreground focus:border-primary/40 focus:bg-background"
                         />
                       )}
                       {col.key === "idea" && (
                         <Link
                           to="/coach#idea-dump"
-                          className="inline-flex items-center gap-1 self-start px-0.5 text-[11px] font-medium text-primary hover:underline"
+                          className="inline-flex items-center gap-1 self-start px-0.5 text-[11px] font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
                         >
                           <Lightbulb className="h-3 w-3" /> Dump ideas
                           <span className="font-normal text-muted-foreground">
