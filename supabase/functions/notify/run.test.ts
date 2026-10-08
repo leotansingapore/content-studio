@@ -61,6 +61,12 @@ describe("confirmedEmail", () => {
     expect(confirmedEmail({ email_confirmed_at: "2026-01-01" })).toBeNull();
     expect(confirmedEmail(null)).toBeNull();
   });
+
+  it("never mails the shared demo logins on demo.com", () => {
+    expect(confirmedEmail({ email: "user@demo.com", email_confirmed_at: "2026-01-01" })).toBeNull();
+    expect(confirmedEmail({ email: "Admin@Demo.com", email_confirmed_at: "2026-01-01" })).toBeNull();
+    expect(confirmedEmail({ email: "user@notdemo.com", email_confirmed_at: "2026-01-01" })).toBe("user@notdemo.com");
+  });
 });
 
 describe("runUser: the Monday email", () => {

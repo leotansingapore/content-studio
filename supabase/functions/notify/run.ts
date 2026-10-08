@@ -75,9 +75,12 @@ export interface Deps {
   clock(): number;
 }
 
+/** Shared demo and QA logins (user@demo.com) sit on a domain nobody here owns. */
+const NEVER_MAIL = /@demo\.com$/i;
+
 /** Only a confirmed address gets mail: anyone can sign up with someone else's. */
 export function confirmedEmail(user: AuthUser | null): string | null {
-  return user?.email && (user.email_confirmed_at || user.confirmed_at) ? user.email : null;
+  return user?.email && (user.email_confirmed_at || user.confirmed_at) && !NEVER_MAIL.test(user.email) ? user.email : null;
 }
 
 const mask = (email: string) => email.replace(/^(.).*(@.*)$/, "$1***$2");
