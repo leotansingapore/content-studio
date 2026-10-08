@@ -1772,7 +1772,7 @@ export default function GeneratePage() {
   const suggestedTime = useMemo(() => {
     if (!userId || !currentDraftId) return null;
     const taken = loadDrafts(userId).filter((d) => d.status === "scheduled" && d.scheduledFor).map((d) => d.scheduledFor as string);
-    return suggestPostingTime(getTrackedPosts(userId), platform, taken);
+    return suggestPostingTime(getTrackedPosts(userId), platform, taken, new Date(), brandKit?.slots);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, currentDraftId, platform, scheduleTick]);
   const whenLabel = (at: string) =>
@@ -2802,7 +2802,7 @@ export default function GeneratePage() {
                       <>
                         <span className="font-medium text-foreground">Best time {whenLabel(suggestedTime.at)}</span>
                         <InfoTip label="About the best time">
-                          {suggestedTime.why === "best" ? "When your past posts landed best." : "A common slot until your posts have results."}
+                          {suggestedTime.why === "slot" ? "Your next open posting time, from Brand kit." : suggestedTime.why === "best" ? "When your past posts landed best." : "A common slot until your posts have results."}
                         </InfoTip>
                         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={scheduleSuggested}>
                           Schedule then

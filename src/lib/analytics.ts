@@ -601,11 +601,33 @@ const COMMON_SLOT: Record<string, { day: number; hour: number; minute: number }>
 export interface SuggestedTime {
   /** "YYYY-MM-DDTHH:MM", ready for scheduledFor. */
   at: string;
-  /** "best" = from the user's own results; "common" = no history yet. */
-  why: "best" | "common";
+  /** "slot" = the adviser's own posting times; "best" = from their results; "common" = no history yet. */
+  why: "slot" | "best" | "common";
 }
 
-export function suggestPostingTime(posts: TrackedPost[], platform: string, taken: string[], now: Date = new Date()): SuggestedTime {
+/** A weekly posting time: "<day 0 = Mon>T<HH:MM>", e.g. "1T08:30" for Tuesday 8:30am. */
+export const SLOT = /^[0-6]T([01]\d|2[0-3]):[0-5]\d$/;
+
+export function suggestPostingTime(posts: TrackedPost[], platform: string, taken: string[], now: Date = new Date(), slots: string[] = []): SuggestedTime {
+  // the adviser's own weekly posting times win: the next one on a day with nothing scheduled
+  const mine = slots.filter((x) => SLOT.test(x)).sort((a, b) => a.slice(2).localeCompare(b.slice(2)));
+  if (mine.length) {
+    const busy = new Set(taken.map((t) => t.slice(0, 10)));
+    const earliest = now.getTime() + 2 * 3_600_000;
+    const today = localDateKey(now);
+    for (let i = 0; i < 56; i++) {
+      const day = addDays(today, i);
+      if (busy.has(day)) continue;
+      const d = keyToDate(day);
+      const wd = (d.getDay() + 6) % 7;
+      for (const x of mine) {
+        if (Number(x[0]) !== wd) continue;
+        const [hh, mm] = x.slice(2).split(":").map(Number);
+        if (new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm).getTime() < earliest) continue;
+        return { at: `${day}T${x.slice(2)}`, why: "slot" };
+      }
+    }
+  }
   const grid = postingTimeGrid(posts);
   const cell = grid.hasTimes ? bestCell(grid.hours) : null;
   const slot = cell ? { day: cell[0], hour: cell[1], minute: 0 } : COMMON_SLOT[platform] ?? COMMON_SLOT.linkedin;

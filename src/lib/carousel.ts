@@ -585,6 +585,8 @@ export interface CarouselBrand {
   signOff?: string;
   /** Add UTM tracking to links when a post is copied. */
   tagLinks?: boolean;
+  /** Weekly posting times, "<day 0 = Mon>T<HH:MM>": Write suggests the next open one. */
+  slots?: string[];
 }
 
 export const BRAND_PRESETS: { name: string; color: string }[] = [
@@ -643,6 +645,9 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     logo: "logo" in r ? sanitizeImage(r.logo) : fallback.logo,
     signOff: typeof r.signOff === "string" ? r.signOff.slice(0, MAX_SIGNOFF_CHARS) : fallback.signOff,
     tagLinks: typeof r.tagLinks === "boolean" ? r.tagLinks : fallback.tagLinks,
+    slots: Array.isArray(r.slots)
+      ? [...new Set(r.slots.filter((x): x is string => typeof x === "string" && /^[0-6]T([01]\d|2[0-3]):[0-5]\d$/.test(x)))].sort().slice(0, 14)
+      : fallback.slots,
   };
 }
 

@@ -4,7 +4,7 @@
 // nothing set up there is lost.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ImagePlus, Trash2 } from "lucide-react";
+import { Check, ImagePlus, Plus, Trash2, X } from "lucide-react";
 import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -251,6 +251,46 @@ export default function BrandPage() {
               Tag my links for tracking
               <InfoTip label="About link tracking">Adds utm_source, utm_medium and utm_campaign to links you post.</InfoTip>
             </label>
+          </section>
+
+          <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
+            <div className="flex items-center gap-1">
+              <h2 id="brand-slots-label" className="font-serif text-lg font-semibold">Posting times</h2>
+              <InfoTip label="About posting times">A saved post suggests your next open time.</InfoTip>
+            </div>
+            <ul className="space-y-2" aria-labelledby="brand-slots-label">
+              {(brand.slots ?? []).map((slot, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <select
+                    value={slot[0]}
+                    aria-label="Day"
+                    onChange={(e) => update({ slots: (brand.slots ?? []).map((x, j) => (j === i ? `${e.target.value}${x.slice(1)}` : x)) })}
+                    className="h-10 rounded-md border border-input bg-background px-2 text-sm"
+                  >
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d, n) => (
+                      <option key={d} value={n}>{d}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="time"
+                    value={slot.slice(2)}
+                    aria-label="Time"
+                    onChange={(e) => e.target.value && update({ slots: (brand.slots ?? []).map((x, j) => (j === i ? `${x[0]}T${e.target.value.slice(0, 5)}` : x)) })}
+                    className="h-10 rounded-md border border-input bg-background px-2 text-sm"
+                  />
+                  <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground" aria-label="Remove this time"
+                    onClick={() => update({ slots: (brand.slots ?? []).filter((_, j) => j !== i) })}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            {(brand.slots?.length ?? 0) < 14 && (
+              <Button variant="outline" size="sm" className="h-9 gap-1.5"
+                onClick={() => update({ slots: [...(brand.slots ?? []), (brand.slots ?? []).length ? `${(Number(brand.slots![brand.slots!.length - 1][0]) + 2) % 7}T${brand.slots![brand.slots!.length - 1].slice(2)}` : "1T08:30"] })}>
+                <Plus className="h-3.5 w-3.5" /> Add a time
+              </Button>
+            )}
           </section>
 
           <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card">

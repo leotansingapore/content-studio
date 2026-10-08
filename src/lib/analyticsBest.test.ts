@@ -103,3 +103,21 @@ describe("suggestPostingTime", () => {
     expect(suggestPostingTime([], "unknown", [], now).at).toBe("2026-10-13T08:30");
   });
 });
+
+describe("suggestPostingTime with the adviser's own posting times", () => {
+  const now = new Date(2026, 9, 8, 10, 0); // Thu 8 Oct 2026, 10:00
+
+  it("takes the next open slot, skipping days already scheduled and slots under 2 hours away", async () => {
+    const { suggestPostingTime } = await import("./analytics");
+    // Tue 8:30, Thu 11:00 (under 2 hours from now), Thu 19:30
+    const slots = ["1T08:30", "3T11:00", "3T19:30"];
+    expect(suggestPostingTime([], "linkedin", [], now, slots)).toEqual({ at: "2026-10-08T19:30", why: "slot" });
+    // tonight is taken: next Tuesday
+    expect(suggestPostingTime([], "linkedin", ["2026-10-08T07:00"], now, slots).at).toBe("2026-10-13T08:30");
+  });
+
+  it("ignores malformed slots and falls back to results or a common slot", async () => {
+    const { suggestPostingTime } = await import("./analytics");
+    expect(suggestPostingTime([], "instagram", [], now, ["7T09:00", "1T25:00", "x"]).why).toBe("common");
+  });
+});
