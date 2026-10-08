@@ -103,19 +103,6 @@ export function cleanSettings(raw: unknown): Record<string, unknown> {
   return JSON.stringify(out).length <= 2048 ? out : {};
 }
 
-function unused() {
-  return {
-    ok: true,
-    request: {
-      instruction,
-      settings,
-      transcript: String(b.transcript ?? "").slice(0, MAX_TRANSCRIPT),
-      duration: Number(b.duration) || 0,
-      frames,
-    },
-  };
-}
-
 export function buildVibeMessages(r: VibeRequest): { role: string; content: unknown }[] {
   const system = [
     "You are the editor inside a short-form video editor for Singapore financial advisers. The edit is a settings object; you change it to do what the person asks.",
