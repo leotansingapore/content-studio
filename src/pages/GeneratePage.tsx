@@ -1615,6 +1615,7 @@ export default function GeneratePage() {
         repeat: existing?.repeat,
         disclosure: disclosure.length ? disclosure : undefined,
         firstComment: comment ?? undefined,
+        hookFormula: formulaOfHook(hookText, hookOptions)?.id,
       };
       upsertDraft(userId, entry);
       setCurrentDraftId(id);
@@ -1622,6 +1623,7 @@ export default function GeneratePage() {
     [
       disclosure,
       firstComment,
+      hookOptions,
       audience,
       ctaType,
       currentDraftId,
@@ -1995,8 +1997,8 @@ export default function GeneratePage() {
 
   const savedEntry =
     draft && userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
-  // The formula the draft's hook was written with, while its hook rows are on screen.
-  const draftFormula = chosenHook ? formulaOfHook(chosenHook, hookOptions) : undefined;
+  // The formula the draft's hook was written with: from its hook rows, else as saved.
+  const draftFormula = (chosenHook ? formulaOfHook(chosenHook, hookOptions) : undefined) ?? hookFormula(savedEntry?.hookFormula);
 
   // Storyboard: the spoken script of a short video (the whole draft when it has no caption heading).
   const shortScript = format === "short-video" ? (svSplit?.script ?? draft).trim() : "";

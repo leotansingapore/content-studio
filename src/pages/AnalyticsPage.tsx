@@ -116,6 +116,7 @@ const DIMENSION_TABS: { id: BreakdownDimension; label: string }[] = [
   { id: "platform", label: "Platform" },
   { id: "pillar", label: "Pillar" },
   { id: "format", label: "Format" },
+  { id: "hookFormula", label: "Hook formula" },
 ];
 
 const INSIGHT_STYLE: Record<
@@ -651,7 +652,15 @@ export default function AnalyticsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <RankBars rows={breakdownRows} minSample={MIN_GROUP_SAMPLE} />
+              <RankBars
+                rows={breakdownRows}
+                minSample={MIN_GROUP_SAMPLE}
+                emptyLabel={
+                  dimension === "hookFormula"
+                    ? "Shows once posts written from a formula hook in Write have numbers."
+                    : undefined
+                }
+              />
             </CardContent>
           </Card>
 

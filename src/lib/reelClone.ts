@@ -17,7 +17,7 @@ import {
   type VoiceInput,
   type Winner,
 } from "../../supabase/functions/clone-reel/logic.ts";
-import type { HookFormula } from "@/lib/hookFormulas";
+import { formulaOfHook, type HookFormula } from "@/lib/hookFormulas";
 import type { Pacing, Visuals } from "../../supabase/functions/reel-visuals/logic.ts";
 import { scoped } from "@/lib/profiles";
 import { getTrackedPosts } from "@/lib/analytics";
@@ -372,6 +372,7 @@ export function cloneDraftText(version: MyVersion): string {
 
 export function buildCloneDraft(id: string, result: CloneResponse, now = new Date()): DraftEntry {
   const v = result.myVersion;
+  const formula = formulaOfHook(v.hook, (v.hookOptions ?? []).map((text, i) => ({ text, formula: v.hookFormulas?.[i] })));
   return {
     id,
     createdAt: now.toISOString(),
@@ -383,6 +384,7 @@ export function buildCloneDraft(id: string, result: CloneResponse, now = new Dat
     format: "short-video",
     platform: result.source.platform,
     ctaType: ctaTypeFor(v.cta),
+    ...(formula ? { hookFormula: formula.id } : {}),
   };
 }
 

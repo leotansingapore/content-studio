@@ -44,6 +44,8 @@ export interface DraftEntry {
   firstComment?: string;
   // A short video's shot list, made in Write from the script it shows.
   storyboard?: Storyboard;
+  // The hookFormulas.ts id of the formula the hook was written with.
+  hookFormula?: string;
 }
 
 export interface Storyboard {
@@ -218,6 +220,8 @@ export function upsertDraft(
   if (prev?.metrics && !entry.metrics) entry = { ...entry, metrics: prev.metrics };
   if (prev?.labels && !entry.labels) entry = { ...entry, labels: prev.labels };
   if (prev?.storyboard && !entry.storyboard) entry = { ...entry, storyboard: prev.storyboard };
+  // ...or the formula its hook was written with, while the hook is unchanged
+  if (prev?.hookFormula && !entry.hookFormula && prev.hook === entry.hook) entry = { ...entry, hookFormula: prev.hookFormula };
   const without = current.filter((d) => d.id !== entry.id);
   const next = [entry, ...without].slice(0, MAX_DRAFTS);
   saveDrafts(userId, next);

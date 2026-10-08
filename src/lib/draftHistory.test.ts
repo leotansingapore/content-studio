@@ -142,6 +142,16 @@ describe("upsertDraft", () => {
   });
 });
 
+describe("upsertDraft and the hook formula", () => {
+  it("keeps the formula while the hook is the same, and drops it with a new hook", () => {
+    saveDrafts(UID, [post({ hook: "I reviewed 40 families.", hookFormula: "number-reveal" })]);
+    upsertDraft(UID, post({ hook: "I reviewed 40 families.", draft: "Edited body" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited body", hookFormula: "number-reveal" });
+    upsertDraft(UID, post({ hook: "A hook I typed myself" }));
+    expect(loadDrafts(UID)[0].hookFormula).toBeUndefined();
+  });
+});
+
 describe("undoPosted", () => {
   it("puts a one-off post back to scheduled", () => {
     const before = [post({ status: "scheduled", scheduledFor: "2026-10-08T19:30" }), post({ id: "other" })];

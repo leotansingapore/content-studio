@@ -118,6 +118,13 @@ describe("buildCloneDraft", () => {
     });
     expect(draft.draft).toContain("CAPTION:");
   });
+
+  it("keeps the formula the chosen hook was written with", () => {
+    const r = result();
+    const v = { ...r.myVersion, hook: "Second hook", hookOptions: ["First hook", "Second hook"], hookFormulas: ["list", "myth-bust"] };
+    expect(buildCloneDraft("d2", { ...r, myVersion: v }).hookFormula).toBe("myth-bust");
+    expect(buildCloneDraft("d3", r).hookFormula).toBeUndefined();
+  });
 });
 
 describe("saveCloneDraft", () => {

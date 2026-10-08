@@ -15,6 +15,7 @@ import {
   type DraftEntry,
 } from "@/lib/draftHistory";
 import { readout, type PlatformId } from "@/lib/platformCounters";
+import { hookFormula, HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { addDays, keyToDate, localDateKey, scheduleTime } from "@/lib/dueDates";
 
 export interface TrackedPost extends DraftEntry {
@@ -104,7 +105,8 @@ export type BreakdownDimension =
   | "pillar"
   | "format"
   | "audience"
-  | "ctaType";
+  | "ctaType"
+  | "hookFormula";
 
 export interface BreakdownRow {
   key: string;
@@ -121,6 +123,8 @@ export function getBreakdown(
   const tracked = getTrackedPosts(userId).filter((d) => d.impressions > 0);
   const groups = new Map<string, TrackedPost[]>();
   for (const d of tracked) {
+    // a post whose hook was not written with a known formula says nothing about formulas
+    if (dimension === "hookFormula" && !hookFormula(d.hookFormula)) continue;
     const key = d[dimension] || "unspecified";
     const list = groups.get(key) ?? [];
     list.push(d);
@@ -270,6 +274,7 @@ const DIMENSION_LABEL: Record<BreakdownDimension, Record<string, string>> = {
   },
   audience: {},
   ctaType: {},
+  hookFormula: Object.fromEntries(HOOK_FORMULAS.map((f) => [f.id, f.name])),
 };
 
 function labelFor(dimension: BreakdownDimension, key: string): string {
@@ -294,6 +299,8 @@ function dimensionNoun(dimension: BreakdownDimension): string {
       return "audience";
     case "ctaType":
       return "CTA style";
+    case "hookFormula":
+      return "hook";
   }
 }
 
@@ -318,7 +325,7 @@ export function getInsights(userId: string | null | undefined): Insight[] {
     overallImpressions > 0 ? (overallEngagement / overallImpressions) * 100 : 0;
 
   // Best / worst per dimension.
-  const dims: BreakdownDimension[] = ["platform", "pillar", "format"];
+  const dims: BreakdownDimension[] = ["platform", "pillar", "format", "hookFormula"];
   for (const dim of dims) {
     const rows = getBreakdown(userId, dim).filter(
       (r) => r.count >= MIN_INSIGHT_SAMPLE,
