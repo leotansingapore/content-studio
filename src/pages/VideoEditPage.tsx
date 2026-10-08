@@ -26,6 +26,7 @@ import {
 } from "@/lib/videoEdit";
 import {
   drawFrame,
+  ensureCaptionFonts,
   exportJob,
   extractWav,
   getFile,
@@ -209,6 +210,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   useEffect(() => { const off = onExportJob(setJob); return () => { off(); }; }, []);
   useEffect(() => {
+    void ensureCaptionFonts().then(() => paintRef.current?.());
+  }, []);
+  useEffect(() => {
     getFile(fileKey(project)).then((f) => setFile(f ?? null)).catch(() => setFile(null));
   }, [project]);
   const url = useMemo(() => (file ? URL.createObjectURL(file) : ""), [file]);
@@ -229,6 +233,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     return [Math.round(w / 2), Math.round(h / 2)];
   }, [settings.aspect, file]);
 
+  const paintRef = useRef<(() => void) | null>(null);
   const paint = useCallback(() => {
     const v = video.current;
     const c = canvas.current;
@@ -237,6 +242,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out });
     setOutT(out);
   }, [plan, settings, outT]);
+  paintRef.current = paint;
 
   // playback that skips the cuts
   useEffect(() => {

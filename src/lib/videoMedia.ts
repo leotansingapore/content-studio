@@ -114,6 +114,31 @@ export const putFile = (id: string, file: Blob) => tx("readwrite", (s) => s.put(
 export const getFile = (id: string) => tx<Blob | undefined>("readonly", (s) => s.get(id));
 export const deleteFile = (id: string) => tx("readwrite", (s) => s.delete(id));
 
+// ---------- caption fonts ----------
+
+// The caption styles name Archivo Black, DM Sans and Fraunces. They load only
+// here (the rest of the app never needs them), and drawing waits for them, so
+// the canvas never paints a fallback face into an export.
+let fontsReady: Promise<void> | null = null;
+export function ensureCaptionFonts(): Promise<void> {
+  if (fontsReady) return fontsReady;
+  fontsReady = (async () => {
+    if (typeof document === "undefined") return;
+    const href = "https://fonts.googleapis.com/css2?family=Archivo+Black&family=DM+Sans:wght@500;600;700&family=Fraunces:wght@600&display=swap";
+    if (!document.querySelector(`link[href="${href}"]`)) {
+      const l = document.createElement("link");
+      l.rel = "stylesheet";
+      l.href = href;
+      document.head.appendChild(l);
+      await new Promise((r) => { l.onload = r; l.onerror = r; });
+    }
+    await Promise.all(
+      ['900 64px "Archivo Black"', '600 64px "DM Sans"', '700 64px "DM Sans"', '600 64px Fraunces'].map((f) => document.fonts.load(f).catch(() => [])),
+    );
+  })();
+  return fontsReady;
+}
+
 // ---------- drawing ----------
 
 const BASE_PX: Record<string, number> = { bold: 92, cutout: 84, minimal: 46, editorial: 54, native: 54, documentary: 42 };
@@ -283,6 +308,7 @@ function pickMime(): { mime: string; ext: string } {
 /** Renders the edit in real time (a 45 s reel takes about 45 s) and downloads it. */
 export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings) {
   if (job?.state === "running") throw new Error("An export is already running.");
+  await ensureCaptionFonts();
   job = { id: String(Date.now()), name, progress: 0, state: "running" };
   emit();
   let video: HTMLVideoElement | null = null;
