@@ -125,6 +125,11 @@ function Start({ busy, projects, onUpload, onOpen, onRemove }: {
     <>
       <header className="space-y-1">
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Edit a video</h1>
+        <ul className="flex flex-wrap gap-1.5 pt-1" aria-label="What it does">
+          {["Auto captions", "Cuts um and long pauses", "Hook on screen", "9:16 reframe", "Find clips in a long video", "Vibe edit by chat", "MP4 export"].map((t) => (
+            <li key={t} className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{t}</li>
+          ))}
+        </ul>
       </header>
       <label
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
