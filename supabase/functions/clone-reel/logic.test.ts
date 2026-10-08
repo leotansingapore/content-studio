@@ -14,6 +14,7 @@ import {
   buildConceptPrompt,
   cacheDecision,
   cleanConcept,
+  readDecision,
   isApifyStorageUrl,
   mergeSource,
   parseReelUrl,
@@ -232,6 +233,22 @@ describe("cacheDecision", () => {
     expect(cacheDecision({ metrics_fetched_at: fresh, platform: "instagram", is_video: true }, now)).toBe("refresh");
     expect(cacheDecision({ metrics_fetched_at: fresh, platform: "instagram", is_video: false }, now)).toBe("use");
     expect(cacheDecision({ metrics_fetched_at: fresh, platform: "tiktok", is_video: true }, now)).toBe("use");
+  });
+});
+
+describe("readDecision", () => {
+  const now = Date.parse("2026-09-15T12:00:00.000Z");
+  const reel = { platform: "instagram" as const, is_video: true, metrics_fetched_at: "2026-01-01T00:00:00.000Z" };
+
+  it("writes a concept only from a post already cloned, never scraping for it", () => {
+    expect(readDecision(null, now, true)).toBe("refuse");
+    expect(readDecision(reel, now, true)).toBe("use");
+  });
+
+  it("leaves a clone's read to the cache rules", () => {
+    expect(readDecision(null, now, false)).toBe("fetch");
+    expect(readDecision(reel, now, false)).toBe("refresh");
+    expect(CLONE_ERRORS.not_cloned.status).toBe(409);
   });
 });
 

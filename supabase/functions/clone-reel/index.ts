@@ -3,7 +3,7 @@
 // transcript, numbers), then asks OpenAI to break down why it worked, offer 3
 // concepts built on it and write the consultant's own version of the first.
 // With {concept} as well it writes the version of that concept from the cached
-// post, without a new scrape (usageCaps "reel-concepts").
+// post (usageCaps "reel-concepts"); a post never cloned is refused, not scraped.
 //
 // - Public post data is cached in cs_reel_sources (supabase/hub/010), so the
 //   same post pasted again skips the scrape. Numbers are re-read after 24 hours;
@@ -33,13 +33,13 @@ import {
   apifyJob,
   buildClonePrompt,
   buildConceptPrompt,
-  cacheDecision,
   cleanConcept,
   isApifyStorageUrl,
   mergeSource,
   parseReelUrl,
   pickIgItem,
   pickTiktokItem,
+  readDecision,
   sanitizeFormulas,
   sanitizeVoice,
   toCloneSource,
@@ -341,8 +341,9 @@ Deno.serve(async (req) => {
 
     let row = await findSource(admin, parsed);
     let videoUrl: string | null = null;
-    // A concept is written from the post already read; only a missing row is fetched.
-    const decision = concept && row ? "use" : cacheDecision(row, startedAt);
+    // A concept is written from the post already cloned; it never scrapes.
+    const decision = readDecision(row, startedAt, Boolean(concept));
+    if (decision === "refuse") return failure("not_cloned");
 
     // Counted once per request, just before its first paid call.
     let usage: UsageResult | null = null;

@@ -230,6 +230,20 @@ export function cacheDecision(
   return now - at < METRICS_TTL_MS ? "use" : "refresh";
 }
 
+/**
+ * How a request reads its post. A concept is written only from a post already
+ * cloned and cached: it never starts a scrape, so the concepts cap can't buy
+ * scrapes beyond the clone cap. "refuse" comes before any charge.
+ */
+export function readDecision(
+  row: Parameters<typeof cacheDecision>[0],
+  now: number,
+  forConcept: boolean,
+): CacheDecision | "refuse" {
+  if (forConcept) return row ? "use" : "refuse";
+  return cacheDecision(row, now);
+}
+
 // ---- Apify ------------------------------------------------------------------
 
 export const IG_REEL_ACTOR = "apify~instagram-reel-scraper";
@@ -514,6 +528,7 @@ export type CloneErrorCode =
   | "scrape_paused"
   | "ai_failed"
   | "not_configured"
+  | "not_cloned"
   | "server_error";
 
 export const CLONE_ERRORS: Record<CloneErrorCode, { status: number; message: string }> = {
@@ -534,6 +549,7 @@ export const CLONE_ERRORS: Record<CloneErrorCode, { status: number; message: str
   },
   ai_failed: { status: 502, message: "The breakdown didn't come back right. Try again." },
   not_configured: { status: 503, message: "Clone a reel isn't switched on yet." },
+  not_cloned: { status: 409, message: "Clone this reel first, then pick a concept." },
   server_error: { status: 500, message: "Something went wrong. Try again in a minute." },
 };
 
