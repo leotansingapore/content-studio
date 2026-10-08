@@ -22,7 +22,7 @@ export const MAX_TEXT = 5000;
 export const MAX_SENTENCES = 40;
 const MAX_SAMPLES = 3;
 const MAX_SAMPLE_CHARS = 1200;
-export const MODES = ["human", "hooks"] as const;
+export const MODES = ["human", "hooks", "idea"] as const;
 export type JudgeMode = (typeof MODES)[number];
 
 /**
@@ -40,7 +40,8 @@ export function splitSentences(text: string): string[] {
 
 export type JudgeRequest =
   | { mode: "human"; text: string; samples: string[] }
-  | { mode: "hooks"; hooks: string[]; audience: string; topic: string; platform: string };
+  | { mode: "hooks"; hooks: string[]; audience: string; topic: string; platform: string }
+  | { mode: "idea"; topic: string; notes: string; kind: string };
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -48,6 +49,11 @@ export function parseJudgeRequest(raw: unknown): { ok: true; request: JudgeReque
   const b = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const mode = MODES.find((m) => m === b.mode);
   if (!mode) return { ok: false, error: "Unknown check." };
+  if (mode === "idea") {
+    const topic = str(b.topic, 300);
+    if (topic.length < 2) return { ok: false, error: "Add your topic first." };
+    return { ok: true, request: { mode, topic, notes: str(b.notes, 2000), kind: str(b.kind, 120) } };
+  }
   if (mode === "hooks") {
     const hooks = (Array.isArray(b.hooks) ? b.hooks : []).map((h) => str(h, 400));
     if (hooks.length < 2 || hooks.length > 5 || hooks.some((h) => h.length < 3)) return { ok: false, error: "Send two to five hooks." };
@@ -222,4 +228,39 @@ export function readHookPick(answers: Record<string, JevAnswer> | null, count: n
   const avg = Array.from({ length: count }, (_, i) => ((f[LETTERS[i]] ?? 0) + (r[LETTERS[i]] ?? 0)) / 2);
   const order = avg.map((p, i) => ({ index: i, p: Math.round(p * 100) / 100 })).sort((a, b) => b.p - a.p);
   return order.length > 1 && Math.round((order[0].p - order[1].p) * 100) / 100 >= PICK_MARGIN ? order[0] : null;
+}
+
+// ---- Mode "idea" ------------------------------------------------------------
+
+// Set from a shadow check on 2026-10-08 (jev-1.13.0): 16 briefs written for
+// it, 8 with a specific true thing and 8 with only a subject or an angle, plus
+// 3 in between. About 450 Jev input tokens a check.
+/**
+ * p(the idea has a specific) below this asks the one question first. With a
+ * specific 0.91-0.98, subject only 0.03-0.23. In between: "a client asked if
+ * riders are worth it" 0.48 and "I almost quit in my first year" 0.41 (asked),
+ * "most clients under 30 have under a month saved" 0.66 (not asked).
+ */
+export const IDEA_MIN = 0.5;
+
+export function ideaState(r: { topic: string; notes: string; kind: string }) {
+  return { post_kind: r.kind || "a social post", topic: r.topic, notes: r.notes };
+}
+
+export const IDEA_QUESTIONS: Record<string, JevQuestion> = {
+  specific: {
+    type: "noul",
+    instructions:
+      "Do `topic` and `notes` already give one specific true thing to build the post on: something that happened, to whom, and what it cost or returned?",
+    criteria: {
+      true: "A concrete event or case: a client's situation with a detail such as an age, an amount, a date or what went wrong; a real question someone asked; the writer's own experience with a number or a moment.",
+      false: "Only a subject or a general angle, such as 'CPF top-ups', 'why insurance matters' or '3 tips for fresh grads', with no event, person or number.",
+    },
+  },
+};
+
+/** True when the idea is thin (ask first), false when it has a specific, null without an answer. */
+export function readIdeaThin(answers: Record<string, JevAnswer> | null): boolean | null {
+  const p = answers?.specific?.noul;
+  return typeof p === "number" && Number.isFinite(p) ? p < IDEA_MIN : null;
 }

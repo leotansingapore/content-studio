@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   AI_MAX,
   MAX_SENTENCES,
+  IDEA_MIN,
+  IDEA_QUESTIONS,
   PICK_MARGIN,
   hookQuestions,
+  ideaState,
+  readIdeaThin,
   hookState,
   readHookPick,
   SHAPE_MIN,
@@ -130,5 +134,25 @@ describe("the hook pick", () => {
     expect(readHookPick(both({ A: 0.47, B: 0.01, C: 0.52 }, { A: 0.55, B: 0.01, C: 0.44 }), 3)).toBeNull();
     expect(readHookPick(null, 3)).toBeNull();
     expect(readHookPick({ pick_fwd: both({ A: 1 }, {}).pick_fwd }, 3)).toBeNull();
+  });
+});
+
+describe("the thin-idea check", () => {
+  it("takes the topic, the notes and the kind of post", () => {
+    expect(parseJudgeRequest({ mode: "idea", topic: " CPF top-ups ", notes: " ", kind: "Myth-busting" })).toEqual({
+      ok: true,
+      request: { mode: "idea", topic: "CPF top-ups", notes: "", kind: "Myth-busting" },
+    });
+    expect(parseJudgeRequest({ mode: "idea", topic: "" })).toMatchObject({ ok: false });
+    expect(ideaState({ topic: "CPF", notes: "", kind: "" })).toEqual({ post_kind: "a social post", topic: "CPF", notes: "" });
+    expect(Object.keys(IDEA_QUESTIONS)).toEqual(["specific"]);
+  });
+
+  it("asks first below the threshold, writes straight away at or above it, and says nothing without an answer", () => {
+    const ans = (p: number) => ({ specific: { type: "noul" as const, noul: p } });
+    expect(readIdeaThin(ans(IDEA_MIN - 0.01))).toBe(true);
+    expect(readIdeaThin(ans(IDEA_MIN))).toBe(false);
+    expect(readIdeaThin(null)).toBeNull();
+    expect(readIdeaThin({})).toBeNull();
   });
 });

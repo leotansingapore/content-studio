@@ -81,7 +81,7 @@ import {
   VOICE_MIN_CHARS,
 } from "@/lib/voiceProfile";
 import HumanCheck from "@/components/HumanCheck";
-import { pickHook } from "@/lib/writingJudge";
+import { ideaIsThin, pickHook } from "@/lib/writingJudge";
 import {
   getDraftById,
   loadDrafts,
@@ -664,6 +664,10 @@ export default function GeneratePage() {
   // Jev's recommended hook for the set just written (key: the hooks' texts).
   const [hookPick, setHookPick] = useState<{ key: string; index: number } | null>(null);
   const pickPendingRef = useRef(false);
+  // Before writing from a thin idea, one question (asked once per brief text).
+  const [ideaAsk, setIdeaAsk] = useState<{ answer: string } | null>(null);
+  const [checkingIdea, setCheckingIdea] = useState(false);
+  const ideaAskedRef = useRef(new Set<string>());
   const prefillAppliedRef = useRef<boolean>(false);
   // When a scheduled/posted slot is loaded, keep updating that same entry on
   // re-roll/pick (so it stays on the calendar) instead of forking a new draft.
@@ -1207,7 +1211,8 @@ export default function GeneratePage() {
     variantsCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [variants.length]);
 
-  const buildBasePayload = (): BasePayload => {
+  /** `answered`: the answer to the one question about a thin idea, for this run. */
+  const buildBasePayload = (answered?: string): BasePayload => {
     // Fold the funnel-stage directive into the free-text context so the draft is
     // steered for where the reader sits in the funnel (the edge function is
     // prompt-driven, so this is how we shape it without server changes).
@@ -1216,6 +1221,7 @@ export default function GeneratePage() {
     if (funnelMeta) ctxParts.push(funnelMeta.directive);
     const trimmedCtx = ideaContext.trim();
     if (trimmedCtx) ctxParts.push(trimmedCtx);
+    if (answered?.trim()) ctxParts.push(answered.trim());
     if (format === "short-video") ctxParts.push(reelLengthRule(reelSeconds));
     ctxParts.push(BLANKS_RULE);
 
@@ -1442,8 +1448,24 @@ export default function GeneratePage() {
     return true;
   };
 
-  const handleGenerate = async () => {
-    if (!validateForm()) return;
+  // answered: undefined runs the thin-idea check first; a string (empty when
+  // skipped) is the answer to its one question, and writes straight away.
+  const handleGenerate = async (answered?: string) => {
+    if (checkingIdea || !validateForm()) return;
+    if (answered === undefined) {
+      const key = `${pillarDetail.trim()}\n${ideaContext.trim()}`;
+      if (!ideaAskedRef.current.has(key)) {
+        ideaAskedRef.current.add(key);
+        setCheckingIdea(true);
+        const thin = await ideaIsThin(pillarDetail.trim(), ideaContext.trim(), ideaMeta.label);
+        setCheckingIdea(false);
+        if (thin) {
+          setIdeaAsk({ answer: "" });
+          return;
+        }
+      }
+    }
+    setIdeaAsk(null);
     // Remember the working platform/format as next session's defaults.
     if (userId) {
       try {
@@ -1464,7 +1486,7 @@ export default function GeneratePage() {
     setChosenHook(null);
     setHookOptions([]);
     setVariants([]);
-    const base = buildBasePayload();
+    const base = buildBasePayload(answered);
 
     try {
       if (hooksFirst) {
@@ -1493,6 +1515,18 @@ export default function GeneratePage() {
         variant: "destructive",
       });
     }
+  };
+
+  // The answer joins the brief's notes, so a re-roll keeps it and is not asked again.
+  const answerIdea = (skip: boolean) => {
+    const answer = skip ? "" : (ideaAsk?.answer ?? "").trim();
+    if (answer) {
+      const next = [ideaContext.trim(), answer].filter(Boolean).join("\n");
+      setIdeaContext(next);
+      ideaAskedRef.current.add(`${pillarDetail.trim()}\n${next}`);
+    }
+    setIdeaAsk(null);
+    void handleGenerate(answer);
   };
 
   const handlePickHook = async (hookText: string) => {
@@ -2001,6 +2035,7 @@ export default function GeneratePage() {
   }, [isStreaming, draft, showShortcuts, styleReference]);
 
   const generateButtonLabel = (() => {
+    if (checkingIdea) return "Reading your idea...";
     if (isStreaming) return hooksFirst ? "Drafting hooks..." : "Drafting variations...";
     if (draft || variants.length > 0 || hookOptions.length > 0) {
       return hooksFirst ? "Start over: 3 hooks" : "Generate 3 new variations";
@@ -2645,6 +2680,31 @@ export default function GeneratePage() {
         </CardContent>
       </Card>
 
+      {ideaAsk && (
+        <section aria-label="One question first" className="space-y-2.5 rounded-xl border border-primary/30 bg-primary/5 p-4">
+          <Label htmlFor="idea-answer" className="block text-sm font-semibold leading-snug">
+            One question first: what happened, to whom, and what did it cost or save them?
+          </Label>
+          <Textarea
+            id="idea-answer"
+            autoFocus
+            rows={3}
+            value={ideaAsk.answer}
+            onChange={(e) => setIdeaAsk({ answer: e.target.value })}
+            placeholder="e.g. A mum of two, 38. Her son's 3 nights at KK cost $9,800 and her plan paid none of it."
+            className="text-sm"
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => answerIdea(false)} disabled={!ideaAsk.answer.trim()} className="h-11 gap-1.5 sm:h-10">
+              <Sparkles className="h-4 w-4" /> Write with this
+            </Button>
+            <Button variant="ghost" onClick={() => answerIdea(true)} className="h-11 sm:h-10">
+              Skip
+            </Button>
+          </div>
+        </section>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
         <Button
           type="button"
@@ -2699,6 +2759,7 @@ export default function GeneratePage() {
             <Button
               size="lg"
               onClick={() => void handleGenerate()}
+              disabled={checkingIdea}
               className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
             >
               <Sparkles className="h-4 w-4" />
@@ -2771,6 +2832,7 @@ export default function GeneratePage() {
                   <Button
                     type="button"
                     onClick={() => void handleGenerate()}
+                    disabled={checkingIdea}
                     className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
                   >
                     <Sparkles className="h-4 w-4" />

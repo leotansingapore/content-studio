@@ -15,3 +15,14 @@ export async function pickHook(hooks: string[], audience: string, topic: string,
     return null;
   }
 }
+
+/** Generate waits at most this long for the idea check, then writes without it. */
+const IDEA_WAIT_MS = 4000;
+
+/** True when Jev reads the brief as thin (ask one question first); null when it can't say in time. */
+export async function ideaIsThin(topic: string, notes: string, kind: string): Promise<boolean | null> {
+  const call = callFn<{ thin: boolean | null }>("writing-judge", { mode: "idea", topic, notes, kind })
+    .then((res) => (typeof res?.thin === "boolean" ? res.thin : null))
+    .catch(() => null);
+  return Promise.race([call, new Promise<null>((done) => setTimeout(() => done(null), IDEA_WAIT_MS))]);
+}

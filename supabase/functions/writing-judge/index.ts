@@ -5,6 +5,9 @@
 //     counted in the browser). About 3,000 Jev input tokens (USD 0.00013).
 //   mode "hooks" {hooks, audience, topic, platform} -> {pick: {index, p} | null}
 //     the hook Jev recommends for this audience. About 560 tokens.
+//   mode "idea" {topic, notes, kind} -> {thin: boolean | null}
+//     whether a brief lacks a specific true thing, so Write asks one
+//     question before writing. About 450 tokens.
 // Counts against the "writing-judge" daily cap. A draft mostly not in English
 // gets {code: "not_english"} and no judgment. Without Jev (no key, timeout,
 // outage) it says the check is unavailable and the page keeps what it measured.
@@ -17,14 +20,17 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import {
+  IDEA_QUESTIONS,
   hookQuestions,
   hookState,
   humanQuestions,
   humanState,
+  ideaState,
   mostlyEnglish,
   parseJudgeRequest,
   readHookPick,
   readHuman,
+  readIdeaThin,
 } from "./logic.ts";
 
 const corsHeaders = {
@@ -45,7 +51,8 @@ Deno.serve(async (req) => {
     const parsed = parseJudgeRequest(await req.json().catch(() => ({})));
     if (!parsed.ok) return json({ error: parsed.error }, 400);
     const r = parsed.request;
-    if (!mostlyEnglish(r.mode === "hooks" ? r.hooks.join("\n") : r.text)) return json({ code: "not_english", error: "This check reads English posts only." }, 422);
+    const english = r.mode === "hooks" ? r.hooks.join("\n") : r.mode === "idea" ? `${r.topic}\n${r.notes}` : r.text;
+    if (!mostlyEnglish(english)) return json({ code: "not_english", error: "This check reads English posts only." }, 422);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
@@ -63,6 +70,11 @@ Deno.serve(async (req) => {
       return json(refusal.body, refusal.status);
     }
 
+    if (r.mode === "idea") {
+      const answers = await askJev(ideaState(r), IDEA_QUESTIONS, { who: "writing-judge idea" });
+      if (!answers) return json({ error: UNAVAILABLE }, 503);
+      return json({ thin: readIdeaThin(answers) });
+    }
     if (r.mode === "hooks") {
       const answers = await askJev(hookState(r), hookQuestions(r.hooks), { who: "writing-judge hooks" });
       if (!answers) return json({ error: UNAVAILABLE }, 503);
