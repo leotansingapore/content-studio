@@ -28,6 +28,7 @@ import {
   Clapperboard,
   MessageSquarePlus,
   Compass,
+  UserPlus,
 } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 
@@ -48,6 +49,12 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
         label: "Pipeline",
         icon: Columns3,
         also: ["/board", "/drafts"],
+      },
+      {
+        to: "/recruit",
+        label: "Recruit",
+        icon: UserPlus,
+        also: ["/recruit/conversations", "/recruit/agent"],
       },
     ],
   },

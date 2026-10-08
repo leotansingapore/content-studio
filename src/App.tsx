@@ -46,6 +46,7 @@ const HubGuidesPage = lazy(() => import("@/pages/hub/HubGuidesPage"));
 const HubGuideDetailPage = lazy(() => import("@/pages/hub/HubGuideDetailPage"));
 const HubAdminPage = lazy(() => import("@/pages/hub/HubAdminPage"));
 const FadsPage = lazy(() => import("@/pages/FadsPage"));
+const RecruitPage = lazy(() => import("@/pages/RecruitPage"));
 
 export default function App() {
   return (
@@ -70,6 +71,8 @@ export default function App() {
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/fads" element={<FadsPage />} />
           <Route path="/fads/:tab" element={<FadsPage />} />
+          <Route path="/recruit" element={<RecruitPage />} />
+          <Route path="/recruit/:tab" element={<RecruitPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/inspiration" element={<InspirationPage />} />
           <Route path="/inspiration/:id" element={<InspirationDetailPage />} />

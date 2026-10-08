@@ -27,6 +27,13 @@ export const PIPELINE_TABS: SectionTab[] = [
   { to: "/drafts", label: "My posts" },
 ];
 
+// Recruit group: the #TopofMind recruitment kit, one Brand Brain behind all three.
+export const RECRUIT_TABS: SectionTab[] = [
+  { to: "/recruit", label: "Brand Brain", end: true },
+  { to: "/recruit/conversations", label: "Conversations" },
+  { to: "/recruit/agent", label: "AI agent" },
+];
+
 // Coach is now its own top-level destination (not a Performance sub-tab), so
 // Performance no longer needs a tab group.
 
