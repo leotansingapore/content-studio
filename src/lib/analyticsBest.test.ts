@@ -75,3 +75,31 @@ describe("postingTimeGrid", () => {
     expect(g.days.map((d) => d.count)).toEqual([0, 1, 1, 0, 1, 0, 0]);
   });
 });
+
+describe("suggestPostingTime", () => {
+  // Thu 8 Oct 2026, 10:00 local
+  const now = new Date(2026, 9, 8, 10, 0);
+
+  it("uses the best-landing hour from timed posts, on its next free day", async () => {
+    const { suggestPostingTime } = await import("./analytics");
+    // Thursday 8pm posts land far better than Monday 9am ones
+    const posts = [
+      p("a", "x", 1000, 120, { scheduledFor: "2026-09-24T20:00" }),
+      p("b", "x", 1000, 100, { scheduledFor: "2026-10-01T20:00" }),
+      p("c", "x", 1000, 10, { scheduledFor: "2026-09-21T09:00" }),
+      p("d", "x", 1000, 12, { scheduledFor: "2026-09-28T09:00" }),
+    ];
+    // tonight, 10 hours out
+    expect(suggestPostingTime(posts, "linkedin", [], now)).toEqual({ at: "2026-10-08T20:00", why: "best" });
+    // tonight already has a post: next Thursday
+    expect(suggestPostingTime(posts, "linkedin", ["2026-10-08T08:00"], now).at).toBe("2026-10-15T20:00");
+  });
+
+  it("falls back to a common slot for the platform with no history, never in the next 2 hours", async () => {
+    const { suggestPostingTime } = await import("./analytics");
+    expect(suggestPostingTime([], "instagram", [], now)).toEqual({ at: "2026-10-14T19:30", why: "common" });
+    // Wed 6pm: tonight's 7:30pm slot is under 2 hours away, so next week's
+    expect(suggestPostingTime([], "instagram", [], new Date(2026, 9, 14, 18, 0)).at).toBe("2026-10-21T19:30");
+    expect(suggestPostingTime([], "unknown", [], now).at).toBe("2026-10-13T08:30");
+  });
+});

@@ -15,7 +15,7 @@ import {
   type DraftEntry,
 } from "@/lib/draftHistory";
 import { readout, type PlatformId } from "@/lib/platformCounters";
-import { keyToDate, scheduleTime } from "@/lib/dueDates";
+import { addDays, keyToDate, localDateKey, scheduleTime } from "@/lib/dueDates";
 
 export interface TrackedPost extends DraftEntry {
   impressions: number;
@@ -582,4 +582,49 @@ export function bestCell(rows: TimeCell[][], min = MIN_GROUP_SAMPLE): [number, n
     }),
   );
   return best;
+}
+
+// ---------------------------------------------------------------------------
+// The next time to post (gap s37): the best-landing hour from the user's own
+// posted results when there are enough timed posts, else a common slot for the
+// platform. The next such day with nothing already scheduled, at least 2 hours out.
+// ---------------------------------------------------------------------------
+
+/** Common slots when there is no history yet (day 0 = Mon). A starting point, not a rule. */
+const COMMON_SLOT: Record<string, { day: number; hour: number; minute: number }> = {
+  linkedin: { day: 1, hour: 8, minute: 30 },
+  instagram: { day: 2, hour: 19, minute: 30 },
+  facebook: { day: 3, hour: 20, minute: 0 },
+  tiktok: { day: 4, hour: 20, minute: 0 },
+};
+
+export interface SuggestedTime {
+  /** "YYYY-MM-DDTHH:MM", ready for scheduledFor. */
+  at: string;
+  /** "best" = from the user's own results; "common" = no history yet. */
+  why: "best" | "common";
+}
+
+export function suggestPostingTime(posts: TrackedPost[], platform: string, taken: string[], now: Date = new Date()): SuggestedTime {
+  const grid = postingTimeGrid(posts);
+  const cell = grid.hasTimes ? bestCell(grid.hours) : null;
+  const slot = cell ? { day: cell[0], hour: cell[1], minute: 0 } : COMMON_SLOT[platform] ?? COMMON_SLOT.linkedin;
+  const busy = new Set(taken.map((t) => t.slice(0, 10)));
+  const earliest = now.getTime() + 2 * 3_600_000;
+  const today = localDateKey(now);
+  for (let i = 0; i < 28; i++) {
+    const day = addDays(today, i);
+    const d = keyToDate(day);
+    if ((d.getDay() + 6) % 7 !== slot.day || busy.has(day)) continue;
+    if (new Date(d.getFullYear(), d.getMonth(), d.getDate(), slot.hour, slot.minute).getTime() < earliest) continue;
+    const hh = String(slot.hour).padStart(2, "0");
+    const mm = String(slot.minute).padStart(2, "0");
+    return { at: `${day}T${hh}:${mm}`, why: cell ? "best" : "common" };
+  }
+  // every matching day in four weeks is taken: the first free day at that time
+  for (let i = 1; i < 60; i++) {
+    const day = addDays(today, i);
+    if (!busy.has(day)) return { at: `${day}T${String(slot.hour).padStart(2, "0")}:${String(slot.minute).padStart(2, "0")}`, why: cell ? "best" : "common" };
+  }
+  return { at: `${addDays(today, 1)}T09:00`, why: "common" };
 }

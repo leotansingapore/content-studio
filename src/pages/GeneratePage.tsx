@@ -74,10 +74,14 @@ import {
 } from "@/lib/voiceProfile";
 import {
   getDraftById,
+  loadDrafts,
   newDraftId,
   upsertDraft,
   type DraftEntry,
 } from "@/lib/draftHistory";
+import { getTrackedPosts, suggestPostingTime } from "@/lib/analytics";
+import { scheduleTime, timeLabel } from "@/lib/dueDates";
+import { ToastAction } from "@/components/ui/toast";
 import {
   checkLimits,
   readout,
@@ -1763,6 +1767,32 @@ export default function GeneratePage() {
   const vibeHook = vibeSourceId ? ENTRIES.find((e) => e.id === vibeSourceId)?.hook : undefined;
 
   // The saved entry behind the draft card, for its "saved / scheduled" line.
+  // the next good time to post this one: from the user's own results, else a common slot
+  const [scheduleTick, setScheduleTick] = useState(0);
+  const suggestedTime = useMemo(() => {
+    if (!userId || !currentDraftId) return null;
+    const taken = loadDrafts(userId).filter((d) => d.status === "scheduled" && d.scheduledFor).map((d) => d.scheduledFor as string);
+    return suggestPostingTime(getTrackedPosts(userId), platform, taken);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, currentDraftId, platform, scheduleTick]);
+  const whenLabel = (at: string) =>
+    `${new Date(`${at.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}${scheduleTime(at) ? `, ${timeLabel(scheduleTime(at)!)}` : ""}`;
+  const scheduleSuggested = () => {
+    if (!userId || !currentDraftId || !suggestedTime) return;
+    const before = getDraftById(userId, currentDraftId);
+    if (!before) return;
+    upsertDraft(userId, { ...before, status: "scheduled", scheduledFor: suggestedTime.at });
+    setScheduleTick((n) => n + 1);
+    toast({
+      title: `Scheduled for ${whenLabel(suggestedTime.at)}`,
+      action: (
+        <ToastAction altText="Undo" onClick={() => { upsertDraft(userId, before); setScheduleTick((n) => n + 1); }}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
   const savedEntry =
     draft && userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
 
@@ -2760,13 +2790,7 @@ export default function GeneratePage() {
                   "Posted. Edits save to My posts."
                 ) : savedEntry.status === "scheduled" && savedEntry.scheduledFor ? (
                   <>
-                    Scheduled for{" "}
-                    {new Date(`${savedEntry.scheduledFor.slice(0, 10)}T00:00:00`).toLocaleDateString(undefined, {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    })}
-                    .
+                    Scheduled for {whenLabel(savedEntry.scheduledFor)}.
                     <Link to="/calendar" className="-my-2 py-2 font-semibold text-primary hover:underline">
                       Open calendar
                     </Link>
@@ -2774,8 +2798,19 @@ export default function GeneratePage() {
                 ) : (
                   <>
                     Saved to My posts.
+                    {suggestedTime && (
+                      <>
+                        <span className="font-medium text-foreground">Best time {whenLabel(suggestedTime.at)}</span>
+                        <InfoTip label="About the best time">
+                          {suggestedTime.why === "best" ? "When your past posts landed best." : "A common slot until your posts have results."}
+                        </InfoTip>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={scheduleSuggested}>
+                          Schedule then
+                        </Button>
+                      </>
+                    )}
                     <Link to="/calendar" className="-my-2 py-2 font-semibold text-primary hover:underline">
-                      Schedule it
+                      {suggestedTime ? "Pick another time" : "Schedule it"}
                     </Link>
                   </>
                 )}
