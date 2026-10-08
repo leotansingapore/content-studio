@@ -53,6 +53,7 @@ import {
 } from "@/lib/videoEdit";
 import { cueTicker, drawMotion, dropGain, hookTop, keyZoom, motionOf, playCue } from "@/lib/videoMotion";
 import { joinKept, sampleKept, wholeFits, type KeptPart } from "@/lib/keptSound";
+import { clipStats } from "@/lib/exportCheck";
 
 // ---------- sound for captions ----------
 
@@ -1039,11 +1040,11 @@ function pickMime(audioOnly = false): { mime: string; ext: string } {
 }
 
 /** Reads an exported file's sound back (decoded at 8 kHz, small even for a long edit): its length,
- * level and longest silence. Null when the browser can't decode it. */
-export async function measureExport(url: string): Promise<ReturnType<typeof soundStats> | null> {
+ * level, longest silence and where it clips. Null when the browser can't decode it. */
+export async function measureExport(url: string): Promise<(ReturnType<typeof soundStats> & { clip: ReturnType<typeof clipStats> }) | null> {
   try {
     const buf = await new OfflineAudioContext(1, 1, 8000).decodeAudioData(await (await fetch(url)).arrayBuffer());
-    return soundStats(buf.getChannelData(0), buf.sampleRate);
+    return { ...soundStats(buf.getChannelData(0), buf.sampleRate), clip: clipStats(buf.getChannelData(0), buf.sampleRate) };
   } catch {
     return null;
   }

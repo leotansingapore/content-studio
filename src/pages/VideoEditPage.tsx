@@ -136,6 +136,7 @@ import {
   type ExportJob,
   type Frame,
 } from "@/lib/videoMedia";
+import { blackStretches, frameTimes, joinTimes, lookAtFrames, pictureAndClipIssues } from "@/lib/exportCheck";
 import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
@@ -1135,7 +1136,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     const want = { seconds: job.seconds ?? total, kind: job.kind ?? "video", captions: settings.captions, hasWords: words.length > 0, sound: (settings.volume ?? 1) > 0 || !!settings.voiceover || !!settings.music,
       size: job.bytes && job.cap ? { bytes: job.bytes, cap: job.cap, label: job.label ?? "" } : undefined };
     setFileCheck({ id, issues: null, read: false });
-    void measureExport(job.url).then((m) => setFileCheck({ id, issues: exportIssues(m ?? { seconds: null, level: null, gap: null }, want), read: !!m }));
+    // the picture is looked at too, up to the end card; a sound-only source has none of its own
+    const looks = job.kind !== "audio" && !peaks ? lookAtFrames(job.url, frameTimes(plan.total, settings.transition ? joinTimes(plan.segs, speed) : [])) : Promise.resolve(null);
+    void Promise.all([measureExport(job.url), looks]).then(([m, l]) =>
+      setFileCheck({ id, issues: [...exportIssues(m ?? { seconds: null, level: null, gap: null }, want), ...pictureAndClipIssues(m?.clip ?? null, blackStretches(l ?? []))], read: !!m }));
   }, [job]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // find a word or phrase in what was said, and jump the video to it
@@ -1332,11 +1336,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 {fileCheck.issues.map((i) => (
                   <li key={i.id} className="flex flex-wrap items-center gap-2 rounded-md border border-warning/50 bg-warning/10 px-2 py-1.5 text-xs">
                     <span className="mr-auto">{i.text}</span>
-                    {i.id === "quiet" && !settings.loudness && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { patch({ loudness: true }); setTab("cuts"); }}>Even out loudness</Button>}
-                    {i.id === "silent" && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTab("cuts")}>Open Cuts</Button>}
-                    {i.id === "gap" && i.at !== undefined && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => seekOut(i.at!)}>Show me</Button>}
-                    {i.id === "size" && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTab("frame")}>Open Hook and frame</Button>}
-                    {i.id === "captions" && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTab("words")}>Caption it</Button>}
+                    {i.id === "quiet" && !settings.loudness && <Button size="sm" variant="outline" className="h-11 text-xs sm:h-7" onClick={() => { patch({ loudness: true }); setTab("cuts"); }}>Even out loudness</Button>}
+                    {i.id === "silent" && <Button size="sm" variant="outline" className="h-11 text-xs sm:h-7" onClick={() => setTab("cuts")}>Open Cuts</Button>}
+                    {i.id === "clipped" && !settings.loudness && <Button size="sm" variant="outline" className="h-11 text-xs sm:h-7" onClick={() => { patch({ loudness: true }); setTab("cuts"); }}>Even out loudness</Button>}
+                    {(i.id === "clipped" || i.id === "black") && i.at !== undefined && <Button size="sm" variant="outline" className="h-11 text-xs sm:h-7" onClick={() => seekOut(i.at!)}>Show me</Button>}
+                    {i.id === "gap" && i.at !== undefined && <Button size="sm" variant="outline" className="h-11 text-xs sm:h-7" onClick={() => seekOut(i.at!)}>Show me</Button>}
+                    {i.id === "size" && <Button size="sm" variant="outline" className="h-11 text-xs sm:h-7" onClick={() => setTab("frame")}>Open Hook and frame</Button>}
+                    {i.id === "captions" && <Button size="sm" variant="outline" className="h-11 text-xs sm:h-7" onClick={() => setTab("words")}>Caption it</Button>}
                   </li>
                 ))}
               </ul>

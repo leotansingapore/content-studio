@@ -765,9 +765,9 @@ export function soundStats(samples: Float32Array, rate: number): { seconds: numb
 }
 
 export interface ExportIssue {
-  id: "length" | "silent" | "quiet" | "gap" | "captions" | "size";
+  id: "length" | "silent" | "quiet" | "gap" | "captions" | "size" | "clipped" | "black";
   text: string;
-  /** Where in the file it is, for a silence. */
+  /** Where in the file it is, for a silence, clipping or a black picture. */
   at?: number;
 }
 
