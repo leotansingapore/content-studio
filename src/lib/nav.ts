@@ -89,6 +89,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/calendar", label: "Calendar" },
       { to: "/board", label: "Board" },
       { to: "/drafts", label: "My posts" },
+      { to: "/grid", label: "Grid", title: "Instagram grid" },
       { to: "/reels", label: "Reels", owners: REELS_BOARD_OWNERS },
     ],
   },

@@ -3,7 +3,7 @@ import { MOBILE_TABS, moreSheet, pageFor, pageTitle, SECTIONS, sectionFor } from
 
 const routes = [
   "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/edit", "/plan", "/calendar", "/board",
-  "/drafts", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/coach", "/analytics", "/team",
+  "/drafts", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/playbook", "/voice", "/brand", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback",
 ];
@@ -33,6 +33,7 @@ describe("nav", () => {
   it("lights one phone tab per Pipeline page", () => {
     const lit = (p: string) => MOBILE_TABS.filter((t) => t.active(p)).map((t) => t.label);
     expect(lit("/board")).toEqual(["Calendar"]);
+    expect(lit("/grid")).toEqual(["Calendar"]);
     expect(lit("/drafts")).toEqual(["Posts"]);
     expect(lit("/carousel")).toEqual(["Write"]);
     expect(lit("/welcome")).toEqual(["Home"]);
