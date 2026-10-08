@@ -7,15 +7,18 @@
 //
 // Mode "replies": the comments under the consultant's own post. Jev sorts each
 // into potential client, adds something, peer, support or noise; the drafts
-// come back clients first, and noise gets none. Ported from
-// Jakeschincariol/linkedin-agent-skill@add2c23 li-reply (MIT), rewritten for
-// Singapore financial consultants.
+// come back clients first, and noise gets none.
+// Mode "dms": direct messages. Jev sorts each into lead, recruiter, peer,
+// favour or spam and flags automated sequences; spam and automated ones get
+// no draft.
+// Ported from Jakeschincariol/linkedin-agent-skill@add2c23 li-reply and
+// li-inbox (MIT), rewritten for Singapore financial consultants.
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { complianceIssues, parseJsonObject } from "../_shared/socialAudit.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 
-export const MODES = ["replies"] as const;
+export const MODES = ["replies", "dms"] as const;
 export type EngageMode = (typeof MODES)[number];
 
 export const MAX_ITEMS = 30;
@@ -29,7 +32,7 @@ export interface Pasted {
   text: string;
 }
 
-export type EngageRequest = { mode: "replies"; post: string; comments: Pasted[] };
+export type EngageRequest = { mode: "replies"; post: string; comments: Pasted[] } | { mode: "dms"; messages: Pasted[] };
 
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -49,6 +52,12 @@ export function parseEngageRequest(raw: unknown): { ok: true; request: EngageReq
     if (!comments.length) return { ok: false, error: "Paste at least one comment." };
     if (comments.length > MAX_ITEMS) return { ok: false, error: `Paste up to ${MAX_ITEMS} comments at a time.` };
     return { ok: true, request: { mode: "replies", post: str(b.post, MAX_POST_CHARS), comments } };
+  }
+  if (b.mode === "dms") {
+    const messages = pastedList(b.messages);
+    if (!messages.length) return { ok: false, error: "Paste at least one message." };
+    if (messages.length > MAX_ITEMS) return { ok: false, error: `Paste up to ${MAX_ITEMS} messages at a time.` };
+    return { ok: true, request: { mode: "dms", messages } };
   }
   return { ok: false, error: "Pick what to draft." };
 }
@@ -211,14 +220,20 @@ export interface ReplyItem extends Pasted {
   dm?: string;
 }
 
-/** The comments with their drafts, clients first, in paste order within a kind. */
-export function readReplies(content: string | null, comments: Pasted[], kinds: CommentKind[]): ReplyItem[] {
+/** The model's {"replies":[{id, ...}]} keyed by id. */
+function repliesById(content: string | null): Map<string, Record<string, unknown>> {
   const obj = content ? parseJsonObject(content) : null;
   const byId = new Map<string, Record<string, unknown>>();
   for (const r of Array.isArray(obj?.replies) ? obj.replies : []) {
     const o = r && typeof r === "object" ? (r as Record<string, unknown>) : {};
     if (typeof o.id === "string") byId.set(o.id, o);
   }
+  return byId;
+}
+
+/** The comments with their drafts, clients first, in paste order within a kind. */
+export function readReplies(content: string | null, comments: Pasted[], kinds: CommentKind[]): ReplyItem[] {
+  const byId = repliesById(content);
   const items: ReplyItem[] = comments.map((c, i) => {
     const kind = kinds[i];
     if (kind === "noise") return { ...c, i, kind, reply: null };
@@ -228,4 +243,120 @@ export function readReplies(content: string | null, comments: Pasted[], kinds: C
     return item;
   });
   return items.sort((a, b) => REPLY_ORDER.indexOf(a.kind) - REPLY_ORDER.indexOf(b.kind) || a.i - b.i);
+}
+
+// ---- Mode "dms" -----------------------------------------------------------------
+
+export const DM_KINDS = ["lead", "recruiter", "peer", "favour", "spam"] as const;
+export type DmKind = (typeof DM_KINDS)[number] | "unsorted";
+/** The order the messages come back in: leads first, spam last. */
+export const DM_ORDER: DmKind[] = ["lead", "recruiter", "peer", "favour", "unsorted", "spam"];
+
+// Set from a shadow check on 2026-10-08 against jev-1.13.0, three runs over 33
+// direct messages written for it: 9 leads (their own situation, a career
+// switcher, "send me the checklist"), 5 recruiters, 6 peers, 6 favours, 7
+// spam, 7 of the 33 automated templates. Jev's top pick for the kind was right
+// on 33 of 33 in every run (leads 0.67-1.00; a non-lead reached 0.40 at most),
+// so the kind needs no threshold. About 520 Jev input tokens a message.
+/**
+ * p(automated sequence) at or above this flags a message: it gets no draft.
+ * Templates scored 0.89-0.97 (a booking link, {first_name}, "just bumping
+ * this", an agency's blast), two short openers 0.75-0.84 (missed, both spam
+ * or a vague recruiter). Written-for-you messages: leads 0.10-0.37, peers and
+ * favours up to 0.72, named recruiters up to 0.80; only a crypto pitch went
+ * over (0.95), which is spam anyway.
+ */
+export const AUTOMATED_MIN = 0.85;
+
+const DM_CRITERIA: Record<(typeof DM_KINDS)[number], string> = {
+  lead:
+    "A possible client or recruit: they describe their own or their family's money, insurance, CPF or retirement situation, ask for help with it or for something the writer offered in a post, ask about the writer's services, or are thinking about joining the writer's team or switching into this career.",
+  recruiter: "Offers the writer a job or a move: a recruiter, headhunter, bank, insurer or another agency with a role or better terms.",
+  peer: "Someone in the same field or a real contact writing as a colleague: swapping notes, a compliment with substance, an invitation to work on something together.",
+  favour:
+    "Asks the writer for time or help with something of the asker's own that is not about becoming a client or joining the team: tips on their marketing, a share, a recommendation, an introduction, a survey.",
+  spam: "Not worth a reply: selling the writer a service such as leads, marketing or websites, get-rich offers, scams, fake friendship, or a bump of an earlier unanswered pitch.",
+};
+
+/** A Choice (k<index>) and an automated Noul (a<index>) per message Jev reads. */
+export function dmQuestions(messages: Pasted[]): Record<string, JevQuestion> {
+  const q: Record<string, JevQuestion> = {};
+  messages.forEach((m, i) => {
+    if (!jevReads(m.text)) return;
+    const about = { message: m.text, sender: m.name || "(no name)" };
+    q[`k${i}`] = {
+      type: "choice",
+      instructions: { ...about, question: "A Singapore financial consultant received `message` as a direct message on LinkedIn or Instagram. Which kind of message is it?" },
+      criteria: DM_CRITERIA,
+    };
+    q[`a${i}`] = {
+      type: "noul",
+      instructions: {
+        ...about,
+        question: "Was `message` most likely sent by an automated outreach sequence or as a template to many people, rather than written by a person for this reader?",
+      },
+      criteria: {
+        true: "Template signs: nothing only this reader would recognise, 'quick question' with no question, 'I noticed you're in {industry}', a fill-in field such as {first_name}, a booking link in a first message, or a bump such as 'just bumping this' or 'did you see my last message'.",
+        false: "Written for this reader: mentions something specific about them or their post, a real shared context, or asks a specific question of the sender's own.",
+      },
+    };
+  });
+  return q;
+}
+
+/** Each message's kind and whether it looks automated; "unsorted" when Jev did not read it. */
+export function readDmKinds(answers: Record<string, JevAnswer> | null, messages: Pasted[]): { kind: DmKind; automated: boolean }[] {
+  return messages.map((_, i) => {
+    const p = answers?.[`a${i}`]?.noul;
+    return { kind: choiceOf(answers, `k${i}`, DM_KINDS) ?? "unsorted", automated: typeof p === "number" && p >= AUTOMATED_MIN };
+  });
+}
+
+const DM_BRIEF: Record<DmKind, string> = {
+  lead: "lead (a possible client or recruit): answer what they asked in plain, general terms, then one small ask: a 15-minute call or a coffee at [time 1] or [time 2], written exactly like that for them to fill in. Never name a day or time yourself. Nothing personal is advised before you have met.",
+  recruiter: "recruiter (offers you a role): short and warm, commits to nothing: thanks, not looking right now, happy to point someone their way.",
+  peer: "peer (a colleague or contact): reply like a person, answer their question or take up their idea, with [time 1] or [time 2] if you meet.",
+  favour: "favour (asks for your time or help): if it is quick and specific, say yes and do it; if it is open-ended, decline in one warm sentence and give the one answer you would have given.",
+  unsorted: "unsorted (not in English): a short reply in the message's own language.",
+  spam: "",
+};
+
+export function buildDmsPrompt(messages: Pasted[], sorted: { kind: DmKind; automated: boolean }[]): { system: string; user: string } {
+  const system = [
+    "You draft direct-message replies for a Singapore financial consultant. They read each draft and send it themselves.",
+    "Each message comes with its kind. Write for each:",
+    ...DM_ORDER.filter((k) => DM_BRIEF[k]).map((k) => `- ${DM_BRIEF[k]}`),
+    "Every reply:",
+    "- Is 2 to 4 sentences, starts with their first name once, with no exclamation mark after it. No name given: no name.",
+    "- Matches their energy: a short message gets a short reply. Plain, warm, everyday words.",
+    "- Holds no booking or calendar link, and never puts income or earnings figures in writing.",
+    ...COMPLIANCE_LINES.map((l) => `- ${l}`),
+    ...houseLines(),
+    'Reply with JSON only: {"replies":[{"id":"m0","reply":"..."}]}, one per message id given.',
+  ].join("\n");
+  const lines = messages.flatMap((m, i) =>
+    sorted[i].kind === "spam" || sorted[i].automated ? [] : [`[m${i}] ${sorted[i].kind} | ${m.name || "(no name)"}: ${m.text.replace(/\s+/g, " ")}`],
+  );
+  return { system, user: ["The messages:", ...lines].join("\n") };
+}
+
+export interface DmItem extends Pasted {
+  i: number;
+  kind: DmKind;
+  automated: boolean;
+  /** Null for spam and automated messages; "" when no usable draft came back. */
+  reply: string | null;
+}
+
+/** The messages with their drafts, leads first; spam and automated ones last, undrafted. */
+export function readDmReplies(content: string | null, messages: Pasted[], sorted: { kind: DmKind; automated: boolean }[]): DmItem[] {
+  const byId = repliesById(content);
+  const rank = (x: DmItem) => (x.automated ? DM_ORDER.length : DM_ORDER.indexOf(x.kind));
+  return messages
+    .map((m, i): DmItem => {
+      const { kind, automated } = sorted[i];
+      const skip = kind === "spam" || automated;
+      return { ...m, i, kind, automated, reply: skip ? null : cleanDraft(byId.get(`m${i}`)?.reply, 900) };
+    })
+    .sort((a, b) => rank(a) - rank(b) || a.i - b.i);
 }

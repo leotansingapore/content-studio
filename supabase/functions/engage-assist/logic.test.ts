@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { REPLY_ANSWERS } from "../../../src/data/recruitKit";
 import {
+  AUTOMATED_MIN,
   CLIENT_MIN,
+  DM_KINDS,
+  buildDmsPrompt,
+  dmQuestions,
+  readDmKinds,
+  readDmReplies,
   COMMENT_KINDS,
   HOUSE_ANSWERS,
   MAX_ITEMS,
@@ -121,5 +127,66 @@ describe("cleanDraft", () => {
   it("keeps a link in a DM and takes it out of a public reply", () => {
     expect(cleanDraft("Here: https://a.co/x", 100)).toBe("Here: https://a.co/x");
     expect(cleanDraft("Here: www.a.co/x now", 100, { links: false })).toBe("Here: now");
+  });
+});
+
+describe("direct messages", () => {
+  const messages = [
+    { name: "LeadGen Pro", text: "Hi, I noticed you're in financial services. Worth a quick call? calendly.com/x" },
+    { name: "Karen", text: "How much would it cost to get my kids covered?" },
+    { name: "Amanda", text: "I'm a recruiter at a bank with a wealth role. Open to a chat?" },
+    { name: "", text: "你好，我想了解退休规划。" },
+    { name: "Growth Agency", text: "Our agency is growing fast, better payout. Interested?" },
+  ];
+  const noul = (p: number): JevAnswer => ({ type: "noul", noul: p });
+
+  it("takes the dms mode and refuses an empty paste", () => {
+    expect(parseEngageRequest({ mode: "dms", messages: [{ text: " Hi " }] })).toEqual({ ok: true, request: { mode: "dms", messages: [{ name: "", text: "Hi" }] } });
+    expect(parseEngageRequest({ mode: "dms", messages: [] })).toMatchObject({ ok: false });
+  });
+
+  it("asks a kind and an automated question per message Jev reads", () => {
+    const q = dmQuestions(messages);
+    expect(Object.keys(q)).toEqual(["k0", "a0", "k1", "a1", "k2", "a2", "k4", "a4"]);
+    expect(Object.keys((q.k1 as { criteria: object }).criteria)).toEqual([...DM_KINDS]);
+    expect(q.a1.type).toBe("noul");
+  });
+
+  it("flags a message as automated from AUTOMATED_MIN up, and leaves unread ones unsorted", () => {
+    const answers = {
+      k0: choice("spam", { spam: 1 }), a0: noul(0.97),
+      k1: choice("lead", { lead: 1 }), a1: noul(0.2),
+      k2: choice("recruiter", { recruiter: 1 }), a2: noul(AUTOMATED_MIN - 0.01),
+      k4: choice("recruiter", { recruiter: 1 }), a4: noul(AUTOMATED_MIN),
+    };
+    expect(readDmKinds(answers, messages)).toEqual([
+      { kind: "spam", automated: true },
+      { kind: "lead", automated: false },
+      { kind: "recruiter", automated: false },
+      { kind: "unsorted", automated: false },
+      { kind: "recruiter", automated: true },
+    ]);
+    expect(readDmKinds(null, messages).every((x) => x.kind === "unsorted" && !x.automated)).toBe(true);
+  });
+
+  it("drafts leads first and never spam or automated messages", () => {
+    const sorted = readDmKinds(
+      { k0: choice("spam", { spam: 1 }), a0: noul(0.97), k1: choice("lead", { lead: 1 }), k2: choice("recruiter", { recruiter: 1 }), k4: choice("recruiter", { recruiter: 1 }), a4: noul(0.9) },
+      messages,
+    );
+    const { system, user } = buildDmsPrompt(messages, sorted);
+    expect(user).toContain("[m1] lead | Karen:");
+    expect(user).toContain("[m3] unsorted | (no name):");
+    expect(user).not.toMatch(/\[m0\]|\[m4\]/);
+    expect(system).toMatch(/never puts income or earnings figures in writing/);
+    expect(system).toMatch(/\[time 1\] or \[time 2\], written exactly like that/);
+    expect(system).toContain("How much can I earn?");
+    const content = JSON.stringify({ replies: [{ id: "m0", reply: "no" }, { id: "m1", reply: "Karen, it depends on their ages. [time 1] or [time 2]?" }, { id: "m2", reply: "Amanda, thanks, not looking right now." }, { id: "m4", reply: "no" }] });
+    const items = readDmReplies(content, messages, sorted);
+    expect(items.map((x) => [x.i, x.kind, x.automated])).toEqual([[1, "lead", false], [2, "recruiter", false], [3, "unsorted", false], [0, "spam", true], [4, "recruiter", true]]);
+    expect(items[0].reply).toBe("Karen, it depends on their ages. [time 1] or [time 2]?");
+    expect(items[2].reply).toBe("");
+    expect(items[3].reply).toBeNull();
+    expect(items[4].reply).toBeNull();
   });
 });

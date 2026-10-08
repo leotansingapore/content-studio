@@ -19,6 +19,7 @@ describe("splitPasted", () => {
       { name: "Tom", text: "So true!" },
       { name: "", text: "Great post" },
     ]);
+    expect(splitPasted("陈先生: 你好，可以聊聊吗？")).toEqual([{ name: "陈先生", text: "你好，可以聊聊吗？" }]);
   });
 
   it("takes each line as a comment when there are no blank lines, and leaves odd colons in the text", async () => {
@@ -41,14 +42,15 @@ describe("runs", () => {
   });
 
   it("saves the drafts when they come back, with the page gone, and sends at most MAX_ITEMS comments", async () => {
-    const { MAX_ITEMS, loadRun, runningJob, saveRun, startReplies } = await import("@/lib/engageDrafts");
+    const { MAX_ITEMS, loadRun, runningJob, saveRun, startRun } = await import("@/lib/engageDrafts");
     const items = [{ i: 0, name: "", text: "Nice", kind: "support", reply: "Thanks." }];
     let finish: (v: unknown) => void = () => {};
     invoke.mockReturnValue(new Promise((r) => (finish = r)));
     saveRun("replies", "u1", { post: "My post", pasted: "x", items: [], at: "" });
     const pasted = Array.from({ length: MAX_ITEMS + 5 }, (_, i) => `c${i}`).join("\n");
-    const job = startReplies("u1", "My post", pasted);
+    const job = startRun("replies", "u1", pasted, "My post");
     expect(runningJob("replies", "u1")).toBe(job);
+    expect(invoke.mock.calls[0][1].body).toMatchObject({ mode: "replies", post: "My post" });
     expect(invoke.mock.calls[0][1].body.comments).toHaveLength(MAX_ITEMS);
     finish({ data: { items }, error: null });
     expect(await job).toEqual({ kind: "ok" });
@@ -56,10 +58,19 @@ describe("runs", () => {
     expect(loadRun("replies", "u1")).toMatchObject({ post: "My post", items });
   });
 
+  it("sends DMs as messages and keeps their run apart from the replies", async () => {
+    const { loadRun, startRun } = await import("@/lib/engageDrafts");
+    invoke.mockResolvedValue({ data: { items: [{ i: 0 }] }, error: null });
+    expect(await startRun("dms", "u1", "Karen: Hi\n\nTom: Yo")).toEqual({ kind: "ok" });
+    expect(invoke.mock.calls[0][1].body).toEqual({ mode: "dms", messages: [{ name: "Karen", text: "Hi" }, { name: "Tom", text: "Yo" }] });
+    expect(loadRun("dms", "u1").items).toEqual([{ i: 0 }]);
+    expect(loadRun("replies", "u1").items).toEqual([]);
+  });
+
   it("says when the daily limit is reached", async () => {
-    const { startReplies } = await import("@/lib/engageDrafts");
+    const { startRun } = await import("@/lib/engageDrafts");
     const context = { status: 429, json: async () => ({ code: "daily_limit", error: "You've used all 30 for today." }) };
     invoke.mockResolvedValue({ data: null, error: { context } });
-    expect(await startReplies("u1", "", "Nice")).toEqual({ kind: "limit", message: "You've used all 30 for today." });
+    expect(await startRun("replies", "u1", "Nice")).toEqual({ kind: "limit", message: "You've used all 30 for today." });
   });
 });

@@ -8,8 +8,13 @@
 //     a reply for each but noise and a first DM for each client. About 320 Jev
 //     input tokens a comment and one OpenAI call (about 2 US cents for 30
 //     comments). Cap "engage-replies".
-// A comment mostly in another script is "unsorted" and still drafted; without
-// Jev (no key, timeout, outage) every comment is unsorted, in paste order.
+//   mode "dms" {messages:[{name?, text}]} -> {items:[{i, name, text, kind,
+//     automated, reply}]}: direct messages sorted into lead, recruiter, peer,
+//     favour or spam, with automated sequences flagged; spam and automated
+//     ones get no draft. About 520 Jev input tokens a message and one OpenAI
+//     call. Cap "engage-dms".
+// Text mostly in another script is "unsorted" and still drafted; without Jev
+// (no key, timeout, outage) everything is unsorted, in paste order.
 //
 // Secrets: OPENAI_API_KEY, TYPESAFE_API_KEY. Deploy WITH JWT verification:
 //   supabase functions deploy engage-assist --project-ref hgdbflprrficdoyxmdxe --use-api
@@ -19,7 +24,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import { openAiJson } from "../_shared/auditRunner.ts";
-import { buildRepliesPrompt, commentQuestions, commentState, parseEngageRequest, readCommentKinds, readReplies } from "./logic.ts";
+import {
+  buildDmsPrompt,
+  buildRepliesPrompt,
+  commentQuestions,
+  commentState,
+  dmQuestions,
+  parseEngageRequest,
+  readCommentKinds,
+  readDmKinds,
+  readDmReplies,
+  readReplies,
+} from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,10 +62,24 @@ Deno.serve(async (req) => {
     const key = Deno.env.get("OPENAI_API_KEY");
     if (!key) return json({ error: "Drafting isn't switched on yet." }, 503);
 
-    const usage = await consumeUsage(admin, uid, "engage-replies");
+    const usage = await consumeUsage(admin, uid, r.mode === "dms" ? "engage-dms" : "engage-replies");
     if (!usage.allowed) {
       const refusal = usageRefusal(usage);
       return json(refusal.body, refusal.status);
+    }
+    const used = { used: usage.used, limit: usage.limit };
+
+    if (r.mode === "dms") {
+      const questions = dmQuestions(r.messages);
+      const answers = Object.keys(questions).length ? await askJev({}, questions, { who: "engage-assist dms" }) : null;
+      const sorted = readDmKinds(answers, r.messages);
+      let content: string | null = null;
+      if (sorted.some((x) => x.kind !== "spam" && !x.automated)) {
+        const { system, user } = buildDmsPrompt(r.messages, sorted);
+        content = await openAiJson(system, user, key, { temperature: 0.6, maxTokens: 3000 });
+        if (content === null) return json({ error: "Couldn't write the replies right now. Try again in a minute." }, 502);
+      }
+      return json({ items: readDmReplies(content, r.messages, sorted), usage: used });
     }
 
     const questions = commentQuestions(r.comments);
@@ -61,7 +91,7 @@ Deno.serve(async (req) => {
       content = await openAiJson(system, user, key, { temperature: 0.6, maxTokens: 3000 });
       if (content === null) return json({ error: "Couldn't write the replies right now. Try again in a minute." }, 502);
     }
-    return json({ items: readReplies(content, r.comments, kinds), usage: { used: usage.used, limit: usage.limit } });
+    return json({ items: readReplies(content, r.comments, kinds), usage: used });
   } catch (e) {
     console.error("engage-assist failed", e);
     return json({ error: "Something went wrong. Try again." }, 500);

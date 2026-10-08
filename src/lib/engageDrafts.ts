@@ -10,14 +10,24 @@
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
-import { MAX_ITEMS, type Pasted, type ReplyItem } from "../../supabase/functions/engage-assist/logic.ts";
+import { MAX_ITEMS, type Pasted } from "../../supabase/functions/engage-assist/logic.ts";
 
-export { MAX_ITEMS, MAX_ITEM_CHARS, MAX_POST_CHARS, type CommentKind, type Pasted, type ReplyItem } from "../../supabase/functions/engage-assist/logic.ts";
+export {
+  MAX_ITEMS,
+  MAX_ITEM_CHARS,
+  MAX_POST_CHARS,
+  type CommentKind,
+  type DmItem,
+  type DmKind,
+  type Pasted,
+  type ReplyItem,
+} from "../../supabase/functions/engage-assist/logic.ts";
 
 /**
  * Pasted text as separate comments: split on blank lines, or on every line
  * when there are none. "Name: text" gives the name when the part before the
- * colon looks like one (capital or @ first, four words at most).
+ * colon looks like one (a capital, a letter with no case such as Chinese, or @
+ * first; four words at most).
  */
 export function splitPasted(raw: string): Pasted[] {
   const text = raw.replace(/\r/g, "").trim();
@@ -29,22 +39,24 @@ export function splitPasted(raw: string): Pasted[] {
     .map((b) => {
       const m = /^([^:\n]{1,40}):[ \t]*(\S[\s\S]*)$/.exec(b);
       const name = m?.[1].trim() ?? "";
-      if (m && /^[@\p{Lu}]/u.test(name) && name.split(/\s+/).length <= 4) return { name: name.replace(/^@/, ""), text: m[2].trim() };
+      if (m && /^[@\p{Lu}\p{Lo}]/u.test(name) && name.split(/\s+/).length <= 4) return { name: name.replace(/^@/, ""), text: m[2].trim() };
       return { name: "", text: b };
     });
 }
 
-export type EngageTool = "replies";
+export type EngageTool = "replies" | "dms";
 
-export interface RepliesRun {
+/** A tool's last run: what was pasted and the drafts that came back. */
+export interface Run<T> {
+  /** The post the comments sit under (replies only). */
   post: string;
   pasted: string;
-  items: ReplyItem[];
+  items: T[];
   /** When the drafts came back; "" before the first run. */
   at: string;
 }
 
-const emptyRuns: { replies: RepliesRun } = { replies: { post: "", pasted: "", items: [], at: "" } };
+const emptyRun = { post: "", pasted: "", items: [], at: "" };
 
 const keyFor = (tool: EngageTool, userId: string) => `cs-engage-${tool}-${scoped(userId)}`;
 
@@ -56,11 +68,11 @@ function store(): Storage | null {
   }
 }
 
-export function loadRun(tool: "replies", userId: string | null | undefined): RepliesRun {
-  if (!userId) return emptyRuns[tool];
+export function loadRun<T>(tool: EngageTool, userId: string | null | undefined): Run<T> {
+  if (!userId) return emptyRun;
   try {
     const v = JSON.parse(store()?.getItem(keyFor(tool, userId)) ?? "null");
-    if (!v || typeof v !== "object") return emptyRuns[tool];
+    if (!v || typeof v !== "object") return emptyRun;
     return {
       post: typeof v.post === "string" ? v.post : "",
       pasted: typeof v.pasted === "string" ? v.pasted : "",
@@ -68,11 +80,11 @@ export function loadRun(tool: "replies", userId: string | null | undefined): Rep
       at: typeof v.at === "string" ? v.at : "",
     };
   } catch {
-    return emptyRuns[tool];
+    return emptyRun;
   }
 }
 
-export function saveRun(tool: "replies", userId: string, run: RepliesRun): RepliesRun {
+export function saveRun<T>(tool: EngageTool, userId: string, run: Run<T>): Run<T> {
   try {
     store()?.setItem(keyFor(tool, userId), JSON.stringify(run));
   } catch {
@@ -88,19 +100,22 @@ const running = new Map<string, Promise<EngageOutcome>>();
 /** The run still going for this tool, if one is. */
 export const runningJob = (tool: EngageTool, userId: string) => running.get(keyFor(tool, userId));
 
-/** Sorts and drafts replies; the result is saved even if the page was left meanwhile. */
-export function startReplies(userId: string, post: string, pasted: string): Promise<EngageOutcome> {
-  const key = keyFor("replies", userId);
-  const comments = splitPasted(pasted).slice(0, MAX_ITEMS);
-  const job = callFn<{ items?: ReplyItem[] }>("engage-assist", { mode: "replies", post, comments }, "Couldn't write the replies right now. Try again in a minute.")
+const FAILED = "Couldn't write the replies right now. Try again in a minute.";
+
+/** Sorts and drafts what was pasted; the result is saved even if the page was left meanwhile. */
+export function startRun(tool: EngageTool, userId: string, pasted: string, post = ""): Promise<EngageOutcome> {
+  const key = keyFor(tool, userId);
+  const list = splitPasted(pasted).slice(0, MAX_ITEMS);
+  const body = tool === "replies" ? { mode: tool, post, comments: list } : { mode: tool, messages: list };
+  const job = callFn<{ items?: unknown[] }>("engage-assist", body, FAILED)
     .then((res): EngageOutcome => {
-      if (!Array.isArray(res?.items)) return { kind: "error", message: "Couldn't write the replies right now. Try again in a minute." };
-      saveRun("replies", userId, { ...loadRun("replies", userId), items: res.items, at: new Date().toISOString() });
+      if (!Array.isArray(res?.items)) return { kind: "error", message: FAILED };
+      saveRun(tool, userId, { ...loadRun(tool, userId), items: res.items, at: new Date().toISOString() });
       return { kind: "ok" };
     })
     .catch((e): EngageOutcome => {
       const limit = e instanceof EdgeError && (e.status === 429 || e.code === "daily_limit");
-      return { kind: limit ? "limit" : "error", message: e instanceof Error ? e.message : "Couldn't write the replies right now." };
+      return { kind: limit ? "limit" : "error", message: e instanceof Error ? e.message : FAILED };
     })
     .finally(() => running.delete(key));
   running.set(key, job);
