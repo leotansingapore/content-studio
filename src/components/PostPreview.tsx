@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import { supabase } from "@/lib/supabase";
 import { loadBrand, type CarouselBrand } from "@/lib/carousel";
-import { withSignOff } from "@/lib/plainText";
+import { withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
 import { foldAt } from "@/lib/platformCounters";
 
 // A lightweight, platform-flavoured preview of a draft so the consultant can
@@ -97,10 +97,13 @@ export default function PostPreview({
   text,
   platform,
   format,
+  disclosure = [],
 }: {
   text: string;
   platform: Platform;
   format?: string;
+  /** Disclosure labels a copy adds after the sign-off. */
+  disclosure?: readonly DisclosureId[];
 }) {
   const brand = useBrandKit();
   const body = text.trim();
@@ -113,7 +116,7 @@ export default function PostPreview({
     ? splitScriptCaption(body)
     : { script: null, caption: body };
   const script = split.script;
-  const caption = withSignOff(split.caption, brand?.signOff);
+  const caption = withDisclosure(withSignOff(split.caption, brand?.signOff), disclosure);
   const handle = (brand?.handle ?? "").replace(/^@/, "").trim() || "your_handle";
   const mediaLabel = MEDIA_LABELS[format ?? ""] ?? "Your image / carousel";
 

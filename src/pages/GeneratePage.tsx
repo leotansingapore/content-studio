@@ -83,7 +83,13 @@ import {
   type LimitCheck,
 } from "@/lib/platformCounters";
 import { splitScriptCaption } from "@/lib/scriptCaption";
-import { toPlainText, withSignOff } from "@/lib/plainText";
+import {
+  DISCLOSURES,
+  toPlainText,
+  withDisclosure,
+  withSignOff,
+  type DisclosureId,
+} from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
 import { streamOnePost } from "@/lib/batchGenerate";
 import QuickTip from "@/components/QuickTip";
@@ -488,6 +494,8 @@ export default function GeneratePage() {
   const [ctaType, setCtaType] = useState<CtaType>("dm-keyword");
   const [audience, setAudience] = useState<Audience>("general");
   const [singlish, setSinglish] = useState<boolean>(false);
+  // Disclosure labels added to the end of the post on copy. Off by default.
+  const [disclosure, setDisclosure] = useState<DisclosureId[]>([]);
   // Funnel stage (Willis Lau's ABC funnel) — steers ideation + the draft.
   const [funnelStage, setFunnelStage] = useState<FunnelStageId | null>(null);
   // Competitor whose angle to reference (optional).
@@ -603,6 +611,9 @@ export default function GeneratePage() {
             if (PLATFORMS.some((p) => p.value === brief.platform)) setPlatform(brief.platform);
             if (FORMATS.some((f) => f.value === brief.format)) setFormat(brief.format);
             if (CTAS.some((c) => c.value === brief.ctaType)) setCtaType(brief.ctaType);
+            if (Array.isArray(brief.disclosure)) {
+              setDisclosure(brief.disclosure.filter((d: string) => d in DISCLOSURES));
+            }
             if (typeof brief.wizardStep === "number") {
               setWizardStep(Math.min(LAST_STEP, Math.max(0, brief.wizardStep)));
             }
@@ -843,9 +854,11 @@ export default function GeneratePage() {
     [draft, platform, svSplit],
   );
 
-  // What a copy puts on the clipboard: plain text plus the brand kit sign-off.
+  // What a copy puts on the clipboard: plain text, the brand kit sign-off and
+  // any disclosure line.
   const brandSignOff = useMemo(() => loadBrand(userId)?.signOff?.trim() ?? "", [userId]);
-  const forPosting = (text: string) => withSignOff(toPlainText(text), brandSignOff);
+  const forPosting = (text: string) =>
+    withDisclosure(withSignOff(toPlainText(text), brandSignOff), disclosure);
   const limits = checkLimits(forPosting(svSplit ? svSplit.caption : draft), platform);
 
   // Live craft check on the current draft (reuses the Coach engine).
@@ -881,6 +894,7 @@ export default function GeneratePage() {
             format,
             ctaType,
             wizardStep,
+            disclosure,
           }),
         );
       }
@@ -901,6 +915,7 @@ export default function GeneratePage() {
     format,
     ctaType,
     wizardStep,
+    disclosure,
   ]);
 
   // The variant rows mount once the stream starts, after an async session read.
@@ -2462,7 +2477,7 @@ export default function GeneratePage() {
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5" /> Live preview
                 </div>
-                <PostPreview text={draft} platform={platform} format={format} />
+                <PostPreview text={draft} platform={platform} format={format} disclosure={disclosure} />
               </div>
             </div>
 
@@ -2492,6 +2507,31 @@ export default function GeneratePage() {
                 </span>
               )}
               <LimitChips check={limits} platform={platform} />
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">Disclose</span>
+              {(Object.keys(DISCLOSURES) as DisclosureId[]).map((id) => {
+                const on = disclosure.includes(id);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() =>
+                      setDisclosure((prev) => (on ? prev.filter((d) => d !== id) : [...prev, id]))
+                    }
+                    className={`flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors ${
+                      on
+                        ? "border-primary/60 bg-primary/10 text-primary"
+                        : "border-border/70 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {on && <Check className="h-3.5 w-3.5" />}
+                    {DISCLOSURES[id].label}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -2714,7 +2754,12 @@ export default function GeneratePage() {
                   <LimitChips check={versionLimits} platform={shownVersion.platform} />
                 </div>
               )}
-              <PostPreview text={shownVersion.text} platform={shownVersion.platform} format={format} />
+              <PostPreview
+                text={shownVersion.text}
+                platform={shownVersion.platform}
+                format={format}
+                disclosure={disclosure}
+              />
             </CardContent>
           </Card>
         )}

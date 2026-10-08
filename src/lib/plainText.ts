@@ -83,3 +83,23 @@ export function withSignOff(text: string, signOff: string | null | undefined): s
   const kept = lines.join("\n").trim();
   return kept ? `${body}\n\n${kept}` : body;
 }
+
+// Disclosure labels a post can carry, in the order they are written.
+export const DISCLOSURES = {
+  ai: { label: "AI-assisted", line: "Written with AI assistance." },
+  paid: { label: "Paid partnership", line: "Paid partnership." },
+  sponsored: { label: "Sponsored", line: "Sponsored." },
+} as const;
+export type DisclosureId = keyof typeof DISCLOSURES;
+
+/** The chosen disclosures as one short closing line, added once. */
+export function withDisclosure(text: string, ids: readonly DisclosureId[]): string {
+  const line = (Object.keys(DISCLOSURES) as DisclosureId[])
+    .filter((id) => ids.includes(id))
+    .map((id) => DISCLOSURES[id].line)
+    .join(" ");
+  if (!line) return text;
+  const body = text.trimEnd();
+  if (body.endsWith(line)) return body;
+  return body ? `${body}\n\n${line}` : line;
+}

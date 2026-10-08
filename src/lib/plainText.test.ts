@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { withSignOff } from "@/lib/plainText";
+import { withDisclosure, withSignOff } from "@/lib/plainText";
 
 describe("withSignOff", () => {
   const sign = "DM me PLAN for a free review.\nThis is not financial advice.\n#cpf #singapore";
@@ -22,5 +22,19 @@ describe("withSignOff", () => {
     // a hashtag-only line that is all repeats goes entirely
     expect(withSignOff("Body #cpf #singapore", sign)).toBe("Body #cpf #singapore\n\nDM me PLAN for a free review.\nThis is not financial advice.");
     expect(withSignOff("Body #cpf", "#cpf")).toBe("Body #cpf");
+  });
+});
+
+describe("withDisclosure", () => {
+  it("adds one short line for the chosen disclosures, in a fixed order, once", () => {
+    expect(withDisclosure("Body.", [])).toBe("Body.");
+    expect(withDisclosure("Body.\n", ["sponsored", "ai"])).toBe("Body.\n\nWritten with AI assistance. Sponsored.");
+    const once = withDisclosure("Body.", ["paid"]);
+    expect(once).toBe("Body.\n\nPaid partnership.");
+    expect(withDisclosure(once, ["paid"])).toBe(once);
+  });
+
+  it("goes after the sign-off", () => {
+    expect(withDisclosure(withSignOff("Body.", "Leo #cpf"), ["ai"])).toBe("Body.\n\nLeo #cpf\n\nWritten with AI assistance.");
   });
 });
