@@ -291,6 +291,18 @@ describe("brand", () => {
     expect(sanitizeBrand({ color: "red", name: 5, handle: "@j" })).toEqual({ color: "#1E3A8A", name: "", handle: "@j" });
   });
 
+  it("keeps brand kit images only when they are small base64 image data URLs", () => {
+    const ok = "data:image/png;base64,iVBORw0KGgo=";
+    const kit = sanitizeBrand({ color: "#000000", name: "J", handle: "@j", photo: ok, logo: ok, role: "Adviser", signOff: "DM me" });
+    expect(kit).toMatchObject({ photo: ok, logo: ok, role: "Adviser", signOff: "DM me" });
+    for (const bad of ["javascript:alert(1)", "data:image/svg+xml;base64,PHN2Zz4=", "data:text/html;base64,PGI+", `${ok}"onload="x`, `data:image/png;base64,${"A".repeat(400_000)}`]) {
+      expect(sanitizeBrand({ photo: bad, logo: bad }).photo).toBeUndefined();
+      expect(sanitizeBrand({ photo: bad, logo: bad }).logo).toBeUndefined();
+    }
+    // a patch without the image keys keeps the saved ones
+    expect(sanitizeBrand({ name: "K" }, kit).photo).toBe(ok);
+  });
+
   it("saves and loads the brand under a synced content-studio- key", () => {
     const store = new Map<string, string>();
     vi.stubGlobal("window", {

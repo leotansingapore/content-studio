@@ -545,10 +545,20 @@ export function draftLabel(d: Pick<DraftEntry, "hook" | "draft">, max = 70): str
 
 // ---- Brand --------------------------------------------------------------------
 
+// The brand kit (My Playbook > Brand kit). One per profile; carousels, videos
+// and copied posts all read it.
 export interface CarouselBrand {
   color: string;
   name: string;
   handle: string;
+  /** "Financial adviser": the video name tag's second line. */
+  role?: string;
+  /** Square headshot as a small JPEG data URL: carousel footers and the video end card. */
+  photo?: string;
+  /** Logo as a PNG/WebP data URL: the video watermark. */
+  logo?: string;
+  /** Sign-off added to the end of a post when it is copied: call to action, disclaimer, usual hashtags. */
+  signOff?: string;
 }
 
 export const BRAND_PRESETS: { name: string; color: string }[] = [
@@ -563,7 +573,18 @@ export const BRAND_PRESETS: { name: string; color: string }[] = [
 export const DEFAULT_BRAND: CarouselBrand = { color: BRAND_PRESETS[0].color, name: "", handle: "" };
 export const MAX_NAME_CHARS = 40;
 export const MAX_HANDLE_CHARS = 40;
+export const MAX_ROLE_CHARS = 50;
+export const MAX_SIGNOFF_CHARS = 600;
+/** Encoded image cap: keeps a synced brand kit small. */
+export const MAX_IMAGE_CHARS = 350_000;
 export const BRAND_KEY_PREFIX = "content-studio-carousel-brand-";
+
+const IMAGE_DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+
+/** Only a base64 PNG, JPEG or WebP data URL under the size cap; anything else is dropped. */
+export function sanitizeImage(raw: unknown): string | undefined {
+  return typeof raw === "string" && raw.length <= MAX_IMAGE_CHARS && IMAGE_DATA_URL.test(raw) ? raw : undefined;
+}
 
 export function normalizeHex(input: string): string | null {
   const m = String(input ?? "")
@@ -591,6 +612,10 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     color: normalizeHex(String(r.color ?? "")) ?? fallback.color,
     name: typeof r.name === "string" ? r.name.slice(0, MAX_NAME_CHARS) : fallback.name,
     handle: typeof r.handle === "string" ? r.handle.slice(0, MAX_HANDLE_CHARS) : fallback.handle,
+    role: typeof r.role === "string" ? r.role.slice(0, MAX_ROLE_CHARS) : fallback.role,
+    photo: "photo" in r ? sanitizeImage(r.photo) : fallback.photo,
+    logo: "logo" in r ? sanitizeImage(r.logo) : fallback.logo,
+    signOff: typeof r.signOff === "string" ? r.signOff.slice(0, MAX_SIGNOFF_CHARS) : fallback.signOff,
   };
 }
 

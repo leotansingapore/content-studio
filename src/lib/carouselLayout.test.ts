@@ -130,6 +130,27 @@ describe("layoutSlide", () => {
   });
 });
 
+describe("brand kit photo", () => {
+  const PHOTO = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+
+  it("puts the headshot left of the name and moves the name over", () => {
+    const layout = layoutSlide({ title: "T", body: "", index: 1, total: 3, brand: { ...brand, photo: PHOTO } }, measure);
+    const img = layout.nodes.find((n) => n.type === "image");
+    expect(img).toMatchObject({ type: "image", x: PAD_X, href: PHOTO });
+    expect(img && img.type === "image" && img.y > FOOTER_RULE_Y && img.y + img.size < SLIDE_HEIGHT).toBe(true);
+    expect(textNodes(layout.nodes).find((t) => t.text === "Jane Tan")?.x).toBe(PAD_X + 88 + 24);
+    const svg = renderSvg(layout);
+    expect(svg).toContain(`<image href="${PHOTO}"`);
+    expect(svg).toMatch(/<clipPath id="c\d+"><circle /);
+  });
+
+  it("ignores a photo that isn't an image data URL", () => {
+    const layout = layoutSlide({ title: "T", body: "", index: 1, total: 3, brand: { ...brand, photo: 'https://x.test/a.png"/><script>' } }, measure);
+    expect(layout.nodes.some((n) => n.type === "image")).toBe(false);
+    expect(textNodes(layout.nodes).find((t) => t.text === "Jane Tan")?.x).toBe(PAD_X);
+  });
+});
+
 describe("renderSvg", () => {
   it("writes a 1080x1350 SVG with escaped text", () => {
     const layout = layoutSlide({ title: 'Fees <5% & "fair"', body: "", index: 1, total: 3, brand }, measure);

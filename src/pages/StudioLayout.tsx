@@ -95,7 +95,7 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
         to: "/playbook",
         label: "My Playbook",
         icon: BookMarked,
-        also: ["/voice", "/fads"],
+        also: ["/voice", "/brand", "/fads"],
       },
       // The public feedback board: marked New until it has been opened once.
       { to: "/feedback", label: "Feedback", icon: MessageSquarePlus, isNew: feedbackIsNew },

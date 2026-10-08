@@ -21,6 +21,7 @@ export const WRITE_TABS: SectionTab[] = [
 export const PLAYBOOK_TABS: SectionTab[] = [
   { to: "/playbook", label: "My Playbook" },
   { to: "/voice", label: "Your voice" },
+  { to: "/brand", label: "Brand kit" },
   { to: "/fads", label: "F.A.D.S." },
 ];
 

@@ -23,6 +23,7 @@ const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
 const AnalyticsPage = lazy(() => import("@/pages/AnalyticsPage"));
 const PlanPage = lazy(() => import("@/pages/PlanPage"));
 const VoicePage = lazy(() => import("@/pages/VoicePage"));
+const BrandPage = lazy(() => import("@/pages/BrandPage"));
 const DraftsPage = lazy(() => import("@/pages/DraftsPage"));
 const BoardPage = lazy(() => import("@/pages/BoardPage"));
 const GeneratePage = lazy(() => import("@/pages/GeneratePage"));
@@ -86,6 +87,7 @@ export default function App() {
           <Route path="/clone" element={<CloneReelPage />} />
           <Route path="/create-guide" element={<CreateGuidePage />} />
           <Route path="/voice" element={<VoicePage />} />
+          <Route path="/brand" element={<BrandPage />} />
           <Route path="/drafts" element={<DraftsPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/board" element={<BoardPage />} />

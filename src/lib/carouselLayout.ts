@@ -6,7 +6,7 @@
 // Fonts: an SVG drawn into a canvas can't load web fonts, so slides use system
 // serif and sans stacks, which render the same in the SVG and in measureText.
 
-import { normalizeHandle, slideRole, type CarouselBrand, type SlideRole } from "@/lib/carousel";
+import { normalizeHandle, sanitizeImage, slideRole, type CarouselBrand, type SlideRole } from "@/lib/carousel";
 
 export const SLIDE_WIDTH = 1080;
 export const SLIDE_HEIGHT = 1350;
@@ -139,7 +139,9 @@ export type SvgNode =
       fill: string;
       opacity?: number;
       anchor?: "end";
-    };
+    }
+  /** A square picture clipped to a circle (the brand kit headshot). */
+  | { type: "image"; x: number; y: number; size: number; href: string };
 
 export interface SlideLayout {
   width: number;
@@ -307,7 +309,12 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
     anchor: "end",
     ...mutedOpacity,
   });
-  const footerWidth = CONTENT_WIDTH - measure(numberText, numberFont) - 48;
+  // the brand kit headshot, a circle left of the name
+  const PHOTO = 88;
+  const photo = sanitizeImage(input.brand.photo);
+  if (photo) nodes.push({ type: "image", x: PAD_X, y: middle - PHOTO / 2, size: PHOTO, href: photo });
+  const textX = photo ? PAD_X + PHOTO + 24 : PAD_X;
+  const footerWidth = CONTENT_WIDTH - (textX - PAD_X) - measure(numberText, numberFont) - 48;
   const fit = (text: string, font: FontSpec) =>
     measure(text, font) <= footerWidth ? text : ellipsize(text, footerWidth, font, measure);
   const name = String(input.brand.name ?? "").replace(/\s+/g, " ").trim();
@@ -315,12 +322,12 @@ export function layoutSlide(input: SlideInput, measure: Measure): SlideLayout {
   const nameFont: FontSpec = { family: "sans", weight: 600, size: 34 };
   const handleFont: FontSpec = { family: "sans", weight: 400, size: 30 };
   if (name) {
-    nodes.push({ type: "text", x: PAD_X, y: handle ? middle - 8 : middle + 12, text: fit(name, nameFont), font: nameFont, fill: ink });
+    nodes.push({ type: "text", x: textX, y: handle ? middle - 8 : middle + 12, text: fit(name, nameFont), font: nameFont, fill: ink });
   }
   if (handle) {
     nodes.push({
       type: "text",
-      x: PAD_X,
+      x: textX,
       y: name ? middle + 34 : middle + 11,
       text: fit(handle, handleFont),
       font: handleFont,
@@ -352,7 +359,15 @@ export function renderSvg(layout: SlideLayout): string {
   const out = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}" viewBox="0 0 ${layout.width} ${layout.height}">`,
   ];
-  for (const node of layout.nodes) {
+  layout.nodes.forEach((node, i) => {
+    if (node.type === "image") {
+      const r = node.size / 2;
+      out.push(
+        `<clipPath id="c${i}"><circle cx="${node.x + r}" cy="${node.y + r}" r="${r}"/></clipPath>`,
+        `<image href="${escapeXml(node.href)}" x="${node.x}" y="${node.y}" width="${node.size}" height="${node.size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#c${i})"/>`,
+      );
+      return;
+    }
     const opacity = node.opacity !== undefined ? ` fill-opacity="${node.opacity}"` : "";
     if (node.type === "rect") {
       out.push(
@@ -365,7 +380,7 @@ export function renderSvg(layout: SlideLayout): string {
         `<text x="${node.x}" y="${node.y}" font-family="${escapeXml(family)}" font-size="${node.font.size}" font-weight="${node.font.weight}" fill="${escapeXml(node.fill)}"${opacity}${anchor}>${escapeXml(node.text)}</text>`,
       );
     }
-  }
+  });
   out.push("</svg>");
   return out.join("");
 }
