@@ -366,7 +366,8 @@ export function aspectSize(aspect: Aspect, srcW: number, srcH: number): [number,
 }
 
 export function fmtTime(t: number): string {
-  const s = Math.max(0, t);
+  // round to the tenth first, so 179.99 s reads 3:00.0, not 2:60.0
+  const s = Math.round(Math.max(0, t) * 10) / 10;
   return `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 }
 

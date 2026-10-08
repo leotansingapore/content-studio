@@ -262,3 +262,12 @@ describe("platform length rules", () => {
   });
 });
 
+describe("fmtTime", () => {
+  it("never shows 60 seconds", async () => {
+    const { fmtTime } = await import("@/lib/videoEdit");
+    expect(fmtTime(179.99)).toBe("3:00.0");
+    expect(fmtTime(59.96)).toBe("1:00.0");
+    expect(fmtTime(65.24)).toBe("1:05.2");
+    expect(fmtTime(-2)).toBe("0:00.0");
+  });
+});
