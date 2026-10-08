@@ -118,3 +118,13 @@ describe("recruitment analytics", () => {
     ]);
   });
 });
+
+describe("whatsappLink", () => {
+  it("opens WhatsApp with the script and the first name filled in", async () => {
+    const { whatsappLink } = await import("@/components/recruit/Conversations");
+    const url = whatsappLink("Hi [name]! I'm working on a series.", "Jun Xion Tan");
+    expect(url.startsWith("https://wa.me/?text=")).toBe(true);
+    expect(decodeURIComponent(url.split("text=")[1])).toBe("Hi Jun! I'm working on a series.");
+  });
+});
+

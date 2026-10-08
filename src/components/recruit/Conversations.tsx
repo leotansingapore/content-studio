@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,12 @@ import { personalisedScript, type RecruitBrain } from "@/lib/recruit";
 import { CopyButton, Part } from "./shared";
 
 type Update = (fn: (b: RecruitBrain) => RecruitBrain) => void;
+
+/** WhatsApp's own share link with the script, the person's first name filled in; they pick the chat. */
+export function whatsappLink(script: string, name: string): string {
+  const first = name.trim().split(/\s+/)[0] ?? "";
+  return `https://wa.me/?text=${encodeURIComponent(script.replace("[name]", first))}`;
+}
 type Row = RecruitBrain["conversations"][number];
 
 export default function Conversations({ brain, update, done }: { brain: RecruitBrain; update: Update; done: boolean }) {
@@ -75,6 +82,18 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
                   aria-label={`Conversation ${i + 1} name`}
                   className="h-9 min-w-0 flex-1 basis-40"
                 />
+                {r.name.trim() && (
+                  <a
+                    href={whatsappLink(script, r.name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => !r.sent && setRow(i, { sent: true })}
+                    className="inline-flex h-9 items-center gap-1 rounded-lg border border-success/40 px-2.5 text-[11px] font-semibold text-success hover:bg-success/10"
+                    aria-label={`Send the script to ${r.name} on WhatsApp`}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                  </a>
+                )}
                 <div className="flex gap-1">
                   {(["sent", "replied", "booked"] as const).map((k) => (
                     <button
