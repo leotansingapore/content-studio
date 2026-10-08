@@ -77,7 +77,8 @@ import {
 import { SLIDE_FONTS, SLIDE_HEIGHT, SLIDE_WIDTH, layoutSlide, renderSvg, type SlideFont, type SlidePaper } from "@/lib/carouselLayout";
 import { createCanvasMeasure, downloadBlob, svgDataUrl, svgToJpeg, svgToPng } from "@/lib/carouselRender";
 import { buildPdf } from "@/lib/pdf";
-import { getFile, putFile } from "@/lib/deviceFiles";
+import { getFile } from "@/lib/deviceFiles";
+import { addMedia, loadMedia, storePicture, type MediaItem } from "@/lib/mediaLibrary";
 import { CarouselCopyError, tightenSlides } from "@/lib/carouselCopy";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -327,29 +328,25 @@ export default function CarouselPage() {
     if (!file) return;
     if (!file.type.startsWith("image/")) return toast({ title: "Pick an image file", variant: "destructive" });
     try {
-      const src = URL.createObjectURL(file);
-      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const i = new Image();
-        i.onload = () => resolve(i);
-        i.onerror = () => reject(new Error("That file isn't an image this browser can read."));
-        i.src = src;
-      });
-      URL.revokeObjectURL(src);
-      // the slide shows it 888 x 470, so 1080 wide is plenty
-      const k = Math.min(1, 1080 / img.naturalWidth);
-      const c = document.createElement("canvas");
-      c.width = Math.round(img.naturalWidth * k);
-      c.height = Math.round(img.naturalHeight * k);
-      c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
-      const url = c.toDataURL("image/jpeg", 0.85);
-      const blob = await (await fetch(url)).blob();
-      const key = `cimg-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-      await putFile(key, blob);
-      setPictures((p) => ({ ...p, [key]: url }));
-      change((prev) => prev.map((x) => (x.id === slideId ? { ...x, image: key } : x)));
+      // the slide shows it 888 x 470, so 1080 wide is plenty; it joins the media library too
+      const pic = await storePicture(file);
+      if (userId) addMedia(userId, { key: pic.key, name: file.name.replace(/\.[^.]+$/, "").slice(0, 80), folder: "", alt: "", width: pic.width, height: pic.height, addedAt: new Date().toISOString() });
+      setPictures((p) => ({ ...p, [pic.key]: pic.url }));
+      change((prev) => prev.map((x) => (x.id === slideId ? { ...x, image: pic.key } : x)));
     } catch (e) {
       toast({ title: "Couldn't add that picture", description: (e as Error).message, variant: "destructive" });
     }
+  };
+  // From media: pick a photo already in the library for a slide
+  const [mediaFor, setMediaFor] = useState<string | null>(null);
+  const [media, setMedia] = useState<MediaItem[]>([]);
+  const openMedia = (slideId: string) => {
+    setMedia(loadMedia(userId));
+    setMediaFor((cur) => (cur === slideId ? null : slideId));
+  };
+  const pickMedia = (slideId: string, key: string) => {
+    change((prev) => prev.map((x) => (x.id === slideId ? { ...x, image: key } : x)));
+    setMediaFor(null);
   };
 
   // a carousel from a topic or a pasted article: one AI call writes the post, it is
@@ -1123,6 +1120,9 @@ export default function CarouselPage() {
                             <ImagePlus className="h-3.5 w-3.5" /> {s.image ? "Change picture" : "Add a picture"}
                             <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void addPicture(s.id, f); }} />
                           </label>
+                          <Button type="button" size="sm" variant="outline" className="h-8 text-xs" aria-expanded={mediaFor === s.id} onClick={() => openMedia(s.id)} disabled={busy}>
+                            From media
+                          </Button>
                           {s.image && (
                             <Button type="button" size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground"
                               onClick={() => change((prev) => prev.map((x) => (x.id === s.id ? { id: x.id, title: x.title, body: x.body } : x)))}>
@@ -1130,6 +1130,21 @@ export default function CarouselPage() {
                             </Button>
                           )}
                         </div>
+                        {mediaFor === s.id && (
+                          <div className="rounded-lg border border-border/60 p-2">
+                            {media.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">No photos in Media yet. <Link to="/media" className="font-semibold text-primary hover:underline">Add some</Link></p>
+                            ) : (
+                              <ul className="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto sm:grid-cols-6">
+                                {media.map((m) => (
+                                  <li key={m.key}>
+                                    <MediaThumb item={m} onPick={() => pickMedia(s.id, m.key)} />
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
                         {layouts[i]?.overflow && (
                           <p className="flex items-start gap-1.5 text-xs text-amber-800">
                             <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -1260,5 +1275,26 @@ export default function CarouselPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/** A library photo in the From media picker, loaded from this device. */
+function MediaThumb({ item, onPick }: { item: MediaItem; onPick: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let made = "";
+    void getFile(item.key).then((b) => {
+      if (b) setUrl((made = URL.createObjectURL(b)));
+      else setUrl("");
+    });
+    return () => {
+      if (made) URL.revokeObjectURL(made);
+    };
+  }, [item.key]);
+  return (
+    <button type="button" onClick={onPick} disabled={url === ""} title={item.name} aria-label={`Use ${item.name}`}
+      className="block aspect-square w-full overflow-hidden rounded-md border border-border/70 bg-muted hover:border-primary disabled:opacity-40">
+      {url ? <img src={url} alt={item.alt || item.name} className="h-full w-full object-cover" /> : null}
+    </button>
   );
 }

@@ -75,6 +75,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/generate/batch", label: "Batch" },
       { to: "/carousel", label: "Carousel" },
       { to: "/edit", label: "Video" },
+      { to: "/media", label: "Media" },
     ],
   },
   {
