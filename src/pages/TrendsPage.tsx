@@ -15,6 +15,7 @@ import {
   type TrendPlatform,
 } from "@/lib/trends";
 import { cloneLinkFor } from "@/lib/reelClone";
+import VideoEmbed from "@/components/VideoEmbed";
 import {
   Flame,
   Wand2,
@@ -190,6 +191,8 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
             )}
           </div>
         )}
+
+        <VideoEmbed url={trend.source_url} label={trend.title} />
 
         {trend.trend_source && (
           <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">

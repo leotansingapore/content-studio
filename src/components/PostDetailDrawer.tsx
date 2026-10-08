@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import VideoEmbed from "@/components/VideoEmbed";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -136,6 +137,10 @@ export default function PostDetailDrawer({
               </span>
             )}
           </div>
+
+          {(post.type === "Video" || post.productType === "clips") && (
+            <VideoEmbed url={post.url} label={`${post.advisorName} reel`} />
+          )}
 
           {/* Creator + stats */}
           <div className="flex flex-wrap items-center justify-between gap-2">
