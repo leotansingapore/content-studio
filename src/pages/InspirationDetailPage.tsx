@@ -17,7 +17,8 @@ import {
   Facebook,
 } from "lucide-react";
 import inspirationData from "@/data/inspiration.json";
-import { type InspirationEntry } from "@/components/Inspiration";
+import { FORMAT_OPTIONS, type InspirationEntry } from "@/components/Inspiration";
+import { humanLabel } from "@/lib/utils";
 
 const ENTRIES = inspirationData as InspirationEntry[];
 
@@ -29,22 +30,6 @@ const PLATFORM_META: Record<
   instagram: { label: "Instagram", Icon: Instagram },
   facebook: { label: "Facebook", Icon: Facebook },
 };
-
-function formatCurriculumAnchor(anchor: string): string {
-  return anchor
-    .split(":")
-    .map((part) =>
-      part
-        .split("-")
-        .map((word) =>
-          word.length > 0
-            ? word[0].toUpperCase() + word.slice(1).toLowerCase()
-            : word,
-        )
-        .join(" "),
-    )
-    .join(" - ");
-}
 
 export default function InspirationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -70,8 +55,7 @@ export default function InspirationDetailPage() {
             Inspiration not found
           </CardTitle>
           <CardDescription>
-            The id "{id}" does not match any inspiration entry. It may have been
-            renamed or removed.
+            This example may have been removed. Pick another from the list.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -121,15 +105,14 @@ export default function InspirationDetailPage() {
               {entry.pillar}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {entry.audience}
+              {humanLabel(entry.audience)}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              {entry.format}
+              {FORMAT_OPTIONS.find((f) => f.value === entry.format)?.label ?? humanLabel(entry.format)}
             </span>
           </div>
           <p className="text-[10px] font-medium text-muted-foreground">
-            Pattern: {formatCurriculumAnchor(entry.curriculum_anchor)} - Source:{" "}
-            {entry.source}
+            Pattern: {humanLabel(entry.curriculum_anchor.split(":").pop() ?? "")}
           </p>
           <CardTitle className="font-serif text-2xl font-semibold leading-snug">
             {entry.hook}

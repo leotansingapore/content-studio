@@ -26,6 +26,7 @@ import advisorsData from "@/data/advisors.json";
 import { type AdvisorEntry, type AdvisorPlatform } from "@/components/AdvisorProfiles";
 import TopPostCard from "@/components/TopPostCard";
 import { getTopPostsForAdvisor } from "@/lib/topPosts";
+import { humanLabel } from "@/lib/utils";
 import { TrendingUp } from "lucide-react";
 
 const ENTRIES = advisorsData as AdvisorEntry[];
@@ -68,17 +69,16 @@ export default function ProfileDetailPage() {
       <Card className="border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">
-            Profile not found
+            Creator not found
           </CardTitle>
           <CardDescription>
-            The id "{id}" does not match any profile entry. It may have been
-            renamed or removed.
+            This creator may have been removed. Pick another from the list.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline" className="gap-1.5">
             <Link to="/profiles">
-              <ArrowLeft className="h-3.5 w-3.5" /> Back to all profiles
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to all creators
             </Link>
           </Button>
         </CardContent>
@@ -113,7 +113,7 @@ export default function ProfileDetailPage() {
       <div>
         <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
           <Link to="/profiles">
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to all profiles
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to all creators
           </Link>
         </Button>
       </div>
@@ -171,7 +171,7 @@ export default function ProfileDetailPage() {
                   key={n}
                   className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
                 >
-                  {n}
+                  {humanLabel(n)}
                 </span>
               ))}
             </div>
@@ -186,7 +186,7 @@ export default function ProfileDetailPage() {
                   key={a}
                   className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
                 >
-                  {a}
+                  {humanLabel(a)}
                 </span>
               ))}
             </div>
@@ -201,7 +201,7 @@ export default function ProfileDetailPage() {
                   key={f}
                   className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
                 >
-                  {f}
+                  {humanLabel(f)}
                 </span>
               ))}
             </div>
@@ -217,11 +217,7 @@ export default function ProfileDetailPage() {
           <div className="grid gap-2 sm:grid-cols-2 text-[11px] text-muted-foreground">
             <p>
               <span className="font-semibold uppercase tracking-[0.14em]">Cadence:</span>{" "}
-              {entry.post_cadence.replace(/-/g, " ")}
-            </p>
-            <p>
-              <span className="font-semibold uppercase tracking-[0.14em]">Source:</span>{" "}
-              {entry.source}
+              {humanLabel(entry.post_cadence)}
             </p>
             <p>
               <span className="font-semibold uppercase tracking-[0.14em]">Last checked:</span>{" "}

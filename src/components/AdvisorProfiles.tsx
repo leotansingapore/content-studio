@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
+import { humanLabel } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search,
@@ -246,12 +247,12 @@ function AdvisorCard({
         <div className="space-y-3">
           <div className="flex flex-wrap gap-1">
             {entry.niche.slice(0, 4).map((n) => (
-              <TagBadge key={`n-${n}`}>{n}</TagBadge>
+              <TagBadge key={`n-${n}`}>{humanLabel(n)}</TagBadge>
             ))}
           </div>
           <div className="flex flex-wrap gap-1">
             {entry.audience.map((a) => (
-              <TagBadge key={`a-${a}`}>{a}</TagBadge>
+              <TagBadge key={`a-${a}`}>{humanLabel(a)}</TagBadge>
             ))}
           </div>
           <p className="text-sm leading-relaxed text-foreground/90">
@@ -261,7 +262,7 @@ function AdvisorCard({
             Style: {entry.style_notes}
           </p>
           <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-            Cadence: {entry.post_cadence.replace(/-/g, " ")}
+            Cadence: {humanLabel(entry.post_cadence)}
           </p>
           {entry.verification_note && (
             <p className="rounded-md border border-amber-500/30 bg-amber-500/5 px-2.5 py-1.5 text-[11px] text-amber-700">
@@ -480,6 +481,9 @@ export default function AdvisorProfiles() {
                 {c}
               </Chip>
             ))}
+            <Chip active={companies.has(COMPANY_NONE)} onClick={() => toggleCompany(COMPANY_NONE)}>
+              No company
+            </Chip>
             <span className="mx-1 hidden h-4 w-px bg-border sm:block" />
             <Chip active={savedOnly} onClick={() => setSavedOnly((v) => !v)} count={saved.creators.length > 0 ? saved.creators.length : undefined}>
               <Bookmark className="h-3 w-3" /> Saved
@@ -502,12 +506,6 @@ export default function AdvisorProfiles() {
                       {PLATFORM_META[p].label}
                     </Chip>
                   ))}
-                  <Chip
-                    active={companies.has(COMPANY_NONE)}
-                    onClick={() => toggleCompany(COMPANY_NONE)}
-                  >
-                    No company set
-                  </Chip>
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -521,7 +519,7 @@ export default function AdvisorProfiles() {
                       active={audiences.has(a)}
                       onClick={() => toggleAudience(a)}
                     >
-                      {a}
+                      {humanLabel(a)}
                     </Chip>
                   ))}
                 </div>
@@ -537,7 +535,7 @@ export default function AdvisorProfiles() {
                       active={niches.has(n)}
                       onClick={() => toggleNiche(n)}
                     >
-                      {n}
+                      {humanLabel(n)}
                     </Chip>
                   ))}
                 </div>

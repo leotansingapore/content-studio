@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
+import { humanLabel } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -50,22 +51,6 @@ export type InspirationEntry = {
   tags: string[];
 };
 
-function formatCurriculumAnchor(anchor: string): string {
-  return anchor
-    .split(":")
-    .map((part) =>
-      part
-        .split("-")
-        .map((word) =>
-          word.length > 0
-            ? word[0].toUpperCase() + word.slice(1).toLowerCase()
-            : word,
-        )
-        .join(" "),
-    )
-    .join(" - ");
-}
-
 const ENTRIES = inspirationData as InspirationEntry[];
 
 const PLATFORM_META: Record<
@@ -91,7 +76,7 @@ const PLATFORM_OPTIONS: InspirationEntry["platform"][] = [
   "facebook",
 ];
 
-const FORMAT_OPTIONS: { value: InspirationEntry["format"]; label: string }[] = [
+export const FORMAT_OPTIONS: { value: InspirationEntry["format"]; label: string }[] = [
   { value: "carousel", label: "Carousel" },
   { value: "short-video", label: "Reel / short video" },
   { value: "text-only", label: "Text" },
@@ -135,7 +120,7 @@ function PillarBadge({ pillar }: { pillar: InspirationEntry["pillar"] }) {
 function AudienceBadge({ audience }: { audience: string }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-      {audience}
+      {humanLabel(audience)}
     </span>
   );
 }
@@ -193,14 +178,11 @@ function InspirationCard({
             </button>
           )}
         </div>
-        <p className="text-[10px] font-medium text-muted-foreground">
-          Pattern: {formatCurriculumAnchor(entry.curriculum_anchor)}
-        </p>
         <CardTitle className="font-serif text-base font-semibold leading-snug">
           {entry.hook}
         </CardTitle>
         <CardDescription className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-          {entry.topic} - {entry.format}
+          {entry.topic} - {FORMAT_OPTIONS.find((f) => f.value === entry.format)?.label ?? humanLabel(entry.format)}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col justify-between gap-3">
@@ -476,7 +458,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
                       active={audiences.has(a)}
                       onClick={() => toggleAudience(a)}
                     >
-                      {a}
+                      {humanLabel(a)}
                     </Chip>
                   ))}
                 </div>
