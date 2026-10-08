@@ -344,6 +344,20 @@ const ENTRIES = inspirationData as InspirationEntry[];
 // sessionStorage, outside the synced content-studio- prefix: it is scratch.
 const briefKey = (userId: string) => `cs-write-brief-${scoped(userId)}`;
 
+// Hook / variation rows read back from the tab's saved brief. A row that never
+// finished reads as stopped rather than streaming forever.
+function restoreRows(raw: unknown): VariantState[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((r) => r && typeof r.index === "number" && typeof r.text === "string")
+    .map((r) => ({
+      index: r.index,
+      text: r.text,
+      complete: r.complete === true,
+      ...(r.complete === true ? {} : { halted: r.halted === "failed" ? ("failed" as const) : ("stopped" as const) }),
+    }));
+}
+
 // Labels for the 4 guided steps, in the order the consultant fills them in.
 const STEP_META = [
   { label: "Topic" },
@@ -678,7 +692,16 @@ export default function GeneratePage() {
             if (typeof brief.wizardStep === "number") {
               setWizardStep(Math.min(LAST_STEP, Math.max(0, brief.wizardStep)));
             }
-            toast({ title: "Your unfinished brief is back" });
+            const hooks = restoreRows(brief.hookOptions);
+            const rows = restoreRows(brief.variants);
+            if (typeof brief.hooksFirst === "boolean") setHooksFirst(brief.hooksFirst);
+            if (typeof brief.chosenHook === "string") setChosenHook(brief.chosenHook);
+            setHookOptions(hooks);
+            setVariants(rows);
+            if (hooks.length || rows.length) setBriefOpen(false);
+            toast({
+              title: hooks.length || rows.length ? "Your unfinished post is back" : "Your unfinished brief is back",
+            });
           }
         }
       } catch {
@@ -934,10 +957,11 @@ export default function GeneratePage() {
 
   const isStreaming = streamingMode !== "idle";
 
-  // Keep the unfinished brief for this tab; drop it once a draft exists (the
-  // draft is saved to My posts) or the typed fields are empty.
+  // Keep the unfinished brief, and the hooks and variations it produced, for
+  // this tab; drop it once a draft exists (the draft is saved to My posts) or
+  // the typed fields are empty. Saved between streams, not on every token.
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || isStreaming) return;
     try {
       if (draft || (!pillarDetail.trim() && !ideaContext.trim())) {
         sessionStorage.removeItem(briefKey(userId));
@@ -957,6 +981,10 @@ export default function GeneratePage() {
             ctaType,
             wizardStep,
             disclosure,
+            hooksFirst,
+            chosenHook,
+            hookOptions,
+            variants,
           }),
         );
       }
@@ -978,6 +1006,11 @@ export default function GeneratePage() {
     ctaType,
     wizardStep,
     disclosure,
+    isStreaming,
+    hooksFirst,
+    chosenHook,
+    hookOptions,
+    variants,
   ]);
 
   // The variant rows mount once the stream starts, after an async session read.
