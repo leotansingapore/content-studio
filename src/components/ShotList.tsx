@@ -1,9 +1,9 @@
-// The shot list a short video is filmed from: what to say, the text on
-// screen, what to show and roughly how long, per beat. Clone a reel shows it
+// The shot list a short video is filmed from: what to say and how to say it,
+// the text on screen, what to show and roughly how long, per beat. Clone a reel shows it
 // for a cloned reel and Write for any short-video draft's storyboard.
 
 import { useEffect, useState } from "react";
-import { Camera, Check, Copy, Eye } from "lucide-react";
+import { Camera, Check, Copy, Eye, Mic } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
 import { shotListText, type ShotBeat } from "@/lib/reelClone";
@@ -82,6 +82,15 @@ export default function ShotList({
               </div>
               <div className="min-w-0 flex-1 space-y-1.5">
                 <p className="text-sm font-medium leading-relaxed text-foreground [overflow-wrap:anywhere]">{b.say}</p>
+                {b.delivery && (
+                  <p className="flex gap-1.5 text-xs italic leading-relaxed text-foreground/70">
+                    <Mic className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
+                    <span className="min-w-0 [overflow-wrap:anywhere]">
+                      <span className="sr-only">Delivery: </span>
+                      {b.delivery}
+                    </span>
+                  </p>
+                )}
                 {b.onScreen && (
                   <p className="w-fit max-w-full rounded bg-foreground px-1.5 py-0.5 text-[11px] font-semibold text-background [overflow-wrap:anywhere]">
                     <span className="sr-only">On screen: </span>

@@ -459,6 +459,8 @@ export interface ShotBeat {
   onScreen: string;
   visual: string;
   seconds: number;
+  /** How to say the line: where to pause, the word to stress, where to lift energy. Older lists have none. */
+  delivery?: string;
 }
 
 export interface MyVersion {
@@ -641,6 +643,10 @@ export function cleanConcept(raw: unknown): Concept | null {
 
 const PROMPT_TRANSCRIPT_CHARS = 6000;
 
+/** The delivery note asked for on every shot-list row, here and in storyboard. */
+export const DELIVERY_RULE =
+  "- delivery: one short note on how to say that line on camera: where to pause, which word to stress (quote it) and where to lift or drop the energy. Under 15 words.";
+
 const INTRO = [
   "You help licensed financial consultants in Singapore learn from short videos that did well, then make their own version.",
   "",
@@ -677,6 +683,7 @@ const VERSION_RULES = [
   "  - onScreen: the short text on screen for that beat, under 8 words, readable on mute. Empty when the beat needs none.",
   "  - visual: what the viewer sees, filmable alone with a phone (to camera, a screen recording, a prop, b-roll). The shot changes every beat.",
   "  - seconds: roughly how long the beat runs. The total matches the original's length within a few seconds when it's known.",
+  `  ${DELIVERY_RULE}`,
   "- caption: the post caption, under 120 words, ending with the call to action and at most 3 relevant hashtags.",
   "- cta: the call to action as one usable line, such as a comment or DM keyword, or asking viewers to save it.",
   "- filmingNotes: 2 to 4 concrete delivery notes: framing, on-screen text, pacing, b-roll.",
@@ -819,12 +826,13 @@ const str = (description: string) => ({ type: "string", description });
 export const BEAT_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["say", "onScreen", "visual", "seconds"],
+  required: ["say", "onScreen", "visual", "seconds", "delivery"],
   properties: {
     say: str("Spoken line"),
     onScreen: str("Text on screen, under 8 words, or empty"),
     visual: str("What the viewer sees"),
     seconds: { type: "number", description: "Roughly how long the beat runs" },
+    delivery: str("Where to pause, the word to stress, where to lift energy; under 15 words"),
   },
 } as const;
 
@@ -938,11 +946,13 @@ export function cleanBeats(raw: unknown): ShotBeat[] {
     .map((b) => {
       const beat = (b && typeof b === "object" ? b : {}) as Item;
       const secs = Number(beat.seconds);
+      const delivery = oneLineText(beat.delivery, 160);
       return {
         say: oneLineText(beat.say, 400),
         onScreen: oneLineText(beat.onScreen, 80),
         visual: oneLineText(beat.visual, 300),
         seconds: Number.isFinite(secs) ? Math.min(30, Math.max(1, Math.round(secs))) : 4,
+        ...(delivery ? { delivery } : {}),
       };
     })
     .filter((b) => b.say)

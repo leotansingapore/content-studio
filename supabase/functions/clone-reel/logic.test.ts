@@ -551,6 +551,7 @@ describe("buildClonePrompt", () => {
     expect(system).toMatch(/Part 2, concepts: 3 original ideas/);
     expect(system).toMatch(/concepts\[0\] is the one you write as myVersion/);
     expect(system).toMatch(/hookOptions\[0\] follows formula 1/);
+    expect(system).toMatch(/- delivery: one short note on how to say that line/);
     expect(user).toContain(
       "Hook formulas, in order:\n1. Number reveal. Shape: I did {X} {N} times. Example of the shape only, don't reuse its facts or numbers: I reviewed 40 families. Trap: Hiding the number.\n2. Mistake confession. Shape: {Cost} is what {mistake} cost me. Trap: A humblebrag.",
     );
@@ -562,6 +563,7 @@ describe("buildClonePrompt", () => {
     const { system, user } = buildConceptPrompt(source, null, concept, formulas);
     expect(system).toMatch(/The consultant picked one concept/);
     expect(system).not.toMatch(/Part 1, breakdown/);
+    expect(system).toMatch(/- delivery: one short note on how to say that line/);
     expect(system).toMatch(/guaranteed/);
     expect(user).toContain('"""\nRule one. Pay yourself first.\n"""');
     expect(user).toContain(
@@ -607,6 +609,7 @@ describe("CLONE_RESPONSE_FORMAT", () => {
       walk(format.json_schema.schema as unknown as Record<string, unknown>);
     }
     expect(CLONE_RESPONSE_FORMAT.json_schema.schema.required).toContain("concepts");
+    expect(CLONE_RESPONSE_FORMAT.json_schema.schema.properties.myVersion.properties.beats.items.required).toContain("delivery");
     expect(CONCEPT_RESPONSE_FORMAT.json_schema.schema.properties.myVersion).toBe(
       CLONE_RESPONSE_FORMAT.json_schema.schema.properties.myVersion,
     );
@@ -686,6 +689,17 @@ describe("validateCloneOutput", () => {
     expect(out?.concepts?.map((c) => c.title)).toEqual(["One", "Two", "Three"]);
     expect(validateCloneOutput({ ...good, concepts: [concept("One"), { title: "Half" }] })).not.toHaveProperty("concepts");
     expect(validateCloneOutput({ ...good, concepts: "One, two" })?.myVersion.hook).toBe("Your CPF isn't lazy money");
+  });
+
+  it("keeps a delivery note per beat when there is one", () => {
+    const beats = [
+      { ...good.myVersion.beats[0], delivery: "Pause after  'CPF' — stress 'lazy'." },
+      { ...(good.myVersion.beats[1] as object), delivery: "  " },
+    ];
+    const out = validateCloneOutput({ ...good, myVersion: { ...good.myVersion, beats } });
+    expect(out?.myVersion.beats?.[0].delivery).toBe("Pause after 'CPF', stress 'lazy'.");
+    expect(out?.myVersion.beats?.[1]).not.toHaveProperty("delivery");
+    expect(validateCloneOutput({ ...good, myVersion: { ...good.myVersion, beats: [{ ...beats[0], delivery: "x ".repeat(200) }, beats[1]] } })!.myVersion.beats![0].delivery!.length).toBeLessThanOrEqual(160);
   });
 
   it("checks one concept's version like the clone's", () => {

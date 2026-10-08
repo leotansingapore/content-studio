@@ -235,6 +235,7 @@ export function shotListText(beats: ShotBeat[], shots: string[] = []): string {
       const visual = shots[i] || b.visual;
       return [
         `${i + 1}. (${b.seconds}s) ${b.say}`,
+        b.delivery ? `   Delivery: ${b.delivery}` : null,
         b.onScreen ? `   On screen: ${b.onScreen}` : null,
         visual ? `   Show: ${visual}` : null,
       ]

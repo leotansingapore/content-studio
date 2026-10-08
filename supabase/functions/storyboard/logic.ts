@@ -4,7 +4,7 @@
 // seconds), from the same schema and cleaner. No Deno or npm imports, so
 // vitest covers it.
 
-import { BEAT_SCHEMA, cleanBeats, oneLineText, parseObject, type ShotBeat } from "../clone-reel/logic.ts";
+import { BEAT_SCHEMA, DELIVERY_RULE, cleanBeats, oneLineText, parseObject, type ShotBeat } from "../clone-reel/logic.ts";
 
 export const MAX_SCRIPT_CHARS = 3000;
 const MIN_SCRIPT_WORDS = 8;
@@ -41,6 +41,7 @@ const SYSTEM_PROMPT = [
   "- onScreen: the short text on screen for that beat, under 8 words, readable on mute. Empty when the beat needs none.",
   "- visual: what the viewer sees, filmable alone with a phone (to camera, a screen recording, a prop, b-roll). The shot changes every beat.",
   "- seconds: roughly how long the beat runs when spoken at a natural pace.",
+  DELIVERY_RULE,
   "",
   "Compliance: the text on screen and the shots add no claim the script doesn't make. Never write \"guaranteed\", \"risk-free\", a specific % return or interest rate, or a named insurer's product.",
   "",

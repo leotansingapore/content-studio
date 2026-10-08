@@ -240,7 +240,7 @@ describe("withHook and shotListText", () => {
     ...result().myVersion,
     hookOptions: ["Your CPF isn't lazy money", "Is your CPF working?", "Stop topping up blind"],
     beats: [
-      { say: "Your CPF isn't lazy money", onScreen: "CPF is not lazy", visual: "To camera", seconds: 3 },
+      { say: "Your CPF isn't lazy money", onScreen: "CPF is not lazy", visual: "To camera", seconds: 3, delivery: "Stress 'isn't'." },
       { say: "Here's why.", onScreen: "", visual: "", seconds: 6 },
     ],
   };
@@ -256,7 +256,7 @@ describe("withHook and shotListText", () => {
 
   it("writes one block per beat, preferring the shot planned from the original's look", () => {
     expect(shotListText(version.beats)).toBe(
-      "1. (3s) Your CPF isn't lazy money\n   On screen: CPF is not lazy\n   Show: To camera\n\n2. (6s) Here's why.",
+      "1. (3s) Your CPF isn't lazy money\n   Delivery: Stress 'isn't'.\n   On screen: CPF is not lazy\n   Show: To camera\n\n2. (6s) Here's why.",
     );
     const shots = ["", "Screen recording"];
     expect(shotListText(version.beats, shots)).toContain("2. (6s) Here's why.\n   Show: Screen recording");
