@@ -15,8 +15,12 @@ import {
   getTrend,
   getBreakdown,
   getLengthCorrelation,
-  getDayOfWeekBreakdown,
   getInsights,
+  hashtagRanking,
+  postingTimeGrid,
+  bestCell,
+  DAYPARTS,
+  DAY_LABELS,
   comparePeriods,
   rankPosts,
   postsCsv,
@@ -28,6 +32,9 @@ import {
 } from "@/lib/analytics";
 import { RankBars, type RankBarRow } from "@/components/charts/RankBars";
 import { TrendChart, type TrendChartPoint } from "@/components/charts/TrendChart";
+import { TimeHeatmap } from "@/components/charts/TimeHeatmap";
+import { InfoTip } from "@/components/ui/info-tip";
+import { timeLabel } from "@/lib/dueDates";
 import CreatorLookup from "@/components/CreatorLookup";
 import AccountAudit from "@/components/AccountAudit";
 import RecruitNumbers from "@/components/recruit/RecruitNumbers";
@@ -59,7 +66,12 @@ import {
   Ruler,
   CalendarDays,
   Download,
+  Hash,
 } from "lucide-react";
+
+const HOUR_NAMES = Array.from({ length: 24 }, (_, h) => timeLabel(`${String(h).padStart(2, "0")}:00`));
+const HOUR_HEADS = HOUR_NAMES.map((n, h) => (h % 3 === 0 ? n : ""));
+const DAYPART_NAMES = DAYPARTS.map((d) => d.label);
 
 const ACCOUNT_ICON: Record<SocialPlatform, typeof Linkedin> = {
   linkedin: Linkedin,
@@ -311,16 +323,20 @@ export default function AnalyticsPage() {
     [userId, metricsVersion],
   );
 
-  const dayRows: RankBarRow[] = useMemo(
-    () =>
-      getDayOfWeekBreakdown(userId).map((r) => ({
-        key: r.day,
-        label: r.day,
-        value: r.avgEngagementRate,
-        count: r.count,
-      })),
-    [userId, metricsVersion],
+  const tagRows: RankBarRow[] = useMemo(
+    () => hashtagRanking(tracked).map((r) => ({ key: r.tag, label: `#${r.tag}`, value: r.rate, count: r.count })),
+    [tracked],
   );
+  const timeGrid = useMemo(() => postingTimeGrid(tracked), [tracked]);
+  // The best slot by daypart (or by day), which has enough posts per cell to mean something.
+  const bestTime = useMemo(() => {
+    const rows = timeGrid.hasTimes ? timeGrid.dayparts : timeGrid.days.map((c) => [c]);
+    const at = bestCell(rows);
+    if (!at) return null;
+    const c = rows[at[0]][at[1]];
+    const when = `${DAY_LABELS[at[0]]}${timeGrid.hasTimes ? ` ${DAYPART_NAMES[at[1]].toLowerCase()}` : ""}`;
+    return `Best so far: ${when}, ${c.rate}% across ${c.count} posts`;
+  }, [timeGrid]);
 
   return (
     <div className="space-y-6">
@@ -603,23 +619,49 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
 
-            {/* Day of week */}
+            {tagRows.length > 0 && (
+              <Card className="border-border/60 shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-serif text-lg">
+                    <Hash className="h-4 w-4 text-muted-foreground" /> Hashtags
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RankBars rows={tagRows} minSample={MIN_GROUP_SAMPLE} />
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {timeGrid.placed >= 3 && (
             <Card className="border-border/60 shadow-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-serif text-lg">
-                  <CalendarDays className="h-4 w-4 text-muted-foreground" /> By
-                  day posted
+                <CardTitle className="flex items-center gap-1.5 font-serif text-lg">
+                  <CalendarDays className="mr-0.5 h-4 w-4 text-muted-foreground" /> Best time to post
+                  <InfoTip label="About best time to post">From the scheduled time, or else when you marked it posted.</InfoTip>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <RankBars
-                  rows={dayRows}
-                  minSample={MIN_GROUP_SAMPLE}
-                  emptyLabel="Add impressions on a few posted posts to see this."
-                />
+              <CardContent className="space-y-2">
+                {timeGrid.hasTimes ? (
+                  <>
+                    <div className="hidden md:block">
+                      <TimeHeatmap rows={timeGrid.hours} columns={HOUR_HEADS} columnNames={HOUR_NAMES} summary={bestTime} />
+                    </div>
+                    <div className="md:hidden">
+                      <TimeHeatmap rows={timeGrid.dayparts} columns={DAYPART_NAMES} columnNames={DAYPART_NAMES.map((n) => n.toLowerCase())} showValues summary={bestTime} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      {timeGrid.timed ? `Only ${timeGrid.timed} of ${timeGrid.placed}` : `None of your ${timeGrid.placed}`} posts have a posting time, so this shows days only.
+                    </p>
+                    <TimeHeatmap rows={timeGrid.days.map((c) => [c])} columns={[""]} showValues summary={bestTime} />
+                  </>
+                )}
               </CardContent>
             </Card>
-          </div>
+          )}
 
           {/* Top posts */}
           <section className="space-y-3">

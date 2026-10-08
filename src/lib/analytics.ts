@@ -15,6 +15,7 @@ import {
   type DraftEntry,
 } from "@/lib/draftHistory";
 import { readout, type PlatformId } from "@/lib/platformCounters";
+import { keyToDate, scheduleTime } from "@/lib/dueDates";
 
 export interface TrackedPost extends DraftEntry {
   impressions: number;
@@ -198,7 +199,7 @@ export function getLengthCorrelation(
 // so treat it as directional, not a precise "best hour to post" claim.
 // ---------------------------------------------------------------------------
 
-const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export interface DayRow {
   day: string;
@@ -471,4 +472,114 @@ export function postsCsv(posts: TrackedPost[]): string {
     p.impressions, p.metrics?.reactions ?? 0, p.metrics?.comments ?? 0, p.metrics?.shares ?? 0, p.engagementTotal, p.engagementRate,
   ]);
   return [head, ...rows].map((r) => r.map(esc).join(",")).join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Best hashtags and best time to post (gaps s46, s21). Both pool engagement
+// over impressions, like every other card here, and stay quiet on too few posts.
+// ---------------------------------------------------------------------------
+
+/** The hashtags in a post, lower-cased, each once. A # inside a URL or an entity, or a bare number (#1), is not a tag. */
+export function parseHashtags(text: string): string[] {
+  const tags = new Set<string>();
+  for (const m of text.matchAll(/(^|[^\p{L}\p{N}_&/#])#([\p{L}\p{N}_]*\p{L}[\p{L}\p{N}_]*)/gu)) tags.add(m[2].toLowerCase());
+  return [...tags];
+}
+
+export interface TagRow {
+  tag: string;
+  count: number;
+  rate: number;
+}
+
+/** Hashtags ranked by engagement rate across the posts that used them. Tags used once are left out, and nothing comes back on fewer than 3 posts with tags. */
+export function hashtagRanking(posts: TrackedPost[], limit = 8): TagRow[] {
+  const tagged = posts.filter((p) => p.impressions > 0).map((p) => ({ p, tags: parseHashtags(`${p.hook}\n${p.draft}`) })).filter((x) => x.tags.length);
+  if (tagged.length < MIN_INSIGHT_SAMPLE) return [];
+  const byTag = new Map<string, TrackedPost[]>();
+  for (const { p, tags } of tagged) for (const t of tags) byTag.set(t, [...(byTag.get(t) ?? []), p]);
+  return [...byTag]
+    .filter(([, ps]) => ps.length >= MIN_GROUP_SAMPLE)
+    .map(([tag, ps]) => ({ tag, count: ps.length, rate: totals(ps).rate }))
+    .sort((a, b) => b.rate - a.rate || b.count - a.count)
+    .slice(0, limit);
+}
+
+/** When a post went out (day 0 = Mon): the time it was scheduled for, else when it was marked posted. hour is null when only the day is known. */
+export function postingTime(p: DraftEntry): { day: number; hour: number | null } | null {
+  const monFirst = (d: Date) => (d.getDay() + 6) % 7;
+  const chosen = scheduleTime(p.scheduledFor);
+  if (chosen && p.scheduledFor) return { day: monFirst(keyToDate(p.scheduledFor)), hour: Number(chosen.slice(0, 2)) };
+  if (p.postedAt && /T\d{2}:\d{2}/.test(p.postedAt)) {
+    const d = new Date(p.postedAt);
+    return Number.isNaN(d.getTime()) ? null : { day: monFirst(d), hour: d.getHours() };
+  }
+  const key = p.postedAt ?? p.scheduledFor;
+  return key && /^\d{4}-\d{2}-\d{2}/.test(key) ? { day: monFirst(keyToDate(key)), hour: null } : null;
+}
+
+export const DAYPARTS = [
+  { label: "Morning", from: 6, to: 12 },
+  { label: "Afternoon", from: 12, to: 18 },
+  { label: "Evening", from: 18, to: 24 },
+  { label: "Night", from: 0, to: 6 },
+] as const;
+
+export interface TimeCell {
+  count: number;
+  rate: number;
+}
+
+export interface TimeGrid {
+  /** 7 days (Mon first) x 24 hours. */
+  hours: TimeCell[][];
+  /** 7 days x the 4 DAYPARTS. */
+  dayparts: TimeCell[][];
+  /** One cell per day, timed or not. */
+  days: TimeCell[];
+  /** Posts with a known day, and how many of those have a time too. */
+  placed: number;
+  timed: number;
+  /** Most posts have a time, so the hour grid means something. */
+  hasTimes: boolean;
+}
+
+/** Average engagement rate by the day and hour each post went out. */
+export function postingTimeGrid(posts: TrackedPost[]): TimeGrid {
+  const grid = (cols: number) => Array.from({ length: 7 }, () => Array.from({ length: cols }, () => [] as TrackedPost[]));
+  const hours = grid(24);
+  const parts = grid(DAYPARTS.length);
+  const days = Array.from({ length: 7 }, () => [] as TrackedPost[]);
+  let placed = 0;
+  let timed = 0;
+  for (const p of posts) {
+    const at = p.impressions > 0 ? postingTime(p) : null;
+    if (!at) continue;
+    placed++;
+    days[at.day].push(p);
+    if (at.hour === null) continue;
+    timed++;
+    hours[at.day][at.hour].push(p);
+    parts[at.day][DAYPARTS.findIndex((d) => at.hour! >= d.from && at.hour! < d.to)].push(p);
+  }
+  const cell = (ps: TrackedPost[]): TimeCell => ({ count: ps.length, rate: totals(ps).rate });
+  return {
+    hours: hours.map((r) => r.map(cell)),
+    dayparts: parts.map((r) => r.map(cell)),
+    days: days.map(cell),
+    placed,
+    timed,
+    hasTimes: timed > 0 && timed * 2 >= placed,
+  };
+}
+
+/** The best-landing cell backed by at least `min` posts, as [row, column]. */
+export function bestCell(rows: TimeCell[][], min = MIN_GROUP_SAMPLE): [number, number] | null {
+  let best: [number, number] | null = null;
+  rows.forEach((r, i) =>
+    r.forEach((c, j) => {
+      if (c.count >= min && (!best || c.rate > rows[best[0]][best[1]].rate)) best = [i, j];
+    }),
+  );
+  return best;
 }
