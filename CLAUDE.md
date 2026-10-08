@@ -37,6 +37,11 @@
   `content-studio-mcprevoked-` row that is never deleted, because the sync has
   no tombstones and re-uploads deleted keys from other devices. Never make
   revocation (or any security state) depend on deleting a synced key.
+- Decisions in edge functions (classify, detect yes/no, score, rank, route,
+  pick one) go through `supabase/functions/_shared/jev.ts` (TypeSafe Jev,
+  pinned jev-1.13.0, TYPESAFE_API_KEY set as a secret 2026-10-08), never an
+  LLM prompt or a keyword list; the LLM writes the words. Every caller works
+  when Jev returns null. PEXELS_API_KEY is set for stock B-roll.
 - All user data is localStorage-first under `content-studio-*` keys and
   mirrored cross-device by `src/lib/cloudSync.ts` (prefix-based). New
   persistent features MUST use the `content-studio-` key prefix or they will
