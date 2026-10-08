@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Search, TrendingUp, ChevronDown, Bookmark, Filter } from "lucide-react";
 import ReelCard from "@/components/ReelCard";
 import IndustryNews from "@/components/IndustryNews";
+import AdsSwipe from "@/components/AdsSwipe";
+import { ADS, ADS_FETCHED } from "@/lib/adsSwipe";
 import { NEWS } from "@/lib/industryNews";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -83,10 +85,11 @@ function FilterSelect({
 
 export default function SwipeFilePage() {
   const [params, setParams] = useSearchParams();
-  const tab = params.get("tab") === "news" ? "news" : "posts";
-  const setTab = (t: "posts" | "news") => {
+  const tabParam = params.get("tab");
+  const tab = tabParam === "news" || (tabParam === "ads" && ADS.length > 0) ? tabParam : "posts";
+  const setTab = (t: "posts" | "news" | "ads") => {
     const next = new URLSearchParams(params);
-    if (t === "news") next.set("tab", "news");
+    if (t !== "posts") next.set("tab", t);
     else next.delete("tab");
     setParams(next, { replace: true });
   };
@@ -198,6 +201,8 @@ export default function SwipeFilePage() {
         {[
           { id: "posts" as const, label: "Top posts", n: TOTAL_TOP_POSTS },
           { id: "news" as const, label: "Industry news", n: NEWS.length },
+          // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing.
+          ...(ADS.length ? [{ id: "ads" as const, label: "Ads", n: ADS.length }] : []),
         ].map((t) => (
           <button
             key={t.id}
@@ -214,7 +219,17 @@ export default function SwipeFilePage() {
         ))}
       </div>
 
-      {tab === "news" ? (
+      {tab === "ads" ? (
+        <section className="space-y-3">
+          <div className="flex items-center gap-1.5">
+            <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">Paid ads running in Singapore</h2>
+            <InfoTip label="About these ads">
+              From the Meta Ad Library{ADS_FETCHED ? `, updated ${ADS_FETCHED}` : ""}. Borrow the structure, never the wording.
+            </InfoTip>
+          </div>
+          <AdsSwipe />
+        </section>
+      ) : tab === "news" ? (
         <section className="space-y-3">
           <div className="flex items-center gap-1.5">
             <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">Industry news to talk about</h2>
