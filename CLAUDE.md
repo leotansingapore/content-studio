@@ -37,6 +37,11 @@
   `content-studio-mcprevoked-` row that is never deleted, because the sync has
   no tombstones and re-uploads deleted keys from other devices. Never make
   revocation (or any security state) depend on deleting a synced key.
+- Two public pages also run on functions deployed `--no-verify-jwt`:
+  `preview-link` (/review/<token>, compliance preview links, 012) and
+  `link-in-bio` (/l/<slug>, 015). Each holds the service key but may only
+  call its two service_role-only SQL functions; anon has no grant on any
+  table or function from 012-015. Design and caps: `docs/gap-tables-design.md`.
 - Decisions in edge functions (classify, detect yes/no, score, rank, route,
   pick one) go through `supabase/functions/_shared/jev.ts` (TypeSafe Jev,
   pinned jev-1.13.0, TYPESAFE_API_KEY set as a secret 2026-10-08), never an
