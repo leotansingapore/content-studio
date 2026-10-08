@@ -330,7 +330,7 @@ export function getInsights(userId: string | null | undefined): Insight[] {
       insights.push({
         tone: "positive",
         title: `Double down: ${labelFor(dim, best.key)}`,
-        body: `${labelFor(dim, best.key)} ${dimensionNoun(dim)} posts average ${best.avgEngagementRate}% engagement across ${best.count} posts — well above your ${Math.round(baseline * 10) / 10}% overall average. Write more of these.`,
+        body: `${labelFor(dim, best.key)} ${dimensionNoun(dim)} posts average ${best.avgEngagementRate}% engagement across ${best.count} posts, well above your ${Math.round(baseline * 10) / 10}% overall average. Write more of these.`,
       });
     }
     if (
@@ -360,7 +360,7 @@ export function getInsights(userId: string | null | undefined): Insight[] {
     insights.push({
       tone: "tip",
       title: "Keep it inside the sweet spot",
-      body: `Posts inside the platform's ideal length average ${good.avgEngagementRate}% engagement vs ${over.avgEngagementRate}% for posts that ran long. The live counter in Write flags this before you post — trust it.`,
+      body: `Posts inside the platform's ideal length average ${good.avgEngagementRate}% engagement vs ${over.avgEngagementRate}% for posts that ran long. The live counter in Write flags this before you post. Trust it.`,
     });
   }
 
@@ -408,7 +408,7 @@ export function getInsights(userId: string | null | undefined): Insight[] {
     insights.push({
       tone: "neutral",
       title: "No strong signal yet",
-      body: "Your tracked posts aren't showing a clear pattern by platform, pillar, or format yet — engagement looks fairly even. Keep tracking; patterns usually show up after a dozen or so posts.",
+      body: "Your tracked posts aren't showing a clear pattern by platform, pillar, or format yet. Engagement looks fairly even. Keep tracking; patterns usually show up after a dozen or so posts.",
     });
   }
 

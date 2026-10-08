@@ -234,7 +234,7 @@ export default function CreatorLookup() {
         setLiveAnalysis(built);
       }
     } catch (e) {
-      setLiveError(e instanceof Error ? e.message : "Lookup failed — try again.");
+      setLiveError(e instanceof Error ? e.message : "Lookup failed. Try again.");
     } finally {
       setLiveLoading(false);
     }
@@ -296,7 +296,7 @@ export default function CreatorLookup() {
         {!submitted && (
           <p className="text-[11px] text-muted-foreground">
             {ANALYZABLE_COUNT} curated SG finance/insurance creators, or any
-            public Instagram handle — paste @handle or a profile URL for a live
+            public Instagram handle. Paste @handle or a profile URL for a live
             analysis.
           </p>
         )}
@@ -305,7 +305,7 @@ export default function CreatorLookup() {
         {!analysis && liveAnalysis && (
           <>
             <p className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
-              <Radio className="h-3 w-3" /> Live from Instagram — latest posts,
+              <Radio className="h-3 w-3" /> Live from Instagram: latest posts,
               refreshed weekly
             </p>
             <AnalysisResult analysis={liveAnalysis} live />
@@ -315,8 +315,8 @@ export default function CreatorLookup() {
         {liveLoading && (
           <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/20 p-3.5 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            Pulling {liveCandidate?.handle} from Instagram — takes 10–30 seconds
-            on first lookup…
+            Pulling {liveCandidate?.handle} from Instagram. Takes 10 to 30 seconds
+            on first lookup...
           </div>
         )}
 
