@@ -1,24 +1,39 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Play } from "lucide-react";
 import { embedUrlFor, originalUrlFor } from "@/lib/embed";
 import { cn } from "@/lib/utils";
 
-// Click-to-play: a grid of eight third-party players would load several MB of
-// script up front, so each one loads only when someone taps it. A modal the
-// viewer opened on purpose passes autoPlay to load the player straight away.
+// A grid of third-party players would load several MB of script up front, so
+// a player loads only when it is wanted: on a tap, straight away in a modal the
+// viewer opened on purpose (autoPlay), or as its card nears the screen
+// (whenVisible), so a feed shows the videos themselves without loading the lot.
 export default function VideoEmbed({
   url,
   label,
   autoPlay = false,
+  whenVisible = false,
   className,
 }: {
   url: string | null | undefined;
   label?: string;
   autoPlay?: boolean;
+  whenVisible?: boolean;
   className?: string;
 }) {
   const [playing, setPlaying] = useState(autoPlay);
   const [loaded, setLoaded] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!whenVisible || playing || !box.current || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setPlaying(true);
+        io.disconnect();
+      }
+    }, { rootMargin: "300px 0px" });
+    io.observe(box.current);
+    return () => io.disconnect();
+  }, [whenVisible, playing]);
   const src = embedUrlFor(url);
   if (!src) return null;
   const site = src.startsWith("https://www.tiktok.com/") ? "TikTok" : "Instagram";
@@ -26,6 +41,7 @@ export default function VideoEmbed({
   return (
     <div className="space-y-1">
     <div
+      ref={box}
       className={cn(
         "relative mx-auto aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-xl border border-border/60 bg-muted/40",
         className,

@@ -153,7 +153,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
           </div>
         )}
 
-        <VideoEmbed url={trend.source_url} label={trend.title} />
+        <VideoEmbed url={trend.source_url} label={trend.title} whenVisible />
 
         {trend.trend_source && (
           <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5">
