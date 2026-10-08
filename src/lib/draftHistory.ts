@@ -39,6 +39,8 @@ export interface DraftEntry {
   labels?: string[];
   // Disclosure lines added on copy (plainText.ts DISCLOSURES ids).
   disclosure?: string[];
+  // Links moved out of a LinkedIn post, to paste as its first comment.
+  firstComment?: string;
 }
 
 export type RepeatEvery = "week" | "2weeks" | "month";

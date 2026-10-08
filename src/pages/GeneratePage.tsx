@@ -54,6 +54,7 @@ import {
   Pencil,
   Gauge,
   BookmarkPlus,
+  MessageSquare,
 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import inspirationData from "@/data/inspiration.json";
@@ -84,6 +85,8 @@ import { scheduleTime, timeLabel } from "@/lib/dueDates";
 import { ToastAction } from "@/components/ui/toast";
 import {
   checkLimits,
+  findLinks,
+  moveLinksToComment,
   readout,
   type CounterReadout,
   type LimitCheck,
@@ -501,7 +504,7 @@ function LimitChips({ check, platform }: { check: LimitCheck; platform: Platform
     <>
       <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">
         Hashtags: {check.hashtags}
-        {platform === "instagram" ? "/30" : platform === "linkedin" ? " (3-5 best)" : ""}
+        {platform === "instagram" ? "/30" : platform === "linkedin" ? " (3 max)" : ""}
       </span>
       <span
         className={`rounded-full border px-2 py-0.5 font-mono ${
@@ -629,6 +632,8 @@ export default function GeneratePage() {
   } | null>(null);
   const [undoText, setUndoText] = useState<string | null>(null);
   const rewriteAbortRef = useRef<AbortController | null>(null);
+  // Links taken out of a LinkedIn draft, to paste as its first comment.
+  const [firstComment, setFirstComment] = useState<string | null>(null);
   // A new or re-picked draft starts without versions or a rewrite on offer;
   // finished versions are already in My posts.
   const clearDraftExtras = () => {
@@ -639,6 +644,7 @@ export default function GeneratePage() {
     rewriteAbortRef.current?.abort();
     setRewrite(null);
     setUndoText(null);
+    setFirstComment(null);
   };
   useEffect(
     () => () => {
@@ -809,6 +815,7 @@ export default function GeneratePage() {
     }
     setDraft(entry.draft);
     clearDraftExtras();
+    setFirstComment(entry.firstComment ?? null);
     // A written post opens on its draft, not on step 1 of a brief it already has.
     if (entry.draft.trim()) setBriefOpen(false);
     setCurrentDraftId(entry.id);
@@ -968,6 +975,10 @@ export default function GeneratePage() {
     return brandKit?.tagLinks ? tagLinks(out, { source: plat, campaign: chosenHook || pillarDetail || "post" }) : out;
   };
   const limits = checkLimits(forPosting(svSplit ? svSplit.caption : draft), platform);
+  // tracked the same way the post's own links would have been
+  const commentText = firstComment && brandKit?.tagLinks
+    ? tagLinks(firstComment, { source: platform, campaign: chosenHook || pillarDetail || "post" })
+    : (firstComment ?? "");
 
   // Live craft check on the current draft (reuses the Coach engine).
   const craftCheck = useMemo(
@@ -1449,7 +1460,8 @@ export default function GeneratePage() {
   );
 
   const persistDraftEntry = useCallback(
-    (text: string, hookText: string) => {
+    // A new pick passes null: the comment state it would read is the last draft's.
+    (text: string, hookText: string, comment: string | null = firstComment) => {
       if (!userId || !text.trim()) return;
       const id = currentDraftId ?? newDraftId();
       // Preserve scheduling/status/created-at when updating an existing entry
@@ -1472,12 +1484,14 @@ export default function GeneratePage() {
         postedAt: existing?.postedAt,
         repeat: existing?.repeat,
         disclosure: disclosure.length ? disclosure : undefined,
+        firstComment: comment ?? undefined,
       };
       upsertDraft(userId, entry);
       setCurrentDraftId(id);
     },
     [
       disclosure,
+      firstComment,
       audience,
       ctaType,
       currentDraftId,
@@ -1507,7 +1521,7 @@ export default function GeneratePage() {
     // fresh entry, but when editing a scheduled/posted slot we keep updating
     // it so it stays put on the calendar.
     if (!preserveIdRef.current) setCurrentDraftId(null);
-    persistDraftEntry(v.text, chosenHook ?? "");
+    persistDraftEntry(v.text, chosenHook ?? "", null);
     // Fire hashtags + image-prompt in parallel; failures don't block. The
     // draft card's saved line confirms the pick, so no toast over the editor.
     void fetchAuxForDraft(v.text);
@@ -1669,6 +1683,16 @@ export default function GeneratePage() {
     setDraft(undoText);
     persistDraftEntry(undoText, chosenHook ?? "");
     setUndoText(null);
+  };
+
+  // The link stays in My posts with the draft, so nothing is lost before it's copied.
+  const moveLinkToComment = () => {
+    const moved = moveLinksToComment(draft, firstComment ?? "");
+    if (!moved) return;
+    setDraft(moved.body);
+    setUndoText(null);
+    setFirstComment(moved.comment);
+    persistDraftEntry(moved.body, chosenHook ?? "", moved.comment);
   };
 
   const copyVersion = (v: PlatformVersion) => {
@@ -2927,7 +2951,35 @@ export default function GeneratePage() {
                 </span>
               )}
               <LimitChips check={limits} platform={platform} />
+              {platform === "linkedin" && findLinks(draft).length > 0 && (
+                <Button variant="outline" size="sm" onClick={moveLinkToComment} className="h-11 gap-1.5 sm:h-9">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Move {findLinks(draft).length > 1 ? "links" : "link"} to first comment
+                </Button>
+              )}
             </div>
+
+            {firstComment && (
+              <div className="mt-3 rounded-xl border border-border/60 bg-muted/20 p-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <MessageSquare className="h-3.5 w-3.5" /> First comment
+                    <InfoTip label="About the first comment">
+                      Post this as your own first comment once the post is up.
+                    </InfoTip>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void copyText(commentText, "First comment copied", "Paste it as a comment on your post.")}
+                    className="h-11 gap-1 text-xs sm:h-7"
+                  >
+                    <Copy className="h-3 w-3" /> Copy
+                  </Button>
+                </div>
+                <p className="whitespace-pre-wrap break-all font-mono text-xs text-foreground">{commentText}</p>
+              </div>
+            )}
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-xs font-semibold text-muted-foreground">Disclose</span>

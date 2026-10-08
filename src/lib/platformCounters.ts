@@ -119,7 +119,8 @@ export function readout(text: string, platform: PlatformId): CounterReadout {
 
 // What each platform enforces on the text that gets posted (sign-off and
 // disclosure included): a character cap, and Instagram's 30-hashtag cap.
-// LinkedIn takes more hashtags but recommends 3-5.
+// LinkedIn takes more hashtags but works best with 3 or fewer, and shows a
+// post with a link in it to fewer people.
 export const MAX_CHARS: Record<PlatformId, number> = {
   instagram: 2200,
   tiktok: 2200,
@@ -138,6 +139,7 @@ export interface LimitCheck {
   chars: number;
   maxChars: number;
   hashtags: number;
+  links: number;
   warnings: { level: "warn" | "over"; message: string }[];
 }
 
@@ -145,10 +147,38 @@ export function countHashtags(text: string): number {
   return (text.match(/#[\p{L}\p{N}_]+/gu) ?? []).length;
 }
 
+// A link a feed makes clickable: http(s) or www. A sentence's closing
+// punctuation after it is not part of it.
+const LINK = /\b(?:https?:\/\/|www\.)[^\s<>"')\]]+/gi;
+const TRAIL = /[.,;:!?]+$/;
+const LINK_POINTER = "(link in the first comment)";
+
+export function findLinks(text: string): string[] {
+  return (text.match(LINK) ?? []).map((l) => l.replace(TRAIL, ""));
+}
+
+/**
+ * The post with each link swapped for a pointer to the first comment, and the
+ * first comment's text: the links already there plus the new ones, once each.
+ * Null when the post has no link.
+ */
+export function moveLinksToComment(text: string, comment = ""): { body: string; comment: string } | null {
+  const links = comment.split("\n").filter((l) => l.trim());
+  let moved = false;
+  const body = text.replace(LINK, (raw) => {
+    const link = raw.replace(TRAIL, "");
+    moved = true;
+    if (!links.includes(link)) links.push(link);
+    return LINK_POINTER + raw.slice(link.length);
+  });
+  return moved ? { body, comment: links.join("\n") } : null;
+}
+
 export function checkLimits(text: string, platform: PlatformId): LimitCheck {
   const chars = countChars(text);
   const maxChars = MAX_CHARS[platform];
   const hashtags = countHashtags(text);
+  const links = findLinks(text).length;
   const warnings: LimitCheck["warnings"] = [];
   if (chars > maxChars) {
     warnings.push({
@@ -159,10 +189,13 @@ export function checkLimits(text: string, platform: PlatformId): LimitCheck {
   if (platform === "instagram" && hashtags > 30) {
     warnings.push({ level: "over", message: `Instagram allows 30 hashtags. Remove ${hashtags - 30}.` });
   }
-  if (platform === "linkedin" && hashtags > 5) {
-    warnings.push({ level: "warn", message: `LinkedIn works best with 3-5 hashtags. Remove ${hashtags - 5}.` });
+  if (platform === "linkedin" && hashtags > 3) {
+    warnings.push({ level: "warn", message: `LinkedIn works best with 3 hashtags or fewer. Remove ${hashtags - 3}.` });
   }
-  return { chars, maxChars, hashtags, warnings };
+  if (platform === "linkedin" && links > 0) {
+    warnings.push({ level: "warn", message: "LinkedIn shows posts with a link to fewer people." });
+  }
+  return { chars, maxChars, hashtags, links, warnings };
 }
 
 // Where the feed cuts a post off behind "...more", roughly: LinkedIn about 210
