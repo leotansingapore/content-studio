@@ -508,7 +508,7 @@ export default function CalendarPage() {
           </Button>
           {!posted && (
             <Button size="sm" onClick={() => markPosted(d.id)} className="h-9 gap-1 px-3 text-xs sm:h-8">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Posted
+              <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
             </Button>
           )}
         </div>
@@ -735,7 +735,7 @@ export default function CalendarPage() {
             onClick={() => markPosted(e.id)}
             className="h-9 shrink-0 gap-1.5 px-2.5 text-xs text-success hover:text-success sm:h-8"
           >
-            <CheckCircle2 className="h-3.5 w-3.5" /> Posted
+            <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
           </Button>
         )}
       </div>

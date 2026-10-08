@@ -259,7 +259,7 @@ export default function HomePage() {
                     onClick={() => markDuePosted(d.id)}
                     className="h-9 gap-1 px-3 text-xs sm:h-8 sm:px-2.5"
                   >
-                    <CheckCircle2 className="h-3 w-3" /> Posted
+                    <CheckCircle2 className="h-3 w-3" /> Mark posted
                   </Button>
                 </div>
               </div>
