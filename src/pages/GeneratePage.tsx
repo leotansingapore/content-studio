@@ -80,6 +80,7 @@ import { readout, type CounterReadout } from "@/lib/platformCounters";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import { toPlainText, withSignOff } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
+import { streamOnePost } from "@/lib/batchGenerate";
 import QuickTip from "@/components/QuickTip";
 import CompetitorReference, {
   buildCompetitorStyleReference,
@@ -342,6 +343,85 @@ interface VariantState {
   halted?: "stopped" | "failed";
 }
 
+// A copy of the finished post rewritten for another platform. It is saved to
+// My posts as its own draft and never touches the original.
+interface PlatformVersion {
+  platform: Platform;
+  text: string;
+  status: "streaming" | "done" | "stopped" | "failed";
+  draftId: string;
+}
+
+const ADAPT_PLATFORMS: Platform[] = ["instagram", "linkedin", "facebook"];
+
+const platformLabel = (p: string) => PLATFORMS.find((x) => x.value === p)?.label ?? p;
+
+const firstLine = (text: string) =>
+  text.split("\n").find((l) => l.trim())?.trim().slice(0, 120) ?? "";
+
+// The idea context for an adapt call: the finished post is the source and the
+// payload's platform field carries the target platform's rules.
+function adaptContext(post: string, target: Platform): string {
+  const name = platformLabel(target);
+  return [
+    `Adapt the post below for ${name}. Keep its idea, facts, numbers and call to action.`,
+    `Rewrite the opening, length, line breaks and tone so it reads like a native ${name} post. Do not mention any other platform.`,
+    "",
+    "The post:",
+    post,
+  ].join("\n");
+}
+
+function ComplianceChips({
+  flags,
+  onDismiss,
+}: {
+  flags: ComplianceFlag[];
+  onDismiss: (id: string) => void;
+}) {
+  if (flags.length === 0) return null;
+  return (
+    <div className="mb-3 flex flex-wrap gap-2">
+      {flags.map((flag) => {
+        const isError = flag.severity === "error";
+        return (
+          <div
+            key={flag.id}
+            className={`flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] ${
+              isError
+                ? "border-destructive/50 bg-destructive/10 text-red-700 dark:text-red-300"
+                : "border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+            }`}
+          >
+            <AlertTriangle
+              className={`mt-0.5 h-3 w-3 shrink-0 ${
+                isError ? "text-destructive" : "text-amber-600"
+              }`}
+            />
+            <div className="space-y-0.5">
+              <div className="font-semibold uppercase tracking-[0.14em]">
+                {isError ? "Compliance error" : "Compliance warn"}
+                <span className="ml-1.5 rounded bg-background/60 px-1 py-0.5 font-mono text-[10px] normal-case tracking-normal">
+                  {flag.match}
+                </span>
+              </div>
+              <div className="text-[11px] leading-snug">{flag.message}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onDismiss(flag.id)}
+              className="-my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-background/40"
+              aria-label="Dismiss flag"
+            >
+              <XIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface BasePayload {
   pillar: Pillar;
   pillarDetail: string;
@@ -411,6 +491,24 @@ export default function GeneratePage() {
 
   // Compliance flags + dismiss tracking.
   const [dismissedFlagIds, setDismissedFlagIds] = useState<Set<string>>(new Set());
+  const dismissFlag = (id: string) =>
+    setDismissedFlagIds((prev) => new Set(prev).add(id));
+
+  // Platform versions of the finished draft: phones show one at a time behind
+  // tabs, desktop puts the shown one beside the original.
+  const [versions, setVersions] = useState<PlatformVersion[]>([]);
+  const [activeTab, setActiveTab] = useState<"original" | Platform>("original");
+  const versionAbortRef = useRef(new Map<string, AbortController>());
+  const versionsTopRef = useRef<HTMLDivElement | null>(null);
+  // A new or re-picked draft starts without versions; the finished ones are
+  // already in My posts.
+  const resetVersions = () => {
+    versionAbortRef.current.forEach((c) => c.abort());
+    versionAbortRef.current.clear();
+    setVersions([]);
+    setActiveTab("original");
+  };
+  useEffect(() => () => versionAbortRef.current.forEach((c) => c.abort()), []);
 
   // Hashtags + image prompt.
   const [hashtags, setHashtags] = useState<string[]>([]);
@@ -557,6 +655,7 @@ export default function GeneratePage() {
       if (entry.hook) setChosenHook(entry.hook);
     }
     setDraft(entry.draft);
+    resetVersions();
     // A written post opens on its draft, not on step 1 of a brief it already has.
     if (entry.draft.trim()) setBriefOpen(false);
     setCurrentDraftId(entry.id);
@@ -995,6 +1094,7 @@ export default function GeneratePage() {
     // Collapse the wizard only after validation passes — collapsing first
     // strands the user on a dead brief summary when the topic is missing.
     setBriefOpen(false);
+    resetVersions();
     setSelectedVariantIndex(null);
     setDraft("");
     setChosenHook(null);
@@ -1025,6 +1125,7 @@ export default function GeneratePage() {
   const handlePickHook = async (hookText: string) => {
     if (!hookText.trim()) return;
     setChosenHook(hookText.trim());
+    resetVersions();
     scrollToVariantsRef.current = true;
     setVariants([]);
     setSelectedVariantIndex(null);
@@ -1049,6 +1150,7 @@ export default function GeneratePage() {
   };
 
   const handleReroll = async () => {
+    resetVersions();
     if (!validateForm()) return;
     setSelectedVariantIndex(null);
     setDraft("");
@@ -1212,6 +1314,7 @@ export default function GeneratePage() {
     const v = variants.find((x) => x.index === idx);
     if (!v) return;
     setSelectedVariantIndex(idx);
+    resetVersions();
     setDraft(v.text);
     setTimeout(
       () => draftCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
@@ -1250,6 +1353,93 @@ export default function GeneratePage() {
   const handleCopy = async () => {
     if (!draft) return;
     await copyText(draft, "Copied", "Paste into your platform of choice.", true);
+  };
+
+  const updateVersion = (id: string, patch: Partial<PlatformVersion>) =>
+    setVersions((prev) => prev.map((v) => (v.draftId === id ? { ...v, ...patch } : v)));
+
+  // Each version is its own My posts entry with the same brief.
+  const saveVersion = (v: Pick<PlatformVersion, "draftId" | "platform" | "text">) => {
+    if (!userId || !v.text.trim()) return;
+    const existing = getDraftById(userId, v.draftId);
+    upsertDraft(userId, {
+      id: v.draftId,
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+      hook: firstLine(v.text),
+      draft: v.text,
+      pillar,
+      pillarDetail: pillarDetail.trim(),
+      audience,
+      format,
+      platform: v.platform,
+      ctaType,
+      vibeSourceId: vibeSourceId ?? undefined,
+      status: existing?.status,
+      scheduledFor: existing?.scheduledFor,
+      postedAt: existing?.postedAt,
+      repeat: existing?.repeat,
+    });
+  };
+
+  // One generation per adapt: the same brief, the finished draft as the idea
+  // context, the target platform.
+  const runAdapt = async (target: Platform, id: string) => {
+    versionAbortRef.current.get(id)?.abort();
+    const controller = new AbortController();
+    versionAbortRef.current.set(id, controller);
+    let settled = false;
+    const fail = (message: string) => {
+      settled = true;
+      updateVersion(id, { status: "failed" });
+      toast({
+        title: `Couldn't adapt for ${platformLabel(target)}`,
+        description: message,
+        variant: "destructive",
+      });
+    };
+    try {
+      await streamOnePost(
+        { ...buildBasePayload(), platform: target, ideaContext: adaptContext(draft.trim(), target) },
+        {
+          onToken: (text) => updateVersion(id, { text }),
+          onComplete: (raw) => {
+            const text = raw.trim();
+            if (!text) return fail("The reply came back empty. Try again.");
+            settled = true;
+            updateVersion(id, { text, status: "done" });
+            saveVersion({ draftId: id, platform: target, text });
+          },
+          onError: fail,
+        },
+        controller.signal,
+      );
+    } catch (err) {
+      fail(err instanceof Error ? err.message : "Try again in a moment.");
+    }
+    if (versionAbortRef.current.get(id) === controller) versionAbortRef.current.delete(id);
+    if (!settled) updateVersion(id, { status: controller.signal.aborted ? "stopped" : "failed" });
+  };
+
+  const handleAdapt = (target: Platform) => {
+    setActiveTab(target);
+    setTimeout(
+      () => versionsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      50,
+    );
+    if (versions.some((v) => v.platform === target) || !draft.trim()) return;
+    const id = newDraftId();
+    setVersions((prev) => [...prev, { platform: target, text: "", status: "streaming", draftId: id }]);
+    void runAdapt(target, id);
+  };
+
+  const retryVersion = (v: PlatformVersion) => {
+    updateVersion(v.draftId, { text: "", status: "streaming" });
+    void runAdapt(v.platform, v.draftId);
+  };
+
+  const copyVersion = (v: PlatformVersion) => {
+    const caption = format === "short-video" ? splitScriptCaption(v.text).caption : v.text;
+    void copyText(caption, "Copied", `Paste into ${platformLabel(v.platform)}.`, true);
   };
 
   // Suppress unused import warning - navigate may be needed by future flows.
@@ -1347,6 +1537,16 @@ export default function GeneratePage() {
   // The saved entry behind the draft card, for its "saved / scheduled" line.
   const savedEntry =
     draft && userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
+
+  // The version beside the original on desktop: the active tab, else the newest.
+  const shownVersion =
+    versions.find((v) => v.platform === activeTab) ?? versions[versions.length - 1] ?? null;
+  const versionSaved =
+    shownVersion && userId ? getDraftById(userId, shownVersion.draftId) : null;
+  const versionFlags =
+    shownVersion && shownVersion.status !== "streaming"
+      ? scanCompliance(shownVersion.text).filter((f) => !dismissedFlagIds.has(f.id))
+      : [];
 
   const hasOutput =
     hookOptions.length > 0 || variants.length > 0 || draft.trim().length > 0;
@@ -2048,7 +2248,41 @@ export default function GeneratePage() {
       )}
 
       {draft && (
-        <Card ref={draftCardRef} className="scroll-mt-20 border-border/60 shadow-card">
+        <div ref={versionsTopRef} className="scroll-mt-20 space-y-3">
+          {versions.length > 0 && (
+            <div
+              role="tablist"
+              aria-label="Platform versions"
+              className="scrollbar-none flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/20 p-1 lg:hidden"
+            >
+              {[
+                { key: "original" as const, label: `${platformLabel(platform)} (original)` },
+                ...versions.map((v) => ({ key: v.platform, label: platformLabel(v.platform) })),
+              ].map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`min-h-[40px] shrink-0 rounded-lg px-3 text-xs font-semibold transition-colors ${
+                    activeTab === t.key
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/60"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className={versions.length > 0 ? "grid items-start gap-4 lg:grid-cols-2" : ""}>
+        <Card
+          ref={draftCardRef}
+          className={`scroll-mt-20 border-border/60 shadow-card ${
+            versions.length > 0 && activeTab !== "original" ? "hidden lg:block" : ""
+          }`}
+        >
           <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
             <div className="flex items-center gap-1">
               <CardTitle className="font-serif text-xl">Your draft</CardTitle>
@@ -2158,54 +2392,9 @@ export default function GeneratePage() {
                 )}
               </p>
             )}
-            {visibleFlags.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {visibleFlags.map((flag) => {
-                  const isError = flag.severity === "error";
-                  return (
-                    <div
-                      key={flag.id}
-                      className={`flex items-start gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] ${
-                        isError
-                          ? "border-destructive/50 bg-destructive/10 text-red-700 dark:text-red-300"
-                          : "border-amber-500/50 bg-amber-500/10 text-amber-900 dark:text-amber-200"
-                      }`}
-                    >
-                      <AlertTriangle
-                        className={`mt-0.5 h-3 w-3 shrink-0 ${
-                          isError ? "text-destructive" : "text-amber-600"
-                        }`}
-                      />
-                      <div className="space-y-0.5">
-                        <div className="font-semibold uppercase tracking-[0.14em]">
-                          {isError ? "Compliance error" : "Compliance warn"}
-                          <span className="ml-1.5 rounded bg-background/60 px-1 py-0.5 font-mono text-[10px] normal-case tracking-normal">
-                            {flag.match}
-                          </span>
-                        </div>
-                        <div className="text-[11px] leading-snug">{flag.message}</div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDismissedFlagIds((prev) => {
-                            const next = new Set(prev);
-                            next.add(flag.id);
-                            return next;
-                          })
-                        }
-                        className="-my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-background/40"
-                        aria-label="Dismiss flag"
-                      >
-                        <XIcon className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <ComplianceChips flags={visibleFlags} onDismiss={dismissFlag} />
 
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className={`grid gap-4 ${versions.length > 0 ? "" : "lg:grid-cols-2"}`}>
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   <Pencil className="h-3.5 w-3.5" /> Edit
@@ -2254,6 +2443,26 @@ export default function GeneratePage() {
                   {counters.firstNote}
                 </span>
               )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">Adapt for</span>
+              {ADAPT_PLATFORMS.filter((p) => p !== platform).map((p) => {
+                const Icon = PLATFORMS.find((x) => x.value === p)!.icon;
+                const has = versions.some((v) => v.platform === p);
+                return (
+                  <Button
+                    key={p}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAdapt(p)}
+                    className="h-9 gap-1.5"
+                  >
+                    <Icon className="h-3.5 w-3.5" /> {platformLabel(p)}
+                    {has && <Check className="h-3.5 w-3.5 text-success" />}
+                  </Button>
+                );
+              })}
             </div>
 
 
@@ -2354,6 +2563,109 @@ export default function GeneratePage() {
             )}
           </CardContent>
         </Card>
+        {shownVersion && (
+          <Card
+            className={`border-border/60 shadow-card ${
+              activeTab === "original" ? "hidden lg:block" : ""
+            }`}
+          >
+            <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+              <CardTitle className="font-serif text-xl">
+                {platformLabel(shownVersion.platform)} version
+              </CardTitle>
+              {shownVersion.status === "streaming" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => versionAbortRef.current.get(shownVersion.draftId)?.abort()}
+                  className="shrink-0 gap-1.5"
+                >
+                  <StopCircle className="h-3.5 w-3.5" /> Stop
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!shownVersion.text.trim()}
+                  onClick={() => copyVersion(shownVersion)}
+                  className="relative shrink-0 gap-1.5"
+                >
+                  <Copy className="h-3.5 w-3.5" /> Copy
+                  {hasComplianceErrors(versionFlags) && (
+                    <span
+                      title="Compliance error flag detected - review before posting"
+                      className="absolute -right-1.5 -top-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-destructive bg-destructive text-[10px] font-bold leading-none text-destructive-foreground"
+                    >
+                      !
+                    </span>
+                  )}
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {versions.length > 1 && (
+                <div className="hidden flex-wrap gap-1.5 lg:flex">
+                  {versions.map((v) => (
+                    <button
+                      key={v.platform}
+                      type="button"
+                      onClick={() => setActiveTab(v.platform)}
+                      aria-pressed={v === shownVersion}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                        v === shownVersion
+                          ? "border-primary/60 bg-primary/10 text-primary"
+                          : "border-border/70 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {platformLabel(v.platform)}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {shownVersion.status === "streaming" ? (
+                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <ThinkingOrb state="weaving" size={20} theme="light" aria-hidden /> Adapting for{" "}
+                  {platformLabel(shownVersion.platform)}...
+                </p>
+              ) : shownVersion.status !== "done" && !versionSaved ? (
+                <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+                  <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                  {shownVersion.status === "stopped" ? "Stopped before finishing." : "Didn't finish."}
+                  <button
+                    type="button"
+                    onClick={() => retryVersion(shownVersion)}
+                    className="-my-2 py-2 font-semibold text-primary hover:underline"
+                  >
+                    Try again
+                  </button>
+                </p>
+              ) : versionSaved ? (
+                <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+                  <Check className="h-3.5 w-3.5 text-success" />
+                  Saved to My posts.
+                  <Link to="/calendar" className="-my-2 py-2 font-semibold text-primary hover:underline">
+                    Schedule it
+                  </Link>
+                </p>
+              ) : null}
+              <ComplianceChips flags={versionFlags} onDismiss={dismissFlag} />
+              <Textarea
+                aria-label={`${platformLabel(shownVersion.platform)} version`}
+                value={shownVersion.text}
+                readOnly={shownVersion.status === "streaming"}
+                onChange={(e) => updateVersion(shownVersion.draftId, { text: e.target.value })}
+                onBlur={() => {
+                  if (shownVersion.status !== "streaming") saveVersion(shownVersion);
+                }}
+                rows={Math.min(28, Math.max(12, shownVersion.text.split("\n").length + 2))}
+                className="font-sans text-sm leading-relaxed"
+              />
+              <PostPreview text={shownVersion.text} platform={shownVersion.platform} format={format} />
+            </CardContent>
+          </Card>
+        )}
+          </div>
+        </div>
       )}
 
       {showShortcuts && (
