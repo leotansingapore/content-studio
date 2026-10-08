@@ -367,7 +367,7 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
-              <Button asChild size="sm" className="gap-1.5">
+              <Button asChild size="sm" variant="outline" className="gap-1.5">
                 <Link to="/coach">
                   Start diagnosis <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
