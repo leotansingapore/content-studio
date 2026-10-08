@@ -108,7 +108,8 @@ const NAV_GROUPS: { heading: string | null; items: NavItem[] }[] = [
 const MOBILE_PRIMARY: NavItem[] = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/generate", label: "Write", icon: Pencil },
-  { to: "/calendar", label: "Calendar", icon: CalendarClock },
+  // The other Pipeline tabs light Calendar up; My posts has its own button.
+  { to: "/calendar", label: "Calendar", icon: CalendarClock, also: ["/plan", "/board", "/reels"] },
   { to: "/drafts", label: "Posts", icon: History },
 ];
 
@@ -207,10 +208,9 @@ export default function StudioLayout() {
         : "text-muted-foreground hover:bg-accent hover:text-foreground"
     }`;
 
+  const onPath = (p: string) => pathname === p || pathname.startsWith(p + "/");
   const moreActive =
-    !MOBILE_PRIMARY.some(
-      (i) => pathname === i.to || pathname.startsWith(i.to + "/"),
-    ) && pathname !== "/welcome";
+    !MOBILE_PRIMARY.some((i) => onPath(i.to) || i.also?.some(onPath)) && pathname !== "/welcome";
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -396,13 +396,13 @@ export default function StudioLayout() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       >
         <div className="grid grid-cols-5">
-          {MOBILE_PRIMARY.map(({ to, label, icon: Icon }) => (
+          {MOBILE_PRIMARY.map(({ to, label, icon: Icon, also }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
                 `flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isActive || also?.some(onPath) ? "text-primary" : "text-muted-foreground"
                 }`
               }
             >
