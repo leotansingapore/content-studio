@@ -142,6 +142,7 @@ import { dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, sanitizeTrack } from "@/lib/faceFollow";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
+import SubtitleImport from "@/components/SubtitleImport";
 import { onCaptionJob } from "@/lib/captionJob";
 import { MAX_LONG_BYTES, MAX_LONG_SECONDS, hoursMinutes, isLong } from "@/lib/longCaptions";
 import { RATE, mediaLength, openSound } from "@/lib/longAudio";
@@ -1822,6 +1823,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                     {captioning ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : null} {captioning ? "Captioning..." : "Caption it"}
                   </Button>
                   <Left n={left("video-transcribe")} />
+                  {!captioning && <SubtitleImport userId={userId} duration={duration} onWords={setWords} />}
                 </div>
               )}
             </div>
@@ -2129,6 +2131,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" variant="outline" onClick={recaption} disabled={captioning || none("video-transcribe")}>{captioning ? "Captioning..." : "Caption it"}</Button>
                   <Left n={left("video-transcribe")} />
+                  {!captioning && <SubtitleImport userId={userId} duration={duration} onWords={setWords} />}
                 </div>
                 )
               ) : (

@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
+import SubtitleImport from "@/components/SubtitleImport";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { captionJob, onCaptionJob, partsDone, startCaptions, type CaptionJob } from "@/lib/captionJob";
 import { captionPlan, hoursMinutes } from "@/lib/longCaptions";
@@ -66,6 +67,7 @@ export default function LongCaptions({ userId, project, file, onWords }: {
           {of === 1 ? "Caption it" : done ? `Caption the rest, ${rest} ${rest === 1 ? "part" : "parts"}` : `Caption it in ${of} parts`}
         </Button>
         {left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} captioning uses left today` : "None left today"}</span>}
+        {!running && <SubtitleImport userId={userId} duration={project.duration} onWords={onWords} />}
       </div>
       <p className="text-[11px] text-muted-foreground">
         {hoursMinutes(project.duration)}{of > 1 ? `, captioned in ${of} parts of about 10 minutes, each one use` : ""}{done ? `. ${done} of ${of} done` : ""}.
