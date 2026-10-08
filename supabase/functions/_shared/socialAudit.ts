@@ -41,6 +41,33 @@ export interface SocialPost {
   pinned: boolean;
   /** Made by another account and shared onto this one (a collab). */
   collab: boolean;
+  /** Instagram only: the latest few people who commented (never the account itself), newest first. */
+  commenters?: Commenter[];
+}
+
+export interface Commenter {
+  user: string;
+  text: string;
+  at: string | null;
+}
+
+export const MAX_COMMENTERS = 5;
+
+/** The scraper's latestComments as commenters: one per person, the account's own replies left out. */
+export function igCommenters(raw: unknown, handle: string): Commenter[] {
+  const seen = new Set<string>([handle]);
+  const out: Commenter[] = [];
+  const list = Array.isArray(raw) ? (raw as Item[]) : [];
+  const sorted = [...list].sort((a, b) => String(b?.timestamp ?? "").localeCompare(String(a?.timestamp ?? "")));
+  for (const c of sorted) {
+    const user = String(c?.ownerUsername ?? "").toLowerCase().trim();
+    const text = String(c?.text ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
+    if (!/^[a-z0-9._]{1,30}$/.test(user) || !text || seen.has(user)) continue;
+    seen.add(user);
+    out.push({ user, text, at: isoOrNull(c.timestamp) });
+    if (out.length === MAX_COMMENTERS) break;
+  }
+  return out;
 }
 
 export interface RatedPost extends SocialPost {
@@ -199,6 +226,7 @@ export function normalizeIgPost(item: Item, handle: string): SocialPost | null {
     durationSec: format === "video" ? countOrNull(item.videoDuration) : null,
     pinned: Boolean(item.isPinned),
     collab: owner !== "" && owner !== handle,
+    commenters: igCommenters(item.latestComments, handle),
   };
 }
 

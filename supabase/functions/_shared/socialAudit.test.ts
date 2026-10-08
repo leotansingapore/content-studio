@@ -106,6 +106,29 @@ describe("normalizers", () => {
     });
   });
 
+  it("keeps the latest commenters, one each, never the account itself", () => {
+    const post = normalizeIgPost(
+      {
+        shortCode: "DdwVNTMmwra",
+        type: "Image",
+        latestComments: [
+          { ownerUsername: "Jane.Tan", text: "How much  is this plan?", timestamp: "2026-09-27T02:00:00.000Z" },
+          { ownerUsername: "humphreytalks", text: "Thanks!", timestamp: "2026-09-28T02:00:00.000Z" },
+          { ownerUsername: "jane.tan", text: "older one", timestamp: "2026-09-20T02:00:00.000Z" },
+          { ownerUsername: "bad user!", text: "x" },
+          { ownerUsername: "bob", text: "", timestamp: "2026-09-29T02:00:00.000Z" },
+          { ownerUsername: "kai", text: "Saved", timestamp: "2026-09-26T02:00:00.000Z" },
+        ],
+      },
+      "humphreytalks",
+    );
+    expect(post?.commenters).toEqual([
+      { user: "jane.tan", text: "How much is this plan?", at: "2026-09-27T02:00:00.000Z" },
+      { user: "kai", text: "Saved", at: "2026-09-26T02:00:00.000Z" },
+    ]);
+    expect(normalizeIgPost({ shortCode: "x" }, "a")?.commenters).toEqual([]);
+  });
+
   it("gives Instagram carousels no views and floors hidden likes at zero", () => {
     const carousel = normalizeIgPost(
       { shortCode: "abc", type: "Sidecar", likesCount: -1, commentsCount: 4, videoViewCount: 50, ownerUsername: "me" },
