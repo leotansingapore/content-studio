@@ -373,6 +373,11 @@ export default function GeneratePage() {
   const [styleReference, setStyleReference] = useState<string | null>(null);
   const [vibeSourceId, setVibeSourceId] = useState<string | null>(null);
   const formAnchorRef = useRef<HTMLDivElement | null>(null);
+  // After a hook or variant pick, bring the next card into view: on a phone it
+  // renders a full screen or more below the button that was tapped.
+  const variantsCardRef = useRef<HTMLDivElement | null>(null);
+  const draftCardRef = useRef<HTMLDivElement | null>(null);
+  const scrollToVariantsRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const streamRunRef = useRef(0);
   const prefillAppliedRef = useRef<boolean>(false);
@@ -666,6 +671,13 @@ export default function GeneratePage() {
 
   const isStreaming = streamingMode !== "idle";
 
+  // The variant rows mount once the stream starts, after an async session read.
+  useEffect(() => {
+    if (!scrollToVariantsRef.current || !variantsCardRef.current) return;
+    scrollToVariantsRef.current = false;
+    variantsCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [variants.length]);
+
   const buildBasePayload = (): BasePayload => {
     // Fold the funnel-stage directive into the free-text context so the draft is
     // steered for where the reader sits in the funnel (the edge function is
@@ -924,6 +936,7 @@ export default function GeneratePage() {
   const handlePickHook = async (hookText: string) => {
     if (!hookText.trim()) return;
     setChosenHook(hookText.trim());
+    scrollToVariantsRef.current = true;
     setVariants([]);
     setSelectedVariantIndex(null);
     setDraft("");
@@ -1110,6 +1123,10 @@ export default function GeneratePage() {
     if (!v) return;
     setSelectedVariantIndex(idx);
     setDraft(v.text);
+    setTimeout(
+      () => draftCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      50,
+    );
     setHashtags([]);
     setImagePrompt("");
     setDismissedFlagIds(new Set());
@@ -1866,7 +1883,7 @@ export default function GeneratePage() {
       )}
 
       {variants.length > 0 && (
-        <Card className="border-border/60 shadow-card">
+        <Card ref={variantsCardRef} className="scroll-mt-20 border-border/60 shadow-card">
           <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <CardTitle className="font-serif text-xl">
               Three variations
@@ -1949,7 +1966,7 @@ export default function GeneratePage() {
       )}
 
       {draft && (
-        <Card className="border-border/60 shadow-card">
+        <Card ref={draftCardRef} className="scroll-mt-20 border-border/60 shadow-card">
           <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
             <div className="flex items-center gap-1">
               <CardTitle className="font-serif text-xl">Your draft</CardTitle>
