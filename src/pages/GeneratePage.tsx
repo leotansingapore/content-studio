@@ -797,12 +797,14 @@ export default function GeneratePage() {
       setPillarDetail(entry.hook);
       setWizardStep(LAST_STEP);
     } else {
-      setPillar(entry.pillar as Pillar);
+      // a saved post can come from Claude, a CSV import or an older version: take only
+      // values Write knows, so an unknown one falls back instead of crashing the page
+      setPillar(PILLARS.some((x) => x.value === entry.pillar) ? (entry.pillar as Pillar) : "topic");
       setPillarDetail(entry.pillarDetail ?? "");
-      setAudience((entry.audience as Audience) ?? "general");
-      setFormat(entry.format as Format);
-      setPlatform(entry.platform as Platform);
-      setCtaType(entry.ctaType as CtaType);
+      setAudience(AUDIENCES.some((x) => x.value === entry.audience) ? (entry.audience as Audience) : "general");
+      setFormat(FORMATS.some((x) => x.value === entry.format) ? (entry.format as Format) : "text-post");
+      setPlatform(PLATFORMS.some((x) => x.value === entry.platform) ? (entry.platform as Platform) : "linkedin");
+      setCtaType(CTAS.some((x) => x.value === entry.ctaType) ? (entry.ctaType as CtaType) : "dm-keyword");
       if (entry.hook) setChosenHook(entry.hook);
     }
     setDraft(entry.draft);
