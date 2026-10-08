@@ -14,7 +14,9 @@ export interface Word {
 }
 
 export type StyleId = "bold" | "cutout" | "minimal" | "editorial" | "native" | "documentary";
-export type Aspect = "9:16" | "4:5" | "1:1" | "original";
+export type Aspect = "9:16" | "4:5" | "1:1" | "16:9" | "original";
+/** fill = crop to the frame; blur = the whole picture over a blurred copy of itself (landscape podcasts in a vertical reel). */
+export type Fit = "fill" | "blur";
 export type Position = "top" | "middle" | "bottom";
 
 export interface EditSettings {
@@ -36,6 +38,7 @@ export interface EditSettings {
   trimStart: number;
   trimEnd: number;
   aspect: Aspect;
+  fit: Fit;
   /** Horizontal centre of the crop, 0 (left) to 1 (right). */
   focusX: number;
   punchIn: boolean;
@@ -98,6 +101,7 @@ export function defaultSettings(style: StyleId = "bold"): EditSettings {
     trimStart: 0,
     trimEnd: 0,
     aspect: "9:16",
+    fit: "fill",
     focusX: 0.5,
     punchIn: s.punch > 1,
     progressBar: style === "bold",
@@ -255,7 +259,8 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("maxPause" in p) set("maxPause", clamp(p.maxPause, 0, 3, s.maxPause));
   if ("trimStart" in p) set("trimStart", clamp(p.trimStart, 0, 3600, s.trimStart));
   if ("trimEnd" in p) set("trimEnd", clamp(p.trimEnd, 0, 3600, s.trimEnd));
-  if (["9:16", "4:5", "1:1", "original"].includes(p.aspect as string)) set("aspect", p.aspect as Aspect);
+  if (["9:16", "4:5", "1:1", "16:9", "original"].includes(p.aspect as string)) set("aspect", p.aspect as Aspect);
+  if (p.fit === "fill" || p.fit === "blur") set("fit", p.fit);
   if ("focusX" in p) set("focusX", clamp(p.focusX, 0, 1, s.focusX));
   return { next, changed };
 }
@@ -265,7 +270,7 @@ export function aspectSize(aspect: Aspect, srcW: number, srcH: number): [number,
     const scale = Math.min(1, 1920 / Math.max(srcW, srcH));
     return [Math.round((srcW * scale) / 2) * 2, Math.round((srcH * scale) / 2) * 2];
   }
-  return aspect === "9:16" ? [1080, 1920] : aspect === "4:5" ? [1080, 1350] : [1080, 1080];
+  return aspect === "9:16" ? [1080, 1920] : aspect === "4:5" ? [1080, 1350] : aspect === "16:9" ? [1920, 1080] : [1080, 1080];
 }
 
 export function fmtTime(t: number): string {

@@ -546,9 +546,15 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </Button>
               <Row label={`Hook shows for ${settings.hookSeconds}s`}><input type="range" min={1} max={10} step={0.5} value={settings.hookSeconds} onChange={(e) => patch({ hookSeconds: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label="Shape">
-                {(["9:16", "4:5", "1:1", "original"] as const).map((a) => <Chip key={a} on={settings.aspect === a} onClick={() => patch({ aspect: a })}>{a}</Chip>)}
+                {(["9:16", "4:5", "1:1", "16:9", "original"] as const).map((a) => <Chip key={a} on={settings.aspect === a} onClick={() => patch({ aspect: a })}>{a}</Chip>)}
               </Row>
-              <Row label="Framing"><input type="range" min={0} max={1} step={0.01} value={settings.focusX} onChange={(e) => patch({ focusX: Number(e.target.value) })} aria-label="Move the crop left or right" className="w-40 accent-primary" /></Row>
+              <Row label="Fit">
+                <Chip on={(settings.fit ?? "fill") === "fill"} onClick={() => patch({ fit: "fill" })}>Crop to fill</Chip>
+                <Chip on={settings.fit === "blur"} onClick={() => patch({ fit: "blur" })}>Whole video, blurred behind</Chip>
+              </Row>
+              {(settings.fit ?? "fill") === "fill" && (
+                <Row label="Framing"><input type="range" min={0} max={1} step={0.01} value={settings.focusX} onChange={(e) => patch({ focusX: Number(e.target.value) })} aria-label="Move the crop left or right" className="w-40 accent-primary" /></Row>
+              )}
               <Row label="Progress bar"><Toggle on={settings.progressBar} set={(v) => patch({ progressBar: v })} /></Row>
               <Row label="Colour grade"><Toggle on={settings.grade} set={(v) => patch({ grade: v })} /></Row>
             </div>

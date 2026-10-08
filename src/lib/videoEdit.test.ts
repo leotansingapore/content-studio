@@ -98,3 +98,14 @@ describe("clips", () => {
     expect([s.trimStart, s.trimEnd, s.hook]).toEqual([30, 525, "Why most advisors quit"]);
   });
 });
+
+describe("fit and landscape", () => {
+  it("adds a blurred-background fit and a 16:9 size, and older saved settings default to fill", async () => {
+    const { applyPatch, aspectSize, defaultSettings } = await import("./videoEdit");
+    const s = defaultSettings("bold");
+    expect(s.fit).toBe("fill");
+    expect(applyPatch(s, { fit: "blur", aspect: "16:9" }).next).toMatchObject({ fit: "blur", aspect: "16:9" });
+    expect(applyPatch(s, { fit: "stretch" }).next.fit).toBe("fill");
+    expect(aspectSize("16:9", 720, 1280)).toEqual([1920, 1080]);
+  });
+});

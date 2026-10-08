@@ -183,14 +183,30 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   // the picture: cover the frame, crop centred on focusX, punch in on alternate cuts
   if (v.videoWidth) {
     const zoom = s.punchIn ? zoomAt(f.segs, f.src, spec.punch) : 1;
-    const scale = Math.max(W / v.videoWidth, H / v.videoHeight) * zoom;
-    const dw = v.videoWidth * scale;
-    const dh = v.videoHeight * scale;
-    const dx = Math.min(0, Math.max(W - dw, W / 2 - dw * s.focusX));
-    const dy = (H - dh) / 2;
-    if (s.grade) g.filter = spec.grade;
-    g.drawImage(v, dx, dy, dw, dh);
-    g.filter = "none";
+    const cover = Math.max(W / v.videoWidth, H / v.videoHeight);
+    if (s.fit === "blur") {
+      // the whole picture, over a darkened, blurred copy filling the frame
+      const bw = v.videoWidth * cover;
+      const bh = v.videoHeight * cover;
+      g.filter = `blur(${Math.round(36 * k)}px) brightness(0.62)`;
+      g.drawImage(v, (W - bw) / 2, (H - bh) / 2, bw, bh);
+      g.filter = "none";
+      const scale = Math.min(W / v.videoWidth, H / v.videoHeight) * zoom;
+      const dw = v.videoWidth * scale;
+      const dh = v.videoHeight * scale;
+      if (s.grade) g.filter = spec.grade;
+      g.drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      g.filter = "none";
+    } else {
+      const scale = cover * zoom;
+      const dw = v.videoWidth * scale;
+      const dh = v.videoHeight * scale;
+      const dx = Math.min(0, Math.max(W - dw, W / 2 - dw * s.focusX));
+      const dy = (H - dh) / 2;
+      if (s.grade) g.filter = spec.grade;
+      g.drawImage(v, dx, dy, dw, dh);
+      g.filter = "none";
+    }
   }
   if (spec.bars && s.grade) {
     g.fillStyle = "#000";
