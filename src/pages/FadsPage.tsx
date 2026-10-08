@@ -20,6 +20,7 @@ import {
   type Positioning,
   type PlanAudience,
 } from "@/lib/positioning";
+import { scoped } from "@/lib/profiles";
 
 // Ported from AIA Product Compass Hub (learning-track F.A.D.S. assignment).
 // Same academy Supabase project, so the generate-brand-template and
@@ -450,9 +451,10 @@ export default function FadsPage() {
       active = false;
     };
   }, []);
-  const storageKey = userId ? `${STORAGE_PREFIX}-${userId}` : `${STORAGE_PREFIX}-anon`;
+  // Per profile, like positioning and voice: F.A.D.S. is a brand's differentiation.
+  const storageKey = userId ? `${STORAGE_PREFIX}-${scoped(userId)}` : `${STORAGE_PREFIX}-anon`;
   const polishStorageKey = userId
-    ? `${STORAGE_PREFIX}-ai-${userId}`
+    ? `${STORAGE_PREFIX}-ai-${scoped(userId)}`
     : `${STORAGE_PREFIX}-ai-anon`;
 
   const [activeTab, setActiveTab] = useState(tab || "personality");
