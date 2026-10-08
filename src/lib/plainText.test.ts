@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { withDisclosure, withSignOff } from "@/lib/plainText";
+import { cleanAiTells, withDisclosure, withSignOff } from "@/lib/plainText";
 
 describe("withSignOff", () => {
   const sign = "DM me PLAN for a free review.\nThis is not financial advice.\n#cpf #singapore";
@@ -56,5 +56,47 @@ describe("tagLinks", () => {
     );
     expect(tagLinks("No links here.", { source: "linkedin", campaign: "a" })).toBe("No links here.");
     expect(tagLinks("https://x.sg", { source: "linkedin", campaign: "Most people still think being a financial adviser" })).toMatch(/utm_campaign=most-people-still-think-being$/);
+  });
+});
+
+describe("cleanAiTells", () => {
+  it("takes out hidden characters and turns odd spaces into plain ones", () => {
+    const out = cleanAiTells("Save\u200B first,\u00A0spend\u00AD later.\uFEFF Tag\u{E0041}\u{E0042} here\u200D.");
+    expect(out.text).toBe("Save first, spend later. Tag here.");
+    expect(out.changes).toBe(7);
+  });
+
+  it("keeps the joiner inside emoji, so families, skin tones and flags stay whole", () => {
+    const emoji = "\u{1F468}\u200D\u{1F469}\u200D\u{1F467} \u{1F469}\u{1F3FD}\u200D\u{1F4BB} \u{1F3F3}\uFE0F\u200D\u{1F308} \u{1F3C3}\u200D\u2640\uFE0F \u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}";
+    expect(cleanAiTells(emoji)).toEqual({ text: emoji, changes: 0 });
+  });
+
+  it("turns curly quotes, dashes and the ellipsis character into plain ones", () => {
+    const out = cleanAiTells("\u201CIt\u2019s fine\u201D \u2014 she said\u2026 ages 25\u201330");
+    expect(out.text).toBe("\"It's fine\", she said... ages 25-30");
+    expect(out.changes).toBe(6);
+  });
+
+  it("swaps stock AI words for plain ones and keeps the capital letter", () => {
+    const out = cleanAiTells("Delve into a robust plan. Moreover, it's SEAMLESS and a myriad of options.");
+    expect(out.text).toBe("Look at a solid plan. Also, it's SMOOTH and many options.");
+    expect(out.changes).toBe(5);
+  });
+
+  it("swaps leverage only as a verb, and leaves finance terms alone", () => {
+    expect(cleanAiTells("Leverage your network.").text).toBe("Use your network.");
+    const finance = "Too much leverage on a second property. Comprehensive motor cover. Holistic planning.";
+    expect(cleanAiTells(finance)).toEqual({ text: finance, changes: 0 });
+  });
+
+  it("never touches links, hashtags or handles", () => {
+    const text = "See https://jane.sg/unlock-robust-plans and www.x.sg/delve #Innovative @SeamlessCo";
+    expect(cleanAiTells(text)).toEqual({ text, changes: 0 });
+  });
+
+  it("finds nothing the second time", () => {
+    const once = cleanAiTells("We leverage the robust \u201Cecosystem\u201D \u2014 additionally, utilise it.");
+    expect(once.text).toBe("We use the solid \"system\", also, use it.");
+    expect(cleanAiTells(once.text)).toEqual({ text: once.text, changes: 0 });
   });
 });

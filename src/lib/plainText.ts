@@ -137,3 +137,168 @@ export function tagLinks(text: string, tags: { source: string; campaign: string 
     return url.toString() + trail;
   });
 }
+
+// Stock AI words and the plain word each becomes, longest first so a phrase
+// wins over its own last word. Ported from Jakeschincariol/linkedin-agent-skill
+// (MIT) slop.json, trimmed: no entry that deletes words (it leaves broken
+// sentences), and nothing that is a real term in a finance post (leverage as
+// borrowing, comprehensive cover, holistic planning, journey, landscape).
+const AI_WORDS: [string, string][] = [
+  ["in the ever-evolving landscape of", "in"],
+  ["in the ever-changing world of", "in"],
+  ["in today's fast-paced world", "right now"],
+  ["in today's digital age", "right now"],
+  ["it is worth noting that", "note that"],
+  ["imagine a world where", "imagine if"],
+  ["had the opportunity to", "got to"],
+  ["when it comes to", "with"],
+  ["a wide range of", "many"],
+  ["move the needle", "make a difference"],
+  ["a testament to", "proof of"],
+  ["testament to", "proof of"],
+  ["treasure trove", "pile"],
+  ["in order to", "to"],
+  ["dive deep into", "get into"],
+  ["delving into", "looking at"],
+  ["delves into", "looks at"],
+  ["delve into", "look at"],
+  ["deep dive", "breakdown"],
+  ["embark on", "start"],
+  ["a plethora of", "lots of"],
+  ["plethora of", "lots of"],
+  ["a myriad of", "many"],
+  ["myriad of", "many"],
+  ["north star", "goal"],
+  ["in essence", "basically"],
+  ["in conclusion", "so"],
+  ["game-changer", "big deal"],
+  ["game-changing", "big"],
+  ["cutting-edge", "new"],
+  // a verb only when an object follows: "use leverage" stays a finance word
+  ["leveraging(?=\\s+(?:your|our|my|their|the|this|these|those|it|them)\\b)", "using"],
+  ["leverage(?=\\s+(?:your|our|my|their|the|this|these|those|it|them)\\b)", "use"],
+  ["delving", "looking"],
+  ["delves", "looks"],
+  ["delve", "look"],
+  ["utilizing", "using"],
+  ["utilising", "using"],
+  ["utilized", "used"],
+  ["utilised", "used"],
+  ["utilize", "use"],
+  ["utilise", "use"],
+  ["harness", "use"],
+  ["foster", "build"],
+  ["facilitate", "help"],
+  ["showcase", "show"],
+  ["unlock", "get"],
+  ["elevate", "improve"],
+  ["streamline", "simplify"],
+  ["spearhead", "lead"],
+  ["underscores", "shows"],
+  ["underscore", "show"],
+  ["cultivate", "build"],
+  ["amplify", "boost"],
+  ["curated", "picked"],
+  ["curate", "pick"],
+  ["empower", "help"],
+  ["revolutionize", "change"],
+  ["revolutionise", "change"],
+  ["transformative", "big"],
+  ["robust", "solid"],
+  ["seamlessly", "smoothly"],
+  ["seamless", "smooth"],
+  ["pivotal", "key"],
+  ["crucial", "important"],
+  ["vital", "important"],
+  ["groundbreaking", "new"],
+  ["unparalleled", "unmatched"],
+  ["invaluable", "useful"],
+  ["meticulously", "carefully"],
+  ["meticulous", "careful"],
+  ["myriad", "many"],
+  ["multifaceted", "complicated"],
+  ["bespoke", "custom"],
+  ["innovative", "new"],
+  ["profound", "big"],
+  ["remarkable", "notable"],
+  ["compelling", "convincing"],
+  ["tapestry", "mix"],
+  ["realm", "world"],
+  ["cornerstone", "base"],
+  ["paradigm", "model"],
+  ["ecosystem", "system"],
+  ["moreover", "also"],
+  ["furthermore", "also"],
+  ["additionally", "also"],
+  ["nevertheless", "still"],
+  ["consequently", "so"],
+  ["thus", "so"],
+  ["hence", "so"],
+  ["ultimately", "in the end"],
+];
+const AI_WORD_RES = AI_WORDS.map(([find, plain]) => [new RegExp(`\\b${find.replace(/ /g, "\\s+")}\\b`, "gi"), plain] as const);
+
+// Links, emails, hashtags and handles are never rewritten.
+const PROTECTED = /(https?:\/\/\S+|www\.\S+|\S+@\S+\.\S+|[#@][\p{L}\p{N}_]+)/u;
+// Format characters (zero-width spaces, joiners, soft hyphens, BOMs, tag
+// characters) never come from a keyboard. A subdivision flag keeps its tags.
+// ponytail: emoji test is per code point, a full emoji-sequence parser if a real one breaks
+const INVISIBLE = /(\u{1F3F4}[\u{E0020}-\u{E007F}]+)|\p{Cf}/gu;
+const EMOJI_BEFORE = /\p{Extended_Pictographic}|\p{Emoji_Modifier}|\uFE0F/u;
+const EMOJI_AFTER = /\p{Extended_Pictographic}/u;
+
+function matchCase(found: string, plain: string): string {
+  if (found.length > 1 && found === found.toUpperCase()) return plain.toUpperCase();
+  return /^[A-Z]/.test(found) ? plain[0].toUpperCase() + plain.slice(1) : plain;
+}
+
+/**
+ * One-tap clean of AI fingerprints: hidden characters out (the joiner inside
+ * an emoji stays), odd spaces, curly quotes, dashes and the ellipsis character
+ * made plain, stock AI words swapped from a fixed list. A transform, not a
+ * judgment: it counts what it changed and decides nothing.
+ */
+export function cleanAiTells(input: string): { text: string; changes: number } {
+  let changes = 0;
+  const count = (re: RegExp, s: string) => (changes += s.match(re)?.length ?? 0);
+
+  let text = input.replace(INVISIBLE, (m, flag: string | undefined, off: number, s: string) => {
+    if (flag) return flag;
+    if (m === "\u200D") {
+      const before = Array.from(s.slice(Math.max(0, off - 2), off)).pop() ?? "";
+      const after = String.fromCodePoint(s.codePointAt(off + 1) ?? 32);
+      if (EMOJI_BEFORE.test(before) && EMOJI_AFTER.test(after)) return m;
+    }
+    changes++;
+    return "";
+  });
+
+  const PLAIN: [RegExp, string][] = [
+    [/[\u00A0\u202F\u2009\u2007\u2003\u2002]/g, " "],
+    [/[\u2018\u2019]/g, "'"],
+    [/[\u201C\u201D]/g, '"'],
+    [/\u2026/g, "..."],
+  ];
+  for (const [re, plain] of PLAIN) {
+    count(re, text);
+    text = text.replace(re, plain);
+  }
+  count(/[\u2014\u2013]/g, text);
+  text = stripDashes(text);
+
+  text = text
+    .split(PROTECTED)
+    .map((part, i) => {
+      if (i % 2) return part;
+      for (const [re, plain] of AI_WORD_RES) {
+        part = part.replace(re, (found) => {
+          changes++;
+          return matchCase(found, plain);
+        });
+      }
+      return part;
+    })
+    .join("");
+
+  return { text, changes };
+}

@@ -55,6 +55,7 @@ import {
   Gauge,
   BookmarkPlus,
   MessageSquare,
+  Eraser,
 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import inspirationData from "@/data/inspiration.json";
@@ -94,6 +95,7 @@ import {
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import { HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet } from "@/lib/hookFormulas";
 import {
+  cleanAiTells,
   DISCLOSURES,
   stripDashes,
   tagLinks,
@@ -643,6 +645,8 @@ export default function GeneratePage() {
     status: "streaming" | "done";
   } | null>(null);
   const [undoText, setUndoText] = useState<string | null>(null);
+  // What the Undo line says happened: a rewrite or a clean.
+  const [undoNote, setUndoNote] = useState("Rewritten.");
   const rewriteAbortRef = useRef<AbortController | null>(null);
   // Links taken out of a LinkedIn draft, to paste as its first comment.
   const [firstComment, setFirstComment] = useState<string | null>(null);
@@ -1703,9 +1707,23 @@ export default function GeneratePage() {
   const acceptRewrite = () => {
     if (!rewrite || rewrite.status !== "done") return;
     setUndoText(draft);
+    setUndoNote("Rewritten.");
     setDraft(rewrite.text);
     persistDraftEntry(rewrite.text, chosenHook ?? "");
     setRewrite(null);
+  };
+
+  // A transform with a fixed list, not a judgment, so it runs in the browser.
+  const cleanDraft = () => {
+    const { text, changes } = cleanAiTells(draft);
+    if (!changes) {
+      toast({ title: "Nothing to clean" });
+      return;
+    }
+    setUndoText(draft);
+    setUndoNote(`${changes} ${changes === 1 ? "change" : "changes"} made.`);
+    setDraft(text);
+    persistDraftEntry(text, chosenHook ?? "");
   };
 
   const undoRewrite = () => {
@@ -2904,7 +2922,7 @@ export default function GeneratePage() {
                       type="button"
                       disabled={rewrite?.status === "streaming"}
                       onClick={() => void handleRewrite(r.id)}
-                      className={`flex h-9 items-center rounded-full border px-3 text-xs font-medium transition-colors disabled:opacity-50 ${
+                      className={`flex h-11 items-center rounded-full border px-3 text-xs font-medium transition-colors disabled:opacity-50 sm:h-9 ${
                         rewrite?.id === r.id
                           ? "border-primary/60 bg-primary/10 text-primary"
                           : "border-border/70 text-muted-foreground hover:text-foreground"
@@ -2913,14 +2931,22 @@ export default function GeneratePage() {
                       {r.label}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={cleanDraft}
+                    title="Removes hidden characters and swaps fancy punctuation and stock AI words."
+                    className="flex h-11 items-center gap-1 rounded-full border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:h-9"
+                  >
+                    <Eraser className="h-3.5 w-3.5" /> Clean AI tells
+                  </button>
                 </div>
                 {undoText !== null && (
                   <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
-                    <Check className="h-3.5 w-3.5 text-success" /> Rewritten.
+                    <Check className="h-3.5 w-3.5 text-success" /> {undoNote}
                     <button
                       type="button"
                       onClick={undoRewrite}
-                      className="-my-2 py-2 font-semibold text-primary hover:underline"
+                      className="-my-3.5 py-3.5 font-semibold text-primary hover:underline sm:-my-2 sm:py-2"
                     >
                       Undo
                     </button>
