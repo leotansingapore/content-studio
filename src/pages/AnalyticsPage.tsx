@@ -523,7 +523,7 @@ export default function AnalyticsPage() {
 
       {(hasData || showMix) && (
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
-          {([[30, "30 days"], [7, "7 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
+          {([[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
             <button key={d} type="button" onClick={() => setPeriod(d)} aria-pressed={period === d}
               className={`h-9 rounded-full border px-3 text-xs font-semibold ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
               {label}
