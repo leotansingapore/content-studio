@@ -25,6 +25,7 @@ import {
   type DraftEntry,
 } from "@/lib/draftHistory";
 import { supabase } from "@/lib/supabase";
+import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
 
 const PRODUCTION: BoardColumn[] = ["idea", "scripted", "to-film", "editing"];
 
@@ -59,6 +60,15 @@ function BoardCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
+  // Written the way Home and the calendar write it: "Fri, 9 Oct, 7:30pm".
+  const day = draftStatus(draft) === "scheduled" ? draft.scheduledFor?.slice(0, 10) : undefined;
+  const time = scheduleTime(draft.scheduledFor);
+  const when = day
+    ? {
+        label: keyToDate(day).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) + (time ? `, ${timeLabel(time)}` : ""),
+        late: day < localDateKey(),
+      }
+    : null;
 
   const commitRename = () => {
     setEditing(false);
@@ -101,7 +111,7 @@ function BoardCard({
             </p>
           )}
         </div>
-        {(draft.platform || draft.format || draft.scheduledFor) && (
+        {(draft.platform || draft.format || when) && (
           <div className="flex flex-wrap items-center gap-1.5 pl-5">
             {draft.platform && (
               <span className="whitespace-nowrap rounded-full border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -113,9 +123,10 @@ function BoardCard({
                 {draft.format.replace(/-/g, " ")}
               </span>
             )}
-            {draft.scheduledFor && (
-              <span className="whitespace-nowrap text-[10px] text-muted-foreground">
-                {new Date(draft.scheduledFor).toLocaleDateString()}
+            {when && (
+              <span className={`whitespace-nowrap text-[10px] ${when.late ? "font-medium text-warning" : "text-muted-foreground"}`}>
+                {when.late ? "Overdue, " : ""}
+                {when.label}
               </span>
             )}
           </div>
@@ -179,7 +190,7 @@ export default function BoardPage() {
         userId,
         scheduling,
         "scheduled",
-        new Date(`${scheduleDate}T09:00:00`).toISOString(),
+        scheduleAt(scheduleDate),
       ),
     );
     setScheduling(null);
@@ -341,7 +352,7 @@ export default function BoardPage() {
                           <input
                             type="date"
                             value={scheduleDate}
-                            min={new Date().toISOString().slice(0, 10)}
+                            min={localDateKey()}
                             onChange={(e) => setScheduleDate(e.target.value)}
                             className="w-full rounded-md border border-border/70 bg-background px-2 py-1 text-xs outline-none focus:border-primary/40"
                           />
