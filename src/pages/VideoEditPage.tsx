@@ -38,6 +38,8 @@ import {
   captionBoxOf,
   fullLength,
   findPhrase,
+  levelFits,
+  sanitizeLevel,
   sanitizeVoiceover,
   voiceAt,
   addRemoved,
@@ -79,6 +81,7 @@ import {
   ensureCaptionFonts,
   loadBrandArt,
   measureExport,
+  measureLevel,
   wireVoice,
   exportJob,
   makeCover,
@@ -255,6 +258,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     overlays: sanitizeOverlays(project.settings.overlays),
     removed: sanitizeRemoved(project.settings.removed),
     voiceover: sanitizeVoiceover(project.settings.voiceover),
+    level: sanitizeLevel(project.settings.level),
   }));
   // Words tab: fix spelling, or cut a stretch by tapping its first and last word
   const [wordMode, setWordMode] = useState<"fix" | "cut">("fix");
@@ -298,22 +302,38 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const voiceEl = useRef<HTMLAudioElement>(null);
   const [recording, setRecording] = useState<{ rec: MediaRecorder; stream: MediaStream; start: number; t0: number } | null>(null);
   const [recSeconds, setRecSeconds] = useState(0);
-  // the preview's sound goes through the voice polish once it has been switched on
+  // the preview's sound goes through the voice polish and the loudness lift once either has been switched on
   const audio = useRef<{ ctx: AudioContext; src: MediaElementAudioSourceNode; unwire: () => void } | null>(null);
+  const polish = !!settings.voicePolish;
+  const level = settings.loudness && levelFits(settings.level, polish) ? settings.level : null;
   useEffect(() => {
     const v = video.current;
-    const polish = !!settings.voicePolish;
-    if (!v || (!audio.current && !polish)) return;
+    if (!v || (!audio.current && !polish && !level)) return;
     if (!audio.current) {
       const ctx = new AudioContext();
       const src = ctx.createMediaElementSource(v);
-      audio.current = { ctx, src, unwire: wireVoice(ctx, src, ctx.destination, polish) };
+      audio.current = { ctx, src, unwire: wireVoice(ctx, src, ctx.destination, polish, level) };
     } else {
       audio.current.unwire();
-      audio.current.unwire = wireVoice(audio.current.ctx, audio.current.src, audio.current.ctx.destination, polish);
+      audio.current.unwire = wireVoice(audio.current.ctx, audio.current.src, audio.current.ctx.destination, polish, level);
     }
     void audio.current.ctx.resume().catch(() => {});
-  }, [settings.voicePolish, file]);
+  }, [polish, level, file]);
+  // even out loudness: measured from this video's sound whenever it is on and the last measurement no longer fits
+  const [measuring, setMeasuring] = useState<"" | "busy" | "none">("");
+  useEffect(() => {
+    if (!settings.loudness || !file || levelFits(settings.level, polish)) return;
+    let live = true;
+    setMeasuring("busy");
+    measureLevel(file, polish)
+      .then((l) => {
+        if (!live) return;
+        setMeasuring(l ? "" : "none");
+        if (l) setSettings((s) => (s.loudness && !!s.voicePolish === l.polish ? { ...s, level: l } : s));
+      })
+      .catch(() => live && setMeasuring("none"));
+    return () => { live = false; };
+  }, [settings.loudness, settings.level, polish, file]);
   useEffect(() => () => void audio.current?.ctx.close(), []);
   useEffect(() => {
     void loadBrandArt(brandKit).then(setArt);
@@ -876,7 +896,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 {fileCheck.issues.map((i) => (
                   <li key={i.id} className="flex flex-wrap items-center gap-2 rounded-md border border-warning/50 bg-warning/10 px-2 py-1.5 text-xs">
                     <span className="mr-auto">{i.text}</span>
-                    {i.id === "quiet" && !settings.voicePolish && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { patch({ voicePolish: true }); setTab("cuts"); }}>Turn on voice polish</Button>}
+                    {i.id === "quiet" && !settings.loudness && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => { patch({ loudness: true }); setTab("cuts"); }}>Even out loudness</Button>}
                     {i.id === "silent" && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTab("cuts")}>Open Cuts</Button>}
                     {i.id === "gap" && i.at !== undefined && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => seekOut(i.at!)}>Show me</Button>}
                     {i.id === "captions" && <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setTab("words")}>Caption it</Button>}
@@ -1164,6 +1184,15 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <InfoTip label="About voice polish">Cuts rumble and hum, lifts clarity and evens out loud and quiet bits.</InfoTip>
                 <Toggle on={!!settings.voicePolish} set={(v) => patch({ voicePolish: v })} />
               </Row>
+              <Row label="Even out loudness">
+                <InfoTip label="About loudness">Instagram and TikTok play videos at about -14 LUFS.</InfoTip>
+                <Toggle on={!!settings.loudness} set={(v) => patch({ loudness: v })} />
+              </Row>
+              {settings.loudness && (
+                <p className="text-xs text-muted-foreground" aria-live="polite">
+                  {measuring === "busy" ? "Measuring the sound..." : measuring === "none" ? "No sound to measure in this video." : level ? `${Math.round(level.before)} LUFS -> ${Math.round(level.after)} LUFS, peak ${level.peak.toFixed(1)} dB` : ""}
+                </p>
+              )}
               {cuts.length > 0 && (
                 <details className="rounded-lg border border-border/60">
                   <summary className="cursor-pointer px-3 py-2 text-sm font-medium">
@@ -1441,7 +1470,7 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
 function Toggle({ on, set }: { on: boolean; set: (v: boolean) => void }) {
   return (
     <button type="button" role="switch" aria-checked={on} onClick={() => set(!on)}
-      className={`relative h-6 w-11 rounded-full transition-colors ${on ? "bg-primary" : "bg-muted"}`}>
+      className={`relative h-6 w-11 rounded-full transition-colors after:absolute after:-inset-y-2.5 after:inset-x-0 after:content-[''] ${on ? "bg-primary" : "bg-muted"}`}>
       <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[22px]" : "left-0.5"}`} />
     </button>
   );

@@ -570,3 +570,68 @@ describe("checking an exported file", () => {
     expect(ids({ seconds: null, level: null, gap: null })).toEqual([]); // the sound could not be read back: nothing claimed
   });
 });
+
+describe("loudness", () => {
+  const tone = (amp: number, seconds: number, rate = 48000, hz = 997) =>
+    Float32Array.from({ length: Math.round(seconds * rate) }, (_, i) => amp * Math.sin((2 * Math.PI * hz * i) / rate));
+  const join = (...parts: Float32Array[]) => {
+    const out = new Float32Array(parts.reduce((n, p) => n + p.length, 0));
+    let at = 0;
+    for (const p of parts) { out.set(p, at); at += p.length; }
+    return out;
+  };
+
+  it("builds BS.1770's K-weighting filters, matching the standard's 48 kHz table", async () => {
+    const { kWeighting } = await import("@/lib/videoEdit");
+    const [shelf, hp] = kWeighting(48000);
+    const close = (got: number[], want: number[]) => got.forEach((v, i) => expect(v).toBeCloseTo(want[i], 6));
+    close(shelf.b, [1.53512485958697, -2.69169618940638, 1.19839281085285]);
+    close(shelf.a, [1, -1.69065929318241, 0.73248077421585]);
+    close(hp.b, [1, -2, 1]);
+    close(hp.a, [1, -1.99004745483398, 0.99007225036621]);
+  });
+
+  it("reads a 1 kHz tone at its level less 3 dB, counts both channels, and gates out silence and quiet bits", async () => {
+    const { integratedLoudness } = await import("@/lib/videoEdit");
+    const t = tone(0.1, 4);
+    expect(integratedLoudness([t], 48000)!).toBeCloseTo(-23.01, 1);
+    expect(integratedLoudness([t, t], 48000)!).toBeCloseTo(-20.0, 1);
+    // ungated, these would read about -26; the blocks across the join pull a touch under -23
+    expect(integratedLoudness([join(t, new Float32Array(48000 * 4))], 48000)!).toBeGreaterThan(-23.3);
+    expect(integratedLoudness([join(t, tone(0.01, 4))], 48000)!).toBeGreaterThan(-23.3);
+    expect(integratedLoudness([tone(0.1, 4, 44100)], 44100)!).toBeCloseTo(-23.01, 1);
+    expect(integratedLoudness([new Float32Array(48000 * 2)], 48000)).toBeNull();
+  });
+
+  it("finds a peak that falls between samples", async () => {
+    const { truePeak } = await import("@/lib/videoEdit");
+    // a quarter-rate wave sampled 45 degrees off its crests: every sample reads 0.707, the wave reaches 1
+    const off = Float32Array.from({ length: 4800 }, (_, i) => Math.sin((Math.PI / 2) * i + Math.PI / 4));
+    expect(truePeak([off])).toBeGreaterThan(-0.2);
+    expect(truePeak([off])).toBeLessThan(0.1);
+    expect(truePeak([tone(0.5, 1)])).toBeCloseTo(-6.02, 1);
+    expect(truePeak([new Float32Array(100)])).toBe(-Infinity);
+  });
+
+  it("steers the gain to -14 LUFS within half a LU, never lifting more than 20 dB", async () => {
+    const { nextGain } = await import("@/lib/videoEdit");
+    expect(nextGain(0, -21)).toBe(7);
+    expect(nextGain(7, -11.2)).toBeCloseTo(4.2, 5);
+    expect(nextGain(4.2, -14.3)).toBeNull();
+    expect(nextGain(0, -50)).toBe(20);
+  });
+
+  it("keeps a measurement only while voice polish is as it was, and is part of the look", async () => {
+    const { levelFits, sanitizeLevel, lookOf, applyPatch } = await import("@/lib/videoEdit");
+    const level = { polish: true, before: -21.4, after: -14.1, peak: -1.2, gain: 6.8, trim: 0 };
+    expect(levelFits(sanitizeLevel(level), true)).toBe(true);
+    expect(levelFits(level, false)).toBe(false);
+    expect(levelFits(undefined, false)).toBe(false);
+    expect(sanitizeLevel({ ...level, gain: 99 })).toBeUndefined();
+    expect(sanitizeLevel("loud")).toBeUndefined();
+    const on = applyPatch(defaultSettings(), { loudness: true }).next;
+    expect(on.loudness).toBe(true);
+    expect(lookOf({ ...on, level }).loudness).toBe(true);
+    expect(lookOf({ ...on, level })).not.toHaveProperty("level");
+  });
+});

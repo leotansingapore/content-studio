@@ -21,7 +21,13 @@ import {
   captionKey,
   distanceToCut,
   gradeOf,
+  integratedLoudness,
   isNumberWord,
+  levelFits,
+  nextGain,
+  PEAK_CEILING,
+  truePeak,
+  type Level,
   keepSegments,
   nameTagVisible,
   outAt,
@@ -182,25 +188,81 @@ export interface Frame {
  * Wires input to output, through the voice polish when on: a high-pass at
  * 90 Hz (rumble, 50 Hz mains hum), a small cut at 250 Hz (boxiness), a lift at
  * 3 kHz (clarity), then a gentle compressor so quiet and loud moments sit
- * closer together. Returns a function that unwires it all.
+ * closer together. With a measured level, it then lifts the sound to -14 LUFS
+ * into a limiter that holds the peaks down. Returns a function that unwires it all.
  */
-export function wireVoice(ctx: BaseAudioContext, input: AudioNode, output: AudioNode, polish: boolean): () => void {
-  if (!polish) {
-    input.connect(output);
-    return () => input.disconnect(output);
+export function wireVoice(ctx: BaseAudioContext, input: AudioNode, output: AudioNode, polish: boolean, level?: Level | null): () => void {
+  const chain: AudioNode[] = [];
+  if (polish) {
+    // two stages make a 4th-order Butterworth high-pass (24 dB an octave): 50 Hz hum drops about 20 dB
+    chain.push(
+      new BiquadFilterNode(ctx, { type: "highpass", frequency: 90, Q: 0.54 }),
+      new BiquadFilterNode(ctx, { type: "highpass", frequency: 90, Q: 1.31 }),
+      new BiquadFilterNode(ctx, { type: "peaking", frequency: 250, Q: 1, gain: -2.5 }),
+      new BiquadFilterNode(ctx, { type: "peaking", frequency: 3000, Q: 0.9, gain: 3 }),
+      // the compressor applies its own make-up gain (Web Audio spec), so no extra gain stage: loud sources keep headroom
+      new DynamicsCompressorNode(ctx, { threshold: -26, knee: 10, ratio: 3.5, attack: 0.005, release: 0.2 }),
+    );
   }
-  // two stages make a 4th-order Butterworth high-pass (24 dB an octave): 50 Hz hum drops about 20 dB
-  const hp = new BiquadFilterNode(ctx, { type: "highpass", frequency: 90, Q: 0.54 });
-  const hp2 = new BiquadFilterNode(ctx, { type: "highpass", frequency: 90, Q: 1.31 });
-  const mud = new BiquadFilterNode(ctx, { type: "peaking", frequency: 250, Q: 1, gain: -2.5 });
-  const presence = new BiquadFilterNode(ctx, { type: "peaking", frequency: 3000, Q: 0.9, gain: 3 });
-  // the compressor applies its own make-up gain (Web Audio spec), so no extra gain stage: loud sources keep headroom
-  const comp = new DynamicsCompressorNode(ctx, { threshold: -26, knee: 10, ratio: 3.5, attack: 0.005, release: 0.2 });
-  input.connect(hp).connect(hp2).connect(mud).connect(presence).connect(comp).connect(output);
+  if (level) {
+    // the limiter's own make-up gain is part of what was measured, so the gain and trim account for it
+    chain.push(
+      new GainNode(ctx, { gain: 10 ** (level.gain / 20) }),
+      new DynamicsCompressorNode(ctx, { threshold: -6, knee: 0, ratio: 20, attack: 0.001, release: 0.1 }),
+      new GainNode(ctx, { gain: 10 ** (level.trim / 20) }),
+    );
+  }
+  let last = input;
+  for (const n of chain) last = last.connect(n);
+  last.connect(output);
   return () => {
-    input.disconnect(hp);
-    comp.disconnect(output);
+    input.disconnect(chain[0] ?? output);
+    if (chain.length) last.disconnect(output);
   };
+}
+
+/**
+ * Measures the video's sound as the edit plays it (voice polish as set), then
+ * finds the lift that brings it to -14 LUFS through the limiter, rendering it
+ * offline to check (two or three quick passes), and a trim that keeps the true
+ * peak under -1 dB. Null when the video has no sound.
+ */
+export async function measureLevel(file: Blob, polish: boolean): Promise<Level | null> {
+  const rate = 48000;
+  let buf: AudioBuffer;
+  try {
+    buf = await new OfflineAudioContext(1, 1, rate).decodeAudioData(await file.arrayBuffer());
+  } catch {
+    return null; // no sound track the browser can read
+  }
+  // ponytail: the whole file at 48 kHz in memory, as extractWav does; a 12 minute video is about 280 MB a pass
+  const render = async (lvl: Level | null) => {
+    // stereo, as the export records it: a mono phone recording plays in both channels and the apps count both
+    const ctx = new OfflineAudioContext(2, buf.length, rate);
+    const src = new AudioBufferSourceNode(ctx, { buffer: buf });
+    wireVoice(ctx, src, ctx.destination, polish, lvl);
+    src.start();
+    const out = await ctx.startRendering();
+    const ch = Array.from({ length: out.numberOfChannels }, (_, i) => out.getChannelData(i));
+    return { lufs: integratedLoudness(ch, rate), peak: truePeak(ch) };
+  };
+  const before = (await render(null)).lufs;
+  if (before === null) return null;
+  const level: Level = { polish, before, after: before, peak: 0, gain: nextGain(0, before) ?? 0, trim: 0 };
+  for (let pass = 0; pass < 3; pass++) {
+    const m = await render(level);
+    if (m.lufs === null) return null;
+    level.after = m.lufs;
+    level.peak = m.peak;
+    const next = nextGain(level.gain, m.lufs);
+    if (next === null || pass === 2) break;
+    level.gain = next;
+  }
+  // the trim sits after the limiter, so it moves the level and the peak by the same amount
+  level.trim = Math.min(0, PEAK_CEILING - level.peak);
+  level.after += level.trim;
+  level.peak += level.trim;
+  return level;
 }
 
 // ---------- brand kit on video ----------
@@ -744,11 +806,13 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const g = canvas.getContext("2d")!;
     actx = new AudioContext();
     await actx.resume(); // allowed once the person has clicked on the page (Export was a click)
+    const polish = !!settings.voicePolish;
+    const level = settings.loudness ? (levelFits(settings.level, polish) ? settings.level : await measureLevel(file, polish)) : null;
     const dest = actx.createMediaStreamDestination();
     // recorded, never played out loud; the gain ramps in and out at every cut so joins don't click
     const gain = actx.createGain();
     gain.gain.value = 0;
-    wireVoice(actx, actx.createMediaElementSource(video), gain, !!settings.voicePolish);
+    wireVoice(actx, actx.createMediaElementSource(video), gain, polish, level);
     gain.connect(dest);
     const FADE = 0.025;
     const volume = Math.min(1, Math.max(0, settings.volume ?? 1));

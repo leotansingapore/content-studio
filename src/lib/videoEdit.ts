@@ -74,6 +74,10 @@ export interface EditSettings {
   speed?: number;
   /** Voice polish: rumble and hum cut, clarity lifted, loudness evened out. */
   voicePolish?: boolean;
+  /** Even out loudness to -14 LUFS with peaks under -1 dB, what Instagram and TikTok play at. */
+  loudness?: boolean;
+  /** The measurement behind it, taken in the browser from this video's sound. */
+  level?: Level;
   /** Stickers placed on this video: text callouts, arrows, circles, underlines. */
   overlays?: Overlay[];
   /** Stretches cut by hand from the transcript, on the source timeline. */
@@ -427,7 +431,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("wordsPerCaption" in p) set("wordsPerCaption", Math.round(clamp(p.wordsPerCaption, 1, 6, s.wordsPerCaption)));
   if (typeof p.baseColor === "string" && HEX.test(p.baseColor)) set("baseColor", p.baseColor.toUpperCase());
   if (typeof p.activeColor === "string" && HEX.test(p.activeColor)) set("activeColor", p.activeColor.toUpperCase());
-  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish"] as const) {
+  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish", "loudness"] as const) {
     if (typeof p[k] === "boolean") set(k, p[k] as boolean);
   }
   if (typeof p.hook === "string") set("hook", p.hook.replace(/—/g, ",").slice(0, 90));
@@ -458,7 +462,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
 const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
   "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "maxPause", "hookSeconds", "aspect", "fit",
-  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "speed", "captionAnim",
+  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "loudness", "speed", "captionAnim",
 ] as const satisfies readonly (keyof EditSettings)[];
 
 export function lookOf(s: EditSettings): Record<string, unknown> {
@@ -912,4 +916,117 @@ export function frameRect(W: number, H: number, srcW: number, srcH: number): { x
   const h = Math.min(H * 0.6, (w * srcH) / srcW);
   const fw = (h * srcW) / srcH; // a tall source is limited by height
   return { x: (W - fw) / 2, y: H * 0.44 - h / 2, w: fw, h };
+}
+
+// ---------- loudness ----------
+// Instagram, TikTok and YouTube turn every video to about -14 LUFS: a quieter
+// one sounds thin next to the videos around it, a louder one gets turned down.
+// Measured per ITU-R BS.1770-4 (the EBU R128 / LUFS standard).
+
+export const LOUDNESS_TARGET = -14;
+/** dB true peak: AAC encoding can push a peak above this up past 0 dB, which clips. */
+export const PEAK_CEILING = -1;
+const MAX_LIFT = 20;
+
+/** The two K-weighting filters for this sample rate (BS.1770's head-related shelf, then a 38 Hz high-pass), as biquad b and a. */
+export function kWeighting(rate: number): { b: number[]; a: number[] }[] {
+  const shelf = (() => {
+    const K = Math.tan((Math.PI * 1681.974450955533) / rate);
+    const Q = 0.7071752369554196;
+    const Vh = 10 ** (3.999843853973347 / 20);
+    const Vb = Vh ** 0.4996667741545416;
+    const a0 = 1 + K / Q + K * K;
+    return { b: [(Vh + (Vb * K) / Q + K * K) / a0, (2 * (K * K - Vh)) / a0, (Vh - (Vb * K) / Q + K * K) / a0], a: [1, (2 * (K * K - 1)) / a0, (1 - K / Q + K * K) / a0] };
+  })();
+  const K = Math.tan((Math.PI * 38.13547087602444) / rate);
+  const Q = 0.5003270373238773;
+  const a0 = 1 + K / Q + K * K;
+  return [shelf, { b: [1, -2, 1], a: [1, (2 * (K * K - 1)) / a0, (1 - K / Q + K * K) / a0] }];
+}
+
+/** Integrated loudness in LUFS: K-weighted, 400 ms blocks every 100 ms, gated at -70 LUFS and
+ * again 10 LU under the level of what is left, so pauses don't count. Null when silent. */
+export function integratedLoudness(channels: Float32Array[], rate: number): number | null {
+  const step = Math.round(rate * 0.1);
+  const subs = Math.floor((channels[0]?.length ?? 0) / step);
+  if (subs < 4) return null;
+  const energy = new Float64Array(subs);
+  const [sh, hp] = kWeighting(rate);
+  for (const ch of channels) {
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0, z1 = 0, z2 = 0;
+    for (let i = 0; i < subs * step; i++) {
+      const x = ch[i];
+      const y = sh.b[0] * x + sh.b[1] * x1 + sh.b[2] * x2 - sh.a[1] * y1 - sh.a[2] * y2;
+      const z = y - 2 * y1 + y2 - hp.a[1] * z1 - hp.a[2] * z2;
+      x2 = x1; x1 = x; y2 = y1; y1 = y; z2 = z1; z1 = z;
+      energy[(i / step) | 0] += z * z;
+    }
+  }
+  const blocks: number[] = [];
+  for (let j = 0; j + 4 <= subs; j++) blocks.push((energy[j] + energy[j + 1] + energy[j + 2] + energy[j + 3]) / (4 * step));
+  const lk = (ms: number) => -0.691 + 10 * Math.log10(ms);
+  const mean = (a: number[]) => a.reduce((s, v) => s + v, 0) / a.length;
+  const loud = blocks.filter((z) => z > 0 && lk(z) > -70);
+  if (!loud.length) return null;
+  const gate = lk(mean(loud)) - 10;
+  return lk(mean(loud.filter((z) => lk(z) > gate)));
+}
+
+// a Lanczos interpolator, 16 taps, for the points a quarter, a half and three quarters between samples
+const TP_TAPS = 8;
+const TP_PHASES = [0.25, 0.5, 0.75].map((d) =>
+  Array.from({ length: TP_TAPS * 2 }, (_, i) => {
+    const t = d - (i - TP_TAPS + 1);
+    const sinc = (u: number) => (u === 0 ? 1 : Math.sin(Math.PI * u) / (Math.PI * u));
+    return sinc(t) * sinc(t / TP_TAPS);
+  }),
+);
+
+/** True peak in dB: the highest point of the wave, between samples too (4x oversampled). -Infinity when silent. */
+export function truePeak(channels: Float32Array[]): number {
+  let peak = 0;
+  for (const ch of channels) {
+    let sp = 0;
+    for (let i = 0; i < ch.length; i++) sp = Math.max(sp, Math.abs(ch[i]));
+    peak = Math.max(peak, sp);
+    // ponytail: only between samples near the loudest ones; a point between two quiet samples can't top the peak
+    for (let i = TP_TAPS - 1; i + TP_TAPS < ch.length; i++) {
+      if (Math.abs(ch[i]) < sp / 2 && Math.abs(ch[i + 1]) < sp / 2) continue;
+      for (const h of TP_PHASES) {
+        let v = 0;
+        for (let k = 0; k < h.length; k++) v += ch[i - TP_TAPS + 1 + k] * h[k];
+        peak = Math.max(peak, Math.abs(v));
+      }
+    }
+  }
+  return peak > 0 ? 20 * Math.log10(peak) : -Infinity;
+}
+
+/** The gain (dB) to try next after a render measured `lufs` at `gain`, or null once it lands within half a LU. */
+export function nextGain(gain: number, lufs: number): number | null {
+  if (Math.abs(lufs - LOUDNESS_TARGET) <= 0.5) return null;
+  return Math.min(MAX_LIFT, Math.max(-MAX_LIFT, gain + LOUDNESS_TARGET - lufs));
+}
+
+/** "Even out loudness", measured: the level before and after (LUFS), the peak after (dB), the gain
+ * into the limiter and the trim after it (dB), and whether voice polish was on when it was measured. */
+export interface Level {
+  polish: boolean;
+  before: number;
+  after: number;
+  peak: number;
+  gain: number;
+  trim: number;
+}
+
+/** The measurement still fits the edit: taken with voice polish as it is now. */
+export const levelFits = (l: Level | undefined, polish: boolean): l is Level => !!l && l.polish === polish;
+
+export function sanitizeLevel(raw: unknown): Level | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const n = (v: unknown, lo: number, hi: number) => (typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi ? v : null);
+  const before = n(r.before, -90, 10), after = n(r.after, -90, 10), peak = n(r.peak, -90, 10), gain = n(r.gain, -MAX_LIFT, MAX_LIFT), trim = n(r.trim, -40, 0);
+  if (before === null || after === null || peak === null || gain === null || trim === null) return undefined;
+  return { polish: r.polish === true, before, after, peak, gain, trim };
 }
