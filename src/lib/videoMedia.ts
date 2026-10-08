@@ -51,7 +51,7 @@ import {
   peaksFrom,
   waveAt,
 } from "@/lib/videoEdit";
-import { keyZoom, motionOf } from "@/lib/videoMotion";
+import { drawMotion, keyZoom, motionOf } from "@/lib/videoMotion";
 
 // ---------- sound for captions ----------
 
@@ -684,6 +684,12 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   }
 
   for (const o of overlaysAt(s.overlays, f.out)) drawOverlay(g, o, f.still ? 1 : captionIntro(f.out, o.from));
+
+  // number cards, clear of the face and of the captions (about two lines either side of their centre)
+  if (motion.cards.length) {
+    const half = (BASE_PX[s.style] * s.size * k * 1.18) / H;
+    drawMotion(g, motion, f, s.captions ? [captionCenter(s) - half, captionCenter(s) + half] : null);
+  }
 
   if (hook) {
     // the hook card follows the caption animation: in over 250 ms, out over its last 200 ms

@@ -6,6 +6,8 @@
 import type { FaceDetector, FaceLandmarker, FilesetResolver, ImageSegmenter } from "@mediapipe/tasks-vision";
 import { gradeOf, type Backdrop, type EditSettings, type FaceTrack } from "@/lib/videoEdit";
 import { pickFace, smoothTrack, trackStep } from "@/lib/faceFollow";
+import { seek } from "@/lib/videoMedia";
+import { medianBox, type FaceBox } from "@/lib/videoMotion";
 
 /** Must match package.json (a test checks), so the wasm fits the library's code. */
 export const MP_VERSION = "1.1.0";
@@ -77,6 +79,27 @@ export async function findFaceTrack(v: HTMLVideoElement, duration: number, hold:
   v.pause();
   const x = smoothTrack(raw, step, hold);
   return x ? { step, x } : null;
+}
+
+/**
+ * Where the face sits across the video (shares of the picture), so cards and
+ * the hook can keep clear of it: the biggest face at 7 moments, the middle of
+ * those boxes. `v` is a <video> of its own. Null when no face shows.
+ */
+export async function findFaceBox(v: HTMLVideoElement, duration: number): Promise<FaceBox | null> {
+  const det = await faceDetector();
+  const c = document.createElement("canvas");
+  c.width = 640;
+  c.height = Math.max(1, Math.round((640 * v.videoHeight) / v.videoWidth));
+  const g = c.getContext("2d")!;
+  const boxes: FaceBox[] = [];
+  for (const at of [0.05, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95]) {
+    await seek(v, Math.max(0, Math.min(duration - 0.05, duration * at)));
+    g.drawImage(v, 0, 0, c.width, c.height);
+    const b = det.detect(c).detections.flatMap((d) => (d.boundingBox ? [d.boundingBox] : [])).sort((x, y) => y.width - x.width)[0];
+    if (b) boxes.push({ x0: b.originX / c.width, y0: b.originY / c.height, x1: (b.originX + b.width) / c.width, y1: (b.originY + b.height) / c.height });
+  }
+  return medianBox(boxes);
 }
 
 // ---------- what is behind you (background blur or replace) ----------

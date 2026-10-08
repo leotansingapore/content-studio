@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultSettings, keepSegments, sentencesOf, type EditSettings, type Word } from "./videoEdit";
-import { KEY_ZOOM, ZOOM_GAP, keyBeats, keyLinesFrom, keyZoom, motionOf, outOfSpan, sanitizeMotion, type KeyLine } from "./videoMotion";
+import { KEY_ZOOM, ZOOM_GAP, cardText, faceBand, findFigures, fitBlock, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
 
 const K = (s: number, e: number, p: number): KeyLine => ({ s, e, p });
 const one = [{ start: 0, end: 60 }];
@@ -75,5 +75,89 @@ describe("motionOf", () => {
     const motion = { lines: [K(2, 4, 0.9)] };
     expect(motionOf(base({ keyZooms: true, motion, hook: "CPF mistakes", hookSeconds: 3 }), segs, [], 30).zooms).toEqual([]);
     expect(motionOf(base({ keyZooms: true, motion, hook: "", hookSeconds: 3 }), segs, [], 30).zooms).toHaveLength(1);
+  });
+});
+
+describe("figures said in the video", () => {
+  const W = (w: string, s: number, e: number): Word => ({ w, s, e });
+  const said = (text: string) => text.split(" ").map((w, i) => W(w, i * 0.4, i * 0.4 + 0.35));
+  const show = (text: string) => findFigures(said(text)).map((f) => [cardText({ from: 0, land: 1, to: 3, fig: f }, 0, true), f.label]);
+  it("finds money, percentages, sizes and ratios with the words after them", () => {
+    expect(show("Your SA earns 4% a year, which is good.")).toEqual([["4%", "a year"]]);
+    expect(show("Many get only $500 a month.")).toEqual([["$500", "a month"]]);
+    expect(show("That is about 3 in 10 Singaporeans.")).toEqual([["3 in 10", "Singaporeans"]]);
+    expect(show("Some built S$1.2 million this way.")).toEqual([["S$1.2 million", "this way"]]);
+    expect(show("A $1,000 top up today")).toEqual([["$1,000", "top up today"]]);
+    expect(show("It pays 5 percent and 20k dollars")).toEqual([["5%", "and"], ["$20k", ""]]);
+    expect(show("Or 6 per cent.")).toEqual([["6%", ""]]);
+  });
+  it("leaves bare numbers alone: an age, a count, a year", () => {
+    expect(findFigures(said("At 65 you get 3 things from 2024 onwards."))).toEqual([]);
+  });
+  it("counts up from 0, eased, landing on the figure as it is said", () => {
+    const fig = findFigures(said("only $500 a month"))[0];
+    const c = { from: 0, land: 2, to: 3, fig };
+    expect(cardText(c, 1.0)).toBe("$0");
+    expect(cardText(c, 1.6)).toBe("$250");
+    expect(cardText(c, 1.4)).toBe("$73"); // eased: slow off the mark
+    expect(cardText(c, 2.0)).toBe("$500");
+    expect(cardText({ ...c, fig: { ...fig, value: 12500 } }, 2)).toBe("$12,500");
+  });
+});
+
+describe("number cards on the edit", () => {
+  const W = (w: string, s: number, e: number): Word => ({ w, s, e });
+  const words = [
+    W("It", 4.0, 4.2), W("earns", 4.2, 4.5), W("4%", 4.5, 5.0), W("a", 5.0, 5.1), W("year.", 5.1, 5.5),
+    W("Then", 6.0, 6.2), W("$500", 6.2, 6.8), W("a", 6.8, 6.9), W("month.", 6.9, 7.3),
+    W("And", 12.0, 12.2), W("3", 12.2, 12.4), W("in", 12.4, 12.5), W("10", 12.5, 12.8), W("people.", 12.8, 13.2),
+  ];
+  const segs = [{ start: 0, end: 20 }];
+  it("lands each card as its figure is said and keeps them 3 s on screen, at most one every 5 s", () => {
+    const cards = numberCards(words, segs, 1, 20, 0);
+    expect(cards.map((c) => [c.from, c.land, c.to])).toEqual([[4, 5, 7], [11.8, 12.8, 14.8]]);
+  });
+  it("skips a figure under the hook card, one cut out, and one too close to the end", () => {
+    expect(numberCards(words, segs, 1, 20, 4.5).map((c) => c.fig.value)).toEqual([500, 3]);
+    expect(numberCards(words, [{ start: 0, end: 4.4 }, { start: 5.6, end: 20 }], 1, 20 - 1.2, 0).map((c) => c.fig.value)).toEqual([500, 3]);
+    expect(numberCards(words, segs, 1, 13.5, 0).map((c) => c.fig.value)).toEqual([4]);
+  });
+  it("shows them only with the toggle on", () => {
+    const s = { ...defaultSettings("bold"), numberCards: false };
+    const caps = [{ words, s: 4, e: 13.2 }];
+    expect(motionOf(s, segs, caps, 20).cards).toEqual([]);
+    expect(motionOf({ ...s, numberCards: true }, segs, caps, 20).cards).toHaveLength(2);
+  });
+});
+
+describe("keeping clear of the face and the captions", () => {
+  it("takes the middle of the face boxes found", () => {
+    const b = (y0: number) => ({ x0: 0.3, y0, x1: 0.7, y1: y0 + 0.3 });
+    expect(medianBox([b(0.1), b(0.2), b(0.9)])).toEqual(b(0.2));
+    expect(medianBox([])).toBeNull();
+  });
+  it("puts the face on the frame with room for hair, for each fit", () => {
+    const box = { x0: 0.3, y0: 0.2, x1: 0.7, y1: 0.5 };
+    const [a, z] = faceBand(box, { fit: "fill" }, 1080, 1920, 720, 1280)!;
+    expect(a).toBeCloseTo(0.11, 2);
+    expect(z).toBeCloseTo(0.53, 2);
+    // a landscape video over a blurred copy sits in the middle band of a tall frame
+    const [b0] = faceBand(box, { fit: "blur" }, 1080, 1920, 1920, 1080)!;
+    expect(b0).toBeGreaterThan(0.3);
+    expect(faceBand(null, { fit: "fill" }, 1080, 1920, 720, 1280)).toBeNull();
+  });
+  it("uses the preferred spot when clear, else goes under or over what is in the way", () => {
+    expect(placeBlock(0.1, [null, null], [0.12])).toBe(0.12);
+    expect(placeBlock(0.1, [[0.11, 0.53], [0.58, 0.7]], [0.12])).toBeCloseTo(0.72, 5);
+    expect(placeBlock(0.1, [[0.2, 0.45], [0.75, 0.85]], [0.12])).toBeCloseTo(0.47, 5);
+    expect(placeBlock(0.5, [[0.1, 0.84]], [0.12])).toBeNull();
+  });
+  it("shrinks a card a little to fit a gap rather than cover the face", () => {
+    // a close-up: face 0.1-0.58, captions 0.58-0.7, only 0.72-0.84 left
+    const fit = fitBlock(0.15, [[0.1, 0.58], [0.58, 0.7]], [0.12]);
+    expect(fit.scale).toBe(0.7);
+    expect(fit.top).toBeCloseTo(0.72, 5);
+    expect(fitBlock(0.15, [null], [0.12])).toEqual({ top: 0.12, scale: 1 });
+    expect(fitBlock(0.5, [[0.1, 0.84]], [0.12])).toEqual({ top: 0.12, scale: 1 });
   });
 });

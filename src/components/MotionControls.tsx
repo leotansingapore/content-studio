@@ -1,28 +1,51 @@
-// Motion in the video editor's frame tab: zooms on the key lines Jev picks.
-// The picks are asked for once (one "motion-picks" use) and kept on the edit.
+// Motion in the video editor's frame tab: zooms on the key lines Jev picks
+// (asked for once, one "motion-picks" use, and kept on the edit) and number
+// cards (found in the words on this device, free).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { editedSentences, type Caption, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
-import { keyLinesFrom, motionOf, pickKeyLines, sanitizeMotion } from "@/lib/videoMotion";
+import { findFaceBox } from "@/lib/faceVision";
+import { loadVideo } from "@/lib/videoMedia";
+import { keyLinesFrom, motionOf, numberCards, pickKeyLines, sanitizeMotion } from "@/lib/videoMotion";
 
-export default function MotionControls({ settings, words, segs, caps, total, speed, apply }: {
+export default function MotionControls({ settings, words, segs, caps, total, speed, file, apply, note }: {
   settings: EditSettings;
   words: Word[];
   segs: Segment[];
   caps: Caption[];
   total: number;
   speed: number;
+  /** The video on this device (for finding the face), once loaded. */
+  file: Blob | null | undefined;
   /** Merges into the latest settings, with Undo. */
   apply: (p: Partial<EditSettings>) => void;
+  /** Merges a measured fact into the latest settings, without an Undo step. */
+  note: (p: Partial<EditSettings>) => void;
 }) {
   const { toast } = useToast();
   const [picking, setPicking] = useState(false);
   const left = useUsesLeft(picking)("motion-picks");
   const picked = !!sanitizeMotion(settings.motion)?.lines.length;
   const zooms = motionOf(settings, segs, caps, total).zooms.length;
+  const hookEnd = settings.hook?.trim() ? settings.hookSeconds : 0;
+  const figures = numberCards(caps.flatMap((c) => c.words), segs, speed, total, hookEnd).length;
+
+  // where the face sits, found once on this device, so cards keep clear of it
+  const needFace = !!settings.numberCards && settings.faceBox === undefined && !!file && !file.type.startsWith("audio/");
+  useEffect(() => {
+    if (!needFace || !file) return;
+    let live = true;
+    let v: HTMLVideoElement | null = null;
+    void loadVideo(file)
+      .then((el) => ((v = el).videoWidth ? findFaceBox(el, Number.isFinite(el.duration) ? el.duration : total) : null))
+      .then((box) => live && note({ faceBox: box }))
+      .catch(() => {}) // no face model (offline): cards keep clear of the captions only, and it tries again next time
+      .finally(() => v && URL.revokeObjectURL(v.src));
+    return () => { live = false; };
+  }, [needFace, file]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // the first time: Jev reads the edit and picks its key lines, then the zooms go on
   const pick = async (then: Partial<EditSettings>) => {
@@ -51,6 +74,9 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
           <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>
         ) : null}
         <Toggle label="Zoom on key lines" on={!!settings.keyZooms && picked} disabled={picking || !words.length || (!picked && left === 0)} set={setZooms} />
+      </Row>
+      <Row label={figures ? `Number cards (${figures} found)` : "Number cards"}>
+        <Toggle label="Number cards" on={!!settings.numberCards} set={(on) => apply({ numberCards: on })} />
       </Row>
     </div>
   );
