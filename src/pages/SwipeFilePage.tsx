@@ -170,6 +170,15 @@ export default function SwipeFilePage() {
   );
 
   const activeFilters = [kind, topic, angle, audience].filter((v) => v !== "all").length;
+  const clearFilters = () => {
+    setSearch("");
+    setFormat("all");
+    setKind("all");
+    setTopic("all");
+    setAngle("all");
+    setAudience("all");
+    setSavedOnly(false);
+  };
   const shown = filtered.slice(0, visible);
   const remaining = filtered.length - shown.length;
   const openItem = openKey ? ENRICHED.find((p) => postKey(p) === openKey) ?? null : null;
@@ -373,10 +382,22 @@ export default function SwipeFilePage() {
 
           {filtered.length === 0 ? (
             <Card className="border-border/60 shadow-card">
-              <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                {savedOnly
-                  ? "No saved posts yet. Tap the bookmark on any card to build your swipe library."
-                  : "No posts match those filters."}
+              <CardContent className="flex flex-col items-center gap-3 !py-10 text-center text-sm text-muted-foreground">
+                {savedOnly && savedSet.size === 0 ? (
+                  <>
+                    <p>No saved posts yet. Open a post and tap Save to keep it here.</p>
+                    <Button variant="outline" size="sm" onClick={() => setSavedOnly(false)}>
+                      Show all posts
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p>No posts match those filters.</p>
+                    <Button variant="outline" size="sm" onClick={clearFilters}>
+                      Clear filters
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           ) : (

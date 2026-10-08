@@ -337,6 +337,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
     setAudiences(new Set());
     setFormats(new Set());
     setSearch("");
+    setSavedOnly(false);
   };
 
   const filtered = useMemo(() => {
@@ -504,16 +505,31 @@ export default function Inspiration({ onUseAsVibe }: Props) {
 
       {filtered.length === 0 ? (
         <Card className="border-border/60 shadow-card">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No examples match those filters.{" "}
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="font-semibold text-primary hover:underline"
-            >
-              Clear filters
-            </button>{" "}
-            to see them all.
+          <CardContent className="!py-10 text-center text-sm text-muted-foreground">
+            {savedOnly && saved.inspiration.length === 0 ? (
+              <>
+                Nothing saved yet. Tap the bookmark on any example to keep it here.{" "}
+                <button
+                  type="button"
+                  onClick={() => setSavedOnly(false)}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Show all examples
+                </button>
+              </>
+            ) : (
+              <>
+                No examples match those filters.{" "}
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Clear filters
+                </button>{" "}
+                to see them all.
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (

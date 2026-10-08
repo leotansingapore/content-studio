@@ -382,6 +382,7 @@ export default function AdvisorProfiles() {
     setAudiences(new Set());
     setNiches(new Set());
     setSearch("");
+    setSavedOnly(false);
   };
 
   const filtered = useMemo(() => {
@@ -565,16 +566,31 @@ export default function AdvisorProfiles() {
 
       {filtered.length === 0 ? (
         <Card className="border-border/60 shadow-card">
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No creators match those filters.{" "}
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="font-semibold text-primary hover:underline"
-            >
-              Clear filters
-            </button>{" "}
-            to see them all.
+          <CardContent className="!py-10 text-center text-sm text-muted-foreground">
+            {savedOnly && saved.creators.length === 0 ? (
+              <>
+                Nothing saved yet. Tap the bookmark on any creator to keep it here.{" "}
+                <button
+                  type="button"
+                  onClick={() => setSavedOnly(false)}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Show all creators
+                </button>
+              </>
+            ) : (
+              <>
+                No creators match those filters.{" "}
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Clear filters
+                </button>{" "}
+                to see them all.
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (
