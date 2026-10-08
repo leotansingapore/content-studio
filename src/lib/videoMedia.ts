@@ -8,6 +8,7 @@ import {
   aspectSize,
   buildCaptions,
   captionAt,
+  isNumberWord,
   keepSegments,
   outputTime,
   totalLength,
@@ -212,7 +213,8 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
           g.strokeStyle = "rgba(0,0,0,0.9)";
           g.strokeText(word, x, y);
         }
-        g.fillStyle = active ? s.activeColor : s.baseColor;
+        const num = s.highlightNumbers && isNumberWord(word);
+        g.fillStyle = active || num ? s.activeColor : s.baseColor;
         g.fillText(word, x, y);
         x += g.measureText(word + " ").width;
       }

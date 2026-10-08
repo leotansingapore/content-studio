@@ -41,6 +41,8 @@ export interface EditSettings {
   punchIn: boolean;
   progressBar: boolean;
   grade: boolean;
+  /** Numbers, $ and % words shown in the highlight colour and a touch bigger. */
+  highlightNumbers: boolean;
 }
 
 interface StyleSpec {
@@ -100,6 +102,7 @@ export function defaultSettings(style: StyleId = "bold"): EditSettings {
     punchIn: s.punch > 1,
     progressBar: style === "bold",
     grade: true,
+    highlightNumbers: s.mode === "words",
   };
 }
 
@@ -112,6 +115,7 @@ export function withStyle(s: EditSettings, style: StyleId): EditSettings {
 const FILLERS = new Set(["um", "umm", "uh", "uhh", "uhm", "erm", "er", "ah", "ahh", "hmm", "mm", "mhm"]);
 export const norm = (w: string) => w.toLowerCase().replace(/[^a-z']/g, "");
 export const isFiller = (w: string) => FILLERS.has(norm(w));
+export const isNumberWord = (w: string) => /\d|[$%]/.test(w);
 
 export interface Segment {
   start: number;
@@ -243,7 +247,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("wordsPerCaption" in p) set("wordsPerCaption", Math.round(clamp(p.wordsPerCaption, 1, 6, s.wordsPerCaption)));
   if (typeof p.baseColor === "string" && HEX.test(p.baseColor)) set("baseColor", p.baseColor.toUpperCase());
   if (typeof p.activeColor === "string" && HEX.test(p.activeColor)) set("activeColor", p.activeColor.toUpperCase());
-  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade"] as const) {
+  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade", "highlightNumbers"] as const) {
     if (typeof p[k] === "boolean") set(k, p[k] as boolean);
   }
   if (typeof p.hook === "string") set("hook", p.hook.replace(/—/g, ",").slice(0, 90));

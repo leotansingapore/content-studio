@@ -67,6 +67,7 @@ export const VIBE_KEYS: Record<string, string> = {
   punchIn: "boolean, zoom in on alternate cuts",
   progressBar: "boolean",
   grade: "boolean, the style's colour grade",
+  highlightNumbers: "boolean, numbers and $ or % words shown in the highlight colour",
 };
 
 export interface VibeRequest {

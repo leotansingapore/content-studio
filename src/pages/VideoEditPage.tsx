@@ -283,16 +283,16 @@ function Editor({ userId, project, onSave, onBack }: {
 
   const transcript = useMemo(() => words.map((w) => w.w).join(" "), [words]);
 
-  const runVibe = async (frames?: string[]) => {
-    const instruction = ask.trim();
+  const runVibe = async (frames?: string[], preset?: string) => {
+    const instruction = preset ?? ask.trim();
     if (!instruction && !frames) return;
     setThinking(true);
     try {
       const res = await vibeEdit({ instruction, settings, transcript, duration, frames });
       const { next, changed } = applyPatch(settings, res.patch);
       if (changed.length) change(next);
-      setLog((l) => [...l, { me: instruction || "Match my reference video", it: changed.length ? res.reply : `${res.reply} (nothing changed)` }]);
-      setAsk("");
+      setLog((l) => [...l, { me: preset ? "Suggest a hook" : instruction || "Match my reference video", it: changed.length ? res.reply : `${res.reply} (nothing changed)` }]);
+      if (!preset) setAsk("");
     } catch (e) {
       toast({ title: "That change didn't go through", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -445,6 +445,7 @@ function Editor({ userId, project, onSave, onBack }: {
                 {STYLES[settings.style].mode === "words" && <input type="color" aria-label="Spoken word colour" value={settings.activeColor} onChange={(e) => patch({ activeColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded" />}
               </Row>
               <Row label="ALL CAPS"><Toggle on={settings.uppercase} set={(v) => patch({ uppercase: v })} /></Row>
+              <Row label="Numbers in the highlight colour"><Toggle on={settings.highlightNumbers} set={(v) => patch({ highlightNumbers: v })} /></Row>
             </div>
           )}
 
@@ -472,6 +473,10 @@ function Editor({ userId, project, onSave, onBack }: {
                 <input value={settings.hook} maxLength={90} onChange={(e) => patch({ hook: e.target.value })} placeholder="3 CPF mistakes I see every week"
                   className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
               </label>
+              <Button size="sm" variant="outline" disabled={thinking || !words.length} className="gap-1.5"
+                onClick={() => runVibe(undefined, "Write the hook card: the most scroll-stopping line in 8 words or fewer, using my own words from the transcript. Change only the hook.")}>
+                <Sparkles className="h-3.5 w-3.5" /> Suggest a hook from what I say
+              </Button>
               <Row label={`Hook shows for ${settings.hookSeconds}s`}><input type="range" min={1} max={10} step={0.5} value={settings.hookSeconds} onChange={(e) => patch({ hookSeconds: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <Row label="Shape">
                 {(["9:16", "4:5", "1:1", "original"] as const).map((a) => <Chip key={a} on={settings.aspect === a} onClick={() => patch({ aspect: a })}>{a}</Chip>)}

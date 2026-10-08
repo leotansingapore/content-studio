@@ -68,6 +68,12 @@ describe("applyPatch", () => {
     expect(changed).toEqual(expect.arrayContaining(["activeColor", "size", "position", "hook", "maxPause"]));
     expect((next as unknown as Record<string, unknown>).evil).toBeUndefined();
   });
+  it("toggles number highlighting and older saved settings still load", () => {
+    const s = defaultSettings("bold");
+    expect(s.highlightNumbers).toBe(true);
+    expect(defaultSettings("minimal").highlightNumbers).toBe(false);
+    expect(applyPatch(s, { highlightNumbers: false }).next.highlightNumbers).toBe(false);
+  });
   it("switching style keeps cuts, hook and frame", () => {
     const s = { ...defaultSettings("bold"), hook: "Hook", trimStart: 2, focusX: 0.3 };
     const m = withStyle(s, "minimal");
