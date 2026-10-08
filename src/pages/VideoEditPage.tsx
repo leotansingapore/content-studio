@@ -7,6 +7,7 @@ import StockSearch from "@/components/StockSearch";
 import YoutubeClips from "@/components/YoutubeClips";
 import JoinTakes from "@/components/JoinTakes";
 import ClipFinder from "@/components/ClipFinder";
+import ExportRunning from "@/components/ExportRunning";
 import MotionControls from "@/components/MotionControls";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
@@ -1271,11 +1272,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         </Button>
       </div>
       <ClipFinder userId={userId} project={project} words={words} settings={settings} duration={duration} onClips={onClips} onOpen={onOpen} />
-      {job?.state === "running" && job.name === project.name && (
-        <p className="text-xs text-muted-foreground" aria-live="polite">
-          Exporting in real time ({fmtTime(total)}). You can use other pages; keep this browser tab in front until it finishes.
-        </p>
-      )}
+      {job?.state === "running" && job.name === project.name && <ExportRunning job={job} total={total} />}
       {job?.state === "done" && job.url && job.name === project.name && (
         <section className="space-y-2 rounded-xl border border-success/40 bg-success/5 p-3" aria-label="Ready to post">
           <p className="text-sm font-semibold">Ready to post</p>

@@ -935,9 +935,14 @@ export interface ExportJob {
   bytes?: number;
   cap?: number;
   label?: string;
+  /** True once it is exporting faster than real time (it can be stopped), false when it records in real time; unset while that is being worked out. */
+  fast?: boolean;
 }
 
 let job: ExportJob | null = null;
+let stopper: AbortController | null = null;
+/** Stops a fast export; nothing is kept. A real-time one runs to its end. */
+export const stopExport = () => stopper?.abort();
 const listeners = new Set<(j: ExportJob | null) => void>();
 const emit = () => listeners.forEach((l) => l(job && { ...job }));
 export const exportJob = () => job;
@@ -1019,7 +1024,18 @@ export async function measureExport(url: string): Promise<ReturnType<typeof soun
   }
 }
 
-/** Renders the edit in real time (a 45 s reel takes about 45 s) and downloads it. */
+/** A finished export: kept as the job's file and downloaded. */
+function deliver(name: string, kind: ExportJob["kind"], out: Blob, ext: string, seconds: number, cap: number, label: string) {
+  const url = URL.createObjectURL(out);
+  job = { ...job!, progress: 1, state: "done", url, ext, seconds, bytes: out.size, cap, label };
+  emit();
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}-${kind === "audio" ? "audio" : kind === "small" ? "small" : "edited"}.${ext}`;
+  a.click();
+}
+
+/** Exports the edit faster than real time where the browser can (fastExport.ts), else renders it in real time (a 45 s reel takes about 45 s), and downloads it. */
 export async function startExport(name: string, file: Blob, words: Word[], settings: EditSettings, subs?: Record<string, string>, brand?: BrandArt | null, voice?: Blob | null, brollFiles?: Record<string, Blob>, music?: Blob | null, fx?: Frame["fx"]) {
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
@@ -1031,6 +1047,23 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
   // B-roll clips, muted, played in step with the picture
   const brEls = new Map<string, HTMLVideoElement>();
   try {
+    // the fast route, loaded only now; null means this browser or file can't take it, so it records in real time below
+    stopper = new AbortController();
+    const fast = await import("@/lib/fastExport")
+      .then((m) => m.exportFast({ file, words, settings, subs, brand, voice, brollFiles, music, fx }, (p) => {
+        if (job) Object.assign(job, { fast: true, progress: p });
+        emit();
+      }, stopper!.signal))
+      .catch(() => null);
+    stopper = null;
+    if (fast === "stopped") {
+      job = null;
+      emit();
+      return;
+    }
+    if (fast) return deliver(name, kind, fast.blob, fast.ext, fast.seconds, fast.cap, fast.label);
+    job = { ...job!, fast: false, progress: 0 };
+    emit();
     const { mime, ext } = pickMime(kind === "audio");
     video = await loadVideo(file);
     const plan = planFor(words, video.duration, settings);
@@ -1195,14 +1228,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     }
     rec.stop();
     await stopped;
-    const out = new Blob(chunks, { type: mime.split(";")[0] });
-    const url = URL.createObjectURL(out);
-    job = { ...job!, progress: 1, state: "done", url, ext, seconds: plan.total + endLen, bytes: out.size, cap: size.capBytes, label: size.label };
-    emit();
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}-${kind === "audio" ? "audio" : kind === "small" ? "small" : "edited"}.${ext}`;
-    a.click();
+    deliver(name, kind, new Blob(chunks, { type: mime.split(";")[0] }), ext, plan.total + endLen, size.capBytes, size.label);
   } catch (e) {
     job = { ...job!, state: "failed", error: e instanceof Error ? e.message : String(e) };
     emit();
