@@ -401,12 +401,11 @@ export default function DraftsPage() {
                   >
                     {s === "posted" ? "Posted" : s === "scheduled" ? "Scheduled" : "Draft"}
                   </span>
-                  <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    {PLATFORM_LABEL[d.platform] ?? d.platform}
-                  </span>
-                  <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    {PILLAR_LABEL[d.pillar] ?? d.pillar}
-                  </span>
+                  {[PLATFORM_LABEL[d.platform] ?? d.platform, PILLAR_LABEL[d.pillar] ?? d.pillar].filter(Boolean).map((tag) => (
+                    <span key={tag} className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {tag}
+                    </span>
+                  ))}
                   <span className="ml-auto text-[10px] text-muted-foreground">
                     {ts.toLocaleString()}
                   </span>
