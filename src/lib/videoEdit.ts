@@ -54,6 +54,10 @@ export interface EditSettings {
   captionY?: number;
   /** Second subtitle line under each caption: "" off, or zh / ms / ta (translations live on the project). */
   subLang: "" | "zh" | "ms" | "ta";
+  /** Behind the captions: nothing, a dark box, or a highlight behind the word being said. Unset = the style's own. */
+  captionBox?: CaptionBox;
+  /** Caption typeface. Unset = the style's own. */
+  font?: FontId;
   /** The brand kit logo in the top corner. */
   logo?: boolean;
   /** A closing card from the brand kit (photo, name, handle, sign-off line) after the last cut. */
@@ -96,6 +100,25 @@ interface StyleSpec {
 const SANS_HEAVY = '900 {px}px "Archivo Black", "Arial Black", Impact, system-ui, sans-serif';
 const SANS = '600 {px}px "DM Sans", Inter, system-ui, sans-serif';
 const SERIF = '600 {px}px Fraunces, Georgia, "Times New Roman", serif';
+
+export type CaptionBox = "none" | "pill" | "word";
+export type FontId = "heavy" | "clean" | "serif";
+export const FONTS: Record<FontId, { label: string; css: string }> = {
+  heavy: { label: "Heavy", css: SANS_HEAVY },
+  clean: { label: "Clean", css: SANS },
+  serif: { label: "Serif", css: SERIF },
+};
+
+/** The caption font template ("{px}" for the size) and box after the user's overrides. */
+export function captionFont(s: Pick<EditSettings, "style" | "font">): string {
+  return s.font && FONTS[s.font] ? FONTS[s.font].css : STYLES[s.style].font;
+}
+export function captionBoxOf(s: Pick<EditSettings, "style" | "captionBox">): CaptionBox {
+  const own = STYLES[s.style].box === "pill" ? "pill" : "none";
+  const box = s.captionBox ?? own;
+  // a word highlight needs words lighting up one at a time
+  return box === "word" && STYLES[s.style].mode !== "words" ? own : box;
+}
 
 export const STYLES: Record<StyleId, StyleSpec> = {
   bold: { label: "Bold", mode: "words", n: 3, chars: 0, font: SANS_HEAVY, weight: 900, base: "#FFFFFF", active: "#FFD92B", uppercase: true, box: "none", stroke: true, grade: "contrast(1.08) saturate(1.15)", punch: 1.15, bars: false, position: "middle" },
@@ -144,7 +167,7 @@ export function defaultSettings(style: StyleId = "bold"): EditSettings {
 /** Switching style resets the style's own looks but keeps the user's cuts, hook and frame. */
 export function withStyle(s: EditSettings, style: StyleId): EditSettings {
   const d = defaultSettings(style);
-  return { ...s, style, position: d.position, wordsPerCaption: d.wordsPerCaption, baseColor: d.baseColor, activeColor: d.activeColor, uppercase: d.uppercase, punchIn: d.punchIn, progressBar: d.progressBar };
+  return { ...s, style, position: d.position, wordsPerCaption: d.wordsPerCaption, baseColor: d.baseColor, activeColor: d.activeColor, uppercase: d.uppercase, punchIn: d.punchIn, progressBar: d.progressBar, captionBox: undefined, font: undefined };
 }
 
 const FILLERS = new Set(["um", "umm", "uh", "uhh", "uhm", "erm", "er", "ah", "ahh", "hmm", "mm", "mhm"]);
@@ -306,6 +329,8 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if (typeof p.roleTag === "string") set("roleTag", p.roleTag.slice(0, 50));
   if ("nameSeconds" in p) set("nameSeconds", clamp(p.nameSeconds, 1, 10, s.nameSeconds ?? 4));
   if (typeof p.captionY === "number") set("captionY", clamp(p.captionY, 0.08, 0.92, s.captionY ?? 0.5));
+  if (["none", "pill", "word"].includes(p.captionBox as string)) set("captionBox", p.captionBox as CaptionBox);
+  if (typeof p.font === "string" && p.font in FONTS) set("font", p.font as FontId);
   return { next, changed };
 }
 
@@ -314,7 +339,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
 const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
   "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "maxPause", "hookSeconds", "aspect", "fit",
-  "nameTag", "roleTag", "nameSeconds", "logo", "endCard",
+  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font",
 ] as const satisfies readonly (keyof EditSettings)[];
 
 export function lookOf(s: EditSettings): Record<string, unknown> {

@@ -25,6 +25,8 @@ import {
   captionKey,
   clipSettings,
   END_CARD_SECONDS,
+  FONTS,
+  captionBoxOf,
   fullLength,
   findPhrase,
   lookOf,
@@ -734,6 +736,18 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               {STYLES[settings.style].mode === "words" && (
                 <Row label={`Words at once: ${settings.wordsPerCaption}`}><input type="range" min={1} max={6} step={1} value={settings.wordsPerCaption} onChange={(e) => patch({ wordsPerCaption: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               )}
+              <Row label="Background">
+                <Chip on={captionBoxOf(settings) === "none"} onClick={() => patch({ captionBox: "none" })}>None</Chip>
+                <Chip on={captionBoxOf(settings) === "pill"} onClick={() => patch({ captionBox: "pill" })}>Dark box</Chip>
+                {STYLES[settings.style].mode === "words" && <Chip on={captionBoxOf(settings) === "word"} onClick={() => patch({ captionBox: "word" })}>Highlight word</Chip>}
+              </Row>
+              <Row label="Font">
+                {(Object.keys(FONTS) as (keyof typeof FONTS)[]).map((id) => (
+                  <Chip key={id} on={(settings.font ?? (STYLES[settings.style].font === FONTS[id].css ? id : "")) === id} onClick={() => patch({ font: id })}>
+                    <span style={{ fontFamily: FONTS[id].css.replace(/^\d+ \{px\}px /, "") }}>{FONTS[id].label}</span>
+                  </Chip>
+                ))}
+              </Row>
               <Row label="Colours">
                 <input type="color" aria-label="Caption colour" value={settings.baseColor} onChange={(e) => patch({ baseColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded" />
                 {STYLES[settings.style].mode === "words" && <input type="color" aria-label="Spoken word colour" value={settings.activeColor} onChange={(e) => patch({ activeColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded" />}

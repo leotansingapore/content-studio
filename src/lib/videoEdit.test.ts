@@ -225,3 +225,20 @@ describe("subtitle file and search", () => {
     expect(findPhrase(words, "pension")).toEqual([]);
   });
 });
+
+describe("caption background and font", () => {
+  it("uses the style's own until overridden, and a style switch resets the override", async () => {
+    const { captionBoxOf, captionFont, defaultSettings, withStyle, applyPatch, FONTS } = await import("@/lib/videoEdit");
+    expect(captionBoxOf(defaultSettings("minimal"))).toBe("pill");
+    expect(captionBoxOf(defaultSettings("bold"))).toBe("none");
+    const set = applyPatch(defaultSettings("bold"), { captionBox: "word", font: "serif" }).next;
+    expect(captionBoxOf(set)).toBe("word");
+    expect(captionFont(set)).toBe(FONTS.serif.css);
+    // a word highlight needs a word style
+    expect(captionBoxOf({ ...defaultSettings("minimal"), captionBox: "word" })).toBe("pill");
+    const switched = withStyle(set, "editorial");
+    expect(switched.captionBox).toBeUndefined();
+    expect(switched.font).toBeUndefined();
+    expect(applyPatch(defaultSettings("bold"), { captionBox: "neon", font: "comic" }).changed).toEqual([]);
+  });
+});

@@ -14,6 +14,8 @@ import {
   captionAt,
   captionCenter,
   captionIntro,
+  captionBoxOf,
+  captionFont,
   captionKey,
   isNumberWord,
   keepSegments,
@@ -331,7 +333,9 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   const cap = s.captions ? captionAt(f.caps, f.src) : null;
   if (cap) {
     const px = BASE_PX[s.style] * s.size * k;
-    g.font = spec.font.replace("{px}", String(Math.round(px)));
+    const font = captionFont(s);
+    const box = captionBoxOf(s);
+    g.font = font.replace("{px}", String(Math.round(px)));
     g.textAlign = "left";
     g.textBaseline = "middle";
     const text = cap.words.map((w) => (s.uppercase ? w.w.toUpperCase() : w.w));
@@ -354,13 +358,23 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       const full = line.join(" ");
       const lw = g.measureText(full).width;
       let x = (W - lw) / 2;
-      if (spec.box === "pill") {
+      if (box === "pill") {
         g.fillStyle = "rgba(10,12,18,0.72)";
         roundRect(g, x - px * 0.55, y - lh * 0.55, lw + px * 1.1, lh * 1.1, px * 0.5);
       }
       for (const word of line) {
         const w = cap.words[wi++];
         const active = spec.mode === "words" && f.src >= w.s && f.src <= w.e + 0.05;
+        if (active && box === "word") {
+          // a highlight block behind the word being said, the word in dark ink on it
+          const ww = g.measureText(word).width;
+          g.fillStyle = s.activeColor;
+          roundRect(g, x - px * 0.14, y - lh * 0.5, ww + px * 0.28, lh, px * 0.18);
+          g.fillStyle = "#0B0B0B";
+          g.fillText(word, x, y);
+          x += g.measureText(word + " ").width;
+          continue;
+        }
         if (spec.stroke) {
           g.lineJoin = "round";
           g.lineWidth = px * (s.style === "bold" ? 0.16 : 0.1);
