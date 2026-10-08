@@ -32,6 +32,10 @@
 //        what each needs (Jev again: a scene clip, an idea card or the named product); the LLM writes a
 //        1-3 word stock search for a scene and the card text for the rest; null when Jev has no answer or
 //        the video is not in English (broll.ts, "broll-picks" cap).
+//   POST {mode:"hooks", sentences:[{s,e,text}] on the edited timeline, duration, formulas:[{id,name,template,example,trap}] x2-3}
+//        -> {hooks:[{formula,text}], pick: index | null}: hook card lines the LLM writes, one per formula, and the
+//        one Jev would start with (Write's hook question; null on no answer, a tie or a video not in English)
+//        (hooks.ts, "vibe-edit" cap, as the single suggested hook before it).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -43,6 +47,7 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { brollLines, brollQuestions, buildBrollMessages, kindQuestions, parseBrollReply, parseBrollRequest, pickBrollLines, readBroll, readKinds } from "./broll.ts";
+import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import {
   CLIP_VIEWER,
@@ -311,6 +316,32 @@ Deno.serve(async (req) => {
       const picks = parseBrollReply((await res.json())?.choices?.[0]?.message?.content ?? null, pick, kinds);
       console.log(`video-assist broll: ${idx.length} lines asked, ${pick.length} picked (${Object.values(kinds).filter((k) => k === "scene").length} scenes), ${picks.length} written`);
       return json({ picks });
+    }
+
+    if (body?.mode === "hooks") {
+      const h = parseHooksRequest(body);
+      if (!h.ok) return json({ error: h.error }, 400);
+      const usage = await consumeUsage(admin, uid, "vibe-edit");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 300, response_format: { type: "json_object" }, messages: buildHooksMessages(h.lines, h.formulas) }),
+        signal: AbortSignal.timeout(45_000),
+      }).catch(() => null);
+      if (!res?.ok) {
+        console.error("video-assist hooks", res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
+        return json({ error: "Couldn't write hooks right now. Try again in a minute." }, 502);
+      }
+      const hooks = parseHooksReply((await res.json())?.choices?.[0]?.message?.content ?? null, h.formulas);
+      if (!hooks) return json({ error: "The hooks came back incomplete. Try again." }, 502);
+      // Jev picks the one to start with (Leo's rule: a pick is a decision); without an answer none is picked
+      const texts = hooks.map((x) => x.text);
+      const answers = mostlyEnglish(h.lines.map((x) => x.text).join(" ")) ? await askJev(hooksState(texts, h.lines), hooksQuestions(texts), { who: "video-assist hooks" }) : null;
+      return json({ hooks, pick: hooksPick(answers, hooks.length) });
     }
 
     if (body?.mode === "publish") {

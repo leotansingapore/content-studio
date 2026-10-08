@@ -11,6 +11,7 @@ import ExportRunning from "@/components/ExportRunning";
 import MotionControls from "@/components/MotionControls";
 import AutoBroll from "@/components/AutoBroll";
 import BrollLayout from "@/components/BrollLayout";
+import HookOptions from "@/components/HookOptions";
 import { onBrollApply } from "@/lib/autoBroll";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
@@ -1897,13 +1898,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <input value={settings.hook} maxLength={90} onChange={(e) => patch({ hook: e.target.value })} placeholder="3 CPF mistakes I see every week"
                   className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
               </label>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="outline" disabled={thinking || !words.length || none("vibe-edit")} className="gap-1.5"
-                  onClick={() => runVibe(undefined, "Write the hook card: the most scroll-stopping line in 8 words or fewer, using my own words from the transcript. Change only the hook.")}>
-                  <Sparkles className="h-3.5 w-3.5" /> Suggest a hook from what I say
-                </Button>
-                <Left n={left("vibe-edit")} />
-              </div>
+              <HookOptions projectId={project.id} words={words} segs={plan.segs} total={plan.total} speed={speed} hook={settings.hook}
+                onUse={(hook) => { const cur = settingsRef.current; if (cur.hook === hook) return; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, hook }); }} />
               <Row label={`Hook shows for ${settings.hookSeconds}s`}><input type="range" min={1} max={10} step={0.5} value={settings.hookSeconds} onChange={(e) => patch({ hookSeconds: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block space-y-1 text-xs font-semibold">
