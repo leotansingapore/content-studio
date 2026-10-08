@@ -39,6 +39,15 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 export async function svgToPng(svg: string): Promise<Blob> {
+  return svgToBlob(svg, "image/png");
+}
+
+/** JPEG bytes of a slide, for the PDF (a document post). */
+export async function svgToJpeg(svg: string): Promise<Uint8Array> {
+  return new Uint8Array(await (await svgToBlob(svg, "image/jpeg", 0.92)).arrayBuffer());
+}
+
+async function svgToBlob(svg: string, type: string, quality?: number): Promise<Blob> {
   const img = await loadImage(svgDataUrl(svg));
   const canvas = document.createElement("canvas");
   canvas.width = SLIDE_WIDTH;
@@ -47,7 +56,7 @@ export async function svgToPng(svg: string): Promise<Blob> {
   if (!ctx) throw new Error("This browser can't draw images.");
   ctx.drawImage(img, 0, 0, SLIDE_WIDTH, SLIDE_HEIGHT);
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("The PNG couldn't be created."))), "image/png");
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("The image couldn't be created."))), type, quality);
   });
 }
 

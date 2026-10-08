@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ClipboardPaste,
   Download,
+  FileText,
   GalleryHorizontalEnd,
   Pencil,
   Plus,
@@ -63,8 +64,9 @@ import {
   type Slide,
   type SplitResult,
 } from "@/lib/carousel";
-import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
-import { createCanvasMeasure, downloadBlob, svgDataUrl, svgToPng } from "@/lib/carouselRender";
+import { SLIDE_HEIGHT, SLIDE_WIDTH, layoutSlide, renderSvg } from "@/lib/carouselLayout";
+import { createCanvasMeasure, downloadBlob, svgDataUrl, svgToJpeg, svgToPng } from "@/lib/carouselRender";
+import { buildPdf } from "@/lib/pdf";
 import { CarouselCopyError, tightenSlides } from "@/lib/carouselCopy";
 
 const PLATFORM_LABEL: Record<string, string> = {
@@ -321,6 +323,26 @@ export default function CarouselPage() {
         description: "Try again, or try another browser.",
         variant: "destructive",
       });
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  // one PDF of every slide: how LinkedIn takes a carousel (a document post)
+  const exportPdf = async () => {
+    if (exporting) return;
+    setExporting({ done: 0, total: images.length });
+    try {
+      const pages = [];
+      for (let k = 0; k < images.length; k++) {
+        pages.push({ jpeg: await svgToJpeg(images[k].svg), width: SLIDE_WIDTH, height: SLIDE_HEIGHT });
+        setExporting({ done: k + 1, total: images.length });
+      }
+      downloadBlob(new Blob([buildPdf(pages)], { type: "application/pdf" }), `${slideFileName(fileBase, 0).replace(/-01\.png$/, "")}.pdf`);
+      toast({ title: "PDF downloaded", description: "Post it on LinkedIn as a document." });
+    } catch (err) {
+      console.error("carousel pdf failed", err);
+      toast({ title: "Couldn't create the PDF", description: "Try again, or try another browser.", variant: "destructive" });
     } finally {
       setExporting(null);
     }
@@ -850,17 +872,29 @@ export default function CarouselPage() {
                     {slides.length} slides, 1080 × 1350 PNG each.
                   </CardDescription>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => exportSlides(slides.map((_, i) => i))}
-                  disabled={exportBusy || busy}
-                  className="gap-1.5"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  {exporting && exporting.total > 1
-                    ? `Exporting ${Math.min(exporting.done + 1, exporting.total)} of ${exporting.total}…`
-                    : "Download all"}
-                </Button>
+                <div className={`flex flex-wrap gap-2 ${platform === "linkedin" ? "flex-row-reverse justify-end" : ""}`}>
+                  <Button
+                    size="sm"
+                    variant={platform === "linkedin" ? "outline" : "default"}
+                    onClick={() => exportSlides(slides.map((_, i) => i))}
+                    disabled={exportBusy || busy}
+                    className="gap-1.5"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {exporting && exporting.total > 1
+                      ? `Exporting ${Math.min(exporting.done + 1, exporting.total)} of ${exporting.total}…`
+                      : platform === "linkedin" ? "PNGs" : "Download all"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={platform === "linkedin" ? "default" : "outline"}
+                    onClick={exportPdf}
+                    disabled={exportBusy || busy}
+                    className="gap-1.5"
+                  >
+                    <FileText className="h-3.5 w-3.5" /> {platform === "linkedin" ? "Download PDF" : "PDF"}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {exporting && (
