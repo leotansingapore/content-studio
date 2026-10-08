@@ -360,6 +360,15 @@ describe("buildLongPrompt", () => {
     expect(system).toMatch(/Never invent/);
     expect(system).toContain(`exactly ${LONG_POSTS} posts`);
   });
+
+  it("tells it a piece with no stories gets no story about the consultant or a client, only a blank", () => {
+    // live check 2026-10-09: a piece with no anecdotes came back with "I turned down the chance to cancel a hospital plan rider for a client"
+    const r = parseLongRequest({ text: LONG_TEXT, formulas: FORMULAS });
+    if (!r.ok) throw new Error("parse");
+    const { system } = buildLongPrompt(r.request);
+    expect(system).toContain("A story comes only from your stories list. When that list is empty, no post tells something that happened to the consultant or a client");
+    expect(system).toContain("[what happened]");
+  });
 });
 
 describe("LONG_SCHEMA", () => {
