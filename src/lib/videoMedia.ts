@@ -14,6 +14,7 @@ import {
   captionAt,
   captionCenter,
   captionIntro,
+  animOf,
   captionBoxOf,
   captionFont,
   captionKey,
@@ -368,15 +369,21 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     g.textBaseline = "middle";
     const text = cap.words.map((w) => (s.uppercase ? w.w.toUpperCase() : w.w));
     const lines = wrap(g, text, W * (spec.mode === "words" ? 0.86 : 0.84));
-    // pop in: word styles scale up from 85% and fade in over the first 150 ms of each caption
-    const intro = spec.mode === "words" && !f.still ? captionIntro(f.src, cap.s) : 1;
+    // the way in, over the first 150 ms of each caption: pop scales up from 85%, slide rises a
+    // little, both fading in; typewriter shows each word as it's said (below)
+    const anim = animOf(s);
+    const intro = f.still || anim === "none" || anim === "type" ? 1 : captionIntro(f.src, cap.s);
     g.save();
     if (intro < 1) {
       const cy = H * captionCenter(s);
       g.globalAlpha = 0.25 + 0.75 * intro;
-      g.translate(W / 2, cy);
-      g.scale(0.85 + 0.15 * intro, 0.85 + 0.15 * intro);
-      g.translate(-W / 2, -cy);
+      if (anim === "slide") {
+        g.translate(0, (1 - intro) * px * 0.9);
+      } else {
+        g.translate(W / 2, cy);
+        g.scale(0.85 + 0.15 * intro, 0.85 + 0.15 * intro);
+        g.translate(-W / 2, -cy);
+      }
     }
     const lh = px * 1.18;
     let y = H * captionCenter(s) - ((lines.length - 1) * lh) / 2;
@@ -392,6 +399,11 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       }
       for (const word of line) {
         const w = cap.words[wi++];
+        if (anim === "type" && !f.still && f.src < w.s - 0.02) {
+          // not said yet: keep its space so the line doesn't shift as words arrive
+          x += g.measureText(word + " ").width;
+          continue;
+        }
         const active = spec.mode === "words" && f.src >= w.s && f.src <= w.e + 0.05;
         if (active && box === "word") {
           // a highlight block behind the word being said, the word in dark ink on it
@@ -471,13 +483,42 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   for (const o of overlaysAt(s.overlays, f.out)) drawOverlay(g, o, f.still ? 1 : captionIntro(f.out, o.from));
 
   if (hook) {
+    // the hook card follows the caption animation: in over 250 ms, out over its last 200 ms
+    const anim = animOf(s);
+    const ease = (t: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
+    const hIn = f.still || anim === "none" ? 1 : ease(f.out / 0.25);
+    const hOut = f.still || anim === "none" ? 1 : Math.min(1, Math.max(0, (s.hookSeconds - f.out) / 0.2));
+    g.save();
+    if (anim !== "type") g.globalAlpha = Math.min(hIn, hOut) * 0.75 + (Math.min(hIn, hOut) > 0 ? 0.25 : 0);
+    else g.globalAlpha = hOut;
+    const cx = W / 2;
+    const cy = hook.top + hook.bh / 2;
+    if (anim === "pop" && hIn < 1) {
+      g.translate(cx, cy);
+      g.scale(0.9 + 0.1 * hIn, 0.9 + 0.1 * hIn);
+      g.translate(-cx, -cy);
+    } else if (anim === "slide" && hIn < 1) {
+      g.translate(0, -(1 - hIn) * hook.bh * 0.4);
+    }
     g.font = `800 ${Math.round(hook.px)}px "Archivo Black", "Arial Black", system-ui, sans-serif`;
     g.textBaseline = "middle";
     g.fillStyle = "#FFFFFF";
     roundRect(g, (W - hook.bw) / 2, hook.top, hook.bw, hook.bh, hook.px * 0.35);
     g.fillStyle = "#0B0B0B";
     g.textAlign = "center";
-    hook.lines.forEach((l, i) => g.fillText(l.join(" "), W / 2, hook!.top + hook!.px * 0.35 + hook!.lh * (i + 0.5)));
+    // typewriter: the hook's words arrive over its first 0.8 s
+    const total = hook.lines.reduce((n, l) => n + l.length, 0);
+    let show = anim === "type" && !f.still ? Math.ceil(total * Math.min(1, f.out / 0.8)) : total;
+    hook.lines.forEach((l, i) => {
+      const words = l.slice(0, Math.max(0, show));
+      show -= l.length;
+      if (!words.length) return;
+      // keep each line's full width so arriving words don't slide it sideways
+      const full = g.measureText(l.join(" ")).width;
+      g.textAlign = "left";
+      g.fillText(words.join(" "), W / 2 - full / 2, hook!.top + hook!.px * 0.35 + hook!.lh * (i + 0.5));
+    });
+    g.restore();
   }
 
   // the brand kit logo, top right, clear of the hook card

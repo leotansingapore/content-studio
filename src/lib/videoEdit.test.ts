@@ -452,3 +452,15 @@ describe("voiceover", () => {
     }
   });
 });
+
+describe("caption animation", () => {
+  it("defaults to pop for word styles and none for line styles, and a style switch resets it", async () => {
+    const { animOf, applyPatch, defaultSettings, withStyle } = await import("@/lib/videoEdit");
+    expect(animOf(defaultSettings("bold"))).toBe("pop");
+    expect(animOf(defaultSettings("minimal"))).toBe("none");
+    const typed = applyPatch(defaultSettings("bold"), { captionAnim: "type" }).next;
+    expect(animOf(typed)).toBe("type");
+    expect(withStyle(typed, "cutout").captionAnim).toBeUndefined();
+    expect(applyPatch(defaultSettings(), { captionAnim: "spin" }).changed).toEqual([]);
+  });
+});

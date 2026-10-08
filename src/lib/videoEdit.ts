@@ -58,6 +58,8 @@ export interface EditSettings {
   captionBox?: CaptionBox;
   /** Caption typeface. Unset = the style's own. */
   font?: FontId;
+  /** How captions and the hook card come in: pop, slide up, typewriter (words as they're said) or none. Unset = pop for word styles, none for line styles. */
+  captionAnim?: CaptionAnim;
   /** Colour look over the style's grade (when grade is on). Unset = the style's own. */
   filter?: FilterId;
   /** What happens at each cut: a hard jump (unset), a quick dip through black, or a white flash. */
@@ -147,6 +149,11 @@ export function distanceToCut(segs: Segment[], out: number): number {
   return best;
 }
 
+export type CaptionAnim = "pop" | "slide" | "type" | "none";
+export function animOf(s: Pick<EditSettings, "style" | "captionAnim">): CaptionAnim {
+  return s.captionAnim ?? (STYLES[s.style].mode === "words" ? "pop" : "none");
+}
+
 export type CaptionBox = "none" | "pill" | "word";
 export type FontId = "heavy" | "clean" | "serif";
 export const FONTS: Record<FontId, { label: string; css: string }> = {
@@ -213,7 +220,7 @@ export function defaultSettings(style: StyleId = "bold"): EditSettings {
 /** Switching style resets the style's own looks but keeps the user's cuts, hook and frame. */
 export function withStyle(s: EditSettings, style: StyleId): EditSettings {
   const d = defaultSettings(style);
-  return { ...s, style, position: d.position, wordsPerCaption: d.wordsPerCaption, baseColor: d.baseColor, activeColor: d.activeColor, uppercase: d.uppercase, punchIn: d.punchIn, progressBar: d.progressBar, captionBox: undefined, font: undefined };
+  return { ...s, style, position: d.position, wordsPerCaption: d.wordsPerCaption, baseColor: d.baseColor, activeColor: d.activeColor, uppercase: d.uppercase, punchIn: d.punchIn, progressBar: d.progressBar, captionBox: undefined, font: undefined, captionAnim: undefined };
 }
 
 const FILLERS = new Set(["um", "umm", "uh", "uhh", "uhm", "erm", "er", "ah", "ahh", "hmm", "mm", "mhm"]);
@@ -439,6 +446,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if (typeof p.font === "string" && p.font in FONTS) set("font", p.font as FontId);
   if (typeof p.filter === "string" && p.filter in FILTERS) set("filter", p.filter as FilterId);
   if (p.transition === "soft" || p.transition === "flash") set("transition", p.transition);
+  if (["pop", "slide", "type", "none"].includes(p.captionAnim as string)) set("captionAnim", p.captionAnim as CaptionAnim);
   if (typeof p.speed === "number") set("speed", Math.round(clamp(p.speed, 1, 1.5, 1) * 20) / 20);
   if (typeof p.volume === "number") set("volume", Math.round(clamp(p.volume, 0, 1, 1) * 100) / 100);
   if (p.exportAs === "video" || p.exportAs === "small" || p.exportAs === "audio") set("exportAs", p.exportAs);
@@ -450,7 +458,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
 const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
   "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "maxPause", "hookSeconds", "aspect", "fit",
-  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "speed",
+  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "speed", "captionAnim",
 ] as const satisfies readonly (keyof EditSettings)[];
 
 export function lookOf(s: EditSettings): Record<string, unknown> {

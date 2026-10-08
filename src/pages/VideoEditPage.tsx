@@ -28,6 +28,7 @@ import {
   END_CARD_SECONDS,
   FONTS,
   FILTERS,
+  animOf,
   captionBoxOf,
   fullLength,
   findPhrase,
@@ -988,6 +989,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <Chip on={captionBoxOf(settings) === "none"} onClick={() => patch({ captionBox: "none" })}>None</Chip>
                 <Chip on={captionBoxOf(settings) === "pill"} onClick={() => patch({ captionBox: "pill" })}>Dark box</Chip>
                 {STYLES[settings.style].mode === "words" && <Chip on={captionBoxOf(settings) === "word"} onClick={() => patch({ captionBox: "word" })}>Highlight word</Chip>}
+              </Row>
+              <Row label="Animation">
+                {([["pop", "Pop"], ["slide", "Slide up"], ["type", "Typewriter"], ["none", "None"]] as const).map(([id, label]) => (
+                  <Chip key={id} on={animOf(settings) === id} onClick={() => patch({ captionAnim: id })}>{label}</Chip>
+                ))}
               </Row>
               <Row label="Font">
                 {(Object.keys(FONTS) as (keyof typeof FONTS)[]).map((id) => (
