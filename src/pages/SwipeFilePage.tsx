@@ -9,6 +9,7 @@ import IndustryNews from "@/components/IndustryNews";
 import AdsSwipe from "@/components/AdsSwipe";
 import { ADS, ADS_FETCHED } from "@/lib/adsSwipe";
 import YourFeeds from "@/components/YourFeeds";
+import Mentions from "@/components/Mentions";
 import { NEWS } from "@/lib/industryNews";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -240,6 +241,7 @@ export default function SwipeFilePage() {
             <IndustryNews />
           </section>
           <YourFeeds />
+          <Mentions />
         </>
       ) : (
         <>
