@@ -9,6 +9,7 @@
 
 import type { FaceBox, KeyLine } from "@/lib/videoMotion";
 import { mergeSlivers, pauseCut } from "@/lib/cutRules";
+import { findRetakes } from "@/lib/retakes";
 
 export interface Word {
   w: string;
@@ -36,6 +37,8 @@ export interface EditSettings {
   hook: string;
   hookSeconds: number;
   removeFillers: boolean;
+  /** A sentence said again within 20 s: the earlier take is cut (retakes.ts). Unset = off, so edits made before it keep their cuts. */
+  removeRetakes?: boolean;
   /** Pauses longer than this many seconds are cut down. 0 = keep every pause. */
   maxPause: number;
   trimStart: number;
@@ -233,6 +236,7 @@ export function defaultSettings(style: StyleId = "bold"): EditSettings {
     hook: "",
     hookSeconds: 3,
     removeFillers: true,
+    removeRetakes: true,
     maxPause: 0.6,
     trimStart: 0,
     trimEnd: 0,
@@ -273,18 +277,20 @@ export interface Segment {
  * words and minus the excess of any pause longer than maxPause.
  */
 export interface Cut {
-  /** Stable across edits: "f:" + the filler's start, "p:" + the end of the word before the pause. */
+  /** Stable across edits: "f:" + the filler's start, "p:" + the end of the word before the pause, "r:" + the earlier take's start. */
   id: string;
-  kind: "filler" | "pause";
+  kind: "filler" | "pause" | "retake";
   start: number;
   end: number;
   /** The words either side, and the filler itself, for the review list. */
   before: string;
   word: string;
   after: string;
+  /** A retake: where the take that replaces it starts. */
+  again?: number;
 }
 
-type CutSettings = Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "maxPause" | "keepCuts">;
+type CutSettings = Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "removeRetakes" | "maxPause" | "keepCuts">;
 
 function window_(words: Word[], duration: number, s: CutSettings) {
   const from = Math.max(0, s.trimStart);
@@ -296,7 +302,7 @@ function window_(words: Word[], duration: number, s: CutSettings) {
   return { from, to, kept, spoken, said: spoken.filter((w) => !isCutFiller(w)), isCutFiller };
 }
 
-/** Every filler and long pause the settings would cut, kept ones included (they are listed for review). */
+/** Every filler, long pause and retake the settings would cut, kept ones included (they are listed for review). */
 export function listCuts(words: Word[], duration: number, s: CutSettings): Cut[] {
   const { spoken, said } = window_(words, duration, { ...s, keepCuts: (s.keepCuts ?? []).filter((id) => id.startsWith("f:")) });
   const cuts: Cut[] = [];
@@ -316,13 +322,16 @@ export function listCuts(words: Word[], duration: number, s: CutSettings): Cut[]
       if (cut) cuts.push({ id: `p:${a.e.toFixed(2)}`, kind: "pause", ...cut, before: a.w, word: "", after: b.w });
     }
   }
+  if (s.removeRetakes) {
+    for (const r of findRetakes(said)) cuts.push({ id: `r:${r.s.toFixed(2)}`, kind: "retake", start: r.start, end: r.end, before: "", word: r.text, after: "", again: r.again });
+  }
   return cuts.sort((x, y) => x.start - y.start);
 }
 
 export function keepSegments(
   words: Word[],
   duration: number,
-  s: Pick<EditSettings, "trimStart" | "trimEnd" | "removeFillers" | "maxPause"> & { keepCuts?: string[]; removed?: { s: number; e: number }[] },
+  s: CutSettings & { removed?: { s: number; e: number }[] },
 ): Segment[] {
   const w = window_(words, duration, s);
   const removed = s.removed ?? [];
@@ -461,7 +470,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("wordsPerCaption" in p) set("wordsPerCaption", Math.round(clamp(p.wordsPerCaption, 1, 6, s.wordsPerCaption)));
   if (typeof p.baseColor === "string" && HEX.test(p.baseColor)) set("baseColor", p.baseColor.toUpperCase());
   if (typeof p.activeColor === "string" && HEX.test(p.activeColor)) set("activeColor", p.activeColor.toUpperCase());
-  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish", "loudness", "keyZooms", "numberCards", "sfx", "musicDrop", "popups"] as const) {
+  for (const k of ["uppercase", "captions", "removeFillers", "removeRetakes", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish", "loudness", "keyZooms", "numberCards", "sfx", "musicDrop", "popups"] as const) {
     if (typeof p[k] === "boolean") set(k, p[k] as boolean);
   }
   if (typeof p.hook === "string") set("hook", p.hook.replace(/—/g, ",").slice(0, 90));
@@ -491,7 +500,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
 // this one video (its hook, trims or framing). New videos start from it.
 const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
-  "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "maxPause", "hookSeconds", "aspect", "fit",
+  "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "removeRetakes", "maxPause", "hookSeconds", "aspect", "fit",
   "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "loudness", "speed", "captionAnim", "keyZooms", "numberCards", "sfx", "musicDrop", "popups",
 ] as const satisfies readonly (keyof EditSettings)[];
 

@@ -1188,8 +1188,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   };
 
-  // every filler and long pause being cut, for review; kept ones stay in the list
+  // every filler, long pause and retake being cut, for review; kept ones stay in the list
   const cuts = useMemo(() => listCuts(words, duration, settings), [words, duration, settings]);
+  const retakes = useMemo(() => listCuts(words, duration, { ...settings, removeRetakes: true }).filter((c) => c.kind === "retake").length, [words, duration, settings]);
   const keptCuts = new Set(settings.keepCuts ?? []);
   const toggleCut = (id: string) =>
     change({ ...settings, keepCuts: keptCuts.has(id) ? [...keptCuts].filter((k) => k !== id) : [...keptCuts, id] });
@@ -1672,6 +1673,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           {tab === "cuts" && (
             <div className="space-y-3">
               <Row label={`Cut um and uh${fillers ? ` (${fillers} found)` : ""}`}><Toggle on={settings.removeFillers} set={(v) => patch({ removeFillers: v })} /></Row>
+              <Row label={`Cut retakes${retakes ? ` (${retakes} found)` : ""}`}>
+                <InfoTip label="About retakes">A line said again within 20 s keeps only the last take.</InfoTip>
+                <Toggle on={!!settings.removeRetakes} set={(v) => patch({ removeRetakes: v })} />
+              </Row>
               <Row label={settings.maxPause ? `Shorten pauses over ${settings.maxPause.toFixed(1)}s` : "Keep every pause"}>
                 <input type="range" min={0} max={2} step={0.1} value={settings.maxPause} onChange={(e) => patch({ maxPause: Number(e.target.value) })} className="w-40 accent-primary" />
               </Row>
@@ -1804,13 +1809,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       return (
                         <li key={c.id} className="flex items-center gap-2 px-3 py-1.5 text-xs">
                           <span className="w-12 shrink-0 font-mono text-[11px] text-muted-foreground">{fmtTime(c.start)}</span>
-                          <span className={`min-w-0 flex-1 truncate ${kept ? "text-muted-foreground" : ""}`}>
-                            {c.before} <mark className="rounded bg-warning/30 px-1 text-foreground">{c.kind === "filler" ? c.word : `${(c.end - c.start).toFixed(1)}s pause`}</mark> {c.after}
+                          <span className={`min-w-0 flex-1 ${c.kind === "retake" ? "line-clamp-2 break-words" : "truncate"} ${kept ? "text-muted-foreground" : ""}`}>
+                            {c.kind === "retake" ? <>Said again at {fmtTime(c.again ?? 0)}: <mark className="rounded bg-warning/30 px-1 text-foreground">{c.word}</mark></>
+                              : <>{c.before} <mark className="rounded bg-warning/30 px-1 text-foreground">{c.kind === "filler" ? c.word : `${(c.end - c.start).toFixed(1)}s pause`}</mark> {c.after}</>}
                           </span>
-                          <Button size="sm" variant="ghost" className="h-8 w-8 shrink-0 p-0" aria-label={`Listen to ${c.kind === "filler" ? c.word : "the pause"} at ${fmtTime(c.start)}`} onClick={() => listen(c.start, c.end)}>
+                          <Button size="sm" variant="ghost" className="h-11 w-11 shrink-0 p-0 sm:h-8 sm:w-8" aria-label={`Listen to ${c.kind === "filler" ? c.word : c.kind === "retake" ? "the first take" : "the pause"} at ${fmtTime(c.start)}`} onClick={() => listen(c.start, c.end)}>
                             <Volume2 className="h-3.5 w-3.5" />
                           </Button>
-                          <Chip on={!kept} onClick={() => toggleCut(c.id)}>{kept ? "Kept" : "Cut"}</Chip>
+                          <Chip on={!kept} onClick={() => toggleCut(c.id)} className="min-h-11 sm:min-h-0">{kept ? "Kept" : "Cut"}</Chip>
                         </li>
                       );
                     })}
@@ -2246,10 +2252,10 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({ on, onClick, children, className = "" }: { on: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
-      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>{children}</button>
+      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"} ${className}`}>{children}</button>
   );
 }
 
