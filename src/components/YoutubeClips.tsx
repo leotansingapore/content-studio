@@ -55,6 +55,7 @@ export default function YoutubeClips({ userId }: { userId: string | null }) {
                   </span>
                   <span className="text-xs tabular-nums text-muted-foreground">{fmtTime(c.start)} to {fmtTime(c.end)}</span>
                 </div>
+                {c.reason && <p className="text-xs text-muted-foreground">{c.reason}</p>}
                 {c.hook && <p className="text-xs">"{c.hook}"</p>}
                 <div className="flex flex-wrap gap-2 pt-0.5">
                   <Button asChild size="sm" variant="outline" className="h-9">

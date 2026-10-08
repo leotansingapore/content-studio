@@ -87,6 +87,13 @@ describe("clips", () => {
     expect(sys.content).toContain("up to 16 candidate clips");
     expect(sys.content).toContain('"reason":string');
   });
+
+  it("asks for a title written from the payoff and a one-line reason", async () => {
+    const { buildClipsMessages } = await import("./logic");
+    const [sys] = buildClipsMessages([{ s: 0, e: 5, text: "Hi." }], 300);
+    expect(sys.content).toContain("a title of 3 to 7 words written from the payoff, what the viewer has by the end");
+    expect(sys.content).toContain("a reason: one plain sentence of 15 words or fewer on why a viewer would watch it to the end");
+  });
 });
 
 describe("clips: Jev ranks the candidates", () => {

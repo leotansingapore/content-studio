@@ -84,18 +84,21 @@ export default function ClipFinder({ project, words, settings, duration, onClips
             {scored && <InfoTip label="About the scores">Out of 100: how well it stands alone and how strongly it opens.</InfoTip>}
           </p>
           {offTopic && <p className="mb-2 text-xs text-muted-foreground">Nothing in this video is about that, so these are its best clips.</p>}
-          <ul className="space-y-1.5">
+          <ul className="space-y-3">
             {list.map(({ clip, project: c }) => (
-              <li key={c.id} className="flex flex-wrap items-center gap-2 text-sm">
+              <li key={c.id} className="flex items-start gap-2 text-sm">
                 {typeof clip.score === "number" && (
-                  <span className="w-9 shrink-0 rounded-md bg-background px-1 py-0.5 text-center text-xs font-semibold tabular-nums" aria-label={`Score ${clip.score} out of 100`}>{clip.score}</span>
+                  <span className="mt-0.5 w-9 shrink-0 rounded-md bg-background px-1 py-0.5 text-center text-xs font-semibold tabular-nums" aria-label={`Score ${clip.score} out of 100`}>{clip.score}</span>
                 )}
-                <span className="font-mono text-[11px] text-muted-foreground">
-                  {fmtTime(c.settings.trimStart)}-{fmtTime(duration - c.settings.trimEnd)}
-                </span>
-                <span className="min-w-0 flex-1 truncate">{clip.title}</span>
-                {clip.onTopic && <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">On topic</span>}
-                <Button size="sm" variant="outline" className="h-11 text-xs sm:h-8" onClick={() => onOpen(c.id)}>Open</Button>
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="font-medium">
+                    {clip.title}
+                    {clip.onTopic && <span className="ml-1.5 whitespace-nowrap rounded-md bg-primary/10 px-1.5 py-0.5 align-middle text-[11px] font-medium text-primary">On topic</span>}
+                  </p>
+                  {clip.reason && <p className="text-xs text-muted-foreground">{clip.reason}</p>}
+                  <p className="font-mono text-[11px] text-muted-foreground">{fmtTime(c.settings.trimStart)}-{fmtTime(duration - c.settings.trimEnd)}</p>
+                </div>
+                <Button size="sm" variant="outline" className="h-11 shrink-0 text-xs sm:h-8" onClick={() => onOpen(c.id)}>Open</Button>
               </li>
             ))}
           </ul>
