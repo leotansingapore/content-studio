@@ -5,7 +5,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
 import ExportPill from "@/components/ExportPill";
 import { stopCloudSync } from "@/lib/cloudSync";
-import { disablePushHere } from "@/lib/notify";
+import { disablePushHere, refreshPushHere } from "@/lib/notify";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import { Sparkles, LogOut, Plus, LayoutGrid, X } from "lucide-react";
@@ -183,6 +183,7 @@ export default function StudioLayout() {
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (active) setEmail(data.user?.email ?? "");
+      if (active && data.user) void refreshPushHere();
     });
     return () => {
       active = false;

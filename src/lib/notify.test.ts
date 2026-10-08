@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { keyBytes, loadNotifyPrefs, NOTIFY_PREFIX, pushSupport, saveNotifyPrefs, VAPID_PUBLIC_KEY } from "./notify";
+import { keyBytes, loadNotifyPrefs, NOTIFY_PREFIX, pushSupport, refreshPushHere, saveNotifyPrefs, VAPID_PUBLIC_KEY } from "./notify";
 
-vi.mock("@/lib/supabase", () => ({ supabase: {} }));
+const rpc = vi.hoisted(() => vi.fn(async () => ({ data: true, error: null })));
+vi.mock("@/lib/supabase", () => ({ supabase: { rpc } }));
 
 const UID = "3f2b6c1e-8a4d-4c2b-9f1e-2a3b4c5d6e7f";
 
@@ -81,5 +82,35 @@ describe("keyBytes", () => {
   });
   it("decodes base64url", () => {
     expect([...keyBytes("_-8")]).toEqual([255, 239]);
+  });
+});
+
+describe("refreshPushHere", () => {
+  const endpoint = "https://fcm.googleapis.com/fcm/send/dev";
+  function browser(permission: string, subscribed: boolean) {
+    const sub = { endpoint, toJSON: () => ({ endpoint, keys: { p256dh: "B".repeat(87), auth: "k".repeat(22) } }) };
+    vi.stubGlobal("window", { PushManager: class {}, Notification: { permission } });
+    vi.stubGlobal("Notification", { permission });
+    vi.stubGlobal("navigator", {
+      userAgent: "Mozilla/5.0",
+      maxTouchPoints: 0,
+      serviceWorker: { getRegistration: async () => ({ pushManager: { getSubscription: async () => (subscribed ? sub : null) } }) },
+    });
+  }
+  beforeEach(() => rpc.mockClear());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("saves this browser's subscription again for whoever is signed in", async () => {
+    browser("granted", true);
+    await refreshPushHere();
+    expect(rpc).toHaveBeenCalledWith("cs_save_push_subscription", { p_endpoint: endpoint, p_p256dh: "B".repeat(87), p_auth: "k".repeat(22) });
+  });
+
+  it("does nothing where alerts were never switched on or are blocked", async () => {
+    browser("granted", false);
+    await refreshPushHere();
+    browser("denied", true);
+    await refreshPushHere();
+    expect(rpc).not.toHaveBeenCalled();
   });
 });

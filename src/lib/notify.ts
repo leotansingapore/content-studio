@@ -79,6 +79,16 @@ export async function pushOnHere(): Promise<boolean> {
   }
 }
 
+async function saveSubscription(sub: PushSubscription): Promise<void> {
+  const { endpoint, keys } = sub.toJSON();
+  const { error } = await supabase.rpc("cs_save_push_subscription", {
+    p_endpoint: endpoint,
+    p_p256dh: keys?.p256dh,
+    p_auth: keys?.auth,
+  });
+  if (error) throw error;
+}
+
 /** Asks for permission (call it straight from the tap), subscribes this device and saves it. */
 export async function enablePushHere(): Promise<"ok" | "denied" | "failed"> {
   if ((await Notification.requestPermission()) !== "granted") return "denied";
@@ -88,17 +98,27 @@ export async function enablePushHere(): Promise<"ok" | "denied" | "failed"> {
     const sub =
       (await reg.pushManager.getSubscription()) ??
       (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) }));
-    const { endpoint, keys } = sub.toJSON();
-    const { error } = await supabase.rpc("cs_save_push_subscription", {
-      p_endpoint: endpoint,
-      p_p256dh: keys?.p256dh,
-      p_auth: keys?.auth,
-    });
-    if (error) throw error;
+    await saveSubscription(sub);
     return "ok";
   } catch (e) {
     console.error("Could not switch alerts on", e);
     return "failed";
+  }
+}
+
+/**
+ * On each signed-in load: saves this browser's subscription again for whoever
+ * is signed in. It keeps the device fresh (the server skips devices not saved
+ * for 60 days) and takes it over from an account whose sign-out never reached
+ * the server. Does nothing where alerts were never switched on.
+ */
+export async function refreshPushHere(): Promise<void> {
+  try {
+    if (browserPushSupport() !== "ok" || Notification.permission !== "granted") return;
+    const sub = await currentSubscription();
+    if (sub) await saveSubscription(sub);
+  } catch (e) {
+    console.error("Could not refresh this device's alerts", e);
   }
 }
 
