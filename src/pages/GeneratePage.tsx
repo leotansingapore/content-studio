@@ -471,7 +471,7 @@ function ComplianceChips({
             />
             <div className="space-y-0.5">
               <div className="font-semibold uppercase tracking-[0.14em]">
-                {isError ? "Compliance error" : "Compliance warn"}
+                {isError ? "Compliance error" : "Compliance warning"}
                 <span className="ml-1.5 rounded bg-background/60 px-1 py-0.5 font-mono text-[10px] normal-case tracking-normal">
                   {flag.match}
                 </span>
