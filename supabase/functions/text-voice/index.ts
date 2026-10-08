@@ -1,7 +1,9 @@
 // "Voiceover from text" in the video editor (/edit): a script becomes speech
 // with ElevenLabs, in one of three voices. POST {text, voice} -> an MP3 (the
 // browser keeps it on the device and places it like a recorded voiceover).
-// Each call counts against the "ai-voice" daily cap (cs_ai_usage).
+// Dubbing: POST {mode:"dub", lines, voice, lang} -> {audio (base64 MP3), spans}
+// where spans[i] is when line i is spoken, so the browser can lay each line
+// where it was said. Either counts once against the "ai-voice" daily cap.
 //
 // Secrets: ELEVENLABS_API_KEY. Deploy WITH JWT verification:
 //   supabase functions deploy text-voice --project-ref hgdbflprrficdoyxmdxe --use-api
@@ -9,7 +11,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { parseVoiceRequest, ttsBody, ttsUrl } from "./logic.ts";
+import { dubBody, dubUrl, lineSpans, parseDubRequest, parseVoiceRequest, ttsBody, ttsUrl } from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,8 +28,11 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   try {
-    const parsed = parseVoiceRequest(await req.json().catch(() => ({})));
-    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const body = await req.json().catch(() => ({}));
+    const dub = body?.mode === "dub" ? parseDubRequest(body) : null;
+    if (dub && !dub.ok) return json({ error: dub.error }, 400);
+    const parsed = dub ? null : parseVoiceRequest(body);
+    if (parsed && !parsed.ok) return json({ error: parsed.error }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
@@ -45,6 +50,32 @@ Deno.serve(async (req) => {
       const r = usageRefusal(usage);
       return json(r.body, r.status);
     }
+
+    if (dub?.ok) {
+      let res: Response;
+      try {
+        res = await fetch(dubUrl(dub.voice), {
+          method: "POST",
+          headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify(dubBody(dub.lines, dub.lang)),
+          signal: AbortSignal.timeout(120_000),
+        });
+      } catch (e) {
+        console.error("text-voice dub request failed", e);
+        return json({ error: RETRY }, 502);
+      }
+      if (!res.ok) {
+        console.error("text-voice dub elevenlabs", res.status, (await res.text()).slice(0, 300));
+        return json({ error: res.status === 401 || res.status === 402 ? "Voiceover credits have run out. Tell your studio admin." : RETRY }, 502);
+      }
+      const out = await res.json();
+      const ends = out?.alignment?.character_end_times_seconds;
+      const duration = Array.isArray(ends) && ends.length ? Number(ends[ends.length - 1]) || 0 : 0;
+      if (typeof out?.audio_base64 !== "string" || !out.audio_base64) return json({ error: RETRY }, 502);
+      console.log("text-voice dub", dub.lang, dub.voice, dub.lines.length, "lines, cost", res.headers.get("character-cost") ?? "?");
+      return json({ audio: out.audio_base64, spans: lineSpans(dub.lines, out.alignment, duration) });
+    }
+    if (!parsed?.ok) return json({ error: RETRY }, 500);
 
     let res: Response;
     try {

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Check, ChevronDown, ChevronUp, Download, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2 } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Download, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Scissors, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
 import YoutubeClips from "@/components/YoutubeClips";
 import JoinTakes from "@/components/JoinTakes";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
-import { MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, type VoiceId } from "@/lib/textVoice";
+import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -99,6 +99,8 @@ import {
   type ExportIssue,
   type EditSettings,
   type StyleId,
+  outputCues,
+  dubPlacement,
 } from "@/lib/videoEdit";
 import {
   bufferTrack,
@@ -117,6 +119,7 @@ import {
   onJoinJob,
   type JoinJob,
   audioPeaks,
+  layDub,
   waveThumb,
   extractWav,
   getFile,
@@ -760,6 +763,40 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       setTtsBusy(false);
     }
   };
+  // dub: the kept lines translated, spoken by an AI voice in one call, each line laid where the original was said
+  const [dubOpen, setDubOpen] = useState(false);
+  const [dubLang, setDubLang] = useState<DubLang>("zh");
+  const [dubBusy, setDubBusy] = useState("");
+  const makeDub = async () => {
+    setDubBusy("Translating...");
+    try {
+      const cues = outputCues(words, plan.segs, settings.removeFillers, speed);
+      if (!cues.length) throw new Error("Caption the video first.");
+      const lines = await translateCaptions(dubLang, cues.map((c) => c.text));
+      setDubBusy("Making the voice...");
+      const { audio, spans } = await speakDub(lines, ttsVoice, dubLang);
+      const place = dubPlacement(spans, cues, plan.total);
+      if (!place.length) throw new Error("The dub came back silent. Try again.");
+      const key = `vo-${project.id}-${Date.now().toString(36)}`;
+      await putFile(key, await layDub(audio, place, plan.total));
+      const cur = settingsRef.current;
+      setHistory((h) => [...h.slice(-19), cur]);
+      setSettings({ ...cur, voiceover: { key, start: 0, length: plan.total }, volume: 0 });
+      setDubOpen(false);
+      // what didn't fit: the dub voice runs past the end of the video
+      const cut = spans.reduce((n, sp) => n + (sp ? sp.e - sp.s : 0), 0) - place.reduce((n, p) => n + p.dur, 0);
+      toast({
+        title: `Dubbed into ${DUB_LANGS[dubLang]}`,
+        description: cut > 0.5
+          ? `The filmed sound is muted. The ${DUB_LANGS[dubLang]} voice runs ${Math.round(cut)}s longer than the video, so the end is cut.`
+          : "The filmed sound is muted. Undo brings it back.",
+      });
+    } catch (e) {
+      toast({ title: "Couldn't dub the video", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setDubBusy("");
+    }
+  };
   const removeVoice = () => {
     if (!settings.voiceover) return;
     change({ ...settings, voiceover: undefined }); // the file stays until Undo is out of reach; it is small
@@ -925,7 +962,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [clips, setClips] = useState<VideoProject[]>([]);
   const [clipping, setClipping] = useState(false);
   // uses left today beside each AI button, read again after every run
-  const left = useUsesLeft(thinking || clipping || ideating || suggesting || !!translating || ttsBusy || captioning);
+  const left = useUsesLeft(thinking || clipping || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning);
   const none = (f: Parameters<typeof left>[0]) => left(f) === 0;
   const makeClips = async () => {
     setClipping(true);
@@ -1677,7 +1714,29 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       <Sparkles className="h-3.5 w-3.5" /> Voiceover from text
                     </Button>
                   )}
+                  {!recording && (
+                    <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => setDubOpen((o) => !o)} disabled={!file || playing || !words.length} aria-expanded={dubOpen}>
+                      <Languages className="h-3.5 w-3.5" /> Dub it
+                    </Button>
+                  )}
                 </div>
+                {dubOpen && !recording && (
+                  <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-2.5">
+                    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Dub into">
+                      {(Object.keys(DUB_LANGS) as DubLang[]).map((l) => <Chip key={l} on={dubLang === l} onClick={() => setDubLang(l)}>{DUB_LANGS[l]}</Chip>)}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
+                      {VOICE_IDS.map((v) => <Chip key={v} on={ttsVoice === v} onClick={() => setTtsVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Chip>)}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" className={`h-9 gap-1.5 ${dubBusy ? "disabled:opacity-100" : ""}`} onClick={() => void makeDub()} disabled={!!dubBusy || none("ai-voice") || none("video-translate")}>
+                        {dubBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
+                        {dubBusy || `Dub into ${DUB_LANGS[dubLang]}`}
+                      </Button>
+                      <Left n={left("ai-voice")} />
+                    </div>
+                  </div>
+                )}
                 {ttsOpen && !recording && (
                   <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-2.5">
                     <Textarea rows={4} value={ttsText} maxLength={MAX_SCRIPT} onChange={(e) => setTtsText(e.target.value)} aria-label="Voiceover script"

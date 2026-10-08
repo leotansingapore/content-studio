@@ -69,6 +69,11 @@ export async function extractWav(file: Blob): Promise<{ wav: Blob; duration: num
   src.connect(off.destination);
   src.start();
   const pcm = (await off.startRendering()).getChannelData(0);
+  return { wav: encodeWav(pcm, rate), duration: audio.duration };
+}
+
+/** Mono 16-bit WAV from samples. */
+function encodeWav(pcm: Float32Array, rate: number): Blob {
   const out = new DataView(new ArrayBuffer(44 + pcm.length * 2));
   const str = (o: number, s: string) => [...s].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
   str(0, "RIFF");
@@ -84,7 +89,21 @@ export async function extractWav(file: Blob): Promise<{ wav: Blob; duration: num
   str(36, "data");
   out.setUint32(40, pcm.length * 2, true);
   for (let i = 0; i < pcm.length; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, pcm[i])) * 0x7fff, true);
-  return { wav: new Blob([out], { type: "audio/wav" }), duration: audio.duration };
+  return new Blob([out], { type: "audio/wav" });
+}
+
+/** The dubbed voice as one track the length of the edit: each line cut from the AI audio and laid where dubPlacement says. */
+export async function layDub(audio: Blob, place: { at: number; from: number; dur: number }[], total: number): Promise<Blob> {
+  const rate = 24000;
+  const buf = await new OfflineAudioContext(1, 1, rate).decodeAudioData(await audio.arrayBuffer());
+  const off = new OfflineAudioContext(1, Math.max(1, Math.ceil(total * rate)), rate);
+  for (const p of place) {
+    const src = off.createBufferSource();
+    src.buffer = buf;
+    src.connect(off.destination);
+    src.start(p.at, p.from, p.dur);
+  }
+  return encodeWav((await off.startRendering()).getChannelData(0), rate);
 }
 
 /** Loudness of a sound file, 20 readings a second (decoded at 8 kHz, small even for a long podcast). */

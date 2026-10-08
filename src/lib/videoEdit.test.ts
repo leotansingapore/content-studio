@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aspectSize,
+  dubPlacement,
   peaksFrom,
   waveAt,
   applyPatch,
@@ -842,5 +843,17 @@ describe("audio-only sources", () => {
   it("gives a sound-only source the vertical frame when it asks for the original size", () => {
     expect(aspectSize("original", 0, 0)).toEqual([1080, 1920]);
     expect(aspectSize("original", 1920, 1080)).toEqual([1920, 1080]);
+  });
+});
+
+describe("dubbing", () => {
+  it("lays each dubbed line where the original starts, never over the one before, and stops at the end", () => {
+    const cues = [{ s: 0.5 }, { s: 2 }, { s: 3 }, { s: 9.95 }];
+    const spans = [{ s: 0, e: 2.5 }, null, { s: 2.6, e: 3.6 }, { s: 3.7, e: 4.5 }];
+    expect(dubPlacement(spans, cues, 10)).toEqual([
+      { at: 0.5, from: 0, dur: 2.5 },
+      { at: 3.05, from: 2.6, dur: 1 },
+    ]);
+    expect(dubPlacement([{ s: 0, e: 20 }], [{ s: 1 }], 10)).toEqual([{ at: 1, from: 0, dur: 9 }]);
   });
 });

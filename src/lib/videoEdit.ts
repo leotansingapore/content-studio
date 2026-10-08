@@ -574,14 +574,16 @@ const srtTime = (t: number) => {
   return `${p(Math.floor(ms / 3_600_000))}:${p(Math.floor(ms / 60_000) % 60)}:${p(Math.floor(ms / 1000) % 60)},${p(ms % 1000, 3)}`;
 };
 
-/**
- * An .srt file for the edited video: sentence-length lines (the "minimal"
- * line style) timed on the output timeline, so cut words drop out and every
- * line lands where it plays after the cuts.
- */
-export function toSrt(words: Word[], segs: Segment[], removeFillers: boolean, speed = 1): string {
+export interface Cue {
+  s: number;
+  e: number;
+  text: string;
+}
+
+/** Sentence-length lines (the "minimal" style) timed on the output timeline: cut words drop out. */
+export function outputCues(words: Word[], segs: Segment[], removeFillers: boolean, speed = 1): Cue[] {
   const lines = buildCaptions(words, { style: "minimal", wordsPerCaption: 3, removeFillers });
-  const cues: { s: number; e: number; text: string }[] = [];
+  const cues: Cue[] = [];
   for (const c of lines) {
     const kept = c.words.filter((w) => outputTime(segs, w.s) !== null);
     if (!kept.length) continue;
@@ -590,6 +592,35 @@ export function toSrt(words: Word[], segs: Segment[], removeFillers: boolean, sp
     const e = outAt(segs, last.s, speed)! + Math.max(0.2, last.e - last.s) / speed;
     cues.push({ s, e, text: kept.map((w) => w.w).join(" ") });
   }
+  return cues;
+}
+
+/**
+ * Where each dubbed line plays: at the moment the original line starts, or
+ * straight after the previous dubbed line when that one runs long, so lines
+ * never talk over each other. Lines past the end of the video are dropped.
+ */
+export function dubPlacement(spans: ({ s: number; e: number } | null)[], cues: Pick<Cue, "s">[], total: number): { at: number; from: number; dur: number }[] {
+  const out: { at: number; from: number; dur: number }[] = [];
+  let free = 0;
+  spans.forEach((sp, i) => {
+    if (!sp || !cues[i] || sp.e <= sp.s) return;
+    const at = Math.max(cues[i].s, free);
+    if (at >= total - 0.1) return;
+    const dur = Math.min(sp.e - sp.s, total - at);
+    out.push({ at, from: sp.s, dur });
+    free = at + dur + 0.05;
+  });
+  return out;
+}
+
+/**
+ * An .srt file for the edited video: sentence-length lines (the "minimal"
+ * line style) timed on the output timeline, so cut words drop out and every
+ * line lands where it plays after the cuts.
+ */
+export function toSrt(words: Word[], segs: Segment[], removeFillers: boolean, speed = 1): string {
+  const cues = outputCues(words, segs, removeFillers, speed);
   return cues
     .map((c, i) => {
       const end = Math.min(c.e, cues[i + 1] ? cues[i + 1].s - 0.01 : c.e);

@@ -2,8 +2,9 @@
 // a script into an MP3 with ElevenLabs. The voice list and limits are shared with it.
 
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
-export { MAX_SCRIPT, VOICES, VOICE_IDS, type VoiceId } from "../../supabase/functions/text-voice/logic.ts";
-import type { VoiceId } from "../../supabase/functions/text-voice/logic.ts";
+export { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, type DubLang, type VoiceId } from "../../supabase/functions/text-voice/logic.ts";
+import type { DubLang, VoiceId } from "../../supabase/functions/text-voice/logic.ts";
+import { callFn } from "@/lib/edgeFn";
 
 export async function speak(text: string, voice: VoiceId): Promise<Blob> {
   const token = (await supabase.auth.getSession()).data.session?.access_token ?? SUPABASE_ANON_KEY;
@@ -30,4 +31,12 @@ export async function speak(text: string, voice: VoiceId): Promise<Blob> {
 export async function audioSeconds(blob: Blob): Promise<number> {
   const buf = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(await blob.arrayBuffer());
   return buf.duration;
+}
+
+/** The video's lines (already translated) spoken in one call, with when each line is said in the audio. */
+export async function speakDub(lines: string[], voice: VoiceId, lang: DubLang): Promise<{ audio: Blob; spans: ({ s: number; e: number } | null)[] }> {
+  const r = await callFn<{ audio: string; spans: ({ s: number; e: number } | null)[] }>("text-voice", { mode: "dub", lines, voice, lang }, "Couldn't make the dub. Try again in a minute.");
+  const bytes = Uint8Array.from(atob(r.audio), (c) => c.charCodeAt(0));
+  if (bytes.length < 1000) throw new Error("The dub came back empty. Try again.");
+  return { audio: new Blob([bytes], { type: "audio/mpeg" }), spans: r.spans };
 }
