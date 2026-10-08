@@ -496,6 +496,8 @@ export function sameLook(s: EditSettings, look: Record<string, unknown> | null |
 
 export function aspectSize(aspect: Aspect, srcW: number, srcH: number): [number, number] {
   if (aspect === "original") {
+    // a sound-only source has no picture size: it gets the vertical frame
+    if (!srcW || !srcH) return [1080, 1920];
     const scale = Math.min(1, 1920 / Math.max(srcW, srcH));
     return [Math.round((srcW * scale) / 2) * 2, Math.round((srcH * scale) / 2) * 2];
   }
@@ -1321,3 +1323,28 @@ export function focusAt(s: Pick<EditSettings, "focusX" | "followFace" | "faceTra
 
 /** Behind the speaker, found on this device (faceVision.ts): blur 0-1, a #RRGGBB colour, or a picture's file key. */
 export type Backdrop = { kind: "blur"; amount: number } | { kind: "colour"; color: string } | { kind: "picture"; key: string };
+
+// ---------- audio-only sources (a podcast or voice clip turned into a video) ----------
+
+export const PEAKS_PER_SECOND = 20;
+
+/** Loudness per 1/20 s of mono samples, 0 to 1, scaled so the loud end (95th percentile) reads 1. */
+export function peaksFrom(pcm: Float32Array, rate: number, perSecond = PEAKS_PER_SECOND): number[] {
+  const step = Math.max(1, Math.round(rate / perSecond));
+  const raw: number[] = [];
+  for (let i = 0; i < pcm.length; i += step) {
+    let sum = 0;
+    const end = Math.min(pcm.length, i + step);
+    for (let j = i; j < end; j++) sum += pcm[j] * pcm[j];
+    raw.push(Math.sqrt(sum / (end - i)));
+  }
+  const loud = [...raw].sort((a, b) => a - b)[Math.floor(raw.length * 0.95)] || 0;
+  return raw.map((r) => (loud > 0 ? Math.round(Math.min(1, r / loud) * 100) / 100 : 0));
+}
+
+/** n bar heights centred on the moment t: the bars to the left are just said, the right ones coming up. */
+export function waveAt(peaks: number[], t: number, n = 41, perSecond = PEAKS_PER_SECOND): number[] {
+  const mid = Math.round(t * perSecond);
+  const half = Math.floor(n / 2);
+  return Array.from({ length: n }, (_, i) => peaks[mid - half + i] ?? 0);
+}

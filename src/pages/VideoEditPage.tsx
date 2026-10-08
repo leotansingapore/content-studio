@@ -116,6 +116,8 @@ import {
   endJoin,
   onJoinJob,
   type JoinJob,
+  audioPeaks,
+  waveThumb,
   extractWav,
   getFile,
   loadVideo,
@@ -159,13 +161,14 @@ export default function VideoEditPage() {
     // A file picked before the sign-in check finished must not be dropped.
     const uid = userId ?? (await supabase.auth.getUser()).data.user?.id ?? null;
     if (!uid) return toast({ title: "Sign in again to edit videos", variant: "destructive" });
-    if (!file.type.startsWith("video/")) return toast({ title: "That isn't a video file", variant: "destructive" });
+    const sound = file.type.startsWith("audio/");
+    if (!file.type.startsWith("video/") && !sound) return toast({ title: "That isn't a video or sound file", variant: "destructive" });
     if (file.size > MAX_BYTES) return toast({ title: "That video is over 500 MB", description: "Trim it or export a smaller copy first.", variant: "destructive" });
     const id = `v${Date.now().toString(36)}`;
     try {
       setBusy("Reading your video...");
       await putFile(id, file);
-      const [thumb] = await stills(file, [0.3], 240);
+      const thumb = sound ? waveThumb(await audioPeaks(file)) : (await stills(file, [0.3], 240))[0];
       const { wav, duration } = await extractWav(file);
       let p: VideoProject = {
         id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration, size: file.size,
@@ -241,7 +244,7 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
       <header className="space-y-1">
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Edit a video</h1>
         <ul className="flex flex-wrap gap-1.5 pt-1" aria-label="What it does">
-          {["Auto captions", "Cuts um and long pauses", "Hook on screen", "9:16 reframe that follows your face", "Blur or swap your background", "Skin and eye touch-up", "Find clips in a long video", "Vibe edit by chat", "MP4 export"].map((t) => (
+          {["Auto captions", "Cuts um and long pauses", "Hook on screen", "9:16 reframe that follows your face", "Blur or swap your background", "Skin and eye touch-up", "Find clips in a long video", "Podcast audio to video", "Vibe edit by chat", "MP4 export"].map((t) => (
             <li key={t} className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{t}</li>
           ))}
         </ul>
@@ -265,11 +268,11 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
               <Upload className="h-6 w-6" />
             </span>
             <span className="text-base font-semibold">Upload a video of you talking</span>
-            <span className="text-xs text-muted-foreground">MP4 or MOV, up to 500 MB and about 12 minutes. It stays on this device.</span>
+            <span className="text-xs text-muted-foreground">A video, or a podcast or voice clip (MP3, M4A, WAV). Up to 500 MB and about 12 minutes. It stays on this device.</span>
             {captions !== null && <Left n={captions} what="Captioning" />}
           </>
         )}
-        <input type="file" accept="video/*" className="sr-only" disabled={!!busy}
+        <input type="file" accept="video/*,audio/*" className="sr-only" disabled={!!busy}
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onUpload(f); }} />
       </label>
       {joinOpen ? (
@@ -440,6 +443,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   useEffect(() => {
     getFile(fk).then((f) => setFile(f ?? null)).catch(() => setFile(null));
   }, [fk]);
+  // a podcast or voice clip: its loudness, drawn as a moving waveform where the picture would be
+  const [peaks, setPeaks] = useState<number[] | null>(null);
+  useEffect(() => {
+    if (!file?.type.startsWith("audio/")) return setPeaks(null);
+    let live = true;
+    audioPeaks(file).then((p) => live && setPeaks(p)).catch(() => live && setPeaks(null));
+    return () => { live = false; };
+  }, [file]);
   const url = useMemo(() => (file ? URL.createObjectURL(file) : ""), [file]);
   const voiceKey = settings.voiceover?.key;
   useEffect(() => {
@@ -542,9 +553,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
     const out = outAt(plan.segs, v.currentTime, speed) ?? outT;
     const broll = syncBroll(brollEls.current, settings.broll, out, playing);
-    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing, broll, fx });
+    drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing, broll, fx, peaks });
     setOutT(out);
-  }, [plan, settings, outT, subs, art, playing, speed, fx]);
+  }, [plan, settings, outT, subs, art, playing, speed, fx, peaks]);
   const total = fullLength(plan.total, settings, !!art);
   // what Export will make for the platform picked: its frame, and about how big the file comes out
   const size = useMemo(

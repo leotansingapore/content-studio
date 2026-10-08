@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  aspectSize,
+  peaksFrom,
+  waveAt,
   applyPatch,
   buildCaptions,
   captionAt,
@@ -814,5 +817,30 @@ describe("joining takes", () => {
     expect(joinedLength([take(10, 2, 6), take(5)])).toBe(9);
     expect(joinIssue([take(10, 2, 6), take(5)])).toBeNull();
     expect(joinIssue([take(MAX_JOIN_SECONDS), take(5)])).toBe("Together they run 12:05.0. Trim them under 12 minutes so they can be captioned.");
+  });
+});
+
+describe("audio-only sources", () => {
+  it("reads loudness per 1/20 s, scaled to the loud end", () => {
+    const rate = 1000;
+    const pcm = new Float32Array(rate); // 1 s: quiet first half, loud second half
+    for (let i = 500; i < 1000; i++) pcm[i] = i % 2 ? 0.5 : -0.5;
+    const p = peaksFrom(pcm, rate);
+    expect(p).toHaveLength(20);
+    expect(p.slice(0, 10).every((x) => x === 0)).toBe(true);
+    expect(p.slice(10).every((x) => x === 1)).toBe(true);
+    expect(peaksFrom(new Float32Array(100), rate).every((x) => x === 0)).toBe(true);
+  });
+
+  it("centres the bars on the moment, empty past either end", () => {
+    const peaks = [0.1, 0.2, 0.3, 0.4, 0.5];
+    expect(waveAt(peaks, 0.1, 3)).toEqual([0.2, 0.3, 0.4]);
+    expect(waveAt(peaks, 0, 3)).toEqual([0, 0.1, 0.2]);
+    expect(waveAt(peaks, 1, 3)).toEqual([0, 0, 0]);
+  });
+
+  it("gives a sound-only source the vertical frame when it asks for the original size", () => {
+    expect(aspectSize("original", 0, 0)).toEqual([1080, 1920]);
+    expect(aspectSize("original", 1920, 1080)).toEqual([1920, 1080]);
   });
 });

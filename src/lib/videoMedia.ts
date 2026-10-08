@@ -48,6 +48,8 @@ import {
   type EditSettings,
   type Segment,
   type Word,
+  peaksFrom,
+  waveAt,
 } from "@/lib/videoEdit";
 
 // ---------- sound for captions ----------
@@ -83,6 +85,74 @@ export async function extractWav(file: Blob): Promise<{ wav: Blob; duration: num
   out.setUint32(40, pcm.length * 2, true);
   for (let i = 0; i < pcm.length; i++) out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, pcm[i])) * 0x7fff, true);
   return { wav: new Blob([out], { type: "audio/wav" }), duration: audio.duration };
+}
+
+/** Loudness of a sound file, 20 readings a second (decoded at 8 kHz, small even for a long podcast). */
+export async function audioPeaks(file: Blob): Promise<number[]> {
+  const buf = await new OfflineAudioContext(1, 1, 8000).decodeAudioData(await file.arrayBuffer());
+  return peaksFrom(buf.getChannelData(0), buf.sampleRate);
+}
+
+/** The Recent tile for a sound file: dark, with its loudness as bars across the middle. */
+export function waveThumb(peaks: number[]): string {
+  const c = document.createElement("canvas");
+  c.width = 240;
+  c.height = 426;
+  const g = c.getContext("2d")!;
+  g.fillStyle = "#0F172A";
+  g.fillRect(0, 0, c.width, c.height);
+  const n = 24;
+  const per = Math.max(1, Math.floor(peaks.length / n));
+  g.fillStyle = "#FFFFFF";
+  for (let i = 0; i < n; i++) {
+    const v = Math.max(...peaks.slice(i * per, i * per + per), 0);
+    const h = Math.max(4, v * 120);
+    roundRect(g, 24 + i * 8, c.height / 2 - h / 2, 5, h, 2.5);
+  }
+  return c.toDataURL("image/jpeg", 0.7);
+}
+
+/** A podcast or voice clip has no picture: the brand colour, the speaker's photo and name, and the sound as moving bars. */
+function drawAudioScene(g: CanvasRenderingContext2D, W: number, H: number, peaks: number[], t: number, brand?: BrandArt | null) {
+  const k = W / 1080;
+  const base = brand?.color ?? "#0F172A";
+  const grad = g.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, base);
+  grad.addColorStop(1, "#05070D");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, W, H);
+  const mid = H * 0.5;
+  if (brand?.photo || brand?.name) {
+    let y = mid - 420 * k;
+    if (brand.photo) {
+      const r = 110 * k;
+      g.save();
+      g.beginPath();
+      g.arc(W / 2, y, r, 0, Math.PI * 2);
+      g.clip();
+      g.drawImage(brand.photo, W / 2 - r, y - r, r * 2, r * 2);
+      g.restore();
+      y += r + 56 * k;
+    }
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    g.fillStyle = "#FFFFFF";
+    g.font = `700 ${Math.round(46 * k)}px "DM Sans", Inter, system-ui, sans-serif`;
+    if (brand.name) g.fillText(brand.name, W / 2, y, W * 0.86);
+  }
+  // the bar in the middle is now; the ones to its left were just said
+  const bars = waveAt(peaks, t, 41);
+  const gap = 8 * k;
+  const bw = (W * 0.8 - gap * (bars.length - 1)) / bars.length;
+  const x0 = W * 0.1;
+  const maxH = 260 * k;
+  bars.forEach((v, i) => {
+    const h = Math.max(10 * k, v * maxH);
+    g.globalAlpha = i < 20 ? 0.95 : i === 20 ? 1 : 0.4;
+    g.fillStyle = "#FFFFFF";
+    roundRect(g, x0 + i * (bw + gap), mid - 60 * k - h / 2, bw, h, bw / 2);
+  });
+  g.globalAlpha = 1;
 }
 
 // ---------- stills ----------
@@ -190,6 +260,8 @@ export interface Frame {
   broll?: HTMLVideoElement | null;
   /** Face and background effects (faceVision.ts), painted over the speaker's picture once it is drawn; r is where it shows. */
   fx?: ((g: CanvasRenderingContext2D, r: { x: number; y: number; w: number; h: number }) => void) | null;
+  /** A sound-only source's loudness (audioPeaks): drawn as a moving waveform on the brand colour. */
+  peaks?: number[] | null;
 }
 
 // ---------- voice polish ----------
@@ -380,6 +452,7 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   // (effects are skipped under a B-roll cutaway, which covers the picture anyway)
   const fx = f.broll?.videoWidth ? null : f.fx;
   const shown = (x: number, y: number, w: number, h: number) => ({ x: Math.max(0, x), y: Math.max(0, y), w: Math.min(W, x + w) - Math.max(0, x), h: Math.min(H, y + h) - Math.max(0, y) });
+  if (!v.videoWidth && f.peaks?.length) drawAudioScene(g, W, H, f.peaks, f.src, f.brand);
   if (v.videoWidth) {
     const zoom = s.punchIn ? zoomAt(f.segs, f.src, spec.punch) : 1;
     const cover = Math.max(W / v.videoWidth, H / v.videoHeight);
@@ -882,6 +955,8 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     video = await loadVideo(file);
     const plan = planFor(words, video.duration, settings);
     if (plan.total < 0.5) throw new Error("Nothing left to export after the cuts.");
+    // a podcast or voice clip has no picture: it is drawn as a waveform
+    const peaks = video.videoWidth || kind === "audio" ? null : await audioPeaks(file);
     // sized for the platform it is for: frame, bitrates, and under its upload cap
     const size = exportSize(settings, plan.total + (settings.endCard && brand ? END_CARD_SECONDS : 0), video.videoWidth, video.videoHeight);
     const [W, H] = size.w ? [size.w, size.h] : aspectSize(settings.aspect, video.videoWidth, video.videoHeight);
@@ -951,7 +1026,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const endLen = settings.endCard && brand && kind !== "audio" ? END_CARD_SECONDS : 0;
     const draw = () => {
       const out = Math.min(plan.total, outAt(plan.segs, v.currentTime, speed) ?? done / speed);
-      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand, broll: syncBroll(brEls, settings.broll, out, rec.state === "recording"), fx });
+      drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand, broll: syncBroll(brEls, settings.broll, out, rec.state === "recording"), fx, peaks });
       if (rec.state === "recording") voSync(out);
       else voStop();
       if (job) {
