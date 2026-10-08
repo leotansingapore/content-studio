@@ -329,7 +329,7 @@ export default function PlanPage() {
     }
     toast({
       title: `${count} posts added to your calendar`,
-      description: "Open one to write it — it stays on its scheduled day.",
+      description: "Open one to write it. It stays on its scheduled day.",
     });
     navigate("/calendar");
   };
@@ -801,7 +801,7 @@ export default function PlanPage() {
               onClick={handleAddToCalendar}
               className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"
             >
-              <Calendar className="h-3.5 w-3.5" /> Add week to calendar
+              <Calendar className="h-3.5 w-3.5" /> Add {totalCount} posts to calendar
             </Button>
             <Button
               variant="outline"
