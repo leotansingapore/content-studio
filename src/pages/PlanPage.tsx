@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { loadDrafts, upsertDraft } from "@/lib/draftHistory";
+import { draftStatus, loadDrafts, setDraftStatus, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import {
   Card,
   CardContent,
@@ -130,6 +130,15 @@ export default function PlanPage() {
   const [weeks, setWeeks] = useState(2);
   const [plan, setPlan] = useState<ContentPlan | null>(null);
   const [editing, setEditing] = useState(true);
+  const [drafts, setDrafts] = useState<DraftEntry[]>([]);
+  // Slots count as posted when ticked here or when their calendar post is marked posted.
+  const items = useMemo(
+    () =>
+      (plan?.items ?? []).map((it) =>
+        it.posted || drafts.some((d) => d.id === `plan_${it.id}` && draftStatus(d) === "posted") ? { ...it, posted: true } : it,
+      ),
+    [plan, drafts],
+  );
 
   // Load user + saved positioning + saved plan once.
   useEffect(() => {
@@ -144,6 +153,7 @@ export default function PlanPage() {
         setPositioning(savedPositioning);
         setTopicsRaw(savedPositioning.topics.join("\n"));
       }
+      setDrafts(loadDrafts(id));
       const savedPlan = loadPlan(id);
       if (savedPlan) {
         setPlan(savedPlan);
@@ -275,16 +285,21 @@ export default function PlanPage() {
     });
   };
 
+  // A slot added to the calendar is the post plan_<slot>: marking either one posted marks both,
+  // so the plan's count matches Home and the calendar.
+  const linkedPost = (itemId: string) => drafts.find((d) => d.id === `plan_${itemId}`);
   const togglePosted = (itemId: string) => {
     if (!userId || !plan) return;
+    const posted = !items.find((it) => it.id === itemId)?.posted;
     const next: ContentPlan = {
       ...plan,
-      items: plan.items.map((it) =>
-        it.id === itemId ? { ...it, posted: !it.posted } : it,
-      ),
+      items: plan.items.map((it) => (it.id === itemId ? { ...it, posted } : it)),
     };
     savePlan(userId, next);
     setPlan(next);
+    const post = linkedPost(itemId);
+    if (post && draftStatus(post) === (posted ? "scheduled" : "posted"))
+      setDrafts(setDraftStatus(userId, post.id, posted ? "posted" : "scheduled"));
   };
 
   const handleDeletePlan = () => {
@@ -350,23 +365,22 @@ export default function PlanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get("competitor")]);
 
-  const postedCount = plan ? plan.items.filter((i) => i.posted).length : 0;
+  const postedCount = items.filter((i) => i.posted).length;
   // Only the next unposted slot gets the filled button: one clear next step.
-  const nextItemId = plan?.items.find((i) => !i.posted)?.id ?? null;
-  const totalCount = plan ? plan.items.length : 0;
+  const nextItemId = items.find((i) => !i.posted)?.id ?? null;
+  const totalCount = items.length;
   const pct = totalCount > 0 ? Math.round((postedCount / totalCount) * 100) : 0;
 
   const itemsByWeek = useMemo(() => {
-    if (!plan) return [] as { week: number; items: PlanItem[] }[];
     const map = new Map<number, PlanItem[]>();
-    for (const it of plan.items) {
+    for (const it of items) {
       if (!map.has(it.week)) map.set(it.week, []);
       map.get(it.week)!.push(it);
     }
     return [...map.entries()]
       .sort((a, b) => a[0] - b[0])
       .map(([week, items]) => ({ week, items }));
-  }, [plan]);
+  }, [items]);
 
   // ---------- Setup view (F.A.D.S. positioning) ----------
   if (editing || !plan) {
