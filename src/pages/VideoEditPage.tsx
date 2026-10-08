@@ -10,6 +10,7 @@ import ClipFinder from "@/components/ClipFinder";
 import ExportRunning from "@/components/ExportRunning";
 import MotionControls from "@/components/MotionControls";
 import AutoBroll from "@/components/AutoBroll";
+import BrollLayout from "@/components/BrollLayout";
 import { onBrollApply } from "@/lib/autoBroll";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
@@ -2122,6 +2123,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 </div>
                 </>
               )}
+              {brolls.length > 0 && <BrollLayout value={settings.brollLayout} onChange={(v) => patch({ brollLayout: v })} />}
               {brolls.length > 0 && (
                 <ul className="divide-y divide-border/60 rounded-lg border border-border/60">
                   {brolls.map((b) => (

@@ -111,6 +111,8 @@ export interface EditSettings {
   endCard?: boolean;
   /** B-roll cutaways: stock clips shown full-frame, muted, over stretches of the edit. */
   broll?: Broll[];
+  /** B-roll in a card at the top or the side over the dimmed shot (brollCard.ts). Unset = full frame. */
+  brollLayout?: "top" | "side";
   /** Zoom in on the key lines Jev picked (motion) instead of punching in on alternate cuts. */
   keyZooms?: boolean;
   /** The key lines Jev picked, on the source timeline (videoMotion.ts). */

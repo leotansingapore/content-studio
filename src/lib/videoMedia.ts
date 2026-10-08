@@ -52,6 +52,7 @@ import {
   waveAt,
 } from "@/lib/videoEdit";
 import { cueTicker, drawMotion, dropGain, hookTop, keyZoom, motionOf, playCue } from "@/lib/videoMotion";
+import { drawBroll } from "@/lib/brollCard";
 import { joinKept, sampleKept, wholeFits, type KeptPart } from "@/lib/keptSound";
 import { clipStats } from "@/lib/exportCheck";
 import { FAST, isFast, segLength } from "@/lib/fastPauses";
@@ -496,8 +497,8 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   g.fillRect(0, 0, W, H);
 
   // the picture: cover the frame, crop centred on focusX (or on the face, when following it), punch in on alternate cuts
-  // (effects are skipped under a B-roll cutaway, which covers the picture anyway)
-  const fx = f.broll?.videoWidth ? null : f.fx;
+  // (effects are skipped under a full-frame B-roll cutaway, which covers the picture anyway)
+  const fx = f.broll?.videoWidth && !s.brollLayout ? null : f.fx;
   const shown = (x: number, y: number, w: number, h: number) => ({ x: Math.max(0, x), y: Math.max(0, y), w: Math.min(W, x + w) - Math.max(0, x), h: Math.min(H, y + h) - Math.max(0, y) });
   if (!v.videoWidth && f.peaks?.length) drawAudioScene(g, W, H, f.peaks, f.src, f.brand);
   // zooms on key lines (eased, held a little above the middle, where a face sits) replace the punch-in on cuts
@@ -553,14 +554,12 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
       fx?.(g, shown(0, 0, W, H));
     }
   }
-  // a B-roll cutaway covers the whole frame; captions and the rest still go on top
-  const b = f.broll;
-  if (b?.videoWidth) {
-    const cover = Math.max(W / b.videoWidth, H / b.videoHeight);
-    g.filter = gradeOf(s);
-    g.drawImage(b, (W - b.videoWidth * cover) / 2, (H - b.videoHeight * cover) / 2, b.videoWidth * cover, b.videoHeight * cover);
-    g.filter = "none";
-  }
+  // where the captions sit: about two lines either side of their centre (cards and the hook keep clear)
+  const capHalf = (BASE_PX[s.style] * s.size * k * 1.18) / H;
+  const capBand: [number, number] | null = s.captions ? [captionCenter(s) - capHalf, captionCenter(s) + capHalf] : null;
+
+  // a B-roll cutaway covers the whole frame, or sits in a card over the dimmed shot (brollCard.ts); captions and the rest still go on top
+  if (f.broll?.videoWidth) drawBroll(g, f.broll, s, f.out, v, capBand, f.still);
   // transition at each cut: a quick dip through black or a white flash, 60 ms either side
   if (s.transition) {
     const d = distanceToCut(f.segs, f.out * speedOf(s)) / speedOf(s);
@@ -577,10 +576,6 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     g.fillRect(0, 0, W, H * 0.09);
     g.fillRect(0, H * 0.91, W, H * 0.09);
   }
-
-  // where the captions sit: about two lines either side of their centre (cards and the hook keep clear)
-  const capHalf = (BASE_PX[s.style] * s.size * k * 1.18) / H;
-  const capBand: [number, number] | null = s.captions ? [captionCenter(s) - capHalf, captionCenter(s) + capHalf] : null;
 
   // hook title: a white card for the first seconds of the edit, 11% from the top unless the face is there
   // (laid out first so captions avoid it)
