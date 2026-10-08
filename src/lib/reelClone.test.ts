@@ -255,12 +255,12 @@ describe("withHook and shotListText", () => {
   });
 
   it("writes one block per beat, preferring the shot planned from the original's look", () => {
-    expect(shotListText(version)).toBe(
+    expect(shotListText(version.beats)).toBe(
       "1. (3s) Your CPF isn't lazy money\n   On screen: CPF is not lazy\n   Show: To camera\n\n2. (6s) Here's why.",
     );
-    const visuals = { format: "f", hookVisual: "h", onScreenText: [], pacing: "p", visualMoves: [], myVisuals: ["", "Screen recording"] };
-    expect(shotListText(version, visuals)).toContain("2. (6s) Here's why.\n   Show: Screen recording");
-    expect(shotListText(version, visuals)).toContain("Show: To camera");
+    const shots = ["", "Screen recording"];
+    expect(shotListText(version.beats, shots)).toContain("2. (6s) Here's why.\n   Show: Screen recording");
+    expect(shotListText(version.beats, shots)).toContain("Show: To camera");
   });
 });
 

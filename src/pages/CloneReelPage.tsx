@@ -26,6 +26,7 @@ import {
   Video,
 } from "lucide-react";
 
+import ShotList, { CopyButton } from "@/components/ShotList";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,7 +48,6 @@ import {
   parseReelUrl,
   rememberClone,
   saveCloneDraft,
-  shotListText,
   startConceptBuild,
   startVisualsJob,
   visualsFor,
@@ -80,35 +80,6 @@ const LABEL = "text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-
 
 function PlatformIcon({ platform, className }: { platform: ReelPlatform; className?: string }) {
   return platform === "instagram" ? <Instagram className={className} /> : <Video className={className} />;
-}
-
-function CopyButton({ text, label, display = "Copy" }: { text: string; label: string; display?: string }) {
-  const { toast } = useToast();
-  const [copied, setCopied] = useState(false);
-  useEffect(() => {
-    if (!copied) return;
-    const t = setTimeout(() => setCopied(false), 1500);
-    return () => clearTimeout(t);
-  }, [copied]);
-  return (
-    <button
-      type="button"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-          setCopied(true);
-          toast({ title: `${label} copied` });
-        } catch {
-          toast({ title: "Copy failed", variant: "destructive" });
-        }
-      }}
-      aria-label={`Copy ${label.toLowerCase()}`}
-      className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-    >
-      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      {copied ? "Copied" : display}
-    </button>
-  );
 }
 
 function ExpandableText({ text, clampAt = 280 }: { text: string; clampAt?: number }) {
@@ -709,63 +680,6 @@ function VersionBlock({ label, text, copyLabel, pre }: { label: string; text: st
   );
 }
 
-function ShotList({ clone }: { clone: SavedClone }) {
-  const v = clone.result.myVersion;
-  const beats = v.beats ?? [];
-  const visuals = visualsFor(clone);
-  const shots = visuals?.myVisuals ?? [];
-  const total = beats.reduce((sum, b) => sum + b.seconds, 0);
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-        <p className={LABEL}>Shot list · about {total}s</p>
-        <div className="flex items-center gap-1">
-          <CopyButton text={v.script} label="Script" display="Copy script" />
-          <CopyButton text={shotListText(v, visuals)} label="Shot list" display="Copy shot list" />
-        </div>
-      </div>
-      {visuals && (
-        <p className="flex items-center gap-1 text-[11px] font-medium text-primary">
-          <Eye className="h-3 w-3 shrink-0" /> Shots match the original's look
-        </p>
-      )}
-      <ol className="space-y-2">
-        {beats.map((b, i) => {
-          const shot = shots[i] || b.visual;
-          return (
-            <li key={i} className="flex gap-2.5 rounded-lg border border-border/50 bg-muted/10 p-2.5">
-              <div className="flex w-8 shrink-0 flex-col items-center gap-1 pt-0.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
-                  {i + 1}
-                </span>
-                <span className="text-[10px] tabular-nums text-muted-foreground">{b.seconds}s</span>
-              </div>
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <p className="text-sm font-medium leading-relaxed text-foreground [overflow-wrap:anywhere]">{b.say}</p>
-                {b.onScreen && (
-                  <p className="w-fit max-w-full rounded bg-foreground px-1.5 py-0.5 text-[11px] font-semibold text-background [overflow-wrap:anywhere]">
-                    <span className="sr-only">On screen: </span>
-                    {b.onScreen}
-                  </p>
-                )}
-                {shot && (
-                  <p className="flex gap-1.5 text-xs leading-relaxed text-muted-foreground">
-                    <Camera className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
-                    <span className="min-w-0 [overflow-wrap:anywhere]">
-                      <span className="sr-only">Show: </span>
-                      {shot}
-                    </span>
-                  </p>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-}
-
 function ConceptPicker({
   concepts,
   active,
@@ -940,7 +854,11 @@ function VersionCard({
           </div>
         )}
 
-        {v.beats?.length ? <ShotList clone={clone} /> : <VersionBlock label="Script" text={v.script} copyLabel="Script" pre />}
+        {v.beats?.length ? (
+          <ShotList beats={v.beats} shots={visualsFor(clone)?.myVisuals} script={v.script} matched={Boolean(visualsFor(clone))} />
+        ) : (
+          <VersionBlock label="Script" text={v.script} copyLabel="Script" pre />
+        )}
         <VersionBlock label="Caption" text={v.caption} copyLabel="Caption" pre />
         {v.cta && <VersionBlock label="Call to action" text={v.cta} />}
         {v.filmingNotes && (

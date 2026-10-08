@@ -815,7 +815,8 @@ export function buildConceptPrompt(
 
 const str = (description: string) => ({ type: "string", description });
 
-const BEAT_SCHEMA = {
+/** One shot-list row in structured output; storyboard uses it too, so both lists match. */
+export const BEAT_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: ["say", "onScreen", "visual", "seconds"],
@@ -902,7 +903,7 @@ export const CONCEPT_RESPONSE_FORMAT = {
 
 const noEmDash = (s: string) => s.replace(/\s*—\s*/g, ", ");
 
-function oneLineText(v: unknown, max: number): string {
+export function oneLineText(v: unknown, max: number): string {
   if (typeof v !== "string") return "";
   const s = noEmDash(v).replace(/\s+/g, " ").trim();
   return s.length > max ? `${s.slice(0, max - 1).replace(/\s+\S*$/, "")}…` : s;
@@ -919,7 +920,7 @@ function blockText(v: unknown, max: number): string {
   return s.length > max ? s.slice(0, max).trimEnd() : s;
 }
 
-function parseObject(raw: unknown): Item | null {
+export function parseObject(raw: unknown): Item | null {
   if (raw && typeof raw === "object" && !Array.isArray(raw)) return raw as Item;
   if (typeof raw !== "string") return null;
   const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
@@ -931,7 +932,8 @@ function parseObject(raw: unknown): Item | null {
   }
 }
 
-function cleanBeats(raw: unknown): ShotBeat[] {
+/** Shot-list rows from the model, cleaned and capped; rows with nothing to say are dropped. */
+export function cleanBeats(raw: unknown): ShotBeat[] {
   return (Array.isArray(raw) ? raw : [])
     .map((b) => {
       const beat = (b && typeof b === "object" ? b : {}) as Item;

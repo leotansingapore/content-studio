@@ -6,6 +6,8 @@ export const DAILY_LIMITS = {
   "reel-clone": 20,
   // Another concept of a cloned reel, written from the cached post (clone-reel).
   "reel-concepts": 20,
+  // A shot list for a short-video draft in Write (storyboard).
+  storyboard: 30,
   // The frames read after each Instagram clone (reel-visuals).
   "reel-visuals": 20,
   "idea-dump": 30,

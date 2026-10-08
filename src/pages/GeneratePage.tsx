@@ -58,6 +58,8 @@ import {
   BookmarkPlus,
   MessageSquare,
   Eraser,
+  Columns3,
+  ArrowRight,
 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import inspirationData from "@/data/inspiration.json";
@@ -95,6 +97,10 @@ import {
   type LimitCheck,
 } from "@/lib/platformCounters";
 import { splitScriptCaption } from "@/lib/scriptCaption";
+import ShotList from "@/components/ShotList";
+import { BOARD_COLUMNS, columnOf, loadStages, setStage, type ProductionStage } from "@/lib/board";
+import { DAILY_LIMITS, ReelCloneError } from "@/lib/reelClone";
+import { makeStoryboard, storyboardRun, type Storyboard } from "@/lib/storyboard";
 import { HOOK_FORMULAS, hookFormula, hookFormulaFields, hookFormulaSet } from "@/lib/hookFormulas";
 import {
   cleanAiTells,
@@ -652,6 +658,13 @@ export default function GeneratePage() {
   const rewriteAbortRef = useRef<AbortController | null>(null);
   // Links taken out of a LinkedIn draft, to paste as its first comment.
   const [firstComment, setFirstComment] = useState<string | null>(null);
+  // A short video's storyboard, the draft one is being made for, and why the last one failed.
+  const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
+  const [storyboardFor, setStoryboardFor] = useState<string | null>(null);
+  const [storyboardError, setStoryboardError] = useState<string | null>(null);
+  const [boardStages, setBoardStages] = useState<Record<string, ProductionStage>>({});
+  const draftIdRef = useRef<string | null>(null);
+  draftIdRef.current = currentDraftId;
   // A new or re-picked draft starts without versions or a rewrite on offer;
   // finished versions are already in My posts.
   const clearDraftExtras = () => {
@@ -663,6 +676,8 @@ export default function GeneratePage() {
     setRewrite(null);
     setUndoText(null);
     setFirstComment(null);
+    setStoryboard(null);
+    setStoryboardError(null);
   };
   useEffect(
     () => () => {
@@ -756,6 +771,7 @@ export default function GeneratePage() {
         // corrupt prefs or a blocked storage are ignorable
       }
       setTemplates(loadTemplates(id));
+      setBoardStages(loadStages(id));
       const profile = loadVoiceProfile(id);
       const usable = isVoiceProfileUsable(profile);
       setVoiceProfileUsable(usable);
@@ -842,6 +858,9 @@ export default function GeneratePage() {
     setDraft(entry.draft);
     clearDraftExtras();
     setFirstComment(entry.firstComment ?? null);
+    setStoryboard(entry.storyboard ?? null);
+    const making = storyboardRun(entry.id);
+    if (making) void followStoryboard(entry.id, making);
     // A written post opens on its draft, not on step 1 of a brief it already has.
     if (entry.draft.trim()) setBriefOpen(false);
     setCurrentDraftId(entry.id);
@@ -1901,6 +1920,41 @@ export default function GeneratePage() {
   const savedEntry =
     draft && userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
 
+  // Storyboard: the spoken script of a short video (the whole draft when it has no caption heading).
+  const shortScript = format === "short-video" ? (svSplit?.script ?? draft).trim() : "";
+  const storyboardStale = Boolean(storyboard && storyboard.script !== shortScript);
+  const storyboardBusy = Boolean(currentDraftId && storyboardFor === currentDraftId);
+  const boardColumn = savedEntry ? columnOf(savedEntry, boardStages) : null;
+  const readyToFilm = boardColumn !== null && boardColumn !== "idea" && boardColumn !== "scripted";
+
+  // Shows a storyboard once it's made; the run itself saves it on the draft, wherever the consultant is.
+  async function followStoryboard(draftId: string, run: Promise<Storyboard>) {
+    setStoryboardFor(draftId);
+    setStoryboardError(null);
+    try {
+      const board = await run;
+      if (draftIdRef.current === draftId) setStoryboard(board);
+    } catch (e) {
+      if (draftIdRef.current === draftId) {
+        setStoryboardError(e instanceof ReelCloneError ? e.message : "Couldn't make the storyboard. Try again.");
+      }
+    } finally {
+      setStoryboardFor((f) => (f === draftId ? null : f));
+    }
+  }
+
+  const handleStoryboard = () => {
+    if (!userId || !currentDraftId || storyboardBusy) return;
+    const topic = pillarDetail.trim() || chosenHook || "";
+    void followStoryboard(currentDraftId, makeStoryboard(userId, currentDraftId, shortScript, topic));
+  };
+
+  const markReadyToFilm = () => {
+    if (!userId || !currentDraftId) return;
+    setBoardStages(setStage(userId, currentDraftId, "to-film"));
+    toast({ title: "Moved to To film", description: "It's on your board with its shot list." });
+  };
+
   // The version beside the original on desktop: the active tab, else the newest.
   const shownVersion =
     versions.find((v) => v.platform === activeTab) ?? versions[versions.length - 1] ?? null;
@@ -2813,14 +2867,14 @@ export default function GeneratePage() {
             versions.length > 0 && activeTab !== "original" ? "hidden lg:block" : ""
           }`}
         >
-          <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
             <div className="flex items-center gap-1">
               <CardTitle className="font-serif text-xl">Your draft</CardTitle>
               <InfoTip label="About editing your draft">
                 Cut about 30% of the words and edit for your voice first.
               </InfoTip>
             </div>
-            <div className="flex shrink-0 gap-2">
+            <div className="flex flex-wrap gap-2">
               {svSplit?.script ? (
                 <>
                   <Button
@@ -3118,6 +3172,70 @@ export default function GeneratePage() {
                 );
               })}
             </div>
+
+            {format === "short-video" && savedEntry && (
+              <div className="mt-3 space-y-3 rounded-xl border border-border/60 bg-muted/20 p-3" aria-live="polite">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <Clapperboard className="h-3.5 w-3.5" /> Storyboard
+                </div>
+                {storyboard ? (
+                  <>
+                    <ShotList beats={storyboard.beats} />
+                    {storyboardStale && (
+                      <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground">
+                        <AlertTriangle className="h-3.5 w-3.5 text-warning" /> Your script changed since.
+                        <button
+                          type="button"
+                          onClick={handleStoryboard}
+                          disabled={storyboardBusy}
+                          className="-my-3.5 py-3.5 font-semibold text-primary hover:underline disabled:opacity-60 sm:-my-2 sm:py-2"
+                        >
+                          {storyboardBusy ? "Redoing it..." : "Redo it"}
+                        </button>
+                      </p>
+                    )}
+                    {readyToFilm ? (
+                      <Button asChild variant="outline" size="sm" className="h-11 gap-1.5 border-success/40 text-success sm:h-9">
+                        <Link to="/board">
+                          <Check className="h-3.5 w-3.5" /> On your board in{" "}
+                          {BOARD_COLUMNS.find((c) => c.key === boardColumn)?.label}
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={markReadyToFilm} className="h-11 gap-1.5 sm:h-9">
+                        <Columns3 className="h-3.5 w-3.5" /> Mark ready to film
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleStoryboard}
+                      disabled={storyboardBusy || !shortScript}
+                      className="h-11 gap-1.5 disabled:opacity-100 sm:h-9"
+                    >
+                      {storyboardBusy ? (
+                        <ThinkingOrb state="working" size={20} theme="light" aria-hidden />
+                      ) : (
+                        <Clapperboard className="h-3.5 w-3.5" />
+                      )}
+                      {storyboardBusy ? "Planning the shots..." : "Make a storyboard"}
+                    </Button>
+                    <span className="text-[11px] text-muted-foreground">
+                      Uses 1 of your {DAILY_LIMITS.storyboard} a day.
+                    </span>
+                  </div>
+                )}
+                {storyboardError && (
+                  <p role="alert" className="text-xs font-medium text-destructive">
+                    {storyboardError}
+                  </p>
+                )}
+              </div>
+            )}
 
 
             {craftCheck && (

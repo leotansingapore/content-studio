@@ -9,6 +9,7 @@
 
 import { scoped } from "@/lib/profiles";
 import { addDays, localDateKey, scheduleAt, scheduleTime } from "@/lib/dueDates";
+import type { ShotBeat } from "../../supabase/functions/clone-reel/logic.ts";
 export const MAX_DRAFTS = 50;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
@@ -41,6 +42,15 @@ export interface DraftEntry {
   disclosure?: string[];
   // Links moved out of a LinkedIn post, to paste as its first comment.
   firstComment?: string;
+  // A short video's shot list, made in Write from the script it shows.
+  storyboard?: Storyboard;
+}
+
+export interface Storyboard {
+  beats: ShotBeat[];
+  /** The script it was made from, so Write can tell when the script has changed since. */
+  script: string;
+  madeAt: string;
 }
 
 export type RepeatEvery = "week" | "2weeks" | "month";
@@ -207,6 +217,7 @@ export function upsertDraft(
   // numbers or labels: keep them rather than wipe them on every edit.
   if (prev?.metrics && !entry.metrics) entry = { ...entry, metrics: prev.metrics };
   if (prev?.labels && !entry.labels) entry = { ...entry, labels: prev.labels };
+  if (prev?.storyboard && !entry.storyboard) entry = { ...entry, storyboard: prev.storyboard };
   const without = current.filter((d) => d.id !== entry.id);
   const next = [entry, ...without].slice(0, MAX_DRAFTS);
   saveDrafts(userId, next);

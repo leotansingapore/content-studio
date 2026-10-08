@@ -13,6 +13,7 @@ import {
   type CloneResponse,
   type HookFormulaInput,
   type MyVersion,
+  type ShotBeat,
   type VoiceInput,
   type Winner,
 } from "../../supabase/functions/clone-reel/logic.ts";
@@ -71,7 +72,7 @@ const FALLBACK_MESSAGES: Partial<Record<ReelCloneErrorCode, string>> = {
   not_found: "We couldn't open that post. It may be private, deleted or age-restricted.",
   daily_limit: "You've used today's clones. They reset at 8am Singapore time.",
   timeout: "This one is taking longer than usual. Try again in a minute.",
-  network: "Couldn't reach the clone service. Check your connection and try again.",
+  network: "Couldn't connect. Check your connection and try again.",
   server_error: "Something went wrong. Try again in a minute.",
 };
 
@@ -102,13 +103,17 @@ function isCloneResponse(v: unknown): v is CloneResponse {
   );
 }
 
-/** Calls clone-reel and returns its answer. Throws ReelCloneError with a message fit to show. */
-async function invokeClone(payload: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
+/** Calls one of this app's edge functions and returns its answer. Throws ReelCloneError with a message fit to show. */
+export async function invokeFunction(
+  name: "clone-reel" | "storyboard",
+  payload: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<unknown> {
   const started = Date.now();
   let data: unknown = null;
   let error: unknown = null;
   try {
-    ({ data, error } = await supabase.functions.invoke("clone-reel", {
+    ({ data, error } = await supabase.functions.invoke(name, {
       body: payload,
       signal,
       timeout: CLIENT_TIMEOUT_MS,
@@ -159,7 +164,8 @@ export async function cloneReel(
   signal?: AbortSignal,
   formulas: HookFormula[] = [],
 ): Promise<CloneResponse> {
-  const data = await invokeClone(
+  const data = await invokeFunction(
+    "clone-reel",
     formulas.length ? { url, voice, formulas: formulaInput(formulas) } : { url, voice },
     signal,
   );
@@ -222,11 +228,11 @@ export function withHook(version: MyVersion, index: number): MyVersion {
   return { ...version, hook, beats, script: beats.map((b) => b.say).join("\n") };
 }
 
-/** The shot list as plain text for a notes app: one block per beat. */
-export function shotListText(version: MyVersion, visuals?: Visuals | null): string {
-  return (version.beats ?? [])
+/** The shot list as plain text for a notes app: one block per beat, with a planned shot per beat when given. */
+export function shotListText(beats: ShotBeat[], shots: string[] = []): string {
+  return beats
     .map((b, i) => {
-      const visual = visuals?.myVisuals[i] || b.visual;
+      const visual = shots[i] || b.visual;
       return [
         `${i + 1}. (${b.seconds}s) ${b.say}`,
         b.onScreen ? `   On screen: ${b.onScreen}` : null,
@@ -523,7 +529,7 @@ export function startConceptBuild(
   if (running) return running.promise;
   const concept = clone.result.concepts?.[index];
   if (!concept) return Promise.resolve(clone);
-  const promise = invokeClone({ url: clone.result.source.url, voice, formulas: formulaInput(formulas), concept })
+  const promise = invokeFunction("clone-reel", { url: clone.result.source.url, voice, formulas: formulaInput(formulas), concept })
     .then((data) => {
       const v = (data as { myVersion?: MyVersion } | null)?.myVersion;
       if (typeof v?.script !== "string" || typeof v?.caption !== "string" || !v.beats?.length) {
