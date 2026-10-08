@@ -124,14 +124,67 @@ export function loadDrafts(userId: string | null | undefined): DraftEntry[] {
   const storage = safeStorage();
   if (!storage) return [];
   const raw = storage.getItem(`${KEY_PREFIX}${scoped(userId)}`);
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw) as DraftEntry[];
-    if (!Array.isArray(parsed)) return [];
-    return parsed;
-  } catch (_) {
-    return [];
+  let stored: DraftEntry[] = [];
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as DraftEntry[];
+      if (Array.isArray(parsed)) stored = parsed;
+    } catch (_) {
+      stored = [];
+    }
   }
+  return absorbClaudeDrafts(storage, scoped(userId), stored);
+}
+
+// Drafts Claude saved through the MCP connector (supabase/functions/content-studio-mcp)
+// arrive by sync as one row each: content-studio-mcpdraft-claude-<id>-<scope>. The
+// first read takes them into the drafts list and removes the rows, so a delete sticks
+// and a page saving an older copy of the list can't drop them.
+const CLAUDE_DRAFT = "content-studio-mcpdraft-";
+
+function absorbClaudeDrafts(storage: Storage, scope: string, stored: DraftEntry[]): DraftEntry[] {
+  const suffix = `-${scope}`;
+  const keys: string[] = [];
+  for (let i = 0; i < storage.length; i++) {
+    const k = storage.key(i);
+    if (k && k.startsWith(CLAUDE_DRAFT) && k.endsWith(suffix) && /^claude-[a-z0-9]+$/.test(k.slice(CLAUDE_DRAFT.length, -suffix.length))) keys.push(k);
+  }
+  if (!keys.length) return stored;
+  const have = new Set(stored.map((d) => d.id));
+  const incoming: DraftEntry[] = [];
+  for (const k of keys) {
+    try {
+      const d = JSON.parse(storage.getItem(k) ?? "null") as Partial<DraftEntry> | null;
+      if (!d || typeof d.id !== "string" || typeof d.draft !== "string" || have.has(d.id)) continue;
+      const when = d.status === "scheduled" && typeof d.scheduledFor === "string" && /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/.test(d.scheduledFor) ? d.scheduledFor : undefined;
+      incoming.push({
+        id: d.id,
+        createdAt: typeof d.createdAt === "string" ? d.createdAt : new Date().toISOString(),
+        hook: String(d.hook ?? "").slice(0, 160),
+        draft: d.draft.slice(0, 5000),
+        pillar: "topic",
+        pillarDetail: String(d.pillarDetail ?? d.hook ?? "").slice(0, 160),
+        audience: "general",
+        format: ["text-post", "carousel", "short-video", "story"].includes(String(d.format)) ? String(d.format) : "text-post",
+        platform: ["linkedin", "instagram", "facebook", "tiktok"].includes(String(d.platform)) ? String(d.platform) : "linkedin",
+        ctaType: "comment-keyword",
+        status: when ? "scheduled" : "draft",
+        ...(when ? { scheduledFor: when } : {}),
+      });
+      have.add(d.id);
+    } catch (_) {
+      // a malformed row is removed below with the rest
+    }
+  }
+  incoming.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const merged = [...incoming, ...stored].slice(0, MAX_DRAFTS);
+  try {
+    storage.setItem(`${KEY_PREFIX}${scope}`, JSON.stringify(merged));
+  } catch (_) {
+    return [...incoming, ...stored]; // storage full: keep the rows for the next read
+  }
+  for (const k of keys) storage.removeItem(k);
+  return merged;
 }
 
 export function saveDrafts(userId: string, drafts: DraftEntry[]): void {

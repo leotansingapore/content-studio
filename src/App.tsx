@@ -25,6 +25,7 @@ const PlanPage = lazy(() => import("@/pages/PlanPage"));
 const VoicePage = lazy(() => import("@/pages/VoicePage"));
 const BrandPage = lazy(() => import("@/pages/BrandPage"));
 const MediaPage = lazy(() => import("@/pages/MediaPage"));
+const ConnectPage = lazy(() => import("@/pages/ConnectPage"));
 const DraftsPage = lazy(() => import("@/pages/DraftsPage"));
 const BoardPage = lazy(() => import("@/pages/BoardPage"));
 const GeneratePage = lazy(() => import("@/pages/GeneratePage"));
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/brand" element={<BrandPage />} />
           <Route path="/media" element={<MediaPage />} />
+          <Route path="/connect" element={<ConnectPage />} />
           <Route path="/drafts" element={<DraftsPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/board" element={<BoardPage />} />

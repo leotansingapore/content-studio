@@ -4,7 +4,7 @@ import { MOBILE_TABS, moreSheet, pageFor, pageTitle, SECTIONS, sectionFor } from
 const routes = [
   "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/coach", "/analytics", "/team",
-  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/playbook", "/voice", "/brand", "/fads",
+  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/playbook", "/voice", "/brand", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback",
 ];
 

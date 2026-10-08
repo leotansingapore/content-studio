@@ -139,6 +139,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
       { to: "/fads", label: "F.A.D.S." },
+      { to: "/connect", label: "Connect Claude" },
     ],
   },
   {

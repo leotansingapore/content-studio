@@ -1,0 +1,44 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createLink, loadLinks, MCP_ENDPOINT, newSecret, removeLink, saveLink } from "@/lib/claudeConnect";
+import { parseToken, sha256Hex, linkKey } from "../../supabase/functions/content-studio-mcp/logic";
+
+const UID = "ff72c375-389e-4dd0-86c4-a166307b8751";
+let map: Map<string, string>;
+beforeEach(() => {
+  map = new Map();
+  vi.stubGlobal("window", {
+    localStorage: {
+      get length() {
+        return map.size;
+      },
+      key: (i: number) => [...map.keys()][i] ?? null,
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => void map.set(k, v),
+      removeItem: (k: string) => void map.delete(k),
+    },
+  });
+});
+afterEach(() => vi.unstubAllGlobals());
+
+describe("Claude connection links", () => {
+  it("makes a 43-character secret the server accepts, and stores only its hash where the server looks", async () => {
+    expect(newSecret()).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const { url } = await createLink(UID, new Date("2026-10-08T03:00:00Z"));
+    expect(url.startsWith(`${MCP_ENDPOINT}/`)).toBe(true);
+    const parsed = parseToken(url.slice(MCP_ENDPOINT.length + 1))!;
+    expect(parsed.scope).toBe(UID);
+    const key = linkKey(await sha256Hex(parsed.secret), parsed.scope);
+    expect([...map.keys()]).toEqual([key]);
+    expect(map.get(key)).not.toContain(parsed.secret);
+  });
+
+  it("lists, removes and puts back this profile's links", async () => {
+    const { link } = await createLink(UID);
+    map.set(`content-studio-mcplink-${"a".repeat(64)}-${UID}~p9`, "{}"); // another profile's
+    expect(loadLinks(UID).map((l) => l.hash)).toEqual([link.hash]);
+    removeLink(UID, link.hash);
+    expect(loadLinks(UID)).toEqual([]);
+    saveLink(UID, link);
+    expect(loadLinks(UID)).toEqual([link]);
+  });
+});
