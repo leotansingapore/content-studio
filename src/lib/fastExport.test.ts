@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { exportFast, fastBlocker, musicLevels, voiceParts, voiceRamps } from "./fastExport";
+import { exportFast, fastBlocker, fileSink, musicLevels, voiceParts, voiceRamps } from "./fastExport";
 import { musicGainAt } from "./videoEdit";
 import { dropGain } from "./videoMotion";
 
@@ -45,5 +45,18 @@ describe("fast export plan", () => {
     expect(await exportFast({ file: new Blob([]), words: [], settings }, () => {}, new AbortController().signal)).toBeNull();
     expect(info).toHaveBeenCalledWith("Export in real time: no WebCodecs");
     info.mockRestore();
+  });
+
+  it("gathers the muxer's writes in order and puts its one write back into the head of the file", async () => {
+    const sink = fileSink();
+    const write = (sink.target as unknown as { options: { onData: (d: Uint8Array, at: number) => void } }).options.onData;
+    write(new Uint8Array([1, 2, 3, 4]), 0);
+    write(new Uint8Array([5, 6]), 4);
+    write(new Uint8Array([7]), 6);
+    // the media size, filled in at the end
+    write(new Uint8Array([9, 9]), 1);
+    expect(Array.from(new Uint8Array(await sink.blob("video/mp4").arrayBuffer()))).toEqual([1, 9, 9, 4, 5, 6, 7]);
+    expect(sink.blob("video/mp4").type).toBe("video/mp4");
+    expect(() => write(new Uint8Array([0]), 5)).toThrow("out of order");
   });
 });

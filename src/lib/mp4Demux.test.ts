@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { demuxVideo, keyBefore } from "./mp4Demux";
+import { demuxAudio, demuxVideo, keyBefore } from "./mp4Demux";
 
 // 48x32, 10 frames at 10 fps, a key frame every 5, made with ffmpeg; the expected
 // times, offsets and sizes are what ffprobe reports for the same files
@@ -40,6 +40,17 @@ describe("reading an MP4's video track", () => {
     const t = (await demuxVideo(fixture("hevc.mp4")))!;
     expect(t.codec).toMatch(/^hvc1\.1\.6\.L\d+\.90$/);
     expect(t.samples.map((s) => s.off)).toEqual([44, 572, 591, 654, 673, 692, 1275, 1317, 1333, 1352]);
+  });
+
+  it("lists the AAC sound packets, the priming one before 0 as the edit list says", async () => {
+    const a = (await demuxAudio(fixture("bframes.mp4")))!;
+    expect([a.codec, a.sampleRate, a.channels]).toEqual(["mp4a.40.2", 8000, 1]);
+    // AudioSpecificConfig: AAC LC (2), 8 kHz (index 11), mono, then ffmpeg's "no SBR" signal
+    expect(Array.from(a.description)).toEqual([0x15, 0x88, 0x56, 0xe5, 0x00]);
+    expect(a.samples.map((s) => round(s.pts))).toEqual([-0.128, 0, 0.128, 0.256, 0.384, 0.512, 0.64, 0.768, 0.896]);
+    expect(a.samples.map((s) => [s.off, s.size])).toEqual([[1232, 239], [1519, 214], [1746, 121], [1898, 101], [2473, 101], [2652, 99], [2848, 103], [2993, 168], [3161, 176]]);
+    // a file with no sound
+    expect(await demuxAudio(fixture("frag.mp4"))).toBeNull();
   });
 
   it("gives null for a file that is not MP4", async () => {

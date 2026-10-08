@@ -1,9 +1,9 @@
-// Reads the video track of an MP4 or MOV (what phones record, and what the
-// browser's own recorder makes) well enough to decode it with WebCodecs: the
-// codec setup, the picture size and turn, and where each frame sits in the
-// file. Plain and fragmented files both. Anything else (WebM, a flipped
-// picture, a codec other than H.264 or HEVC) gives null, and the export
-// records in real time instead.
+// Reads the video and AAC sound tracks of an MP4 or MOV (what phones record,
+// and what the browser's own recorder makes) well enough to decode them with
+// WebCodecs: the codec setup, the picture size and turn, and where each frame
+// sits in the file. Plain and fragmented files both. Anything else (WebM, a
+// flipped picture, a codec other than H.264, HEVC or AAC) gives null, and the
+// export falls back.
 
 export interface Sample {
   /** When the frame shows, in seconds, after the edit list's start offset (as the browser plays it). */
@@ -228,8 +228,8 @@ function fragmentSamples(moof: Uint8Array, at: number, id: number, trex: Trex, d
   return { samples: out, dts };
 }
 
-/** Reads the file's first video track; null when the export can't decode it itself. */
-export async function demuxVideo(file: Blob): Promise<VideoTrack | null> {
+/** The file's first track of this kind, with every frame listed; null when there is none or the file isn't MP4. */
+async function readTrack(file: Blob, handler: "vide" | "soun") {
   const read = async (at: number, n: number) => new Uint8Array(await file.slice(at, at + n).arrayBuffer());
   let moov: Uint8Array | null = null;
   const moofs: { at: number; body: Uint8Array }[] = [];
@@ -249,15 +249,12 @@ export async function demuxVideo(file: Blob): Promise<VideoTrack | null> {
     p += size;
   }
   if (!moov) return null;
-  const trak = boxes(moov).find(([t, b]) => t === "trak" && str4(path(b, "mdia", "hdlr") ?? new Uint8Array(12), 8) === "vide")?.[1];
+  const trak = boxes(moov).find(([t, b]) => t === "trak" && str4(path(b, "mdia", "hdlr") ?? new Uint8Array(12), 8) === handler)?.[1];
   const tkhd = kid(trak, "tkhd");
   const mdhd = path(trak, "mdia", "mdhd");
   const stbl = path(trak, "mdia", "minf", "stbl");
   const stsd = kid(stbl, "stsd");
   if (!trak || !tkhd || !mdhd || !stbl || !stsd) return null;
-  const rotation = rotationOf(tkhd);
-  const codec = codecOf(stsd);
-  if (rotation === null || !codec) return null;
   const scale = mdhd[0] === 1 ? view(mdhd).getUint32(20) : view(mdhd).getUint32(12);
   if (!scale) return null;
   let raw = tableSamples(stbl);
@@ -265,7 +262,7 @@ export async function demuxVideo(file: Blob): Promise<VideoTrack | null> {
     const id = view(tkhd).getUint32(tkhd[0] === 1 ? 20 : 12);
     const trex = boxes(kid(moov, "mvex") ?? new Uint8Array()).map(([, b]) => b).find((b) => b.length >= 24 && view(b).getUint32(4) === id);
     const def = trex ? { dur: view(trex).getUint32(12), size: view(trex).getUint32(16), flags: view(trex).getUint32(20) } : { dur: 0, size: 0, flags: 0 };
-    let dts = raw.length ? raw[raw.length - 1].dts + 1 : 0;
+    let dts = 0;
     for (const m of moofs) {
       const f = fragmentSamples(m.body, m.at, id, def, dts);
       raw = raw.concat(f.samples);
@@ -276,7 +273,72 @@ export async function demuxVideo(file: Blob): Promise<VideoTrack | null> {
   const shift = shiftOf(path(trak, "edts", "elst"));
   const samples = raw.map((s) => ({ pts: (s.cts - shift) / scale, key: s.key, off: s.off, size: s.size }));
   if (samples.some((s) => s.off + s.size > file.size || !s.size)) return null;
-  return { ...codec, rotation, samples };
+  return { tkhd, stsd, samples };
+}
+
+/** Reads the file's first video track; null when the export can't decode it itself. */
+export async function demuxVideo(file: Blob): Promise<VideoTrack | null> {
+  const t = await readTrack(file, "vide");
+  const rotation = t && rotationOf(t.tkhd);
+  const codec = t && codecOf(t.stsd);
+  return t && rotation !== null && codec ? { ...codec, rotation, samples: t.samples } : null;
+}
+
+export interface AudioTrack {
+  /** WebCodecs codec string, e.g. mp4a.40.2 (AAC). */
+  codec: string;
+  /** The AudioSpecificConfig: the decoder's setup. */
+  description: Uint8Array;
+  sampleRate: number;
+  channels: number;
+  /** Every packet, in order. */
+  samples: Sample[];
+}
+
+/** The AudioSpecificConfig from an esds box, and the AAC object type it names. */
+export function aacConfig(esds: Uint8Array): { asc: Uint8Array; aot: number } | null {
+  let p = 4;
+  const size = () => {
+    let n = 0;
+    for (let i = 0; i < 4 && p < esds.length; i++) {
+      const b = esds[p++];
+      n = (n << 7) | (b & 0x7f);
+      if (!(b & 0x80)) break;
+    }
+    return n;
+  };
+  if (esds[p++] !== 3) return null;
+  size();
+  p += 2;
+  const flags = esds[p++];
+  if (flags & 0x80) p += 2;
+  if (flags & 0x40) p += esds[p] + 1;
+  if (flags & 0x20) p += 2;
+  if (esds[p++] !== 4) return null;
+  size();
+  if (esds[p] !== 0x40) return null; // MPEG-4 audio
+  p += 13;
+  if (esds[p++] !== 5) return null;
+  const n = size();
+  const asc = esds.subarray(p, p + n);
+  if (asc.length < 2) return null;
+  const aot = asc[0] >> 3;
+  return { asc, aot: aot === 31 ? 32 + (((asc[0] & 7) << 3) | (asc[1] >> 5)) : aot };
+}
+
+/** Reads the file's AAC sound track (MP4, MOV, M4A); null when it has none the export can decode itself. */
+export async function demuxAudio(file: Blob): Promise<AudioTrack | null> {
+  const t = await readTrack(file, "soun");
+  const entry = t && boxes(t.stsd.subarray(8))[0];
+  if (!entry || entry[0] !== "mp4a" || entry[1].length < 28) return null;
+  const e = entry[1];
+  // QuickTime sound descriptions 1 and 2 carry more fields before their boxes
+  const ver = view(e).getUint16(8);
+  const kids = e.subarray(28 + (ver === 1 ? 16 : ver === 2 ? 36 : 0));
+  const esds = kid(kids, "esds") ?? path(kids, "wave", "esds");
+  const aac = esds && aacConfig(esds);
+  if (!aac) return null;
+  return { codec: `mp4a.40.${aac.aot}`, description: aac.asc, sampleRate: view(e).getUint32(24) >>> 16, channels: view(e).getUint16(16), samples: t.samples };
 }
 
 /** The decode-order index to start decoding from to show time t: the last key frame showing at or before it. */

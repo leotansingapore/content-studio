@@ -5,8 +5,8 @@
 // export starts. exportFast gives null whenever this browser or this file
 // can't take that route, and the export then records in real time as before.
 
-import { ArrayBufferTarget, Muxer } from "mp4-muxer";
-import { demuxVideo, keyBefore, type VideoTrack } from "@/lib/mp4Demux";
+import { Muxer, StreamTarget } from "mp4-muxer";
+import { demuxAudio, demuxVideo, keyBefore, type VideoTrack } from "@/lib/mp4Demux";
 import { END_CARD_SECONDS, aspectSize, brollAt, duckSpans, exportSize, levelFits, musicGainAt, srcAt, speedOf, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
 import { audioPeaks, decodeSound, drawEndCard, drawFrame, loadVideo, measureLevel, planFor, wireVoice, type BrandArt, type Frame } from "@/lib/videoMedia";
 import { dropGain, motionOf, playCue } from "@/lib/videoMotion";
@@ -207,24 +207,94 @@ interface FastArgs {
   fx?: Frame["fx"];
 }
 
+type Part = ReturnType<typeof voiceParts>[number];
+/** Some of the filmed sound, and where it starts in the source. */
+type Piece = { buf: AudioBuffer; start: number };
+/** The longest source whose whole sound is decoded at once (about 350 MB at 48 kHz stereo) when it can't be read in parts. */
+const WHOLE_SECONDS = 15 * 60;
+
+/** The sound under each kept part, decoded from the file's AAC packets for that part only. Null when it can't be read that way. */
+async function decodeParts(file: Blob, parts: Part[]): Promise<Piece[] | null> {
+  if (typeof AudioDecoder === "undefined" || typeof EncodedAudioChunk === "undefined") return null;
+  const track = await demuxAudio(file);
+  if (!track) return null;
+  const config: AudioDecoderConfig = { codec: track.codec, description: track.description, sampleRate: track.sampleRate, numberOfChannels: track.channels };
+  if (!(await AudioDecoder.isConfigSupported(config).catch(() => null))?.supported) return null;
+  const s = track.samples;
+  const out: Piece[] = [];
+  for (const p of parts) {
+    // from two packets before the part: an AAC packet only comes out clean after the one before it
+    let i = 0;
+    while (i + 1 < s.length && s[i + 1].pts <= p.from) i++;
+    i = Math.max(0, i - 2);
+    let j = i;
+    while (j < s.length && s[j].pts < p.from + p.dur + 0.05) j++;
+    const got: AudioData[] = [];
+    const dec = new AudioDecoder({ output: (d) => got.push(d), error: () => {} });
+    try {
+      dec.configure(config);
+      // packets side by side in the file are read in one go
+      for (let k = i; k < j; ) {
+        let m = k + 1;
+        while (m < j && s[m].off === s[m - 1].off + s[m - 1].size) m++;
+        const bytes = new Uint8Array(await file.slice(s[k].off, s[m - 1].off + s[m - 1].size).arrayBuffer());
+        for (let q = k; q < m; q++) {
+          const at = s[q].off - s[k].off;
+          dec.decode(new EncodedAudioChunk({ type: "key", timestamp: Math.round(s[q].pts * 1e6), data: bytes.subarray(at, at + s[q].size) }));
+        }
+        k = m;
+      }
+      await dec.flush();
+      if (!got.length) return null;
+      const rate = got[0].sampleRate;
+      const t0 = got[0].timestamp / 1e6;
+      const last = got[got.length - 1];
+      const buf = new AudioBuffer({ length: Math.round((last.timestamp / 1e6 - t0) * rate) + last.numberOfFrames, sampleRate: rate, numberOfChannels: got[0].numberOfChannels });
+      for (const d of got) {
+        for (let c = 0; c < buf.numberOfChannels; c++) {
+          const pcm = new Float32Array(d.numberOfFrames);
+          d.copyTo(pcm, { planeIndex: c, format: "f32-planar" });
+          buf.copyToChannel(pcm, c, Math.round((d.timestamp / 1e6 - t0) * rate));
+        }
+      }
+      out.push({ buf, start: t0 });
+    } finally {
+      for (const d of got) d.close();
+      if (dec.state !== "closed") dec.close();
+    }
+  }
+  return out;
+}
+
+/**
+ * The filmed sound for each part: read part by part (a clip of a long podcast never decodes the
+ * whole episode), else the whole sound of a file up to WHOLE_SECONDS. Null when it has no sound;
+ * "long" when a longer file's sound can't be read in parts.
+ */
+async function voicePieces(file: Blob, parts: Part[], duration: number): Promise<Piece[] | null | "long"> {
+  const inParts = await decodeParts(file, parts).catch(() => null);
+  if (inParts) return inParts;
+  if (duration > WHOLE_SECONDS) return "long";
+  const whole = await decodeSound(file);
+  return whole && parts.map(() => ({ buf: whole, start: 0 }));
+}
+
 /** The export's sound, rendered offline through the same nodes the real-time export plays it through. */
-async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds: number, sfx: boolean): Promise<AudioBuffer> {
+async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds: number, sfx: boolean, parts: Part[], pieces: Piece[] | null): Promise<AudioBuffer> {
   const s = a.settings;
   const ctx = new OfflineAudioContext(2, Math.max(1, Math.ceil(seconds * RATE)), RATE);
   const polish = !!s.voicePolish;
   const level = s.loudness ? (levelFits(s.level, polish) ? s.level : await measureLevel(a.file, polish)) : null;
-  const sound = await decodeSound(a.file);
-  if (sound) {
+  if (pieces) {
     const bus = new GainNode(ctx);
     const env = new GainNode(ctx, { gain: 0 });
     wireVoice(ctx, bus, env, polish, level);
     env.connect(ctx.destination);
-    const parts = voiceParts(plan.segs);
-    for (const p of parts) {
-      const src = new AudioBufferSourceNode(ctx, { buffer: sound });
+    parts.forEach((p, i) => {
+      const src = new AudioBufferSourceNode(ctx, { buffer: pieces[i].buf });
       src.connect(bus);
-      src.start(p.at, p.from, p.dur);
-    }
+      src.start(p.at, Math.max(0, p.from - pieces[i].start), p.dur);
+    });
     for (const [kind, v, t] of voiceRamps(parts, Math.min(1, Math.max(0, s.volume ?? 1)))) {
       if (kind === "set") env.gain.setValueAtTime(v, t);
       else env.gain.linearRampToValueAtTime(v, t);
@@ -253,6 +323,40 @@ async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds:
 }
 
 // ---------- encoding ----------
+
+/**
+ * Where the muxer writes the file: gathered into blobs as it goes (the browser can keep a big
+ * one on disk), so a long export holds about its own size in memory, not three times it. The one
+ * write back, the size at the head of the media, lands in the first piece.
+ */
+export function fileSink() {
+  // the muxer hands over plain ArrayBuffer-backed arrays
+  let first: Uint8Array<ArrayBuffer> | null = null;
+  const blobs: Blob[] = [];
+  let pending: Uint8Array<ArrayBuffer>[] = [];
+  let held = 0;
+  let end = 0;
+  const target = new StreamTarget({
+    onData: (bytes, at) => {
+      const data = bytes as Uint8Array<ArrayBuffer>;
+      if (at === end) {
+        if (!first) first = data;
+        else {
+          pending.push(data);
+          held += data.length;
+        }
+        end += data.length;
+        if (held > 32 << 20) {
+          blobs.push(new Blob(pending));
+          pending = [];
+          held = 0;
+        }
+      } else if (first && at + data.length <= first.length) first.set(data, at);
+      else throw new Error(`The export file was written out of order at ${at}.`);
+    },
+  });
+  return { target, blob: (type: string) => new Blob([first ?? new Uint8Array(), ...blobs, ...pending], { type }) };
+}
 
 /** An H.264 encoder setup this browser takes at this size: high, main, then baseline profile. */
 async function pickEncoder(w: number, h: number, bitrate: number): Promise<VideoEncoderConfig | null> {
@@ -328,15 +432,18 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
     }
     if (signal.aborted) return "stopped";
 
-    const mix = await renderMix(a, plan, seconds, kind !== "audio");
+    const parts = voiceParts(plan.segs);
+    const pieces = await voicePieces(a.file, parts, video.duration);
+    if (pieces === "long") return no("the sound of a long video can't be read in parts here");
+    const mix = await renderMix(a, plan, seconds, kind !== "audio", parts, pieces);
     if (signal.aborted) return "stopped";
     onProgress(0.05);
 
     let failed: unknown = null;
-    const target = new ArrayBufferTarget();
+    const sink = fileSink();
     const muxer = new Muxer({
-      target,
-      fastStart: "in-memory",
+      target: sink.target,
+      fastStart: false,
       firstTimestampBehavior: "offset",
       ...(videoCfg ? { video: { codec: "avc" as const, width: W, height: H, frameRate: FPS } } : {}),
       audio: { codec: "aac", numberOfChannels: 2, sampleRate: RATE },
@@ -401,7 +508,7 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
     if (failed) throw failed;
     muxer.finalize();
     const audio = kind === "audio";
-    return { blob: new Blob([target.buffer], { type: audio ? "audio/mp4" : "video/mp4" }), ext: audio ? "m4a" : "mp4", seconds, cap: size.capBytes, label: size.label };
+    return { blob: sink.blob(audio ? "audio/mp4" : "video/mp4"), ext: audio ? "m4a" : "mp4", seconds, cap: size.capBytes, label: size.label };
   } catch (e) {
     if (signal.aborted) return "stopped";
     console.warn("Fast export failed, recording in real time instead", e);
