@@ -21,8 +21,10 @@
 //        and the cover moment, picked by Jev (null when Jev has no answer or the
 //        video is not in English) ("video-publish" cap).
 //   POST {mode:"motion", sentences:[{s,e,text}] on the edited timeline, duration, hookSeconds}
-//        -> {lines:[{i,p}] | null}: Jev's yes probability that each line is a key line
-//        (null when Jev has no answer or the video is not in English) ("motion-picks" cap).
+//        -> {lines:[{i,p}] | null, popups:[{i,text,key,emoji}] | null}: Jev's yes probability
+//        that each line is a key line (null when Jev has no answer or the video is not in
+//        English), and pop-up text the LLM writes for the top few, with the emoji Jev picks
+//        ("motion-picks" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -33,7 +35,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
-import { eligibleLines, keyQuestions, keyState, parseMotionRequest, readKeyLines } from "./motion.ts";
+import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import {
   CLIP_VIEWER,
   MAX_AUDIO_BYTES,
@@ -225,7 +227,22 @@ Deno.serve(async (req) => {
       const state = keyState(m.lines);
       const parts = await Promise.all(keyQuestions(m.lines, idx).map((q) => askJev(state, q, { who: "video-assist motion", timeoutMs: 10_000 })));
       const answers = parts.some(Boolean) ? Object.assign({}, ...parts.filter(Boolean)) : null;
-      return json({ lines: readKeyLines(answers, idx) });
+      const lines = readKeyLines(answers, idx);
+      // pop-ups for the strongest few: the LLM writes the words, Jev picks the emoji; without them the picks still stand
+      const pick = lines ? popupLines(m.lines, lines, m.duration) : [];
+      let popups = null;
+      if (pick.length) {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.4, max_tokens: 500, response_format: { type: "json_object" }, messages: buildPopupMessages(m.lines, pick) }),
+          signal: AbortSignal.timeout(45_000),
+        }).catch(() => null);
+        if (!res?.ok) console.error("video-assist motion popups", res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
+        const written = res?.ok ? parsePopupReply((await res.json())?.choices?.[0]?.message?.content ?? null, pick) : [];
+        if (written.length) popups = withEmoji(await askJev({ video: "Pop-up text on a short video by a Singapore financial adviser." }, emojiQuestions(m.lines, written), { who: "video-assist motion emoji" }), written);
+      }
+      return json({ lines, popups });
     }
 
     if (body?.mode === "publish") {

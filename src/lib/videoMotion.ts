@@ -10,11 +10,19 @@ import { readableOn } from "@/lib/carouselLayout";
 import { callFn } from "@/lib/edgeFn";
 import { STYLES, frameRect, outAt, srcAt, type Caption, type EditSettings, type Segment, type Sentence, type Word } from "@/lib/videoEdit";
 
-/** A key line Jev picked: where it is said on the source timeline and Jev's yes probability. */
+/** A key line Jev picked: where it is said on the source timeline, Jev's yes probability and, on the top few, its pop-up. */
 export interface KeyLine {
   s: number;
   e: number;
   p: number;
+  pop?: Popup;
+}
+
+/** One line of pop-up text (the LLM's words), the word or two to highlight, and the emoji Jev picked ("" for none). */
+export interface Popup {
+  text: string;
+  key: string;
+  emoji: string;
 }
 
 /** A key line placed on the edited timeline. */
@@ -92,7 +100,10 @@ export function sanitizeMotion(raw: unknown): { lines: KeyLine[] } | undefined {
   const lines = r.lines.slice(0, 200).flatMap((x): KeyLine[] => {
     const o = x && typeof x === "object" ? (x as Record<string, unknown>) : {};
     const s = n(o.s), e = n(o.e), p = n(o.p);
-    return s >= 0 && e > s && p >= 0 && p <= 1 ? [{ s, e, p }] : [];
+    const q = o.pop && typeof o.pop === "object" ? (o.pop as Record<string, unknown>) : null;
+    const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
+    const pop = q && str(q.text, 40) ? { text: str(q.text, 40), key: str(q.key, 40), emoji: str(q.emoji, 16) } : undefined;
+    return s >= 0 && e > s && p >= 0 && p <= 1 ? [{ s, e, p, ...(pop ? { pop } : {}) }] : [];
   });
   return { lines };
 }
@@ -292,9 +303,10 @@ export function cutTimes(segs: Segment[], speed = 1): number[] {
   return segs.slice(0, -1).map((g) => (acc += g.end - g.start) / speed);
 }
 
-/** A whoosh as a card comes in, a zoom starts or (with a transition set) at a cut; a pop as a sticker shows. One at a time: a cue within 0.3 s of the last is dropped. */
-export function sfxCues(m: Pick<MotionPlan, "zooms" | "cards">, s: Pick<EditSettings, "transition" | "overlays">, segs: Segment[], speed = 1): Cue[] {
+/** A whoosh as a card comes in, a zoom starts or (with a transition set) at a cut; a pop as a sticker or a pop-up shows. One at a time: a cue within 0.3 s of the last is dropped. */
+export function sfxCues(m: Pick<MotionPlan, "zooms" | "cards"> & { pops?: Pop[] }, s: Pick<EditSettings, "transition" | "overlays">, segs: Segment[], speed = 1): Cue[] {
   const all: Cue[] = [
+    ...(m.pops ?? []).map((p) => ({ at: p.at, kind: "pop" as const })),
     ...m.zooms.map((z) => ({ at: z.at, kind: "whoosh" as const })),
     ...m.cards.map((c) => ({ at: c.from, kind: "whoosh" as const })),
     ...(s.transition ? cutTimes(segs, speed).map((at) => ({ at, kind: "whoosh" as const })) : []),
@@ -316,6 +328,38 @@ export function cueTicker() {
   };
 }
 
+// ---------- pop-up text ----------
+
+/** A pop-up on the edited timeline. */
+export interface Pop {
+  at: number;
+  until: number;
+  pop: Popup;
+}
+
+/** 2.5-3.5 s on screen (3 here), up to 2 a minute (1 to 3 in practice), at least 6 s apart. */
+export const POP = { seconds: 3, min: 2.5, perMinute: 2, gap: 6, arrive: 0.2, leave: 0.25 };
+
+/**
+ * The pop-ups on this edit: the strongest key lines that have one, past the
+ * hook card, one text layer at a time (never while a number card or a sticker
+ * shows, `busy`).
+ */
+export function popupBeats(lines: KeyLine[], segs: Segment[], speed: number, total: number, hookEnd: number, busy: [number, number][]): Pop[] {
+  const budget = Math.ceil((total / 60) * POP.perMinute);
+  const out: Pop[] = [];
+  for (const l of [...lines].filter((x) => x.pop && x.p >= KEY_MIN).sort((a, b) => b.p - a.p)) {
+    if (out.length >= budget) break;
+    const at = outOfSpan(segs, l.s, l.e, speed);
+    if (at === null || at < hookEnd) continue;
+    const until = Math.min(total, at + POP.seconds);
+    if (until - at < POP.min) continue;
+    if (out.some((x) => Math.abs(x.at - at) < POP.gap) || busy.some(([a, b]) => at < b && until > a)) continue;
+    out.push({ at: Math.round(at * 100) / 100, until, pop: l.pop! });
+  }
+  return out.sort((a, b) => a.at - b.at);
+}
+
 // ---------- the music drop ----------
 
 /** The music drops out over 0.15 s as the strongest key line starts, stays out 2 s and comes back over 0.5 s. */
@@ -335,13 +379,15 @@ export interface MotionPlan {
   zooms: Beat[];
   /** Number cards, when they are on. */
   cards: Card[];
+  /** Pop-up text, when it is on. */
+  pops: Pop[];
   /** Sound effects, when they are on. */
   cues: Cue[];
   /** Where the music drops out (the strongest key line), when there is music and it is not switched off. */
   drop: number | null;
 }
 
-const EMPTY: MotionPlan = { zooms: [], cards: [], cues: [], drop: null };
+const EMPTY: MotionPlan = { zooms: [], cards: [], pops: [], cues: [], drop: null };
 let memo: { s: EditSettings; segs: Segment[]; caps: Caption[]; total: number; plan: MotionPlan } | null = null;
 
 /** Everything that moves on this edit, worked out once per edit (drawFrame asks every frame). */
@@ -355,32 +401,40 @@ export function motionOf(s: EditSettings, segs: Segment[], caps: Caption[], tota
   const cards = s.numberCards ? numberCards(caps.flatMap((c) => c.words), segs, speed, total, hookEnd) : [];
   // the strongest line placed on this edit (keyBeats always keeps it)
   const top = beats.reduce<Beat | null>((a, b) => (!a || b.p > a.p ? b : a), null);
+  const busy = [...cards.map((c): [number, number] => [c.from, c.to]), ...(s.overlays ?? []).map((o): [number, number] => [o.from, o.to])];
+  const pops = s.popups ? popupBeats(lines, segs, speed, total, hookEnd, busy) : [];
   const plan = !segs.length ? EMPTY : {
     zooms,
     cards,
-    cues: s.sfx ? sfxCues({ zooms, cards }, s, segs, speed) : [],
+    pops,
+    cues: s.sfx ? sfxCues({ zooms, cards, pops }, s, segs, speed) : [],
     drop: s.music && s.musicDrop !== false && top ? top.at : null,
   };
   memo = { s, segs, caps, total, plan };
   return plan;
 }
 
-/** Jev's picks for these lines (on the edited timeline), as key lines on the source timeline; null when Jev gave none. */
-export function keyLinesFrom(reply: { i: number; p: number }[] | null | undefined, sent: Sentence[], segs: Segment[], speed: number): KeyLine[] | null {
-  if (!Array.isArray(reply) || !reply.length) return null;
-  return reply.flatMap((r) => {
+export interface MotionReply {
+  lines: { i: number; p: number }[] | null;
+  popups?: ({ i: number } & Popup)[] | null;
+}
+
+/** Jev's picks for these lines (on the edited timeline), with their pop-ups, as key lines on the source timeline; null when Jev gave none. */
+export function keyLinesFrom(reply: MotionReply | null | undefined, sent: Sentence[], segs: Segment[], speed: number): KeyLine[] | null {
+  if (!Array.isArray(reply?.lines) || !reply.lines.length) return null;
+  return reply.lines.flatMap((r) => {
     const x = sent[r.i];
     if (!x || typeof r.p !== "number") return [];
     const s = srcAt(segs, x.s, speed);
     const e = Math.max(s + 0.1, srcAt(segs, Math.max(x.s, x.e - 0.01), speed));
-    return [{ s: Math.round(s * 100) / 100, e: Math.round(e * 100) / 100, p: r.p }];
+    const pop = reply.popups?.find((q) => q.i === r.i);
+    return [{ s: Math.round(s * 100) / 100, e: Math.round(e * 100) / 100, p: r.p, ...(pop ? { pop: { text: pop.text, key: pop.key, emoji: pop.emoji } } : {}) }];
   });
 }
 
-/** Asks Jev which lines are key (one "motion-picks" use). */
-export async function pickKeyLines(sent: Sentence[], duration: number, hookSeconds: number): Promise<{ i: number; p: number }[] | null> {
-  const r = await callFn<{ lines: { i: number; p: number }[] | null }>("video-assist", { mode: "motion", sentences: sent, duration, hookSeconds }, "Couldn't pick the key lines right now. Try again in a minute.");
-  return r.lines;
+/** Asks Jev which lines are key, with pop-up text for the top few (one "motion-picks" use). */
+export async function pickKeyLines(sent: Sentence[], duration: number, hookSeconds: number): Promise<MotionReply> {
+  return callFn<MotionReply>("video-assist", { mode: "motion", sentences: sent, duration, hookSeconds }, "Couldn't pick the key lines right now. Try again in a minute.");
 }
 
 // ---------- drawing (browser only) ----------
@@ -399,7 +453,11 @@ export function drawMotion(
   capBand: [number, number] | null,
 ) {
   const c = m.cards.find((x) => f.out >= x.from && f.out < x.to);
-  if (!c) return;
+  if (!c) {
+    const p = m.pops.find((x) => f.out >= x.at && f.out < x.until);
+    if (p) drawPopup(g, m, p, f, capBand);
+    return;
+  }
   const W = g.canvas.width;
   const H = g.canvas.height;
   const u = Math.min(W, H) / 1080;
@@ -510,4 +568,87 @@ export function previewSfx() {
       ctx = null;
     },
   };
+}
+
+/**
+ * A pop-up: the emoji above one line of text (white, a dark edge, the key words
+ * in the highlight colour, no box), clear of the face and the captions. It pops
+ * in over 0.2 s, the emoji settling a beat later, and fades over its last 0.25 s.
+ */
+function drawPopup(
+  g: CanvasRenderingContext2D,
+  m: MotionPlan,
+  p: Pop,
+  f: { settings: EditSettings; out: number; video: { videoWidth: number; videoHeight: number } },
+  capBand: [number, number] | null,
+) {
+  const W = g.canvas.width;
+  const H = g.canvas.height;
+  const u = Math.min(W, H) / 1080;
+  const s = f.settings;
+  const px = Math.round(66 * u);
+  const epx = Math.round(110 * u);
+  const font = `900 ${px}px "Archivo Black", "Arial Black", Impact, system-ui, sans-serif`;
+  g.save();
+  g.font = font;
+  // up to two lines across 86% of the frame
+  const words = p.pop.text.split(/\s+/);
+  const lines: string[][] = [[]];
+  for (const w of words) {
+    const line = lines[lines.length - 1];
+    if (line.length && g.measureText([...line, w].join(" ")).width > W * 0.86) lines.push([w]);
+    else line.push(w);
+  }
+  const shown = lines.slice(0, 2);
+  const lh = px * 1.2;
+  const bh = (p.pop.emoji ? epx * 1.25 : 0) + shown.length * lh + 24 * u;
+  const face = faceBand(s.faceBox, s, W, H, f.video.videoWidth, f.video.videoHeight);
+  const fit = fitBlock(bh / H, [zoomBand(face, m.zooms.length ? KEY_ZOOM.peak : 1, 0.42), capBand], [0.12]);
+  const t = f.out - p.at;
+  const inA = ease(t / POP.arrive);
+  g.globalAlpha = Math.min(inA, Math.min(1, Math.max(0, (p.until - f.out) / POP.leave)));
+  const cy = fit.top * H + (bh * fit.scale) / 2;
+  g.translate(W / 2, cy);
+  const sc = (0.85 + 0.15 * inA) * fit.scale;
+  g.scale(sc, sc);
+  let y = -bh / 2;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  if (p.pop.emoji) {
+    // the emoji lands a beat after the text, overshooting a little
+    const e = 1 + 0.18 * Math.max(0, 1 - t / 0.35) * Math.sin(Math.min(1, t / 0.35) * Math.PI);
+    g.save();
+    g.translate(0, y + epx * 0.6);
+    g.scale(e, e);
+    g.font = `${epx}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+    g.fillText(p.pop.emoji, 0, 0);
+    g.restore();
+    y += epx * 1.25;
+  }
+  g.font = font;
+  g.lineJoin = "round";
+  g.shadowColor = "rgba(0,0,0,0.45)";
+  g.shadowBlur = 18 * u;
+  // the key words, by position in the text, so the same word elsewhere stays white
+  const key = p.pop.key.toLowerCase();
+  const from = key ? p.pop.text.toLowerCase().indexOf(key) : -1;
+  let pos = 0;
+  for (const line of shown) {
+    const lw = g.measureText(line.join(" ")).width;
+    let x = -lw / 2;
+    g.textAlign = "left";
+    for (const w of line) {
+      const start = p.pop.text.indexOf(w, pos);
+      pos = start + w.length;
+      const hot = from >= 0 && start < from + key.length && pos > from;
+      g.lineWidth = px * 0.16;
+      g.strokeStyle = "rgba(0,0,0,0.85)";
+      g.strokeText(w, x, y + lh / 2);
+      g.fillStyle = hot ? s.activeColor : "#FFFFFF";
+      g.fillText(w, x, y + lh / 2);
+      x += g.measureText(w + " ").width;
+    }
+    y += lh;
+  }
+  g.restore();
 }

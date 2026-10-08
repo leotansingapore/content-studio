@@ -1,6 +1,7 @@
-// Motion in the video editor's frame tab: zooms on the key lines Jev picks
-// (asked for once, one "motion-picks" use, and kept on the edit) and number
-// cards (found in the words on this device, free).
+// Motion and sound in the video editor's frame tab: zooms, pop-ups and the
+// music drop on the key lines Jev picks (asked for once, one "motion-picks"
+// use, and kept on the edit), number cards (found in the words on this device,
+// free) and sound effects (made on the device).
 
 import { useEffect, useState } from "react";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -28,7 +29,10 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
   const { toast } = useToast();
   const [picking, setPicking] = useState(false);
   const left = useUsesLeft(picking)("motion-picks");
-  const picked = !!sanitizeMotion(settings.motion)?.lines.length;
+  const kept = sanitizeMotion(settings.motion)?.lines ?? [];
+  const picked = kept.length > 0;
+  // picks made before pop-ups existed have no pop-up text: switching pop-ups on picks again
+  const written = kept.some((l) => l.pop);
   const plan = motionOf(settings, segs, caps, total);
   const zooms = plan.zooms.length;
   const hookEnd = settings.hook?.trim() ? settings.hookSeconds : 0;
@@ -48,7 +52,7 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
     return () => { live = false; };
   }, [needFace, file]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // the first time: Jev reads the edit and picks its key lines, then the zooms go on
+  // the first time: Jev reads the edit and picks its key lines (and writes the pop-ups), then the switch goes on
   const pick = async (then: Partial<EditSettings>) => {
     setPicking(true);
     try {
@@ -64,18 +68,25 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
   };
   const setZooms = (on: boolean) => (on && !picked ? void pick({ keyZooms: true }) : apply({ keyZooms: on }));
   const setDrop = (on: boolean) => (on && !picked ? void pick({ musicDrop: true }) : apply({ musicDrop: on }));
+  const setPopups = (on: boolean) => (on && !written ? void pick({ popups: true }) : apply({ popups: on }));
 
   return (
-    <div className="space-y-2 border-t border-border/60 pt-3">
-      <p className="flex items-center text-sm font-medium">Motion
-        <InfoTip label="About motion">The key lines are picked from what you say, once per video.</InfoTip></p>
-      <Row label={settings.keyZooms && picked ? `Zoom on key lines (${zooms})` : "Zoom on key lines"}>
+    // pb-12: the last switch can scroll clear of the floating Ask button
+    <div className="space-y-2 border-t border-border/60 pt-3 pb-12">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="flex items-center text-sm font-medium">Motion
+          <InfoTip label="About motion">The key lines are picked from what you say, once per video.</InfoTip></p>
         {picking ? (
           <span className="text-xs text-muted-foreground" aria-live="polite">Picking key lines...</span>
-        ) : !picked && left !== null ? (
+        ) : !written && left !== null ? (
           <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>
         ) : null}
+      </div>
+      <Row label={settings.keyZooms && picked ? `Zoom on key lines (${zooms})` : "Zoom on key lines"}>
         <Toggle label="Zoom on key lines" on={!!settings.keyZooms && picked} disabled={picking || !words.length || (!picked && left === 0)} set={setZooms} />
+      </Row>
+      <Row label={settings.popups && plan.pops.length ? `Pop-up text (${plan.pops.length})` : "Pop-up text"}>
+        <Toggle label="Pop-up text" on={!!settings.popups && written} disabled={picking || !words.length || (!written && left === 0)} set={setPopups} />
       </Row>
       <Row label={figures ? `Number cards (${figures} found)` : "Number cards"}>
         <Toggle label="Number cards" on={!!settings.numberCards} set={(on) => apply({ numberCards: on })} />
@@ -94,7 +105,7 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+    <div className="flex min-h-11 flex-wrap items-center justify-between gap-2 text-sm sm:min-h-0">
       <span className="font-medium">{label}</span>
       <span className="flex items-center gap-1.5">{children}</span>
     </div>

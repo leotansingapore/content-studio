@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { KEY_CHUNK, eligibleLines, keyQuestions, keyState, parseMotionRequest, readKeyLines, type MotionLine } from "./motion";
+import { EMOJI, KEY_CHUNK, buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji, type MotionLine } from "./motion";
 
 const L = (s: number, e: number, text: string): MotionLine => ({ s, e, text });
 const lines = [
@@ -47,5 +47,41 @@ describe("reading Jev's answers", () => {
   it("is null when Jev gave nothing usable, so the editor keeps its old punch-in", () => {
     expect(readKeyLines(null, [2, 4])).toBeNull();
     expect(readKeyLines({ key_2: { type: "noul" } }, [2, 4])).toBeNull();
+  });
+});
+
+describe("pop-ups", () => {
+  const many = Array.from({ length: 20 }, (_, i) => L(i * 3, i * 3 + 2.5, `Line ${i} says something.`));
+  it("are written for the strongest lines, 6 s apart, up to 3 a minute", () => {
+    const picks = [{ i: 2, p: 0.9 }, { i: 3, p: 0.95 }, { i: 10, p: 0.8 }, { i: 15, p: 0.7 }, { i: 18, p: 0.4 }];
+    expect(popupLines(many, picks, 60)).toEqual([3, 10, 15]);
+    expect(popupLines(many, picks, 20)).toEqual([3]);
+    expect(popupLines(many, picks, 120)).toEqual([3, 10, 15]); // a weak line never gets one
+  });
+  it("asks the LLM only for the words, line by line with the one before", () => {
+    const msgs = buildPopupMessages(many, [3]);
+    expect(msgs[1].content).toBe("L3: Line 3 says something.\n(said just before: Line 2 says something.)");
+  });
+  it("keeps pop-ups for the asked lines, cut at a word to 28 characters, key only when it is in the text", () => {
+    const reply = JSON.stringify({ popups: [
+      { id: "L3", text: "Top up before 55, it compounds for decades", key: "before 55" },
+      { id: "L10", text: "“Check it” — every year.", key: "monthly" },
+      { id: "L4", text: "Not asked for", key: "" },
+      { id: "L3", text: "Twice", key: "" },
+    ] });
+    expect(parsePopupReply(reply, [3, 10])).toEqual([
+      { i: 3, text: "Top up before 55, it", key: "before 55" },
+      { i: 10, text: "Check it, every year", key: "" },
+    ]);
+    expect(parsePopupReply("not json", [3])).toEqual([]);
+  });
+  it("gets the emoji Jev picks by the feeling of the line, or none without an answer", () => {
+    const written = [{ i: 3, text: "Top up early", key: "early" }];
+    const q = emojiQuestions(many, written).emoji_3;
+    expect(q.type).toBe("choice");
+    expect(Object.keys((q as { criteria: Record<string, unknown> }).criteria)).toContain("money");
+    expect(withEmoji({ emoji_3: { type: "choice", choice: "time" } }, written)[0].emoji).toBe(EMOJI.time.emoji);
+    expect(withEmoji({ emoji_3: { type: "choice", choice: "rocket" } }, written)[0].emoji).toBe("");
+    expect(withEmoji(null, written)[0].emoji).toBe("");
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultSettings, keepSegments, sentencesOf, type EditSettings, type Word } from "./videoEdit";
-import { KEY_ZOOM, ZOOM_GAP, cardText, cueTicker, cutTimes, dropGain, faceBand, findFigures, fitBlock, hookTop, sfxCues, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
+import { KEY_ZOOM, ZOOM_GAP, cardText, cueTicker, cutTimes, dropGain, faceBand, findFigures, fitBlock, hookTop, popupBeats, sfxCues, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
 
 const K = (s: number, e: number, p: number): KeyLine => ({ s, e, p });
 const one = [{ start: 0, end: 60 }];
@@ -50,11 +50,13 @@ describe("keeping Jev's picks", () => {
   it("turns picks on the edited timeline back into source times", () => {
     const segs = keepSegments(words, 6, { trimStart: 0, trimEnd: 0, removeFillers: true, maxPause: 0.6 });
     const sent = sentencesOf(words).map((x) => ({ ...x, s: outOfSpan(segs, x.s, x.e)!, e: outOfSpan(segs, x.s, x.e)! + (x.e - x.s) }));
-    const lines = keyLinesFrom([{ i: 1, p: 0.8 }, { i: 7, p: 0.9 }], sent, segs, 1)!;
+    const lines = keyLinesFrom({ lines: [{ i: 1, p: 0.8 }, { i: 7, p: 0.9 }], popups: [{ i: 1, text: "Start now", key: "now", emoji: "x" }] }, sent, segs, 1)!;
     expect(lines).toHaveLength(1);
     expect(lines[0].s).toBeCloseTo(4.0, 1);
     expect(lines[0].p).toBe(0.8);
+    expect(lines[0].pop).toEqual({ text: "Start now", key: "now", emoji: "x" });
     expect(keyLinesFrom(null, sent, segs, 1)).toBeNull();
+    expect(keyLinesFrom({ lines: null }, sent, segs, 1)).toBeNull();
   });
   it("drops malformed stored picks", () => {
     expect(sanitizeMotion({ lines: [{ s: 1, e: 2, p: 0.5 }, { s: 3, e: 2, p: 0.5 }, { s: 1, e: 2, p: 3 }, "x"] })).toEqual({ lines: [{ s: 1, e: 2, p: 0.5 }] });
@@ -236,5 +238,32 @@ describe("the music drop", () => {
     expect(motionOf({ ...s, music, musicDrop: false }, segs, [], 60).drop).toBeNull();
     // zooms off does not stop it: the drop is its own switch
     expect(motionOf({ ...s, music, keyZooms: false }, segs, [], 60).zooms).toEqual([]);
+  });
+});
+
+describe("pop-up text", () => {
+  const pop = (text: string) => ({ text, key: "", emoji: "" });
+  const segs = [{ start: 0, end: 60 }];
+  const lines = [{ ...K(10, 12, 0.9), pop: pop("A") }, { ...K(13, 15, 0.95), pop: pop("B") }, { ...K(30, 32, 0.8), pop: pop("C") }, { ...K(45, 47, 0.99) }, { ...K(50, 52, 0.3), pop: pop("D") }];
+  it("goes on the strongest lines that have one, 6 s apart, up to 2 a minute, 3 s each", () => {
+    expect(popupBeats(lines, segs, 1, 60, 0, []).map((p) => [p.at, p.until, p.pop.text])).toEqual([[13, 16, "B"], [30, 33, "C"]]);
+    const short = [{ ...K(2, 3, 0.9), pop: pop("A") }, { ...K(13, 14, 0.95), pop: pop("B") }];
+    expect(popupBeats(short, [{ start: 0, end: 20 }], 1, 20, 0, []).map((p) => p.pop.text)).toEqual(["B"]);
+  });
+  it("never shows with a number card or a sticker, nor under the hook card", () => {
+    expect(popupBeats(lines, segs, 1, 60, 0, [[13.5, 16]]).map((p) => p.pop.text)).toEqual(["A", "C"]);
+    expect(popupBeats(lines, segs, 1, 60, 14, []).map((p) => p.pop.text)).toEqual(["C"]);
+  });
+  it("shows only with the toggle on, and pops in the sound effects", () => {
+    const s = { ...defaultSettings("bold"), motion: { lines } };
+    expect(motionOf(s, segs, [], 60).pops).toEqual([]);
+    const on = motionOf({ ...s, popups: true, sfx: true }, segs, [], 60);
+    expect(on.pops.map((p) => p.at)).toEqual([13, 30]);
+    expect(on.cues).toEqual([{ at: 13, kind: "pop" }, { at: 30, kind: "pop" }]);
+  });
+  it("keeps stored pop-ups only when they have text", () => {
+    expect(sanitizeMotion({ lines: [{ s: 1, e: 2, p: 0.5, pop: { text: "Hi", key: "Hi", emoji: "x" } }, { s: 3, e: 4, p: 0.5, pop: { text: "" } }] })).toEqual({
+      lines: [{ s: 1, e: 2, p: 0.5, pop: { text: "Hi", key: "Hi", emoji: "x" } }, { s: 3, e: 4, p: 0.5 }],
+    });
   });
 });

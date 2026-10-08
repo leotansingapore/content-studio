@@ -116,6 +116,8 @@ export interface EditSettings {
   sfx?: boolean;
   /** The music drops out for 2 s on the strongest key line. Unset = on, once key lines are picked. */
   musicDrop?: boolean;
+  /** A one-line pop-up with an emoji on the top key lines. */
+  popups?: boolean;
 }
 
 export const END_CARD_SECONDS = 2.5;
@@ -459,7 +461,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("wordsPerCaption" in p) set("wordsPerCaption", Math.round(clamp(p.wordsPerCaption, 1, 6, s.wordsPerCaption)));
   if (typeof p.baseColor === "string" && HEX.test(p.baseColor)) set("baseColor", p.baseColor.toUpperCase());
   if (typeof p.activeColor === "string" && HEX.test(p.activeColor)) set("activeColor", p.activeColor.toUpperCase());
-  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish", "loudness", "keyZooms", "numberCards", "sfx", "musicDrop"] as const) {
+  for (const k of ["uppercase", "captions", "removeFillers", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish", "loudness", "keyZooms", "numberCards", "sfx", "musicDrop", "popups"] as const) {
     if (typeof p[k] === "boolean") set(k, p[k] as boolean);
   }
   if (typeof p.hook === "string") set("hook", p.hook.replace(/—/g, ",").slice(0, 90));
@@ -490,7 +492,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
 const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
   "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "maxPause", "hookSeconds", "aspect", "fit",
-  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "loudness", "speed", "captionAnim", "keyZooms", "numberCards", "sfx", "musicDrop",
+  "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "loudness", "speed", "captionAnim", "keyZooms", "numberCards", "sfx", "musicDrop", "popups",
 ] as const satisfies readonly (keyof EditSettings)[];
 
 export function lookOf(s: EditSettings): Record<string, unknown> {
