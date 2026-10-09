@@ -7,7 +7,7 @@
 // bold (Hormozi), cutout (Kallaway gold), minimal (Ali Abdaal pill), editorial,
 // native (TikTok) and documentary.
 
-import type { Pair } from "@/lib/stacked";
+import type { Pair, Spot } from "@/lib/stacked";
 import type { FaceBox, KeyLine } from "@/lib/videoMotion";
 import { mergeSlivers, pauseCut } from "@/lib/cutRules";
 import { findRetakes } from "@/lib/retakes";
@@ -21,8 +21,8 @@ export interface Word {
 
 export type StyleId = "bold" | "cutout" | "minimal" | "editorial" | "native" | "documentary";
 export type Aspect = "9:16" | "4:5" | "1:1" | "16:9" | "original";
-/** fill = crop to the frame; blur = the whole picture over a blurred copy of itself (landscape podcasts in a vertical reel); framed = the whole picture in a rounded window on the brand colour (interview clips); stacked = two people side by side, one above the other (stacked.ts; a shot without them crops to fill). */
-export type Fit = "fill" | "blur" | "framed" | "stacked";
+/** fill = crop to the frame; blur = the whole picture over a blurred copy of itself (landscape podcasts in a vertical reel); framed = the whole picture in a rounded window on the brand colour (interview clips); stacked = two people side by side, one above the other (stacked.ts; a shot without them crops to fill); slides = a screen recording whole across the top, the speaker's face below. */
+export type Fit = "fill" | "blur" | "framed" | "stacked" | "slides";
 export type Position = "top" | "middle" | "bottom";
 
 export interface EditSettings {
@@ -1446,6 +1446,8 @@ export interface FaceTrack {
   cuts?: number[];
   /** The shots with two people side by side, for the stacked layout; [] = looked, none. Unset on a track found before it existed. */
   pairs?: Pair[];
+  /** The face that stays in a screen recording, for slides and me; null = looked, none. */
+  me?: Spot | null;
 }
 
 /** The crop's centre at this point of the source: the face track while following it, else the slider. */

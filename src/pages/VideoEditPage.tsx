@@ -152,7 +152,7 @@ import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, remove
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cutTimes, dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, lookSpans, sanitizeTrack, trackCovers } from "@/lib/faceFollow";
-import { pairShare } from "@/lib/stacked";
+import { pairShare, slidesCaptionY } from "@/lib/stacked";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
 import SubtitleImport from "@/components/SubtitleImport";
@@ -885,11 +885,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const crop = cropShare(settings.aspect, dims[0], dims[1]);
   const canFollow = ["fill", "stacked"].includes(settings.fit ?? "fill") && crop < 0.95;
   // `use` makes the next settings from these with the faces found (null = no change but the faces)
-  const withFaces = async (use: (s: EditSettings) => EditSettings | null, pairs = false) => {
+  const withFaces = async (use: (s: EditSettings) => EditSettings | null, need?: "pairs" | "me") => {
     // looked for over the kept parts only; found again when the trims have moved past what was looked
-    // at, or for stacking, when the track is from before two speakers were looked for
+    // at, or for a layout, when the track is from before its faces were looked for
     const spans = lookSpans(plan.segs);
-    if (trackCovers(settings.faceTrack, spans) && (!pairs || settings.faceTrack?.pairs)) {
+    if (trackCovers(settings.faceTrack, spans) && (!need || settings.faceTrack?.[need] !== undefined)) {
       const next = use(settings);
       return void (next && change(next));
     }
@@ -917,14 +917,21 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const setFollow = (on: boolean) => (on ? withFaces((s) => ({ ...s, followFace: true })) : patch({ followFace: false }));
   // two speakers stacked, with the captions on the seam: offered for a landscape video, used when two
   // people share the shot for at least half of the edit
-  const canStack = crop < 0.95 || settings.fit === "stacked";
+  const canStack = crop < 0.95 || settings.fit === "stacked" || settings.fit === "slides";
   const setStacked = () =>
     withFaces((s) => {
       // a shot with one person in it crops to fill, on their face
       if (pairShare(s.faceTrack?.pairs, lookSpans(plan.segs)) >= 0.5) return { ...s, fit: "stacked", captionY: 0.5, followFace: true };
       toast({ title: "Two people aren't in the same shot for most of this video", variant: "destructive" });
       return null;
-    }, true);
+    }, "pairs");
+  // slides and me: the whole screen on top, the face from the camera in the corner below
+  const setSlides = () =>
+    withFaces((s) => {
+      if (s.faceTrack?.me) return { ...s, fit: "slides", captionY: slidesCaptionY(dims[0], dims[1], ...aspectSize(s.aspect, dims[0], dims[1])) };
+      toast({ title: "Your face isn't in most of this video", variant: "destructive" });
+      return null;
+    }, "me");
 
   const seekOut = (t: number) => {
     const v = video.current;
@@ -1964,14 +1971,19 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 {(["9:16", "4:5", "1:1", "16:9", "original"] as const).map((a) => <Chip key={a} on={settings.aspect === a} onClick={() => patch({ aspect: a })}>{a === "original" ? "Original" : a}</Chip>)}
               </Row>
               <Row label="Fit">
+                {/* five choices: they wrap onto a second line on a phone instead of squeezing their words */}
+                <span className="flex flex-wrap justify-end gap-1.5 [&>button]:min-h-11 [&>button]:whitespace-nowrap sm:[&>button]:min-h-0">
                 <Chip on={(settings.fit ?? "fill") === "fill"} onClick={() => patch({ fit: "fill" })}>Crop to fill</Chip>
                 <Chip on={settings.fit === "blur"} onClick={() => patch({ fit: "blur" })}>Whole video, blurred behind</Chip>
                 <Chip on={settings.fit === "framed"} onClick={() => patch({ fit: "framed", ...(settings.captionY === undefined ? { captionY: 0.68 } : {}) })}>Framed window</Chip>
                 {canStack && (
-                  <Chip on={settings.fit === "stacked"} onClick={() => finding === null && settings.fit !== "stacked" && void setStacked()}>
-                    {finding !== null ? `Finding faces ${Math.round(finding * 100)}%` : "Two speakers stacked"}
-                  </Chip>
+                  <>
+                    <Chip on={settings.fit === "stacked"} onClick={() => finding === null && settings.fit !== "stacked" && void setStacked()}>Two speakers stacked</Chip>
+                    <Chip on={settings.fit === "slides"} onClick={() => finding === null && settings.fit !== "slides" && void setSlides()}>Slides and me</Chip>
+                    {finding !== null && <span className="self-center text-xs text-muted-foreground" aria-live="polite">Finding faces {Math.round(finding * 100)}%</span>}
+                  </>
                 )}
+                </span>
               </Row>
               {["fill", "stacked"].includes(settings.fit ?? "fill") && (
                 <Row label="Framing">

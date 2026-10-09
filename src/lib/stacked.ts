@@ -1,7 +1,9 @@
-// Two speakers stacked: a podcast two-shot in a vertical reel, each person in a half of their own,
-// one above the other, with the captions on the seam. findFaceTrack (faceVision.ts) finds who sits
-// where in each shot; drawFrame (videoMedia.ts) draws the halves with drawStacked. The layout idea
-// is openshorts' split_layout (mutonby/openshorts, MIT); the code is our own.
+// Layouts that stack two pictures in a vertical reel. Two speakers stacked: a podcast two-shot, each
+// person in a half of their own, captions on the seam. Slides and me: a screen recording with the
+// speaker's camera in a corner, the whole screen on top and their face below. findFaceTrack
+// (faceVision.ts) finds who sits where; drawFrame (videoMedia.ts) draws with drawStacked and
+// drawSlides. The layout ideas are openshorts' split_layout and screencast_layout
+// (mutonby/openshorts, MIT); the code is our own.
 
 import { faceOf, peopleOf, type SeenFace } from "@/lib/speakers";
 
@@ -53,13 +55,14 @@ export function pairShare(pairs: Pair[] | undefined, spans: { start: number; end
 }
 
 /**
- * The part of the source shown in one half (w x h on the canvas) for this face: about three faces
- * wide, kept between 30% and half the source's width so the other person stays out, the face a
- * little above the middle, never past the picture's edge. `zoom` crops tighter (key-line zooms).
+ * The part of the source shown in a band (w x h on the canvas) for this face: `wide` faces wide
+ * (about three: head and shoulders), at least `floor` of the source's width (so a small face is
+ * not blown up past sharp) and at most half (so the other person stays out), the face a little
+ * above the middle, never past the picture's edge. `zoom` crops tighter (key-line zooms).
  */
-export function halfCrop(spot: Spot, srcW: number, srcH: number, w: number, h: number, zoom = 1): { x: number; y: number; w: number; h: number } {
+export function halfCrop(spot: Spot, srcW: number, srcH: number, w: number, h: number, zoom = 1, wide = 3, floor = 0.3): { x: number; y: number; w: number; h: number } {
   const [fx, fy, fw] = spot;
-  let cw = Math.min(srcW * 0.5, Math.max(srcW * 0.3, fw * srcW * 3)) / zoom;
+  let cw = Math.min(srcW * 0.5, Math.max(srcW * floor, fw * srcW * wide)) / zoom;
   let ch = (cw * h) / w;
   if (ch > srcH) [ch, cw] = [srcH, (srcH * w) / h];
   const x = Math.min(srcW - cw, Math.max(0, fx * srcW - cw / 2));
@@ -90,6 +93,57 @@ export function drawStacked(
     g.filter = "none";
     fx?.({ x: 0, y: i * half, w: W, h: half });
   });
+}
+
+/**
+ * The face that stays in a screen recording (the speaker's camera): the person seen in the most
+ * looks, when that is at least half the looks made; null when nobody is.
+ */
+export function meOf(looks: (SeenFace[] | null)[]): Spot | null {
+  const p = peopleOf(looks, 0.5).sort((a, b) => b.share - a.share)[0];
+  return p ? [p.x, p.y, p.w] : null;
+}
+
+/** The screen's band: the whole picture across the frame's width (W x H), at most 45% of its height. */
+export const slidesHeight = (srcW: number, srcH: number, W: number, H: number) => Math.min(H * 0.45, (W * srcH) / srcW);
+
+/** Where captions sit under the slides: three quarters of the way down the face's band, over the chest. */
+export const slidesCaptionY = (srcW: number, srcH: number, W: number, H: number) => {
+  const seam = slidesHeight(srcW, srcH, W, H) / H;
+  return Math.round((seam + (1 - seam) * 0.75) * 100) / 100;
+};
+
+/**
+ * Draws a screen recording as slides and me: the whole picture across the top (nothing cut off the
+ * sides, so every word on a slide stays), and below it the speaker's face (`me`) filling the rest.
+ * `zoom` (key lines) and `fx` (face effects) go on the face only.
+ */
+export function drawSlides(
+  g: CanvasRenderingContext2D,
+  v: CanvasImageSource & { videoWidth: number; videoHeight: number },
+  me: Spot,
+  W: number,
+  H: number,
+  zoom: number,
+  filter: string,
+  fx?: ((r: { x: number; y: number; w: number; h: number }) => void) | null,
+) {
+  const top = slidesHeight(v.videoWidth, v.videoHeight, W, H);
+  const sh = Math.min(v.videoHeight, (v.videoWidth * top) / W); // a squarer source shows its middle rows
+  g.filter = filter;
+  g.drawImage(v, 0, (v.videoHeight - sh) / 2, v.videoWidth, sh, 0, 0, W, top);
+  // about a face and a half wide: a corner camera frames head and shoulders in a wide box, and a
+  // wider crop of this tall band would show the screen round it
+  const c = halfCrop(me, v.videoWidth, v.videoHeight, W, H - top, zoom, 1.6, 0.08);
+  g.drawImage(v, c.x, c.y, c.w, c.h, 0, top, W, H - top);
+  g.filter = "none";
+  fx?.({ x: 0, y: top, w: W, h: H - top });
+}
+
+/** A stored face for slides and me: a well formed spot, null (looked, none) or undefined (not looked yet). */
+export function sanitizeMe(raw: unknown): Spot | null | undefined {
+  if (raw === null) return null;
+  return Array.isArray(raw) && raw.length === 3 && raw.every((v) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 1) ? [raw[0], raw[1], raw[2]] : undefined;
 }
 
 /** A stored list of pairs, each kept only when well formed; undefined when there is no list (not looked for yet). */

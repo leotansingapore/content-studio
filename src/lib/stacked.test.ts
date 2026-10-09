@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OPEN_END, drawStacked, halfCrop, pairAt, pairShare, pairsOf, sanitizePairs, type Pair } from "./stacked";
+import { OPEN_END, drawSlides, drawStacked, halfCrop, meOf, pairAt, pairShare, pairsOf, sanitizeMe, sanitizePairs, slidesCaptionY, slidesHeight, type Pair } from "./stacked";
 import type { SeenFace } from "./speakers";
 import { sanitizeTrack } from "./faceFollow";
 
@@ -70,5 +70,44 @@ describe("two speakers stacked", () => {
     // a stored face track keeps its pairs; one found before them has none, so stacking looks again
     expect(sanitizeTrack({ step: 0.5, x: [0.5], pairs: [ok] })?.pairs).toEqual([ok]);
     expect(sanitizeTrack({ step: 0.5, x: [0.5] })?.pairs).toBeUndefined();
+  });
+});
+
+describe("slides and me", () => {
+  it("finds the face that stays (the camera in the corner), or none", () => {
+    const rec = Array.from({ length: 20 }, (_, i) => (i % 4 ? [{ x: 0.88, y: 0.8, w: 0.06 }] : []));
+    expect(meOf(rec)).toEqual([0.88, 0.8, 0.06]);
+    // in fewer than half the looks: no steady face to put under the slides
+    expect(meOf(rec.map((l, i) => (i % 3 ? [] : l)))).toBeNull();
+    expect(meOf([])).toBeNull();
+  });
+
+  it("puts the whole screen across the top and the face below, captions over the chest", () => {
+    expect(slidesHeight(1920, 1080, 1080, 1920)).toBeCloseTo(607.5, 3);
+    expect(slidesHeight(1080, 1080, 1080, 1920)).toBeCloseTo(864, 3); // a square source is held to 45%
+    expect(slidesCaptionY(1920, 1080, 1080, 1920)).toBe(0.83);
+    const calls: number[][] = [];
+    const g = { filter: "none", drawImage: (...a: unknown[]) => calls.push(a.slice(1) as number[]) } as unknown as CanvasRenderingContext2D;
+    const v = { videoWidth: 1920, videoHeight: 1080 } as unknown as HTMLVideoElement;
+    const fx: number[][] = [];
+    drawSlides(g, v, [0.88, 0.8, 0.06], 1080, 1920, 1, "none", (r) => fx.push([r.y, r.h]));
+    expect(calls[0]).toEqual([0, 0, 1920, 1080, 0, 0, 1080, 607.5]); // nothing cut off the sides
+    const [x, y, w, h, , dy, , dh] = calls[1];
+    expect([dy, dh]).toEqual([607.5, 1312.5]);
+    expect(w).toBeCloseTo(1920 * 0.06 * 1.6, 3); // close: a face and a half wide
+    expect(x + w / 2).toBeCloseTo(1920 * 0.88, 3); // on the face
+    expect(y + h).toBeLessThanOrEqual(1080);
+    expect(fx).toEqual([[607.5, 1312.5]]); // effects on the face only
+    // a square source keeps its full width and shows its middle rows
+    calls.length = 0;
+    drawSlides(g, { videoWidth: 1080, videoHeight: 1080 } as unknown as HTMLVideoElement, [0.5, 0.5, 0.2], 1080, 1920, 1, "none");
+    expect(calls[0].slice(0, 4)).toEqual([0, 108, 1080, 864]);
+  });
+
+  it("keeps a stored face only when well formed, and tells looked-for-none from not looked", () => {
+    expect(sanitizeMe([0.88, 0.8, 0.06])).toEqual([0.88, 0.8, 0.06]);
+    expect(sanitizeMe(null)).toBeNull();
+    expect(sanitizeMe([0.5, 2, 0.1])).toBeUndefined();
+    expect(sanitizeMe(undefined)).toBeUndefined();
   });
 });
