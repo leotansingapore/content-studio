@@ -60,11 +60,15 @@ export function buildRepurposeUrl(draft: DraftEntry, target: RepurposeTarget): s
 export type { LongExtracts, LongPost };
 export { MAX_LONG_CHARS } from "../../supabase/functions/idea-dump/logic.ts";
 
-/** 5 different formulas in list order from `start`. */
+// A pasted piece is often not the consultant's own story, so formulas built on their own
+// experience ("what one mistake cost me") made the model invent one (live check 2026-10-09).
+const LONG_FORMULAS = HOOK_FORMULAS.filter((f) => !f.personal);
+
+/** 5 different non-personal formulas in list order from `start`. */
 export function longPieceFormulas(start: number): LongFormula[] {
-  const len = HOOK_FORMULAS.length;
+  const len = LONG_FORMULAS.length;
   return Array.from({ length: LONG_POSTS }, (_, k) => {
-    const f = HOOK_FORMULAS[(((start + k) % len) + len) % len];
+    const f = LONG_FORMULAS[(((start + k) % len) + len) % len];
     return { id: f.id, name: f.name, template: f.template };
   });
 }

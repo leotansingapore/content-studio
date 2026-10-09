@@ -11,11 +11,14 @@ export interface HookFormula {
   example: string;
   bestFor: string;
   trap: string;
+  /** Built on the consultant's own experience; never given a long piece that may not contain it. */
+  personal?: true;
 }
 
 export const HOOK_FORMULAS: HookFormula[] = [
   {
     id: "contrarian",
+    personal: true,
     name: "Contrarian take",
     template: "Most people say {common advice}. After {what you have seen}, I disagree.",
     example: "Everyone says clear your home loan early. After 9 years of reading CPF statements, I'm not so sure.",
@@ -24,6 +27,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "number-reveal",
+    personal: true,
     name: "Number reveal",
     template: "I {did something} {N} times. Here is what came out of it.",
     example: "I reviewed 40 young families' coverage this year. 31 had the same gap.",
@@ -32,6 +36,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "mistake",
+    personal: true,
     name: "Mistake confession",
     template: "{What it cost} is what {one mistake} cost me.",
     example: "A client's trust is what one rushed fact-find cost me in my first year.",
@@ -40,6 +45,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "before-after",
+    personal: true,
     name: "Before and after",
     template: "{Some time ago} I {low point}. Now I {better point}. One change did it.",
     example: "Two years ago I spent Sundays chasing renewals. Now Sunday is family day. One checklist did it.",
@@ -48,6 +54,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "list",
+    personal: true,
     name: "The list",
     template: "{N} things I wish I knew before {milestone}.",
     example: "5 things I wish I knew before my first CPF top-up.",
@@ -56,6 +63,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "insider",
+    personal: true,
     name: "Insider view",
     template: "After {N} years as {role}, here is what nobody tells you about {topic}.",
     example: "After 8 years as a financial consultant, here is what nobody tells you about making a claim.",
@@ -80,6 +88,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "cold-open",
+    personal: true,
     name: "Cold open",
     template: "\"{A line someone said}\" Then who said it, when, and why it stuck.",
     example: "\"I thought my company insurance covered this.\" A client told me that outside a ward last year.",
@@ -88,6 +97,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "receipt",
+    personal: true,
     name: "The receipt",
     template: "{A hard number you can show}. {One line of context}.",
     example: "12 client reviews, 9 with no will in place. One question changed that.",
@@ -144,6 +154,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "time-saved",
+    personal: true,
     name: "Time saved",
     template: "{Task} used to take me {long time}. Now it takes {short time}.",
     example: "Putting together a client's coverage summary used to take me 2 hours. Now it takes 20 minutes.",
@@ -152,6 +163,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "my-rule",
+    personal: true,
     name: "My rule",
     template: "I don't {common practice}. Ever. Here's why.",
     example: "I don't recommend a plan in the first meeting. Ever.",
@@ -160,6 +172,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "curiosity",
+    personal: true,
     name: "Curiosity gap",
     template: "The {best or worst} {thing} I ever {did} {broke the obvious rule}.",
     example: "The best client meeting I ever had, I never opened my laptop.",
@@ -168,6 +181,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "walk-away",
+    personal: true,
     name: "The walk-away",
     template: "I {turned down or stopped} {something valuable}. {What happened}.",
     example: "I turned down a client who wanted to skip the fact-find. I'd do it again.",
@@ -176,6 +190,7 @@ export const HOOK_FORMULAS: HookFormula[] = [
   },
   {
     id: "give-it-away",
+    personal: true,
     name: "Give it away",
     template: "Here is the exact {thing} I use to {outcome}. Take it.",
     example: "Here is the exact 5-question checklist I use before any policy review. Take it.",

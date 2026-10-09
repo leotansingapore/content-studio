@@ -3,16 +3,26 @@ import { HOOK_FORMULAS } from "./hookFormulas";
 import { longFailure, longPieceFormulas, longPostEntry, longSuccess } from "./repurpose";
 
 describe("longPieceFormulas", () => {
-  it("takes 5 different formulas in order from the start, wrapping at the end", () => {
-    const f = longPieceFormulas(HOOK_FORMULAS.length - 2);
+  const general = HOOK_FORMULAS.filter((f) => !f.personal);
+
+  it("takes 5 different non-personal formulas in order from the start, wrapping at the end", () => {
+    const f = longPieceFormulas(general.length - 2);
     expect(f.map((x) => x.id)).toEqual([
-      HOOK_FORMULAS[HOOK_FORMULAS.length - 2].id,
-      HOOK_FORMULAS[HOOK_FORMULAS.length - 1].id,
-      HOOK_FORMULAS[0].id,
-      HOOK_FORMULAS[1].id,
-      HOOK_FORMULAS[2].id,
+      general[general.length - 2].id,
+      general[general.length - 1].id,
+      general[0].id,
+      general[1].id,
+      general[2].id,
     ]);
     expect(Object.keys(f[0]).sort()).toEqual(["id", "name", "template"]);
+  });
+
+  it("never gives a long piece a formula built on the consultant's own experience", () => {
+    expect(general.length).toBeGreaterThanOrEqual(5);
+    for (let start = 0; start < HOOK_FORMULAS.length; start++) {
+      for (const f of longPieceFormulas(start)) expect(HOOK_FORMULAS.find((h) => h.id === f.id)?.personal).toBeUndefined();
+    }
+    expect(longPieceFormulas(0).map((f) => f.id)).not.toContain("mistake");
   });
 });
 
