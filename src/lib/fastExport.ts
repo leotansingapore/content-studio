@@ -296,8 +296,9 @@ async function denoisePieces(pieces: Piece[]): Promise<Piece[]> {
 }
 
 /** Each part's filmed sound played `speed` times faster with its pitch kept, starting at the part. */
-function speedUp(parts: Part[], pieces: Piece[], speed: number): Piece[] {
-  return parts.map((p, i) => {
+async function speedUp(parts: Part[], pieces: Piece[], speed: number): Promise<Piece[]> {
+  const out: Piece[] = [];
+  for (const [i, p] of parts.entries()) {
     const { buf, start } = pieces[i];
     const rate = buf.sampleRate;
     const from = Math.max(0, Math.round((p.from - start) * rate));
@@ -305,8 +306,11 @@ function speedUp(parts: Part[], pieces: Piece[], speed: number): Piece[] {
     const ch = stretch(Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c).subarray(from, to)), speed, rate);
     const sped = new AudioBuffer({ length: Math.max(1, ch[0].length), sampleRate: rate, numberOfChannels: ch.length });
     ch.forEach((d, c) => sped.copyToChannel(d, c));
-    return { buf: sped, start: p.from };
-  });
+    out.push({ buf: sped, start: p.from });
+    // shortcut: the page waits about 5 ms per second of a part (3 s for one 10 min part); move stretch to a worker if long uncut parts get common
+    await new Promise((r) => setTimeout(r));
+  }
+  return out;
 }
 
 /** The export's sound, rendered offline through the same nodes the real-time export plays it through (noise removal is done on the pieces first). */
@@ -322,7 +326,7 @@ async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds:
     env.connect(ctx.destination);
     const speed = speedOf(s);
     const heard = speed === 1 ? parts : spedParts(parts, speed);
-    const sound = speed === 1 ? pieces : speedUp(parts, pieces, speed);
+    const sound = speed === 1 ? pieces : await speedUp(parts, pieces, speed);
     heard.forEach((p, i) => {
       const src = new AudioBufferSourceNode(ctx, { buffer: sound[i].buf });
       src.connect(bus);
