@@ -31,6 +31,7 @@ describe("time stretch (pitch kept)", () => {
 
   it("joins its windows without a click or a dip", () => {
     const x = tone(440, 2);
+    const level = rms(x); // once: over the whole tone for each 5 ms block it took 91M steps and ran past 5 s
     let step = 0;
     for (let i = 1; i < x.length; i++) step = Math.max(step, Math.abs(x[i] - x[i - 1]));
     for (const speed of [1.1, 1.25, 1.5]) {
@@ -42,7 +43,7 @@ describe("time stretch (pitch kept)", () => {
       // and the loudness holds in every 5 ms, the first and the last too
       const block = RATE / 200;
       for (let at = 0; at + block <= out.length; at += block) {
-        const r = rms(out.subarray(at, at + block)) / rms(x);
+        const r = rms(out.subarray(at, at + block)) / level;
         expect(r).toBeGreaterThan(0.95);
         expect(r).toBeLessThan(1.05);
       }
