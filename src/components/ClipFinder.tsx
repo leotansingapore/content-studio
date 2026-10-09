@@ -142,7 +142,7 @@ export default function ClipFinder({ userId, project, words, settings, duration,
       {list.length > 0 && (
         <div className="rounded-xl border border-success/40 bg-success/5 p-3">
           <p className="mb-2 flex items-center gap-1 text-sm font-semibold">
-            {list.length} clips ready{scored ? ", best first" : ", each with its own hook"}
+            {list.length === 1 ? "1 clip ready" : `${list.length} clips ready${scored ? ", best first" : ", each with its own hook"}`}
             {scored && <InfoTip label="About the scores">Out of 100: how well it stands alone and how strongly it opens.</InfoTip>}
           </p>
           {offTopic && <p className="mb-2 text-xs text-muted-foreground">Nothing in this video is about that, so these are its best clips.</p>}
