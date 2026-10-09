@@ -10,7 +10,7 @@
 // and lands when the video is open again.
 
 import { supabase } from "@/lib/supabase";
-import { detectCuts, CUT_THRESHOLD } from "@/lib/reelFrames";
+import { detectCuts, CUT_THRESHOLD, fetchReelVideo } from "@/lib/reelFrames";
 import { invokeFunction, ReelCloneError, type CloneSource } from "@/lib/reelClone";
 import { applyRecipe, type Recipe } from "@/lib/stylePresets";
 import { loadVideo, seek } from "@/lib/videoMedia";
@@ -360,9 +360,7 @@ export async function startReelStyle(projectId: string, url: string): Promise<vo
     emit({ phase: "measure", progress: 0 }, token);
     let blob: Blob;
     try {
-      const res = await fetch(source.videoUrl);
-      if (!res.ok) throw new Error(String(res.status));
-      blob = await res.blob();
+      blob = await fetchReelVideo(source.videoUrl);
     } catch {
       throw new Error("Couldn't download the reel. Try again in a minute.");
     }

@@ -17,7 +17,8 @@
 //   running then keeps going in the background and fills the cache, and a retry
 //   re-attaches to that run (cs_reel_fetches) instead of starting another.
 // - Only links that parseReelUrl accepts are sent to Apify, rebuilt from their
-//   validated parts. This function never fetches a pasted URL itself.
+//   validated parts. This function never fetches a pasted URL itself; the one
+//   relay ({video}) takes only Instagram video-CDN links (isIgVideoUrl), no redirects.
 //
 // Secrets: APIFY_API_KEY, OPENAI_API_KEY. Deploy WITH JWT verification.
 // Logic: ./logic.ts (tested).
@@ -54,6 +55,8 @@ import {
   type ConceptResponse,
   type ParsedReelUrl,
   type SourceRow,
+  isIgVideoUrl,
+  MAX_RELAY_BYTES,
 } from "./logic.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
 
@@ -328,6 +331,42 @@ Deno.serve(async (req) => {
     if (!uid) return failure("unauthorized");
 
     const body = await req.json().catch(() => ({}));
+    // {video}: relay a reel's video when Instagram's CDN refuses the browser (some of its hosts send no CORS
+    // header). Only Instagram's own video hosts, https, no redirects, at most MAX_RELAY_BYTES, capped per day.
+    if (body?.video !== undefined) {
+      if (!isIgVideoUrl(body.video)) return json({ code: "bad_url", error: "That isn't an Instagram video link." }, 400);
+      const usage = await consumeUsage(admin, uid, "reel-video");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await fetch(body.video, { redirect: "manual", signal: AbortSignal.timeout(60_000) }).catch(() => null);
+      if (!res?.ok || !res.body) {
+        await res?.body?.cancel();
+        return json({ code: "fetch_failed", error: "Instagram didn't send the video. Read the reel again." }, 502);
+      }
+      // video only: the same hosts serve pictures and other files
+      const type = res.headers.get("content-type") ?? "";
+      if (!type.startsWith("video/") && type !== "application/octet-stream") {
+        await res.body.cancel();
+        return json({ code: "not_video", error: "That link isn't a video." }, 415);
+      }
+      const size = Number(res.headers.get("content-length") ?? 0);
+      if (size > MAX_RELAY_BYTES) {
+        await res.body.cancel();
+        return json({ code: "too_big", error: "This video is too large to read." }, 413);
+      }
+      let seen = 0;
+      const capped = res.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+        transform(chunk, out) {
+          seen += chunk.byteLength;
+          if (seen > MAX_RELAY_BYTES) out.error(new Error("too big"));
+          else out.enqueue(chunk);
+        },
+      }));
+      // octet-stream, so supabase-js and plain fetch both hand it back as a Blob
+      return new Response(capped, { headers: { ...corsHeaders, "Content-Type": "application/octet-stream", "Cache-Control": "no-store", ...(size ? { "Content-Length": String(size) } : {}) } });
+    }
     const parsed = parseReelUrl(body?.url);
     if (parsed.ok === false) return json({ code: "bad_url", error: parsed.message }, 400);
 

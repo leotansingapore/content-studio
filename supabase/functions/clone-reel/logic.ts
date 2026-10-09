@@ -162,6 +162,9 @@ export function isIgVideoUrl(link: unknown): boolean {
   }
 }
 
+/** The largest reel the server will relay when the browser's own download is refused. */
+export const MAX_RELAY_BYTES = 60 * 1024 * 1024;
+
 /** Plain text from a WebVTT file: no header, cue numbers, timings, tags or repeats. */
 export function vttToText(vtt: unknown): string {
   const lines = String(vtt ?? "")

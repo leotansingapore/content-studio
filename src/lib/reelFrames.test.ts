@@ -1,5 +1,12 @@
-import { describe, expect, it } from "vitest";
-import { CUT_THRESHOLD, MAX_FRAMES, detectCuts, pacingOf, pickFrameTimes } from "./reelFrames";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/supabase", () => ({
+  SUPABASE_URL: "https://sb.test",
+  SUPABASE_ANON_KEY: "anon",
+  supabase: { auth: { getSession: async () => ({ data: { session: { access_token: "jwt" } } }) } },
+}));
+
+import { CUT_THRESHOLD, MAX_FRAMES, detectCuts, fetchReelVideo, pacingOf, pickFrameTimes } from "./reelFrames";
 
 describe("detectCuts", () => {
   it("marks a sample that differs past the threshold, and a two-sample fade once", () => {
@@ -35,5 +42,38 @@ describe("pickFrameTimes", () => {
     expect(Math.max(...times)).toBeLessThanOrEqual(61.9);
     expect([...times].sort((a, b) => a - b)).toEqual(times);
     expect(new Set(times).size).toBe(times.length);
+  });
+});
+
+describe("fetchReelVideo", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const IG = "https://instagram.ftij3-1.fna.fbcdn.net/o1/v/t2/a.mp4";
+
+  it("takes the video straight from Instagram when its host allows it", async () => {
+    const fetchMock = vi.fn(async () => new Response(new Blob(["mp4"]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await (await fetchReelVideo(IG)).text()).toBe("mp4");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks clone-reel to relay it when the host refuses the browser", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url === IG) throw new TypeError("Failed to fetch"); // CORS refusal
+      return new Response(new Blob(["relayed"]), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await (await fetchReelVideo(IG)).text()).toBe("relayed");
+    const [url, init] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
+    expect(url).toBe("https://sb.test/functions/v1/clone-reel");
+    expect(JSON.parse(String(init.body))).toEqual({ video: IG });
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer jwt");
+  });
+
+  it("says why when the relay refuses too", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (url === IG) throw new TypeError("Failed to fetch");
+      return new Response(JSON.stringify({ error: "That isn't an Instagram video link." }), { status: 400 });
+    }));
+    await expect(fetchReelVideo(IG)).rejects.toThrow("That isn't an Instagram video link.");
   });
 });

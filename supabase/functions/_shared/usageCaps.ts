@@ -12,6 +12,8 @@ export const DAILY_LIMITS = {
   "reel-visuals": 20,
   // "Copy a reel's style" in the video editor: the post read through Apify (clone-reel style), no OpenAI.
   "reel-style": 20,
+  // A reel's video relayed by clone-reel when Instagram refuses the browser's own download.
+  "reel-video": 20,
   "idea-dump": 30,
   // One long piece into 5 posts (idea-dump mode "long"), about 4 US cents a run.
   "repurpose-long": 20,

@@ -1,8 +1,9 @@
 // Frames for the visual breakdown in "Clone a reel": downloads the Instagram
-// reel (its CDN sends CORS headers, so the canvas isn't tainted), finds the
+// reel (most of its CDN hosts send CORS headers; clone-reel relays the rest), finds the
 // scene changes from tiny greyscale samples, measures the pacing, and returns
 // a handful of JPEG frames for reel-visuals to read.
 
+import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
 import { loadVideo, seek } from "@/lib/videoMedia";
 import type { FrameInput, Pacing } from "../../supabase/functions/reel-visuals/logic.ts";
 
@@ -68,6 +69,32 @@ function grey(g: CanvasRenderingContext2D, w: number, h: number): Float32Array {
 
 export type FramesPhase = "download" | "scan";
 
+/**
+ * A reel's video: straight from Instagram, or relayed by clone-reel when the host refuses the
+ * browser (some of Instagram's CDN hosts send no CORS header, so the same reel fails on some runs).
+ */
+export async function fetchReelVideo(videoUrl: string, signal?: AbortSignal): Promise<Blob> {
+  try {
+    const res = await fetch(videoUrl, { signal });
+    if (res.ok) {
+      // the relay would refuse it too, so don't spend a use on it
+      if (Number(res.headers.get("content-length") ?? 0) > MAX_VIDEO_BYTES) throw new RangeError("This video is too large to read in the browser.");
+      return await res.blob();
+    }
+  } catch (e) {
+    if (signal?.aborted || e instanceof RangeError) throw e;
+  }
+  const token = (await supabase.auth.getSession()).data.session?.access_token ?? SUPABASE_ANON_KEY;
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/clone-reel`, {
+    method: "POST",
+    signal,
+    headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ video: videoUrl }),
+  });
+  if (!res.ok) throw new Error(((await res.json().catch(() => null)) as { error?: string } | null)?.error || `The relay answered ${res.status}.`);
+  return res.blob();
+}
+
 /** The frames and measured pacing for a reel. Throws an Error with a message fit to show. */
 export async function sampleReelFrames(
   videoUrl: string,
@@ -77,10 +104,7 @@ export async function sampleReelFrames(
   onProgress("download", 0);
   let blob: Blob;
   try {
-    const res = await fetch(videoUrl, { signal });
-    if (!res.ok) throw new Error(String(res.status));
-    if (Number(res.headers.get("content-length") ?? 0) > MAX_VIDEO_BYTES) throw new Error("too big");
-    blob = await res.blob();
+    blob = await fetchReelVideo(videoUrl, signal);
   } catch (e) {
     if (signal?.aborted) throw e;
     throw new Error("Couldn't download the video. Instagram's link may have expired, so clone it again to read it.");
