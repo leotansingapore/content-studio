@@ -43,6 +43,17 @@ describe("saveProject", () => {
     saveProject("u", project("up12"));
     expect(deleted).toEqual(["up0"]);
   });
+
+  it("deletes no video file when the save fails because storage is full", () => {
+    for (let i = 0; i < 12; i++) saveProject("u", project(`up${i}`));
+    window.localStorage.setItem = () => {
+      throw new Error("QuotaExceededError");
+    };
+    expect(() => saveProject("u", project("up12"))).toThrow();
+    // the list on the device still holds up0, so its video must still be there
+    expect(loadProjects("u").some((p) => p.id === "up0")).toBe(true);
+    expect(deleted).toEqual([]);
+  });
 });
 
 describe("removeProject", () => {

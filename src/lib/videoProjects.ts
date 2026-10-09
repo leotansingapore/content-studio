@@ -65,8 +65,9 @@ export function saveProject(userId: string, p: VideoProject): VideoProject[] {
   let uploads = 0;
   let clips = 0;
   const kept = next.filter((x) => (isClip(x) ? ++clips <= MAX_CLIPS : ++uploads <= MAX_PROJECTS));
-  for (const old of next) if (!kept.includes(old) && !kept.some((x) => fileKey(x) === fileKey(old))) void deleteFile(fileKey(old)).catch(() => {});
+  // written first: if storage is full this throws and the old list, files and all, stays usable
   store()?.setItem(KEY + scoped(userId), JSON.stringify(kept));
+  for (const old of next) if (!kept.includes(old) && !kept.some((x) => fileKey(x) === fileKey(old))) void deleteFile(fileKey(old)).catch(() => {});
   return kept;
 }
 
