@@ -12,6 +12,8 @@ import MotionControls from "@/components/MotionControls";
 import AutoBroll from "@/components/AutoBroll";
 import BrollLayout from "@/components/BrollLayout";
 import HookOptions from "@/components/HookOptions";
+import ColdOpenControl from "@/components/ColdOpenControl";
+import { coldLength } from "@/lib/coldOpen";
 import { onBrollApply } from "@/lib/autoBroll";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
@@ -95,6 +97,8 @@ import {
   fmtTime,
   isFiller,
   outAt,
+  outIn,
+  segAt,
   srcAt,
   speedOf,
   SPEEDS,
@@ -614,7 +618,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       setOutT(plan.total + endAt.current);
       return;
     }
-    const out = outAt(plan.segs, v.currentTime, speed) ?? outT;
+    const out = outIn(plan.segs, segIdx.current, v.currentTime, speed) ?? outT;
     const broll = syncBroll(brollEls.current, settings.broll, out, playing);
     drawFrame(c.getContext("2d")!, { video: v, settings, ...plan, src: v.currentTime, out, subs: settings.subLang ? subs[settings.subLang] : undefined, brand: art, still: !playing, broll, fx, peaks });
     setOutT(out);
@@ -669,7 +673,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         v.volume = fast ? 0 : volume;
       }
       paint();
-      const out = outAt(plan.segs, v.currentTime, speed);
+      const out = outIn(plan.segs, segIdx.current, v.currentTime, speed);
       syncVoice(out);
       syncMusic(out);
       sfx.current.sync(motionOf(settings, plan.segs, plan.caps, plan.total).cues, out);
@@ -912,7 +916,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
     endAt.current = null;
     const src = srcAt(plan.segs, t, speed);
-    segIdx.current = Math.max(0, plan.segs.findIndex((g) => src >= g.start && src < g.end));
+    // by place in the edit, not source time: a cold open plays one part twice
+    segIdx.current = segAt(plan.segs, t * speed);
     v.currentTime = src;
   };
 
@@ -1318,7 +1323,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   const stickerColours = [...new Set(["#FFFFFF", "#FFD92B", settings.activeColor, art?.color ?? "#2563EB", "#EF4444", "#111827"].map((c) => c.toUpperCase()))];
 
-  const cutSeconds = Math.max(0, duration - totalLength(plan.segs));
+  // a cold open heard again adds its length back, so it is not counted against the cuts
+  const cutSeconds = Math.max(0, duration - totalLength(plan.segs) + (settings.coldOpen?.repeat ? coldLength(plan.segs, settings.coldOpen) : 0));
   // platforms this length is too long for, shortest limit first
   const lengthIssues = useMemo(() => platformFit(plan.total).filter((p) => p.fit !== "ok").sort((a, b) => a.limit - b.limit), [plan.total]);
   const fillers = words.filter((w) => isFiller(w.w)).length;
@@ -1902,6 +1908,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </label>
               <HookOptions projectId={project.id} words={words} segs={plan.segs} total={plan.total} speed={speed} hook={settings.hook}
                 onUse={(hook) => { const cur = settingsRef.current; if (cur.hook === hook) return; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, hook }); }} />
+              <ColdOpenControl settings={settings} words={words} duration={duration} segs={plan.segs} speed={speed} seek={seekOut}
+                apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }} />
               <Row label={`Hook shows for ${settings.hookSeconds}s`}><input type="range" min={1} max={10} step={0.5} value={settings.hookSeconds} onChange={(e) => patch({ hookSeconds: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
               <div className="grid grid-cols-2 gap-2">
                 <label className="block space-y-1 text-xs font-semibold">

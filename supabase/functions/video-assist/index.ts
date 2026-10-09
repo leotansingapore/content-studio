@@ -36,6 +36,10 @@
 //        -> {hooks:[{formula,text}], pick: index | null}: hook card lines the LLM writes, one per formula, and the
 //        one Jev would start with (Write's hook question; null on no answer, a tie or a video not in English)
 //        (hooks.ts, "vibe-edit" cap, as the single suggested hook before it).
+//   POST {mode:"coldopen", sentences:[{s,e,text}] on the edited timeline, candidates:[i], opening:i, title}
+//        -> {pick: {i,p} | null, why?}: the line to play first as a teaser, rated by Jev as the first words heard
+//        (Leo's talking-head-reel openers questions); null when none beats the video's own start, or with
+//        why "unrated" (Jev gave no answer) or "language" (not English) (coldopen.ts, "cold-open" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -47,6 +51,7 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { brollLines, brollQuestions, buildBrollMessages, kindQuestions, parseBrollReply, parseBrollRequest, pickBrollLines, readBroll, readKinds } from "./broll.ts";
+import { coldQuestions, coldState, parseColdOpenRequest, readColdPick } from "./coldopen.ts";
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import {
@@ -342,6 +347,22 @@ Deno.serve(async (req) => {
       const texts = hooks.map((x) => x.text);
       const answers = mostlyEnglish(h.lines.map((x) => x.text).join(" ")) ? await askJev(hooksState(texts, h.lines), hooksQuestions(texts), { who: "video-assist hooks" }) : null;
       return json({ hooks, pick: hooksPick(answers, hooks.length) });
+    }
+
+    if (body?.mode === "coldopen") {
+      const c = parseColdOpenRequest(body);
+      if (!c.ok) return json({ error: c.error }, 400);
+      const usage = await consumeUsage(admin, uid, "cold-open");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      // Jev rates the lines (Leo's rule: a pick is a decision); without an answer there is no cold open
+      if (!mostlyEnglish(c.lines.map((x) => x.text).join(" "))) return json({ pick: null, why: "language" });
+      const asked = c.opening === null ? c.candidates : [...c.candidates, c.opening];
+      const parts = await Promise.all(coldQuestions(c.lines, asked).map((q) => askJev(coldState(c.title), q, { who: "video-assist coldopen", timeoutMs: 10_000 })));
+      const answers = parts.some(Boolean) ? Object.assign({}, ...parts.filter(Boolean)) : null;
+      return json(answers ? { pick: readColdPick(answers, c.candidates, c.opening) } : { pick: null, why: "unrated" });
     }
 
     if (body?.mode === "publish") {

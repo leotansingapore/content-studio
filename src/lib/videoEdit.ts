@@ -37,6 +37,8 @@ export interface EditSettings {
   captions: boolean;
   hook: string;
   hookSeconds: number;
+  /** A line played first as a teaser, then the edit from its start (coldOpen.ts): source seconds; repeat = heard again in its place, else moved. */
+  coldOpen?: { s: number; e: number; repeat: boolean };
   removeFillers: boolean;
   /** A sentence said again within 20 s: the earlier take is cut (retakes.ts). Unset = off, so edits made before it keep their cuts. */
   removeRetakes?: boolean;
@@ -410,6 +412,52 @@ export function outputTime(segs: Segment[], src: number): number | null {
   return null;
 }
 
+/**
+ * Every word as it is heard on the edit, in order, timed on the edited timeline
+ * at this speed: a word in a part played twice (a cold open heard again in its
+ * place) is heard twice, and a part moved first comes first.
+ */
+export function heardWords(words: Word[], segs: Segment[], speed = 1): (Word & { src: Word })[] {
+  const out: (Word & { src: Word })[] = [];
+  let acc = 0;
+  for (const g of segs) {
+    // the first word starting inside this part (words are in time order)
+    let lo = 0;
+    let hi = words.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (words[mid].s < g.start) lo = mid + 1;
+      else hi = mid;
+    }
+    for (let i = lo; i < words.length && words[i].s < g.end; i++) {
+      const w = words[i];
+      const s = (acc + outWithin(g, w.s)) / speed;
+      out.push({ w: w.w, s, e: s + (w.e - w.s) / speed, src: w });
+    }
+    acc += segLength(g);
+  }
+  return out;
+}
+
+/** Seconds into the edit at source time src while playing kept part i (a part played twice maps by where the playhead is); else as outAt. */
+export function outIn(segs: Segment[], i: number, src: number, speed = 1): number | null {
+  const g = segs[i];
+  if (!g || src < g.start - 0.25 || src > g.end + 0.25) return outAt(segs, src, speed);
+  let acc = 0;
+  for (let k = 0; k < i; k++) acc += segLength(segs[k]);
+  return (acc + outWithin(g, Math.min(g.end, Math.max(g.start, src)))) / speed;
+}
+
+/** The kept part playing at t seconds into the edit (unspeeded), the last one past the end. */
+export function segAt(segs: Segment[], t: number): number {
+  let acc = 0;
+  for (let i = 0; i < segs.length; i++) {
+    acc += segLength(segs[i]);
+    if (t < acc) return i;
+  }
+  return Math.max(0, segs.length - 1);
+}
+
 export interface Caption {
   words: Word[];
   s: number;
@@ -629,15 +677,27 @@ export interface Cue {
 /** Sentence-length lines (the "minimal" style) timed on the output timeline: cut words drop out. */
 export function outputCues(words: Word[], segs: Segment[], removeFillers: boolean, speed = 1): Cue[] {
   const lines = buildCaptions(words, { style: "minimal", wordsPerCaption: 3, removeFillers });
+  const lineOf = new Map<Word, number>();
+  lines.forEach((c, i) => c.words.forEach((w) => lineOf.set(w, i)));
+  // each line where it is heard, once per time it is heard (a cold open heard again gets two)
   const cues: Cue[] = [];
-  for (const c of lines) {
-    const kept = c.words.filter((w) => outputTime(segs, w.s) !== null);
-    if (!kept.length) continue;
-    const last = kept[kept.length - 1];
-    const s = outAt(segs, kept[0].s, speed)!;
-    const e = outAt(segs, last.s, speed)! + Math.max(0.2, last.e - last.s) / speed;
-    cues.push({ s, e, text: kept.map((w) => w.w).join(" ") });
+  let cur: { line: number; words: (Word & { src: Word })[] } | null = null;
+  const flush = () => {
+    if (!cur) return;
+    const last = cur.words[cur.words.length - 1];
+    cues.push({ s: cur.words[0].s, e: last.s + Math.max(0.2, last.src.e - last.src.s) / speed, text: cur.words.map((w) => w.w).join(" ") });
+    cur = null;
+  };
+  for (const h of heardWords(words, segs, speed)) {
+    const line = lineOf.get(h.src);
+    if (line === undefined) continue;
+    if (!cur || cur.line !== line || h.src.s <= cur.words[cur.words.length - 1].src.s) {
+      flush();
+      cur = { line, words: [] };
+    }
+    cur.words.push(h);
   }
+  flush();
   return cues;
 }
 
@@ -1262,10 +1322,7 @@ export const MUSIC_DUCK = 0.25;
 /** When someone is talking, on the edited timeline: the words still in the edit, joined across gaps under 0.8 s. */
 export function speechSpans(words: Word[], segs: Segment[], speed = 1): { s: number; e: number }[] {
   const out: { s: number; e: number }[] = [];
-  for (const w of words) {
-    const s = outAt(segs, w.s, speed);
-    if (s === null) continue;
-    const e = s + (w.e - w.s) / speed;
+  for (const { s, e } of heardWords(words, segs, speed)) {
     const last = out[out.length - 1];
     if (last && s - last.e < 0.8) last.e = Math.max(last.e, e);
     else out.push({ s, e });
@@ -1311,10 +1368,7 @@ export interface Cutaway {
 
 /** The sentences still in the edit, timed on the edited timeline, which is where stickers sit. */
 export function editedSentences(words: Word[], segs: Segment[], speed = 1): Sentence[] {
-  return sentencesOf(words.flatMap((w) => {
-    const s = outAt(segs, w.s, speed);
-    return s === null ? [] : [{ ...w, s, e: s + (w.e - w.s) / speed }];
-  }));
+  return sentencesOf(heardWords(words, segs, speed));
 }
 
 /** Stored suggestions, kept only when well formed. */

@@ -33,6 +33,7 @@ import {
   truePeak,
   type Level,
   keepSegments,
+  outIn,
   nameTagVisible,
   outAt,
   soundStats,
@@ -57,6 +58,7 @@ import { joinKept, sampleKept, wholeFits, type KeptPart } from "@/lib/keptSound"
 import { clipStats } from "@/lib/exportCheck";
 import { FAST, isFast, segLength } from "@/lib/fastPauses";
 import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
+import { withColdOpen } from "@/lib/coldOpen";
 
 // ---------- sound for captions ----------
 
@@ -902,7 +904,7 @@ export function syncBroll(els: Map<string, HTMLVideoElement>, list: Broll[] | un
 }
 
 export function planFor(words: Word[], duration: number, s: EditSettings) {
-  const segs = keepSegments(words, duration, s);
+  const segs = withColdOpen(keepSegments(words, duration, s), s.coldOpen);
   return { segs, caps: buildCaptions(words, s), total: totalLength(segs) / speedOf(s) };
 }
 
@@ -1165,9 +1167,11 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const cues = kind === "audio" ? [] : motionOf(settings, plan.segs, plan.caps, plan.total).cues;
     const sfxTick = cueTicker();
     let done = 0;
+    // the part playing: a part heard twice (a cold open) maps by it, not by the source time alone
+    let segI = 0;
     const endLen = settings.endCard && brand && kind !== "audio" ? END_CARD_SECONDS : 0;
     const draw = () => {
-      const out = Math.min(plan.total, outAt(plan.segs, v.currentTime, speed) ?? done / speed);
+      const out = Math.min(plan.total, outIn(plan.segs, segI, v.currentTime, speed) ?? done / speed);
       drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand, broll: syncBroll(brEls, settings.broll, out, rec.state === "recording"), fx, peaks });
       if (rec.state === "recording") {
         voSync(out);
@@ -1180,6 +1184,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     };
     for (let i = 0; i < plan.segs.length; i++) {
       const seg = plan.segs[i];
+      segI = i;
       await seek(v, seg.start);
       draw();
       // a pause played fast: the picture at 4x with the voice faded out, switched back a tick early so the next word starts at speed

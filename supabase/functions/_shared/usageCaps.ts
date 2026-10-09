@@ -35,6 +35,8 @@ export const DAILY_LIMITS = {
   "stock-search": 100,
   // "Add B-roll for me" in the video editor (video-assist broll): Jev picks the lines, OpenAI writes the searches.
   "broll-picks": 20,
+  // "Open with my strongest line" in the video editor (video-assist coldopen): Jev rates the lines, no LLM.
+  "cold-open": 20,
   // "Make the image" on Write (ai-image, Higgsfield Soul v2, about USD 0.006 each).
   "ai-image": 5,
   // An AI B-roll clip when stock has nothing (ai-image mode "broll": Soul v2 picture + DoP lite, about USD 0.13
