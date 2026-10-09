@@ -34,6 +34,10 @@ import {
   type SavedClone,
 } from "./reelClone";
 
+// Node builds its fetch classes the first time one is used, which takes seconds on a busy
+// machine: build them while this file loads, not inside a test's 5 s.
+void new Response("");
+
 const invoke = supabase.functions.invoke as unknown as ReturnType<typeof vi.fn>;
 
 const result = (over: Partial<CloneResponse["source"]> = {}): CloneResponse => ({

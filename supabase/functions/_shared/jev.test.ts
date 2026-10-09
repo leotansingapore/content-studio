@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { JEV_ENDPOINT, JEV_MODEL, askJev, choiceOf, noulOf, scoreOf, type JevQuestion } from "./jev";
 
+// Node builds its fetch classes the first time one is used, which takes seconds on a busy
+// machine: build them while this file loads, not inside a test's 5 s.
+void new Response("");
+
 const q: Record<string, JevQuestion> = { lead: { type: "noul", instructions: "Is this a potential client?" } };
 const env = (key?: string) => ({ get: (n: string) => (n === "TYPESAFE_API_KEY" ? key : undefined) });
 const reply = (status: number, body: unknown) =>
