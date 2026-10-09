@@ -475,3 +475,14 @@ function paintBackdrop(g: CanvasRenderingContext2D, x: number, y: number, w: num
   g.drawImage(front, x, y);
 }
 
+
+// ---------- faces for picking a cover frame (coverFrame.ts) ----------
+
+/** The biggest face in each picture, as shares of it, or null where none shows. */
+export async function biggestFaces(pictures: HTMLCanvasElement[]): Promise<(FaceBox | null)[]> {
+  const det = await faceDetector();
+  return pictures.map((c) => {
+    const b = det.detect(c).detections.flatMap((d) => (d.boundingBox ? [d.boundingBox] : [])).sort((x, y) => y.width - x.width)[0];
+    return b ? { x0: b.originX / c.width, y0: b.originY / c.height, x1: (b.originX + b.width) / c.width, y1: (b.originY + b.height) / c.height } : null;
+  });
+}

@@ -864,7 +864,7 @@ export function drawOverlay(g: CanvasRenderingContext2D, o: Overlay, intro = 1) 
  * a dark band and the title set large in the style's caption face. PNG at the
  * export size, so it uploads as the reel cover without resizing.
  */
-export async function makeCover(video: HTMLVideoElement, settings: EditSettings, title: string, fx?: Frame["fx"]): Promise<Blob> {
+export async function makeCover(video: HTMLVideoElement, settings: EditSettings, title: string, fx?: Frame["fx"], chin?: number): Promise<Blob> {
   await ensureCaptionFonts();
   const [W, H] = aspectSize(settings.aspect, video.videoWidth, video.videoHeight);
   const c = document.createElement("canvas");
@@ -879,7 +879,12 @@ export async function makeCover(video: HTMLVideoElement, settings: EditSettings,
   const lines = wrap(g, text.split(/\s+/), W * 0.84).slice(0, 4);
   const lh = px * 1.08;
   const blockH = lines.length * lh;
-  const top = H * (settings.aspect === "16:9" ? 0.5 : 0.62) - blockH / 2;
+  // chin: where the face ends in the source picture (a share of its height, coverFrame.ts), so on a filled
+  // frame the title sits under the chin, not on it
+  const dh = video.videoHeight * Math.max(W / video.videoWidth, H / video.videoHeight);
+  const below = chin === undefined || settings.fit !== "fill" ? undefined : ((H - dh) / 2 + chin * dh) / H;
+  const mid = H * (settings.aspect === "16:9" ? 0.5 : 0.62) - blockH / 2;
+  const top = below === undefined ? mid : Math.min(H - blockH - px, Math.max(mid, H * below + px * 0.3));
   const grad = g.createLinearGradient(0, top - px, 0, top + blockH + px);
   grad.addColorStop(0, "rgba(0,0,0,0)");
   grad.addColorStop(0.35, "rgba(0,0,0,0.55)");

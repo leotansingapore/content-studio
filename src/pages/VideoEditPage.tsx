@@ -17,6 +17,7 @@ import ColdOpenControl from "@/components/ColdOpenControl";
 import StylePresets from "@/components/StylePresets";
 import ReelStyleCopy from "@/components/ReelStyleCopy";
 import { coldLength } from "@/lib/coldOpen";
+import { coverTimes, findCoverFrame } from "@/lib/coverFrame";
 import { onBrollApply } from "@/lib/autoBroll";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
@@ -394,6 +395,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   // post titles and the cover text, with the moment to take the cover from
   const [publish, setPublish] = useState<PublishIdea | undefined>(() => sanitizePublish(project.publish));
   const [ideating, setIdeating] = useState(false);
+  const [coverBusy, setCoverBusy] = useState(false);
   const [writingCaption, setWritingCaption] = useState(false);
   const [savedDraft, setSavedDraft] = useState(false);
   const [translating, setTranslating] = useState<string | null>(null);
@@ -1071,7 +1073,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const left = useUsesLeft(thinking || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning);
   const none = (f: Parameters<typeof left>[0]) => left(f) === 0;
   // the cover from the frame on screen, or from a moment on the edit (a cover idea's), with the cover text set large
-  const saveCover = async (at?: number | null) => {
+  const saveCover = async (at?: number | null, note?: string, chin?: number) => {
     const v = video.current;
     if (!v) return;
     try {
@@ -1084,15 +1086,27 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           window.setTimeout(done, 2000);
         });
       }
-      const blob = await makeCover(v, settings, publish?.cover.trim() || settings.hook || project.name, fx);
+      const blob = await makeCover(v, settings, publish?.cover.trim() || settings.hook || project.name, fx, chin);
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = `${project.name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}-cover.png`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-      toast({ title: "Cover saved", description: "Made from the frame on screen. Scrub to another moment for a different one." });
+      toast({ title: "Cover saved", description: note ?? "Made from the frame on screen. Scrub to another moment for a different one." });
     } catch (e) {
       toast({ title: "Couldn't make the cover", description: (e as Error).message, variant: "destructive" });
+    }
+  };
+
+  // the cover idea's line: the frame around it with the biggest, sharpest face (coverFrame.ts)
+  const saveBestCover = async (at: number) => {
+    if (!file) return;
+    setCoverBusy(true);
+    try {
+      const best = await findCoverFrame(file, coverTimes(at, plan.total), (t) => srcAt(plan.segs, t, speed)).catch(() => null);
+      await saveCover(best?.t ?? at, best ? `The ${best.face ? "sharpest frame with your face biggest" : "sharpest frame"} near the line, at ${fmtTime(best.t)}.` : undefined, best?.face?.y1);
+    } finally {
+      setCoverBusy(false);
     }
   };
 
@@ -1688,8 +1702,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal sm:h-9" />
                   </label>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button size="sm" className="h-11 gap-1.5 sm:h-9" onClick={() => void saveCover(publish.at)} disabled={!file || !publish.cover.trim()}>
-                      <ImageIcon className="h-3.5 w-3.5" /> {publish.at !== null ? `Make the cover at ${fmtTime(publish.at)}` : "Make the cover from this frame"}
+                    <Button size="sm" className={`h-11 gap-1.5 sm:h-9 ${coverBusy ? "disabled:opacity-100" : ""}`} onClick={() => void (publish.at !== null ? saveBestCover(publish.at) : saveCover())} disabled={!file || !publish.cover.trim() || coverBusy}>
+                      {coverBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <ImageIcon className="h-3.5 w-3.5" />}
+                      {coverBusy ? "Finding the best frame..." : publish.at !== null ? `Make the cover near ${fmtTime(publish.at)}` : "Make the cover from this frame"}
                     </Button>
                     {publish.at !== null && <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-8" onClick={() => seekOut(publish.at!)}>Show me</Button>}
                   </div>
