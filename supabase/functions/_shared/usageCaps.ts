@@ -8,8 +8,10 @@ export const DAILY_LIMITS = {
   "reel-concepts": 20,
   // A shot list for a short-video draft in Write (storyboard).
   storyboard: 30,
-  // The frames read after each Instagram clone (reel-visuals).
+  // The frames read after each Instagram clone (reel-visuals), and a reel's captions read for "Copy a reel's style".
   "reel-visuals": 20,
+  // "Copy a reel's style" in the video editor: the post read through Apify (clone-reel style), no OpenAI.
+  "reel-style": 20,
   "idea-dump": 30,
   // One long piece into 5 posts (idea-dump mode "long"), about 4 US cents a run.
   "repurpose-long": 20,

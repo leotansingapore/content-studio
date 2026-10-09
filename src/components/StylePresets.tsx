@@ -6,9 +6,8 @@ import { useState } from "react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { PRESETS, applyRecipe, isRecipe, needsKeyLines, type Preset } from "@/lib/stylePresets";
-import { editedSentences, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
-import { keyLinesFrom, pickKeyLines } from "@/lib/videoMotion";
+import { PRESETS, applyRecipe, isRecipe, needsKeyLines, pickLinesFor, type Preset } from "@/lib/stylePresets";
+import type { EditSettings, Segment, Word } from "@/lib/videoEdit";
 
 export default function StylePresets({ settings, words, segs, total, speed, apply, disabled }: {
   settings: EditSettings;
@@ -31,8 +30,7 @@ export default function StylePresets({ settings, words, segs, total, speed, appl
     if (left === 0) return toast({ title: "Style on, without its zooms and pop-ups", description: "No key line picks left today. Switch them on under Hook and frame tomorrow." });
     setPicking(true);
     try {
-      const sent = editedSentences(words, segs, speed);
-      const lines = keyLinesFrom(await pickKeyLines(sent, total, next.hook?.trim() ? next.hookSeconds : 0), sent, segs, speed);
+      const lines = await pickLinesFor(next, words, segs, total, speed);
       if (lines) apply({ motion: { lines } });
       else toast({ title: "Zooms and pop-ups are waiting for key lines", description: "This works on videos in English. Switch them on under Hook and frame to try again." });
     } catch (e) {

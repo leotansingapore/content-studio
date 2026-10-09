@@ -6,13 +6,18 @@
 // - The frames are images the signed-in user's browser made; nothing is
 //   fetched here and nothing is stored.
 // - Each request counts once against the daily cap (usageCaps "reel-visuals").
+// - {mode: "style", frames, pacing}: "Copy a reel's style" in the video editor.
+//   OpenAI writes how the captions and framing look and reads the overlays,
+//   Jev picks the editor's look from that (style.ts), same cap.
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification.
 // Logic: ./logic.ts (tested).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { askJev } from "../_shared/jev.ts";
 import { VISUALS_RESPONSE_FORMAT, buildVisualsPrompt, parseVisualsRequest, validateVisuals } from "./logic.ts";
+import { STYLE_RESPONSE_FORMAT, buildStylePrompt, parseStyleRequest, readLook, styleQuestions, styleState, validateStyle } from "./style.ts";
 
 const OPENAI_MODEL = "gpt-4.1";
 const AI_TIMEOUT_MS = 70_000;
@@ -42,7 +47,9 @@ Deno.serve(async (req) => {
     const uid = userData?.user?.id;
     if (!uid) return fail("unauthorized", "Sign in to read the video.", 401);
 
-    const parsed = parseVisualsRequest(await req.json().catch(() => null));
+    const body = await req.json().catch(() => null);
+    const styleMode = body?.mode === "style";
+    const parsed = styleMode ? parseStyleRequest(body) : parseVisualsRequest(body);
     if (parsed.ok === false) return fail("bad_request", parsed.error, 400);
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
@@ -57,7 +64,7 @@ Deno.serve(async (req) => {
       return json(refusal.body, refusal.status);
     }
 
-    const { system, parts } = buildVisualsPrompt(parsed.value);
+    const { system, parts } = styleMode ? buildStylePrompt(parsed.value) : buildVisualsPrompt(parsed.value as Parameters<typeof buildVisualsPrompt>[0]);
     let res: Response;
     try {
       res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -66,8 +73,8 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: OPENAI_MODEL,
           temperature: 0.4,
-          max_tokens: 1500,
-          response_format: VISUALS_RESPONSE_FORMAT,
+          max_tokens: styleMode ? 900 : 1500,
+          response_format: styleMode ? STYLE_RESPONSE_FORMAT : VISUALS_RESPONSE_FORMAT,
           messages: [
             { role: "system", content: system },
             { role: "user", content: parts },
@@ -88,7 +95,19 @@ Deno.serve(async (req) => {
     const data = await res.json().catch(() => null);
     const message = data?.choices?.[0]?.message;
     if (message?.refusal) console.error("openai refused", String(message.refusal).slice(0, 200));
-    const visuals = validateVisuals(message?.content ?? null, parsed.value.beats.length, parsed.value.pacing.durationSec);
+    if (styleMode) {
+      const style = validateStyle(message?.content ?? null, parsed.value.pacing.durationSec);
+      if (!style) {
+        console.error("openai style output rejected", String(message?.content ?? "").slice(0, 300));
+        return fail("ai_failed", "The reel's look didn't come back right. Try again.", 502);
+      }
+      // Jev picks the look from the description (Leo's rule: a pick is a decision); null keeps the person's own
+      const look = readLook(await askJev(styleState(style), styleQuestions(), { who: "reel-visuals style", timeoutMs: 10_000 }));
+      console.log("reel-visuals style ok", parsed.value.frames.length, `${Date.now() - startedAt}ms`);
+      return json({ style, look, usage: { used: charged.used, limit: charged.limit } });
+    }
+    const beats = (parsed.value as Parameters<typeof buildVisualsPrompt>[0]).beats;
+    const visuals = validateVisuals(message?.content ?? null, beats.length, parsed.value.pacing.durationSec);
     if (!visuals) {
       console.error("openai output rejected", String(message?.content ?? "").slice(0, 300));
       return fail("ai_failed", "The video breakdown didn't come back right. Try again.", 502);

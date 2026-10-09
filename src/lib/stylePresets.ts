@@ -7,7 +7,8 @@
 // play at, and one numbers-first style for finance explainers.
 // A copied reel's style (reelStyle.ts) is a recipe too.
 
-import { withStyle, type EditSettings, type StyleId } from "@/lib/videoEdit";
+import { editedSentences, withStyle, type EditSettings, type Segment, type StyleId, type Word } from "@/lib/videoEdit";
+import { keyLinesFrom, pickKeyLines } from "@/lib/videoMotion";
 
 /** Set by every recipe. */
 const ALWAYS = ["style", "wordsPerCaption", "uppercase", "highlightNumbers", "progressBar", "punchIn", "keyZooms", "numberCards", "popups", "sfx", "maxPause", "speed", "hookSeconds", "fit"] as const;
@@ -92,8 +93,14 @@ export function isRecipe(s: EditSettings, r: Recipe): boolean {
   return RECIPE_KEYS.every((k) => s[k] === r[k]);
 }
 
-/** Whether the recipe needs key lines picked (zooms or pop-ups) that this edit doesn't have yet. */
-export function needsKeyLines(s: EditSettings, r: Recipe): boolean {
+/** Whether zooms or pop-ups in r need key lines picked that this edit doesn't have yet. */
+export function needsKeyLines(s: EditSettings, r: Pick<EditSettings, "keyZooms" | "popups">): boolean {
   const lines = s.motion?.lines ?? [];
-  return (r.keyZooms && !lines.length) || (!!r.popups && !lines.some((l) => l.pop));
+  return (!!r.keyZooms && !lines.length) || (!!r.popups && !lines.some((l) => l.pop));
+}
+
+/** Jev's key lines for the edit as played (one "motion-picks" use), as switching zooms on under Motion picks them; null when none came back. */
+export async function pickLinesFor(s: EditSettings, words: Word[], segs: Segment[], total: number, speed: number) {
+  const sent = editedSentences(words, segs, speed);
+  return keyLinesFrom(await pickKeyLines(sent, total, s.hook?.trim() ? s.hookSeconds : 0), sent, segs, speed);
 }

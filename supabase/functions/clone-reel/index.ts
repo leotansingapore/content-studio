@@ -4,6 +4,9 @@
 // concepts built on it and write the consultant's own version of the first.
 // With {concept} as well it writes the version of that concept from the cached
 // post (usageCaps "reel-concepts"); a post never cloned is refused, not scraped.
+// With {style: true} it only reads the post (no OpenAI) and returns it with
+// Instagram's video link, for "Copy a reel's style" in the video editor; the
+// scrape counts as "reel-style", a cached post costs nothing.
 //
 // - Public post data is cached in cs_reel_sources (supabase/hub/010), so the
 //   same post pasted again skips the scrape. Numbers are re-read after 24 hours;
@@ -327,8 +330,9 @@ Deno.serve(async (req) => {
     const parsed = parseReelUrl(body?.url);
     if (parsed.ok === false) return json({ code: "bad_url", error: parsed.message }, 400);
 
-    const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiKey) {
+    const styleOnly = body?.style === true && body?.concept === undefined;
+    const openaiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
+    if (!openaiKey && !styleOnly) {
       console.error("OPENAI_API_KEY is not set");
       return failure("not_configured");
     }
@@ -347,7 +351,7 @@ Deno.serve(async (req) => {
 
     // Counted once per request, just before its first paid call.
     let usage: UsageResult | null = null;
-    const charge = async () => (usage ??= await consumeUsage(admin, uid, concept ? "reel-concepts" : "reel-clone"));
+    const charge = async () => (usage ??= await consumeUsage(admin, uid, styleOnly ? "reel-style" : concept ? "reel-concepts" : "reel-clone"));
 
     if (decision !== "use") {
       const apifyKey = Deno.env.get("APIFY_API_KEY");
@@ -378,6 +382,11 @@ Deno.serve(async (req) => {
           console.warn("refresh failed, using cached post", parsed.lookupKey, code);
         }
       }
+    }
+
+    if (styleOnly) {
+      console.log("clone-reel style ok", parsed.platform, decision, `${Date.now() - startedAt}ms`);
+      return json({ source: { ...toCloneSource(row!), videoUrl } });
     }
 
     const charged = await charge();

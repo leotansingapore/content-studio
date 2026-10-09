@@ -15,6 +15,7 @@ import BrollLayout from "@/components/BrollLayout";
 import HookOptions from "@/components/HookOptions";
 import ColdOpenControl from "@/components/ColdOpenControl";
 import StylePresets from "@/components/StylePresets";
+import ReelStyleCopy from "@/components/ReelStyleCopy";
 import { coldLength } from "@/lib/coldOpen";
 import { onBrollApply } from "@/lib/autoBroll";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
@@ -1560,6 +1561,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <InfoTip label="About vibe edit">Say the change in plain words; Undo puts it back.</InfoTip></p>
             <StylePresets settings={settings} words={words} segs={plan.segs} total={plan.total} speed={speed} disabled={thinking}
               apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }} />
+            <ReelStyleCopy projectId={project.id} settings={settings} words={words} segs={plan.segs} total={plan.total} speed={speed} disabled={thinking}
+              apply={(next) => { setHistory((h) => [...h.slice(-19), settingsRef.current]); setSettings(next); }}
+              onSaveSkill={(name) => setSkillForm({ name: name.slice(0, 40), prompt: "", isDefault: false })} />
             {skills.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Your editing skills">
                 {skills.map((sk) => (
