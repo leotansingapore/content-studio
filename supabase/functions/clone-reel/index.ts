@@ -55,6 +55,7 @@ import {
   type ParsedReelUrl,
   type SourceRow,
 } from "./logic.ts";
+import { openaiFetch } from "../_shared/openaiChat.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
@@ -281,7 +282,7 @@ async function write<T>(
 ): Promise<T> {
   let res: Response;
   try {
-    res = await fetch("https://api.openai.com/v1/chat/completions", {
+    res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({

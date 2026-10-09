@@ -57,6 +57,7 @@ import { buildCaptionsMessages, parseCaptionsReply, parseCaptionsRequest } from 
 import { coldQuestions, coldState, parseColdOpenRequest, readColdPick } from "./coldopen.ts";
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
+import { openaiFetch } from "../_shared/openaiChat.ts";
 import {
   CLIP_VIEWER,
   MAX_AUDIO_BYTES,
@@ -159,7 +160,7 @@ Deno.serve(async (req) => {
         const r = usageRefusal(usage);
         return json(r.body, r.status);
       }
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.2, max_tokens: 4000, response_format: { type: "json_object" }, messages: buildTranslateMessages(t.lang, t.lines) }),
@@ -192,7 +193,7 @@ Deno.serve(async (req) => {
         let found: ReturnType<typeof parseClipsReply> = null;
         let proposed = 0;
         for (let attempt = 0; attempt < 2 && !found?.length; attempt++) {
-          const res = await fetch("https://api.openai.com/v1/chat/completions", {
+          const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 200 + 120 * limit, response_format: { type: "json_object" }, messages: buildClipsMessages(w.sentences, c.duration, c.about, w) }),
@@ -243,7 +244,7 @@ Deno.serve(async (req) => {
         const r = usageRefusal(usage);
         return json(r.body, r.status);
       }
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.4, max_tokens: 900, response_format: { type: "json_object" }, messages: buildCutawaysMessages(c.sentences, c.duration) }),
@@ -277,7 +278,7 @@ Deno.serve(async (req) => {
       const pick = lines ? popupLines(m.lines, lines, m.duration) : [];
       let popups = null;
       if (pick.length) {
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.4, max_tokens: 500, response_format: { type: "json_object" }, messages: buildPopupMessages(m.lines, pick) }),
@@ -311,7 +312,7 @@ Deno.serve(async (req) => {
       if (!pick.length) return json({ picks: [] });
       // Jev says what each line needs (a scene clip only when it says scene); the LLM writes the words only
       const kinds = readKinds(await askJev(state, kindQuestions(lines, pick), { who: "video-assist broll kinds", timeoutMs: 10_000 }), pick);
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.3, max_tokens: 500, response_format: { type: "json_object" }, messages: buildBrollMessages(lines, pick, kinds) }),
@@ -334,7 +335,7 @@ Deno.serve(async (req) => {
         const r = usageRefusal(usage);
         return json(r.body, r.status);
       }
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 300, response_format: { type: "json_object" }, messages: buildHooksMessages(h.lines, h.formulas) }),
@@ -360,7 +361,7 @@ Deno.serve(async (req) => {
         const r = usageRefusal(usage);
         return json(r.body, r.status);
       }
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 1200, response_format: { type: "json_object" }, messages: buildCaptionsMessages(c.transcript, c.instagram, c.title) }),
@@ -399,7 +400,7 @@ Deno.serve(async (req) => {
         const r = usageRefusal(usage);
         return json(r.body, r.status);
       }
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.6, max_tokens: 300, response_format: { type: "json_object" }, messages: buildPublishMessages(p.sentences, p.duration) }),
@@ -425,7 +426,7 @@ Deno.serve(async (req) => {
       const r = usageRefusal(usage);
       return json(r.body, r.status);
     }
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({

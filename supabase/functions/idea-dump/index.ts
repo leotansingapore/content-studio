@@ -26,6 +26,7 @@ import {
   validateBriefs,
   validateLong,
 } from "./logic.ts";
+import { openaiFetch } from "../_shared/openaiChat.ts";
 
 const OPENAI_MODEL = "gpt-4.1";
 const OPENAI_TIMEOUT_MS = 90_000;
@@ -50,7 +51,7 @@ async function developWithOpenAi(
   out: { name: string; schema: unknown; maxTokens: number } = { name: "idea_briefs", schema: IDEA_BRIEF_SCHEMA, maxTokens: 6000 },
 ): Promise<string | null> {
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -18,6 +18,7 @@ import {
   validateCarouselCopy,
   validateRecap,
 } from "./logic.ts";
+import { openaiFetch } from "../_shared/openaiChat.ts";
 
 const OPENAI_TIMEOUT_MS = 45_000;
 const RETRY_LATER = "Couldn't tighten the slides right now. Try again in a minute.";
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
 
     let res: Response;
     try {
-      res = await fetch("https://api.openai.com/v1/chat/completions", {
+      res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify(buildOpenAiBody(buildCarouselPrompt(parsed.request))),

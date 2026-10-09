@@ -18,6 +18,7 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import { VISUALS_RESPONSE_FORMAT, buildVisualsPrompt, parseVisualsRequest, validateVisuals } from "./logic.ts";
 import { STYLE_RESPONSE_FORMAT, buildStylePrompt, parseStyleRequest, readLook, styleQuestions, styleState, validateStyle } from "./style.ts";
+import { openaiFetch } from "../_shared/openaiChat.ts";
 
 const OPENAI_MODEL = "gpt-4.1";
 const AI_TIMEOUT_MS = 70_000;
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
     const { system, parts } = styleMode ? buildStylePrompt(parsed.value) : buildVisualsPrompt(parsed.value as Parameters<typeof buildVisualsPrompt>[0]);
     let res: Response;
     try {
-      res = await fetch("https://api.openai.com/v1/chat/completions", {
+      res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
