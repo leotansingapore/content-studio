@@ -25,6 +25,8 @@ export interface CaptionJob {
 }
 
 let job: CaptionJob | null = null;
+/** The project whose job is starting (reading its kept parts), so a second press can't start another. */
+let starting: string | null = null;
 const listeners = new Set<(j: CaptionJob | null) => void>();
 const emit = () => listeners.forEach((l) => l(job && { ...job }));
 export const captionJob = () => job;
@@ -67,8 +69,10 @@ async function wavOf(reader: SoundReader, part: Part): Promise<Blob> {
  */
 export async function startCaptions(userId: string, project: VideoProject, file: Blob): Promise<void> {
   if (job?.state === "running") throw new Error(`Captions are still running for ${job.name}.`);
+  if (starting !== null) throw new Error(`Captions are still running for ${starting}.`);
+  starting = project.name;
   const plan = captionPlan(project.duration);
-  const results = await partsDone(project);
+  const results = await partsDone(project).finally(() => (starting = null));
   const todo = plan.map((_, k) => k).filter((k) => !results[k]);
   const j: CaptionJob = { id: project.id, name: project.name, state: "running", done: plan.length - todo.length, of: plan.length };
   job = j;
