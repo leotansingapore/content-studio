@@ -11,6 +11,8 @@ import {
 } from "./profiles";
 import { isSyncedKeyFor } from "./cloudSync";
 import { loadDrafts, saveDrafts } from "./draftHistory";
+import { isVoiceProfileUsable, loadVoiceProfile, saveVoiceProfile } from "./voiceProfile";
+import { addCoachEntry, loadCoachHistory, type CoachReport } from "./coach";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -67,5 +69,38 @@ describe("profiles", () => {
   it("falls back to the default when the open profile was removed on another device", () => {
     setActiveProfile(UID, "pgone");
     expect(scoped(UID)).toBe(UID);
+  });
+});
+
+describe("each profile's voice and Coach history", () => {
+  const ls = () => (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
+  const report = (score: number) => ({ score, postCount: 3, avgWords: 80, dimensions: [], strengths: [], fixes: [`fix ${score}`], perPost: [] }) as CoachReport;
+
+  it("keeps the voice samples apart per profile, under synced keys", () => {
+    const mb = addProfile(UID, "MoneyBees");
+    saveVoiceProfile(UID, { posts: ["a".repeat(100), "b".repeat(100), "c".repeat(100)], updatedAt: "" });
+    setActiveProfile(UID, mb.id);
+    expect(loadVoiceProfile(UID)).toBeNull();
+    saveVoiceProfile(UID, { posts: ["d".repeat(100), " ".repeat(5) + "e".repeat(99), "f".repeat(100)], updatedAt: "" });
+    expect(isVoiceProfileUsable(loadVoiceProfile(UID))).toBe(false); // one sample is 99 characters once trimmed
+    expect(ls().getItem(`content-studio-voice-${UID}~${mb.id}`)).not.toBeNull();
+    setActiveProfile(UID, DEFAULT_PROFILE_ID);
+    expect(isVoiceProfileUsable(loadVoiceProfile(UID))).toBe(true);
+    expect(isSyncedKeyFor(`content-studio-voice-${UID}~${mb.id}`, UID)).toBe(true);
+  });
+
+  it("keeps the 30 newest Coach checks, per profile, and reads a damaged list as empty", () => {
+    for (let i = 1; i <= 31; i++) addCoachEntry(UID, report(i));
+    const list = loadCoachHistory(UID);
+    expect(list).toHaveLength(30);
+    expect([list[0].score, list[29].score]).toEqual([31, 2]);
+    expect(list[0].topFix).toBe("fix 31");
+    const mb = addProfile(UID, "MoneyBees");
+    setActiveProfile(UID, mb.id);
+    expect(loadCoachHistory(UID)).toEqual([]);
+    addCoachEntry(UID, report(50));
+    expect(JSON.parse(ls().getItem(`content-studio-coach-${UID}~${mb.id}`) ?? "[]")).toHaveLength(1);
+    ls().setItem(`content-studio-coach-${UID}~${mb.id}`, JSON.stringify({ a: 1 }));
+    expect(loadCoachHistory(UID)).toEqual([]);
   });
 });
