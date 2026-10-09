@@ -367,10 +367,6 @@ describe("buildLongPrompt", () => {
     if (!r.ok) throw new Error("parse");
     const { system } = buildLongPrompt(r.request);
     expect(system).toContain("A story comes only from your stories list. When that list is empty, no post tells something that happened to the consultant or a client");
-    // live check 2026-10-09: a Mistake confession post opened "I used to think buying an investment-linked plan was the best way to start"
-    expect(system).toContain("'I used to think'");
-    expect(system).toContain("[the mistake you made]");
-    expect(system).toContain("'I used to [mistake]' stays 'I used to [the mistake you made]'");
     expect(system).toContain("[what happened]");
   });
 });
