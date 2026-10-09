@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestCell, hashtagRanking, parseHashtags, postingTime, postingTimeGrid, type TrackedPost } from "./analytics";
+import { bestCell, hashtagRanking, parseHashtags, postingTime, postingTimeGrid, type TrackedPost, suggestPostingTime, postingTimeOn } from "./analytics";
 
 const p = (id: string, draft: string, impressions: number, engaged: number, at: Partial<TrackedPost> = {}): TrackedPost =>
   ({ id, hook: "", draft, platform: "linkedin", format: "text-post", createdAt: "2026-10-01T00:00:00Z", status: "posted",
@@ -81,7 +81,6 @@ describe("suggestPostingTime", () => {
   const now = new Date(2026, 9, 8, 10, 0);
 
   it("uses the best-landing hour from timed posts, on its next free day", async () => {
-    const { suggestPostingTime } = await import("./analytics");
     // Thursday 8pm posts land far better than Monday 9am ones
     const posts = [
       p("a", "x", 1000, 120, { scheduledFor: "2026-09-24T20:00" }),
@@ -96,7 +95,6 @@ describe("suggestPostingTime", () => {
   });
 
   it("falls back to a common slot for the platform with no history, never in the next 2 hours", async () => {
-    const { suggestPostingTime } = await import("./analytics");
     expect(suggestPostingTime([], "instagram", [], now)).toEqual({ at: "2026-10-14T19:30", why: "common" });
     // Wed 6pm: tonight's 7:30pm slot is under 2 hours away, so next week's
     expect(suggestPostingTime([], "instagram", [], new Date(2026, 9, 14, 18, 0)).at).toBe("2026-10-21T19:30");
@@ -108,7 +106,6 @@ describe("suggestPostingTime with the adviser's own posting times", () => {
   const now = new Date(2026, 9, 8, 10, 0); // Thu 8 Oct 2026, 10:00
 
   it("takes the next open slot, skipping days already scheduled and slots under 2 hours away", async () => {
-    const { suggestPostingTime } = await import("./analytics");
     // Tue 8:30, Thu 11:00 (under 2 hours from now), Thu 19:30
     const slots = ["1T08:30", "3T11:00", "3T19:30"];
     expect(suggestPostingTime([], "linkedin", [], now, slots)).toEqual({ at: "2026-10-08T19:30", why: "slot" });
@@ -117,14 +114,12 @@ describe("suggestPostingTime with the adviser's own posting times", () => {
   });
 
   it("ignores malformed slots and falls back to results or a common slot", async () => {
-    const { suggestPostingTime } = await import("./analytics");
     expect(suggestPostingTime([], "instagram", [], now, ["7T09:00", "1T25:00", "x"]).why).toBe("common");
   });
 });
 
 describe("postingTimeOn (a plan slot's time on its day)", () => {
   it("uses the adviser's own time that day, else the best-landing hour, else the common hour", async () => {
-    const { postingTimeOn } = await import("./analytics");
     const slots = ["1T08:30", "1T19:00", "3T20:00"];
     expect(postingTimeOn([], "linkedin", 1, slots)).toEqual({ time: "08:30", why: "slot" });
     expect(postingTimeOn([], "linkedin", 0, slots)).toEqual({ time: "08:30", why: "common" });

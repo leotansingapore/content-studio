@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { embedUrlFor } from "./embed";
+import { embedUrlFor, originalUrlFor, safeExternalUrl } from "./embed";
 
 describe("embedUrlFor", () => {
   it("maps a TikTok video link to the embed player", () => {
@@ -21,7 +21,6 @@ describe("embedUrlFor", () => {
 
 describe("hostile links", () => {
   it("never accepts a javascript: link or a look-alike host", async () => {
-    const { embedUrlFor, originalUrlFor, safeExternalUrl } = await import("./embed");
     for (const bad of [
       "javascript:alert(document.cookie)//tiktok.com/@x/video/1",
       "https://evil.example/?tiktok.com/@x/video/1",
@@ -35,7 +34,6 @@ describe("hostile links", () => {
     expect(safeExternalUrl("https://mothership.sg/x")).toBe("https://mothership.sg/x");
   });
   it("rebuilds the original link from the id, not the input", async () => {
-    const { originalUrlFor } = await import("./embed");
     expect(originalUrlFor("https://www.tiktok.com/@jordfinance/video/7690781989669997831?x=<script>")).toBe("https://www.tiktok.com/@/video/7690781989669997831");
     expect(originalUrlFor("https://m.instagram.com/herfirst100k/reel/DeKJG2RJBHN/?igsh=1")).toBe("https://www.instagram.com/reel/DeKJG2RJBHN/");
   });

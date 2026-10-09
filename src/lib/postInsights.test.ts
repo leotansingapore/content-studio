@@ -198,7 +198,6 @@ describe("formatsWorkingNow", () => {
 
 describe("most viewed sort", () => {
   it("ranks by video views", async () => {
-    const { sortPosts } = await import("./postInsights");
     const mk = (id: string, views: number) => ({ post: { shortCode: id, views, likes: 0, comments: 0 }, insight: {} }) as never;
     const out = sortPosts([mk("a", 10), mk("b", 500), mk("c", 0)], "viewed", { averages: {}, now: 0 });
     expect(out.map((p: { post: { shortCode: string } }) => p.post.shortCode)).toEqual(["b", "a", "c"]);

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { loadProjects, saveProject } from "./videoProjects";
 
 const deleted: string[] = [];
 vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_ANON_KEY: "", SUPABASE_URL: "" }));
@@ -25,7 +26,6 @@ describe("saveProject", () => {
   const project = (id: string, fileId?: string) => ({ id, name: id, createdAt: "", updatedAt: "", duration: 60, size: 1, words: [], settings: {} as never, thumb: "", ...(fileId ? { fileId } : {}) });
 
   it("keeps up to 40 clips cut from an upload apart from the 12 latest uploads, and drops a file only when nothing uses it", async () => {
-    const { loadProjects, saveProject } = await import("./videoProjects");
     saveProject("u", project("pod"));
     for (let i = 0; i < 32; i++) saveProject("u", project(`clip${i}`, "pod"));
     expect(loadProjects("u")).toHaveLength(33);

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { defaultSettings, focusAt } from "./videoEdit";
 import { CUT_CHANGE, cropShare, findCuts, frameChange, lookSpans, pickFace, sanitizeTrack, smoothTrack, trackCovers, trackStep } from "./faceFollow";
+import { blurPx, maskAlpha, MP_VERSION, ringOf, sanitizeBackdrop, touchAmounts } from "./faceVision";
 
 describe("following the face", () => {
   it("knows how much of a landscape video a 9:16 frame shows", () => {
@@ -129,7 +130,6 @@ describe("following the face", () => {
 
 describe("the face effects library", () => {
   it("loads its wasm for the same version as the package", async () => {
-    const { MP_VERSION } = await import("./faceVision");
     const pkg = JSON.parse(readFileSync("package.json", "utf8"));
     expect(pkg.dependencies["@mediapipe/tasks-vision"]).toBe(MP_VERSION);
   });
@@ -137,7 +137,6 @@ describe("the face effects library", () => {
 
 describe("what is behind you", () => {
   it("keeps a stored backdrop only when well formed", async () => {
-    const { sanitizeBackdrop } = await import("./faceVision");
     expect(sanitizeBackdrop({ kind: "blur", amount: 3 })).toEqual({ kind: "blur", amount: 1 });
     expect(sanitizeBackdrop({ kind: "blur" })).toEqual({ kind: "blur", amount: 0.6 });
     expect(sanitizeBackdrop({ kind: "colour", color: "#0f172a" })).toEqual({ kind: "colour", color: "#0F172A" });
@@ -148,14 +147,12 @@ describe("what is behind you", () => {
   });
 
   it("cuts the person out with a soft edge that is never see-through", async () => {
-    const { maskAlpha } = await import("./faceVision");
     expect(maskAlpha(0.3)).toBe(0);
     expect(Math.abs(maskAlpha(0.6) - 128)).toBeLessThanOrEqual(1);
     expect(maskAlpha(0.85)).toBe(255);
   });
 
   it("blurs by the same share of the picture in the preview and the export", async () => {
-    const { blurPx } = await import("./faceVision");
     expect(blurPx(0.6, 1080, 1920)).toBe(2 * blurPx(0.6, 540, 960));
     expect(blurPx(0, 1080, 1920)).toBeLessThan(blurPx(1, 1080, 1920));
   });
@@ -164,7 +161,6 @@ describe("what is behind you", () => {
 
 describe("touch-up", () => {
   it("is off at 0 and stays light at full strength", async () => {
-    const { touchAmounts } = await import("./faceVision");
     expect(touchAmounts(0)).toEqual({ skin: 0, bright: 1, contrast: 1 });
     const full = touchAmounts(1);
     expect(full.skin).toBeLessThanOrEqual(0.45);
@@ -175,7 +171,6 @@ describe("touch-up", () => {
   });
 
   it("walks a landmark outline round in order, from the model's list of edges", async () => {
-    const { ringOf } = await import("./faceVision");
     expect(ringOf([{ start: 10, end: 11 }, { start: 12, end: 10 }, { start: 11, end: 12 }])).toEqual([10, 11, 12]);
     expect(ringOf([])).toEqual([]);
     // a broken outline stops where it breaks rather than looping forever

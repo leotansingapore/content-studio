@@ -24,6 +24,10 @@ import {
   splitSentences,
   toSlideText,
   type Slide,
+  saveCarousel,
+  loadCarousels,
+  MAX_SAVED_CAROUSELS,
+  removeCarousel,
 } from "@/lib/carousel";
 import type { DraftEntry } from "@/lib/draftHistory";
 
@@ -355,7 +359,6 @@ describe("saved carousels", () => {
   const slides = [{ id: "a", title: "Hook", body: "" }, { id: "b", title: "Point", body: "Body" }];
 
   it("saves newest first, replaces by id and keeps the latest 20", async () => {
-    const { saveCarousel, loadCarousels, MAX_SAVED_CAROUSELS } = await import("@/lib/carousel");
     saveCarousel("u1", { id: "d:1", title: "One", platform: "instagram", slides }, new Date("2026-10-01"));
     saveCarousel("u1", { id: "p:2", title: "Two", platform: "linkedin", slides }, new Date("2026-10-02"));
     saveCarousel("u1", { id: "d:1", title: "One again", platform: "instagram", slides }, new Date("2026-10-03"));
@@ -366,7 +369,6 @@ describe("saved carousels", () => {
   });
 
   it("drops malformed entries and removes by id", async () => {
-    const { loadCarousels, removeCarousel } = await import("@/lib/carousel");
     store.set("content-studio-carousels-u1", JSON.stringify([{ id: "x", slides: "no" }, { id: "y", title: 5, slides: [null, { id: "s", title: "T" }, { id: "r", title: "R", body: "• a", recap: true }] }, { slides: [] }]));
     expect(loadCarousels("u1")).toEqual([{ id: "y", title: "Carousel", platform: "instagram", slides: [{ id: "s", title: "T", body: "" }, { id: "r", title: "R", body: "• a", recap: true }], draftId: undefined, updatedAt: "" }]);
     expect(removeCarousel("u1", "y")).toEqual([]);
@@ -377,7 +379,6 @@ describe("saved carousels", () => {
 
 describe("generated carousel labels", () => {
   it("drops Title/Text labels and design notes from slide-by-slide drafts", async () => {
-    const { splitDraftIntoSlides } = await import("@/lib/carousel");
     const draft = [
       "Slide 1",
       "Title: Think CPF is only for retirement?",
@@ -442,7 +443,6 @@ describe("generated carousels keep their own slides", () => {
   ].join("\n");
 
   it("makes one slide per SLIDE marker, even when a slide runs long", async () => {
-    const { splitDraftIntoSlides } = await import("@/lib/carousel");
     const { slides, dropped } = splitDraftIntoSlides(raw);
     expect(slides).toHaveLength(6);
     expect(dropped).toBe(0);
@@ -451,7 +451,6 @@ describe("generated carousels keep their own slides", () => {
   });
 
   it("drops quote marks that wrap a whole title, not ones inside it", async () => {
-    const { toSlideText } = await import("@/lib/carousel");
     expect(toSlideText("“Move #1: Top up early”\nBody text here.").title).toBe("Move #1: Top up early");
     expect(toSlideText("Myth #1: “I can’t touch my CPF”\nBody.").title).toBe("Myth #1: “I can’t touch my CPF”");
   });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildVibeMessages, cleanSettings, cleanWords, parseVibeReply, parseVibeRequest } from "./logic";
+import { buildVibeMessages, cleanSettings, cleanWords, parseVibeReply, parseVibeRequest, parseClipsRequest, parseClipsReply, buildClipsMessages, candidateCount, clipCount, clipWindows, batches, interleave, clipQuestions, rankClips, KEEP_SCORE, proposedCount, parseTranslateRequest, parseTranslateReply, parseCutawaysRequest, MAX_CUTAWAY_CHARS, buildCutawaysMessages, parseCutawaysReply, parsePublishRequest, buildPublishMessages, parsePublishReply, coverQuestion, coverState, coverAt, cleanEdges, CLIP_MIN, clipText, MAX_ABOUT, ON_TOPIC, playedLength, skipQuestions, applySkips, SKIP_OK } from "./logic";
+import { clipPasses, WINDOW_OVERLAP } from "./passes";
 
 describe("cleanWords", () => {
   it("takes punctuation and casing from the text and drops bad rows", () => {
@@ -54,13 +55,11 @@ describe("cleanSettings", () => {
 
 describe("clips", () => {
   it("needs a long, captioned video", async () => {
-    const { parseClipsRequest } = await import("./logic");
     expect(parseClipsRequest({ duration: 20, sentences: [] }).ok).toBe(false);
     const sentences = Array.from({ length: 6 }, (_, i) => ({ s: i * 10, e: i * 10 + 9, text: `Line ${i}.` }));
     expect(parseClipsRequest({ duration: 120, sentences: [...sentences, { s: 5, e: 1, text: "bad" }] })).toMatchObject({ ok: true, duration: 120 });
   });
   it("keeps clips inside the video, 18-120 s long, without overlaps", async () => {
-    const { parseClipsReply } = await import("./logic");
     const reply = JSON.stringify({ clips: [
       { start: 10, end: 50, title: "Quit early", hook: "Most advisors quit \u2014 too soon", reason: "A number \u2014 then the fix" },
       { start: 40, end: 80, title: "Overlaps", hook: "x" },
@@ -77,7 +76,6 @@ describe("clips", () => {
   });
 
   it("asks for more clips from a longer video, about twice the kept count, at most 20", async () => {
-    const { buildClipsMessages, candidateCount, clipCount } = await import("./logic");
     expect(clipCount(60)).toEqual({ min: 3, max: 5 });
     expect(clipCount(7 * 60)).toEqual({ min: 3, max: 5 });
     expect(clipCount(8 * 60)).toEqual({ min: 4, max: 8 });
@@ -89,8 +87,6 @@ describe("clips", () => {
   });
 
   it("gives up to 16 clips an hour from a long podcast, read in passes of about 40 minutes", async () => {
-    const { candidateCount, clipCount } = await import("./logic");
-    const { clipPasses } = await import("./passes");
     expect(clipCount(3600)).toEqual({ min: 6, max: 16 });
     expect(clipCount(2 * 3600)).toEqual({ min: 12, max: 32 });
     expect([clipPasses(33 * 60), clipPasses(44 * 60), clipPasses(65 * 60), clipPasses(2 * 3600)]).toEqual([1, 1, 2, 3]);
@@ -99,8 +95,6 @@ describe("clips", () => {
   });
 
   it("splits a long transcript into overlapping stretches and tells the LLM which stretch it reads", async () => {
-    const { buildClipsMessages, clipWindows } = await import("./logic");
-    const { WINDOW_OVERLAP } = await import("./passes");
     const sentences = Array.from({ length: 720 }, (_, i) => ({ s: i * 10, e: i * 10 + 9, text: `Line ${i}.` }));
     const ws = clipWindows(sentences, 7200);
     expect(ws.map((w) => [w.from, w.to])).toEqual([[0, 2400], [2400 - WINDOW_OVERLAP, 4800], [4800 - WINDOW_OVERLAP, 7200]]);
@@ -115,7 +109,6 @@ describe("clips", () => {
   });
 
   it("puts each pass's best first, and asks Jev in batches", async () => {
-    const { batches, interleave } = await import("./logic");
     expect(interleave([["a1", "a2", "a3"], ["b1"], ["c1", "c2"]])).toEqual(["a1", "b1", "c1", "a2", "c2", "a3"]);
     const q = Object.fromEntries(Array.from({ length: 65 }, (_, i) => [`s${i}`, i]));
     const parts = batches(q);
@@ -125,7 +118,6 @@ describe("clips", () => {
   });
 
   it("asks for a title written from the payoff and a one-line reason", async () => {
-    const { buildClipsMessages } = await import("./logic");
     const [sys] = buildClipsMessages([{ s: 0, e: 5, text: "Hi." }], 300);
     expect(sys.content).toContain("a title of 3 to 7 words written from the payoff, what the viewer has by the end");
     expect(sys.content).toContain("a reason: one plain sentence of 15 words or fewer on why a viewer would watch it to the end");
@@ -146,7 +138,6 @@ describe("clips: Jev ranks the candidates", () => {
     Object.fromEntries(pairs.flatMap(([s, h], i) => [[`s${i}`, { type: "score" as const, score: s }], [`h${i}`, { type: "score" as const, score: h }]]));
 
   it("asks two Scores per candidate: the clip's words for standing alone, its first line for the scroll", async () => {
-    const { clipQuestions } = await import("./logic");
     const q = clipQuestions(cands, sentences);
     expect(Object.keys(q)).toEqual(["s0", "h0", "s1", "h1", "s2", "h2"]);
     expect((q.s1.instructions as { clip: string }).clip).toBe("Most people lose $40,000 to one mistake. Here is the mistake and the fix.");
@@ -158,13 +149,11 @@ describe("clips: Jev ranks the candidates", () => {
   });
 
   it("puts the best first with a score out of 100, stands alone weighing 60% and the first line 40%", async () => {
-    const { rankClips } = await import("./logic");
     const out = rankClips(cands, answers([[0.5, 0.3], [2.7, 2.4], [2, 1.5]]), { min: 3, max: 5 });
     expect(out.map((c) => [c.title, c.score])).toEqual([["Strong one", 86], ["Middle one", 60], ["Weak one", 14]]);
   });
 
   it("keeps clips past the minimum only from the keep score up", async () => {
-    const { rankClips, KEEP_SCORE } = await import("./logic");
     expect(KEEP_SCORE).toBe(40);
     const out = rankClips(cands, answers([[0.5, 0.3], [2.7, 2.4], [2, 1.5]]), { min: 1, max: 5 });
     expect(out.map((c) => c.title)).toEqual(["Strong one", "Middle one"]);
@@ -172,7 +161,6 @@ describe("clips: Jev ranks the candidates", () => {
   });
 
   it("holds the floor: overlaps leaving fewer than the minimum are topped up from the best of the rest, never the same moment twice", async () => {
-    const { rankClips, proposedCount } = await import("./logic");
     // b shares 15 of its 40 s with a (37%): dropped while there are enough, back to reach the floor; d is a's moment again
     const a = cand(0, 40, "A"), b = cand(25, 65, "B"), c = cand(100, 140, "C"), d = cand(5, 40, "D");
     expect(rankClips([a, b, c, d], null, { min: 3, max: 5 }).map((x) => x.title)).toEqual(["A", "B", "C"]);
@@ -183,7 +171,6 @@ describe("clips: Jev ranks the candidates", () => {
   });
 
   it("falls back to the LLM's order with no scores when Jev has no answer, and puts unscored ones last", async () => {
-    const { rankClips } = await import("./logic");
     expect(rankClips(cands, null, { min: 1, max: 2 })).toEqual(cands.slice(0, 2));
     const partial = { s1: { type: "score" as const, score: 3 }, h1: { type: "score" as const, score: 3 } };
     expect(rankClips(cands, partial, { min: 3, max: 5 }).map((c) => [c.title, c.score])).toEqual([["Strong one", 100], ["Weak one", undefined], ["Middle one", undefined]]);
@@ -192,13 +179,11 @@ describe("clips: Jev ranks the candidates", () => {
 
 describe("translate", () => {
   it("accepts only the three languages and needs lines", async () => {
-    const { parseTranslateRequest } = await import("./logic");
     expect(parseTranslateRequest({ lang: "fr", lines: ["x"] }).ok).toBe(false);
     expect(parseTranslateRequest({ lang: "zh", lines: [] }).ok).toBe(false);
     expect(parseTranslateRequest({ lang: "zh", lines: ["Most people think", 5] })).toEqual({ ok: true, lang: "zh", lines: ["Most people think", "5"] });
   });
   it("keeps the reply only when it has one line per caption", async () => {
-    const { parseTranslateReply } = await import("./logic");
     expect(parseTranslateReply('{"lines":["a","b"]}', 2)).toEqual(["a", "b"]);
     expect(parseTranslateReply('{"lines":["a"]}', 2)).toBeNull();
     expect(parseTranslateReply("nope", 1)).toBeNull();
@@ -212,7 +197,6 @@ describe("cutaways", () => {
     { s: 7.5, e: 12, text: "Here is what to do instead." },
   ];
   it("needs a captioned video and keeps the transcript to a bounded size", async () => {
-    const { parseCutawaysRequest, MAX_CUTAWAY_CHARS } = await import("./logic");
     expect(parseCutawaysRequest({ duration: 3, sentences })).toMatchObject({ ok: false });
     expect(parseCutawaysRequest({ duration: 30, sentences: sentences.slice(0, 1) })).toMatchObject({ ok: false, error: "Caption the video first, then ask for callouts." });
     expect(parseCutawaysRequest({ duration: 30, sentences: [...sentences, { s: 9, e: 2, text: "bad" }] })).toMatchObject({ ok: true, duration: 30, sentences });
@@ -222,7 +206,6 @@ describe("cutaways", () => {
   });
 
   it("asks with the sentence times and the rules", async () => {
-    const { buildCutawaysMessages } = await import("./logic");
     const [sys, user] = buildCutawaysMessages(sentences, 12);
     expect(sys.content).toContain("never invent a number");
     expect(sys.content).toContain('"callout"');
@@ -230,7 +213,6 @@ describe("cutaways", () => {
   });
 
   it("keeps sections inside the video, in order, without overlaps, at most 8, with no em dashes", async () => {
-    const { parseCutawaysReply } = await import("./logic");
     const reply = JSON.stringify({ sections: [
       { at: 7.5, until: 12, callout: "Top up early \u2014 not late", show: "Screen recording of the CPF app" },
       { at: 3.2, until: 7, callout: "4% a year", show: "show: a simple chart of 4% growth" },
@@ -256,7 +238,6 @@ describe("publish: titles and a cover idea", () => {
     { s: 7.5, e: 12, text: "Here is what to do instead." },
   ];
   it("needs a captioned video and keeps at most 255 lines, Jev's limit for one Choice", async () => {
-    const { parsePublishRequest } = await import("./logic");
     expect(parsePublishRequest({ duration: 1, sentences })).toMatchObject({ ok: false });
     expect(parsePublishRequest({ duration: 30, sentences: [] })).toMatchObject({ ok: false, error: "Caption the video first." });
     expect(parsePublishRequest({ duration: 30, sentences: [...sentences, { s: 9, e: 2, text: "bad" }] })).toEqual({ ok: true, duration: 30, sentences });
@@ -266,7 +247,6 @@ describe("publish: titles and a cover idea", () => {
   });
 
   it("asks for 3 titles and a cover line from the speaker's own words", async () => {
-    const { buildPublishMessages } = await import("./logic");
     const [sys, user] = buildPublishMessages(sentences, 12);
     expect(sys.content).toContain("never invent a number");
     expect(sys.content).toContain('"titles"');
@@ -274,7 +254,6 @@ describe("publish: titles and a cover idea", () => {
   });
 
   it("keeps 3 distinct plain titles and a short cover line, or nothing", async () => {
-    const { parsePublishReply } = await import("./logic");
     const reply = JSON.stringify({
       titles: ['"CPF alone won\'t carry you"', "Why 4% is not enough \u2014 yet", "CPF alone won't carry you", "#cpf What to do instead", "A fourth one"],
       cover: "  CPF is not enough  ",
@@ -289,7 +268,6 @@ describe("publish: titles and a cover idea", () => {
   });
 
   it("lets Jev point to the line the cover comes from, and times the cover at its middle", async () => {
-    const { coverQuestion, coverState, coverAt } = await import("./logic");
     const q = coverQuestion(sentences);
     expect(q.type).toBe("choice");
     expect(Object.keys((q as { criteria: Record<string, unknown> }).criteria)).toEqual(["L0", "L1", "L2"]);
@@ -322,7 +300,6 @@ describe("clips: clean edges from the word timings", () => {
   const riders = "Riders come last and most of them are not worth the money at all.";
 
   it("cuts a leading so, and the like, keeping the gap before the first strong word", async () => {
-    const { cleanEdges } = await import("./logic");
     const ws = talk(["So, the first thing is how much cover you actually need.", under, budget]);
     const last = ws[ws.length - 1];
     const out = cleanEdges(clip(0, last.e), ws, last.e + 5);
@@ -331,14 +308,12 @@ describe("clips: clean edges from the word timings", () => {
   });
 
   it("starts an answer on its question", async () => {
-    const { cleanEdges } = await import("./logic");
     const ws = talk(["What should you check before you buy a policy?", cover, under, budget]);
     const last = ws[ws.length - 1];
     expect(cleanEdges(clip(firstOf(ws, "Start").s, last.e), ws, last.e).start).toBe(0);
   });
 
   it("takes in the sentence before an opener that points back, or skips it at the very start", async () => {
-    const { cleanEdges } = await import("./logic");
     const ws = talk([under, "That's why the second check is your budget every single month.", budget, riders]);
     const last = ws[ws.length - 1];
     expect(cleanEdges(clip(firstOf(ws, "That's").s, last.e), ws, last.e).start).toBe(0);
@@ -349,7 +324,6 @@ describe("clips: clean edges from the word timings", () => {
   });
 
   it("drops a question at the end and a sentence that is only filler", async () => {
-    const { cleanEdges } = await import("./logic");
     const ws = talk(["Okay, so.", under, budget, riders, "Any questions so far?"]);
     const out = cleanEdges(clip(0, ws[ws.length - 1].e), ws, 60);
     const at = (w: string) => ws.find((x) => x.w === w)!;
@@ -359,7 +333,6 @@ describe("clips: clean edges from the word timings", () => {
   });
 
   it("skips a step that would leave the clip under 18 s", async () => {
-    const { cleanEdges, CLIP_MIN } = await import("./logic");
     const ws = talk([under, budget, "Would you really pay that much every single month for it?"]);
     const last = ws[ws.length - 1];
     expect(last.e - ws[0].s).toBeLessThan(CLIP_MIN + 4);
@@ -371,7 +344,6 @@ describe("clips: clean edges from the word timings", () => {
   });
 
   it("leads in 0.2 to 0.35 s of the pause before, never into the word before", async () => {
-    const { cleanEdges } = await import("./logic");
     for (const [gap, lead] of [[1, 0.35], [0.5, 0.25], [0.3, 0.2], [0.1, 0.1]]) {
       const ws = talk([under, cover, budget, riders], gap);
       const last = ws[ws.length - 1];
@@ -380,7 +352,6 @@ describe("clips: clean edges from the word timings", () => {
   });
 
   it("leaves a clip alone when there are no words in it or it cannot fit", async () => {
-    const { cleanEdges } = await import("./logic");
     const ws = talk([under, budget]);
     expect(cleanEdges(clip(100, 130), ws, 200)).toEqual(clip(100, 130));
     expect(cleanEdges(clip(0, 5), ws, 200)).toEqual(clip(0, 5));
@@ -390,20 +361,17 @@ describe("clips: clean edges from the word timings", () => {
   });
 
   it("reads the clip's words for Jev when there are word timings", async () => {
-    const { clipText } = await import("./logic");
     const ws = talk(["So, the first thing is cover.", "Then the budget."]);
     expect(clipText([], { start: 0.45, end: 10 }, ws)).toEqual(["the first thing is cover.", "Then the budget."]);
   });
 
   it("drops a clip that mostly repeats a better one", async () => {
-    const { rankClips } = await import("./logic");
     const a = clip(0, 40), b = clip(30, 70), c = clip(35, 80);
     // b shares 10 of its 40 s with a (25%, kept); c shares 35 of 45 with b
     expect(rankClips([a, b, c], null, { min: 3, max: 5 })).toEqual([a, b]);
   });
 
   it("takes word timings in the request only when well formed and in order", async () => {
-    const { parseClipsRequest } = await import("./logic");
     const sentences = Array.from({ length: 6 }, (_, i) => ({ s: i * 10, e: i * 10 + 9, text: `Line ${i}.` }));
     const words = [{ w: "a", s: 0, e: 0.4 }, { w: "", s: 1, e: 2 }, { w: "b", s: 3, e: 2 }, { w: "d", s: 5, e: 5.4 }, { w: "c", s: 0.2, e: 0.5 }];
     const r = parseClipsRequest({ duration: 120, sentences, words });
@@ -423,7 +391,6 @@ describe("clips: ask for a clip by typing", () => {
   const cands = [cand(50, 90, "Insurance mistake"), cand(0, 40, "CPF top-up")];
 
   it("takes a short request and tells the LLM to list those parts first", async () => {
-    const { parseClipsRequest, buildClipsMessages, MAX_ABOUT } = await import("./logic");
     const many = Array.from({ length: 6 }, (_, i) => ({ s: i * 10, e: i * 10 + 9, text: `Line ${i}.` }));
     const r = parseClipsRequest({ duration: 120, sentences: many, about: "  the part on\n CPF top-ups " + "x".repeat(300) });
     expect(r.ok && r.about.startsWith("the part on CPF top-ups x")).toBe(true);
@@ -435,7 +402,6 @@ describe("clips: ask for a clip by typing", () => {
   });
 
   it("asks Jev whether each clip is the one asked for, only when something was typed", async () => {
-    const { clipQuestions } = await import("./logic");
     const q = clipQuestions(cands, sentences, [], "CPF top-ups");
     expect(Object.keys(q)).toEqual(["s0", "h0", "r0", "s1", "h1", "r1"]);
     expect(q.r1).toMatchObject({ type: "score", instructions: { request: "CPF top-ups", clip: "Here is how a CPF top-up cuts your tax. You can put in up to $8,000 a year." } });
@@ -444,7 +410,6 @@ describe("clips: ask for a clip by typing", () => {
   });
 
   it("puts the clips about the request first and keeps them whatever their score", async () => {
-    const { rankClips, ON_TOPIC } = await import("./logic");
     expect(ON_TOPIC).toBe(1.5);
     const answers = {
       s0: { type: "score" as const, score: 3 }, h0: { type: "score" as const, score: 3 }, r0: { type: "score" as const, score: 1.4 },
@@ -477,7 +442,6 @@ describe("clips: skip a tangent in the middle", () => {
   const base = { title: "t", hook: "", reason: "" };
 
   it("takes one skip inside the clip and judges length by what plays", async () => {
-    const { parseClipsReply, playedLength } = await import("./logic");
     const reply = JSON.stringify({ clips: [
       { start: 0, end: 150, ...base, skip: { start: 40, end: 80 } },
       { start: 200, end: 350, ...base },
@@ -490,7 +454,6 @@ describe("clips: skip a tangent in the middle", () => {
   });
 
   it("puts a skip on whole sentences and keeps a sentence either side, or drops it", async () => {
-    const { cleanEdges } = await import("./logic");
     const ws = talk([point, aside, fix, "Then put the gap into one plan you can actually pay for."]);
     const at = (w: string) => ws.find((x) => x.w === w)!;
     const end = ws[ws.length - 1].e;
@@ -508,7 +471,6 @@ describe("clips: skip a tangent in the middle", () => {
   });
 
   it("never moves an edge onto the skipped tangent", async () => {
-    const { cleanEdges } = await import("./logic");
     // opens on "It" with nothing before it: starting a sentence later would start on the tangent
     const ws = talk(["It is the one check nobody does before they buy a policy.", aside, fix, point, point]);
     const from = ws.find((w) => w.w === "By")!;
@@ -518,7 +480,6 @@ describe("clips: skip a tangent in the middle", () => {
   });
 
   it("reads the clip without its skip, and the skip on its own, for Jev", async () => {
-    const { clipText, skipQuestions } = await import("./logic");
     const ws = talk([point, aside, fix]);
     const skip = { start: ws.find((x) => x.w === "By")!.s, end: ws.find((x) => x.w === "story.")!.e };
     const clip = { start: 0, end: ws[ws.length - 1].e, ...base, skip };
@@ -529,7 +490,6 @@ describe("clips: skip a tangent in the middle", () => {
   });
 
   it("keeps a skip only when Jev reads it as an aside, and drops a clip too long without it", async () => {
-    const { applySkips, SKIP_OK } = await import("./logic");
     expect(SKIP_OK).toBe(0.7);
     const a = { start: 0, end: 60, ...base, skip: { start: 20, end: 30 } };
     const b = { start: 100, end: 260, ...base, skip: { start: 120, end: 170 } };

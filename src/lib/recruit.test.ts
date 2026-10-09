@@ -12,8 +12,11 @@ import {
   weekOf,
   recruitPostsInWeek,
   stageMix,
+  stripDashes,
+  unsupportedNumbers,
 } from "./recruit";
 import { SEND_TEN_SCRIPT } from "@/data/recruitKit";
+import { whatsappLink } from "@/components/recruit/Conversations";
 
 describe("centreCandidate", () => {
   it("picks the best total and breaks ties on the weakest score", () => {
@@ -121,7 +124,6 @@ describe("recruitment analytics", () => {
 
 describe("whatsappLink", () => {
   it("opens WhatsApp with the script and the first name filled in", async () => {
-    const { whatsappLink } = await import("@/components/recruit/Conversations");
     const url = whatsappLink("Hi [name]! I'm working on a series.", "Jun Xion Tan");
     expect(url.startsWith("https://wa.me/?text=")).toBe(true);
     expect(decodeURIComponent(url.split("text=")[1])).toBe("Hi Jun! I'm working on a series.");
@@ -130,16 +132,13 @@ describe("whatsappLink", () => {
 
 describe("draft guards", () => {
   it("swaps em dashes for commas", async () => {
-    const { stripDashes } = await import("./recruit");
     expect(stripDashes("Not the best salespeople — the ones who stay.")).toBe("Not the best salespeople, the ones who stay.");
   });
   it("keeps number ranges and line breaks when it swaps dashes", async () => {
-    const { stripDashes } = await import("./recruit");
     expect(stripDashes("A 30–60 sec reel for ages 21 — 27, $3.5–$4.5K.")).toBe("A 30-60 sec reel for ages 21-27, $3.5-$4.5K.");
     expect(stripDashes("Here is the thing —\n— start early\n\nDone.")).toBe("Here is the thing,\nstart early\n\nDone.");
   });
   it("flags numbers the user never gave, ignoring single digits", async () => {
-    const { unsupportedNumbers } = await import("./recruit");
     const ctx = "I taught for 8 years. Team of 12. Joined in 2019.";
     expect(unsupportedNumbers("My team of 12 spends 80 percent of its time advising. 3 things I learned since 2019.", ctx)).toEqual(["80 percent"]);
     expect(unsupportedNumbers("Team up 44% this year", "Team up 44 percent")).toEqual([]);

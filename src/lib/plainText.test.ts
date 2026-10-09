@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cleanAiTells, scanAiTells, withDisclosure, withSignOff } from "@/lib/plainText";
+import { cleanAiTells, scanAiTells, withDisclosure, withSignOff, tagLinks } from "@/lib/plainText";
 
 describe("withSignOff", () => {
   const sign = "DM me PLAN for a free review.\nThis is not financial advice.\n#cpf #singapore";
@@ -41,7 +41,6 @@ describe("withDisclosure", () => {
 
 describe("tagLinks", () => {
   it("adds source, medium and campaign to each link, keeping its own query and punctuation", async () => {
-    const { tagLinks } = await import("@/lib/plainText");
     const out = tagLinks("Book here: https://cal.com/jane?ref=ig. Or https://jane.sg/guide, thanks", { source: "Instagram", campaign: "3 CPF moves!" });
     expect(out).toBe(
       "Book here: https://cal.com/jane?ref=ig&utm_source=instagram&utm_medium=social&utm_campaign=3-cpf-moves. " +
@@ -50,7 +49,6 @@ describe("tagLinks", () => {
   });
 
   it("leaves utm values already there and text without links alone", async () => {
-    const { tagLinks } = await import("@/lib/plainText");
     expect(tagLinks("https://x.sg/?utm_source=newsletter", { source: "linkedin", campaign: "a" })).toBe(
       "https://x.sg/?utm_source=newsletter&utm_medium=social&utm_campaign=a",
     );

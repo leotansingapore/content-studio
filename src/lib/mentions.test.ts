@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { countNew, loadSeen, loadWatch, markSeen, saveWatch } from "@/lib/mentions";
 
 let map: Map<string, string>;
 beforeEach(() => {
@@ -9,14 +10,12 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("mentions", () => {
   it("keeps up to five tidy keywords per profile in a synced key", async () => {
-    const { saveWatch, loadWatch } = await import("@/lib/mentions");
     saveWatch("u1", [" Leo  Tan ", "Leo Tan", "x", "CPF", "a1", "a2", "a3", "a4"]);
     expect(loadWatch("u1")).toEqual(["Leo Tan", "CPF", "a1", "a2", "a3"]);
     expect([...map.keys()]).toEqual(["content-studio-mentions-u1"]);
   });
 
   it("counts results this device hasn't shown yet, once each", async () => {
-    const { markSeen, loadSeen, countNew } = await import("@/lib/mentions");
     markSeen("u1", ["https://a.sg/1"]);
     const r = [
       { keyword: "A", items: [{ url: "https://a.sg/1" }, { url: "https://a.sg/2" }] },

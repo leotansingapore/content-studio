@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { followUpDates, followUpTitle, loadLog, loadRun, logComment, MAX_ITEMS, MAX_POSTS, requestBody, runningJob, saveRun, splitPasted, startRun, thisWeek, timesThisWeek, unlog } from "@/lib/engageDrafts";
 
 const store = new Map<string, string>();
 const invoke = vi.fn();
@@ -13,7 +14,6 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("splitPasted", () => {
   it("splits on blank lines and reads a leading name", async () => {
-    const { splitPasted } = await import("@/lib/engageDrafts");
     expect(splitPasted("Sarah Chen: Mine went up too.\nHow do I check?\n\n  \n@Tom: So true!\n\nGreat post")).toEqual([
       { name: "Sarah Chen", text: "Mine went up too.\nHow do I check?" },
       { name: "Tom", text: "So true!" },
@@ -23,7 +23,6 @@ describe("splitPasted", () => {
   });
 
   it("takes each line as a comment when there are no blank lines, and leaves odd colons in the text", async () => {
-    const { splitPasted } = await import("@/lib/engageDrafts");
     expect(splitPasted("one\ntwo\r\nthree").map((c) => c.text)).toEqual(["one", "two", "three"]);
     expect(splitPasted("the thing is: nobody reads it")).toEqual([{ name: "", text: "the thing is: nobody reads it" }]);
     expect(splitPasted("My friend from school said: read it")).toEqual([{ name: "", text: "My friend from school said: read it" }]);
@@ -33,7 +32,6 @@ describe("splitPasted", () => {
 
 describe("runs", () => {
   it("keeps the last run on this device only, per profile", async () => {
-    const { loadRun, saveRun } = await import("@/lib/engageDrafts");
     expect(loadRun("replies", "u1")).toEqual({ post: "", pasted: "", posts: [], form: {}, items: [], at: "" });
     saveRun("replies", "u1", { post: "p", pasted: "c", posts: [], form: {}, items: [], at: "t" });
     expect([...store.keys()]).toEqual(["cs-engage-replies-u1"]);
@@ -42,7 +40,6 @@ describe("runs", () => {
   });
 
   it("saves the drafts when they come back, with the page gone, and sends at most MAX_ITEMS comments", async () => {
-    const { MAX_ITEMS, loadRun, runningJob, saveRun, startRun } = await import("@/lib/engageDrafts");
     const items = [{ i: 0, name: "", text: "Nice", kind: "support", reply: "Thanks." }];
     let finish: (v: unknown) => void = () => {};
     invoke.mockReturnValue(new Promise((r) => (finish = r)));
@@ -59,7 +56,6 @@ describe("runs", () => {
   });
 
   it("sends DMs as messages and keeps their run apart from the replies", async () => {
-    const { loadRun, startRun } = await import("@/lib/engageDrafts");
     invoke.mockResolvedValue({ data: { items: [{ i: 0 }] }, error: null });
     expect(await startRun("dms", "u1", { post: "", pasted: "Karen: Hi\n\nTom: Yo", posts: [], form: {} })).toEqual({ kind: "ok" });
     expect(invoke.mock.calls[0][1].body).toEqual({ mode: "dms", messages: [{ name: "Karen", text: "Hi" }, { name: "Tom", text: "Yo" }] });
@@ -68,7 +64,6 @@ describe("runs", () => {
   });
 
   it("says when the daily limit is reached", async () => {
-    const { startRun } = await import("@/lib/engageDrafts");
     const context = { status: 429, json: async () => ({ code: "daily_limit", error: "You've used all 30 for today." }) };
     invoke.mockResolvedValue({ data: null, error: { context } });
     expect(await startRun("replies", "u1", { post: "", pasted: "Nice", posts: [], form: {} })).toEqual({ kind: "limit", message: "You've used all 30 for today." });
@@ -77,7 +72,6 @@ describe("runs", () => {
 
 describe("comments on other people's posts", () => {
   it("sends the filled post slots, up to MAX_POSTS", async () => {
-    const { MAX_POSTS, requestBody } = await import("@/lib/engageDrafts");
     const posts = [{ name: "Sarah", text: "A post" }, { name: "Tom", text: "  " }, ...Array.from({ length: MAX_POSTS + 2 }, (_, i) => ({ name: "", text: `p${i}` }))];
     const body = requestBody("comments", { post: "", pasted: "ignored", posts, form: {} });
     expect(body).toMatchObject({ mode: "comments" });
@@ -87,7 +81,6 @@ describe("comments on other people's posts", () => {
   });
 
   it("logs a copied comment once per post a day, synced per profile, and counts this week by name", async () => {
-    const { loadLog, logComment, thisWeek, timesThisWeek, unlog } = await import("@/lib/engageDrafts");
     const wed = new Date(2026, 9, 7, 10); // Wednesday
     logComment("u1", "Sarah Chen", "Whole life is a waste", new Date(2026, 9, 5, 9)); // Monday
     logComment("u1", "@sarah chen", "CPF LIFE is not enough", new Date(2026, 9, 6, 9));
@@ -104,7 +97,6 @@ describe("comments on other people's posts", () => {
   });
 
   it("drops entries older than 8 weeks", async () => {
-    const { loadLog, logComment } = await import("@/lib/engageDrafts");
     logComment("u1", "Old", "old post", new Date(2026, 6, 1));
     logComment("u1", "New", "new post", new Date(2026, 9, 7));
     expect(loadLog("u1").map((e) => e.name)).toEqual(["New"]);
@@ -113,7 +105,6 @@ describe("comments on other people's posts", () => {
 
 describe("connection notes", () => {
   it("sends the named fields and keeps the drafts as the run's one item", async () => {
-    const { loadRun, startRun } = await import("@/lib/engageDrafts");
     const drafts = { note: "n", first: "f", follow4: "a", follow10: "b" };
     invoke.mockResolvedValue({ data: { drafts }, error: null });
     const form = { name: "Sarah", about: "Teacher", reason: "Her post", goal: "recruit", accepted: "2026-10-08" };
@@ -125,7 +116,6 @@ describe("connection notes", () => {
   });
 
   it("times the first message a day after they accept and the follow-ups 4 and 10 days after it", async () => {
-    const { followUpDates, followUpTitle } = await import("@/lib/engageDrafts");
     expect(followUpDates("2026-10-30")).toEqual({ first: "2026-10-31", day4: "2026-11-04", day10: "2026-11-10" });
     expect(followUpTitle(" Sarah Chen ", 2)).toBe("Follow up with Sarah Chen (2 of 2)");
   });

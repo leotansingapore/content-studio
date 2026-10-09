@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { defaultSkill, loadSkills, removeSkill, saveSkill, suggestName } from "@/lib/videoSkills";
 
 const UID = "u1";
 let map: Map<string, string>;
@@ -20,14 +21,12 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("video editing skills", () => {
   it("shows the old single look as a default skill, without writing until a save", async () => {
-    const { loadSkills } = await import("@/lib/videoSkills");
     map.set(`content-studio-videolook-${UID}`, JSON.stringify({ style: "minimal", size: 1.2 }));
     expect(loadSkills(UID)).toEqual([{ id: "my-look", name: "My look", look: { style: "minimal", size: 1.2 }, isDefault: true, updatedAt: "" }]);
     expect(map.has(`content-studio-videoskills-${UID}`)).toBe(false);
   });
 
   it("saves named skills newest first, one default at a time, and keeps the migrated look on first save", async () => {
-    const { saveSkill, loadSkills, defaultSkill } = await import("@/lib/videoSkills");
     map.set(`content-studio-videolook-${UID}`, JSON.stringify({ style: "minimal" }));
     saveSkill(UID, { id: "a", name: "Podcast clip", look: { fit: "framed" }, prompt: "Hook: the most surprising number I say", isDefault: true });
     const list = loadSkills(UID);
@@ -39,7 +38,6 @@ describe("video editing skills", () => {
   });
 
   it("removes a skill, drops malformed ones and caps text", async () => {
-    const { saveSkill, removeSkill, loadSkills } = await import("@/lib/videoSkills");
     saveSkill(UID, { id: "a", name: "x".repeat(80), look: {}, prompt: "y".repeat(900) });
     const [s] = loadSkills(UID);
     expect(s.name).toHaveLength(40);
@@ -50,7 +48,6 @@ describe("video editing skills", () => {
   });
 
   it("names a new skill from the last vibe ask, else numbers it", async () => {
-    const { suggestName } = await import("@/lib/videoSkills");
     expect(suggestName(["bigger yellow captions at the top, cut pauses"], [])).toBe("Bigger yellow captions at");
     expect(suggestName([], [{ id: "a", name: "My style 1", look: {}, updatedAt: "" }])).toBe("My style 2");
   });

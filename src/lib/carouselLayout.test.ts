@@ -17,6 +17,7 @@ import {
   type FontSpec,
   type Measure,
   type SvgNode,
+  paperColors,
 } from "@/lib/carouselLayout";
 
 type TextNode = Extract<SvgNode, { type: "text" }>;
@@ -181,7 +182,6 @@ describe("slide picture, alignment and size", () => {
 
 describe("slide looks", () => {
   it("keeps body and footer text readable on every background, for any brand colour", async () => {
-    const { paperColors } = await import("@/lib/carouselLayout");
     for (const paper of ["light", "dark", "tint"] as const) {
       for (const color of ["#1E3A8A", "#B91C1C", "#0F766E", "#FDE047", "#27272A"]) {
         const c = paperColors(paper, color);
