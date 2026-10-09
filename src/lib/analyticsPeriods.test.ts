@@ -42,4 +42,11 @@ describe("rankPosts and postsCsv", () => {
     expect(head.startsWith("Posted,Platform,Format,Hook")).toBe(true);
     expect(row).toContain('"He said ""CPF, then\nHDB"""');
   });
+  it("dates each row by the day it went out where the adviser is, not the UTC day", () => {
+    // 7:30am on 9 Oct here is still 8 Oct in UTC anywhere east of London
+    const early = { ...p("a", 0, 100, 5), postedAt: new Date(2026, 9, 9, 7, 30).toISOString() };
+    const plain = { ...p("b", 0, 100, 5), postedAt: "2026-10-07" };
+    const rows = postsCsv([early, plain]).split("\n").slice(1);
+    expect(rows.map((r) => r.slice(0, 11))).toEqual(["2026-10-09,", "2026-10-07,"]);
+  });
 });

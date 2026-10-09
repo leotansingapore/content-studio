@@ -16,7 +16,7 @@ import {
 } from "@/lib/draftHistory";
 import { readout, type PlatformId } from "@/lib/platformCounters";
 import { hookFormula, HOOK_FORMULAS } from "@/lib/hookFormulas";
-import { addDays, keyToDate, localDateKey, scheduleTime } from "@/lib/dueDates";
+import { addDays, keyToDate, localDateKey, postedDay, scheduleTime } from "@/lib/dueDates";
 
 export interface TrackedPost extends DraftEntry {
   impressions: number;
@@ -515,7 +515,7 @@ export function postsCsv(posts: TrackedPost[]): string {
   };
   const head = ["Posted", "Platform", "Format", "Hook", "Impressions", "Reactions", "Comments", "Shares", "Engagements", "Engagement rate %"];
   const rows = posts.map((p) => [
-    (p.postedAt ?? p.createdAt).slice(0, 10), p.platform, p.format, p.hook || p.draft.slice(0, 80),
+    postedDay(p.postedAt ?? p.createdAt), p.platform, p.format, p.hook || p.draft.slice(0, 80),
     p.impressions, p.metrics?.reactions ?? 0, p.metrics?.comments ?? 0, p.metrics?.shares ?? 0, p.engagementTotal, p.engagementRate,
   ]);
   return [head, ...rows].map((r) => r.map(esc).join(",")).join("\n");
