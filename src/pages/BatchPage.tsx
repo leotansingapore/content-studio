@@ -305,7 +305,7 @@ export default function BatchPage() {
                     key={p.value}
                     type="button"
                     onClick={() => setPillar(p.value)}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
                       pillar === p.value
                         ? "border-primary/60 bg-primary/10 text-primary"
                         : "border-border/70 text-muted-foreground hover:text-foreground"
@@ -324,7 +324,7 @@ export default function BatchPage() {
                     key={a.value}
                     type="button"
                     onClick={() => setAudience(a.value)}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
                       audience === a.value
                         ? "border-primary/60 bg-primary/10 text-primary"
                         : "border-border/70 text-muted-foreground hover:text-foreground"
@@ -348,7 +348,7 @@ export default function BatchPage() {
                     key={t.key}
                     type="button"
                     onClick={() => toggle(t.key)}
-                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs font-medium transition-all ${
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-xs font-medium transition-all [@media(pointer:coarse)]:min-h-11 ${
                       active
                         ? "border-primary/60 bg-primary/5 text-foreground shadow-sm"
                         : "border-border/70 text-muted-foreground hover:border-primary/40"
