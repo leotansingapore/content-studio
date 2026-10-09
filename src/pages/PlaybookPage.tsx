@@ -114,7 +114,7 @@ export default function PlaybookPage() {
         icon={Target}
         title="Your positioning"
         action={
-          <Button asChild variant="ghost" size="sm" className="gap-1 text-xs">
+          <Button asChild variant="ghost" size="sm" className="gap-1 text-xs [@media(pointer:coarse)]:h-11">
             <Link to="/plan">{hasPositioning ? "Edit" : "Set it up"}</Link>
           </Button>
         }
@@ -182,7 +182,7 @@ export default function PlaybookPage() {
         icon={Mic}
         title="Your voice"
         action={
-          <Button asChild variant="ghost" size="sm" className="gap-1 text-xs">
+          <Button asChild variant="ghost" size="sm" className="gap-1 text-xs [@media(pointer:coarse)]:h-11">
             <Link to="/voice">{voiceReady ? "Edit" : "Set it up"}</Link>
           </Button>
         }

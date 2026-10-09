@@ -227,10 +227,10 @@ export default function LinkInBioPage() {
               <a href={liveUrl} target="_blank" rel="noopener" className="min-w-0 flex-1 break-all text-sm font-semibold text-foreground hover:underline">
                 {liveUrl}
               </a>
-              <Button size="sm" onClick={() => void copy(liveUrl)} className="h-10 gap-1.5 sm:h-9">
+              <Button size="sm" onClick={() => void copy(liveUrl)} className="h-10 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11">
                 <Copy className="h-3.5 w-3.5" /> Copy
               </Button>
-              <Button size="sm" variant="outline" asChild className="h-10 gap-1.5 sm:h-9">
+              <Button size="sm" variant="outline" asChild className="h-10 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11">
                 <a href={liveUrl} target="_blank" rel="noopener">
                   <ExternalLink className="h-3.5 w-3.5" /> Open
                 </a>
@@ -317,7 +317,7 @@ export default function LinkInBioPage() {
                         <span className="mr-auto text-[11px] text-muted-foreground">
                           {l.id && month.get(l.id) ? `${month.get(l.id)} clicks in 30 days` : ""}
                         </span>
-                        <Button size="icon" variant="ghost" aria-label="Move up" disabled={i === 0} onClick={() => moveLink(i, -1)} className="h-10 w-10 sm:h-9 sm:w-9">
+                        <Button size="icon" variant="ghost" aria-label="Move up" disabled={i === 0} onClick={() => moveLink(i, -1)} className="h-10 w-10 sm:h-9 sm:w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
                           <ArrowUp className="h-4 w-4" />
                         </Button>
                         <Button
@@ -326,7 +326,7 @@ export default function LinkInBioPage() {
                           aria-label="Move down"
                           disabled={i === form.links.length - 1}
                           onClick={() => moveLink(i, 1)}
-                          className="h-10 w-10 sm:h-9 sm:w-9"
+                          className="h-10 w-10 sm:h-9 sm:w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                         >
                           <ArrowDown className="h-4 w-4" />
                         </Button>
@@ -335,7 +335,7 @@ export default function LinkInBioPage() {
                           variant="ghost"
                           aria-label={`Remove link ${i + 1}`}
                           onClick={() => edit({ links: form.links.filter((_, j) => j !== i) })}
-                          className="h-10 w-10 text-muted-foreground sm:h-9 sm:w-9"
+                          className="h-10 w-10 text-muted-foreground sm:h-9 sm:w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -348,18 +348,18 @@ export default function LinkInBioPage() {
                   variant="outline"
                   disabled={form.links.length >= MAX_LINKS}
                   onClick={() => edit({ links: [...form.links, { label: "", url: "" }] })}
-                  className="h-10 gap-1.5 sm:h-9"
+                  className="h-10 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11"
                 >
                   <Plus className="h-3.5 w-3.5" /> {form.links.length >= MAX_LINKS ? `${MAX_LINKS} links at most` : "Add link"}
                 </Button>
               </section>
 
               <div className="space-y-3">
-                <label className="flex min-h-10 items-center gap-2 text-sm font-medium">
+                <label className="flex min-h-10 items-center gap-2 text-sm font-medium [@media(pointer:coarse)]:min-h-11">
                   <input type="checkbox" checked={form.published} onChange={(e) => edit({ published: e.target.checked })} className="h-4 w-4" />
                   Page is live
                 </label>
-                <Button onClick={() => void save()} disabled={saving} className="h-11 w-full gap-1.5 sm:h-10 sm:w-auto">
+                <Button onClick={() => void save()} disabled={saving} className="h-11 w-full gap-1.5 sm:h-10 sm:w-auto [@media(pointer:coarse)]:h-11">
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   Save page
                 </Button>

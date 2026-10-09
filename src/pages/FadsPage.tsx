@@ -1493,7 +1493,7 @@ export default function FadsPage() {
                             const next = selected ? current.filter(c => c !== v) : [...current, v];
                             updateFormData("coreValues", next.join(", "));
                           }}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${selected ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:border-primary/50'}`}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all [@media(pointer:coarse)]:min-h-11 ${selected ? 'bg-primary text-primary-foreground border-primary' : 'bg-background border-border hover:border-primary/50'}`}
                         >
                           {v}
                         </button>

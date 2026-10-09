@@ -301,7 +301,7 @@ export default function VoicePage() {
                 size="sm"
                 onClick={handleSave}
                 disabled={distilling}
-                className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95"
+                className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 [@media(pointer:coarse)]:h-11"
               >
                 {distilling ? (
                   <>

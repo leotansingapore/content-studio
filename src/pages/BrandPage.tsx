@@ -202,7 +202,7 @@ export default function BrandPage() {
                     aria-label={p.name}
                     title={p.name}
                     style={{ backgroundColor: p.color }}
-                    className={`h-9 w-9 rounded-full ring-offset-2 ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${active ? "ring-2 ring-foreground" : "hover:scale-105"}`}
+                    className={`h-9 w-9 rounded-full [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 ring-offset-2 ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${active ? "ring-2 ring-foreground" : "hover:scale-105"}`}
                   />
                 );
               })}
@@ -230,7 +230,7 @@ export default function BrandPage() {
                   if (hex) pickColor(hex);
                   else setHexInput(brand.color);
                 }}
-                className="h-9 w-24 font-mono text-xs"
+                className="h-9 w-24 font-mono text-xs [@media(pointer:coarse)]:h-11"
               />
             </div>
           </section>
@@ -278,7 +278,7 @@ export default function BrandPage() {
                     onChange={(e) => e.target.value && update({ slots: (brand.slots ?? []).map((x, j) => (j === i ? `${x[0]}T${e.target.value.slice(0, 5)}` : x)) })}
                     className="h-10 rounded-md border border-input bg-background px-2 text-sm"
                   />
-                  <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground" aria-label="Remove this time"
+                  <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label="Remove this time"
                     onClick={() => update({ slots: (brand.slots ?? []).filter((_, j) => j !== i) })}>
                     <X className="h-4 w-4" />
                   </Button>
@@ -286,7 +286,7 @@ export default function BrandPage() {
               ))}
             </ul>
             {(brand.slots?.length ?? 0) < 14 && (
-              <Button variant="outline" size="sm" className="h-9 gap-1.5"
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11"
                 onClick={() => update({ slots: [...(brand.slots ?? []), (brand.slots ?? []).length ? `${(Number(brand.slots![brand.slots!.length - 1][0]) + 2) % 7}T${brand.slots![brand.slots!.length - 1].slice(2)}` : "1T08:30"] })}>
                 <Plus className="h-3.5 w-3.5" /> Add a time
               </Button>
