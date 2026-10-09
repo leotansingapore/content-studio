@@ -116,7 +116,7 @@ describe("tools", () => {
 
   it("refuses bad drafts and stops at the inbox cap", async () => {
     const s = memoryStore({});
-    for (const args of [{}, { text: " " }, { text: "x".repeat(5001) }, { text: "x", platform: "myspace" }, { text: "x", scheduledFor: "2026-13-40" }, { text: "x", scheduledFor: "tomorrow" }]) {
+    for (const args of [{}, { text: " " }, { text: "x".repeat(5001) }, { text: "x", platform: "myspace" }, { text: "x", scheduledFor: "2026-13-40" }, { text: "x", scheduledFor: "tomorrow" }, { text: "x", scheduledFor: "2026-10-20T24:00" }, { text: "x", scheduledFor: "2026-10-20T19:60" }]) {
       expect((await callTool("add_draft", args, s, link, now)).isError).toBe(true);
     }
     for (let i = 0; i < MAX_INBOX; i++) s.rows.set(inboxKey(i, UID), "{}");

@@ -124,7 +124,7 @@ function summary(d: Draft) {
 
 const PLATFORMS = ["linkedin", "instagram", "facebook", "tiktok"];
 const FORMATS = ["text-post", "carousel", "short-video", "story"];
-const WHEN = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/;
+const WHEN = /^\d{4}-\d{2}-\d{2}(T(?:[01]\d|2[0-3]):[0-5]\d)?$/;
 
 export const TOOLS = [
   {
