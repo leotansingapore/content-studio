@@ -73,6 +73,11 @@ describe("tools", () => {
     expect((await callTool("get_post", { id: "zz" }, store(), link)).isError).toBe(true);
   });
 
+  it("turns the day over at midnight in Singapore, not in London", () => {
+    expect(sgToday(new Date("2026-10-08T15:59:59Z"))).toBe("2026-10-08");
+    expect(sgToday(new Date("2026-10-08T16:00:00Z"))).toBe("2026-10-09");
+  });
+
   it("shows the next two weeks of the calendar from today in Singapore", async () => {
     expect(sgToday(now)).toBe("2026-10-08");
     const cal = text(await callTool("get_calendar", {}, store(), link, now));
