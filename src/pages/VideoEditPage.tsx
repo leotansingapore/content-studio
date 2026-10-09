@@ -152,6 +152,7 @@ import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, remove
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cutTimes, dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, lookSpans, sanitizeTrack, trackCovers } from "@/lib/faceFollow";
+import { pairShare } from "@/lib/stacked";
 import { defaultSkill, loadSkills, newSkillId, removeSkill, saveSkill, suggestName, type VideoSkill } from "@/lib/videoSkills";
 import LongCaptions, { CaptionJobStatus } from "@/components/LongCaptions";
 import SubtitleImport from "@/components/SubtitleImport";
@@ -879,13 +880,19 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     change({ ...settings, voiceover: undefined }); // the file stays until Undo is out of reach; it is small
   };
 
-  // follow the face: found once on this device (a second or two a minute of video), then on or off at once
+  // follow the face, or stack two speakers: the faces are found once on this device (a second or two
+  // a minute of video), then either goes on or off at once
   const crop = cropShare(settings.aspect, dims[0], dims[1]);
-  const canFollow = (settings.fit ?? "fill") === "fill" && crop < 0.95;
-  const setFollow = async (on: boolean) => {
-    // looked for over the kept parts only; found again when the trims have moved past what was looked at
+  const canFollow = ["fill", "stacked"].includes(settings.fit ?? "fill") && crop < 0.95;
+  // `use` makes the next settings from these with the faces found (null = no change but the faces)
+  const withFaces = async (use: (s: EditSettings) => EditSettings | null, pairs = false) => {
+    // looked for over the kept parts only; found again when the trims have moved past what was looked
+    // at, or for stacking, when the track is from before two speakers were looked for
     const spans = lookSpans(plan.segs);
-    if (!on || trackCovers(settings.faceTrack, spans)) return patch({ followFace: on });
+    if (trackCovers(settings.faceTrack, spans) && (!pairs || settings.faceTrack?.pairs)) {
+      const next = use(settings);
+      return void (next && change(next));
+    }
     if (!file || finding !== null) return;
     setFinding(0);
     let v: HTMLVideoElement | null = null;
@@ -896,9 +903,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       const track = await findFaceTrack(v, spans, crop * 0.12, (p) => setFinding((f) => (f === null || p - f >= 0.05 || p === 1 ? p : f)), words);
       if (!track) return toast({ title: "No face found in this video", description: "Move the crop by hand under Hook and frame.", variant: "destructive" });
       // the latest settings: changes made while it looked must stay
-      const cur = settingsRef.current;
-      setHistory((h) => [...h.slice(-19), cur]);
-      setSettings({ ...cur, followFace: true, faceTrack: track });
+      const cur = { ...settingsRef.current, faceTrack: track };
+      setHistory((h) => [...h.slice(-19), settingsRef.current]);
+      setSettings(use(cur) ?? cur);
     } catch (e) {
       toast({ title: "Couldn't look for your face", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -906,6 +913,18 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       setFinding(null);
     }
   };
+
+  const setFollow = (on: boolean) => (on ? withFaces((s) => ({ ...s, followFace: true })) : patch({ followFace: false }));
+  // two speakers stacked, with the captions on the seam: offered for a landscape video, used when two
+  // people share the shot for at least half of the edit
+  const canStack = crop < 0.95 || settings.fit === "stacked";
+  const setStacked = () =>
+    withFaces((s) => {
+      // a shot with one person in it crops to fill, on their face
+      if (pairShare(s.faceTrack?.pairs, lookSpans(plan.segs)) >= 0.5) return { ...s, fit: "stacked", captionY: 0.5, followFace: true };
+      toast({ title: "Two people aren't in the same shot for most of this video", variant: "destructive" });
+      return null;
+    }, true);
 
   const seekOut = (t: number) => {
     const v = video.current;
@@ -1948,8 +1967,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <Chip on={(settings.fit ?? "fill") === "fill"} onClick={() => patch({ fit: "fill" })}>Crop to fill</Chip>
                 <Chip on={settings.fit === "blur"} onClick={() => patch({ fit: "blur" })}>Whole video, blurred behind</Chip>
                 <Chip on={settings.fit === "framed"} onClick={() => patch({ fit: "framed", ...(settings.captionY === undefined ? { captionY: 0.68 } : {}) })}>Framed window</Chip>
+                {canStack && (
+                  <Chip on={settings.fit === "stacked"} onClick={() => finding === null && settings.fit !== "stacked" && void setStacked()}>
+                    {finding !== null ? `Finding faces ${Math.round(finding * 100)}%` : "Two speakers stacked"}
+                  </Chip>
+                )}
               </Row>
-              {(settings.fit ?? "fill") === "fill" && (
+              {["fill", "stacked"].includes(settings.fit ?? "fill") && (
                 <Row label="Framing">
                   {settings.followFace ? (
                     <>

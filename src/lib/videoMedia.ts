@@ -3,6 +3,7 @@
 // and up to three small stills for "match this reference". Preview and export
 // draw every frame with drawFrame, so what you see is what you get.
 
+import { drawStacked, pairAt } from "@/lib/stacked";
 import { readableOn } from "@/lib/carouselLayout";
 import type { CarouselBrand } from "@/lib/carousel";
 import {
@@ -512,7 +513,11 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     const zoom = motion.zooms.length ? keyZoom(motion.zooms, f.out) : s.punchIn ? zoomAt(f.segs, f.src, spec.punch) : 1;
     const zy = motion.zooms.length ? 0.42 : 0.5;
     const cover = Math.max(W / v.videoWidth, H / v.videoHeight);
-    if (s.fit === "framed") {
+    const pair = s.fit === "stacked" ? pairAt(s.faceTrack?.pairs, f.src) : null;
+    if (pair) {
+      // two people side by side: one above the other (a shot without them crops to fill, below)
+      drawStacked(g, v, pair, W, H, zoom, gradeOf(s), fx && ((r) => fx(g, shown(r.x, r.y, r.w, r.h))));
+    } else if (s.fit === "framed") {
       // the whole picture in a rounded window on the brand colour, darker at the foot
       const base = f.brand?.color ?? "#0F172A";
       const grad = g.createLinearGradient(0, 0, 0, H);

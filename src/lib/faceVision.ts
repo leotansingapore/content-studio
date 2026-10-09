@@ -7,6 +7,7 @@ import type { FaceDetector, FaceLandmarker, FilesetResolver, ImageSegmenter } fr
 import { gradeOf, type Backdrop, type EditSettings, type FaceTrack, type Word } from "@/lib/videoEdit";
 import { CUT_CHANGE, findCuts, frameChange, pickFace, smoothTrack, trackStep } from "@/lib/faceFollow";
 import { MIN_FACE, speakerPlan, type SeenFace } from "@/lib/speakers";
+import { pairsOf } from "@/lib/stacked";
 import { seek } from "@/lib/videoMedia";
 import { medianBox, type FaceBox } from "@/lib/videoMotion";
 
@@ -167,7 +168,9 @@ export async function findFaceTrack(v: HTMLVideoElement, spans: { start: number;
   });
   const jumps = [...cuts, ...(talk?.switches ?? [])].sort((a, b) => a - b);
   const x = smoothTrack(raw, step, hold, jumps.map(lookOf));
-  return x ? { step, x, ...(from > 0 ? { from } : {}), ...(jumps.length ? { cuts: jumps } : {}) } : null;
+  // the shots with two people side by side, for the stacked layout (camera cuts only split them)
+  const pairs = pairsOf(looks, from, step, cuts);
+  return x ? { step, x, ...(from > 0 ? { from } : {}), ...(jumps.length ? { cuts: jumps } : {}), pairs } : null;
 }
 
 /** How open the mouth in this face box is (from the detector, on the 640 px copy; `k` scales it to the video): the inner lips' gap as a share of brow to chin, read by the landmark model from the video itself. Undefined when unread. */

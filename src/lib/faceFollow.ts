@@ -4,6 +4,7 @@
 // of videoEdit.ts, which the main bundle carries, since only the editor needs it.
 
 import { aspectSize, type Aspect, type FaceTrack } from "@/lib/videoEdit";
+import { sanitizePairs } from "@/lib/stacked";
 
 /** Seconds between the frames looked at for the face: every half second, fewer on a long video (at most 900 looks). */
 export const trackStep = (duration: number) => Math.max(0.5, Math.ceil((duration / 900) * 10) / 10);
@@ -125,5 +126,6 @@ export function sanitizeTrack(raw: unknown): FaceTrack | undefined {
   if (!r.x.every((v) => typeof v === "number" && Number.isFinite(v))) return undefined;
   const from = typeof r.from === "number" && Number.isFinite(r.from) && r.from > 0 ? r.from : 0;
   const cuts = Array.isArray(r.cuts) ? r.cuts.filter((c): c is number => typeof c === "number" && Number.isFinite(c) && c > 0).slice(0, 500).sort((a, b) => a - b) : [];
-  return { step, x: (r.x as number[]).map((v) => Math.min(1, Math.max(0, v))), ...(from ? { from } : {}), ...(cuts.length ? { cuts } : {}) };
+  const pairs = sanitizePairs(r.pairs);
+  return { step, x: (r.x as number[]).map((v) => Math.min(1, Math.max(0, v))), ...(from ? { from } : {}), ...(cuts.length ? { cuts } : {}), ...(pairs ? { pairs } : {}) };
 }
