@@ -608,14 +608,26 @@ describe("checking an exported file", () => {
 });
 
 describe("loudness", () => {
-  const tone = (amp: number, seconds: number, rate = 48000, hz = 997) =>
-    Float32Array.from({ length: Math.round(seconds * rate) }, (_, i) => amp * Math.sin((2 * Math.PI * hz * i) / rate));
+  // Signals are built once, while the file is collected, and only as long as each reading needs:
+  // this is the heaviest test in the suite and it must stay inside 5 s on a busy machine.
+  const tone = (amp: number, seconds: number, rate = 48000, hz = 997) => {
+    const out = new Float32Array(Math.round(seconds * rate));
+    for (let i = 0; i < out.length; i++) out[i] = amp * Math.sin((2 * Math.PI * hz * i) / rate);
+    return out;
+  };
   const join = (...parts: Float32Array[]) => {
     const out = new Float32Array(parts.reduce((n, p) => n + p.length, 0));
     let at = 0;
     for (const p of parts) { out.set(p, at); at += p.length; }
     return out;
   };
+  // 4 s so the blocks across a join weigh as little as on a real recording; 1 s does for the rest
+  const t = tone(0.1, 4);
+  const short = tone(0.1, 1);
+  const afterSilence = join(t, new Float32Array(48000));
+  const afterQuiet = join(t, tone(0.01, 1));
+  const at44 = tone(0.1, 1, 44100);
+  const half = tone(0.5, 0.1);
 
   it("builds BS.1770's K-weighting filters, matching the standard's 48 kHz table", async () => {
     const [shelf, hp] = kWeighting(48000);
@@ -627,13 +639,12 @@ describe("loudness", () => {
   });
 
   it("reads a 1 kHz tone at its level less 3 dB, counts both channels, and gates out silence and quiet bits", async () => {
-    const t = tone(0.1, 4);
     expect(integratedLoudness([t], 48000)!).toBeCloseTo(-23.01, 1);
-    expect(integratedLoudness([t, t], 48000)!).toBeCloseTo(-20.0, 1);
+    expect(integratedLoudness([short, short], 48000)!).toBeCloseTo(-20.0, 1);
     // ungated, these would read about -26; the blocks across the join pull a touch under -23
-    expect(integratedLoudness([join(t, new Float32Array(48000 * 4))], 48000)!).toBeGreaterThan(-23.3);
-    expect(integratedLoudness([join(t, tone(0.01, 4))], 48000)!).toBeGreaterThan(-23.3);
-    expect(integratedLoudness([tone(0.1, 4, 44100)], 44100)!).toBeCloseTo(-23.01, 1);
+    expect(integratedLoudness([afterSilence], 48000)!).toBeGreaterThan(-23.3);
+    expect(integratedLoudness([afterQuiet], 48000)!).toBeGreaterThan(-23.3);
+    expect(integratedLoudness([at44], 44100)!).toBeCloseTo(-23.01, 1);
     expect(integratedLoudness([new Float32Array(48000 * 2)], 48000)).toBeNull();
   });
 
@@ -642,7 +653,7 @@ describe("loudness", () => {
     const off = Float32Array.from({ length: 4800 }, (_, i) => Math.sin((Math.PI / 2) * i + Math.PI / 4));
     expect(truePeak([off])).toBeGreaterThan(-0.2);
     expect(truePeak([off])).toBeLessThan(0.1);
-    expect(truePeak([tone(0.5, 1)])).toBeCloseTo(-6.02, 1);
+    expect(truePeak([half])).toBeCloseTo(-6.02, 1);
     expect(truePeak([new Float32Array(100)])).toBe(-Infinity);
   });
 
