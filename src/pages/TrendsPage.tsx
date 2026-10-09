@@ -177,7 +177,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
                 type="button"
                 onClick={() => copy(hooks[0], "Hook")}
                 aria-label="Copy hook"
-                className="-m-1.5 rounded p-1.5 text-muted-foreground transition-colors hover:text-primary"
+                className="-m-1.5 rounded p-1.5 text-muted-foreground transition-colors hover:text-primary [@media(pointer:coarse)]:-mx-2.5 [@media(pointer:coarse)]:-mb-1.5 [@media(pointer:coarse)]:-mt-2.5 [@media(pointer:coarse)]:p-4"
               >
                 <Copy className="h-3 w-3" />
               </button>
@@ -193,7 +193,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            className="inline-flex w-fit items-center gap-1 py-1 text-[11px] font-semibold text-primary hover:underline"
+            className="inline-flex w-fit items-center gap-1 py-1 text-[11px] font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
           >
             {open ? (
               <>
@@ -299,20 +299,20 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
           <Button
             asChild
             size="sm"
-            className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
+            className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:h-11"
           >
             <Link to={buildTrendRemixUrl(trend)}>
               <Wand2 className="h-3.5 w-3.5" /> Write this
             </Link>
           </Button>
           {cloneLinkFor(trend.source_url) && (
-            <Button asChild variant="outline" size="sm" className="gap-1.5" title="Clone this video">
+            <Button asChild variant="outline" size="sm" className="gap-1.5 [@media(pointer:coarse)]:h-11" title="Clone this video">
               <Link to={cloneLinkFor(trend.source_url)!}>
                 <Clapperboard className="h-3.5 w-3.5" /> Clone
               </Link>
             </Button>
           )}
-          <Button asChild variant="outline" size="sm" className="gap-1.5">
+          <Button asChild variant="outline" size="sm" className="gap-1.5 [@media(pointer:coarse)]:h-11">
             <a href={safeExternalUrl(trend.source_url) ?? undefined} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-3.5 w-3.5" /> Source
             </a>
