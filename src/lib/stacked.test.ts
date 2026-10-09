@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OPEN_END, drawSlides, drawStacked, halfCrop, meOf, pairAt, pairShare, pairsOf, sanitizeMe, sanitizePairs, slidesCaptionY, slidesHeight, type Pair } from "./stacked";
+import { OPEN_END, drawSlides, drawStacked, halfCrop, lifted, meOf, pairAt, pairShare, pairsOf, sanitizeMe, sanitizePairs, slidesCaptionY, slidesHeight, type Pair } from "./stacked";
 import type { SeenFace } from "./speakers";
 import { sanitizeTrack } from "./faceFollow";
 
@@ -102,6 +102,12 @@ describe("slides and me", () => {
     calls.length = 0;
     drawSlides(g, { videoWidth: 1080, videoHeight: 1080 } as unknown as HTMLVideoElement, [0.5, 0.5, 0.2], 1080, 1920, 1, "none");
     expect(calls[0].slice(0, 4)).toEqual([0, 108, 1080, 864]);
+  });
+
+  it("moves a face found on the whole picture onto a picture with its bottom cropped off", () => {
+    expect(lifted([0.3, 0.4, 0.1], 0.8)).toEqual([0.3, 0.5, 0.1]);
+    expect(lifted([0.3, 0.95, 0.1], 0.8)).toEqual([0.3, 1, 0.1]);
+    expect(lifted([0.3, 0.4, 0.1], 1)).toEqual([0.3, 0.4, 0.1]);
   });
 
   it("keeps a stored face only when well formed, and tells looked-for-none from not looked", () => {

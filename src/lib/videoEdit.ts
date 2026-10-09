@@ -57,6 +57,10 @@ export interface EditSettings {
   followFace?: boolean;
   /** Where the face is across the source video, found on this device; kept when following is off so it comes straight back. */
   faceTrack?: FaceTrack;
+  /** Where text burned into the bottom of the source starts (a share of its height, burnedText.ts), found on this device; null = looked, none. */
+  textBand?: number | null;
+  /** The share of the source's height kept from the top: under 1 crops burned-in text off the bottom; 1 = keep it, chosen. Unset = not chosen. */
+  cropBottom?: number;
   /** What shows behind the speaker: their own background blurred, a plain colour, or a picture on this device. Unset = as filmed. */
   backdrop?: Backdrop;
   /** Skin smoothed a little and eyes brightened, 0 to 1 (faceVision.ts). Unset or 0 = off. */

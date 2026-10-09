@@ -3,7 +3,8 @@
 // and up to three small stills for "match this reference". Preview and export
 // draw every frame with drawFrame, so what you see is what you get.
 
-import { drawSlides, drawStacked, pairAt } from "@/lib/stacked";
+import { drawSlides, drawStacked, lifted, pairAt } from "@/lib/stacked";
+import { keepTop } from "@/lib/burnedText";
 import { readableOn } from "@/lib/carouselLayout";
 import type { CarouselBrand } from "@/lib/carousel";
 import {
@@ -494,7 +495,10 @@ export function drawEndCard(g: CanvasRenderingContext2D, art: BrandArt, t: numbe
 }
 
 export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
-  const { video: v, settings: s } = f;
+  const { settings: s } = f;
+  // text burned into the bottom of the source, cropped off: everything below draws the rest as the picture
+  const v = keepTop(f.video, s.cropBottom);
+  const keep = v === f.video ? 1 : v.videoHeight / f.video.videoHeight;
   const W = g.canvas.width;
   const H = g.canvas.height;
   const spec = STYLES[s.style];
@@ -517,10 +521,10 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     const me = s.fit === "slides" ? s.faceTrack?.me : null;
     if (pair) {
       // two people side by side: one above the other (a shot without them crops to fill, below)
-      drawStacked(g, v, pair, W, H, zoom, gradeOf(s), fx && ((r) => fx(g, shown(r.x, r.y, r.w, r.h))));
+      drawStacked(g, v, { ...pair, top: lifted(pair.top, keep), bottom: lifted(pair.bottom, keep) }, W, H, zoom, gradeOf(s), fx && ((r) => fx(g, shown(r.x, r.y, r.w, r.h))));
     } else if (me) {
       // a screen recording: the whole screen on top, the speaker's face below
-      drawSlides(g, v, me, W, H, zoom, gradeOf(s), fx && ((r) => fx(g, shown(r.x, r.y, r.w, r.h))));
+      drawSlides(g, v, lifted(me, keep), W, H, zoom, gradeOf(s), fx && ((r) => fx(g, shown(r.x, r.y, r.w, r.h))));
     } else if (s.fit === "framed") {
       // the whole picture in a rounded window on the brand colour, darker at the foot
       const base = f.brand?.color ?? "#0F172A";

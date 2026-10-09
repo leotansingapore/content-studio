@@ -9,6 +9,7 @@ import JoinTakes from "@/components/JoinTakes";
 import ClipFinder from "@/components/ClipFinder";
 import ExportRunning from "@/components/ExportRunning";
 import MotionControls from "@/components/MotionControls";
+import BurnedTextOffer from "@/components/BurnedTextOffer";
 import AutoBroll from "@/components/AutoBroll";
 import BrollLayout from "@/components/BrollLayout";
 import HookOptions from "@/components/HookOptions";
@@ -1529,6 +1530,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </Row>
             </div>
           )}
+          <BurnedTextOffer settings={settings} segs={plan.segs} file={file}
+            apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }}
+            note={(p) => setSettings((cur) => ({ ...cur, ...p }))} />
           {settings.aspect === "9:16" && (
             <div className="space-y-1.5">
               <Row label="Show the app's buttons">

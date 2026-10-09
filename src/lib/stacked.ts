@@ -42,6 +42,9 @@ export function pairsOf(looks: (SeenFace[] | null)[], from: number, step: number
   return pairs;
 }
 
+/** A spot found on the whole picture, on a picture cut to its top `keep` of the height (burned-in text cropped off). */
+export const lifted = (p: Spot, keep: number): Spot => (keep >= 1 ? p : [p[0], Math.min(1, p[1] / keep), p[2]]);
+
 /** The pair at this moment of the source, if its shot has one. */
 export const pairAt = (pairs: Pair[] | undefined, src: number): Pair | null => pairs?.find((p) => src >= p.at && src < p.to) ?? null;
 
