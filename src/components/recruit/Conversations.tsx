@@ -75,7 +75,7 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
           <span><span className="font-semibold">{counts.replied}</span> replied</span>
           <span><span className="font-semibold">{counts.booked}</span> chats booked</span>
           {missingTrifecta.length > 0 && (
-            <Button size="sm" variant="outline" className="ml-auto h-9 text-xs sm:h-8" onClick={addTrifecta}>
+            <Button size="sm" variant="outline" className="ml-auto h-9 text-xs sm:h-8 [@media(pointer:coarse)]:h-11" onClick={addTrifecta}>
               Add my Trifecta names first
             </Button>
           )}
@@ -91,7 +91,7 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
                   onChange={(e) => setRow(i, { name: e.target.value })}
                   placeholder="Name"
                   aria-label={`Conversation ${i + 1} name`}
-                  className="h-9 min-w-0 flex-1 basis-40"
+                  className="h-9 [@media(pointer:coarse)]:h-11 min-w-0 flex-1 basis-40"
                 />
                 {r.name.trim() && !unfilled && (
                   <a
@@ -99,7 +99,7 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => !r.sent && setRow(i, { sent: true })}
-                    className="inline-flex h-9 items-center gap-1 rounded-lg border border-success/40 px-2.5 text-[11px] font-semibold text-success hover:bg-success/10"
+                    className="inline-flex h-9 [@media(pointer:coarse)]:h-11 items-center gap-1 rounded-lg border border-success/40 px-2.5 text-[11px] font-semibold text-success hover:bg-success/10"
                     aria-label={`Send the script to ${r.name} on WhatsApp`}
                   >
                     <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
@@ -112,7 +112,7 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
                       type="button"
                       aria-pressed={r[k]}
                       onClick={() => setRow(i, { [k]: !r[k] })}
-                      className={`h-9 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors ${
+                      className={`h-9 [@media(pointer:coarse)]:h-11 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors ${
                         r[k] ? "border-success/50 bg-success/10 text-success" : "border-border/60 text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -127,7 +127,7 @@ export default function Conversations({ brain, update, done }: { brain: RecruitB
                   onChange={(e) => setRow(i, { words: e.target.value })}
                   placeholder="Their words worth quoting"
                   aria-label={`Conversation ${i + 1} words worth quoting`}
-                  className="mt-2 h-9"
+                  className="mt-2 h-9 [@media(pointer:coarse)]:h-11"
                 />
               )}
             </li>

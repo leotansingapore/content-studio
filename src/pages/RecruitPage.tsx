@@ -49,7 +49,7 @@ export default function RecruitPage() {
             <li key={p.key}>
               <Link
                 to={p.to}
-                className={`inline-flex h-9 items-center gap-1 rounded-full border px-3 text-[11px] font-semibold transition-colors sm:h-7 ${
+                className={`inline-flex h-9 items-center gap-1 rounded-full border px-3 text-[11px] font-semibold transition-colors sm:h-7 [@media(pointer:coarse)]:h-11 ${
                   done[p.key]
                     ? "border-success/40 bg-success/10 text-success"
                     : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"

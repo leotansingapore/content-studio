@@ -178,7 +178,7 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
         <div className="flex flex-wrap items-center gap-2">
           <CopyButton text={buildAgentPack(brain)} label="Copy agent for ChatGPT / Claude" what="Agent copied: paste it into a new chat or project" />
           <CopyButton text={contextDoc} label="Copy Context Document" what="Context Document copied" />
-          <Button variant="ghost" size="sm" className="h-9 text-xs sm:h-8" onClick={() => setShowDoc((v) => !v)} aria-expanded={showDoc}>
+          <Button variant="ghost" size="sm" className="h-9 text-xs sm:h-8 [@media(pointer:coarse)]:h-11" onClick={() => setShowDoc((v) => !v)} aria-expanded={showDoc}>
             {showDoc ? "Hide" : "Preview"}
           </Button>
         </div>
@@ -199,7 +199,7 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
                   key={a.id}
                   type="button"
                   onClick={() => pickAngle(a.id)}
-                  className="h-9 max-w-full truncate rounded-full border border-border/60 px-3 text-left text-[11px] sm:h-7 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                  className="h-9 max-w-full truncate rounded-full border border-border/60 px-3 text-left text-[11px] sm:h-7 [@media(pointer:coarse)]:h-11 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
                   title={a.text}
                 >
                   {a.text.split(":")[0]}
@@ -219,21 +219,21 @@ export default function Agent({ brain, update, userId }: { brain: RecruitBrain; 
           <label className="space-y-1 text-xs font-semibold">
             Format
             <select value={format} onChange={(e) => setFormat(e.target.value as RecruitFormat)}
-              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal">
+              className="h-9 [@media(pointer:coarse)]:h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal">
               {RECRUIT_FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
             </select>
           </label>
           <label className="space-y-1 text-xs font-semibold">
             Funnel stage
             <select value={stage} onChange={(e) => setStage(e.target.value as RecruitStage)}
-              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal">
+              className="h-9 [@media(pointer:coarse)]:h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal">
               {STAGES.map((s) => <option key={s.id} value={s.id}>{s.id.toUpperCase()} - {s.label} ({s.share}%)</option>)}
             </select>
           </label>
           <label className="space-y-1 text-xs font-semibold">
             Formula
             <select value={formula ?? ""} onChange={(e) => setFormula((e.target.value || null) as FormulaId | null)}
-              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal">
+              className="h-9 [@media(pointer:coarse)]:h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal">
               <option value="">Pick the best fit for me</option>
               {FORMULAS.map((f) => <option key={f.id} value={f.id}>{f.n}. {f.label}</option>)}
             </select>

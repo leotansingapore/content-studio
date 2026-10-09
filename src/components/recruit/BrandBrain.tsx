@@ -62,7 +62,7 @@ export default function BrandBrain({ brain, update, done }: { brain: RecruitBrai
                 onChange={(e) => setRow(i, { name: e.target.value })}
                 placeholder={`Real person ${i + 1}`}
                 aria-label={`Person ${i + 1} name`}
-                className="col-span-3 h-9 sm:col-span-1"
+                className="col-span-3 h-9 [@media(pointer:coarse)]:h-11 sm:col-span-1"
               />
               {TRIFECTA.map((t) => (
                 <label key={t.key} className="space-y-0.5">
@@ -71,7 +71,7 @@ export default function BrandBrain({ brain, update, done }: { brain: RecruitBrai
                     value={r[t.key]}
                     onChange={(e) => setRow(i, { [t.key]: Number(e.target.value) })}
                     aria-label={`${r.name || `Person ${i + 1}`} ${t.label}`}
-                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                    className="h-9 [@media(pointer:coarse)]:h-11 w-full rounded-md border border-input bg-background px-2 text-sm"
                   >
                     {SCORES.map((s) => (
                       <option key={s} value={s}>{s === 0 ? "-" : `${s} / 5`}</option>
@@ -113,7 +113,7 @@ export default function BrandBrain({ brain, update, done }: { brain: RecruitBrai
                 type="button"
                 onClick={() => setTypeOpen(typeOpen === t.name ? null : t.name)}
                 aria-expanded={typeOpen === t.name}
-                className={`inline-flex h-9 items-center rounded-full border px-3 text-[11px] font-medium transition-colors sm:h-7 ${
+                className={`inline-flex h-9 items-center rounded-full border px-3 text-[11px] font-medium transition-colors sm:h-7 [@media(pointer:coarse)]:h-11 ${
                   typeOpen === t.name ? "border-primary/50 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:text-foreground"
                 }`}
               >
