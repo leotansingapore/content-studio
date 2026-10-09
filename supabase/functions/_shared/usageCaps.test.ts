@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readdirSync, readFileSync } from "node:fs";
 import { consumeUsage, DAILY_LIMITS, usageRefusal, type RpcClient } from "./usageCaps";
 
 const client = (result: { data: unknown; error: unknown } | Error): RpcClient & { calls: unknown[] } => {
@@ -37,5 +38,36 @@ describe("consumeUsage", () => {
     expect(errored).toMatchObject({ allowed: false, reason: "unavailable" });
     expect(thrown).toMatchObject({ allowed: false, reason: "unavailable" });
     expect(usageRefusal(errored as Extract<typeof errored, { allowed: false }>).status).toBe(503);
+  });
+});
+
+describe("the edge functions that spend", () => {
+  // A name missing from DAILY_LIMITS reaches the database as p_limit null, which refuses
+  // every call: the feature would say "You've used all undefined for today" from its first use.
+  it("count every paid call against a cap that exists", () => {
+    const root = new URL("../", import.meta.url);
+    const used: string[] = [];
+    for (const dir of readdirSync(root, { withFileTypes: true })) {
+      if (!dir.isDirectory() || dir.name.startsWith("_")) continue;
+      let source: string;
+      try {
+        source = readFileSync(new URL(`${dir.name}/index.ts`, root), "utf8");
+      } catch {
+        continue;
+      }
+      for (const call of source.matchAll(/consumeUsage\(\s*admin,\s*[^,]+,\s*([^)]+)\)/g)) {
+        let arg = call[1].trim();
+        if (/^\w+$/.test(arg)) arg = source.match(new RegExp(`const ${arg} = ([^;]+);`))?.[1] ?? "";
+        const names = [...arg.replace(/[!=]==\s*"[^"]*"/g, "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+        expect(names, `${dir.name}: ${call[0]}`).not.toEqual([]);
+        for (const name of names) {
+          expect(Object.keys(DAILY_LIMITS), `${dir.name} spends on "${name}"`).toContain(name);
+          used.push(name);
+        }
+      }
+    }
+    expect(used).toContain("engage-connect");
+    expect(used).toContain("ai-broll-global");
+    expect(used.length).toBeGreaterThanOrEqual(30);
   });
 });
