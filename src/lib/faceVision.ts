@@ -4,8 +4,9 @@
 // jsDelivr at the same version and its models from Google's model bucket.
 
 import type { FaceDetector, FaceLandmarker, FilesetResolver, ImageSegmenter } from "@mediapipe/tasks-vision";
-import { gradeOf, type Backdrop, type EditSettings, type FaceTrack } from "@/lib/videoEdit";
+import { gradeOf, type Backdrop, type EditSettings, type FaceTrack, type Word } from "@/lib/videoEdit";
 import { CUT_CHANGE, findCuts, frameChange, pickFace, smoothTrack, trackStep } from "@/lib/faceFollow";
+import { MIN_FACE, speakerPlan, type SeenFace } from "@/lib/speakers";
 import { seek } from "@/lib/videoMedia";
 import { medianBox, type FaceBox } from "@/lib/videoMotion";
 
@@ -38,10 +39,12 @@ const faceDetector = () =>
  * two hour podcast looks at the clip only. A 640 px copy of the frame is looked at every trackStep
  * seconds, the face to follow is picked and the path smoothed (faceFollow.ts); every frame shown is
  * also compared at 48 x 27 with the one before, to find the camera cuts the crop starts afresh at.
+ * With two or three people in a look, each mouth's opening is read too, and in a shot where they
+ * talk to each other the crop goes to whoever is talking (`words` say when anyone is; speakers.ts).
  * `v` is a <video> of its own, not the preview's; `hold` is how far the face may sway before the
  * crop moves. Null when no face shows up at all.
  */
-export async function findFaceTrack(v: HTMLVideoElement, spans: { start: number; end: number }[], hold: number, onProgress?: (share: number) => void): Promise<FaceTrack | null> {
+export async function findFaceTrack(v: HTMLVideoElement, spans: { start: number; end: number }[], hold: number, onProgress?: (share: number) => void, words: Word[] = []): Promise<FaceTrack | null> {
   if (!spans.length) return null;
   const det = await faceDetector();
   const from = spans[0].start;
@@ -58,6 +61,9 @@ export async function findFaceTrack(v: HTMLVideoElement, spans: { start: number;
   const n = Math.max(1, Math.floor((to - from) / step) + 1);
   const at = (i: number) => from + i * step;
   const raw: (number | null)[] = [];
+  const looks: (SeenFace[] | null)[] = [];
+  // the mouth model loads the first time a look has two people in it (a solo video never needs it)
+  let mouths: "no" | "loading" | "ready" = words.length ? "no" : "ready";
   const seen: { t: number; d: number }[] = [];
   // the frames either side of each big change, kept to place a cut to the frame afterwards
   const sides = new Map<number, { t0: number; before: Uint8ClampedArray; after: Uint8ClampedArray }>();
@@ -72,15 +78,34 @@ export async function findFaceTrack(v: HTMLVideoElement, spans: { start: number;
     v.playbackRate = 4; // a browser that caps the rate lower
   }
   await new Promise<void>((resolve, reject) => {
+    // a play() still starting when the look pauses for the mouth model rejects with AbortError: not a failure
+    const play = () => v.play().catch((e: Error) => e.name === "AbortError" || reject(e));
     const look = (_: number, frame: { mediaTime: number }) => {
       const t = frame.mediaTime;
       const span = spans.find((sp) => sp.end > t);
       if (!span || t > to) return resolve();
       if (t < span.start - 0.5) {
         // a long stretch the edit cuts: its looks stay empty and the video jumps to the next kept part
-        while (raw.length < n && at(raw.length) < span.start - 0.03) raw.push(null);
+        while (raw.length < n && at(raw.length) < span.start - 0.03) raw.push(null), looks.push(null);
         v.currentTime = span.start;
         v.requestVideoFrameCallback(look);
+        return;
+      }
+      const due = t >= at(raw.length) - 0.03;
+      const boxes = due ? (g.drawImage(v, 0, 0, c.width, c.height), det.detect(c).detections.flatMap((d) => (d.boundingBox ? [d.boundingBox] : []))) : [];
+      const talkers = boxes.filter((b) => b.width / c.width >= MIN_FACE).sort((a, b) => b.width - a.width).slice(0, 3);
+      if (talkers.length >= 2 && mouths === "no") {
+        // wait for the mouth model, then come back to this frame
+        mouths = "loading";
+        v.pause();
+        faceFinder()
+          .catch(() => null)
+          .then(() => {
+            mouths = "ready";
+            v.currentTime = t;
+            v.requestVideoFrameCallback(look);
+            void play();
+          });
         return;
       }
       tg.drawImage(v, 0, 0, tiny.width, tiny.height);
@@ -92,16 +117,20 @@ export async function findFaceTrack(v: HTMLVideoElement, spans: { start: number;
       }
       shown = px;
       shownT = t;
-      // a dropped frame can skip a look or two: they take this frame's answer
-      if (t >= at(raw.length) - 0.03) {
-        g.drawImage(v, 0, 0, c.width, c.height);
-        const faces = det.detect(c).detections.flatMap((d) => {
-          const b = d.boundingBox;
-          return b ? [{ x: (b.originX + b.width / 2) / c.width, w: b.width / c.width }] : [];
-        });
+      // a dropped frame can skip a look or two: they take this frame's answer (its mouths count once)
+      if (due) {
+        const faces: SeenFace[] = boxes.map((b) => ({
+          x: (b.originX + b.width / 2) / c.width,
+          y: (b.originY + b.height / 2) / c.height,
+          w: b.width / c.width,
+          ...(talkers.length >= 2 && talkers.includes(b) ? { open: mouthOpen(v, b, v.videoWidth / c.width) } : {}),
+        }));
         const x = pickFace(faces, prev);
         if (x !== null) prev = x;
-        while (raw.length < n && at(raw.length) <= t + 0.03) raw.push(x);
+        let k = 0;
+        for (; raw.length < n && at(raw.length) <= t + 0.03; k++) raw.push(x), looks.push(k ? faces.map(({ open: _, ...f }) => f) : faces);
+        // reading the mouths fell behind the video: play it slower so few looks go unread
+        if (k > 1 && talkers.length >= 2 && landmarker && v.playbackRate > 4) v.playbackRate /= 2;
         onProgress?.(raw.length / n);
       }
       if (raw.length >= n || v.ended) resolve();
@@ -110,7 +139,7 @@ export async function findFaceTrack(v: HTMLVideoElement, spans: { start: number;
     v.addEventListener("ended", () => resolve(), { once: true });
     v.addEventListener("error", () => reject(new Error("This browser couldn't play the video through.")), { once: true });
     v.requestVideoFrameCallback(look);
-    v.play().catch(reject);
+    void play();
   });
   v.pause();
   const cuts = findCuts(seen);
@@ -130,8 +159,30 @@ export async function findFaceTrack(v: HTMLVideoElement, spans: { start: number;
     }
     cuts[k] = Math.round(hi * 1000) / 1000;
   }
-  const x = smoothTrack(raw, step, hold, cuts.map((t) => Math.ceil((t - from) / step - 1e-6)));
-  return x ? { step, x, ...(from > 0 ? { from } : {}), ...(cuts.length ? { cuts } : {}) } : null;
+  const lookOf = (t: number) => Math.ceil((t - from) / step - 1e-6);
+  // a conversation: the crop goes to whoever is talking, and jumps to them as their turn starts
+  const talk = speakerPlan(looks, from, step, words, cuts.map(lookOf));
+  talk?.x.forEach((x, i) => {
+    if (x !== null) raw[i] = x;
+  });
+  const jumps = [...cuts, ...(talk?.switches ?? [])].sort((a, b) => a - b);
+  const x = smoothTrack(raw, step, hold, jumps.map(lookOf));
+  return x ? { step, x, ...(from > 0 ? { from } : {}), ...(jumps.length ? { cuts: jumps } : {}) } : null;
+}
+
+/** How open the mouth in this face box is (from the detector, on the 640 px copy; `k` scales it to the video): the inner lips' gap as a share of brow to chin, read by the landmark model from the video itself. Undefined when unread. */
+function mouthOpen(v: HTMLVideoElement, b: { originX: number; originY: number; width: number; height: number }, k: number): number | undefined {
+  if (!landmarker) return undefined;
+  const side = Math.max(b.width, b.height) * 1.8 * k;
+  const m = pad("mouth", 192, 192);
+  const mg = m.getContext("2d")!;
+  mg.clearRect(0, 0, 192, 192);
+  mg.drawImage(v, (b.originX + b.width / 2) * k - side / 2, (b.originY + b.height / 2) * k - side / 2, side, side, 0, 0, 192, 192);
+  // the face nearest the middle of the square (a neighbour's can show at its edge)
+  const lm = landmarker.detect(m).faceLandmarks.sort((p, q) => Math.hypot(p[1].x - 0.5, p[1].y - 0.5) - Math.hypot(q[1].x - 0.5, q[1].y - 0.5))[0];
+  if (!lm) return undefined;
+  const gap = (a: number, b: number) => Math.hypot(lm[a].x - lm[b].x, lm[a].y - lm[b].y);
+  return Math.round((gap(13, 14) / (gap(10, 152) || 1)) * 1e4) / 1e4;
 }
 
 /**

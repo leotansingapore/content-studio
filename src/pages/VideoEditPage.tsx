@@ -892,7 +892,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       v = await loadVideo(file);
       // the crop re-centres once the face drifts 12% of the frame's width from its middle
       // progress in 5% steps: redrawing the editor on every look slowed the search down
-      const track = await findFaceTrack(v, spans, crop * 0.12, (p) => setFinding((f) => (f === null || p - f >= 0.05 || p === 1 ? p : f)));
+      const track = await findFaceTrack(v, spans, crop * 0.12, (p) => setFinding((f) => (f === null || p - f >= 0.05 || p === 1 ? p : f)), words);
       if (!track) return toast({ title: "No face found in this video", description: "Move the crop by hand under Hook and frame.", variant: "destructive" });
       // the latest settings: changes made while it looked must stay
       const cur = settingsRef.current;
@@ -1496,7 +1496,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 {finding !== null ? (
                   <span className="text-xs text-muted-foreground" aria-live="polite">Finding your face {Math.round(finding * 100)}%</span>
                 ) : (
-                  <InfoTip label="About follow my face">The crop moves with you when you shift in the frame.</InfoTip>
+                  <InfoTip label="About follow my face">The crop moves with you, or to whoever is talking.</InfoTip>
                 )}
                 <Toggle on={!!settings.followFace} disabled={finding !== null || !file} set={(v) => void setFollow(v)} />
               </Row>
