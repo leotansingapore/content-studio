@@ -979,7 +979,8 @@ export function sanitizeFixes(raw: unknown): CaptionFix[] {
     seen.add(key);
     out.push({ from, to });
   }
-  return out.slice(0, MAX_FIXES);
+  // a new fix is added at the end: when the list is full the oldest goes, not the one just saved
+  return out.slice(-MAX_FIXES);
 }
 
 // ---------- stickers ----------

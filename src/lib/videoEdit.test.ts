@@ -59,6 +59,7 @@ import {
   applyFixes,
   fixFromEdit,
   sanitizeFixes,
+  MAX_FIXES,
   soundStats,
   exportIssues,
   kWeighting,
@@ -568,6 +569,14 @@ describe("saved caption fixes", () => {
     expect(sanitizeFixes([{ from: " Lio ", to: "Leo" }, { from: "lio", to: "Leon" }, { from: "", to: "x" }, { from: "a b c d e", to: "x" }, "x", null, { from: "kpf", to: "CPF" }]))
       .toEqual([{ from: "Lio", to: "Leo" }, { from: "kpf", to: "CPF" }]);
     expect(sanitizeFixes("nope")).toEqual([]);
+  });
+
+  it("keeps a new caption fix once the list is full, dropping the oldest", () => {
+    const full = Array.from({ length: MAX_FIXES }, (_, i) => ({ from: `w${i}`, to: `W${i}` }));
+    const kept = sanitizeFixes([...full, { from: "kpf", to: "CPF" }]);
+    expect(kept).toHaveLength(MAX_FIXES);
+    expect(kept.at(-1)).toEqual({ from: "kpf", to: "CPF" });
+    expect(kept[0]).toEqual({ from: "w1", to: "W1" });
   });
 });
 
