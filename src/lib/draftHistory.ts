@@ -327,7 +327,8 @@ export function undoPosted(userId: string, prev: DraftEntry, before: DraftEntry[
   const current = loadDrafts(userId);
   const now = new Set(current.map((d) => d.id));
   const next = [
-    ...current.filter((d) => was.has(d.id)).map((d) => (d.id === prev.id ? prev : d)),
+    // a draft Claude saved in the meantime arrived through loadDrafts, which removed its row: keep it
+    ...current.filter((d) => was.has(d.id) || d.id.startsWith("claude-")).map((d) => (d.id === prev.id ? prev : d)),
     ...before.filter((d) => !now.has(d.id)),
   ];
   saveDrafts(userId, next);

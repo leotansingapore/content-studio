@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { deleteDraft, loadDrafts } from "@/lib/draftHistory";
+import { deleteDraft, loadDrafts, setDraftStatus, undoPosted } from "@/lib/draftHistory";
 
 const UID = "ff72c375-389e-4dd0-86c4-a166307b8751";
 let store: Map<string, string>;
@@ -49,5 +49,18 @@ describe("drafts Claude saved", () => {
     expect(list[0]).toMatchObject({ id: "claude-x1", platform: "linkedin", status: "draft" });
     expect(list[0].scheduledFor).toBeUndefined();
     expect([...store.keys()].sort()).toEqual([`content-studio-drafts-${UID}`, `content-studio-mcpdraft-claude-p1-${UID}~p9`]);
+  });
+});
+
+describe("Undo on Mark posted", () => {
+  it("keeps a draft Claude saved while the Undo was on screen", () => {
+    store.set(`content-studio-drafts-${UID}`, JSON.stringify([{ id: "s", draft: "x", createdAt: "2026-10-01", status: "scheduled", scheduledFor: "2026-10-20" }]));
+    const before = loadDrafts(UID);
+    setDraftStatus(UID, "s", "posted");
+    store.set(`content-studio-mcpdraft-claude-x1-${UID}`, claude("claude-x1"));
+    const after = undoPosted(UID, before[0], before);
+    expect(after.map((d) => d.id)).toEqual(["claude-x1", "s"]);
+    expect(after[1]).toMatchObject({ status: "scheduled", scheduledFor: "2026-10-20" });
+    expect(loadDrafts(UID).map((d) => d.id)).toEqual(["claude-x1", "s"]);
   });
 });
