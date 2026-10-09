@@ -39,6 +39,8 @@ export const DAILY_LIMITS = {
   "broll-picks": 20,
   // "Open with my strongest line" in the video editor (video-assist coldopen): Jev rates the lines, no LLM.
   "cold-open": 20,
+  // The post caption written for TikTok, LinkedIn and Facebook at once (video-assist captions, gpt-4.1, about 1 US cent).
+  "video-captions": 30,
   // "Make the image" on Write (ai-image, Higgsfield Soul v2, about USD 0.006 each).
   "ai-image": 5,
   // An AI B-roll clip when stock has nothing (ai-image mode "broll": Soul v2 picture + DoP lite, about USD 0.13

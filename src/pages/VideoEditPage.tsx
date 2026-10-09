@@ -16,6 +16,7 @@ import HookOptions from "@/components/HookOptions";
 import ColdOpenControl from "@/components/ColdOpenControl";
 import StylePresets from "@/components/StylePresets";
 import ReelStyleCopy from "@/components/ReelStyleCopy";
+import PlatformCaptions from "@/components/PlatformCaptions";
 import { coldLength } from "@/lib/coldOpen";
 import { coverTimes, findCoverFrame } from "@/lib/coverFrame";
 import { onBrollApply } from "@/lib/autoBroll";
@@ -1675,6 +1676,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 </div>
               </>
             )}
+            <PlatformCaptions projectId={project.id} transcript={transcript} instagram={caption} title={project.name} />
             <div className="space-y-2 border-t border-border/60 pt-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="mr-auto text-sm font-semibold">Title and cover</p>

@@ -40,6 +40,8 @@
 //        -> {pick: {i,p} | null, why?}: the line to play first as a teaser, rated by Jev as the first words heard
 //        (Leo's talking-head-reel openers questions); null when none beats the video's own start, or with
 //        why "unrated" (Jev gave no answer) or "language" (not English) (coldopen.ts, "cold-open" cap).
+//   POST {mode:"captions", transcript, instagram?, title?} -> {captions: {tiktok, linkedin, facebook}}: the post
+//        caption written for each platform in its own length, hashtag limits kept (captions.ts, "video-captions" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -51,6 +53,7 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { brollLines, brollQuestions, buildBrollMessages, kindQuestions, parseBrollReply, parseBrollRequest, pickBrollLines, readBroll, readKinds } from "./broll.ts";
+import { buildCaptionsMessages, parseCaptionsReply, parseCaptionsRequest } from "./captions.ts";
 import { coldQuestions, coldState, parseColdOpenRequest, readColdPick } from "./coldopen.ts";
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
@@ -347,6 +350,29 @@ Deno.serve(async (req) => {
       const texts = hooks.map((x) => x.text);
       const answers = mostlyEnglish(h.lines.map((x) => x.text).join(" ")) ? await askJev(hooksState(texts, h.lines), hooksQuestions(texts), { who: "video-assist hooks" }) : null;
       return json({ hooks, pick: hooksPick(answers, hooks.length) });
+    }
+
+    if (body?.mode === "captions") {
+      const c = parseCaptionsRequest(body);
+      if (!c.ok) return json({ error: c.error }, 400);
+      const usage = await consumeUsage(admin, uid, "video-captions");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 1200, response_format: { type: "json_object" }, messages: buildCaptionsMessages(c.transcript, c.instagram, c.title) }),
+        signal: AbortSignal.timeout(45_000),
+      }).catch(() => null);
+      if (!res?.ok) {
+        console.error("video-assist captions", res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
+        return json({ error: "Couldn't write the captions right now. Try again in a minute." }, 502);
+      }
+      const captions = parseCaptionsReply((await res.json())?.choices?.[0]?.message?.content ?? null);
+      if (!captions) return json({ error: "The captions came back incomplete. Try again." }, 502);
+      return json({ captions });
     }
 
     if (body?.mode === "coldopen") {
