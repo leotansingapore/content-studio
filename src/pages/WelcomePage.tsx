@@ -115,7 +115,7 @@ export default function WelcomePage() {
         <button
           type="button"
           onClick={() => go("/home")}
-          className="text-sm font-medium text-muted-foreground hover:text-foreground"
+          className="text-sm font-medium text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11"
         >
           Skip — take me to my dashboard
         </button>

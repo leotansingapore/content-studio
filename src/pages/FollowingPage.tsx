@@ -96,7 +96,7 @@ export default function FollowingPage() {
             <div className="inline-flex shrink-0 rounded-md border border-border p-0.5" role="group" aria-label="Platform">
               {(["instagram", "tiktok"] as const).map((p) => (
                 <button key={p} type="button" aria-pressed={platform === p} onClick={() => setPlatform(p)}
-                  className={`h-10 rounded px-3 text-sm font-medium sm:h-9 ${platform === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                  className={`h-10 rounded px-3 text-sm font-medium sm:h-9 [@media(pointer:coarse)]:h-11 ${platform === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                   {p === "instagram" ? "Instagram" : "TikTok"}
                 </button>
               ))}
