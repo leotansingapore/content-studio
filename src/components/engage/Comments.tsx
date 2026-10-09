@@ -61,7 +61,7 @@ export default function Comments({ userId }: { userId: string }) {
                   <div className="flex items-end gap-2">
                     <div className="min-w-0 flex-1 space-y-1">
                       <Label htmlFor={`comment-name-${i}`}>Whose post</Label>
-                      <Input id={`comment-name-${i}`} value={p.name} onChange={(e) => setSlot(i, { name: e.target.value })} readOnly={busy} maxLength={60} className="h-11 sm:h-9" />
+                      <Input id={`comment-name-${i}`} value={p.name} onChange={(e) => setSlot(i, { name: e.target.value })} readOnly={busy} maxLength={60} className="h-11 sm:h-9 [@media(pointer:coarse)]:h-11" />
                     </div>
                     {slots.length > 1 && (
                       <button
@@ -69,7 +69,7 @@ export default function Comments({ userId }: { userId: string }) {
                         onClick={() => edit({ posts: slots.filter((_, j) => j !== i) })}
                         disabled={busy}
                         aria-label={`Remove post ${i + 1}`}
-                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground sm:h-9 sm:w-9"
+                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground sm:h-9 sm:w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -144,7 +144,7 @@ export default function Comments({ userId }: { userId: string }) {
                     type="button"
                     onClick={() => setLog(unlog(userId, e.id))}
                     aria-label={`Remove ${e.name || "this entry"}`}
-                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground sm:h-8 sm:w-8"
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                   >
                     <X className="h-4 w-4" />
                   </button>

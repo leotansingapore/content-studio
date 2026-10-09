@@ -102,7 +102,7 @@ export function Draft({ label, text, onCopy }: { label: string; text: string; on
             onCopy?.();
           }}
           aria-label={`Copy ${label.toLowerCase()}`}
-          className="inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:h-8"
+          className="inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:h-8 [@media(pointer:coarse)]:h-11"
         >
           <Copy className="h-3.5 w-3.5" /> Copy
         </button>
@@ -136,7 +136,7 @@ export function RunStatus({
           <p className="flex min-w-0 flex-1 items-start gap-2 text-sm text-destructive">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {outcome.message}
           </p>
-          <Button size="sm" variant="outline" onClick={retry} className="h-11 gap-1.5 sm:h-9">
+          <Button size="sm" variant="outline" onClick={retry} className="h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11">
             <RotateCcw className="h-4 w-4" /> Try again
           </Button>
         </div>

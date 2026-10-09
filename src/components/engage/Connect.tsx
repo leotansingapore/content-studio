@@ -55,7 +55,7 @@ export default function Connect({ userId }: { userId: string }) {
             type="button"
             onClick={() => !added && addToCalendar(date, title)}
             disabled={added}
-            className={`inline-flex h-11 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold transition-colors sm:h-8 ${
+            className={`inline-flex h-11 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold transition-colors sm:h-8 [@media(pointer:coarse)]:h-11 ${
               added ? "text-success" : "text-primary hover:bg-primary/10"
             }`}
           >
@@ -105,7 +105,7 @@ export default function Connect({ userId }: { userId: string }) {
                 aria-pressed={(f.goal || "know") === g.id}
                 onClick={() => setField("goal", g.id)}
                 disabled={busy}
-                className={`h-11 rounded-full border px-3 text-xs font-medium transition-colors sm:h-8 ${
+                className={`h-11 rounded-full border px-3 text-xs font-medium transition-colors sm:h-8 [@media(pointer:coarse)]:h-11 ${
                   (f.goal || "know") === g.id ? "border-primary/60 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
                 }`}
               >
@@ -145,7 +145,7 @@ export default function Connect({ userId }: { userId: string }) {
                   type="button"
                   onClick={() => copy(d.note, "Note copied")}
                   aria-label="Copy note"
-                  className="inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:h-8"
+                  className="inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:h-8 [@media(pointer:coarse)]:h-11"
                 >
                   <Copy className="h-3.5 w-3.5" /> Copy
                 </button>
@@ -160,7 +160,7 @@ export default function Connect({ userId }: { userId: string }) {
                 value={accepted}
                 min={addDays(today, -90)}
                 onPick={(day) => setField("accepted", day)}
-                className="h-11 rounded-md border border-input bg-background px-3 text-sm sm:h-9"
+                className="h-11 rounded-md border border-input bg-background px-3 text-sm sm:h-9 [@media(pointer:coarse)]:h-11"
               />
             </div>
 

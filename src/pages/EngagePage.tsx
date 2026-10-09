@@ -44,7 +44,7 @@ export default function EngagePage() {
             type="button"
             aria-pressed={tool === t.id}
             onClick={() => setParams(t.id === "replies" ? {} : { tool: t.id }, { replace: true })}
-            className={`h-11 rounded-full border px-4 text-xs font-semibold transition-colors sm:h-9 ${
+            className={`h-11 rounded-full border px-4 text-xs font-semibold transition-colors sm:h-9 [@media(pointer:coarse)]:h-11 ${
               tool === t.id ? "border-primary/60 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
             }`}
           >
