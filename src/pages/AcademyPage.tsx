@@ -167,7 +167,7 @@ export default function AcademyPage() {
                       <button
                         type="button"
                         onClick={() => toggleWatched(lesson.youtubeId)}
-                        className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${
                           isWatched ? "text-success" : "text-muted-foreground"
                         }`}
                       >

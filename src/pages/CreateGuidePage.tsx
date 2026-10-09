@@ -50,7 +50,7 @@ function ToolRow({ tool }: { tool: Tool }) {
             href={tool.tutorial}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-lg border border-border/60 px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-lg border border-border/60 px-2 py-1 text-[11px] [@media(pointer:coarse)]:min-h-11 font-semibold text-muted-foreground hover:border-primary/40 hover:text-foreground"
           >
             <PlayCircle className="h-3 w-3" /> Tutorial
           </a>
@@ -59,7 +59,7 @@ function ToolRow({ tool }: { tool: Tool }) {
           href={tool.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-primary/5 px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10"
+          className="inline-flex items-center gap-1 rounded-lg border border-primary/40 bg-primary/5 px-2 py-1 text-[11px] [@media(pointer:coarse)]:min-h-11 font-semibold text-primary hover:bg-primary/10"
         >
           <ExternalLink className="h-3 w-3" /> Open
         </a>

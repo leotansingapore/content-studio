@@ -92,7 +92,7 @@ export default function TutorialPage() {
           </p>
           <Link
             to="/voice"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 [@media(pointer:coarse)]:min-h-11"
           >
             Set your voice <ArrowRight className="h-3.5 w-3.5" />
           </Link>
@@ -549,19 +549,19 @@ export default function TutorialPage() {
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
               to="/voice"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90 [@media(pointer:coarse)]:min-h-11"
             >
               <Mic className="h-3.5 w-3.5" /> Set your voice
             </Link>
             <Link
               to="/inspiration"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-muted/50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-muted/50 [@media(pointer:coarse)]:min-h-11"
             >
               <Lightbulb className="h-3.5 w-3.5" /> Browse inspiration
             </Link>
             <Link
               to="/generate"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-muted/50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border/60 px-3 py-2 text-xs font-semibold hover:bg-muted/50 [@media(pointer:coarse)]:min-h-11"
             >
               <Pencil className="h-3.5 w-3.5" /> Start generating
             </Link>
