@@ -13,6 +13,7 @@ import AutoBroll from "@/components/AutoBroll";
 import BrollLayout from "@/components/BrollLayout";
 import HookOptions from "@/components/HookOptions";
 import ColdOpenControl from "@/components/ColdOpenControl";
+import StylePresets from "@/components/StylePresets";
 import { coldLength } from "@/lib/coldOpen";
 import { onBrollApply } from "@/lib/autoBroll";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
@@ -1527,6 +1528,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           <section className="space-y-2 rounded-xl border border-primary/25 bg-primary/5 p-3">
             <p className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles className="h-4 w-4 text-primary" /> Vibe edit
               <InfoTip label="About vibe edit">Say the change in plain words; Undo puts it back.</InfoTip></p>
+            <StylePresets settings={settings} words={words} segs={plan.segs} total={plan.total} speed={speed} disabled={thinking}
+              apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }} />
             {skills.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Your editing skills">
                 {skills.map((sk) => (
