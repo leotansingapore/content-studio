@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { exportFast, fileSink, musicLevels, spedParts, voiceParts, voiceRamps } from "./fastExport";
+import { exportFast, fileSink, musicLevels, onsetOf, spedParts, voiceParts, voiceRamps } from "./fastExport";
 import { srcAt } from "./videoEdit";
 import { musicGainAt } from "./videoEdit";
 import { dropGain } from "./videoMotion";
@@ -55,6 +55,15 @@ describe("fast export plan", () => {
       expect(info).toHaveBeenLastCalledWith("Export in real time: no WebCodecs");
     }
     info.mockRestore();
+  });
+
+  it("finds where a sound starts (to measure the AAC encoder's lead-in): the first sample at half the peak", () => {
+    const x = new Float32Array(100);
+    x[30] = 0.1; // a little lead-in noise does not count
+    x[40] = -0.6;
+    x[41] = 0.9;
+    expect(onsetOf(x)).toBe(40);
+    expect(onsetOf(new Float32Array(10))).toBe(-1);
   });
 
   it("gathers the muxer's writes in order and puts its one write back into the head of the file", async () => {

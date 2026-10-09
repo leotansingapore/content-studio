@@ -391,6 +391,57 @@ export function fileSink() {
   return { target, blob: (type: string) => new Blob([first ?? new Uint8Array(), ...blobs, ...pending], { type }) };
 }
 
+/** The first sample at half the loudest one's level; -1 in silence. */
+export function onsetOf(x: Float32Array): number {
+  let peak = 0;
+  for (const v of x) peak = Math.max(peak, Math.abs(v));
+  return peak ? x.findIndex((v) => Math.abs(v) >= peak / 2) : -1;
+}
+
+/**
+ * Samples of silence this browser's AAC encoder puts ahead of the sound (2112 in Chrome on a Mac).
+ * The MP4 has no edit list to skip them, so players would start the sound that far behind the
+ * picture (44 ms). Found by encoding a 1 ms beep and decoding it back; 0 when it can't tell.
+ */
+async function encoderDelay(cfg: AudioEncoderConfig): Promise<number> {
+  const n = 9600;
+  const beep = new Float32Array(n);
+  for (let i = 0; i < 48; i++) beep[4800 + i] = Math.sin((2 * Math.PI * i) / 16);
+  const chunks: EncodedAudioChunk[] = [];
+  const heard: Float32Array[] = [];
+  let description: AllowSharedBufferSource | undefined;
+  const enc = new AudioEncoder({ output: (c, m) => { chunks.push(c); description ??= m?.decoderConfig?.description; }, error: () => {} });
+  const dec = new AudioDecoder({
+    output: (d) => {
+      const pcm = new Float32Array(d.numberOfFrames);
+      d.copyTo(pcm, { planeIndex: 0, format: "f32-planar" });
+      heard.push(pcm);
+      d.close();
+    },
+    error: () => {},
+  });
+  try {
+    enc.configure(cfg);
+    const data = new Float32Array(n * cfg.numberOfChannels);
+    for (let c = 0; c < cfg.numberOfChannels; c++) data.set(beep, c * n);
+    const ad = new AudioData({ format: "f32-planar", sampleRate: cfg.sampleRate, numberOfFrames: n, numberOfChannels: cfg.numberOfChannels, timestamp: 0, data });
+    enc.encode(ad);
+    ad.close();
+    await enc.flush();
+    dec.configure({ codec: cfg.codec, sampleRate: cfg.sampleRate, numberOfChannels: cfg.numberOfChannels, description });
+    for (const c of chunks) dec.decode(c);
+    await dec.flush();
+    const out = new Float32Array(heard.reduce((a, p) => a + p.length, 0));
+    heard.reduce((at, p) => (out.set(p, at), at + p.length), 0);
+    const d = onsetOf(out) - onsetOf(beep);
+    return d > 0 && d < 4096 ? d : 0;
+  } catch {
+    return 0;
+  } finally {
+    for (const c of [enc, dec]) if (c.state !== "closed") c.close();
+  }
+}
+
 /** An H.264 encoder setup this browser takes at this size: high, main, then baseline profile. */
 async function pickEncoder(w: number, h: number, bitrate: number): Promise<VideoEncoderConfig | null> {
   // level 4.0 holds a 1080p frame; anything bigger needs 5.1
@@ -485,16 +536,18 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
     aenc.configure(audioCfg);
     const left = mix.getChannelData(0);
     const right = mix.getChannelData(1);
-    let sent = 0;
+    // the encoder's own lead-in stands in for the mix's first `lead` samples, so the sound lands on its frames
+    const lead = await encoderDelay(audioCfg);
+    let sent = lead;
     // the sound goes in alongside the picture, so the file's chunks interleave
     const sendSound = (until: number) => {
-      const end = Math.min(mix.length, Math.ceil(until * RATE));
+      const end = Math.min(mix.length, Math.ceil(until * RATE) + lead);
       while (sent < end) {
         const n = Math.min(4800, end - sent);
         const data = new Float32Array(n * 2);
         data.set(left.subarray(sent, sent + n), 0);
         data.set(right.subarray(sent, sent + n), n);
-        const ad = new AudioData({ format: "f32-planar", sampleRate: RATE, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round((sent / RATE) * 1e6), data });
+        const ad = new AudioData({ format: "f32-planar", sampleRate: RATE, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(((sent - lead) / RATE) * 1e6), data });
         aenc!.encode(ad);
         ad.close();
         sent += n;
