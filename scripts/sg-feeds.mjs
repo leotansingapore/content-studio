@@ -10,14 +10,15 @@
 //
 // Jev (jev-1.13.0, via the edge functions' own helper) decides what is a real question and what is
 // a Singapore finance video. Without Jev, a question must end in "?" and every video from the
-// finance searches is kept. A feed that comes back empty keeps the previous drop, so a block
-// never empties the page.
+// finance searches is kept. A forum that fails keeps its questions from the previous drop, and a
+// file that would come out empty is not written, so a block never empties the page.
 //
 // Usage:
 //   node scripts/sg-feeds.mjs          # write both files
 //   node scripts/sg-feeds.mjs --dry    # print them instead
 // Daily on Leo's Mac: content-studio-drop.sh sg-feeds, which commits only when they changed.
 
+import dns from "node:dns";
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -87,7 +88,27 @@ export function pickVideos(rows, scores) {
     .slice(0, KEEP_VIDEOS);
 }
 
+/** The previous drop's questions from forums that failed this run, as already-approved candidates. */
+export function carryOver(previous, failedSources) {
+  return (previous ?? [])
+    .filter((q) => failedSources.has(q.source))
+    .map((q) => ({ title: q.question, url: q.url, source: q.source, publishedAt: q.publishedAt }));
+}
+
 const env = { get: (name) => process.env[name] };
+dns.setDefaultResultOrder("ipv4first"); // requests stall ~120 s over IPv6 on Leo's hotspot (memory hotspot-ipv6-hangs)
+
+async function fetchText(url) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(30_000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
+    } catch (e) {
+      if (attempt === 2) throw e;
+    }
+  }
+}
 
 async function judge(items, stateOf, instructions) {
   const scores = new Array(items.length).fill(null);
@@ -104,16 +125,20 @@ async function judge(items, stateOf, instructions) {
 
 async function readQuestions() {
   const items = [];
+  const failed = new Set();
   for (const f of FEEDS) {
     try {
-      const res = await fetch(f.url, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(30_000) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      items.push(...parseFeed(await res.text()).map((i) => ({ ...i, source: f.source })));
+      items.push(...parseFeed(await fetchText(f.url)).map((i) => ({ ...i, source: f.source })));
     } catch (e) {
-      console.error(`feeds: ${f.source}: ${e.message}`);
+      failed.add(f.source);
+      console.error(`feeds: ${f.source}: ${e.message}; keeping its previous questions`);
     }
   }
-  return pickQuestions(items, await judge(items, (i) => ({ post_title: i.title, forum: i.source }), QUESTION_RULE));
+  const scores = await judge(items, (i) => ({ post_title: i.title, forum: i.source }), QUESTION_RULE);
+  let previous = [];
+  try { previous = JSON.parse(fs.readFileSync(QUESTIONS_OUT, "utf8")).questions; } catch { /* first run */ }
+  const carried = carryOver(previous, failed);
+  return pickQuestions([...items, ...carried], [...scores, ...carried.map(() => 1)]);
 }
 
 async function readVideos() {

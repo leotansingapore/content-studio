@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseFeed, parseViews, pickQuestions, pickVideos } from "./sg-feeds.mjs";
+import { carryOver, parseFeed, parseViews, pickQuestions, pickVideos } from "./sg-feeds.mjs";
 
 const NOW = Date.parse("2026-10-09T00:00:00Z");
 
@@ -47,5 +47,16 @@ describe("sg-feeds drop", () => {
       { id: "../evil", title: "Bad id", views: "1 view" },
     ];
     expect(pickVideos(rows, [0.9, 0.04, null, 0.99]).map((v) => [v.id, v.views])).toEqual([["ccccccccccc", 5000], ["aaaaaaaaaaa", 1000]]);
+  });
+
+  it("keeps a failed forum's previous questions, and only that forum's", () => {
+    const previous = [
+      { question: "Q1?", url: "https://www.reddit.com/a", source: "r/singaporefi", publishedAt: "2026-10-08T00:00:00.000Z" },
+      { question: "Q2?", url: "https://forums.hardwarezone.com.sg/b", source: "HardwareZone Money Mind", publishedAt: null },
+    ];
+    expect(carryOver(previous, new Set(["r/singaporefi"]))).toEqual([
+      { title: "Q1?", url: "https://www.reddit.com/a", source: "r/singaporefi", publishedAt: "2026-10-08T00:00:00.000Z" },
+    ]);
+    expect(carryOver(undefined, new Set(["r/singaporefi"]))).toEqual([]);
   });
 });
