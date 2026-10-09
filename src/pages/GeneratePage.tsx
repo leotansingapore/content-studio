@@ -1341,7 +1341,8 @@ export default function GeneratePage() {
           apikey: SUPABASE_ANON_KEY,
           Accept: "text/event-stream",
         },
-        body: JSON.stringify({ ...payload, stream: true }),
+        // noInvention: the shared writer leaves [blanks] instead of inventing numbers or client stories.
+        body: JSON.stringify({ ...payload, stream: true, noInvention: true }),
         signal: controller.signal,
       });
     } catch (err) {

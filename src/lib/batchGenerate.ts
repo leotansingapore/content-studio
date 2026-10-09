@@ -46,7 +46,8 @@ export async function streamOnePost(
         apikey: SUPABASE_ANON_KEY,
         Accept: "text/event-stream",
       },
-      body: JSON.stringify({ ...payload, mode: "post", n: 1, stream: true }),
+      // noInvention: the shared writer leaves [blanks] instead of inventing numbers or client stories.
+      body: JSON.stringify({ ...payload, mode: "post", n: 1, stream: true, noInvention: true }),
       signal,
     });
   } catch (err) {
