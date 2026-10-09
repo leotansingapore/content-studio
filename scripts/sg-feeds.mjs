@@ -144,8 +144,13 @@ async function readQuestions() {
 async function readVideos() {
   const byId = new Map();
   for (const q of QUERIES) {
-    const r = spawnSync("api-anything", ["call", "youtube", "recent", `q=${q}`], { encoding: "utf8", timeout: 120_000 });
+    const r = spawnSync("api-anything", ["call", "youtube", "recent", `q=${q}`], {
+      encoding: "utf8",
+      timeout: 120_000,
+      env: { ...process.env, NODE_OPTIONS: "--dns-result-order=ipv4first" }, // its own process, so the setting above does not reach it
+    });
     try {
+      if (r.error) throw r.error;
       const d = JSON.parse((r.stdout ?? "").split("\n")[0]);
       if (!d.ok) throw new Error(`${d.class} ${d.reason}`);
       for (const v of d.data ?? []) if (v.id && !byId.has(v.id)) byId.set(v.id, v);
