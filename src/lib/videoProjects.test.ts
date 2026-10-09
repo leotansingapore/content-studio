@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadProjects, saveProject } from "./videoProjects";
+import { loadFixes, loadProjects, removeProject, saveFixes, saveProject } from "./videoProjects";
+import { addProfile, setActiveProfile } from "@/lib/profiles";
 
 const deleted: string[] = [];
 vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_ANON_KEY: "", SUPABASE_URL: "" }));
@@ -41,5 +42,79 @@ describe("saveProject", () => {
     expect(loadProjects("u").filter((p) => p.fileId === "pod")).toHaveLength(40);
     saveProject("u", project("up12"));
     expect(deleted).toEqual(["up0"]);
+  });
+});
+
+describe("removeProject", () => {
+  beforeEach(() => {
+    vi.stubGlobal("window", { localStorage: memoryStorage() });
+    deleted.length = 0;
+  });
+  const project = (id: string, fileId?: string) => ({ id, name: id, createdAt: "", updatedAt: "", duration: 60, size: 1, words: [], settings: {} as never, thumb: "", ...(fileId ? { fileId } : {}) });
+
+  it("keeps the video file while a clip still uses it, and deletes it with the last project that does", () => {
+    saveProject("u", project("pod"));
+    saveProject("u", project("c1", "pod"));
+    saveProject("u", project("c2", "pod"));
+    expect(removeProject("u", "pod").map((p) => p.id)).toEqual(["c2", "c1"]);
+    removeProject("u", "c1");
+    expect(deleted).toEqual([]);
+    expect(removeProject("u", "c2")).toEqual([]);
+    expect(deleted).toEqual(["pod"]);
+    expect(loadProjects("u")).toEqual([]);
+  });
+
+  it("deletes an upload's own file, and nothing for a project that isn't there", () => {
+    saveProject("u", project("a"));
+    saveProject("u", project("b"));
+    removeProject("u", "nope");
+    expect(deleted).toEqual([]);
+    expect(removeProject("u", "a").map((p) => p.id)).toEqual(["b"]);
+    expect(deleted).toEqual(["a"]);
+  });
+});
+
+describe("where projects are kept", () => {
+  beforeEach(() => {
+    vi.stubGlobal("window", { localStorage: memoryStorage() });
+    deleted.length = 0;
+  });
+  const project = (id: string) => ({ id, name: id, createdAt: "", updatedAt: "", duration: 60, size: 1, words: [], settings: {} as never, thumb: "" });
+
+  it("keeps each profile's videos apart, under synced content-studio- keys", () => {
+    saveProject("u", project("mine"));
+    const client = addProfile("u", "Client A");
+    setActiveProfile("u", client.id);
+    expect(loadProjects("u")).toEqual([]);
+    saveProject("u", project("theirs"));
+    const ls = window.localStorage;
+    const keys = Array.from({ length: ls.length }, (_, i) => ls.key(i)).filter((k) => k?.includes("videoprojects"));
+    expect(keys).toEqual(["content-studio-videoprojects-u", `content-studio-videoprojects-u~${client.id}`]);
+    setActiveProfile("u", "me");
+    expect(loadProjects("u").map((p) => p.id)).toEqual(["mine"]);
+  });
+
+  it("opens an empty list, not a crash, when the stored list is unreadable", () => {
+    window.localStorage.setItem("content-studio-videoprojects-u", "{not json");
+    expect(loadProjects("u")).toEqual([]);
+    window.localStorage.setItem("content-studio-videoprojects-u", JSON.stringify({ id: "x" }));
+    expect(loadProjects("u")).toEqual([]);
+    expect(loadProjects(null)).toEqual([]);
+  });
+});
+
+describe("caption fixes", () => {
+  beforeEach(() => vi.stubGlobal("window", { localStorage: memoryStorage() }));
+
+  it("keeps the cleaned list per profile and still applies it when storage is full", () => {
+    const clean = saveFixes("u", [{ from: "  acme   insure ", to: "AcmeInsure" }, { from: "Acme insure", to: "x" }, { from: "", to: "y" }]);
+    expect(clean).toEqual([{ from: "acme insure", to: "AcmeInsure" }]);
+    expect(loadFixes("u")).toEqual(clean);
+    expect(window.localStorage.getItem("content-studio-captionfixes-u")).toBe(JSON.stringify(clean));
+    window.localStorage.setItem = () => {
+      throw new Error("QuotaExceededError");
+    };
+    expect(saveFixes("u", [{ from: "cpf", to: "CPF" }])).toEqual([{ from: "cpf", to: "CPF" }]);
+    expect(loadFixes("u")).toEqual(clean);
   });
 });
