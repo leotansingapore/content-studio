@@ -234,11 +234,12 @@ export function medianBox(boxes: FaceBox[]): FaceBox | null {
   return { x0: mid("x0"), y0: mid("y0"), x1: mid("x1"), y1: mid("y1") };
 }
 
-/** The face's rows on the frame (shares of its height), with room for hair above and the chin below; null without a box. */
+/** The face's rows on the frame (shares of its height), with the top of the head above and the chin below; null without a box. */
 export function faceBand(box: FaceBox | null | undefined, s: Pick<EditSettings, "fit">, W: number, H: number, vw: number, vh: number): [number, number] | null {
   if (!box || !vw || !vh) return null;
   const pad = box.y1 - box.y0;
-  const y0 = box.y0 - pad * 0.3;
+  // the detector's box starts at the hairline; the hair above it reached half the box's height on a real talking head
+  const y0 = box.y0 - pad * 0.6;
   const y1 = box.y1 + pad * 0.1;
   let top: number, h: number;
   if (s.fit === "framed") {

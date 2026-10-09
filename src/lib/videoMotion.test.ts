@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultSettings, keepSegments, sentencesOf, type EditSettings, type Word } from "./videoEdit";
 import { KEY_ZOOM, ZOOM_GAP, cardText, cueTicker, cutTimes, dropGain, faceBand, findFigures, fitBlock, hookTop, popupBeats, sfxCues, keyBeats, keyLinesFrom, keyZoom, medianBox, motionOf, numberCards, outOfSpan, placeBlock, sanitizeMotion, type KeyLine } from "./videoMotion";
+import { PRESETS, applyRecipe } from "./stylePresets";
 
 const K = (s: number, e: number, p: number): KeyLine => ({ s, e, p });
 const one = [{ start: 0, end: 60 }];
@@ -138,10 +139,10 @@ describe("keeping clear of the face and the captions", () => {
     expect(medianBox([b(0.1), b(0.2), b(0.9)])).toEqual(b(0.2));
     expect(medianBox([])).toBeNull();
   });
-  it("puts the face on the frame with room for hair, for each fit", () => {
+  it("puts the face on the frame with room for the top of the head, for each fit", () => {
     const box = { x0: 0.3, y0: 0.2, x1: 0.7, y1: 0.5 };
     const [a, z] = faceBand(box, { fit: "fill" }, 1080, 1920, 720, 1280)!;
-    expect(a).toBeCloseTo(0.11, 2);
+    expect(a).toBeCloseTo(0.02, 2);
     expect(z).toBeCloseTo(0.53, 2);
     // a landscape video over a blurred copy sits in the middle band of a tall frame
     const [b0] = faceBand(box, { fit: "blur" }, 1080, 1920, 1920, 1080)!;
@@ -178,9 +179,24 @@ describe("the hook card clear of the face", () => {
     expect(hookTop(s({ faceBox: closeUp }), 1080, 1920, 720, 1280, 0.1, [0.58, 0.7])).toBeCloseTo(0.72, 5);
   });
   it("allows for the punch-in on cuts, which makes the face bigger under the hook", () => {
-    const face = { x0: 0.3, y0: 0.3, x1: 0.7, y1: 0.5 };
+    const face = { x0: 0.3, y0: 0.34, x1: 0.7, y1: 0.54 };
     expect(hookTop(s({ faceBox: face }), 1080, 1920, 720, 1280, 0.1, null)).toBe(0.11);
     expect(hookTop(s({ faceBox: face, punchIn: true }), 1080, 1920, 720, 1280, 0.1, null)).not.toBe(0.11);
+  });
+});
+
+describe("the hook card clear of a seated speaker's head", () => {
+  it("never sits on the top of the head: a real talking head cropped from landscape to 9:16", () => {
+    // Leo's 59 s clip (1920x1080) with the Punchy style: the box the detector found, and the top of his
+    // hair at 0.163-0.185 of the frame height in stills at 1, 3, 15, 30, 45 and 55 s
+    const s: EditSettings = { ...applyRecipe(defaultSettings("bold"), PRESETS.find((p) => p.id === "punchy")!.recipe), hook: "Most people overpay for insurance", faceBox: { x0: 0.467, y0: 0.308, x1: 0.62, y1: 0.597 } };
+    const h = (2 * 72 + 42) / 1920; // the two-line card drawFrame lays out
+    const captions: [number, number] = [0.64 - 0.0565, 0.64 + 0.0565];
+    const top = hookTop(s, 1080, 1920, 1920, 1080, h, captions);
+    // above the hair, or under the face (and clear of the captions)
+    expect(top + h <= 0.163 || top >= 0.597).toBe(true);
+    expect(top >= captions[1] || top + h <= captions[0]).toBe(true);
+    expect(top + h).toBeLessThanOrEqual(0.84);
   });
 });
 
