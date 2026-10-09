@@ -48,7 +48,8 @@ export function splitPasted(raw: string): Pasted[] {
     .map((b) => b.trim())
     .filter(Boolean)
     .map((b) => {
-      const m = /^([^:\n]{1,40}):[ \t]*(\S[\s\S]*)$/.exec(b);
+      // a colon straight before a digit or "//" is a time (3:30) or a link (https://), not a name
+      const m = /^([^:\n]{1,40}):(?!\d|\/\/)[ \t]*(\S[\s\S]*)$/.exec(b);
       const name = m?.[1].trim() ?? "";
       if (m && /^[@\p{Lu}\p{Lo}]/u.test(name) && name.split(/\s+/).length <= 4) return { name: name.replace(/^@/, ""), text: m[2].trim() };
       return { name: "", text: b };

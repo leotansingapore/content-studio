@@ -28,6 +28,12 @@ describe("splitPasted", () => {
     expect(splitPasted("My friend from school said: read it")).toEqual([{ name: "", text: "My friend from school said: read it" }]);
     expect(splitPasted("   ")).toEqual([]);
   });
+
+  it("leaves a time or a link in the comment instead of reading what comes before it as a name", () => {
+    expect(splitPasted("Free at 3:30 tomorrow?")).toEqual([{ name: "", text: "Free at 3:30 tomorrow?" }]);
+    expect(splitPasted("Read this https://jane.sg/guide")).toEqual([{ name: "", text: "Read this https://jane.sg/guide" }]);
+    expect(splitPasted("Tom: 3 things I wish I knew")).toEqual([{ name: "Tom", text: "3 things I wish I knew" }]);
+  });
 });
 
 describe("runs", () => {
