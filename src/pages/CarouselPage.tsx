@@ -668,7 +668,7 @@ export default function CarouselPage() {
                 type="button"
                 aria-pressed={mode === key}
                 onClick={() => setMode(key)}
-                className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold transition-colors [@media(pointer:coarse)]:min-h-11 ${
                   mode === key
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -775,7 +775,7 @@ export default function CarouselPage() {
                 <Label htmlFor="carousel-draft">Post</Label>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Select value={draftId} onValueChange={(id) => requestSource({ kind: "draft", id })}>
-                    <SelectTrigger id="carousel-draft" className="min-w-0 flex-1">
+                    <SelectTrigger id="carousel-draft" className="min-w-0 flex-1 [@media(pointer:coarse)]:h-11">
                       <SelectValue placeholder="Pick one of your posts" />
                     </SelectTrigger>
                     <SelectContent className="max-w-[calc(100vw-2rem)]">
