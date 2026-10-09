@@ -1,8 +1,9 @@
 // Export faster than real time: every output frame is drawn with drawFrame
 // from frames decoded straight out of the file (WebCodecs VideoDecoder), the
 // sound is the export's own audio graph rendered offline, and the two are
-// encoded to H.264 and AAC and put in an MP4 (mp4-muxer). Loaded only when an
-// export starts. exportFast gives null whenever this browser or this file
+// encoded to H.264 and AAC and put in an MP4 (mp4-muxer). A sped-up edit's
+// voice is sped up here with its pitch kept (timeStretch.ts), as the browser's
+// player does in the real-time export. Loaded only when an export starts. exportFast gives null whenever this browser or this file
 // can't take that route, and the export then records in real time as before.
 
 import { Muxer, StreamTarget } from "mp4-muxer";
@@ -12,6 +13,7 @@ import { audioPeaks, decodeSound, drawEndCard, drawFrame, loadVideo, measureLeve
 import { dropGain, motionOf, playCue } from "@/lib/videoMotion";
 import { piecesOf } from "@/lib/fastPauses";
 import { denoiseBuffer } from "@/lib/denoise";
+import { stretch } from "@/lib/timeStretch";
 
 /** Frames a second and sound rate, as the real-time export records. */
 export const FPS = 30;
@@ -21,12 +23,7 @@ const FADE = 0.025;
 
 // ---------- the plan, worked out without a browser ----------
 
-/** Why this edit can't be exported fast, or null when it can. Speed: the browser keeps the pitch while playing faster, and offline sound can't. */
-export function fastBlocker(s: Pick<EditSettings, "speed">): string | null {
-  return speedOf(s) !== 1 ? "speed" : null;
-}
-
-/** The filmed sound, cut by cut: where each kept part goes in the export (at), from where in the source, for how long. A pause played fast is silent, so it leaves a gap. */
+/** The filmed sound, cut by cut: where each kept part goes in the edit (at, before any speed-up), from where in the source, for how long. A pause played fast is silent, so it leaves a gap. */
 export function voiceParts(segs: Segment[]): { at: number; from: number; dur: number }[] {
   let at = 0;
   const out: { at: number; from: number; dur: number }[] = [];
@@ -38,6 +35,9 @@ export function voiceParts(segs: Segment[]): { at: number; from: number; dur: nu
   }
   return out;
 }
+
+/** The parts as a sped-up export plays them: `speed` times sooner and shorter, the sound read from the sped-up piece (which starts at the part). */
+export const spedParts = (parts: { at: number; from: number; dur: number }[], speed: number) => parts.map((p) => ({ at: p.at / speed, from: p.from, dur: p.dur / speed }));
 
 /** The voice's volume over the export: up from 0 over FADE at the start of each part, back to 0 over FADE at its end. */
 export function voiceRamps(parts: { at: number; dur: number }[], volume: number): ["set" | "ramp", number, number][] {
@@ -295,6 +295,20 @@ async function denoisePieces(pieces: Piece[]): Promise<Piece[]> {
   return out;
 }
 
+/** Each part's filmed sound played `speed` times faster with its pitch kept, starting at the part. */
+function speedUp(parts: Part[], pieces: Piece[], speed: number): Piece[] {
+  return parts.map((p, i) => {
+    const { buf, start } = pieces[i];
+    const rate = buf.sampleRate;
+    const from = Math.max(0, Math.round((p.from - start) * rate));
+    const to = Math.min(buf.length, from + Math.round(p.dur * rate));
+    const ch = stretch(Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c).subarray(from, to)), speed, rate);
+    const sped = new AudioBuffer({ length: Math.max(1, ch[0].length), sampleRate: rate, numberOfChannels: ch.length });
+    ch.forEach((d, c) => sped.copyToChannel(d, c));
+    return { buf: sped, start: p.from };
+  });
+}
+
 /** The export's sound, rendered offline through the same nodes the real-time export plays it through (noise removal is done on the pieces first). */
 async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds: number, sfx: boolean, parts: Part[], pieces: Piece[] | null): Promise<AudioBuffer> {
   const s = a.settings;
@@ -306,12 +320,15 @@ async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds:
     const env = new GainNode(ctx, { gain: 0 });
     wireVoice(ctx, bus, env, polish, level);
     env.connect(ctx.destination);
-    parts.forEach((p, i) => {
-      const src = new AudioBufferSourceNode(ctx, { buffer: pieces[i].buf });
+    const speed = speedOf(s);
+    const heard = speed === 1 ? parts : spedParts(parts, speed);
+    const sound = speed === 1 ? pieces : speedUp(parts, pieces, speed);
+    heard.forEach((p, i) => {
+      const src = new AudioBufferSourceNode(ctx, { buffer: sound[i].buf });
       src.connect(bus);
-      src.start(p.at, Math.max(0, p.from - pieces[i].start), p.dur);
+      src.start(p.at, Math.max(0, p.from - sound[i].start), p.dur);
     });
-    for (const [kind, v, t] of voiceRamps(parts, Math.min(1, Math.max(0, s.volume ?? 1)))) {
+    for (const [kind, v, t] of voiceRamps(heard, Math.min(1, Math.max(0, s.volume ?? 1)))) {
       if (kind === "set") env.gain.setValueAtTime(v, t);
       else env.gain.linearRampToValueAtTime(v, t);
     }
@@ -408,8 +425,7 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
     console.info(`Export in real time: ${why}`);
     return null;
   };
-  const why = fastBlocker(a.settings) ?? (webCodecs() ? null : "no WebCodecs");
-  if (why) return no(why);
+  if (!webCodecs()) return no("no WebCodecs");
   const kind = a.settings.exportAs ?? "video";
   const readers: FrameReader[] = [];
   let video: HTMLVideoElement | null = null;
@@ -500,7 +516,7 @@ export async function exportFast(a: FastArgs, onProgress: (share: number) => voi
         if (failed) throw failed;
         const out = i / FPS;
         if (out < plan.total) {
-          const src = srcAt(plan.segs, out);
+          const src = srcAt(plan.segs, out, speedOf(a.settings));
           const pic = main ? asVideo(await main.at(src)) : video;
           const on = brollAt(a.settings.broll, out);
           const cut = on && broll.get(on.b.id);

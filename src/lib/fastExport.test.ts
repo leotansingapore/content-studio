@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { exportFast, fastBlocker, fileSink, musicLevels, voiceParts, voiceRamps } from "./fastExport";
+import { exportFast, fileSink, musicLevels, spedParts, voiceParts, voiceRamps } from "./fastExport";
+import { srcAt } from "./videoEdit";
 import { musicGainAt } from "./videoEdit";
 import { dropGain } from "./videoMotion";
 
@@ -32,18 +33,27 @@ describe("fast export plan", () => {
     expect(levels[18][1]).toBeCloseTo(0.35, 9);
   });
 
-  it("records in real time when the edit is sped up, since only the browser keeps the pitch", () => {
-    expect(fastBlocker({ speed: 1.2 })).toBe("speed");
-    expect(fastBlocker({ speed: 1 })).toBeNull();
-    expect(fastBlocker({})).toBeNull();
+  it("plays a sped-up edit's voice sooner and shorter, on the frames that show it", () => {
+    const segs = [{ start: 0.5, end: 2 }, { start: 3, end: 4.5, fast: [[3.5, 4] as [number, number]] }];
+    const parts = spedParts(voiceParts(segs), 1.25);
+    expect(parts).toEqual([
+      { at: 0, from: 0.5, dur: 1.2 },
+      { at: 1.2, from: 3, dur: 0.4 },
+      // after the pause played fast (0.5 s at 4x)
+      { at: (1.5 + 0.5 + 0.125) / 1.25, from: 4, dur: 0.4 },
+    ]);
+    // each part starts on the frame showing the source moment its sound starts at
+    for (const p of parts) expect(srcAt(segs, p.at + 1e-9, 1.25)).toBeCloseTo(p.from, 6);
   });
 
-  it("hands back to the real-time export where there is no WebCodecs", async () => {
+  it("exports a sped-up edit fast too, and hands back to the real-time export only where there is no WebCodecs", async () => {
     // Node has no VideoEncoder, as Firefox and older Safari don't
-    const settings = { speed: 1 } as Parameters<typeof exportFast>[0]["settings"];
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    expect(await exportFast({ file: new Blob([]), words: [], settings }, () => {}, new AbortController().signal)).toBeNull();
-    expect(info).toHaveBeenCalledWith("Export in real time: no WebCodecs");
+    for (const speed of [1, 1.1]) {
+      const settings = { speed } as Parameters<typeof exportFast>[0]["settings"];
+      expect(await exportFast({ file: new Blob([]), words: [], settings }, () => {}, new AbortController().signal)).toBeNull();
+      expect(info).toHaveBeenLastCalledWith("Export in real time: no WebCodecs");
+    }
     info.mockRestore();
   });
 
