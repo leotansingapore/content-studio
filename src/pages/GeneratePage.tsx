@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import RealQuestions from "@/components/RealQuestions";
+import { withQuestion } from "@/lib/sgFeeds";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -2587,6 +2589,9 @@ export default function GeneratePage() {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">{ideaMeta.example}</p>
+          {ideaSource === "real-question" && (
+            <RealQuestions onPick={(q) => setIdeaContext((c) => withQuestion(c, q))} />
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="idea-context" className="flex items-center gap-1.5">
               Context{" "}

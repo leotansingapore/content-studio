@@ -17,6 +17,7 @@ import {
 } from "@/lib/trends";
 import { cloneLinkFor } from "@/lib/reelClone";
 import VideoEmbed from "@/components/VideoEmbed";
+import YouTubeTrends from "@/components/YouTubeTrends";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import {
   Flame,
@@ -494,6 +495,8 @@ export default function TrendsPage() {
           ))}
         </div>
       )}
+
+      <YouTubeTrends />
     </div>
   );
 }
