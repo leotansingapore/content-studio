@@ -1389,11 +1389,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onBack}>All videos</Button>
+        <Button variant="ghost" size="sm" onClick={onBack} className="[@media(pointer:coarse)]:min-h-11">All videos</Button>
         <h1 className="mr-auto truncate font-serif text-xl font-semibold">{project.name}</h1>
-        <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5"><Undo2 className="h-3.5 w-3.5" /> Undo</Button>
-        <Button variant="outline" size="sm" onClick={() => void saveCover()} disabled={!file} className="gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
-        <Button size="sm" onClick={doExport} disabled={!file || job?.state === "running"} className="gap-1.5 bg-gradient-primary text-primary-foreground disabled:opacity-60">
+        <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><Undo2 className="h-3.5 w-3.5" /> Undo</Button>
+        <Button variant="outline" size="sm" onClick={() => void saveCover()} disabled={!file} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
+        <Button size="sm" onClick={doExport} disabled={!file || job?.state === "running"} className="gap-1.5 bg-gradient-primary text-primary-foreground disabled:opacity-60 [@media(pointer:coarse)]:min-h-11">
           <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : <>{exportLabel} <span className="font-normal opacity-80">{fmtBytes(size.bytes)}</span></>}
         </Button>
       </div>
@@ -1408,9 +1408,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => void saveCover()}><ImageIcon className="h-3.5 w-3.5" /> Cover</Button>
             {words.length > 0 && <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={downloadSrt}><Download className="h-3.5 w-3.5" /> Subtitles</Button>}
             {caption ? (
-              <Button size="sm" className="h-9" onClick={copyCaption}>Copy caption</Button>
+              <Button size="sm" className="h-9 [@media(pointer:coarse)]:min-h-11" onClick={copyCaption}>Copy caption</Button>
             ) : (
-              <Button size="sm" className="h-9 gap-1.5" onClick={writeCaption} disabled={writingCaption || !words.length}>
+              <Button size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:min-h-11" onClick={writeCaption} disabled={writingCaption || !words.length}>
                 {writingCaption ? <ThinkingOrb state="composing" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />} {writingCaption ? "Writing..." : "Write the caption"}
               </Button>
             )}
@@ -1512,7 +1512,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             onLoadedMetadata={(e) => setDims([e.currentTarget.videoWidth, e.currentTarget.videoHeight])}
             onLoadedData={() => paint()} onSeeked={() => paint()} />
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={toggle} aria-label={playing ? "Pause" : "Play"} className="h-9 w-9 p-0">
+            <Button size="sm" variant="outline" onClick={toggle} aria-label={playing ? "Pause" : "Play"} className="h-9 w-9 p-0 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
               {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
             <input type="range" min={0} max={total || 1} step={0.05} value={Math.min(outT, total)} aria-label="Position"
@@ -1529,7 +1529,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   {p.fit === "over" ? `Too long for ${p.label} (max ${fmtTime(p.limit).replace(/\.0$/, "")})` : `${p.label} past ${fmtTime(p.limit).replace(/\.0$/, "")} reaches fewer new people`}
                 </span>
               ))}
-              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => patch({ trimEnd: trimToLength(plan.segs, duration, lengthIssues[0].limit, settings) })}>
+              <Button size="sm" variant="outline" className="h-7 text-xs [@media(pointer:coarse)]:min-h-11" onClick={() => patch({ trimEnd: trimToLength(plan.segs, duration, lengthIssues[0].limit, settings) })}>
                 Trim to {fmtTime(lengthIssues[0].limit).replace(/\.0$/, "")}
               </Button>
             </div>
@@ -1613,7 +1613,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             <Textarea rows={2} value={ask} onChange={(e) => setAsk(e.target.value)} placeholder="Bigger yellow captions at the top, cut the pauses tighter, hook: 3 CPF mistakes"
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), runVibe())} />
             <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={() => runVibe()} disabled={thinking || !ask.trim() || none("vibe-edit")} className={thinking ? "gap-1.5 disabled:opacity-100" : "gap-1.5"}>
+              <Button size="sm" onClick={() => runVibe()} disabled={thinking || !ask.trim() || none("vibe-edit")} className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${thinking ? "disabled:opacity-100" : ""}`}>
                 {thinking ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />} {thinking ? "Editing..." : "Change it"}
               </Button>
               <label className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold hover:border-primary/40 ${thinking || none("vibe-edit") ? "pointer-events-none opacity-60" : ""}`}>
@@ -1622,7 +1622,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </label>
               <Left n={left("vibe-edit")} />
               {!skillForm && (
-                <button type="button" onClick={openSkillForm} className="min-h-8 px-1 text-xs font-semibold text-primary hover:underline">Save as a skill</button>
+                <button type="button" onClick={openSkillForm} className="min-h-8 px-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">Save as a skill</button>
               )}
             </div>
             {skillForm && (
@@ -1652,7 +1652,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           <section className="space-y-2 rounded-xl border border-border/60 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-semibold">Post caption</p>
-              <Button size="sm" variant="outline" onClick={writeCaption} disabled={writingCaption || !words.length} className={`gap-1.5 ${writingCaption ? "disabled:opacity-100" : ""}`}>
+              <Button size="sm" variant="outline" onClick={writeCaption} disabled={writingCaption || !words.length} className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${writingCaption ? "disabled:opacity-100" : ""}`}>
                 {writingCaption ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
                 {writingCaption ? "Writing..." : caption ? "Write it again" : "Write the caption"}
               </Button>
@@ -1718,7 +1718,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           <nav className="flex w-fit flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" aria-label="Edit">
             {([["style", "Captions"], ["cuts", "Cuts"], ["frame", "Hook and frame"], ["face", "Face and background"], ["stickers", "Stickers"], ["broll", "B-roll"], ["words", "Words"]] as const).map(([id, label]) => (
               <button key={id} type="button" onClick={() => setTab(id)} aria-pressed={tab === id}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold ${tab === id ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${tab === id ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
             ))}
           </nav>
 
@@ -2385,7 +2385,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function Chip({ on, onClick, children, className = "" }: { on: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
-      className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"} ${className}`}>{children}</button>
+      className={`rounded-full border px-2.5 py-1 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"} ${className}`}>{children}</button>
   );
 }
 
