@@ -87,10 +87,14 @@ export async function startCaptions(userId: string, project: VideoProject, file:
       reading = run.catch(() => {});
       return run;
     };
-    const worker = async () => {
+    // the first part runs alone and the rest are held to the language heard in it: left to guess, Whisper captioned a Singlish stretch in Malay
+    let lang: string | undefined;
+    const worker = async (once = false) => {
       for (let k = todo.shift(); k !== undefined && !failed; k = todo.shift()) {
         try {
-          results[k] = (await transcribe(await read(k))).words ?? [];
+          const t = await transcribe(await read(k), lang);
+          lang ??= t.lang || undefined;
+          results[k] = t.words ?? [];
         } catch (e) {
           failed ??= e instanceof Error ? e : new Error(String(e));
           return;
@@ -98,9 +102,11 @@ export async function startCaptions(userId: string, project: VideoProject, file:
         j.done++;
         await keep(project, results);
         emit();
+        if (once) return;
       }
     };
-    await Promise.all([worker(), worker()]);
+    if (todo.length) await worker(true);
+    if (!failed && todo.length) await Promise.all([worker(), worker()]);
     if (failed) throw failed;
     const words = applyFixes(stitchParts(plan, results as Word[][]), loadFixes(userId)).words;
     const latest = loadProjects(userId).find((x) => x.id === project.id);

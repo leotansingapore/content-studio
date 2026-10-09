@@ -133,8 +133,8 @@ async function call(path: string, init: RequestInit): Promise<Response> {
   return res;
 }
 
-export async function transcribe(wav: Blob): Promise<{ words: Word[]; text: string; duration: number }> {
-  const res = await call("?mode=transcribe", { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav });
+export async function transcribe(wav: Blob, lang?: string): Promise<{ words: Word[]; text: string; duration: number; lang?: string }> {
+  const res = await call(`?mode=transcribe${lang ? `&lang=${encodeURIComponent(lang)}` : ""}`, { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav });
   return res.json();
 }
 

@@ -779,3 +779,17 @@ export function parseTranslateReply(content: string | null, n: number): string[]
     return null;
   }
 }
+
+// ---------- caption language ----------
+
+/** Whisper names the language it heard ("english"); its API takes ISO 639-1 ("en"). The ones advisers here speak, and a few more. */
+const WHISPER_LANGS: Record<string, string> = {
+  english: "en", chinese: "zh", malay: "ms", tamil: "ta", indonesian: "id", tagalog: "tl", hindi: "hi",
+  japanese: "ja", korean: "ko", thai: "th", vietnamese: "vi", spanish: "es", french: "fr", german: "de",
+};
+
+/** An ISO 639-1 code from Whisper's name or a code, or null when it isn't one of the above. */
+export function langCode(v: unknown): string | null {
+  const s = String(v ?? "").toLowerCase().trim();
+  return WHISPER_LANGS[s] ?? (Object.values(WHISPER_LANGS).includes(s) ? s : null);
+}

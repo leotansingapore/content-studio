@@ -92,6 +92,7 @@ import {
   proposedCount,
   parseVibeReply,
   parseVibeRequest,
+  langCode,
 } from "./logic.ts";
 
 const corsHeaders = {
@@ -137,6 +138,9 @@ Deno.serve(async (req) => {
       form.append("timestamp_granularities[]", "segment");
       // Whisper tidies away fillers unless the prompt shows them (OpenAI's documented trick); the editor needs them to cut them.
       form.append("prompt", "Umm, so, uh, I mean, like, you know, hmm... Okay, uh, here's the thing.");
+      // a long recording's later parts are held to the language heard in its first: on its own, a Singlish stretch came back in Malay
+      const lang = langCode(new URL(req.url).searchParams.get("lang"));
+      if (lang) form.append("language", lang);
       const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}` },
@@ -148,7 +152,7 @@ Deno.serve(async (req) => {
         return json({ error: "Couldn't caption that right now. Try again in a minute." }, 502);
       }
       const data = await res.json();
-      return json({ text: data.text ?? "", duration: data.duration ?? 0, language: data.language ?? "", words: cleanWords(data.words, data.text ?? "") });
+      return json({ text: data.text ?? "", duration: data.duration ?? 0, language: data.language ?? "", lang: langCode(data.language) ?? "", words: cleanWords(data.words, data.text ?? "") });
     }
 
     const body = await req.json().catch(() => ({}));

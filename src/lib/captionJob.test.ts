@@ -49,6 +49,12 @@ describe("captions for a long recording", () => {
     expect(files.has("captions-v1")).toBe(false);
   });
 
+  it("captions the first part alone, then holds every later part to the language it heard", async () => {
+    transcribed.mockResolvedValueOnce({ ...said("hi"), lang: "en" }).mockResolvedValue(said("lah"));
+    await startCaptions("u", project(), new Blob(["x"]));
+    expect(transcribed.mock.calls.map((c) => c[1])).toEqual([undefined, "en", "en"]);
+  });
+
   it("stops at a part that fails, says why, and keeps the parts done for next time", async () => {
     transcribed.mockResolvedValueOnce(said("one")).mockRejectedValue(new Error("You've used all 30 for today."));
     await startCaptions("u", project(), new Blob(["x"]));

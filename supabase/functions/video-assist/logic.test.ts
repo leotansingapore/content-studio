@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVibeMessages, cleanSettings, cleanWords, parseVibeReply, parseVibeRequest, parseClipsRequest, parseClipsReply, buildClipsMessages, candidateCount, clipCount, clipWindows, batches, interleave, clipQuestions, rankClips, KEEP_SCORE, proposedCount, parseTranslateRequest, parseTranslateReply, parseCutawaysRequest, MAX_CUTAWAY_CHARS, buildCutawaysMessages, parseCutawaysReply, parsePublishRequest, buildPublishMessages, parsePublishReply, coverQuestion, coverState, coverAt, cleanEdges, CLIP_MIN, clipText, MAX_ABOUT, ON_TOPIC, playedLength, skipQuestions, applySkips, SKIP_OK } from "./logic";
+import { buildVibeMessages, cleanSettings, cleanWords, parseVibeReply, parseVibeRequest, parseClipsRequest, parseClipsReply, buildClipsMessages, candidateCount, clipCount, clipWindows, batches, interleave, clipQuestions, rankClips, KEEP_SCORE, proposedCount, parseTranslateRequest, parseTranslateReply, parseCutawaysRequest, MAX_CUTAWAY_CHARS, buildCutawaysMessages, parseCutawaysReply, parsePublishRequest, buildPublishMessages, parsePublishReply, coverQuestion, coverState, coverAt, cleanEdges, CLIP_MIN, clipText, MAX_ABOUT, ON_TOPIC, playedLength, skipQuestions, applySkips, SKIP_OK, langCode} from "./logic";
 import { clipPasses, WINDOW_OVERLAP } from "./passes";
 
 describe("cleanWords", () => {
@@ -498,5 +498,14 @@ describe("clips: skip a tangent in the middle", () => {
     // no answer, or a low one: no skips, and b (160 s straight through) no longer fits
     expect(applySkips([a, b], null)).toEqual([{ start: 0, end: 60, ...base }]);
     expect(applySkips([a], { k0: { type: "noul" as const, noul: 0.48 } })).toEqual([{ start: 0, end: 60, ...base }]);
+  });
+});
+
+describe("caption language", () => {
+  it("turns Whisper's language name or a code into an ISO 639-1 code, else null", () => {
+    expect(langCode("english")).toBe("en");
+    expect(langCode("Malay")).toBe("ms");
+    expect(langCode("zh")).toBe("zh");
+    for (const v of ["klingon", "", null, "en-US", "e"]) expect(langCode(v)).toBeNull();
   });
 });
