@@ -73,7 +73,9 @@ export function removeProfile(userId: string, id: string): Profile[] {
     const doomed: string[] = [];
     for (let i = 0; i < s.length; i++) {
       const k = s.key(i);
-      if (k && k.startsWith(SYNC_PREFIX) && k.endsWith(suffix)) doomed.push(k);
+      // a turned-off Claude link's revoked row stays: the sync has no tombstones, so deleting it
+      // would let a device that still holds the link bring it back to life (claudeConnect.ts)
+      if (k && k.startsWith(SYNC_PREFIX) && k.endsWith(suffix) && !k.startsWith("content-studio-mcprevoked-")) doomed.push(k);
     }
     doomed.forEach((k) => s.removeItem(k));
     if (activeProfileId(userId) === id) setActiveProfile(userId, DEFAULT_PROFILE_ID);

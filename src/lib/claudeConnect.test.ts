@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLink, loadLinks, MCP_ENDPOINT, newSecret, removeLink, restoreLink } from "@/lib/claudeConnect";
+import { addProfile, DEFAULT_PROFILE_ID, removeProfile, setActiveProfile } from "@/lib/profiles";
 import { linkIsLive, parseToken, sha256Hex, linkKey } from "../../supabase/functions/content-studio-mcp/logic";
 
 const UID = "ff72c375-389e-4dd0-86c4-a166307b8751";
@@ -51,5 +52,21 @@ describe("Claude connection links", () => {
     expect(loadLinks(UID)).toEqual([]);
     // and the server, seeing both rows, refuses it
     expect(linkIsLive([...map.keys()], link.hash, UID)).toBe(false);
+  });
+});
+
+describe("removing a profile", () => {
+  it("keeps a link that was turned off dead, even when another device uploads the link again", async () => {
+    const client = addProfile(UID, "MoneyBees");
+    setActiveProfile(UID, client.id);
+    const { link } = await createLink(UID);
+    removeLink(UID, link.hash);
+    setActiveProfile(UID, DEFAULT_PROFILE_ID);
+    removeProfile(UID, client.id);
+    const scope = `${UID}~${client.id}`;
+    // a device that never saw the turn-off still holds the link row and syncs it back up
+    map.set(linkKey(link.hash, scope), JSON.stringify({ createdAt: link.createdAt }));
+    expect(linkIsLive([...map.keys()], link.hash, scope)).toBe(false);
+    expect([...map.keys()].filter((k) => k.endsWith(scope) && !k.startsWith("content-studio-mcp"))).toEqual([]);
   });
 });
