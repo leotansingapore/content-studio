@@ -353,7 +353,7 @@ function AuditPanel({
                 onClick={open}
                 aria-label="Refresh audit"
                 title="Refresh"
-                className="h-8 w-8 p-0 text-muted-foreground"
+                className="h-8 [@media(pointer:coarse)]:h-11 w-8 [@media(pointer:coarse)]:w-11 p-0 text-muted-foreground"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
               </Button>
@@ -366,7 +366,7 @@ function AuditPanel({
               disabled={removing}
               aria-label={`Stop auditing @${handle}`}
               title="Stop auditing"
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+              className="h-8 [@media(pointer:coarse)]:h-11 w-8 [@media(pointer:coarse)]:w-11 p-0 text-muted-foreground hover:text-destructive"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -463,7 +463,7 @@ function ErrorBox({ message, onRetry }: { message: string; onRetry?: () => void 
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" /> {message}
       </p>
       {onRetry ? (
-        <Button size="sm" variant="outline" onClick={onRetry} className="h-8 gap-1.5">
+        <Button size="sm" variant="outline" onClick={onRetry} className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5">
           <RefreshCw className="h-3.5 w-3.5" /> Try again
         </Button>
       ) : (
@@ -609,7 +609,7 @@ function SeePosts({ posts, platform }: { posts: RatedPost[]; platform: AuditPlat
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="inline-flex items-center gap-1 rounded-md text-[11px] font-semibold text-primary hover:underline"
+        className="inline-flex items-center gap-1 rounded-md text-[11px] font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
       >
         {open ? "Hide" : "See"} example post{posts.length === 1 ? "" : "s"}
         <span className="rounded-full bg-primary/10 px-1.5 py-px text-[10px] tabular-nums">
@@ -725,12 +725,12 @@ function BestPosts({
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm" className="h-8 gap-1.5">
+                <Button asChild size="sm" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5">
                   <Link to={remixUrl(p, platform, handle, pick?.newAngle)}>
                     <Wand2 className="h-3.5 w-3.5" /> Remix this
                   </Link>
                 </Button>
-                <Button asChild size="sm" variant="ghost" className="h-8 gap-1.5 text-muted-foreground">
+                <Button asChild size="sm" variant="ghost" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5 text-muted-foreground">
                   <a href={p.url} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-3.5 w-3.5" /> View post
                   </a>
@@ -817,7 +817,7 @@ function PostIdeas({
           variant={visible.length ? "outline" : "default"}
           onClick={generate}
           disabled={working || !loaded}
-          className="h-8 shrink-0 gap-1.5"
+          className="h-8 [@media(pointer:coarse)]:h-11 shrink-0 gap-1.5"
         >
           {working ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -867,11 +867,11 @@ function PostIdeas({
                       variant="ghost"
                       onClick={() => skip(idea.id)}
                       title="Hide this idea. It won't come back."
-                      className="h-7 px-2.5 text-xs text-muted-foreground"
+                      className="h-7 [@media(pointer:coarse)]:h-11 px-2.5 text-xs text-muted-foreground"
                     >
                       Skip
                     </Button>
-                    <Button asChild size="sm" className="h-7 gap-1.5 px-2.5 text-xs">
+                    <Button asChild size="sm" className="h-7 [@media(pointer:coarse)]:h-11 gap-1.5 px-2.5 text-xs">
                       <Link
                         to={ideaWriteUrl(idea, platform, handle, source)}
                         onClick={() => {

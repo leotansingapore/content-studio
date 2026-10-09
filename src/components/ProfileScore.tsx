@@ -77,7 +77,7 @@ export default function ProfileScore({
       return (
         <div className="flex flex-wrap items-start gap-2 rounded-lg border border-border/60 bg-background p-2">
           <p className="min-w-0 flex-1 whitespace-pre-wrap break-words text-xs text-foreground">{text}</p>
-          <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-8" onClick={() => void copy(text)}>
+          <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-8 [@media(pointer:coarse)]:h-11" onClick={() => void copy(text)}>
             <Copy className="h-3.5 w-3.5" /> Copy
           </Button>
         </div>
@@ -129,7 +129,7 @@ export default function ProfileScore({
       </div>
       {!result && (
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 ${running ? "disabled:opacity-100" : ""}`} onClick={() => void run()} disabled={running}>
+          <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11 ${running ? "disabled:opacity-100" : ""}`} onClick={() => void run()} disabled={running}>
             {running ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <IdCard className="h-3.5 w-3.5" />}
             {running ? "Scoring..." : "Score my profile"}
           </Button>

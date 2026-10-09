@@ -233,7 +233,7 @@ function MetricInput({
       onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
       aria-label={label}
       placeholder={placeholder}
-      className="h-9 w-full min-w-14 rounded-md border border-border/70 bg-background px-2 text-right text-xs tabular-nums outline-none focus:border-primary/40 sm:h-8"
+      className="h-9 w-full min-w-14 rounded-md border border-border/70 bg-background px-2 text-right text-xs tabular-nums outline-none focus:border-primary/40 sm:h-8 [@media(pointer:coarse)]:h-11"
     />
   );
 }
