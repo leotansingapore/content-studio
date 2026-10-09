@@ -349,11 +349,11 @@ class Api {
 
 const btn = {
   primary:
-    "inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50",
+    "inline-flex h-9 [@media(pointer:coarse)]:h-11 items-center justify-center gap-2 rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50",
   outline:
-    "inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-background px-3.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50",
+    "inline-flex h-9 [@media(pointer:coarse)]:h-11 items-center justify-center gap-2 rounded-md border border-border bg-background px-3.5 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50",
   ghost:
-    "inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50",
+    "inline-flex h-9 [@media(pointer:coarse)]:h-11 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50",
 };
 
 const input =
@@ -908,7 +908,7 @@ function RoadmapTab({
         <Menu
           label="Filter the roadmap"
           trigger={() => (
-            <span className="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-[14px] font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
+            <span className="inline-flex h-8 [@media(pointer:coarse)]:h-11 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-[14px] font-medium transition-colors hover:bg-accent hover:text-accent-foreground">
               <Icon path={ICONS.filter} className="h-4 w-4" />
               Filters
             </span>
