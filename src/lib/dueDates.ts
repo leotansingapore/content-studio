@@ -8,7 +8,7 @@
 /** "HH:MM" when scheduledFor carries a local posting time, else null. The board's
  * older full ISO timestamps (a default 9am, not a chosen time) count as date-only. */
 export function scheduleTime(scheduledFor: string | null | undefined): string | null {
-  const m = /^\d{4}-\d{2}-\d{2}T(\d{2}:\d{2})$/.exec(scheduledFor ?? "");
+  const m = /^\d{4}-\d{2}-\d{2}T((?:[01]\d|2[0-3]):[0-5]\d)$/.exec(scheduledFor ?? "");
   return m ? m[1] : null;
 }
 

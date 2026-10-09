@@ -74,6 +74,12 @@ describe("postingTimeGrid", () => {
     expect(g).toMatchObject({ placed: 3, timed: 1, hasTimes: false });
     expect(g.days.map((d) => d.count)).toEqual([0, 1, 1, 0, 1, 0, 0]);
   });
+  it("counts a post saved with a time that doesn't exist on its day, instead of breaking Analytics", () => {
+    // Claude's add_draft once took 24:00; the post went out on Thursday 8 Oct
+    const g = postingTimeGrid([p("a", "", 1000, 50, { scheduledFor: "2026-10-08T24:00" }), p("b", "", 1000, 50, { scheduledFor: "2026-10-08T19:60" })]);
+    expect(g).toMatchObject({ placed: 2, timed: 0 });
+    expect(g.days[3]).toEqual({ count: 2, rate: 5 });
+  });
 });
 
 describe("suggestPostingTime", () => {

@@ -102,6 +102,9 @@ describe("posting times", () => {
     expect(scheduleTime("2026-10-09")).toBeNull();
     expect(scheduleTime("2026-10-09T01:00:00.000Z")).toBeNull(); // the board's default 9am
     expect(scheduleTime(undefined)).toBeNull();
+    expect(scheduleTime("2026-10-09T23:59")).toBe("23:59");
+    expect(scheduleTime("2026-10-09T24:00")).toBeNull(); // not a time: the calendar would call it 12pm
+    expect(scheduleTime("2026-10-09T19:60")).toBeNull();
   });
 
   it("joins a day and an optional time", () => {
