@@ -3,6 +3,7 @@
 // in the mood Jev picks. No Deno or npm imports, so vitest covers it.
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { GLOBAL_COUNTER_USER, consumeUsage, usageRefusal, type RpcClient } from "../_shared/usageCaps.ts";
 
 export const TTS_MODEL = "eleven_turbo_v2_5"; // half the credits of multilingual v2, close in quality
 export const MAX_SCRIPT = 2500; // about three minutes of speech
@@ -139,9 +140,10 @@ export const MOOD_IDS = Object.keys(MOODS) as Mood[];
 export const DEFAULT_MOOD: Mood = "calm";
 
 export const MUSIC_MODEL = "music_v2_5";
-/** Eleven Music makes 3 s to 5 min; a longer video loops the track. */
+/** Eleven Music makes 3 s to 5 min. Tracks stop at 2 min, a long reel, since the credits are shared with
+ * voiceovers and dubs; a longer video loops the track. */
 export const MIN_MUSIC_SECONDS = 3;
-export const MAX_MUSIC_SECONDS = 300;
+export const MAX_MUSIC_SECONDS = 120;
 /** Below this there is too little said to read a mood from. */
 export const MIN_MOOD_TEXT = 40;
 export const MAX_MOOD_TEXT = 4000;
@@ -157,6 +159,22 @@ export function parseMusicRequest(raw: unknown): { ok: true; mood: Mood; ms: num
   if (secs < 1) return { ok: false, error: "Open a video first." };
   const ms = Math.round(Math.min(MAX_MUSIC_SECONDS, Math.max(MIN_MUSIC_SECONDS, secs)) * 1000);
   return { ok: true, mood, ms };
+}
+
+/**
+ * A track counts on the adviser's own daily cap, then on the whole studio's: the ElevenLabs credits are
+ * shared with voiceovers and dubs, so many accounts together must not drain them. The refusal to send,
+ * or null to go ahead.
+ */
+export async function musicRefusal(admin: RpcClient, uid: string): Promise<{ status: number; body: { error: string; code: string } } | null> {
+  // "reason" in: narrows in the app's non-strict tsconfig too
+  const mine = await consumeUsage(admin, uid, "ai-music");
+  if ("reason" in mine) return usageRefusal(mine);
+  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-music-global");
+  if (!("reason" in everyone)) return null;
+  return everyone.reason === "limit"
+    ? { status: 429, body: { code: "daily_limit", error: "Today's music for the whole studio is used up. Try again after 8am Singapore time." } }
+    : usageRefusal(everyone);
 }
 
 export function musicBody(mood: Mood, ms: number): Record<string, unknown> {

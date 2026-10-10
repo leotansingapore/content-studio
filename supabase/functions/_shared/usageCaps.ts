@@ -52,8 +52,10 @@ export const DAILY_LIMITS = {
   // "Voiceover from text" in the video editor (text-voice, ElevenLabs turbo v2.5).
   "ai-voice": 10,
   // "Music for me" in the video editor (text-voice mode "music", Eleven Music at about USD 0.15 a minute,
-  // so up to USD 0.75 for the longest 5-minute track).
+  // so up to USD 0.30 for the longest 2-minute track): per adviser, and across everyone on
+  // GLOBAL_COUNTER_USER, since the ElevenLabs credits also pay for every voiceover and dub.
   "ai-music": 5,
+  "ai-music-global": 20,
   // The mood Jev reads from what is said before a track is made (text-voice mode "mood"); calm once used up.
   "music-mood": 30,
   // Predicted engagement score in Write (post-score, Jev); the browser caches it per draft text.

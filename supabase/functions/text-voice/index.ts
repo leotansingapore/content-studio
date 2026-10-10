@@ -6,7 +6,7 @@
 // where it was said. Either counts once against the "ai-voice" daily cap.
 // Music for me: POST {mode:"mood", text} -> {mood}, Jev's pick from what is said
 // (calm without Jev; "music-mood" cap), then POST {mode:"music", mood, seconds}
-// -> an instrumental MP3 from Eleven Music ("ai-music" cap).
+// -> an instrumental MP3 from Eleven Music ("ai-music" cap per adviser, "ai-music-global" for everyone).
 //
 // Secrets: ELEVENLABS_API_KEY. Deploy WITH JWT verification:
 //   supabase functions deploy text-voice --project-ref hgdbflprrficdoyxmdxe --use-api
@@ -16,7 +16,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import {
-  DEFAULT_MOOD, MUSIC_URL, dubBody, dubUrl, lineSpans, moodQuestions, moodState, moodText, musicBody,
+  DEFAULT_MOOD, MUSIC_URL, dubBody, dubUrl, lineSpans, moodQuestions, moodState, moodText, musicBody, musicRefusal,
   parseDubRequest, parseMusicRequest, parseVoiceRequest, readMood, ttsBody, ttsUrl,
 } from "./logic.ts";
 
@@ -63,13 +63,9 @@ Deno.serve(async (req) => {
       console.error("ELEVENLABS_API_KEY is not set");
       return json({ error: music ? "Music for me isn't switched on yet." : "Voiceover from text isn't switched on yet." }, 503);
     }
-    const usage = await consumeUsage(admin, uid, music ? "ai-music" : "ai-voice");
-    if (!usage.allowed) {
-      const r = usageRefusal(usage);
-      return json(r.body, r.status);
-    }
-
     if (music?.ok) {
+      const refused = await musicRefusal(admin, uid);
+      if (refused) return json(refused.body, refused.status);
       let res: Response;
       try {
         res = await fetch(MUSIC_URL, {
@@ -88,6 +84,12 @@ Deno.serve(async (req) => {
       }
       console.log("text-voice music", music.mood, music.ms, "ms, cost", res.headers.get("character-cost") ?? "?", "song", res.headers.get("song-id") ?? "?");
       return new Response(res.body, { headers: { ...corsHeaders, "Content-Type": "application/octet-stream" } });
+    }
+
+    const usage = await consumeUsage(admin, uid, "ai-voice");
+    if (!usage.allowed) {
+      const r = usageRefusal(usage);
+      return json(r.body, r.status);
     }
     if (dub?.ok) {
       let res: Response;

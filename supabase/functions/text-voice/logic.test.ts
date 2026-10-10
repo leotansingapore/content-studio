@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { DAILY_LIMITS, GLOBAL_COUNTER_USER, type RpcClient } from "../_shared/usageCaps";
 import {
   MAX_SCRIPT, TTS_MODEL, VOICES, parseVoiceRequest, ttsBody, ttsUrl, parseDubRequest, dubUrl, dubBody, lineSpans,
   DEFAULT_MOOD, MAX_MOOD_TEXT, MAX_MUSIC_SECONDS, MIN_MUSIC_SECONDS, MOODS, MOOD_IDS, MUSIC_MODEL, MUSIC_URL,
-  moodQuestions, moodState, moodText, musicBody, parseMusicRequest, readMood,
+  moodQuestions, moodState, moodText, musicBody, musicRefusal, parseMusicRequest, readMood,
 } from "./logic";
 
 describe("parseVoiceRequest", () => {
@@ -62,7 +64,7 @@ describe("background music", () => {
     expect(parseMusicRequest({ mood: "upbeat", seconds: 42.4 })).toEqual({ ok: true, mood: "upbeat", ms: 42400 });
     expect(parseMusicRequest({ mood: "calm", seconds: 1.5 })).toEqual({ ok: true, mood: "calm", ms: MIN_MUSIC_SECONDS * 1000 });
     expect(parseMusicRequest({ mood: "calm", seconds: 7200 })).toEqual({ ok: true, mood: "calm", ms: MAX_MUSIC_SECONDS * 1000 });
-    expect(MAX_MUSIC_SECONDS).toBe(300);
+    expect(MAX_MUSIC_SECONDS).toBe(120);
   });
 
   it("refuses an unknown mood or no length", () => {
@@ -102,5 +104,60 @@ describe("the mood Jev picks", () => {
     const long = "Most people think insurance is expensive.  ".repeat(200);
     expect(moodText({ text: long }).length).toBe(MAX_MOOD_TEXT);
     expect(moodText({ text: "Most people  think\ninsurance is expensive, but here is why." })).toBe("Most people think insurance is expensive, but here is why.");
+  });
+});
+
+describe("the music caps", () => {
+  // cs_consume_ai_usage: counts the use, or null once the day's limit is reached
+  const counter = (): RpcClient & { calls: string[] } => {
+    const used = new Map<string, number>();
+    const calls: string[] = [];
+    return {
+      calls,
+      rpc(_fn, a) {
+        const k = `${a.p_user}/${a.p_feature}`;
+        calls.push(k);
+        const n = (used.get(k) ?? 0) + 1;
+        if (n > (a.p_limit as number)) return Promise.resolve({ data: null, error: null });
+        used.set(k, n);
+        return Promise.resolve({ data: n, error: null });
+      },
+    };
+  };
+
+  it("counts a track on the adviser's cap, then on the whole studio's", async () => {
+    const db = counter();
+    expect(await musicRefusal(db, "u1")).toBeNull();
+    expect(db.calls).toEqual(["u1/ai-music", `${GLOBAL_COUNTER_USER}/ai-music-global`]);
+  });
+
+  it("refuses once the adviser's own tracks are used up, without spending the studio's", async () => {
+    const db = counter();
+    for (let i = 0; i < DAILY_LIMITS["ai-music"]; i++) expect(await musicRefusal(db, "u1")).toBeNull();
+    expect(await musicRefusal(db, "u1")).toMatchObject({ status: 429, body: { code: "daily_limit" } });
+    expect(db.calls.filter((c) => c.endsWith("ai-music-global"))).toHaveLength(DAILY_LIMITS["ai-music"]);
+  });
+
+  it("refuses everyone once the studio's tracks are used up, even with their own left", async () => {
+    const db = counter();
+    const global = DAILY_LIMITS["ai-music-global"];
+    for (let i = 0; i < global; i++) expect(await musicRefusal(db, `u${Math.floor(i / DAILY_LIMITS["ai-music"])}`)).toBeNull();
+    expect(await musicRefusal(db, "someone-new")).toEqual({
+      status: 429,
+      body: { code: "daily_limit", error: "Today's music for the whole studio is used up. Try again after 8am Singapore time." },
+    });
+    expect(global).toBeLessThanOrEqual(20);
+  });
+
+  it("refuses when the counter can't be read", async () => {
+    const down: RpcClient = { rpc: () => Promise.resolve({ data: null, error: { message: "down" } }) };
+    expect(await musicRefusal(down, "u1")).toMatchObject({ status: 503 });
+  });
+
+  it("checks both caps before it calls Eleven Music", () => {
+    const source = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+    const caps = source.indexOf("await musicRefusal(admin, uid)");
+    expect(caps).toBeGreaterThan(0);
+    expect(source.indexOf("fetch(MUSIC_URL")).toBeGreaterThan(caps);
   });
 });
