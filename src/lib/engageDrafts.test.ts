@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { followUpDates, followUpTitle, loadGoal, loadLog, loadRun, logComment, MAX_ITEMS, MAX_POSTS, MAX_THREAD, requestBody, runningJob, saveGoal, saveRun, splitPasted, startRun, thisWeek, threadLines, timesThisWeek, toggleMine, unlog } from "@/lib/engageDrafts";
+import { addTopic, followUpDates, followUpTitle, loadGoal, loadLog, loadTopics, MAX_TOPICS, removeTopic, loadRun, logComment, MAX_ITEMS, MAX_POSTS, MAX_THREAD, requestBody, runningJob, saveGoal, saveRun, splitPasted, startRun, thisWeek, threadLines, timesThisWeek, toggleMine, unlog } from "@/lib/engageDrafts";
 
 const store = new Map<string, string>();
 const invoke = vi.fn();
@@ -64,7 +64,7 @@ describe("runs", () => {
   it("sends DMs as messages and keeps their run apart from the replies", async () => {
     invoke.mockResolvedValue({ data: { items: [{ i: 0 }] }, error: null });
     expect(await startRun("dms", "u1", { post: "", pasted: "Karen: Hi\n\nTom: Yo", posts: [], form: {} })).toEqual({ kind: "ok" });
-    expect(invoke.mock.calls[0][1].body).toEqual({ mode: "dms", messages: [{ name: "Karen", text: "Hi" }, { name: "Tom", text: "Yo" }], goal: "call" });
+    expect(invoke.mock.calls[0][1].body).toEqual({ mode: "dms", messages: [{ name: "Karen", text: "Hi" }, { name: "Tom", text: "Yo" }], goal: "call", topics: [] });
     expect(loadRun("dms", "u1").items).toEqual([{ i: 0 }]);
     expect(loadRun("replies", "u1").items).toEqual([]);
   });
@@ -117,6 +117,30 @@ describe("a DM conversation", () => {
     expect(loadGoal(null)).toBe("call");
     store.set("content-studio-dmgoal-u1", '"sell"');
     expect(loadGoal("u1")).toBe("call");
+  });
+});
+
+describe("topics you handle yourself", () => {
+  it("keeps your own topics per profile, synced, once each, up to MAX_TOPICS", () => {
+    expect(loadTopics("u1")).toEqual([]);
+    addTopic("u1", "  Divorce   cases ");
+    addTopic("u1", "divorce CASES");
+    addTopic("u1", "   ");
+    expect(store.get("content-studio-escalate-u1")).toBe('["Divorce cases"]');
+    for (let i = 0; i < MAX_TOPICS + 2; i++) addTopic("u1", `t${i}`);
+    expect(JSON.parse(store.get("content-studio-escalate-u1")!)).toHaveLength(MAX_TOPICS);
+    expect(removeTopic("u1", "Divorce cases")).not.toContain("Divorce cases");
+    expect(loadTopics("u2")).toEqual([]);
+    store.set("content-studio-escalate-u2", '{"bad":1}');
+    expect(loadTopics("u2")).toEqual([]);
+  });
+
+  it("sends them with comments, DMs and a conversation, never with the other tools", async () => {
+    addTopic("u1", "divorce");
+    invoke.mockResolvedValue({ data: { items: [] }, error: null });
+    for (const tool of ["replies", "dms", "thread"] as const) await startRun(tool, "u1", { post: "", pasted: "Karen: Hi", posts: [], form: {} });
+    expect(invoke.mock.calls.map((c) => c[1].body.topics)).toEqual([["divorce"], ["divorce"], ["divorce"]]);
+    expect(requestBody("comments", { post: "", pasted: "", posts: [{ name: "", text: "p" }], form: {} }, { topics: ["divorce"] })).not.toHaveProperty("topics");
   });
 });
 

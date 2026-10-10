@@ -17,7 +17,15 @@ import {
   CLIENT_MIN,
   DM_KINDS,
   DM_GOALS,
+  ESCALATE_MIN,
+  ESCALATE_TOPICS,
   MAX_THREAD,
+  MAX_TOPICS,
+  MAX_TOPIC_CHARS,
+  TOPIC_LABEL,
+  escalateQuestions,
+  readEscalations,
+  threadText,
   buildThreadPrompt,
   readThread,
   buildDmsPrompt,
@@ -51,7 +59,7 @@ const choice = (choice: string, probabilities: Record<string, number>): JevAnswe
 describe("parseEngageRequest", () => {
   it("takes the replies mode with trimmed comments and an optional post", () => {
     const r = parseEngageRequest({ mode: "replies", comments: [{ name: " Tom ", text: " So true! " }, { text: "  " }, "junk"] });
-    expect(r).toEqual({ ok: true, request: { mode: "replies", post: "", comments: [{ name: "Tom", text: "So true!" }] } });
+    expect(r).toEqual({ ok: true, request: { mode: "replies", post: "", comments: [{ name: "Tom", text: "So true!" }], topics: [] } });
   });
 
   it("refuses no comments, too many, or an unknown mode", () => {
@@ -157,7 +165,7 @@ describe("direct messages", () => {
   const noul = (p: number): JevAnswer => ({ type: "noul", noul: p });
 
   it("takes the dms mode and refuses an empty paste", () => {
-    expect(parseEngageRequest({ mode: "dms", messages: [{ text: " Hi " }] })).toEqual({ ok: true, request: { mode: "dms", messages: [{ name: "", text: "Hi" }], goal: "call" } });
+    expect(parseEngageRequest({ mode: "dms", messages: [{ text: " Hi " }] })).toEqual({ ok: true, request: { mode: "dms", messages: [{ name: "", text: "Hi" }], goal: "call", topics: [] } });
     expect(parseEngageRequest({ mode: "dms", messages: [{ text: "Hi" }], goal: "guide" })).toMatchObject({ request: { goal: "guide" } });
     expect(parseEngageRequest({ mode: "dms", messages: [] })).toMatchObject({ ok: false });
   });
@@ -274,6 +282,80 @@ describe("a conversation", () => {
     expect(item).toEqual({ name: "Karen Tan", text: "Is it worth keeping the rider?", i: 3, reply: "Karen, it depends on his plan, here: [guide link]" });
     expect(readThread("not json", lines).reply).toBe("");
     expect(readThread(JSON.stringify({ reply: "Guaranteed returns, Karen." }), lines).reply).toBe("");
+  });
+});
+
+describe("handle yourself", () => {
+  const texts = [
+    { name: "Ah Hock", text: "My claim for my mum's surgery was rejected. What can I do?" },
+    { name: "Tom", text: "So true!" },
+    { name: "", text: "你好，我想了解退休规划。" },
+    { name: "Mei", text: "Going through a divorce, need to sort out my policies" },
+    { name: "Raj", text: "Reporter here, can we talk?" },
+  ];
+  const noul = (p: number): JevAnswer => ({ type: "noul", noul: p });
+
+  it("takes the consultant's own topics: trimmed, once each, at most MAX_TOPICS of MAX_TOPIC_CHARS", () => {
+    const many = Array.from({ length: MAX_TOPICS + 3 }, (_, i) => `topic ${i}`);
+    const r = parseEngageRequest({ mode: "replies", comments: [{ text: "Hi" }], topics: [" Divorce ", "divorce", 7, "", "x".repeat(MAX_TOPIC_CHARS + 9), ...many] });
+    expect(r.ok && r.request.mode === "replies" && r.request.topics).toEqual(["Divorce", "x".repeat(MAX_TOPIC_CHARS), ...many.slice(0, MAX_TOPICS - 2)]);
+    expect(parseEngageRequest({ mode: "thread", lines: [{ text: "Hi" }], topics: "divorce" })).toMatchObject({ request: { topics: [] } });
+  });
+
+  it("asks a yes/no with every topic in it and a topic pick, for each text Jev reads", () => {
+    const q = escalateQuestions(texts, ["divorce"], "a direct message");
+    expect(Object.keys(q)).toEqual(["e0", "t0", "e1", "t1", "e3", "t3", "e4", "t4"]);
+    expect(q.e0.type).toBe("noul");
+    const topics = (q.e0.instructions as { topics: string[] }).topics;
+    expect(topics).toHaveLength(ESCALATE_TOPICS.length + 1);
+    expect(topics.at(-1)).toBe("About divorce.");
+    expect(topics.find((t) => t.startsWith("The writer says or seems to be under 18"))).toMatch(/A parent asking how to cover their children is not this/);
+    expect(Object.keys((q.t0 as { criteria: object }).criteria)).toEqual([...ESCALATE_TOPICS, "u0"]);
+  });
+
+  it("escalates from ESCALATE_MIN up with the topic as the reason, and nothing without Jev's answer", () => {
+    const answers = {
+      e0: noul(ESCALATE_MIN), t0: choice("claim", { claim: 1 }),
+      e1: noul(ESCALATE_MIN - 0.01), t1: choice("complaint", { complaint: 1 }),
+      e3: noul(0.95), t3: choice("u0", { u0: 1 }),
+      e4: noul(0.93), t4: choice("bogus", { bogus: 1 }),
+    };
+    expect(readEscalations(answers, texts.length, ["divorce"])).toEqual([TOPIC_LABEL.claim, null, null, "divorce", "Sensitive"]);
+    expect(readEscalations(null, texts.length, [])).toEqual([null, null, null, null, null]);
+  });
+
+  it("puts escalated comments first with no reply and no DM, and leaves them out of the drafting", () => {
+    const kinds: CommentKind[] = ["support", "client", "noise", "peer", "substantive"];
+    const esc = ["A claim or policy dispute", null, null, "divorce", null];
+    const { user } = buildRepliesPrompt("", comments, kinds, esc);
+    expect(user).not.toMatch(/\[c0\]|\[c3\]|\[c2\]/);
+    expect(user).toContain("[c1] client");
+    const content = JSON.stringify({ replies: [{ id: "c0", reply: "no" }, { id: "c1", reply: "Ah Hock, start with the letter.", dm: "Hi Ah Hock" }, { id: "c3", reply: "no" }, { id: "c4", reply: "Nadia, good point." }] });
+    const items = readReplies(content, comments, kinds, esc);
+    expect(items.map((x) => [x.i, x.escalate ?? null, x.reply])).toEqual([
+      [0, "A claim or policy dispute", null],
+      [3, "divorce", null],
+      [1, null, "Ah Hock, start with the letter."],
+      [4, null, "Nadia, good point."],
+      [2, null, null],
+    ]);
+    expect(items[2].dm).toBe("Hi Ah Hock");
+  });
+
+  it("puts escalated DMs first, undrafted, and a conversation's escalation reads only their side", () => {
+    const msgs = [texts[1], texts[0]];
+    const sorted = [{ kind: "lead" as const, automated: false, escalate: null }, { kind: "peer" as const, automated: false, escalate: "A claim or policy dispute" }];
+    expect(buildDmsPrompt(msgs, sorted).user).not.toContain("[m1]");
+    const items = readDmReplies(JSON.stringify({ replies: [{ id: "m0", reply: "Tom, thanks." }, { id: "m1", reply: "no" }] }), msgs, sorted);
+    expect(items.map((x) => [x.i, x.escalate ?? null, x.reply])).toEqual([[1, "A claim or policy dispute", null], [0, null, "Tom, thanks."]]);
+    const lines = [
+      { name: "Mei", text: "Hi, saw your post", me: false },
+      { name: "", text: "Thanks Mei, what's on your mind?", me: true },
+      { name: "Mei", text: "My claim got rejected", me: false },
+    ];
+    expect(threadText(lines)).toEqual({ name: "Mei", text: "Hi, saw your post\nMy claim got rejected" });
+    expect(readThread(JSON.stringify({ reply: "Mei, sorry." }), lines, "A claim or policy dispute")).toEqual({ name: "Mei", text: "My claim got rejected", i: 2, reply: null, escalate: "A claim or policy dispute" });
+    expect(readThread(JSON.stringify({ reply: "Mei, sorry." }), lines).escalate).toBeUndefined();
   });
 });
 

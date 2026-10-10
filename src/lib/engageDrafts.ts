@@ -13,11 +13,14 @@
 //   key: content-studio-commentlog-${scoped(userId)}
 // The goal DM drafts steer toward (call, guide, rapport), per profile, synced:
 //   key: content-studio-dmgoal-${scoped(userId)}
+// Topics the consultant handles personally, on top of the built-in list (a
+// comment or DM about one is never drafted), per profile, synced:
+//   key: content-studio-escalate-${scoped(userId)}
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
 import { addDays, localDateKey, weekOf } from "@/lib/dueDates";
-import { DM_GOALS, MAX_ITEMS, MAX_POSTS, MAX_THREAD, type DmGoal, type Pasted, type ThreadLine } from "../../supabase/functions/engage-assist/logic.ts";
+import { DM_GOALS, MAX_ITEMS, MAX_POSTS, MAX_THREAD, MAX_TOPICS, MAX_TOPIC_CHARS, type DmGoal, type Pasted, type ThreadLine } from "../../supabase/functions/engage-assist/logic.ts";
 
 export {
   MAX_ITEMS,
@@ -25,6 +28,8 @@ export {
   MAX_POST_CHARS,
   MAX_POSTS,
   MAX_THREAD,
+  MAX_TOPICS,
+  MAX_TOPIC_CHARS,
   DM_GOALS,
   NOTE_MAX,
   type CommentItem,
@@ -150,21 +155,21 @@ export function toggleMine(lines: ThreadLine[], i: number): string {
 }
 
 /** What a tool sends: the pasted text split into items, or the filled post slots. */
-export function requestBody(tool: EngageTool, input: Pick<Run<unknown>, "post" | "pasted" | "posts" | "form">, goal: DmGoal = "call") {
+export function requestBody(tool: EngageTool, input: Pick<Run<unknown>, "post" | "pasted" | "posts" | "form">, { goal = "call", topics = [] }: { goal?: DmGoal; topics?: string[] } = {}) {
   if (tool === "connect") {
     const f = input.form;
     return { mode: tool, name: f.name ?? "", about: f.about ?? "", reason: f.reason ?? "", goal: f.goal ?? "know" };
   }
   if (tool === "comments") return { mode: tool, posts: input.posts.filter((p) => p.text.trim()).slice(0, MAX_POSTS) };
-  if (tool === "thread") return { mode: tool, lines: threadLines(input.pasted, input.form.mine).slice(-MAX_THREAD), goal };
+  if (tool === "thread") return { mode: tool, lines: threadLines(input.pasted, input.form.mine).slice(-MAX_THREAD), goal, topics };
   const list = splitPasted(input.pasted).slice(0, MAX_ITEMS);
-  return tool === "replies" ? { mode: tool, post: input.post, comments: list } : { mode: tool, messages: list, goal };
+  return tool === "replies" ? { mode: tool, post: input.post, comments: list, topics } : { mode: tool, messages: list, goal, topics };
 }
 
 /** Sorts and drafts what was pasted; the result is saved even if the page was left meanwhile. */
 export function startRun(tool: EngageTool, userId: string, input: Pick<Run<unknown>, "post" | "pasted" | "posts" | "form">): Promise<EngageOutcome> {
   const key = keyFor(tool, userId);
-  const body = requestBody(tool, input, loadGoal(userId));
+  const body = requestBody(tool, input, { goal: loadGoal(userId), topics: loadTopics(userId) });
   const job = callFn<{ items?: unknown[]; drafts?: unknown }>("engage-assist", body, FAILED)
     .then((res): EngageOutcome => {
       // connect answers with one set of drafts, the rest with a list
@@ -205,6 +210,39 @@ export function saveGoal(userId: string, goal: DmGoal): DmGoal {
   }
   return goal;
 }
+
+// ---- Topics you handle yourself ----------------------------------------------------
+
+const TOPICS_KEY = "content-studio-escalate-";
+
+export function loadTopics(userId: string | null | undefined): string[] {
+  if (!userId) return [];
+  try {
+    const v = JSON.parse(store()?.getItem(TOPICS_KEY + scoped(userId)) ?? "[]");
+    return Array.isArray(v) ? v.filter((t): t is string => typeof t === "string" && t.trim() !== "").slice(0, MAX_TOPICS) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTopics(userId: string, topics: string[]): string[] {
+  try {
+    store()?.setItem(TOPICS_KEY + scoped(userId), JSON.stringify(topics));
+  } catch {
+    // storage full: the topics still hold for this visit
+  }
+  return topics;
+}
+
+/** Adds a topic (trimmed, once, up to MAX_TOPICS); returns the list. */
+export function addTopic(userId: string, topic: string): string[] {
+  const t = topic.trim().replace(/\s+/g, " ").slice(0, MAX_TOPIC_CHARS);
+  const list = loadTopics(userId);
+  if (!t || list.length >= MAX_TOPICS || list.some((x) => x.toLowerCase() === t.toLowerCase())) return list;
+  return saveTopics(userId, [...list, t]);
+}
+
+export const removeTopic = (userId: string, topic: string) => saveTopics(userId, loadTopics(userId).filter((t) => t !== topic));
 
 // ---- Who you commented on this week ---------------------------------------------
 

@@ -13,16 +13,21 @@
 // no draft. A lead's draft steers to the goal the consultant picked.
 // Mode "thread": one conversation, both sides, marked by the consultant (not
 // guessed). One draft answers their latest message in the context of the last
-// MAX_THREAD messages and steers to the picked goal. Nothing is decided, so no Jev.
+// MAX_THREAD messages and steers to the picked goal. Jev decides only whether to escalate.
 // Mode "comments": someone else's post (or 2-10 of them). Jev picks which kinds
 // of comment fit; the drafts are two comments of different kinds for one post,
 // one each for a batch.
 // Mode "connect": a LinkedIn connection note under 200 characters, the first
 // message after they accept and two follow-ups. Nothing is decided, so no Jev.
+// Replies, DMs and a conversation: Jev also asks whether each one should be
+// handled personally (a complaint, a claim, a legal or medical question, press,
+// a minor, harassment, or a topic the consultant added). Those go to a pile of
+// their own, first, with the topic as the reason and no draft. Without Jev's
+// answer nothing is escalated: no keyword guess.
 // Ported from Jakeschincariol/linkedin-agent-skill@add2c23 li-reply and
 // li-inbox, li-comment and li-dm (MIT), rewritten for Singapore financial consultants.
 
-import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { complianceIssues, parseJsonObject } from "../_shared/socialAudit.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 
@@ -41,9 +46,9 @@ export interface Pasted {
 }
 
 export type EngageRequest =
-  | { mode: "replies"; post: string; comments: Pasted[] }
-  | { mode: "dms"; messages: Pasted[]; goal: DmGoal }
-  | { mode: "thread"; lines: ThreadLine[]; goal: DmGoal }
+  | { mode: "replies"; post: string; comments: Pasted[]; topics: string[] }
+  | { mode: "dms"; messages: Pasted[]; goal: DmGoal; topics: string[] }
+  | { mode: "thread"; lines: ThreadLine[]; goal: DmGoal; topics: string[] }
   | { mode: "comments"; posts: Pasted[] }
   | { mode: "connect"; name: string; about: string; reason: string; goal: ConnectGoal };
 
@@ -67,13 +72,13 @@ export function parseEngageRequest(raw: unknown): { ok: true; request: EngageReq
     const comments = pastedList(b.comments);
     if (!comments.length) return { ok: false, error: "Paste at least one comment." };
     if (comments.length > MAX_ITEMS) return { ok: false, error: `Paste up to ${MAX_ITEMS} comments at a time.` };
-    return { ok: true, request: { mode: "replies", post: str(b.post, MAX_POST_CHARS), comments } };
+    return { ok: true, request: { mode: "replies", post: str(b.post, MAX_POST_CHARS), comments, topics: topicList(b.topics) } };
   }
   if (b.mode === "dms") {
     const messages = pastedList(b.messages);
     if (!messages.length) return { ok: false, error: "Paste at least one message." };
     if (messages.length > MAX_ITEMS) return { ok: false, error: `Paste up to ${MAX_ITEMS} messages at a time.` };
-    return { ok: true, request: { mode: "dms", messages, goal: dmGoal(b.goal) } };
+    return { ok: true, request: { mode: "dms", messages, goal: dmGoal(b.goal), topics: topicList(b.topics) } };
   }
   if (b.mode === "thread") {
     const lines = (Array.isArray(b.lines) ? b.lines : [])
@@ -81,7 +86,7 @@ export function parseEngageRequest(raw: unknown): { ok: true; request: EngageReq
       .slice(-MAX_THREAD);
     if (!lines.length) return { ok: false, error: "Paste the conversation." };
     if (lines[lines.length - 1].me) return { ok: false, error: "The last message is yours. Wait for their reply." };
-    return { ok: true, request: { mode: "thread", lines, goal: dmGoal(b.goal) } };
+    return { ok: true, request: { mode: "thread", lines, goal: dmGoal(b.goal), topics: topicList(b.topics) } };
   }
   if (b.mode === "comments") {
     const posts = pastedList(b.posts, MAX_POST_CHARS);
@@ -105,6 +110,116 @@ export function parseEngageRequest(raw: unknown): { ok: true; request: EngageReq
  * "+1"). Text mostly in another script stays "not sorted": no keyword guess.
  */
 export const jevReads = (text: string) => !/\p{L}/u.test(text) || mostlyEnglish(text);
+
+// ---- Handle yourself: escalated, never drafted ------------------------------------
+
+/** What always goes to the consultant (kevinbadi/social-agents respond-to-comments' escalation list, for Singapore advisers). */
+export const ESCALATE_TOPICS = ["complaint", "billing", "claim", "legal", "medical", "press", "minor", "harassment"] as const;
+type BuiltInTopic = (typeof ESCALATE_TOPICS)[number];
+
+const TOPIC_CRITERIA: Record<BuiltInTopic, string> = {
+  complaint: "A complaint about the consultant, their service or a bad experience with them.",
+  billing: "A refund, a fee, a charge or a billing or payment problem.",
+  claim: "An insurance claim or policy dispute: a claim turned down, delayed or argued over, or a policy lapsed, cancelled or changed against their wishes.",
+  legal: "A legal question or a legal threat: lawyers, suing, a will or estate dispute, a contract they want to get out of.",
+  medical: "A medical question, or their own or a family member's health condition or diagnosis.",
+  press: "A request from a journalist, the press or the media.",
+  minor: "The writer says or seems to be under 18, or a child's safety is at risk. A parent asking how to cover their children is not this.",
+  harassment: "Harassment of a specific person, or a threat.",
+};
+
+/** The reason shown on an escalated item, by topic. */
+export const TOPIC_LABEL: Record<BuiltInTopic, string> = {
+  complaint: "A complaint",
+  billing: "Refund, fees or billing",
+  claim: "A claim or policy dispute",
+  legal: "A legal question",
+  medical: "A medical question",
+  press: "Press or media",
+  minor: "Involves a minor",
+  harassment: "Harassment or a threat",
+};
+
+/** Topics a consultant adds (saved per profile on the page): at most this many, each this long. */
+export const MAX_TOPICS = 10;
+export const MAX_TOPIC_CHARS = 60;
+
+function topicList(v: unknown): string[] {
+  const out: string[] = [];
+  for (const t of Array.isArray(v) ? v : []) {
+    const s = str(t, MAX_TOPIC_CHARS);
+    if (s && !out.some((o) => o.toLowerCase() === s.toLowerCase())) out.push(s);
+  }
+  return out.slice(0, MAX_TOPICS);
+}
+
+/** Every topic as a Choice option: the built-in ones, then the consultant's as u0, u1... */
+const topicOptions = (topics: string[]): Record<string, string> => ({
+  ...TOPIC_CRITERIA,
+  ...Object.fromEntries(topics.map((t, i) => [`u${i}`, `About ${t}.`])),
+});
+
+// Set from a shadow check on 2026-10-11 against jev-1.13.0, three runs over 36
+// messages written for it, sent as the DMs mode sends them (kind, automated,
+// escalate and topic in one request; 144 questions answered in 1.2-2.5 s, 30
+// DMs in 0.9 s): 15 to escalate (fees and refunds, a turned-down claim, a
+// lapsed policy, "can I sue", a cancer diagnosis, a Straits Times reporter, a
+// 15-year-old, two threats, a complaint, "divorce" as an added topic) and 21
+// not (leads, a parent covering their kids, a 68-year-old's premium, praise,
+// spam, peers, recruiters). Escalate scored 0.90-0.97, the rest 0.03-0.66 (the
+// highest: "Mine went up too ... am I overpaying?" and "kena increase sia",
+// read as billing). The topic Choice named a fitting topic on all 15.
+/**
+ * A text goes to Handle yourself from this p(escalate) up. Between the two
+ * groups with room on both sides; a troll ("advisers just want commission",
+ * 0.65-0.67) and "Do you cover people with diabetes?" (0.54-0.59) stay in
+ * their normal pile.
+ */
+export const ESCALATE_MIN = 0.8;
+
+/**
+ * Per text Jev reads, a Noul (e<i>): handle it personally? and a Choice (t<i>):
+ * which topic, read only when the Noul says yes, as the one-line reason.
+ * `where` says what the text is, e.g. "a comment under their post".
+ */
+export function escalateQuestions(texts: Pasted[], topics: string[], where: string): Record<string, JevQuestion> {
+  const q: Record<string, JevQuestion> = {};
+  const options = topicOptions(topics);
+  const list = Object.values(options);
+  texts.forEach((x, i) => {
+    if (!jevReads(x.text)) return;
+    const about = { text: x.text, from: x.name || "(no name)" };
+    q[`e${i}`] = {
+      type: "noul",
+      instructions: {
+        ...about,
+        topics: list,
+        question: `A Singapore financial consultant got \`text\` as ${where}. Does it raise any of \`topics\`, so the consultant should handle it personally instead of answering with a drafted reply?`,
+      },
+      criteria: {
+        true: "It raises one of the topics, even in passing or as a question.",
+        false: "None of the topics: a general question about money, insurance, CPF or the post, someone asking for help with their own or their family's plans, praise, a peer, a recruiter, spam or a sales pitch.",
+      },
+    };
+    q[`t${i}`] = {
+      type: "choice",
+      instructions: { ...about, question: `A Singapore financial consultant got \`text\` as ${where}. Which topic does it raise most?` },
+      criteria: options,
+    };
+  });
+  return q;
+}
+
+/** Each text's reason to handle it yourself, or null: not escalated, or Jev did not answer. */
+export function readEscalations(answers: Record<string, JevAnswer> | null, count: number, topics: string[]): (string | null)[] {
+  const labels: Record<string, string> = { ...TOPIC_LABEL, ...Object.fromEntries(topics.map((t, i) => [`u${i}`, t])) };
+  return Array.from({ length: count }, (_, i) => {
+    const p = noulOf(answers, `e${i}`);
+    if (p === null || p < ESCALATE_MIN) return null;
+    const t = choiceOf(answers, `t${i}`, Object.keys(labels));
+    return t ? labels[t] : "Sensitive";
+  });
+}
 
 // ---- Mode "replies" -----------------------------------------------------------
 
@@ -203,7 +318,7 @@ const KIND_BRIEF: Record<CommentKind, string> = {
   noise: "",
 };
 
-export function buildRepliesPrompt(post: string, comments: Pasted[], kinds: CommentKind[]): { system: string; user: string } {
+export function buildRepliesPrompt(post: string, comments: Pasted[], kinds: CommentKind[], escalated: (string | null)[] = []): { system: string; user: string } {
   const system = [
     "You draft replies a Singapore financial consultant will paste under their own social post. They read each draft and post it themselves.",
     "Each comment comes with its kind. Write for each:",
@@ -218,7 +333,7 @@ export function buildRepliesPrompt(post: string, comments: Pasted[], kinds: Comm
     ...houseLines(),
     'Reply with JSON only: {"replies":[{"id":"c0","reply":"...","dm":"..."}]}, one per comment id given, dm only for client.',
   ].join("\n");
-  const lines = comments.flatMap((c, i) => (kinds[i] === "noise" ? [] : [`[c${i}] ${kinds[i]} | ${c.name || "(no name)"}: ${c.text.replace(/\s+/g, " ")}`]));
+  const lines = comments.flatMap((c, i) => (kinds[i] === "noise" || escalated[i] ? [] : [`[c${i}] ${kinds[i]} | ${c.name || "(no name)"}: ${c.text.replace(/\s+/g, " ")}`]));
   const user = [`The post:\n${post || "(not pasted)"}`, "", "The comments:", ...lines].join("\n");
   return { system, user };
 }
@@ -252,10 +367,12 @@ export interface ReplyItem extends Pasted {
   /** Where it was in the paste, from 0. */
   i: number;
   kind: CommentKind;
-  /** Null for noise; "" when no usable draft came back. */
+  /** Null for noise and escalated ones; "" when no usable draft came back. */
   reply: string | null;
   /** The first DM, for potential clients only. */
   dm?: string;
+  /** Why to handle it yourself (no draft); absent when it is not escalated. */
+  escalate?: string;
 }
 
 /** The model's {"replies":[{id, ...}]} keyed by id. */
@@ -269,18 +386,20 @@ function repliesById(content: string | null): Map<string, Record<string, unknown
   return byId;
 }
 
-/** The comments with their drafts, clients first, in paste order within a kind. */
-export function readReplies(content: string | null, comments: Pasted[], kinds: CommentKind[]): ReplyItem[] {
+/** The comments with their drafts: escalated ones first, then clients, in paste order within a kind. */
+export function readReplies(content: string | null, comments: Pasted[], kinds: CommentKind[], escalated: (string | null)[] = []): ReplyItem[] {
   const byId = repliesById(content);
+  const rank = (x: ReplyItem) => (x.escalate ? -1 : REPLY_ORDER.indexOf(x.kind));
   const items: ReplyItem[] = comments.map((c, i) => {
     const kind = kinds[i];
+    if (escalated[i]) return { ...c, i, kind, reply: null, escalate: escalated[i]! };
     if (kind === "noise") return { ...c, i, kind, reply: null };
     const r = byId.get(`c${i}`);
     const item: ReplyItem = { ...c, i, kind, reply: cleanDraft(r?.reply, 700, { links: false }) };
     if (kind === "client") item.dm = cleanDraft(r?.dm, 900);
     return item;
   });
-  return items.sort((a, b) => REPLY_ORDER.indexOf(a.kind) - REPLY_ORDER.indexOf(b.kind) || a.i - b.i);
+  return items.sort((a, b) => rank(a) - rank(b) || a.i - b.i);
 }
 
 // ---- Mode "dms" -----------------------------------------------------------------
@@ -380,7 +499,13 @@ const DM_RULES = [
   ...COMPLIANCE_LINES.map((l) => `- ${l}`),
 ];
 
-export function buildDmsPrompt(messages: Pasted[], sorted: { kind: DmKind; automated: boolean }[], goal: DmGoal = "call"): { system: string; user: string } {
+/** A message's sorting: its kind, whether it looks automated, and why to handle it yourself (when escalated). */
+export type DmSort = { kind: DmKind; automated: boolean; escalate?: string | null };
+
+/** No draft for spam, automated or escalated messages. */
+export const undrafted = (x: DmSort) => x.kind === "spam" || x.automated || Boolean(x.escalate);
+
+export function buildDmsPrompt(messages: Pasted[], sorted: DmSort[], goal: DmGoal = "call"): { system: string; user: string } {
   const brief = (k: DmKind) => (k === "lead" ? `${DM_BRIEF.lead}${GOAL_ASK[goal]} Nothing personal is advised before you have met.` : DM_BRIEF[k]);
   const system = [
     "You draft direct-message replies for a Singapore financial consultant. They read each draft and send it themselves.",
@@ -394,7 +519,7 @@ export function buildDmsPrompt(messages: Pasted[], sorted: { kind: DmKind; autom
     'Reply with JSON only: {"replies":[{"id":"m0","reply":"..."}]}, one per message id given.',
   ].join("\n");
   const lines = messages.flatMap((m, i) =>
-    sorted[i].kind === "spam" || sorted[i].automated ? [] : [`[m${i}] ${sorted[i].kind} | ${m.name || "(no name)"}: ${m.text.replace(/\s+/g, " ")}`],
+    undrafted(sorted[i]) ? [] : [`[m${i}] ${sorted[i].kind} | ${m.name || "(no name)"}: ${m.text.replace(/\s+/g, " ")}`],
   );
   return { system, user: ["The messages:", ...lines].join("\n") };
 }
@@ -403,20 +528,22 @@ export interface DmItem extends Pasted {
   i: number;
   kind: DmKind;
   automated: boolean;
-  /** Null for spam and automated messages; "" when no usable draft came back. */
+  /** Null for spam, automated and escalated messages; "" when no usable draft came back. */
   reply: string | null;
+  /** Why to handle it yourself (no draft); absent when it is not escalated. */
+  escalate?: string;
 }
 
-/** The messages with their drafts, leads first; spam and automated ones last, undrafted. */
-export function readDmReplies(content: string | null, messages: Pasted[], sorted: { kind: DmKind; automated: boolean }[]): DmItem[] {
+/** The messages with their drafts: escalated ones first, then leads; spam and automated ones last, undrafted. */
+export function readDmReplies(content: string | null, messages: Pasted[], sorted: DmSort[]): DmItem[] {
   const byId = repliesById(content);
-  const rank = (x: DmItem) => (x.automated ? DM_ORDER.length : DM_ORDER.indexOf(x.kind));
+  const rank = (x: DmItem) => (x.escalate ? -1 : x.automated ? DM_ORDER.length : DM_ORDER.indexOf(x.kind));
   return messages
     .map((m, i): DmItem => {
-      const { kind, automated } = sorted[i];
-      const skip = kind === "spam" || automated;
+      const { kind, automated, escalate } = sorted[i];
+      if (escalate) return { ...m, i, kind, automated, reply: null, escalate };
       // links: false, the model was given no address, so any it writes is made up
-      return { ...m, i, kind, automated, reply: skip ? null : cleanDraft(byId.get(`m${i}`)?.reply, 900, { links: false }) };
+      return { ...m, i, kind, automated, reply: undrafted(sorted[i]) ? null : cleanDraft(byId.get(`m${i}`)?.reply, 900, { links: false }) };
     })
     .sort((a, b) => rank(a) - rank(b) || a.i - b.i);
 }
@@ -456,15 +583,25 @@ export function buildThreadPrompt(lines: ThreadLine[], goal: DmGoal): { system: 
 export interface ThreadItem extends Pasted {
   /** Where their latest message sits among the lines sent, from 0. */
   i: number;
-  /** "" when no usable draft came back. */
-  reply: string;
+  /** Null when escalated; "" when no usable draft came back. */
+  reply: string | null;
+  /** Why to handle it yourself (no draft); absent when it is not escalated. */
+  escalate?: string;
 }
 
-/** The one draft, shown under their latest message. */
-export function readThread(content: string | null, lines: ThreadLine[]): ThreadItem {
-  const o = content ? parseJsonObject(content) : null;
+/**
+ * What Jev reads to escalate a conversation: their side only, latest last,
+ * as one text (the consultant's own words raise nothing).
+ */
+export const threadText = (lines: ThreadLine[]): Pasted => ({ name: theirName(lines), text: lines.filter((l) => !l.me).map((l) => l.text).join("\n") });
+
+/** The one draft, shown under their latest message; none when the conversation is escalated. */
+export function readThread(content: string | null, lines: ThreadLine[], escalate: string | null = null): ThreadItem {
   const i = lines.length - 1;
-  return { name: theirName(lines), text: lines[i].text, i, reply: cleanDraft(o?.reply, 900, { links: false }) };
+  const item = { name: theirName(lines), text: lines[i].text, i };
+  if (escalate) return { ...item, reply: null, escalate };
+  const o = content ? parseJsonObject(content) : null;
+  return { ...item, reply: cleanDraft(o?.reply, 900, { links: false }) };
 }
 
 // ---- Mode "comments" ------------------------------------------------------------

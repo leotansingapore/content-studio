@@ -17,8 +17,8 @@
 //   mode "thread" {lines:[{name?, text, me}], goal?} -> {items:[{i, name, text,
 //     reply}]}: one conversation, each line marked by the consultant as theirs
 //     (me) or the other person's; one draft answering the latest message in the
-//     context of the last 10, steered to goal. No Jev; one OpenAI call, under
-//     1 US cent. Shares cap "engage-dms".
+//     context of the last 10, steered to goal. Jev only asks whether to
+//     escalate; one OpenAI call, under 1 US cent. Shares cap "engage-dms".
 //   mode "comments" {posts:[{name?, text}]} -> {items:[{i, name, text, sorted,
 //     comments:[{type, text}]}]}: comments for other people's posts, two of
 //     different kinds for one post, one each for 2-10. Jev picks the kinds
@@ -30,8 +30,15 @@
 //     follow4, follow10}}: a LinkedIn connection note, the first message
 //     after they accept and two follow-ups. No Jev (nothing is decided); one
 //     OpenAI call, under 1 US cent. Cap "engage-connect".
+// Replies, dms and thread also take topics: [string] (the consultant's own, on
+// top of the built-in list). Jev asks of each comment or message (a thread: of
+// their side) whether to handle it personally; those come back first with
+// escalate: "<reason>" and no draft. About 900 more Jev input tokens an item,
+// still one Jev request; a thread now asks Jev once and skips OpenAI when
+// escalated.
 // Text mostly in another script is "unsorted" and still drafted; without Jev
-// (no key, timeout, outage) everything is unsorted, in paste order.
+// (no key, timeout, outage) everything is unsorted, in paste order, and
+// nothing is escalated.
 //
 // Secrets: OPENAI_API_KEY, TYPESAFE_API_KEY. Deploy WITH JWT verification:
 //   supabase functions deploy engage-assist --project-ref hgdbflprrficdoyxmdxe --use-api
@@ -50,7 +57,11 @@ import {
   commentQuestions,
   commentState,
   dmQuestions,
+  escalateQuestions,
   parseEngageRequest,
+  readEscalations,
+  threadText,
+  undrafted,
   readCommentKinds,
   readCommentTypes,
   readComments,
@@ -103,6 +114,10 @@ Deno.serve(async (req) => {
     }
 
     if (r.mode === "thread") {
+      const questions = escalateQuestions([threadText(r.lines)], r.topics, "a direct message conversation (what the other person wrote)");
+      const answers = Object.keys(questions).length ? await askJev({}, questions, { who: "engage-assist thread" }) : null;
+      const escalate = readEscalations(answers, 1, r.topics)[0];
+      if (escalate) return json({ items: [readThread(null, r.lines, escalate)], usage: used });
       const { system, user } = buildThreadPrompt(r.lines, r.goal);
       const content = await openAiJson(system, user, key, { temperature: 0.6, maxTokens: 600 });
       if (content === null) return json({ error: "Couldn't write the reply right now. Try again in a minute." }, 502);
@@ -120,11 +135,12 @@ Deno.serve(async (req) => {
     }
 
     if (r.mode === "dms") {
-      const questions = dmQuestions(r.messages);
+      const questions = { ...dmQuestions(r.messages), ...escalateQuestions(r.messages, r.topics, "a direct message on LinkedIn or Instagram") };
       const answers = Object.keys(questions).length ? await askJev({}, questions, { who: "engage-assist dms" }) : null;
-      const sorted = readDmKinds(answers, r.messages);
+      const escalated = readEscalations(answers, r.messages.length, r.topics);
+      const sorted = readDmKinds(answers, r.messages).map((x, i) => ({ ...x, escalate: escalated[i] }));
       let content: string | null = null;
-      if (sorted.some((x) => x.kind !== "spam" && !x.automated)) {
+      if (sorted.some((x) => !undrafted(x))) {
         const { system, user } = buildDmsPrompt(r.messages, sorted, r.goal);
         content = await openAiJson(system, user, key, { temperature: 0.6, maxTokens: 3000 });
         if (content === null) return json({ error: "Couldn't write the replies right now. Try again in a minute." }, 502);
@@ -132,16 +148,17 @@ Deno.serve(async (req) => {
       return json({ items: readDmReplies(content, r.messages, sorted), usage: used });
     }
 
-    const questions = commentQuestions(r.comments);
+    const questions = { ...commentQuestions(r.comments), ...escalateQuestions(r.comments, r.topics, "a comment under their own post") };
     const answers = Object.keys(questions).length ? await askJev(commentState(r.post), questions, { who: "engage-assist replies" }) : null;
     const kinds = readCommentKinds(answers, r.comments);
+    const escalated = readEscalations(answers, r.comments.length, r.topics);
     let content: string | null = null;
-    if (kinds.some((k) => k !== "noise")) {
-      const { system, user } = buildRepliesPrompt(r.post, r.comments, kinds);
+    if (kinds.some((k, i) => k !== "noise" && !escalated[i])) {
+      const { system, user } = buildRepliesPrompt(r.post, r.comments, kinds, escalated);
       content = await openAiJson(system, user, key, { temperature: 0.6, maxTokens: 3000 });
       if (content === null) return json({ error: "Couldn't write the replies right now. Try again in a minute." }, 502);
     }
-    return json({ items: readReplies(content, r.comments, kinds), usage: used });
+    return json({ items: readReplies(content, r.comments, kinds, escalated), usage: used });
   } catch (e) {
     console.error("engage-assist failed", e);
     return json({ error: "Something went wrong. Try again." }, 500);

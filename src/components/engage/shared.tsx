@@ -1,10 +1,25 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { AlertTriangle, Clock, Copy, RotateCcw } from "lucide-react";
+import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
+import { AlertTriangle, ChevronDown, Clock, Copy, RotateCcw, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useCopy } from "@/components/recruit/shared";
-import { loadRun, runningJob, saveRun, startRun, type EngageOutcome, type EngageTool, type Run } from "@/lib/engageDrafts";
+import {
+  MAX_TOPICS,
+  MAX_TOPIC_CHARS,
+  addTopic,
+  loadRun,
+  loadTopics,
+  removeTopic,
+  runningJob,
+  saveRun,
+  startRun,
+  type EngageOutcome,
+  type EngageTool,
+  type Run,
+} from "@/lib/engageDrafts";
 
 /**
  * A tool's pasted text, its last drafts and whether a run is going. A run
@@ -148,5 +163,75 @@ export function RunStatus({
         </div>
       )}
     </div>
+  );
+}
+
+/** The heading and tip of the pile shown first: escalated by Jev, never drafted. */
+export const HANDLE_YOURSELF = { key: "escalate", label: "Handle yourself", tip: "No draft. These need your own words." };
+
+/**
+ * What always goes to Handle yourself: the built-in topics (engage-assist
+ * ESCALATE_TOPICS) and the consultant's own, added and removed here, per
+ * profile. Collapsed until opened.
+ */
+export function HandleYourselfTopics({ userId }: { userId: string }) {
+  const [topics, setTopics] = useState(() => loadTopics(userId));
+  const [draft, setDraft] = useState("");
+  const id = useId();
+  const full = topics.length >= MAX_TOPICS;
+  const add = (e: FormEvent) => {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    setTopics(addTopic(userId, draft));
+    setDraft("");
+  };
+  return (
+    <details className="group rounded-xl border border-border/60" data-testid="handle-topics">
+      <summary className="flex h-11 cursor-pointer list-none items-center justify-between gap-2 px-3 text-xs font-medium text-foreground sm:h-9 [@media(pointer:coarse)]:h-11 [&::-webkit-details-marker]:hidden">
+        <span>
+          Topics you handle yourself{topics.length > 0 && <span className="tabular-nums text-muted-foreground"> +{topics.length}</span>}
+        </span>
+        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="space-y-2 border-t border-border/60 p-3">
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          Complaints, refunds or billing, claims or policy disputes, legal or medical questions, press, minors, harassment or threats, and yours. Never drafted.
+        </p>
+        {topics.length > 0 && (
+          <ul className="flex flex-wrap gap-1.5">
+            {topics.map((t) => (
+              <li key={t} className="inline-flex max-w-full items-center rounded-full border border-border/70 bg-muted/40 pl-3 text-xs text-foreground">
+                <span className="truncate">{t}</span>
+                <button
+                  type="button"
+                  onClick={() => setTopics(removeTopic(userId, t))}
+                  aria-label={`Remove ${t}`}
+                  className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground sm:h-7 sm:w-7 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form onSubmit={add} className="flex gap-2">
+          <Label htmlFor={id} className="sr-only">
+            Add a topic
+          </Label>
+          <Input
+            id={id}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            maxLength={MAX_TOPIC_CHARS}
+            disabled={full}
+            placeholder={full ? `Up to ${MAX_TOPICS} topics` : "Such as divorce"}
+            className="h-11 min-w-0 flex-1 sm:h-9 [@media(pointer:coarse)]:h-11"
+          />
+          <Button type="submit" variant="outline" disabled={full || !draft.trim()} className="h-11 shrink-0 sm:h-9 [@media(pointer:coarse)]:h-11">
+            Add
+          </Button>
+        </form>
+      </div>
+    </details>
   );
 }

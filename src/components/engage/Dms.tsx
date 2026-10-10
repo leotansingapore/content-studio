@@ -2,8 +2,9 @@
 // recruiters, peers, favours and spam and flags automated sequences; only the
 // ones worth answering get a draft. One conversation: the consultant marks
 // which lines are theirs (never guessed) and one draft answers the latest
-// message. Both steer to the goal picked, remembered per profile. Every draft
-// is copied out and sent by hand.
+// message. Both steer to the goal picked, remembered per profile. Messages
+// (or a conversation) to handle yourself come first with the reason and no
+// draft. Every draft is copied out and sent by hand.
 import { useMemo, useState } from "react";
 import { Inbox } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +25,7 @@ import {
   type DmKind,
   type ThreadItem,
 } from "@/lib/engageDrafts";
-import { Draft, Groups, Quote, RunStatus, useEngageRun } from "./shared";
+import { Draft, Groups, HANDLE_YOURSELF, HandleYourselfTopics, Quote, RunStatus, useEngageRun } from "./shared";
 
 const KINDS: { kind: DmKind; label: string; tip?: string }[] = [
   { kind: "lead", label: "Leads", tip: "Reply today. Nothing personal is advised before you meet." },
@@ -79,7 +80,7 @@ export default function Dms({ userId }: { userId: string }) {
   const count = useMemo(() => splitPasted(batch.run.pasted).length, [batch.run.pasted]);
   const tooMany = count > MAX_ITEMS;
   const goBatch = () => !batch.busy && count && !tooMany && batch.start();
-  const skipped = (x: DmItem) => x.kind === "spam" || x.automated;
+  const skipped = (x: DmItem) => !x.escalate && (x.kind === "spam" || x.automated);
 
   const lines = useMemo(() => threadLines(thread.run.pasted, thread.run.form.mine), [thread.run.pasted, thread.run.form.mine]);
   const first = Math.max(0, lines.length - MAX_THREAD);
@@ -162,6 +163,7 @@ export default function Dms({ userId }: { userId: string }) {
             <p id="dms-goal" className="text-xs font-medium text-foreground">{view === "batch" ? "Steer leads toward" : "Steer toward"}</p>
             <Pills aria-labelledby="dms-goal" options={GOALS} value={goal} onPick={(g) => setGoal(saveGoal(userId, g))} disabled={busy} />
           </div>
+          <HandleYourselfTopics userId={userId} />
 
           {view === "batch" ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -192,12 +194,13 @@ export default function Dms({ userId }: { userId: string }) {
             <Groups
               testId="dms-run"
               groups={[
-                ...KINDS.map((k) => ({ key: k.kind, label: k.label, tip: k.tip, items: batch.run.items.filter((x) => x.kind === k.kind && !skipped(x)) })),
+                { ...HANDLE_YOURSELF, items: batch.run.items.filter((x) => x.escalate) },
+                ...KINDS.map((k) => ({ key: k.kind, label: k.label, tip: k.tip, items: batch.run.items.filter((x) => x.kind === k.kind && !x.escalate && !skipped(x)) })),
                 { key: "spam", label: "Spam and automated", tip: "No reply needed. You don't owe a reply to a script.", items: batch.run.items.filter(skipped) },
               ]}
               render={(x) => (
                 <li key={x.i} className="space-y-2 rounded-xl border border-border/60 bg-card p-3">
-                  <Quote name={x.name} text={x.text} tag={x.automated ? "Automated" : undefined} />
+                  <Quote name={x.name} text={x.text} tag={x.escalate ?? (x.automated ? "Automated" : undefined)} />
                   {x.reply !== null && <Draft label="Reply" text={x.reply} />}
                 </li>
               )}
@@ -209,8 +212,14 @@ export default function Dms({ userId }: { userId: string }) {
           <RunStatus busy={thread.busy} busyText="Reading the conversation and drafting your reply..." outcome={thread.outcome} retry={goThread} />
           {!thread.busy && reply && (
             <div className="space-y-2 rounded-xl border border-border/60 bg-card p-3" data-testid="thread-run">
-              <Quote name={reply.name} text={reply.text} />
-              <Draft label="Reply" text={reply.reply} />
+              {reply.escalate && (
+                <h3 className="flex items-center gap-1 text-sm font-semibold text-foreground">
+                  Handle this one yourself
+                  <InfoTip label="About handle this one yourself">{HANDLE_YOURSELF.tip}</InfoTip>
+                </h3>
+              )}
+              <Quote name={reply.name} text={reply.text} tag={reply.escalate} />
+              {reply.reply !== null && <Draft label="Reply" text={reply.reply} />}
             </div>
           )}
         </>

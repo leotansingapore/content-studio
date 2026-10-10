@@ -1,5 +1,7 @@
 // Replies to the comments under your own post: Jev sorts them, the drafts come
-// back clients first, and each one is copied out and posted by hand.
+// back clients first, and each one is copied out and posted by hand. Ones to
+// handle yourself come first with the reason and no draft; ones where a like
+// is enough and ones worth hiding are marked (the app never likes or hides).
 import { useMemo } from "react";
 import { MessageSquareReply } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,15 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_ITEMS, MAX_POST_CHARS, splitPasted, type CommentKind, type ReplyItem } from "@/lib/engageDrafts";
-import { Draft, Groups, Quote, RunStatus, useEngageRun } from "./shared";
+import { Draft, Groups, HANDLE_YOURSELF, HandleYourselfTopics, Quote, RunStatus, useEngageRun } from "./shared";
 
 const KINDS: { kind: CommentKind; label: string; tip?: string }[] = [
   { kind: "client", label: "Potential clients", tip: "Answer these first. The DM is where anything personal or a link goes." },
   { kind: "substantive", label: "Adds something" },
   { kind: "peer", label: "Peers" },
-  { kind: "support", label: "Support" },
+  { kind: "support", label: "A like is enough", tip: "Like it. The short reply is optional." },
   { kind: "unsorted", label: "Not sorted", tip: "Mostly not in English, or the sorting was unavailable, so it is in the order you pasted." },
-  { kind: "noise", label: "Noise", tip: "No reply: a reply gives it more reach." },
+  { kind: "noise", label: "Worth hiding", tip: "Spam or abuse: hide it on Instagram. A reply gives it reach." },
 ];
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -48,6 +50,7 @@ export default function Replies({ userId }: { userId: string }) {
               placeholder={"Sarah: Mine went up too. How do I check?\n\nTom: So true!"}
             />
           </div>
+          <HandleYourselfTopics userId={userId} />
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={go} disabled={busy || !count || tooMany} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
               Sort and draft replies
@@ -64,10 +67,13 @@ export default function Replies({ userId }: { userId: string }) {
       {!busy && (
         <Groups
           testId="replies-run"
-          groups={KINDS.map((k) => ({ key: k.kind, label: k.label, tip: k.tip, items: run.items.filter((x) => x.kind === k.kind) }))}
+          groups={[
+            { ...HANDLE_YOURSELF, items: run.items.filter((x) => x.escalate) },
+            ...KINDS.map((k) => ({ key: k.kind, label: k.label, tip: k.tip, items: run.items.filter((x) => x.kind === k.kind && !x.escalate) })),
+          ]}
           render={(x) => (
             <li key={x.i} className="space-y-2 rounded-xl border border-border/60 bg-card p-3">
-              <Quote name={x.name} text={x.text} />
+              <Quote name={x.name} text={x.text} tag={x.escalate} />
               {x.reply !== null && <Draft label="Reply" text={x.reply} />}
               {x.dm !== undefined && (
                 <div className="space-y-1">
