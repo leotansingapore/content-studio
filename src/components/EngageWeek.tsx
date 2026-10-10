@@ -97,7 +97,7 @@ function Row({ on, onToggle, name, href, why }: { on: boolean; onToggle: () => v
         {on && <Check className="h-4 w-4" />}
       </button>
       <div className="min-w-0">
-        <a href={href} target="_blank" rel="noreferrer" className={`block truncate text-sm font-semibold hover:underline ${on ? "text-muted-foreground line-through" : ""}`}>{name}</a>
+        <a href={href} target="_blank" rel="noreferrer" className={`block truncate text-sm font-semibold hover:underline [@media(pointer:coarse)]:relative [@media(pointer:coarse)]:-my-3 [@media(pointer:coarse)]:py-3 ${on ? "text-muted-foreground line-through" : ""}`}>{name}</a>
         <span className="line-clamp-1 text-xs text-muted-foreground">{why}</span>
       </div>
     </li>

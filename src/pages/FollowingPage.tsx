@@ -130,7 +130,7 @@ function AccountCard({ a, onCheck, onRemove }: { a: FollowedAccount; onCheck: ()
       <div className="flex items-start gap-2">
         <div className="mr-auto min-w-0">
           <a href={a.url || (a.platform === "instagram" ? `https://www.instagram.com/${a.handle}/` : `https://www.tiktok.com/@${a.handle}`)}
-            target="_blank" rel="noreferrer" className="block truncate text-sm font-semibold hover:underline">
+            target="_blank" rel="noreferrer" className="block truncate text-sm font-semibold hover:underline [@media(pointer:coarse)]:relative [@media(pointer:coarse)]:-my-3 [@media(pointer:coarse)]:py-3">
             {a.name || `@${a.handle}`}
           </a>
           <span className="text-xs text-muted-foreground">
