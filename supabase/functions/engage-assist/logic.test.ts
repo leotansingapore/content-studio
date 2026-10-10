@@ -16,6 +16,10 @@ import {
   typeQuestions,
   CLIENT_MIN,
   DM_KINDS,
+  DM_GOALS,
+  MAX_THREAD,
+  buildThreadPrompt,
+  readThread,
   buildDmsPrompt,
   dmQuestions,
   readDmKinds,
@@ -153,7 +157,8 @@ describe("direct messages", () => {
   const noul = (p: number): JevAnswer => ({ type: "noul", noul: p });
 
   it("takes the dms mode and refuses an empty paste", () => {
-    expect(parseEngageRequest({ mode: "dms", messages: [{ text: " Hi " }] })).toEqual({ ok: true, request: { mode: "dms", messages: [{ name: "", text: "Hi" }] } });
+    expect(parseEngageRequest({ mode: "dms", messages: [{ text: " Hi " }] })).toEqual({ ok: true, request: { mode: "dms", messages: [{ name: "", text: "Hi" }], goal: "call" } });
+    expect(parseEngageRequest({ mode: "dms", messages: [{ text: "Hi" }], goal: "guide" })).toMatchObject({ request: { goal: "guide" } });
     expect(parseEngageRequest({ mode: "dms", messages: [] })).toMatchObject({ ok: false });
   });
 
@@ -200,6 +205,75 @@ describe("direct messages", () => {
     expect(items[2].reply).toBe("");
     expect(items[3].reply).toBeNull();
     expect(items[4].reply).toBeNull();
+  });
+});
+
+describe("DM goals", () => {
+  const sorted = [{ kind: "lead" as const, automated: false }, { kind: "peer" as const, automated: false }];
+  const msgs = [{ name: "Karen", text: "How much to cover my kids?" }, { name: "Wei", text: "Coffee next week?" }];
+  const leadLine = (system: string) => system.split("\n").find((l) => l.startsWith("- lead"))!;
+
+  it("steers a lead's draft to the goal picked, a call by default", () => {
+    expect(leadLine(buildDmsPrompt(msgs, sorted).system)).toMatch(/15-minute call .*\[time 1\] or \[time 2\], written exactly like that/);
+    const guide = leadLine(buildDmsPrompt(msgs, sorted, "guide").system);
+    expect(guide).toContain("[guide link], written exactly like that");
+    expect(guide).not.toContain("[time 1]");
+    const rapport = leadLine(buildDmsPrompt(msgs, sorted, "rapport").system);
+    expect(rapport).toMatch(/no ask and no pitch/);
+    expect(rapport).not.toMatch(/\[time 1\]|\[guide link\]/);
+  });
+
+  it("takes any web address out of a DM draft: none was given, so it would be made up", () => {
+    const items = readDmReplies(JSON.stringify({ replies: [{ id: "m0", reply: "Karen, here it is: https://made.up/guide [guide link]" }] }), msgs.slice(0, 1), sorted.slice(0, 1));
+    expect(items[0].reply).toBe("Karen, here it is: [guide link]");
+  });
+});
+
+describe("a conversation", () => {
+  const lines = [
+    { name: "Karen Tan", text: "Hi, saw your post on hospital plans", me: false },
+    { name: "", text: "Thanks Karen. What made you look into it?", me: true },
+    { name: "Karen Tan", text: "My dad's premium jumped", me: false },
+    { name: "Karen Tan", text: "Is it worth keeping the rider?", me: false },
+  ];
+
+  it("takes the marked lines, keeps the last MAX_THREAD, and defaults the goal to a call", () => {
+    const many = Array.from({ length: MAX_THREAD + 3 }, (_, i) => ({ text: `m${i}`, me: i % 2 === 1 }));
+    const r = parseEngageRequest({ mode: "thread", lines: [...many, { text: " " }, null, { text: "last", me: "yes" }], goal: "nope" });
+    expect(r.ok && r.request.mode === "thread" && r.request.lines.length).toBe(MAX_THREAD);
+    expect(r).toMatchObject({ ok: true, request: { mode: "thread", goal: "call" } });
+    expect(r.ok && r.request.mode === "thread" && r.request.lines.at(-1)).toEqual({ name: "", text: "last", me: false });
+    expect(r.ok && r.request.mode === "thread" && r.request.lines[0].text).toBe("m4");
+  });
+
+  it("refuses an empty paste, and one where the last message is yours: no double text", () => {
+    expect(parseEngageRequest({ mode: "thread", lines: [] })).toMatchObject({ ok: false });
+    expect(parseEngageRequest({ mode: "thread", lines: [...lines, { text: "Any update?", me: true }] })).toEqual({ ok: false, error: "The last message is yours. Wait for their reply." });
+  });
+
+  it("shows the whole conversation oldest first, sides as marked, and keeps the DM rules for every goal", () => {
+    for (const goal of DM_GOALS) {
+      const { system, user } = buildThreadPrompt(lines, goal);
+      expect(user).toBe(
+        ["Their name: Karen Tan", "The conversation:", "Them: Hi, saw your post on hospital plans", "You: Thanks Karen. What made you look into it?", "Them: My dad's premium jumped", "Them: Is it worth keeping the rider?"].join("\n"),
+      );
+      expect(system).toMatch(/never puts income or earnings figures in writing/);
+      expect(system).toMatch(/no booking or calendar link/);
+      expect(system).toContain("never name an insurer, a fund or a product");
+      expect(system).toContain("How much can I earn?");
+    }
+    expect(buildThreadPrompt(lines, "call").system).toMatch(/\[time 1\] or \[time 2\], written exactly like that/);
+    expect(buildThreadPrompt(lines, "guide").system).toContain("[guide link], written exactly like that");
+    expect(buildThreadPrompt(lines, "guide").system).not.toContain("[time 1]");
+    expect(buildThreadPrompt(lines, "rapport").system).not.toMatch(/\[time 1\]|\[guide link\]/);
+    expect(buildThreadPrompt(lines.map((l) => ({ ...l, name: "" })), "call").user.startsWith("The conversation:")).toBe(true);
+  });
+
+  it("reads one clean draft under their latest message, never a made-up address", () => {
+    const item = readThread(JSON.stringify({ reply: "Karen, it depends on his plan \u2014 here: https://x.co/a [guide link]" }), lines);
+    expect(item).toEqual({ name: "Karen Tan", text: "Is it worth keeping the rider?", i: 3, reply: "Karen, it depends on his plan, here: [guide link]" });
+    expect(readThread("not json", lines).reply).toBe("");
+    expect(readThread(JSON.stringify({ reply: "Guaranteed returns, Karen." }), lines).reply).toBe("");
   });
 });
 

@@ -8,11 +8,17 @@
 //     a reply for each but noise and a first DM for each client. About 320 Jev
 //     input tokens a comment and one OpenAI call (about 2 US cents for 30
 //     comments). Cap "engage-replies".
-//   mode "dms" {messages:[{name?, text}]} -> {items:[{i, name, text, kind,
+//   mode "dms" {messages:[{name?, text}], goal?} -> {items:[{i, name, text, kind,
 //     automated, reply}]}: direct messages sorted into lead, recruiter, peer,
 //     favour or spam, with automated sequences flagged; spam and automated
-//     ones get no draft. About 520 Jev input tokens a message and one OpenAI
-//     call. Cap "engage-dms".
+//     ones get no draft. A lead's draft steers to goal (call, guide or
+//     rapport; call by default). About 520 Jev input tokens a message and one
+//     OpenAI call. Cap "engage-dms".
+//   mode "thread" {lines:[{name?, text, me}], goal?} -> {items:[{i, name, text,
+//     reply}]}: one conversation, each line marked by the consultant as theirs
+//     (me) or the other person's; one draft answering the latest message in the
+//     context of the last 10, steered to goal. No Jev; one OpenAI call, under
+//     1 US cent. Shares cap "engage-dms".
 //   mode "comments" {posts:[{name?, text}]} -> {items:[{i, name, text, sorted,
 //     comments:[{type, text}]}]}: comments for other people's posts, two of
 //     different kinds for one post, one each for 2-10. Jev picks the kinds
@@ -40,6 +46,7 @@ import {
   buildConnectPrompt,
   buildDmsPrompt,
   buildRepliesPrompt,
+  buildThreadPrompt,
   commentQuestions,
   commentState,
   dmQuestions,
@@ -52,6 +59,7 @@ import {
   readDmKinds,
   readDmReplies,
   readReplies,
+  readThread,
 } from "./logic.ts";
 
 const corsHeaders = {
@@ -79,7 +87,7 @@ Deno.serve(async (req) => {
     const key = Deno.env.get("OPENAI_API_KEY");
     if (!key) return json({ error: "Drafting isn't switched on yet." }, 503);
 
-    const feature = r.mode === "dms" ? "engage-dms" : r.mode === "comments" ? "engage-comments" : r.mode === "connect" ? "engage-connect" : "engage-replies";
+    const feature = r.mode === "dms" || r.mode === "thread" ? "engage-dms" : r.mode === "comments" ? "engage-comments" : r.mode === "connect" ? "engage-connect" : "engage-replies";
     const usage = await consumeUsage(admin, uid, feature);
     if (!usage.allowed) {
       const refusal = usageRefusal(usage);
@@ -92,6 +100,13 @@ Deno.serve(async (req) => {
       const drafts = readConnect(await openAiJson(system, user, key, { temperature: 0.7, maxTokens: 700 }));
       if (!drafts) return json({ error: "Couldn't write the note right now. Try again in a minute." }, 502);
       return json({ drafts, usage: used });
+    }
+
+    if (r.mode === "thread") {
+      const { system, user } = buildThreadPrompt(r.lines, r.goal);
+      const content = await openAiJson(system, user, key, { temperature: 0.6, maxTokens: 600 });
+      if (content === null) return json({ error: "Couldn't write the reply right now. Try again in a minute." }, 502);
+      return json({ items: [readThread(content, r.lines)], usage: used });
     }
 
     if (r.mode === "comments") {
@@ -110,7 +125,7 @@ Deno.serve(async (req) => {
       const sorted = readDmKinds(answers, r.messages);
       let content: string | null = null;
       if (sorted.some((x) => x.kind !== "spam" && !x.automated)) {
-        const { system, user } = buildDmsPrompt(r.messages, sorted);
+        const { system, user } = buildDmsPrompt(r.messages, sorted, r.goal);
         content = await openAiJson(system, user, key, { temperature: 0.6, maxTokens: 3000 });
         if (content === null) return json({ error: "Couldn't write the replies right now. Try again in a minute." }, 502);
       }

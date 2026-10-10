@@ -11,17 +11,21 @@
 // Who you commented on (a comment copied from Engage counts), per profile and
 // synced across devices, so the same few people don't get a comment every day:
 //   key: content-studio-commentlog-${scoped(userId)}
+// The goal DM drafts steer toward (call, guide, rapport), per profile, synced:
+//   key: content-studio-dmgoal-${scoped(userId)}
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
 import { addDays, localDateKey, weekOf } from "@/lib/dueDates";
-import { MAX_ITEMS, MAX_POSTS, type Pasted } from "../../supabase/functions/engage-assist/logic.ts";
+import { DM_GOALS, MAX_ITEMS, MAX_POSTS, MAX_THREAD, type DmGoal, type Pasted, type ThreadLine } from "../../supabase/functions/engage-assist/logic.ts";
 
 export {
   MAX_ITEMS,
   MAX_ITEM_CHARS,
   MAX_POST_CHARS,
   MAX_POSTS,
+  MAX_THREAD,
+  DM_GOALS,
   NOTE_MAX,
   type CommentItem,
   type CommentKind,
@@ -29,9 +33,12 @@ export {
   type ConnectDrafts,
   type ConnectGoal,
   type DmItem,
+  type DmGoal,
   type DmKind,
   type Pasted,
   type ReplyItem,
+  type ThreadItem,
+  type ThreadLine,
 } from "../../supabase/functions/engage-assist/logic.ts";
 
 /**
@@ -56,7 +63,7 @@ export function splitPasted(raw: string): Pasted[] {
     });
 }
 
-export type EngageTool = "replies" | "dms" | "comments" | "connect";
+export type EngageTool = "replies" | "dms" | "thread" | "comments" | "connect";
 
 /** A tool's last run: what was pasted and the drafts that came back. */
 export interface Run<T> {
@@ -65,7 +72,7 @@ export interface Run<T> {
   pasted: string;
   /** The posts to comment on, one slot each (comments only). */
   posts: Pasted[];
-  /** Named fields (connect: name, about, reason, goal, accepted). */
+  /** Named fields (connect: name, about, reason, goal, accepted; thread: mine). */
   form: Record<string, string>;
   items: T[];
   /** When the drafts came back; "" before the first run. */
@@ -120,21 +127,44 @@ export const runningJob = (tool: EngageTool, userId: string) => running.get(keyF
 
 const FAILED = "Couldn't write the replies right now. Try again in a minute.";
 
+/**
+ * A pasted conversation as lines, each marked as the consultant's own when its
+ * place is in `mine` (form.mine, "0,2"). The consultant marks the sides; they
+ * are never guessed.
+ */
+export function threadLines(pasted: string, mine = ""): ThreadLine[] {
+  const own = new Set(mine.split(",").filter(Boolean).map(Number));
+  return splitPasted(pasted).map((p, i) => ({ ...p, me: own.has(i) }));
+}
+
+/**
+ * Flips who said line i. A named line flips every line with the same name, so
+ * one tap marks all of "Leo Tan:" as yours. Returns the new form.mine.
+ */
+export function toggleMine(lines: ThreadLine[], i: number): string {
+  const me = !lines[i].me;
+  const name = lines[i].name.toLowerCase();
+  return lines
+    .flatMap((l, j) => ((j === i || (name && l.name.toLowerCase() === name) ? me : l.me) ? [j] : []))
+    .join(",");
+}
+
 /** What a tool sends: the pasted text split into items, or the filled post slots. */
-export function requestBody(tool: EngageTool, input: Pick<Run<unknown>, "post" | "pasted" | "posts" | "form">) {
+export function requestBody(tool: EngageTool, input: Pick<Run<unknown>, "post" | "pasted" | "posts" | "form">, goal: DmGoal = "call") {
   if (tool === "connect") {
     const f = input.form;
     return { mode: tool, name: f.name ?? "", about: f.about ?? "", reason: f.reason ?? "", goal: f.goal ?? "know" };
   }
   if (tool === "comments") return { mode: tool, posts: input.posts.filter((p) => p.text.trim()).slice(0, MAX_POSTS) };
+  if (tool === "thread") return { mode: tool, lines: threadLines(input.pasted, input.form.mine).slice(-MAX_THREAD), goal };
   const list = splitPasted(input.pasted).slice(0, MAX_ITEMS);
-  return tool === "replies" ? { mode: tool, post: input.post, comments: list } : { mode: tool, messages: list };
+  return tool === "replies" ? { mode: tool, post: input.post, comments: list } : { mode: tool, messages: list, goal };
 }
 
 /** Sorts and drafts what was pasted; the result is saved even if the page was left meanwhile. */
 export function startRun(tool: EngageTool, userId: string, input: Pick<Run<unknown>, "post" | "pasted" | "posts" | "form">): Promise<EngageOutcome> {
   const key = keyFor(tool, userId);
-  const body = requestBody(tool, input);
+  const body = requestBody(tool, input, loadGoal(userId));
   const job = callFn<{ items?: unknown[]; drafts?: unknown }>("engage-assist", body, FAILED)
     .then((res): EngageOutcome => {
       // connect answers with one set of drafts, the rest with a list
@@ -150,6 +180,30 @@ export function startRun(tool: EngageTool, userId: string, input: Pick<Run<unkno
     .finally(() => running.delete(key));
   running.set(key, job);
   return job;
+}
+
+// ---- The goal DM drafts steer toward ------------------------------------------------
+
+const GOAL_KEY = "content-studio-dmgoal-";
+
+/** The goal last picked on this profile; a call until one is picked. */
+export function loadGoal(userId: string | null | undefined): DmGoal {
+  if (!userId) return "call";
+  try {
+    const v = JSON.parse(store()?.getItem(GOAL_KEY + scoped(userId)) ?? "null");
+    return DM_GOALS.find((g) => g === v) ?? "call";
+  } catch {
+    return "call";
+  }
+}
+
+export function saveGoal(userId: string, goal: DmGoal): DmGoal {
+  try {
+    store()?.setItem(GOAL_KEY + scoped(userId), JSON.stringify(goal));
+  } catch {
+    // storage full: the goal still holds for this visit
+  }
+  return goal;
 }
 
 // ---- Who you commented on this week ---------------------------------------------

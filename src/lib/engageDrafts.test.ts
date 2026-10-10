@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { followUpDates, followUpTitle, loadLog, loadRun, logComment, MAX_ITEMS, MAX_POSTS, requestBody, runningJob, saveRun, splitPasted, startRun, thisWeek, timesThisWeek, unlog } from "@/lib/engageDrafts";
+import { followUpDates, followUpTitle, loadGoal, loadLog, loadRun, logComment, MAX_ITEMS, MAX_POSTS, MAX_THREAD, requestBody, runningJob, saveGoal, saveRun, splitPasted, startRun, thisWeek, threadLines, timesThisWeek, toggleMine, unlog } from "@/lib/engageDrafts";
 
 const store = new Map<string, string>();
 const invoke = vi.fn();
@@ -64,7 +64,7 @@ describe("runs", () => {
   it("sends DMs as messages and keeps their run apart from the replies", async () => {
     invoke.mockResolvedValue({ data: { items: [{ i: 0 }] }, error: null });
     expect(await startRun("dms", "u1", { post: "", pasted: "Karen: Hi\n\nTom: Yo", posts: [], form: {} })).toEqual({ kind: "ok" });
-    expect(invoke.mock.calls[0][1].body).toEqual({ mode: "dms", messages: [{ name: "Karen", text: "Hi" }, { name: "Tom", text: "Yo" }] });
+    expect(invoke.mock.calls[0][1].body).toEqual({ mode: "dms", messages: [{ name: "Karen", text: "Hi" }, { name: "Tom", text: "Yo" }], goal: "call" });
     expect(loadRun("dms", "u1").items).toEqual([{ i: 0 }]);
     expect(loadRun("replies", "u1").items).toEqual([]);
   });
@@ -73,6 +73,50 @@ describe("runs", () => {
     const context = { status: 429, json: async () => ({ code: "daily_limit", error: "You've used all 30 for today." }) };
     invoke.mockResolvedValue({ data: null, error: { context } });
     expect(await startRun("replies", "u1", { post: "", pasted: "Nice", posts: [], form: {} })).toEqual({ kind: "limit", message: "You've used all 30 for today." });
+  });
+});
+
+describe("a DM conversation", () => {
+  const pasted = "Karen Tan: Hi, saw your post\nLeo: Thanks Karen, what made you look?\nKaren Tan: My dad's premium jumped\nIs the rider worth it?";
+
+  it("marks only the lines the consultant marked as theirs, and one tap marks every line with that name", () => {
+    const lines = threadLines(pasted);
+    expect(lines.map((l) => l.me)).toEqual([false, false, false, false]);
+    expect(toggleMine(lines, 1)).toBe("1");
+    expect(threadLines(pasted, "1").map((l) => l.me)).toEqual([false, true, false, false]);
+    expect(toggleMine(lines, 3)).toBe("3"); // no name: only that line
+    expect(toggleMine(lines, 0)).toBe("0,2"); // "Karen Tan" twice
+    expect(toggleMine(threadLines(pasted, "0,2"), 2)).toBe("");
+  });
+
+  it("sends the last MAX_THREAD lines with their sides and the goal last picked on this profile", async () => {
+    invoke.mockResolvedValue({ data: { items: [{ i: 0, reply: "r" }] }, error: null });
+    const long = Array.from({ length: MAX_THREAD + 2 }, (_, i) => `m${i}`).join("\n");
+    expect(await startRun("thread", "u1", { post: "", pasted: long, posts: [], form: { mine: "11,10" } })).toEqual({ kind: "ok" });
+    const body = invoke.mock.calls[0][1].body;
+    expect(body.mode).toBe("thread");
+    expect(body.goal).toBe("call");
+    expect(body.lines).toHaveLength(MAX_THREAD);
+    expect(body.lines[0]).toEqual({ name: "", text: "m2", me: false });
+    expect(body.lines.at(-1)).toEqual({ name: "", text: "m11", me: true });
+    expect(loadRun("thread", "u1").items).toEqual([{ i: 0, reply: "r" }]);
+    expect(loadRun("dms", "u1").items).toEqual([]);
+    saveGoal("u1", "guide");
+    await startRun("thread", "u1", { post: "", pasted, posts: [], form: {} });
+    expect(invoke.mock.calls[1][1].body.goal).toBe("guide");
+    await startRun("dms", "u1", { post: "", pasted, posts: [], form: {} });
+    expect(invoke.mock.calls[2][1].body.goal).toBe("guide");
+  });
+
+  it("remembers the goal per profile, synced, and falls back to a call", () => {
+    expect(loadGoal("u1")).toBe("call");
+    saveGoal("u1", "rapport");
+    expect(store.get("content-studio-dmgoal-u1")).toBe('"rapport"');
+    expect(loadGoal("u1")).toBe("rapport");
+    expect(loadGoal("u2")).toBe("call");
+    expect(loadGoal(null)).toBe("call");
+    store.set("content-studio-dmgoal-u1", '"sell"');
+    expect(loadGoal("u1")).toBe("call");
   });
 });
 

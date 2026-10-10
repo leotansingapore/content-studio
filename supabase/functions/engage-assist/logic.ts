@@ -10,7 +10,10 @@
 // come back clients first, and noise gets none.
 // Mode "dms": direct messages. Jev sorts each into lead, recruiter, peer,
 // favour or spam and flags automated sequences; spam and automated ones get
-// no draft.
+// no draft. A lead's draft steers to the goal the consultant picked.
+// Mode "thread": one conversation, both sides, marked by the consultant (not
+// guessed). One draft answers their latest message in the context of the last
+// MAX_THREAD messages and steers to the picked goal. Nothing is decided, so no Jev.
 // Mode "comments": someone else's post (or 2-10 of them). Jev picks which kinds
 // of comment fit; the drafts are two comments of different kinds for one post,
 // one each for a batch.
@@ -23,7 +26,7 @@ import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { complianceIssues, parseJsonObject } from "../_shared/socialAudit.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 
-export const MODES = ["replies", "dms", "comments", "connect"] as const;
+export const MODES = ["replies", "dms", "thread", "comments", "connect"] as const;
 export type EngageMode = (typeof MODES)[number];
 
 export const MAX_ITEMS = 30;
@@ -39,7 +42,8 @@ export interface Pasted {
 
 export type EngageRequest =
   | { mode: "replies"; post: string; comments: Pasted[] }
-  | { mode: "dms"; messages: Pasted[] }
+  | { mode: "dms"; messages: Pasted[]; goal: DmGoal }
+  | { mode: "thread"; lines: ThreadLine[]; goal: DmGoal }
   | { mode: "comments"; posts: Pasted[] }
   | { mode: "connect"; name: string; about: string; reason: string; goal: ConnectGoal };
 
@@ -69,7 +73,15 @@ export function parseEngageRequest(raw: unknown): { ok: true; request: EngageReq
     const messages = pastedList(b.messages);
     if (!messages.length) return { ok: false, error: "Paste at least one message." };
     if (messages.length > MAX_ITEMS) return { ok: false, error: `Paste up to ${MAX_ITEMS} messages at a time.` };
-    return { ok: true, request: { mode: "dms", messages } };
+    return { ok: true, request: { mode: "dms", messages, goal: dmGoal(b.goal) } };
+  }
+  if (b.mode === "thread") {
+    const lines = (Array.isArray(b.lines) ? b.lines : [])
+      .flatMap((x) => pastedList([x]).map((p) => ({ ...p, me: (x as { me?: unknown } | null)?.me === true })))
+      .slice(-MAX_THREAD);
+    if (!lines.length) return { ok: false, error: "Paste the conversation." };
+    if (lines[lines.length - 1].me) return { ok: false, error: "The last message is yours. Wait for their reply." };
+    return { ok: true, request: { mode: "thread", lines, goal: dmGoal(b.goal) } };
   }
   if (b.mode === "comments") {
     const posts = pastedList(b.posts, MAX_POST_CHARS);
@@ -338,8 +350,23 @@ export function readDmKinds(answers: Record<string, JevAnswer> | null, messages:
   });
 }
 
+/**
+ * Where a DM draft steers, picked by the consultant (social-agents' objective:
+ * book calls, give free value, build rapport). No draft holds a real link: a
+ * guide is [guide link] for them to fill in.
+ */
+export const DM_GOALS = ["call", "guide", "rapport"] as const;
+export type DmGoal = (typeof DM_GOALS)[number];
+const dmGoal = (v: unknown): DmGoal => DM_GOALS.find((g) => g === v) ?? "call";
+
+const GOAL_ASK: Record<DmGoal, string> = {
+  call: "one small ask: a 15-minute call or a coffee at [time 1] or [time 2], written exactly like that for them to fill in. Never name a day or time yourself.",
+  guide: "offer them the guide or checklist that fits what they asked, as [guide link], written exactly like that for them to fill in. Never write a web address yourself.",
+  rapport: "no ask and no pitch: pick up one detail they gave and end with one easy question about them.",
+};
+
 const DM_BRIEF: Record<DmKind, string> = {
-  lead: "lead (a possible client or recruit): answer what they asked in plain, general terms, then one small ask: a 15-minute call or a coffee at [time 1] or [time 2], written exactly like that for them to fill in. Never name a day or time yourself. Nothing personal is advised before you have met.",
+  lead: "lead (a possible client or recruit): answer what they asked in plain, general terms, then ",
   recruiter: "recruiter (offers you a role): short and warm, commits to nothing: thanks, not looking right now, happy to point someone their way.",
   peer: "peer (a colleague or contact): reply like a person, answer their question or take up their idea, with [time 1] or [time 2] if you meet.",
   favour: "favour (asks for your time or help): if it is quick and specific, say yes and do it; if it is open-ended, decline in one warm sentence and give the one answer you would have given.",
@@ -347,16 +374,22 @@ const DM_BRIEF: Record<DmKind, string> = {
   spam: "",
 };
 
-export function buildDmsPrompt(messages: Pasted[], sorted: { kind: DmKind; automated: boolean }[]): { system: string; user: string } {
+/** The rules every DM draft keeps, in a batch or a conversation. */
+const DM_RULES = [
+  "- Holds no booking or calendar link, and never puts income or earnings figures in writing.",
+  ...COMPLIANCE_LINES.map((l) => `- ${l}`),
+];
+
+export function buildDmsPrompt(messages: Pasted[], sorted: { kind: DmKind; automated: boolean }[], goal: DmGoal = "call"): { system: string; user: string } {
+  const brief = (k: DmKind) => (k === "lead" ? `${DM_BRIEF.lead}${GOAL_ASK[goal]} Nothing personal is advised before you have met.` : DM_BRIEF[k]);
   const system = [
     "You draft direct-message replies for a Singapore financial consultant. They read each draft and send it themselves.",
     "Each message comes with its kind. Write for each:",
-    ...DM_ORDER.filter((k) => DM_BRIEF[k]).map((k) => `- ${DM_BRIEF[k]}`),
+    ...DM_ORDER.filter((k) => DM_BRIEF[k]).map((k) => `- ${brief(k)}`),
     "Every reply:",
     "- Is 2 to 4 sentences, starts with their first name once, with no exclamation mark after it. No name given: no name.",
     "- Matches their energy: a short message gets a short reply. Plain, warm, everyday words.",
-    "- Holds no booking or calendar link, and never puts income or earnings figures in writing.",
-    ...COMPLIANCE_LINES.map((l) => `- ${l}`),
+    ...DM_RULES,
     ...houseLines(),
     'Reply with JSON only: {"replies":[{"id":"m0","reply":"..."}]}, one per message id given.',
   ].join("\n");
@@ -382,9 +415,56 @@ export function readDmReplies(content: string | null, messages: Pasted[], sorted
     .map((m, i): DmItem => {
       const { kind, automated } = sorted[i];
       const skip = kind === "spam" || automated;
-      return { ...m, i, kind, automated, reply: skip ? null : cleanDraft(byId.get(`m${i}`)?.reply, 900) };
+      // links: false, the model was given no address, so any it writes is made up
+      return { ...m, i, kind, automated, reply: skip ? null : cleanDraft(byId.get(`m${i}`)?.reply, 900, { links: false }) };
     })
     .sort((a, b) => rank(a) - rank(b) || a.i - b.i);
+}
+
+// ---- Mode "thread" ----------------------------------------------------------------
+
+/** The messages a conversation draft reads, the latest kept (insta-p8 reads the last 10). */
+export const MAX_THREAD = 10;
+
+/** One message in a pasted conversation; `me` is the consultant's own, as they marked it. */
+export interface ThreadLine extends Pasted {
+  me: boolean;
+}
+
+/** Their name: the first one given on their side of the conversation. */
+const theirName = (lines: ThreadLine[]) => lines.find((l) => !l.me && l.name)?.name ?? "";
+
+export function buildThreadPrompt(lines: ThreadLine[], goal: DmGoal): { system: string; user: string } {
+  const system = [
+    "You draft one direct-message reply for a Singapore financial consultant, in a conversation they are having with one person. They read the draft and send it themselves.",
+    "The conversation comes oldest first. Them: the other person. You: the consultant.",
+    "Answer what they wrote since the consultant's last message, in the context of the whole conversation. Never repeat what the consultant already said or asked, and never introduce the consultant again.",
+    `Once you have answered them, steer toward the consultant's goal: ${GOAL_ASK[goal]}`,
+    "The reply:",
+    "- Is 1 to 4 sentences and matches their energy. Plain, warm, everyday words, in the language of their last message.",
+    "- Uses their first name at most once, with no exclamation mark after it, and only when it is given.",
+    "- Gives no advice on their own situation in writing: no product, no amount, no 'you should'. General facts are fine.",
+    ...DM_RULES,
+    ...houseLines(),
+    'Reply with JSON only: {"reply":"..."}',
+  ].join("\n");
+  const name = theirName(lines);
+  const said = lines.map((l) => `${l.me ? "You" : "Them"}: ${l.text.replace(/\s+/g, " ")}`);
+  return { system, user: [...(name ? [`Their name: ${name}`] : []), "The conversation:", ...said].join("\n") };
+}
+
+export interface ThreadItem extends Pasted {
+  /** Where their latest message sits among the lines sent, from 0. */
+  i: number;
+  /** "" when no usable draft came back. */
+  reply: string;
+}
+
+/** The one draft, shown under their latest message. */
+export function readThread(content: string | null, lines: ThreadLine[]): ThreadItem {
+  const o = content ? parseJsonObject(content) : null;
+  const i = lines.length - 1;
+  return { name: theirName(lines), text: lines[i].text, i, reply: cleanDraft(o?.reply, 900, { links: false }) };
 }
 
 // ---- Mode "comments" ------------------------------------------------------------
