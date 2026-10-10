@@ -672,7 +672,7 @@ export default function AnalyticsPage() {
                         if (e.key === "Enter") e.currentTarget.blur();
                       }}
                       aria-label={`Your ${p.label} handle`}
-                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                      className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground [@media(pointer:coarse)]:min-h-11"
                     />
                   </div>
                   {url && (
@@ -681,7 +681,7 @@ export default function AnalyticsPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={`Open ${p.label} profile`}
-                      className="shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                      className="shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-primary [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
@@ -773,7 +773,7 @@ export default function AnalyticsPage() {
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
           {([[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
             <button key={d} type="button" onClick={() => setPeriod(d)} aria-pressed={period === d}
-              className={`h-9 rounded-full border px-3 text-xs font-semibold ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
+              className={`h-9 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
               {label}
             </button>
           ))}

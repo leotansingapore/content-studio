@@ -58,7 +58,7 @@ export default function RecruitNumbers() {
           Recruitment: 3 numbers every Friday
           <InfoTip label="About the 3 numbers">Not likes. Count what gets you closer to a recruit.</InfoTip>
         </CardTitle>
-        <Link to="/recruit" className="text-xs font-semibold text-primary hover:underline">Open recruit kit</Link>
+        <Link to="/recruit" className="inline-flex items-center text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">Open recruit kit</Link>
       </CardHeader>
       <CardContent className="space-y-5">
         <div>
@@ -131,7 +131,7 @@ export default function RecruitNumbers() {
           <div className="space-y-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">The Chosen Sprint, next 7 days</p>
             {SPRINT.map((s) => (
-              <label key={s.id} className="flex cursor-pointer items-start gap-2 text-sm">
+              <label key={s.id} className="flex cursor-pointer items-start gap-2 text-sm [@media(pointer:coarse)]:py-3">
                 <input
                   type="checkbox"
                   className="mt-0.5 h-4 w-4 shrink-0 accent-primary"

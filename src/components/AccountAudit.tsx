@@ -320,7 +320,7 @@ function AuditPanel({
                 href={profile?.url || profileUrl(platform, handle)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block truncate text-xs text-muted-foreground hover:text-primary hover:underline"
+                className="block truncate text-xs text-muted-foreground hover:text-primary hover:underline [@media(pointer:coarse)]:relative [@media(pointer:coarse)]:-my-3.5 [@media(pointer:coarse)]:py-3.5"
               >
                 @{handle} · {PLATFORM_NAME[platform]}
               </a>
