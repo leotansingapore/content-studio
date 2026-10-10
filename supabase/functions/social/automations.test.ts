@@ -97,11 +97,11 @@ describe("the request", () => {
 describe("the form's fields", () => {
   const refused = (extra: Record<string, unknown>) => {
     const r = checkInput({ ...input(), ...extra });
-    return r.ok ? null : r.error;
+    return "error" in r ? r.error : null;
   };
 
   it("takes up to 10 keywords of up to 50 characters, trimmed and without repeats", () => {
-    expect(checkInput({ ...input(), keywords: [" GUIDE ", "guide", "", "Info"] })).toMatchObject({ ok: true, value: { keywords: ["GUIDE", "Info"] } });
+    expect(checkInput({ ...input(), keywords: [" GUIDE ", "guide", "", "Info"] })).toMatchObject({ value: { keywords: ["GUIDE", "Info"] } });
     expect(refused({ keywords: Array.from({ length: 11 }, (_, i) => `k${i}`) })).toBe("Use up to 10 keywords.");
     expect(refused({ keywords: ["x".repeat(51)] })).toBe("Keep each keyword under 51 characters.");
     expect(refused({ keywords: ["x".repeat(50)] })).toBeNull();

@@ -3,7 +3,7 @@ import { MOBILE_TABS, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionF
 
 const routes = [
   "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/edit", "/plan", "/calendar", "/board",
-  "/drafts", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/coach", "/analytics", "/team",
+  "/drafts", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/playbook", "/voice", "/brand", "/bio", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback",
 ];
@@ -49,15 +49,18 @@ describe("nav", () => {
     expect(sheet.groups.map((g) => g.label)).toEqual(["Improve", "Discover"]);
   });
 
-  it("shows Social accounts only once the server has said it is switched on", () => {
+  it("shows Social accounts and Auto-DM only once the server has said it is switched on", () => {
     const store = new Map<string, string>();
     vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
-    const playbook = () => visiblePages(section("playbook").pages, "someone@example.com").map((p) => p.to);
-    expect(playbook()).not.toContain("/accounts");
+    const shown = () => ["playbook", "recruit"].flatMap((id) => visiblePages(section(id).pages, "someone@example.com").map((p) => p.to));
+    expect(shown()).not.toContain("/accounts");
+    expect(shown()).not.toContain("/recruit/auto-dm");
     store.set("cs-social-connect", JSON.stringify({ on: true, at: Date.now() }));
-    expect(playbook()).toContain("/accounts");
+    expect(shown()).toContain("/accounts");
+    expect(shown()).toContain("/recruit/auto-dm");
     store.set("cs-social-connect", JSON.stringify({ on: false, at: Date.now() }));
-    expect(playbook()).not.toContain("/accounts");
+    expect(shown()).not.toContain("/accounts");
+    expect(shown()).not.toContain("/recruit/auto-dm");
     vi.unstubAllGlobals();
   });
 });

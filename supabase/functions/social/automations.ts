@@ -59,8 +59,9 @@ export interface AutomationInput {
   followGate: boolean;
 }
 
-type Checked<T> = { ok: true; value: T } | { ok: false; error: string };
-const refuse = (error: string): Checked<never> => ({ ok: false, error });
+// narrowed with "error" in r: the app compiles without strictNullChecks, where an ok flag would not narrow
+type Checked<T> = { value: T } | { error: string };
+const refuse = (error: string): Checked<never> => ({ error });
 
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 const texts = (v: unknown) => (Array.isArray(v) ? v.map(text).filter(Boolean) : []);
@@ -121,8 +122,7 @@ export function checkInput(raw: unknown): Checked<AutomationInput> {
   if (alsoMatchInDms && !keywords.length) return refuse("Answering DMs needs a keyword, or every message would get it.");
   if (alsoMatchInDms && trigger === "story_reply") return refuse("Story replies already arrive as DMs.");
   return {
-    ok: true,
-    value: { trigger, platformPostId, keywords, everyComment, dm, dmVariations, buttons, reply, replyVariations, alsoMatchInDms, followGate: b.followGate === true },
+    value: { trigger, platformPostId: platformPostId as string | null, keywords, everyComment, dm, dmVariations, buttons, reply, replyVariations, alsoMatchInDms, followGate: b.followGate === true },
   };
 }
 
@@ -198,7 +198,7 @@ export function parseAutomationRequest(body: unknown): Parsed | null {
     if (!isZernioId(b.accountId)) return notFound;
     if (action === "account-posts") return { ok: true, req: { action, profileId, accountId: b.accountId } };
     const input = checkInput(b.automation);
-    return input.ok ? { ok: true, req: { action, profileId, accountId: b.accountId, input: input.value } } : { ok: false, status: 400, error: input.error };
+    return "error" in input ? { ok: false, status: 400, error: input.error } : { ok: true, req: { action, profileId, accountId: b.accountId, input: input.value } };
   }
   if (!isZernioId(b.automationId)) return notFound;
   const automationId = b.automationId;
@@ -209,7 +209,7 @@ export function parseAutomationRequest(body: unknown): Parsed | null {
   }
   if (b.automation !== undefined && b.automation !== null) {
     const input = checkInput(b.automation);
-    return input.ok ? { ok: true, req: { action, profileId, automationId, input: input.value, active: null } } : { ok: false, status: 400, error: input.error };
+    return "error" in input ? { ok: false, status: 400, error: input.error } : { ok: true, req: { action, profileId, automationId, input: input.value, active: null } };
   }
   if (typeof b.active !== "boolean") return { ok: false, status: 400, error: "Nothing to change." };
   return { ok: true, req: { action, profileId, automationId, input: null, active: b.active } };
