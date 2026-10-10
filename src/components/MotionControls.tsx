@@ -38,19 +38,7 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
   const hookEnd = settings.hook?.trim() ? settings.hookSeconds : 0;
   const figures = numberCards(caps.flatMap((c) => c.words), segs, speed, total, hookEnd).length;
 
-  // where the face sits, found once on this device, so cards and the hook keep clear of it
-  const needFace = (!!settings.numberCards || !!settings.hook?.trim()) && settings.faceBox === undefined && !!file && !file.type.startsWith("audio/");
-  useEffect(() => {
-    if (!needFace || !file) return;
-    let live = true;
-    let v: HTMLVideoElement | null = null;
-    void loadVideo(file)
-      .then((el) => ((v = el).videoWidth ? findFaceBox(el, Number.isFinite(el.duration) ? el.duration : total) : null))
-      .then((box) => live && note({ faceBox: box }))
-      .catch(() => {}) // no face model (offline): cards keep clear of the captions only, and it tries again next time
-      .finally(() => v && URL.revokeObjectURL(v.src));
-    return () => { live = false; };
-  }, [needFace, file]); // eslint-disable-line react-hooks/exhaustive-deps
+  useFindFace(!!settings.numberCards || !!settings.hook?.trim() || !!settings.charts?.length, settings, file, total, note);
 
   // the first time: Jev reads the edit and picks its key lines (and writes the pop-ups), then the switch goes on
   const pick = async (then: Partial<EditSettings>) => {
@@ -102,6 +90,22 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
       )}
     </div>
   );
+}
+
+/** Where the face sits, found once on this device when `need`, so cards, charts and the hook keep clear of it. */
+export function useFindFace(need: boolean, settings: EditSettings, file: Blob | null | undefined, total: number, note: (p: Partial<EditSettings>) => void) {
+  const look = need && settings.faceBox === undefined && !!file && !file.type.startsWith("audio/");
+  useEffect(() => {
+    if (!look || !file) return;
+    let live = true;
+    let v: HTMLVideoElement | null = null;
+    void loadVideo(file)
+      .then((el) => ((v = el).videoWidth ? findFaceBox(el, Number.isFinite(el.duration) ? el.duration : total) : null))
+      .then((box) => live && note({ faceBox: box }))
+      .catch(() => {}) // no face model (offline): cards keep clear of the captions only, and it tries again next time
+      .finally(() => v && URL.revokeObjectURL(v.src));
+    return () => { live = false; };
+  }, [look, file]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {

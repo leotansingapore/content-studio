@@ -10,6 +10,7 @@ import ClipFinder from "@/components/ClipFinder";
 import ExportRunning from "@/components/ExportRunning";
 import ExportSizes from "@/components/ExportSizes";
 import MotionControls from "@/components/MotionControls";
+import ChartCards from "@/components/ChartCards";
 import BurnedTextOffer from "@/components/BurnedTextOffer";
 import AutoBroll from "@/components/AutoBroll";
 import BrollLayout from "@/components/BrollLayout";
@@ -1791,7 +1792,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           </section>
 
           <nav className="flex w-fit flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" aria-label="Edit">
-            {([["style", "Captions"], ["cuts", "Cuts"], ["frame", "Hook and frame"], ["face", "Face and background"], ["stickers", "Stickers"], ["broll", "B-roll"], ["words", "Words"]] as const).map(([id, label]) => (
+            {([["style", "Captions"], ["cuts", "Cuts"], ["frame", "Hook and frame"], ["face", "Face and background"], ["stickers", "Stickers and charts"], ["broll", "B-roll"], ["words", "Words"]] as const).map(([id, label]) => (
               <button key={id} type="button" onClick={() => setTab(id)} aria-pressed={tab === id}
                 className={`rounded-md px-3 py-1.5 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${tab === id ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
             ))}
@@ -2291,6 +2292,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   </div>
                 </div>
               )}
+              <ChartCards settings={settings} caps={plan.caps} segs={plan.segs} speed={speed} total={plan.total} outT={outT} file={file} seekOut={seekOut}
+                apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }}
+                note={(p) => setSettings((cur) => ({ ...cur, ...p }))} />
             </div>
           )}
 

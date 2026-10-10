@@ -93,6 +93,8 @@ describe("figures said in the video", () => {
     expect(show("A $1,000 top up today")).toEqual([["$1,000", "top up today"]]);
     expect(show("It pays 5 percent and 20k dollars")).toEqual([["5%", "and"], ["$20k", ""]]);
     expect(show("Or 6 per cent.")).toEqual([["6%", ""]]);
+    expect(show("The bank pays only 0.05%. That is the gap")).toEqual([["0.05%", ""]]);
+    expect(show("It pays 4%, which is good")).toEqual([["4%", ""]]);
   });
   it("leaves bare numbers alone: an age, a count, a year", () => {
     expect(findFigures(said("At 65 you get 3 things from 2024 onwards."))).toEqual([]);

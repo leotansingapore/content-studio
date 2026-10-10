@@ -10,6 +10,7 @@ import { readableOn } from "@/lib/carouselLayout";
 import { callFn } from "@/lib/edgeFn";
 import { STYLES, frameRect, outAt, srcAt, type Caption, type EditSettings, type Segment, type Sentence, type Word } from "@/lib/videoEdit";
 import { outWithin, segLength } from "@/lib/fastPauses";
+import { CHART, chartAnim, chartSize, newChart, paintChart, sanitizeCharts, shownRows, sideSpot, type Chart } from "@/lib/videoCharts";
 
 /** A key line Jev picked: where it is said on the source timeline, Jev's yes probability and, on the top few, its pop-up. */
 export interface KeyLine {
@@ -155,7 +156,8 @@ export function findFigures(words: Word[]): Figure[] {
     if (!prefix && !pct && !mag && !ratio) continue;
     // the label: up to 3 words said after it, to the end of the phrase ("a month", "on CPF")
     const label: string[] = [];
-    for (let k = j + 1; k < words.length && label.length < 3; k++) {
+    // a figure that ends its phrase ("only 0.05%.") has no label: the next words are another thought
+    for (let k = j + 1; k < words.length && label.length < 3 && !/[.,!?;:]$/.test(words[j].w); k++) {
       const w = bare(words[k].w);
       if (!w || NUM.test(w) || (label.join(" ") + " " + w).trim().length > 20) break;
       label.push(w);
@@ -213,6 +215,45 @@ export function cardText(c: Card, out: number, final = false): string {
   return `${f.prefix}${shown}${f.suffix}`;
 }
 
+// ---------- chart cards ----------
+
+/** A chart card on the edited timeline. */
+export interface ChartShow {
+  from: number;
+  to: number;
+  chart: Chart;
+}
+
+/**
+ * The charts on this edit, one at a time: in a beat before their line is said
+ * (after the hook card), 4 s each. A chart that comes in while another shows
+ * cuts that one short; one that would leave it under 2 s is not shown.
+ */
+export function chartShows(charts: Chart[], segs: Segment[], speed: number, total: number, hookEnd: number): ChartShow[] {
+  const placed = charts.flatMap((chart) => {
+    const at = shownRows(chart).length ? outOfSpan(segs, chart.s, chart.e, speed) : null;
+    return at === null ? [] : [{ at, chart }];
+  }).sort((a, b) => a.at - b.at);
+  const out: ChartShow[] = [];
+  for (const { at, chart } of placed) {
+    const from = Math.max(0, hookEnd, at - CHART.lead);
+    const to = Math.min(total, from + CHART.seconds);
+    if (to - from < CHART.min) continue;
+    const prev = out[out.length - 1];
+    if (prev && from < prev.to) {
+      if (from - prev.from < CHART.min) continue;
+      prev.to = from;
+    }
+    out.push({ from, to, chart });
+  }
+  return out;
+}
+
+/** A chart started from a figure said in the video: the figure as its first row, written as the card shows it, and a row to fill in. */
+export function chartOfFigure(fig: Figure, words: Word[]): Chart {
+  return newChart(words[fig.start].s, words[fig.end].e, { label: fig.label, value: cardText({ from: 0, land: 0, to: 0, fig }, 0, true) });
+}
+
 // ---------- placing a card clear of the face and the captions ----------
 
 /** Where the face sits in the source picture (shares of its width and height), found on this device. */
@@ -234,12 +275,12 @@ export function medianBox(boxes: FaceBox[]): FaceBox | null {
   return { x0: mid("x0"), y0: mid("y0"), x1: mid("x1"), y1: mid("y1") };
 }
 
-/** The face's rows on the frame (shares of its height), with the top of the head above and the chin below; null without a box. */
-export function faceBand(box: FaceBox | null | undefined, s: Pick<EditSettings, "fit">, W: number, H: number, vw: number, vh: number): [number, number] | null {
+/** The face's rows on the frame (shares of its height), with the top of the head above (`hair`: none = from the forehead) and the chin below; null without a box. */
+export function faceBand(box: FaceBox | null | undefined, s: Pick<EditSettings, "fit">, W: number, H: number, vw: number, vh: number, hair = 0.6): [number, number] | null {
   if (!box || !vw || !vh) return null;
   const pad = box.y1 - box.y0;
   // the detector's box starts at the hairline; the hair above it reached half the box's height on a real talking head
-  const y0 = box.y0 - pad * 0.6;
+  const y0 = box.y0 - pad * hair;
   const y1 = box.y1 + pad * 0.1;
   let top: number, h: number;
   if (s.fit === "framed") {
@@ -251,6 +292,24 @@ export function faceBand(box: FaceBox | null | undefined, s: Pick<EditSettings, 
     top = (H - h) / 2;
   }
   return [(top + y0 * h) / H, (top + y1 * h) / H];
+}
+
+/** The face's columns on the frame (shares of its width); null without a box. A crop that follows the face keeps it in the middle. */
+export function faceCols(box: FaceBox | null | undefined, s: Pick<EditSettings, "fit" | "focusX" | "followFace">, W: number, H: number, vw: number, vh: number): [number, number] | null {
+  if (!box || !vw || !vh) return null;
+  let left: number, w: number;
+  if (s.fit === "framed") {
+    const r = frameRect(W, H, vw, vh);
+    [left, w] = [r.x, r.w];
+  } else if (s.fit === "blur") {
+    w = vw * Math.min(W / vw, H / vh);
+    left = (W - w) / 2;
+  } else {
+    w = vw * Math.max(W / vw, H / vh);
+    const focus = s.followFace ? (box.x0 + box.x1) / 2 : s.focusX;
+    left = Math.min(0, Math.max(W - w, W / 2 - w * focus));
+  }
+  return [(left + box.x0 * w) / W, (left + box.x1 * w) / W];
 }
 
 /**
@@ -273,6 +332,26 @@ export function fitBlock(h: number, avoid: ([number, number] | null)[], prefer: 
     if (top !== null) return { top, scale };
   }
   return { top: prefer[0], scale: 1 };
+}
+
+/**
+ * Where a chart goes on a tall or square frame (px): full size down to half clear
+ * of the head and the captions; else beside the face when half a card fits
+ * there; else clear of the face from the forehead down, down to half size; else
+ * 12% from the top at 70%. A reel keeps clear of the app's top bar and caption
+ * area; a feed post or a square uses nearly the whole frame.
+ */
+export function chartSpot(W: number, H: number, w: number, h: number, face: { head: [number, number] | null; core: [number, number] | null; cols: [number, number] | null }, capBand: [number, number] | null): { x: number; top: number; scale: number } {
+  const [lo, hi] = H / W > 1.5 ? [0.1, 0.84] : [0.04, 0.96];
+  const at = (band: [number, number] | null, scales: number[]) => {
+    for (const scale of scales) {
+      const top = placeBlock((h * scale) / H, [band, capBand], [0.12], lo, hi);
+      if (top !== null) return { x: W / 2, top: top * H, scale: Math.min(scale, (W * 0.92) / w) };
+    }
+    return null;
+  };
+  const side = face.cols ? sideSpot(W, H, w, h, face.cols, capBand) : null;
+  return at(face.head, [1, 0.85, 0.7, 0.6, 0.5]) ?? (side?.fits ? side : null) ?? at(face.core, [1, 0.85, 0.7, 0.6, 0.5]) ?? { x: W / 2, top: 0.12 * H, scale: 0.7 };
 }
 
 /** A band on the frame as it reads zoomed in by z about the row cy. */
@@ -306,11 +385,12 @@ export function cutTimes(segs: Segment[], speed = 1): number[] {
 }
 
 /** A whoosh as a card comes in, a zoom starts or (with a transition set) at a cut; a pop as a sticker or a pop-up shows. One at a time: a cue within 0.3 s of the last is dropped. */
-export function sfxCues(m: Pick<MotionPlan, "zooms" | "cards"> & { pops?: Pop[] }, s: Pick<EditSettings, "transition" | "overlays">, segs: Segment[], speed = 1): Cue[] {
+export function sfxCues(m: Pick<MotionPlan, "zooms" | "cards"> & { pops?: Pop[]; charts?: ChartShow[] }, s: Pick<EditSettings, "transition" | "overlays">, segs: Segment[], speed = 1): Cue[] {
   const all: Cue[] = [
     ...(m.pops ?? []).map((p) => ({ at: p.at, kind: "pop" as const })),
     ...m.zooms.map((z) => ({ at: z.at, kind: "whoosh" as const })),
     ...m.cards.map((c) => ({ at: c.from, kind: "whoosh" as const })),
+    ...(m.charts ?? []).map((c) => ({ at: c.from, kind: "whoosh" as const })),
     ...(s.transition ? cutTimes(segs, speed).map((at) => ({ at, kind: "whoosh" as const })) : []),
     ...(s.overlays ?? []).map((o) => ({ at: o.from, kind: "pop" as const })),
   ].sort((a, b) => a.at - b.at);
@@ -379,8 +459,10 @@ export function dropGain(at: number | null, out: number): number {
 export interface MotionPlan {
   /** The zooms on key lines; empty when that is off or nothing was picked (the old punch-in on cuts applies). */
   zooms: Beat[];
-  /** Number cards, when they are on. */
+  /** Number cards, when they are on (none while a chart shows). */
   cards: Card[];
+  /** The chart cards the adviser added. */
+  charts: ChartShow[];
   /** Pop-up text, when it is on. */
   pops: Pop[];
   /** Sound effects, when they are on. */
@@ -389,7 +471,7 @@ export interface MotionPlan {
   drop: number | null;
 }
 
-const EMPTY: MotionPlan = { zooms: [], cards: [], pops: [], cues: [], drop: null };
+const EMPTY: MotionPlan = { zooms: [], cards: [], charts: [], pops: [], cues: [], drop: null };
 let memo: { s: EditSettings; segs: Segment[]; caps: Caption[]; total: number; plan: MotionPlan } | null = null;
 
 /** Everything that moves on this edit, worked out once per edit (drawFrame asks every frame). */
@@ -400,16 +482,19 @@ export function motionOf(s: EditSettings, segs: Segment[], caps: Caption[], tota
   const speed = typeof s.speed === "number" && s.speed >= 1 ? s.speed : 1;
   const beats = lines.length ? keyBeats(lines, segs, speed, total, hookEnd) : [];
   const zooms = s.keyZooms ? beats : [];
-  const cards = s.numberCards ? numberCards(caps.flatMap((c) => c.words), segs, speed, total, hookEnd) : [];
+  const charts = chartShows(sanitizeCharts(s.charts), segs, speed, total, hookEnd);
+  const clear = (a: number, b: number) => !charts.some((c) => a < c.to && b > c.from);
+  const cards = s.numberCards ? numberCards(caps.flatMap((c) => c.words), segs, speed, total, hookEnd).filter((c) => clear(c.from, c.to)) : [];
   // the strongest line placed on this edit (keyBeats always keeps it)
   const top = beats.reduce<Beat | null>((a, b) => (!a || b.p > a.p ? b : a), null);
-  const busy = [...cards.map((c): [number, number] => [c.from, c.to]), ...(s.overlays ?? []).map((o): [number, number] => [o.from, o.to])];
+  const busy = [...[...cards, ...charts].map((c): [number, number] => [c.from, c.to]), ...(s.overlays ?? []).map((o): [number, number] => [o.from, o.to])];
   const pops = s.popups ? popupBeats(lines, segs, speed, total, hookEnd, busy) : [];
   const plan = !segs.length ? EMPTY : {
     zooms,
     cards,
+    charts,
     pops,
-    cues: s.sfx ? sfxCues({ zooms, cards, pops }, s, segs, speed) : [],
+    cues: s.sfx ? sfxCues({ zooms, cards, pops, charts }, s, segs, speed) : [],
     drop: s.music && s.musicDrop !== false && top ? top.at : null,
   };
   memo = { s, segs, caps, total, plan };
@@ -454,6 +539,8 @@ export function drawMotion(
   f: { settings: EditSettings; out: number; brand?: { color: string } | null; video: { videoWidth: number; videoHeight: number } },
   capBand: [number, number] | null,
 ) {
+  const ch = m.charts.find((x) => f.out >= x.from && f.out < x.to);
+  if (ch) return drawChart(g, m, ch, f, capBand);
   const c = m.cards.find((x) => f.out >= x.from && f.out < x.to);
   if (!c) {
     const p = m.pops.find((x) => f.out >= x.at && f.out < x.until);
@@ -509,6 +596,40 @@ export function drawMotion(
     g.globalAlpha = alpha * 0.85;
     g.fillText(c.fig.label, 0, ny + numPx * 0.55 + labPx * 0.8, W * 0.84);
   }
+  g.restore();
+}
+
+/**
+ * A chart card, rising in like a number card. On a tall or square frame it sits
+ * clear of the face and the captions, smaller (down to half) when the gap is
+ * small; on a wide frame it goes beside the face.
+ */
+function drawChart(
+  g: CanvasRenderingContext2D,
+  m: MotionPlan,
+  c: ChartShow,
+  f: { settings: EditSettings; out: number; brand?: { color: string } | null; video: { videoWidth: number; videoHeight: number } },
+  capBand: [number, number] | null,
+) {
+  const W = g.canvas.width;
+  const H = g.canvas.height;
+  const u = Math.min(W, H) / 1080;
+  const s = f.settings;
+  const { w, h } = chartSize(c.chart, u);
+  const a = chartAnim(c.from, c.to, f.out, shownRows(c.chart).length);
+  const vw = f.video.videoWidth;
+  const vh = f.video.videoHeight;
+  // the face as big as a zoom on a key line (or the punch-in on cuts) makes it, so the chart keeps its place through one
+  const z = m.zooms.length ? KEY_ZOOM.peak : s.punchIn ? STYLES[s.style].punch : 1;
+  const cy = m.zooms.length ? 0.42 : 0.5;
+  const cols = zoomBand(faceCols(s.faceBox, s, W, H, vw, vh), z, 0.5);
+  const { x, top, scale } = W > H ? sideSpot(W, H, w, h, cols, capBand)
+    : chartSpot(W, H, w, h, { head: zoomBand(faceBand(s.faceBox, s, W, H, vw, vh), z, cy), core: zoomBand(faceBand(s.faceBox, s, W, H, vw, vh, 0), z, cy), cols }, capBand);
+  g.save();
+  g.translate(x, top + (h * scale) / 2 + (1 - a.rise) * 40 * u);
+  const sc = (0.92 + 0.08 * a.rise) * scale;
+  g.scale(sc, sc);
+  paintChart(g, c.chart, a, u, f.brand?.color ?? s.activeColor);
   g.restore();
 }
 

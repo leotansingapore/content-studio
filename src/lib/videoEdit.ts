@@ -9,6 +9,7 @@
 
 import type { Pair, Spot } from "@/lib/stacked";
 import type { FaceBox, KeyLine } from "@/lib/videoMotion";
+import type { Chart } from "@/lib/videoCharts";
 import { mergeSlivers, pauseCut } from "@/lib/cutRules";
 import { findRetakes } from "@/lib/retakes";
 import { outWithin, segLength, srcWithin, withFast } from "@/lib/fastPauses";
@@ -128,6 +129,8 @@ export interface EditSettings {
   motion?: { lines: KeyLine[] };
   /** A card in the brand colour counts up to each figure as it is said ($500, 4%, 3 in 10). */
   numberCards?: boolean;
+  /** Chart cards the adviser added: bars or two numbers, shown as their line is said (videoCharts.ts). */
+  charts?: Chart[];
   /** Where the face sits in the source picture, found on this device; null = looked, no face. Keeps cards clear of it. */
   faceBox?: FaceBox | null;
   /** A whoosh on cards, zooms and transitions and a pop on stickers, made on the device, under the voice. */

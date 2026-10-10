@@ -736,8 +736,8 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
 
   for (const o of overlaysAt(s.overlays, f.out)) drawOverlay(g, o, f.still ? 1 : captionIntro(f.out, o.from));
 
-  // number cards and pop-ups, one at a time, clear of the face and the captions
-  if (motion.cards.length || motion.pops.length) drawMotion(g, motion, f, capBand);
+  // chart cards, number cards and pop-ups, one at a time, clear of the face and the captions
+  if (motion.cards.length || motion.pops.length || motion.charts.length) drawMotion(g, motion, f, capBand);
 
   if (hook) {
     // the hook card follows the caption animation: in over 250 ms, out over its last 200 ms
