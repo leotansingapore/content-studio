@@ -686,7 +686,8 @@ export default function PlanPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              {/* 10px on touch: the info mark's 44px reach ends above the dropdown. */}
+              <div className="space-y-1.5 [@media(pointer:coarse)]:space-y-2.5">
                 <div className="flex items-center gap-1">
                   <Label>Posts per week</Label>
                   <InfoTip label="About posts per week">The same weekly goal as on Home.</InfoTip>
