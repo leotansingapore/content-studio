@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { MOBILE_TABS, moreSheet, pageFor, pageTitle, SECTIONS, sectionFor } from "./nav";
+import { describe, expect, it, vi } from "vitest";
+import { MOBILE_TABS, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFor, visiblePages } from "./nav";
 
 const routes = [
   "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/coach", "/analytics", "/team",
-  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/playbook", "/voice", "/brand", "/bio", "/fads", "/connect",
+  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/playbook", "/voice", "/brand", "/bio", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback",
 ];
 
@@ -47,5 +47,17 @@ describe("nav", () => {
     expect(tos).not.toContain("/reels");
     expect(sheet.singles.map((t) => t.label)).toEqual(["Getting started", "Recruit", "Playbook", "Learn", "Feedback"]);
     expect(sheet.groups.map((g) => g.label)).toEqual(["Improve", "Discover"]);
+  });
+
+  it("shows Social accounts only once the server has said it is switched on", () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
+    const playbook = () => visiblePages(section("playbook").pages, "someone@example.com").map((p) => p.to);
+    expect(playbook()).not.toContain("/accounts");
+    store.set("cs-social-connect", JSON.stringify({ on: true, at: Date.now() }));
+    expect(playbook()).toContain("/accounts");
+    store.set("cs-social-connect", JSON.stringify({ on: false, at: Date.now() }));
+    expect(playbook()).not.toContain("/accounts");
+    vi.unstubAllGlobals();
   });
 });

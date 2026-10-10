@@ -27,6 +27,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { REELS_BOARD_OWNERS } from "@/lib/reelsBoard";
+import { socialConnectShown } from "@/lib/socialConnect";
 
 export type NavPage = {
   to: string;
@@ -35,6 +36,8 @@ export type NavPage = {
   end?: boolean;
   /** Shown only to these sign-ins. */
   owners?: string[];
+  /** Shown only while this says so (an answer this device remembers from the server). */
+  show?: () => boolean;
   /** Browser tab title when it should differ from the label. */
   title?: string;
   /** Phone More-sheet tile icon; falls back to the section's. */
@@ -143,6 +146,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
       { to: "/bio", label: "Link in bio" },
+      { to: "/accounts", label: "Social accounts", show: socialConnectShown },
       { to: "/fads", label: "F.A.D.S." },
       { to: "/connect", label: "Connect Claude" },
     ],
@@ -176,7 +180,7 @@ export const pathMatches = (pathname: string, to: string, end = false) =>
   pathname === to || (!end && pathname.startsWith(to + "/"));
 
 export const visiblePages = (pages: NavPage[], email: string) =>
-  pages.filter((p) => !p.owners || p.owners.includes(email.toLowerCase()));
+  pages.filter((p) => (!p.owners || p.owners.includes(email.toLowerCase())) && (!p.show || p.show()));
 
 /** The page a path belongs to: the longest matching route, so /generate/batch is Batch, not Post. */
 export function pageFor(pathname: string): { section: NavSection; page: NavPage } | null {

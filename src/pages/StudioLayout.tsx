@@ -6,6 +6,7 @@ import ProfileSwitcher from "@/components/ProfileSwitcher";
 import ExportPill from "@/components/ExportPill";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
+import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import { Sparkles, LogOut, Plus, LayoutGrid, X } from "lucide-react";
@@ -167,6 +168,8 @@ export default function StudioLayout() {
   const { pathname, search } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const [email, setEmail] = useState<string>("");
+  // Social accounts sits in the nav only once the server has said it is on for this sign-in.
+  const [, setSocialOn] = useState(socialConnectShown);
   const mainRef = useRef<HTMLElement>(null);
   const moreRef = useRef<HTMLDialogElement>(null);
   const prevPath = useRef(pathname);
@@ -184,6 +187,7 @@ export default function StudioLayout() {
     supabase.auth.getUser().then(({ data }) => {
       if (active) setEmail(data.user?.email ?? "");
       if (active && data.user) void refreshPushHere();
+      if (active && data.user) void checkSocialConnect().then((on) => active && setSocialOn(on));
     });
     return () => {
       active = false;
@@ -225,6 +229,7 @@ export default function StudioLayout() {
     // Phone alerts carry post titles: stop them on this browser while still signed in.
     await Promise.race([disablePushHere().catch(() => undefined), new Promise((r) => setTimeout(r, 2_000))]);
     await stopCloudSync();
+    forgetSocialConnect();
     await supabase.auth.signOut();
     window.location.replace("/auth");
   };
