@@ -206,7 +206,7 @@ export default function BrandPage() {
                   />
                 );
               })}
-              <label className={`flex h-9 items-center gap-1.5 rounded-full border px-1.5 text-xs text-muted-foreground ${presetActive ? "border-border" : "border-foreground"}`}>
+              <label className={`flex h-9 items-center gap-1.5 rounded-full border px-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:min-h-11 ${presetActive ? "border-border" : "border-foreground"}`}>
                 <input
                   type="color"
                   value={brand.color.toLowerCase()}
@@ -246,7 +246,7 @@ export default function BrandPage() {
               placeholder={"DM me PLAN for a free review.\nFor information only, not financial advice.\n#financialplanning #singapore"}
             />
             <p className="text-xs text-muted-foreground">Added to the end of a post when you copy it. Hashtags already in the post aren't repeated.</p>
-            <label className="flex min-h-9 cursor-pointer items-center gap-2 pt-1 text-sm">
+            <label className="flex min-h-9 cursor-pointer items-center gap-2 pt-1 text-sm [@media(pointer:coarse)]:min-h-11">
               <input type="checkbox" checked={!!brand.tagLinks} onChange={(e) => update({ tagLinks: e.target.checked })} className="h-4 w-4 accent-primary" />
               Tag my links for tracking
               <InfoTip label="About link tracking">Adds utm_source, utm_medium and utm_campaign to links you post.</InfoTip>
