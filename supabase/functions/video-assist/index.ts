@@ -32,6 +32,10 @@
 //        what each needs (Jev again: a scene clip, an idea card or the named product); the LLM writes a
 //        1-3 word stock search for a scene and the card text for the rest; null when Jev has no answer or
 //        the video is not in English (broll.ts, "broll-picks" cap).
+//   POST {mode:"montage", theme, seconds?} -> {beats:[{say,search,fallback,text,seconds}], grade}: 6-10 beats for a
+//        montage from a theme (LLM) and the one colour grade over all of them (Jev) (montage.ts, "montage-beats" cap).
+//   POST {mode:"montage-pick", theme, beats:[{say, candidates:[{desc}]}]} -> {picks:[index | -1 | null]}: the stock
+//        clip Jev says shows each beat, -1 when none does, null with no answer ("montage-pick" cap).
 //   POST {mode:"hooks", sentences:[{s,e,text}] on the edited timeline, duration, formulas:[{id,name,template,example,trap}] x2-3}
 //        -> {hooks:[{formula,text}], pick: index | null}: hook card lines the LLM writes, one per formula, and the
 //        one Jev would start with (Write's hook question; null on no answer, a tie or a video not in English)
@@ -55,6 +59,7 @@ import { mostlyEnglish } from "../post-score/logic.ts";
 import { brollLines, brollQuestions, buildBrollMessages, kindQuestions, parseBrollReply, parseBrollRequest, pickBrollLines, readBroll, readKinds } from "./broll.ts";
 import { buildCaptionsMessages, parseCaptionsReply, parseCaptionsRequest } from "./captions.ts";
 import { coldQuestions, coldState, parseColdOpenRequest, readColdPick } from "./coldopen.ts";
+import { DEFAULT_GRADE, buildMontageMessages, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks } from "./montage.ts";
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
@@ -329,6 +334,45 @@ Deno.serve(async (req) => {
       const picks = parseBrollReply((await res.json())?.choices?.[0]?.message?.content ?? null, pick, kinds);
       console.log(`video-assist broll: ${idx.length} lines asked, ${pick.length} picked (${Object.values(kinds).filter((k) => k === "scene").length} scenes), ${picks.length} written`);
       return json({ picks });
+    }
+
+    if (body?.mode === "montage") {
+      const m = parseMontageRequest(body);
+      if (!m.ok) return json({ error: m.error }, 400);
+      const usage = await consumeUsage(admin, uid, "montage-beats");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 900, response_format: { type: "json_object" }, messages: buildMontageMessages(m.theme, m.seconds) }),
+        signal: AbortSignal.timeout(45_000),
+      }).catch(() => null);
+      if (!res?.ok) {
+        console.error("video-assist montage", res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
+        return json({ error: "Couldn't plan the montage right now. Try again in a minute." }, 502);
+      }
+      const beats = parseMontageReply((await res.json())?.choices?.[0]?.message?.content ?? null, m.seconds);
+      if (!beats) return json({ error: "The plan came back incomplete. Try again." }, 502);
+      // Jev picks the one colour grade (a decision); the editor's default look when it has no answer or the theme is not English
+      const grade = mostlyEnglish(m.theme) ? readGrade(await askJev({ theme: m.theme }, gradeQuestion(m.theme), { who: "video-assist montage grade" })) : DEFAULT_GRADE;
+      return json({ beats, grade });
+    }
+
+    if (body?.mode === "montage-pick") {
+      const p = parsePickRequest(body);
+      if (!p.ok) return json({ error: p.error }, 400);
+      const usage = await consumeUsage(admin, uid, "montage-pick");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      // Jev picks the clip for each beat, or says none fits; null per beat when it has no answer (the editor takes the first)
+      const q = pickQuestions(p.beats);
+      const answers = Object.keys(q).length && mostlyEnglish(p.beats.map((b) => b.say).join(" ")) ? await askJev({ theme: p.theme }, q, { who: "video-assist montage pick", timeoutMs: 10_000 }) : null;
+      return json({ picks: readPicks(answers, p.beats) });
     }
 
     if (body?.mode === "hooks") {

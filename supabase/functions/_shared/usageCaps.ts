@@ -39,6 +39,10 @@ export const DAILY_LIMITS = {
   "stock-search": 100,
   // "Add B-roll for me" in the video editor (video-assist broll): Jev picks the lines, OpenAI writes the searches.
   "broll-picks": 20,
+  // A montage from a theme (video-assist montage): the LLM writes the beats, Jev picks the grade; then
+  // "montage-pick": Jev picks the stock clip for each beat. No paid generation; stock searches have their own cap.
+  "montage-beats": 10,
+  "montage-pick": 20,
   // "Open with my strongest line" in the video editor (video-assist coldopen): Jev rates the lines, no LLM.
   "cold-open": 20,
   // The post caption written for TikTok, LinkedIn and Facebook at once (video-assist captions, gpt-4.1, about 1 US cent).

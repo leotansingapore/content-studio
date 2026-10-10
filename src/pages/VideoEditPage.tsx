@@ -24,6 +24,7 @@ import { coverTimes, findCoverFrame } from "@/lib/coverFrame";
 import { onBrollApply } from "@/lib/autoBroll";
 import { MAX_MUSIC_SECONDS, MOODS, MOOD_IDS, aiMusicOn, dismissMusicJob, musicJob, onMusicApply, onMusicJob, pickMood, startMusic, type Mood } from "@/lib/aiMusic";
 import AiVideo from "@/components/AiVideo";
+import { montageBusy } from "@/lib/montage";
 import { aiBusy, aiJob, pendingAvatar } from "@/lib/aiVideo";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
 import {
@@ -159,6 +160,7 @@ import {
   type ExportJob,
   type FileCheck,
   type Frame,
+  type JoinExtra,
 } from "@/lib/videoMedia";
 import type { VersionPlan } from "@/lib/exportVersions";
 import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "@/lib/exportCheck";
@@ -202,7 +204,7 @@ export default function VideoEditPage() {
     return () => { off(); };
   }, []);
 
-  const upload = async (file: File) => {
+  const upload = async (file: File, extra?: JoinExtra) => {
     // A file picked before the sign-in check finished must not be dropped.
     const uid = userId ?? (await supabase.auth.getUser()).data.user?.id ?? null;
     if (!uid) return toast({ title: "Sign in again to edit videos", variant: "destructive" });
@@ -233,10 +235,16 @@ export default function VideoEditPage() {
       const { wav, duration } = await extractWav(file);
       let p: VideoProject = {
         id, name: file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration, size: file.size,
-        words: [], settings: withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), thumb,
+        words: [], settings: { ...withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), ...extra?.settings }, thumb,
         ...(defaultSkill(loadSkills(uid))?.prompt ? { pendingSkill: defaultSkill(loadSkills(uid))!.id } : {}),
       };
       setProjects(saveProject(uid, p));
+      // a montage has no speech to caption; it opens with its look, words and music, and says what stood in for a clip
+      if (extra?.settings?.captions === false) {
+        setParams({ p: id });
+        if (extra.note) toast({ title: "Your montage is ready", description: extra.note });
+        return;
+      }
       setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
       try {
         const t = await transcribe(wav);
@@ -261,7 +269,7 @@ export default function VideoEditPage() {
   useEffect(() => {
     if (!join || join.state === "running") return;
     const j = endJoin();
-    if (j?.file) void upload(j.file);
+    if (j?.file) void upload(j.file, j.extra);
     else if (j?.error) toast({ title: j.label ? "Couldn't put the video together" : "Couldn't join the takes", description: j.error, variant: "destructive" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [join?.state]);
@@ -299,7 +307,7 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
   const [over, setOver] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   // reopened while a video is being made, or to show why the last one failed
-  const [aiOpen, setAiOpen] = useState(() => aiBusy() || !!pendingAvatar() || aiJob()?.state === "failed");
+  const [aiOpen, setAiOpen] = useState(() => aiBusy() || montageBusy() || !!pendingAvatar() || aiJob()?.state === "failed");
   const left = useUsesLeft(!!busy);
   const captions = left("video-transcribe");
   return (

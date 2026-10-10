@@ -1327,6 +1327,12 @@ export interface JoinJob {
   error?: string;
   /** What is being put together, when it isn't takes (an AI video). */
   label?: string;
+  /** Handed to the editor with the finished file (a montage's look, music and words, and what stood in for a clip). */
+  extra?: JoinExtra;
+}
+export interface JoinExtra {
+  settings?: Partial<EditSettings>;
+  note?: string;
 }
 let joinJob: JoinJob | null = null;
 const joinListeners = new Set<(j: JoinJob | null) => void>();
@@ -1351,8 +1357,9 @@ export function endJoin(): JoinJob | null {
  * The frame is the first take's, at most 1920 on the long side; a take of
  * another shape fits inside it. The sound fades for 25 ms at each join so it doesn't click.
  */
-export async function startJoin(name: string, takes: { file: Blob; start: number; end: number }[], label?: string) {
+export async function startJoin(name: string, takes: { file: Blob; start: number; end: number }[], label?: string, opts?: { mute?: boolean; extra?: JoinExtra }) {
   if (joinJob?.state === "running") throw new Error("Takes are already being joined.");
+  const { extra } = opts ?? {};
   joinJob = { progress: 0, state: "running", label };
   emitJoin();
   const els: HTMLVideoElement[] = [];
@@ -1401,7 +1408,7 @@ export async function startJoin(name: string, takes: { file: Blob; start: number
       else rec.resume();
       gain.gain.cancelScheduledValues(actx.currentTime);
       gain.gain.setValueAtTime(0, actx.currentTime);
-      gain.gain.linearRampToValueAtTime(1, actx.currentTime + FADE);
+      gain.gain.linearRampToValueAtTime(opts?.mute ? 0 : 1, actx.currentTime + FADE);
       // as in the export: a stall pauses the recorder, so no frozen frames go in
       let lastT = v.currentTime;
       let lastMove = performance.now();
@@ -1443,7 +1450,7 @@ export async function startJoin(name: string, takes: { file: Blob; start: number
     }
     rec.stop();
     await stopped;
-    joinJob = { progress: 1, state: "done", label, file: new File(chunks, `${name}.${ext}`, { type: mime.split(";")[0] }) };
+    joinJob = { progress: 1, state: "done", label, extra, file: new File(chunks, `${name}.${ext}`, { type: mime.split(";")[0] }) };
   } catch (e) {
     joinJob = { progress: 0, state: "failed", label, error: e instanceof Error ? e.message : String(e) };
   } finally {

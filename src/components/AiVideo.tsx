@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { LEN_MAX, LEN_MIN, MAX_THEME, dismissMontage, montageBusy, montageJob, onMontageJob, startMontage, type MontageJob } from "@/lib/montage";
 import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
 import {
   CLIP_QUALITIES, CLIP_SECONDS, LOOKS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, TEMPLATES, TEMPLATE_CREDIT, TEMPLATE_SOURCE,
@@ -23,8 +24,8 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
   useEffect(() => onAiJob(setJob), []);
   // an avatar video paid for but never put together (a reload) carries on by itself
   useEffect(() => resumeAvatar(), []);
-  const [tab, setTab] = useState<"template" | "avatar" | "explainer">(
-    job?.kind === "explainer" ? "explainer" : job?.kind === "avatar" || job?.kind === "presenter" ? "avatar" : "template");
+  const [tab, setTab] = useState<"template" | "montage" | "avatar" | "explainer">(
+    montageBusy() || montageJob()?.state === "failed" ? "montage" : job?.kind === "explainer" ? "explainer" : job?.kind === "avatar" || job?.kind === "presenter" ? "avatar" : "template");
   const busy = job?.state === "working";
   const left = useUsesLeft(busy);
 
@@ -34,12 +35,13 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
         <h2 className="text-sm font-semibold">Make a video without filming</h2>
         <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={onClose}>Close</Button>
       </div>
-      <div className="flex gap-1.5" role="group" aria-label="Kind of video">
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Kind of video">
         <Pill on={tab === "template"} onClick={() => setTab("template")} disabled={busy}>From a template</Pill>
+        <Pill on={tab === "montage"} onClick={() => setTab("montage")} disabled={busy}>Montage</Pill>
         <Pill on={tab === "avatar"} onClick={() => setTab("avatar")} disabled={busy}>You speaking</Pill>
         <Pill on={tab === "explainer"} onClick={() => setTab("explainer")} disabled={busy}>Explainer</Pill>
       </div>
-      {tab === "template" ? <Templates busy={busy} left={left} /> : tab === "avatar" ? <Avatar job={job} busy={busy} left={left} /> : <Explainer busy={busy} left={left} />}
+      {tab === "template" ? <Templates busy={busy} left={left} /> : tab === "montage" ? <Montage busy={busy} left={left} /> : tab === "avatar" ? <Avatar job={job} busy={busy} left={left} /> : <Explainer busy={busy} left={left} />}
       {busy && (
         <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
           <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> {job?.step}
@@ -58,6 +60,60 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
 }
 
 type Left = ReturnType<typeof useUsesLeft>;
+
+const MONTAGE_STEP = { writing: "Planning the shots...", finding: "Finding clips", joining: "Putting your montage together...", done: "", failed: "" } as const;
+
+/** A montage from a theme: stock clips that fit it, one look over all, words on screen, your own track if you add one. */
+function Montage({ busy, left }: { busy: boolean; left: Left }) {
+  const [job, setJob] = useState<MontageJob | null>(montageJob());
+  useEffect(() => onMontageJob(setJob), []);
+  const [theme, setTheme] = useState("");
+  const [seconds, setSeconds] = useState(30);
+  const [words, setWords] = useState(true);
+  const [music, setMusic] = useState<File | null>(null);
+  const running = montageBusy();
+  const off = busy || running;
+  const uses = left("montage-beats");
+
+  return (
+    <div className="space-y-3">
+      <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); void startMontage({ theme: theme.trim(), seconds, words, music }); }}>
+        <Input value={theme} maxLength={MAX_THEME} onChange={(e) => { setTheme(e.target.value); dismissMontage(); }} disabled={off}
+          placeholder="A theme, like Singapore mornings" aria-label="What the montage is about" className="h-11 sm:h-10" />
+        <Button type="submit" className="h-11 shrink-0 sm:h-10" disabled={off || theme.trim().length < 3 || uses === 0}>
+          {running ? "Making..." : "Make the montage"}
+        </Button>
+      </form>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex gap-1.5" role="group" aria-label="Length">
+          {[LEN_MIN, 30, LEN_MAX].map((n) => <Pill key={n} on={seconds === n} disabled={off} onClick={() => setSeconds(n)}>{n} seconds</Pill>)}
+        </div>
+        <Pill on={words} disabled={off} onClick={() => setWords(!words)}>Words on screen</Pill>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9">
+          {music ? "Change music" : "Add your music (optional)"}
+          <input type="file" accept="audio/*" className="sr-only" disabled={off}
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setMusic(f); }} />
+        </label>
+        {music && (
+          <>
+            <span className="max-w-[12rem] truncate text-xs text-muted-foreground">{music.name}</span>
+            <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-9" disabled={off} onClick={() => setMusic(null)}>Remove</Button>
+          </>
+        )}
+        <Left n={uses} what="Montages" />
+      </div>
+      {running && job && (
+        <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
+          <ThinkingOrb state="working" size={20} theme="light" aria-hidden />
+          {job.state === "finding" ? `Finding clips, ${job.done} of ${job.of}...` : MONTAGE_STEP[job.state]}
+        </p>
+      )}
+      {job?.state === "failed" && <p className="text-sm text-destructive" role="alert">{job.error}</p>}
+    </div>
+  );
+}
 
 /** The gallery: pick a look, fill its blanks, read its warnings and the cost, make one Seedance clip. */
 function Templates({ busy, left }: { busy: boolean; left: Left }) {
