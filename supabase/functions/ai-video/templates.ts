@@ -166,7 +166,11 @@ export const TEMPLATES: VideoTemplate[] = [
     ],
     photos: ["person"],
     needsPhoto: "person",
-    warnings: ["Use a clear, front-on photo in good light.", "Fast head turns are where faces drift. Keep the moves calm."],
+    warnings: [
+      "Use a clear, front-on photo in good light.",
+      "A real face can trip the safety filter. Nothing is charged if it does.",
+      "Fast head turns are where faces drift. Keep the moves calm.",
+    ],
     structure: [
       "Use the reference's name (@image1) everywhere the person appears",
       "Keep list: the features that carry over, item by item, and each piece of clothing named",

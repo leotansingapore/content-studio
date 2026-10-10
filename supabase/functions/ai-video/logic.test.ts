@@ -82,6 +82,10 @@ describe("Higgsfield bodies", () => {
     expect(readMedia({ status: "completed", images: [{ url: "https://cdn/p.png" }] })).toEqual({ state: "done", url: "https://cdn/p.png" });
     expect(readMedia({ status: "completed", video: { url: "javascript:alert(1)" } })).toMatchObject({ state: "failed" });
     expect(readMedia({ status: "nsfw" })).toMatchObject({ state: "failed", error: expect.stringMatching(/safety filter/) });
+    // how Seedance said it on a template clip with a face photo, 2026-10-10 (not charged)
+    const blocked = { status: "failed", error: "The generated result was blocked by content safety checks. Try a different prompt or reference media." };
+    expect(readMedia(blocked)).toMatchObject({ state: "failed", error: expect.stringMatching(/safety filter/) });
+    expect(readMedia({ status: "failed", error: "Generation failed" })).toEqual({ state: "failed", error: "It didn't come through. Try again." });
     expect(readMedia(null)).toMatchObject({ state: "failed" });
   });
 });

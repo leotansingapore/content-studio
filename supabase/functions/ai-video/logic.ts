@@ -202,7 +202,8 @@ export function readMedia(data: unknown): MediaState {
     const url = (d.video as { url?: unknown } | undefined)?.url ?? (d.images as { url?: unknown }[] | undefined)?.[0]?.url;
     return typeof url === "string" && /^https:\/\//.test(url) ? { state: "done", url } : { state: "failed", error: "It came back empty. Try again." };
   }
-  if (status === "nsfw") return { state: "failed", error: "The safety filter blocked it. Try another photo or wording." };
+  // Seedance reports its safety block as "failed" with a message, not as "nsfw" (2026-10-10); neither is charged
+  if (status === "nsfw" || /content safety/i.test(String(d.error ?? ""))) return { state: "failed", error: "The safety filter blocked it. Try another photo or wording." };
   return { state: "failed", error: "It didn't come through. Try again." };
 }
 
