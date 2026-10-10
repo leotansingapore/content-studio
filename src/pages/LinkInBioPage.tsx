@@ -252,7 +252,7 @@ export default function LinkInBioPage() {
                       onChange={(e) => edit({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
                       onBlur={() => edit({ slug: normalizeSlug(form.slug) })}
                       placeholder="your-name"
-                      className="h-10 min-w-0 flex-1 bg-transparent px-1 text-sm text-foreground focus:outline-none"
+                      className="h-10 min-w-0 flex-1 bg-transparent px-1 text-sm text-foreground focus:outline-none [@media(pointer:coarse)]:min-h-11"
                     />
                   </div>
                 </div>
@@ -262,12 +262,12 @@ export default function LinkInBioPage() {
                     {photo ? <img src={photo} alt="" className="h-full w-full object-cover" /> : null}
                   </span>
                   {brand?.photo || mine?.photo ? (
-                    <label className="flex min-h-10 items-center gap-2 text-sm">
+                    <label className="flex min-h-10 items-center gap-2 text-sm [@media(pointer:coarse)]:min-h-11">
                       <input type="checkbox" checked={form.showPhoto} onChange={(e) => edit({ showPhoto: e.target.checked })} className="h-4 w-4" />
                       Show my brand kit photo
                     </label>
                   ) : (
-                    <Link to="/brand" className="text-sm font-medium text-primary hover:underline">
+                    <Link to="/brand" className="inline-flex items-center text-sm font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
                       Add a photo in Brand kit
                     </Link>
                   )}
