@@ -46,6 +46,8 @@ export interface DraftEntry {
   storyboard?: Storyboard;
   // The hookFormulas.ts id of the formula the hook was written with.
   hookFormula?: string;
+  // An http(s) link to the photo or video that goes with it, from a CSV import.
+  media?: string;
 }
 
 export interface Storyboard {

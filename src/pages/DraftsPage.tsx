@@ -37,6 +37,7 @@ import {
   MoreHorizontal,
   Link2,
   MessageSquareText,
+  Paperclip,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -384,7 +385,7 @@ export default function DraftsPage() {
       </header>
       {importOpen && userId && (
         <CsvImport
-          postCount={drafts.length}
+          posts={drafts}
           defaultPlatform={loadPositioning(userId)?.platform ?? "linkedin"}
           onImport={handleImport}
           onClose={() => setImportOpen(false)}
@@ -573,6 +574,16 @@ export default function DraftsPage() {
                   {preview}
                   {d.draft.length > 100 ? "..." : ""}
                 </p>
+                {d.media && /^https?:\/\//i.test(d.media) && (
+                  <a
+                    href={d.media}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mb-2 inline-flex h-9 w-fit items-center gap-1.5 text-[11px] font-medium text-primary hover:underline sm:h-7 [@media(pointer:coarse)]:h-11"
+                  >
+                    <Paperclip className="h-3.5 w-3.5" /> Open media
+                  </a>
+                )}
                 {s !== "posted" && (
                   <label className="mb-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                     <CalendarClock className="h-3.5 w-3.5 shrink-0 text-primary" />
