@@ -35,6 +35,8 @@ export const DAILY_LIMITS = {
   "track-accounts": 10,
   // Engage this week: one Jev call over the people who commented on your posts.
   "engage-picks": 20,
+  // The one move for the week (g44): Jev picks it for the Monday email (notify) and Analytics' This week card (week-pick).
+  "week-pick": 10,
   // Free stock photos and B-roll (stock-media, Pexels): searches not already cached.
   "stock-search": 100,
   // "Add B-roll for me" in the video editor (video-assist broll): Jev picks the lines, OpenAI writes the searches.

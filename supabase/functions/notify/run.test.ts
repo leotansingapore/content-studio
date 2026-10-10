@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BUDGET_MS, confirmedEmail, EMAIL_RETAKE, PAGE, runPage, runUser, type Deps, type Options, type Sub } from "./run";
+import type { JevAnswer } from "../_shared/jev";
 
 const UID = "3f2b6c1e-8a4d-4c2b-9f1e-2a3b4c5d6e7f";
 const sg = (y: number, m: number, d: number, h = 0, min = 0) => Date.UTC(y, m - 1, d, h - 8, min);
@@ -21,7 +22,7 @@ const rows = {
   [`content-studio-drafts-${UID}`]: JSON.stringify([{ id: "p1", hook: "Due one", platform: "linkedin", status: "scheduled", scheduledFor: "2026-10-08T18:30" }]),
 };
 
-function fake(over: Partial<Deps> & { subsList?: Sub[]; user?: object | null; sent?: boolean; delivered?: number } = {}) {
+function fake(over: Partial<Deps> & { subsList?: Sub[]; user?: object | null; sent?: boolean; delivered?: number; answers?: Record<string, JevAnswer> | null } = {}) {
   const calls: string[] = [];
   const log = (s: string) => calls.push(s);
   let t = 0;
@@ -35,6 +36,7 @@ function fake(over: Partial<Deps> & { subsList?: Sub[]; user?: object | null; se
     markSent: async (_u, items) => void log(`markSent ${items}`),
     sendPush: async (subs, m) => (log(`push ${subs.map((s) => s.id)} ${m.title}`), over.delivered ?? subs.length),
     sendEmail: async (to, e, key) => (log(`email ${to} ${key}`), over.sent ?? true),
+    pick: async (_u, ask) => (log(`pick ${Object.keys(ask.questions)}`), over.answers ?? null),
     next: async (b) => void log(`next ${JSON.stringify(b)}`),
     clock: () => t,
     ...over,
@@ -99,6 +101,41 @@ describe("runUser: the Monday email", () => {
     const { deps, calls } = fake({ claim: async () => new Set() });
     await runUser(deps, UID, { email: true, push: false }, opts());
     expect(calls.some((c) => c.startsWith("email"))).toBe(false);
+  });
+});
+
+describe("runUser: the one move for the week (g44)", () => {
+  // last week: two posts with numbers and one without, so reuse and numbers are both on offer
+  const week = {
+    [`content-studio-goals-${UID}`]: JSON.stringify({ linkedin: 3 }),
+    [`content-studio-drafts-${UID}`]: JSON.stringify([
+      { id: "a", hook: "CPF at 55", platform: "linkedin", status: "posted", postedAt: "2026-10-06T03:00:00.000Z", metrics: { impressions: 900, reactions: 40 } },
+      { id: "b", hook: "Term or whole", platform: "linkedin", status: "posted", postedAt: "2026-10-08T03:00:00.000Z", metrics: { impressions: 400, reactions: 5 } },
+      { id: "c", hook: "Bonus", platform: "linkedin", status: "posted", postedAt: "2026-10-09T03:00:00.000Z" },
+    ]),
+  };
+  const choice = (id: string) => ({ move: { type: "choice" as const, choice: id } });
+
+  it("asks Jev once the email is claimed, and writes the move it picked", async () => {
+    const { deps, calls } = fake({ userRows: async () => week, answers: choice("numbers") });
+    const r = await runUser(deps, UID, { email: true, push: false }, opts());
+    expect(calls).toEqual(["authUser", `claim email:2026-10-12 ${EMAIL_RETAKE}`, "pick move", `email ada@example.test cs-email:2026-10-12-${UID}`, "markSent email:2026-10-12"]);
+    expect((r.email as { text: string }).text).toContain("\nOne thing this week: Add the numbers for 1 recent post with none yet.\n");
+  });
+
+  it("sends with no move when Jev has no answer", async () => {
+    const { deps, calls } = fake({ userRows: async () => week, answers: null });
+    const r = await runUser(deps, UID, { email: true, push: false }, opts());
+    expect(calls).toContain(`email ada@example.test cs-email:2026-10-12-${UID}`);
+    expect((r.email as { text: string }).text).not.toContain("One thing");
+  });
+
+  it("never asks for an email it will not send", async () => {
+    for (const over of [{ claim: async () => new Set<string>() }, { user: { email: "x@example.test", email_confirmed_at: null } }]) {
+      const { deps, calls } = fake({ userRows: async () => week, ...over });
+      await runUser(deps, UID, { email: true, push: false }, opts());
+      expect(calls.some((c) => c.startsWith("pick"))).toBe(false);
+    }
   });
 });
 

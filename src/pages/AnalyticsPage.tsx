@@ -44,6 +44,20 @@ import { InfoTip } from "@/components/ui/info-tip";
 import LabelMixCard from "@/components/LabelMixCard";
 import { labelMix, loadLabels, type Label as ContentLabel } from "@/lib/labels";
 import { timeLabel } from "@/lib/dueDates";
+import { loadGoals, sgDay } from "@/lib/goals";
+import { loadFollowing } from "@/lib/following";
+import { scoped } from "@/lib/profiles";
+import { callFn } from "@/lib/edgeFn";
+import {
+  moverLine,
+  pctChange,
+  reportFacts,
+  sharedLine,
+  weekMoves,
+  weekReport,
+  type MoveId,
+  type ReportPost,
+} from "../../supabase/functions/notify/logic.ts";
 import CreatorLookup from "@/components/CreatorLookup";
 import AccountAudit from "@/components/AccountAudit";
 import RecruitNumbers from "@/components/recruit/RecruitNumbers";
@@ -237,6 +251,147 @@ function MetricInput({
       placeholder={placeholder}
       className="h-9 w-full min-w-14 rounded-md border border-border/70 bg-background px-2 text-right text-xs tabular-nums outline-none focus:border-primary/40 sm:h-8 [@media(pointer:coarse)]:h-11"
     />
+  );
+}
+
+function WeekStat({ value, label, change }: { value: number; label: string; change: string | null }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-muted/40 px-2.5 py-2">
+      <div className="font-serif text-xl font-semibold leading-none text-foreground">{value.toLocaleString()}</div>
+      <div className="mt-1 truncate text-[11px] text-muted-foreground">{label}</div>
+      {change && (
+        <div className={`text-[11px] font-semibold ${change.startsWith("+") ? "text-success" : change.startsWith("-") ? "text-destructive" : "text-muted-foreground"}`}>
+          {change}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function WeekPosts({ title, posts }: { title: string; posts: ReportPost[] }) {
+  return (
+    <div className="min-w-0 space-y-1.5">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</p>
+      {posts.map((p) => (
+        <Link
+          key={p.id}
+          to={`/generate?draft=${encodeURIComponent(p.id)}`}
+          className="flex min-h-11 flex-col justify-center rounded-lg border border-border/60 px-3 py-1.5 transition-colors hover:border-primary/40"
+        >
+          <span className="truncate text-sm font-medium text-foreground">{p.hook || "Untitled"}</span>
+          <span className="text-[11px] text-muted-foreground">
+            {[PLATFORM_LABEL[p.platform] ?? p.platform, p.impressions ? `${p.impressions.toLocaleString()} impressions` : null, `${p.engagements.toLocaleString()} engagements`]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+// Jev's pick for the week, kept per day and set of moves so a visit doesn't ask again.
+const WEEK_PICK_KEY = "content-studio-weekpick-";
+
+/** This week (g44): the same report and moves as the Monday email, for the last 7 days. */
+function ThisWeekCard({ userId, version }: { userId: string; version: number }) {
+  const report = useMemo(() => {
+    const goal = Object.values(loadGoals(userId)).reduce((s, n) => s + (n ?? 0), 0);
+    return weekReport(loadDrafts(userId), loadFollowing(userId), sgDay(), goal);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, version]);
+  const moves = useMemo(() => weekMoves(report), [report]);
+  const ids = moves.map((m) => m.id).join(",");
+  const [pick, setPick] = useState<MoveId | null>(null);
+  const [picking, setPicking] = useState(false);
+  useEffect(() => {
+    setPick(null);
+    setPicking(false);
+    if (moves.length < 2) return;
+    const key = WEEK_PICK_KEY + scoped(userId);
+    const sig = `${report.end}:${ids}`;
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) ?? "null");
+      if (saved?.sig === sig && ids.split(",").includes(saved.pick)) {
+        setPick(saved.pick);
+        return;
+      }
+    } catch {
+      // unreadable: ask again
+    }
+    let live = true;
+    setPicking(true);
+    callFn<{ pick: MoveId | null }>("week-pick", { facts: reportFacts(report), moves })
+      .then(({ pick: picked }) => {
+        if (!live || !picked) return;
+        setPick(picked);
+        try {
+          localStorage.setItem(key, JSON.stringify({ sig, pick: picked }));
+        } catch {
+          // full storage: still shows until the page reloads
+        }
+      })
+      // no move rather than a guess
+      .catch(() => {})
+      .finally(() => live && setPicking(false));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, report.end, ids]);
+
+  if (!report.posts && !report.prevPosts) return null;
+  const move = moves.find((m) => m.id === pick);
+  const postsDelta = report.posts - report.prevPosts;
+  return (
+    <Card className="border-border/60 shadow-card">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 font-serif text-lg">
+          This week
+          <span className="font-sans text-xs font-normal text-muted-foreground">Last 7 days against the 7 before</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-2">
+          <WeekStat value={report.posts} label="posts" change={postsDelta ? `${postsDelta > 0 ? "+" : ""}${postsDelta}` : "same"} />
+          <WeekStat value={report.impressions} label="impressions" change={pctChange(report.impressions, report.prevImpressions)} />
+          <WeekStat value={report.engagements} label="engagements" change={pctChange(report.engagements, report.prevEngagements)} />
+        </div>
+        <div aria-live="polite">
+          {(move || picking) && (
+            <div className="flex items-start gap-3 rounded-lg border border-primary/25 bg-primary/[0.05] p-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Lightbulb className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">One thing this week</p>
+                <p className={`text-sm font-medium ${move ? "text-foreground" : "text-muted-foreground"}`}>{move ? move.text : "Picking..."}</p>
+              </div>
+            </div>
+          )}
+        </div>
+        {report.best.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <WeekPosts title="Best" posts={report.best} />
+            {report.worst.length > 0 && <WeekPosts title="Weakest" posts={report.worst} />}
+          </div>
+        ) : (
+          report.posts > 0 && <p className="text-sm text-muted-foreground">Add the numbers for these posts in Add your numbers to see what worked.</p>
+        )}
+        {report.shared.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Your best posts share: </span>
+            {report.shared.map((x) => sharedLine(x, report.worst.length)).join("; ")}.
+          </p>
+        )}
+        {report.movers.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Accounts you follow: </span>
+            {report.movers.map(moverLine).join("; ")}.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -457,6 +612,8 @@ export default function AnalyticsPage() {
           Analytics
         </h1>
       </header>
+
+      {userId && <ThisWeekCard userId={userId} version={metricsVersion} />}
 
       <RecruitNumbers />
 

@@ -2,15 +2,23 @@
 // and Resend; run.test.ts wires fakes, so what a run claims, sends and skips
 // is tested without a network.
 
+import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
 import {
   dueMessage,
   duePosts,
+  emailWeeks,
   goalAlert,
+  moveAsk,
   parsePrefs,
+  pickedMove,
   PREFS_PREFIX,
   profilesFrom,
+  reportFacts,
+  weekMoves,
   weeklyEmail,
   type Email,
+  type MoveId,
+  type Profile,
   type PushMessage,
 } from "./logic.ts";
 
@@ -70,6 +78,8 @@ export interface Deps {
   /** How many devices took the alert. */
   sendPush(subs: Sub[], m: PushMessage): Promise<number>;
   sendEmail(to: string, email: Email, idempotencyKey: string): Promise<boolean>;
+  /** Jev's answer to the week's move question, behind the adviser's "week-pick" daily cap; null without one. */
+  pick(uid: string, ask: { state: string; questions: Record<string, JevQuestion> }): Promise<Record<string, JevAnswer> | null>;
   /** Starts this function again as a fresh request with its own CPU budget. */
   next(body: { after: string; upTo?: string }): Promise<void>;
   clock(): number;
@@ -84,6 +94,19 @@ export function confirmedEmail(user: AuthUser | null): string | null {
 }
 
 const mask = (email: string) => email.replace(/^(.).*(@.*)$/, "$1***$2");
+
+/** Jev's one move per reported profile (at most 3 asks), only where the week offers a choice. */
+export async function weekPicks(deps: Deps, uid: string, profiles: Profile[], now: number): Promise<Record<string, MoveId>> {
+  const out: Record<string, MoveId> = {};
+  for (const { p, report } of emailWeeks(profiles, now).slice(0, 3)) {
+    const moves = weekMoves(report);
+    const ask = moveAsk(reportFacts(report), moves);
+    if (!ask) continue;
+    const move = pickedMove(await deps.pick(uid, ask), moves);
+    if (move) out[p.id] = move.id;
+  }
+  return out;
+}
 
 export async function runUser(deps: Deps, uid: string, prefs: { email: boolean; push: boolean }, o: Options) {
   const profiles = profilesFrom(uid, await deps.userRows(uid));
@@ -120,12 +143,14 @@ export async function runUser(deps: Deps, uid: string, prefs: { email: boolean; 
   }
 
   if (prefs.email) {
-    const email = weeklyEmail(profiles, o.now);
-    if (email) {
+    const due = weeklyEmail(profiles, o.now);
+    if (due) {
       const to = o.testTo ?? confirmedEmail(await deps.authUser(uid));
       if (!to) {
         report.email = { skipped: "no confirmed sign-in email" };
-      } else if (test || (await available([email.item], EMAIL_RETAKE)).has(email.item)) {
+      } else if (test || (await available([due.item], EMAIL_RETAKE)).has(due.item)) {
+        // Jev is asked only once the email is ours to send, so an hourly rerun costs nothing.
+        const email = weeklyEmail(profiles, o.now, await weekPicks(deps, uid, profiles, o.now))!;
         const sent = o.dryRun ? null : await deps.sendEmail(to, email, `cs-${email.item}-${uid}${test ? "-test" : ""}`);
         // A failed send keeps its claim unsent; the next hourly run takes it again.
         if (sent && !test) await deps.markSent(uid, [email.item]);

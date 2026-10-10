@@ -15,12 +15,16 @@
 //
 // Secrets: NOTIFY_CRON_SECRET (the same value is in Vault as
 // cs_notify_cron_secret), VAPID_KEYS (JSON {publicKey, privateKey} JWKs),
-// RESEND_API_KEY. Deploy with --no-verify-jwt: the secret header is the auth.
+// RESEND_API_KEY, TYPESAFE_API_KEY (optional: Jev picks the email's one move
+// for the week; without it the email has none). Deploy with --no-verify-jwt:
+// the secret header is the auth.
 //   supabase functions deploy notify --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt
 
 // pinned: this runs with the service key
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { ApplicationServer, importVapidKeys, PushMessageError, Urgency } from "jsr:@negrel/webpush@0.5.0";
+import { askJev } from "../_shared/jev.ts";
+import { consumeUsage } from "../_shared/usageCaps.ts";
 import { APP_URL, isPushEndpoint, PREFS_PREFIX } from "./logic.ts";
 import { runPage, type Deps, type Options } from "./run.ts";
 
@@ -81,6 +85,7 @@ function wire(secret: string): Deps {
               `key.like.content-studio-drafts-${uid}*`,
               `key.like.content-studio-goals-${uid}*`,
               `key.like.content-studio-positioning-${uid}*`,
+              `key.like.content-studio-following-${uid}*`,
               `key.eq.content-studio-profiles-${uid}`,
             ].join(","),
           ),
@@ -164,6 +169,11 @@ function wire(secret: string): Deps {
         console.error("resend failed", errText(e));
       }
       return false;
+    },
+    async pick(uid, ask) {
+      const usage = await consumeUsage(admin, uid, "week-pick");
+      if (!usage.allowed) return null;
+      return askJev(ask.state, ask.questions, { who: "notify" });
     },
     async next(body) {
       const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notify`, {
