@@ -1,23 +1,28 @@
 // Videos made without filming, on Edit a video (the ai-video edge function, Higgsfield):
 //   avatar: a photo of you, or an AI presenter, speaking your script; Speak animates each slice of the voiceover
 //   explainer: a topic becomes scenes, one AI picture each, over one voiceover
+//   template: a look from the gallery (supabase/functions/ai-video/templates.ts) with the adviser's blanks
+//     and optional photos becomes one Seedance clip
 // The jobs live outside React, so they carry on while the adviser uses other pages. When the clips or
 // pictures are in, they are put together on this device (videoMedia's join job) and Edit a video opens
-// the result like an upload, with captions. An avatar video's job tokens stay on this device until it
-// is put together, so a reload or a dropped download picks up the paid clips again at no cost.
+// the result like an upload, with captions. An avatar video's or a template clip's job tokens stay on this
+// device until it is put together, so a reload or a dropped download picks up the paid clips again at no cost.
 
 import { callFn } from "@/lib/edgeFn";
 import { planSlices, sceneSeconds } from "@/lib/videoEdit";
 import { currentJoin, monoPcm, startJoin, startSlides, encodeWav } from "@/lib/videoMedia";
 import { audioSeconds, speak, type VoiceId } from "@/lib/textVoice";
-import { MAX_SLICE, type MediaState, type Scene } from "../../supabase/functions/ai-video/logic.ts";
+import { MAX_SLICE, type ClipQuality, type ClipSeconds, type MediaState, type Scene } from "../../supabase/functions/ai-video/logic.ts";
+import type { FieldKey, PhotoRole } from "../../supabase/functions/ai-video/templates.ts";
 
 export {
-  MAX_AVATAR_SECONDS, MAX_LOOK, MAX_TOPIC, avatarCredits, creditsUsd, explainerCredits, type Scene,
+  CLIP_QUALITIES, CLIP_SECONDS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, avatarCredits, clipCredits, creditsUsd,
+  explainerCredits, type ClipQuality, type ClipSeconds, type Scene,
 } from "../../supabase/functions/ai-video/logic.ts";
+export { TEMPLATES, TEMPLATE_CREDIT, TEMPLATE_SOURCE, examplesUrl, type VideoTemplate, type PhotoRole, type FieldKey } from "../../supabase/functions/ai-video/templates.ts";
 
 export interface AiJob {
-  kind: "presenter" | "avatar" | "explainer";
+  kind: "presenter" | "avatar" | "explainer" | "template";
   state: "working" | "done" | "failed";
   step: string;
   error?: string;
@@ -148,6 +153,8 @@ interface Pending {
   name: string;
   tokens: string[];
   seconds: number[];
+  /** A template clip; an avatar video when missing. */
+  kind?: "template";
 }
 export function pendingAvatar(): Pending | null {
   try {
@@ -168,20 +175,21 @@ const keepPending = (p: Pending | null) => {
 
 async function finishAvatar(p: Pending): Promise<void> {
   const n = p.tokens.length;
-  set({ kind: "avatar", state: "working", step: `Making your video, 0 of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` });
+  const kind = p.kind ?? "avatar";
+  set({ kind, state: "working", step: `Making your video, 0 of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` });
   try {
     const urls = await waitFor(p.tokens, (d) =>
-      set({ kind: "avatar", state: "working", step: `Making your video, ${d} of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` }));
-    set({ kind: "avatar", state: "working", step: "Downloading your video..." });
+      set({ kind, state: "working", step: `Making your video, ${d} of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` }));
+    set({ kind, state: "working", step: "Downloading your video..." });
     const clips = await Promise.all(urls.map(download));
     await joinSlot();
     keepPending(null);
-    set({ kind: "avatar", state: "done", step: "" });
+    set({ kind, state: "done", step: "" });
     void startJoin(p.name, clips.map((file, i) => ({ file, start: 0, end: p.seconds[i] })), "Putting your video together");
   } catch (e) {
     // a job Higgsfield failed is gone; a dropped download can be picked up again
     if (e instanceof JobFailed) keepPending(null);
-    fail("avatar", e);
+    fail(kind, e);
   }
 }
 
@@ -204,7 +212,31 @@ export async function makeAvatar(name: string, photo: Blob | string, voice: Voic
   await finishAvatar(p);
 }
 
-/** Picks up an avatar video whose parts were paid for but never put together (a reload, a dropped download). */
+export interface TemplateAsk {
+  template: string;
+  seconds: ClipSeconds;
+  quality: ClipQuality;
+  fields: Partial<Record<FieldKey, string>>;
+  photos: { role: PhotoRole; file: Blob }[];
+}
+
+/** One template clip: the server writes the shots and Seedance makes it; it opens in the editor like an avatar video. */
+export async function makeTemplateClip(name: string, ask: TemplateAsk): Promise<void> {
+  if (aiBusy()) return;
+  set({ kind: "template", state: "working", step: "Writing the shots..." });
+  let p: Pending;
+  try {
+    const photos = await Promise.all(ask.photos.map(async (ph) => ({ role: ph.role, jpeg: await b64(await toJpeg(ph.file)) })));
+    const { tokens } = await callFn<{ tokens: string[] }>("ai-video", { mode: "template", template: ask.template, seconds: ask.seconds, quality: ask.quality, fields: ask.fields, photos }, RETRY);
+    p = { name, tokens, seconds: [ask.seconds], kind: "template" };
+    keepPending(p);
+  } catch (e) {
+    return fail("template", e);
+  }
+  await finishAvatar(p);
+}
+
+/** Picks up an avatar video or template clip that was paid for but never put together (a reload, a dropped download). */
 export function resumeAvatar(): void {
   const p = pendingAvatar();
   if (p && !aiBusy()) void finishAvatar(p);

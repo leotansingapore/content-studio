@@ -77,6 +77,10 @@ export const DAILY_LIMITS = {
   "ai-video-global": 20,
   // The explainer's script and scene pictures, written by OpenAI (ai-video mode "script").
   "ai-video-script": 10,
+  // A template clip (ai-video mode "template", Seedance 2.5): US$0.82 for 4 s at 480p up to US$3.70 for 8 s at
+  // 720p, so per adviser, and across everyone on GLOBAL_COUNTER_USER at 8 a day (under US$30, like the AI videos).
+  "ai-clip": 2,
+  "ai-clip-global": 8,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

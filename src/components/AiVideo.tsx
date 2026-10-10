@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,22 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
 import {
-  LOOKS, MAX_AVATAR_SECONDS, MAX_LOOK, MAX_TOPIC, aiJob, avatarCredits, creditsUsd, explainerCredits, makeAvatar,
-  makeExplainer, makePresenter, onAiJob, pendingAvatar, resumeAvatar, sliceVoiceover, writeExplainer,
-  type AiJob, type Scene, type Voiceover,
+  CLIP_QUALITIES, CLIP_SECONDS, LOOKS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, TEMPLATES, TEMPLATE_CREDIT, TEMPLATE_SOURCE,
+  aiJob, avatarCredits, clipCredits, creditsUsd, examplesUrl, explainerCredits, makeAvatar, makeExplainer, makePresenter,
+  makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar, sliceVoiceover, writeExplainer,
+  type AiJob, type ClipQuality, type ClipSeconds, type FieldKey, type PhotoRole, type Scene, type VideoTemplate, type Voiceover,
 } from "@/lib/aiVideo";
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 const secs = (t: number) => `${Math.round(t)} seconds`;
 const cost = (credits: number) => `${credits} Higgsfield credits (about US$${creditsUsd(credits).toFixed(2)})`;
 
-/** Edit a video's start screen: a video made without filming, of you or a presenter speaking, or an explainer. */
+/** Edit a video's start screen: a video made without filming, from a template, of you or a presenter speaking, or an explainer. */
 export default function AiVideo({ onClose }: { onClose: () => void }) {
   const [job, setJob] = useState<AiJob | null>(aiJob());
   useEffect(() => onAiJob(setJob), []);
   // an avatar video paid for but never put together (a reload) carries on by itself
   useEffect(() => resumeAvatar(), []);
-  const [tab, setTab] = useState<"avatar" | "explainer">(job?.kind === "explainer" ? "explainer" : "avatar");
+  const [tab, setTab] = useState<"template" | "avatar" | "explainer">(
+    job?.kind === "explainer" ? "explainer" : job?.kind === "avatar" || job?.kind === "presenter" ? "avatar" : "template");
   const busy = job?.state === "working";
   const left = useUsesLeft(busy);
 
@@ -32,10 +35,11 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
         <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={onClose}>Close</Button>
       </div>
       <div className="flex gap-1.5" role="group" aria-label="Kind of video">
+        <Pill on={tab === "template"} onClick={() => setTab("template")} disabled={busy}>From a template</Pill>
         <Pill on={tab === "avatar"} onClick={() => setTab("avatar")} disabled={busy}>You speaking</Pill>
         <Pill on={tab === "explainer"} onClick={() => setTab("explainer")} disabled={busy}>Explainer</Pill>
       </div>
-      {tab === "avatar" ? <Avatar job={job} busy={busy} left={left} /> : <Explainer busy={busy} left={left} />}
+      {tab === "template" ? <Templates busy={busy} left={left} /> : tab === "avatar" ? <Avatar job={job} busy={busy} left={left} /> : <Explainer busy={busy} left={left} />}
       {busy && (
         <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
           <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> {job?.step}
@@ -44,7 +48,7 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
       {job?.state === "failed" && (
         <div className="flex flex-wrap items-center gap-2" role="alert">
           <p className="text-sm text-destructive">{job.error}</p>
-          {job.kind === "avatar" && pendingAvatar() && (
+          {(job.kind === "avatar" || job.kind === "template") && pendingAvatar() && (
             <Button size="sm" variant="outline" className="h-11 sm:h-9" onClick={resumeAvatar}>Try again at no cost</Button>
           )}
         </div>
@@ -54,6 +58,109 @@ export default function AiVideo({ onClose }: { onClose: () => void }) {
 }
 
 type Left = ReturnType<typeof useUsesLeft>;
+
+/** The gallery: pick a look, fill its blanks, read its warnings and the cost, make one Seedance clip. */
+function Templates({ busy, left }: { busy: boolean; left: Left }) {
+  const [pick, setPick] = useState<VideoTemplate | null>(null);
+  // kept across templates, so a product typed once carries over
+  const [fields, setFields] = useState<Partial<Record<FieldKey, string>>>({});
+  const [photos, setPhotos] = useState<Partial<Record<PhotoRole, { file: File; url: string }>>>({});
+  const [seconds, setSeconds] = useState<ClipSeconds>(8);
+  const [quality, setQuality] = useState<ClipQuality>("720p");
+  const urls = useRef<string[]>([]);
+  useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
+
+  if (!pick) {
+    return (
+      <div className="space-y-2">
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {TEMPLATES.map((t) => (
+            <li key={t.id}>
+              <button type="button" onClick={() => setPick(t)} disabled={busy}
+                className="flex h-full min-h-11 w-full flex-col items-start gap-0.5 rounded-xl border border-border/70 p-3 text-left hover:border-primary/40 disabled:opacity-60">
+                <span className="text-sm font-semibold">{t.title}</span>
+                <span className="text-xs text-muted-foreground">{t.blurb}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <a href={TEMPLATE_SOURCE} target="_blank" rel="noreferrer" className="inline-block text-[11px] text-muted-foreground underline">{TEMPLATE_CREDIT}</a>
+      </div>
+    );
+  }
+
+  const value = (k: FieldKey) => (fields[k] ?? "").trim();
+  const ready = pick.fields.every((f) => !f.required || value(f.key)) && (!pick.needsPhoto || !!photos[pick.needsPhoto]);
+  const clips = left("ai-clip");
+  const make = () =>
+    void makeTemplateClip(value(pick.fields.find((f) => f.required)!.key).slice(0, 40) || pick.title, {
+      template: pick.id,
+      seconds,
+      quality,
+      fields: Object.fromEntries(pick.fields.flatMap((f) => (value(f.key) ? [[f.key, value(f.key)]] : []))),
+      photos: pick.photos.flatMap((role) => (photos[role] ? [{ role, file: photos[role]!.file }] : [])),
+    });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-1">
+        <h3 className="text-sm font-semibold">{pick.title}</h3>
+        <div className="flex items-center">
+          <a href={examplesUrl(pick.id)} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center px-2 text-xs text-muted-foreground underline sm:h-9">Examples</a>
+          <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={() => setPick(null)} disabled={busy}>All templates</Button>
+        </div>
+      </div>
+      {pick.fields.map((f) => (
+        <label key={f.key} className="block space-y-1">
+          <span className="text-xs font-medium">{f.label}{f.required ? "" : " (optional)"}</span>
+          <Input value={fields[f.key] ?? ""} maxLength={MAX_FIELD} placeholder={f.placeholder} disabled={busy} className="h-11 sm:h-10"
+            onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })} />
+        </label>
+      ))}
+      <div className="flex flex-wrap gap-3">
+        {pick.photos.map((role) => {
+          const ph = photos[role];
+          return (
+            <div key={role} className="flex items-center gap-2">
+              {ph && <img src={ph.url} alt={`The ${role}`} className="h-16 w-12 rounded-lg object-cover" />}
+              <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9">
+                {ph ? `Change ${role} photo` : `Photo of the ${role}${pick.needsPhoto === role ? "" : " (optional)"}`}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    const url = URL.createObjectURL(file);
+                    urls.current.push(url);
+                    setPhotos({ ...photos, [role]: { file, url } });
+                  }} />
+              </label>
+              {ph && <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-9" disabled={busy} onClick={() => setPhotos({ ...photos, [role]: undefined })}>Remove</Button>}
+            </div>
+          );
+        })}
+      </div>
+      <ul className="space-y-1" aria-label="Before you make it">
+        {pick.warnings.map((w) => (
+          <li key={w} className="flex items-start gap-1.5 text-xs"><AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-warning" aria-hidden /> {w}</li>
+        ))}
+      </ul>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex gap-1.5" role="group" aria-label="Length">
+          {CLIP_SECONDS.map((n) => <Pill key={n} on={seconds === n} disabled={busy} onClick={() => setSeconds(n)}>{n} seconds</Pill>)}
+        </div>
+        <div className="flex gap-1.5" role="group" aria-label="Quality">
+          {CLIP_QUALITIES.map((q) => <Pill key={q} on={quality === q} disabled={busy} onClick={() => setQuality(q)}>{q}</Pill>)}
+        </div>
+      </div>
+      <p className="text-sm">Costs {cost(clipCredits(seconds, quality))}.</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button className="h-11 sm:h-10" disabled={busy || !ready || clips === 0} onClick={make}>Make the clip</Button>
+        <Left n={clips} what="AI clips" />
+      </div>
+    </div>
+  );
+}
 
 function Avatar({ job, busy, left }: { job: AiJob | null; busy: boolean; left: Left }) {
   const [face, setFace] = useState<"photo" | "presenter">("photo");

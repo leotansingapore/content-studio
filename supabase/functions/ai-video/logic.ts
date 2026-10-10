@@ -1,21 +1,34 @@
 // Pure logic for ai-video: videos made without filming, through Higgsfield.
 //   avatar: your photo (or an AI presenter) speaking your script, Higgsfield Speak per slice of the voiceover
 //   explainer: a topic becomes a short script and one Higgsfield picture per scene
+//   template: a look from the template gallery (./templates.ts), written up by OpenAI, made by Seedance 2.5
 // No Deno or npm imports, so vitest covers it. The browser imports the costs and limits from here.
 
 import { PEOPLE_RULE } from "../ai-image/logic.ts";
 import { oneLineText, parseObject } from "../clone-reel/logic.ts";
+import { templateById, type FieldKey, type PhotoRole } from "./templates.ts";
 
 // The v1 route: "higgsfield-ai/speak" accepts image_url and audio_url but drops them from the job, which then
 // fails with "Generation failed" (2026-10-10). Its jobs report on the same /requests/<id>/status.
 export const SPEAK_MODEL = "v1/speak/higgsfield";
 export const PICTURE_MODEL = "higgsfield-ai/soul/v2/standard";
+// Template clips. No photo: text to video. With photos: reference to video, which takes several named images
+// (@image1, @image2) where image to video takes one first frame. Both checked against docs.higgsfield.ai 2026-10-10.
+export const SEEDANCE_TEXT = "bytedance/seedance-2.5/text-to-video";
+export const SEEDANCE_REFS = "bytedance/seedance-2.5/reference-to-video";
 
 // Credits from Higgsfield's free POST /estimate/<model> on 2026-10-08 (1 credit = USD 0.0625).
 // Check them again there when Higgsfield changes its prices.
 export const CREDIT_USD = 0.0625;
 const SPEAK_CREDITS = { 5: 11, 10: 22 } as const; // quality "mid"
 export const PICTURE_CREDITS = 0.09; // Soul v2, 9:16 at 1080p
+// Seedance 2.5 bills by the second of video made (its /estimate pricing, 2026-10-10): US$0.2056 at 480p, US$0.4622 at 720p.
+const SEEDANCE_USD_PER_SECOND = { "480p": 0.2056, "720p": 0.4622 } as const;
+export const CLIP_SECONDS = [4, 8] as const;
+export const CLIP_QUALITIES = ["480p", "720p"] as const;
+export type ClipSeconds = (typeof CLIP_SECONDS)[number];
+export type ClipQuality = (typeof CLIP_QUALITIES)[number];
+export const MAX_FIELD = 200;
 
 /** Speak bills the requested 5 or 10 seconds and failed on slices close to the cap, so slices stay under 9.5 s. */
 export const MAX_SLICE = 9.5;
@@ -33,6 +46,7 @@ export const speakSeconds = (slice: number): 5 | 10 => (slice <= 4.5 ? 5 : 10);
 export const avatarCredits = (slices: number[]) => slices.reduce((n, s) => n + SPEAK_CREDITS[speakSeconds(s)], 0);
 export const explainerCredits = (scenes: number) => Math.round(scenes * PICTURE_CREDITS * 100) / 100;
 export const creditsUsd = (credits: number) => credits * CREDIT_USD;
+export const clipCredits = (seconds: ClipSeconds, quality: ClipQuality) => Math.round((seconds * SEEDANCE_USD_PER_SECOND[quality] * 10) / CREDIT_USD) / 10;
 
 export type Photo = { url: string } | { jpeg: string };
 export type VideoRequest =
@@ -40,6 +54,15 @@ export type VideoRequest =
   | { mode: "presenter"; look: string }
   | { mode: "avatar"; photo: Photo; slices: { wav: string; seconds: number }[] }
   | { mode: "explainer"; pictures: string[] }
+  | {
+      mode: "template";
+      template: string;
+      seconds: ClipSeconds;
+      quality: ClipQuality;
+      fields: Partial<Record<FieldKey, string>>;
+      /** In the template's photo order, so the first is @image1. */
+      photos: { role: PhotoRole; jpeg: string }[];
+    }
   | { mode: "status"; tokens: string[] };
 
 type Parsed = { ok: true; request: VideoRequest } | { ok: false; error: string };
@@ -86,6 +109,30 @@ export function parseVideoRequest(raw: unknown): Parsed {
         return no("Write the explainer again; its scenes didn't come through.");
       }
       return { ok: true, request: { mode: "explainer", pictures } };
+    }
+    case "template": {
+      const t = templateById(b.template);
+      if (!t) return no("Pick a template first.");
+      const seconds = CLIP_SECONDS.find((x) => x === b.seconds);
+      const quality = CLIP_QUALITIES.find((x) => x === b.quality);
+      if (!seconds || !quality) return no("Pick a length and a quality first.");
+      const given = (b.fields && typeof b.fields === "object" ? b.fields : {}) as Record<string, unknown>;
+      const fields: Partial<Record<FieldKey, string>> = {};
+      for (const f of t.fields) {
+        const v = oneLineText(given[f.key], MAX_FIELD + 1);
+        if (v.length > MAX_FIELD) return no(`Keep "${f.label}" under ${MAX_FIELD} characters.`);
+        if (v) fields[f.key] = v;
+        else if (f.required) return no(`Fill in "${f.label}" first.`);
+      }
+      const photos: { role: PhotoRole; jpeg: string }[] = [];
+      for (const p of (Array.isArray(b.photos) ? b.photos : []) as Record<string, unknown>[]) {
+        const role = t.photos.find((r) => r === p?.role);
+        if (!role || photos.some((x) => x.role === role) || !isB64(p.jpeg, MAX_PHOTO_B64, ["/9j/"])) return no("A photo didn't come through. Add it again.");
+        photos.push({ role, jpeg: p.jpeg as string });
+      }
+      if (t.needsPhoto && !photos.some((p) => p.role === t.needsPhoto)) return no("Add a photo first.");
+      photos.sort((x, y) => t.photos.indexOf(x.role) - t.photos.indexOf(y.role));
+      return { ok: true, request: { mode: "template", template: t.id, seconds, quality, fields, photos } };
     }
     case "status": {
       const tokens = Array.isArray(b.tokens) ? b.tokens : [];
@@ -136,6 +183,12 @@ export function presenterBody(look: string): Record<string, unknown> {
 /** One explainer scene's picture, with Leo's people rule, 9:16 for Reels. */
 export function pictureBody(picture: string): Record<string, unknown> {
   return { prompt: `${picture}\n\n${PEOPLE_RULE}`, aspect_ratio: "9:16", resolution: "1080p", batch_size: 1 };
+}
+
+/** The Seedance request for a template clip: text to video, or reference to video when photos came with it. */
+export function seedanceRequest(prompt: string, seconds: ClipSeconds, quality: ClipQuality, imageUrls: string[]): { model: string; body: Record<string, unknown> } {
+  const body = { prompt, duration: seconds, resolution: quality, aspect_ratio: "9:16", generate_audio: true };
+  return imageUrls.length ? { model: SEEDANCE_REFS, body: { ...body, image_urls: imageUrls } } : { model: SEEDANCE_TEXT, body };
 }
 
 export type MediaState = { state: "working" } | { state: "done"; url: string } | { state: "failed"; error: string };
