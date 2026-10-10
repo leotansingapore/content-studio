@@ -614,6 +614,12 @@ export interface CarouselBrand {
   facebook?: string;
   whatsapp?: string;
   whatsappText?: string;
+  /** Up to 5 offers a post may link to (brandRules.ts), kept as typed; only http(s) links are used. */
+  offers?: { name: string; url: string }[];
+  /** Emoji in written posts: one at most or none (unset = any). */
+  emojiPolicy?: "one" | "none";
+  /** Hashtags in written posts: up to 10, 2 to 4 or none (unset = each platform's usual). */
+  hashtagPolicy?: "ten" | "few" | "none";
 }
 
 export const BRAND_PRESETS: { name: string; color: string }[] = [
@@ -632,6 +638,9 @@ export const MAX_ROLE_CHARS = 50;
 export const MAX_SIGNOFF_CHARS = 600;
 export const MAX_DM_CHARS = 100;
 export const MAX_WA_TEXT = 300;
+export const MAX_OFFERS = 5;
+export const MAX_OFFER_NAME = 60;
+export const MAX_OFFER_URL = 300;
 /** Encoded image cap: keeps a synced brand kit small. */
 export const MAX_IMAGE_CHARS = 350_000;
 export const BRAND_KEY_PREFIX = "content-studio-carousel-brand-";
@@ -681,6 +690,14 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     facebook: typeof r.facebook === "string" ? r.facebook.slice(0, MAX_DM_CHARS) : fallback.facebook,
     whatsapp: typeof r.whatsapp === "string" ? r.whatsapp.slice(0, MAX_DM_CHARS) : fallback.whatsapp,
     whatsappText: typeof r.whatsappText === "string" ? r.whatsappText.slice(0, MAX_WA_TEXT) : fallback.whatsappText,
+    offers: Array.isArray(r.offers)
+      ? r.offers
+          .filter((o): o is Record<string, unknown> => !!o && typeof o === "object")
+          .slice(0, MAX_OFFERS)
+          .map((o) => ({ name: String(o.name ?? "").slice(0, MAX_OFFER_NAME), url: String(o.url ?? "").slice(0, MAX_OFFER_URL) }))
+      : fallback.offers,
+    emojiPolicy: r.emojiPolicy === "one" || r.emojiPolicy === "none" ? r.emojiPolicy : fallback.emojiPolicy,
+    hashtagPolicy: r.hashtagPolicy === "ten" || r.hashtagPolicy === "few" || r.hashtagPolicy === "none" ? r.hashtagPolicy : fallback.hashtagPolicy,
   };
 }
 

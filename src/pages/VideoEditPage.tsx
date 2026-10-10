@@ -44,7 +44,8 @@ import { scanCompliance } from "@/lib/compliance";
 import { stripDashes } from "@/lib/recruit";
 import { loadBrand } from "@/lib/carousel";
 import { tagLinks, withSignOff } from "@/lib/plainText";
-import { checkLimits } from "@/lib/platformCounters";
+import { checkLimits, strayLinks } from "@/lib/platformCounters";
+import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
 import { supabase } from "@/lib/supabase";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
@@ -1208,7 +1209,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         pillar: "topic",
         pillarDetail: project.name,
         ideaSource: "A reel I already filmed",
-        ideaContext: `Write ONLY the post caption for this reel, not a script. What I say in it: ${transcript.slice(0, 1800)}\nShape: a strong first line, 2 to 4 short lines, a soft call to action or question, then 5 to 8 relevant hashtags. Use only facts that are in what I say.`,
+        ideaContext: [`Write ONLY the post caption for this reel, not a script. What I say in it: ${transcript.slice(0, 1800)}\nShape: a strong first line, 2 to 4 short lines, a soft call to action or question, then 5 to 8 relevant hashtags. Use only facts that are in what I say.`, brandRulesLine(brandKit)].filter(Boolean).join("\n\n"),
         format: "short-video",
         platform: "instagram",
         ctaType: "save-share",
@@ -1221,7 +1222,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         onError: (m) => toast({ title: "The caption didn't come through", description: m, variant: "destructive" }),
       },
     );
-    if (text) setCaption(stripDashes(splitScriptCaption(text).caption));
+    if (text) setCaption(applyBrandRules(stripDashes(splitScriptCaption(text).caption), brandKit));
     setWritingCaption(false);
   };
   const captionFlags = useMemo(() => scanCompliance(caption), [caption]);
@@ -1232,7 +1233,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   }, [caption, brandKit, project.name]);
   const copyCaption = () =>
     navigator.clipboard.writeText(postText).then(() => toast({ title: brandKit?.signOff?.trim() ? "Caption copied with your sign-off" : "Caption copied" }));
-  const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram").warnings : []), [caption, postText]);
+  const brandLinks = useMemo(() => allowedLinks(brandKit), [brandKit]);
+  const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram", brandLinks).warnings : []), [caption, postText, brandLinks]);
   const saveToPosts = () => {
     upsertDraft(userId, {
       id: `video-${project.id}`,
@@ -1753,6 +1755,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                     ))}
                   </ul>
                 )}
+                {brandLinks.length > 0 && strayLinks(caption, brandLinks).map((l) => <p key={l} className="break-all text-[11px] font-medium text-warning">Not one of your offer links: {l}</p>)}
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" onClick={saveToPosts} disabled={savedDraft}>{savedDraft ? "Saved to My posts" : "Save to My posts"}</Button>
                   <Button size="sm" variant="ghost" onClick={copyCaption}>Copy</Button>
@@ -1760,7 +1763,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 </div>
               </>
             )}
-            <PlatformCaptions projectId={project.id} transcript={transcript} instagram={caption} title={project.name} />
+            <PlatformCaptions projectId={project.id} transcript={transcript} instagram={caption} title={project.name} brand={brandKit} />
             <div className="space-y-2 border-t border-border/60 pt-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="mr-auto text-sm font-semibold">Title and cover</p>

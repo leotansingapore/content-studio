@@ -7,7 +7,7 @@ const talk = "Most people think their company insurance is enough. I reviewed 40
 describe("captions request", () => {
   it("needs what is said; the Instagram caption and title are optional", () => {
     const r = parseCaptionsRequest({ transcript: ` ${talk} `, instagram: "IG caption #cpf", title: "  Hospital   cover " });
-    expect(r).toEqual({ ok: true, transcript: talk, instagram: "IG caption #cpf", title: "Hospital cover" });
+    expect(r).toEqual({ ok: true, transcript: talk, instagram: "IG caption #cpf", title: "Hospital cover", rules: "" });
     expect(parseCaptionsRequest({ transcript: "too short" }).ok).toBe(false);
   });
   it("tells the writer each platform's shape and hashtag limit", () => {
@@ -15,6 +15,13 @@ describe("captions request", () => {
     for (const p of Object.values(PLATFORM_RULES)) expect(system.content).toContain(p.shape);
     expect(user.content).toContain("IG caption");
     expect(user.content).not.toContain("Video title");
+  });
+  it("passes the brand kit's rules line to the writer when one is sent", () => {
+    const rules = "MY BRAND RULES (these win over any other emoji, hashtag or link guidance): Use no emoji at all.";
+    const r = parseCaptionsRequest({ transcript: talk, rules: `${rules}\n` });
+    expect(r.ok && r.rules).toBe(rules);
+    expect(buildCaptionsMessages(talk, "", "", rules)[0].content).toContain(rules);
+    expect(buildCaptionsMessages(talk, "", "")[0].content).not.toContain("BRAND RULES");
   });
 });
 

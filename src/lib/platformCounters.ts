@@ -157,6 +157,15 @@ export function findLinks(text: string): string[] {
   return (text.match(LINK) ?? []).map((l) => l.replace(TRAIL, ""));
 }
 
+// A link compared without its scheme, www., query (UTM tags), fragment or closing slash.
+const bare = (l: string) => l.toLowerCase().replace(/^(?:https?:\/\/)?(?:www\.)?/, "").replace(/[?#].*$/, "").replace(/\/+$/, "");
+
+/** Links in the text that are none of `allowed` (the brand kit's offers and DM links), once each. */
+export function strayLinks(text: string, allowed: string[]): string[] {
+  const ok = new Set(allowed.map(bare));
+  return [...new Set(findLinks(text))].filter((l) => !ok.has(bare(l)));
+}
+
 /**
  * The post with each link swapped for a pointer to the first comment, and the
  * first comment's text: the links already there plus the new ones, once each.
@@ -174,7 +183,8 @@ export function moveLinksToComment(text: string, comment = ""): { body: string; 
   return moved ? { body, comment: links.join("\n") } : null;
 }
 
-export function checkLimits(text: string, platform: PlatformId): LimitCheck {
+/** `offers`: the brand kit's links; when there are any, every other link is flagged. */
+export function checkLimits(text: string, platform: PlatformId, offers: string[] = []): LimitCheck {
   const chars = countChars(text);
   const maxChars = MAX_CHARS[platform];
   const hashtags = countHashtags(text);
@@ -195,6 +205,7 @@ export function checkLimits(text: string, platform: PlatformId): LimitCheck {
   if (platform === "linkedin" && links > 0) {
     warnings.push({ level: "warn", message: "LinkedIn shows posts with a link to fewer people." });
   }
+  if (offers.length) for (const l of strayLinks(text, offers)) warnings.push({ level: "warn", message: `Not one of your offer links: ${l}` });
   return { chars, maxChars, hashtags, links, warnings };
 }
 

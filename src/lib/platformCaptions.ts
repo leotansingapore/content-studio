@@ -30,8 +30,9 @@ export function savePlatformCaptions(projectId: string, set: PlatformCaptionSet)
   }
 }
 
-export async function writePlatformCaptions(transcript: string, instagram: string, title: string): Promise<PlatformCaptionSet> {
-  const res = await callFn<{ captions?: PlatformCaptionSet }>("video-assist", { mode: "captions", transcript, instagram, title }, "Couldn't write the captions right now. Try again in a minute.");
+/** `rules`: the brand kit's rules line (brandRules.ts), "" when it sets none. */
+export async function writePlatformCaptions(transcript: string, instagram: string, title: string, rules = ""): Promise<PlatformCaptionSet> {
+  const res = await callFn<{ captions?: PlatformCaptionSet }>("video-assist", { mode: "captions", transcript, instagram, title, rules: rules || undefined }, "Couldn't write the captions right now. Try again in a minute.");
   const out: PlatformCaptionSet = {};
   for (const p of CAPTION_PLATFORMS) if (typeof res?.captions?.[p] === "string") out[p] = res.captions[p];
   if (!Object.keys(out).length) throw new Error("The captions came back incomplete. Try again.");

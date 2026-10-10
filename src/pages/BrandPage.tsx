@@ -22,6 +22,9 @@ import {
   MAX_HANDLE_CHARS,
   MAX_IMAGE_CHARS,
   MAX_NAME_CHARS,
+  MAX_OFFERS,
+  MAX_OFFER_NAME,
+  MAX_OFFER_URL,
   MAX_ROLE_CHARS,
   MAX_SIGNOFF_CHARS,
   MAX_WA_TEXT,
@@ -31,6 +34,7 @@ import {
   saveBrand,
   type CarouselBrand,
 } from "@/lib/carousel";
+import { offerUrl } from "@/lib/brandRules";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
 
@@ -119,6 +123,28 @@ function DmField({
   );
 }
 
+/** One policy as a row of chips; the first option (undefined) means no rule. */
+function PolicyChips<T extends string>({ id, label, value, options, onChange }: { id: string; label: string; value: T | undefined; options: [T | undefined, string][]; onChange: (v: T | undefined) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <p id={id} className="text-sm font-medium">{label}</p>
+      <div role="group" aria-labelledby={id} className="flex flex-wrap gap-1.5">
+        {options.map(([v, text]) => (
+          <button
+            key={text}
+            type="button"
+            aria-pressed={value === v}
+            onClick={() => onChange(v)}
+            className={`min-h-9 rounded-full border px-3 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${value === v ? "border-primary/60 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function BrandPage() {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
@@ -190,6 +216,8 @@ export default function BrandPage() {
   const links = useMemo(() => dmLinks(dm), [dm]);
   const linkOf = (id: string) => links.find((l) => l.id === id)?.url;
   const setDm = (field: keyof DmFields) => (v: string) => update({ [field]: v });
+  const offers = brand.offers ?? [];
+  const setOffer = (i: number, patch: Partial<{ name: string; url: string }>) => update({ offers: offers.map((o, j) => (j === i ? { ...o, ...patch } : o)) });
   const copyLink = (url: string) =>
     navigator.clipboard.writeText(url).then(
       () => toast({ title: "Link copied" }),
@@ -267,6 +295,59 @@ export default function BrandPage() {
               </Label>
               <Input id="dm-whatsapp-text" value={dm.whatsappText} maxLength={MAX_WA_TEXT} placeholder="Hi, I saw your post and have a question" onChange={(e) => update({ whatsappText: e.target.value })} />
             </DmField>
+          </section>
+
+          <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="offers">
+            <div className="flex items-center gap-1">
+              <h2 className="font-serif text-lg font-semibold">Offers</h2>
+              <InfoTip label="About offers">Posts link only to these. Any other link gets flagged.</InfoTip>
+            </div>
+            {offers.length > 0 && (
+              <ul className="space-y-3">
+                {offers.map((o, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+                      <Input value={o.name} maxLength={MAX_OFFER_NAME} aria-label={`Offer ${i + 1}: what it is`} placeholder="Free retirement review" onChange={(e) => setOffer(i, { name: e.target.value })} />
+                      <div className="min-w-0 space-y-1">
+                        <Input
+                          value={o.url}
+                          maxLength={MAX_OFFER_URL}
+                          aria-label={`Offer ${i + 1}: link`}
+                          placeholder="https://yoursite.sg/review"
+                          inputMode="url"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          onChange={(e) => setOffer(i, { url: e.target.value })}
+                          onBlur={() => {
+                            const clean = offerUrl(o.url);
+                            if (clean && clean !== o.url) setOffer(i, { url: clean });
+                          }}
+                          className="peer"
+                        />
+                        {o.url.trim() && !offerUrl(o.url) && <p className="text-[11px] font-medium text-warning peer-focus:hidden">Use a web link, like https://yoursite.sg/review</p>}
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label={`Remove offer ${i + 1}`} onClick={() => update({ offers: offers.filter((_, j) => j !== i) })}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {offers.length < MAX_OFFERS && (
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 [@media(pointer:coarse)]:h-11" onClick={() => update({ offers: [...offers, { name: "", url: "" }] })}>
+                <Plus className="h-3.5 w-3.5" /> Add an offer
+              </Button>
+            )}
+          </section>
+
+          <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="policies">
+            <div className="flex items-center gap-1">
+              <h2 className="font-serif text-lg font-semibold">Emoji and hashtags</h2>
+              <InfoTip label="About emoji and hashtags">Posts, carousels and video captions written for you keep to these.</InfoTip>
+            </div>
+            <PolicyChips id="brand-emoji" label="Emoji" value={brand.emojiPolicy} options={[[undefined, "Any"], ["one", "One at most"], ["none", "None"]]} onChange={(v) => update({ emojiPolicy: v })} />
+            <PolicyChips id="brand-hashtags" label="Hashtags" value={brand.hashtagPolicy} options={[[undefined, "Any"], ["ten", "Up to 10"], ["few", "2 to 4"], ["none", "None"]]} onChange={(v) => update({ hashtagPolicy: v })} />
           </section>
 
           <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card">

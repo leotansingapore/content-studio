@@ -44,8 +44,9 @@
 //        -> {pick: {i,p} | null, why?}: the line to play first as a teaser, rated by Jev as the first words heard
 //        (Leo's talking-head-reel openers questions); null when none beats the video's own start, or with
 //        why "unrated" (Jev gave no answer) or "language" (not English) (coldopen.ts, "cold-open" cap).
-//   POST {mode:"captions", transcript, instagram?, title?} -> {captions: {tiktok, linkedin, facebook}}: the post
-//        caption written for each platform in its own length, hashtag limits kept (captions.ts, "video-captions" cap).
+//   POST {mode:"captions", transcript, instagram?, title?, rules?} -> {captions: {tiktok, linkedin, facebook}}: the post
+//        caption written for each platform in its own length, hashtag limits kept, following the brand kit's
+//        rules line when sent (captions.ts, "video-captions" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -412,7 +413,7 @@ Deno.serve(async (req) => {
       const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 1200, response_format: { type: "json_object" }, messages: buildCaptionsMessages(c.transcript, c.instagram, c.title) }),
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 1200, response_format: { type: "json_object" }, messages: buildCaptionsMessages(c.transcript, c.instagram, c.title, c.rules) }),
         signal: AbortSignal.timeout(45_000),
       }).catch(() => null);
       if (!res?.ok) {

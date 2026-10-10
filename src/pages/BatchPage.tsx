@@ -16,6 +16,8 @@ import { scoped } from "@/lib/profiles";
 import { streamOnePost } from "@/lib/batchGenerate";
 import { stripDashes, tagLinks, toPlainText, withSignOff } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
+import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import { strayLinks } from "@/lib/platformCounters";
 import {
   upsertDraft,
   newDraftId,
@@ -93,6 +95,7 @@ export default function BatchPage() {
   const [running, setRunning] = useState(false);
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const offerLinks = useMemo(() => allowedLinks(loadBrand(userId)), [userId]);
 
   useEffect(() => {
     let active = true;
@@ -179,6 +182,7 @@ export default function BatchPage() {
 
     const { data } = await supabase.auth.getUser();
     const voiceProfile = loadVoiceProfile(data.user?.id ?? null);
+    const kit = loadBrand(data.user?.id);
     const usableVoice = isVoiceProfileUsable(voiceProfile)
       ? voiceProfile?.voiceSummary
       : undefined;
@@ -196,12 +200,13 @@ export default function BatchPage() {
               ctaType: "comment-keyword",
               audience,
               voiceSummary: usableVoice,
+              ideaContext: brandRulesLine(kit) || undefined,
             },
             {
               onToken: (text) =>
                 setCards((prev) => ({ ...prev, [t.key]: { status: "streaming", text } })),
               onComplete: (text) =>
-                setCards((prev) => ({ ...prev, [t.key]: { status: "done", text: stripDashes(text) } })),
+                setCards((prev) => ({ ...prev, [t.key]: { status: "done", text: applyBrandRules(stripDashes(text), kit) } })),
               onError: (message) =>
                 setCards((prev) => ({
                   ...prev,
@@ -419,6 +424,10 @@ export default function BatchPage() {
                       {card.text || "..."}
                     </p>
                   )}
+                  {card.status !== "streaming" && offerLinks.length > 0 &&
+                    strayLinks(card.text, offerLinks).map((l) => (
+                      <p key={l} className="break-all text-xs font-medium text-warning">Not one of your offer links: {l}</p>
+                    ))}
                   {card.status === "done" || card.status === "saved" ? (
                     <div className="flex flex-wrap gap-2">
                       <Button

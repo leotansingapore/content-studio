@@ -3,6 +3,7 @@
 // validation and limits are shared with it.
 
 import { supabase } from "@/lib/supabase";
+import { EMOJI_MAX, capEmoji, countEmoji } from "@/lib/brandRules";
 import type { CarouselPlatform, CopySlide } from "../../supabase/functions/carousel-copy/logic.ts";
 
 export type CarouselCopyErrorCode = "daily_limit" | "unavailable" | "failed";
@@ -22,6 +23,8 @@ export async function tightenSlides(
   slides: CopySlide[],
   platform: CarouselPlatform,
   recap = false,
+  /** The brand kit's emoji policy, kept across the whole carousel (first ones kept). */
+  emoji?: keyof typeof EMOJI_MAX,
 ): Promise<{ slides: CopySlide[]; recap: CopySlide | null }> {
   const { data, error } = await supabase.functions.invoke("carousel-copy", {
     body: { slides: slides.map(({ title, body }) => ({ title, body })), platform, recap },
@@ -43,11 +46,17 @@ export async function tightenSlides(
     throw new CarouselCopyError("failed", res?.error || FAILED);
   }
   const r = res.recap;
+  let left = emoji ? EMOJI_MAX[emoji] : Infinity;
+  const keep = (t: unknown) => {
+    const out = capEmoji(String(t ?? ""), left);
+    left -= countEmoji(out);
+    return out;
+  };
   return {
     slides: (res.slides as Partial<CopySlide>[]).map((s) => ({
-      title: String(s?.title ?? ""),
-      body: String(s?.body ?? ""),
+      title: keep(s?.title),
+      body: keep(s?.body),
     })),
-    recap: recap && r && typeof r.body === "string" && r.body.trim() ? { title: String(r.title ?? ""), body: r.body } : null,
+    recap: recap && r && typeof r.body === "string" && r.body.trim() ? { title: keep(r.title), body: keep(r.body) } : null,
   };
 }

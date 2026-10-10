@@ -17,14 +17,15 @@ export const PLATFORM_RULES: Record<CaptionPlatform, { name: string; shape: stri
 const MAX_TRANSCRIPT = 6000;
 const str = (v: unknown, n: number) => String(v ?? "").replace(/\r/g, "").trim().slice(0, n);
 
-export function parseCaptionsRequest(body: unknown): { ok: true; transcript: string; instagram: string; title: string } | { ok: false; error: string } {
+export function parseCaptionsRequest(body: unknown): { ok: true; transcript: string; instagram: string; title: string; rules: string } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const transcript = str(b.transcript, MAX_TRANSCRIPT).replace(/\s+/g, " ");
   if (transcript.split(" ").length < 8) return { ok: false, error: "Caption the video first." };
-  return { ok: true, transcript, instagram: str(b.instagram, 2200), title: str(b.title, 90).replace(/\s+/g, " ") };
+  // rules: the brand kit's emoji, hashtag and offer-link rules, one line (src/lib/brandRules.ts)
+  return { ok: true, transcript, instagram: str(b.instagram, 2200), title: str(b.title, 90).replace(/\s+/g, " "), rules: str(b.rules, 1200).replace(/\s+/g, " ") };
 }
 
-export function buildCaptionsMessages(transcript: string, instagram: string, title: string): { role: string; content: string }[] {
+export function buildCaptionsMessages(transcript: string, instagram: string, title: string, rules = ""): { role: string; content: string }[] {
   return [
     {
       role: "system",
@@ -33,6 +34,7 @@ export function buildCaptionsMessages(transcript: string, instagram: string, tit
         ...CAPTION_PLATFORMS.map((p) => `- ${p}: ${PLATFORM_RULES[p].name}, ${PLATFORM_RULES[p].shape}.`),
         "Use only what the speaker says: their facts, figures and stories. Never promise returns, name an insurer's product or a fund, or give a personal recommendation.",
         "Write as the speaker, in plain words, first person. Plain punctuation, never an em dash.",
+        ...(rules ? [rules] : []),
         'Return JSON: {"tiktok": "...", "linkedin": "...", "facebook": "..."}.',
       ].join("\n"),
     },

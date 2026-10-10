@@ -10,11 +10,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { scanCompliance } from "@/lib/compliance";
 import { checkLimits, countHashtags, readout } from "@/lib/platformCounters";
+import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import type { CarouselBrand } from "@/lib/carousel";
 import { CAPTION_PLATFORMS, loadPlatformCaptions, savePlatformCaptions, writePlatformCaptions, type CaptionPlatform, type PlatformCaptionSet } from "@/lib/platformCaptions";
 
 const NAME: Record<CaptionPlatform, string> = { tiktok: "TikTok", linkedin: "LinkedIn", facebook: "Facebook" };
 
-export default function PlatformCaptions({ projectId, transcript, instagram, title }: { projectId: string; transcript: string; instagram: string; title: string }) {
+export default function PlatformCaptions({ projectId, transcript, instagram, title, brand }: { projectId: string; transcript: string; instagram: string; title: string; brand?: CarouselBrand | null }) {
   const { toast } = useToast();
   const [set, setSet] = useState<PlatformCaptionSet>(() => loadPlatformCaptions(projectId));
   const [tab, setTab] = useState<CaptionPlatform>("tiktok");
@@ -31,7 +33,9 @@ export default function PlatformCaptions({ projectId, transcript, instagram, tit
     if (!transcript.trim()) return toast({ title: "Caption the video first", variant: "destructive" });
     setBusy(true);
     try {
-      keep({ ...set, ...(await writePlatformCaptions(transcript.slice(0, 6000), instagram, title)) });
+      const written = await writePlatformCaptions(transcript.slice(0, 6000), instagram, title, brandRulesLine(brand));
+      for (const p of CAPTION_PLATFORMS) if (written[p]) written[p] = applyBrandRules(written[p]!, brand);
+      keep({ ...set, ...written });
     } catch (e) {
       toast({ title: "The captions didn't come through", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -42,7 +46,7 @@ export default function PlatformCaptions({ projectId, transcript, instagram, tit
   const text = set[tab] ?? "";
   // TikTok's sweet spot is the words before the hashtags
   const count = readout(tab === "tiktok" ? text.replace(/#[\p{L}\p{N}_]+/gu, "").trim() : text, tab);
-  const limits = checkLimits(text, tab);
+  const limits = checkLimits(text, tab, allowedLinks(brand));
   const flags = scanCompliance(text);
 
   return (
