@@ -118,7 +118,8 @@ Deno.serve(async (req) => {
         console.error("ai-video submit", model, res.status, (await res.text()).slice(0, 300));
         throw new HfError(res.status);
       }
-      const id = (await res.json().catch(() => null))?.request_id;
+      const out = await res.json().catch(() => null);
+      const id = out?.request_id ?? out?.id; // the v1 Speak route answers with id
       if (typeof id !== "string") throw new HfError(502);
       return id;
     };

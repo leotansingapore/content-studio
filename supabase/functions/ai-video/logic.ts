@@ -6,7 +6,9 @@
 import { PEOPLE_RULE } from "../ai-image/logic.ts";
 import { oneLineText, parseObject } from "../clone-reel/logic.ts";
 
-export const SPEAK_MODEL = "higgsfield-ai/speak";
+// The v1 route: "higgsfield-ai/speak" accepts image_url and audio_url but drops them from the job, which then
+// fails with "Generation failed" (2026-10-10). Its jobs report on the same /requests/<id>/status.
+export const SPEAK_MODEL = "v1/speak/higgsfield";
 export const PICTURE_MODEL = "higgsfield-ai/soul/v2/standard";
 
 // Credits from Higgsfield's free POST /estimate/<model> on 2026-10-08 (1 credit = USD 0.0625).
@@ -106,7 +108,16 @@ export const SPEAK_PROMPT =
 
 /** One Speak request per slice; every slice shares the seed so the person moves the same way throughout. */
 export function speakBody(imageUrl: string, audioUrl: string, seconds: number, seed: number): Record<string, unknown> {
-  return { image_url: imageUrl, audio_url: audioUrl, prompt: SPEAK_PROMPT, quality: "mid", duration: speakSeconds(seconds), seed };
+  return {
+    params: {
+      input_image: { type: "image_url", image_url: imageUrl },
+      input_audio: { type: "audio_url", audio_url: audioUrl },
+      prompt: SPEAK_PROMPT,
+      quality: "mid",
+      duration: speakSeconds(seconds),
+      seed,
+    },
+  };
 }
 
 /** A presenter to animate: one person, facing the lens, mouth closed, 9:16. */

@@ -64,8 +64,10 @@ describe("parseVideoRequest", () => {
 
 describe("Higgsfield bodies", () => {
   it("asks Speak for mid quality at the slice's billed length", () => {
-    expect(speakBody("https://i", "https://a", 9.3, 7)).toMatchObject({ image_url: "https://i", audio_url: "https://a", quality: "mid", duration: 10, seed: 7 });
-    expect(speakBody("https://i", "https://a", 3, 7)).toMatchObject({ duration: 5 });
+    expect(speakBody("https://i", "https://a", 9.3, 7)).toMatchObject({
+      params: { input_image: { type: "image_url", image_url: "https://i" }, input_audio: { type: "audio_url", audio_url: "https://a" }, quality: "mid", duration: 10, seed: 7 },
+    });
+    expect(speakBody("https://i", "https://a", 3, 7)).toMatchObject({ params: { duration: 5 } });
   });
 
   it("makes 9:16 pictures, with the people rule on every scene", () => {
