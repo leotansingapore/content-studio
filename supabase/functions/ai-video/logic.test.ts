@@ -3,7 +3,7 @@ import { PEOPLE_RULE, tokenSecret } from "../ai-image/logic";
 import { GLOBAL_COUNTER_USER, refundUsage, type UsageClient } from "../_shared/usageCaps";
 import {
   MAX_SLICE, avatarCredits, creditsUsd, explainerCredits, parseVideoRequest, pictureBody, presenterBody, readMedia,
-  refundFailed, refundTicket, speakBody, speakSeconds, validateScript,
+  refundFailed, refundTicket, sceneReady, speakBody, speakSeconds, validateScript,
 } from "./logic";
 
 const WAV = "UklGRiQAAABXQVZFZm10IBAAAAABAAEA";
@@ -200,5 +200,14 @@ describe("a failed video gives its use back", () => {
   it("takes the ticket along on a status check", () => {
     expect(parseVideoRequest({ mode: "status", tokens: ["t"], refund: "r.x" })).toEqual({ ok: true, request: { mode: "status", tokens: ["t"], refund: "r.x" } });
     expect(parseVideoRequest({ mode: "status", tokens: ["t"], refund: 5 })).toEqual({ ok: true, request: { mode: "status", tokens: ["t"] } });
+  });
+});
+
+describe("sceneReady", () => {
+  it("takes an edited scene only with words to say and a picture the server accepts", () => {
+    expect(sceneReady({ say: "Most plans have a co-pay.", picture: "A clinic waiting room in Toa Payoh" })).toBe(true);
+    expect(sceneReady({ say: "   ", picture: "A clinic waiting room in Toa Payoh" })).toBe(false);
+    expect(sceneReady({ say: "Most plans have a co-pay.", picture: "A clinic" })).toBe(false);
+    expect(sceneReady({ say: "Most plans have a co-pay.", picture: "  a     b    c   " })).toBe(false);
   });
 });

@@ -16,8 +16,8 @@ import { MAX_SLICE, type ClipQuality, type ClipSeconds, type MediaState, type Sc
 import type { FieldKey, PhotoRole } from "../../supabase/functions/ai-video/templates.ts";
 
 export {
-  CLIP_QUALITIES, CLIP_SECONDS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, avatarCredits, clipCredits, creditsUsd,
-  explainerCredits, type ClipQuality, type ClipSeconds, type Scene,
+  CLIP_QUALITIES, CLIP_SECONDS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, MIN_SCENES, avatarCredits, clipCredits, creditsUsd,
+  explainerCredits, sceneReady, type ClipQuality, type ClipSeconds, type Scene,
 } from "../../supabase/functions/ai-video/logic.ts";
 export { TEMPLATES, TEMPLATE_CREDIT, TEMPLATE_SOURCE, examplesUrl, type VideoTemplate, type PhotoRole, type FieldKey } from "../../supabase/functions/ai-video/templates.ts";
 

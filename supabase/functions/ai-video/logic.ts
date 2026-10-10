@@ -39,6 +39,7 @@ export const MAX_SLICES = 4;
 export const MAX_AVATAR_SECONDS = 30;
 export const MIN_SCENES = 3;
 export const MAX_SCENES = 6;
+export const MIN_PICTURE = 10;
 export const MAX_TOPIC = 200;
 export const MAX_LOOK = 300;
 // base64 sizes: a 9.5 s slice of 24 kHz mono WAV is about 610k characters, a photo is resized to 1280 px first
@@ -108,7 +109,7 @@ export function parseVideoRequest(raw: unknown): Parsed {
     }
     case "explainer": {
       const pictures = (Array.isArray(b.pictures) ? b.pictures : []).map((p) => oneLineText(p, 401));
-      if (pictures.length < MIN_SCENES || pictures.length > MAX_SCENES || pictures.some((p) => p.length < 10 || p.length > 400)) {
+      if (pictures.length < MIN_SCENES || pictures.length > MAX_SCENES || pictures.some((p) => p.length < MIN_PICTURE || p.length > 400)) {
         return no("Write the explainer again; its scenes didn't come through.");
       }
       return { ok: true, request: { mode: "explainer", pictures } };
@@ -295,13 +296,16 @@ export interface Scene {
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 
+/** An edited scene can be made: words to say and a picture the server takes, checked before the voiceover is paid for. */
+export const sceneReady = (s: Scene) => s.say.trim().length > 0 && oneLineText(s.picture, 401).length >= MIN_PICTURE;
+
 /** The scenes the model wrote, cleaned; null when there are too few or too many, or the script runs long. */
 export function validateScript(raw: unknown): Scene[] | null {
   const scenes = parseObject(raw)?.scenes;
   if (!Array.isArray(scenes)) return null;
   const out = scenes
     .map((s) => ({ say: oneLineText((s as Scene)?.say, 300), picture: oneLineText((s as Scene)?.picture, 400) }))
-    .filter((s) => s.say && s.picture.length >= 10);
+    .filter((s) => s.say && s.picture.length >= MIN_PICTURE);
   if (out.length < MIN_SCENES || out.length > MAX_SCENES) return null;
   return out.reduce((n, s) => n + words(s.say), 0) <= 110 ? out : null;
 }

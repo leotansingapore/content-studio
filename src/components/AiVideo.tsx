@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { moveTake } from "@/lib/videoEdit";
 import { LEN_MAX, LEN_MIN, MAX_THEME, dismissMontage, montageBusy, montageJob, onMontageJob, startMontage, type MontageJob } from "@/lib/montage";
 import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
 import {
-  CLIP_QUALITIES, CLIP_SECONDS, LOOKS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, TEMPLATES, TEMPLATE_CREDIT, TEMPLATE_SOURCE,
+  CLIP_QUALITIES, CLIP_SECONDS, LOOKS, MAX_AVATAR_SECONDS, MAX_FIELD, MAX_LOOK, MAX_TOPIC, MIN_SCENES, TEMPLATES, TEMPLATE_CREDIT, TEMPLATE_SOURCE,
   aiJob, avatarCredits, clipCredits, creditsUsd, examplesUrl, explainerCredits, makeAvatar, makeExplainer, makePresenter,
-  makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar, sliceVoiceover, writeExplainer,
+  makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar, sceneReady, sliceVoiceover, writeExplainer,
   type AiJob, type ClipQuality, type ClipSeconds, type FieldKey, type PhotoRole, type Scene, type VideoTemplate, type Voiceover,
 } from "@/lib/aiVideo";
 
@@ -362,6 +363,8 @@ function Explainer({ busy, left }: { busy: boolean; left: Left }) {
   };
   const total = scenes ? scenes.reduce((n, s) => n + words(s.say), 0) : 0;
   const videos = left("ai-video");
+  const edit = (i: number, change: Partial<Scene>) => setScenes(scenes!.map((x, j) => (j === i ? { ...x, ...change } : x)));
+  const iconBtn = "h-11 w-11 p-0 sm:h-8 sm:w-8";
 
   return (
     <div className="space-y-3">
@@ -380,23 +383,39 @@ function Explainer({ busy, left }: { busy: boolean; left: Left }) {
           <ol className="space-y-2">
             {scenes.map((s, i) => (
               <li key={i} className="space-y-1 rounded-xl border border-border/60 p-2">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-semibold text-muted-foreground">Scene {i + 1}</span>
+                  <div className="flex">
+                    <Button size="sm" variant="ghost" className={iconBtn} aria-label={`Move scene ${i + 1} up`} disabled={busy || i === 0}
+                      onClick={() => setScenes(moveTake(scenes, i, -1))}><ChevronUp className="h-4 w-4" /></Button>
+                    <Button size="sm" variant="ghost" className={iconBtn} aria-label={`Move scene ${i + 1} down`} disabled={busy || i === scenes.length - 1}
+                      onClick={() => setScenes(moveTake(scenes, i, 1))}><ChevronDown className="h-4 w-4" /></Button>
+                    <Button size="sm" variant="ghost" className={`${iconBtn} text-muted-foreground hover:text-destructive`} aria-label={`Remove scene ${i + 1}`}
+                      disabled={busy || scenes.length <= MIN_SCENES} onClick={() => setScenes(scenes.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                </div>
                 <Textarea rows={2} value={s.say} maxLength={300} disabled={busy} aria-label={`Scene ${i + 1}, what the voice says`} className="text-sm"
-                  onChange={(e) => setScenes(scenes.map((x, j) => (j === i ? { ...x, say: e.target.value } : x)))} />
-                <p className="text-xs text-muted-foreground">Picture: {s.picture}</p>
+                  onChange={(e) => edit(i, { say: e.target.value })} />
+                <label className="block space-y-0.5">
+                  <span className="text-[11px] font-medium text-muted-foreground">Picture</span>
+                  <Textarea rows={2} value={s.picture} maxLength={400} disabled={busy} aria-label={`Scene ${i + 1}, the picture`} className="text-xs"
+                    onChange={(e) => edit(i, { picture: e.target.value })} />
+                </label>
               </li>
             ))}
           </ol>
           <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
             {VOICE_IDS.map((v) => <Pill key={v} on={voice === v} disabled={busy} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Pill>)}
           </div>
-          <p className="text-sm">
+          <p className="text-sm" aria-live="polite">
             {scenes.length} pictures, about {secs(total / 2.5)}. Costs {cost(explainerCredits(scenes.length))} and 1 voiceover.
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <Button className="h-11 sm:h-10" disabled={busy || videos === 0 || left("ai-voice") === 0 || scenes.some((s) => !s.say.trim())}
-              onClick={() => void makeExplainer(topic.trim().slice(0, 40) || "Explainer", scenes.map((s) => ({ ...s, say: s.say.trim() })), voice)}>
+            <Button className="h-11 sm:h-10" disabled={busy || videos === 0 || left("ai-voice") === 0 || !scenes.every(sceneReady)}
+              onClick={() => void makeExplainer(topic.trim().slice(0, 40) || "Explainer", scenes.map((s) => ({ say: s.say.trim(), picture: s.picture.trim() })), voice)}>
               Make the video
             </Button>
+            {!scenes.every(sceneReady) && <span className="text-xs text-muted-foreground">Fill in every scene first.</span>}
             <Left n={videos} what="AI videos" />
           </div>
         </>
