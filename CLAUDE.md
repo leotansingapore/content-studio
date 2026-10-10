@@ -47,6 +47,11 @@
   header (NOTIFY_CRON_SECRET, also in Vault as `cs_notify_cron_secret`), and
   it refuses anything without it. VAPID_KEYS holds the web push key pair; the
   public half is in `src/lib/notify.ts`. Test it with `{"dryRun": true}`.
+- Connected social accounts go through Zernio (`social` function, JWT on,
+  018 `cs_social_profiles`). Zernio accepts any id on the team, so every id
+  from a request is checked against the caller's own Zernio profile first.
+  Off unless ZERNIO_API_KEY is set and the caller is in SOCIAL_CONNECT_USERS.
+  Rules, caps and secrets: `docs/zernio-connection.md`.
 - Decisions in edge functions (classify, detect yes/no, score, rank, route,
   pick one) go through `supabase/functions/_shared/jev.ts` (TypeSafe Jev,
   pinned jev-1.13.0, TYPESAFE_API_KEY set as a secret 2026-10-08), never an
