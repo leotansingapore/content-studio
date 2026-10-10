@@ -201,6 +201,17 @@ export function applyStarter(f: AutoDmForm, s: Starter, platform: string, keepKe
 
 // ---- words on the page ----
 
+/** The keyword a post asks people to comment or DM ("Comment INFO", "DM me GUIDE"), or "". The last one wins: CTAs close a post. */
+export function ctaKeyword(text: string): string {
+  const re = /\b(?:comment|dm|message|reply|type|send)(?:\s+(?:me|us|with|the\s+word))*\s+["'“‘]?([A-Za-z][A-Za-z0-9]{1,49})\b/gi;
+  let found = "";
+  for (const m of text.matchAll(re)) {
+    const word = m[1];
+    if (word === word.toUpperCase() && /[A-Z]/.test(word) && !["ME", "US"].includes(word)) found = word;
+  }
+  return found;
+}
+
 export const accountLabel = (a: Pick<AccountOption, "username" | "name">) => (a.username ? `@${a.username.replace(/^@/, "")}` : a.name || "Your account");
 
 /** What happened for one commenter. Reply-only platforms answer with the public reply. */

@@ -1,8 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { scanCompliance } from "./compliance";
-import { STARTERS, applyStarter, emptyForm, fillName, formFlags, formProblem, logLine, toInput, type LogView } from "./autoDm";
+import { STARTERS, applyStarter, ctaKeyword, emptyForm, fillName, formFlags, formProblem, logLine, toInput, type LogView } from "./autoDm";
 
 const IG = "65000000000000000000a001";
+
+describe("the keyword a post asks for", () => {
+  it("reads it from Write's CTAs, the last one winning", () => {
+    expect(ctaKeyword("Three CPF moves.\n\nComment INFO and I'll send the calculator.")).toBe("INFO");
+    expect(ctaKeyword("DM me GUIDE for the CPF top-up guide.")).toBe("GUIDE");
+    expect(ctaKeyword("Comment 'PLAN' below.")).toBe("PLAN");
+    expect(ctaKeyword("Comment “RETIRE” and I'll send it.")).toBe("RETIRE");
+    expect(ctaKeyword("Message me with the word CPF2026.")).toBe("CPF2026");
+    expect(ctaKeyword("Comment INFO for the calculator, or DM me GUIDE.")).toBe("GUIDE");
+  });
+
+  it("finds nothing in an ordinary sentence", () => {
+    for (const t of ["Comment below with your thoughts.", "dm me guide", "DM ME", "Send me a message.", ""]) expect(ctaKeyword(t), t).toBe("");
+  });
+});
 
 describe("starting points", () => {
   it("are plain and compliant: no flags, no figures, no links of ours", () => {

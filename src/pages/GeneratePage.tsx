@@ -75,6 +75,8 @@ import {
   hasComplianceErrors,
   type ComplianceFlag,
 } from "@/lib/compliance";
+import { ctaKeyword } from "@/lib/autoDm";
+import { socialConnectShown } from "@/lib/socialConnect";
 import {
   isVoiceProfileUsable,
   loadVoiceProfile,
@@ -3196,6 +3198,16 @@ export default function GeneratePage() {
                     </Link>
                   </>
                 )}
+              </p>
+            )}
+            {(ctaType === "comment-keyword" || ctaType === "dm-keyword") && socialConnectShown() && (
+              <p className="mb-3 text-xs">
+                <Link
+                  to={`/recruit/auto-dm${ctaKeyword(draft) ? `?keyword=${encodeURIComponent(ctaKeyword(draft))}` : ""}`}
+                  className="inline-flex items-center font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
+                >
+                  Set up the auto-DM
+                </Link>
               </p>
             )}
             <ComplianceChips flags={visibleFlags} onDismiss={dismissFlag} />
