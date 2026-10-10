@@ -25,7 +25,10 @@ import { MAX_MUSIC_SECONDS, MOODS, MOOD_IDS, aiMusicOn, dismissMusicJob, musicJo
 import AiVideo from "@/components/AiVideo";
 import { aiBusy, aiJob, pendingAvatar } from "@/lib/aiVideo";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
-import { DUB_LANGS, MAX_SCRIPT, VOICES, VOICE_IDS, audioSeconds, speak, speakDub, type DubLang, type VoiceId } from "@/lib/textVoice";
+import {
+  DEFAULT_EMOTION, DUB_LANGS, EMOTIONS, EMOTION_IDS, MAX_SCRIPT, PACES, PACE_IDS, VOICES, VOICE_IDS, audioSeconds, speak, speakDub,
+  type Delivery, type DubLang, type VoiceId,
+} from "@/lib/textVoice";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -853,6 +856,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [ttsOpen, setTtsOpen] = useState(false);
   const [ttsText, setTtsText] = useState("");
   const [ttsVoice, setTtsVoice] = useState<VoiceId>("alice");
+  const [ttsHow, setTtsHow] = useState<Delivery>({ emotion: DEFAULT_EMOTION, pace: "normal" });
   const [ttsBusy, setTtsBusy] = useState(false);
   const openTts = () => {
     setTtsText((t) => t || transcript.slice(0, MAX_SCRIPT));
@@ -861,7 +865,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const makeTts = async () => {
     setTtsBusy(true);
     try {
-      const blob = await speak(ttsText, ttsVoice);
+      const blob = await speak(ttsText, ttsVoice, ttsHow);
       const secs = await audioSeconds(blob).catch(() => 0);
       const start = Math.min(outT, Math.max(0, plan.total - 0.5));
       const length = Math.min(secs, plan.total - start);
@@ -899,7 +903,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       if (!cues.length) throw new Error("Caption the video first.");
       const lines = await translateCaptions(dubLang, cues.map((c) => c.text));
       setDubBusy("Making the voice...");
-      const { audio, spans } = await speakDub(lines, ttsVoice, dubLang);
+      const { audio, spans } = await speakDub(lines, ttsVoice, dubLang, ttsHow);
       const place = dubPlacement(spans, cues, plan.total);
       if (!place.length) throw new Error("The dub came back silent. Try again.");
       const key = `vo-${project.id}-${Date.now().toString(36)}`;
@@ -1899,9 +1903,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Dub into">
                       {(Object.keys(DUB_LANGS) as DubLang[]).map((l) => <Chip key={l} on={dubLang === l} onClick={() => setDubLang(l)}>{DUB_LANGS[l]}</Chip>)}
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
-                      {VOICE_IDS.map((v) => <Chip key={v} on={ttsVoice === v} onClick={() => setTtsVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Chip>)}
-                    </div>
+                    <VoicePicker voice={ttsVoice} how={ttsHow} onVoice={setTtsVoice} onHow={setTtsHow} />
                     <div className="flex flex-wrap items-center gap-2">
                       <Button size="sm" className={`h-9 gap-1.5 ${dubBusy ? "disabled:opacity-100" : ""}`} onClick={() => void makeDub()} disabled={!!dubBusy || none("ai-voice") || none("video-translate")}>
                         {dubBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
@@ -1915,9 +1917,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-2.5">
                     <Textarea rows={4} value={ttsText} maxLength={MAX_SCRIPT} onChange={(e) => setTtsText(e.target.value)} aria-label="Voiceover script"
                       placeholder="What the voice says" className="text-sm" />
-                    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Voice">
-                      {VOICE_IDS.map((v) => <Chip key={v} on={ttsVoice === v} onClick={() => setTtsVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Chip>)}
-                    </div>
+                    <VoicePicker voice={ttsVoice} how={ttsHow} onVoice={setTtsVoice} onHow={setTtsHow} />
                     <div className="flex flex-wrap items-center gap-2">
                       <Button size="sm" className={`h-9 gap-1.5 ${ttsBusy ? "disabled:opacity-100" : ""}`} onClick={() => void makeTts()} disabled={ttsBusy || ttsText.trim().length < 5 || none("ai-voice")}>
                         {ttsBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
@@ -2476,6 +2476,28 @@ function Chip({ on, onClick, children, className = "" }: { on: boolean; onClick:
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
       className={`rounded-full border px-2.5 py-1 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"} ${className}`}>{children}</button>
+  );
+}
+
+/** The AI voice for a voiceover or a dub: who speaks, the tone and the pace. */
+function VoicePicker({ voice, how, onVoice, onHow }: { voice: VoiceId; how: Delivery; onVoice: (v: VoiceId) => void; onHow: (h: Delivery) => void }) {
+  const row = "flex flex-wrap items-center gap-1.5";
+  const tag = "w-10 shrink-0 text-[11px] text-muted-foreground";
+  return (
+    <>
+      <div className={row} role="group" aria-label="Voice">
+        <span className={tag} aria-hidden>Voice</span>
+        {VOICE_IDS.map((v) => <Chip key={v} on={voice === v} onClick={() => onVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Chip>)}
+      </div>
+      <div className={row} role="group" aria-label="Tone">
+        <span className={tag} aria-hidden>Tone</span>
+        {EMOTION_IDS.map((e) => <Chip key={e} on={how.emotion === e} onClick={() => onHow({ ...how, emotion: e })}>{EMOTIONS[e].label}</Chip>)}
+      </div>
+      <div className={row} role="group" aria-label="Pace">
+        <span className={tag} aria-hidden>Pace</span>
+        {PACE_IDS.map((p) => <Chip key={p} on={how.pace === p} onClick={() => onHow({ ...how, pace: p })}>{PACES[p].label}</Chip>)}
+      </div>
+    </>
   );
 }
 

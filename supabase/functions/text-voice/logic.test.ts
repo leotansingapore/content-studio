@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { DAILY_LIMITS, GLOBAL_COUNTER_USER, type RpcClient } from "../_shared/usageCaps";
 import {
-  MAX_SCRIPT, TTS_MODEL, VOICES, parseVoiceRequest, ttsBody, ttsUrl, parseDubRequest, dubUrl, dubBody, lineSpans,
+  MAX_SCRIPT, TTS_MODEL, VOICES, VOICE_IDS, parseVoiceRequest, ttsBody, ttsUrl, parseDubRequest, dubUrl, dubBody, lineSpans,
+  DEFAULT_EMOTION, EMOTIONS, EMOTION_IDS, PACE_IDS, voiceSettings,
   DEFAULT_MOOD, MAX_MOOD_TEXT, MAX_MUSIC_SECONDS, MIN_MUSIC_SECONDS, MOODS, MOOD_IDS, MUSIC_MODEL, MUSIC_URL,
   moodQuestions, moodState, moodText, musicBody, musicFailure, musicRefusal, parseMusicRequest, readMood,
 } from "./logic";
@@ -13,7 +14,14 @@ describe("parseVoiceRequest", () => {
       ok: true,
       text: "Most people think\n\ninsurance is expensive.",
       voice: "alice",
+      emotion: "warm",
+      pace: "normal",
     });
+  });
+
+  it("takes how it sounds and the pace, and falls back to warm and normal", () => {
+    expect(parseVoiceRequest({ text: "Hello there", voice: "george", emotion: "serious", pace: "slower" })).toMatchObject({ ok: true, voice: "george", emotion: "serious", pace: "slower" });
+    expect(parseVoiceRequest({ text: "Hello there", voice: "lily", emotion: "angry", pace: "toString" })).toMatchObject({ ok: true, emotion: DEFAULT_EMOTION, pace: "normal" });
   });
 
   it("refuses an empty or overlong script and an unknown voice", () => {
@@ -31,11 +39,54 @@ describe("the ElevenLabs call", () => {
     expect(ttsBody("Hello")).toMatchObject({ text: "Hello", model_id: TTS_MODEL });
     expect(TTS_MODEL).toBe("eleven_turbo_v2_5");
   });
+
+  it("sounds as before when no feeling or pace is sent (the AI presenter sends none)", () => {
+    // ElevenLabs' default voice settings, read from the account on 2026-10-10
+    expect(ttsBody("Hello").voice_settings).toEqual({ stability: 0.5, similarity_boost: 0.75, style: 0, speed: 1 });
+  });
+
+  it("makes energetic livelier and serious steadier than warm, and moves the pace", () => {
+    const s = (emotion: (typeof EMOTION_IDS)[number]) => EMOTIONS[emotion].settings.stability;
+    expect(s("energetic")).toBeLessThan(s("warm"));
+    expect(s("warm")).toBeLessThan(s("calm"));
+    expect(s("calm")).toBeLessThan(s("serious"));
+    expect(EMOTIONS.energetic.settings.style).toBeGreaterThan(0);
+    expect(ttsBody("Hi", { emotion: "energetic", pace: "faster" }).voice_settings).toMatchObject({ stability: s("energetic"), speed: 1.1 });
+    expect(ttsBody("Hi", { emotion: "serious", pace: "slower" }).voice_settings).toMatchObject({ stability: s("serious"), speed: 0.9 });
+  });
+
+  it("keeps every setting inside the ranges ElevenLabs takes", () => {
+    for (const emotion of EMOTION_IDS) {
+      for (const pace of PACE_IDS) {
+        for (const base of [1, 1.15]) {
+          const v = voiceSettings({ emotion, pace }, base);
+          for (const k of ["stability", "similarity_boost", "style"] as const) {
+            expect(v[k]).toBeGreaterThanOrEqual(0);
+            expect(v[k]).toBeLessThanOrEqual(1);
+          }
+          expect(v.speed).toBeGreaterThanOrEqual(0.7);
+          expect(v.speed).toBeLessThanOrEqual(1.2);
+        }
+      }
+    }
+  });
+
+  it("sends the feeling and pace the adviser picked to ElevenLabs", () => {
+    const source = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+    expect(source).toContain("ttsBody(parsed.text, parsed)");
+    expect(source).toContain("dubBody(dub.lines, dub.lang, dub)");
+  });
+
+  it("offers each voice once", () => {
+    expect(VOICE_IDS.length).toBeGreaterThanOrEqual(7);
+    expect(new Set(VOICE_IDS.map((v) => VOICES[v].id)).size).toBe(VOICE_IDS.length);
+  });
 });
 
 describe("dubbing", () => {
   it("takes the lines in place, a language and a voice", () => {
-    expect(parseDubRequest({ lang: "zh", voice: "eric", lines: ["你好 世界", "", 7, "  再见  "] })).toEqual({ ok: true, lang: "zh", voice: "eric", lines: ["你好 世界", "", "", "再见"] });
+    expect(parseDubRequest({ lang: "zh", voice: "eric", lines: ["你好 世界", "", 7, "  再见  "] })).toEqual({ ok: true, lang: "zh", voice: "eric", lines: ["你好 世界", "", "", "再见"], emotion: "warm", pace: "normal" });
+    expect(parseDubRequest({ lang: "ms", voice: "sarah", lines: ["Selamat pagi semua"], emotion: "calm", pace: "slower" })).toMatchObject({ ok: true, emotion: "calm", pace: "slower" });
     expect(parseDubRequest({ lang: "fr", voice: "eric", lines: ["Bonjour tout le monde"] }).ok).toBe(false);
     expect(parseDubRequest({ lang: "ms", voice: "bob", lines: ["Selamat pagi semua"] }).ok).toBe(false);
     expect(parseDubRequest({ lang: "ms", voice: "alice", lines: [] }).ok).toBe(false);
@@ -45,6 +96,11 @@ describe("dubbing", () => {
   it("asks ElevenLabs for times per character and enforces the language", () => {
     expect(dubUrl("alice")).toContain("/with-timestamps?");
     expect(dubBody(["一", "二"], "zh")).toMatchObject({ text: "一\n二", language_code: "zh", model_id: TTS_MODEL, voice_settings: { stability: 0.5, speed: 1.15 } });
+  });
+
+  it("moves the dub's pace from its faster start, no further than ElevenLabs allows", () => {
+    expect(dubBody(["一"], "zh", { emotion: "calm", pace: "slower" }).voice_settings).toMatchObject({ stability: EMOTIONS.calm.settings.stability, speed: 1.05 });
+    expect(dubBody(["一"], "zh", { emotion: "warm", pace: "faster" }).voice_settings).toMatchObject({ speed: 1.2 });
   });
 
   it("finds each line in the audio from the character times", () => {

@@ -1,7 +1,8 @@
 // "Voiceover from text" in the video editor (/edit): a script becomes speech
-// with ElevenLabs, in one of three voices. POST {text, voice} -> an MP3 (the
-// browser keeps it on the device and places it like a recorded voiceover).
-// Dubbing: POST {mode:"dub", lines, voice, lang} -> {audio (base64 MP3), spans}
+// with ElevenLabs, in one of the premade voices. POST {text, voice, emotion?, pace?}
+// -> an MP3 (the browser keeps it on the device and places it like a recorded
+// voiceover); no emotion or pace sounds as before (warm, normal).
+// Dubbing: POST {mode:"dub", lines, voice, lang, emotion?, pace?} -> {audio (base64 MP3), spans}
 // where spans[i] is when line i is spoken, so the browser can lay each line
 // where it was said. Either counts once against the "ai-voice" daily cap.
 // Music for me: POST {mode:"mood", text} -> {mood}, Jev's pick from what is said
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
         res = await fetch(dubUrl(dub.voice), {
           method: "POST",
           headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
-          body: JSON.stringify(dubBody(dub.lines, dub.lang)),
+          body: JSON.stringify(dubBody(dub.lines, dub.lang, dub)),
           signal: AbortSignal.timeout(120_000),
         });
       } catch (e) {
@@ -113,7 +114,7 @@ Deno.serve(async (req) => {
       const ends = out?.alignment?.character_end_times_seconds;
       const duration = Array.isArray(ends) && ends.length ? Number(ends[ends.length - 1]) || 0 : 0;
       if (typeof out?.audio_base64 !== "string" || !out.audio_base64) return json({ error: RETRY }, 502);
-      console.log("text-voice dub", dub.lang, dub.voice, dub.lines.length, "lines, cost", res.headers.get("character-cost") ?? "?");
+      console.log("text-voice dub", dub.lang, dub.voice, dub.emotion, dub.pace, dub.lines.length, "lines, cost", res.headers.get("character-cost") ?? "?");
       return json({ audio: out.audio_base64, spans: lineSpans(dub.lines, out.alignment, duration) });
     }
     if (!parsed?.ok) return json({ error: RETRY }, 500);
@@ -123,7 +124,7 @@ Deno.serve(async (req) => {
       res = await fetch(ttsUrl(parsed.voice), {
         method: "POST",
         headers: { "xi-api-key": apiKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
-        body: JSON.stringify(ttsBody(parsed.text)),
+        body: JSON.stringify(ttsBody(parsed.text, parsed)),
         signal: AbortSignal.timeout(90_000),
       });
     } catch (e) {
@@ -134,7 +135,7 @@ Deno.serve(async (req) => {
       console.error("text-voice elevenlabs", res.status, (await res.text()).slice(0, 300));
       return json({ error: res.status === 401 || res.status === 402 ? "Voiceover credits have run out. Tell your studio admin." : RETRY }, 502);
     }
-    console.log("text-voice", parsed.voice, parsed.text.length, "chars, cost", res.headers.get("character-cost") ?? "?");
+    console.log("text-voice", parsed.voice, parsed.emotion, parsed.pace, parsed.text.length, "chars, cost", res.headers.get("character-cost") ?? "?");
     // octet-stream, so supabase-js and plain fetch both hand it back as a Blob
     return new Response(res.body, { headers: { ...corsHeaders, "Content-Type": "application/octet-stream" } });
   } catch (e) {

@@ -9,32 +9,72 @@ export const TTS_MODEL = "eleven_turbo_v2_5"; // half the credits of multilingua
 export const MAX_SCRIPT = 2500; // about three minutes of speech
 export const MIN_SCRIPT = 5;
 
-/** The voices on offer: ElevenLabs premade voices, ids checked against the account on 2026-10-08. */
+/**
+ * The voices on offer: ElevenLabs premade voices, ids checked against the account on 2026-10-10. The studio
+ * account is on the free plan, which can't use Voice Library voices (the Singaporean ones among them)
+ * through the API, so only premade voices go here. British English is the nearest they come to Singapore's.
+ */
 export const VOICES = {
-  alice: { id: "Xb7hH8MSUJpSbSDYk0k2", label: "Alice", note: "clear, female" },
-  eric: { id: "cjVigY5qzO86Huf0OWal", label: "Eric", note: "warm, male" },
+  alice: { id: "Xb7hH8MSUJpSbSDYk0k2", label: "Alice", note: "British, clear, female" },
+  lily: { id: "pFZP5JQG7iQjIQuC4Bku", label: "Lily", note: "British, soft, female" },
+  george: { id: "JBFqnCBsd6RMkjVDRZzb", label: "George", note: "British, mature, male" },
+  eric: { id: "cjVigY5qzO86Huf0OWal", label: "Eric", note: "smooth, male" },
   matilda: { id: "XrExE9yKIg1WjnnlVkGX", label: "Matilda", note: "upbeat, female" },
+  sarah: { id: "EXAVITQu4vr4xnSDxMaL", label: "Sarah", note: "confident, female" },
+  liam: { id: "TX3LPaxmHKxFdv7VOQHJ", label: "Liam", note: "young, male" },
 } as const;
 
 export type VoiceId = keyof typeof VOICES;
 export const VOICE_IDS = Object.keys(VOICES) as VoiceId[];
 
-export function parseVoiceRequest(raw: unknown): { ok: true; text: string; voice: VoiceId } | { ok: false; error: string } {
+/**
+ * How the voice sounds, as ElevenLabs voice_settings (each 0 to 1): lower stability gives a wider, livelier
+ * range, higher a steadier one (monotone near 1); style amplifies the voice's own manner. Warm is ElevenLabs'
+ * default, so a request that names no feeling (the AI presenter's) sounds as it always did.
+ */
+export const EMOTIONS = {
+  calm: { label: "Calm", settings: { stability: 0.7, similarity_boost: 0.75, style: 0 } },
+  warm: { label: "Warm", settings: { stability: 0.5, similarity_boost: 0.75, style: 0 } },
+  energetic: { label: "Energetic", settings: { stability: 0.3, similarity_boost: 0.75, style: 0.3 } },
+  serious: { label: "Serious", settings: { stability: 0.85, similarity_boost: 0.75, style: 0 } },
+} as const;
+export type Emotion = keyof typeof EMOTIONS;
+export const EMOTION_IDS = Object.keys(EMOTIONS) as Emotion[];
+export const DEFAULT_EMOTION: Emotion = "warm";
+
+/** Pace moves ElevenLabs' speed from where it would be; it takes 0.7 to 1.2, 1 being the voice as recorded. */
+export const PACES = { slower: { label: "Slower", shift: -0.1 }, normal: { label: "Normal", shift: 0 }, faster: { label: "Faster", shift: 0.1 } } as const;
+export type Pace = keyof typeof PACES;
+export const PACE_IDS = Object.keys(PACES) as Pace[];
+
+export interface Delivery { emotion: Emotion; pace: Pace }
+const PLAIN: Delivery = { emotion: DEFAULT_EMOTION, pace: "normal" };
+
+/** Anything unknown or missing reads as warm and normal. */
+function parseDelivery(b: Record<string, unknown>): Delivery {
+  return { emotion: EMOTION_IDS.find((e) => e === b.emotion) ?? PLAIN.emotion, pace: PACE_IDS.find((p) => p === b.pace) ?? PLAIN.pace };
+}
+
+export function voiceSettings({ emotion, pace }: Delivery, speed = 1) {
+  return { ...EMOTIONS[emotion].settings, speed: Math.min(1.2, Math.max(0.7, Number((speed + PACES[pace].shift).toFixed(2)))) };
+}
+
+export function parseVoiceRequest(raw: unknown): ({ ok: true; text: string; voice: VoiceId } & Delivery) | { ok: false; error: string } {
   const b = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const text = typeof b.text === "string" ? b.text.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim() : "";
   if (text.length < MIN_SCRIPT) return { ok: false, error: "Write the script first." };
   if (text.length > MAX_SCRIPT) return { ok: false, error: `Keep the script under ${MAX_SCRIPT.toLocaleString("en-US")} characters.` };
   const voice = VOICE_IDS.find((v) => v === b.voice);
   if (!voice) return { ok: false, error: "Pick a voice." };
-  return { ok: true, text, voice };
+  return { ok: true, text, voice, ...parseDelivery(b) };
 }
 
 export function ttsUrl(voice: VoiceId): string {
   return `https://api.elevenlabs.io/v1/text-to-speech/${VOICES[voice].id}?output_format=mp3_44100_128`;
 }
 
-export function ttsBody(text: string): Record<string, unknown> {
-  return { text, model_id: TTS_MODEL, voice_settings: { stability: 0.5, similarity_boost: 0.75 } };
+export function ttsBody(text: string, how: Delivery = PLAIN, speed = 1) {
+  return { text, model_id: TTS_MODEL, voice_settings: voiceSettings(how, speed) };
 }
 
 // ---------- dubbing: the video's lines, translated, spoken in one call ----------
@@ -43,7 +83,7 @@ export const DUB_LANGS = { zh: "Chinese", ms: "Malay", ta: "Tamil" } as const;
 export type DubLang = keyof typeof DUB_LANGS;
 export const MAX_DUB_LINES = 300;
 
-export function parseDubRequest(raw: unknown): { ok: true; lines: string[]; voice: VoiceId; lang: DubLang } | { ok: false; error: string } {
+export function parseDubRequest(raw: unknown): ({ ok: true; lines: string[]; voice: VoiceId; lang: DubLang } & Delivery) | { ok: false; error: string } {
   const b = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const lang = (Object.keys(DUB_LANGS) as DubLang[]).find((l) => l === b.lang);
   if (!lang) return { ok: false, error: "Pick Chinese, Malay or Tamil." };
@@ -56,19 +96,18 @@ export function parseDubRequest(raw: unknown): { ok: true; lines: string[]; voic
   const total = lines.join("\n").length;
   if (total < MIN_SCRIPT) return { ok: false, error: "Caption the video first." };
   if (total > MAX_SCRIPT) return { ok: false, error: `This video has too much speech to dub in one go (over ${MAX_SCRIPT.toLocaleString("en-US")} characters). Trim it first.` };
-  return { ok: true, lines, voice, lang };
+  return { ok: true, lines, voice, lang, ...parseDelivery(b) };
 }
 
 export function dubUrl(voice: VoiceId): string {
   return `https://api.elevenlabs.io/v1/text-to-speech/${VOICES[voice].id}/with-timestamps?output_format=mp3_44100_128`;
 }
 
-/** Translations run longer than the English they replace, so the dub voice talks a little faster (ElevenLabs allows up to 1.2). */
+/** Translations run longer than the English they replace, so the dub voice talks a little faster; pace moves it from here. */
 export const DUB_SPEED = 1.15;
 
-export function dubBody(lines: string[], lang: DubLang): Record<string, unknown> {
-  const base = ttsBody(lines.join("\n"));
-  return { ...base, language_code: lang, voice_settings: { ...(base.voice_settings as object), speed: DUB_SPEED } };
+export function dubBody(lines: string[], lang: DubLang, how: Delivery = PLAIN) {
+  return { ...ttsBody(lines.join("\n"), how, DUB_SPEED), language_code: lang };
 }
 
 interface Alignment {
