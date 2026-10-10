@@ -8,6 +8,8 @@
 // and `${userId}~${profileId}` for the others. The list syncs across devices
 // (content-studio- prefix); which profile is open is per device.
 
+import { disconnectBrand } from "@/lib/socialConnect";
+
 export interface Profile {
   id: string;
   name: string;
@@ -64,9 +66,14 @@ export function renameProfile(userId: string, id: string, name: string): Profile
   return saveProfiles(userId, loadProfiles(userId).map((p) => (p.id === id ? { ...p, name: trimmed } : p)));
 }
 
-/** Removes a profile and everything stored under it. The default profile stays. */
-export function removeProfile(userId: string, id: string): Profile[] {
+/**
+ * Removes a profile and everything stored under it. The default profile stays. Its connected social
+ * accounts are disconnected first, or they would keep running in Zernio with nothing in the app to reach
+ * them; when that fails nothing is removed and the error says why.
+ */
+export async function removeProfile(userId: string, id: string): Promise<Profile[]> {
   if (id === DEFAULT_PROFILE_ID) return loadProfiles(userId);
+  await disconnectBrand(id);
   const s = storage();
   if (s) {
     const suffix = `${userId}~${id}`;

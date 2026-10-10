@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const callFn = vi.fn();
+vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 import {
   activeProfile,
   addProfile,
@@ -28,6 +31,7 @@ class MemStorage {
 
 beforeEach(() => {
   (globalThis as { window?: unknown }).window = { localStorage: new MemStorage() };
+  callFn.mockReset().mockResolvedValue({ disconnected: 0 });
 });
 
 describe("profiles", () => {
@@ -49,7 +53,7 @@ describe("profiles", () => {
     expect(loadDrafts(UID).map((d) => d.id)).toEqual(["a"]);
   });
 
-  it("renames, and removing a profile deletes only its data and falls back to the default", () => {
+  it("renames, and removing a profile deletes only its data and falls back to the default", async () => {
     const mb = addProfile(UID, "MoneyBees");
     renameProfile(UID, mb.id, "  The MoneyBees ");
     expect(loadProfiles(UID)[1].name).toBe("The MoneyBees");
@@ -58,12 +62,28 @@ describe("profiles", () => {
     setActiveProfile(UID, DEFAULT_PROFILE_ID);
     saveDrafts(UID, [{ id: "me" } as never]);
     setActiveProfile(UID, mb.id);
-    removeProfile(UID, mb.id);
+    await removeProfile(UID, mb.id);
+    expect(callFn).toHaveBeenCalledWith("social", { action: "disconnect", profileId: mb.id, all: true });
     expect(activeProfile(UID).id).toBe(DEFAULT_PROFILE_ID);
     expect(loadDrafts(UID).map((d) => d.id)).toEqual(["me"]);
     const ls = (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
     expect(ls.getItem(`content-studio-drafts-${UID}~${mb.id}`)).toBeNull();
-    expect(removeProfile(UID, DEFAULT_PROFILE_ID).map((p) => p.id)).toEqual([DEFAULT_PROFILE_ID]);
+    expect((await removeProfile(UID, DEFAULT_PROFILE_ID)).map((p) => p.id)).toEqual([DEFAULT_PROFILE_ID]);
+    expect(callFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps a brand whose social accounts couldn't be disconnected", async () => {
+    const { EdgeError } = await import("@/lib/edgeFn");
+    const mb = addProfile(UID, "MoneyBees");
+    setActiveProfile(UID, mb.id);
+    saveDrafts(UID, [{ id: "mb" } as never]);
+    callFn.mockRejectedValue(new EdgeError("Couldn't reach your social accounts.", 502));
+    await expect(removeProfile(UID, mb.id)).rejects.toThrow("Couldn't reach");
+    expect(loadProfiles(UID).map((p) => p.id)).toContain(mb.id);
+    expect(loadDrafts(UID).map((d) => d.id)).toEqual(["mb"]);
+    callFn.mockRejectedValue(new EdgeError("Not enabled.", 404));
+    await removeProfile(UID, mb.id);
+    expect(loadProfiles(UID).map((p) => p.id)).not.toContain(mb.id);
   });
 
   it("falls back to the default when the open profile was removed on another device", () => {

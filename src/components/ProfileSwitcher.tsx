@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { socialConnectShown } from "@/lib/socialConnect";
 import {
   activeProfileId,
   addProfile,
@@ -25,6 +27,8 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [switching, setSwitching] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const { toast } = useToast();
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,10 +76,20 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
     setEditing(null);
   };
 
-  const remove = (p: Profile) => {
-    if (!window.confirm(`Remove ${p.name}? Its posts, plan, voice and recruit kit are deleted on every device. This can't be undone.`)) return;
+  const remove = async (p: Profile) => {
+    const social = socialConnectShown() ? " Its connected social accounts are disconnected." : "";
+    if (!window.confirm(`Remove ${p.name}? Its posts, plan, voice and recruit kit are deleted on every device.${social} This can't be undone.`)) return;
     const wasActive = p.id === activeId;
-    setProfiles(removeProfile(userId, p.id));
+    setRemoving(p.id);
+    try {
+      setProfiles(await removeProfile(userId, p.id));
+    } catch (e) {
+      // its social accounts are still connected, so the brand stays
+      toast({ title: `${p.name} wasn't removed`, description: e instanceof Error ? e.message : "Try again in a minute.", variant: "destructive" });
+      return;
+    } finally {
+      setRemoving(null);
+    }
     if (wasActive) window.location.reload();
   };
 
@@ -136,13 +150,15 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                     <button
                       type="button"
                       onClick={() => switchTo(p.id)}
-                      disabled={!!switching}
+                      disabled={!!switching || !!removing}
                       className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-accent"
                     >
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
                         {initial(p.name)}
                       </span>
-                      <span className="min-w-0 flex-1 truncate">{switching === p.id ? `Opening ${p.name}...` : p.name}</span>
+                      <span className="min-w-0 flex-1 truncate">
+                        {switching === p.id ? `Opening ${p.name}...` : removing === p.id ? `Removing ${p.name}...` : p.name}
+                      </span>
                       {p.id === activeId && <Check className="h-4 w-4 shrink-0 text-primary" />}
                     </button>
                     <button
@@ -160,7 +176,8 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                     {p.id !== DEFAULT_PROFILE_ID && (
                       <button
                         type="button"
-                        onClick={() => remove(p)}
+                        onClick={() => void remove(p)}
+                        disabled={!!removing}
                         aria-label={`Remove ${p.name}`}
                         title={`Remove ${p.name}`}
                         className="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
