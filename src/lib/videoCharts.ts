@@ -103,21 +103,30 @@ export function chartAnim(from: number, to: number, out: number, n: number): { a
 // sizes at a 1080 frame: padding, title, rows, bar, value text, two-number columns
 const L = { pad: 44, title: 44, gap: 16, row: 64, rowGap: 18, lab: 44, val: 48, bar: 40, big: 84, tall: 160, barW: 120, radius: 36 };
 
-/** The card's size in px, u = the frame's short side / 1080. */
-export function chartSize(c: Chart, u: number): { w: number; h: number } {
+/**
+ * The card's size in px, u = the frame's short side / 1080. On a wide frame the card is no wider than a
+ * comparison (760), so it still fits beside a face at the smallest size it may shrink to (WIDE_MIN).
+ */
+export function chartSize(c: Chart, u: number, wide = false): { w: number; h: number } {
   const head = c.title.trim() ? L.title * 1.3 + L.gap : 0;
   if (isCompare(c)) return { w: 760 * u, h: (2 * L.pad + head + L.big * 1.2 + L.gap + L.tall + L.gap + L.lab * 1.4) * u };
   const n = Math.max(1, shownRows(c).length);
-  return { w: 900 * u, h: (2 * L.pad + head + n * L.row + (n - 1) * L.rowGap) * u };
+  return { w: (wide ? 760 : 900) * u, h: (2 * L.pad + head + n * L.row + (n - 1) * L.rowGap) * u };
 }
+
+/**
+ * The smallest a card gets on a wide frame (16:9). Row text is then about 1.8% of the frame's width, close to a
+ * 4:5 or square at half size (2%), so it still reads on a phone; half size there was under a 1.1%.
+ */
+export const WIDE_MIN = 0.8;
 
 /**
  * Where a card w x h (px) goes on a wide frame: beside the face, on the side
  * with more room, level with the space the captions leave, as big as fits
- * there (never under half size; `fits` says whether half size fits). Without
- * a face it goes on the right.
+ * there (never under `min`, half size unless the caller asks for more; `fits`
+ * says whether `min` fits). Without a face it goes on the right.
  */
-export function sideSpot(W: number, H: number, w: number, h: number, face: [number, number] | null, capBand: [number, number] | null): { x: number; top: number; scale: number; fits: boolean } {
+export function sideSpot(W: number, H: number, w: number, h: number, face: [number, number] | null, capBand: [number, number] | null, min = 0.5): { x: number; top: number; scale: number; fits: boolean } {
   const m = W * 0.04;
   const [f0, f1] = face ? [face[0] * W - m / 2, face[1] * W + m / 2] : [W / 2, W / 2];
   const left = f0 - m;
@@ -128,9 +137,9 @@ export function sideSpot(W: number, H: number, w: number, h: number, face: [numb
   if (capBand && (capBand[0] + capBand[1]) / 2 >= 0.5) hi = Math.min(hi, (capBand[0] - 0.02) * H);
   else if (capBand) lo = Math.max(lo, (capBand[1] + 0.02) * H);
   const room1 = Math.min(1, room / w, (hi - lo) / h);
-  const scale = Math.max(0.5, room1);
+  const scale = Math.max(min, room1);
   const x = right >= left ? W - m - (w * scale) / 2 : m + (w * scale) / 2;
-  return { x, top: lo + Math.max(0, hi - lo - h * scale) / 2, scale, fits: room1 >= 0.5 };
+  return { x, top: lo + Math.max(0, hi - lo - h * scale) / 2, scale, fits: room1 >= min };
 }
 
 // ---------- drawing (browser only) ----------
@@ -142,10 +151,10 @@ const labFont = (px: number) => `700 ${Math.round(px)}px "DM Sans", Inter, syste
  * The card, centred on the origin, in `bg` (the brand colour) with text and bars
  * in the colour readable on it. Values are written as typed.
  */
-export function paintChart(g: CanvasRenderingContext2D, c: Chart, a: { alpha: number; bars: number[] }, u: number, bg: string) {
+export function paintChart(g: CanvasRenderingContext2D, c: Chart, a: { alpha: number; bars: number[] }, u: number, bg: string, wide = false) {
   const rows = shownRows(c);
   const shares = barShares(rows);
-  const { w, h } = chartSize(c, u);
+  const { w, h } = chartSize(c, u, wide);
   const ink = readableOn(bg);
   const p = L.pad * u;
   g.save();

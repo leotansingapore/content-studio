@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultSettings, type EditSettings, type Word } from "./videoEdit";
-import { CHART, MAX_ROWS, barShares, chartAnim, chartSize, chartValue, isCompare, newChart, sanitizeCharts, shownRows, sideSpot, type Chart } from "./videoCharts";
+import { CHART, MAX_ROWS, barShares, chartAnim, chartSize, chartValue, isCompare, newChart, sanitizeCharts, shownRows, sideSpot, WIDE_MIN, type Chart } from "./videoCharts";
 import { EXPORT_VERSIONS } from "./exportVersions";
 import { exportSize } from "./videoEdit";
 import { chartOfFigure, chartShows, chartSpot, faceCols, findFigures, motionOf } from "./videoMotion";
@@ -155,6 +155,17 @@ describe("the chart's size and place", () => {
     expect(a >= 0.7 * 1920 || b <= 0.3 * 1920).toBe(true);
     expect(sideSpot(1920, 1080, 900, 400, [0.1, 0.9], null).scale).toBe(0.5);
   });
+  it("on a wide frame the card is narrower and never smaller than WIDE_MIN, beside a centred face", () => {
+    expect(chartSize(chart(0), 1, true).w).toBe(760);
+    expect(chartSize(chart(0), 1).w).toBe(900);
+    const { w, h } = chartSize(chart(0), 1, true);
+    const r = sideSpot(1920, 1080, w, h, [0.4, 0.6], [0.8, 0.9], WIDE_MIN);
+    expect(r.scale).toBeGreaterThanOrEqual(WIDE_MIN);
+    expect(r.fits).toBe(true);
+    expect(r.x - (w * r.scale) / 2 >= 0.6 * 1920 || r.x + (w * r.scale) / 2 <= 0.4 * 1920).toBe(true);
+    // a face too wide for a readable card beside it: the card keeps its size, the face is no reason to shrink it
+    expect(sideSpot(1920, 1080, w, h, [0.2, 0.8], null, WIDE_MIN)).toMatchObject({ scale: 0.8, fits: false });
+  });
   it("finds the face's columns on a wide frame: in the middle on blur, where the crop puts it on fill", () => {
     const box = { x0: 0.4, y0: 0.2, x1: 0.6, y1: 0.4 };
     const blur = faceCols(box, { fit: "blur", focusX: 0.5 }, 1920, 1080, 1080, 1920)!;
@@ -192,11 +203,13 @@ describe("the chart in every size of the multi-size export", () => {
       const cap: [number, number] = [0.68, 0.8];
       const cols: [number, number] = W > H ? [0.4, 0.6] : [0.25, 0.75];
       for (const c of cases) {
-        const { w, h } = chartSize(c, u);
-        const r = W > H ? sideSpot(W, H, w, h, cols, cap) : chartSpot(W, H, w, h, { head, core: [0.16, 0.4], cols }, cap);
+        const { w, h } = chartSize(c, u, W > H);
+        const r = W > H ? sideSpot(W, H, w, h, cols, cap, WIDE_MIN) : chartSpot(W, H, w, h, { head, core: [0.16, 0.4], cols }, cap);
         const [l, rt, t, b] = [r.x - (w * r.scale) / 2, r.x + (w * r.scale) / 2, r.top, r.top + h * r.scale];
         expect([l >= 0, rt <= W, t >= 0, b <= H]).toEqual([true, true, true, true]);
-        expect(r.scale).toBeGreaterThanOrEqual(0.5);
+        // readable: half size on a tall or square frame, WIDE_MIN on a wide one, where the same pixels are a smaller share of the width
+        expect(r.scale).toBeGreaterThanOrEqual(W > H ? 0.8 : 0.5);
+        expect(r.scale * 44 * u / W).toBeGreaterThanOrEqual(W > H ? 0.017 : 0.02);
         expect(b <= cap[0] * H + 0.5 || t >= cap[1] * H - 0.5).toBe(true);
         const clearOfHead = b <= head[0] * H + 0.5 || t >= head[1] * H - 0.5;
         const besideFace = rt <= cols[0] * W + 0.5 || l >= cols[1] * W - 0.5;

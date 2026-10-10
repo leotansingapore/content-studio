@@ -10,7 +10,7 @@ import { readableOn } from "@/lib/carouselLayout";
 import { callFn } from "@/lib/edgeFn";
 import { STYLES, frameRect, outAt, srcAt, type Caption, type EditSettings, type Segment, type Sentence, type Word } from "@/lib/videoEdit";
 import { outWithin, segLength } from "@/lib/fastPauses";
-import { CHART, chartAnim, chartSize, newChart, paintChart, sanitizeCharts, shownRows, sideSpot, type Chart } from "@/lib/videoCharts";
+import { CHART, chartAnim, chartSize, newChart, paintChart, sanitizeCharts, shownRows, sideSpot, WIDE_MIN, type Chart } from "@/lib/videoCharts";
 
 /** A key line Jev picked: where it is said on the source timeline, Jev's yes probability and, on the top few, its pop-up. */
 export interface KeyLine {
@@ -615,7 +615,7 @@ function drawChart(
   const H = g.canvas.height;
   const u = Math.min(W, H) / 1080;
   const s = f.settings;
-  const { w, h } = chartSize(c.chart, u);
+  const { w, h } = chartSize(c.chart, u, W > H);
   const a = chartAnim(c.from, c.to, f.out, shownRows(c.chart).length);
   const vw = f.video.videoWidth;
   const vh = f.video.videoHeight;
@@ -623,13 +623,13 @@ function drawChart(
   const z = m.zooms.length ? KEY_ZOOM.peak : s.punchIn ? STYLES[s.style].punch : 1;
   const cy = m.zooms.length ? 0.42 : 0.5;
   const cols = zoomBand(faceCols(s.faceBox, s, W, H, vw, vh), z, 0.5);
-  const { x, top, scale } = W > H ? sideSpot(W, H, w, h, cols, capBand)
+  const { x, top, scale } = W > H ? sideSpot(W, H, w, h, cols, capBand, WIDE_MIN)
     : chartSpot(W, H, w, h, { head: zoomBand(faceBand(s.faceBox, s, W, H, vw, vh), z, cy), core: zoomBand(faceBand(s.faceBox, s, W, H, vw, vh, 0), z, cy), cols }, capBand);
   g.save();
   g.translate(x, top + (h * scale) / 2 + (1 - a.rise) * 40 * u);
   const sc = (0.92 + 0.08 * a.rise) * scale;
   g.scale(sc, sc);
-  paintChart(g, c.chart, a, u, f.brand?.color ?? s.activeColor);
+  paintChart(g, c.chart, a, u, f.brand?.color ?? s.activeColor, W > H);
   g.restore();
 }
 
