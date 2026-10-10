@@ -1,6 +1,6 @@
 // ai-image mode "broll": an AI B-roll clip for a line stock footage had nothing
-// for (the video editor's "Add B-roll for me", behind a switch while the
-// Higgsfield API pool is empty). Higgsfield makes a Soul v2 picture of the scene
+// for (the video editor's "Add B-roll for me", switched on 2026-10-10 once the
+// Higgsfield API pool was topped up). Higgsfield makes a Soul v2 picture of the scene
 // at 720p, then DoP lite moves it for 5 s: 0.05 + 2 credits, about USD 0.13 a
 // clip (Higgsfield's free estimate, 2026-10-09). One clip counts once against
 // "ai-broll" (3 a day per adviser) and once against "ai-broll-global" (20 a day
@@ -24,7 +24,7 @@ export interface AiBrollRequest {
 }
 
 /** AI B-roll spends the studio's Higgsfield credits, so the server decides, not the browser:
- * it runs only while the AI_BROLL_ENABLED secret is "1" (off until the API pool is topped up). */
+ * it runs only while the AI_BROLL_ENABLED secret is "1" (on since 2026-10-10). */
 export const aiBrollEnabled = (flag: string | undefined) => flag?.trim() === "1";
 
 export function parseAiBroll(raw: unknown): { ok: true; request: AiBrollRequest } | { ok: false; error: string } {

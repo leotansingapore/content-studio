@@ -19,14 +19,15 @@ import { loadProjects, saveProject } from "@/lib/videoProjects";
 export type Orientation = "portrait" | "landscape" | "square";
 
 /**
- * AI clips (Higgsfield, about USD 0.13 each) are built but held back: the
- * Higgsfield API pool was still empty on 2026-10-09. Once it is topped up, set
- * the AI_BROLL_ENABLED secret to 1 on the ai-image function (the server refuses
- * AI B-roll without it, whatever the browser shows) and switch on here; until
- * then a browser with the cs-flag-ai-broll item set to 1 sees the switch (for
- * testing; that key does not sync).
+ * AI clips (Higgsfield, about USD 0.13 each) switched on 2026-10-10: Leo topped
+ * up the Higgsfield API pool so AI B-roll ships as built. The server decides too:
+ * the ai-image function refuses AI B-roll unless its AI_BROLL_ENABLED secret is
+ * 1 (set the same day), whatever the browser shows, and caps it at 3 a day per
+ * adviser and 20 a day across the studio. To pause it, unset that secret and set
+ * this to false; then only a browser with the cs-flag-ai-broll item set to 1
+ * sees the switch (for testing; that key does not sync).
  */
-export const AI_BROLL = false;
+export const AI_BROLL = true;
 export function aiBrollOn(): boolean {
   try {
     return AI_BROLL || window.localStorage.getItem("cs-flag-ai-broll") === "1";

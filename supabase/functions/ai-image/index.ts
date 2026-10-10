@@ -5,7 +5,7 @@
 //   POST {mode:"broll", search, line, aspect} -> {token}: an AI B-roll clip for a line stock had nothing
 //        for (broll.ts): a Soul v2 picture, waited for here, then DoP lite moves it; the token is the
 //        motion job's, read with "status". Counts once against "ai-broll" and "ai-broll-global".
-//        Refused unless the AI_BROLL_ENABLED secret is "1" (set it once the Higgsfield pool has credits).
+//        Refused unless the AI_BROLL_ENABLED secret is "1" (set 2026-10-10, when the Higgsfield pool was topped up).
 // The token is the Higgsfield request id signed for the adviser who started it
 // (logic.ts jobToken), so nobody else can read the job.
 // The browser polls status, then downloads the picture straight from Higgsfield's

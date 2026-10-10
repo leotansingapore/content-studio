@@ -30,7 +30,7 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
   const mine = j?.projectId === projectId ? j : null;
   const usesLeft = useUsesLeft(running);
   const left = usesLeft("broll-picks");
-  // AI clips when stock has nothing: held back until the Higgsfield pool is topped up (autoBroll.ts AI_BROLL)
+  // AI clips when stock has nothing (autoBroll.ts AI_BROLL, on since 2026-10-10)
   const aiOffered = aiBrollOn();
   const [ai, setAi] = useState(false);
   const aiLeft = usesLeft("ai-broll");
