@@ -1,5 +1,8 @@
 // Pure logic for text-voice: "Voiceover from text" in the video editor turns a
-// script into speech with ElevenLabs. No Deno or npm imports, so vitest covers it.
+// script into speech with ElevenLabs, and "Music for me" makes a background track
+// in the mood Jev picks. No Deno or npm imports, so vitest covers it.
+
+import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 
 export const TTS_MODEL = "eleven_turbo_v2_5"; // half the credits of multilingual v2, close in quality
 export const MAX_SCRIPT = 2500; // about three minutes of speech
@@ -93,3 +96,98 @@ export function lineSpans(lines: string[], alignment: Alignment | null | undefin
   }
   return out;
 }
+
+// ---------- background music: an instrumental track in the video's mood (Eleven Music) ----------
+
+/** The moods on offer. `about` is what Jev reads to pick one; `style` is what Eleven Music is asked for. */
+export const MOODS = {
+  calm: {
+    label: "Calm",
+    about: "Gentle and unhurried: explaining, teaching or reassuring",
+    style: "Soft lo-fi piano with warm pads and light brushed percussion, 75 BPM, gentle and unhurried, clean modern production",
+  },
+  warm: {
+    label: "Warm",
+    about: "Personal and heartfelt: stories about family, clients or life moments",
+    style: "Warm fingerpicked acoustic guitar and soft piano with a light shaker, 90 BPM, heartfelt and intimate, modern folk production",
+  },
+  upbeat: {
+    label: "Upbeat",
+    about: "Bright and energetic: quick tips, lists, wins and good news",
+    style: "Bright modern pop groove with plucked synths, claps and a bouncy bassline, 118 BPM, positive and energetic, polished production",
+  },
+  inspiring: {
+    label: "Inspiring",
+    about: "Rising and hopeful: goals, milestones, motivation and big life plans",
+    style: "Uplifting cinematic piano with swelling strings and a steady pulsing drum, 100 BPM, hopeful and rising, modern film-score production",
+  },
+  serious: {
+    label: "Serious",
+    about: "Steady and weighty: risks, illness, death, claims, scams or warnings",
+    style: "Minimal low piano and soft cello over a muted steady pulse, 80 BPM, thoughtful and serious, restrained modern score",
+  },
+  playful: {
+    label: "Playful",
+    about: "Light and fun: jokes, skits, trends and everyday humour",
+    style: "Playful pizzicato strings, ukulele and marimba with finger snaps, 110 BPM, cheeky and fun, clean modern production",
+  },
+} as const;
+
+export type Mood = keyof typeof MOODS;
+export const MOOD_IDS = Object.keys(MOODS) as Mood[];
+/** Used when Jev has no answer: no key, a timeout, no captions, or no uses left. */
+export const DEFAULT_MOOD: Mood = "calm";
+
+export const MUSIC_MODEL = "music_v2_5";
+/** Eleven Music makes 3 s to 5 min; a longer video loops the track. */
+export const MIN_MUSIC_SECONDS = 3;
+export const MAX_MUSIC_SECONDS = 300;
+/** Below this there is too little said to read a mood from. */
+export const MIN_MOOD_TEXT = 40;
+export const MAX_MOOD_TEXT = 4000;
+
+/** Streamed, so the reply starts before a long track is finished. */
+export const MUSIC_URL = "https://api.elevenlabs.io/v1/music/stream?output_format=mp3_44100_128";
+
+export function parseMusicRequest(raw: unknown): { ok: true; mood: Mood; ms: number } | { ok: false; error: string } {
+  const b = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const mood = MOOD_IDS.find((m) => m === b.mood);
+  if (!mood) return { ok: false, error: "Pick a mood." };
+  const secs = typeof b.seconds === "number" && Number.isFinite(b.seconds) ? b.seconds : 0;
+  if (secs < 1) return { ok: false, error: "Open a video first." };
+  const ms = Math.round(Math.min(MAX_MUSIC_SECONDS, Math.max(MIN_MUSIC_SECONDS, secs)) * 1000);
+  return { ok: true, mood, ms };
+}
+
+export function musicBody(mood: Mood, ms: number): Record<string, unknown> {
+  return {
+    prompt: `${MOODS[mood].style}. Instrumental only, no vocals. Background music under someone talking: even level from start to end, no sudden drops, no big builds.`,
+    music_length_ms: ms,
+    model_id: MUSIC_MODEL,
+    force_instrumental: true,
+  };
+}
+
+/** What is said in the video, tidied and cut to a length Jev reads quickly; "" when too little is said. */
+export function moodText(raw: unknown): string {
+  const b = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const text = typeof b.text === "string" ? b.text.replace(/\s+/g, " ").trim().slice(0, MAX_MOOD_TEXT) : "";
+  return text.length < MIN_MOOD_TEXT ? "" : text;
+}
+
+export function moodState(text: string) {
+  return { video: "A short social video by a Singapore financial adviser.", transcript: text };
+}
+
+export function moodQuestions(): Record<string, JevQuestion> {
+  return {
+    mood: {
+      type: "choice",
+      instructions: { question: "Which mood of background music best fits what is said in `transcript`?" },
+      criteria: Object.fromEntries(MOOD_IDS.map((m) => [m, MOODS[m].about])),
+    },
+  };
+}
+
+/** Jev's pick, or calm when there is none. */
+export const readMood = (answers: Record<string, JevAnswer> | null): Mood => choiceOf(answers, "mood", MOOD_IDS) ?? DEFAULT_MOOD;

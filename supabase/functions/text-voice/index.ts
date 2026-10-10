@@ -4,6 +4,9 @@
 // Dubbing: POST {mode:"dub", lines, voice, lang} -> {audio (base64 MP3), spans}
 // where spans[i] is when line i is spoken, so the browser can lay each line
 // where it was said. Either counts once against the "ai-voice" daily cap.
+// Music for me: POST {mode:"mood", text} -> {mood}, Jev's pick from what is said
+// (calm without Jev; "music-mood" cap), then POST {mode:"music", mood, seconds}
+// -> an instrumental MP3 from Eleven Music ("ai-music" cap).
 //
 // Secrets: ELEVENLABS_API_KEY. Deploy WITH JWT verification:
 //   supabase functions deploy text-voice --project-ref hgdbflprrficdoyxmdxe --use-api
@@ -11,7 +14,11 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { dubBody, dubUrl, lineSpans, parseDubRequest, parseVoiceRequest, ttsBody, ttsUrl } from "./logic.ts";
+import { askJev } from "../_shared/jev.ts";
+import {
+  DEFAULT_MOOD, MUSIC_URL, dubBody, dubUrl, lineSpans, moodQuestions, moodState, moodText, musicBody,
+  parseDubRequest, parseMusicRequest, parseVoiceRequest, readMood, ttsBody, ttsUrl,
+} from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,34 +30,65 @@ function json(body: unknown, status = 200): Response {
 }
 
 const RETRY = "Couldn't make the voiceover right now. Try again in a minute.";
+const MUSIC_RETRY = "Couldn't make the music right now. Try again in a minute.";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
   try {
     const body = await req.json().catch(() => ({}));
-    const dub = body?.mode === "dub" ? parseDubRequest(body) : null;
+    const mode = body?.mode;
+    const dub = mode === "dub" ? parseDubRequest(body) : null;
     if (dub && !dub.ok) return json({ error: dub.error }, 400);
-    const parsed = dub ? null : parseVoiceRequest(body);
+    const music = mode === "music" ? parseMusicRequest(body) : null;
+    if (music && !music.ok) return json({ error: music.error }, 400);
+    const parsed = dub || music || mode === "mood" ? null : parseVoiceRequest(body);
     if (parsed && !parsed.ok) return json({ error: parsed.error }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
-    if (!uid) return json({ error: "Sign in to make a voiceover." }, 401);
+    if (!uid) return json({ error: music || mode === "mood" ? "Sign in to make music." : "Sign in to make a voiceover." }, 401);
+
+    if (mode === "mood") {
+      // a decision, so Jev and never a prompt; calm whenever there is no answer to be had
+      const text = moodText(body);
+      if (!text || !(await consumeUsage(admin, uid, "music-mood")).allowed) return json({ mood: DEFAULT_MOOD });
+      return json({ mood: readMood(await askJev(moodState(text), moodQuestions(), { who: "text-voice mood" })) });
+    }
 
     const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
     if (!apiKey) {
       console.error("ELEVENLABS_API_KEY is not set");
-      return json({ error: "Voiceover from text isn't switched on yet." }, 503);
+      return json({ error: music ? "Music for me isn't switched on yet." : "Voiceover from text isn't switched on yet." }, 503);
     }
-    const usage = await consumeUsage(admin, uid, "ai-voice");
+    const usage = await consumeUsage(admin, uid, music ? "ai-music" : "ai-voice");
     if (!usage.allowed) {
       const r = usageRefusal(usage);
       return json(r.body, r.status);
     }
 
+    if (music?.ok) {
+      let res: Response;
+      try {
+        res = await fetch(MUSIC_URL, {
+          method: "POST",
+          headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
+          body: JSON.stringify(musicBody(music.mood, music.ms)),
+          signal: AbortSignal.timeout(280_000),
+        });
+      } catch (e) {
+        console.error("text-voice music request failed", e);
+        return json({ error: MUSIC_RETRY }, 502);
+      }
+      if (!res.ok) {
+        console.error("text-voice music elevenlabs", res.status, (await res.text()).slice(0, 300));
+        return json({ error: [401, 402, 403].includes(res.status) ? "Music credits have run out. Tell your studio admin." : MUSIC_RETRY }, 502);
+      }
+      console.log("text-voice music", music.mood, music.ms, "ms, cost", res.headers.get("character-cost") ?? "?", "song", res.headers.get("song-id") ?? "?");
+      return new Response(res.body, { headers: { ...corsHeaders, "Content-Type": "application/octet-stream" } });
+    }
     if (dub?.ok) {
       let res: Response;
       try {

@@ -21,6 +21,7 @@ import PlatformCaptions from "@/components/PlatformCaptions";
 import { coldLength } from "@/lib/coldOpen";
 import { coverTimes, findCoverFrame } from "@/lib/coverFrame";
 import { onBrollApply } from "@/lib/autoBroll";
+import { MAX_MUSIC_SECONDS, MOODS, MOOD_IDS, dismissMusicJob, musicJob, onMusicApply, onMusicJob, pickMood, startMusic, type Mood } from "@/lib/aiMusic";
 import AiVideo from "@/components/AiVideo";
 import { aiBusy, aiJob, pendingAvatar } from "@/lib/aiVideo";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
@@ -761,6 +762,35 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
   };
 
+  // "Music for me": Jev presets the mood from what is said, the adviser can change it; the job
+  // runs outside React (aiMusic.ts), so the track still lands if they leave the editor meanwhile
+  const [aiMusicOpen, setAiMusicOpen] = useState(false);
+  const [mood, setMood] = useState<Mood | null>(null);
+  const [aiMusic, setAiMusic] = useState(musicJob);
+  useEffect(() => onMusicJob(setAiMusic), []);
+  const musicMaking = aiMusic?.state === "working" && aiMusic.projectId === project.id;
+  useEffect(() => onMusicApply(project.id, (m) => {
+    const cur = settingsRef.current;
+    setHistory((h) => [...h.slice(-19), cur]);
+    setSettings({ ...cur, music: { ...m, level: cur.music?.level ?? m.level } });
+    setAiMusicOpen(false);
+    toast({ title: "Music added", description: `${m.name}. Undo takes it off.` });
+  }), [project.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (aiMusic?.state !== "failed" || aiMusic.projectId !== project.id) return;
+    toast({ title: "Couldn't make the music", description: aiMusic.error, variant: "destructive" });
+    dismissMusicJob();
+  }, [aiMusic, project.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openAiMusic = () => {
+    setAiMusicOpen((o) => !o);
+    if (mood === null) void pickMood(transcript).then((m) => setMood((cur) => cur ?? m));
+  };
+  const trackSecs = Math.max(3, Math.round(Math.min(total, MAX_MUSIC_SECONDS)));
+  const makeMusic = () => {
+    if (!mood) return;
+    startMusic(userId, project.id, mood, total).catch((e) => toast({ title: "Couldn't make the music", description: (e as Error).message, variant: "destructive" }));
+  };
+
   const startVoice = async () => {
     const v = video.current;
     if (!v || playing) return;
@@ -1083,7 +1113,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   };
 
   // uses left today beside each AI button, read again after every run
-  const left = useUsesLeft(thinking || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning);
+  const left = useUsesLeft(thinking || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning || musicMaking);
   const none = (f: Parameters<typeof left>[0]) => left(f) === 0;
   // the cover from the frame on screen, or from a moment on the edit (a cover idea's), with the cover text set large
   const saveCover = async (at?: number | null, note?: string, chin?: number) => {
@@ -1915,13 +1945,30 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <div className="space-y-2 rounded-lg border border-border/60 p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="mr-auto text-sm font-medium">Background music
-                    <InfoTip label="About background music">Your own track, looped. It drops while you talk.</InfoTip></span>
+                    <InfoTip label="About background music">Yours or one made for you, looped. It drops while you talk.</InfoTip></span>
+                  <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={openAiMusic} aria-expanded={aiMusicOpen || musicMaking}>
+                    <Sparkles className="h-3.5 w-3.5" /> Music for me
+                  </Button>
                   <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => musicInput.current?.click()} disabled={musicBusy}>
                     <MusicIcon className="h-3.5 w-3.5" /> {musicBusy ? "Reading..." : settings.music ? "Change track" : "Add a track"}
                   </Button>
                   <input ref={musicInput} type="file" accept="audio/*" className="sr-only" tabIndex={-1} aria-hidden
                     onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void addMusic(f); }} />
                 </div>
+                {(aiMusicOpen || musicMaking) && (
+                  <div className="space-y-2 rounded-md border border-primary/25 bg-primary/5 p-2.5">
+                    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Mood">
+                      {MOOD_IDS.map((m) => <Chip key={m} on={mood === m} onClick={() => setMood(m)}>{MOODS[m].label}</Chip>)}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" className={`h-11 gap-1.5 sm:h-9 ${musicMaking ? "disabled:opacity-100" : ""}`} onClick={makeMusic} disabled={musicMaking || !mood || none("ai-music")}>
+                        {musicMaking || !mood ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
+                        {musicMaking ? "Making the track..." : !mood ? "Picking a mood..." : `Make a ${Math.floor(trackSecs / 60)}:${String(trackSecs % 60).padStart(2, "0")} track`}
+                      </Button>
+                      <Left n={left("ai-music")} />
+                    </div>
+                  </div>
+                )}
                 {settings.music && (
                   <>
                     <p className="truncate text-xs text-muted-foreground">

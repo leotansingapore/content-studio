@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { MAX_SCRIPT, TTS_MODEL, VOICES, parseVoiceRequest, ttsBody, ttsUrl, parseDubRequest, dubUrl, dubBody, lineSpans } from "./logic";
+import {
+  MAX_SCRIPT, TTS_MODEL, VOICES, parseVoiceRequest, ttsBody, ttsUrl, parseDubRequest, dubUrl, dubBody, lineSpans,
+  DEFAULT_MOOD, MAX_MOOD_TEXT, MAX_MUSIC_SECONDS, MIN_MUSIC_SECONDS, MOODS, MOOD_IDS, MUSIC_MODEL, MUSIC_URL,
+  moodQuestions, moodState, moodText, musicBody, parseMusicRequest, readMood,
+} from "./logic";
 
 describe("parseVoiceRequest", () => {
   it("tidies the script and takes a known voice", () => {
@@ -50,5 +54,53 @@ describe("dubbing", () => {
 
   it("shares the audio by length when the times don't match the text", () => {
     expect(lineSpans(["ab", "cd"], { character_start_times_seconds: [0] }, 5)).toEqual([{ s: 0, e: 2 }, { s: 3, e: 5 }]);
+  });
+});
+
+describe("background music", () => {
+  it("takes a known mood and the video's length, kept to what Eleven Music makes", () => {
+    expect(parseMusicRequest({ mood: "upbeat", seconds: 42.4 })).toEqual({ ok: true, mood: "upbeat", ms: 42400 });
+    expect(parseMusicRequest({ mood: "calm", seconds: 1.5 })).toEqual({ ok: true, mood: "calm", ms: MIN_MUSIC_SECONDS * 1000 });
+    expect(parseMusicRequest({ mood: "calm", seconds: 7200 })).toEqual({ ok: true, mood: "calm", ms: MAX_MUSIC_SECONDS * 1000 });
+    expect(MAX_MUSIC_SECONDS).toBe(300);
+  });
+
+  it("refuses an unknown mood or no length", () => {
+    expect(parseMusicRequest({ mood: "angry", seconds: 30 })).toEqual({ ok: false, error: "Pick a mood." });
+    expect(parseMusicRequest({ mood: "toString", seconds: 30 }).ok).toBe(false);
+    expect(parseMusicRequest({ mood: "calm", seconds: Infinity }).ok).toBe(false);
+    expect(parseMusicRequest({ mood: "calm", seconds: "30" }).ok).toBe(false);
+    expect(parseMusicRequest(null).ok).toBe(false);
+  });
+
+  it("asks for an instrumental track of that length in the mood's style", () => {
+    const body = musicBody("serious", 30000);
+    expect(body).toMatchObject({ music_length_ms: 30000, model_id: MUSIC_MODEL, force_instrumental: true });
+    expect(body.prompt).toContain(MOODS.serious.style);
+    expect(body.prompt).toContain("Instrumental only, no vocals.");
+    expect(MUSIC_URL).toBe("https://api.elevenlabs.io/v1/music/stream?output_format=mp3_44100_128");
+  });
+});
+
+describe("the mood Jev picks", () => {
+  it("offers every mood as a choice over the transcript", () => {
+    const q = moodQuestions().mood;
+    expect(q.type).toBe("choice");
+    expect(Object.keys((q as { criteria: Record<string, unknown> }).criteria)).toEqual(MOOD_IDS);
+    expect(moodState("hello")).toMatchObject({ transcript: "hello" });
+  });
+
+  it("takes Jev's pick and falls back to calm without one", () => {
+    expect(readMood({ mood: { type: "choice", choice: "playful" } })).toBe("playful");
+    expect(readMood({ mood: { type: "choice", choice: "angry" } })).toBe(DEFAULT_MOOD);
+    expect(readMood(null)).toBe("calm");
+  });
+
+  it("reads a mood only when enough is said", () => {
+    expect(moodText({ text: "Too short." })).toBe("");
+    expect(moodText({ text: 7 })).toBe("");
+    const long = "Most people think insurance is expensive.  ".repeat(200);
+    expect(moodText({ text: long }).length).toBe(MAX_MOOD_TEXT);
+    expect(moodText({ text: "Most people  think\ninsurance is expensive, but here is why." })).toBe("Most people think insurance is expensive, but here is why.");
   });
 });
