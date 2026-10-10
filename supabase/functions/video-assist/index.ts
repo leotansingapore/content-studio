@@ -44,9 +44,11 @@
 //        -> {pick: {i,p} | null, why?}: the line to play first as a teaser, rated by Jev as the first words heard
 //        (Leo's talking-head-reel openers questions); null when none beats the video's own start, or with
 //        why "unrated" (Jev gave no answer) or "language" (not English) (coldopen.ts, "cold-open" cap).
-//   POST {mode:"captions", transcript, instagram?, title?, rules?} -> {captions: {tiktok, linkedin, facebook}}: the post
-//        caption written for each platform in its own length, hashtag limits kept, following the brand kit's
-//        rules line when sent (captions.ts, "video-captions" cap).
+//   POST {mode:"captions", transcript, instagram?, title?, rules?} -> {captions: {tiktok, linkedin, facebook, youtube,
+//        youtubeTitle, x, threads}, firstLine: string | null}: the post caption written for each platform in its own
+//        length, hashtag limits kept, following the brand kit's rules line when sent; firstLine is the spoken
+//        "comment X" / "DM me X" ask when Jev finds the keyword (null when none, no answer or not English)
+//        (captions.ts, "video-captions" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
 // Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
@@ -58,7 +60,7 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { brollLines, brollQuestions, buildBrollMessages, kindQuestions, parseBrollReply, parseBrollRequest, pickBrollLines, readBroll, readKinds } from "./broll.ts";
-import { buildCaptionsMessages, parseCaptionsReply, parseCaptionsRequest } from "./captions.ts";
+import { buildCaptionsMessages, ctaLine, keywordCandidates, keywordQuestion, parseCaptionsReply, parseCaptionsRequest, readKeyword } from "./captions.ts";
 import { coldQuestions, coldState, parseColdOpenRequest, readColdPick } from "./coldopen.ts";
 import { DEFAULT_GRADE, buildMontageMessages, gradeQuestion, parseMontageReply, parseMontageRequest, parsePickRequest, pickQuestions, readGrade, readPicks } from "./montage.ts";
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
@@ -410,19 +412,23 @@ Deno.serve(async (req) => {
         const r = usageRefusal(usage);
         return json(r.body, r.status);
       }
+      // Jev picks the spoken keyword among the words said after comment / DM / message / type (a decision); none without an answer
+      const cands = keywordCandidates(c.transcript);
+      const keyword = cands.length && mostlyEnglish(c.transcript) ? readKeyword(await askJev({ said: c.transcript }, keywordQuestion(cands), { who: "video-assist captions keyword" }), cands) : null;
       const res = await openaiFetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 1200, response_format: { type: "json_object" }, messages: buildCaptionsMessages(c.transcript, c.instagram, c.title, c.rules) }),
+        body: JSON.stringify({ model: VIBE_MODEL, temperature: 0.7, max_tokens: 2400, response_format: { type: "json_object" }, messages: buildCaptionsMessages(c.transcript, c.instagram, c.title, c.rules, keyword) }),
         signal: AbortSignal.timeout(45_000),
       }).catch(() => null);
       if (!res?.ok) {
         console.error("video-assist captions", res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
         return json({ error: "Couldn't write the captions right now. Try again in a minute." }, 502);
       }
-      const captions = parseCaptionsReply((await res.json())?.choices?.[0]?.message?.content ?? null);
+      const content = (await res.json())?.choices?.[0]?.message?.content ?? null;
+      const captions = parseCaptionsReply(content);
       if (!captions) return json({ error: "The captions came back incomplete. Try again." }, 502);
-      return json({ captions });
+      return json({ captions, firstLine: keyword ? ctaLine(keyword, content) : null });
     }
 
     if (body?.mode === "coldopen") {

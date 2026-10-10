@@ -1763,7 +1763,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 </div>
               </>
             )}
-            <PlatformCaptions projectId={project.id} transcript={transcript} instagram={caption} title={project.name} brand={brandKit} />
+            <PlatformCaptions projectId={project.id} transcript={transcript} instagram={caption} title={project.name} brand={brandKit} onInstagram={(t) => { setCaption(t); setSavedDraft(false); }} />
             <div className="space-y-2 border-t border-border/60 pt-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="mr-auto text-sm font-semibold">Title and cover</p>
