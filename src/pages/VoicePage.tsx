@@ -213,7 +213,7 @@ export default function VoicePage() {
         </div>
         <Link
           to="/generate"
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary [@media(pointer:coarse)]:min-h-11"
         >
           <ArrowLeft className="h-3 w-3" /> Skip for now
         </Link>
