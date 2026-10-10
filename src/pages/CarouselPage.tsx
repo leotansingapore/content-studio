@@ -882,14 +882,14 @@ export default function CarouselPage() {
                           aria-label={p.name}
                           title={p.name}
                           style={{ backgroundColor: p.color }}
-                          className={`h-8 w-8 rounded-full ring-offset-2 ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                          className={`h-8 w-8 rounded-full [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 ring-offset-2 ring-offset-background transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                             active ? "ring-2 ring-foreground" : "hover:scale-105"
                           }`}
                         />
                       );
                     })}
                     <label
-                      className={`flex h-8 items-center gap-1.5 rounded-full border px-1.5 text-xs text-muted-foreground ${
+                      className={`flex h-8 items-center gap-1.5 rounded-full border px-1.5 text-xs text-muted-foreground [@media(pointer:coarse)]:min-h-11 ${
                         presetActive ? "border-border" : "border-foreground"
                       }`}
                     >
@@ -1029,7 +1029,7 @@ export default function CarouselPage() {
                     {(Object.keys(SLIDE_FONTS) as SlideFont[]).map((f) => (
                       <button key={f} type="button" aria-pressed={look.font === f} onClick={() => pickLook({ font: f })}
                         style={{ fontFamily: SLIDE_FONTS[f].title === "serif" ? "Georgia, serif" : "system-ui, sans-serif" }}
-                        className={`rounded-full border px-2.5 py-1 font-semibold ${look.font === f ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                        className={`rounded-full border px-2.5 py-1 font-semibold [@media(pointer:coarse)]:min-h-11 ${look.font === f ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
                         {SLIDE_FONTS[f].label}
                       </button>
                     ))}
@@ -1038,7 +1038,7 @@ export default function CarouselPage() {
                     <span className="font-medium text-muted-foreground">Background</span>
                     {([["light", "Light"], ["dark", "Dark"], ["tint", "Brand tint"]] as const).map(([p, label]) => (
                       <button key={p} type="button" aria-pressed={look.paper === p} onClick={() => pickLook({ paper: p })}
-                        className={`rounded-full border px-2.5 py-1 font-semibold ${look.paper === p ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                        className={`rounded-full border px-2.5 py-1 font-semibold [@media(pointer:coarse)]:min-h-11 ${look.paper === p ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
                         {label}
                       </button>
                     ))}
@@ -1047,7 +1047,7 @@ export default function CarouselPage() {
                     <span className="font-medium text-muted-foreground">Text</span>
                     {(["left", "center"] as const).map((a) => (
                       <button key={a} type="button" aria-pressed={align === a} onClick={() => { setAlign(a); setEdited(true); }}
-                        className={`rounded-full border px-2.5 py-1 font-semibold ${align === a ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                        className={`rounded-full border px-2.5 py-1 font-semibold [@media(pointer:coarse)]:min-h-11 ${align === a ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
                         {a === "left" ? "Left" : "Centre"}
                       </button>
                     ))}
@@ -1056,7 +1056,7 @@ export default function CarouselPage() {
                     <span className="font-medium text-muted-foreground">Size</span>
                     {([[0.85, "Smaller"], [1, "Usual"], [1.15, "Larger"]] as const).map(([v, label]) => (
                       <button key={v} type="button" aria-pressed={scale === v} onClick={() => { setScale(v); setEdited(true); }}
-                        className={`rounded-full border px-2.5 py-1 font-semibold ${scale === v ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                        className={`rounded-full border px-2.5 py-1 font-semibold [@media(pointer:coarse)]:min-h-11 ${scale === v ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
                         {label}
                       </button>
                     ))}
