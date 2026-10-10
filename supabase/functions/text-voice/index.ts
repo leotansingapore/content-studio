@@ -16,7 +16,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import {
-  DEFAULT_MOOD, MUSIC_URL, dubBody, dubUrl, lineSpans, moodQuestions, moodState, moodText, musicBody, musicRefusal,
+  DEFAULT_MOOD, MUSIC_URL, dubBody, dubUrl, lineSpans, moodQuestions, moodState, moodText, musicBody, musicFailure, musicRefusal,
   parseDubRequest, parseMusicRequest, parseVoiceRequest, readMood, ttsBody, ttsUrl,
 } from "./logic.ts";
 
@@ -79,8 +79,9 @@ Deno.serve(async (req) => {
         return json({ error: MUSIC_RETRY }, 502);
       }
       if (!res.ok) {
-        console.error("text-voice music elevenlabs", res.status, (await res.text()).slice(0, 300));
-        return json({ error: [401, 402, 403].includes(res.status) ? "Music credits have run out. Tell your studio admin." : MUSIC_RETRY }, 502);
+        const detail = (await res.text()).slice(0, 300);
+        console.error("text-voice music elevenlabs", res.status, detail);
+        return json({ error: musicFailure(res.status, detail) }, 502);
       }
       console.log("text-voice music", music.mood, music.ms, "ms, cost", res.headers.get("character-cost") ?? "?", "song", res.headers.get("song-id") ?? "?");
       return new Response(res.body, { headers: { ...corsHeaders, "Content-Type": "application/octet-stream" } });

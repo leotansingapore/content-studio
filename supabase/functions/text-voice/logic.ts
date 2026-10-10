@@ -177,6 +177,13 @@ export async function musicRefusal(admin: RpcClient, uid: string): Promise<{ sta
     : usageRefusal(everyone);
 }
 
+/** What to tell the adviser when Eleven Music says no. The free ElevenLabs plan has no music API at all. */
+export function musicFailure(status: number, detail: string): string {
+  if (detail.includes("paid_plan_required")) return "Music for me isn't switched on yet. Tell your studio admin.";
+  if ([401, 402, 403].includes(status)) return "Music credits have run out. Tell your studio admin.";
+  return "Couldn't make the music right now. Try again in a minute.";
+}
+
 export function musicBody(mood: Mood, ms: number): Record<string, unknown> {
   return {
     prompt: `${MOODS[mood].style}. Instrumental only, no vocals. Background music under someone talking: even level from start to end, no sudden drops, no big builds.`,

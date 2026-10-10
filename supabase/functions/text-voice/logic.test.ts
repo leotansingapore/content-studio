@@ -4,7 +4,7 @@ import { DAILY_LIMITS, GLOBAL_COUNTER_USER, type RpcClient } from "../_shared/us
 import {
   MAX_SCRIPT, TTS_MODEL, VOICES, parseVoiceRequest, ttsBody, ttsUrl, parseDubRequest, dubUrl, dubBody, lineSpans,
   DEFAULT_MOOD, MAX_MOOD_TEXT, MAX_MUSIC_SECONDS, MIN_MUSIC_SECONDS, MOODS, MOOD_IDS, MUSIC_MODEL, MUSIC_URL,
-  moodQuestions, moodState, moodText, musicBody, musicRefusal, parseMusicRequest, readMood,
+  moodQuestions, moodState, moodText, musicBody, musicFailure, musicRefusal, parseMusicRequest, readMood,
 } from "./logic";
 
 describe("parseVoiceRequest", () => {
@@ -104,6 +104,16 @@ describe("the mood Jev picks", () => {
     const long = "Most people think insurance is expensive.  ".repeat(200);
     expect(moodText({ text: long }).length).toBe(MAX_MOOD_TEXT);
     expect(moodText({ text: "Most people  think\ninsurance is expensive, but here is why." })).toBe("Most people think insurance is expensive, but here is why.");
+  });
+});
+
+describe("when Eleven Music says no", () => {
+  it("says music isn't switched on when the account's plan has no music API", () => {
+    // the reply the live account gave on 2026-10-10
+    const free = '{"detail":{"type":"payment_required","code":"paid_plan_required","message":"Music API is not available for free users."}}';
+    expect(musicFailure(402, free)).toBe("Music for me isn't switched on yet. Tell your studio admin.");
+    expect(musicFailure(402, '{"detail":{"code":"quota_exceeded"}}')).toBe("Music credits have run out. Tell your studio admin.");
+    expect(musicFailure(500, "")).toBe("Couldn't make the music right now. Try again in a minute.");
   });
 });
 
