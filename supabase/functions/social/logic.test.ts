@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { NotYours, ZernioError, type ProfileRow, type ZAccount, type Zernio, type ZernioRequest } from "../_shared/zernio";
-import { connect, disconnect, errorReply, isAllowed, overCapTeam, parseRequest, recount, redirectUrl, removalNotes, status, teamCapOf, withRemovalNotes, type Caller } from "./logic";
+import { connect, disconnect, errorReply, isAllowed, offReply, overCapTeam, parseRequest, recount, redirectUrl, removalNotes, status, teamCapOf, withRemovalNotes, type Caller } from "./logic";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const UID_B = "0f8fad5b-d9cb-469f-a165-70867728950e";
@@ -59,6 +59,14 @@ describe("the request", () => {
     expect(parseRequest({ action: "disconnect", profileId: "me", accountId: "", all: true })).toMatchObject({ ok: false, status: 404 });
     expect(parseRequest({ action: "disconnect", profileId: "me", all: true })).toEqual({ ok: true, req: { action: "disconnect", profileId: "me", accountId: null } });
     expect(parseRequest({ action: "disconnect", profileId: "me", accountId: A1 })).toEqual({ ok: true, req: { action: "disconnect", profileId: "me", accountId: A1 } });
+  });
+
+  it("when off, answers the bare probe 200 {enabled:false} and everything else 404", () => {
+    expect(offReply({ action: "status" })).toEqual({ status: 200, body: { enabled: false } });
+    expect(offReply({ action: "status", profileId: null })).toEqual({ status: 200, body: { enabled: false } });
+    for (const body of [{ action: "status", profileId: "me" }, { action: "connect", profileId: "me", platform: "instagram" }, { action: "disconnect", profileId: "me", all: true }, { action: "automations", profileId: "me" }, {}, null]) {
+      expect(offReply(body), JSON.stringify(body)).toEqual({ status: 404, body: { enabled: false, error: "Not enabled." } });
+    }
   });
 
   it("lets in only listed users, trimming entries and ignoring empties", () => {

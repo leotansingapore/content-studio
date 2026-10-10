@@ -3,13 +3,14 @@
 //
 // Secrets: ZERNIO_API_KEY, SOCIAL_CONNECT_USERS (user ids separated by commas, or *),
 // ZERNIO_MAX_ACCOUNTS (team cap, 2 when unset). Off, with no Zernio call, unless the key is set and
-// the caller is listed. Deploy WITH JWT verification:
+// the caller is listed (the bare status probe then answers 200 {enabled:false}, anything else 404).
+// Deploy WITH JWT verification:
 //   supabase functions deploy social --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { zernioClient, type ProfileRow } from "../_shared/zernio.ts";
-import { connect, disconnect, errorReply, isAllowed, parseRequest, status, teamCapOf, type Caller } from "./logic.ts";
+import { connect, disconnect, errorReply, isAllowed, offReply, parseRequest, status, teamCapOf, type Caller } from "./logic.ts";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -27,10 +28,14 @@ Deno.serve(async (req) => {
   const uid = userData?.user?.id;
   if (!uid) return json({ error: "Sign in again." }, 401);
 
+  const body = await req.json().catch(() => ({}));
   const key = Deno.env.get("ZERNIO_API_KEY");
-  if (!key || !isAllowed(Deno.env.get("SOCIAL_CONNECT_USERS"), uid)) return json({ enabled: false, error: "Not enabled." }, 404);
+  if (!key || !isAllowed(Deno.env.get("SOCIAL_CONNECT_USERS"), uid)) {
+    const off = offReply(body);
+    return json(off.body, off.status);
+  }
 
-  const r = parseRequest(await req.json().catch(() => ({})));
+  const r = parseRequest(body);
   if (!r.ok) return json({ error: r.error }, r.status);
   const q = r.req;
   if (q.action === "status" && !q.profileId) return json({ enabled: true });

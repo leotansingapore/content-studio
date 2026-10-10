@@ -68,9 +68,10 @@ export async function checkSocialConnect(): Promise<boolean> {
   const known = readShown();
   if (known && Date.now() - known.at < RECHECK_MS) return known.on;
   try {
-    await callFn("social", { action: "status" });
-    rememberSocialConnect(true);
-    return true;
+    // off answers 200 {enabled:false}, so no browser logs a failed request for it
+    const on = (await callFn<{ enabled?: unknown }>("social", { action: "status" }))?.enabled === true;
+    rememberSocialConnect(on);
+    return on;
   } catch (e) {
     if (e instanceof EdgeError && e.status === 404) {
       rememberSocialConnect(false);

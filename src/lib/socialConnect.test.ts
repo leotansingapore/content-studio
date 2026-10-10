@@ -34,6 +34,19 @@ describe("whether the page shows", () => {
     expect(await checkSocialConnect()).toBe(true);
     expect(callFn).toHaveBeenCalledTimes(1);
     vi.useFakeTimers({ now: Date.now() + 6 * 3600_000 + 1 });
+    // off is a plain 200, so the browser logs no failed request
+    callFn.mockResolvedValue({ enabled: false });
+    expect(await checkSocialConnect()).toBe(false);
+    expect(socialConnectShown()).toBe(false);
+  });
+
+  it("reads anything but enabled:true as off, a 404 included", async () => {
+    for (const answer of [{}, null, { enabled: "true" }]) {
+      localStorage.removeItem("cs-social-connect");
+      callFn.mockResolvedValue(answer);
+      expect(await checkSocialConnect(), JSON.stringify(answer)).toBe(false);
+    }
+    localStorage.setItem("cs-social-connect", JSON.stringify({ on: true, at: 0 }));
     callFn.mockRejectedValue(notEnabled());
     expect(await checkSocialConnect()).toBe(false);
     expect(socialConnectShown()).toBe(false);

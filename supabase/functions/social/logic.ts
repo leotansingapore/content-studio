@@ -69,6 +69,16 @@ export function parseRequest(body: unknown): Parsed {
   return isZernioId(b.accountId) ? { ok: true, req: { action: "disconnect", profileId, accountId: b.accountId } } : notFound;
 }
 
+/**
+ * Off for this caller (no key, or not on SOCIAL_CONNECT_USERS), with no Zernio call. The bare status probe
+ * is a plain 200 {enabled:false}, so a browser logs no failed request each time it asks; every other
+ * action stays a 404.
+ */
+export function offReply(body: unknown): Reply {
+  const r = parseRequest(body);
+  return r.ok && r.req.action === "status" && !r.req.profileId ? ok({ enabled: false }) : { status: 404, body: { enabled: false, error: "Not enabled." } };
+}
+
 export interface Caller {
   uid: string;
   profileId: string;

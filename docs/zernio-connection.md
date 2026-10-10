@@ -30,7 +30,7 @@ Zernio accepts any account, post or automation id on the team, whichever profile
 
 ## Rollout and money
 
-- Off by default. The function answers 404 `{enabled:false}`, with no Zernio call, unless `ZERNIO_API_KEY` is set and the caller is in `SOCIAL_CONNECT_USERS`. The app hides Social accounts until `status` says enabled (`src/lib/socialConnect.ts`).
+- Off by default. Unless `ZERNIO_API_KEY` is set and the caller is in `SOCIAL_CONNECT_USERS`, the function makes no Zernio call: the bare `status` probe answers 200 `{enabled:false}` (so no browser logs a failed request for it) and every other action answers 404 `{enabled:false}`. The app hides Social accounts until `status` says enabled (`src/lib/socialConnect.ts`).
 - Zernio billing. Two connected accounts are free with no card. With no card, Zernio answers 402 `free_tier_exceeded` at the third. Once a card is added, our caps are the only guard (M5):
   - Before handing out a connect link the function counts the team's accounts (`includeOverLimit=true`) and refuses at `ZERNIO_MAX_ACCOUNTS` (default 2). One adviser may hold 6 across all their brand profiles.
   - A reconnect needs a checked `reconnectAccountId`; anything else is a new connect and is cap-checked.
@@ -55,7 +55,7 @@ JWT verification on. Deploy: `supabase functions deploy social --project-ref hgd
 
 Built (C0):
 
-- `status` with no `profileId`: `{enabled:true}` and nothing else, no Zernio call (the app uses it to show the page).
+- `status` with no `profileId`: `{enabled:true}` or `{enabled:false}` and nothing else, always 200, no Zernio call (the app uses it to show the page).
 - `status` `{profileId}`: the recount above, then the brand's accounts with health, any over-cap removals noted on its profile, and the counts against the caps.
 - `connect` `{profileId, platform, reconnectAccountId?}`: the recount, then the cap check (skipped for a checked reconnect), then creates or reuses the Zernio profile and returns `authUrl`. Redirect: `https://consultant-content-studio.vercel.app/accounts?connected=<platform>`.
 - `disconnect` `{profileId, accountId}` after the account check, or `{profileId, all:true}` for every account in that brand (brand removal).
