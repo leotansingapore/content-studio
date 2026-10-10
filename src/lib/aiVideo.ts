@@ -62,12 +62,12 @@ export const aiBusy = () => job?.state === "working";
 
 class JobFailed extends Error {}
 
-/** Polls until every job is done; the links in order. */
-async function waitFor(tokens: string[], progress: (done: number) => void): Promise<string[]> {
+/** Polls until every job is done; the links in order. With the start's refund ticket, a failed job gives the use back. */
+async function waitFor(tokens: string[], progress: (done: number) => void, refund?: string): Promise<string[]> {
   for (const until = Date.now() + GIVE_UP_MS; Date.now() < until; ) {
     await sleep(POLL_MS);
     // a dropped status check is retried on the next round, not a failure
-    const r = await callFn<{ jobs: MediaState[] }>("ai-video", { mode: "status", tokens }).catch(() => null);
+    const r = await callFn<{ jobs: MediaState[] }>("ai-video", { mode: "status", tokens, refund }).catch(() => null);
     if (!r) continue;
     const bad = r.jobs.find((j) => j.state === "failed");
     if (bad?.state === "failed") throw new JobFailed(bad.error);
@@ -158,6 +158,8 @@ interface Pending {
   seconds: number[];
   /** A template clip; an avatar video when missing. */
   kind?: "template";
+  /** Gives the day's use back if Higgsfield fails a job (missing on jobs started before it existed). */
+  refund?: string;
 }
 export function pendingAvatar(): Pending | null {
   try {
@@ -182,7 +184,7 @@ async function finishAvatar(p: Pending): Promise<void> {
   set({ kind, state: "working", step: `Making your video, 0 of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` });
   try {
     const urls = await waitFor(p.tokens, (d) =>
-      set({ kind, state: "working", step: `Making your video, ${d} of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` }));
+      set({ kind, state: "working", step: `Making your video, ${d} of ${n} ${n === 1 ? "part" : "parts"} ready. This takes a few minutes.` }), p.refund);
     set({ kind, state: "working", step: "Downloading your video..." });
     const clips = await Promise.all(urls.map(download));
     await joinSlot();
@@ -206,8 +208,8 @@ export async function makeAvatar(name: string, photo: Blob | string, voice: Voic
       seconds: Math.round((s.end - s.start) * 1000) / 1000,
     })));
     const face = typeof photo === "string" ? { url: photo } : { jpeg: await b64(await toJpeg(photo)) };
-    const { tokens } = await callFn<{ tokens: string[] }>("ai-video", { mode: "avatar", photo: face, slices }, RETRY);
-    p = { name, tokens, seconds: slices.map((s) => s.seconds) };
+    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "avatar", photo: face, slices }, RETRY);
+    p = { name, tokens, seconds: slices.map((s) => s.seconds), refund };
     keepPending(p);
   } catch (e) {
     return fail("avatar", e);
@@ -232,8 +234,8 @@ export async function makeTemplateClip(name: string, ask: TemplateAsk): Promise<
   try {
     const ph = ask.photo;
     const photos = ph ? [{ role: ph.role, jpeg: await b64(await toJpeg(ph.file, ph.role === "person")) }] : [];
-    const { tokens } = await callFn<{ tokens: string[] }>("ai-video", { mode: "template", template: ask.template, seconds: ask.seconds, quality: ask.quality, fields: ask.fields, photos }, RETRY);
-    p = { name, tokens, seconds: [ask.seconds], kind: "template" };
+    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "template", template: ask.template, seconds: ask.seconds, quality: ask.quality, fields: ask.fields, photos }, RETRY);
+    p = { name, tokens, seconds: [ask.seconds], kind: "template", refund };
     keepPending(p);
   } catch (e) {
     return fail("template", e);
@@ -261,10 +263,10 @@ export async function makeExplainer(name: string, scenes: Scene[], voice: VoiceI
     // the voiceover first: if it fails, no pictures have been paid for
     const mp3 = await speak(scenes.map((s) => s.say).join(" "), voice);
     const seconds = await audioSeconds(mp3);
-    const { tokens } = await callFn<{ tokens: string[] }>("ai-video", { mode: "explainer", pictures: scenes.map((s) => s.picture) }, RETRY);
+    const { tokens, refund } = await callFn<{ tokens: string[]; refund?: string }>("ai-video", { mode: "explainer", pictures: scenes.map((s) => s.picture) }, RETRY);
     const n = tokens.length;
     set({ kind: "explainer", state: "working", step: `Making the pictures, 0 of ${n} ready...` });
-    const urls = await waitFor(tokens, (d) => set({ kind: "explainer", state: "working", step: `Making the pictures, ${d} of ${n} ready...` }));
+    const urls = await waitFor(tokens, (d) => set({ kind: "explainer", state: "working", step: `Making the pictures, ${d} of ${n} ready...` }), refund);
     const images = await Promise.all(urls.map(download));
     const secs = sceneSeconds(scenes.map((s) => s.say), seconds);
     await joinSlot();

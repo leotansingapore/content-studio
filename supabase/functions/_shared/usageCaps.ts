@@ -121,6 +121,46 @@ export async function consumeUsage(
   }
 }
 
+/** What giving a use back needs from the service-role client besides rpc: one row read and one conditional update. */
+export interface UsageClient extends RpcClient {
+  from(table: string): {
+    select(columns: string): { match(query: Record<string, unknown>): PromiseLike<{ data: unknown; error: unknown }> };
+    update(values: Record<string, unknown>): {
+      match(query: Record<string, unknown>): { select(columns: string): PromiseLike<{ data: unknown; error: unknown }> };
+    };
+  };
+}
+
+/**
+ * Gives back one use of `feature` counted on `day` (a paid job that failed), never below 0. No SQL function of its own:
+ * the row is updated only while it still holds the count just read, and read again when another call moved it.
+ */
+export async function refundUsage(admin: UsageClient, userId: string, feature: UsageFeature, day: string): Promise<boolean> {
+  const row = { user_id: userId, feature, day };
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data } = await admin.from("cs_ai_usage").select("count").match(row);
+      const count = (data as { count?: unknown }[] | null)?.[0]?.count;
+      if (typeof count !== "number" || count <= 0) return false;
+      const { data: moved, error } = await admin.from("cs_ai_usage").update({ count: count - 1 }).match({ ...row, count }).select("count");
+      if (!error && Array.isArray(moved) && moved.length === 1) return true;
+    }
+  } catch {
+    // a refund that can't be written leaves the use spent, the safe side for a paid feature
+  }
+  return false;
+}
+
+/** True only the first time `key` is claimed for this user today (a row on the same counter, limit 1). */
+export async function claimOnce(admin: RpcClient, userId: string, key: string): Promise<boolean> {
+  try {
+    const { data, error } = await admin.rpc("cs_consume_ai_usage", { p_user: userId, p_feature: key, p_limit: 1 });
+    return !error && data === 1;
+  } catch {
+    return false;
+  }
+}
+
 /** The JSON body and status to send back when consumeUsage refuses. */
 export function usageRefusal(result: Extract<UsageResult, { allowed: false }>): {
   status: number;

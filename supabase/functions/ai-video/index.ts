@@ -7,22 +7,25 @@
 //        OpenAI writes the Seedance prompt by the template's structure (templates.ts), then Seedance 2.5 makes it
 //        (a person's photo as the first frame, a product's as a reference; logic.ts seedanceRequest).
 //        Counts against "ai-clip" (2 a day) and "ai-clip-global" (8 a day across everyone).
-//   POST {mode:"status", tokens}     -> {jobs:[{state, url?, error?}]}
+//   POST {mode:"status", tokens, refund?} -> {jobs:[{state, url?, error?}]}
 // A video (avatar or explainer) counts once against the adviser's "ai-video" cap (2 a day) and once
 // against "ai-video-global" (20 a day across everyone, kept on the owner's account), so nobody can
 // drain the prepaid Higgsfield pool. Tokens are the Higgsfield request ids signed for the adviser who
 // started them (ai-image's jobToken), so nobody else can read a job.
+// A video or clip that Higgsfield refused, failed or blocked gives both uses back: at once when the submit
+// fails, or on the status check that first sees the failure, by the signed refund ticket handed back at the
+// start (logic.ts refundFailed: once per video, only on the day the uses were taken).
 //
 // Secrets: HF_API_KEY, HF_API_SECRET (shared with ai-image), OPENAI_API_KEY. Deploy WITH JWT verification:
 //   supabase functions deploy ai-video --project-ref hgdbflprrficdoyxmdxe --use-api
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GLOBAL_COUNTER_USER, consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { HF_BASE, jobToken, openJobToken, tokenSecret } from "../ai-image/logic.ts";
 import {
-  PICTURE_MODEL, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL, avatarCredits, clipCredits, explainerCredits, parseVideoRequest,
-  pictureBody, presenterBody, readMedia, seedanceRequest, speakBody, validateScript,
+  PICTURE_MODEL, REFUNDS, SCRIPT_FORMAT, SCRIPT_SYSTEM, SPEAK_MODEL, avatarCredits, clipCredits, explainerCredits, parseVideoRequest,
+  pictureBody, presenterBody, readMedia, refundFailed, refundTicket, seedanceRequest, speakBody, validateScript, type Refundable,
 } from "./logic.ts";
 import { PROMPT_FORMAT, clipPrompt, templateById, templateDetails, templateSystem } from "./templates.ts";
 
@@ -102,10 +105,11 @@ Deno.serve(async (req) => {
     }
     const auth = { Authorization: `Key ${key}:${secret}` };
     const signing = await tokenSecret(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), as cs_consume_ai_usage keeps it
 
     if (r.mode === "status") {
-      const jobs = await Promise.all(r.tokens.map(async (token) => {
-        const id = await openJobToken(signing, uid, token);
+      const ids = await Promise.all(r.tokens.map((token) => openJobToken(signing, uid, token)));
+      const jobs = await Promise.all(ids.map(async (id) => {
         if (!id) return { state: "failed", error: "That video job isn't known." };
         try {
           const res = await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) });
@@ -115,6 +119,7 @@ Deno.serve(async (req) => {
           return { state: "working" }; // a blip: the browser asks again
         }
       }));
+      if (ids.every(Boolean)) await refundFailed(admin, signing, uid, ids as string[], jobs.some((j) => j.state === "failed"), r.refund, day);
       return json({ jobs });
     }
 
@@ -155,6 +160,9 @@ Deno.serve(async (req) => {
       return u.public_url as string;
     };
     const failed = (e: unknown) => json({ error: e instanceof HfError && e.status === 403 ? NO_CREDITS : RETRY }, 502);
+    /** Nothing was made after the uses were taken: both come back (the adviser's alone when everyone's wasn't taken). */
+    const giveBack = (feature: Refundable, both = true) =>
+      Promise.all([refundUsage(admin, uid, feature, day), both && refundUsage(admin, GLOBAL_COUNTER_USER, REFUNDS[feature], day)]);
 
     if (r.mode === "presenter") {
       const usage = await consumeUsage(admin, uid, "ai-image");
@@ -181,6 +189,7 @@ Deno.serve(async (req) => {
       }
       const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-clip-global");
       if (!everyone.allowed) {
+        await giveBack("ai-clip", false);
         return json({ code: "daily_limit", error: "Today's AI clips for the whole studio are used up. Try again after 8am Singapore time." }, 429);
       }
       const photo = r.photos[0] ?? null;
@@ -188,6 +197,7 @@ Deno.serve(async (req) => {
       const prompt = clipPrompt(written, photo?.role ?? null);
       if (!prompt) {
         if (written) console.error("ai-video template prompt rejected", written.slice(0, 300));
+        await giveBack("ai-clip");
         return json({ error: "The clip's shots didn't come back right. Try again." }, 502);
       }
       try {
@@ -196,8 +206,14 @@ Deno.serve(async (req) => {
         const id = await submit(model, body);
         const credits = clipCredits(r.seconds, r.quality);
         console.log("ai-video template", t.id, model, r.seconds, r.quality, credits, "credits");
-        return json({ tokens: [await jobToken(signing, uid, id)], credits, usage: { used: mine.used, limit: mine.limit } });
+        return json({
+          tokens: [await jobToken(signing, uid, id)],
+          refund: await refundTicket(signing, uid, "ai-clip", day, [id]),
+          credits,
+          usage: { used: mine.used, limit: mine.limit },
+        });
       } catch (e) {
+        await giveBack("ai-clip");
         return failed(e);
       }
     }
@@ -210,6 +226,7 @@ Deno.serve(async (req) => {
     }
     const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-video-global");
     if (!everyone.allowed) {
+      await giveBack("ai-video", false);
       return json({ code: "daily_limit", error: "Today's AI videos for the whole studio are used up. Try again after 8am Singapore time." }, 429);
     }
 
@@ -226,12 +243,14 @@ Deno.serve(async (req) => {
     } catch (e) {
       // a half-started video is no use: cancel what is still queued (refunded) before saying so
       await Promise.all(ids.map((id) => fetch(`${HF_BASE}/requests/${id}/cancel`, { method: "POST", headers: auth }).catch(() => null)));
+      await giveBack("ai-video");
       return failed(e);
     }
     const credits = r.mode === "avatar" ? avatarCredits(r.slices.map((s) => s.seconds)) : explainerCredits(r.pictures.length);
     console.log("ai-video", r.mode, ids.length, "jobs,", credits, "credits");
     return json({
       tokens: await Promise.all(ids.map((id) => jobToken(signing, uid, id))),
+      refund: await refundTicket(signing, uid, "ai-video", day, ids),
       credits,
       usage: { used: mine.used, limit: mine.limit },
     });

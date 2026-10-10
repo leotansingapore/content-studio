@@ -4,7 +4,8 @@
 //   template: a look from the template gallery (./templates.ts), written up by OpenAI, made by Seedance 2.5
 // No Deno or npm imports, so vitest covers it. The browser imports the costs and limits from here.
 
-import { PEOPLE_RULE } from "../ai-image/logic.ts";
+import { PEOPLE_RULE, jobToken, openJobToken } from "../ai-image/logic.ts";
+import { GLOBAL_COUNTER_USER, claimOnce, refundUsage, type UsageClient } from "../_shared/usageCaps.ts";
 import { oneLineText, parseObject } from "../clone-reel/logic.ts";
 import { templateById, type FieldKey, type PhotoRole } from "./templates.ts";
 
@@ -65,7 +66,7 @@ export type VideoRequest =
       /** At most one: a person goes in as the first frame, which leaves no room for a product reference. */
       photos: { role: PhotoRole; jpeg: string }[];
     }
-  | { mode: "status"; tokens: string[] };
+  | { mode: "status"; tokens: string[]; refund?: string };
 
 type Parsed = { ok: true; request: VideoRequest } | { ok: false; error: string };
 const no = (error: string): Parsed => ({ ok: false, error });
@@ -139,13 +140,46 @@ export function parseVideoRequest(raw: unknown): Parsed {
     case "status": {
       const tokens = Array.isArray(b.tokens) ? b.tokens : [];
       // the owner check (openJobToken) needs the caller's uid, so it happens in index.ts
-      return tokens.length && tokens.length <= MAX_SCENES && tokens.every((t) => typeof t === "string" && t.length <= 120)
-        ? { ok: true, request: { mode: "status", tokens: tokens as string[] } }
-        : no("That video job isn't known.");
+      if (!tokens.length || tokens.length > MAX_SCENES || !tokens.every((t) => typeof t === "string" && t.length <= 120)) return no("That video job isn't known.");
+      const refund = typeof b.refund === "string" && b.refund.length <= 120 ? b.refund : undefined;
+      return { ok: true, request: { mode: "status", tokens: tokens as string[], ...(refund ? { refund } : {}) } };
     }
     default:
       return no("That isn't something this can make.");
   }
+}
+
+// ---------- a failed video gives its use back ----------
+
+/** The adviser's daily cap and the one across everyone that a video or a template clip takes a use of. */
+export const REFUNDS = { "ai-video": "ai-video-global", "ai-clip": "ai-clip-global" } as const;
+export type Refundable = keyof typeof REFUNDS;
+
+const ticketText = (uid: string, feature: Refundable, day: string, ids: string[]) =>
+  `${uid}:refund:${feature}:${day}:${ids.map((id) => id.toLowerCase()).join(",")}`;
+
+/** Handed back at the start: says these jobs took a use of `feature` on `day` (UTC, the counter's day). */
+export const refundTicket = (secret: string, uid: string, feature: Refundable, day: string, ids: string[]) =>
+  jobToken(secret, ticketText(uid, feature, day, ids), ids[0]);
+
+/**
+ * When Higgsfield failed or blocked any job of a video (`failed`), gives back the adviser's use and the one across
+ * everyone, once, and only on the day they were taken: an older day's count no longer limits anyone. `ids` are the
+ * video's jobs in order, already checked as the caller's. True when a use came back.
+ */
+export async function refundFailed(
+  admin: UsageClient, secret: string, uid: string, ids: string[], failed: boolean, ticket: string | undefined, day: string,
+): Promise<boolean> {
+  if (!failed || !ticket || !ids.length) return false;
+  for (const feature of Object.keys(REFUNDS) as Refundable[]) {
+    if (!(await openJobToken(secret, ticketText(uid, feature, day, ids), ticket))) continue;
+    // claimed first, so another status check or a second tab can't give it back twice
+    if (!(await claimOnce(admin, uid, `refund:${ids[0].toLowerCase()}`))) return false;
+    await refundUsage(admin, uid, feature, day);
+    await refundUsage(admin, GLOBAL_COUNTER_USER, REFUNDS[feature], day);
+    return true;
+  }
+  return false;
 }
 
 // ---------- Higgsfield bodies ----------
