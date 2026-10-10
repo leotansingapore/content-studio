@@ -12,10 +12,12 @@ import { templateById, type FieldKey, type PhotoRole } from "./templates.ts";
 // fails with "Generation failed" (2026-10-10). Its jobs report on the same /requests/<id>/status.
 export const SPEAK_MODEL = "v1/speak/higgsfield";
 export const PICTURE_MODEL = "higgsfield-ai/soul/v2/standard";
-// Template clips. No photo: text to video. With photos: reference to video, which takes several named images
-// (@image1, @image2) where image to video takes one first frame. Both checked against docs.higgsfield.ai 2026-10-10.
+// Template clips (routes and schemas from docs.higgsfield.ai, 2026-10-10). No photo: text to video. A product photo:
+// reference to video, as the named @image1. A person's photo: image to video, as the first frame, because the safety
+// filter blocked a face sent as a reference (an AI-made face, 2026-10-10) and let the same face through as a start frame.
 export const SEEDANCE_TEXT = "bytedance/seedance-2.5/text-to-video";
 export const SEEDANCE_REFS = "bytedance/seedance-2.5/reference-to-video";
+export const SEEDANCE_FRAME = "bytedance/seedance-2.5/image-to-video";
 
 // Credits from Higgsfield's free POST /estimate/<model> on 2026-10-08 (1 credit = USD 0.0625).
 // Check them again there when Higgsfield changes its prices.
@@ -60,7 +62,7 @@ export type VideoRequest =
       seconds: ClipSeconds;
       quality: ClipQuality;
       fields: Partial<Record<FieldKey, string>>;
-      /** In the template's photo order, so the first is @image1. */
+      /** At most one: a person goes in as the first frame, which leaves no room for a product reference. */
       photos: { role: PhotoRole; jpeg: string }[];
     }
   | { mode: "status"; tokens: string[] };
@@ -130,8 +132,8 @@ export function parseVideoRequest(raw: unknown): Parsed {
         if (!role || photos.some((x) => x.role === role) || !isB64(p.jpeg, MAX_PHOTO_B64, ["/9j/"])) return no("A photo didn't come through. Add it again.");
         photos.push({ role, jpeg: p.jpeg as string });
       }
+      if (photos.length > 1) return no("Add one photo: the person or the product.");
       if (t.needsPhoto && !photos.some((p) => p.role === t.needsPhoto)) return no("Add a photo first.");
-      photos.sort((x, y) => t.photos.indexOf(x.role) - t.photos.indexOf(y.role));
       return { ok: true, request: { mode: "template", template: t.id, seconds, quality, fields, photos } };
     }
     case "status": {
@@ -185,10 +187,15 @@ export function pictureBody(picture: string): Record<string, unknown> {
   return { prompt: `${picture}\n\n${PEOPLE_RULE}`, aspect_ratio: "9:16", resolution: "1080p", batch_size: 1 };
 }
 
-/** The Seedance request for a template clip: text to video, or reference to video when photos came with it. */
-export function seedanceRequest(prompt: string, seconds: ClipSeconds, quality: ClipQuality, imageUrls: string[]): { model: string; body: Record<string, unknown> } {
-  const body = { prompt, duration: seconds, resolution: quality, aspect_ratio: "9:16", generate_audio: true };
-  return imageUrls.length ? { model: SEEDANCE_REFS, body: { ...body, image_urls: imageUrls } } : { model: SEEDANCE_TEXT, body };
+/** The Seedance request for a template clip, by its photo (uploaded, so a link): none, a product or a person. */
+export function seedanceRequest(
+  prompt: string, seconds: ClipSeconds, quality: ClipQuality, photo: { role: PhotoRole; url: string } | null,
+): { model: string; body: Record<string, unknown> } {
+  const body = { prompt, duration: seconds, resolution: quality, generate_audio: true };
+  // image to video has no aspect_ratio (its schema refuses extra fields): the frame follows the photo, cut to 9:16 by the browser
+  if (photo?.role === "person") return { model: SEEDANCE_FRAME, body: { ...body, image_url: photo.url } };
+  const vertical = { ...body, aspect_ratio: "9:16" };
+  return photo ? { model: SEEDANCE_REFS, body: { ...vertical, image_urls: [photo.url] } } : { model: SEEDANCE_TEXT, body: vertical };
 }
 
 export type MediaState = { state: "working" } | { state: "done"; url: string } | { state: "failed"; error: string };

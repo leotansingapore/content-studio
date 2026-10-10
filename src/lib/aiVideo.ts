@@ -97,16 +97,19 @@ const b64 = (blob: Blob) =>
     r.readAsDataURL(blob);
   });
 
-/** A photo as a JPEG at most 1280 px on its long side, the size Speak works from. */
-async function toJpeg(photo: Blob): Promise<Blob> {
+/** A photo as a JPEG at most 1280 px on its long side, the size Speak works from. `vertical` cuts it to 9:16 around
+ * its middle first: a template clip that starts on a person's photo takes that photo's shape. */
+async function toJpeg(photo: Blob, vertical = false): Promise<Blob> {
   const bmp = await createImageBitmap(photo).catch(() => {
     throw new Error("Couldn't open that photo. Try a JPG or PNG.");
   });
-  const k = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+  const sw = vertical ? Math.min(bmp.width, (bmp.height * 9) / 16) : bmp.width;
+  const sh = vertical ? Math.min(bmp.height, (bmp.width * 16) / 9) : bmp.height;
+  const k = Math.min(1, 1280 / Math.max(sw, sh));
   const c = document.createElement("canvas");
-  c.width = Math.round(bmp.width * k);
-  c.height = Math.round(bmp.height * k);
-  c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+  c.width = Math.round(sw * k);
+  c.height = Math.round(sh * k);
+  c.getContext("2d")!.drawImage(bmp, (bmp.width - sw) / 2, (bmp.height - sh) / 2, sw, sh, 0, 0, c.width, c.height);
   bmp.close();
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't read that photo."))), "image/jpeg", 0.9));
 }
@@ -217,7 +220,8 @@ export interface TemplateAsk {
   seconds: ClipSeconds;
   quality: ClipQuality;
   fields: Partial<Record<FieldKey, string>>;
-  photos: { role: PhotoRole; file: Blob }[];
+  /** One at most: a person is the clip's first frame, a product its reference. */
+  photo: { role: PhotoRole; file: Blob } | null;
 }
 
 /** One template clip: the server writes the shots and Seedance makes it; it opens in the editor like an avatar video. */
@@ -226,7 +230,8 @@ export async function makeTemplateClip(name: string, ask: TemplateAsk): Promise<
   set({ kind: "template", state: "working", step: "Writing the shots..." });
   let p: Pending;
   try {
-    const photos = await Promise.all(ask.photos.map(async (ph) => ({ role: ph.role, jpeg: await b64(await toJpeg(ph.file)) })));
+    const ph = ask.photo;
+    const photos = ph ? [{ role: ph.role, jpeg: await b64(await toJpeg(ph.file, ph.role === "person")) }] : [];
     const { tokens } = await callFn<{ tokens: string[] }>("ai-video", { mode: "template", template: ask.template, seconds: ask.seconds, quality: ask.quality, fields: ask.fields, photos }, RETRY);
     p = { name, tokens, seconds: [ask.seconds], kind: "template" };
     keepPending(p);

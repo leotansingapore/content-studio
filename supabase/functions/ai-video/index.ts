@@ -4,7 +4,8 @@
 //   POST {mode:"avatar", photo, slices:[{wav, seconds}]} -> {tokens, credits}  Higgsfield Speak per slice
 //   POST {mode:"explainer", pictures} -> {tokens, credits}  one Soul v2 picture per scene
 //   POST {mode:"template", template, seconds, quality, fields, photos} -> {tokens, credits}  a template clip:
-//        OpenAI writes the Seedance prompt by the template's structure (templates.ts), then Seedance 2.5 makes it.
+//        OpenAI writes the Seedance prompt by the template's structure (templates.ts), then Seedance 2.5 makes it
+//        (a person's photo as the first frame, a product's as a reference; logic.ts seedanceRequest).
 //        Counts against "ai-clip" (2 a day) and "ai-clip-global" (8 a day across everyone).
 //   POST {mode:"status", tokens}     -> {jobs:[{state, url?, error?}]}
 // A video (avatar or explainer) counts once against the adviser's "ai-video" cap (2 a day) and once
@@ -182,16 +183,16 @@ Deno.serve(async (req) => {
       if (!everyone.allowed) {
         return json({ code: "daily_limit", error: "Today's AI clips for the whole studio are used up. Try again after 8am Singapore time." }, 429);
       }
-      const roles = r.photos.map((p) => p.role);
-      const written = await writeJson(openai, templateSystem(t, r.seconds, roles), templateDetails(t, r.fields), PROMPT_FORMAT, 1500);
-      const prompt = clipPrompt(written, roles);
+      const photo = r.photos[0] ?? null;
+      const written = await writeJson(openai, templateSystem(t, r.seconds, photo?.role ?? null), templateDetails(t, r.fields), PROMPT_FORMAT, 1500);
+      const prompt = clipPrompt(written, photo?.role ?? null);
       if (!prompt) {
         if (written) console.error("ai-video template prompt rejected", written.slice(0, 300));
         return json({ error: "The clip's shots didn't come back right. Try again." }, 502);
       }
       try {
-        const images = await Promise.all(r.photos.map((p) => upload(p.jpeg, "image/jpeg")));
-        const { model, body } = seedanceRequest(prompt, r.seconds, r.quality, images);
+        const uploaded = photo ? { role: photo.role, url: await upload(photo.jpeg, "image/jpeg") } : null;
+        const { model, body } = seedanceRequest(prompt, r.seconds, r.quality, uploaded);
         const id = await submit(model, body);
         const credits = clipCredits(r.seconds, r.quality);
         console.log("ai-video template", t.id, model, r.seconds, r.quality, credits, "credits");

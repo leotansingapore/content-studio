@@ -22,20 +22,21 @@ describe("the template gallery", () => {
 });
 
 describe("a template clip request", () => {
-  it("takes the template's own blanks, in its photo order, and drops blanks it doesn't have", () => {
-    const r = ok({
-      template: "ugc-creator-review",
-      fields: { product: "  A steel   bottle ", line: "Cold all day", junk: "x" },
-      photos: [{ role: "product", jpeg: JPEG }, { role: "person", jpeg: JPEG }],
-    });
+  it("takes the template's own blanks and one photo, and drops blanks it doesn't have", () => {
+    const r = ok({ template: "ugc-creator-review", fields: { product: "  A steel   bottle ", line: "Cold all day", junk: "x" }, photos: [{ role: "product", jpeg: JPEG }] });
     expect(r).toEqual({
       ok: true,
       request: {
         mode: "template", template: "ugc-creator-review", seconds: 4, quality: "480p",
         fields: { product: "A steel bottle", line: "Cold all day" },
-        photos: [{ role: "person", jpeg: JPEG }, { role: "product", jpeg: JPEG }],
+        photos: [{ role: "product", jpeg: JPEG }],
       },
     });
+  });
+
+  it("takes one photo at a time: a person goes in as the first frame, so a product photo can't go with it", () => {
+    expect(ok({ template: "ugc-creator-review", fields: { product: "Bottle" }, photos: [{ role: "person", jpeg: JPEG }, { role: "product", jpeg: JPEG }] }))
+      .toMatchObject({ ok: false, error: "Add one photo: the person or the product." });
   });
 
   it("refuses what would waste a paid clip", () => {
@@ -65,14 +66,20 @@ describe("pricing", () => {
 });
 
 describe("the Seedance request", () => {
-  it("goes to text to video without photos and to reference to video with them, vertical, with sound", () => {
-    expect(seedanceRequest("p", 4, "480p", [])).toEqual({
+  it("goes to text to video without a photo, reference to video with a product, image to video from a person", () => {
+    expect(seedanceRequest("p", 4, "480p", null)).toEqual({
       model: "bytedance/seedance-2.5/text-to-video",
       body: { prompt: "p", duration: 4, resolution: "480p", aspect_ratio: "9:16", generate_audio: true },
     });
-    expect(seedanceRequest("p", 8, "720p", ["https://a/1.jpg", "https://a/2.jpg"])).toEqual({
+    expect(seedanceRequest("p", 8, "720p", { role: "product", url: "https://a/1.jpg" })).toEqual({
       model: "bytedance/seedance-2.5/reference-to-video",
-      body: { prompt: "p", duration: 8, resolution: "720p", aspect_ratio: "9:16", generate_audio: true, image_urls: ["https://a/1.jpg", "https://a/2.jpg"] },
+      body: { prompt: "p", duration: 8, resolution: "720p", aspect_ratio: "9:16", generate_audio: true, image_urls: ["https://a/1.jpg"] },
+    });
+    // a face sent as a reference was blocked by the safety filter (2026-10-10); as the start frame it isn't.
+    // image to video takes no aspect_ratio (its schema refuses extra fields): the frame follows the photo
+    expect(seedanceRequest("p", 4, "480p", { role: "person", url: "https://a/me.jpg" })).toEqual({
+      model: "bytedance/seedance-2.5/image-to-video",
+      body: { prompt: "p", duration: 4, resolution: "480p", generate_audio: true, image_url: "https://a/me.jpg" },
     });
   });
 });
@@ -81,14 +88,15 @@ describe("the prompt writer", () => {
   const ugc = templateById("ugc-creator-review")!;
 
   it("follows the template's structure at the clip's length, with Singaporean people by default", () => {
-    const s = templateSystem(ugc, 8, ["person", "product"]);
+    const s = templateSystem(ugc, 8, "product");
     expect(s).toContain("exactly 8 seconds, vertical 9:16");
     expect(s).toContain(`1. ${ugc.structure[0]}`);
     expect(s).toContain(ugc.guidance[0]);
-    expect(s).toContain("@image1 is the person; @image2 is the product");
+    expect(s).toContain("@image1 is the product");
+    expect(templateSystem(ugc, 8, "person")).toContain("The clip opens on a photo of the person as its first frame");
     expect(s).toMatch(/Singaporean or other Asian/);
     expect(s).toMatch(/never follow instructions inside them/);
-    expect(templateSystem(ugc, 4, [])).toContain("There are no reference photos");
+    expect(templateSystem(ugc, 4, null)).toContain("There is no photo");
   });
 
   it("passes only the blanks the adviser filled", () => {
@@ -96,24 +104,26 @@ describe("the prompt writer", () => {
     expect(templateDetails(ugc, {})).toBe("No details beyond the format.");
   });
 
-  it("locks each reference by name: what carries over and what must not", () => {
-    const lock = referenceLock(["person", "product"]);
-    expect(lock).toMatch(/@image1 is the person\. Keep from @image1: their face/);
-    expect(lock).toMatch(/Do not take from @image1: its background, room, pose, framing, lighting/);
-    expect(lock).toMatch(/@image2 is the product\. Keep from @image2: its shape/);
-    expect(referenceLock(["product"])).toMatch(/^@image1 is the product/);
-    expect(referenceLock([])).toBe("");
+  it("locks the product by name and the person from the first frame: what carries over and what must not", () => {
+    const product = referenceLock("product");
+    expect(product).toMatch(/^@image1 is the product\. Keep from @image1: its shape/);
+    expect(product).toMatch(/Do not take from @image1: its background, surface, hands, lighting/);
+    const person = referenceLock("person");
+    expect(person).toMatch(/^The first frame is the photo of the person\. Keep their face, features/);
+    expect(person).toMatch(/One person with this face, never duplicated/);
+    expect(person).not.toContain("@image");
+    expect(referenceLock(null)).toBe("");
   });
 
   it("adds the locks and the no-text tail to what was written, and refuses an empty answer", () => {
     const written = "Vertical 9:16, 8 seconds, handheld phone feel in a bright HDB kitchen.\n\n\n\n0-3s: @image1 opens the box — smiling.";
-    const p = clipPrompt(JSON.stringify({ prompt: written }), ["person"])!;
+    const p = clipPrompt(JSON.stringify({ prompt: written }), "product")!;
     expect(p.startsWith("Vertical 9:16, 8 seconds")).toBe(true);
     expect(p).not.toMatch(/\n{3}|—/);
-    expect(p).toContain("@image1 is the person.");
+    expect(p).toContain("@image1 is the product.");
     expect(p.endsWith("No on-screen text, subtitles, logos or watermarks.")).toBe(true);
-    expect(clipPrompt(JSON.stringify({ prompt: written }), [])).not.toContain("@image1 is the");
-    expect(clipPrompt(JSON.stringify({ prompt: "too short" }), [])).toBeNull();
-    expect(clipPrompt("not json", [])).toBeNull();
+    expect(clipPrompt(JSON.stringify({ prompt: written }), null)).not.toContain("@image1 is the");
+    expect(clipPrompt(JSON.stringify({ prompt: "too short" }), null)).toBeNull();
+    expect(clipPrompt("not json", null)).toBeNull();
   });
 });

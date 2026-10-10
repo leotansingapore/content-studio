@@ -92,13 +92,15 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
   const value = (k: FieldKey) => (fields[k] ?? "").trim();
   const ready = pick.fields.every((f) => !f.required || value(f.key)) && (!pick.needsPhoto || !!photos[pick.needsPhoto]);
   const clips = left("ai-clip");
+  // one photo at a time: a person opens the clip as its first frame, which leaves no room for a product photo
+  const chosen = pick.photos.find((role) => photos[role]);
   const make = () =>
     void makeTemplateClip(value(pick.fields.find((f) => f.required)!.key).slice(0, 40) || pick.title, {
       template: pick.id,
       seconds,
       quality,
       fields: Object.fromEntries(pick.fields.flatMap((f) => (value(f.key) ? [[f.key, value(f.key)]] : []))),
-      photos: pick.photos.flatMap((role) => (photos[role] ? [{ role, file: photos[role]!.file }] : [])),
+      photo: chosen ? { role: chosen, file: photos[chosen]!.file } : null,
     });
 
   return (
@@ -118,7 +120,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
         </label>
       ))}
       <div className="flex flex-wrap gap-3">
-        {pick.photos.map((role) => {
+        {(chosen ? [chosen] : pick.photos).map((role) => {
           const ph = photos[role];
           return (
             <div key={role} className="flex items-center gap-2">
