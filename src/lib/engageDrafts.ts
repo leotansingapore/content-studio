@@ -16,6 +16,9 @@
 // Topics the consultant handles personally, on top of the built-in list (a
 // comment or DM about one is never drafted), per profile, synced:
 //   key: content-studio-escalate-${scoped(userId)}
+// Your edits to a draft before copying it, keyed by the draft as it came back,
+// on this device only (they quote other people's words):
+//   key: cs-engage-edits-${scoped(userId)}
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
@@ -316,3 +319,30 @@ export function followUpDates(accepted: string): { first: string; day4: string; 
 
 /** The calendar note for a follow-up, e.g. "Follow up with Sarah Chen (1 of 2)". */
 export const followUpTitle = (name: string, n: 1 | 2) => `Follow up with ${name.trim().slice(0, 50)} (${n} of 2)`;
+
+// ---- Your edits to a draft ---------------------------------------------------------
+
+const EDITS_KEY = "cs-engage-edits-";
+const EDITS_MAX = 60;
+
+function loadEdits(userId: string): [string, string][] {
+  try {
+    const v = JSON.parse(store()?.getItem(EDITS_KEY + scoped(userId)) ?? "[]");
+    return Array.isArray(v) ? v.filter((e) => Array.isArray(e) && typeof e[0] === "string" && typeof e[1] === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+/** The draft as you last edited it, or null when it was never changed. */
+export const loadEdit = (userId: string, original: string): string | null => loadEdits(userId).find(([o]) => o === original)?.[1] ?? null;
+
+/** Keeps your edit of a draft (newest last, the oldest go past 60); an edit back to the original drops it. */
+export function saveEdit(userId: string, original: string, edited: string): void {
+  const rest = loadEdits(userId).filter(([o]) => o !== original);
+  try {
+    store()?.setItem(EDITS_KEY + scoped(userId), JSON.stringify(edited === original ? rest : [...rest, [original, edited]].slice(-EDITS_MAX)));
+  } catch {
+    // storage full: the edit still shows for this visit
+  }
+}

@@ -201,7 +201,7 @@ export default function Dms({ userId }: { userId: string }) {
               render={(x) => (
                 <li key={x.i} className="space-y-2 rounded-xl border border-border/60 bg-card p-3">
                   <Quote name={x.name} text={x.text} tag={x.escalate ?? (x.automated ? "Automated" : undefined)} />
-                  {x.reply !== null && <Draft label="Reply" text={x.reply} />}
+                  {x.reply !== null && <Draft userId={userId} label="Reply" text={x.reply} />}
                 </li>
               )}
             />
@@ -219,7 +219,7 @@ export default function Dms({ userId }: { userId: string }) {
                 </h3>
               )}
               <Quote name={reply.name} text={reply.text} tag={reply.escalate} />
-              {reply.reply !== null && <Draft label="Reply" text={reply.reply} />}
+              {reply.reply !== null && <Draft userId={userId} label="Reply" text={reply.reply} />}
             </div>
           )}
         </>

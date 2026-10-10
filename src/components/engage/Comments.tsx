@@ -117,7 +117,7 @@ export default function Comments({ userId }: { userId: string }) {
               {x.comments.map((c) => (
                 <div key={c.type} className="space-y-1">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{TYPES[c.type]}</p>
-                  <Draft label="Comment" text={c.text} onCopy={() => setLog(logComment(userId, x.name, x.text))} />
+                  <Draft userId={userId} label="Comment" text={c.text} onCopy={() => setLog(logComment(userId, x.name, x.text))} />
                 </div>
               ))}
             </li>

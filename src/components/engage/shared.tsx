@@ -1,19 +1,25 @@
-import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react";
-import { AlertTriangle, ChevronDown, Clock, Copy, RotateCcw, X } from "lucide-react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { AlertTriangle, BookmarkPlus, ChevronDown, Clock, Copy, RotateCcw, X, Zap } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCopy } from "@/components/recruit/shared";
+import { useToast } from "@/hooks/use-toast";
+import { scanCompliance } from "@/lib/compliance";
+import { MAX_SNIPPETS, insertSnippet, loadSnippets, saveSnippet, type Snippet } from "@/lib/replySnippets";
 import {
   MAX_TOPICS,
   MAX_TOPIC_CHARS,
   addTopic,
+  loadEdit,
   loadRun,
   loadTopics,
   removeTopic,
   runningJob,
+  saveEdit,
   saveRun,
   startRun,
   type EngageOutcome,
@@ -101,27 +107,121 @@ export function Quote({ name, text, tag }: { name: string; text: string; tag?: s
   );
 }
 
-/** A draft to paste, with its Copy button (44px on phones). Empty: the one line that says so. */
-export function Draft({ label, text, onCopy }: { label: string; text: string; onCopy?: () => void }) {
+const chip = "inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold transition-colors sm:h-8 [@media(pointer:coarse)]:h-11";
+
+/**
+ * A draft to edit and paste: Insert puts one of your saved replies where the
+ * cursor is (the end when it was never placed), Save keeps the draft as a
+ * saved reply, Copy takes it as edited. Edits stay on this device. Empty: the
+ * one line that says so.
+ */
+export function Draft({ userId, label, text, onCopy }: { userId: string; label: string; text: string; onCopy?: () => void }) {
   const copy = useCopy();
+  const { toast } = useToast();
+  const [value, setValue] = useState(() => loadEdit(userId, text) ?? text);
+  const [menu, setMenu] = useState<Snippet[] | null>(null);
+  const box = useRef<HTMLTextAreaElement>(null);
+  // the cursor counts once the draft was tapped into; a textarea keeps its selection after it loses focus
+  const placed = useRef(false);
+  useEffect(() => {
+    setValue(loadEdit(userId, text) ?? text);
+    placed.current = false;
+  }, [userId, text]);
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
   if (!text)
     return <p className="text-xs italic text-muted-foreground">No safe draft came back for this one. Run it again or write your own.</p>;
+
+  const change = (next: string) => {
+    setValue(next);
+    saveEdit(userId, text, next);
+  };
+  const insert = (s: Snippet) => {
+    const el = box.current;
+    const r = el && placed.current ? insertSnippet(value, s.text, el.selectionStart, el.selectionEnd) : insertSnippet(value, s.text);
+    change(r.text);
+    setMenu(null);
+    requestAnimationFrame(() => {
+      box.current?.focus();
+      box.current?.setSelectionRange(r.caret, r.caret);
+    });
+  };
+  const keep = () => {
+    const r = saveSnippet(userId, { name: "", text: value });
+    if (r.problem === "full") return toast({ title: `You have ${MAX_SNIPPETS} saved replies. Delete one to save this.`, variant: "destructive" });
+    if (r.problem === "duplicate") return toast({ title: `Already saved as "${r.saved?.name}"` });
+    const flag = scanCompliance(value)[0];
+    toast({ title: `Saved as "${r.saved?.name}"`, description: flag ? `"${flag.match}" ${flag.message}` : undefined });
+  };
+
   return (
     <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5">
-      <div className="flex items-start gap-2">
-        <p className="min-w-0 flex-1 whitespace-pre-line text-sm leading-relaxed text-foreground [overflow-wrap:anywhere]">{text}</p>
+      <textarea
+        ref={box}
+        value={value}
+        rows={1}
+        aria-label={`${label}, edit before copying`}
+        onChange={(e) => change(e.target.value)}
+        onFocus={() => (placed.current = true)}
+        className="block w-full resize-none overflow-y-auto rounded bg-transparent [@media(pointer:coarse)]:min-h-11 text-sm leading-relaxed text-foreground [overflow-wrap:anywhere] focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
+      />
+      <div className="mt-1 flex items-center gap-1">
+        <button
+          type="button"
+          aria-expanded={menu !== null}
+          onClick={() => setMenu(menu ? null : loadSnippets(userId))}
+          aria-label="Insert a saved reply"
+          className={`${chip} ${menu ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-primary/10 hover:text-primary"}`}
+        >
+          <Zap className="h-3.5 w-3.5" /> Insert
+        </button>
+        <button type="button" onClick={keep} aria-label={`Save this ${label.toLowerCase()} to your saved replies`} className={`${chip} text-muted-foreground hover:bg-primary/10 hover:text-primary`}>
+          <BookmarkPlus className="h-3.5 w-3.5" /> Save
+        </button>
         <button
           type="button"
           onClick={() => {
-            void copy(text, `${label} copied`);
+            void copy(value, `${label} copied`);
             onCopy?.();
           }}
           aria-label={`Copy ${label.toLowerCase()}`}
-          className="inline-flex h-11 shrink-0 items-center gap-1 rounded-md px-2.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 sm:h-8 [@media(pointer:coarse)]:h-11"
+          className={`${chip} ml-auto text-primary hover:bg-primary/10`}
         >
           <Copy className="h-3.5 w-3.5" /> Copy
         </button>
       </div>
+      {menu && (
+        <div className="mt-1.5 border-t border-primary/20 pt-2" data-testid="snippet-menu">
+          {menu.length ? (
+            <ul className="flex flex-wrap gap-1.5" aria-label="Your saved replies">
+              {menu.map((s) => (
+                <li key={s.id} className="min-w-0 max-w-full">
+                  <button
+                    type="button"
+                    onClick={() => insert(s)}
+                    title={s.text}
+                    className="h-11 max-w-full truncate rounded-full border border-border/60 bg-background px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/40 sm:h-8 [@media(pointer:coarse)]:h-11"
+                  >
+                    {s.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              No saved replies yet.{" "}
+              <Link to="?tool=snippets" className="font-semibold text-primary hover:underline">
+                Add one
+              </Link>
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

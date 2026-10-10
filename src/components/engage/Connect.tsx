@@ -63,7 +63,7 @@ export default function Connect({ userId }: { userId: string }) {
             {added ? "On your calendar" : "Add to calendar"}
           </button>
         </div>
-        <Draft label="Follow-up" text={text} />
+        <Draft userId={userId} label="Follow-up" text={text} />
       </div>
     );
   };
@@ -168,7 +168,7 @@ export default function Connect({ userId }: { userId: string }) {
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 First message <span className="normal-case tracking-normal text-foreground">{dayLabel(when.first)}</span>
               </p>
-              <Draft label="First message" text={d.first} />
+              <Draft userId={userId} label="First message" text={d.first} />
             </div>
             {followUp(1, when.day4, d.follow4)}
             {followUp(2, when.day10, d.follow10)}

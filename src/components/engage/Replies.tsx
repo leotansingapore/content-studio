@@ -74,11 +74,11 @@ export default function Replies({ userId }: { userId: string }) {
           render={(x) => (
             <li key={x.i} className="space-y-2 rounded-xl border border-border/60 bg-card p-3">
               <Quote name={x.name} text={x.text} tag={x.escalate} />
-              {x.reply !== null && <Draft label="Reply" text={x.reply} />}
+              {x.reply !== null && <Draft userId={userId} label="Reply" text={x.reply} />}
               {x.dm !== undefined && (
                 <div className="space-y-1">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Then DM them</p>
-                  <Draft label="DM" text={x.dm} />
+                  <Draft userId={userId} label="DM" text={x.dm} />
                 </div>
               )}
             </li>

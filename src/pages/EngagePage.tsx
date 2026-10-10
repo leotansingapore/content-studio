@@ -9,6 +9,7 @@ import Replies from "@/components/engage/Replies";
 import Dms from "@/components/engage/Dms";
 import Comments from "@/components/engage/Comments";
 import Connect from "@/components/engage/Connect";
+import Snippets from "@/components/engage/Snippets";
 import { supabase } from "@/lib/supabase";
 
 const TOOLS = [
@@ -16,6 +17,7 @@ const TOOLS = [
   { id: "dms", label: "My DMs" },
   { id: "comments", label: "Comment on a post" },
   { id: "connect", label: "Connection note" },
+  { id: "snippets", label: "Saved replies" },
 ] as const;
 type ToolId = (typeof TOOLS)[number]["id"];
 
@@ -57,6 +59,7 @@ export default function EngagePage() {
       {userId && tool === "dms" && <Dms userId={userId} />}
       {userId && tool === "comments" && <Comments userId={userId} />}
       {userId && tool === "connect" && <Connect userId={userId} />}
+      {userId && tool === "snippets" && <Snippets userId={userId} />}
     </div>
   );
 }
