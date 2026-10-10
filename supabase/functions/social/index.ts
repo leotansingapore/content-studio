@@ -1,0 +1,83 @@
+// Social accounts (Playbook > Social accounts): status, connect and disconnect an adviser's own
+// accounts through Zernio. Scoping rules, caps and rollout: docs/zernio-connection.md.
+//
+// Secrets: ZERNIO_API_KEY, SOCIAL_CONNECT_USERS (user ids separated by commas, or *),
+// ZERNIO_MAX_ACCOUNTS (team cap, 2 when unset). Off, with no Zernio call, unless the key is set and
+// the caller is listed. Deploy WITH JWT verification:
+//   supabase functions deploy social --project-ref hgdbflprrficdoyxmdxe --use-api
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
+import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { zernioClient, type ProfileRow } from "../_shared/zernio.ts";
+import { connect, disconnect, errorReply, isAllowed, parseRequest, status, teamCapOf, type Caller } from "./logic.ts";
+
+const headers = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers });
+  if (req.method !== "POST") return json({ error: "Use POST." }, 405);
+
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const { data: userData } = await admin.auth.getUser(jwt);
+  const uid = userData?.user?.id;
+  if (!uid) return json({ error: "Sign in again." }, 401);
+
+  const key = Deno.env.get("ZERNIO_API_KEY");
+  if (!key || !isAllowed(Deno.env.get("SOCIAL_CONNECT_USERS"), uid)) return json({ enabled: false, error: "Not enabled." }, 404);
+
+  const r = parseRequest(await req.json().catch(() => ({})));
+  if (!r.ok) return json({ error: r.error }, r.status);
+  const q = r.req;
+  if (q.action === "status" && !q.profileId) return json({ enabled: true });
+  const profileId = q.profileId!;
+
+  const usage = await consumeUsage(admin, uid, q.action === "connect" ? "social-connect" : "social-read");
+  if (!usage.allowed) {
+    const refusal = usageRefusal(usage);
+    return json(refusal.body, refusal.status);
+  }
+
+  try {
+    const { data: rows, error } = await admin.from("cs_social_profiles").select("profile_id, zernio_profile_id").eq("owner_id", uid);
+    if (error || !Array.isArray(rows)) throw new Error(`cs_social_profiles read: ${error?.message}`);
+    const caller: Caller = {
+      uid,
+      profileId,
+      mapped: rows.find((x) => x.profile_id === profileId)?.zernio_profile_id ?? null,
+      userProfiles: new Set(rows.map((x) => x.zernio_profile_id)),
+      teamCap: teamCapOf(Deno.env.get("ZERNIO_MAX_ACCOUNTS")),
+    };
+    const row: ProfileRow = {
+      get: async () => {
+        const { data, error } = await admin.from("cs_social_profiles").select("zernio_profile_id").eq("owner_id", uid).eq("profile_id", profileId).maybeSingle();
+        if (error) throw new Error(`cs_social_profiles read: ${error.message}`);
+        return data?.zernio_profile_id ?? null;
+      },
+      insert: async (zernioProfileId) => {
+        const { error } = await admin
+          .from("cs_social_profiles")
+          .upsert({ owner_id: uid, profile_id: profileId, zernio_profile_id: zernioProfileId }, { onConflict: "owner_id,profile_id", ignoreDuplicates: true });
+        if (error) throw new Error(`cs_social_profiles insert: ${error.message}`);
+      },
+    };
+    const z = zernioClient(key);
+    const reply =
+      q.action === "connect"
+        ? await connect(z, caller, row, q.platform, q.reconnectAccountId)
+        : q.action === "disconnect"
+          ? await disconnect(z, caller, q.accountId)
+          : await status(z, caller);
+    return json(reply.body, reply.status);
+  } catch (e) {
+    const reply = errorReply(e);
+    if (reply.status >= 500 || reply.status === 402) {
+      console.error("social failed", q.action, e instanceof Error ? `${e.name}: ${e.message} ${(e as { code?: string }).code ?? ""}` : String(e));
+    }
+    return json(reply.body, reply.status);
+  }
+});

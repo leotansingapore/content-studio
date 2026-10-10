@@ -87,6 +87,9 @@ export const DAILY_LIMITS = {
   // 720p, so per adviser, and across everyone on GLOBAL_COUNTER_USER at 8 a day (under US$30, like the AI videos).
   "ai-clip": 2,
   "ai-clip-global": 8,
+  // Social accounts through Zernio (social): a sign-in link to connect one, and the reads and disconnects.
+  "social-connect": 10,
+  "social-read": 300,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
