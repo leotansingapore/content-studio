@@ -21,7 +21,7 @@ import PlatformCaptions from "@/components/PlatformCaptions";
 import { coldLength } from "@/lib/coldOpen";
 import { coverTimes, findCoverFrame } from "@/lib/coverFrame";
 import { onBrollApply } from "@/lib/autoBroll";
-import { MAX_MUSIC_SECONDS, MOODS, MOOD_IDS, dismissMusicJob, musicJob, onMusicApply, onMusicJob, pickMood, startMusic, type Mood } from "@/lib/aiMusic";
+import { MAX_MUSIC_SECONDS, MOODS, MOOD_IDS, aiMusicOn, dismissMusicJob, musicJob, onMusicApply, onMusicJob, pickMood, startMusic, type Mood } from "@/lib/aiMusic";
 import AiVideo from "@/components/AiVideo";
 import { aiBusy, aiJob, pendingAvatar } from "@/lib/aiVideo";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
@@ -1945,10 +1945,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <div className="space-y-2 rounded-lg border border-border/60 p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="mr-auto text-sm font-medium">Background music
-                    <InfoTip label="About background music">Yours or one made for you, looped. It drops while you talk.</InfoTip></span>
-                  <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={openAiMusic} aria-expanded={aiMusicOpen || musicMaking}>
-                    <Sparkles className="h-3.5 w-3.5" /> Music for me
-                  </Button>
+                    <InfoTip label="About background music">{aiMusicOn() ? "Yours or one made for you, looped." : "Your own track, looped."} It drops while you talk.</InfoTip></span>
+                  {aiMusicOn() && (
+                    <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={openAiMusic} aria-expanded={aiMusicOpen || musicMaking}>
+                      <Sparkles className="h-3.5 w-3.5" /> Music for me
+                    </Button>
+                  )}
                   <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => musicInput.current?.click()} disabled={musicBusy}>
                     <MusicIcon className="h-3.5 w-3.5" /> {musicBusy ? "Reading..." : settings.music ? "Change track" : "Add a track"}
                   </Button>

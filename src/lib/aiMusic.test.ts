@@ -10,7 +10,7 @@ import { putFile } from "@/lib/deviceFiles";
 import { audioSeconds } from "@/lib/textVoice";
 import { loadProjects, saveProject, type VideoProject } from "@/lib/videoProjects";
 import { MUSIC_LEVEL, sanitizeMusic, type Music } from "@/lib/videoEdit";
-import { dismissMusicJob, musicJob, onMusicApply, onMusicJob, pickMood, startMusic } from "./aiMusic";
+import { aiMusicOn, dismissMusicJob, musicJob, onMusicApply, onMusicJob, pickMood, startMusic } from "./aiMusic";
 
 const mp3 = () => new Blob([new Uint8Array(5000)]);
 
@@ -99,5 +99,14 @@ describe("startMusic", () => {
     finish(mp3());
     await first;
     expect(musicJob()).toBeNull();
+  });
+});
+
+describe("aiMusicOn", () => {
+  it("stays hidden until the plan has the Music API, except on a browser with the test flag", () => {
+    expect(aiMusicOn()).toBe(false);
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => (k === "cs-flag-ai-music" ? "1" : null) } });
+    expect(aiMusicOn()).toBe(true);
+    vi.unstubAllGlobals();
   });
 });

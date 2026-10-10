@@ -13,6 +13,21 @@ import { DEFAULT_MOOD, MOODS, MOOD_IDS, type Mood } from "../../supabase/functio
 
 export { DEFAULT_MOOD, MAX_MUSIC_SECONDS, MOODS, MOOD_IDS, type Mood } from "../../supabase/functions/text-voice/logic.ts";
 
+/**
+ * Hidden until the studio's ElevenLabs plan includes the Music API: the free plan
+ * answers 402 paid_plan_required (Leo 2026-10-10: hide it till the plan is upgraded,
+ * then switch on here). A browser with cs-flag-ai-music set to 1 still sees it for
+ * testing; that key does not sync.
+ */
+export const AI_MUSIC = false;
+export function aiMusicOn(): boolean {
+  try {
+    return AI_MUSIC || window.localStorage.getItem("cs-flag-ai-music") === "1";
+  } catch {
+    return AI_MUSIC;
+  }
+}
+
 /** Jev's mood for what is said; calm when it can't be had. Never throws. */
 export async function pickMood(text: string): Promise<Mood> {
   try {
