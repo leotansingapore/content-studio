@@ -88,6 +88,7 @@ import {
   joinIssue,
   joinedLength,
   MAX_JOIN_SECONDS,
+  makeupDb,
 } from "./videoEdit";
 
 const W = (w: string, s: number, e: number): Word => ({ w, s, e });
@@ -914,5 +915,13 @@ describe("videos made without filming", () => {
     const { sceneSeconds } = await import("@/lib/videoEdit");
     expect(sceneSeconds(["one two three", "four", "five six seven eight nine ten"], 20)).toEqual([6, 2, 12]);
     expect(sceneSeconds(["", "a b"], 9)).toEqual([3, 6]);
+  });
+});
+
+describe("makeupDb", () => {
+  // Web Audio's compressor lifts its output by 0.6 of a full-scale sound's cut; measured in Chrome 154 offline (2026-10-10)
+  it("matches the make-up gain the voice limiter and the mix limiter add", () => {
+    expect(makeupDb(-6, 20)).toBeCloseTo(3.42, 2);
+    expect(makeupDb(-1, 20)).toBeCloseTo(0.57, 2);
   });
 });

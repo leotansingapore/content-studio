@@ -8,8 +8,8 @@
 
 import { Muxer, StreamTarget } from "mp4-muxer";
 import { demuxAudio, demuxVideo, keyBefore, type VideoTrack } from "@/lib/mp4Demux";
-import { END_CARD_SECONDS, aspectSize, brollAt, duckSpans, exportSize, levelFits, musicGainAt, srcAt, speedOf, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
-import { audioPeaks, decodeSound, drawEndCard, drawFrame, loadVideo, measureLevel, planFor, wireVoice, type BrandArt, type Frame } from "@/lib/videoMedia";
+import { END_CARD_SECONDS, PEAK_CEILING, aspectSize, brollAt, duckSpans, exportSize, levelFits, musicGainAt, srcAt, speedOf, truePeak, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
+import { audioPeaks, decodeSound, drawEndCard, drawFrame, loadVideo, measureLevel, peakLimiter, planFor, wireVoice, type BrandArt, type Frame } from "@/lib/videoMedia";
 import { dropGain, motionOf, playCue } from "@/lib/videoMotion";
 import { piecesOf } from "@/lib/fastPauses";
 import { denoiseBuffer } from "@/lib/denoise";
@@ -319,11 +319,12 @@ async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds:
   const ctx = new OfflineAudioContext(2, Math.max(1, Math.ceil(seconds * RATE)), RATE);
   const polish = !!s.voicePolish;
   const level = s.loudness && pieces ? (levelFits(s.level, polish) ? s.level : await measureLevel(a.file, polish, { parts, pieces })) : null;
+  const mix = s.loudness ? peakLimiter(ctx, ctx.destination) : ctx.destination;
   if (pieces) {
     const bus = new GainNode(ctx);
     const env = new GainNode(ctx, { gain: 0 });
     wireVoice(ctx, bus, env, polish, level);
-    env.connect(ctx.destination);
+    env.connect(mix);
     const speed = speedOf(s);
     const heard = speed === 1 ? parts : spedParts(parts, speed);
     const sound = speed === 1 ? pieces : await speedUp(parts, pieces, speed);
@@ -340,7 +341,7 @@ async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds:
   if (s.voiceover && a.voice) {
     const buf = await new OfflineAudioContext(2, 1, RATE).decodeAudioData(await a.voice.arrayBuffer());
     const g = new GainNode(ctx, { gain: s.voiceover.gain ?? 1 });
-    g.connect(ctx.destination);
+    g.connect(mix);
     const src = new AudioBufferSourceNode(ctx, { buffer: buf });
     src.connect(g);
     src.start(s.voiceover.start, 0, s.voiceover.length);
@@ -349,14 +350,22 @@ async function renderMix(a: FastArgs, plan: ReturnType<typeof planFor>, seconds:
   const muBuf = s.music && a.music ? await decodeSound(a.music) : null;
   if (s.music && muBuf) {
     const g = new GainNode(ctx, { gain: 0 });
-    g.connect(ctx.destination);
+    g.connect(mix);
     const src = new AudioBufferSourceNode(ctx, { buffer: muBuf, loop: true });
     src.connect(g);
     src.start(0);
     for (const [t, v] of musicLevels(duckSpans(a.words, plan.segs, s), s.music.level, seconds, motion.drop)) g.gain.setTargetAtTime(v, t, 0.03);
   }
-  if (sfx) for (const c of motion.cues) if (c.at > 0 && c.at <= plan.total) playCue(ctx, ctx.destination, c.kind, c.at);
-  return ctx.startRendering();
+  if (sfx) for (const c of motion.cues) if (c.at > 0 && c.at <= plan.total) playCue(ctx, mix, c.kind, c.at);
+  const out = await ctx.startRendering();
+  if (s.loudness) {
+    // the limiter is no brick wall: what still pokes over the ceiling (music turned right up) comes off the whole mix,
+    // as the voice's own trim does after its limiter
+    const ch = Array.from({ length: out.numberOfChannels }, (_, c) => out.getChannelData(c));
+    const k = 10 ** (Math.min(0, PEAK_CEILING - truePeak(ch)) / 20);
+    if (k < 1) for (const d of ch) for (let i = 0; i < d.length; i++) d[i] *= k;
+  }
+  return out;
 }
 
 // ---------- encoding ----------

@@ -32,6 +32,7 @@ import {
   duckSpans,
   nextGain,
   PEAK_CEILING,
+  makeupDb,
   truePeak,
   type Level,
   keepSegments,
@@ -337,6 +338,18 @@ export function wireVoice(ctx: BaseAudioContext, input: AudioNode, output: Audio
     // every node lets go of what it fed, so a noise node kept for the next wiring feeds nothing old
     for (const n of chain) n.disconnect();
   };
+}
+
+/**
+ * The export's last stop when loudness is evened out: music, a voiceover or a sound cue that would push the mix
+ * past the -1 dB ceiling is held down there, and anything under it (the voice, already limited) passes unchanged.
+ * Returns the node to connect the mix to.
+ */
+export function peakLimiter(ctx: BaseAudioContext, output: AudioNode): AudioNode {
+  const limit = new DynamicsCompressorNode(ctx, { threshold: PEAK_CEILING, knee: 0, ratio: 20, attack: 0.001, release: 0.1 });
+  // the compressor lifts everything by its make-up gain; taken back off, it only ever turns peaks down
+  limit.connect(new GainNode(ctx, { gain: 10 ** (-makeupDb(PEAK_CEILING, 20) / 20) })).connect(output);
+  return limit;
 }
 
 /**
@@ -1144,11 +1157,12 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const polish = !!settings.voicePolish;
     const level = settings.loudness ? (levelFits(settings.level, polish) ? settings.level : await measureLevel(file, polish, { parts: plan.segs.map((g) => ({ from: g.start, dur: g.end - g.start })), duration: video.duration })) : null;
     const dest = actx.createMediaStreamDestination();
+    const mix = settings.loudness ? peakLimiter(actx, dest) : dest;
     // recorded, never played out loud; the gain ramps in and out at every cut so joins don't click
     const gain = actx.createGain();
     gain.gain.value = 0;
     wireVoice(actx, actx.createMediaElementSource(video), gain, polish, level, settings.denoise ? await denoiseNode(actx) : null);
-    gain.connect(dest);
+    gain.connect(mix);
     const FADE = 0.025;
     const volume = Math.min(1, Math.max(0, settings.volume ?? 1));
     const stream = new MediaStream(kind === "audio" ? dest.stream.getAudioTracks() : [...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
@@ -1163,14 +1177,14 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
     const voTrack = vo && bufferTrack(actx, vo.buf, vo.gain);
     if (vo) {
       vo.gain.gain.value = vo.set.gain ?? 1;
-      vo.gain.connect(dest);
+      vo.gain.connect(mix);
     }
     // background music: looped along the edit, under the voice while someone talks, on through the end card
     const muBuf = settings.music && music ? await decodeSound(music) : null;
     const drop = motionOf(settings, plan.segs, plan.caps, plan.total).drop;
     const mu = settings.music && muBuf ? { set: settings.music, gain: new GainNode(actx, { gain: 0 }), spans: duckSpans(words, plan.segs, settings) } : null;
     const muTrack = mu && muBuf && bufferTrack(actx, muBuf, mu.gain, true);
-    mu?.gain.connect(dest);
+    mu?.gain.connect(mix);
     const fullEnd = plan.total + (settings.endCard && brand && kind !== "audio" ? END_CARD_SECONDS : 0);
     // voSync and voStop drive both the voiceover and the music
     const voStop = () => {
@@ -1210,7 +1224,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
       drawFrame(g, { video: v, settings, ...plan, src: v.currentTime, out, subs, brand, broll: syncBroll(brEls, settings.broll, out, rec.state === "recording"), fx, peaks });
       if (rec.state === "recording") {
         voSync(out);
-        for (const c of sfxTick(cues, out)) playCue(actx!, dest, c.kind);
+        for (const c of sfxTick(cues, out)) playCue(actx!, mix, c.kind);
       } else voStop();
       if (job) {
         job.progress = Math.min(0.99, out / (plan.total + endLen));

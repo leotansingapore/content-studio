@@ -1141,6 +1141,9 @@ export function frameRect(W: number, H: number, srcW: number, srcH: number): { x
 export const LOUDNESS_TARGET = -14;
 /** dB true peak: AAC encoding can push a peak above this up past 0 dB, which clips. */
 export const PEAK_CEILING = -1;
+/** What a DynamicsCompressorNode adds back to everything (the Web Audio spec's make-up gain), in dB: 0.6 of the
+ * cut a full-scale sound would get at this threshold and ratio. */
+export const makeupDb = (threshold: number, ratio: number) => -0.6 * threshold * (1 - 1 / ratio);
 const MAX_LIFT = 20;
 
 /** The two K-weighting filters for this sample rate (BS.1770's head-related shelf, then a 38 Hz high-pass), as biquad b and a. */
