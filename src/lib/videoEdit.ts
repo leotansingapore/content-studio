@@ -895,6 +895,11 @@ export function exportSize(s: Pick<EditSettings, "exportAs" | "exportFor" | "asp
   return { id, label: t.label, w, h, videoBps, audioBps, bytes, capBytes, fits: sec <= maxSeconds, maxSeconds };
 }
 
+/** A frame wider than tall going to a feed that plays video upright (Reels, TikTok, Shorts), where it shows small between black bars. */
+export function wideForUpright(x: { id: ExportTarget; w: number; h: number }): boolean {
+  return x.w > x.h && (x.id === "reels" || x.id === "tiktok" || x.id === "shorts");
+}
+
 /** Bytes as people read them: 850 KB, 14 MB, 1.2 GB. */
 export function fmtBytes(n: number): string {
   if (n < 1_000_000) return `${Math.max(1, Math.round(n / 1000))} KB`;

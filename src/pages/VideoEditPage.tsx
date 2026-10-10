@@ -102,6 +102,7 @@ import {
   exportSize,
   fmtBytes,
   targetOf,
+  wideForUpright,
   EXPORT_TARGETS,
   type ExportTarget,
   lookOf,
@@ -1493,6 +1494,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : <>{exportLabel} <span className="font-normal opacity-80">{fmtBytes(size.bytes)}</span></>}
         </Button>
       </div>
+      {wideForUpright(size) && (
+        <p className="flex flex-wrap items-center gap-2 rounded-md border border-warning/50 bg-warning/10 px-2 py-1.5 text-xs" role="status">
+          <span className="mr-auto">Wide video: {size.label} shows it small, with black bars above and below.</span>
+          <Button size="sm" variant="outline" className="h-11 text-xs sm:h-7" onClick={() => patch({ aspect: "9:16", fit: "fill" })}>Crop to 9:16</Button>
+          <Button size="sm" variant="outline" className="h-11 text-xs sm:h-7" onClick={() => patch({ aspect: "9:16", fit: "blur" })}>9:16, blurred behind</Button>
+        </p>
+      )}
       {showSizes && settings.exportAs !== "audio" && settings.exportAs !== "small" && (
         <ExportSizes projectId={project.id} name={project.name} settings={settings} seconds={total} srcW={video.current?.videoWidth || 1080} srcH={video.current?.videoHeight || 1920} onExport={(list) => void exportSizes(list)} />
       )}

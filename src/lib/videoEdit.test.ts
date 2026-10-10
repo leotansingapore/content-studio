@@ -83,6 +83,7 @@ import {
   editedSentences,
   sanitizeCutaways,
   sanitizePublish,
+  wideForUpright,
   trimTake,
   moveTake,
   joinIssue,
@@ -924,5 +925,24 @@ describe("makeupDb", () => {
   it("matches the make-up gain the voice limiter and the mix limiter add", () => {
     expect(makeupDb(-6, 20)).toBeCloseTo(3.42, 2);
     expect(makeupDb(-1, 20)).toBeCloseTo(0.57, 2);
+  });
+});
+
+describe("a wide export for an upright feed", () => {
+  const wide = (s: Parameters<typeof exportSize>[0], w = 1920, h = 1080) => wideForUpright(exportSize(s, 30, w, h));
+  it("is flagged for Instagram, TikTok and YouTube Shorts", () => {
+    expect(wide({ aspect: "16:9" })).toBe(true);
+    expect(wide({ aspect: "16:9", exportFor: "tiktok" })).toBe(true);
+    expect(wide({ aspect: "16:9", exportFor: "shorts" })).toBe(true);
+    // the original shape of a landscape recording is wide too
+    expect(wide({ aspect: "original" })).toBe(true);
+  });
+  it("is not flagged for an upright or square frame, LinkedIn, WhatsApp or sound only", () => {
+    expect(wide({ aspect: "9:16" })).toBe(false);
+    expect(wide({ aspect: "1:1" })).toBe(false);
+    expect(wide({ aspect: "original" }, 1080, 1920)).toBe(false);
+    expect(wide({ aspect: "16:9", exportFor: "linkedin" })).toBe(false);
+    expect(wide({ aspect: "16:9", exportAs: "small" })).toBe(false);
+    expect(wide({ aspect: "16:9", exportAs: "audio" })).toBe(false);
   });
 });
