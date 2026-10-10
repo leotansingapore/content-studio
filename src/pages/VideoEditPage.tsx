@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Check, ChevronDown, ChevronUp, Download, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Download, Layers, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
@@ -8,6 +8,7 @@ import YoutubeClips from "@/components/YoutubeClips";
 import JoinTakes from "@/components/JoinTakes";
 import ClipFinder from "@/components/ClipFinder";
 import ExportRunning from "@/components/ExportRunning";
+import ExportSizes from "@/components/ExportSizes";
 import MotionControls from "@/components/MotionControls";
 import BurnedTextOffer from "@/components/BurnedTextOffer";
 import AutoBroll from "@/components/AutoBroll";
@@ -129,7 +130,9 @@ import {
   measureExport,
   measureLevel,
   wireVoice,
+  exportAll,
   exportJob,
+  exportQueue,
   makeCover,
   currentJoin,
   endJoin,
@@ -149,8 +152,10 @@ import {
   syncBroll,
   type BrandArt,
   type ExportJob,
+  type FileCheck,
   type Frame,
 } from "@/lib/videoMedia";
+import type { VersionPlan } from "@/lib/exportVersions";
 import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "@/lib/exportCheck";
 import { FAST, isFast } from "@/lib/fastPauses";
 import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
@@ -1203,8 +1208,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     toast({ title: "Saved to My posts", description: "Schedule it from Pipeline when the video is exported." });
   };
 
-  const doExport = async () => {
-    if (!file) return;
+  // the B-roll files from this device, with the face and background effects loaded; null when the effects couldn't load (said already)
+  const exportFiles = async () => {
     const brollFiles: Record<string, Blob> = {};
     for (const b of settings.broll ?? []) {
       const f = await getFile(b.key).catch(() => undefined);
@@ -1214,25 +1219,48 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       try {
         await loadEffects(settings);
       } catch {
-        return toast({ title: "Couldn't load the face and background effects", description: "Check the connection, then export again.", variant: "destructive" });
+        toast({ title: "Couldn't load the face and background effects", description: "Check the connection, then export again.", variant: "destructive" });
+        return null;
       }
     }
-    void startExport(project.name, file, words, settings, settings.subLang ? subs[settings.subLang] : undefined, art, settings.voiceover ? voiceBlob : null, brollFiles, settings.music ? musicBlob : null, fx).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
+    return brollFiles;
+  };
+  const runExport = (s: EditSettings, name: string, brollFiles: Record<string, Blob>) =>
+    startExport(name, file!, words, s, s.subLang ? subs[s.subLang] : undefined, art, s.voiceover ? voiceBlob : null, brollFiles, s.music ? musicBlob : null, fx);
+  const doExport = async () => {
+    if (!file) return;
+    const brollFiles = await exportFiles();
+    if (brollFiles) void runExport(settings, project.name, brollFiles).catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
   };
 
-  // the exported file read back for what would spoil the post; one check per export, null while it runs
+  // an exported file read back for what would spoil the post
+  const checkFile = (j: ExportJob): Promise<FileCheck> => {
+    const want = { seconds: j.seconds ?? total, kind: j.kind ?? "video", captions: settings.captions, hasWords: words.length > 0, sound: (settings.volume ?? 1) > 0 || !!settings.voiceover || !!settings.music,
+      size: j.bytes && j.cap ? { bytes: j.bytes, cap: j.cap, label: j.label ?? "" } : undefined };
+    // the picture is looked at too, up to the end card; a sound-only source has none of its own
+    const looks = j.kind !== "audio" && !peaks ? lookAtFrames(j.url!, frameTimes(plan.total, settings.transition ? cutTimes(plan.segs, speed) : [])) : Promise.resolve(null);
+    return Promise.all([measureExport(j.url!), looks]).then(([m, l]) =>
+      ({ issues: [...exportIssues(m ?? { seconds: null, level: null, gap: null }, want), ...pictureAndClipIssues(m?.clip ?? null, blackStretches(l ?? []))], read: !!m }));
+  };
+  // one check per export, null while it runs
   const [fileCheck, setFileCheck] = useState<{ id: string; issues: ExportIssue[] | null; read: boolean } | null>(null);
   useEffect(() => {
     if (job?.state !== "done" || !job.url || job.name !== project.name || fileCheck?.id === job.id) return;
     const id = job.id;
-    const want = { seconds: job.seconds ?? total, kind: job.kind ?? "video", captions: settings.captions, hasWords: words.length > 0, sound: (settings.volume ?? 1) > 0 || !!settings.voiceover || !!settings.music,
-      size: job.bytes && job.cap ? { bytes: job.bytes, cap: job.cap, label: job.label ?? "" } : undefined };
     setFileCheck({ id, issues: null, read: false });
-    // the picture is looked at too, up to the end card; a sound-only source has none of its own
-    const looks = job.kind !== "audio" && !peaks ? lookAtFrames(job.url, frameTimes(plan.total, settings.transition ? cutTimes(plan.segs, speed) : [])) : Promise.resolve(null);
-    void Promise.all([measureExport(job.url), looks]).then(([m, l]) =>
-      setFileCheck({ id, issues: [...exportIssues(m ?? { seconds: null, level: null, gap: null }, want), ...pictureAndClipIssues(m?.clip ?? null, blackStretches(l ?? []))], read: !!m }));
+    void checkFile(job).then((c) => setFileCheck({ id, ...c }));
   }, [job]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // the same edit in several sizes, one after another in the export queue, each file checked
+  const [sizesOpen, setSizesOpen] = useState<boolean | null>(null);
+  const showSizes = sizesOpen ?? !!exportQueue()?.ids.some((id) => id.startsWith(`${project.id}/`));
+  const exportSizes = async (list: VersionPlan[]) => {
+    if (!file) return;
+    const brollFiles = await exportFiles();
+    if (!brollFiles) return;
+    exportAll(list.map((p) => ({ id: `${project.id}/${p.id}`, run: () => runExport(p.settings, p.name, brollFiles), check: checkFile })))
+      .catch((e) => toast({ title: (e as Error).message, variant: "destructive" }));
+  };
 
   // find a word or phrase in what was said, and jump the video to it
   const [find, setFind] = useState("");
@@ -1400,10 +1428,16 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         <h1 className="mr-auto truncate font-serif text-xl font-semibold">{project.name}</h1>
         <Button variant="outline" size="sm" onClick={undo} disabled={!history.length} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><Undo2 className="h-3.5 w-3.5" /> Undo</Button>
         <Button variant="outline" size="sm" onClick={() => void saveCover()} disabled={!file} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><ImageIcon className="h-3.5 w-3.5" /> Make cover</Button>
+        {settings.exportAs !== "audio" && settings.exportAs !== "small" && (
+          <Button variant="outline" size="sm" onClick={() => setSizesOpen(!showSizes)} aria-expanded={showSizes} className="gap-1.5 [@media(pointer:coarse)]:min-h-11"><Layers className="h-3.5 w-3.5" /> More sizes</Button>
+        )}
         <Button size="sm" onClick={doExport} disabled={!file || job?.state === "running"} className="gap-1.5 bg-gradient-primary text-primary-foreground disabled:opacity-60 [@media(pointer:coarse)]:min-h-11">
           <Download className="h-3.5 w-3.5" /> {job?.state === "running" ? `Exporting ${Math.round(job.progress * 100)}%` : <>{exportLabel} <span className="font-normal opacity-80">{fmtBytes(size.bytes)}</span></>}
         </Button>
       </div>
+      {showSizes && settings.exportAs !== "audio" && settings.exportAs !== "small" && (
+        <ExportSizes projectId={project.id} name={project.name} settings={settings} seconds={total} srcW={video.current?.videoWidth || 1080} srcH={video.current?.videoHeight || 1920} onExport={(list) => void exportSizes(list)} />
+      )}
       <ClipFinder userId={userId} project={project} words={words} settings={settings} duration={duration} onClips={onClips} onOpen={onOpen} />
       {!words.length && isLong(duration, project.size) && <LongCaptions userId={userId} project={project} file={file} onWords={setWords} />}
       {job?.state === "running" && job.name === project.name && <ExportRunning job={job} total={total} />}

@@ -49,6 +49,7 @@ import {
   zoomAt,
   type Caption,
   type EditSettings,
+  type ExportIssue,
   type Segment,
   type Word,
   peaksFrom,
@@ -1017,6 +1018,13 @@ export interface ExportQueue {
   /** What each export made, by its id. */
   files: Record<string, { url: string; ext: string }>;
   failed: Record<string, string>;
+  /** What the check found in each file made, by its id; missing while it is being read. */
+  checks: Record<string, FileCheck>;
+}
+/** An exported file read back: what would spoil the post, and whether it could be read at all. */
+export interface FileCheck {
+  issues: ExportIssue[];
+  read: boolean;
 }
 let queue: ExportQueue | null = null;
 export const exportQueue = () => queue;
@@ -1026,9 +1034,9 @@ export function stopExportQueue() {
   emit();
 }
 /** Runs each export in turn; one that fails is noted and the rest still run. */
-export async function exportAll(runs: { id: string; run: () => Promise<void> }[]): Promise<void> {
+export async function exportAll(runs: { id: string; run: () => Promise<void>; check?: (made: ExportJob) => Promise<FileCheck> }[]): Promise<void> {
   if (job?.state === "running" || queue?.running) throw new Error("An export is already running.");
-  const q: ExportQueue = { at: 0, of: runs.length, ids: runs.map((r) => r.id), running: true, stopping: false, files: {}, failed: {} };
+  const q: ExportQueue = { at: 0, of: runs.length, ids: runs.map((r) => r.id), running: true, stopping: false, files: {}, failed: {}, checks: {} };
   queue = q;
   try {
     for (const r of runs) {
@@ -1043,8 +1051,13 @@ export async function exportAll(runs: { id: string; run: () => Promise<void> }[]
         continue;
       }
       const made = job && job.id !== before ? job : null;
-      if (made?.state === "done" && made.url) q.files[r.id] = { url: made.url, ext: made.ext ?? "mp4" };
-      else q.failed[r.id] = made?.error ?? "The export did not finish.";
+      if (made?.state === "done" && made.url) {
+        q.files[r.id] = { url: made.url, ext: made.ext ?? "mp4" };
+        if (!r.check) continue;
+        emit();
+        // read back before the next export starts, so the two don't share the decoder
+        q.checks[r.id] = await r.check(made).catch(() => ({ issues: [], read: false }));
+      } else q.failed[r.id] = made?.error ?? "The export did not finish.";
     }
   } finally {
     q.running = false;
