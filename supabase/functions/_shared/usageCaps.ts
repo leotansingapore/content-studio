@@ -90,6 +90,8 @@ export const DAILY_LIMITS = {
   // Social accounts through Zernio (social): a sign-in link to connect one, and the reads and disconnects.
   "social-connect": 3,
   "social-read": 300,
+  // Auto-DM (social automations): creating, editing, pausing and deleting an automation; listing and logs are reads.
+  "social-automation-write": 30,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

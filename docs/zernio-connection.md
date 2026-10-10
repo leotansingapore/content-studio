@@ -36,7 +36,7 @@ Zernio accepts any account, post or automation id on the team, whichever profile
   - A reconnect needs a checked `reconnectAccountId`; anything else is a new connect and is cap-checked.
   - Every `status` and `connect` call starts with a team-wide recount, because a cap checked only when a link is handed out can be beaten: several links collected while under it, a link reused, or a reconnect that Zernio turns into a new account. The recount lists every account on the team (`includeOverLimit=true`), holds each adviser to 6 across their brand profiles (owners mapped through `cs_social_profiles`), then the team to `ZERNIO_MAX_ACCOUNTS`, and disconnects the newest over either cap, whoever owns them. A Zernio id starts with its creation second, so a larger id is a newer account. The owner's Zernio profile gets a note in its description, and their own `status` then says which account went and why.
   - A daily team-wide recount cron is still required before `SOCIAL_CONNECT_USERS` opens beyond Leo: an account over the cap would otherwise keep billing until someone opens Social accounts or connects. The parent session has it queued.
-  - Usage caps (`_shared/usageCaps.ts`): `social-connect` 3 a day, `social-read` 300 a day (status, disconnect, and later logs and numbers).
+  - Usage caps (`_shared/usageCaps.ts`): `social-connect` 3 a day, `social-read` 300 a day (status, disconnect, the Auto-DM list, posts and logs, and later numbers), `social-automation-write` 30 a day (creating, editing, pausing and deleting an auto-DM).
 - M6, orphans keep billing. Removing a brand profile in the app disconnects its accounts through `social` first; if that fails, the brand stays. A weekly sweep (later build) disconnects the accounts of any `cs_<uuid>_<pid>` profile with no row (a deleted user).
 - M7, the key. Mint it with `disabledResourceGroups` covering every group the function does not call (ads, phone numbers, WhatsApp, commerce, blogs and the rest), which also stops it managing keys. Server platform allowlist: instagram, facebook, tiktok, linkedin, youtube, threads. Never X, which bills per call. `SOCIAL_CONNECT_USERS='*'` only after the daily recount sweep ships.
 - Automation DMs are free up to 10,000 sent a month, then metered.
@@ -60,7 +60,16 @@ Built (C0):
 - `connect` `{profileId, platform, reconnectAccountId?}`: the recount, then the cap check (skipped for a checked reconnect), then creates or reuses the Zernio profile and returns `authUrl`. Redirect: `https://consultant-content-studio.vercel.app/accounts?connected=<platform>`.
 - `disconnect` `{profileId, accountId}` after the account check, or `{profileId, all:true}` for every account in that brand (brand removal).
 
-Later builds: `presign`, `schedule`, `post`, `cancel` (C1, posting); `automations` list, create, update, delete and logs (C2, Auto-DM); `metrics` (C3); the weekly orphan sweep and daily recount cron before the allowlist opens beyond Leo.
+Built (C2, Auto-DM), in `supabase/functions/social/automations.ts` (Zernio's comment-automations; Zernio runs them):
+
+- `automations` `{profileId}`: the brand's accounts and its automations, listed with `profileId=<mapped>` and each kept only when its accountId is the caller's (H3), with stats.
+- `account-posts` `{profileId, accountId}`: the account's 25 latest platform posts (`GET /v1/accounts/{id}/posts`), for the post picker. Account checked first.
+- `automation-create` `{profileId, accountId, automation}`: account checked, then the fields (below); the body's `profileId` is always the mapped one; a chosen post must be among the account's 25 latest; keywords match as whole words (`matchMode: word`).
+- `automation-update` `{profileId, automationId, automation}` or `{..., active}` (pause): the automation check (M1) first, then the same field checks; the post binding is sent only when it changed.
+- `automation-delete`, `automation-logs` `{profileId, automationId, skip?}` (50 a page): the automation check first.
+- Fields: trigger comment, story_reply or story_mention; 0 to 10 keywords of up to 50 characters, empty only for a story mention or with Every comment; the DM with up to 3 other wordings (640 characters with link buttons, else 1000); up to 3 link buttons with your own http(s) link and a 20-character title; the public reply with up to 5 other wordings (Zernio's limit); also answer a DM of the keyword; the Instagram follower check (`audience` follower + verify). TikTok, Threads, LinkedIn and YouTube take the public reply only: a DM there is refused by us in plain words before Zernio's 400.
+
+Later builds: `presign`, `schedule`, `post`, `cancel` (C1, posting); `metrics` (C3); the weekly orphan sweep and daily recount cron before the allowlist opens beyond Leo.
 
 ## Screens
 

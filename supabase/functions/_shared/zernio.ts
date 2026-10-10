@@ -42,7 +42,7 @@ export interface ZernioRequest {
   idempotencyKey?: string;
 }
 // deno-lint-ignore no-explicit-any
-export type Zernio = (method: "GET" | "POST" | "PUT" | "DELETE", path: string, req?: ZernioRequest) => Promise<any>;
+export type Zernio = (method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path: string, req?: ZernioRequest) => Promise<any>;
 
 /** Plain fetch with the Bearer key and a 15 s timeout. A path is letters, digits, /, _ and - only, so no id can climb out of it. */
 export function zernioClient(apiKey: string, fetchFn: typeof fetch = fetch): Zernio {
