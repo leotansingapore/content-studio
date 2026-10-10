@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * The one filter chip for every Discover page (Top posts, News, Trends,
- * Inspiration, Creators): same look everywhere, 36px tall on phones.
+ * Inspiration, Creators): same look everywhere, at least 44x44 on touch screens.
  */
 export function FilterChip({
   active,
@@ -25,7 +25,7 @@ export function FilterChip({
       disabled={disabled}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors sm:h-7",
+        "inline-flex h-9 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-full border px-3 text-xs font-medium transition-colors sm:h-7 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11",
         active
           ? "border-primary/60 bg-primary/10 text-primary"
           : disabled
