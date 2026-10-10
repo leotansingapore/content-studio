@@ -15,7 +15,7 @@ Zernio docs: https://docs.zernio.com/llms.txt. Read the page for an endpoint bef
 
 ## Scoping: one adviser never reaches another's accounts
 
-Zernio accepts any account, post or automation id on the team, whichever profile it sits in. So the `social` function never passes an id from a request to Zernio before checking it belongs to the caller. The rules (from the independent review of 018 on 2026-10-11), each with a test in `supabase/functions/_shared/zernio.test.ts`:
+Zernio accepts any account, post or automation id on the team, whichever profile it sits in. So the `social` function never passes an id from a request to Zernio before checking it belongs to the caller. The rules (from the independent review of 018 on 2026-10-11), each with a test in `supabase/functions/_shared/zernio.test.ts` or `supabase/functions/social/logic.test.ts`:
 
 - H1, id format first. Every id from a request (accountId, postId, automationId, reconnectAccountId, an automation's postId) must match `^[a-f0-9]{24}$` before any other use, and reaches a URL path only through `encodeURIComponent`. Anything else is a 404. Without this, postId `../accounts/<victim>` would turn a cancel into `DELETE /v1/accounts/<victim>`.
 - The caller is the JWT user. The brand profile id comes from the body, and the function looks up (owner_id = caller, profile_id) in `cs_social_profiles`; with no row the answer is a 404.
@@ -34,8 +34,9 @@ Zernio accepts any account, post or automation id on the team, whichever profile
 - Zernio billing. Two connected accounts are free with no card. With no card, Zernio answers 402 `free_tier_exceeded` at the third. Once a card is added, our caps are the only guard (M5):
   - Before handing out a connect link the function counts the team's accounts (`includeOverLimit=true`) and refuses at `ZERNIO_MAX_ACCOUNTS` (default 2). One adviser may hold 6 across all their brand profiles.
   - A reconnect needs a checked `reconnectAccountId`; anything else is a new connect and is cap-checked.
-  - Every `status` call recounts. When the team or the adviser is over a cap, it disconnects the newest of the caller's own accounts in that brand over it and says so. Accounts of other advisers are left to their own status calls and to the daily sweep.
-  - Usage caps (`_shared/usageCaps.ts`): `social-connect` 10 a day, `social-read` 300 a day (status, disconnect, and later logs and numbers).
+  - Every `status` and `connect` call starts with a team-wide recount, because a cap checked only when a link is handed out can be beaten: several links collected while under it, a link reused, or a reconnect that Zernio turns into a new account. The recount lists every account on the team (`includeOverLimit=true`), holds each adviser to 6 across their brand profiles (owners mapped through `cs_social_profiles`), then the team to `ZERNIO_MAX_ACCOUNTS`, and disconnects the newest over either cap, whoever owns them. A Zernio id starts with its creation second, so a larger id is a newer account. The owner's Zernio profile gets a note in its description, and their own `status` then says which account went and why.
+  - A daily team-wide recount cron is still required before `SOCIAL_CONNECT_USERS` opens beyond Leo: an account over the cap would otherwise keep billing until someone opens Social accounts or connects. The parent session has it queued.
+  - Usage caps (`_shared/usageCaps.ts`): `social-connect` 3 a day, `social-read` 300 a day (status, disconnect, and later logs and numbers).
 - M6, orphans keep billing. Removing a brand profile in the app disconnects its accounts through `social` first; if that fails, the brand stays. A weekly sweep (later build) disconnects the accounts of any `cs_<uuid>_<pid>` profile with no row (a deleted user).
 - M7, the key. Mint it with `disabledResourceGroups` covering every group the function does not call (ads, phone numbers, WhatsApp, commerce, blogs and the rest), which also stops it managing keys. Server platform allowlist: instagram, facebook, tiktok, linkedin, youtube, threads. Never X, which bills per call. `SOCIAL_CONNECT_USERS='*'` only after the daily recount sweep ships.
 - Automation DMs are free up to 10,000 sent a month, then metered.
@@ -55,8 +56,8 @@ JWT verification on. Deploy: `supabase functions deploy social --project-ref hgd
 Built (C0):
 
 - `status` with no `profileId`: `{enabled:true}` and nothing else, no Zernio call (the app uses it to show the page).
-- `status` `{profileId}`: the brand's accounts with health, the team count against the cap, and the recount above.
-- `connect` `{profileId, platform, reconnectAccountId?}`: creates or reuses the Zernio profile and returns `authUrl`. Redirect: `https://consultant-content-studio.vercel.app/accounts?connected=<platform>`.
+- `status` `{profileId}`: the recount above, then the brand's accounts with health, any over-cap removals noted on its profile, and the counts against the caps.
+- `connect` `{profileId, platform, reconnectAccountId?}`: the recount, then the cap check (skipped for a checked reconnect), then creates or reuses the Zernio profile and returns `authUrl`. Redirect: `https://consultant-content-studio.vercel.app/accounts?connected=<platform>`.
 - `disconnect` `{profileId, accountId}` after the account check, or `{profileId, all:true}` for every account in that brand (brand removal).
 
 Later builds: `presign`, `schedule`, `post`, `cancel` (C1, posting); `automations` list, create, update, delete and logs (C2, Auto-DM); `metrics` (C3); the weekly orphan sweep and daily recount cron before the allowlist opens beyond Leo.

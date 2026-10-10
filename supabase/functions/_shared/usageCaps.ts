@@ -88,7 +88,7 @@ export const DAILY_LIMITS = {
   "ai-clip": 2,
   "ai-clip-global": 8,
   // Social accounts through Zernio (social): a sign-in link to connect one, and the reads and disconnects.
-  "social-connect": 10,
+  "social-connect": 3,
   "social-read": 300,
 } as const;
 

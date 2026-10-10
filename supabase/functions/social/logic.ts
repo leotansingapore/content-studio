@@ -5,14 +5,17 @@
 import {
   NotYours,
   SOCIAL_PLATFORMS,
+  USER_ACCOUNT_CAP,
   ZernioError,
+  billed,
   callerAccounts,
   capCounts,
   disconnectAccount,
   ensureProfile,
   isProfileId,
   isZernioId,
-  overCap,
+  pathId,
+  refId,
   requireAccounts,
   scopedList,
   teamAccounts,
@@ -73,6 +76,8 @@ export interface Caller {
   mapped: string | null;
   /** Every Zernio profile this adviser owns, for the per-adviser cap. */
   userProfiles: Set<string>;
+  /** Every mapped Zernio profile -> its owner (all of cs_social_profiles), for the team-wide recount. */
+  ownerOf: Map<string, string>;
   teamCap: number;
 }
 
@@ -115,23 +120,96 @@ function view(a: ZAccount, h?: HealthItem): AccountView {
   };
 }
 
-/** The brand's accounts with health, the counts against the caps, and the M5 recount. */
-export async function status(z: Zernio, c: Caller): Promise<Reply> {
-  let team = await teamAccounts(z);
-  if (!c.mapped) return ok({ enabled: true, accounts: [], removed: [], ...capCounts(team, c.userProfiles, c.teamCap) });
-  let own = await callerAccounts(z, c.mapped);
-  // M5: an account that got past the cap (a race, or a card added on Zernio) is disconnected here
-  const over = overCap(team, c.userProfiles, new Set(own.map((a) => a._id)), c.teamCap);
-  for (const id of over) await disconnectAccount(z, id);
-  const removed = own.filter((a) => over.includes(a._id)).map((a) => view(a));
-  own = own.filter((a) => !over.includes(a._id));
-  team = team.filter((a) => !over.includes(a._id));
+export interface RemovedNote {
+  platform: string;
+  username: string;
+  at: string;
+}
+
+// A recount notes what it disconnected on the owner's Zernio profile description, so that adviser's own
+// status can say so. Nothing else is stored there: the profiles are created by this function, name only.
+const NOTE_PREFIX = "cs-removed:";
+const NOTE_DAYS = 30;
+
+/** The over-cap removals noted on a Zernio profile, newest first, from the last 30 days. */
+export function removalNotes(description: unknown, now = Date.now()): RemovedNote[] {
+  if (typeof description !== "string" || !description.startsWith(NOTE_PREFIX)) return [];
+  try {
+    const list = JSON.parse(description.slice(NOTE_PREFIX.length));
+    if (!Array.isArray(list)) return [];
+    return list.filter(
+      (n) => n && typeof n.platform === "string" && typeof n.username === "string" && typeof n.at === "string" && now - Date.parse(n.at) < NOTE_DAYS * 864e5,
+    );
+  } catch {
+    return [];
+  }
+}
+
+export const withRemovalNotes = (description: unknown, added: RemovedNote[], now = Date.now()) =>
+  NOTE_PREFIX + JSON.stringify([...added, ...removalNotes(description, now)].slice(0, 5));
+
+const byAge = (a: ZAccount, b: ZAccount) => (a._id < b._id ? -1 : a._id > b._id ? 1 : 0);
+
+/**
+ * M5, team-wide: which billed accounts to disconnect, newest first, whoever owns them. Each adviser is held
+ * to 6 across all their brands first, then the team to its cap over what is left, so no more goes than
+ * either cap needs. A Zernio id is a MongoDB ObjectId, which starts with its creation second, so a larger
+ * id is a newer account.
+ */
+export function overCapTeam(team: ZAccount[], ownerOf: Map<string, string>, teamCap: number): ZAccount[] {
+  const list = team.filter(billed).sort(byAge);
+  const over = new Set<string>();
+  const perOwner = new Map<string, ZAccount[]>();
+  for (const a of list) {
+    const owner = ownerOf.get(refId(a.profileId));
+    if (owner) perOwner.set(owner, [...(perOwner.get(owner) ?? []), a]);
+  }
+  for (const mine of perOwner.values()) for (const a of mine.slice(USER_ACCOUNT_CAP)) over.add(a._id);
+  for (const a of list.filter((x) => !over.has(x._id)).slice(Math.max(0, teamCap))) over.add(a._id);
+  return list.filter((a) => over.has(a._id)).reverse();
+}
+
+/**
+ * M5 recount, at the start of every status and connect: links collected while under the cap, or a
+ * reconnect that came back as a new account, never keep billing past the next call by anyone. Each
+ * affected adviser's Zernio profile gets a note. Returns the team as it stands after.
+ */
+export async function recount(z: Zernio, c: Pick<Caller, "ownerOf" | "teamCap">, now = Date.now()): Promise<ZAccount[]> {
+  const team = await teamAccounts(z);
+  const over = overCapTeam(team, c.ownerOf, c.teamCap);
+  if (!over.length) return team;
+  const at = new Date(now).toISOString();
+  const byProfile = new Map<string, RemovedNote[]>();
+  for (const a of over) {
+    const pid = refId(a.profileId);
+    // noted only when this call disconnected it, so a repeat never notes it twice
+    if ((await disconnectAccount(z, a._id)) && c.ownerOf.has(pid)) byProfile.set(pid, [...(byProfile.get(pid) ?? []), { platform: a.platform, username: a.username ?? "", at }]);
+  }
+  for (const [pid, notes] of byProfile) {
+    try {
+      const data = await z("GET", `/profiles/${pathId(pid)}`);
+      await z("PUT", `/profiles/${pathId(pid)}`, { body: { description: withRemovalNotes(data?.profile?.description, notes, now) } });
+    } catch (e) {
+      // the accounts are already disconnected; only the note is lost
+      console.warn("social: couldn't note an over-cap removal", pid, e instanceof Error ? e.message : String(e));
+    }
+  }
+  const gone = new Set(over.map((a) => a._id));
+  return team.filter((a) => !gone.has(a._id));
+}
+
+/** The brand's accounts with health, what a recount removed from it, and the counts against the caps. */
+export async function status(z: Zernio, c: Caller, now = Date.now()): Promise<Reply> {
+  const counts = capCounts(await recount(z, c, now), c.userProfiles, c.teamCap);
+  if (!c.mapped) return ok({ enabled: true, accounts: [], removed: [], ...counts });
+  const own = await callerAccounts(z, c.mapped);
+  const profile = await z("GET", `/profiles/${pathId(c.mapped)}`).catch(() => null);
   const health = (own.length ? await scopedList(z, "/accounts/health", c.mapped, new Set(own.map((a) => a._id))) : []) as HealthItem[];
   return ok({
     enabled: true,
     accounts: own.map((a) => view(a, health.find((h) => h.accountId === a._id))),
-    removed,
-    ...capCounts(team, c.userProfiles, c.teamCap),
+    removed: removalNotes(profile?.profile?.description, now),
+    ...counts,
   });
 }
 
@@ -147,13 +225,15 @@ async function authUrl(z: Zernio, mapped: string, platform: SocialPlatform, reco
 
 /** A sign-in link for the platform. A reconnect needs a checked account of that platform; anything else is cap-checked. */
 export async function connect(z: Zernio, c: Caller, row: ProfileRow, platform: SocialPlatform, reconnectAccountId: string | null): Promise<Reply> {
+  const team = await recount(z, c);
+  // a reconnect that Zernio turns into a new account is caught by the next recount
   if (reconnectAccountId) {
     if (!c.mapped) throw new NotYours("no profile");
     const account = (await callerAccounts(z, c.mapped)).find((a) => a._id === reconnectAccountId);
     if (!account || account.platform !== platform) throw new NotYours("account not yours");
     return ok({ authUrl: await authUrl(z, c.mapped, platform, reconnectAccountId) });
   }
-  const counts = capCounts(await teamAccounts(z), c.userProfiles, c.teamCap);
+  const counts = capCounts(team, c.userProfiles, c.teamCap);
   if (counts.user >= counts.userCap) {
     return { status: 409, body: { code: "account_cap", error: `You have ${counts.user} accounts connected, the most one adviser can have.`, ...counts } };
   }

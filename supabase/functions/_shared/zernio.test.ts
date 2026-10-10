@@ -10,7 +10,6 @@ import {
   ensureProfile,
   idempotencyKey,
   isZernioId,
-  overCap,
   requireAccounts,
   scopedList,
   zernioClient,
@@ -268,7 +267,7 @@ describe("M4: the first connect makes one Zernio profile per brand", () => {
   });
 });
 
-describe("M5: caps and the recount", () => {
+describe("M5: caps", () => {
   const team = [
     acct("65000000000000000000a001"),
     acct("65000000000000000000e001", THEIRS),
@@ -281,26 +280,12 @@ describe("M5: caps and the recount", () => {
     expect(capCounts(team, mineSet, 2)).toEqual({ team: 3, teamCap: 2, user: 2, userCap: 6 });
     expect(capCounts(team, new Set([MINE, THEIRS]), 2).user).toBe(3);
   });
-
-  it("picks the newest accounts over the team cap, but only the caller's own", () => {
-    const ownHere = new Set(["65000000000000000000a001", "65000000000000000000f002"]);
-    expect(overCap(team, mineSet, ownHere, 2)).toEqual(["65000000000000000000f002"]);
-    expect(overCap(team, mineSet, ownHere, 3)).toEqual([]);
-    // the newest over the cap is another adviser's: this caller's recount leaves it alone
-    const theirsNewest = [...team, acct("65000000000000000000ff01", THEIRS)];
-    expect(overCap(theirsNewest, mineSet, ownHere, 3)).toEqual([]);
-  });
-
-  it("holds one adviser to 6 across all their brands", () => {
-    const seven = Array.from({ length: 7 }, (_, i) => acct(`6500000000000000000000a${i}`));
-    expect(overCap(seven, mineSet, new Set(seven.map((a) => a._id)), 100)).toEqual(["6500000000000000000000a6"]);
-  });
 });
 
 describe("disconnecting", () => {
   it("treats Zernio's 404 for a repeat as done and passes other refusals on", async () => {
     const { z, calls } = fake({ [`DELETE /accounts/${A1}`]: { status: 404, body: { error: "gone" } }, [`DELETE /accounts/${A2}`]: { status: 500 } });
-    await expect(disconnectAccount(z, A1)).resolves.toBeUndefined();
+    await expect(disconnectAccount(z, A1)).resolves.toBe(false);
     await expect(disconnectAccount(z, A2)).rejects.toMatchObject({ status: 500 });
     expect(calls.map((c) => c.path)).toEqual([`/accounts/${A1}`, `/accounts/${A2}`]);
   });

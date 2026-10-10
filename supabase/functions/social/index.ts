@@ -43,13 +43,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { data: rows, error } = await admin.from("cs_social_profiles").select("profile_id, zernio_profile_id").eq("owner_id", uid);
-    if (error || !Array.isArray(rows)) throw new Error(`cs_social_profiles read: ${error?.message}`);
+    // Every adviser's mapping: the recount holds each owner to the per-adviser cap.
+    // shortcut: one read, capped at PostgREST's 1000 rows; page it past 1000 brand profiles.
+    const { data: all, error } = await admin.from("cs_social_profiles").select("owner_id, profile_id, zernio_profile_id");
+    if (error || !Array.isArray(all)) throw new Error(`cs_social_profiles read: ${error?.message}`);
+    const rows = all.filter((x) => x.owner_id === uid);
     const caller: Caller = {
       uid,
       profileId,
       mapped: rows.find((x) => x.profile_id === profileId)?.zernio_profile_id ?? null,
       userProfiles: new Set(rows.map((x) => x.zernio_profile_id)),
+      ownerOf: new Map(all.map((x) => [x.zernio_profile_id, x.owner_id])),
       teamCap: teamCapOf(Deno.env.get("ZERNIO_MAX_ACCOUNTS")),
     };
     const row: ProfileRow = {

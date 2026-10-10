@@ -1,6 +1,6 @@
 // Zernio (zernio.com) client and the checks that keep each adviser inside their own Zernio profile.
 // Zernio accepts any account, post or automation id on the team, whichever profile it sits in, so no
-// id from a request reaches it before these checks (rules H1-H4 and M1-M5 in docs/zernio-connection.md).
+// id from a request reaches it before these checks (rules H1-H4 and M1-M4 in docs/zernio-connection.md).
 // No Deno or npm imports, so vitest covers it; the key and fetch are passed in.
 
 export const ZERNIO_BASE = "https://zernio.com/api/v1";
@@ -42,7 +42,7 @@ export interface ZernioRequest {
   idempotencyKey?: string;
 }
 // deno-lint-ignore no-explicit-any
-export type Zernio = (method: "GET" | "POST" | "DELETE", path: string, req?: ZernioRequest) => Promise<any>;
+export type Zernio = (method: "GET" | "POST" | "PUT" | "DELETE", path: string, req?: ZernioRequest) => Promise<any>;
 
 /** Plain fetch with the Bearer key and a 15 s timeout. A path is letters, digits, /, _ and - only, so no id can climb out of it. */
 export function zernioClient(apiKey: string, fetchFn: typeof fetch = fetch): Zernio {
@@ -256,17 +256,19 @@ export async function ensureProfile(z: Zernio, row: ProfileRow, uid: string, pro
   return winner;
 }
 
-/** Disconnect one account the caller owns (checked by the caller of this). A repeat answers 404: already done. */
-export async function disconnectAccount(z: Zernio, accountId: string): Promise<void> {
+/** Disconnect one checked account. False when it was already gone: Zernio answers a repeat with 404. */
+export async function disconnectAccount(z: Zernio, accountId: string): Promise<boolean> {
   try {
     await z("DELETE", `/accounts/${pathId(accountId)}`);
+    return true;
   } catch (e) {
-    if (!(e instanceof ZernioError && e.status === 404)) throw e;
+    if (e instanceof ZernioError && e.status === 404) return false;
+    throw e;
   }
 }
 
 /** Zernio bills enabled accounts; one created as a side effect (enabled: false) is not billed. */
-const billed = (a: ZAccount) => a?.enabled !== false && isZernioId(a?._id);
+export const billed = (a: ZAccount) => a?.enabled !== false && isZernioId(a?._id);
 
 /** M5 counts: the team against its cap, and this adviser across all their brand profiles. */
 export function capCounts(team: ZAccount[], userProfileIds: Set<string>, teamCap: number) {
@@ -277,16 +279,4 @@ export function capCounts(team: ZAccount[], userProfileIds: Set<string>, teamCap
     user: list.filter((a) => userProfileIds.has(refId(a.profileId))).length,
     userCap: USER_ACCOUNT_CAP,
   };
-}
-
-/**
- * M5 recount: which of `own` (the caller's accounts in this brand) sit over the team cap or the adviser's
- * cap, newest first. A Zernio id is a MongoDB ObjectId, which starts with its creation second, so a larger
- * id is a newer account. Only the caller's own accounts are ever picked; others wait for their own recount.
- */
-export function overCap(team: ZAccount[], userProfileIds: Set<string>, own: Set<string>, teamCap: number): string[] {
-  const list = team.filter(billed).sort((a, b) => (a._id < b._id ? -1 : a._id > b._id ? 1 : 0));
-  const over = new Set(list.slice(Math.max(0, teamCap)).map((a) => a._id));
-  for (const a of list.filter((x) => userProfileIds.has(refId(x.profileId))).slice(USER_ACCOUNT_CAP)) over.add(a._id);
-  return [...over].filter((id) => own.has(id)).sort().reverse();
 }

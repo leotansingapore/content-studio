@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { NotYours, ZernioError, type ProfileRow, type ZAccount, type Zernio, type ZernioRequest } from "../_shared/zernio";
-import { connect, disconnect, errorReply, isAllowed, parseRequest, redirectUrl, status, teamCapOf, type Caller } from "./logic";
+import { connect, disconnect, errorReply, isAllowed, overCapTeam, parseRequest, recount, redirectUrl, removalNotes, status, teamCapOf, withRemovalNotes, type Caller } from "./logic";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
+const UID_B = "0f8fad5b-d9cb-469f-a165-70867728950e";
 const MINE = "0123456789abcdef01234561";
 const THEIRS = "0123456789abcdef01234569";
 const A1 = "65000000000000000000a001";
@@ -31,7 +32,8 @@ const accounts = (team: ZAccount[]) => (req?: ZernioRequest) => {
   return { accounts: pid ? team.filter((a) => a.profileId === pid) : team };
 };
 
-const caller = (extra: Partial<Caller> = {}): Caller => ({ uid: UID, profileId: "me", mapped: MINE, userProfiles: new Set([MINE]), teamCap: 2, ...extra });
+const owners = () => new Map([[MINE, UID], [THEIRS, UID_B]]);
+const caller = (extra: Partial<Caller> = {}): Caller => ({ uid: UID, profileId: "me", mapped: MINE, userProfiles: new Set([MINE]), ownerOf: owners(), teamCap: 2, ...extra });
 
 describe("the request", () => {
   it("probes with a bare status and otherwise needs a brand profile id", () => {
@@ -95,26 +97,65 @@ describe("status", () => {
     ]);
     expect(f.calls.find((c) => c.key === "GET /accounts/health")?.req?.query?.profileId).toBe(MINE);
   });
+});
 
-  it("disconnects the caller's newest account over the cap and says so", async () => {
-    const NEWEST = "65000000000000000000f00f";
-    const f = fake({
-      "GET /accounts": accounts([acct(A1), acct(VICTIM, THEIRS), acct(NEWEST)]),
-      [`DELETE /accounts/${NEWEST}`]: { message: "ok" },
+describe("the team-wide recount (M5)", () => {
+  const NOW = Date.parse("2026-10-11T08:00:00Z");
+  const B_NEW = "65000000000000000000ff01";
+
+  it("disconnects another owner's newest account over the team cap, and that owner's status says so", async () => {
+    let theirDescription: unknown = null;
+    const a = fake({
+      "GET /accounts": accounts([acct(A1), acct(A2), acct(B_NEW, THEIRS, { username: "bee" })]),
+      [`DELETE /accounts/${B_NEW}`]: {},
+      [`GET /profiles/${THEIRS}`]: () => ({ profile: { _id: THEIRS, description: theirDescription } }),
+      [`PUT /profiles/${THEIRS}`]: (req: ZernioRequest) => ((theirDescription = (req.body as { description: string }).description), {}),
+      [`GET /profiles/${MINE}`]: { profile: { _id: MINE } },
       "GET /accounts/health": { accounts: [] },
     });
-    const r = await status(f.z, caller());
-    expect(f.keys()).toContain(`DELETE /accounts/${NEWEST}`);
-    expect((r.body.removed as { id: string }[]).map((a) => a.id)).toEqual([NEWEST]);
-    expect((r.body.accounts as { id: string }[]).map((a) => a.id)).toEqual([A1]);
-    expect(r.body).toMatchObject({ team: 2, user: 1 });
+    const mine = await status(a.z, caller(), NOW);
+    expect(a.keys().filter((k) => k.startsWith("DELETE"))).toEqual([`DELETE /accounts/${B_NEW}`]);
+    expect(mine.body).toMatchObject({ removed: [], team: 2 });
+    // the other adviser opens Social accounts next
+    const b = fake({
+      "GET /accounts": accounts([acct(A1), acct(A2)]),
+      [`GET /profiles/${THEIRS}`]: { profile: { _id: THEIRS, description: theirDescription } },
+    });
+    const theirs = await status(b.z, caller({ uid: UID_B, mapped: THEIRS, userProfiles: new Set([THEIRS]) }), NOW + 3600_000);
+    expect(theirs.body).toMatchObject({ accounts: [], removed: [{ platform: "instagram", username: "bee", at: "2026-10-11T08:00:00.000Z" }] });
   });
 
-  it("never disconnects another adviser's account, even when it is the newest over the cap", async () => {
-    const f = fake({ "GET /accounts": accounts([acct(A1), acct(A2), acct("65000000000000000000ff01", THEIRS)]), "GET /accounts/health": { accounts: [] } });
-    const r = await status(f.z, caller());
-    expect(f.keys().filter((k) => k.startsWith("DELETE"))).toEqual([]);
-    expect(r.body.removed).toEqual([]);
+  it("holds each adviser to 6 across their brands before the team cap, newest first", () => {
+    const PID2 = "0123456789abcdef01234562"; // the caller's second brand
+    const ownerOf = new Map([[MINE, UID], [PID2, UID], [THEIRS, UID_B]]);
+    const mine = Array.from({ length: 7 }, (_, i) => acct(`6500000000000000000000a${i}`, i % 2 ? PID2 : MINE));
+    const team = [...mine, acct(VICTIM, THEIRS), acct("65000000000000000000c001", "0123456789abcdef0123456f"), acct("65000000000000000000f00f", THEIRS, { enabled: false })];
+    expect(overCapTeam(team, ownerOf, 100).map((a) => a._id)).toEqual(["6500000000000000000000a6"]);
+    // the team cap then counts what is left, an unmapped profile's accounts included
+    expect(overCapTeam(team, ownerOf, 6).map((a) => a._id)).toEqual(["65000000000000000000c001", VICTIM, "6500000000000000000000a6"]);
+    expect(overCapTeam(team, ownerOf, 8).map((a) => a._id)).toEqual(["6500000000000000000000a6"]);
+    expect(overCapTeam(team.slice(1), ownerOf, 8)).toEqual([]);
+    // Zernio lists by platform, newest first: the age comes from the id, not the order
+    expect(overCapTeam([...team].reverse(), ownerOf, 6).map((a) => a._id)).toEqual(["65000000000000000000c001", VICTIM, "6500000000000000000000a6"]);
+  });
+
+  it("notes a removal once: an account already gone answers 404 and is not noted again", async () => {
+    const f = fake({
+      "GET /accounts": accounts([acct(A1), acct(A2), acct(B_NEW, THEIRS)]),
+      [`DELETE /accounts/${B_NEW}`]: new ZernioError(404, "", "gone"),
+    });
+    expect((await recount(f.z, caller(), NOW)).map((a) => a._id)).toEqual([A1, A2]);
+    expect(f.keys()).toEqual(["GET /accounts", `DELETE /accounts/${B_NEW}`]);
+  });
+
+  it("keeps notes for 30 days, newest first, and ignores anything else in the description", () => {
+    const MID = Date.parse("2026-09-20T00:00:00Z");
+    const d = withRemovalNotes(null, [{ platform: "tiktok", username: "old", at: "2026-09-01T00:00:00Z" }], MID);
+    const d2 = withRemovalNotes(d, [{ platform: "instagram", username: "new", at: "2026-09-20T00:00:00Z" }], MID);
+    expect(removalNotes(d2, MID).map((n) => n.username)).toEqual(["new", "old"]);
+    expect(removalNotes(d2, NOW).map((n) => n.username)).toEqual(["new"]);
+    expect(removalNotes(withRemovalNotes(d2, [{ platform: "tiktok", username: "x", at: "2026-10-11T08:00:00Z" }], NOW), NOW).map((n) => n.username)).toEqual(["x", "new"]);
+    for (const junk of [null, "Marketing team", "cs-removed:{", 'cs-removed:{"a":1}', 'cs-removed:[{"platform":1}]']) expect(removalNotes(junk, NOW)).toEqual([]);
   });
 });
 
@@ -152,18 +193,48 @@ describe("connect", () => {
     expect(user.keys()).toEqual(["GET /accounts"]);
   });
 
-  it("reconnects only a checked account of that platform, and without the cap check", async () => {
-    const team = [acct(A1), acct(A2, MINE, { platform: "facebook" }), acct(VICTIM, THEIRS)];
+  it("recounts the team before it checks the cap", async () => {
+    const f = fake({ "GET /accounts": accounts([acct(A1), acct(VICTIM, THEIRS), acct("65000000000000000000ff01", THEIRS)]), "DELETE /accounts/65000000000000000000ff01": {} });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const r = await connect(f.z, caller(), row(), "instagram", null);
+    expect(f.keys().slice(0, 2)).toEqual(["GET /accounts", "DELETE /accounts/65000000000000000000ff01"]);
+    expect(r).toMatchObject({ status: 409, body: { team: 2 } });
+  });
+
+  it("catches a reconnect that came back as an extra account on the next recount", async () => {
+    const team = [acct(A1), acct(VICTIM, THEIRS)];
     const f = fake({ "GET /accounts": accounts(team), "GET /connect/instagram": link });
     await connect(f.z, caller(), row(), "instagram", A1);
-    expect(f.calls[1].req?.query?.reconnectAccountId).toBe(A1);
-    expect(f.calls[0].req?.query?.profileId).toBe(MINE);
+    // Zernio made a new account instead of refreshing A1
+    const EXTRA = "65000000000000000000ff02";
+    team.push(acct(EXTRA));
+    const g = fake({
+      "GET /accounts": accounts(team),
+      [`DELETE /accounts/${EXTRA}`]: () => (team.pop(), {}),
+      [`GET /profiles/${MINE}`]: { profile: { _id: MINE } },
+      [`PUT /profiles/${MINE}`]: {},
+      "GET /accounts/health": { accounts: [] },
+    });
+    const r = await status(g.z, caller());
+    expect(g.keys()).toContain(`DELETE /accounts/${EXTRA}`);
+    expect((r.body.accounts as { id: string }[]).map((a) => a.id)).toEqual([A1]);
+  });
+
+  it("reconnects only a checked account of that platform, and without the cap check", async () => {
+    // the team is at its cap of 3: a new connect would be refused
+    const team = [acct(A1), acct(A2, MINE, { platform: "facebook" }), acct(VICTIM, THEIRS)];
+    const f = fake({ "GET /accounts": accounts(team), "GET /connect/instagram": link });
+    await connect(f.z, caller({ teamCap: 3 }), row(), "instagram", A1);
+    expect(f.calls[2].req?.query?.reconnectAccountId).toBe(A1);
+    expect(f.calls[1].req?.query?.profileId).toBe(MINE);
     for (const [platform, id] of [["instagram", VICTIM], ["instagram", A2]] as const) {
       const g = fake({ "GET /accounts": accounts(team) });
-      await expect(connect(g.z, caller(), row(), platform, id)).rejects.toBeInstanceOf(NotYours);
-      expect(g.keys()).toEqual(["GET /accounts"]);
+      await expect(connect(g.z, caller({ teamCap: 3 }), row(), platform, id)).rejects.toBeInstanceOf(NotYours);
+      expect(g.keys()).toEqual(["GET /accounts", "GET /accounts"]);
     }
-    await expect(connect(fake({}).z, caller({ mapped: null }), row(null), "instagram", A1)).rejects.toBeInstanceOf(NotYours);
+    const none = fake({ "GET /accounts": accounts(team) });
+    await expect(connect(none.z, caller({ mapped: null, teamCap: 3 }), row(null), "instagram", A1)).rejects.toBeInstanceOf(NotYours);
+    expect(none.keys()).toEqual(["GET /accounts"]);
   });
 
   it("refuses a sign-in link that isn't https", async () => {
