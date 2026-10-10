@@ -825,6 +825,7 @@ describe("title and cover ideas", () => {
     expect(sanitizePublish({ titles: ["One", 5, "Two", "Three", "Four"], cover: "Cover line", at: 4.2 })).toEqual({ titles: ["One", "Two", "Three"], cover: "Cover line", at: 4.2 });
     expect(sanitizePublish({ titles: ["One"], cover: "x", at: "soon" })).toEqual({ titles: ["One"], cover: "x", at: null });
     expect(sanitizePublish({ titles: [], cover: "x" })).toBeUndefined();
+    expect(sanitizePublish({ titles: ["One"], cover: "x", at: 1, line2: "Before you sign anything at all, read this" })?.line2).toBe("Before you sign anything at al");
     expect(sanitizePublish(null)).toBeUndefined();
   });
 });

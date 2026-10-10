@@ -49,3 +49,12 @@ describe("the best cover frame", () => {
     expect(coverTimes(0.2, 1.5)).toEqual([0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4]);
   });
 });
+
+describe("the cover frame inside the profile grid's 3:4 window", () => {
+  it("picks a face the grid shows whole over a bigger one it cuts", () => {
+    const cut = { t: 1, face: { x0: 0.3, y0: 0.0, x1: 0.7, y1: 0.3 }, sharp: 100 };
+    const whole = { t: 1.4, face: { x0: 0.35, y0: 0.3, x1: 0.65, y1: 0.55 }, sharp: 100 };
+    expect(bestCover([cut, whole], 1)?.t).toBe(1);
+    expect(bestCover([cut, whole], 1, { y0: 0.125, y1: 0.875 })?.t).toBe(1.4);
+  });
+});

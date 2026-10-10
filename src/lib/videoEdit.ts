@@ -1400,6 +1400,8 @@ export interface PublishIdea {
   titles: string[];
   cover: string;
   at: number | null;
+  /** An optional second short line under the cover text, typed by the person. */
+  line2?: string;
 }
 
 /** A stored idea, kept only when well formed. */
@@ -1408,7 +1410,8 @@ export function sanitizePublish(raw: unknown): PublishIdea | undefined {
   const titles = (Array.isArray(o.titles) ? o.titles : []).filter((t): t is string => typeof t === "string" && !!t.trim()).slice(0, 3).map((t) => t.slice(0, 80));
   const cover = typeof o.cover === "string" ? o.cover.slice(0, 60) : "";
   if (!titles.length || !cover) return undefined;
-  return { titles, cover, at: typeof o.at === "number" && Number.isFinite(o.at) && o.at >= 0 ? o.at : null };
+  const line2 = typeof o.line2 === "string" ? o.line2.slice(0, 30) : "";
+  return { titles, cover, at: typeof o.at === "number" && Number.isFinite(o.at) && o.at >= 0 ? o.at : null, ...(line2 ? { line2 } : {}) };
 }
 
 // ---------- joining takes into one video (rendered on the device, then captioned like an upload) ----------

@@ -21,6 +21,7 @@ import ReelStyleCopy from "@/components/ReelStyleCopy";
 import PlatformCaptions from "@/components/PlatformCaptions";
 import { coldLength } from "@/lib/coldOpen";
 import { coverTimes, findCoverFrame } from "@/lib/coverFrame";
+import { gridWindow, type Band } from "@/lib/igGrid";
 import { onBrollApply } from "@/lib/autoBroll";
 import { MAX_MUSIC_SECONDS, MOODS, MOOD_IDS, aiMusicOn, dismissMusicJob, musicJob, onMusicApply, onMusicJob, pickMood, startMusic, type Mood } from "@/lib/aiMusic";
 import AiVideo from "@/components/AiVideo";
@@ -141,6 +142,7 @@ import {
   exportJob,
   exportQueue,
   makeCover,
+  thumbOf,
   currentJoin,
   endJoin,
   onJoinJob,
@@ -423,6 +425,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [publish, setPublish] = useState<PublishIdea | undefined>(() => sanitizePublish(project.publish));
   const [ideating, setIdeating] = useState(false);
   const [coverBusy, setCoverBusy] = useState(false);
+  // the cover last made (its size, for the grid view's shading), and the small copy kept as the video's thumbnail
+  const [coverShot, setCoverShot] = useState<{ url: string; w: number; h: number } | null>(null);
+  const [gridView, setGridView] = useState(true);
+  const [thumb, setThumb] = useState(project.thumb);
   const [writingCaption, setWritingCaption] = useState(false);
   const [savedDraft, setSavedDraft] = useState(false);
   const [translating, setTranslating] = useState<string | null>(null);
@@ -616,10 +622,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   // save the edit a moment after the last change
   useEffect(() => {
-    const t = window.setTimeout(() => onSave({ ...project, pendingSkill: pendingSkill.current, settings, words, subs, caption, cutaways, publish }), 400);
+    const t = window.setTimeout(() => onSave({ ...project, pendingSkill: pendingSkill.current, settings, words, subs, caption, cutaways, publish, thumb }), 400);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings, words, subs, caption, cutaways, publish]);
+  }, [settings, words, subs, caption, cutaways, publish, thumb]);
 
   const duration = project.duration;
   const plan = useMemo(() => planFor(words, duration, settings), [words, duration, settings]);
@@ -1130,7 +1136,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const left = useUsesLeft(thinking || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning || musicMaking);
   const none = (f: Parameters<typeof left>[0]) => left(f) === 0;
   // the cover from the frame on screen, or from a moment on the edit (a cover idea's), with the cover text set large
-  const saveCover = async (at?: number | null, note?: string, chin?: number) => {
+  const saveCover = async (at?: number | null, note?: string, face?: Band) => {
     const v = video.current;
     if (!v) return;
     try {
@@ -1143,7 +1149,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
           window.setTimeout(done, 2000);
         });
       }
-      const blob = await makeCover(v, settings, publish?.cover.trim() || settings.hook || project.name, fx, chin);
+      const blob = await makeCover(v, settings, publish?.cover.trim() || settings.hook || project.name, fx, face, publish?.line2);
+      const [w, h] = aspectSize(settings.aspect, v.videoWidth, v.videoHeight);
+      setCoverShot((old) => {
+        if (old) URL.revokeObjectURL(old.url);
+        return { url: URL.createObjectURL(blob), w, h };
+      });
+      // the Instagram grid page and the video list show this cover from now on
+      setThumb(await thumbOf(blob).catch(() => thumb));
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = `${project.name.replace(/[^\w-]+/g, "-").slice(0, 60) || "video"}-cover.png`;
@@ -1160,8 +1173,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     if (!file) return;
     setCoverBusy(true);
     try {
-      const best = await findCoverFrame(file, coverTimes(at, plan.total), (t) => srcAt(plan.segs, t, speed)).catch(() => null);
-      await saveCover(best?.t ?? at, best ? `The ${best.face ? "sharpest frame with your face biggest" : "sharpest frame"} near the line, at ${fmtTime(best.t)}.` : undefined, best?.face?.y1);
+      const best = await findCoverFrame(file, coverTimes(at, plan.total), (t) => srcAt(plan.segs, t, speed), (settings.fit ?? "fill") === "fill" ? [W, H] : undefined).catch(() => null);
+      await saveCover(best?.t ?? at, best ? `The ${best.face ? "sharpest frame with your face biggest" : "sharpest frame"} near the line, at ${fmtTime(best.t)}.` : undefined, best?.face ?? undefined);
     } finally {
       setCoverBusy(false);
     }
@@ -1172,7 +1185,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     try {
       const idea = sanitizePublish(await publishIdeas(editedSentences(words, plan.segs, speed), plan.total));
       if (!idea) throw new Error("The titles came back incomplete. Try again.");
-      setPublish(idea);
+      setPublish({ ...idea, ...(publish?.line2 ? { line2: publish.line2 } : {}) });
     } catch (e) {
       toast({ title: "Couldn't write titles", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -1785,11 +1798,18 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       </li>
                     ))}
                   </ul>
-                  <label className="block space-y-1 text-xs font-semibold">
-                    Cover text
-                    <input value={publish.cover} maxLength={60} onChange={(e) => setPublish({ ...publish, cover: e.target.value })}
-                      className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal sm:h-9" />
-                  </label>
+                  <div className="grid gap-2 sm:grid-cols-[3fr_2fr]">
+                    <label className="block space-y-1 text-xs font-semibold">
+                      Cover text
+                      <input value={publish.cover} maxLength={60} onChange={(e) => setPublish({ ...publish, cover: e.target.value })}
+                        className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal sm:h-9" />
+                    </label>
+                    <label className="block space-y-1 text-xs font-semibold">
+                      Second line (optional)
+                      <input value={publish.line2 ?? ""} maxLength={30} onChange={(e) => setPublish({ ...publish, line2: e.target.value })}
+                        className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal sm:h-9" />
+                    </label>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button size="sm" className={`h-11 gap-1.5 sm:h-9 ${coverBusy ? "disabled:opacity-100" : ""}`} onClick={() => void (publish.at !== null ? saveBestCover(publish.at) : saveCover())} disabled={!file || !publish.cover.trim() || coverBusy}>
                       {coverBusy ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <ImageIcon className="h-3.5 w-3.5" />}
@@ -1799,6 +1819,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   </div>
                 </>
               )}
+              {coverShot && <CoverShot shot={coverShot} grid={gridView} setGrid={setGridView} />}
             </div>
           </section>
 
@@ -2476,6 +2497,35 @@ function Left({ n, what }: { n: number | null; what?: string }) {
   if (n === null) return null;
   const text = n ? `${n} left today` : "None left today";
   return <span className={`text-[11px] ${n ? "text-muted-foreground" : "font-medium text-destructive"}`}>{what ? `${what}: ${text.toLowerCase()}` : text}</span>;
+}
+
+/** The cover last made, with the grid view: the parts the Instagram and TikTok profile grids crop off, shaded. */
+function CoverShot({ shot, grid, setGrid }: { shot: { url: string; w: number; h: number }; grid: boolean; setGrid: (v: boolean) => void }) {
+  const win = gridWindow(shot.w, shot.h);
+  const pc = (n: number, of: number) => `${(n / of) * 100}%`;
+  return (
+    <div className="flex items-end gap-3">
+      <div className="relative w-28 shrink-0 overflow-hidden rounded-lg bg-black" style={{ aspectRatio: `${shot.w} / ${shot.h}` }}>
+        <img src={shot.url} alt="Your cover" className="h-full w-full object-cover" />
+        {win && grid && (
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <div className="absolute inset-x-0 top-0 bg-black/65" style={{ height: pc(win.y0, shot.h) }} />
+            <div className="absolute inset-x-0 bottom-0 bg-black/65" style={{ height: pc(shot.h - win.y1, shot.h) }} />
+            <div className="absolute left-0 bg-black/65" style={{ top: pc(win.y0, shot.h), bottom: pc(shot.h - win.y1, shot.h), width: pc(win.x0, shot.w) }} />
+            <div className="absolute right-0 bg-black/65" style={{ top: pc(win.y0, shot.h), bottom: pc(shot.h - win.y1, shot.h), width: pc(shot.w - win.x1, shot.w) }} />
+          </div>
+        )}
+      </div>
+      {win && (
+        <div className="min-w-0 flex-1 pb-1">
+          <Row label="Grid view">
+            <InfoTip label="About grid view">Your profile grid shows only the unshaded part.</InfoTip>
+            <Toggle on={grid} set={setGrid} />
+          </Row>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {

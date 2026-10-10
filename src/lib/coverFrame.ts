@@ -1,9 +1,11 @@
 // The cover frame: of the frames around the line picked for the cover, the one
 // where the face is biggest and sharpest, measured on this device (MediaPipe's
 // face finder, faceVision.ts, and the spread of the edges as sharpness), so a
-// blink of motion blur or a cutaway never becomes the cover.
+// blink of motion blur or a cutaway never becomes the cover. The face and the
+// title are kept inside the 3:4 window the profile grid shows (igGrid.ts).
 
 import { biggestFaces } from "@/lib/faceVision";
+import { windowInSource, type Band } from "@/lib/igGrid";
 import { loadVideo, seek } from "@/lib/videoMedia";
 import type { FaceBox } from "@/lib/videoMotion";
 
@@ -33,12 +35,16 @@ export interface CoverLook {
 
 const area = (b: FaceBox | null) => (b ? (b.x1 - b.x0) * (b.y1 - b.y0) : 0);
 
-/** The look to use: sharpness against the sharpest, weighted by face size against the biggest; a frame with no face counts a fifth. Ties go to the one nearest `near`. */
-export function bestCover(looks: CoverLook[], near: number): CoverLook | null {
+/**
+ * The look to use: sharpness against the sharpest, weighted by face size against the biggest; a frame with no face counts a fifth.
+ * With `win` (the grid window, shares of the picture's height) a face counts only for the part of it the grid shows. Ties go to the one nearest `near`.
+ */
+export function bestCover(looks: CoverLook[], near: number, win?: Band): CoverLook | null {
   if (!looks.length) return null;
   const top = Math.max(...looks.map((l) => l.sharp)) || 1;
   const big = Math.max(...looks.map((l) => area(l.face))) || 1;
-  const score = (l: CoverLook) => (l.sharp / top) * (l.face ? 0.4 + 0.6 * (area(l.face) / big) : 0.2);
+  const shown = (b: FaceBox) => (win ? Math.max(0, Math.min(b.y1, win.y1) - Math.max(b.y0, win.y0)) / Math.max(1e-6, b.y1 - b.y0) : 1);
+  const score = (l: CoverLook) => (l.sharp / top) * (l.face ? Math.max(0.2, (0.4 + 0.6 * (area(l.face) / big)) * shown(l.face)) : 0.2);
   return looks.reduce((a, b) => {
     const d = score(b) - score(a);
     return d > 1e-9 || (Math.abs(d) <= 1e-9 && Math.abs(b.t - near) < Math.abs(a.t - near)) ? b : a;
@@ -52,8 +58,11 @@ export function coverTimes(at: number, total: number): number[] {
   return out;
 }
 
-/** Looks at each moment (seconds into the edit; toSource maps them to the file) on a video of its own and returns the best, or null. */
-export async function findCoverFrame(file: Blob, times: number[], toSource: (t: number) => number): Promise<CoverLook | null> {
+/**
+ * Looks at each moment (seconds into the edit; toSource maps them to the file) on a video of its own and returns the best, or null.
+ * `fill`: the cover's size when the picture is cropped to fill it, so a face the grid would cut counts less.
+ */
+export async function findCoverFrame(file: Blob, times: number[], toSource: (t: number) => number, fill?: [number, number]): Promise<CoverLook | null> {
   const v = await loadVideo(file);
   try {
     if (!v.videoWidth) return null;
@@ -74,7 +83,7 @@ export async function findCoverFrame(file: Blob, times: number[], toSource: (t: 
       for (let k = 0; k < grey.length; k++) grey[k] = d[k * 4] * 0.299 + d[k * 4 + 1] * 0.587 + d[k * 4 + 2] * 0.114;
       return { t: times[i], face: faces[i], sharp: sharpness(grey, c.width, c.height, faces[i] ?? undefined) };
     });
-    return bestCover(looks, times[0] + 0.5);
+    return bestCover(looks, times[0] + 0.5, fill && windowInSource(fill[0], fill[1], v.videoWidth, v.videoHeight));
   } finally {
     URL.revokeObjectURL(v.src);
   }

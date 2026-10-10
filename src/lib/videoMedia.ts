@@ -63,6 +63,7 @@ import { clipStats } from "@/lib/exportCheck";
 import { FAST, isFast, segLength } from "@/lib/fastPauses";
 import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
 import { withColdOpen } from "@/lib/coldOpen";
+import { gridWindow, placeCoverText, type Band } from "@/lib/igGrid";
 
 // ---------- sound for captions ----------
 
@@ -225,6 +226,17 @@ export async function stills(file: Blob, at = [0.2, 0.5, 0.8], width = 360): Pro
   }
   URL.revokeObjectURL(v.src);
   return out;
+}
+
+/** A small JPEG of a picture (a made cover), the size of a video's list thumbnail. */
+export async function thumbOf(pic: Blob, width = 240): Promise<string> {
+  const img = await createImageBitmap(pic);
+  const c = document.createElement("canvas");
+  c.width = width;
+  c.height = Math.round((width * img.height) / img.width);
+  c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+  img.close();
+  return c.toDataURL("image/jpeg", 0.7);
 }
 
 // ---------- the source file, on this device only ----------
@@ -879,10 +891,12 @@ export function drawOverlay(g: CanvasRenderingContext2D, o: Overlay, intro = 1) 
 
 /**
  * A cover / thumbnail: the frame on screen (same fit and grade as the video),
- * a dark band and the title set large in the style's caption face. PNG at the
- * export size, so it uploads as the reel cover without resizing.
+ * a dark band and the title set large in the style's caption face, with an
+ * optional second line on a plate in the accent colour. On a vertical cover the
+ * text stays inside the 3:4 window the profile grid shows (igGrid.ts), moved or
+ * shrunk to fit. PNG at the export size, so it uploads as the reel cover without resizing.
  */
-export async function makeCover(video: HTMLVideoElement, settings: EditSettings, title: string, fx?: Frame["fx"], chin?: number): Promise<Blob> {
+export async function makeCover(video: HTMLVideoElement, settings: EditSettings, title: string, fx?: Frame["fx"], face?: Band, line2 = ""): Promise<Blob> {
   await ensureCaptionFonts();
   const [W, H] = aspectSize(settings.aspect, video.videoWidth, video.videoHeight);
   const c = document.createElement("canvas");
@@ -892,23 +906,37 @@ export async function makeCover(video: HTMLVideoElement, settings: EditSettings,
   drawFrame(g, { video, settings: { ...settings, captions: false, hook: "", progressBar: false }, caps: [], segs: [], src: video.currentTime, out: 99, total: 0, fx });
   const k = W / 1080;
   const text = (title.trim() || " ").toUpperCase();
-  const px = Math.round((settings.aspect === "16:9" ? 92 : 104) * k);
-  g.font = `900 ${px}px "Archivo Black", "Arial Black", Impact, system-ui, sans-serif`;
-  const lines = wrap(g, text.split(/\s+/), W * 0.84).slice(0, 4);
-  const lh = px * 1.08;
-  const blockH = lines.length * lh;
-  // chin: where the face ends in the source picture (a share of its height, coverFrame.ts), so on a filled
-  // frame the title sits under the chin, not on it
+  const sub = line2.trim().toUpperCase();
+  const font = `"Archivo Black", "Arial Black", Impact, system-ui, sans-serif`;
+  const full = Math.round((settings.aspect === "16:9" ? 92 : 104) * k);
+  const grid = gridWindow(W, H);
+  const win = grid ?? { x0: 0, y0: 0, x1: W, y1: H };
+  const maxW = Math.min(W * 0.84, (win.x1 - win.x0) * 0.92);
+  // the title lines, the second line's size (60% of the title's) and the whole block's height, at a title size
+  const layout = (px: number) => {
+    g.font = `900 ${px}px ${font}`;
+    const lines = wrap(g, text.split(/\s+/), maxW).slice(0, 4);
+    const sp = sub ? px * 0.6 : 0;
+    return { px, lines, lh: px * 1.08, sp, h: lines.length * px * 1.08 + sp * 1.9 };
+  };
+  let L = layout(full);
+  // face: where the face is in the source picture (coverFrame.ts); on a filled frame the text keeps off it
   const dh = video.videoHeight * Math.max(W / video.videoWidth, H / video.videoHeight);
-  const below = chin === undefined || settings.fit !== "fill" ? undefined : ((H - dh) / 2 + chin * dh) / H;
-  const mid = H * (settings.aspect === "16:9" ? 0.5 : 0.62) - blockH / 2;
-  const top = below === undefined ? mid : Math.min(H - blockH - px, Math.max(mid, H * below + px * 0.3));
-  const grad = g.createLinearGradient(0, top - px, 0, top + blockH + px);
+  const onFrame = (y: number) => (H - dh) / 2 + y * dh;
+  const margin = grid ? full * 0.4 : full;
+  const room = { y0: win.y0 + margin, y1: win.y1 - margin };
+  const want = H * (settings.aspect === "16:9" ? 0.5 : 0.62) - L.h / 2;
+  const { top, scale } = placeCoverText(L.h, want, room, face && (settings.fit ?? "fill") === "fill" ? { y0: onFrame(face.y0), y1: onFrame(face.y1) } : undefined, full * 0.3);
+  if (scale < 1) L = layout(Math.round(full * scale));
+  const { px, lines, lh, sp } = L;
+  const blockH = lines.length * lh;
+  const grad = g.createLinearGradient(0, top - px, 0, top + L.h + px);
   grad.addColorStop(0, "rgba(0,0,0,0)");
   grad.addColorStop(0.35, "rgba(0,0,0,0.55)");
   grad.addColorStop(1, "rgba(0,0,0,0.75)");
   g.fillStyle = grad;
-  g.fillRect(0, top - px, W, blockH + px * 2);
+  g.fillRect(0, top - px, W, L.h + px * 2);
+  g.font = `900 ${px}px ${font}`;
   g.textAlign = "center";
   g.textBaseline = "middle";
   g.lineJoin = "round";
@@ -917,9 +945,21 @@ export async function makeCover(video: HTMLVideoElement, settings: EditSettings,
     g.lineWidth = px * 0.12;
     g.strokeStyle = "rgba(0,0,0,0.85)";
     g.strokeText(l.join(" "), W / 2, y);
-    g.fillStyle = i === lines.length - 1 && lines.length > 1 ? settings.activeColor : "#FFFFFF";
+    g.fillStyle = i === lines.length - 1 && lines.length > 1 && !sub ? settings.activeColor : "#FFFFFF";
     g.fillText(l.join(" "), W / 2, y);
   });
+  if (sub) {
+    g.font = `900 ${sp}px ${font}`;
+    const tw = g.measureText(sub).width;
+    const sz = tw > maxW - sp ? (sp * (maxW - sp)) / tw : sp;
+    g.font = `900 ${sz}px ${font}`;
+    const pw = g.measureText(sub).width + sp;
+    const y = top + blockH + sp * 0.4;
+    g.fillStyle = settings.activeColor;
+    roundRect(g, (W - pw) / 2, y, pw, sp * 1.5, sp * 0.3);
+    g.fillStyle = readableOn(settings.activeColor);
+    g.fillText(sub, W / 2, y + sp * 0.78);
+  }
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't make the cover."))), "image/png"));
 }
 
