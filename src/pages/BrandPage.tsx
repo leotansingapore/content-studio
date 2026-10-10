@@ -3,8 +3,8 @@
 // the per-profile brand the carousel maker already saves (carousel.ts), so
 // nothing set up there is lost.
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ImagePlus, Plus, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Check, Copy, ImagePlus, Plus, Trash2, X } from "lucide-react";
 import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,14 +14,17 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
+import { DM_PROBLEM, dmFields, dmLinks, fbPageName, igUsername, waDigits, type DmFields } from "@/lib/bioPage";
 import {
   BRAND_PRESETS,
   DEFAULT_BRAND,
+  MAX_DM_CHARS,
   MAX_HANDLE_CHARS,
   MAX_IMAGE_CHARS,
   MAX_NAME_CHARS,
   MAX_ROLE_CHARS,
   MAX_SIGNOFF_CHARS,
+  MAX_WA_TEXT,
   loadBrand,
   normalizeHandle,
   normalizeHex,
@@ -60,6 +63,60 @@ async function shrinkImage(file: File, kind: "photo" | "logo"): Promise<string> 
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+const CHECK = { instagram: igUsername, facebook: fbPageName, whatsapp: waDigits } as const;
+
+/** One DM field: what was typed, why it can't be used (hidden while typing) and its link to copy. */
+function DmField({
+  field,
+  label,
+  placeholder,
+  value,
+  link,
+  onChange,
+  onCopy,
+  children,
+}: {
+  field: keyof typeof CHECK;
+  label: string;
+  placeholder: string;
+  value: string;
+  link?: string;
+  onChange: (v: string) => void;
+  onCopy: (url: string) => void;
+  children?: ReactNode;
+}) {
+  const clean = CHECK[field](value);
+  return (
+    <div className="min-w-0 space-y-1.5">
+      <Label htmlFor={`dm-${field}`}>{label}</Label>
+      <Input
+        id={`dm-${field}`}
+        value={value}
+        maxLength={MAX_DM_CHARS}
+        placeholder={placeholder}
+        inputMode={field === "whatsapp" ? "tel" : undefined}
+        autoCapitalize="none"
+        autoCorrect="off"
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => clean && clean !== value && onChange(clean)}
+        className="peer"
+      />
+      {value.trim() && !clean && <p className="text-[11px] font-medium text-warning peer-focus:hidden">{DM_PROBLEM[field]}</p>}
+      {children}
+      {link && (
+        <div className="flex min-w-0 items-center gap-1 rounded-md bg-muted/60 pl-2.5">
+          <a href={link} target="_blank" rel="noopener" className="min-w-0 flex-1 truncate py-1 font-mono text-[11px] text-primary hover:underline [@media(pointer:coarse)]:py-3.5">
+            {link.replace(/^https:\/\//, "")}
+          </a>
+          <Button type="button" size="sm" variant="ghost" onClick={() => onCopy(link)} aria-label={`Copy your ${label.split(" ")[0]} DM link`} className="h-9 shrink-0 gap-1.5 text-primary [@media(pointer:coarse)]:h-11">
+            <Copy className="h-3.5 w-3.5" /> Copy
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function BrandPage() {
@@ -129,6 +186,15 @@ export default function BrandPage() {
   }, [brand, measure]);
 
   const presetActive = BRAND_PRESETS.some((p) => p.color === brand.color);
+  const dm = useMemo(() => dmFields(brand, loadSocialAccounts(userId)), [brand, userId]);
+  const links = useMemo(() => dmLinks(dm), [dm]);
+  const linkOf = (id: string) => links.find((l) => l.id === id)?.url;
+  const setDm = (field: keyof DmFields) => (v: string) => update({ [field]: v });
+  const copyLink = (url: string) =>
+    navigator.clipboard.writeText(url).then(
+      () => toast({ title: "Link copied" }),
+      () => toast({ title: "Copy failed", description: url, variant: "destructive" }),
+    );
 
   return (
     <div className="space-y-6">
@@ -186,6 +252,21 @@ export default function BrandPage() {
                 <Input id="brand-role" value={brand.role ?? ""} maxLength={MAX_ROLE_CHARS} placeholder="Financial adviser" onChange={(e) => update({ role: e.target.value })} />
               </div>
             </div>
+          </section>
+
+          <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="dm-links">
+            <div className="flex items-center gap-1">
+              <h2 className="font-serif text-lg font-semibold">DM links</h2>
+              <InfoTip label="About DM links">A tap opens a chat with you. Put one in a post or your bio.</InfoTip>
+            </div>
+            <DmField field="instagram" label="Instagram username" placeholder="yourhandle" value={dm.instagram} link={linkOf("instagram")} onChange={setDm("instagram")} onCopy={copyLink} />
+            <DmField field="facebook" label="Facebook page username" placeholder="your.page" value={dm.facebook} link={linkOf("facebook")} onChange={setDm("facebook")} onCopy={copyLink} />
+            <DmField field="whatsapp" label="WhatsApp number" placeholder="+65 9123 4567" value={dm.whatsapp} link={linkOf("whatsapp")} onChange={setDm("whatsapp")} onCopy={copyLink}>
+              <Label htmlFor="dm-whatsapp-text" className="block pt-1 text-xs font-medium">
+                Message they start with (optional)
+              </Label>
+              <Input id="dm-whatsapp-text" value={dm.whatsappText} maxLength={MAX_WA_TEXT} placeholder="Hi, I saw your post and have a question" onChange={(e) => update({ whatsappText: e.target.value })} />
+            </DmField>
           </section>
 
           <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card">

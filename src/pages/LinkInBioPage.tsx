@@ -2,7 +2,7 @@
 // brand kit), publish it at /l/<slug>, and see clicks per link.
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowUp, Copy, ExternalLink, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Copy, ExternalLink, Loader2, Plus, Trash2 } from "lucide-react";
 
 import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import BioView from "@/components/bio/BioView";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { loadBrand } from "@/lib/carousel";
 import { scoped } from "@/lib/profiles";
+import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { supabase } from "@/lib/supabase";
 import {
   MAX_HEADLINE,
@@ -21,6 +22,8 @@ import {
   MAX_URL,
   clickTotals,
   currentProfileId,
+  dmFields,
+  dmLinks,
   deleteBioPage,
   fetchClicks,
   fetchMyBioPages,
@@ -30,7 +33,9 @@ import {
   saveBioPage,
   sgDay,
   slugProblem,
+  withScheme,
   type BioLink,
+  type DmLink,
   type BioPage,
   type ClickRow,
 } from "@/lib/bioPage";
@@ -38,6 +43,7 @@ import {
 type Form = { slug: string; name: string; headline: string; showPhoto: boolean; links: BioLink[]; published: boolean };
 
 const DRAFT_PREFIX = "cs-bio-draft-"; // unsaved edits, this device only
+const DM_NAMES: Record<DmLink["id"], string> = { instagram: "Instagram DM", facebook: "Messenger", whatsapp: "WhatsApp" };
 
 function readDraft(key: string): Form | null {
   try {
@@ -71,6 +77,7 @@ export default function LinkInBioPage() {
 
   const profileId = userId ? currentProfileId(userId) : "me";
   const brand = useMemo(() => (userId ? loadBrand(userId) : null), [userId]);
+  const dm = useMemo(() => (userId ? dmLinks(dmFields(brand, loadSocialAccounts(userId))) : []), [brand, userId]);
   const mine = pages.find((p) => p.profile_id === profileId) ?? null;
   const others = pages.filter((p) => p.profile_id !== profileId);
   const draftKey = userId ? DRAFT_PREFIX + scoped(userId) : "";
@@ -131,6 +138,13 @@ export default function LinkInBioPage() {
   };
   const editLink = (i: number, patch: Partial<BioLink>) =>
     form && edit({ links: form.links.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
+  /** A DM link from the brand kit, in the first empty row or as a new one. */
+  const addDm = (l: DmLink) => {
+    if (!form) return;
+    const blank = form.links.findIndex((x) => !x.label.trim() && !x.url.trim());
+    const row = { label: l.label, url: l.url };
+    edit({ links: blank >= 0 ? form.links.map((x, j) => (j === blank ? row : x)) : [...form.links, row] });
+  };
   const moveLink = (i: number, by: number) => {
     if (!form) return;
     const links = [...form.links];
@@ -343,15 +357,39 @@ export default function LinkInBioPage() {
                     </li>
                   ))}
                 </ol>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={form.links.length >= MAX_LINKS}
-                  onClick={() => edit({ links: [...form.links, { label: "", url: "" }] })}
-                  className="h-10 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11"
-                >
-                  <Plus className="h-3.5 w-3.5" /> {form.links.length >= MAX_LINKS ? `${MAX_LINKS} links at most` : "Add link"}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2" data-testid="bio-add">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={form.links.length >= MAX_LINKS}
+                    onClick={() => edit({ links: [...form.links, { label: "", url: "" }] })}
+                    className="h-10 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> {form.links.length >= MAX_LINKS ? `${MAX_LINKS} links at most` : "Add link"}
+                  </Button>
+                  {dm.map((l) => {
+                    const added = form.links.some((x) => withScheme(x.url.trim()) === l.url);
+                    const room = form.links.length < MAX_LINKS || form.links.some((x) => !x.label.trim() && !x.url.trim());
+                    return (
+                      <Button
+                        key={l.id}
+                        size="sm"
+                        variant="ghost"
+                        disabled={added || !room}
+                        onClick={() => addDm(l)}
+                        aria-label={added ? `${DM_NAMES[l.id]} link added` : `Add your ${DM_NAMES[l.id]} link`}
+                        className="h-10 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11"
+                      >
+                        {added ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />} {DM_NAMES[l.id]}
+                      </Button>
+                    );
+                  })}
+                  {dm.length === 0 && (
+                    <Link to="/brand" className="inline-flex items-center text-sm font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+                      Add DM links in Brand kit
+                    </Link>
+                  )}
+                </div>
               </section>
 
               <div className="space-y-3">

@@ -324,6 +324,14 @@ describe("brand", () => {
     expect(sanitizeBrand({ name: "K" }, kit).photo).toBe(ok);
   });
 
+  it("keeps the DM link fields as text, capped, and drops anything else", () => {
+    const kit = sanitizeBrand({ instagram: "ada", facebook: "adatan.sg", whatsapp: "6591234567", whatsappText: "x".repeat(400) });
+    expect(kit).toMatchObject({ instagram: "ada", facebook: "adatan.sg", whatsapp: "6591234567" });
+    expect(kit.whatsappText).toHaveLength(300);
+    expect(sanitizeBrand({ instagram: 5, whatsapp: { n: 1 } })).toMatchObject({ instagram: undefined, whatsapp: undefined });
+    expect(sanitizeBrand({ name: "K" }, kit).whatsapp).toBe("6591234567");
+  });
+
   it("saves and loads the brand under a synced content-studio- key", () => {
     const store = new Map<string, string>();
     vi.stubGlobal("window", {

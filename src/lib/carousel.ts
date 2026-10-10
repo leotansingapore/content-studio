@@ -609,6 +609,11 @@ export interface CarouselBrand {
   tagLinks?: boolean;
   /** Weekly posting times, "<day 0 = Mon>T<HH:MM>": Write suggests the next open one. */
   slots?: string[];
+  /** DM links (bioPage.ts dmLinks): Instagram username, Facebook page username, WhatsApp number (digits once checked) and the message a WhatsApp chat starts with. */
+  instagram?: string;
+  facebook?: string;
+  whatsapp?: string;
+  whatsappText?: string;
 }
 
 export const BRAND_PRESETS: { name: string; color: string }[] = [
@@ -625,6 +630,8 @@ export const MAX_NAME_CHARS = 40;
 export const MAX_HANDLE_CHARS = 40;
 export const MAX_ROLE_CHARS = 50;
 export const MAX_SIGNOFF_CHARS = 600;
+export const MAX_DM_CHARS = 100;
+export const MAX_WA_TEXT = 300;
 /** Encoded image cap: keeps a synced brand kit small. */
 export const MAX_IMAGE_CHARS = 350_000;
 export const BRAND_KEY_PREFIX = "content-studio-carousel-brand-";
@@ -670,6 +677,10 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
     slots: Array.isArray(r.slots)
       ? [...new Set(r.slots.filter((x): x is string => typeof x === "string" && /^[0-6]T([01]\d|2[0-3]):[0-5]\d$/.test(x)))].sort().slice(0, 14)
       : fallback.slots,
+    instagram: typeof r.instagram === "string" ? r.instagram.slice(0, MAX_DM_CHARS) : fallback.instagram,
+    facebook: typeof r.facebook === "string" ? r.facebook.slice(0, MAX_DM_CHARS) : fallback.facebook,
+    whatsapp: typeof r.whatsapp === "string" ? r.whatsapp.slice(0, MAX_DM_CHARS) : fallback.whatsapp,
+    whatsappText: typeof r.whatsappText === "string" ? r.whatsappText.slice(0, MAX_WA_TEXT) : fallback.whatsappText,
   };
 }
 

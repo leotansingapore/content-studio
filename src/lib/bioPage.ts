@@ -7,6 +7,7 @@
 
 import { SUPABASE_URL, supabase } from "@/lib/supabase";
 import { activeProfileId } from "@/lib/profiles";
+import { MAX_WA_TEXT } from "@/lib/carousel";
 import { friendlyError } from "@/lib/teamReview";
 
 export const BIO_ENDPOINT = `${SUPABASE_URL}/functions/v1/link-in-bio`;
@@ -94,6 +95,88 @@ export function linkProblem(link: BioLink): string | null {
   if (link.label.trim().length > MAX_LABEL) return `Keep the label to ${MAX_LABEL} characters.`;
   if (!isValidLinkUrl(withScheme(link.url))) return "Use a web address, like https://calendly.com/you";
   return null;
+}
+
+// ---- DM links: a link that opens a chat with you ------------------------------------
+// The brand kit keeps the usernames and number (carousel.ts); these check their
+// format and build the links. Pattern from zernio-dev/zernflow getDmLink (MIT).
+
+const bare = (input: string) =>
+  (input ?? "").trim().replace(/^https?:\/\//i, "").replace(/^(?:www|web)\./i, "").replace(/^m\.(?=facebook\.com)/i, "");
+
+/** "@jane", "jane" or an instagram.com or ig.me link -> "jane"; null when it can't be an Instagram username. */
+export function igUsername(input: string): string | null {
+  const h = bare(input).replace(/^(instagram\.com|ig\.me\/m)\//i, "").replace(/^@/, "").replace(/[/?#].*$/, "").toLowerCase();
+  return /^(?!.*\.\.)(?!\.)(?!.*\.$)[a-z0-9._]{1,30}$/.test(h) ? h : null;
+}
+
+/** "my.page", "@my.page" or a facebook.com or m.me link -> "my.page" (a page id works too); null otherwise. */
+export function fbPageName(input: string): string | null {
+  const b = bare(input).replace(/^(facebook\.com|fb\.com|m\.me)\//i, "").replace(/^@/, "");
+  const id = /^profile\.php\?(?:.*&)?id=(\d+)/i.exec(b)?.[1];
+  const h = id ?? b.replace(/[/?#].*$/, "");
+  return /^[A-Za-z0-9.]{5,50}$/.test(h) ? h : null;
+}
+
+/**
+ * A WhatsApp number as the digits wa.me takes: "+65 9123 4567", "65 9123 4567"
+ * and "9123 4567" all give "6591234567"; another country needs the + and its
+ * code. Null when it can't be a number.
+ */
+export function waDigits(input: string): string | null {
+  const t = (input ?? "").trim().replace(/[\s().-]/g, "");
+  const sg = (d: string) => (/^[3689]\d{7}$/.test(d) ? `65${d}` : null);
+  if (t.startsWith("+")) {
+    const d = t.slice(1);
+    if (!/^[1-9]\d{7,14}$/.test(d)) return null;
+    return d.startsWith("65") ? sg(d.slice(2)) : d;
+  }
+  if (!/^\d+$/.test(t)) return null;
+  return t.length === 10 && t.startsWith("65") ? sg(t.slice(2)) : sg(t);
+}
+
+export const DM_PROBLEM = {
+  instagram: "Use the username: letters, numbers, periods and underscores, up to 30.",
+  facebook: "Use the page's username from its address, like facebook.com/your.page.",
+  whatsapp: "Use a Singapore number, or + and the country code for another country.",
+} as const;
+
+export type DmFields = { instagram: string; facebook: string; whatsapp: string; whatsappText: string };
+
+export interface DmLink {
+  id: "instagram" | "facebook" | "whatsapp";
+  /** The label a link-in-bio button gets. */
+  label: string;
+  url: string;
+}
+
+/** The links that open a chat with you, for each field that is filled in and valid. */
+export function dmLinks(f: DmFields): DmLink[] {
+  const ig = igUsername(f.instagram);
+  const fb = fbPageName(f.facebook);
+  const wa = waDigits(f.whatsapp);
+  const text = f.whatsappText.trim().slice(0, MAX_WA_TEXT);
+  return [
+    ...(ig ? [{ id: "instagram" as const, label: "DM me on Instagram", url: `https://ig.me/m/${ig}` }] : []),
+    ...(fb ? [{ id: "facebook" as const, label: "Message me on Facebook", url: `https://m.me/${fb}` }] : []),
+    ...(wa ? [{ id: "whatsapp" as const, label: "WhatsApp me", url: `https://wa.me/${wa}${text ? `?text=${encodeURIComponent(text)}` : ""}` }] : []),
+  ];
+}
+
+/**
+ * The DM fields from the brand kit; a field never set there starts from the
+ * Instagram or Facebook account added on Analytics. Cleared stays cleared.
+ */
+export function dmFields(
+  brand: Partial<Record<keyof DmFields, string>> | null,
+  accounts: { instagram?: { handle: string }; facebook?: { handle: string } },
+): DmFields {
+  return {
+    instagram: brand?.instagram ?? igUsername(accounts.instagram?.handle ?? "") ?? "",
+    facebook: brand?.facebook ?? fbPageName(accounts.facebook?.handle ?? "") ?? "",
+    whatsapp: brand?.whatsapp ?? "",
+    whatsappText: brand?.whatsappText ?? "",
+  };
 }
 
 /** "YYYY-MM-DD" in Singapore time, `daysAgo` days before `now` (clicks are counted by SG day). */
