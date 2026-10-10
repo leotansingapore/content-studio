@@ -655,13 +655,23 @@ export interface SuggestedTime {
 /** A weekly posting time: "<day 0 = Mon>T<HH:MM>", e.g. "1T08:30" for Tuesday 8:30am. */
 export const SLOT = /^[0-6]T([01]\d|2[0-3]):[0-5]\d$/;
 
-/** With no posting times of the adviser's own: the best-landing day and hour from results, else the platform's common slot. */
+/** A platform's own results decide its best time once it has this many posts with numbers and a known day (gap g43). */
+export const MIN_PLATFORM_POSTS = 5;
+
+/** The posts a best time reads: the platform's own once it has MIN_PLATFORM_POSTS placed, else every platform's. */
+export function bestTimePosts(posts: TrackedPost[], platform: string | null): { posts: TrackedPost[]; own: boolean } {
+  const mine = platform ? posts.filter((p) => p.platform === platform) : [];
+  return platform && postingTimeGrid(mine).placed >= MIN_PLATFORM_POSTS ? { posts: mine, own: true } : { posts, own: false };
+}
+
+/** With no posting times of the adviser's own: the best-landing day and hour from the platform's results, else all platforms', else the platform's common slot. */
 function resultsSlot(posts: TrackedPost[], platform: string): { slot: { day: number; hour: number; minute: number }; why: "best" | "common" } {
-  const grid = postingTimeGrid(posts);
-  const cell = grid.hasTimes ? bestCell(grid.hours) : null;
-  return cell
-    ? { slot: { day: cell[0], hour: cell[1], minute: 0 }, why: "best" }
-    : { slot: COMMON_SLOT[platform] ?? COMMON_SLOT.linkedin, why: "common" };
+  for (const pool of [bestTimePosts(posts, platform).posts, posts]) {
+    const grid = postingTimeGrid(pool);
+    const cell = grid.hasTimes ? bestCell(grid.hours) : null;
+    if (cell) return { slot: { day: cell[0], hour: cell[1], minute: 0 }, why: "best" };
+  }
+  return { slot: COMMON_SLOT[platform] ?? COMMON_SLOT.linkedin, why: "common" };
 }
 
 /**

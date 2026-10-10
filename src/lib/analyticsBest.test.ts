@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestCell, hashtagRanking, parseHashtags, postingTime, postingTimeGrid, type TrackedPost, suggestPostingTime, postingTimeOn } from "./analytics";
+import { bestCell, bestTimePosts, hashtagRanking, parseHashtags, postingTime, postingTimeGrid, type TrackedPost, suggestPostingTime, postingTimeOn } from "./analytics";
 
 const p = (id: string, draft: string, impressions: number, engaged: number, at: Partial<TrackedPost> = {}): TrackedPost =>
   ({ id, hook: "", draft, platform: "linkedin", format: "text-post", createdAt: "2026-10-01T00:00:00Z", status: "posted",
@@ -121,6 +121,41 @@ describe("suggestPostingTime with the adviser's own posting times", () => {
 
   it("ignores malformed slots and falls back to results or a common slot", async () => {
     expect(suggestPostingTime([], "instagram", [], now, ["7T09:00", "1T25:00", "x"]).why).toBe("common");
+  });
+});
+
+describe("best time per platform (g43)", () => {
+  const now = new Date(2026, 9, 8, 10, 0); // Thu 8 Oct 2026, 10:00
+  // Instagram lands best on Tuesday 7pm, LinkedIn on Thursday 8pm
+  const ig = (id: string, at: string, engaged: number) => p(id, "x", 1000, engaged, { platform: "instagram", scheduledFor: at });
+  const instagram = [
+    ig("i1", "2026-09-22T19:00", 60),
+    ig("i2", "2026-09-29T19:00", 50),
+    ig("i3", "2026-09-24T20:00", 5),
+    ig("i4", "2026-10-01T20:00", 5),
+    ig("i5", "2026-09-28T09:00", 10),
+  ];
+  const linkedin = [
+    p("l1", "x", 1000, 150, { scheduledFor: "2026-09-24T20:00" }),
+    p("l2", "x", 1000, 140, { scheduledFor: "2026-10-01T20:00" }),
+  ];
+
+  it("reads a platform's own posts once it has 5 with a known day, else every platform's", () => {
+    expect(bestTimePosts([...instagram, ...linkedin], "instagram")).toEqual({ posts: instagram, own: true });
+    expect(bestTimePosts([...instagram.slice(0, 4), ...linkedin], "instagram")).toEqual({ posts: [...instagram.slice(0, 4), ...linkedin], own: false });
+    expect(bestTimePosts([...instagram, ...linkedin], null).own).toBe(false);
+  });
+
+  it("suggests the platform's own best hour, and all platforms' when it has too few posts", () => {
+    // pooled, Thursday 8pm wins on LinkedIn's numbers; Instagram's own results say Tuesday 7pm
+    expect(suggestPostingTime([...instagram, ...linkedin], "instagram", [], now)).toEqual({ at: "2026-10-13T19:00", why: "best" });
+    expect(suggestPostingTime([...instagram, ...linkedin], "linkedin", [], now)).toEqual({ at: "2026-10-08T20:00", why: "best" });
+    expect(postingTimeOn([...instagram, ...linkedin], "instagram", 1, [])).toEqual({ time: "19:00", why: "best" });
+  });
+
+  it("falls back to all platforms when the platform's own posts have no hour that repeats", () => {
+    const spread = ["2026-09-21T07:00", "2026-09-22T08:00", "2026-09-23T09:00", "2026-09-24T10:00", "2026-09-25T11:00"].map((at, i) => ig(`s${i}`, at, 50));
+    expect(suggestPostingTime([...spread, ...linkedin], "instagram", [], now)).toEqual({ at: "2026-10-08T20:00", why: "best" });
   });
 });
 

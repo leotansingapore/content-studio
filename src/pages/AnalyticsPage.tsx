@@ -19,6 +19,8 @@ import {
   hashtagRanking,
   postingTimeGrid,
   bestCell,
+  bestTimePosts,
+  MIN_PLATFORM_POSTS,
   DAYPARTS,
   DAY_LABELS,
   comparePeriods,
@@ -431,7 +433,12 @@ export default function AnalyticsPage() {
     () => hashtagRanking(tracked).map((r) => ({ key: r.tag, label: `#${r.tag}`, value: r.rate, count: r.count })),
     [tracked],
   );
-  const timeGrid = useMemo(() => postingTimeGrid(tracked), [tracked]);
+  // Best time for one platform (null = all): its own posts once it has enough, else every platform's.
+  const [timePlatform, setTimePlatform] = useState<string | null>(null);
+  const timePlatforms = useMemo(() => Object.keys(PLATFORM_LABEL).filter((k) => tracked.some((d) => d.platform === k)), [tracked]);
+  const timePool = useMemo(() => bestTimePosts(tracked, timePlatform), [tracked, timePlatform]);
+  const placedAll = useMemo(() => postingTimeGrid(tracked).placed, [tracked]);
+  const timeGrid = useMemo(() => postingTimeGrid(timePool.posts), [timePool]);
   // The best slot by daypart (or by day), which has enough posts per cell to mean something.
   const bestTime = useMemo(() => {
     const rows = timeGrid.hasTimes ? timeGrid.dayparts : timeGrid.days.map((c) => [c]);
@@ -439,8 +446,9 @@ export default function AnalyticsPage() {
     if (!at) return null;
     const c = rows[at[0]][at[1]];
     const when = `${DAY_LABELS[at[0]]}${timeGrid.hasTimes ? ` ${DAYPART_NAMES[at[1]].toLowerCase()}` : ""}`;
-    return `Best so far: ${when}, ${c.rate}% across ${c.count} posts`;
-  }, [timeGrid]);
+    const scope = timePool.own ? ` on ${PLATFORM_LABEL[timePlatform!]}` : timePlatforms.length > 1 ? ", all platforms" : "";
+    return `Best so far${scope}: ${when}, ${c.rate}% across ${c.count} posts`;
+  }, [timeGrid, timePool, timePlatform, timePlatforms]);
 
   return (
     <div className="space-y-6">
@@ -765,16 +773,31 @@ export default function AnalyticsPage() {
             )}
           </div>
 
-          {timeGrid.placed >= 3 && (
+          {placedAll >= 3 && (
             <Card className="border-border/60 shadow-card">
-              <CardHeader>
+              <CardHeader className="space-y-2.5">
                 <CardTitle className="flex items-center gap-1.5 font-serif text-lg">
                   <CalendarDays className="mr-0.5 h-4 w-4 text-muted-foreground" /> Best time to post
                   <InfoTip label="About best time to post">From the scheduled time, or else when you marked it posted.</InfoTip>
                   {allTime && <span className="ml-1.5 flex">{allTime}</span>}
                 </CardTitle>
+                {timePlatforms.length > 1 && (
+                  <div className="flex flex-wrap gap-1.5" role="group" aria-label="Best time for">
+                    {[null, ...timePlatforms].map((k) => (
+                      <button key={k ?? "all"} type="button" onClick={() => setTimePlatform(k)} aria-pressed={timePlatform === k}
+                        className={`h-9 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:h-11 ${timePlatform === k ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
+                        {k ? PLATFORM_LABEL[k] : "All platforms"}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-2">
+                {timePlatform && !timePool.own && (
+                  <p className="text-xs text-muted-foreground">
+                    Fewer than {MIN_PLATFORM_POSTS} {PLATFORM_LABEL[timePlatform]} posts with numbers, so this shows all platforms.
+                  </p>
+                )}
                 {timeGrid.hasTimes ? (
                   <>
                     <div className="hidden md:block">
