@@ -101,7 +101,8 @@ export default function BrandBrain({ brain, update, done }: { brain: RecruitBrai
           />
         </div>
 
-        <div className="space-y-1.5">
+        {/* 10px on touch: the info mark's 44px reach ends above the chips. */}
+        <div className="space-y-1.5 [@media(pointer:coarse)]:space-y-2.5">
           <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Sharpen it, don't pick from it
             <InfoTip label="About candidate types">You can recruit anyone offline. Your content must be aimed at ONE.</InfoTip>
@@ -161,7 +162,7 @@ export default function BrandBrain({ brain, update, done }: { brain: RecruitBrai
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
           {(["linkedin", "instagram"] as const).map((k) => (
-            <label key={k} className="inline-flex cursor-pointer items-center gap-2">
+            <label key={k} className="inline-flex cursor-pointer items-center gap-2 [@media(pointer:coarse)]:min-h-11">
               <input
                 type="checkbox"
                 className="h-4 w-4 accent-primary"
@@ -235,7 +236,7 @@ export default function BrandBrain({ brain, update, done }: { brain: RecruitBrai
           <div className="space-y-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">The 4 fixes before you post</p>
             {FOUR_FIXES.map((f, i) => (
-              <label key={f} className="flex cursor-pointer items-start gap-2 text-xs">
+              <label key={f} className="flex cursor-pointer items-start gap-2 text-xs [@media(pointer:coarse)]:py-3.5">
                 <input
                   type="checkbox"
                   className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
