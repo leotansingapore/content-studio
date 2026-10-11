@@ -198,6 +198,11 @@ describe("planImport with times, media and hashtags", () => {
     expect(rows.map((r) => [r.date, r.time, r.notes])).toEqual([["2026-10-20", "18:30", []], ["2026-10-21", "09:00", []]]);
   });
 
+  it("keeps a first row that names LinkedIn as a post, not a header", () => {
+    const { rows } = planImport("3 ideas for your CPF,My post about it,linkedin\nSecond hook,Body,ig", "facebook", 5, NOW);
+    expect(rows.map((r) => [r.hook, r.platform])).toEqual([["3 ideas for your CPF", "linkedin"], ["Second hook", "instagram"]]);
+  });
+
   it("takes time, media and hashtags as columns five to seven when there is no header", () => {
     const { rows } = planImport("Hook,Body,linkedin,2026-10-20,8:00,https://x.co/v.mp4,cpf", "linkedin", 5, NOW);
     expect(rows[0]).toMatchObject({ time: "08:00", media: "https://x.co/v.mp4", text: "Body\n\n#cpf" });
