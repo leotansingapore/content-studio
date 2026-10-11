@@ -203,6 +203,11 @@ describe("planImport with times, media and hashtags", () => {
     expect(rows.map((r) => [r.hook, r.platform])).toEqual([["3 ideas for your CPF", "linkedin"], ["Second hook", "instagram"]]);
   });
 
+  it("takes the caption from Caption when the sheet also has Content type and Status columns", () => {
+    const { rows } = planImport("Hook,Content type,Caption,Status\nCPF at 55,Carousel,The real caption,Draft", "linkedin", 5, NOW);
+    expect(rows.map((r) => [r.row, r.hook, r.text])).toEqual([[1, "CPF at 55", "The real caption"]]);
+  });
+
   it("takes time, media and hashtags as columns five to seven when there is no header", () => {
     const { rows } = planImport("Hook,Body,linkedin,2026-10-20,8:00,https://x.co/v.mp4,cpf", "linkedin", 5, NOW);
     expect(rows[0]).toMatchObject({ time: "08:00", media: "https://x.co/v.mp4", text: "Body\n\n#cpf" });

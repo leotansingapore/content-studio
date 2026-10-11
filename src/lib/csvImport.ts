@@ -129,7 +129,7 @@ export interface ImportPlan {
   skipped: number;
 }
 
-type Column = "hook" | "text" | "platform" | "date" | "time" | "media" | "hashtags";
+type Column = "hook" | "text" | "platform" | "date" | "time" | "media" | "hashtags" | "ignored";
 const HEADERLESS: Column[] = ["hook", "text", "platform", "date", "time", "media", "hashtags"];
 
 /** Which column a header names, read loosely ("Hook / topic", "Post text", "Scheduled date", "Image link"). */
@@ -142,6 +142,8 @@ function columnOf(h: string): Column | undefined {
   if (/date|when|schedul/.test(s)) return "date";
   if (/platform|channel|network/.test(s)) return "platform";
   if (/hashtag|\btags?\b/.test(s)) return "hashtags";
+  // a calendar's own columns: named, so the header still counts, but never read ("Content type" isn't the text)
+  if (/type|format|status|pillar|note/.test(s)) return "ignored";
   if (/media|image|photo|picture|video|asset|link|url|file/.test(s)) return "media";
   if (/hook|topic|idea|title|headline/.test(s)) return "hook";
   if (/text|body|caption|copy|post|draft|content/.test(s)) return "text";
