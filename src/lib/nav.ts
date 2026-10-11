@@ -147,6 +147,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/voice", label: "Your voice" },
       { to: "/brand", label: "Brand kit" },
       { to: "/bio", label: "Link in bio" },
+      { to: "/links", label: "Tracked links" },
       { to: "/accounts", label: "Social accounts", show: socialConnectShown },
       { to: "/fads", label: "F.A.D.S." },
       { to: "/connect", label: "Connect Claude" },

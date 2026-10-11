@@ -61,6 +61,8 @@ const VideoEditPage = lazy(() => import("@/pages/VideoEditPage"));
 const PreviewReviewPage = lazy(() => import("@/pages/PreviewReviewPage"));
 const BioPublicPage = lazy(() => import("@/pages/BioPublicPage"));
 const LinkInBioPage = lazy(() => import("@/pages/LinkInBioPage"));
+const TrackedReportPublicPage = lazy(() => import("@/pages/TrackedReportPublicPage"));
+const TrackedLinksPage = lazy(() => import("@/pages/TrackedLinksPage"));
 
 export default function App() {
   return (
@@ -82,6 +84,14 @@ export default function App() {
           element={
             <Suspense fallback={null}>
               <BioPublicPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/t/report/:slug"
+          element={
+            <Suspense fallback={null}>
+              <TrackedReportPublicPage />
             </Suspense>
           }
         />
@@ -119,6 +129,7 @@ export default function App() {
           <Route path="/voice" element={<VoicePage />} />
           <Route path="/brand" element={<BrandPage />} />
           <Route path="/bio" element={<LinkInBioPage />} />
+          <Route path="/links" element={<TrackedLinksPage />} />
           <Route path="/media" element={<MediaPage />} />
           <Route path="/connect" element={<ConnectPage />} />
           <Route path="/accounts" element={<AccountsPage />} />

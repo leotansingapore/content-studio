@@ -51,6 +51,12 @@ Public (`service_role` only, called by the edge function):
 - Visitor rows are deleted 90 days after the first tap (daily job `tracked-link-prune`), so a person who comes back after that counts again. The daily counts stay.
 - A visitor who changes user agent or IP counts as a new person; the caps below bound it.
 
+## In the app
+
+- Playbook > Tracked links (`/links`, `src/pages/TrackedLinksPage.tsx`, `src/lib/trackedLinks.ts`): a member makes a link (address, label, optional campaign and short address; Brand kit offers fill it in one tap), copies the `/t/` address, sees clicks and people per link for 7 or 30 days with a daily chart, renames a link or moves it to another campaign, deletes it (confirm), and switches each campaign's public report on or off, with its address. Deleting or moving the last link of a campaign whose report is on says first that the report goes too.
+- Someone who is not a member sees one line saying tracked links come with membership; links they already have stay listed, so they can still copy or delete them.
+- `/t/report/<report slug>` (`TrackedReportPublicPage.tsx`): the public report, no sign-in, `noindex`. It shows only what the report JSON holds.
+
 ## Edge function (tracked-link)
 
 `supabase/functions/tracked-link`, deployed `--no-verify-jwt` like link-in-bio; it holds the service key and calls only the two `service_role` functions.

@@ -4,7 +4,7 @@ import { MOBILE_TABS, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionF
 const routes = [
   "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
-  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/playbook", "/voice", "/brand", "/bio", "/accounts", "/fads", "/connect",
+  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/playbook", "/voice", "/brand", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback",
 ];
 
@@ -20,6 +20,8 @@ describe("nav", () => {
     expect(pageFor("/recruit/agent")?.page.label).toBe("AI agent");
     expect(sectionFor("/profiles/abc")?.id).toBe("discover");
     expect(sectionFor("/fads/positioning")?.id).toBe("playbook");
+    expect(sectionFor("/links")?.id).toBe("playbook");
+    expect(sectionFor("/t/report/abc")).toBeNull();
     expect(sectionFor("/hub/guides")).toBeNull();
     expect(sectionFor("/generated")).toBeNull();
   });
