@@ -7,6 +7,7 @@ import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
 import { deleteFile } from "@/lib/videoMedia";
 import { callFn } from "@/lib/edgeFn";
+import { removePlatformCaptions } from "@/lib/platformCaptions";
 import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSettings, type PublishIdea, type Sentence, type Word } from "@/lib/videoEdit";
 
 export interface VideoProject {
@@ -67,7 +68,11 @@ export function saveProject(userId: string, p: VideoProject): VideoProject[] {
   const kept = next.filter((x) => (isClip(x) ? ++clips <= MAX_CLIPS : ++uploads <= MAX_PROJECTS));
   // written first: if storage is full this throws and the old list, files and all, stays usable
   store()?.setItem(KEY + scoped(userId), JSON.stringify(kept));
-  for (const old of next) if (!kept.includes(old) && !kept.some((x) => fileKey(x) === fileKey(old))) void deleteFile(fileKey(old)).catch(() => {});
+  for (const old of next) {
+    if (kept.includes(old)) continue;
+    removePlatformCaptions(userId, old.id);
+    if (!kept.some((x) => fileKey(x) === fileKey(old))) void deleteFile(fileKey(old)).catch(() => {});
+  }
   return kept;
 }
 
@@ -78,6 +83,7 @@ export function removeProject(userId: string, id: string): VideoProject[] {
   // a file shared by clips goes only with the last project using it
   if (gone && !kept.some((x) => fileKey(x) === fileKey(gone))) void deleteFile(fileKey(gone)).catch(() => {});
   store()?.setItem(KEY + scoped(userId), JSON.stringify(kept));
+  removePlatformCaptions(userId, id);
   return kept;
 }
 

@@ -58,6 +58,8 @@ export function decideSync(
 export function isSyncedKeyFor(key: string, userId: string): boolean {
   if (!key.startsWith(SYNC_PREFIX)) return false;
   const ids = key.match(UUID_RE) ?? [];
+  // the old per-video captions key named no user: it stays put until platformCaptions moves it to its owner's key
+  if (!ids.length && key.startsWith("content-studio-video-captions-")) return false;
   return ids.every((id) => id.toLowerCase() === userId.toLowerCase());
 }
 

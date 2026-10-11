@@ -33,6 +33,7 @@ const NAME: Record<CaptionPlatform, string> = { tiktok: "TikTok", linkedin: "Lin
 const n = (v: number) => v.toLocaleString("en-US");
 
 export default function PlatformCaptions({
+  userId,
   projectId,
   transcript,
   instagram,
@@ -40,6 +41,7 @@ export default function PlatformCaptions({
   brand,
   onInstagram,
 }: {
+  userId: string;
   projectId: string;
   transcript: string;
   instagram: string;
@@ -49,14 +51,14 @@ export default function PlatformCaptions({
   onInstagram?: (caption: string) => void;
 }) {
   const { toast } = useToast();
-  const [set, setSet] = useState<PlatformCaptionSet>(() => loadPlatformCaptions(projectId));
+  const [set, setSet] = useState<PlatformCaptionSet>(() => loadPlatformCaptions(userId, projectId));
   const [tab, setTab] = useState<CaptionPlatform>("tiktok");
   const [busy, setBusy] = useState(false);
   const left = useUsesLeft(busy)("video-captions");
-  useEffect(() => setSet(loadPlatformCaptions(projectId)), [projectId]);
+  useEffect(() => setSet(loadPlatformCaptions(userId, projectId)), [userId, projectId]);
   const keep = (next: PlatformCaptionSet) => {
     setSet(next);
-    savePlatformCaptions(projectId, next);
+    savePlatformCaptions(userId, projectId, next);
   };
   const has = CAPTION_PLATFORMS.some((p) => set[p]);
 
