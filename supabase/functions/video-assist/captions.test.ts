@@ -103,6 +103,11 @@ describe("the spoken keyword", () => {
     expect(readKeyword({ keyword: { type: "choice", choice: "money" } }, cands)).toBeNull();
     expect(readKeyword(null, cands)).toBeNull();
   });
+  it("never offers a spoken none as the keyword, so Jev's none stays no keyword", () => {
+    const cands = keywordCandidates("Leave a comment if none of this was new to you.");
+    expect(cands.map((c) => c.word)).not.toContain("none");
+    expect(readKeyword({ keyword: { type: "choice", choice: "none" } }, cands)).toBeNull();
+  });
   it("makes the first line, with what they get when the writer says", () => {
     expect(ctaLine({ word: "plan", verb: "comment" }, '{"cta_offer": "my CPF top-up checklist."}')).toBe(`Comment "PLAN" and I'll send you my CPF top-up checklist.`);
     expect(ctaLine({ word: "plan", verb: "comment" }, "{}")).toBe(`Comment "PLAN" below.`);

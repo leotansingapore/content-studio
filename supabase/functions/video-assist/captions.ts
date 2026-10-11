@@ -51,7 +51,8 @@ export function keywordCandidates(transcript: string): Keyword[] {
   for (const m of transcript.matchAll(/\b(comment|dm|message|type)\b/gi)) {
     const verb = /^(comment|type)$/i.test(m[1]) ? "comment" : "dm";
     const rest = transcript.slice((m.index ?? 0) + m[0].length).split(/[.!?]/)[0];
-    for (const w of (rest.match(/[\p{L}\p{N}]+/gu) ?? []).slice(0, 4)) if (w.length > 1 && !out.has(w.toLowerCase())) out.set(w.toLowerCase(), { word: w, verb });
+    // "none" is Jev's answer for no keyword, so it can't be one
+    for (const w of (rest.match(/[\p{L}\p{N}]+/gu) ?? []).slice(0, 4)) if (w.length > 1 && w.toLowerCase() !== "none" && !out.has(w.toLowerCase())) out.set(w.toLowerCase(), { word: w, verb });
   }
   return [...out.values()].slice(0, 12);
 }
