@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Check, Image as ImageIcon, LayoutGrid, MessageCircle, Plus, RotateCw, Trash2, X } from "lucide-react";
 import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
+import { FilterChip } from "@/components/ui/filter-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { hasComplianceErrors } from "@/lib/compliance";
 import { supabase } from "@/lib/supabase";
+import { timeAgo } from "@/lib/accountAudit";
 import { activeProfile, scoped } from "@/lib/profiles";
 import { isNotEnabled, platformName, rememberSocialConnect } from "@/lib/socialConnect";
 import {
@@ -35,16 +37,18 @@ import {
   formProblem,
   hasDm,
   listAutoDms,
-  logLine,
+  logOutcome,
   saveAutoDm,
   setAutoDmActive,
   splitKeywords,
   toInput,
   typeKeywords,
+  whoGotItLine,
   withDraft,
   type AccountOption,
   type AutoDmForm,
   type AutomationView,
+  type LogGroup,
   type LogView,
   type PostOption,
   type Trigger,
@@ -94,6 +98,8 @@ export default function AutoDmPage() {
   const [broughtKeyword, setBroughtKeyword] = useState("");
   const [busy, setBusy] = useState("");
   const profileId = activeProfile(userId).id;
+  // Who got it is its own view, in the URL so the back button returns to the list
+  const logOf = list.find((a) => a.id === params.get("log"));
 
   /** False when Zernio couldn't read them. */
   const loadPosts = async (accountId: string): Promise<boolean> => {
@@ -200,7 +206,21 @@ export default function AutoDmPage() {
   return (
     <div className="space-y-5">
       <SectionTabs tabs={RECRUIT_TABS} />
-      {!(state === "ready" && form) && (
+      {state === "ready" && !form && logOf && (
+        <WhoGotIt
+          key={logOf.id}
+          profileId={profileId}
+          a={logOf}
+          post={posts[logOf.accountId]?.find((p) => p.id === logOf.platformPostId)}
+          onBack={() => setParams({}, { replace: true })}
+          onEdit={() => {
+            setForm(formFromView(logOf));
+            void loadPosts(logOf.accountId);
+          }}
+        />
+      )}
+
+      {!(state === "ready" && (form || logOf)) && (
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0 space-y-1.5">
             <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-[34px] sm:leading-tight">Auto-DM</h1>
@@ -273,7 +293,7 @@ export default function AutoDmPage() {
         />
       )}
 
-      {state === "ready" && !form && accounts.length > 0 && (
+      {state === "ready" && !form && !logOf && accounts.length > 0 && (
         <>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             {accounts.map((a) => (
@@ -325,8 +345,8 @@ export default function AutoDmPage() {
                       a={a}
                       account={accounts.length > 1 ? accountOf(a.accountId) : undefined}
                       post={posts[a.accountId]?.find((p) => p.id === a.platformPostId)}
-                      profileId={profileId}
                       busy={busy}
+                      onLog={() => setParams({ log: a.id })}
                       onToggle={() => toggle(a)}
                       onEdit={() => {
                         setForm(formFromView(a));
@@ -345,8 +365,8 @@ export default function AutoDmPage() {
 }
 
 /** The post the auto-DM listens on, a dashed tile for any post, or a story mark. */
-function Thumb({ a, post }: { a: AutomationView; post?: PostOption }) {
-  const box = "h-16 w-12 shrink-0 rounded-lg sm:h-[88px] sm:w-16";
+function Thumb({ a, post, small }: { a: AutomationView; post?: PostOption; small?: boolean }) {
+  const box = small ? "h-16 w-12 shrink-0 rounded-lg" : "h-16 w-12 shrink-0 rounded-lg sm:h-[88px] sm:w-16";
   if (a.platformPostId && post?.picture) return <img src={post.picture} alt="" loading="lazy" referrerPolicy="no-referrer" className={`${box} object-cover`} />;
   if (a.platformPostId)
     return (
@@ -373,8 +393,8 @@ function Row({
   a,
   account,
   post,
-  profileId,
   busy,
+  onLog,
   onToggle,
   onEdit,
 }: {
@@ -382,12 +402,11 @@ function Row({
   /** Named on the card only when there is more than one account. */
   account?: AccountOption;
   post?: PostOption;
-  profileId: string;
   busy: string;
+  onLog: () => void;
   onToggle: () => void;
   onEdit: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const dm = hasDm(a.platform);
   // Instagram sends no delivery receipt, so Delivered shows on Facebook only
   const stats: [string, number][] = dm
@@ -437,27 +456,37 @@ function Row({
       </dl>
       <Switch on={a.active} label={`Auto-DM for ${autoDmName(a)}`} busy={busy === `t${a.id}`} onChange={onToggle} />
       <div className="flex gap-2">
-        <Button variant="outline" className="h-11 px-3.5" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <Button variant="outline" className="h-11 px-3.5" onClick={onLog}>
           Who got it
         </Button>
         <Button variant="ghost" className="h-11 px-3.5 text-primary hover:text-primary" aria-label={`Edit the auto-DM for ${autoDmName(a)}`} onClick={onEdit} disabled={!!busy}>
           Edit
         </Button>
       </div>
-      {open && (
-        <div className="basis-full">
-          <Log profileId={profileId} a={a} />
-        </div>
-      )}
     </li>
   );
 }
 
-function Log({ profileId, a }: { profileId: string; a: AutomationView }) {
+const PILL: Record<LogGroup, string> = {
+  sent: "bg-success/10 text-success",
+  skipped: "bg-muted text-muted-foreground",
+  failed: "bg-destructive/10 text-destructive",
+  waiting: "bg-primary/10 text-primary",
+};
+const FILTERS = [
+  ["all", "All"],
+  ["sent", "Sent"],
+  ["skipped", "Skipped"],
+  ["failed", "Failed"],
+] as const;
+
+function WhoGotIt({ profileId, a, post, onBack, onEdit }: { profileId: string; a: AutomationView; post?: PostOption; onBack: () => void; onEdit: () => void }) {
   const [rows, setRows] = useState<LogView[] | null>(null);
+  const [total, setTotal] = useState(0);
   const [more, setMore] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [view, setView] = useState<(typeof FILTERS)[number][0]>("all");
   const page = async (skip: number) => {
     setLoading(true);
     setError("");
@@ -465,6 +494,7 @@ function Log({ profileId, a }: { profileId: string; a: AutomationView }) {
       const r = await autoDmLogs(profileId, a.id, skip);
       setRows((old) => [...(skip ? old ?? [] : []), ...r.logs]);
       setMore(r.hasMore);
+      setTotal(r.total);
     } catch (e) {
       setError(message(e));
     } finally {
@@ -475,34 +505,108 @@ function Log({ profileId, a }: { profileId: string; a: AutomationView }) {
     void page(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const all = (rows ?? []).map((l) => ({ l, o: logOutcome(l, a.platform) }));
+  const shown = view === "all" ? all : all.filter((x) => x.o.group === view);
+  const count = (g: string) => (g === "all" ? Math.max(total, all.length) : all.filter((x) => x.o.group === g).length);
+  const dm = hasDm(a.platform);
   return (
-    <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-2.5" aria-live="polite">
-      {rows === null && loading && <p className="text-xs text-muted-foreground">Loading who got it...</p>}
-      {rows?.length === 0 && <p className="text-xs text-muted-foreground">No one yet.</p>}
-      {rows && rows.length > 0 && (
-        <ul className="divide-y divide-border/60">
-          {rows.map((l) => {
-            const line = logLine(l, a.platform);
-            return (
-              <li key={l.id} className="py-1.5 text-xs">
-                <p className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="font-semibold">{l.who}</span>
-                  {l.at && <span className="text-muted-foreground">{new Date(l.at).toLocaleString("en-SG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>}
-                  <span className={`ml-auto font-semibold ${line.ok ? "text-success" : "text-destructive"}`}>{line.text}</span>
-                </p>
-                {l.said && <p className="mt-0.5 text-muted-foreground [overflow-wrap:anywhere]">"{l.said}"</p>}
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {error && <p className="text-xs text-destructive">{error}</p>}
-      {(more || error) && (
-        <Button variant="outline" size="sm" className="h-11 text-xs sm:h-9" disabled={loading} onClick={() => page(rows?.length ?? 0)}>
-          {loading ? "Loading..." : error ? "Try again" : "Show more"}
+    <section aria-labelledby="adm-log" className="space-y-5">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <button type="button" className="min-h-11 text-primary hover:underline" onClick={onBack}>
+          Auto-DM
+        </button>
+        <span aria-hidden>/</span>
+        <span className="truncate">{autoDmName(a)}</span>
+      </nav>
+      <header className="flex flex-wrap items-center gap-4">
+        <Thumb a={a} post={post} small />
+        <div className="min-w-0 flex-[1_1_240px] space-y-1.5">
+          <h1 id="adm-log" className="font-serif text-2xl font-semibold tracking-tight sm:text-[30px] sm:leading-tight">
+            Who got it
+          </h1>
+          <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{whoGotItLine(a, post?.caption || a.postTitle)}</p>
+        </div>
+        <Button variant="outline" className="h-11 px-3.5" onClick={onEdit}>
+          Edit this auto-DM
         </Button>
-      )}
-    </div>
+      </header>
+
+      <div className="space-y-2">
+        <div role="group" aria-label="Show" className="flex flex-wrap gap-2">
+          {FILTERS.map(([id, label]) => (
+            <FilterChip key={id} active={view === id} count={rows ? count(id) : undefined} onClick={() => setView(id)}>
+              {label}
+            </FilterChip>
+          ))}
+        </div>
+        {more && <p className="text-[13px] text-muted-foreground">Sent, Skipped and Failed count the {all.length} loaded so far.</p>}
+      </div>
+
+      <div aria-live="polite" className="space-y-3">
+        {rows === null && loading && <p className="text-sm text-muted-foreground">Loading who got it...</p>}
+        {rows?.length === 0 && !error && <p className="text-sm text-muted-foreground">No one yet.</p>}
+        {rows && rows.length > 0 && (
+          <div className="overflow-x-auto rounded-xl border border-border bg-card">
+            <table className="w-full min-w-[720px] border-collapse text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  {["Person", "What they wrote", "When", dm ? "DM" : "Reply", "Link"].map((h) => (
+                    <th key={h} scope="col" className="border-b border-border px-4 py-3 font-semibold">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map(({ l, o }) => (
+                  <tr key={l.id} className="align-top">
+                    <td className="border-b border-border/60 px-4 py-3.5">
+                      <span className="flex items-center gap-2.5">
+                        <span aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold text-foreground/80">
+                          {initials(l.who)}
+                        </span>
+                        <span className="whitespace-nowrap font-semibold">{l.who}</span>
+                      </span>
+                    </td>
+                    <td className="border-b border-border/60 px-4 py-3.5 text-foreground/85 [overflow-wrap:anywhere]">{l.said}</td>
+                    <td className="whitespace-nowrap border-b border-border/60 px-4 py-3.5 text-muted-foreground">{l.at ? timeAgo(l.at) : ""}</td>
+                    <td className="border-b border-border/60 px-4 py-3.5">
+                      <span className="flex flex-col items-start gap-1.5">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${PILL[o.group]}`}>{o.label}</span>
+                        {o.reason && <span className="max-w-[300px] text-[13px] leading-snug text-muted-foreground">{o.reason}</span>}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap border-b border-border/60 px-4 py-3.5 text-foreground/85">{l.clicked ? "Tapped" : "-"}</td>
+                  </tr>
+                ))}
+                {shown.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
+                      None {more ? "in the ones loaded so far" : "yet"}.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        {!!(rows?.length || more || error) && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {rows && rows.length > 0 ? (
+              <span className="text-sm text-muted-foreground">{view === "all" ? `Showing ${all.length} of ${count("all")}` : `Showing ${shown.length} of ${all.length} loaded`}</span>
+            ) : (
+              <span />
+            )}
+            {(more || error) && (
+              <Button variant="outline" className="h-11 px-4" disabled={loading} onClick={() => page(rows?.length ?? 0)}>
+                {loading ? "Loading..." : error ? "Try again" : "Show more"}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scanCompliance } from "./compliance";
-import { STARTERS, applyStarter, ctaKeyword, emptyForm, fillName, formFlags, formProblem, keptForm, listensTo, logLine, toInput, typeKeywords, withDraft, type LogView } from "./autoDm";
+import { STARTERS, applyStarter, ctaKeyword, emptyForm, fillName, formFlags, formProblem, keptForm, listensTo, logOutcome, plainReason, toInput, typeKeywords, whoGotItLine, withDraft, type LogView } from "./autoDm";
 
 const IG = "65000000000000000000a001";
 
@@ -84,23 +84,38 @@ describe("the form", () => {
 describe("who got it", () => {
   const log = (extra: Partial<LogView>): LogView => ({ id: "1", who: "@a", said: "GUIDE", status: "sent", reason: "", reply: "", replyReason: "", at: "", clicked: false, ...extra });
 
-  it("says what happened, with the reason when it didn't", () => {
-    expect(logLine(log({ clicked: true }), "instagram")).toEqual({ text: "Sent, clicked", ok: true });
-    expect(logLine(log({ status: "failed", reason: "User has DMs off" }), "facebook")).toEqual({ text: "Failed: User has DMs off", ok: false });
-    expect(logLine(log({ status: "gated" }), "instagram").text).toBe("Asked to confirm they follow");
-    expect(logLine(log({ status: "skipped", reason: "Already sent" }), "instagram")).toEqual({ text: "Skipped: Already sent", ok: false });
-    // reply-only platforms answer with the public reply
-    expect(logLine(log({ status: "skipped", reply: "sent" }), "tiktok")).toEqual({ text: "Replied", ok: true });
-    expect(logLine(log({ reply: "failed", replyReason: "Comment deleted" }), "youtube")).toEqual({ text: "Reply failed: Comment deleted", ok: false });
+  it("files each of Zernio's statuses under Sent, Skipped or Failed, and the not-yet ones as waiting", () => {
+    expect(logOutcome(log({ clicked: true }), "instagram")).toEqual({ group: "sent", label: "Sent", reason: "" });
+    expect(logOutcome(log({ status: "failed", reason: "User has DMs off" }), "facebook")).toEqual({ group: "failed", label: "Failed", reason: "User has DMs off." });
+    expect(logOutcome(log({ status: "skipped", reason: "Already sent to this person" }), "instagram")).toEqual({ group: "skipped", label: "Skipped", reason: "Already sent to this person." });
+    expect(logOutcome(log({ status: "pending" }), "instagram")).toMatchObject({ group: "waiting", reason: "Queued to send." });
+    expect(logOutcome(log({ status: "gated" }), "instagram")).toMatchObject({ group: "waiting", label: "Waiting" });
+    expect(logOutcome(log({ status: "something-new" }), "instagram").group).toBe("skipped");
+    // reply-only platforms answer with the public reply, whatever the DM status says
+    expect(logOutcome(log({ status: "skipped", reply: "sent" }), "tiktok")).toEqual({ group: "sent", label: "Replied", reason: "" });
+    expect(logOutcome(log({ reply: "failed", replyReason: "Comment deleted" }), "youtube")).toEqual({ group: "failed", label: "Failed", reason: "Comment deleted." });
+    expect(logOutcome(log({ status: "sent", reply: "pending" }), "threads").group).toBe("waiting");
   });
-});
 
-describe("the list", () => {
+  it("gives the reason in words, with the platform's codes taken out", () => {
+    expect(plainReason("(#10) This message is sent outside of allowed window.")).toBe("This message is sent outside of allowed window.");
+    expect(plainReason("OAuthException: Invalid OAuth access token (code 190, subcode 460)")).toBe("Invalid OAuth access token.");
+    expect(plainReason("IG_USER_BLOCKED error_subcode=2534023 the user can't be messaged")).toBe("The user can't be messaged.");
+    expect(plainReason("Already received this DM within 24 hours")).toBe("Already received this DM within 24 hours.");
+    for (const bare of ["", "(#100)", "code 2534023", "  -  "]) expect(plainReason(bare), bare).toBe("");
+  });
+
   it("says what each one listens to", () => {
     expect(listensTo({ trigger: "comment", platformPostId: "1789_1" })).toBe("Comments on this post");
     expect(listensTo({ trigger: "comment", platformPostId: null })).toBe("Comments on any post");
     expect(listensTo({ trigger: "story_reply", platformPostId: null })).toBe("Replies to your stories");
     expect(listensTo({ trigger: "story_mention", platformPostId: null })).toBe("Mentions in stories");
+    expect(whoGotItLine({ trigger: "comment", platformPostId: "1", keywords: ["PLAN"] }, "Three CPF\nmoves")).toBe('Comments with PLAN on "Three CPF moves"');
+    expect(whoGotItLine({ trigger: "comment", platformPostId: null, keywords: ["GUIDE", "LIST"] }, "")).toBe("Comments with GUIDE or LIST on any post");
+    expect(whoGotItLine({ trigger: "comment", platformPostId: "1", keywords: ["PLAN"] }, "Three CPF moves to make before 55. Comment PLAN and I will send you the checklist today.")).toBe(
+      'Comments with PLAN on "Three CPF moves to make before 55. Comment PLAN and I will send you the..."',
+    );
+    expect(whoGotItLine({ trigger: "comment", platformPostId: null, keywords: [] }, "")).toBe("Every comment on any post");
   });
 });
 

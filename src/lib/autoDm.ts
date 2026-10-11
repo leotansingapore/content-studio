@@ -242,20 +242,43 @@ export function ctaKeyword(text: string): string {
 
 export const accountLabel = (a: Pick<AccountOption, "username" | "name">) => (a.username ? `@${a.username.replace(/^@/, "")}` : a.name || "Your account");
 
-/** What happened for one commenter. Reply-only platforms answer with the public reply. */
-export function logLine(l: LogView, platform: string): { text: string; ok: boolean } {
-  const why = (s: string) => (s ? `: ${s}` : "");
+export type LogGroup = "sent" | "skipped" | "failed" | "waiting";
+
+/**
+ * Zernio's reason with the platform's codes taken out ("(#10)", "code 2534023", "OAuthException"), as a
+ * sentence, or "" when nothing readable is left. A text clean-up, not a judgment of the reason.
+ */
+export function plainReason(text: string): string {
+  const t = text
+    .replace(/\([^)]*\d[^)]*\)/g, " ")
+    .replace(/\b[A-Za-z]*Exception\b:?/g, " ")
+    .replace(/\b[A-Z0-9]+(?:_[A-Z0-9]+)+\b/g, " ")
+    .replace(/\b(?:error[_ ]?)?(?:sub)?code\s*[:=#]?\s*\d+/gi, " ")
+    .replace(/#?\b\d{5,}\b/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s:;,.-]+|[\s:;,-]+$/g, "");
+  if (!/[a-z]{2}/i.test(t)) return "";
+  return `${t[0].toUpperCase()}${t.slice(1)}${/[.!?]$/.test(t) ? "" : "."}`;
+}
+
+/**
+ * Who got it, one commenter: the filter it falls under, its pill and why, from Zernio's log statuses
+ * (https://zernio.com/openapi.json, comment-automations logs). pending (queued) and gated (asked to
+ * confirm they follow, sent or skipped once they tap) are neither sent nor refused yet, so they wait,
+ * shown under All. Reply-only platforms answer with the public reply.
+ */
+export function logOutcome(l: LogView, platform: string): { group: LogGroup; label: string; reason: string } {
   if (!hasDm(platform)) {
-    if (l.reply === "sent") return { text: "Replied", ok: true };
-    if (l.reply === "failed") return { text: `Reply failed${why(l.replyReason)}`, ok: false };
-    if (l.reply === "pending") return { text: "Waiting to reply", ok: true };
-    return { text: `Skipped${why(l.replyReason || l.reason)}`, ok: false };
+    if (l.reply === "sent") return { group: "sent", label: "Replied", reason: "" };
+    if (l.reply === "failed") return { group: "failed", label: "Failed", reason: plainReason(l.replyReason) };
+    if (l.reply === "pending") return { group: "waiting", label: "Waiting", reason: "Queued to reply." };
+    return { group: "skipped", label: "Skipped", reason: plainReason(l.replyReason || l.reason) };
   }
-  if (l.status === "sent") return { text: l.clicked ? "Sent, clicked" : "Sent", ok: true };
-  if (l.status === "failed") return { text: `Failed${why(l.reason)}`, ok: false };
-  if (l.status === "pending") return { text: "Waiting to send", ok: true };
-  if (l.status === "gated") return { text: "Asked to confirm they follow", ok: true };
-  return { text: `Skipped${why(l.reason)}`, ok: false };
+  if (l.status === "sent") return { group: "sent", label: "Sent", reason: "" };
+  if (l.status === "failed") return { group: "failed", label: "Failed", reason: plainReason(l.reason) };
+  if (l.status === "pending") return { group: "waiting", label: "Waiting", reason: "Queued to send." };
+  if (l.status === "gated") return { group: "waiting", label: "Waiting", reason: "Asked them to confirm they follow. It sends when they tap." };
+  return { group: "skipped", label: "Skipped", reason: plainReason(l.reason) };
 }
 
 /** A card's first line: what it listens to. */
@@ -263,6 +286,18 @@ export function listensTo(a: Pick<AutomationView, "trigger" | "platformPostId">)
   if (a.trigger === "story_reply") return "Replies to your stories";
   if (a.trigger === "story_mention") return "Mentions in stories";
   return a.platformPostId ? "Comments on this post" : "Comments on any post";
+}
+
+/** Who got it's line under its heading. caption: the bound post's, when known. */
+export function whoGotItLine(a: Pick<AutomationView, "trigger" | "platformPostId" | "keywords">, caption: string): string {
+  const words = a.keywords.join(" or ");
+  if (a.trigger === "story_mention") return "Mentions of you in stories";
+  if (a.trigger === "story_reply") return words ? `Story replies with ${words}` : "Every story reply";
+  const flat = caption.replace(/\s+/g, " ").trim();
+  // a long caption ends at a word, with "..."
+  const cut = flat.length > 80 ? `${flat.slice(0, 80).replace(/\s+\S*$/, "")}...` : flat;
+  const where = a.platformPostId ? (cut ? `"${cut}"` : "one post") : "any post";
+  return words ? `Comments with ${words} on ${where}` : `Every comment on ${where}`;
 }
 
 /** The automation's name on the page and in the delete question. */
