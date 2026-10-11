@@ -82,13 +82,15 @@ export const removeSnippet = (userId: string, id: string) => write(userId, loadS
 
 /**
  * The snippet put into a draft between `start` and `end` (the selection; the
- * end of the draft when nothing was selected), with a space before it when
- * it would touch a word. Returns the new text and where the caret goes.
+ * end of the draft when nothing was selected), with a space before and after
+ * it when it would touch a word. Returns the new text and where the caret goes.
  */
 export function insertSnippet(draft: string, snippet: string, start = draft.length, end = start): { text: string; caret: number } {
   const before = draft.slice(0, start);
+  const after = draft.slice(end);
   const gap = before && !/\s$/.test(before) ? " " : "";
-  const text = `${before}${gap}${snippet}${draft.slice(end)}`;
+  const gapAfter = /^[\p{L}\p{N}]/u.test(after) && !/\s$/.test(snippet) ? " " : "";
+  const text = `${before}${gap}${snippet}${gapAfter}${after}`;
   return { text, caret: before.length + gap.length + snippet.length };
 }
 

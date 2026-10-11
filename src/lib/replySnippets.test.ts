@@ -63,6 +63,12 @@ describe("insertSnippet", () => {
     expect(insertSnippet("Hi [link] bye", "calendly.com/ada", 3, 9)).toEqual({ text: "Hi calendly.com/ada bye", caret: 19 });
     expect(insertSnippet("Hi bye", "there", 2, 2).text).toBe("Hi there bye");
   });
+
+  it("keeps a space after it when the caret sits just before a word", () => {
+    expect(insertSnippet("Hi bye", "there", 3)).toEqual({ text: "Hi there bye", caret: 8 });
+    expect(insertSnippet("Hi bye", "there,", 3).text).toBe("Hi there, bye");
+    expect(insertSnippet("Hi !", "there", 3).text).toBe("Hi there!");
+  });
 });
 
 describe("the add form", () => {
