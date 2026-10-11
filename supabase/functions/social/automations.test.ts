@@ -282,6 +282,17 @@ describe("changing one (M1)", () => {
     expect(any.body(`PATCH /comment-automations/${AUTO}`)).toMatchObject({ platformPostId: null, postId: null, postTitle: null, commentReply: "Sent it to your DMs!" });
   });
 
+  it("moves the binding only to a post among the account's own latest, before anything is written", async () => {
+    const bound = zAuto(AUTO, IG, { platformPostId: "1789_1", postTitle: "Old" });
+    const latest = { [`GET /accounts/${IG}/posts`]: { posts: [{ id: "1789_1" }, { id: "1790_2", message: "New post" }] } };
+    const moved = fake(routes(bound, { ...latest, [`PATCH /comment-automations/${AUTO}`]: {} }));
+    await runAutomation(moved.z, MINE, { action: "automation-update", profileId: "me", automationId: AUTO, input: input({ platformPostId: "1790_2" }), active: null });
+    expect(moved.body(`PATCH /comment-automations/${AUTO}`)).toMatchObject({ platformPostId: "1790_2", postTitle: "New post" });
+    const stray = fake(routes(bound, latest));
+    await expect(runAutomation(stray.z, MINE, { action: "automation-update", profileId: "me", automationId: AUTO, input: input({ platformPostId: "9999_9" }), active: null })).rejects.toBeInstanceOf(NotYours);
+    expect(stray.keys().some((k) => k.startsWith("PATCH"))).toBe(false);
+  });
+
   it("refuses a DM on a YouTube automation with the same plain words", async () => {
     const f = fake(routes(zAuto(AUTO, TT, { platform: "tiktok" })));
     expect((await runAutomation(f.z, MINE, { action: "automation-update", profileId: "me", automationId: AUTO, input: input(), active: null })).status).toBe(400);

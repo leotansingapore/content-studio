@@ -175,6 +175,20 @@ describe("the team-wide recount (M5)", () => {
     expect(removalNotes(theirDescription, NOW)).toEqual([{ platform: "instagram", username: "bee", at: "2026-10-11T08:00:00.000Z" }]);
   });
 
+  it("disconnects an over-cap account on a profile no adviser owns without noting it, and a note that can't be written stops nothing", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const STRAY = "0123456789abcdef0123456f";
+    const f = fake({
+      "GET /accounts": accounts([acct(A1), acct(A2), acct(VICTIM, STRAY), acct(B_NEW, THEIRS)]),
+      [`DELETE /accounts/${B_NEW}`]: {},
+      [`DELETE /accounts/${VICTIM}`]: {},
+      [`GET /profiles/${THEIRS}`]: new ZernioError(500, "", "down"),
+    });
+    expect((await recount(f.z, caller(), NOW)).map((a) => a._id)).toEqual([A1, A2]);
+    expect(f.keys()).toEqual(["GET /accounts", `DELETE /accounts/${B_NEW}`, `DELETE /accounts/${VICTIM}`, `GET /profiles/${THEIRS}`]);
+    warn.mockRestore();
+  });
+
   it("keeps notes for 30 days, newest first, and ignores anything else in the description", () => {
     const MID = Date.parse("2026-09-20T00:00:00Z");
     const d = withRemovalNotes(null, [{ platform: "tiktok", username: "old", at: "2026-09-01T00:00:00Z" }], MID);
@@ -287,6 +301,15 @@ describe("disconnect", () => {
     expect((await disconnect(none.z, caller({ mapped: null }), null)).body).toEqual({ disconnected: 0 });
     await expect(disconnect(none.z, caller({ mapped: null }), A1)).rejects.toBeInstanceOf(NotYours);
     expect(none.calls).toEqual([]);
+  });
+});
+
+describe("removing a brand", () => {
+  it("fails when one of its accounts won't disconnect, so the brand is kept", async () => {
+    const f = fake({ "GET /accounts": accounts([acct(A1), acct(A2)]), [`DELETE /accounts/${A1}`]: {}, [`DELETE /accounts/${A2}`]: new ZernioError(500, "", "boom") });
+    const failed = await disconnect(f.z, caller(), null).catch((e) => e);
+    expect(errorReply(failed).status).toBe(502);
+    expect(f.keys().filter((k) => k.startsWith("DELETE"))).toEqual([`DELETE /accounts/${A1}`, `DELETE /accounts/${A2}`]);
   });
 });
 
