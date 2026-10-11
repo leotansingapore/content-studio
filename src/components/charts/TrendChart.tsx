@@ -9,12 +9,10 @@ import { useMemo, useState } from "react";
 export interface TrendChartPoint {
   id: string;
   label: string;
-  value: number; // engagement rate %
+  value: number; // engagement rate % by default
   detail: string; // secondary tooltip line, e.g. "LinkedIn · 1,204 impressions"
 }
 
-const WIDTH = 600;
-const HEIGHT = 180;
 const PAD = { top: 16, right: 8, bottom: 24, left: 30 };
 
 function niceMax(dataMax: number): number {
@@ -23,33 +21,67 @@ function niceMax(dataMax: number): number {
   return Math.ceil(target / step) * step;
 }
 
-export function TrendChart({ points }: { points: TrendChartPoint[] }) {
+/** A y range two round steps (1, 2 or 5 x 10^n) wide around lo..hi, for counts like followers where zero would flatten the line. */
+export function fitDomain(lo: number, hi: number): [number, number] {
+  if (lo === hi) [lo, hi] = [lo - 1, hi + 1];
+  for (let mag = 1; ; mag *= 10) {
+    for (const s of [1, 2, 5]) {
+      const step = s * mag;
+      const y0 = Math.floor(lo / step) * step;
+      if (y0 + 2 * step >= hi) return [y0, y0 + 2 * step];
+    }
+  }
+}
+
+const percent = (v: number) => `${v}%`;
+
+export function TrendChart({
+  points,
+  format = percent,
+  measure = "engagement rate",
+  title = "Engagement rate trend across recent tracked posts",
+  fit = false,
+  width: WIDTH = 600,
+  height: HEIGHT = 180,
+}: {
+  points: TrendChartPoint[];
+  format?: (value: number) => string;
+  /** What a value is, after the number: "12% engagement rate", "1,204 followers". */
+  measure?: string;
+  title?: string;
+  /** Fit the y axis to the data (a line, no area) instead of starting at zero. */
+  fit?: boolean;
+  width?: number;
+  height?: number;
+}) {
   const [hover, setHover] = useState<number | null>(null);
 
-  const { linePath, areaPath, coords, yMax, ticks } = useMemo(() => {
-    const innerW = WIDTH - PAD.left - PAD.right;
+  const { linePath, areaPath, coords, yMin, yMax, ticks, left } = useMemo(() => {
+    const values = points.map((p) => p.value);
+    const [yMin, yMax] = fit && values.length ? fitDomain(Math.min(...values), Math.max(...values)) : [0, niceMax(Math.max(...values, 0))];
+    const ticks = [yMin, (yMin + yMax) / 2, yMax];
+    // Room for the longest tick label ("10,250" needs more than "20%"), about 5.5px a character at 9px.
+    const left = Math.max(PAD.left, 8 + 5.5 * Math.max(...ticks.map((t) => format(Math.round(t)).length)));
+    const innerW = WIDTH - left - PAD.right;
     const innerH = HEIGHT - PAD.top - PAD.bottom;
-    const dataMax = Math.max(...points.map((p) => p.value), 0);
-    const yMax = niceMax(dataMax);
     const xFor = (i: number) =>
       points.length > 1
-        ? PAD.left + (i / (points.length - 1)) * innerW
-        : PAD.left + innerW / 2;
-    const yFor = (v: number) => PAD.top + innerH * (1 - v / yMax);
+        ? left + (i / (points.length - 1)) * innerW
+        : left + innerW / 2;
+    const yFor = (v: number) => PAD.top + innerH * (1 - (v - yMin) / (yMax - yMin));
     const coords = points.map((p, i) => ({ x: xFor(i), y: yFor(p.value) }));
     const linePath = coords
       .map((c, i) => `${i === 0 ? "M" : "L"} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`)
       .join(" ");
     const baseline = PAD.top + innerH;
     const areaPath =
-      coords.length > 0
+      coords.length > 0 && !fit
         ? `M ${coords[0].x.toFixed(1)} ${baseline} ` +
           coords.map((c) => `L ${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(" ") +
           ` L ${coords[coords.length - 1].x.toFixed(1)} ${baseline} Z`
         : "";
-    const ticks = [0, yMax / 2, yMax];
-    return { linePath, areaPath, coords, yMax, ticks };
-  }, [points]);
+    return { linePath, areaPath, coords, yMin, yMax, ticks, left };
+  }, [points, fit, format, WIDTH, HEIGHT]);
 
   if (points.length === 0) {
     return (
@@ -70,14 +102,14 @@ export function TrendChart({ points }: { points: TrendChartPoint[] }) {
         className="w-full"
         style={{ height: HEIGHT }}
         role="img"
-        aria-label="Engagement rate trend across recent tracked posts"
+        aria-label={title}
       >
         {ticks.map((t, i) => {
-          const y = PAD.top + (HEIGHT - PAD.top - PAD.bottom) * (1 - t / yMax);
+          const y = PAD.top + (HEIGHT - PAD.top - PAD.bottom) * (1 - (t - yMin) / (yMax - yMin));
           return (
             <g key={i}>
               <line
-                x1={PAD.left}
+                x1={left}
                 x2={WIDTH - PAD.right}
                 y1={y}
                 y2={y}
@@ -85,13 +117,13 @@ export function TrendChart({ points }: { points: TrendChartPoint[] }) {
                 strokeWidth={1}
               />
               <text
-                x={PAD.left - 6}
+                x={left - 6}
                 y={y}
                 textAnchor="end"
                 dominantBaseline="middle"
                 className="fill-muted-foreground text-[9px]"
               >
-                {Math.round(t)}%
+                {format(Math.round(t))}
               </text>
             </g>
           );
@@ -143,7 +175,7 @@ export function TrendChart({ points }: { points: TrendChartPoint[] }) {
             textAnchor="end"
             className="fill-foreground text-[10px] font-semibold"
           >
-            {points[points.length - 1].value}%
+            {format(points[points.length - 1].value)}
           </text>
         )}
 
@@ -158,7 +190,7 @@ export function TrendChart({ points }: { points: TrendChartPoint[] }) {
             fill="transparent"
             tabIndex={0}
             role="button"
-            aria-label={`${points[i].label}: ${points[i].value}% engagement rate, ${points[i].detail}`}
+            aria-label={`${points[i].label}: ${format(points[i].value)} ${measure}, ${points[i].detail}`}
             onPointerEnter={() => setHover(i)}
             onFocus={() => setHover(i)}
             onPointerLeave={() => setHover((h) => (h === i ? null : h))}
@@ -170,7 +202,7 @@ export function TrendChart({ points }: { points: TrendChartPoint[] }) {
 
       {active && activeCoord && (
         <div
-          className="pointer-events-none absolute z-10 -translate-y-full rounded-lg border border-border/70 bg-popover px-2.5 py-1.5 text-xs shadow-elegant"
+          className="pointer-events-none absolute z-10 w-max max-w-[15rem] -translate-y-full rounded-lg border border-border/70 bg-popover px-2.5 py-1.5 text-xs shadow-elegant"
           style={{
             left: `${(activeCoord.x / WIDTH) * 100}%`,
             top: `${(activeCoord.y / HEIGHT) * 100}%`,
@@ -180,7 +212,7 @@ export function TrendChart({ points }: { points: TrendChartPoint[] }) {
           }}
         >
           <div className="font-semibold text-popover-foreground">
-            {active.value}% engagement
+            {format(active.value)} {measure}
           </div>
           <div className="text-muted-foreground">{active.label} · {active.detail}</div>
         </div>

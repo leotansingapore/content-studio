@@ -4,6 +4,7 @@
 // Write links. The judging logic is shared with the edge functions.
 
 import { supabase } from "@/lib/supabase";
+import { localDateKey } from "@/lib/dueDates";
 import { IDEAS_PER_BATCH } from "../../supabase/functions/_shared/postIdeas.ts";
 import {
   oneLine,
@@ -96,16 +97,39 @@ export async function loadAudit(id: string): Promise<AuditRow | null> {
   return (data as AuditRow | null) ?? null;
 }
 
-/** The latest two snapshots, newest first. */
+/** The latest snapshots, newest first. */
 export async function loadSnapshots(auditId: string): Promise<AuditSnapshot[]> {
   const { data, error } = await supabase
     .from("cs_social_snapshots")
     .select("taken_at, followers, posts_analyzed, median_views, median_engagement_rate, posts_per_week")
     .eq("audit_id", auditId)
     .order("taken_at", { ascending: false })
-    .limit(2);
+    // Enough for the follower chart's points even when a day has several refreshes.
+    .limit(60);
   if (error) throw error;
   return (data as AuditSnapshot[]) ?? [];
+}
+
+export interface FollowerPoint {
+  at: string;
+  followers: number;
+  /** Followers gained (or lost) since the point before; null for the first snapshot. */
+  change: number | null;
+}
+
+/** The follower chart: one point a day (that day's last snapshot), oldest first, the newest `max` of them. */
+export function followerSeries(snapshots: AuditSnapshot[], max = 12): FollowerPoint[] {
+  const byDay = new Map<string, { at: string; followers: number }>();
+  for (const s of snapshots) {
+    if (s.followers === null) continue;
+    const day = localDateKey(new Date(s.taken_at));
+    const kept = byDay.get(day);
+    if (!kept || Date.parse(s.taken_at) > Date.parse(kept.at)) byDay.set(day, { at: s.taken_at, followers: s.followers });
+  }
+  const days = [...byDay.values()].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  return days
+    .map((d, i) => ({ ...d, change: i ? d.followers - days[i - 1].followers : null }))
+    .slice(-max);
 }
 
 export async function removeAudit(id: string): Promise<void> {

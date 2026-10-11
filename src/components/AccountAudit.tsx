@@ -20,6 +20,7 @@ import {
   POSTS_TO_READ,
   WEAK_RATIO,
   firstLine,
+  followerSeries,
   formatCount,
   formatWord,
   freshnessOf,
@@ -49,6 +50,7 @@ import {
 } from "@/lib/accountAudit";
 import type { SocialAccounts } from "@/lib/socialAccounts";
 import ProfileScore from "@/components/ProfileScore";
+import { TrendChart } from "@/components/charts/TrendChart";
 import {
   AlertTriangle,
   Ban,
@@ -401,6 +403,7 @@ function AuditPanel({
               <ErrorNote message={`The latest update didn't finish, so this is from ${shortDate(fetchedAt)}.`} />
             )}
             <Headline stats={stats} followers={profile?.followers ?? null} snapshots={snapshots} />
+            <FollowerGrowth snapshots={snapshots} />
             <AdviceBlock advice={audit.advice} platform={platform} stats={stats} byId={byId} />
             {profile && (
               <ProfileScore
@@ -516,6 +519,63 @@ function Headline({
           {formatCount(Math.abs(growth))} followers since {shortDate(previous.taken_at)}
         </p>
       )}
+    </div>
+  );
+}
+
+const countLabel = (n: number) => n.toLocaleString();
+const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toLocaleString()}`;
+
+/** Followers by day from the stored snapshots, with the change between each. Shown once two days are on record. */
+function FollowerGrowth({ snapshots }: { snapshots: AuditSnapshot[] }) {
+  const series = useMemo(() => followerSeries(snapshots), [snapshots]);
+  if (series.length < 2) return null;
+  const net = series[series.length - 1].followers - series[0].followers;
+  const points = series.map((p, i) => ({
+    id: p.at,
+    label: shortDate(p.at),
+    value: p.followers,
+    detail: p.change === null ? "first count" : `${signed(p.change)} since ${i ? shortDate(series[i - 1].at) : "the count before"}`,
+  }));
+  return (
+    <div className="max-w-[360px] space-y-1">
+      <p className="text-xs font-medium text-muted-foreground">
+        Followers since {shortDate(series[0].at)}{" "}
+        <span className={net > 0 ? "text-success" : net < 0 ? "text-destructive" : ""}>{signed(net)}</span>
+      </p>
+      <TrendChart
+        points={points}
+        fit
+        format={countLabel}
+        measure="followers"
+        title="Followers by day"
+        width={360}
+        height={120}
+      />
+      <details className="group text-xs">
+        <summary className="inline-flex h-9 cursor-pointer list-none items-center gap-1 font-medium text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [&::-webkit-details-marker]:hidden">
+          Each change
+          <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+        </summary>
+        <table className="w-full text-left tabular-nums">
+          <thead className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            <tr>
+              <th className="py-1 font-semibold">Date</th>
+              <th className="py-1 text-right font-semibold">Followers</th>
+              <th className="py-1 text-right font-semibold">Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...series].reverse().map((p) => (
+              <tr key={p.at} className="border-t border-border/50">
+                <td className="py-1 text-muted-foreground">{shortDate(p.at)}</td>
+                <td className="py-1 text-right text-foreground">{p.followers.toLocaleString()}</td>
+                <td className="py-1 text-right text-muted-foreground">{p.change === null ? "" : signed(p.change)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
     </div>
   );
 }
