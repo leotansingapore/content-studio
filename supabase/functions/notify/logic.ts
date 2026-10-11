@@ -481,12 +481,11 @@ export function weekReport(posts: Post[], followed: Followed[], end: string, goa
   const week = postedIn(start, end);
   const before = postedIn(addDays(end, -13), addDays(end, -7));
   const sum = (ps: Post[], f: (p: Post) => number) => ps.reduce((n, p) => n + f(p), 0);
-  const ranked = week
-    .filter(hasNumbers)
-    .sort((a, b) => engagementOf(b.metrics) - engagementOf(a.metrics) || impressionsOf(b) - impressionsOf(a));
-  // best and weakest never overlap: on fewer than 6 posts each takes half
+  const rank = (a: Post, b: Post) => engagementOf(b.metrics) - engagementOf(a.metrics) || impressionsOf(b) - impressionsOf(a);
+  const ranked = week.filter(hasNumbers).sort(rank);
+  // best and weakest never overlap: on fewer than 6 posts each takes half, and a post level with the last best is not weakest
   const best = ranked.slice(0, Math.min(3, Math.ceil(ranked.length / 2)));
-  const worst = ranked.slice(ranked.length - Math.min(3, Math.floor(ranked.length / 2))).reverse();
+  const worst = ranked.slice(ranked.length - Math.min(3, Math.floor(ranked.length / 2))).reverse().filter((p) => rank(best[best.length - 1], p) < 0);
   const shared: Shared[] = [];
   if (best.length >= 2) {
     for (const label of ["format", "pillar", "hookFormula"] as const) {
@@ -505,7 +504,8 @@ export function weekReport(posts: Post[], followed: Followed[], end: string, goa
         .flatMap((x) => (x.followers !== null && dayOf(x.at) ? [{ day: dayOf(x.at)!, t: Date.parse(x.at), followers: x.followers }] : []))
         .sort((x, y) => x.t - y.t);
       const inWeek = snaps.filter((x) => x.day >= start && x.day <= end);
-      const from = snaps.filter((x) => x.day < start).pop() ?? inWeek[0];
+      // from the week before at the oldest: an account last checked months ago would pass all that growth off as this week's
+      const from = snaps.filter((x) => x.day < start && x.day >= addDays(start, -7)).pop() ?? inWeek[0];
       const to = inWeek[inWeek.length - 1];
       if (!from || !to || from === to) return [];
       const fresh = a.posts.filter((p) => {

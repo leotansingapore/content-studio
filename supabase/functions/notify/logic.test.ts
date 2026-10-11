@@ -393,6 +393,16 @@ describe("weekReport (g44)", () => {
     expect([one.best.length, one.worst.length]).toEqual([1, 0]);
   });
 
+  it("never lists a post as weakest when it did as well as one of the best", () => {
+    const tied = [w("t1", "2026-10-07", 1200, 60), w("t2", "2026-10-08", 1200, 60)];
+    const two = weekReport(tied, [], "2026-10-11");
+    expect([two.best.map((p) => p.id), two.worst]).toEqual([["t1"], []]);
+    expect(reportLines(two).join("\n")).not.toMatch(/Weakest/);
+    // four posts, the middle two level: only the lowest is weakest
+    const four = weekReport([w("a", "2026-10-06", 2000, 100), ...tied, w("d", "2026-10-09", 700, 3)], [], "2026-10-11");
+    expect([four.best.map((p) => p.id), four.worst.map((p) => p.id)]).toEqual([["a", "t1"], ["d"]]);
+  });
+
   it("gives a week with one post that has numbers a Best post line and no empty Weakest list", () => {
     const lines = reportLines(weekReport(posts.filter((p) => p.id === "w3"), [], "2026-10-11"));
     expect(lines).toContain('Best post: "Hook w3" (LinkedIn): 1,200 impressions, 60 engagements');
@@ -422,6 +432,15 @@ describe("weekReport (g44)", () => {
       { handle: "beta", platform: "instagram", gained: -20, followers: 480, posts: 0 },
     ]);
     expect(r.movers.map(moverLine)).toEqual(["@alpha gained 150 followers (1,150 now), 1 new post", "@beta lost 20 followers (480 now)"]);
+  });
+
+  it("never counts growth from a snapshot older than the week before as this week's", () => {
+    const stale: Followed[] = [
+      { platform: "instagram", handle: "stale", history: [{ at: "2026-08-01T01:00:00Z", followers: 500 }, { at: "2026-10-09T01:00:00Z", followers: 900 }], posts: [] },
+      { platform: "instagram", handle: "inweek", history: [{ at: "2026-08-01T01:00:00Z", followers: 100 }, { at: "2026-10-06T01:00:00Z", followers: 880 }, { at: "2026-10-10T01:00:00Z", followers: 900 }], posts: [] },
+      { platform: "instagram", handle: "lastweek", history: [{ at: "2026-09-28T01:00:00Z", followers: 800 }, { at: "2026-10-10T01:00:00Z", followers: 900 }], posts: [] },
+    ];
+    expect(weekReport([], stale, "2026-10-11").movers.map((m) => [m.handle, m.gained])).toEqual([["lastweek", 100], ["inweek", 20]]);
   });
 
   it("builds one move per kind the week supports, for Jev to pick from", () => {
