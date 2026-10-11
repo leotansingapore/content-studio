@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
-import { consumeUsage, DAILY_LIMITS, usageRefusal, type RpcClient } from "./usageCaps";
+import { claimOnce, consumeUsage, DAILY_LIMITS, refundUsage, usageRefusal, type RpcClient, type UsageClient } from "./usageCaps";
 
 const client = (result: { data: unknown; error: unknown } | Error): RpcClient & { calls: unknown[] } => {
   const calls: unknown[] = [];
@@ -38,6 +38,45 @@ describe("consumeUsage", () => {
     expect(errored).toMatchObject({ allowed: false, reason: "unavailable" });
     expect(thrown).toMatchObject({ allowed: false, reason: "unavailable" });
     expect(usageRefusal(errored as Extract<typeof errored, { allowed: false }>).status).toBe(503);
+  });
+});
+
+describe("giving a use back", () => {
+  // cs_ai_usage with one row at `count`; `update` answers each conditional update
+  const table = (count: number, update: () => { data: unknown; error: unknown } | Error) => {
+    const seen = { reads: 0, updates: 0 };
+    const admin: UsageClient = {
+      rpc: async () => ({ data: null, error: null }),
+      from: () => ({
+        select: () => ({ match: async () => (seen.reads++, { data: [{ count }], error: null }) }),
+        update: () => ({ match: () => ({ select: async () => { seen.updates++; const r = update(); if (r instanceof Error) throw r; return r; } }) }),
+      }),
+    };
+    return { admin, seen };
+  };
+
+  it("gives up after three lost races and leaves the use spent", async () => {
+    const t = table(2, () => ({ data: [], error: null }));
+    expect(await refundUsage(t.admin, "u1", "ai-video", "2026-10-11")).toBe(false);
+    expect(t.seen).toEqual({ reads: 3, updates: 3 });
+  });
+
+  it("never counts an update that errored or threw as given back", async () => {
+    const errored = table(2, () => ({ data: [{ count: 1 }], error: { message: "denied" } }));
+    expect(await refundUsage(errored.admin, "u1", "ai-video", "2026-10-11")).toBe(false);
+    const thrown = table(2, () => new Error("network"));
+    expect(await refundUsage(thrown.admin, "u1", "ai-video", "2026-10-11")).toBe(false);
+    expect(thrown.seen).toEqual({ reads: 1, updates: 1 });
+  });
+
+  it("claims a refund once a day, and refuses when the counter errors or can't be reached", async () => {
+    expect(await claimOnce(client({ data: 1, error: null }), "u1", "refund:abc")).toBe(true);
+    expect(await claimOnce(client({ data: null, error: null }), "u1", "refund:abc")).toBe(false);
+    expect(await claimOnce(client({ data: 1, error: { message: "down" } }), "u1", "refund:abc")).toBe(false);
+    expect(await claimOnce(client(new Error("network")), "u1", "refund:abc")).toBe(false);
+    const admin = client({ data: 1, error: null });
+    await claimOnce(admin, "u1", "refund:abc");
+    expect(admin.calls).toEqual([{ fn: "cs_consume_ai_usage", args: { p_user: "u1", p_feature: "refund:abc", p_limit: 1 } }]);
   });
 });
 
