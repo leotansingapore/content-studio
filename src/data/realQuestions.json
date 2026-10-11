@@ -1,17 +1,41 @@
 {
-  "fetched": "2026-10-10",
+  "fetched": "2026-10-11",
   "questions": [
+    {
+      "question": "Im noob investor, what does this shows about my position on this share?",
+      "url": "https://forums.hardwarezone.com.sg/threads/im-noob-investor-what-does-this-shows-about-my-position-on-this-share.7226662/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-10T23:42:38.000Z"
+    },
+    {
+      "question": "Wise to IBKR fee",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x2kfyi/wise_to_ibkr_fee/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-10T17:07:42.000Z"
+    },
     {
       "question": "Tiger broker Cash Boost - need help",
       "url": "https://forums.hardwarezone.com.sg/threads/tiger-broker-cash-boost-need-help.7226645/",
       "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-09T17:00:41.000Z"
+      "publishedAt": "2026-10-10T16:26:00.000Z"
     },
     {
       "question": "How to buy Tbills? I asked Google AI , it taught me the steps but ..",
       "url": "https://forums.hardwarezone.com.sg/threads/how-to-buy-tbills-i-asked-google-ai-it-taught-me-the-steps-but.7225922/",
       "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-09T16:45:57.000Z"
+      "publishedAt": "2026-10-10T15:08:33.000Z"
+    },
+    {
+      "question": "UOB Cashplus after 3 months",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x2geyg/uob_cashplus_after_3_months/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-10T14:17:08.000Z"
+    },
+    {
+      "question": "First big ticket item maybe?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x2e7jg/first_big_ticket_item_maybe/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-10T12:33:33.000Z"
     },
     {
       "question": "USD to 1.20 SGD in 2027 ?",
@@ -48,30 +72,6 @@
       "url": "https://www.reddit.com/r/singaporefi/comments/1x0wdba/just_opened_dbs_on_ep_setup_check_and_next_steps/",
       "source": "r/singaporefi",
       "publishedAt": "2026-10-08T17:01:19.000Z"
-    },
-    {
-      "question": "HSBC Revolution + DBS yuu + Citi Rewards",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x0vqo4/hsbc_revolution_dbs_yuu_citi_rewards/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-08T16:37:32.000Z"
-    },
-    {
-      "question": "Conventional wisdom say banks generally do well if the federal reserve raise rates and if interest rates in general go up, so why suddenly all local bank stocks not doing well ?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x0uu30/conventional_wisdom_say_banks_generally_do_well/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-08T16:02:44.000Z"
-    },
-    {
-      "question": "Insurance agent giving advise on how to achieve COT",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x0t5xi/insurance_agent_giving_advise_on_how_to_achieve/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-08T14:59:29.000Z"
-    },
-    {
-      "question": "Good price on DBS senior unsecured issue?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x0hk55/good_price_on_dbs_senior_unsecured_issue/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-08T04:23:03.000Z"
     }
   ]
 }
