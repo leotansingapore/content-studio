@@ -3,7 +3,7 @@
 // comments or messages for you. Each tool is ?tool=<id>, so a link opens it.
 // Logic: src/lib/engageDrafts.ts and supabase/functions/engage-assist.
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
 import Replies from "@/components/engage/Replies";
 import Dms from "@/components/engage/Dms";
@@ -24,6 +24,8 @@ type ToolId = (typeof TOOLS)[number]["id"];
 export default function EngagePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
+  // Each visit reads a paste tool's saved text again, so text the assistant pasted in (or its Undo) shows.
+  const { key } = useLocation();
   const tool: ToolId = TOOLS.find((t) => t.id === params.get("tool"))?.id ?? "replies";
   useEffect(() => {
     let active = true;
@@ -55,9 +57,9 @@ export default function EngagePage() {
         ))}
       </div>
       {!userId && <div className="h-64 animate-pulse rounded-xl bg-muted/50" aria-busy="true" aria-label="Loading" />}
-      {userId && tool === "replies" && <Replies userId={userId} />}
-      {userId && tool === "dms" && <Dms userId={userId} />}
-      {userId && tool === "comments" && <Comments userId={userId} />}
+      {userId && tool === "replies" && <Replies key={key} userId={userId} />}
+      {userId && tool === "dms" && <Dms key={key} userId={userId} />}
+      {userId && tool === "comments" && <Comments key={key} userId={userId} />}
       {userId && tool === "connect" && <Connect userId={userId} />}
       {userId && tool === "snippets" && <Snippets userId={userId} />}
     </div>

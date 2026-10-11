@@ -37,6 +37,8 @@ export const DAILY_LIMITS = {
   "engage-picks": 20,
   // The one move for the week (g44): Jev picks it for the Monday email (notify) and Analytics' This week card (week-pick).
   "week-pick": 10,
+  // The in-app assistant's actions (g51): one Jev call per message typed; over the cap it answers in words.
+  "assistant-act": 30,
   // Free stock photos and B-roll (stock-media, Pexels): searches not already cached.
   "stock-search": 100,
   // "Add B-roll for me" in the video editor (video-assist broll): Jev picks the lines, OpenAI writes the searches.

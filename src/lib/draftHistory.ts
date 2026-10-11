@@ -232,6 +232,17 @@ export function saveDrafts(userId: string, drafts: DraftEntry[]): void {
   storage.setItem(`${KEY_PREFIX}${scoped(userId)}`, JSON.stringify(trimmed));
 }
 
+const CHANGED = "content-studio-drafts-changed";
+
+/** Tells open pages the drafts changed from outside them (the assistant), so they read them again. */
+export const draftsChanged = () => void globalThis.dispatchEvent?.(new Event(CHANGED));
+
+/** Calls `cb` on draftsChanged; returns the unsubscribe, for a useEffect. */
+export function onDraftsChanged(cb: () => void): () => void {
+  window.addEventListener(CHANGED, cb);
+  return () => window.removeEventListener(CHANGED, cb);
+}
+
 export function upsertDraft(
   userId: string,
   entry: DraftEntry,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -9,7 +9,9 @@ import { FEEDBACK_API, FEEDBACK_BOARD_KEY } from "./config";
 // and turns ideas, bugs and messages to the team into one-tap chips. Mounted inside the
 // signed-in studio layout. The key names exactly one board on the service and nothing
 // there lists boards, so this can only ever reach Content Studio's posts. Lifted above
-// the bottom nav below the lg breakpoint.
+// the bottom nav below the lg breakpoint. Before the chat answers, `act` asks whether the
+// message wants something done in the app (move a post, rewrite one in Write, last week's
+// numbers, paste into Engage): src/lib/assistantActs.ts, loaded on the first message.
 
 export function AssistantMount() {
   const navigate = useNavigate();
@@ -23,6 +25,16 @@ export function AssistantMount() {
       alive = false;
     };
   }, []);
+  const act = useCallback(
+    async (text: string) => {
+      // read at send time: getUser above can still be waiting on the network
+      const uid = (await supabase.auth.getSession()).data.session?.user.id;
+      if (!uid) return null;
+      const { proposeAct } = await import("@/lib/assistantActs");
+      return proposeAct(uid, text, (path, replace) => navigate(path, { replace }));
+    },
+    [navigate],
+  );
   const meta = (user?.user_metadata ?? {}) as { full_name?: string; name?: string };
   return (
     <AssistantDock
@@ -34,6 +46,8 @@ export function AssistantMount() {
       offsetY={20}
       mobileOffsetY={88}
       mobileBreakpoint={1024}
+      act={act}
+      intro="Ask how anything works or reach the team. It can also move a post, rewrite one in Write, show last week's numbers or paste text into Engage. Nothing changes until you tap to confirm."
     />
   );
 }

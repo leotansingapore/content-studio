@@ -27,6 +27,7 @@ import {
   setDraftStatus,
   upsertDraft,
   type DraftEntry,
+  onDraftsChanged,
 } from "@/lib/draftHistory";
 import { supabase } from "@/lib/supabase";
 import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
@@ -197,6 +198,8 @@ export default function BoardPage() {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
+  // The assistant moves posts from outside this page: read them again when it does.
+  useEffect(() => (userId ? onDraftsChanged(() => setDrafts(loadDrafts(userId))) : undefined), [userId]);
   const [stages, setStages] = useState<Record<string, ProductionStage>>({});
   const [dragOver, setDragOver] = useState<BoardColumn | null>(null);
 

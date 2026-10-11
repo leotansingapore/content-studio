@@ -45,6 +45,7 @@ import {
   undoPosted,
   type DraftEntry,
   type RepeatEvery,
+  onDraftsChanged,
 } from "@/lib/draftHistory";
 import {
   NOTE_COLORS,
@@ -140,6 +141,8 @@ export default function CalendarPage() {
   const reviews = useDraftReviews(userId, drafts);
   const [postOpenId, setPostOpenId] = useState<string | null>(null);
   useZernioRefresh(userId, drafts, setDrafts);
+  // The assistant moves posts from outside this page: read them again when it does.
+  useEffect(() => (userId ? onDraftsChanged(() => setDrafts(loadDrafts(userId))) : undefined), [userId]);
   // Phones open on the list: the month grid only shows Mon-Thu at 390px.
   const [view, setView] = useState<View>(() =>
     typeof window !== "undefined" && window.innerWidth < 640 ? "list" : "month",

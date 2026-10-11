@@ -54,6 +54,7 @@ import {
   MAX_DRAFTS,
   type DraftEntry,
   type DraftStatus,
+  onDraftsChanged,
 } from "@/lib/draftHistory";
 import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { repurposeTargetsFor, buildRepurposeUrl } from "@/lib/repurpose";
@@ -226,6 +227,8 @@ export default function DraftsPage() {
   const reviews = useDraftReviews(userId, drafts);
   const [postOpenId, setPostOpenId] = useState<string | null>(null);
   useZernioRefresh(userId, drafts, setDrafts);
+  // The assistant moves posts from outside this page: read them again when it does.
+  useEffect(() => (userId ? onDraftsChanged(() => setDrafts(loadDrafts(userId))) : undefined), [userId]);
 
   useEffect(() => {
     let active = true;

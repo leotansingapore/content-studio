@@ -461,25 +461,35 @@ const REWRITES = [
   { id: "formal", label: "More formal", instruction: "make the tone more formal and polished" },
 ] as const;
 // "lines": the lines the sounds-human check flagged, rewritten, the rest kept.
-type RewriteId = (typeof REWRITES)[number]["id"] | "lines";
-const rewriteLabel = (id: RewriteId) => (id === "lines" ? "Rewrite flagged lines" : REWRITES.find((r) => r.id === id)!.label);
+// "ask": the change asked for in the assistant (/generate?draft=<id>&ask=<words>).
+type RewriteId = (typeof REWRITES)[number]["id"] | "lines" | "ask";
+const rewriteLabel = (id: RewriteId) =>
+  id === "lines" ? "Rewrite flagged lines" : id === "ask" ? "Your change" : REWRITES.find((r) => r.id === id)!.label;
+/** The longest change the assistant passes in. */
+const MAX_ASK = 300;
 
 // The generator's own rules (format length, a framing nudge) win over loose
 // context, so a rewrite states a word target and says it overrides them.
 const REWRITE_LENGTH: Partial<Record<RewriteId, number>> = { shorter: 0.65, longer: 1.35 };
 
-function rewriteFields(post: string, id: RewriteId, lines: string[] = []): { ideaContext: string; styleReference: string } {
+function rewriteFields(post: string, id: RewriteId, lines: string[] = [], ask = ""): { ideaContext: string; styleReference: string } {
   const instruction =
     id === "lines"
       ? `rewrite only these lines so each sounds like a person talking, and keep every other line word for word: ${lines.map((l) => `"${l}"`).join(" ")}`
-      : REWRITES.find((r) => r.id === id)!.instruction;
+      : id === "ask"
+        ? ask
+        : REWRITES.find((r) => r.id === id)!.instruction;
   const words = post.split(/\s+/).filter(Boolean).length;
   const target = Math.max(20, Math.round(words * (REWRITE_LENGTH[id] ?? 1)));
-  const rule = `This is an edit of an existing post, not a new post. Rewrite instruction: ${instruction}. Target length: about ${target} words. The instruction and target length override the format length, variant tone and framing rules.`;
+  // the asked change may itself be about length, so it gets no word target to fight
+  const rule =
+    id === "ask"
+      ? `This is an edit of an existing post, not a new post. Rewrite instruction: ${instruction}. The instruction overrides the format length, variant tone and framing rules.`
+      : `This is an edit of an existing post, not a new post. Rewrite instruction: ${instruction}. Target length: about ${target} words. The instruction and target length override the format length, variant tone and framing rules.`;
   return {
     ideaContext: [
       rule,
-      "Keep the same opening line idea, the same points in the same order, the same facts and numbers, and the same call to action.",
+      `Keep${id === "ask" ? " everything the instruction does not ask to change:" : ""} the same opening line idea, the same points in the same order, the same facts and numbers, and the same call to action.`,
       BLANKS_RULE,
       "",
       "The post:",
@@ -964,6 +974,28 @@ export default function GeneratePage() {
     }, 50);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, searchParams.get("draft")]);
+
+  // The assistant's "open it in Write and change it" (?draft=<id>&ask=<words>): the
+  // rewrite starts once that draft is in the editor and is offered like any other,
+  // so Use this, Discard and Undo work as they do for the one-tap rewrites.
+  const [pendingAsk, setPendingAsk] = useState<{ id: string; ask: string } | null>(null);
+  useEffect(() => {
+    const ask = searchParams.get("ask")?.trim().slice(0, MAX_ASK);
+    const id = searchParams.get("draft");
+    if (!searchParams.has("ask")) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("ask");
+    setSearchParams(next, { replace: true });
+    if (ask && id) setPendingAsk({ id, ask });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get("ask")]);
+  useEffect(() => {
+    if (!pendingAsk || currentDraftId !== pendingAsk.id || !draft.trim()) return;
+    setPendingAsk(null);
+    void handleRewrite("ask", undefined, pendingAsk.ask);
+    setTimeout(() => document.getElementById("rewrite-panel")?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAsk, currentDraftId, draft]);
 
   // Prefill from a Plan deep-link: /generate?pillar=&detail=&audience=&format=
   // &platform=&cta=&funnel=&idea=&ctx=&ref=&formula=  (runs once, then strips params).
@@ -1883,7 +1915,7 @@ export default function GeneratePage() {
     void runAdapt(v.platform, v.draftId);
   };
 
-  const handleRewrite = async (id: RewriteId, lines?: string[]) => {
+  const handleRewrite = async (id: RewriteId, lines?: string[], ask?: string) => {
     const source = draft.trim();
     if (!source) return;
     rewriteAbortRef.current?.abort();
@@ -1898,7 +1930,7 @@ export default function GeneratePage() {
     };
     try {
       await streamOnePost(
-        { ...buildBasePayload(), ...rewriteFields(source, id, lines) },
+        { ...buildBasePayload(), ...rewriteFields(source, id, lines, ask) },
         {
           onToken: (text) => mine() && setRewrite({ id, text, status: "streaming" }),
           onComplete: (raw) => {

@@ -16,6 +16,7 @@ import {
   type DraftEntry,
   type DraftStats,
   type PostingActivity,
+  onDraftsChanged,
 } from "@/lib/draftHistory";
 import { GOAL_PLATFORMS, MAX_WEEKLY_GOAL, loadGoals, saveGoals, weekProgress, type WeeklyGoals } from "@/lib/goals";
 import {
@@ -109,6 +110,8 @@ function StatCard({
 export default function HomePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
+  // The assistant moves posts from outside this page: read them again when it does.
+  useEffect(() => (userId ? onDraftsChanged(() => setDrafts(loadDrafts(userId))) : undefined), [userId]);
   // Team rule: members on approval can't mark a post posted until it is approved.
   const reviews = useDraftReviews(userId, drafts);
   const [voiceReady, setVoiceReady] = useState<boolean>(true);
