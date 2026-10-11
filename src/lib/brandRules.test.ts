@@ -67,14 +67,20 @@ describe("keeping the policies after writing", () => {
 
 describe("links that are not an offer", () => {
   it("are flagged once each, matching an offer whatever its tracking tags or www.", () => {
-    const allowed = allowedLinks({ offers, instagram: "ada" });
+    const allowed = allowedLinks({ offers, instagram: "ada" }, {});
     expect(allowed).toContain("https://ig.me/m/ada");
     const text = "Book here: https://www.adatan.sg/review/?utm_source=instagram. Or https://ig.me/m/ada. Also https://randomfund.com/x and https://randomfund.com/x";
     expect(strayLinks(text, allowed)).toEqual(["https://randomfund.com/x"]);
     expect(checkLimits(text, "instagram", allowed).warnings).toEqual([{ level: "warn", message: "Not one of your offer links: https://randomfund.com/x" }]);
   });
   it("nothing is flagged when the kit has no offers", () => {
-    expect(allowedLinks({ instagram: "ada" })).toEqual([]);
-    expect(checkLimits("See https://randomfund.com", "instagram", allowedLinks({})).warnings).toEqual([]);
+    expect(allowedLinks({ instagram: "ada" }, {})).toEqual([]);
+    expect(checkLimits("See https://randomfund.com", "instagram", allowedLinks({}, {})).warnings).toEqual([]);
+  });
+  it("the DM links Brand kit built from the Analytics accounts are allowed, as Brand kit told the adviser to copy them", () => {
+    const accounts = { instagram: { handle: "@ada.tan" }, facebook: { handle: "facebook.com/adatanfa" } };
+    const allowed = allowedLinks({ offers }, accounts);
+    expect(allowed).toEqual(expect.arrayContaining(["https://ig.me/m/ada.tan", "https://m.me/adatanfa"]));
+    expect(strayLinks("DM me: https://ig.me/m/ada.tan or https://m.me/adatanfa", allowed)).toEqual([]);
   });
 });

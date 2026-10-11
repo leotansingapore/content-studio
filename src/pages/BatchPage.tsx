@@ -17,6 +17,7 @@ import { streamOnePost } from "@/lib/batchGenerate";
 import { stripDashes, tagLinks, toPlainText, withSignOff } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
 import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { strayLinks } from "@/lib/platformCounters";
 import {
   upsertDraft,
@@ -95,7 +96,7 @@ export default function BatchPage() {
   const [running, setRunning] = useState(false);
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const offerLinks = useMemo(() => allowedLinks(loadBrand(userId)), [userId]);
+  const offerLinks = useMemo(() => allowedLinks(loadBrand(userId), loadSocialAccounts(userId)), [userId]);
 
   useEffect(() => {
     let active = true;

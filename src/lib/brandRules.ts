@@ -36,10 +36,13 @@ export function brandOffers(brand: Rules): { name: string; url: string }[] {
   });
 }
 
-/** The links a post may carry: the offers and the brand kit's DM links. Empty when there are no offers, so nothing is flagged. */
-export function allowedLinks(brand: Rules): string[] {
+/**
+ * The links a post may carry: the offers and the brand kit's DM links, which start from the Analytics accounts
+ * (loadSocialAccounts) as on Brand kit. Empty when there are no offers, so nothing is flagged.
+ */
+export function allowedLinks(brand: Rules, accounts: Parameters<typeof dmFields>[1]): string[] {
   const offers = brandOffers(brand).map((o) => o.url);
-  return offers.length ? [...offers, ...dmLinks(dmFields(brand ?? null, {})).map((l) => l.url)] : [];
+  return offers.length ? [...offers, ...dmLinks(dmFields(brand ?? null, accounts)).map((l) => l.url)] : [];
 }
 
 /** The rules as one line for the writer's request, or "" when the kit sets none. */

@@ -134,6 +134,7 @@ import {
 } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
 import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { streamOnePost } from "@/lib/batchGenerate";
 import QuickTip from "@/components/QuickTip";
 import CompetitorReference, {
@@ -1095,7 +1096,7 @@ export default function GeneratePage() {
   const brandKit = useMemo(() => loadBrand(userId), [userId]);
   const brandSignOff = brandKit?.signOff?.trim() ?? "";
   // links that aren't the kit's offers are flagged under the post
-  const brandLinks = useMemo(() => allowedLinks(brandKit), [brandKit]);
+  const brandLinks = useMemo(() => allowedLinks(brandKit, loadSocialAccounts(userId)), [brandKit, userId]);
   // ...and, when the brand kit asks for it, UTM tracking on every link
   const forPosting = (text: string, plat: string = platform) => {
     const out = withDisclosure(withSignOff(toPlainText(text), brandSignOff), disclosure);

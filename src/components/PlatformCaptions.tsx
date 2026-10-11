@@ -4,7 +4,7 @@
 // video asks viewers to comment or DM a word, its first line waits here for
 // the consultant to check the spelling and add it, or skip it.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Copy, Wand2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useUsesLeft } from "@/lib/aiUsage";
 import { scanCompliance } from "@/lib/compliance";
 import { checkLimits, countHashtags, readout, strayLinks } from "@/lib/platformCounters";
 import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import { loadSocialAccounts } from "@/lib/socialAccounts";
 import type { CarouselBrand } from "@/lib/carousel";
 import {
   CAPTION_PLATFORMS,
@@ -92,7 +93,7 @@ export default function PlatformCaptions({
   };
 
   const text = set[tab] ?? "";
-  const allowed = allowedLinks(brand);
+  const allowed = useMemo(() => allowedLinks(brand, loadSocialAccounts(userId)), [brand, userId]);
   const known = tab === "tiktok" || tab === "linkedin" || tab === "facebook" ? tab : null;
   const parts = tab === "x" ? xParts(text) : [text];
   const max = PLATFORM_RULES[tab].maxChars;

@@ -47,6 +47,7 @@ import { loadBrand } from "@/lib/carousel";
 import { tagLinks, withSignOff } from "@/lib/plainText";
 import { checkLimits, strayLinks } from "@/lib/platformCounters";
 import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { supabase } from "@/lib/supabase";
 import { useUsesLeft } from "@/lib/aiUsage";
 import {
@@ -1247,7 +1248,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   }, [caption, brandKit, project.name]);
   const copyCaption = () =>
     navigator.clipboard.writeText(postText).then(() => toast({ title: brandKit?.signOff?.trim() ? "Caption copied with your sign-off" : "Caption copied" }));
-  const brandLinks = useMemo(() => allowedLinks(brandKit), [brandKit]);
+  const brandLinks = useMemo(() => allowedLinks(brandKit, loadSocialAccounts(userId)), [brandKit, userId]);
   const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram", brandLinks).warnings : []), [caption, postText, brandLinks]);
   const saveToPosts = () => {
     upsertDraft(userId, {
