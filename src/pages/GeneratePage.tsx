@@ -584,7 +584,7 @@ function ReelLengthPicker({ value, onChange }: { value: ReelLength; onChange: (s
           type="button"
           aria-pressed={value === s}
           onClick={() => onChange(s)}
-          className={`flex h-11 min-w-11 items-center justify-center rounded-full border px-3 text-xs font-semibold transition-colors sm:h-9 ${
+          className={`flex h-11 min-w-11 items-center justify-center rounded-full border px-3 text-xs font-semibold transition-colors sm:h-9 [@media(pointer:coarse)]:h-11 ${
             value === s
               ? "border-primary/60 bg-primary/10 text-primary"
               : "border-border/70 text-muted-foreground hover:text-foreground"
@@ -2736,7 +2736,7 @@ export default function GeneratePage() {
         </Button>
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <label
-            className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-all ${
+            className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs transition-all [@media(pointer:coarse)]:min-h-11 ${
               hooksFirst
                 ? "border-primary/60 bg-primary/10 text-primary"
                 : "border-border/70 text-muted-foreground hover:border-primary/40"
@@ -2758,7 +2758,7 @@ export default function GeneratePage() {
             onClick={() => setShowShortcuts(true)}
             title="Keyboard shortcuts"
             aria-label="Keyboard shortcuts"
-            className="hidden h-8 w-8 items-center justify-center rounded-lg border border-border/70 text-muted-foreground hover:border-primary/40 hover:text-primary sm:inline-flex"
+            className="hidden h-8 w-8 items-center justify-center rounded-lg border border-border/70 text-muted-foreground hover:border-primary/40 hover:text-primary sm:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
           >
             <Keyboard className="h-3.5 w-3.5" />
           </button>
@@ -3259,7 +3259,7 @@ export default function GeneratePage() {
                       type="button"
                       disabled={rewrite?.status === "streaming"}
                       onClick={() => void handleRewrite(r.id)}
-                      className={`flex h-11 items-center rounded-full border px-3 text-xs font-medium transition-colors disabled:opacity-50 sm:h-9 ${
+                      className={`flex h-11 items-center rounded-full border px-3 text-xs font-medium transition-colors disabled:opacity-50 sm:h-9 [@media(pointer:coarse)]:h-11 ${
                         rewrite?.id === r.id
                           ? "border-primary/60 bg-primary/10 text-primary"
                           : "border-border/70 text-muted-foreground hover:text-foreground"
@@ -3272,7 +3272,7 @@ export default function GeneratePage() {
                     type="button"
                     onClick={cleanDraft}
                     title="Removes hidden characters and swaps fancy punctuation and stock AI words."
-                    className="flex h-11 items-center gap-1 rounded-full border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:h-9"
+                    className="flex h-11 items-center gap-1 rounded-full border border-border/70 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:h-9 [@media(pointer:coarse)]:h-11"
                   >
                     <Eraser className="h-3.5 w-3.5" /> Clean AI tells
                   </button>
