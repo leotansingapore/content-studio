@@ -92,6 +92,9 @@ export const DAILY_LIMITS = {
   "social-read": 300,
   // Auto-DM (social automations): creating, editing, pausing and deleting an automation; listing and logs are reads.
   "social-automation-write": 30,
+  // Post it for me (social posts.ts): scheduling a post or trying a failed one again, and each file's upload link.
+  "social-schedule": 30,
+  "social-presign": 30,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

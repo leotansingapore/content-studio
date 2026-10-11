@@ -166,6 +166,15 @@ export async function checkPost(z: Zernio, own: Set<string>, postId: unknown) {
   return data.post;
 }
 
+/**
+ * H4: a post Zernio hands back (a create, an Idempotency-Key replay, a retry) passes the same rule as
+ * checkPost before the caller sees it: a well-formed id and every platform from an account in their set.
+ */
+export function ownPost(post: unknown, own: Set<string>): Record<string, unknown> {
+  if (!isZernioId((post as { _id?: unknown } | null)?._id) || !allOwn(postAccounts(post), own)) throw new NotYours("post not yours");
+  return post as Record<string, unknown>;
+}
+
 /** M1: Zernio automations carry accountId, not profileId; it must be in the caller's set. Returns {automation, logs}. */
 export async function checkAutomation(z: Zernio, own: Set<string>, automationId: unknown) {
   const data = await getOwned(z, `/comment-automations/${pathId(automationId)}`);

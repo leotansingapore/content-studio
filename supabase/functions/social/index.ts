@@ -1,6 +1,6 @@
 // Social accounts (Playbook > Social accounts): status, connect and disconnect an adviser's own
-// accounts through Zernio, and their comment keyword -> DM automations (Recruit > Auto-DM,
-// automations.ts). Scoping rules, caps and rollout: docs/zernio-connection.md.
+// accounts through Zernio, their comment keyword -> DM automations (Recruit > Auto-DM,
+// automations.ts) and Post it for me (posts.ts). Scoping rules, caps and rollout: docs/zernio-connection.md.
 //
 // Secrets: ZERNIO_API_KEY, SOCIAL_CONNECT_USERS (user ids separated by commas, or *),
 // ZERNIO_MAX_ACCOUNTS (team cap, 2 when unset). Off, with no Zernio call, unless the key is set and
@@ -13,6 +13,7 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { zernioClient, type ProfileRow } from "../_shared/zernio.ts";
 import { automationErrorReply, isAutomationWrite, parseAutomationRequest, runAutomation } from "./automations.ts";
 import { connect, disconnect, errorReply, isAllowed, offReply, parseRequest, status, teamCapOf, type Caller } from "./logic.ts";
+import { parsePostRequest, postErrorReply, runPost } from "./posts.ts";
 
 const headers = {
   "Access-Control-Allow-Origin": "*",
@@ -37,16 +38,21 @@ Deno.serve(async (req) => {
     return json(off.body, off.status);
   }
 
-  const auto = parseAutomationRequest(body);
+  const posting = parsePostRequest(body);
+  if (posting && !posting.ok) return json({ error: posting.error }, posting.status);
+  const auto = posting ? null : parseAutomationRequest(body);
   if (auto && !auto.ok) return json({ error: auto.error }, auto.status);
-  const r = auto ? null : parseRequest(body);
+  const r = posting || auto ? null : parseRequest(body);
   if (r && !r.ok) return json({ error: r.error }, r.status);
-  const q = auto?.ok ? auto.req : r?.ok ? r.req : null;
+  const q = posting?.ok ? posting.req : auto?.ok ? auto.req : r?.ok ? r.req : null;
   if (!q) return json({ error: "Unknown action." }, 400);
   if (q.action === "status" && !q.profileId) return json({ enabled: true });
   const profileId = q.profileId!;
 
-  const usage = await consumeUsage(admin, uid, q.action === "connect" ? "social-connect" : isAutomationWrite(q.action) ? "social-automation-write" : "social-read");
+  // the daily cap this action counts against
+  const feature = q.action === "presign" ? "social-presign" : q.action === "schedule" || q.action === "retry" ? "social-schedule"
+    : q.action === "connect" ? "social-connect" : isAutomationWrite(q.action) ? "social-automation-write" : "social-read";
+  const usage = await consumeUsage(admin, uid, feature);
   if (!usage.allowed) {
     const refusal = usageRefusal(usage);
     return json(refusal.body, refusal.status);
@@ -80,7 +86,9 @@ Deno.serve(async (req) => {
       },
     };
     const z = zernioClient(key);
-    const reply = auto?.ok
+    const reply = posting?.ok
+      ? await runPost(z, caller.mapped, uid, posting.req)
+      : auto?.ok
       ? await runAutomation(z, caller.mapped, auto.req)
       : q.action === "connect"
         ? await connect(z, caller, row, q.platform, q.reconnectAccountId)
@@ -89,7 +97,7 @@ Deno.serve(async (req) => {
           : await status(z, caller);
     return json(reply.body, reply.status);
   } catch (e) {
-    const reply = (auto ? automationErrorReply(e) : null) ?? errorReply(e);
+    const reply = (posting ? postErrorReply(e) : auto ? automationErrorReply(e) : null) ?? errorReply(e);
     if (reply.status >= 500 || reply.status === 402) {
       console.error("social failed", q.action, e instanceof Error ? `${e.name}: ${e.message} ${(e as { code?: string }).code ?? ""}` : String(e));
     }

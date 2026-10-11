@@ -1,0 +1,347 @@
+import { describe, expect, it } from "vitest";
+import { NotYours, ZernioError, type ZAccount, type Zernio, type ZernioRequest } from "../_shared/zernio";
+import { checkSchedule, checkUpload, parsePostRequest, platformProblem, postBody, postErrorReply, runPost, type PostRequest, type ScheduleInput } from "./posts";
+
+const MINE = "0123456789abcdef01234561";
+const THEIRS = "0123456789abcdef01234569";
+const IG = "65000000000000000000a001";
+const TT = "65000000000000000000a002";
+const YT = "65000000000000000000a003";
+const LI = "65000000000000000000a004";
+const VICTIM = "65000000000000000000b001";
+const POST = "67000000000000000000d001";
+const THEIR_POST = "67000000000000000000d009";
+const UID = "11111111-2222-4333-8444-555555555555";
+const OTHER_UID = "99999999-2222-4333-8444-555555555555";
+const KEY = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+const NOW = Date.parse("2026-10-11T02:00:00Z");
+const LATER = "2026-10-12T09:00:00+08:00";
+const PNG = "https://media.zernio.com/temp/1_a_slide-01.png";
+const MP4 = "https://media.zernio.com/temp/1_a_reel.mp4";
+
+const acct = (id: string, platform: string, profileId = MINE): ZAccount => ({ _id: id, platform, profileId, username: `u${id.slice(-3)}` });
+const TEAM = [acct(IG, "instagram"), acct(TT, "tiktok"), acct(YT, "youtube"), acct(LI, "linkedin"), acct(VICTIM, "instagram", THEIRS)];
+
+/** A fake Zernio: "METHOD /path" -> answer or a function of the request. An unrouted call fails the test. */
+function fake(routes: Record<string, unknown>) {
+  const calls: { key: string; req?: ZernioRequest }[] = [];
+  const z: Zernio = async (method, path, req) => {
+    const key = `${method} ${path}`;
+    calls.push({ key, req });
+    if (!(key in routes)) throw new Error(`unexpected Zernio call ${key}`);
+    const r = routes[key];
+    if (r instanceof Error) throw r;
+    return typeof r === "function" ? r(req) : r;
+  };
+  return { z, calls, keys: () => calls.map((c) => c.key), req: (key: string) => calls.find((c) => c.key === key)?.req };
+}
+
+/** GET /accounts answers the profile's own accounts, as Zernio does with profileId. */
+const accounts = (req?: ZernioRequest) => ({ accounts: TEAM.filter((a) => a.profileId === req?.query?.profileId) });
+
+// Shape from https://zernio.com/openapi.json (Post, PlatformTarget).
+const zPost = (id: string, accountIds: string[], extra: Record<string, unknown> = {}) => ({
+  post: {
+    _id: id,
+    status: "scheduled",
+    scheduledFor: "2026-10-12T01:00:00.000Z",
+    platforms: accountIds.map((a) => ({ platform: TEAM.find((t) => t._id === a)?.platform ?? "instagram", accountId: a, status: "pending" })),
+    ...extra,
+  },
+});
+
+const input = (extra: Partial<ScheduleInput> = {}): ScheduleInput => ({
+  clientKey: KEY,
+  content: "Three things to check before you renew.",
+  captions: {},
+  mediaUrls: [PNG],
+  scheduledFor: LATER,
+  firstComment: "",
+  tiktok: null,
+  youtube: null,
+  ...extra,
+});
+const schedule = (accountIds: string[], i: ScheduleInput = input()): PostRequest => ({ action: "schedule", profileId: "me", accountIds, input: i });
+
+describe("the request", () => {
+  it("answers a malformed id with 404 before any other use (H1)", () => {
+    for (const body of [
+      { action: "cancel", profileId: "me", postId: `../accounts/${VICTIM}` },
+      { action: "post", profileId: "me", postId: POST.toUpperCase() },
+      { action: "retry", profileId: "me" },
+      { action: "tiktok-creator-info", profileId: "me", accountId: `${TT}/x` },
+      { action: "schedule", profileId: "me", accountIds: [IG, "x"], clientKey: KEY, content: "hi", scheduledFor: LATER },
+      { action: "presign", profileId: "ME!", filename: "a.png", contentType: "image/png", size: 10 },
+    ]) {
+      expect(parsePostRequest(body, NOW), JSON.stringify(body)).toEqual({ ok: false, status: 404, error: "Not found." });
+    }
+  });
+
+  it("leaves every other action to the other parsers", () => {
+    expect(parsePostRequest({ action: "status" })).toBeNull();
+    expect(parsePostRequest({ action: "automations", profileId: "me" })).toBeNull();
+    expect(parsePostRequest(null)).toBeNull();
+  });
+
+  it("needs an account and a client key that is a UUID", () => {
+    expect(parsePostRequest({ action: "schedule", profileId: "me", accountIds: [], clientKey: KEY, scheduledFor: LATER }, NOW)).toMatchObject({ status: 400 });
+    expect(checkSchedule({ clientKey: `${KEY}:x`, content: "hi", scheduledFor: LATER }, NOW)).toEqual({ error: "Close this and try again." });
+    expect(checkSchedule({ clientKey: KEY.toUpperCase(), content: "hi", scheduledFor: LATER }, NOW)).toMatchObject({ value: { clientKey: KEY } });
+  });
+
+  it("takes a future time with an offset, or now; never a past or made-up time", () => {
+    const at = (scheduledFor: unknown, extra = {}) => checkSchedule({ clientKey: KEY, content: "hi", scheduledFor, ...extra }, NOW);
+    expect(at(LATER)).toMatchObject({ value: { scheduledFor: LATER } });
+    expect(at("2026-10-12T01:00:00Z")).toMatchObject({ value: { scheduledFor: "2026-10-12T01:00:00Z" } });
+    expect(at(undefined, { now: true })).toMatchObject({ value: { scheduledFor: null } });
+    // no offset: Zernio would read it in some other zone
+    for (const bad of ["2026-10-12T09:00:00", "2026-10-12 09:00+08:00", "2026-10-12T24:00:00+08:00", "2026-10-12T19:60:00+08:00", "tomorrow", 1760230000000]) {
+      expect(at(bad), String(bad)).toEqual({ error: "Pick the day and time again." });
+    }
+    // in the past, or so close that Zernio would publish it inside the call
+    expect(at("2026-10-11T09:59:00+08:00")).toMatchObject({ error: expect.stringMatching(/has passed/) });
+    expect(at("2026-10-11T10:00:30+08:00")).toMatchObject({ error: expect.stringMatching(/has passed/) });
+  });
+
+  it("takes https media as one video or up to 10 pictures", () => {
+    const media = (mediaUrls: unknown[]) => checkSchedule({ clientKey: KEY, content: "hi", scheduledFor: LATER, mediaUrls }, NOW);
+    expect(media([PNG, PNG])).toMatchObject({ value: { mediaUrls: [PNG, PNG] } });
+    expect(media([MP4])).toMatchObject({ value: { mediaUrls: [MP4] } });
+    for (const bad of [["http://media.zernio.com/a.png"], ["https://x.com/a.gif"], ["javascript:alert(1)"], [3]]) expect(media(bad)).toEqual({ error: "Attach the media again." });
+    expect(media([MP4, PNG])).toEqual({ error: "Post one video, or up to 10 pictures." });
+    expect(media([MP4, MP4])).toEqual({ error: "Post one video, or up to 10 pictures." });
+    expect(media(Array(11).fill(PNG))).toEqual({ error: "Post up to 10 pictures." });
+  });
+
+  it("checks an upload's type, name and size against the app's caps", () => {
+    const up = (filename: string, contentType: string, size: unknown) => checkUpload({ filename, contentType, size });
+    expect(up("slide-01.png", "image/png", 900_000)).toEqual({ value: { filename: "slide-01.png", contentType: "image/png", size: 900_000 } });
+    expect(up("reel.mov", "video/quicktime", 299_000_000)).toMatchObject({ value: {} });
+    expect(up("a.pdf", "application/pdf", 10)).toMatchObject({ error: expect.stringMatching(/JPG, PNG or WebP/) });
+    expect(up("a.png", "image/jpeg", 10)).toMatchObject({ error: expect.stringMatching(/Rename/) });
+    expect(up("../a.png", "image/png", 10)).toMatchObject({ error: expect.stringMatching(/Rename/) });
+    expect(up("a.png", "image/png", 8_000_001)).toMatchObject({ error: "Keep a picture under 8 MB." });
+    expect(up("a.mp4", "video/mp4", 300_000_001)).toMatchObject({ error: "Keep a video under 300 MB." });
+    expect(up("a.mp4", "video/mp4", 0)).toMatchObject({ error: "That file is empty." });
+    expect(up("a.mp4", "video/mp4", "5")).toMatchObject({ error: "That file is empty." });
+  });
+});
+
+describe("what each platform takes", () => {
+  it("refuses before Zernio does", () => {
+    expect(platformProblem(input({ mediaUrls: [] }), ["linkedin"])).toBeNull();
+    expect(platformProblem(input({ mediaUrls: [] }), ["instagram"])).toBe("Instagram needs a picture or video.");
+    expect(platformProblem(input({ mediaUrls: [], content: "" }), ["linkedin"])).toBe("Write the caption, or attach a picture or video.");
+    expect(platformProblem(input(), ["youtube"])).toBe("YouTube takes one video.");
+    expect(platformProblem(input({ mediaUrls: [MP4] }), ["youtube"])).toBeNull();
+    expect(platformProblem(input(), ["tiktok"])).toBe("Pick who can see it on TikTok.");
+    expect(platformProblem(input({ content: "x".repeat(501) }), ["linkedin", "threads"])).toBe("Keep the Threads caption under 501 characters.");
+    expect(platformProblem(input({ content: "x".repeat(501), captions: { threads: "short" } }), ["linkedin", "threads"])).toBeNull();
+    expect(platformProblem(input({ mediaUrls: ["https://media.zernio.com/a.webp"] }), ["instagram"])).toBe("Instagram takes JPG or PNG pictures.");
+    expect(platformProblem(input({ mediaUrls: ["https://media.zernio.com/a.mov"] }), ["threads"])).toBe("Threads takes MP4 videos.");
+    expect(platformProblem(input(), [])).toBe("Pick an account to post to.");
+    expect(platformProblem(input(), ["twitter"])).toBe("Posting doesn't work on that account.");
+  });
+
+  it("builds the post: per platform captions, TikTok's switches and consent, YouTube's title, Singapore time", () => {
+    const tiktok = { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: true };
+    const body = postBody(input({ mediaUrls: [MP4], captions: { tiktok: "Short one" }, tiktok, youtube: { title: "Renewals", visibility: "unlisted" }, firstComment: "Link: https://x.sg" }), [
+      { _id: TT, platform: "tiktok" },
+      { _id: YT, platform: "youtube" },
+    ]);
+    expect(body).toEqual({
+      content: "Three things to check before you renew.",
+      mediaItems: [{ url: MP4 }],
+      platforms: [
+        {
+          platform: "tiktok",
+          accountId: TT,
+          customContent: "Short one",
+          platformSpecificData: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: true, contentPreviewConfirmed: true, expressConsentGiven: true },
+        },
+        {
+          platform: "youtube",
+          accountId: YT,
+          customContent: "Three things to check before you renew.",
+          platformSpecificData: { visibility: "unlisted", madeForKids: false, title: "Renewals", firstComment: "Link: https://x.sg" },
+        },
+      ],
+      scheduledFor: LATER,
+      timezone: "Asia/Singapore",
+    });
+  });
+
+  it("puts a TikTok photo post's caption in description, and sends now as a minute ahead", () => {
+    const body = postBody(input({ scheduledFor: null, tiktok: { privacyLevel: "SELF_ONLY", allowComment: false, allowDuet: true, allowStitch: true } }), [{ _id: TT, platform: "tiktok" }], NOW);
+    expect(body.scheduledFor).toBe("2026-10-11T02:01:00.000Z");
+    expect(body).not.toHaveProperty("publishNow");
+    const data = (body.platforms as { platformSpecificData: Record<string, unknown> }[])[0].platformSpecificData;
+    expect(data).toMatchObject({ description: "Three things to check before you renew.", allowComment: false });
+    expect(data).not.toHaveProperty("allowDuet");
+  });
+});
+
+describe("schedule", () => {
+  it("posts from the caller's own accounts with the H4 key, and returns the checked post", async () => {
+    const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [IG, LI]) });
+    const reply = await runPost(f.z, MINE, UID, schedule([IG, LI]), NOW);
+    expect(reply).toMatchObject({ status: 200, body: { post: { id: POST, status: "scheduled", platforms: [{ platform: "instagram", accountId: IG, status: "pending", url: null }, { accountId: LI }] } } });
+    const req = f.req("POST /posts")!;
+    expect(req.idempotencyKey).toBe(`cs:${UID}:me:${KEY}`);
+    expect((req.body as { platforms: { accountId: string }[] }).platforms.map((p) => p.accountId)).toEqual([IG, LI]);
+    expect(f.req("GET /accounts")!.query).toEqual({ profileId: MINE, includeOverLimit: "true" });
+  });
+
+  it("never sends another adviser's account to Zernio", async () => {
+    const f = fake({ "GET /accounts": accounts });
+    await expect(runPost(f.z, MINE, UID, schedule([IG, VICTIM]), NOW)).rejects.toBeInstanceOf(NotYours);
+    expect(f.keys()).toEqual(["GET /accounts"]);
+  });
+
+  it("refuses what the platform can't take before calling Zernio", async () => {
+    const f = fake({ "GET /accounts": accounts });
+    expect(await runPost(f.z, MINE, UID, schedule([IG], input({ mediaUrls: [] })), NOW)).toEqual({ status: 400, body: { error: "Instagram needs a picture or video." } });
+    expect(f.keys()).toEqual(["GET /accounts"]);
+  });
+
+  it("a client uuid reused by another adviser never returns the first adviser's post", async () => {
+    // Zernio matches Idempotency-Key on the key alone across the whole team
+    const byKey = new Map<string, unknown>();
+    let n = 0;
+    const team = (profileId: string) => (req?: ZernioRequest) => {
+      if (!byKey.has(req!.idempotencyKey!)) {
+        const ids = (req!.body as { platforms: { accountId: string }[] }).platforms.map((p) => p.accountId);
+        byKey.set(req!.idempotencyKey!, zPost(`67000000000000000000e00${++n}`, ids));
+      }
+      return byKey.get(req!.idempotencyKey!);
+    };
+    const mine = fake({ "GET /accounts": accounts, "POST /posts": team(MINE) });
+    const first = await runPost(mine.z, MINE, UID, schedule([IG]), NOW);
+    const theirs = fake({ "GET /accounts": accounts, "POST /posts": team(THEIRS) });
+    const second = await runPost(theirs.z, THEIRS, OTHER_UID, schedule([VICTIM]), NOW);
+    expect((first.body.post as { id: string }).id).not.toBe((second.body.post as { id: string }).id);
+    expect(theirs.req("POST /posts")!.idempotencyKey).toBe(`cs:${OTHER_UID}:me:${KEY}`);
+    // and were Zernio to hand back the first adviser's post anyway, the post check refuses it
+    const leaky = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [IG]) });
+    await expect(runPost(leaky.z, THEIRS, OTHER_UID, schedule([VICTIM]), NOW)).rejects.toBeInstanceOf(NotYours);
+  });
+
+  it("refuses a returned post with no platforms or a malformed id", async () => {
+    for (const answer of [zPost(POST, []), { post: { ...zPost(POST, [IG]).post, _id: "x" } }, { message: "ok" }]) {
+      const f = fake({ "GET /accounts": accounts, "POST /posts": answer });
+      await expect(runPost(f.z, MINE, UID, schedule([IG]), NOW), JSON.stringify(answer)).rejects.toBeInstanceOf(NotYours);
+    }
+  });
+
+  it("refuses before the brand's first connect", async () => {
+    const f = fake({});
+    await expect(runPost(f.z, null, UID, schedule([IG]), NOW)).rejects.toBeInstanceOf(NotYours);
+    expect(f.keys()).toEqual([]);
+  });
+});
+
+describe("post, cancel and retry", () => {
+  const act = (action: "post" | "cancel" | "retry", postId = POST): PostRequest => ({ action, profileId: "me", postId });
+
+  it("reads each platform's status, link and reason", async () => {
+    const published = zPost(POST, [IG, LI], {
+      status: "partial",
+      platforms: [
+        { platform: "instagram", accountId: { _id: IG }, status: "published", platformPostUrl: "https://www.instagram.com/p/abc/" },
+        { platform: "linkedin", accountId: LI, status: "failed", errorMessage: "Token expired", platformPostUrl: "javascript:x" },
+      ],
+    });
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: published });
+    expect((await runPost(f.z, MINE, UID, act("post"))).body.post).toEqual({
+      id: POST,
+      status: "partial",
+      scheduledFor: "2026-10-12T01:00:00.000Z",
+      platforms: [
+        { platform: "instagram", accountId: IG, status: "published", url: "https://www.instagram.com/p/abc/", error: "" },
+        { platform: "linkedin", accountId: LI, status: "failed", url: null, error: "Token expired" },
+      ],
+    });
+  });
+
+  it("never reads, cancels or retries another adviser's post (H2)", async () => {
+    for (const action of ["post", "cancel", "retry"] as const) {
+      const f = fake({ "GET /accounts": accounts, [`GET /posts/${THEIR_POST}`]: zPost(THEIR_POST, [IG, VICTIM], { status: "failed" }) });
+      await expect(runPost(f.z, MINE, UID, act(action, THEIR_POST)), action).rejects.toBeInstanceOf(NotYours);
+      expect(f.keys()).toEqual(["GET /accounts", `GET /posts/${THEIR_POST}`]);
+    }
+  });
+
+  it("cancels a scheduled post and refuses a published one plainly", async () => {
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG]), [`DELETE /posts/${POST}`]: { message: "Deleted" } });
+    expect(await runPost(f.z, MINE, UID, act("cancel"))).toEqual({ status: 200, body: { cancelled: true } });
+    expect(f.keys()).toContain(`DELETE /posts/${POST}`);
+
+    const live = zPost(POST, [IG, LI], { status: "partial", platforms: [{ platform: "instagram", accountId: IG, status: "published" }, { platform: "linkedin", accountId: LI, status: "failed" }] });
+    const g = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: live });
+    expect(await runPost(g.z, MINE, UID, act("cancel"))).toEqual({ status: 409, body: { code: "published", error: "It's already posted on Instagram, so it can't be cancelled. Delete it there." } });
+    expect(g.keys()).not.toContain(`DELETE /posts/${POST}`);
+  });
+
+  it("retries only a failed post and checks what comes back", async () => {
+    const f = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG], { status: "failed" }), [`POST /posts/${POST}/retry`]: zPost(POST, [IG], { status: "published" }) });
+    expect(await runPost(f.z, MINE, UID, act("retry"))).toMatchObject({ status: 200, body: { post: { id: POST, status: "published" } } });
+
+    const g = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG]) });
+    expect(await runPost(g.z, MINE, UID, act("retry"))).toMatchObject({ status: 409, body: { code: "not_failed" } });
+    expect(g.keys()).not.toContain(`POST /posts/${POST}/retry`);
+
+    const h = fake({ "GET /accounts": accounts, [`GET /posts/${POST}`]: zPost(POST, [IG], { status: "failed" }), [`POST /posts/${POST}/retry`]: zPost(THEIR_POST, [VICTIM]) });
+    await expect(runPost(h.z, MINE, UID, act("retry"))).rejects.toBeInstanceOf(NotYours);
+  });
+});
+
+describe("presign and TikTok creator info", () => {
+  it("hands out Zernio's upload link only when both links are https", async () => {
+    const req: PostRequest = { action: "presign", profileId: "me", file: { filename: "slide-01.png", contentType: "image/png", size: 1000 } };
+    const f = fake({ "POST /media/presign": { uploadUrl: "https://storage.example/put?sig=1", publicUrl: PNG, key: "temp/x", expiresIn: 3600 } });
+    expect(await runPost(f.z, MINE, UID, req)).toEqual({ status: 200, body: { uploadUrl: "https://storage.example/put?sig=1", publicUrl: PNG } });
+    expect(f.req("POST /media/presign")!.body).toEqual({ filename: "slide-01.png", contentType: "image/png", size: 1000 });
+    const g = fake({ "POST /media/presign": { uploadUrl: "http://storage.example/put", publicUrl: PNG } });
+    await expect(runPost(g.z, MINE, UID, req)).rejects.toBeInstanceOf(ZernioError);
+  });
+
+  it("reads the creator's privacy levels for the caller's own TikTok account only", async () => {
+    const info = {
+      creator: { nickname: "me", canPostMore: true },
+      privacyLevels: [{ value: "PUBLIC_TO_EVERYONE", label: "Public To Everyone" }, { value: "SELF_ONLY", label: "Self Only" }, { value: "<b>", label: "x" }],
+      postingLimits: { maxVideoDurationSec: 600, interactionSettings: { allow_comment: { enabled: true }, allow_duet: { enabled: true }, allow_stitch: { enabled: false } } },
+    };
+    const f = fake({ "GET /accounts": accounts, [`GET /accounts/${TT}/tiktok/creator-info`]: info });
+    const req: PostRequest = { action: "tiktok-creator-info", profileId: "me", accountId: TT, mediaType: "video" };
+    expect((await runPost(f.z, MINE, UID, req)).body.info).toEqual({
+      privacyLevels: [{ value: "PUBLIC_TO_EVERYONE", label: "Public To Everyone" }, { value: "SELF_ONLY", label: "Self Only" }],
+      comment: true,
+      duet: true,
+      stitch: false,
+      canPostMore: true,
+      maxVideoSeconds: 600,
+    });
+    expect(f.req(`GET /accounts/${TT}/tiktok/creator-info`)!.query).toEqual({ mediaType: "video" });
+    for (const accountId of [IG, VICTIM]) {
+      const g = fake({ "GET /accounts": accounts });
+      await expect(runPost(g.z, MINE, UID, { ...req, accountId } as PostRequest)).rejects.toBeInstanceOf(NotYours);
+      expect(g.keys()).toEqual(["GET /accounts"]);
+    }
+  });
+});
+
+describe("Zernio's refusals in plain words", () => {
+  it("names the fix", () => {
+    expect(postErrorReply(new ZernioError(409, "idempotency_conflict", "x"))).toMatchObject({ status: 409, body: { code: "in_flight" } });
+    expect(postErrorReply(new ZernioError(409, "", "This exact content..."))).toMatchObject({ status: 409, body: { code: "duplicate" } });
+    expect(postErrorReply(new ZernioError(403, "ACCOUNT_DISCONNECTED", "Account x is disconnected"))).toMatchObject({ status: 409, body: { code: "reconnect" } });
+    expect(postErrorReply(new ZernioError(400, "", "Selected privacy level 'X' is not available for this creator."))).toMatchObject({
+      status: 400,
+      body: { error: "Zernio didn't take it: Selected privacy level 'X' is not available for this creator." },
+    });
+    expect(postErrorReply(new ZernioError(400, "", "Zernio answered 400."))).toMatchObject({ body: { error: "Zernio didn't take it. Check the post and try again." } });
+    // a 403 with no code is a key or scope problem: left to the shared reply, never Zernio's words
+    expect(postErrorReply(new ZernioError(403, "", "Account belongs to someone else"))).toBeNull();
+    expect(postErrorReply(new Error("x"))).toBeNull();
+  });
+});
