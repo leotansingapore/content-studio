@@ -81,6 +81,12 @@ describe("the Zernio client", () => {
     expect((slow.mock.calls[0] as unknown as [URL, RequestInit])[1].signal).toBeInstanceOf(AbortSignal);
   });
 
+  it("gives up with the same 504 when the timeout lands while the answer is being read", async () => {
+    const midBody = async () => ({ ok: true, status: 200, text: async () => { throw Object.assign(new Error("slow"), { name: "TimeoutError" }); } });
+    const z = zernioClient("sk_test", midBody as unknown as typeof fetch);
+    await expect(z("GET", "/accounts")).rejects.toMatchObject({ status: 504, code: "timeout" });
+  });
+
   it("refuses a path that could climb out, before any fetch", async () => {
     const { z, fetchFn } = fake({});
     await expect(z("DELETE", `/posts/../accounts/${VICTIM}`)).rejects.toBeInstanceOf(NotYours);

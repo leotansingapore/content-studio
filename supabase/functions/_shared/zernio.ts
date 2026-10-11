@@ -54,6 +54,7 @@ export function zernioClient(apiKey: string, fetchFn: typeof fetch = fetch): Zer
     if (req.body !== undefined) headers["Content-Type"] = "application/json";
     if (req.idempotencyKey) headers["Idempotency-Key"] = req.idempotencyKey;
     let res: Response;
+    let text: string;
     try {
       res = await fetchFn(url, {
         method,
@@ -61,11 +62,12 @@ export function zernioClient(apiKey: string, fetchFn: typeof fetch = fetch): Zer
         body: req.body === undefined ? undefined : JSON.stringify(req.body),
         signal: AbortSignal.timeout(ZERNIO_TIMEOUT_MS),
       });
+      // the timeout covers reading the answer too
+      text = await res.text();
     } catch (e) {
       const slow = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
       throw new ZernioError(slow ? 504 : 502, slow ? "timeout" : "unreachable", slow ? "Zernio took too long to answer." : "Couldn't reach Zernio.");
     }
-    const text = await res.text();
     let data: Record<string, unknown> | null = null;
     try {
       data = text ? JSON.parse(text) : null;
