@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
 } from "@/lib/draftHistory";
 import {
   getTrackedPosts,
+  withReal,
   getTrend,
   getBreakdown,
   getLengthCorrelation,
@@ -61,6 +62,10 @@ import {
 import CreatorLookup from "@/components/CreatorLookup";
 import AccountAudit from "@/components/AccountAudit";
 import RecruitNumbers from "@/components/recruit/RecruitNumbers";
+import RealNumbers from "@/components/RealNumbers";
+import { extraLine } from "@/lib/realNumbers";
+import { realMetrics } from "../../supabase/functions/social/metrics.ts";
+import { socialConnectShown } from "@/lib/socialConnect";
 import { normalizeHandle, type AuditPlatform } from "@/lib/accountAudit";
 import {
   SOCIAL_PLATFORMS,
@@ -297,7 +302,7 @@ const WEEK_PICK_KEY = "content-studio-weekpick-";
 function ThisWeekCard({ userId, version }: { userId: string; version: number }) {
   const report = useMemo(() => {
     const goal = Object.values(loadGoals(userId)).reduce((s, n) => s + (n ?? 0), 0);
-    return weekReport(loadDrafts(userId), loadFollowing(userId), sgDay(), goal);
+    return weekReport(loadDrafts(userId).map(withReal), loadFollowing(userId), sgDay(), goal);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, version]);
   const moves = useMemo(() => weekMoves(report), [report]);
@@ -399,8 +404,9 @@ export default function AnalyticsPage() {
   const [userId, setUserId] = useState<string | null | undefined>(undefined);
   const [postedCount, setPostedCount] = useState(0);
   const [dimension, setDimension] = useState<BreakdownDimension>("platform");
-  // Bumps whenever bulk metrics are saved so every derived memo recomputes.
+  // Bumps whenever bulk metrics are saved (or real ones pulled) so every derived memo recomputes.
   const [metricsVersion, setMetricsVersion] = useState(0);
+  const bumpMetrics = useCallback(() => setMetricsVersion((v) => v + 1), []);
   const [accounts, setAccounts] = useState<SocialAccounts>({});
   const [labels, setLabels] = useState<ContentLabel[]>([]);
   // Followers per platform: typed in Add your numbers, else from the account audit.
@@ -693,6 +699,8 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
+      {userId && socialConnectShown() && <RealNumbers userId={userId} onChange={bumpMetrics} />}
+
       {/* Bulk metrics entry — add real numbers for every posted post in one place */}
       {postedDrafts.length > 0 && (
         <Card className="border-border/60 shadow-card">
@@ -729,7 +737,11 @@ export default function AnalyticsPage() {
                 <span key={f}>{label}</span>
               ))}
             </div>
-            {postedDrafts.map((d) => (
+            {postedDrafts.map((d) => {
+              // pulled on Your real numbers: shown in place of the typed ones, which stay stored
+              const real = d.zernio?.numbers;
+              const shown = real ? realMetrics(real) : null;
+              return (
               <div
                 key={d.id}
                 className="grid grid-cols-2 gap-2 border-t border-border/50 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(4,5.5rem)] sm:items-center sm:py-1.5"
@@ -740,6 +752,7 @@ export default function AnalyticsPage() {
                   </p>
                   <p className="text-[11px] text-muted-foreground sm:text-[10px]">
                     {PLATFORM_LABEL[d.platform] ?? d.platform}
+                    {real && <span className="font-medium text-success">, real numbers{extraLine(real) ? `: ${extraLine(real)}` : ""}</span>}
                     <span aria-live="polite">
                       {savedId === d.id && (
                         <span className="ml-2 inline-flex items-center gap-1 font-medium text-success">
@@ -749,7 +762,15 @@ export default function AnalyticsPage() {
                     </span>
                   </p>
                 </div>
-                {METRIC_FIELDS.map(([f, label]) => (
+                {METRIC_FIELDS.map(([f, label]) =>
+                  shown ? (
+                    <div key={f} className="space-y-1 sm:space-y-0">
+                      <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:sr-only">{label}</span>
+                      <span className="flex h-9 items-center justify-end rounded-md bg-muted/40 px-2 text-xs tabular-nums text-foreground sm:h-8">
+                        {shown[f].toLocaleString()}
+                      </span>
+                    </div>
+                  ) : (
                   <label key={f} className="space-y-1 sm:space-y-0">
                     <span className="block text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground sm:sr-only">
                       {label}
@@ -762,9 +783,11 @@ export default function AnalyticsPage() {
                       label={`${f} for ${d.hook || "this post"}`}
                     />
                   </label>
-                ))}
+                  ),
+                )}
               </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       )}

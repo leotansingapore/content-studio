@@ -10,6 +10,7 @@
 import { scoped } from "@/lib/profiles";
 import { addDays, localDateKey, scheduleAt, scheduleTime } from "@/lib/dueDates";
 import type { ShotBeat } from "../../supabase/functions/clone-reel/logic.ts";
+import type { Numbers } from "../../supabase/functions/social/metrics.ts";
 export const MAX_DRAFTS = 50;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
@@ -66,6 +67,8 @@ export interface ZernioLink {
   links?: { platform: string; url: string }[];
   /** Why it failed, in Zernio's words. */
   error?: string;
+  /** Its real numbers, pulled on Analytics (social/metrics.ts), summed over its accounts. Typed metrics stay as they are. */
+  numbers?: Numbers & { at: string };
 }
 
 export interface Storyboard {
@@ -305,6 +308,20 @@ export function setDraftStatus(
     return updated;
   });
   saveDrafts(userId, next);
+  return next;
+}
+
+/** Real numbers pulled on Analytics onto the drafts that went out through Zernio (by draft id). Saves only on a change. */
+export function setDraftNumbers(userId: string, byDraft: Map<string, Numbers>, at: string): DraftEntry[] {
+  const current = loadDrafts(userId);
+  let changed = false;
+  const next = current.map((d) => {
+    const n = d.zernio && byDraft.get(d.id);
+    if (!n || JSON.stringify({ ...d.zernio!.numbers, at: "" }) === JSON.stringify({ ...n, at: "" })) return d;
+    changed = true;
+    return { ...d, zernio: { ...d.zernio!, numbers: { ...n, at } } };
+  });
+  if (changed) saveDrafts(userId, next);
   return next;
 }
 

@@ -6,6 +6,7 @@
 // this function and in week-pick.
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { realMetrics } from "../social/metrics.ts";
 
 export const APP_URL = "https://consultant-content-studio.vercel.app";
 export const PREFS_PREFIX = "content-studio-notify-";
@@ -108,6 +109,8 @@ function postsFrom(raw: string | undefined): Post[] {
   for (const d of list.slice(0, 200)) {
     if (!d || typeof d !== "object" || typeof d.id !== "string" || !d.id) continue;
     const m = d.metrics && typeof d.metrics === "object" ? d.metrics : undefined;
+    // the real numbers pulled on Analytics for a post that went out through Zernio, over typed ones
+    const real = d.zernio?.numbers && typeof d.zernio.numbers === "object" ? realMetrics(d.zernio.numbers) : undefined;
     out.push({
       id: d.id,
       hook: str(d.hook) ?? "",
@@ -115,9 +118,8 @@ function postsFrom(raw: string | undefined): Post[] {
       status: str(d.status),
       scheduledFor: str(d.scheduledFor),
       postedAt: str(d.postedAt),
-      metrics: m
-        ? { impressions: num(m.impressions), reactions: num(m.reactions), comments: num(m.comments), shares: num(m.shares) }
-        : undefined,
+      metrics:
+        real ?? (m ? { impressions: num(m.impressions), reactions: num(m.reactions), comments: num(m.comments), shares: num(m.shares) } : undefined),
       format: str(d.format),
       pillar: str(d.pillar),
       hookFormula: str(d.hookFormula),

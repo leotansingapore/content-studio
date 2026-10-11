@@ -87,7 +87,9 @@ async function carouselPngs(userId: string, c: SavedCarousel): Promise<MediaFile
 
 /** What Zernio said about the post, onto the draft; a published post marks the draft posted. */
 function applyView(userId: string, d: DraftEntry, view: PostView): DraftEntry[] {
-  let next = setDraftZernio(userId, d.id, linkFromView(d.zernio!.key, view));
+  // real numbers pulled on Analytics stay until the next pull
+  const numbers = d.zernio?.numbers;
+  let next = setDraftZernio(userId, d.id, { ...linkFromView(d.zernio!.key, view), ...(numbers ? { numbers } : {}) });
   if (view.status === "published" && draftStatus(d) !== "posted") next = setDraftStatus(userId, d.id, "posted");
   return next;
 }

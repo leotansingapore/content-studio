@@ -113,6 +113,19 @@ describe("profilesFrom", () => {
     ]);
   });
 
+  it("reads the real numbers pulled for a post that went out through Zernio over the typed ones", () => {
+    const [me] = profilesFrom(UID, {
+      [`content-studio-drafts-${UID}`]: JSON.stringify([
+        { id: "a", hook: "x", metrics: { impressions: 10, reactions: 1 }, zernio: { key: "k", postId: "p", numbers: { impressions: 0, reach: 900, views: 1500, likes: 40, comments: 6, shares: "3", saves: 11, at: "2026-10-11T01:00:00Z" } } },
+        { id: "b", hook: "y", metrics: { impressions: 10, reactions: 1 }, zernio: { key: "k2", postId: "q" } },
+      ]),
+    });
+    expect(me.posts.map((p) => p.metrics)).toEqual([
+      { impressions: 900, reactions: 40, comments: 6, shares: 0 },
+      { impressions: 10, reactions: 1, comments: undefined, shares: undefined },
+    ]);
+  });
+
   it("gives an account with nothing synced one empty profile", () => {
     expect(profilesFrom(UID, {})).toEqual([{ id: "me", name: "Me", posts: [], goals: {}, followed: [] }]);
   });

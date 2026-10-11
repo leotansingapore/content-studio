@@ -1,4 +1,5 @@
-// Derived analytics over self-reported post metrics.
+// Derived analytics over self-reported post metrics, or the real numbers pulled
+// for posts that went out through Zernio (withReal; realNumbers.ts).
 //
 // Everything here reads DraftEntry[] from draftHistory.ts — there is no
 // separate data store. All rates are computed from manually-entered numbers,
@@ -17,6 +18,7 @@ import {
 import { readout, type PlatformId } from "@/lib/platformCounters";
 import { hookFormula, HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { addDays, keyToDate, localDateKey, postedDay, scheduleTime } from "@/lib/dueDates";
+import { realMetrics } from "../../supabase/functions/social/metrics.ts";
 
 export interface TrackedPost extends DraftEntry {
   impressions: number;
@@ -29,10 +31,16 @@ export const MIN_GROUP_SAMPLE = 2;
 // A group needs at least this many posts before it can drive an auto-insight.
 const MIN_INSIGHT_SAMPLE = 3;
 
+/** A draft with the real numbers pulled for it, when it has them, in place of typed ones (which stay stored as they are). */
+export function withReal<T extends DraftEntry>(d: T): T {
+  return d.zernio?.numbers ? { ...d, metrics: realMetrics(d.zernio.numbers) } : d;
+}
+
 export function getTrackedPosts(
   userId: string | null | undefined,
 ): TrackedPost[] {
   return loadDrafts(userId)
+    .map(withReal)
     .filter(
       (d) =>
         draftStatus(d) === "posted" &&
