@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addTopic, followUpDates, followUpTitle, loadGoal, loadLog, loadTopics, MAX_TOPICS, removeTopic, loadRun, logComment, MAX_ITEMS, MAX_POSTS, MAX_THREAD, requestBody, runningJob, saveGoal, saveRun, splitPasted, startRun, thisWeek, threadLines, timesThisWeek, toggleMine, unlog } from "@/lib/engageDrafts";
+import { readFileSync } from "node:fs";
+import { addTopic, followUpDates, followUpTitle, loadGoal, loadLog, loadTopics, MAX_TOPICS, removeTopic, loadRun, logComment, MAX_ITEMS, MAX_POSTS, MAX_THREAD, newThreadPaste, requestBody, runningJob, saveGoal, saveRun, splitPasted, startRun, thisWeek, threadLines, timesThisWeek, toggleMine, unlog } from "@/lib/engageDrafts";
 
 const store = new Map<string, string>();
 const invoke = vi.fn();
@@ -87,6 +88,16 @@ describe("a DM conversation", () => {
     expect(toggleMine(lines, 3)).toBe("3"); // no name: only that line
     expect(toggleMine(lines, 0)).toBe("0,2"); // "Karen Tan" twice
     expect(toggleMine(threadLines(pasted, "0,2"), 2)).toBe("");
+  });
+
+  it("starts the You marks again when the pasted chat changes, so they never move onto the other person's lines", () => {
+    const run = { pasted, form: { mine: "1", view: "thread" } };
+    // a line added at the top: by place, mark 1 would now sit on Karen's first line
+    const edited = newThreadPaste(run, `Karen Tan: Hello?\n${pasted}`);
+    expect(threadLines(edited.pasted, edited.form.mine).some((l) => l.me)).toBe(false);
+    expect(edited.form.view).toBe("thread");
+    expect(newThreadPaste(run, pasted).form).toBe(run.form);
+    expect(readFileSync(new URL("../components/engage/Dms.tsx", import.meta.url), "utf8")).toContain("thread.edit(newThreadPaste(thread.run, e.target.value))");
   });
 
   it("sends the last MAX_THREAD lines with their sides and the goal last picked on this profile", async () => {

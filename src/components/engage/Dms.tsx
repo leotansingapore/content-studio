@@ -19,6 +19,7 @@ import {
   saveGoal,
   splitPasted,
   threadLines,
+  newThreadPaste,
   toggleMine,
   type DmGoal,
   type DmItem,
@@ -116,7 +117,7 @@ export default function Dms({ userId }: { userId: string }) {
                 <Textarea
                   id="dms-thread"
                   value={thread.run.pasted}
-                  onChange={(e) => thread.edit({ pasted: e.target.value })}
+                  onChange={(e) => thread.edit(newThreadPaste(thread.run, e.target.value))}
                   readOnly={thread.busy}
                   rows={6}
                   placeholder={"Karen: Hi, saw your post on hospital plans\nThanks Karen, what made you look into it?\nKaren: My dad's premium just jumped"}

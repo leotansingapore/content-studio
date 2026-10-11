@@ -145,6 +145,10 @@ export function threadLines(pasted: string, mine = ""): ThreadLine[] {
   return splitPasted(pasted).map((p, i) => ({ ...p, me: own.has(i) }));
 }
 
+/** A new paste for the thread. The "You" marks are kept by line place, so they start again rather than move onto the other person's lines. */
+export const newThreadPaste = (run: Pick<Run<unknown>, "pasted" | "form">, pasted: string) =>
+  ({ pasted, form: pasted === run.pasted ? run.form : { ...run.form, mine: "" } });
+
 /**
  * Flips who said line i. A named line flips every line with the same name, so
  * one tap marks all of "Leo Tan:" as yours. Returns the new form.mine.
