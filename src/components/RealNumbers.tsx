@@ -1,6 +1,7 @@
-// Analytics > Your real numbers: pulls the year's post numbers for the open brand's connected accounts
-// (src/lib/realNumbers.ts). Posts sent with Post it for me get them in place of typed numbers; the rest
-// are listed as posted outside the app. Shown only while Social accounts is switched on.
+// Analytics > Your real numbers: pulls the year's post numbers and daily follower counts for the open
+// brand's connected accounts (src/lib/realNumbers.ts). Posts sent with Post it for me get them in place of
+// typed numbers; the rest are listed as posted outside the app. Follower counts join the audit's growth
+// chart for an audited account and get their own chart here otherwise. Shown only while Social accounts is on.
 
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -8,16 +9,27 @@ import { ExternalLink, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import { FollowerGrowth } from "@/components/AccountAudit";
+import { connectedFor } from "@/lib/accountAudit";
 import { loadDrafts, setDraftNumbers } from "@/lib/draftHistory";
 import { activeProfileId } from "@/lib/profiles";
 import { isNotEnabled, platformName } from "@/lib/socialConnect";
-import { matchPulled, numbersLine, pullNumbers, realNumbersOn, rememberRealNumbers, type MetricsPost } from "@/lib/realNumbers";
+import {
+  matchPulled,
+  numbersLine,
+  pullFollowers,
+  pullNumbers,
+  realNumbersOn,
+  rememberRealNumbers,
+  type FollowerSeries,
+  type MetricsPost,
+} from "@/lib/realNumbers";
 
 type State =
   | { at: "idle" }
   | { at: "pulling" }
   | { at: "none" }
-  | { at: "done"; matched: number; outside: MetricsPost[]; when: Date }
+  | { at: "done"; matched: number; outside: MetricsPost[]; followers: FollowerSeries[]; when: Date }
   | { at: "error"; message: string }
   | { at: "off" };
 
@@ -27,23 +39,42 @@ const postLine = (p: MetricsPost) => numbersLine(p.numbers, ["views", "reach", "
 
 const dayLabel = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-SG", { day: "numeric", month: "short", timeZone: "Asia/Singapore" }) : "");
 
-export default function RealNumbers({ userId, onChange }: { userId: string; onChange: () => void }) {
+export default function RealNumbers({
+  userId,
+  audited,
+  onChange,
+  onFollowers,
+}: {
+  userId: string;
+  /** The audit panels on the page: their accounts' follower counts go on the audit's own chart. */
+  audited: { platform: string; handle: string }[];
+  onChange: () => void;
+  onFollowers: (f: FollowerSeries[]) => void;
+}) {
   const [state, setState] = useState<State>({ at: "idle" });
 
   const pull = useCallback(async () => {
     setState({ at: "pulling" });
     try {
-      const { accounts, posts } = await pullNumbers(activeProfileId(userId));
-      if (!accounts.length) return setState({ at: "none" });
+      const profileId = activeProfileId(userId);
+      const { accounts, posts } = await pullNumbers(profileId);
+      if (!accounts.length) {
+        onFollowers([]);
+        return setState({ at: "none" });
+      }
+      // the post numbers still show when the follower counts can't be read
+      const followers = await pullFollowers(profileId).catch(() => [] as FollowerSeries[]);
       const { byDraft, outside } = matchPulled(loadDrafts(userId), posts);
       setDraftNumbers(userId, byDraft, new Date().toISOString());
       rememberRealNumbers(userId);
-      setState({ at: "done", matched: byDraft.size, outside, when: new Date() });
+      setState({ at: "done", matched: byDraft.size, outside, followers, when: new Date() });
+      onFollowers(followers);
       onChange();
     } catch (e) {
+      onFollowers([]);
       setState(isNotEnabled(e) ? { at: "off" } : { at: "error", message: e instanceof Error ? e.message : "Couldn't read your numbers. Try again in a minute." });
     }
-  }, [userId, onChange]);
+  }, [userId, onChange, onFollowers]);
 
   // once used for this brand, every visit pulls again so the numbers stay fresh
   useEffect(() => {
@@ -91,6 +122,10 @@ export default function RealNumbers({ userId, onChange }: { userId: string; onCh
           </Button>
         )}
 
+        {state.at === "done" && (
+          <FollowerCharts followers={state.followers.filter((f) => f.series.length > 1 && !audited.some((a) => connectedFor([f], a.platform, a.handle)))} />
+        )}
+
         {state.at === "done" && state.outside.length > 0 && (
           <details className="group" open={state.outside.length <= 5}>
             <summary className={`inline-flex h-9 cursor-pointer list-none items-center text-sm font-medium text-foreground ${TOUCH} [&::-webkit-details-marker]:hidden`}>
@@ -122,5 +157,23 @@ export default function RealNumbers({ userId, onChange }: { userId: string; onCh
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** Follower growth for the connected accounts no audit panel shows. */
+function FollowerCharts({ followers }: { followers: FollowerSeries[] }) {
+  if (!followers.length) return null;
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {followers.map((f) => (
+        <div key={f.id} className="min-w-0 space-y-1">
+          <p className="truncate text-sm font-medium text-foreground">
+            {platformName(f.platform)}
+            {f.username ? `: ${f.username}` : ""}
+          </p>
+          <FollowerGrowth zernio={f.series} />
+        </div>
+      ))}
+    </div>
   );
 }

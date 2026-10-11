@@ -66,7 +66,8 @@ import RealNumbers from "@/components/RealNumbers";
 import { extraLine } from "@/lib/realNumbers";
 import { realMetrics } from "../../supabase/functions/social/metrics.ts";
 import { socialConnectShown } from "@/lib/socialConnect";
-import { normalizeHandle, type AuditPlatform } from "@/lib/accountAudit";
+import { auditedHandles, normalizeHandle, type AuditPlatform } from "@/lib/accountAudit";
+import type { FollowerSeries } from "@/lib/realNumbers";
 import {
   SOCIAL_PLATFORMS,
   loadFollowers,
@@ -408,6 +409,8 @@ export default function AnalyticsPage() {
   const [metricsVersion, setMetricsVersion] = useState(0);
   const bumpMetrics = useCallback(() => setMetricsVersion((v) => v + 1), []);
   const [accounts, setAccounts] = useState<SocialAccounts>({});
+  // Zernio's daily follower counts, from Your real numbers
+  const [zernioFollowers, setZernioFollowers] = useState<FollowerSeries[]>([]);
   const [labels, setLabels] = useState<ContentLabel[]>([]);
   // Followers per platform: typed in Add your numbers, else from the account audit.
   const [typedFollowers, setTypedFollowers] = useState<FollowerCounts>({});
@@ -623,7 +626,7 @@ export default function AnalyticsPage() {
 
       <RecruitNumbers />
 
-      {userId && <AccountAudit accounts={accounts} onSaveAccount={saveAccount} />}
+      {userId && <AccountAudit accounts={accounts} onSaveAccount={saveAccount} zernioFollowers={zernioFollowers} />}
 
       <CreatorLookup />
 
@@ -699,7 +702,9 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      {userId && socialConnectShown() && <RealNumbers userId={userId} onChange={bumpMetrics} />}
+      {userId && socialConnectShown() && (
+        <RealNumbers userId={userId} audited={auditedHandles(accounts)} onChange={bumpMetrics} onFollowers={setZernioFollowers} />
+      )}
 
       {/* Bulk metrics entry — add real numbers for every posted post in one place */}
       {postedDrafts.length > 0 && (

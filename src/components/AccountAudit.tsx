@@ -14,16 +14,19 @@ import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { Input } from "@/components/ui/input";
 import {
+  AUDITABLE,
   BREAKOUT_RATIO,
   MIN_POSTS_FOR_ADVICE,
   MIN_POSTS_FOR_IDEAS,
   POSTS_TO_READ,
   WEAK_RATIO,
+  auditedHandles,
+  connectedFor,
   firstLine,
-  followerSeries,
   formatCount,
   formatWord,
   freshnessOf,
+  growthSeries,
   ideaWriteUrl,
   loadAudit,
   loadLatestIdeas,
@@ -49,6 +52,7 @@ import {
   type RatedPost,
 } from "@/lib/accountAudit";
 import type { SocialAccounts } from "@/lib/socialAccounts";
+import type { FollowerSeries } from "../../supabase/functions/social/metrics.ts";
 import ProfileScore from "@/components/ProfileScore";
 import { TrendChart } from "@/components/charts/TrendChart";
 import {
@@ -69,7 +73,6 @@ import {
   Wrench,
 } from "lucide-react";
 
-const AUDITABLE: AuditPlatform[] = ["instagram", "tiktok"];
 const PLATFORM_NAME: Record<AuditPlatform, string> = { instagram: "Instagram", tiktok: "TikTok" };
 const PLATFORM_ICON: Record<AuditPlatform, typeof Instagram> = { instagram: Instagram, tiktok: Video };
 const POLL_MS = 5000;
@@ -86,14 +89,14 @@ function times(ratio: number): string {
 export default function AccountAudit({
   accounts,
   onSaveAccount,
+  zernioFollowers = [],
 }: {
   accounts: SocialAccounts;
   onSaveAccount: (platform: AuditPlatform, handle: string) => void;
+  /** Daily follower counts of the brand's connected accounts, from Use my real numbers. */
+  zernioFollowers?: FollowerSeries[];
 }) {
-  const connected = AUDITABLE.flatMap((platform) => {
-    const handle = normalizeHandle(platform, accounts[platform]?.handle ?? "");
-    return handle ? [{ platform, handle }] : [];
-  });
+  const connected = auditedHandles(accounts);
   const missing = AUDITABLE.filter((p) => !connected.some((c) => c.platform === p));
 
   return (
@@ -112,6 +115,7 @@ export default function AccountAudit({
           platform={a.platform}
           handle={a.handle}
           onRemove={() => onSaveAccount(a.platform, "")}
+          zernio={connectedFor(zernioFollowers, a.platform, a.handle)?.series}
         />
       ))}
       {missing.length > 0 && (
@@ -212,10 +216,12 @@ function AuditPanel({
   platform,
   handle,
   onRemove,
+  zernio,
 }: {
   platform: AuditPlatform;
   handle: string;
   onRemove: () => void;
+  zernio?: FollowerSeries["series"];
 }) {
   const [audit, setAudit] = useState<AuditRow | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -403,7 +409,7 @@ function AuditPanel({
               <ErrorNote message={`The latest update didn't finish, so this is from ${shortDate(fetchedAt)}.`} />
             )}
             <Headline stats={stats} followers={profile?.followers ?? null} snapshots={snapshots} />
-            <FollowerGrowth snapshots={snapshots} />
+            <FollowerGrowth snapshots={snapshots} zernio={zernio} />
             <AdviceBlock advice={audit.advice} platform={platform} stats={stats} byId={byId} />
             {profile && (
               <ProfileScore
@@ -526,9 +532,12 @@ function Headline({
 const countLabel = (n: number) => n.toLocaleString();
 const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toLocaleString()}`;
 
-/** Followers by day from the stored snapshots, with the change between each. Shown once two days are on record. */
-function FollowerGrowth({ snapshots }: { snapshots: AuditSnapshot[] }) {
-  const series = useMemo(() => followerSeries(snapshots), [snapshots]);
+/**
+ * Followers by day from the stored snapshots and, for a connected account, Zernio's daily counts (by week
+ * past a month), with the change between each. Shown once two days are on record.
+ */
+export function FollowerGrowth({ snapshots = [], zernio }: { snapshots?: AuditSnapshot[]; zernio?: FollowerSeries["series"] }) {
+  const { points: series, weekly } = useMemo(() => growthSeries(snapshots, zernio), [snapshots, zernio]);
   if (series.length < 2) return null;
   const net = series[series.length - 1].followers - series[0].followers;
   const points = series.map((p, i) => ({
@@ -548,7 +557,7 @@ function FollowerGrowth({ snapshots }: { snapshots: AuditSnapshot[] }) {
         fit
         format={countLabel}
         measure="followers"
-        title="Followers by day"
+        title={weekly ? "Followers by week" : "Followers by day"}
         width={360}
         height={120}
       />

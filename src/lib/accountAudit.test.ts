@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { followerSeries, type AuditSnapshot } from "@/lib/accountAudit";
+import { auditedHandles, connectedFor, followerSeries, growthSeries, type AuditSnapshot } from "@/lib/accountAudit";
 
 const snap = (takenAt: string, followers: number | null): AuditSnapshot => ({
   taken_at: takenAt,
@@ -37,5 +37,46 @@ describe("followerSeries", () => {
     expect(series).toHaveLength(12);
     expect(series[0]).toMatchObject({ at: "2026-08-20T02:00:00Z", followers: 1045, change: 5 });
     expect(series[11]).toMatchObject({ at: "2026-08-31T02:00:00Z", followers: 1100 });
+  });
+});
+
+describe("growthSeries", () => {
+  const days = (n: number, from = "2026-08-01") =>
+    Array.from({ length: n }, (_, i) => ({ date: new Date(Date.parse(`${from}T00:00:00Z`) + i * 864e5).toISOString().slice(0, 10), followers: 1000 + i }));
+
+  it("is the audit's own series when Zernio has no counts", () => {
+    const rows = [snap("2026-10-10T02:00:00Z", 1210), snap("2026-10-03T02:00:00Z", 1180)];
+    expect(growthSeries(rows)).toEqual({ points: followerSeries(rows), weekly: false });
+  });
+
+  it("adds Zernio's daily counts to the audit's, one point a day up to a month", () => {
+    const { points: series, weekly } = growthSeries([snap("2026-07-30T02:00:00Z", 990)], days(20));
+    expect(weekly).toBe(false);
+    expect(series).toHaveLength(21);
+    expect(series[0]).toMatchObject({ followers: 990, change: null });
+    expect(series[1]).toMatchObject({ followers: 1000, change: 10 });
+    expect(series[20].at).toBe("2026-08-20T12:00:00Z");
+  });
+
+  it("goes to one point a week, the week's last count, once there are more than a month of days", () => {
+    // 1 Aug 2026 is a Saturday: its week (from Mon 27 Jul) holds 1 and 2 Aug, then whole weeks to Sun 29 Nov
+    const { points: series, weekly } = growthSeries([], days(121));
+    expect(weekly).toBe(true);
+    expect(series[0]).toMatchObject({ at: "2026-08-02T12:00:00Z", followers: 1001, change: null });
+    expect(series[1]).toMatchObject({ at: "2026-08-09T12:00:00Z", followers: 1008, change: 7 });
+    expect(series).toHaveLength(18);
+  });
+});
+
+describe("connectedFor", () => {
+  it("finds the connected account an audit panel is about, by platform and handle", () => {
+    const audited = auditedHandles({ instagram: { handle: "@Demo.Adviser" }, tiktok: { handle: "" }, linkedin: { handle: "demo" } } as never);
+    expect(audited).toEqual([{ platform: "instagram", handle: "demo.adviser" }]);
+    const list = [
+      { platform: "tiktok", username: "demo.adviser" },
+      { platform: "instagram", username: "@demo.adviser" },
+    ];
+    expect(connectedFor(list, "instagram", "demo.adviser")).toBe(list[1]);
+    expect(connectedFor(list, "instagram", "someone.else")).toBeUndefined();
   });
 });

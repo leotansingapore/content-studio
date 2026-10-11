@@ -6,7 +6,9 @@
 import { supabase } from "@/lib/supabase";
 import { localDateKey } from "@/lib/dueDates";
 import { IDEAS_PER_BATCH } from "../../supabase/functions/_shared/postIdeas.ts";
+import type { SocialAccounts } from "@/lib/socialAccounts";
 import {
+  normalizeHandle,
   oneLine,
   type AuditAdvice,
   type AuditPlatform,
@@ -117,12 +119,16 @@ export interface FollowerPoint {
   change: number | null;
 }
 
-/** The follower chart: one point a day (that day's last snapshot), oldest first, the newest `max` of them. */
-export function followerSeries(snapshots: AuditSnapshot[], max = 12): FollowerPoint[] {
+/**
+ * The follower chart: one point a day (that day's last snapshot), oldest first, the newest `max` of them.
+ * weekly: one point a week (Monday to Sunday) instead, for a long run of daily counts.
+ */
+export function followerSeries(snapshots: Pick<AuditSnapshot, "taken_at" | "followers">[], max = 12, weekly = false): FollowerPoint[] {
   const byDay = new Map<string, { at: string; followers: number }>();
   for (const s of snapshots) {
     if (s.followers === null) continue;
-    const day = localDateKey(new Date(s.taken_at));
+    const d = new Date(s.taken_at);
+    const day = localDateKey(weekly ? new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)) : d);
     const kept = byDay.get(day);
     if (!kept || Date.parse(s.taken_at) > Date.parse(kept.at)) byDay.set(day, { at: s.taken_at, followers: s.followers });
   }
@@ -131,6 +137,35 @@ export function followerSeries(snapshots: AuditSnapshot[], max = 12): FollowerPo
     .map((d, i) => ({ ...d, change: i ? d.followers - days[i - 1].followers : null }))
     .slice(-max);
 }
+
+/** Zernio's daily follower counts (UTC days) as snapshots, so followerSeries merges them with the audit's. */
+export const zernioSnapshots = (series: { date: string; followers: number }[]): Pick<AuditSnapshot, "taken_at" | "followers">[] =>
+  series.map((p) => ({ taken_at: `${p.date}T12:00:00Z`, followers: p.followers }));
+
+/** The chart's points with Zernio's counts added: daily up to a month of days, else one a week (up to a year). */
+export function growthSeries(
+  snapshots: Pick<AuditSnapshot, "taken_at" | "followers">[],
+  zernio: { date: string; followers: number }[] = [],
+): { points: FollowerPoint[]; weekly: boolean } {
+  if (!zernio.length) return { points: followerSeries(snapshots), weekly: false };
+  const all = [...snapshots, ...zernioSnapshots(zernio)];
+  const days = followerSeries(all, 1000);
+  return days.length > 31 ? { points: followerSeries(all, 53, true), weekly: true } : { points: days, weekly: false };
+}
+
+/** Platforms the account audit reads. */
+export const AUDITABLE: AuditPlatform[] = ["instagram", "tiktok"];
+
+/** The audit panels Analytics shows: an auditable platform with a handle typed in. */
+export const auditedHandles = (accounts: SocialAccounts): { platform: AuditPlatform; handle: string }[] =>
+  AUDITABLE.flatMap((platform) => {
+    const handle = normalizeHandle(platform, accounts[platform]?.handle ?? "");
+    return handle ? [{ platform, handle }] : [];
+  });
+
+/** The connected account an audit panel is about: the same platform and handle. */
+export const connectedFor = <T extends { platform: string; username: string }>(list: T[], platform: string, handle: string): T | undefined =>
+  list.find((z) => z.platform === platform && normalizeHandle(platform as AuditPlatform, z.username) === handle);
 
 export async function removeAudit(id: string): Promise<void> {
   const { error } = await supabase.from("cs_social_audits").delete().eq("id", id);

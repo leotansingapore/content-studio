@@ -8,9 +8,9 @@
 import { callFn } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
 import type { DraftEntry } from "@/lib/draftHistory";
-import { MAX_DAYS, type AccountRef, type MetricsPost, type Numbers } from "../../supabase/functions/social/metrics.ts";
+import { MAX_DAYS, type AccountRef, type FollowerSeries, type MetricsPost, type Numbers } from "../../supabase/functions/social/metrics.ts";
 
-export type { AccountRef, MetricsPost, Numbers };
+export type { AccountRef, FollowerSeries, MetricsPost, Numbers };
 
 // shortcut: reads at most 5 pages (500 posts) a year; page further if an adviser posts more than that
 const MAX_PAGES = 5;
@@ -35,6 +35,10 @@ export async function pullNumbers(profileId: string, now = Date.now()): Promise<
   }
   return { accounts, posts };
 }
+
+/** Each connected account's daily follower counts, a year back (as far as Zernio has them). */
+export const pullFollowers = (profileId: string) =>
+  callFn<{ accounts: FollowerSeries[] }>("social", { action: "followers", profileId }, "Couldn't read your followers. Try again in a minute.").then((r) => r.accounts);
 
 const add = (a: Numbers, b: Numbers): Numbers => ({
   impressions: a.impressions + b.impressions,
