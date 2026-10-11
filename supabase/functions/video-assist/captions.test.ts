@@ -64,6 +64,11 @@ describe("YouTube, X and Threads", () => {
     expect(xParts("One post\n\nwith a gap")).toEqual(["One post\n\nwith a gap"]);
     expect(fitX(Array.from({ length: 8 }, (_, i) => `${i + 1}/8 Part ${i + 1}.`)).split("\n\n")).toEqual(["1/6 Part 1.", "2/6 Part 2.", "3/6 Part 3.", "4/6 Part 4.", "5/6 Part 5.", "6/6 Part 6."]);
   });
+  it("X keeps a ratio or a 24/7 that opens a post, and still drops the writer's own thread numbers", () => {
+    expect(fitX(["50/30/20 budgeting does not work in Singapore."])).toBe("50/30/20 budgeting does not work in Singapore.");
+    expect(fitX(["24/7 claims help is what you pay an adviser for."])).toBe("24/7 claims help is what you pay an adviser for.");
+    expect(fitX(["1/2 50/30/20 is a start.", "2/2 Then cut what you don't use."])).toBe("1/2 50/30/20 is a start.\n\n2/2 Then cut what you don't use.");
+  });
   it("Threads keeps whole paragraphs under 500, and the YouTube title is cut at a word", () => {
     const para = "word ".repeat(40).trim();
     expect(fitThreads(`${para}\n\n${para}\n\n${para}`)).toBe(`${para}\n\n${para}`);

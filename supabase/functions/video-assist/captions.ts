@@ -152,7 +152,9 @@ const sentencesOf = (t: string) => (t.match(/\S[\s\S]*?(?:[.!?]+["')\]]*(?=\s|$)
 export function fitX(parts: string[]): string {
   const room = PLATFORM_RULES.x.maxChars - 5; // "6/6 " and a spare
   const chunks: string[] = [];
-  for (const part of parts.map((p) => p.replace(/^\s*\d+\s*\/\s*\d+\s*/, "").trim()).filter(Boolean)) {
+  // only the writer's own "2/3" numbering goes, so a post opening with 50/30/20 or 24/7 keeps it
+  const given = parts.filter((p) => p.trim());
+  for (const part of given.map((p, i) => p.replace(new RegExp(`^\\s*${i + 1}\\s*/\\s*${given.length}(?!\\d)\\s*`), "").trim()).filter(Boolean)) {
     if (part.length <= room || (parts.length === 1 && part.length <= PLATFORM_RULES.x.maxChars)) {
       chunks.push(part);
       continue;
