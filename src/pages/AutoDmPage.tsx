@@ -66,7 +66,7 @@ const readKept = (userId: string) => {
 };
 
 const message = (e: unknown) => (e instanceof Error ? e.message : "That didn't go through. Try again in a minute.");
-function Switch({ on, label, busy, onChange }: { on: boolean; label: string; busy?: boolean; onChange: (on: boolean) => void }) {
+function Switch({ on, label, busy, bare, onChange }: { on: boolean; label: string; busy?: boolean; bare?: boolean; onChange: (on: boolean) => void }) {
   return (
     <button
       type="button"
@@ -79,7 +79,7 @@ function Switch({ on, label, busy, onChange }: { on: boolean; label: string; bus
       className="flex h-11 shrink-0 items-center gap-2 rounded-lg px-1.5 disabled:opacity-60"
     >
       <Track on={on} />
-      <span className={`w-12 text-left text-[13px] ${on ? "text-foreground" : "text-muted-foreground"}`}>{on ? "On" : "Paused"}</span>
+      {!bare && <span className={`w-12 text-left text-[13px] ${on ? "text-foreground" : "text-muted-foreground"}`}>{on ? "On" : "Paused"}</span>}
     </button>
   );
 }
@@ -221,14 +221,16 @@ export default function AutoDmPage() {
       )}
 
       {!(state === "ready" && (form || logOf)) && (
-        <header className="flex flex-wrap items-end justify-between gap-4">
+        <header className="flex items-center justify-between gap-3 sm:flex-wrap sm:items-end sm:gap-4">
           <div className="min-w-0 space-y-1.5">
-            <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-[34px] sm:leading-tight">Auto-DM</h1>
-            <p className="text-[15px] text-muted-foreground">When someone comments your keyword, they get your DM.</p>
+            <h1 className="font-serif text-[28px] font-semibold leading-tight tracking-tight sm:text-[34px]">Auto-DM</h1>
+            <p className="hidden text-[15px] text-muted-foreground sm:block">When someone comments your keyword, they get your DM.</p>
           </div>
           {state === "ready" && accounts.length > 0 && (
-            <Button className="h-11 gap-2 px-[18px] text-[15px] font-semibold" onClick={() => setForm(emptyForm(accounts[0].id, broughtKeyword))}>
-              <Plus className="h-[18px] w-[18px]" /> New auto-DM
+            <Button className="h-11 gap-1.5 px-3.5 text-[15px] font-semibold sm:gap-2 sm:px-[18px]" aria-label="New auto-DM" onClick={() => setForm(emptyForm(accounts[0].id, broughtKeyword))}>
+              <Plus className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+              <span className="sm:hidden">New</span>
+              <span className="hidden sm:inline">New auto-DM</span>
             </Button>
           )}
         </header>
@@ -295,7 +297,7 @@ export default function AutoDmPage() {
 
       {state === "ready" && !form && !logOf && accounts.length > 0 && (
         <>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="hidden flex-wrap items-center gap-3 text-sm sm:flex">
             {accounts.map((a) => (
               <span key={a.id} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-border bg-card px-3">
                 {platformName(a.platform)}
@@ -331,14 +333,14 @@ export default function AutoDmPage() {
 
               <section aria-labelledby="adm-list" className="space-y-3">
                 <div className="flex items-baseline justify-between gap-3">
-                  <h2 id="adm-list" className="text-lg font-semibold">
+                  <h2 id="adm-list" className="text-base font-semibold sm:text-lg">
                     Your auto-DMs
                   </h2>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-[13px] text-muted-foreground sm:text-sm">
                     {list.filter((a) => a.active).length} of {list.length} on
                   </span>
                 </div>
-                <ul className="space-y-3">
+                <ul className="space-y-2.5 sm:space-y-3">
                   {list.map((a) => (
                     <Row
                       key={a.id}
@@ -412,12 +414,17 @@ function Row({
   const stats: [string, number][] = dm
     ? [["Sent", a.stats.sent], ...(a.platform === "facebook" ? [["Delivered", a.stats.delivered] as [string, number]] : []), ["Read", a.stats.read], ["Link taps", a.stats.clicked]]
     : [["Replied to", a.stats.triggered]];
+  // phones: the counts in one line that opens Who got it
+  const line = dm
+    ? [`${a.stats.sent} sent`, ...(a.platform === "facebook" ? [`${a.stats.delivered} delivered`] : []), `${a.stats.read} read`, `${a.stats.clicked} taps`]
+    : [`${a.stats.triggered} replied to`];
+  const name = autoDmName(a);
   return (
-    <li className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-[18px]">
-      <div className={`flex min-w-0 flex-[1_1_320px] items-center gap-4 transition-opacity ${a.active ? "" : "opacity-60"}`}>
+    <li className="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-3.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-3 sm:px-5 sm:py-[18px]">
+      <div className={`flex min-w-0 gap-3 transition-opacity sm:flex-[1_1_320px] sm:items-center sm:gap-4 ${a.active ? "" : "opacity-60"}`}>
         <Thumb a={a} post={post} />
-        <div className="min-w-0 space-y-2">
-          <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] text-muted-foreground">
+        <div className="min-w-0 space-y-1.5 sm:space-y-2">
+          <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground sm:text-[13px]">
             <span className="font-semibold text-foreground/85">{listensTo(a)}</span>
             {a.alsoMatchInDms && <span>and DMs with the word</span>}
             {account && (
@@ -440,7 +447,7 @@ function Row({
           </p>
         </div>
       </div>
-      <dl className="flex flex-wrap gap-x-6 gap-y-2">
+      <dl className="hidden flex-wrap gap-x-6 gap-y-2 sm:flex">
         {stats.map(([label, n]) => (
           <div key={label} className="flex flex-col gap-0.5">
             <dt className="text-xs text-muted-foreground">{label}</dt>
@@ -454,14 +461,28 @@ function Row({
           </div>
         )}
       </dl>
-      <Switch on={a.active} label={`Auto-DM for ${autoDmName(a)}`} busy={busy === `t${a.id}`} onChange={onToggle} />
-      <div className="flex gap-2">
+      <div className="hidden sm:block">
+        <Switch on={a.active} label={`Auto-DM for ${name}`} busy={busy === `t${a.id}`} onChange={onToggle} />
+      </div>
+      <div className="hidden gap-2 sm:flex">
         <Button variant="outline" className="h-11 px-3.5" onClick={onLog}>
           Who got it
         </Button>
-        <Button variant="ghost" className="h-11 px-3.5 text-primary hover:text-primary" aria-label={`Edit the auto-DM for ${autoDmName(a)}`} onClick={onEdit} disabled={!!busy}>
+        <Button variant="ghost" className="h-11 px-3.5 text-primary hover:text-primary" aria-label={`Edit the auto-DM for ${name}`} onClick={onEdit} disabled={!!busy}>
           Edit
         </Button>
+      </div>
+      <div className="flex items-center justify-between gap-2 sm:hidden">
+        <button type="button" className="min-h-11 min-w-0 text-left text-[13px] text-foreground/85" aria-label={`Who got it: ${a.active ? line.join(", ") : `paused, ${line[0]}`}`} onClick={onLog}>
+          {a.active ? line.join(", ") : <span className="text-muted-foreground">Paused, {line[0]}</span>}
+          {dm && a.stats.failed > 0 && <span className="text-destructive">, {a.stats.failed} failed</span>}
+        </button>
+        <span className="flex shrink-0 items-center">
+          <Button variant="ghost" className="h-11 px-3 text-primary hover:text-primary" aria-label={`Edit the auto-DM for ${name}`} onClick={onEdit} disabled={!!busy}>
+            Edit
+          </Button>
+          <Switch on={a.active} label={`Auto-DM for ${name}`} busy={busy === `t${a.id}`} onChange={onToggle} bare />
+        </span>
       </div>
     </li>
   );
