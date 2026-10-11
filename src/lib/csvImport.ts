@@ -135,8 +135,8 @@ const HEADERLESS: Column[] = ["hook", "text", "platform", "date", "time", "media
 /** Which column a header names, read loosely ("Hook / topic", "Post text", "Scheduled date", "Image link"). */
 function columnOf(h: string): Column | undefined {
   const s = h.trim().toLowerCase();
-  // Time before date, so "Scheduled time" isn't read as the date.
-  if (/\btime\b|hour/.test(s)) return "time";
+  // Time before date, so "Scheduled time" isn't read as the date; "Date/Time" is the date, with its time.
+  if (/\btime\b|hour/.test(s) && !/date/.test(s)) return "time";
   if (/date|when|schedul/.test(s)) return "date";
   if (/platform|channel|network/.test(s)) return "platform";
   if (/hashtag|\btags?\b/.test(s)) return "hashtags";

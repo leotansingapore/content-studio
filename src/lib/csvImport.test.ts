@@ -193,6 +193,11 @@ describe("planImport with times, media and hashtags", () => {
     ]);
   });
 
+  it("reads a Date/Time column as the date with its time, not as a time", () => {
+    const { rows } = planImport("Hook,Text,Date/Time\nA,Body a,2026-10-20 18:30\nB,Body b,2026-10-21 9am", "linkedin", 5, NOW);
+    expect(rows.map((r) => [r.date, r.time, r.notes])).toEqual([["2026-10-20", "18:30", []], ["2026-10-21", "09:00", []]]);
+  });
+
   it("takes time, media and hashtags as columns five to seven when there is no header", () => {
     const { rows } = planImport("Hook,Body,linkedin,2026-10-20,8:00,https://x.co/v.mp4,cpf", "linkedin", 5, NOW);
     expect(rows[0]).toMatchObject({ time: "08:00", media: "https://x.co/v.mp4", text: "Body\n\n#cpf" });
