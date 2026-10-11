@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUp, Check, Copy, ExternalLink, Loader2, Plus, Trash2 } 
 
 import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import BioView from "@/components/bio/BioView";
+import TrackClicks from "@/components/TrackClicks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -331,6 +332,7 @@ export default function LinkInBioPage() {
                         <span className="mr-auto text-[11px] text-muted-foreground">
                           {l.id && month.get(l.id) ? `${month.get(l.id)} clicks in 30 days` : ""}
                         </span>
+                        <TrackClicks url={l.url} label={l.label} onUse={(t) => editLink(i, { url: t })} />
                         <Button size="icon" variant="ghost" aria-label="Move up" disabled={i === 0} onClick={() => moveLink(i, -1)} className="h-10 w-10 sm:h-9 sm:w-9 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
                           <ArrowUp className="h-4 w-4" />
                         </Button>

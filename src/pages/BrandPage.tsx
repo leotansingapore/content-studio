@@ -35,6 +35,7 @@ import {
   type CarouselBrand,
 } from "@/lib/carousel";
 import { offerUrl } from "@/lib/brandRules";
+import TrackClicks from "@/components/TrackClicks";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
 
@@ -325,6 +326,7 @@ export default function BrandPage() {
                           className="peer"
                         />
                         {o.url.trim() && !offerUrl(o.url) && <p className="text-[11px] font-medium text-warning peer-focus:hidden">Use a web link, like https://yoursite.sg/review</p>}
+                        <TrackClicks url={o.url} label={o.name} onUse={(t) => setOffer(i, { url: t })} />
                       </div>
                     </div>
                     <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label={`Remove offer ${i + 1}`} onClick={() => update({ offers: offers.filter((_, j) => j !== i) })}>

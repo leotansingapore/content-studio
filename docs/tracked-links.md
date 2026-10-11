@@ -55,6 +55,7 @@ Public (`service_role` only, called by the edge function):
 
 - Playbook > Tracked links (`/links`, `src/pages/TrackedLinksPage.tsx`, `src/lib/trackedLinks.ts`): a member makes a link (address, label, optional campaign and short address; Brand kit offers fill it in one tap), copies the `/t/` address, sees clicks and people per link for 7 or 30 days with a daily chart, renames a link or moves it to another campaign, deletes it (confirm), and switches each campaign's public report on or off, with its address. Deleting or moving the last link of a campaign whose report is on says first that the report goes too.
 - Someone who is not a member sees one line saying tracked links come with membership; links they already have stay listed, so they can still copy or delete them.
+- Brand kit offers and Link in bio links have a Track clicks action (`src/components/TrackClicks.tsx`, members only): it makes a tracked link for that address, then Swap in puts the `/t/` address in the field. Nothing changes until the adviser taps Swap in (and, on Link in bio, saves the page).
 - `/t/report/<report slug>` (`TrackedReportPublicPage.tsx`): the public report, no sign-in, `noindex`. It shows only what the report JSON holds.
 
 ## Edge function (tracked-link)
