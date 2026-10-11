@@ -106,13 +106,17 @@ const bare = (input: string) =>
 
 /** "@jane", "jane" or an instagram.com or ig.me link -> "jane"; null when it can't be an Instagram username. */
 export function igUsername(input: string): string | null {
-  const h = bare(input).replace(/^(instagram\.com|ig\.me\/m)\//i, "").replace(/^@/, "").replace(/[/?#].*$/, "").toLowerCase();
+  const path = bare(input).replace(/^(instagram\.com|ig\.me\/m)\//i, "").replace(/^@/, "");
+  // a post, reel or story link names no account to chat with
+  if (/^(p|reels?|stories|tv|explore)\//i.test(path)) return null;
+  const h = path.replace(/[/?#].*$/, "").toLowerCase();
   return /^(?!.*\.\.)(?!\.)(?!.*\.$)[a-z0-9._]{1,30}$/.test(h) ? h : null;
 }
 
 /** "my.page", "@my.page" or a facebook.com or m.me link -> "my.page" (a page id works too); null otherwise. */
 export function fbPageName(input: string): string | null {
   const b = bare(input).replace(/^(facebook\.com|fb\.com|m\.me)\//i, "").replace(/^@/, "");
+  if (/^(pages|people|groups|events|watch|share)\//i.test(b)) return null;
   const id = /^profile\.php\?(?:.*&)?id=(\d+)/i.exec(b)?.[1];
   const h = id ?? b.replace(/[/?#].*$/, "");
   return /^[A-Za-z0-9.]{5,50}$/.test(h) ? h : null;

@@ -98,6 +98,14 @@ describe("DM links", () => {
     for (const bad of ["", "ada", "ada tan", "ada_tan", "facebook.com/"]) expect(fbPageName(bad)).toBeNull();
   });
 
+  it("refuses a post, reel or Facebook pages link instead of making a chat link to p or pages", () => {
+    for (const post of ["https://www.instagram.com/p/C9xYz12AbCd/", "instagram.com/reel/C9xYz12AbCd", "instagram.com/stories/ada.tan/3456"]) expect(igUsername(post)).toBeNull();
+    expect(fbPageName("https://www.facebook.com/pages/Ada-Tan-Advisory/123456789012345")).toBeNull();
+    expect(fbPageName("facebook.com/groups/sgadvisers")).toBeNull();
+    expect(igUsername("instagram.com/pierre.tan")).toBe("pierre.tan");
+    expect(fbPageName("facebook.com/pagesbyada")).toBe("pagesbyada");
+  });
+
   it("takes a Singapore number with or without the +65 and spaces, and others with + and a code", () => {
     for (const ok of ["+65 9123 4567", "65 9123 4567", "6591234567", "9123 4567", "+65-8123-4567", "(65) 6123 4567"]) expect(waDigits(ok)).toMatch(/^65[3689]\d{7}$/);
     expect(waDigits("+65 9123 4567")).toBe("6591234567");
