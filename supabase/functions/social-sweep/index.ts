@@ -16,6 +16,8 @@ import { ZernioError, zernioClient } from "../_shared/zernio.ts";
 import { teamCapOf } from "../social/logic.ts";
 import { doneCounts, parseSweep, readAllRows, runSweep, secretMatches, sweepZernio, type MappingRow } from "./logic.ts";
 
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
+
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 // Zernio's own words could name an account, so only its status and code
 const errText = (e: unknown) =>
@@ -39,18 +41,25 @@ Deno.serve(async (req) => {
       return data;
     });
   const done: string[] = [];
-  try {
-    const report = await runSweep(sweepZernio(zernioClient(key), r.dryRun, done), r, {
-      loadRows,
-      teamCap: teamCapOf(Deno.env.get("ZERNIO_MAX_ACCOUNTS")),
-      allowlist: Deno.env.get("SOCIAL_CONNECT_USERS"),
-    });
-    const counts = doneCounts(done);
-    console.log("social-sweep", r.job, r.dryRun ? "dry run" : "run", JSON.stringify(counts));
-    return json({ enabled: true, ...r, ...report, counts, done });
-  } catch (e) {
-    // what went through before the failure is still reported
-    console.error("social-sweep failed", r.job, errText(e), JSON.stringify(doneCounts(done)));
-    return json({ enabled: true, ...r, error: errText(e), counts: doneCounts(done), done }, 502);
-  }
+  const run = runSweep(sweepZernio(zernioClient(key), r.dryRun, done), r, {
+    loadRows,
+    ownerGone: async (uid) => {
+      const { data, error } = await admin.auth.admin.getUserById(uid);
+      // only "no such user" is gone; any other answer leaves the profile alone this week
+      return !data?.user && error?.status === 404;
+    },
+    teamCap: teamCapOf(Deno.env.get("ZERNIO_MAX_ACCOUNTS")),
+    allowlist: Deno.env.get("SOCIAL_CONNECT_USERS"),
+  });
+  // a dry run (by hand) answers its report
+  if (r.dryRun) return run.then((report) => json({ enabled: true, ...r, ...report, done }), (e) => json({ enabled: true, ...r, error: errText(e) }, 502));
+  // the cron run answers at once, as notify does; the log keeps counts only (lists become their lengths)
+  const sizes = (o: object) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Array.isArray(v) ? v.length : v]));
+  const work = run.then(
+    (report) => console.log("social-sweep", r.job, JSON.stringify({ ...sizes(report), ...doneCounts(done) })),
+    (e) => console.error("social-sweep failed", r.job, errText(e), JSON.stringify(doneCounts(done))),
+  );
+  if (typeof EdgeRuntime !== "undefined") EdgeRuntime.waitUntil(work);
+  else await work;
+  return json({ enabled: true, ...r, started: true }, 202);
 });

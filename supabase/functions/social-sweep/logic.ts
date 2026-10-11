@@ -72,6 +72,8 @@ export async function readAllRows(page: (after: string | null) => Promise<Mappin
 export interface Env {
   /** Called only after Zernio's profile list is read, so a profile made before it always finds its row. */
   loadRows: () => Promise<MappingRow[]>;
+  /** True only when auth answers that no user has this id. Any other answer or error is false. */
+  ownerGone: (uid: string) => Promise<boolean>;
   teamCap: number;
   allowlist: string | undefined;
 }
@@ -93,13 +95,13 @@ export const PENDING = ["draft", "scheduled", "failed", "partial", "cancelled"];
 const MAX_PAGES = 10;
 
 /** M6: profiles named cs_<uuid>_<brand> that no row names, neither by Zernio id nor by owner and brand. */
-export function orphanProfiles(profiles: unknown[], rows: MappingRow[]): string[] {
+export function orphanProfiles(profiles: unknown[], rows: MappingRow[]): { id: string; owner: string }[] {
   const ids = new Set(rows.map((r) => r.zernio_profile_id));
   const brands = new Set(rows.map((r) => `${r.owner_id}_${r.profile_id}`));
   return profiles.flatMap((p) => {
     const { _id, name } = (p ?? {}) as { _id?: unknown; name?: unknown };
     const m = typeof name === "string" ? NAME.exec(name) : null;
-    return m && isZernioId(_id) && !ids.has(_id) && !brands.has(`${m[1]}_${m[2]}`) ? [_id] : [];
+    return m && isZernioId(_id) && !ids.has(_id) && !brands.has(`${m[1]}_${m[2]}`) ? [{ id: _id, owner: m[1] }] : [];
   });
 }
 
@@ -158,9 +160,15 @@ async function orphansJob(z: Zernio, env: Env, dryRun: boolean) {
   const team = await teamAccounts(z);
   const plans: OrphanPlan[] = [];
   const failed: string[] = [];
+  const ownerLive: string[] = [];
   let failedWrites = 0;
-  for (const id of orphans) {
+  for (const { id, owner } of orphans) {
     try {
+      // M6 is a deleted user's profile: a live owner (a row the read missed, a first connect racing the sweep) is never cleared
+      if (!(await env.ownerGone(owner))) {
+        ownerLive.push(id);
+        continue;
+      }
       const plan = await planOrphan(z, id);
       if (plan.accounts.length + plan.posts.length + plan.automations.length) plans.push(plan);
       if (!dryRun) failedWrites += await clearOrphan(z, plan);
@@ -170,7 +178,7 @@ async function orphansJob(z: Zernio, env: Env, dryRun: boolean) {
     }
   }
   // found: what each orphan held (on a dry run, what would go); the writes that went through are in done
-  return { orphans: orphans.length, found: plans, failed, failedWrites, offList: offList(rows, team, env.allowlist) };
+  return { orphans: orphans.length, found: plans, failed, ownerLive, failedWrites, offList: offList(rows, team, env.allowlist) };
 }
 
 /** Runs one job. z should be sweepZernio(...): it is what keeps a dry run read-only and profiles undeleted. */

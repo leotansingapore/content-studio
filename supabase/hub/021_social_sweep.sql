@@ -61,8 +61,8 @@ select cron.schedule(
       (select decrypted_secret from vault.decrypted_secrets where name = 'cs_social_sweep_secret')
     ),
     body := '{"job": "recount"}'::jsonb,
-    -- the function answers when the run is done: a few Zernio calls per account over a cap
-    timeout_milliseconds := 120000
+    -- the function answers 202 at once and works after answering (as notify)
+    timeout_milliseconds := 10000
   );
   $$
 );
@@ -78,7 +78,7 @@ select cron.schedule(
       (select decrypted_secret from vault.decrypted_secrets where name = 'cs_social_sweep_secret')
     ),
     body := '{"job": "orphans"}'::jsonb,
-    timeout_milliseconds := 120000
+    timeout_milliseconds := 10000
   );
   $$
 );

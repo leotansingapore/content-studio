@@ -41,7 +41,9 @@ select public.cs_test_assert(
   (select count(*) = 2 and bool_and(
       cmd like '%net.http_post( url := ''https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/social-sweep'',%'
       and cmd like '%''x-social-sweep-secret'', (select decrypted_secret from vault.decrypted_secrets where name = ''cs_social_sweep_secret'')%'
-      and cmd like '%timeout_milliseconds := 120000%'
+      and cmd like '%timeout_milliseconds := 10000 %'
+      -- one statement, and it is the post
+      and cmd ~ '^ ?select net\.http_post\(' and length(cmd) - length(replace(cmd, ';', '')) = 1
       and cmd not ilike '%dryRun%'
       and cmd not ilike '%delete%' and cmd not ilike '%unschedule%')
    from cs_test_jobs),
@@ -84,7 +86,7 @@ begin
            and headers = jsonb_build_object('Content-Type', 'application/json', 'x-social-sweep-secret',
                  (select decrypted_secret from vault.decrypted_secrets where name = 'cs_social_sweep_secret'))
            and body = jsonb_build_object('job', v_job)
-           and timeout_milliseconds = 120000)
+           and timeout_milliseconds = 10000)
        from net.cs_standin_calls),
       '2.1 the ' || v_job || ' job posts once, with the secret from Vault and its own job');
   end loop;

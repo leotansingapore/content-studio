@@ -74,7 +74,7 @@ function team(extra: Record<string, unknown> = {}) {
   });
 }
 
-const env = (extra: Partial<Env> = {}): Env => ({ loadRows: async () => ROWS, teamCap: 100, allowlist: UID, ...extra });
+const env = (extra: Partial<Env> = {}): Env => ({ loadRows: async () => ROWS, ownerGone: async (u) => u === GONE, teamCap: 100, allowlist: UID, ...extra });
 
 describe("the request", () => {
   it("takes a job and a boolean dryRun; a dryRun of another type is refused, never read as a real run", () => {
@@ -131,8 +131,8 @@ describe("the mapping rows", () => {
 
 describe("orphans (M6)", () => {
   it("takes only cs_<uuid>_<brand> profiles that no row names, by id or by owner and brand", () => {
-    expect(orphanProfiles(PROFILES, ROWS)).toEqual([ORPHAN]);
-    expect(orphanProfiles([...PROFILES, { _id: "BAD", name: `cs_${GONE}_p1` }, null, { name: `cs_${GONE}_p2` }], ROWS)).toEqual([ORPHAN]);
+    expect(orphanProfiles(PROFILES, ROWS)).toEqual([{ id: ORPHAN, owner: GONE }]);
+    expect(orphanProfiles([...PROFILES, { _id: "BAD", name: `cs_${GONE}_p1` }, null, { name: `cs_${GONE}_p2` }], ROWS)).toEqual([{ id: ORPHAN, owner: GONE }]);
     expect(orphanProfiles(PROFILES, [...ROWS, { owner_id: GONE, profile_id: "me", zernio_profile_id: ORPHAN }])).toEqual([]);
     // a mapped Zernio id is never an orphan, whatever its name says
     expect(orphanProfiles([{ _id: ROWS[1].zernio_profile_id, name: `cs_${GONE}_p5` }], ROWS)).toEqual([]);
@@ -223,6 +223,15 @@ describe("recount (M5)", () => {
     const { f } = recountTeam();
     const out = await runSweep(f.z, { job: "recount", dryRun: true }, env({ teamCap: 2 }));
     expect(out).toEqual({ wouldDisconnect: [{ id: NEWEST, platform: "instagram", profileId: LIVE }] });
+    expect(f.writes()).toEqual([]);
+  });
+});
+
+describe("review021: a live owner is never cleared", () => {
+  it("leaves a profile with no row alone while auth still has its owner (an empty or short rows read, a racing first connect)", async () => {
+    const f = team();
+    const out = await runSweep(sweepZernio(f.z, false, []), { job: "orphans", dryRun: false }, env({ loadRows: async () => [], ownerGone: async () => false }));
+    expect(out).toMatchObject({ orphans: 3, ownerLive: [LIVE, LIVE2, ORPHAN], found: [] });
     expect(f.writes()).toEqual([]);
   });
 });
