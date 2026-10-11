@@ -7,7 +7,8 @@
 // where it was said. Either counts once against the "ai-voice" daily cap.
 // Music for me: POST {mode:"mood", text} -> {mood}, Jev's pick from what is said
 // (calm without Jev; "music-mood" cap), then POST {mode:"music", mood, seconds}
-// -> an instrumental MP3 from Eleven Music ("ai-music" cap per adviser, "ai-music-global" for everyone).
+// -> an instrumental MP3 from Eleven Music ("ai-music" cap per adviser, "ai-music-global" for everyone;
+// both given back when no track comes back, the adviser's when the studio's can't be taken).
 //
 // Secrets: ELEVENLABS_API_KEY. Deploy WITH JWT verification:
 //   supabase functions deploy text-voice --project-ref hgdbflprrficdoyxmdxe --use-api
@@ -17,7 +18,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev } from "../_shared/jev.ts";
 import {
-  DEFAULT_MOOD, MUSIC_URL, dubBody, dubUrl, lineSpans, moodQuestions, moodState, moodText, musicBody, musicFailure, musicRefusal,
+  DEFAULT_MOOD, MUSIC_URL, dubBody, dubUrl, giveMusicBack, lineSpans, moodQuestions, moodState, moodText, musicBody, musicFailure, musicRefusal,
   parseDubRequest, parseMusicRequest, parseVoiceRequest, readMood, ttsBody, ttsUrl,
 } from "./logic.ts";
 
@@ -77,11 +78,13 @@ Deno.serve(async (req) => {
         });
       } catch (e) {
         console.error("text-voice music request failed", e);
+        await giveMusicBack(admin, uid);
         return json({ error: MUSIC_RETRY }, 502);
       }
       if (!res.ok) {
         const detail = (await res.text()).slice(0, 300);
         console.error("text-voice music elevenlabs", res.status, detail);
+        await giveMusicBack(admin, uid);
         return json({ error: musicFailure(res.status, detail) }, 502);
       }
       console.log("text-voice music", music.mood, music.ms, "ms, cost", res.headers.get("character-cost") ?? "?", "song", res.headers.get("song-id") ?? "?");

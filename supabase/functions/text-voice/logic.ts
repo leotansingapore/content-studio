@@ -3,7 +3,7 @@
 // in the mood Jev picks. No Deno or npm imports, so vitest covers it.
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
-import { GLOBAL_COUNTER_USER, consumeUsage, usageRefusal, type RpcClient } from "../_shared/usageCaps.ts";
+import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal, type UsageClient } from "../_shared/usageCaps.ts";
 
 export const TTS_MODEL = "eleven_turbo_v2_5"; // half the credits of multilingual v2, close in quality
 export const MAX_SCRIPT = 2500; // about three minutes of speech
@@ -205,15 +205,22 @@ export function parseMusicRequest(raw: unknown): { ok: true; mood: Mood; ms: num
  * shared with voiceovers and dubs, so many accounts together must not drain them. The refusal to send,
  * or null to go ahead.
  */
-export async function musicRefusal(admin: RpcClient, uid: string): Promise<{ status: number; body: { error: string; code: string } } | null> {
+export async function musicRefusal(admin: UsageClient, uid: string): Promise<{ status: number; body: { error: string; code: string } } | null> {
   // "reason" in: narrows in the app's non-strict tsconfig too
   const mine = await consumeUsage(admin, uid, "ai-music");
   if ("reason" in mine) return usageRefusal(mine);
   const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-music-global");
   if (!("reason" in everyone)) return null;
+  await giveMusicBack(admin, uid, false);
   return everyone.reason === "limit"
     ? { status: 429, body: { code: "daily_limit", error: "Today's music for the whole studio is used up. Try again after 8am Singapore time." } }
     : usageRefusal(everyone);
+}
+
+/** Nothing was made after a track's uses were taken: both come back (the adviser's alone when the studio's wasn't taken), as in ai-video. */
+export function giveMusicBack(admin: UsageClient, uid: string, studio = true) {
+  const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), as cs_consume_ai_usage keeps it
+  return Promise.all([refundUsage(admin, uid, "ai-music", day), studio && refundUsage(admin, GLOBAL_COUNTER_USER, "ai-music-global", day)]);
 }
 
 /** What to tell the adviser when Eleven Music says no. The free ElevenLabs plan has no music API at all. */
