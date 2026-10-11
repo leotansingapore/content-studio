@@ -86,6 +86,8 @@ select public.cs_test_assert(
   and not has_function_privilege('anon', 'public.cs_tracked_link_report_public(text)', 'execute')
   and not has_function_privilege('anon', 'public.cs_tracked_link_lock_slugs(text[])', 'execute')
   and not has_function_privilege('authenticated', 'public.cs_tracked_link_lock_slugs(text[])', 'execute')
+  and not has_function_privilege('anon', 'public.cs_tracked_link_hold_slug()', 'execute')
+  and not has_function_privilege('authenticated', 'public.cs_tracked_link_hold_slug()', 'execute')
   and not has_function_privilege('authenticated', 'public.cs_tracked_link_click(text, text, boolean)', 'execute')
   and not has_function_privilege('authenticated', 'public.cs_tracked_link_report_public(text)', 'execute')
   and has_function_privilege('authenticated', 'public.cs_save_tracked_link(uuid, text, text, text, text)', 'execute')
@@ -95,12 +97,12 @@ select public.cs_test_assert(
   and has_function_privilege('service_role', 'public.cs_tracked_link_report_public(text)', 'execute'),
   '0.3 anon executes nothing; owners get the three owner functions; the public two are service_role only');
 select public.cs_test_assert(
-  (select count(*) = 6
+  (select count(*) = 7
      and bool_and(coalesce(p.proconfig @> array['search_path=public, pg_temp'], false))
      and bool_and(p.prosecdef = (p.proname <> 'cs_tracked_link_lock_slugs'))
    from pg_proc p
    where p.pronamespace = 'public'::regnamespace
-     and p.proname in ('cs_tracked_link_lock_slugs', 'cs_save_tracked_link', 'cs_delete_tracked_link',
+     and p.proname in ('cs_tracked_link_lock_slugs', 'cs_tracked_link_hold_slug', 'cs_save_tracked_link', 'cs_delete_tracked_link',
                        'cs_set_tracked_link_report', 'cs_tracked_link_click', 'cs_tracked_link_report_public')),
   '0.4 every function pins search_path; all but the lock helper are SECURITY DEFINER');
 select public.cs_test_assert(
@@ -240,6 +242,14 @@ select public.cs_save_tracked_link(current_setting('cs_test.url_link')::uuid, 'a
 select public.cs_test_expect_error(
   $$select public.cs_save_tracked_link('7e57c0de-0000-4000-8000-00000000ffff', null, 'L', 'https://example.com')$$,
   '%link is gone%', '1.33 editing an unknown link is refused');
+reset role;
+select public.cs_test_assert(
+  (select count(*) = 2
+          and bool_and(owner_id = '7e57c0de-0000-4000-8000-0000000000b1' and released_at = now())
+   from public.cs_tracked_link_slug_holds where slug in ('ada-url-check', 'ada-old'))
+  and (select count(*) = 2 from public.cs_tracked_link_slug_holds),
+  '1.35 each rename holds the old slug once, for 30 days; an edit that keeps the slug holds nothing');
+set local role authenticated;
 
 set local request.jwt.claims = '{"role":"authenticated"}';
 select public.cs_test_expect_error($$select public.cs_save_tracked_link(null, null, 'L', 'https://example.com')$$,
@@ -487,6 +497,12 @@ select public.cs_test_assert(
   and not exists (select 1 from public.cs_tracked_link_visitors where link_id = current_setting('cs_test.l1')::uuid)
   and exists (select 1 from public.cs_tracked_link_visitors where link_id = current_setting('cs_test.l3')::uuid),
   '5.6 deleting a link removes its counts and the people first seen on it, and nothing else');
+select public.cs_test_assert(
+  (select count(*) = 1
+          and bool_and(owner_id = '7e57c0de-0000-4000-8000-0000000000b1' and released_at = now())
+   from public.cs_tracked_link_slug_holds where slug = 'ada-guide')
+  and (select count(*) = 3 from public.cs_tracked_link_slug_holds),
+  '5.6b the owner''s delete holds its slug once, for 30 days');
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b1","role":"authenticated"}';
@@ -565,6 +581,8 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b1","role":"authenticated"}';
 select public.cs_save_tracked_link(current_setting('cs_test.l2')::uuid, null, 'Book a call', 'https://calendly.com/ada', 'Autumn');
 reset role;
+select set_config('cs_test.a_slugs', (select string_agg(slug, ',') from public.cs_tracked_links
+  where owner_id = '7e57c0de-0000-4000-8000-0000000000b1'), true);
 delete from auth.users where id = '7e57c0de-0000-4000-8000-0000000000b1';
 select public.cs_test_assert(
   not exists (select 1 from public.cs_tracked_links where owner_id = '7e57c0de-0000-4000-8000-0000000000b1')
@@ -573,6 +591,28 @@ select public.cs_test_assert(
   and exists (select 1 from public.cs_tracked_links where owner_id = '7e57c0de-0000-4000-8000-0000000000b2')
   and exists (select 1 from public.cs_tracked_link_visitors where owner_id = '7e57c0de-0000-4000-8000-0000000000b2'),
   '8.1 an account''s links, campaigns and counts go with it; the other adviser''s stay');
+select public.cs_test_assert(
+  (select count(*) = 100
+          and count(*) = cardinality(string_to_array(current_setting('cs_test.a_slugs'), ','))
+          and bool_and(h.owner_id = '7e57c0de-0000-4000-8000-0000000000b1')
+   from unnest(string_to_array(current_setting('cs_test.a_slugs'), ',')) s
+   join public.cs_tracked_link_slug_holds h on h.slug = s),
+  '8.2 deleting an account holds every one of its 100 slugs');
+select public.cs_test_assert(
+  (select bool_and(coalesce(h.released_at = 'infinity', false))
+   from unnest(string_to_array(current_setting('cs_test.a_slugs'), ',')) s
+   join public.cs_tracked_link_slug_holds h on h.slug = s),
+  '8.3 a deleted account''s holds never end');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b2","role":"authenticated"}';
+select public.cs_test_expect_error($$select public.cs_save_tracked_link(null, 'ada-form', 'Mine', 'https://evil.example')$$,
+  '%in use recently%', '8.4 another adviser cannot take a deleted account''s slug');
+reset role;
+do $$ begin execute (select command from cron.job where jobname = 'tracked-link-prune'); end $$;
+select public.cs_test_assert(
+  (select count(*) = 100 from unnest(string_to_array(current_setting('cs_test.a_slugs'), ',')) s
+   join public.cs_tracked_link_slug_holds h on h.slug = s),
+  '8.5 the prune job keeps a deleted account''s holds');
 
 -- ---------------------------------------------------------------------------
 

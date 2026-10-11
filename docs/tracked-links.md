@@ -18,7 +18,7 @@ It follows 015 (link-in-bio): clients read through RLS (SELECT only) and write t
 | `cs_tracked_link_campaigns` | owner, name (unique per owner ignoring case), report slug or null | owner SELECT (RLS) |
 | `cs_tracked_link_days` | per link per day: taps, new people | owner SELECT (RLS) |
 | `cs_tracked_link_visitors` | one 32-byte hash per person per campaign, the link and day of the first tap | none |
-| `cs_tracked_link_slug_holds` | slugs released in the last 30 days and who released them | none |
+| `cs_tracked_link_slug_holds` | released slugs, who released them and when (`infinity` for a deleted account); no foreign key, so a hold outlives its account | none |
 | `cs_tracked_link_salt` | one 32-byte random salt, made on first apply and kept | none, not even `service_role` |
 
 A campaign exists while it has a link: saving or deleting deletes the caller's campaigns left with none, report included.
@@ -27,9 +27,14 @@ A campaign exists while it has a link: saving or deleting deletes the caller's c
 
 Owner (authenticated, each checks `auth.uid()` and the row's owner):
 
-- `cs_save_tracked_link(p_id, p_slug, p_label, p_url, p_campaign)`: creates (`p_id` null) or edits. A blank slug keeps the current one on an edit, or picks a random one for a new link. A blank campaign takes the link out of its campaign. Renaming holds the old slug for 30 days.
-- `cs_delete_tracked_link(p_id)`: deletes the link with its counts and the people first seen on it, and holds its slug for 30 days.
+- `cs_save_tracked_link(p_id, p_slug, p_label, p_url, p_campaign)`: creates (`p_id` null) or edits. A blank slug keeps the current one on an edit, or picks a random one for a new link. A blank campaign takes the link out of its campaign.
+- `cs_delete_tracked_link(p_id)`: deletes the link with its counts and the people first seen on it.
 - `cs_set_tracked_link_report(p_campaign_id, p_on)`: on makes a random 20-character report slug (100 bits) or keeps the current one; off deletes it, so an old report link never works again.
+
+Slug holds come from one trigger, `cs_tracked_links_hold_slug` (function `cs_tracked_link_hold_slug`, SECURITY DEFINER), before every delete or slug change on `cs_tracked_links`: the owner's delete or rename, a direct delete, and the cascade when an account is deleted. It takes the slug's advisory lock, so a grab waits until the release commits and then sees the hold.
+
+- Released by its owner: held from everyone else for 30 days; the owner can take it back.
+- Released because the account was deleted: held for good (`released_at = infinity`). Nobody can take it back, and the account's bio and post links may stay up long after it is gone; the rows are bounded at 100 per deleted account.
 
 Public (`service_role` only, called by the edge function):
 
@@ -62,6 +67,7 @@ Public (`service_role` only, called by the edge function):
 - `cs_tracked_link_visitors`, `cs_tracked_link_slug_holds`: revoke all from public, anon, authenticated; no policy.
 - `cs_tracked_link_salt`: revoke all from public, anon, authenticated and service_role; no policy.
 - `cs_tracked_link_lock_slugs`: revoked from public, anon, authenticated (internal helper, not SECURITY DEFINER).
+- `cs_tracked_link_hold_slug`: trigger function, revoked from public, anon, authenticated.
 - `cs_save_tracked_link`, `cs_delete_tracked_link`, `cs_set_tracked_link_report`: revoked from public and anon, granted to authenticated.
 - `cs_tracked_link_click`, `cs_tracked_link_report_public`: revoked from public, anon and authenticated, granted to service_role.
 - Policies: `cs_tracked_links_owner_read` and `cs_tracked_link_campaigns_owner_read` (`owner_id = auth.uid()`), `cs_tracked_link_days_owner_read` (days of a link the caller owns).
@@ -76,5 +82,6 @@ Run after 011 (it uses `cs_clean_label` and `cs_generate_invite_code`) on a data
 On a throwaway Postgres 18 with a Supabase stand-in that copies the live default grants (tables, functions and sequences granted to anon, authenticated and service_role) and a pg_cron stand-in:
 
 - 011, then 019 applied twice; the salt was unchanged by the second run.
-- The test file passes. 34 sabotage runs each removed or loosened one guard (every revoke and grant, search_path, each owner check and policy, the URL rules, reserved slugs, slug holds, every cap, the salt and scope in the hash, the bot flag, the report's fields, query-string stripping and off switch, the prune windows), and each turned a named check red.
-- Parallel runs (not committed): the tap cap, the people cap across two links, one person tapping two links of a campaign at once, the link cap and the slug release race all held. With the per-account advisory lock removed, the people cap overshot (1,001 rows).
+- The test file passes. 38 sabotage runs each removed or loosened one guard (every revoke and grant, search_path, each owner check and policy, the URL rules, reserved slugs, slug holds and the hold trigger, every cap, the salt and scope in the hash, the bot flag, the report's fields, query-string stripping and off switch, the prune windows), and each turned a named check red.
+- Parallel runs (not committed): the tap cap, the people cap across two links, one person tapping two links of a campaign at once, the link cap and the slug release race all held. With the per-account advisory lock removed, the people cap overshot (1,001 rows). An account deletion held open for 1.5 seconds while another adviser grabbed its 5 slugs lost none; without the trigger's slug lock it lost 1.
+- An account deleted by a non-superuser owner of `auth.users` with no rights on these tables still left a permanent hold (the cascade runs as the table owner and the trigger is SECURITY DEFINER).

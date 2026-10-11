@@ -31,10 +31,17 @@
 --     campaigns. Visitor rows are dropped 90 days after the first tap; a
 --     person who comes back after that counts again.
 --   * Slugs: the app's own route names and words like admin, api, login or
---     help are reserved. A released slug (renamed or deleted link) is held for
---     30 days so nobody else can pick up an address still printed in a post.
---     The owner can take it back. Changes take advisory locks per slug in
---     sorted order, so a release and a grab cannot race.
+--     help are reserved. A released slug is held so nobody else can pick up
+--     an address still printed in a post. One trigger writes every hold, on
+--     any delete or rename of a link, including the cascade when an account
+--     is deleted. A slug released by its owner is held for 30 days, and the
+--     owner can take it back. A slug released because its account was
+--     deleted is held for good: nobody can take it back, the account's posts
+--     and bio links may stay up long after it is gone, and the rows are
+--     bounded (100 per deleted account). Holds keep no foreign key to
+--     auth.users, so they outlive the account. Saves and releases take
+--     advisory locks per slug in sorted order, so a release and a grab
+--     cannot race.
 --   * Reports: off until the owner switches one on, which makes a random
 --     20-character report slug (100 bits). Switching off deletes the slug, so
 --     an old report link never works again; switching on later makes a new
@@ -65,6 +72,9 @@
 --   functions
 --     cs_tracked_link_lock_slugs: internal helper, revoked from public, anon
 --       and authenticated.
+--     cs_tracked_link_hold_slug: trigger function (SECURITY DEFINER, so it
+--       writes the hold whoever deletes), revoked from public, anon and
+--       authenticated.
 --     cs_save_tracked_link, cs_delete_tracked_link, cs_set_tracked_link_report:
 --       revoked from public and anon, granted to authenticated.
 --     cs_tracked_link_click, cs_tracked_link_report_public: revoked from
@@ -77,7 +87,8 @@
 --
 -- Cron: tracked-link-prune runs daily at 04:23 UTC and deletes visitor rows
 -- whose first tap is more than 90 Singapore days old and slug holds older
--- than 30 days. It posts nothing and reads no secret.
+-- than 30 days (a deleted account's holds never age). It posts nothing and
+-- reads no secret.
 --
 -- Locks: the two foreign keys to auth.users take SHARE ROW EXCLUSIVE on
 -- auth.users for the length of this transaction; it is short, and
@@ -142,7 +153,9 @@ create index if not exists cs_tracked_link_visitors_owner_day_idx
 create index if not exists cs_tracked_link_visitors_link_idx
   on public.cs_tracked_link_visitors (link_id);
 
--- Slugs released in the last 30 days, kept for their last owner.
+-- Released slugs, kept for their last owner for 30 days, or for good
+-- (released_at = 'infinity') when the account was deleted. No foreign key:
+-- a hold outlives its account.
 create table if not exists public.cs_tracked_link_slug_holds (
   slug text primary key,
   owner_id uuid not null,
@@ -184,6 +197,30 @@ begin
     perform pg_advisory_xact_lock(hashtextextended('cs_tracked_link_slug:' || v_slug, 0));
   end loop;
 end $$;
+
+-- Holds the slug of every deleted or renamed link: the owner's delete or
+-- rename, a direct delete, and the cascade from a deleted account. The slug
+-- lock makes a grab wait until the release commits, then see the hold.
+create or replace function public.cs_tracked_link_hold_slug() returns trigger
+language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  if tg_op = 'UPDATE' and new.slug = old.slug then
+    return new;
+  end if;
+  perform public.cs_tracked_link_lock_slugs(array[old.slug, case when tg_op = 'UPDATE' then new.slug end]);
+  insert into public.cs_tracked_link_slug_holds (slug, owner_id, released_at)
+  values (old.slug, old.owner_id, case
+    when exists (select 1 from auth.users u where u.id = old.owner_id) then now()
+    else 'infinity'::timestamptz
+  end)
+  on conflict (slug) do update set owner_id = excluded.owner_id, released_at = excluded.released_at;
+  return case when tg_op = 'DELETE' then old else new end;
+end $$;
+
+drop trigger if exists cs_tracked_links_hold_slug on public.cs_tracked_links;
+create trigger cs_tracked_links_hold_slug
+  before delete or update of slug on public.cs_tracked_links
+  for each row execute function public.cs_tracked_link_hold_slug();
 
 -- ---------------------------------------------------------------------------
 -- Owner (authenticated) functions
@@ -294,11 +331,6 @@ begin
     raise exception 'That address is taken. Try another.' using errcode = '23505';
   end;
 
-  if v_old_slug is not null and v_old_slug <> v_slug then
-    insert into public.cs_tracked_link_slug_holds (slug, owner_id, released_at)
-    values (v_old_slug, v_uid, now())
-    on conflict (slug) do update set owner_id = excluded.owner_id, released_at = excluded.released_at;
-  end if;
   delete from public.cs_tracked_link_campaigns c
   where c.owner_id = v_uid
     and not exists (select 1 from public.cs_tracked_links l where l.campaign_id = c.id);
@@ -323,10 +355,8 @@ begin
     return false;
   end if;
   perform public.cs_tracked_link_lock_slugs(array[v_slug]);
+  -- The trigger holds the slug.
   delete from public.cs_tracked_links where id = p_id and owner_id = v_uid;
-  insert into public.cs_tracked_link_slug_holds (slug, owner_id, released_at)
-  values (v_slug, v_uid, now())
-  on conflict (slug) do update set owner_id = excluded.owner_id, released_at = excluded.released_at;
   delete from public.cs_tracked_link_campaigns c
   where c.owner_id = v_uid
     and not exists (select 1 from public.cs_tracked_links l where l.campaign_id = c.id);
@@ -476,6 +506,7 @@ $$;
 -- ---------------------------------------------------------------------------
 
 revoke all on function public.cs_tracked_link_lock_slugs(text[]) from public, anon, authenticated;
+revoke all on function public.cs_tracked_link_hold_slug() from public, anon, authenticated;
 revoke all on function public.cs_save_tracked_link(uuid, text, text, text, text) from public, anon;
 revoke all on function public.cs_delete_tracked_link(uuid) from public, anon;
 revoke all on function public.cs_set_tracked_link_report(uuid, boolean) from public, anon;
