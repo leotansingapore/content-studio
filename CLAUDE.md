@@ -50,6 +50,9 @@
   header (NOTIFY_CRON_SECRET, also in Vault as `cs_notify_cron_secret`), and
   it refuses anything without it. VAPID_KEYS holds the web push key pair; the
   public half is in `src/lib/notify.ts`. Test it with `{"dryRun": true}`.
+  `social-sweep` (Zernio safety jobs: daily recount, weekly orphan sweep,
+  021) is `--no-verify-jwt` the same way, with `x-social-sweep-secret`
+  (SOCIAL_SWEEP_SECRET, Vault `cs_social_sweep_secret`).
 - Connected social accounts go through Zernio (`social` function, JWT on,
   018 `cs_social_profiles`). Zernio accepts any id on the team, so every id
   from a request is checked against the caller's own Zernio profile first.

@@ -35,9 +35,9 @@ Zernio accepts any account, post or automation id on the team, whichever profile
   - Before handing out a connect link the function counts the team's accounts (`includeOverLimit=true`) and refuses at `ZERNIO_MAX_ACCOUNTS` (default 2). One adviser may hold 6 across all their brand profiles.
   - A reconnect needs a checked `reconnectAccountId`; anything else is a new connect and is cap-checked.
   - Every `status` and `connect` call starts with a team-wide recount, because a cap checked only when a link is handed out can be beaten: several links collected while under it, a link reused, or a reconnect that Zernio turns into a new account. The recount lists every account on the team (`includeOverLimit=true`), holds each adviser to 6 across their brand profiles (owners mapped through `cs_social_profiles`), then the team to `ZERNIO_MAX_ACCOUNTS`, and disconnects the newest over either cap, whoever owns them. A Zernio id starts with its creation second, so a larger id is a newer account. The owner's Zernio profile gets a note in its description, and their own `status` then says which account went and why.
-  - A daily team-wide recount cron is still required before `SOCIAL_CONNECT_USERS` opens beyond Leo: an account over the cap would otherwise keep billing until someone opens Social accounts or connects. The parent session has it queued.
+  - The same recount runs daily from the `social-sweep` function (below), so an account over a cap stops billing within a day even when nobody opens Social accounts or connects. It must be scheduled (021) before `SOCIAL_CONNECT_USERS` opens beyond Leo.
   - Usage caps (`_shared/usageCaps.ts`): `social-connect` 3 a day, `social-read` 300 a day (status, disconnect, the Auto-DM list, posts and logs, a post's status, cancel, TikTok creator info, and each page of numbers, follower counts and best times), `social-automation-write` 30 a day (creating, editing, pausing and deleting an auto-DM), `social-schedule` 30 a day (scheduling a post, trying a failed one again), `social-presign` 30 a day (one per file uploaded).
-- M6, orphans keep billing. Removing a brand profile in the app disconnects its accounts through `social` first; if that fails (any error, "Not enabled." too), the brand stays. The removal goes through for an adviser taken off `SOCIAL_CONNECT_USERS`; with `ZERNIO_API_KEY` unset it is refused (503) while the brand has a row, and a brand with no row is let go. A weekly sweep (later build) disconnects the accounts of any `cs_<uuid>_<pid>` profile with no row (a deleted user).
+- M6, orphans keep billing. Removing a brand profile in the app disconnects its accounts through `social` first; if that fails (any error, "Not enabled." too), the brand stays. The removal goes through for an adviser taken off `SOCIAL_CONNECT_USERS`; with `ZERNIO_API_KEY` unset it is refused (503) while the brand has a row, and a brand with no row is let go. A weekly sweep (`social-sweep`, below) clears any `cs_<uuid>_<pid>` profile with no row (a deleted user).
 - M7, the key. Mint it with `disabledResourceGroups` covering every group the function does not call (ads, phone numbers, WhatsApp, commerce, blogs and the rest), which also stops it managing keys. Server platform allowlist: instagram, facebook, tiktok, linkedin, youtube, threads. Never X, which bills per call. `SOCIAL_CONNECT_USERS='*'` only after the daily recount sweep ships.
 - Automation DMs are free up to 10,000 sent a month, then metered.
 
@@ -48,6 +48,7 @@ Zernio accepts any account, post or automation id on the team, whichever profile
 | `ZERNIO_API_KEY` | The Zernio team key. Set by Leo's session only. |
 | `SOCIAL_CONNECT_USERS` | Comma list of user ids allowed to connect, or `*`. Entries are trimmed; empties ignored. |
 | `ZERNIO_MAX_ACCOUNTS` | Team cap on connected accounts, 2 when unset. |
+| `SOCIAL_SWEEP_SECRET` | The `x-social-sweep-secret` header pg_cron sends to `social-sweep`; the same value is in Vault as `cs_social_sweep_secret`. |
 
 ## The `social` edge function
 
@@ -95,7 +96,14 @@ Built (C3, real numbers), in `supabase/functions/social/metrics.ts` (shapes from
 - `followers` `{profileId, from?, to?, accountIds?}`: daily follower counts per account from `GET /v1/accounts/follower-stats` (a year back by default), with `accountIds` from the caller's set. Zernio sends the counts keyed by account id beside the account list; each list is attached to its own account before the filter, so a count for anyone else's account is never read.
 - `best-time` `{profileId, accountIds?}`: Zernio's best day and UTC hour per account from `GET /v1/analytics/best-time`, one call per checked account, because a slot names no account. Not shown in the app: it reads the same published posts the pulled numbers bring in, in UTC and by raw engagement rather than rate, so a second best time beside ours would disagree without adding anything.
 
-Later builds: the weekly orphan sweep and daily recount cron before the allowlist opens beyond Leo.
+## The `social-sweep` edge function (safety jobs)
+
+Deployed `--no-verify-jwt`, like `notify`: it refuses anything without the `x-social-sweep-secret` header matching `SOCIAL_SWEEP_SECRET`, and with no `ZERNIO_API_KEY` it answers `{enabled:false}` and does nothing. Body `{job: "recount" | "orphans", dryRun?: boolean}`; `dryRun: true` only reads and answers what it would do (its Zernio client refuses every write). Every run answers its counts and each write that went through (`done`); logs carry counts only. Pure logic in `supabase/functions/social-sweep/logic.ts` (tested), reusing `_shared/zernio.ts` and the `social` recount.
+
+- `recount` (daily, 03:15 Singapore time): the team-wide recount above, with every mapping row read in pages until one comes back empty.
+- `orphans` (weekly, Sunday 03:45): reads Zernio's profiles (`GET /v1/profiles?includeOverLimit=true`), then the mapping rows. A profile named `cs_<uuid>_<brand>` that no row names, neither by its Zernio id nor by its owner and brand, belonged to a deleted user: its pending posts (draft, scheduled, failed, partial, cancelled; never published or publishing) and its auto-DMs are deleted, then its accounts disconnected. A post or auto-DM counts as the profile's only when every account it names is in that profile's checked account set (M2, H3). The empty profile stays (M3: the sweep's client refuses `DELETE /v1/profiles`). A profile it can't read is left alone that week. It also lists, and never changes, mapped advisers taken off `SOCIAL_CONNECT_USERS` (while that is not `*`) who still have accounts (`offList`), for Leo to decide.
+
+The two cron jobs are in `supabase/hub/021_social_sweep.sql`, applied by hand after an independent review. Test with `{"job": "orphans", "dryRun": true}`.
 
 ## Screens
 
