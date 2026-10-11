@@ -69,6 +69,12 @@ export function parseRequest(body: unknown): Parsed {
   return isZernioId(b.accountId) ? { ok: true, req: { action: "disconnect", profileId, accountId: b.accountId } } : notFound;
 }
 
+/** The brand profile a request removes (disconnect all), or null. A removal goes through for an adviser off the list, so nothing is left billing. */
+export function removalOf(body: unknown): string | null {
+  const r = parseRequest(body);
+  return r.ok && r.req.action === "disconnect" && r.req.accountId === null ? r.req.profileId : null;
+}
+
 /**
  * Off for this caller (no key, or not on SOCIAL_CONNECT_USERS), with no Zernio call. The bare status probe
  * is a plain 200 {enabled:false}, so a browser logs no failed request each time it asks; every other

@@ -70,9 +70,9 @@ describe("removing a brand", () => {
     expect(callFn).toHaveBeenCalledWith("social", { action: "disconnect", profileId: "pmg1x2", all: true });
   });
 
-  it("goes ahead when social isn't switched on, and stops on any other failure", async () => {
+  it("stops on any failure, Not enabled too, so the brand and its accounts stay", async () => {
     callFn.mockRejectedValue(notEnabled());
-    await expect(disconnectBrand("p1")).resolves.toBeUndefined();
+    await expect(disconnectBrand("p1")).rejects.toThrow("Not enabled.");
     callFn.mockRejectedValue(new EdgeError("Couldn't reach your social accounts.", 502));
     await expect(disconnectBrand("p1")).rejects.toThrow("Couldn't reach");
     callFn.mockRejectedValue(new EdgeError("Not found.", 404));

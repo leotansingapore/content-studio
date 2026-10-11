@@ -97,13 +97,8 @@ export const disconnectOne = (profileId: string, accountId: string) =>
  * in Zernio with nothing in the app to reach them (M6). Throws when they couldn't be disconnected.
  */
 export async function disconnectBrand(profileId: string): Promise<void> {
-  try {
-    await callFn("social", { action: "disconnect", profileId, all: true });
-  } catch (e) {
-    // not switched on for this sign-in: nothing was ever connected through it
-    if (isNotEnabled(e)) return;
-    throw e;
-  }
+  // any failure, "Not enabled." too, keeps the brand: the server answers a removal for an adviser off the list
+  await callFn("social", { action: "disconnect", profileId, all: true });
 }
 
 /** The line under the connect buttons when no account can be added, or null. */

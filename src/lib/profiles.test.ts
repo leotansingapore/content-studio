@@ -82,6 +82,9 @@ describe("profiles", () => {
     expect(loadProfiles(UID).map((p) => p.id)).toContain(mb.id);
     expect(loadDrafts(UID).map((d) => d.id)).toEqual(["mb"]);
     callFn.mockRejectedValue(new EdgeError("Not enabled.", 404));
+    await expect(removeProfile(UID, mb.id)).rejects.toThrow("Not enabled.");
+    expect(loadProfiles(UID).map((p) => p.id)).toContain(mb.id);
+    callFn.mockResolvedValue({ disconnected: 0 });
     await removeProfile(UID, mb.id);
     expect(loadProfiles(UID).map((p) => p.id)).not.toContain(mb.id);
   });

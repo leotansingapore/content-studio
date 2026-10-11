@@ -6,6 +6,8 @@
 // Secrets: ZERNIO_API_KEY, SOCIAL_CONNECT_USERS (user ids separated by commas, or *),
 // ZERNIO_MAX_ACCOUNTS (team cap, 2 when unset). Off, with no Zernio call, unless the key is set and
 // the caller is listed (the bare status probe then answers 200 {enabled:false}, anything else 404).
+// Removing a brand is the exception: it disconnects for any owner, and with no key it is refused
+// while the brand has a Zernio profile.
 // Deploy WITH JWT verification:
 //   supabase functions deploy social --project-ref hgdbflprrficdoyxmdxe --use-api
 
@@ -13,7 +15,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { zernioClient, type ProfileRow } from "../_shared/zernio.ts";
 import { automationErrorReply, isAutomationWrite, parseAutomationRequest, runAutomation } from "./automations.ts";
-import { connect, disconnect, errorReply, isAllowed, offReply, parseRequest, status, teamCapOf, type Caller } from "./logic.ts";
+import { connect, disconnect, errorReply, isAllowed, offReply, parseRequest, removalOf, status, teamCapOf, type Caller } from "./logic.ts";
 import { metricsErrorReply, parseMetricsRequest, runMetrics } from "./metrics.ts";
 import { parsePostRequest, postErrorReply, runPost } from "./posts.ts";
 
@@ -35,7 +37,15 @@ Deno.serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const key = Deno.env.get("ZERNIO_API_KEY");
-  if (!key || !isAllowed(Deno.env.get("SOCIAL_CONNECT_USERS"), uid)) {
+  const removing = removalOf(body);
+  if (!key && removing) {
+    // Zernio can't be reached: a brand with a Zernio profile is refused (the app keeps it), one that never connected can go
+    const { data, error } = await admin.from("cs_social_profiles").select("zernio_profile_id").eq("owner_id", uid).eq("profile_id", removing).maybeSingle();
+    if (error) return json({ error: "Something went wrong. Try again." }, 500);
+    return data ? json({ code: "unavailable", error: "Social accounts aren't available right now." }, 503) : json({ disconnected: 0 });
+  }
+  // a brand being removed takes its accounts with it even for an adviser since taken off the list
+  if (!key || (!removing && !isAllowed(Deno.env.get("SOCIAL_CONNECT_USERS"), uid))) {
     const off = offReply(body);
     return json(off.body, off.status);
   }

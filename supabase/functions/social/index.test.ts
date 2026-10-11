@@ -35,17 +35,20 @@ const db = vi.hoisted(() => {
 vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({ createClient: () => db.admin }));
 
 const zernio: string[] = [];
+const env: Record<string, string> = {};
+// a Zernio profile id -> the accounts in it
+const accounts: Record<string, unknown[]> = {};
 // built once at load: the first Response in a worker is slow
 const answer = (body: unknown) => new Response(JSON.stringify(body));
 answer({});
 
 beforeAll(async () => {
-  const env: Record<string, string> = { ZERNIO_API_KEY: "sk_test", SOCIAL_CONNECT_USERS: UID };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
-  vi.stubGlobal("fetch", async (u: URL) => {
+  vi.stubGlobal("fetch", async (u: URL, init?: RequestInit) => {
     const url = new URL(String(u));
-    zernio.push(url.pathname + url.search);
-    return answer(url.pathname.endsWith("/accounts") ? { accounts: [] } : { profile: {} });
+    const method = init?.method ?? "GET";
+    zernio.push(`${method === "GET" ? "" : `${method} `}${url.pathname}${url.search}`);
+    return answer(url.pathname.endsWith("/accounts") ? { accounts: accounts[url.searchParams.get("profileId") ?? ""] ?? [] } : { profile: {} });
   });
   await import("./index.ts");
 }, 30_000);
@@ -53,6 +56,8 @@ beforeAll(async () => {
 beforeEach(() => {
   zernio.length = 0;
   db.spent.length = 0;
+  Object.assign(env, { ZERNIO_API_KEY: "sk_test", SOCIAL_CONNECT_USERS: UID });
+  for (const k of Object.keys(accounts)) delete accounts[k];
 });
 
 const call = (uid: string, body: unknown) =>
@@ -85,5 +90,30 @@ describe("the social function", () => {
     await call(UID, { action: "followers", profileId: "me" });
     expect(db.spent).toEqual(["social-read", "social-read"]);
     expect(zernio.every((c) => c.includes(`profileId=${MINE}`))).toBe(true);
+  });
+});
+
+describe("removing a brand", () => {
+  const ACC = "0123456789abcdef0123456a";
+
+  it("disconnects its accounts for an adviser since switched off, who still gets nothing else", async () => {
+    accounts[THEIRS] = [{ _id: ACC, profileId: THEIRS, platform: "instagram" }];
+    const r = await call(UID_B, { action: "disconnect", profileId: "me", all: true });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ disconnected: 1 });
+    expect(zernio).toContain(`DELETE /api/v1/accounts/${ACC}`);
+    expect((await call(UID_B, { action: "disconnect", profileId: "me", accountId: ACC })).status).toBe(404);
+    expect((await call(UID_B, { action: "status", profileId: "me" })).status).toBe(404);
+  });
+
+  it("is refused with no Zernio key while the brand has a Zernio profile, and goes ahead when it never connected", async () => {
+    delete env.ZERNIO_API_KEY;
+    const kept = await call(UID, { action: "disconnect", profileId: "me", all: true });
+    expect(kept.status).toBe(503);
+    expect(await kept.json()).toMatchObject({ error: "Social accounts aren't available right now." });
+    const none = await call(UID, { action: "disconnect", profileId: "pnever", all: true });
+    expect(none.status).toBe(200);
+    expect(await none.json()).toEqual({ disconnected: 0 });
+    expect(zernio).toEqual([]);
   });
 });
