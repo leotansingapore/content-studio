@@ -51,7 +51,7 @@ export default function StylePresets({ settings, words, segs, total, speed, appl
           const on = isRecipe(settings, p.recipe);
           return (
             <button key={p.id} type="button" onClick={() => void use(p)} disabled={disabled || picking} aria-pressed={on} title={p.about}
-              className={`min-h-11 rounded-full border px-3 text-xs font-semibold sm:min-h-8 ${on ? "border-primary bg-primary text-primary-foreground" : "border-border/70 bg-background text-foreground hover:border-primary/60"}`}>
+              className={`min-h-11 rounded-full border px-3 text-xs font-semibold sm:min-h-8 [@media(pointer:coarse)]:min-h-11 ${on ? "border-primary bg-primary text-primary-foreground" : "border-border/70 bg-background text-foreground hover:border-primary/60"}`}>
               {p.label}
             </button>
           );

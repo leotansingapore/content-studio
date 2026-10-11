@@ -82,7 +82,7 @@ export default function ColdOpenControl({ settings, words, duration, segs, speed
             <span className="font-medium">&ldquo;{lineText}&rdquo;</span>
             <span className="block text-[11px] text-muted-foreground">Plays first, {teaser.toFixed(1)}s</span>
           </button>
-          <div className="flex min-h-11 flex-wrap items-center justify-between gap-2 text-sm sm:min-h-0">
+          <div className="flex min-h-11 flex-wrap items-center justify-between gap-2 text-sm sm:min-h-0 [@media(pointer:coarse)]:min-h-11">
             <span className="font-medium">Hear it again in its place</span>
             <button type="button" role="switch" aria-checked={co.repeat} aria-label="Hear it again in its place" onClick={() => apply({ coldOpen: { ...co, repeat: !co.repeat } })}
               className={`relative h-6 w-11 rounded-full transition-colors after:absolute after:-inset-y-2.5 after:inset-x-0 after:content-[''] ${co.repeat ? "bg-primary" : "bg-muted"}`}>

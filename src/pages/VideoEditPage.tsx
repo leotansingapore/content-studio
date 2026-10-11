@@ -1723,7 +1723,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <Button size="sm" onClick={() => runVibe()} disabled={thinking || !ask.trim() || none("vibe-edit")} className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${thinking ? "disabled:opacity-100" : ""}`}>
                 {thinking ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />} {thinking ? "Editing..." : "Change it"}
               </Button>
-              <label className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold hover:border-primary/40 ${thinking || none("vibe-edit") ? "pointer-events-none opacity-60" : ""}`}>
+              <label className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 py-1.5 text-xs font-semibold hover:border-primary/40 [@media(pointer:coarse)]:min-h-11 ${thinking || none("vibe-edit") ? "pointer-events-none opacity-60" : ""}`}>
                 <Film className="h-3.5 w-3.5" /> Match a reference video
                 <input type="file" accept="video/*" className="sr-only" disabled={none("vibe-edit")} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void matchReference(f); }} />
               </label>
@@ -1737,14 +1737,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <label className="block space-y-1 text-xs font-semibold">
                   Skill name
                   <input value={skillForm.name} maxLength={40} autoFocus onChange={(e) => setSkillForm({ ...skillForm, name: e.target.value })}
-                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
+                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal [@media(pointer:coarse)]:h-11" />
                 </label>
                 <label className="block space-y-1 text-xs font-semibold">
                   Also do this on each video (optional)
                   <Textarea rows={2} value={skillForm.prompt} maxLength={500} onChange={(e) => setSkillForm({ ...skillForm, prompt: e.target.value })}
                     placeholder="Hook: the most surprising number I mention. Cut the pauses tight." className="text-sm font-normal" />
                 </label>
-                <label className="flex min-h-8 items-center gap-2 text-xs">
+                <label className="flex min-h-8 items-center gap-2 text-xs [@media(pointer:coarse)]:min-h-11">
                   <input type="checkbox" checked={skillForm.isDefault} onChange={(e) => setSkillForm({ ...skillForm, isDefault: e.target.checked })} className="h-4 w-4 accent-primary" />
                   Start new videos with it
                 </label>
@@ -1810,12 +1810,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                     <label className="block space-y-1 text-xs font-semibold">
                       Cover text
                       <input value={publish.cover} maxLength={60} onChange={(e) => setPublish({ ...publish, cover: e.target.value })}
-                        className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal sm:h-9" />
+                        className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal sm:h-9 [@media(pointer:coarse)]:h-11" />
                     </label>
                     <label className="block space-y-1 text-xs font-semibold">
                       Second line (optional)
                       <input value={publish.line2 ?? ""} maxLength={30} onChange={(e) => setPublish({ ...publish, line2: e.target.value })}
-                        className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal sm:h-9" />
+                        className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm font-normal sm:h-9 [@media(pointer:coarse)]:h-11" />
                     </label>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -1878,8 +1878,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 ))}
               </Row>
               <Row label="Colours">
-                <input type="color" aria-label="Caption colour" value={settings.baseColor} onChange={(e) => patch({ baseColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded" />
-                {STYLES[settings.style].mode === "words" && <input type="color" aria-label="Spoken word colour" value={settings.activeColor} onChange={(e) => patch({ activeColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded" />}
+                <input type="color" aria-label="Caption colour" value={settings.baseColor} onChange={(e) => patch({ baseColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-12" />
+                {STYLES[settings.style].mode === "words" && <input type="color" aria-label="Spoken word colour" value={settings.activeColor} onChange={(e) => patch({ activeColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-12" />}
               </Row>
               <Row label="Second language">
                 {([["", "Off"], ["zh", "\u4e2d\u6587"], ["ms", "Melayu"], ["ta", "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"]] as const).map(([id, label]) => (
@@ -2065,7 +2065,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                           <Button size="sm" variant="ghost" className="h-11 w-11 shrink-0 p-0 sm:h-8 sm:w-8" aria-label={`Listen to ${c.kind === "filler" ? c.word : c.kind === "retake" ? "the first take" : "the pause"} at ${fmtTime(c.start)}`} onClick={() => listen(c.start, c.end)}>
                             <Volume2 className="h-3.5 w-3.5" />
                           </Button>
-                          <Chip on={!kept} onClick={() => toggleCut(c.id)} className="min-h-11 sm:min-h-0">{kept ? "Kept" : c.kind === "pause" && settings.pauseFast ? `${FAST}x` : "Cut"}</Chip>
+                          <Chip on={!kept} onClick={() => toggleCut(c.id)} className="min-h-11 sm:min-h-0 [@media(pointer:coarse)]:min-h-11">{kept ? "Kept" : c.kind === "pause" && settings.pauseFast ? `${FAST}x` : "Cut"}</Chip>
                         </li>
                       );
                     })}
@@ -2089,7 +2089,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               <label className="block space-y-1 text-xs font-semibold">
                 Hook on screen
                 <input value={settings.hook} maxLength={90} onChange={(e) => patch({ hook: e.target.value })} placeholder="3 CPF mistakes I see every week"
-                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
+                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal [@media(pointer:coarse)]:h-11" />
               </label>
               <HookOptions projectId={project.id} words={words} segs={plan.segs} total={plan.total} speed={speed} hook={settings.hook}
                 onUse={(hook) => { const cur = settingsRef.current; if (cur.hook === hook) return; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, hook }); }} />
@@ -2100,12 +2100,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <label className="block space-y-1 text-xs font-semibold">
                   Name tag
                   <input value={settings.nameTag ?? ""} maxLength={40} onChange={(e) => patch({ nameTag: e.target.value })} placeholder="Your name"
-                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
+                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal [@media(pointer:coarse)]:h-11" />
                 </label>
                 <label className="block space-y-1 text-xs font-semibold">
                   Role
                   <input value={settings.roleTag ?? ""} maxLength={50} onChange={(e) => patch({ roleTag: e.target.value })} placeholder="Financial adviser"
-                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal" />
+                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal [@media(pointer:coarse)]:h-11" />
                 </label>
               </div>
               {!settings.nameTag?.trim() && brandKit?.name?.trim() && (
@@ -2116,7 +2116,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               {art ? (
                 <>
                   <Row label="Logo in the corner">
-                    {art.logo ? <Toggle on={!!settings.logo} set={(v) => patch({ logo: v })} /> : <Link to="/brand" className="text-xs font-semibold text-primary hover:underline">Add a logo</Link>}
+                    {art.logo ? <Toggle on={!!settings.logo} set={(v) => patch({ logo: v })} /> : <Link to="/brand" className="text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">Add a logo</Link>}
                   </Row>
                   <Row label={`End card (${END_CARD_SECONDS}s)`}><Toggle on={!!settings.endCard} set={(v) => { endAt.current = v ? 0.6 : null; patch({ endCard: v }); }} /></Row>
                 </>
@@ -2128,7 +2128,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </Row>
               <Row label="Fit">
                 {/* five choices: they wrap onto a second line on a phone instead of squeezing their words */}
-                <span className="flex flex-wrap justify-end gap-1.5 [&>button]:min-h-11 [&>button]:whitespace-nowrap sm:[&>button]:min-h-0">
+                <span className="flex flex-wrap justify-end gap-1.5 [&>button]:min-h-11 [&>button]:whitespace-nowrap sm:[&>button]:min-h-0 [@media(pointer:coarse)]:[&>button]:min-h-11">
                 <Chip on={(settings.fit ?? "fill") === "fill"} onClick={() => patch({ fit: "fill" })}>Crop to fill</Chip>
                 <Chip on={settings.fit === "blur"} onClick={() => patch({ fit: "blur" })}>Whole video, blurred behind</Chip>
                 <Chip on={settings.fit === "framed"} onClick={() => patch({ fit: "framed", ...(settings.captionY === undefined ? { captionY: 0.68 } : {}) })}>Framed window</Chip>
@@ -2155,7 +2155,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               )}
               <div className="space-y-1.5">
                 <p className="text-sm font-medium">Export for</p>
-                <div className="flex flex-wrap gap-1.5 [&>button]:min-h-11 sm:[&>button]:min-h-0">
+                <div className="flex flex-wrap gap-1.5 [&>button]:min-h-11 sm:[&>button]:min-h-0 [@media(pointer:coarse)]:[&>button]:min-h-11">
                   {(Object.keys(EXPORT_TARGETS) as ExportTarget[]).map((id) => (
                     <Chip key={id} on={settings.exportAs !== "audio" && targetOf(settings) === id}
                       onClick={() => patch({ exportAs: id === "whatsapp" ? "small" : undefined, exportFor: id === "reels" || id === "whatsapp" ? undefined : id })}>
@@ -2202,10 +2202,10 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
           {tab === "face" && (
             <div className="space-y-3">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 [@media(pointer:coarse)]:space-y-2.5">
                 <p className="flex items-center text-sm font-medium">Behind you
                   <InfoTip label="About behind you">Found on this device, frame by frame. Best with one person.</InfoTip></p>
-                <div className="flex flex-wrap gap-1.5 [&>button]:min-h-11 sm:[&>button]:min-h-0" role="group" aria-label="Behind you">
+                <div className="flex flex-wrap gap-1.5 [&>button]:min-h-11 sm:[&>button]:min-h-0 [@media(pointer:coarse)]:[&>button]:min-h-11" role="group" aria-label="Behind you">
                   <Chip on={!settings.backdrop} onClick={() => patch({ backdrop: undefined })}>As filmed</Chip>
                   <Chip on={settings.backdrop?.kind === "blur"} onClick={() => patch({ backdrop: { kind: "blur", amount: 0.6 } })}>Blur</Chip>
                   <Chip on={settings.backdrop?.kind === "colour"} onClick={() => patch({ backdrop: { kind: "colour", color: (art?.color ?? "#111827").toUpperCase() } })}>Colour</Chip>
@@ -2223,7 +2223,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               {settings.backdrop?.kind === "colour" && (
                 <Row label="Colour">
                   <input type="color" aria-label="Colour behind you" value={settings.backdrop.color}
-                    onChange={(e) => patch({ backdrop: { kind: "colour", color: e.target.value.toUpperCase() } })} className="h-11 w-14 rounded sm:h-8 sm:w-10" />
+                    onChange={(e) => patch({ backdrop: { kind: "colour", color: e.target.value.toUpperCase() } })} className="h-11 w-14 rounded sm:h-8 [@media(pointer:coarse)]:h-11 sm:w-10 [@media(pointer:coarse)]:w-14" />
                 </Row>
               )}
               {settings.backdrop?.kind === "picture" && (
@@ -2276,7 +2276,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       return (
                         <li key={`${c.at}-${c.callout}`} className="flex items-center gap-2 py-2 text-xs">
                           <button type="button" onClick={() => seekOut(c.at)} aria-label={`Go to ${fmtTime(c.at)}`}
-                            className="min-h-11 w-12 shrink-0 text-left font-mono text-[11px] text-muted-foreground hover:text-foreground sm:min-h-0">{fmtTime(c.at)}</button>
+                            className="min-h-11 w-12 shrink-0 text-left font-mono text-[11px] text-muted-foreground hover:text-foreground sm:min-h-0 [@media(pointer:coarse)]:min-h-11">{fmtTime(c.at)}</button>
                           <span className="min-w-0 flex-1">
                             <span className="block font-semibold">{c.callout}</span>
                             {c.show && <span className="block text-muted-foreground">Show: {c.show}</span>}
@@ -2308,7 +2308,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 <div className="space-y-3 rounded-lg border border-primary/25 p-3">
                   {sel.kind === "text" && (
                     <input value={sel.text} maxLength={60} onChange={(e) => editOverlay(sel.id, { text: e.target.value })} aria-label="Sticker text"
-                      className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm" />
+                      className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" />
                   )}
                   <Row label="Colour">
                     {stickerColours.map((c) => (
@@ -2411,7 +2411,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                     <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
                     <input value={find} onChange={(e) => { setFind(e.target.value); setHit(0); }} placeholder="Find a word or phrase" aria-label="Find in what you said"
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); jumpTo(hit + (e.shiftKey ? -1 : 1)); } }}
-                      className="h-9 w-full rounded-md border border-input bg-background pl-7 pr-2 text-sm" />
+                      className="h-9 w-full rounded-md border border-input bg-background pl-7 pr-2 text-sm [@media(pointer:coarse)]:h-11" />
                   </label>
                   {find.trim() && <span className="w-14 text-center text-[11px] text-muted-foreground" aria-live="polite">{hits.length ? `${hit + 1} of ${hits.length}` : "None"}</span>}
                   <Button size="sm" variant="outline" className="h-9 w-9 p-0" aria-label="Previous match" disabled={!hits.length} onClick={() => jumpTo(hit - 1)}><ChevronUp className="h-4 w-4" /></Button>
@@ -2421,7 +2421,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                   <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" role="group" aria-label="What a tap on a word does">
                     {([["fix", "Fix spelling"], ["cut", "Cut words"]] as const).map(([m, label]) => (
                       <button key={m} type="button" aria-pressed={wordMode === m} onClick={() => { setWordMode(m); setCutStart(null); }}
-                        className={`rounded-md px-3 py-1.5 text-xs font-semibold ${wordMode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
+                        className={`rounded-md px-3 py-1.5 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${wordMode === m ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
                     ))}
                   </div>
                   {wordMode === "cut" && (
@@ -2466,7 +2466,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 </>
               )}
               <details className="rounded-lg border border-border/60">
-                <summary className="cursor-pointer px-3 py-2 text-sm font-medium">Words to fix in every video ({fixes.length})</summary>
+                <summary className="cursor-pointer px-3 py-2 text-sm font-medium [@media(pointer:coarse)]:py-3">Words to fix in every video ({fixes.length})</summary>
                 <div className="space-y-2 border-t border-border/60 p-3">
                   {fixes.length > 0 && (
                     <ul className="flex flex-wrap gap-1.5">
@@ -2538,9 +2538,10 @@ function CoverShot({ shot, grid, setGrid }: { shot: { url: string; w: number; h:
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+    <div className="flex flex-wrap items-center justify-between gap-2 text-sm [@media(pointer:coarse)]:min-h-11">
       <span className="font-medium">{label}</span>
-      <span className="flex items-center gap-1.5">{children}</span>
+      {/* on touch an info mark's 44px halo ends where the toggle beside it starts */}
+      <span className="flex items-center gap-1.5 [@media(pointer:coarse)]:gap-2.5">{children}</span>
     </div>
   );
 }
@@ -2548,7 +2549,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function Chip({ on, onClick, children, className = "" }: { on: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on}
-      className={`rounded-full border px-2.5 py-1 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"} ${className}`}>{children}</button>
+      className={`rounded-full border px-2.5 py-1 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"} ${className}`}>{children}</button>
   );
 }
 

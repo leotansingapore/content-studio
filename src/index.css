@@ -190,6 +190,13 @@
     }
   }
 
+  /* Touch: a slider is 44px tall to grab (UX law 2); the track stays centred. */
+  @media (pointer: coarse) {
+    input[type="range"] {
+      min-height: 2.75rem;
+    }
+  }
+
   .scrollbar-none {
     -ms-overflow-style: none;
     scrollbar-width: none;

@@ -110,7 +110,7 @@ export function useFindFace(need: boolean, settings: EditSettings, file: Blob | 
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex min-h-11 flex-wrap items-center justify-between gap-2 text-sm sm:min-h-0">
+    <div className="flex min-h-11 flex-wrap items-center justify-between gap-2 text-sm sm:min-h-0 [@media(pointer:coarse)]:min-h-11">
       <span className="font-medium">{label}</span>
       <span className="flex items-center gap-1.5">{children}</span>
     </div>

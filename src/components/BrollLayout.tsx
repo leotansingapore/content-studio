@@ -20,7 +20,7 @@ export default function BrollLayout({ value, onChange }: {
       <span role="radiogroup" aria-label="Show B-roll" className="flex flex-wrap gap-1.5">
         {OPTIONS.map(([v, label]) => (
           <button key={label} type="button" role="radio" aria-checked={value === v} onClick={() => onChange(v)}
-            className={`min-h-11 rounded-full border px-3 text-xs font-semibold sm:min-h-8 ${value === v ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+            className={`min-h-11 rounded-full border px-3 text-xs font-semibold sm:min-h-8 [@media(pointer:coarse)]:min-h-11 ${value === v ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
             {label}
           </button>
         ))}

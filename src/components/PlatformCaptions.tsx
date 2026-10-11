@@ -143,7 +143,7 @@ export default function PlatformCaptions({
           <div className="flex flex-wrap gap-1" role="tablist" aria-label="Platform">
             {CAPTION_PLATFORMS.map((p) => (
               <button key={p} type="button" role="tab" aria-selected={tab === p} onClick={() => setTab(p)}
-                className={`min-h-11 min-w-11 rounded-md px-3 text-xs font-semibold sm:min-h-8 sm:min-w-0 ${tab === p ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>{NAME[p]}</button>
+                className={`min-h-11 min-w-11 rounded-md px-3 text-xs font-semibold sm:min-h-8 [@media(pointer:coarse)]:min-h-11 sm:min-w-0 ${tab === p ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>{NAME[p]}</button>
             ))}
           </div>
           {tab === "youtube" && (

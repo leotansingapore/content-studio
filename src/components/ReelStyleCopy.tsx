@@ -98,7 +98,7 @@ export default function ReelStyleCopy({ projectId, settings, words, segs, total,
       <form className="flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); copy(); }}>
         <label className="sr-only" htmlFor="reel-style-link">Reel link</label>
         <input id="reel-style-link" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste an Instagram or TikTok link" inputMode="url" autoComplete="off"
-          className="h-11 min-w-0 flex-1 basis-full rounded-md border border-input bg-background px-2 text-sm sm:h-9 sm:basis-0" disabled={busy} />
+          className="h-11 min-w-0 flex-1 basis-full rounded-md border border-input bg-background px-2 text-sm sm:h-9 [@media(pointer:coarse)]:h-11 sm:basis-0" disabled={busy} />
         <Button type="submit" size="sm" variant="outline" disabled={disabled || busy || !url.trim() || left === 0} className={`h-11 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
           {busy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Link2 className="h-3.5 w-3.5" />}
           {busy ? "Copying..." : "Copy style"}
@@ -115,7 +115,7 @@ export default function ReelStyleCopy({ projectId, settings, words, segs, total,
         <div className="space-y-1.5 rounded-lg border border-primary/30 bg-background p-2.5 text-xs" role="status">
           <div className="flex items-start gap-2">
             <p className="mr-auto"><span className="font-semibold">Copied {done.author}&apos;s style.</span>{figures ? ` ${figures[0].toUpperCase()}${figures.slice(1)}.` : ""}</p>
-            <button type="button" onClick={() => setDone(null)} aria-label="Close" className="-m-2 flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground sm:h-8 sm:w-8">
+            <button type="button" onClick={() => setDone(null)} aria-label="Close" className="-m-2 flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11 sm:w-8 [@media(pointer:coarse)]:w-11">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>

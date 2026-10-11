@@ -68,7 +68,7 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
         </p>
       )}
       {aiOffered && (
-        <label className="flex min-h-11 flex-wrap items-center gap-2 text-xs sm:min-h-0">
+        <label className="flex min-h-11 flex-wrap items-center gap-2 text-xs sm:min-h-0 [@media(pointer:coarse)]:min-h-11">
           <input type="checkbox" checked={ai} onChange={(e) => setAi(e.target.checked)} disabled={running || aiLeft === 0} className="h-4 w-4 accent-primary" />
           <span className="font-medium">Make an AI clip when stock has none</span>
           {aiLeft !== null && <span className={aiLeft ? "text-muted-foreground" : "font-medium text-destructive"}>{aiLeft ? `${aiLeft} left today` : "None left today"}</span>}

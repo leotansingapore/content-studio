@@ -162,7 +162,7 @@ export default function ClipFinder({ userId, project, words, settings, duration,
                     {fmtTime(c.settings.trimStart)}-{fmtTime(duration - c.settings.trimEnd)}
                     {clip.skip && <span className="font-sans">, skips {Math.round(clip.skip.end - clip.skip.start)} s in the middle</span>}
                     {ours && queue.files[c.id] && (
-                      <a href={queue.files[c.id].url} download={`${c.name.replace(/[^\w-]+/g, "-").slice(0, 60)}.${queue.files[c.id].ext}`} className="ml-1 inline-flex min-h-11 items-center px-1 font-sans font-medium text-primary underline-offset-2 hover:underline sm:min-h-0">Download</a>
+                      <a href={queue.files[c.id].url} download={`${c.name.replace(/[^\w-]+/g, "-").slice(0, 60)}.${queue.files[c.id].ext}`} className="ml-1 inline-flex min-h-11 items-center px-1 font-sans font-medium text-primary underline-offset-2 hover:underline sm:min-h-0 [@media(pointer:coarse)]:min-h-11">Download</a>
                     )}
                     {ours && queue.failed[c.id] && <span className="ml-2 font-sans text-destructive">Couldn't export: {queue.failed[c.id]}</span>}
                   </p>

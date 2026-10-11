@@ -92,7 +92,7 @@ function Montage({ busy, left }: { busy: boolean; left: Left }) {
         <Pill on={words} disabled={off} onClick={() => setWords(!words)}>Words on screen</Pill>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9">
+        <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">
           {music ? "Change music" : "Add your music (optional)"}
           <input type="file" accept="audio/*" className="sr-only" disabled={off}
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) setMusic(f); }} />
@@ -141,7 +141,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
             </li>
           ))}
         </ul>
-        <a href={TEMPLATE_SOURCE} target="_blank" rel="noreferrer" className="inline-block text-[11px] text-muted-foreground underline">{TEMPLATE_CREDIT}</a>
+        <a href={TEMPLATE_SOURCE} target="_blank" rel="noreferrer" className="inline-block text-[11px] text-muted-foreground underline [@media(pointer:coarse)]:py-3.5">{TEMPLATE_CREDIT}</a>
       </div>
     );
   }
@@ -165,7 +165,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
       <div className="flex flex-wrap items-center justify-between gap-1">
         <h3 className="text-sm font-semibold">{pick.title}</h3>
         <div className="flex items-center">
-          <a href={examplesUrl(pick.id)} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center px-2 text-xs text-muted-foreground underline sm:h-9">Examples</a>
+          <a href={examplesUrl(pick.id)} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center px-2 text-xs text-muted-foreground underline sm:h-9 [@media(pointer:coarse)]:h-11">Examples</a>
           <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={() => setPick(null)} disabled={busy}>All templates</Button>
         </div>
       </div>
@@ -182,7 +182,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
           return (
             <div key={role} className="flex items-center gap-2">
               {ph && <img src={ph.url} alt={`The ${role}`} className="h-16 w-12 rounded-lg object-cover" />}
-              <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9">
+              <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">
                 {ph ? `Change ${role} photo` : `Photo of the ${role}${pick.needsPhoto === role ? "" : " (optional)"}`}
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy}
                   onChange={(e) => {
@@ -270,7 +270,7 @@ function Avatar({ job, busy, left }: { job: AiJob | null; busy: boolean; left: L
           <div className="flex items-center gap-3">
             {photoUrl && <img src={photoUrl} alt="Your photo" className="h-24 w-20 rounded-lg object-cover" />}
             <div className="space-y-1">
-              <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-sm font-semibold hover:border-primary/40 sm:h-9">
+              <label className="inline-flex h-11 cursor-pointer items-center rounded-md border border-border/70 bg-background px-3 text-sm font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">
                 {photo ? "Change photo" : "Pick a photo of your face"}
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy}
                   onChange={(e) => {
@@ -364,7 +364,7 @@ function Explainer({ busy, left }: { busy: boolean; left: Left }) {
   const total = scenes ? scenes.reduce((n, s) => n + words(s.say), 0) : 0;
   const videos = left("ai-video");
   const edit = (i: number, change: Partial<Scene>) => setScenes(scenes!.map((x, j) => (j === i ? { ...x, ...change } : x)));
-  const iconBtn = "h-11 w-11 p-0 sm:h-8 sm:w-8";
+  const iconBtn = "h-11 w-11 p-0 sm:h-8 [@media(pointer:coarse)]:h-11 sm:w-8 [@media(pointer:coarse)]:w-11";
 
   return (
     <div className="space-y-3">
@@ -427,7 +427,7 @@ function Explainer({ busy, left }: { busy: boolean; left: Left }) {
 function Pill({ on, onClick, disabled, children }: { on: boolean; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={on} disabled={disabled}
-      className={`h-11 rounded-full border px-3 text-xs font-semibold disabled:opacity-60 sm:h-8 ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>{children}</button>
+      className={`h-11 rounded-full border px-3 text-xs font-semibold disabled:opacity-60 sm:h-8 [@media(pointer:coarse)]:h-11 ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>{children}</button>
   );
 }
 

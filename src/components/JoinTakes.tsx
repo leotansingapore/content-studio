@@ -83,7 +83,7 @@ export default function JoinTakes({ onClose }: { onClose: () => void }) {
       )}
       <div className="flex flex-wrap items-center gap-2">
         {items.length < MAX_TAKES && (
-          <label className="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 text-sm font-semibold hover:border-primary/40 sm:h-9">
+          <label className="inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 text-sm font-semibold hover:border-primary/40 sm:h-9 [@media(pointer:coarse)]:h-11">
             <Plus className="h-4 w-4" /> {items.length ? "Add more takes" : "Pick your takes"}
             <input type="file" accept="video/*" multiple className="sr-only"
               onChange={(e) => { const fs = [...(e.target.files ?? [])]; e.target.value = ""; if (fs.length) void add(fs); }} />

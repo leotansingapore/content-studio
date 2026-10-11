@@ -78,7 +78,7 @@ export default function ChartCards({ settings, caps, segs, speed, total, outT, f
             return (
               <li key={`${f.fig.start}`} className="flex items-center gap-2 py-1.5 text-xs">
                 <button type="button" onClick={() => seekOut(f.at)} aria-label={`Go to ${fmtTime(f.at)}`}
-                  className="min-h-11 w-12 shrink-0 text-left font-mono text-[11px] text-muted-foreground hover:text-foreground sm:min-h-0">{fmtTime(f.at)}</button>
+                  className="min-h-11 w-12 shrink-0 text-left font-mono text-[11px] text-muted-foreground hover:text-foreground sm:min-h-0 [@media(pointer:coarse)]:min-h-11">{fmtTime(f.at)}</button>
                 <span className="min-w-0 flex-1 truncate font-semibold">{f.text}</span>
                 <Button size="sm" variant={added ? "ghost" : "outline"} className="h-11 shrink-0 gap-1 text-xs sm:h-8" disabled={added} onClick={() => fromFigure(f)}>
                   {added ? <><Check className="h-3.5 w-3.5" /> Added</> : "Make a chart"}
@@ -97,7 +97,7 @@ export default function ChartCards({ settings, caps, segs, speed, total, outT, f
               <li key={c.id}>
                 <button type="button" aria-pressed={c.id === selected}
                   onClick={() => { setSelected(c.id); if (show) seekOut(Math.min(show.to - 0.1, show.from + 1.6)); }}
-                  className={`flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left text-xs sm:min-h-0 ${c.id === selected ? "bg-primary/5" : ""}`}>
+                  className={`flex min-h-11 w-full items-center gap-2 px-3 py-2 text-left text-xs sm:min-h-0 [@media(pointer:coarse)]:min-h-11 ${c.id === selected ? "bg-primary/5" : ""}`}>
                   <span className="min-w-0 flex-1 truncate font-medium">{c.title.trim() || rows.map((r) => [r.label, r.value].filter(Boolean).join(" ")).join(", ") || "New chart"}</span>
                   <span className="font-mono text-[11px] text-muted-foreground">{show ? `${fmtTime(show.from)}-${fmtTime(show.to)}` : rows.length ? whyNot(c) : "Empty"}</span>
                 </button>
@@ -116,16 +116,16 @@ export default function ChartCards({ settings, caps, segs, speed, total, outT, f
             ))}
           </div>
           <input value={sel.title} maxLength={MAX_TITLE} placeholder="Title (optional)" aria-label="Chart title" onChange={(e) => edit(sel.id, { title: e.target.value })}
-            className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm sm:h-9" />
+            className="h-11 w-full rounded-md border border-input bg-background px-2 text-sm sm:h-9 [@media(pointer:coarse)]:h-11" />
           <div className="space-y-2">
             {sel.rows.map((r, i) => (
               <div key={i} className="flex items-center gap-2">
                 <input value={r.label} maxLength={MAX_LABEL} placeholder="Label" aria-label={`Label ${i + 1}`} autoFocus={i === firstEmpty}
                   onChange={(e) => setRow(sel, i, { label: e.target.value })}
-                  className="h-11 w-0 min-w-0 flex-[3] rounded-md border border-input bg-background px-2 text-sm sm:h-9" />
+                  className="h-11 w-0 min-w-0 flex-[3] rounded-md border border-input bg-background px-2 text-sm sm:h-9 [@media(pointer:coarse)]:h-11" />
                 <input value={r.value} maxLength={MAX_VALUE} placeholder="Value" aria-label={`Value ${i + 1}`} inputMode="text"
                   onChange={(e) => setRow(sel, i, { value: e.target.value })}
-                  className="h-11 w-0 min-w-0 flex-[2] rounded-md border border-input bg-background px-2 text-sm sm:h-9" />
+                  className="h-11 w-0 min-w-0 flex-[2] rounded-md border border-input bg-background px-2 text-sm sm:h-9 [@media(pointer:coarse)]:h-11" />
                 {sel.rows.length > 2 && (
                   <Button size="icon" variant="ghost" className="h-11 w-11 shrink-0 text-muted-foreground sm:h-9 sm:w-9" aria-label={`Remove row ${i + 1}`}
                     onClick={() => edit(sel.id, { rows: sel.rows.filter((_, j) => j !== i) })}><X className="h-4 w-4" /></Button>
