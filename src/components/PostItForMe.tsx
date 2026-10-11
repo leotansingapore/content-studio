@@ -124,11 +124,25 @@ const TONE = {
   muted: "border-border/60 bg-muted/40 text-muted-foreground",
 } as const;
 
-/** The small chip alone (calendar cards). */
-export function ZernioChipLabel({ draft }: { draft: DraftEntry }) {
+const DOT = { wait: "bg-primary", good: "bg-success", bad: "bg-destructive", muted: "bg-muted-foreground" } as const;
+
+/** The small chip alone (calendar cards); compact is a coloured dot for the month grid's one-line cards. */
+export function ZernioChipLabel({ draft, compact }: { draft: DraftEntry; compact?: boolean }) {
   const chip = chipOf(draft.zernio);
   if (!chip) return null;
-  return <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${TONE[chip.tone]}`}>{chip.label}</span>;
+  if (compact) {
+    return (
+      <span title={chip.label} className={`mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle ${DOT[chip.tone]}`}>
+        <span className="sr-only">{chip.label}</span>
+      </span>
+    );
+  }
+  // the card already shows its day and time
+  return (
+    <span title={chip.label} className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-semibold ${TONE[chip.tone]}`}>
+      {chip.label.startsWith("Scheduled") ? "Auto-post" : chip.label}
+    </span>
+  );
 }
 
 /** The chip with its details: each platform's link or reason, Retry and Cancel. */

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
-import { PostItForMePanel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
+import { PostItForMePanel, ZernioChipLabel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { REELS_BOARD_OWNERS, brandForProfile, brandOf, fetchBoard } from "@/lib/reelsBoard";
@@ -583,9 +583,15 @@ export default function CalendarPage() {
               {time && ` · ${timeLabel(time)}`}
             </span>
             <span className="line-clamp-2">{titleOf(e)}</span>
+            {e.zernio?.postId && (
+              <span className="mt-1 block">
+                <ZernioChipLabel draft={e} />
+              </span>
+            )}
           </>
         ) : (
           <>
+            <ZernioChipLabel draft={e} compact />
             {time && <span className="font-semibold">{timeLabel(time)} </span>}
             {PLATFORM_LABEL[e.platform] ?? e.platform}: {(e.hook || e.draft).slice(0, 22)}
           </>
@@ -760,6 +766,7 @@ export default function CalendarPage() {
               {!posted && e.repeat && ` · repeats ${REPEAT_LABEL[e.repeat.every]}`}
             </p>
           </button>
+          <ZernioChipLabel draft={e} />
           {!posted && moveInput(e)}
         </div>
         {!posted && (
