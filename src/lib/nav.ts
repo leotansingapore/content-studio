@@ -107,7 +107,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/recruit", label: "Brand Brain", end: true },
       { to: "/recruit/conversations", label: "Conversations" },
       { to: "/recruit/agent", label: "AI agent" },
-      { to: "/recruit/engage", label: "Engage" },
+      { to: "/recruit/engage", label: "Reply drafts" },
       { to: "/recruit/auto-dm", label: "Auto-DM", show: socialConnectShown },
     ],
   },

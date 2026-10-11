@@ -40,7 +40,7 @@ export default function EngagePage() {
   return (
     <div className="space-y-5">
       <SectionTabs tabs={RECRUIT_TABS} />
-      <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">Engage</h1>
+      <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">Reply drafts</h1>
       <div role="group" aria-label="What to draft" className="flex flex-wrap gap-1.5">
         {TOOLS.map((t) => (
           <button

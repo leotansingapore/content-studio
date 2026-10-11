@@ -177,7 +177,7 @@ describe("starting Engage with pasted text", () => {
   it("pastes into the tool, opens it and puts the old text back on Undo", () => {
     saveRun("replies", UID, { post: "My post", pasted: "Old comment", posts: [], form: {}, items: [{ id: 1 }], at: "2026-10-10T00:00:00Z" });
     const c = card(actFor(UID, pick({ act: "engage_replies", post: null }), "Reply to these:\nSarah: Mine went up too", [], TODAY, go));
-    expect(c.ask).toBe('Paste this into Engage > Comments on my post? It replaces what is there now.\n"Sarah: Mine went up too"');
+    expect(c.ask).toBe('Paste this into Reply drafts > Comments on my post? It replaces what is there now.\n"Sarah: Mine went up too"');
     const done = c.run() as DockDone;
     expect(done.open).toBe("/recruit/engage");
     expect(loadRun("replies", UID)).toMatchObject({ post: "My post", pasted: "Sarah: Mine went up too", items: [], at: "" });
@@ -189,7 +189,7 @@ describe("starting Engage with pasted text", () => {
 
   it("opens one conversation in My DMs and someone's post in Comment on a post", () => {
     const thread = card(actFor(UID, pick({ act: "engage_thread", post: null }), "Amy: hi\nMe: hello", [], TODAY, go));
-    expect(thread.ask.startsWith("Paste this into Engage > My DMs, one conversation?\n")).toBe(true);
+    expect(thread.ask.startsWith("Paste this into Reply drafts > My DMs, one conversation?\n")).toBe(true);
     const done = thread.run() as DockDone;
     expect(done.open).toBe("/recruit/engage?tool=dms");
     expect(loadRun("thread", UID).pasted).toBe("Amy: hi\nMe: hello");

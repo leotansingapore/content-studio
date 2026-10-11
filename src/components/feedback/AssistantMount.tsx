@@ -47,7 +47,7 @@ export function AssistantMount() {
       mobileOffsetY={88}
       mobileBreakpoint={1024}
       act={act}
-      intro="Ask how anything works or reach the team. It can also move a post, rewrite one in Write, show last week's numbers or paste text into Engage. Nothing changes until you tap to confirm."
+      intro="Ask how anything works or reach the team. It can also move a post, rewrite one in Write, show last week's numbers or paste text into Reply drafts. Nothing changes until you tap to confirm."
     />
   );
 }

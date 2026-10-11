@@ -142,11 +142,11 @@ export function pastedPart(message: string): string {
 
 function engageAct(userId: string, e: EngageTarget, message: string, go: Go): DockAct {
   const text = pastedPart(message);
-  if (runningJob(e.tool, userId)) return { say: `Engage is still drafting in ${e.name}. Try again when it finishes.`, go: [{ path: e.path, label: "Open Engage" }] };
+  if (runningJob(e.tool, userId)) return { say: `Reply drafts is still drafting in ${e.name}. Try again when it finishes.`, go: [{ path: e.path, label: "Open Reply drafts" }] };
   const now = loadRun(e.tool, userId);
   const filled = e.tool === "comments" ? now.posts.some((p) => p.text.trim()) : !!now.pasted.trim();
   return {
-    ask: `Paste this into Engage > ${e.name}?${filled ? " It replaces what is there now." : ""}\n"${clip(text, 160)}"`,
+    ask: `Paste this into Reply drafts > ${e.name}?${filled ? " It replaces what is there now." : ""}\n"${clip(text, 160)}"`,
     yes: "Paste it",
     run: () => {
       const prev = loadRun(e.tool, userId);
@@ -160,7 +160,7 @@ function engageAct(userId: string, e: EngageTarget, message: string, go: Go): Do
         saveRun("dms", userId, { ...prevDms, form: { ...prevDms.form, view: "thread" } });
       }
       return {
-        done: `Pasted into Engage > ${e.name}.`,
+        done: `Pasted into Reply drafts > ${e.name}.`,
         open: e.path,
         undo: () => {
           saveRun(e.tool, userId, prev);
