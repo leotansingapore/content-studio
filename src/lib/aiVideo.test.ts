@@ -5,8 +5,8 @@ vi.mock("@/lib/videoMedia", () => ({ currentJoin: vi.fn(() => null), monoPcm: vi
 vi.mock("@/lib/textVoice", () => ({ audioSeconds: vi.fn(async () => 30), speak: vi.fn() }));
 
 import { callFn } from "@/lib/edgeFn";
-import { startJoin } from "@/lib/videoMedia";
-import { aiJob, makeTemplateClip, pendingAvatar } from "./aiVideo";
+import { currentJoin, startJoin, type JoinJob } from "@/lib/videoMedia";
+import { aiBusy, aiJob, makeTemplateClip, pendingAvatar, resumeAvatar } from "./aiVideo";
 
 const ASK = { template: "food-asmr", seconds: 4 as const, quality: "480p" as const, fields: { product: "Laksa" }, photo: null };
 type Body = { mode: string; refund?: string };
@@ -31,7 +31,8 @@ beforeEach(() => {
   });
   vi.useFakeTimers();
   vi.mocked(callFn).mockReset();
-  vi.mocked(startJoin).mockClear();
+  vi.mocked(startJoin).mockReset();
+  vi.mocked(currentJoin).mockReset().mockReturnValue(null);
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -69,5 +70,48 @@ describe("a template clip that has been paid for", () => {
     expect(aiJob()).toMatchObject({ state: "failed", error: "It was made but didn't download. Try again." });
     expect(pendingAvatar()).toMatchObject({ tokens: ["t1"] });
     expect(startJoin).not.toHaveBeenCalled();
+  });
+});
+
+describe("a paid clip being put together on the device", () => {
+  // the join runs until `finish` is called with how it ended
+  const slowJoin = () => {
+    let finish: (j: JoinJob) => void = () => {};
+    vi.mocked(startJoin).mockImplementation(() => new Promise((r) => (finish = (j) => {
+      vi.mocked(currentJoin).mockReturnValue(j);
+      r();
+    })));
+    return (j: JoinJob) => finish(j);
+  };
+  const madeAndJoining = async () => {
+    higgsfield(() => ({ jobs: [{ state: "done", url: "https://cdn.example/v.mp4" }] }));
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["clip"]) })));
+    const run = makeTemplateClip("Laksa", ASK);
+    await vi.advanceTimersByTimeAsync(6_000);
+    expect(startJoin).toHaveBeenCalledTimes(1);
+    return { run }; // wrapped: an async function returning the promise would wait for it
+  };
+
+  it("keeps the paid job until the join is done, and a remount starts no second join", async () => {
+    const finish = slowJoin();
+    const { run } = await madeAndJoining();
+    expect(pendingAvatar()).toMatchObject({ tokens: ["t1"] });
+    expect(aiBusy()).toBe(true);
+    resumeAvatar(); // AiVideo mounted again while the join runs
+    await vi.advanceTimersByTimeAsync(6_000);
+    expect(startJoin).toHaveBeenCalledTimes(1);
+    finish({ progress: 1, state: "done" });
+    await run;
+    expect(pendingAvatar()).toBeNull();
+    expect(aiJob()).toMatchObject({ kind: "template", state: "done" });
+  });
+
+  it("keeps the paid job when the join fails, so Try again at no cost joins the clips again", async () => {
+    const finish = slowJoin();
+    const { run } = await madeAndJoining();
+    finish({ progress: 0, state: "failed", error: "This browser can't record video." });
+    await run;
+    expect(aiJob()).toMatchObject({ kind: "template", state: "failed", error: "This browser can't record video." });
+    expect(pendingAvatar()).toMatchObject({ tokens: ["t1"] });
   });
 });

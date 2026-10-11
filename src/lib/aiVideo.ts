@@ -6,7 +6,7 @@
 // The jobs live outside React, so they carry on while the adviser uses other pages. When the clips or
 // pictures are in, they are put together on this device (videoMedia's join job) and Edit a video opens
 // the result like an upload, with captions. An avatar video's or a template clip's job tokens stay on this
-// device until it is put together, so a reload or a dropped download picks up the paid clips again at no cost.
+// device until it is put together, so a reload, a dropped download or a failed join picks up the paid clips again at no cost.
 
 import { callFn } from "@/lib/edgeFn";
 import { planSlices, sceneSeconds } from "@/lib/videoEdit";
@@ -189,9 +189,13 @@ async function finishAvatar(p: Pending): Promise<void> {
     set({ kind, state: "working", step: "Downloading your video..." });
     const clips = await Promise.all(urls.map(download));
     await joinSlot();
+    // the job stays working (so a remount can't start a second join) and paid for until the join is done
+    set({ kind, state: "working", step: "Putting your video together..." });
+    await startJoin(p.name, clips.map((file, i) => ({ file, start: 0, end: p.seconds[i] })), "Putting your video together");
+    const joined = currentJoin();
+    if (joined?.state === "failed") throw new Error(joined.error || "Couldn't put the video together. Try again.");
     keepPending(null);
     set({ kind, state: "done", step: "" });
-    void startJoin(p.name, clips.map((file, i) => ({ file, start: 0, end: p.seconds[i] })), "Putting your video together");
   } catch (e) {
     // a job Higgsfield failed is gone; a dropped download can be picked up again
     if (e instanceof JobFailed) keepPending(null);
