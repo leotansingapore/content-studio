@@ -20,6 +20,9 @@ describe("the number in a typed value", () => {
     expect(chartValue("10 months")).toBe(10);
     expect(chartValue("-2%")).toBe(-2);
   });
+  it("reads the whole number before a unit like yrs, mths, x or km", () => {
+    expect(["10yrs", "12mths", "2.5x", "3x", "500km", "25yrs"].map(chartValue)).toEqual([10, 12, 2.5, 3, 500, 25]);
+  });
   it("has none in plain words", () => {
     expect(chartValue("CPF")).toBeNull();
     expect(chartValue("")).toBeNull();

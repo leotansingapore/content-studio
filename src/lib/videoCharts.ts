@@ -38,7 +38,8 @@ const MULT: Record<string, number> = { k: 1e3, thousand: 1e3, m: 1e6, mil: 1e6, 
 
 /** The number in a typed value ("0.05%", "$1,200", "S$1.2 million", "500k"), for its bar's length only; null when it has none. */
 export function chartValue(text: string): number | null {
-  const m = /(-?)(\d[\d,]*(?:\.\d+)?|\.\d+)\s*(thousand|million|billion|mil|bn|k|m|b)?(?![a-z])/i.exec(text);
+  // the unit must end its word, but the number never shortens to make it fit ("10yrs" is 10, not 1)
+  const m = /(-?)(\d[\d,]*(?:\.\d+)?|\.\d+)(?:\s*(thousand|million|billion|mil|bn|k|m|b)(?![a-z]))?/i.exec(text);
   if (!m) return null;
   const v = parseFloat(m[2].replace(/,/g, "")) * (m[3] ? MULT[m[3].toLowerCase()] : 1);
   return Number.isFinite(v) ? (m[1] ? -v : v) : null;
