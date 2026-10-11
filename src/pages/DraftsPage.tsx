@@ -38,6 +38,7 @@ import {
   Link2,
   MessageSquareText,
   Paperclip,
+  Send,
 } from "lucide-react";
 import {
   deleteDraft,
@@ -64,6 +65,8 @@ import DayInput from "@/components/DayInput";
 import { loadPositioning } from "@/lib/positioning";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
 import PreviewLinkPanel from "@/components/review/PreviewLinkPanel";
+import { PostItForMePanel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
+import { socialConnectShown } from "@/lib/socialConnect";
 import {
   fetchMyPreviewLinks,
   linksByDraft,
@@ -221,6 +224,8 @@ export default function DraftsPage() {
     return () => clearTimeout(t);
   }, [flashId]);
   const reviews = useDraftReviews(userId, drafts);
+  const [postOpenId, setPostOpenId] = useState<string | null>(null);
+  useZernioRefresh(userId, drafts, setDrafts);
 
   useEffect(() => {
     let active = true;
@@ -663,6 +668,11 @@ export default function DraftsPage() {
                     onClose={() => setLabelOpenId(null)}
                   />
                 )}
+                {d.zernio?.postId && userId && (
+                  <div className="mb-3">
+                    <ZernioStatus userId={userId} draft={d} onDrafts={setDrafts} />
+                  </div>
+                )}
                 <div className="mt-auto flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
@@ -693,6 +703,17 @@ export default function DraftsPage() {
                       <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
                     </Button>
                   )}
+                  {s === "scheduled" && d.scheduledFor && !d.zernio?.postId && socialConnectShown() && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setPostOpenId((cur) => (cur === d.id ? null : d.id))}
+                      aria-expanded={postOpenId === d.id}
+                      className="h-11 gap-1.5 text-xs text-primary hover:text-primary sm:h-9 [@media(pointer:coarse)]:h-11"
+                    >
+                      <Send className="h-3.5 w-3.5" /> Post it for me
+                    </Button>
+                  )}
                   <MoreMenu
                     items={[
                       { label: "Repurpose", icon: Wand2, onSelect: () => setRepurposeOpenId(d.id) },
@@ -719,6 +740,9 @@ export default function DraftsPage() {
                     {confirmId === d.id ? "Confirm" : "Delete"}
                   </Button>
                 </div>
+                {postOpenId === d.id && userId && (
+                  <PostItForMePanel userId={userId} draft={d} blockReason={reviews.blockReason(d)} onDrafts={setDrafts} onClose={() => setPostOpenId(null)} />
+                )}
                 {previewOpenId === d.id && userId && (
                   <PreviewLinkPanel
                     userId={userId}

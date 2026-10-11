@@ -5,7 +5,10 @@
 // If that storage ever refuses a browser PUT (CORS), see docs/zernio-connection.md for the fallback.
 
 import { callFn } from "@/lib/edgeFn";
-import type { ZernioLink } from "@/lib/draftHistory";
+import type { DraftEntry, ZernioLink } from "@/lib/draftHistory";
+import type { CarouselBrand } from "@/lib/carousel";
+import { tagLinks, toPlainText, withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
+import { keyToDate, timeLabel } from "@/lib/dueDates";
 import {
   MAX_IMAGE_BYTES,
   MAX_PICTURES,
@@ -15,7 +18,85 @@ import {
   type PostView,
 } from "../../supabase/functions/social/posts.ts";
 
-export { MAX_PICTURES, type CreatorInfo, type PostView };
+export { CAPTION_MAX, NEEDS_MEDIA, YOUTUBE_TITLE_MAX, checkSchedule, mediaKind, platformProblem } from "../../supabase/functions/social/posts.ts";
+export { MAX_PICTURES, MEDIA_TYPES, type CreatorInfo, type PostView };
+
+// ---- the draft ----
+
+/** The draft as it would be pasted: plain text, the brand kit sign-off, its disclosure, tracked links when the kit asks. */
+export function postText(d: Pick<DraftEntry, "draft" | "disclosure" | "platform" | "hook" | "pillarDetail">, brand: CarouselBrand | null): string {
+  const out = withDisclosure(withSignOff(toPlainText(d.draft), brand?.signOff?.trim() ?? ""), (d.disclosure ?? []) as DisclosureId[]);
+  return brand?.tagLinks ? tagLinks(out, { source: d.platform, campaign: d.hook || d.pillarDetail || "post" }) : out;
+}
+
+/** The draft's day and time as Zernio takes it (Singapore, +08:00), or null when it has no time. */
+export function zernioTime(scheduledFor: string | undefined, time?: string): string | null {
+  const day = scheduledFor?.slice(0, 10) ?? "";
+  const t = time || scheduledFor?.slice(11, 16) || "";
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) && /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? `${day}T${t}:00+08:00` : null;
+}
+
+/** "Tue 14 Oct, 9:00 am" for a draft day and time. */
+export const whenLabel = (day: string, time: string) =>
+  `${keyToDate(day).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}, ${timeLabel(time)}`;
+
+/** "Tue 14 Oct, 9:00 am" in Singapore time for an ISO time from Zernio. */
+export const sgLabel = (iso: string) =>
+  new Date(iso).toLocaleString("en-SG", { timeZone: "Asia/Singapore", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+
+// ---- the status chip ----
+
+export type ChipTone = "wait" | "good" | "bad" | "muted";
+
+/** What the chip on a draft says about its Zernio post, or null when nothing was sent. */
+export function chipOf(link: ZernioLink | undefined): { label: string; tone: ChipTone } | null {
+  if (!link?.postId) return null;
+  switch (link.status) {
+    case "published":
+      return { label: "Posted", tone: "good" };
+    case "partial":
+      return { label: "Partly posted", tone: "bad" };
+    case "failed":
+      return { label: "Failed", tone: "bad" };
+    case "publishing":
+      return { label: "Posting", tone: "wait" };
+    case "cancelled":
+      return { label: "Cancelled", tone: "muted" };
+    default:
+      return { label: link.at ? `Scheduled ${sgLabel(link.at)}` : "Scheduled", tone: "wait" };
+  }
+}
+
+/** Zernio refuses a cancel once anything is live. */
+export const canCancel = (link: ZernioLink | undefined) => !!link?.postId && !["published", "partial", "cancelled"].includes(link.status ?? "") && !link.links?.length;
+/** Zernio's retry is for a failed post; a partly posted one has failed platforms too. */
+export const canRetry = (link: ZernioLink | undefined) => !!link?.postId && (link.status === "failed" || link.status === "partial");
+/** Worth asking Zernio again: its time has come and it hasn't settled. */
+export const isDue = (link: ZernioLink | undefined, now = Date.now()) =>
+  !!link?.postId && !["published", "partial", "failed", "cancelled"].includes(link.status ?? "") && (!link.at || Date.parse(link.at) <= now);
+
+// ---- calls ----
+
+export interface ScheduleRequest {
+  accountIds: string[];
+  clientKey: string;
+  content: string;
+  captions?: Record<string, string>;
+  mediaUrls: string[];
+  scheduledFor?: string;
+  now?: boolean;
+  firstComment?: string;
+  tiktok?: { privacyLevel: string; allowComment: boolean; allowDuet: boolean; allowStitch: boolean };
+  youtube?: { title: string; visibility: "public" | "unlisted" | "private" };
+}
+
+export const schedulePost = (profileId: string, req: ScheduleRequest) =>
+  callFn<{ post: PostView }>("social", { action: "schedule", profileId, ...req }, "Couldn't schedule it. Try again in a minute.");
+export const readPost = (profileId: string, postId: string) => callFn<{ post: PostView }>("social", { action: "post", profileId, postId }, "Couldn't check the post. Try again in a minute.");
+export const cancelPost = (profileId: string, postId: string) => callFn<{ cancelled: true }>("social", { action: "cancel", profileId, postId }, "Couldn't cancel it. Try again in a minute.");
+export const retryPost = (profileId: string, postId: string) => callFn<{ post: PostView }>("social", { action: "retry", profileId, postId }, "Couldn't try it again. Try again in a minute.");
+export const tiktokInfo = (profileId: string, accountId: string, mediaType: "video" | "photo") =>
+  callFn<{ info: CreatorInfo }>("social", { action: "tiktok-creator-info", profileId, accountId, mediaType }, "Couldn't read your TikTok settings. Try again in a minute.");
 
 /** A file the adviser picked or the app rendered, before it is uploaded. */
 export interface MediaFile {

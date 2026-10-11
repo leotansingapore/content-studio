@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
+import { PostItForMePanel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
+import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { REELS_BOARD_OWNERS, brandForProfile, brandOf, fetchBoard } from "@/lib/reelsBoard";
 import { activeProfile } from "@/lib/profiles";
@@ -136,6 +138,8 @@ export default function CalendarPage() {
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // Team rule: members on approval can't mark a post posted until it is approved.
   const reviews = useDraftReviews(userId, drafts);
+  const [postOpenId, setPostOpenId] = useState<string | null>(null);
+  useZernioRefresh(userId, drafts, setDrafts);
   // Phones open on the list: the month grid only shows Mon-Thu at 390px.
   const [view, setView] = useState<View>(() =>
     typeof window !== "undefined" && window.innerWidth < 640 ? "list" : "month",
@@ -509,6 +513,7 @@ export default function CalendarPage() {
             <X className="h-4 w-4" />
           </button>
         </div>
+        {d.zernio?.postId && userId && <ZernioStatus userId={userId} draft={d} onDrafts={setDrafts} />}
         <div className="flex flex-wrap items-center gap-2">
           {!posted && moveInput(d)}
           <Button asChild variant="outline" size="sm" className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
@@ -525,7 +530,21 @@ export default function CalendarPage() {
               <CheckCircle2 className="h-3.5 w-3.5" /> Mark posted
             </Button>
           )}
+          {!posted && d.scheduledFor && !d.zernio?.postId && socialConnectShown() && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setPostOpenId((cur) => (cur === d.id ? null : d.id))}
+              aria-expanded={postOpenId === d.id}
+              className="h-9 px-3 text-xs text-primary hover:text-primary sm:h-8 [@media(pointer:coarse)]:h-11"
+            >
+              Post it for me
+            </Button>
+          )}
         </div>
+        {postOpenId === d.id && userId && (
+          <PostItForMePanel userId={userId} draft={d} blockReason={reviews.blockReason(d)} onDrafts={setDrafts} onClose={() => setPostOpenId(null)} />
+        )}
       </div>
     );
   };

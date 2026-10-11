@@ -77,6 +77,7 @@ import {
 } from "@/lib/compliance";
 import { ctaKeyword } from "@/lib/autoDm";
 import { socialConnectShown } from "@/lib/socialConnect";
+import { PostItForMePanel, ZernioStatus } from "@/components/PostItForMe";
 import {
   isVoiceProfileUsable,
   loadVoiceProfile,
@@ -2062,6 +2063,7 @@ export default function GeneratePage() {
   // The saved entry behind the draft card, for its "saved / scheduled" line.
   // the next good time to post this one: from the user's own results, else a common slot
   const [scheduleTick, setScheduleTick] = useState(0);
+  const [postOpen, setPostOpen] = useState(false);
   const suggestedTime = useMemo(() => {
     if (!userId || !currentDraftId) return null;
     const taken = loadDrafts(userId).filter((d) => d.status === "scheduled" && d.scheduledFor).map((d) => d.scheduledFor as string);
@@ -3178,6 +3180,11 @@ export default function GeneratePage() {
                     <Link to="/calendar" className="-my-2 py-2 font-semibold text-primary hover:underline">
                       Open calendar
                     </Link>
+                    {!savedEntry.zernio?.postId && socialConnectShown() && (
+                      <button type="button" onClick={() => setPostOpen((o) => !o)} aria-expanded={postOpen} className="-my-2 py-2 font-semibold text-primary hover:underline">
+                        Post it for me
+                      </button>
+                    )}
                   </>
                 ) : (
                   <>
@@ -3199,6 +3206,22 @@ export default function GeneratePage() {
                   </>
                 )}
               </p>
+            )}
+            {savedEntry && userId && savedEntry.zernio?.postId && (
+              <div className="mb-3">
+                <ZernioStatus userId={userId} draft={savedEntry} onDrafts={() => setScheduleTick((n) => n + 1)} />
+              </div>
+            )}
+            {postOpen && savedEntry && userId && savedEntry.status === "scheduled" && savedEntry.scheduledFor && !savedEntry.zernio?.postId && (
+              <div className="mb-3">
+                <PostItForMePanel
+                  userId={userId}
+                  draft={savedEntry}
+                  blockReason={mainCopyBlock}
+                  onDrafts={() => setScheduleTick((n) => n + 1)}
+                  onClose={() => setPostOpen(false)}
+                />
+              </div>
             )}
             {(ctaType === "comment-keyword" || ctaType === "dm-keyword") && socialConnectShown() && (
               <p className="mb-3 text-xs">

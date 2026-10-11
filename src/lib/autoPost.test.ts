@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const callFn = vi.fn();
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: (...a: unknown[]) => callFn(...a) }));
 
-const { fileProblem, fileType, linkFromView, uploadAll, uploadName, UploadError } = await import("./autoPost");
+const { canCancel, canRetry, chipOf, fileProblem, fileType, isDue, linkFromView, postText, uploadAll, uploadName, UploadError, zernioTime } = await import("./autoPost");
 
 /** A fake XMLHttpRequest: answers each PUT with the next status (0 = blocked, as a CORS refusal looks). */
 let answers: number[] = [];
@@ -119,5 +119,50 @@ describe("the draft's link", () => {
         ],
       }),
     ).toEqual({ key: "k", postId: "p1", status: "partial", at: "2026-10-12T01:00:00.000Z", links: [{ platform: "instagram", url: "https://www.instagram.com/p/x/" }], error: "Token expired" });
+  });
+});
+
+describe("the draft as it goes out", () => {
+  it("takes the draft's day and time as Singapore time, or none without a time", () => {
+    expect(zernioTime("2026-10-14T09:30")).toBe("2026-10-14T09:30:00+08:00");
+    expect(zernioTime("2026-10-14", "18:05")).toBe("2026-10-14T18:05:00+08:00");
+    expect(zernioTime("2026-10-14T09:30", "07:00")).toBe("2026-10-14T07:00:00+08:00");
+    expect(zernioTime("2026-10-14")).toBeNull();
+    expect(zernioTime("2026-10-14", "24:00")).toBeNull();
+    expect(zernioTime(undefined, "09:00")).toBeNull();
+  });
+
+  it("is the text a copy would paste: plain, signed off, disclosed", () => {
+    const d = { draft: "**Three** checks.", disclosure: [], platform: "instagram", hook: "", pillarDetail: "" };
+    expect(postText(d, null)).toBe("Three checks.");
+    expect(postText(d, { color: "#000", name: "", handle: "", signOff: "Leo, AIA" })).toBe("Three checks.\n\nLeo, AIA");
+  });
+});
+
+describe("the status chip", () => {
+  const link = (extra = {}) => ({ key: "k", postId: "p", ...extra });
+  it("says where the post is", () => {
+    expect(chipOf(undefined)).toBeNull();
+    expect(chipOf({ key: "k" })).toBeNull();
+    expect(chipOf(link({ status: "scheduled", at: "2026-10-14T01:30:00.000Z" }))).toEqual({ label: expect.stringMatching(/^Scheduled .*14.*9:30/), tone: "wait" });
+    expect(chipOf(link({ status: "published" }))).toEqual({ label: "Posted", tone: "good" });
+    expect(chipOf(link({ status: "failed" }))).toEqual({ label: "Failed", tone: "bad" });
+  });
+
+  it("offers cancel until anything is live, retry only after a failure", () => {
+    expect(canCancel(link({ status: "scheduled" }))).toBe(true);
+    expect(canCancel(link({ status: "failed" }))).toBe(true);
+    expect(canCancel(link({ status: "partial" }))).toBe(false);
+    expect(canCancel(link({ status: "publishing", links: [{ platform: "instagram", url: "https://x" }] }))).toBe(false);
+    expect(canRetry(link({ status: "failed" }))).toBe(true);
+    expect(canRetry(link({ status: "scheduled" }))).toBe(false);
+  });
+
+  it("asks Zernio again only once the time has come and the post hasn't settled", () => {
+    const now = Date.parse("2026-10-14T02:00:00Z");
+    expect(isDue(link({ status: "scheduled", at: "2026-10-14T01:30:00Z" }), now)).toBe(true);
+    expect(isDue(link({ status: "scheduled", at: "2026-10-14T03:00:00Z" }), now)).toBe(false);
+    expect(isDue(link({ status: "published", at: "2026-10-14T01:30:00Z" }), now)).toBe(false);
+    expect(isDue({ key: "k" }, now)).toBe(false);
   });
 });
