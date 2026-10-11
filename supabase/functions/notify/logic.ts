@@ -229,7 +229,7 @@ export function postedDayOf(postedAt: string | undefined): string | null {
  * timestamps) counts as that day without a time, due at 9am.
  */
 export function dueAt(scheduledFor: string | undefined): { at: number; day: string; time: string | null } | null {
-  const timed = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(scheduledFor ?? "");
+  const timed = /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d)$/.exec(scheduledFor ?? "");
   if (timed) {
     const [, y, m, d, hh, mm] = timed.map(Number);
     return { at: Date.UTC(y, m - 1, d, hh, mm) - SG_MS, day: scheduledFor!.slice(0, 10), time: scheduledFor!.slice(11, 16) };

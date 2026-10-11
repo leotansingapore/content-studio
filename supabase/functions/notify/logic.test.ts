@@ -126,6 +126,12 @@ describe("dueAt", () => {
     expect(dueAt("soon")).toBeNull();
     expect(dueAt(undefined)).toBeNull();
   });
+
+  it("reads a stored 24:00 or 19:60 as the day alone, as the app does, not a 12pm or 7:60pm reminder", () => {
+    expect(dueAt("2026-10-08T24:00")).toEqual({ at: sg(2026, 10, 8, 9), day: "2026-10-08", time: null });
+    expect(dueAt("2026-10-08T19:60")).toEqual({ at: sg(2026, 10, 8, 9), day: "2026-10-08", time: null });
+    expect(dueAt("2026-10-08T23:59")).toMatchObject({ time: "23:59" });
+  });
 });
 
 describe("duePosts and dueMessage", () => {
