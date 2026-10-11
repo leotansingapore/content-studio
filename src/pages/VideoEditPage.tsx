@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Check, ChevronDown, ChevronUp, Download, Layers, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Download, Eye, Layers, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import StockSearch from "@/components/StockSearch";
@@ -171,6 +171,7 @@ import type { VersionPlan } from "@/lib/exportVersions";
 import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "@/lib/exportCheck";
 import { FAST, isFast } from "@/lib/fastPauses";
 import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
+import { MAX_WATCH_SECONDS, WATCH_LABELS, onWatchJob, startWatch, watchJob, type WatchJob } from "@/lib/watchCut";
 import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cutTimes, dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
@@ -1134,8 +1135,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
   };
 
+  // Watch it like a viewer, on the finished export; it carries on off this page, like the export
+  const [watch, setWatch] = useState<WatchJob | null>(watchJob());
+  useEffect(() => { const off = onWatchJob(setWatch); return () => { off(); }; }, []);
+  const watching = watch?.state === "running";
+
   // uses left today beside each AI button, read again after every run
-  const left = useUsesLeft(thinking || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning || musicMaking);
+  const left = useUsesLeft(thinking || ideating || suggesting || !!translating || ttsBusy || !!dubBusy || captioning || musicMaking || watching);
   const none = (f: Parameters<typeof left>[0]) => left(f) === 0;
   // the cover from the frame on screen, or from a moment on the edit (a cover idea's), with the cover text set large
   const saveCover = async (at?: number | null, note?: string, face?: Band) => {
@@ -1548,6 +1554,35 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </ul>
             )
           )}
+          {job.kind !== "audio" && ((job.seconds ?? total) > MAX_WATCH_SECONDS ? (
+            <p className="border-t border-success/30 pt-2 text-xs text-muted-foreground">Watch it like a viewer takes videos up to {MAX_WATCH_SECONDS} seconds.</p>
+          ) : (
+            <div className="space-y-1.5 border-t border-success/30 pt-2">
+              <span className="flex flex-wrap items-center gap-2">
+                <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 ${watching ? "disabled:opacity-100" : ""}`} disabled={watching || none("video-watch")}
+                  onClick={() => void startWatch(job.id, job.url!, job.seconds ?? total)}>
+                  {watching ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Eye className="h-3.5 w-3.5" />}
+                  {watching ? "Watching it, 1-2 minutes..." : watch?.exportId === job.id && watch.state === "done" ? "Watch it again" : "Watch it like a viewer"}
+                </Button>
+                <Left n={left("video-watch")} />
+              </span>
+              {watch?.exportId === job.id && watch.state === "failed" && <p className="text-xs text-destructive" role="alert">{watch.error}</p>}
+              {watch?.exportId === job.id && watch.state === "done" && watch.findings && (
+                watch.findings.length === 0 ? (
+                  <p className="flex items-center gap-1.5 text-xs" role="status"><Check className="h-3.5 w-3.5 text-success" /> Watched it: nothing a viewer would trip on.</p>
+                ) : (
+                  <ul className="space-y-1.5" aria-label="What a viewer would trip on">
+                    {watch.findings.map((f) => (
+                      <li key={`${f.kind}-${f.start}`} className="flex flex-wrap items-center gap-2 rounded-md border border-warning/50 bg-warning/10 px-2 py-1.5 text-xs">
+                        <span className="min-w-0 flex-1"><span className="font-semibold">{fmtTime(f.start)} {WATCH_LABELS[f.kind]}:</span> {f.what}{f.fix && <span className="block text-muted-foreground">Fix: {f.fix}</span>}</span>
+                        <Button size="sm" variant="outline" className="h-11 text-xs sm:h-7" onClick={() => seekOut(f.start)}>Show me</Button>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              )}
+            </div>
+          ))}
         </section>
       )}
       {job?.state === "failed" && <p className="text-xs text-destructive">Export failed: {job.error}</p>}

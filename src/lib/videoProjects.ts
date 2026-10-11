@@ -9,6 +9,7 @@ import { deleteFile } from "@/lib/videoMedia";
 import { callFn } from "@/lib/edgeFn";
 import { removePlatformCaptions } from "@/lib/platformCaptions";
 import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSettings, type PublishIdea, type Sentence, type Word } from "@/lib/videoEdit";
+import type { WatchFinding } from "../../supabase/functions/video-assist/watch.ts";
 
 export interface VideoProject {
   id: string;
@@ -142,6 +143,12 @@ async function call(path: string, init: RequestInit): Promise<Response> {
 export async function transcribe(wav: Blob, lang?: string): Promise<{ words: Word[]; text: string; duration: number; lang?: string }> {
   const res = await call(`?mode=transcribe${lang ? `&lang=${encodeURIComponent(lang)}` : ""}`, { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav });
   return res.json();
+}
+
+/** What a viewer would trip on in an exported file, with the seconds (Gemini watches it; about a minute). */
+export async function watchVideo(file: Blob, seconds: number): Promise<WatchFinding[]> {
+  const res = await call(`?mode=watch&seconds=${Math.round(seconds * 10) / 10}`, { method: "POST", headers: { "Content-Type": file.type || "video/mp4" }, body: file });
+  return (await res.json()).findings;
 }
 
 export async function vibeEdit(req: {

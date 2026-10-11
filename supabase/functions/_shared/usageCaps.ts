@@ -51,6 +51,8 @@ export const DAILY_LIMITS = {
   "cold-open": 20,
   // The post caption written for TikTok, LinkedIn and Facebook at once (video-assist captions, gpt-4.1, about 1 US cent).
   "video-captions": 30,
+  // "Watch it like a viewer" after an export (video-assist watch): Gemini watches the file twice, about US$0.07 for a 40 s reel.
+  "video-watch": 30,
   // "Make the image" on Write (ai-image, Higgsfield Soul v2, about USD 0.006 each).
   "ai-image": 5,
   // "Fix it" under that picture (ai-image mode "fix", Qwen Image 3 edit at 2k): per adviser, and across

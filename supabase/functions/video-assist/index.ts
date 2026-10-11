@@ -49,9 +49,11 @@
 //        length, hashtag limits kept, following the brand kit's rules line when sent; firstLine is the spoken
 //        "comment X" / "DM me X" ask when Jev finds the keyword (null when none, no answer or not English)
 //        (captions.ts, "video-captions" cap).
+//   POST ?mode=watch&seconds=<edit length>, body = the exported video -> {findings:[{kind,start,end,what,fix}]}:
+//        Gemini watches the file twice and lists what a viewer would trip on (watch.ts, "video-watch" cap).
 // Each counts against its daily cap (cs_ai_usage: "video-transcribe", "vibe-edit").
 //
-// Secrets: OPENAI_API_KEY. Deploy WITH JWT verification:
+// Secrets: OPENAI_API_KEY, GEMINI_API_KEY (watch). Deploy WITH JWT verification:
 //   supabase functions deploy video-assist --project-ref hgdbflprrficdoyxmdxe --use-api
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
@@ -66,6 +68,7 @@ import { DEFAULT_GRADE, buildMontageMessages, gradeQuestion, parseMontageReply, 
 import { buildHooksMessages, hooksPick, hooksQuestions, hooksState, parseHooksReply, parseHooksRequest } from "./hooks.ts";
 import { buildPopupMessages, eligibleLines, emojiQuestions, keyQuestions, keyState, parseMotionRequest, parsePopupReply, popupLines, readKeyLines, withEmoji } from "./motion.ts";
 import { openaiFetch } from "../_shared/openaiChat.ts";
+import { MAX_WATCH_BYTES, MAX_WATCH_SECONDS, watchSeconds, watchType, watchVideo } from "./watch.ts";
 import {
   CLIP_VIEWER,
   MAX_AUDIO_BYTES,
@@ -161,6 +164,29 @@ Deno.serve(async (req) => {
       }
       const data = await res.json();
       return json({ text: data.text ?? "", duration: data.duration ?? 0, language: data.language ?? "", lang: langCode(data.language) ?? "", words: cleanWords(data.words, data.text ?? "") });
+    }
+
+    if (mode === "watch") {
+      const key = Deno.env.get("GEMINI_API_KEY");
+      if (!key) return json({ error: "Watching isn't switched on yet." }, 503);
+      const bytes = Number(req.headers.get("content-length"));
+      if (!bytes) return json({ error: "Send the video with its length." }, 411);
+      if (bytes > MAX_WATCH_BYTES) return json({ error: "That file is too big to watch. Export a smaller size and try again." }, 413);
+      const type = watchType(req.headers.get("content-type"));
+      if (!type || !req.body) return json({ error: "Send the exported video." }, 400);
+      const seconds = watchSeconds(new URL(req.url).searchParams.get("seconds"));
+      if (seconds === null) return json({ error: `Watch it takes videos up to ${MAX_WATCH_SECONDS} seconds.` }, 400);
+      const usage = await consumeUsage(admin, uid, "video-watch");
+      if (!usage.allowed) {
+        const r = usageRefusal(usage);
+        return json(r.body, r.status);
+      }
+      const findings = await watchVideo(req.body, bytes, type, seconds, key).catch((e) => {
+        console.error("video-assist watch", e instanceof Error ? e.message : e);
+        return null;
+      });
+      if (findings === "too-long") return json({ error: `Watch it takes videos up to ${MAX_WATCH_SECONDS} seconds.` }, 400);
+      return findings ? json({ findings }) : json({ error: "Couldn't watch it this time. Try again." }, 502);
     }
 
     const body = await req.json().catch(() => ({}));
