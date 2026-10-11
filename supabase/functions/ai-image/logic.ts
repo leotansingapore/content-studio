@@ -13,7 +13,17 @@ export const PEOPLE_RULE =
   "each one clearly different from the others in age, build, face, hair and clothes; good-looking, well-groomed, natural expressions. " +
   "Polished lifestyle photograph. No text, no words, no logos, no watermarks.";
 
-export type ImageRequest = { mode: "start"; prompt: string } | { mode: "status"; token: string };
+/** "Fix it" under a finished picture: Qwen Image 3 edits it from one instruction (the web stand-in for
+ * Higgsfield's Photoshop /image-fixer skill, which needs a desktop app). */
+export const FIX_MODEL = "alibaba/qwen-image-3/edit";
+export const MIN_FIX = 3;
+export const MAX_FIX = 300;
+const KEEP_RULE = "Change only what is asked and keep everything else in the picture exactly as it is. Anyone added is Singaporean or other Asian.";
+
+export type ImageRequest =
+  | { mode: "start"; prompt: string }
+  | { mode: "status"; token: string }
+  | { mode: "fix"; token: string; fix: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -22,6 +32,13 @@ export function parseImageRequest(raw: unknown): { ok: true; request: ImageReque
   if (b.mode === "status") {
     // the owner check (openJobToken) needs the caller's uid, so it happens in index.ts
     return typeof b.token === "string" && b.token.length <= 120 ? { ok: true, request: { mode: "status", token: b.token } } : { ok: false, error: "That image job isn't known." };
+  }
+  if (b.mode === "fix") {
+    if (typeof b.token !== "string" || b.token.length > 120) return { ok: false, error: "That picture isn't known." };
+    const fix = typeof b.fix === "string" ? b.fix.replace(/\s+/g, " ").trim() : "";
+    if (fix.length < MIN_FIX) return { ok: false, error: "Say what to fix." };
+    if (fix.length > MAX_FIX) return { ok: false, error: `Keep it under ${MAX_FIX} characters.` };
+    return { ok: true, request: { mode: "fix", token: b.token, fix } };
   }
   const prompt = typeof b.prompt === "string" ? b.prompt.replace(/\s+/g, " ").trim() : "";
   if (prompt.length < MIN_PROMPT) return { ok: false, error: "Write a longer image prompt first." };
@@ -32,6 +49,18 @@ export function parseImageRequest(raw: unknown): { ok: true; request: ImageReque
 /** The body for Soul v2: the post's prompt plus the people rule, 3:4 (the nearest to a 4:5 slide), 1080p. */
 export function buildImageBody(prompt: string): Record<string, unknown> {
   return { prompt: `${prompt}\n\n${PEOPLE_RULE}`, aspect_ratio: "3:4", resolution: "1080p", batch_size: 1 };
+}
+
+/** The edit body: the adviser's fix plus the keep-the-rest rule, on the 3:4 picture Make the image made. */
+export function buildFixBody(imageUrl: string, fix: string): Record<string, unknown> {
+  return { prompt: `${fix}\n\n${KEEP_RULE}`, image_urls: [imageUrl], aspect_ratio: "3:4", resolution: "2k" };
+}
+
+/** A finished job's picture link, or null (still working, failed, or a B-roll video, which can't be fixed). */
+export function pictureUrl(data: unknown): string | null {
+  const d = (data ?? {}) as Record<string, unknown>;
+  const url = d.status === "completed" ? (d.images as { url?: unknown }[] | undefined)?.[0]?.url : null;
+  return typeof url === "string" && /^https:\/\//.test(url) ? url : null;
 }
 
 export type JobState = { state: "working" } | { state: "done"; url: string } | { state: "failed"; error: string };

@@ -2,6 +2,9 @@
 // Higgsfield Soul v2 (about USD 0.006 each at 1080p, by Higgsfield's estimate).
 //   POST {mode:"start", prompt} -> {token}: counts against the "ai-image" daily cap
 //   POST {mode:"status", token} -> {state:"working"} | {state:"done", url} | {state:"failed", error}
+//   POST {mode:"fix", token, fix} -> {token}: "Fix it" under a finished picture; Qwen Image 3 edits the picture
+//        that token made (the link is read from Higgsfield, so only the adviser's own pictures). Counts against
+//        "ai-image-fix" and "ai-image-fix-global".
 //   POST {mode:"broll", search, line, aspect} -> {token}: an AI B-roll clip for a line stock had nothing
 //        for (broll.ts): a Soul v2 picture, waited for here, then DoP lite moves it; the token is the
 //        motion job's, read with "status". Counts once against "ai-broll" and "ai-broll-global".
@@ -18,7 +21,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { GLOBAL_COUNTER_USER, consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { MOTION_MODEL, PICTURE_MODEL, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll.ts";
-import { HF_BASE, HF_MODEL, buildImageBody, jobToken, openJobToken, parseImageRequest, readStatus, tokenSecret } from "./logic.ts";
+import { FIX_MODEL, HF_BASE, HF_MODEL, buildFixBody, buildImageBody, jobToken, openJobToken, parseImageRequest, pictureUrl, readStatus, tokenSecret } from "./logic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,6 +58,21 @@ Deno.serve(async (req) => {
     }
     const auth = { Authorization: `Key ${key}:${secret}` };
     const signing = await tokenSecret(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    // a request id, or the HTTP status that refused it
+    const submit = async (model: string, payload: Record<string, unknown>): Promise<string | number> => {
+      const res = await fetch(`${HF_BASE}/${model}`, {
+        method: "POST",
+        headers: { ...auth, "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(30_000),
+      }).catch(() => null);
+      if (!res?.ok) {
+        console.error("ai-image submit", model, res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
+        return res?.status ?? 502;
+      }
+      const id = (await res.json().catch(() => null))?.request_id;
+      return typeof id === "string" ? id : 502;
+    };
 
     if (broll?.ok) {
       // switched on here, not by the browser's flag: a direct call must not spend the credits
@@ -67,20 +85,6 @@ Deno.serve(async (req) => {
       }
       const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-broll-global");
       if (!everyone.allowed) return json({ code: "daily_limit", error: "Today's AI clips for the whole studio are used up. Try again after 8am Singapore time." }, 429);
-      const submit = async (model: string, payload: Record<string, unknown>): Promise<string | number> => {
-        const res = await fetch(`${HF_BASE}/${model}`, {
-          method: "POST",
-          headers: { ...auth, "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(30_000),
-        }).catch(() => null);
-        if (!res?.ok) {
-          console.error("ai-image broll submit", model, res?.status, (await res?.text().catch(() => ""))?.slice(0, 300));
-          return res?.status ?? 502;
-        }
-        const id = (await res.json().catch(() => null))?.request_id;
-        return typeof id === "string" ? id : 502;
-      };
       const refuse = (status: number) => json({ error: status === 403 ? "AI clip credits have run out. Tell your studio admin." : "Couldn't make the clip right now. Try again in a minute." }, 502);
       // the picture first, waited for here (about 10 to 30 s), so one call makes one clip
       const pic = await submit(PICTURE_MODEL, scenePictureBody(broll.request));
@@ -112,6 +116,25 @@ Deno.serve(async (req) => {
       if (res.status === 404) return json({ state: "failed", error: "That image job isn't known." });
       if (!res.ok) return json({ state: "working" });
       return json(readStatus(await res.json().catch(() => null)));
+    }
+
+    if (parsed.request.mode === "fix") {
+      // the token proves this adviser made the picture; its link comes from Higgsfield, never the browser
+      const id = await openJobToken(signing, uid, parsed.request.token);
+      if (!id) return json({ error: "That picture isn't known." }, 404);
+      const st = await fetch(`${HF_BASE}/requests/${id}/status`, { headers: auth, signal: AbortSignal.timeout(15_000) }).catch(() => null);
+      const url = st?.ok ? pictureUrl(await st.json().catch(() => null)) : null;
+      if (!url) return json({ error: "That picture can't be fixed. Make a new one first." }, 400);
+      const mine = await consumeUsage(admin, uid, "ai-image-fix");
+      if (!mine.allowed) {
+        const r = usageRefusal(mine);
+        return json(r.body, r.status);
+      }
+      const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-image-fix-global");
+      if (!everyone.allowed) return json({ code: "daily_limit", error: "Today's picture fixes for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+      const fixed = await submit(FIX_MODEL, buildFixBody(url, parsed.request.fix));
+      if (typeof fixed !== "string") return json({ error: fixed === 403 ? "Image credits have run out. Tell your studio admin." : RETRY }, 502);
+      return json({ token: await jobToken(signing, uid, fixed), usage: { used: mine.used, limit: mine.limit } });
     }
 
     const usage = await consumeUsage(admin, uid, "ai-image");

@@ -14,6 +14,12 @@ export interface ImageJob {
   /** The picture as kept in Media: its key and a data URL to show. */
   mediaKey?: string;
   preview?: string;
+  /** The finished job's signed token and Media name, so "Fix it" can edit this picture. */
+  token?: string;
+  name?: string;
+  /** Set while a fix runs, and why the last fix failed (the picture before it stays). */
+  fix?: string;
+  fixError?: string;
 }
 
 export const AI_FOLDER = "AI images";
@@ -33,11 +39,22 @@ export function onImageJob(fn: (j: ImageJob | null) => void): () => void {
 }
 export const imageBusy = () => job?.state === "working" || job?.state === "saving";
 
-export async function makeImage(userId: string, prompt: string, name: string): Promise<void> {
+export const makeImage = (userId: string, prompt: string, name: string): Promise<void> =>
+  run(userId, prompt, name.slice(0, 80) || "AI image", { mode: "start", prompt });
+
+/** "Fix it": Qwen Image 3 edits the finished picture; the fixed one is saved to Media beside the original. */
+export function fixImage(userId: string, fix: string): Promise<void> {
+  const j = job;
+  if (!j?.token || j.state !== "done" || imageBusy()) return Promise.resolve();
+  return run(userId, j.prompt, j.name ?? "AI image", { mode: "fix", token: j.token, fix }, j);
+}
+
+async function run(userId: string, prompt: string, name: string, body: Record<string, unknown>, before?: ImageJob): Promise<void> {
   if (imageBusy()) return;
-  set({ prompt, state: "working" });
+  const fix = before ? String(body.fix) : undefined;
+  set({ prompt, state: "working", fix });
   try {
-    const { token } = await callFn<{ token: string }>("ai-image", { mode: "start", prompt }, "Couldn't make the image right now. Try again in a minute.");
+    const { token } = await callFn<{ token: string }>("ai-image", body, "Couldn't make the image right now. Try again in a minute.");
     let url = "";
     for (const until = Date.now() + GIVE_UP_MS; !url && Date.now() < until; ) {
       await new Promise((r) => setTimeout(r, POLL_MS));
@@ -47,16 +64,19 @@ export async function makeImage(userId: string, prompt: string, name: string): P
       if (s.state === "done") url = s.url;
     }
     if (!url) throw new Error("The image is taking too long. Try again in a few minutes.");
-    set({ prompt, state: "saving" });
+    set({ prompt, state: "saving", fix });
     const res = await fetch(url).catch(() => null);
     if (!res?.ok) throw new Error("The image was made but didn't download. Try again.");
     const pic = await storePicture(await res.blob());
+    const saved = fix ? `${name} (fixed)`.slice(0, 80) : name;
     addMedia(userId, {
-      key: pic.key, name: name.slice(0, 80) || "AI image", folder: AI_FOLDER, alt: prompt.slice(0, 250),
+      key: pic.key, name: saved, folder: AI_FOLDER, alt: (fix ? `${prompt} Fixed: ${fix}` : prompt).slice(0, 250),
       width: pic.width, height: pic.height, addedAt: new Date().toISOString(),
     });
-    set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url });
+    set({ prompt, state: "done", mediaKey: pic.key, preview: pic.url, token, name });
   } catch (e) {
-    set({ prompt, state: "failed", error: (e as Error).message || "Couldn't make the image. Try again." });
+    const error = (e as Error).message || "Couldn't make the image. Try again.";
+    // a failed fix keeps the picture the adviser already had
+    set(before ? { ...before, fixError: error } : { prompt, state: "failed", error });
   }
 }

@@ -53,6 +53,10 @@ export const DAILY_LIMITS = {
   "video-captions": 30,
   // "Make the image" on Write (ai-image, Higgsfield Soul v2, about USD 0.006 each).
   "ai-image": 5,
+  // "Fix it" under that picture (ai-image mode "fix", Qwen Image 3 edit at 2k): per adviser, and across
+  // everyone on GLOBAL_COUNTER_USER so the prepaid Higgsfield pool can't be drained.
+  "ai-image-fix": 5,
+  "ai-image-fix-global": 40,
   // An AI B-roll clip when stock has nothing (ai-image mode "broll": Soul v2 picture + DoP lite, about USD 0.13
   // each): per adviser, and across everyone on GLOBAL_COUNTER_USER so the prepaid pool can't be drained.
   "ai-broll": 3,

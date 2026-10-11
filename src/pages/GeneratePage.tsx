@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { imageBusy, imageJob, makeImage, onImageJob, type ImageJob } from "@/lib/aiImage";
+import { fixImage, imageBusy, imageJob, makeImage, onImageJob, type ImageJob } from "@/lib/aiImage";
 import { FACTORS, loadScores, saveScore, scorePost, textKey } from "@/lib/postScore";
 import {
   Sparkles,
@@ -771,6 +771,7 @@ export default function GeneratePage() {
   const [imagePromptLoading, setImagePromptLoading] = useState<boolean>(false);
   // "Make the image": one job at a time, kept outside React so it survives leaving the page
   const [imgJob, setImgJob] = useState<ImageJob | null>(imageJob);
+  const [fixText, setFixText] = useState("");
   useEffect(() => {
     const off = onImageJob(setImgJob);
     return () => {
@@ -3737,7 +3738,9 @@ export default function GeneratePage() {
                           ? "Making the image for your earlier draft..."
                           : imgJob.state === "saving"
                             ? "Saving it to Media..."
-                            : "Making the image, about 30 seconds. You can keep working."}
+                            : imgJob.fix
+                              ? "Fixing the picture, about 30 seconds. You can keep working."
+                              : "Making the image, about 30 seconds. You can keep working."}
                       </div>
                     ) : imgJob.state === "failed" ? (
                       <p className="text-xs text-destructive" role="alert">{imgJob.error}</p>
@@ -3758,6 +3761,30 @@ export default function GeneratePage() {
                             Use it on a carousel slide
                           </Link>
                         </div>
+                        {imgJob.token && userId && (
+                          <form
+                            className="flex w-full flex-wrap items-center gap-2"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              if (fixText.trim().length < 3) return;
+                              void fixImage(userId, fixText);
+                              setFixText("");
+                            }}
+                          >
+                            <Input
+                              value={fixText}
+                              onChange={(e) => setFixText(e.target.value)}
+                              maxLength={300}
+                              placeholder="What to fix, e.g. remove the text on the sign"
+                              aria-label="What to fix in the picture"
+                              className="h-11 min-w-0 flex-1 text-xs sm:h-9"
+                            />
+                            <Button type="submit" size="sm" variant="outline" disabled={fixText.trim().length < 3} className="h-11 gap-1.5 text-xs sm:h-9">
+                              <ImageWandIcon className="h-3.5 w-3.5" /> Fix it
+                            </Button>
+                            {imgJob.fixError && <p className="w-full text-xs text-destructive" role="alert">{imgJob.fixError}</p>}
+                          </form>
+                        )}
                       </div>
                     )}
                   </div>
