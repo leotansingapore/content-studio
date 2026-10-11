@@ -1785,9 +1785,9 @@ export default function GeneratePage() {
   );
   const reviews = useDraftReviews(userId, gateEntries);
   const copyBlockFor = (id: string | null, text: string): string | null => {
-    if (!reviews.ruleOn) return null;
-    if (!id) return "Save the post and submit it for review first.";
-    return reviews.blockReason({ id, draft: text } as DraftEntry);
+    if (reviews.ruleOn === false) return null;
+    if (!id && reviews.ruleOn) return "Save the post and submit it for review first.";
+    return reviews.blockReason({ id: id ?? "", draft: text } as DraftEntry);
   };
   const warnBlocked = (reason: string | null): boolean => {
     if (reason) toast({ title: "Approval needed before posting", description: `Team rule. ${reason}` });

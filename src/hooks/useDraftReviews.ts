@@ -11,6 +11,7 @@ import {
   fetchMySubmissions,
   friendlyError,
   latestSubmissionByDraft,
+  memberRule,
   postingBlockReason,
   reviewHash,
   reviewTextForDraft,
@@ -33,8 +34,8 @@ export interface DraftReviews {
   submit: (draft: DraftEntry) => Promise<void>;
   submittingId: string | null;
   errors: Record<string, string>;
-  /** The team rule "needs approval before posting" is on for this member. */
-  ruleOn: boolean;
+  /** The team rule "needs approval before posting" is on for this member; null when it couldn't be checked (posting stays locked). */
+  ruleOn: boolean | null;
   /** Why Copy and Mark posted are locked for this draft, or null. */
   blockReason: (draft: DraftEntry) => string | null;
 }
@@ -45,7 +46,7 @@ export function useDraftReviews(userId: string | null, drafts: DraftEntry[]): Dr
   const [hashes, setHashes] = useState<Record<string, string>>({});
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [ruleOn, setRuleOn] = useState(false);
+  const [ruleOn, setRuleOn] = useState<boolean | null>(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -54,13 +55,14 @@ export function useDraftReviews(userId: string | null, drafts: DraftEntry[]): Dr
       try {
         const m = await fetchMyMembership(userId);
         if (!active || !m || m.role !== "member") return;
+        // a failed read is unknown, never "no rule": memberRule keeps the lock shut
         const [mine, rules] = await Promise.all([
-          fetchMySubmissions(userId, m.team_id),
-          fetchApprovalRules(m.team_id).catch(() => new Set<string>()),
+          fetchMySubmissions(userId, m.team_id).catch(() => null),
+          fetchApprovalRules(m.team_id).catch(() => null),
         ]);
         if (!active) return;
-        setSubs(mine);
-        setRuleOn(rules.has(userId));
+        setSubs(mine ?? []);
+        setRuleOn(memberRule(userId, rules, mine));
         setMember(m);
       } catch {
         // No team review for this user right now; leave My posts unchanged.
@@ -129,7 +131,7 @@ export function useDraftReviews(userId: string | null, drafts: DraftEntry[]): Dr
   }, []);
 
   const blockReason = useCallback(
-    (draft: DraftEntry) => (ruleOn ? postingBlockReason(true, infoFor(draft)?.state ?? null) : null),
+    (draft: DraftEntry) => postingBlockReason(ruleOn, infoFor(draft)?.state ?? null),
     [ruleOn, infoFor],
   );
 

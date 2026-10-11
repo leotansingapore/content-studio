@@ -173,11 +173,22 @@ export function canSubmitForReview(state: DraftReviewState): boolean {
 }
 
 /**
+ * Whether the team rule locks this member's posting. null when the rule, or their reviews while it is on,
+ * couldn't be read: the lock then stays shut rather than opening on a failed read.
+ */
+export function memberRule(userId: string, rules: Set<string> | null, subs: ReviewSubmission[] | null): boolean | null {
+  if (!rules) return null;
+  if (!rules.has(userId)) return false;
+  return subs ? true : null;
+}
+
+/**
  * Why Copy and Mark posted are locked for a member on the team rule "needs
  * approval before posting", or null when they aren't. `state` is null while
  * the post's text is still being checked against the approved version.
  */
-export function postingBlockReason(ruleOn: boolean, state: DraftReviewState | null): string | null {
+export function postingBlockReason(ruleOn: boolean | null, state: DraftReviewState | null): string | null {
+  if (ruleOn === null) return "Couldn't check your approval status. Reload to try again.";
   if (!ruleOn) return null;
   switch (state) {
     case "approved":

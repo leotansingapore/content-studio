@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   auditCsv,
   auditCsvFilename,
@@ -16,6 +17,7 @@ import {
   normalizeReviewText,
   extractMentions,
   insertMention,
+  memberRule,
   mentionCandidates,
   postingBlockReason,
   reviewHash,
@@ -116,6 +118,19 @@ describe("deriveReviewState", () => {
       expect(postingBlockReason(true, state), String(state)).toMatch(/\w/);
     }
     expect(postingBlockReason(true, "rejected")).toMatch(/rejected/);
+  });
+  it("keeps posting locked for a member on the rule when the rule or their reviews can't be read", () => {
+    const rules = new Set(["u1"]);
+    expect(memberRule("u1", null, [])).toBeNull();
+    expect(memberRule("u1", rules, null)).toBeNull();
+    expect(memberRule("u2", rules, null)).toBe(false);
+    expect(memberRule("u1", rules, [])).toBe(true);
+    for (const state of ["approved", "none", null] as const) expect(postingBlockReason(null, state)).toBe("Couldn't check your approval status. Reload to try again.");
+    // the hook and Write read a failed read as unknown, never as "no rule"
+    const hook = readFileSync(new URL("../hooks/useDraftReviews.ts", import.meta.url), "utf8");
+    expect(hook).toContain("fetchApprovalRules(m.team_id).catch(() => null)");
+    expect(hook).toContain("setRuleOn(memberRule(userId, rules, mine))");
+    expect(readFileSync(new URL("../pages/GeneratePage.tsx", import.meta.url), "utf8")).toContain("if (reviews.ruleOn === false) return null;");
   });
   it("latestSubmissionByDraft keeps the newest per draft", () => {
     const older = sub({ id: "old", submitted_at: "2026-09-01T02:00:00+00:00" });
