@@ -16,7 +16,7 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { hasComplianceErrors } from "@/lib/compliance";
 import { supabase } from "@/lib/supabase";
-import { activeProfile } from "@/lib/profiles";
+import { activeProfile, scoped } from "@/lib/profiles";
 import { isNotEnabled, platformName, rememberSocialConnect } from "@/lib/socialConnect";
 import {
   LIMITS,
@@ -29,6 +29,7 @@ import {
   deleteAutoDm,
   emptyForm,
   fillName,
+  keptForm,
   formFlags,
   formFromView,
   formProblem,
@@ -45,6 +46,17 @@ import {
   type PostOption,
   type Trigger,
 } from "@/lib/autoDm";
+
+// The form while it is open, kept for this tab so leaving the page doesn't throw away what was
+// typed. sessionStorage, outside the synced prefix: the auto-DM itself is saved on Save.
+const formKey = (userId: string) => `cs-autodm-form-${scoped(userId)}`;
+const readKept = (userId: string) => {
+  try {
+    return sessionStorage.getItem(formKey(userId));
+  } catch {
+    return null;
+  }
+};
 
 const message = (e: unknown) => (e instanceof Error ? e.message : "That didn't go through. Try again in a minute.");
 const chip = (on: boolean) =>
@@ -106,7 +118,9 @@ export default function AutoDmPage() {
       setAccounts(r.accounts);
       setList(r.automations);
       setState("ready");
+      const kept = keptForm(readKept(uid), r.accounts.map((a) => a.id), r.automations.map((a) => a.id));
       if (keyword && r.accounts.length) setForm(emptyForm(r.accounts[0].id, keyword));
+      else if (kept) setForm(kept);
       const bound = new Set(r.automations.filter((a) => a.platformPostId).map((a) => a.accountId));
       for (const id of bound) void accountPosts(activeProfile(uid).id, id).then(({ posts: p }) => setPosts((m) => ({ ...m, [id]: p })), () => {});
     } catch (e) {
@@ -169,7 +183,16 @@ export default function AutoDmPage() {
     }
   };
 
+  const forgetForm = () => {
+    try {
+      if (userId) sessionStorage.removeItem(formKey(userId));
+    } catch {
+      // storage blocked: nothing was kept
+    }
+  };
+
   const saved = (wasNew: boolean) => {
+    forgetForm();
     setForm(null);
     setBroughtKeyword("");
     toast({ title: wasNew ? "Auto-DM saved and on" : "Auto-DM saved" });
@@ -232,7 +255,11 @@ export default function AutoDmPage() {
           posts={posts}
           loadPosts={loadPosts}
           broughtKeyword={broughtKeyword}
-          onCancel={() => setForm(null)}
+          draftKey={userId ? formKey(userId) : ""}
+          onCancel={() => {
+            forgetForm();
+            setForm(null);
+          }}
           onSaved={saved}
         />
       )}
@@ -410,6 +437,7 @@ function Editor({
   posts,
   loadPosts,
   broughtKeyword,
+  draftKey,
   onCancel,
   onSaved,
 }: {
@@ -419,6 +447,7 @@ function Editor({
   posts: Record<string, PostOption[]>;
   loadPosts: (accountId: string) => Promise<boolean>;
   broughtKeyword: string;
+  draftKey: string;
   onCancel: () => void;
   onSaved: (wasNew: boolean) => void;
 }) {
@@ -436,6 +465,14 @@ function Editor({
   const flags = formFlags(f, platform);
   const blocked = hasComplianceErrors(flags);
   const set = (patch: Partial<AutoDmForm>) => setF((x) => ({ ...x, ...patch }));
+  useEffect(() => {
+    if (!draftKey) return;
+    try {
+      sessionStorage.setItem(draftKey, JSON.stringify(f));
+    } catch {
+      // storage blocked: the form just won't survive a page change
+    }
+  }, [draftKey, f]);
 
   const fetchPosts = async (id: string) => {
     if (!id || posts[id]) return;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scanCompliance } from "./compliance";
-import { STARTERS, applyStarter, ctaKeyword, emptyForm, fillName, formFlags, formProblem, logLine, toInput, type LogView } from "./autoDm";
+import { STARTERS, applyStarter, ctaKeyword, emptyForm, fillName, formFlags, formProblem, keptForm, logLine, toInput, type LogView } from "./autoDm";
 
 const IG = "65000000000000000000a001";
 
@@ -62,6 +62,18 @@ describe("the form", () => {
     expect(formFlags(f, "instagram").map((x) => x.ruleId).sort()).toEqual(["act-now", "guarantee", "risk-free"]);
     // TikTok sends no DM, so its words aren't checked
     expect(formFlags(f, "tiktok").map((x) => x.ruleId)).toEqual(["guarantee"]);
+  });
+
+  it("comes back after leaving the page while it still fits", () => {
+    const raw = JSON.stringify(filled);
+    expect(keptForm(raw, [IG], [])).toEqual(filled);
+    // older or partial copies get the missing fields
+    expect(keptForm(JSON.stringify({ id: null, accountId: IG, dm: "Hi" }), [IG], [])).toEqual({ ...emptyForm(IG), dm: "Hi" });
+    expect(keptForm(JSON.stringify({ ...filled, id: "a1" }), [IG], ["a1"])).toMatchObject({ id: "a1", dm: "Hi {{first_name}}" });
+    // account disconnected, auto-DM deleted, nothing kept, or not a form
+    expect(keptForm(raw, ["other"], [])).toBeNull();
+    expect(keptForm(JSON.stringify({ ...filled, id: "gone" }), [IG], ["a1"])).toBeNull();
+    for (const bad of [null, "", "null", "{", "[]", '"text"', JSON.stringify({ accountId: IG })]) expect(keptForm(bad, [IG], [])).toBeNull();
   });
 
   it("previews the commenter's name", () => {

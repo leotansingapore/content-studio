@@ -99,6 +99,21 @@ export const formFromView = (a: AutomationView): AutoDmForm => ({
   followGate: a.followGate,
 });
 
+/**
+ * A form left open in this tab (sessionStorage, read back as text), if it still belongs to one
+ * of the accounts and, for an edit, to an auto-DM that still exists.
+ */
+export function keptForm(raw: string | null, accountIds: string[], automationIds: string[]): AutoDmForm | null {
+  try {
+    const f = JSON.parse(raw ?? "null");
+    if (!f || typeof f !== "object" || typeof f.dm !== "string" || !accountIds.includes(f.accountId)) return null;
+    if (f.id !== null && !automationIds.includes(f.id)) return null;
+    return { ...emptyForm(), ...f };
+  } catch {
+    return null;
+  }
+}
+
 /** What the form sends: what it shows for this platform. Empty extra wordings and blank buttons are dropped by the shared check. */
 export function toInput(f: AutoDmForm, platform: string): AutomationInput {
   const story = f.trigger !== "comment";
