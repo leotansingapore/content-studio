@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Check, Image as ImageIcon, LayoutGrid, MessageCircle, Plus, RotateCw, Trash2, X } from "lucide-react";
+import { ArrowRight, Check, Image as ImageIcon, LayoutGrid, MessageCircle, Plus, RotateCw, Trash2, X } from "lucide-react";
 import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Button } from "@/components/ui/button";
@@ -220,7 +220,7 @@ export default function AutoDmPage() {
         />
       )}
 
-      {!(state === "ready" && (form || logOf)) && (
+      {!(state === "ready" && (form || logOf || list.length === 0)) && (
         <header className="flex items-center justify-between gap-3 sm:flex-wrap sm:items-end sm:gap-4">
           <div className="min-w-0 space-y-1.5">
             <h1 className="font-serif text-[28px] font-semibold leading-tight tracking-tight sm:text-[34px]">Auto-DM</h1>
@@ -259,14 +259,7 @@ export default function AutoDmPage() {
         </div>
       )}
 
-      {state === "ready" && accounts.length === 0 && (
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Connect the account people comment on first.</p>
-          <Button asChild className="h-11">
-            <Link to="/accounts">Connect an account</Link>
-          </Button>
-        </div>
-      )}
+      {state === "ready" && !form && list.length === 0 && <FirstVisit account={accounts[0]} onNew={() => setForm(emptyForm(accounts[0].id, broughtKeyword))} />}
 
       {state === "ready" && form && (
         <Editor
@@ -295,7 +288,7 @@ export default function AutoDmPage() {
         />
       )}
 
-      {state === "ready" && !form && !logOf && accounts.length > 0 && (
+      {state === "ready" && !form && !logOf && list.length > 0 && (
         <>
           <div className="hidden flex-wrap items-center gap-3 text-sm sm:flex">
             {accounts.map((a) => (
@@ -309,60 +302,120 @@ export default function AutoDmPage() {
             </Link>
           </div>
 
-          {list.length === 0 ? (
-            <p className="text-sm text-muted-foreground">None yet.</p>
-          ) : (
-            <>
-              <section aria-label="Totals" className="space-y-2">
-                <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                  {(
-                    [
-                      ["DMs sent", "sent"],
-                      ["Read", "read"],
-                      ["Link taps", "clicked"],
-                    ] as const
-                  ).map(([label, k]) => (
-                    <div key={k} className="flex min-w-0 flex-col gap-0.5 rounded-xl border border-border bg-card p-3 sm:gap-1.5 sm:px-5 sm:py-[18px]">
-                      <span className="text-xs text-muted-foreground sm:text-[13px]">{label}</span>
-                      <span className="text-[22px] font-semibold tabular-nums tracking-tight sm:text-[28px]">{list.reduce((n, a) => n + a.stats[k], 0)}</span>
-                    </div>
-                  ))}
+          <section aria-label="Totals" className="space-y-2">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
+              {(
+                [
+                  ["DMs sent", "sent"],
+                  ["Read", "read"],
+                  ["Link taps", "clicked"],
+                ] as const
+              ).map(([label, k]) => (
+                <div key={k} className="flex min-w-0 flex-col gap-0.5 rounded-xl border border-border bg-card p-3 sm:gap-1.5 sm:px-5 sm:py-[18px]">
+                  <span className="text-xs text-muted-foreground sm:text-[13px]">{label}</span>
+                  <span className="text-[22px] font-semibold tabular-nums tracking-tight sm:text-[28px]">{list.reduce((n, a) => n + a.stats[k], 0)}</span>
                 </div>
-                <p className="text-[13px] text-muted-foreground">Since each one was switched on</p>
-              </section>
+              ))}
+            </div>
+            <p className="text-[13px] text-muted-foreground">Since each one was switched on</p>
+          </section>
 
-              <section aria-labelledby="adm-list" className="space-y-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <h2 id="adm-list" className="text-base font-semibold sm:text-lg">
-                    Your auto-DMs
-                  </h2>
-                  <span className="text-[13px] text-muted-foreground sm:text-sm">
-                    {list.filter((a) => a.active).length} of {list.length} on
-                  </span>
-                </div>
-                <ul className="space-y-2.5 sm:space-y-3">
-                  {list.map((a) => (
-                    <Row
-                      key={a.id}
-                      a={a}
-                      account={accounts.length > 1 ? accountOf(a.accountId) : undefined}
-                      post={posts[a.accountId]?.find((p) => p.id === a.platformPostId)}
-                      busy={busy}
-                      onLog={() => setParams({ log: a.id })}
-                      onToggle={() => toggle(a)}
-                      onEdit={() => {
-                        setForm(formFromView(a));
-                        void loadPosts(a.accountId);
-                      }}
-                    />
-                  ))}
-                </ul>
-              </section>
-            </>
-          )}
+          <section aria-labelledby="adm-list" className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 id="adm-list" className="text-base font-semibold sm:text-lg">
+                Your auto-DMs
+              </h2>
+              <span className="text-[13px] text-muted-foreground sm:text-sm">
+                {list.filter((a) => a.active).length} of {list.length} on
+              </span>
+            </div>
+            <ul className="space-y-2.5 sm:space-y-3">
+              {list.map((a) => (
+                <Row
+                  key={a.id}
+                  a={a}
+                  account={accounts.length > 1 ? accountOf(a.accountId) : undefined}
+                  post={posts[a.accountId]?.find((p) => p.id === a.platformPostId)}
+                  busy={busy}
+                  onLog={() => setParams({ log: a.id })}
+                  onToggle={() => toggle(a)}
+                  onEdit={() => {
+                    setForm(formFromView(a));
+                    void loadPosts(a.accountId);
+                  }}
+                />
+              ))}
+            </ul>
+          </section>
         </>
       )}
     </div>
+  );
+}
+
+/** First visit: what Auto-DM does in three steps, then the one way forward (connect, or a new auto-DM). */
+function FirstVisit({ account, onNew }: { account?: AccountOption; onNew: () => void }) {
+  const mine = account ? initials(account.name || account.username) : "Y";
+  const step = "flex w-full max-w-[240px] flex-col gap-3 rounded-xl border border-border bg-card p-[18px] text-left sm:flex-[1_1_160px]";
+  const head = "text-xs font-semibold uppercase tracking-[0.06em] text-muted-foreground";
+  const dot = (text: string, mineToo: boolean) => (
+    <span aria-hidden className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${mineToo ? "bg-primary/10 text-primary" : "bg-muted text-foreground/80"}`}>
+      {text}
+    </span>
+  );
+  const arrow = (
+    <li aria-hidden className="flex items-center text-muted-foreground/60">
+      <ArrowRight className="h-7 w-7 rotate-90 sm:rotate-0" />
+    </li>
+  );
+  return (
+    <section aria-labelledby="adm-first" className="mx-auto flex max-w-[860px] flex-col items-center gap-7 py-4 text-center sm:py-10">
+      <div className="flex flex-col items-center gap-2.5">
+        <h1 id="adm-first" className="font-serif text-[28px] font-semibold leading-tight tracking-tight sm:text-[34px]">
+          Answer every comment that asks for your guide
+        </h1>
+        <p className="max-w-[560px] text-base leading-normal text-muted-foreground">
+          {account ? "Pick a keyword and the DM it sends." : "Connect the account people comment on, then pick a keyword and the DM it sends."}
+        </p>
+      </div>
+      <ol aria-label="How it works" className="flex w-full flex-col items-center gap-3 sm:flex-row sm:items-stretch sm:justify-center">
+        <li className={step}>
+          <span className={head}>1. They comment</span>
+          <span className="flex items-center gap-2 text-sm">
+            {dot("ST", false)}
+            <span>
+              <strong>sarah.tan</strong> PLAN
+            </span>
+          </span>
+        </li>
+        {arrow}
+        <li className={step}>
+          <span className={head}>2. You reply in public</span>
+          <span className="flex items-center gap-2 text-sm">
+            {dot(mine, true)}
+            Sent! Check your DMs
+          </span>
+        </li>
+        {arrow}
+        <li className={step}>
+          <span className={head}>3. They get your DM</span>
+          <span className="overflow-hidden rounded-[14px] rounded-bl bg-muted">
+            <span className="block px-3 py-2 text-[13px] leading-snug">Hi Sarah, here is the checklist.</span>
+            <span className="block border-t border-border px-3 py-1.5 text-center text-[13px] font-semibold text-primary">Get the checklist</span>
+          </span>
+        </li>
+      </ol>
+      {account ? (
+        <Button className="h-12 gap-2 px-6 text-base font-semibold" onClick={onNew}>
+          <Plus className="h-[18px] w-[18px]" /> New auto-DM
+        </Button>
+      ) : (
+        <Button asChild className="h-12 px-6 text-base font-semibold">
+          <Link to="/accounts">Connect an account</Link>
+        </Button>
+      )}
+      <p className="max-w-[560px] text-[13px] leading-normal text-muted-foreground">Instagram and Facebook send the DM. On TikTok, Threads, LinkedIn and YouTube it posts the public reply only.</p>
+    </section>
   );
 }
 
