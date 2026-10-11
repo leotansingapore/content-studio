@@ -611,9 +611,9 @@ export function weekMoves(r: WeekReport): Move[] {
   if (r.best[0]) out.push({ id: "reuse", text: `Turn your best post, "${clip(r.best[0].hook || "Untitled post", 60)}", into a new post in another format.` });
   if (r.missing) out.push({ id: "numbers", text: `Add the numbers for ${plural(r.missing, "recent post")} with none yet.` });
   const target = Math.max(r.goal, r.prevPosts);
-  if (target > r.posts) out.push({ id: "cadence", text: `Post ${target} times this week, up from ${r.posts}.` });
+  if (target > r.posts) out.push({ id: "cadence", text: `Post ${plural(target, "time")} this week, up from ${r.posts}.` });
   const m = r.movers[0];
-  if (m && m.gained > 0) out.push({ id: "rival", text: `Remix a post from @${m.handle}, who gained ${fmt(m.gained)} followers.` });
+  if (m && m.gained > 0) out.push({ id: "rival", text: `Remix a post from @${m.handle}, who gained ${fmt(m.gained)} follower${m.gained === 1 ? "" : "s"}.` });
   return out;
 }
 

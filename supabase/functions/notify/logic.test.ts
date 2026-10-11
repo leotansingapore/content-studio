@@ -416,6 +416,14 @@ describe("weekReport (g44)", () => {
     expect(weekMoves(weekReport([], followed.slice(0, 1), "2026-10-11"))).toEqual([]);
   });
 
+  it("says 1 time and 1 follower, not 1 times and 1 followers", () => {
+    const one = { ...r, shared: [], best: [], missing: 0, posts: 0, prevPosts: 1, goal: 0, movers: [{ ...r.movers[0], gained: 1 }] };
+    expect(weekMoves(one)).toEqual([
+      { id: "cadence", text: "Post 1 time this week, up from 0." },
+      { id: "rival", text: "Remix a post from @alpha, who gained 1 follower." },
+    ]);
+  });
+
   it("asks Jev to choose only when there is a choice, and takes only an offered move", () => {
     const moves = weekMoves(r);
     const ask = moveAsk(reportFacts(r), moves)!;
