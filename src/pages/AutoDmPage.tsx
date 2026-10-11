@@ -302,7 +302,7 @@ function Row({
   const stats: [string, number][] = dm
     ? [["Sent", a.stats.sent], ...(a.platform === "facebook" ? [["Delivered", a.stats.delivered] as [string, number]] : []), ["Read", a.stats.read], ["Clicked", a.stats.clicked]]
     : [["Replied to", a.stats.triggered]];
-  const small = "h-11 gap-1.5 px-3 text-xs sm:h-9";
+  const small = "h-11 gap-1.5 px-3 text-xs sm:h-9 [@media(pointer:coarse)]:h-11";
   return (
     <li className="space-y-2 rounded-xl border border-border/60 bg-card p-3">
       <div className="flex items-start gap-3">
@@ -601,7 +601,7 @@ function Editor({
               className="h-11"
             />
             {!story && (
-              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:min-h-9">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:min-h-9 [@media(pointer:coarse)]:min-h-11">
                 <input type="checkbox" checked={f.everyComment} onChange={(e) => set({ everyComment: e.target.checked, ...(e.target.checked ? { alsoMatchInDms: false } : {}) })} className="h-4 w-4 accent-primary" />
                 Every comment
               </label>
@@ -653,13 +653,13 @@ function Editor({
         {dm && (f.trigger === "comment" || platform === "instagram") && (
           <div className="space-y-0.5">
             {f.trigger === "comment" && (
-              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:min-h-9">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:min-h-9 [@media(pointer:coarse)]:min-h-11">
                 <input type="checkbox" checked={f.alsoMatchInDms} disabled={f.everyComment} onChange={(e) => set({ alsoMatchInDms: e.target.checked })} className="h-4 w-4 accent-primary" />
                 Also answer when they DM the word
               </label>
             )}
             {platform === "instagram" && (
-              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:min-h-9">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:min-h-9 [@media(pointer:coarse)]:min-h-11">
                 <input type="checkbox" checked={f.followGate} onChange={(e) => set({ followGate: e.target.checked })} className="h-4 w-4 accent-primary" />
                 Only followers get the DM
                 <InfoTip label="About the follower check">Anyone Instagram can't confirm gets a button to tap once they follow.</InfoTip>
