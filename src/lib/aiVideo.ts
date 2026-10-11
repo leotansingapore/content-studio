@@ -75,7 +75,8 @@ async function waitFor(tokens: string[], progress: (done: number) => void, refun
     if (urls.length === tokens.length) return urls;
     progress(urls.length);
   }
-  throw new JobFailed("It's taking too long. Try again later.");
+  // not a JobFailed: Higgsfield hasn't failed it, so the paid job is kept for Try again at no cost
+  throw new Error("It's taking too long. Try again later.");
 }
 
 async function download(url: string): Promise<Blob> {
