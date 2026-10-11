@@ -373,7 +373,7 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
                   <span className="block text-[11px] text-muted-foreground">{fmtTime(p.duration)}</span>
                 </button>
                 <button type="button" aria-label={`Delete ${p.name}`} onClick={() => window.confirm(`Delete ${p.name}?`) && onRemove(p.id)}
-                  className="absolute right-1.5 top-1.5 rounded-md bg-background/85 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus:opacity-100">
+                  className="absolute right-1.5 top-1.5 rounded-md bg-background/85 p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus:opacity-100 [@media(pointer:coarse)]:p-[15px] [@media(pointer:coarse)]:opacity-100">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </li>
