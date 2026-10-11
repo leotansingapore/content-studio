@@ -156,6 +156,25 @@ describe("the team-wide recount (M5)", () => {
     expect(f.keys()).toEqual(["GET /accounts", `DELETE /accounts/${B_NEW}`]);
   });
 
+  it("still disconnects and notes the rest when one over-cap disconnect fails, then reports the failure", async () => {
+    const THIRD = "0123456789abcdef0123456a";
+    const C_NEWEST = "65000000000000000000ff02";
+    const ownerOf = new Map([...owners(), [THIRD, "1f8fad5b-d9cb-469f-a165-70867728950e"]]);
+    let theirDescription: unknown = null;
+    const f = fake({
+      "GET /accounts": accounts([acct(A1), acct(A2), acct(B_NEW, THEIRS, { username: "bee" }), acct(C_NEWEST, THIRD)]),
+      [`DELETE /accounts/${C_NEWEST}`]: new ZernioError(500, "", "boom"),
+      [`DELETE /accounts/${B_NEW}`]: {},
+      [`GET /profiles/${THEIRS}`]: { profile: { _id: THEIRS } },
+      [`PUT /profiles/${THEIRS}`]: (req: ZernioRequest) => ((theirDescription = (req.body as { description: string }).description), {}),
+    });
+    const failed = await recount(f.z, { ownerOf, teamCap: 2 }, NOW).catch((e) => e);
+    expect(errorReply(failed).status).toBe(502);
+    // the older one stops billing all the same, and its owner is told
+    expect(f.keys().filter((k) => k.startsWith("DELETE"))).toEqual([`DELETE /accounts/${C_NEWEST}`, `DELETE /accounts/${B_NEW}`]);
+    expect(removalNotes(theirDescription, NOW)).toEqual([{ platform: "instagram", username: "bee", at: "2026-10-11T08:00:00.000Z" }]);
+  });
+
   it("keeps notes for 30 days, newest first, and ignores anything else in the description", () => {
     const MID = Date.parse("2026-09-20T00:00:00Z");
     const d = withRemovalNotes(null, [{ platform: "tiktok", username: "old", at: "2026-09-01T00:00:00Z" }], MID);

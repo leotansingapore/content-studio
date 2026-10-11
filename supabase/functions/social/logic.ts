@@ -190,10 +190,13 @@ export async function recount(z: Zernio, c: Pick<Caller, "ownerOf" | "teamCap">,
   if (!over.length) return team;
   const at = new Date(now).toISOString();
   const byProfile = new Map<string, RemovedNote[]>();
+  // one that fails doesn't stop the rest from going, or the notes for those that went; it is reported after
+  let failed: unknown = null;
   for (const a of over) {
     const pid = refId(a.profileId);
     // noted only when this call disconnected it, so a repeat never notes it twice
-    if ((await disconnectAccount(z, a._id)) && c.ownerOf.has(pid)) byProfile.set(pid, [...(byProfile.get(pid) ?? []), { platform: a.platform, username: a.username ?? "", at }]);
+    const gone = await disconnectAccount(z, a._id).catch((e) => ((failed ??= e), false));
+    if (gone && c.ownerOf.has(pid)) byProfile.set(pid, [...(byProfile.get(pid) ?? []), { platform: a.platform, username: a.username ?? "", at }]);
   }
   for (const [pid, notes] of byProfile) {
     try {
@@ -204,6 +207,7 @@ export async function recount(z: Zernio, c: Pick<Caller, "ownerOf" | "teamCap">,
       console.warn("social: couldn't note an over-cap removal", pid, e instanceof Error ? e.message : String(e));
     }
   }
+  if (failed) throw failed;
   const gone = new Set(over.map((a) => a._id));
   return team.filter((a) => !gone.has(a._id));
 }
