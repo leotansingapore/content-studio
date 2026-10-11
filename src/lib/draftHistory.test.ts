@@ -141,6 +141,12 @@ describe("upsertDraft", () => {
     upsertDraft(UID, post({ status: "posted", hook: "Edited in Write" }));
     expect(loadDrafts(UID)[0]).toMatchObject({ hook: "Edited in Write", metrics: { impressions: 900, reactions: 12 } });
   });
+
+  it("keeps an imported post's media link and its labels when Write saves an edit", () => {
+    saveDrafts(UID, [post({ media: "https://drive.example.com/reel.mp4", labels: ["format:carousel"] })]);
+    upsertDraft(UID, post({ draft: "Edited in Write" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited in Write", media: "https://drive.example.com/reel.mp4", labels: ["format:carousel"] });
+  });
 });
 
 describe("upsertDraft and the hook formula", () => {

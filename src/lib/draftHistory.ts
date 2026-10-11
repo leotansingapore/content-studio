@@ -241,6 +241,7 @@ export function upsertDraft(
   if (prev?.labels && !entry.labels) entry = { ...entry, labels: prev.labels };
   if (prev?.storyboard && !entry.storyboard) entry = { ...entry, storyboard: prev.storyboard };
   if (prev?.zernio && !entry.zernio) entry = { ...entry, zernio: prev.zernio };
+  if (prev?.media && !entry.media) entry = { ...entry, media: prev.media };
   // ...or the formula its hook was written with, while the hook is unchanged
   if (prev?.hookFormula && !entry.hookFormula && prev.hook === entry.hook) entry = { ...entry, hookFormula: prev.hookFormula };
   const without = current.filter((d) => d.id !== entry.id);
