@@ -13,7 +13,9 @@
 // no draft. A lead's draft steers to the goal the consultant picked.
 // Mode "thread": one conversation, both sides, marked by the consultant (not
 // guessed). One draft answers their latest message in the context of the last
-// MAX_THREAD messages and steers to the picked goal. Jev decides only whether to escalate.
+// MAX_THREAD messages and steers to the picked goal. Jev decides only whether to escalate,
+// reading everything they wrote in the last MAX_THREAD_SCAN messages, so an early "I'm 15"
+// or "can I sue" is not missed (Leo, 2026-10-11).
 // Mode "comments": someone else's post (or 2-10 of them). Jev picks which kinds
 // of comment fit; the drafts are two comments of different kinds for one post,
 // one each for a batch.
@@ -83,7 +85,7 @@ export function parseEngageRequest(raw: unknown): { ok: true; request: EngageReq
   if (b.mode === "thread") {
     const lines = (Array.isArray(b.lines) ? b.lines : [])
       .flatMap((x) => pastedList([x]).map((p) => ({ ...p, me: (x as { me?: unknown } | null)?.me === true })))
-      .slice(-MAX_THREAD);
+      .slice(-MAX_THREAD_SCAN);
     if (!lines.length) return { ok: false, error: "Paste the conversation." };
     if (lines[lines.length - 1].me) return { ok: false, error: "The last message is yours. Wait for their reply." };
     return { ok: true, request: { mode: "thread", lines, goal: dmGoal(b.goal), topics: topicList(b.topics) } };
@@ -552,6 +554,8 @@ export function readDmReplies(content: string | null, messages: Pasted[], sorted
 
 /** The messages a conversation draft reads, the latest kept (insta-p8 reads the last 10). */
 export const MAX_THREAD = 10;
+/** The messages the escalation check reads: the whole pasted thread, up to this many. */
+export const MAX_THREAD_SCAN = 80;
 
 /** One message in a pasted conversation; `me` is the consultant's own, as they marked it. */
 export interface ThreadLine extends Pasted {
@@ -576,7 +580,7 @@ export function buildThreadPrompt(lines: ThreadLine[], goal: DmGoal): { system: 
     'Reply with JSON only: {"reply":"..."}',
   ].join("\n");
   const name = theirName(lines);
-  const said = lines.map((l) => `${l.me ? "You" : "Them"}: ${l.text.replace(/\s+/g, " ")}`);
+  const said = lines.slice(-MAX_THREAD).map((l) => `${l.me ? "You" : "Them"}: ${l.text.replace(/\s+/g, " ")}`);
   return { system, user: [...(name ? [`Their name: ${name}`] : []), "The conversation:", ...said].join("\n") };
 }
 

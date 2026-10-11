@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
-import { addTopic, followUpDates, followUpTitle, loadGoal, loadLog, loadTopics, MAX_TOPICS, removeTopic, loadRun, logComment, MAX_ITEMS, MAX_POSTS, MAX_THREAD, newThreadPaste, requestBody, runningJob, saveGoal, saveRun, splitPasted, startRun, thisWeek, threadLines, timesThisWeek, toggleMine, unlog } from "@/lib/engageDrafts";
+import { addTopic, followUpDates, followUpTitle, loadGoal, loadLog, loadTopics, MAX_TOPICS, removeTopic, loadRun, logComment, MAX_ITEMS, MAX_POSTS, MAX_THREAD_SCAN, newThreadPaste, requestBody, runningJob, saveGoal, saveRun, splitPasted, startRun, thisWeek, threadLines, timesThisWeek, toggleMine, unlog } from "@/lib/engageDrafts";
 
 const store = new Map<string, string>();
 const invoke = vi.fn();
@@ -100,16 +100,17 @@ describe("a DM conversation", () => {
     expect(readFileSync(new URL("../components/engage/Dms.tsx", import.meta.url), "utf8")).toContain("thread.edit(newThreadPaste(thread.run, e.target.value))");
   });
 
-  it("sends the last MAX_THREAD lines with their sides and the goal last picked on this profile", async () => {
+  it("sends the last MAX_THREAD_SCAN lines (escalation reads them all) with their sides and the goal last picked on this profile", async () => {
     invoke.mockResolvedValue({ data: { items: [{ i: 0, reply: "r" }] }, error: null });
-    const long = Array.from({ length: MAX_THREAD + 2 }, (_, i) => `m${i}`).join("\n");
-    expect(await startRun("thread", "u1", { post: "", pasted: long, posts: [], form: { mine: "11,10" } })).toEqual({ kind: "ok" });
+    const n = MAX_THREAD_SCAN + 2;
+    const long = Array.from({ length: n }, (_, i) => `m${i}`).join("\n");
+    expect(await startRun("thread", "u1", { post: "", pasted: long, posts: [], form: { mine: `${n - 1},${n - 2}` } })).toEqual({ kind: "ok" });
     const body = invoke.mock.calls[0][1].body;
     expect(body.mode).toBe("thread");
     expect(body.goal).toBe("call");
-    expect(body.lines).toHaveLength(MAX_THREAD);
+    expect(body.lines).toHaveLength(MAX_THREAD_SCAN);
     expect(body.lines[0]).toEqual({ name: "", text: "m2", me: false });
-    expect(body.lines.at(-1)).toEqual({ name: "", text: "m11", me: true });
+    expect(body.lines.at(-1)).toEqual({ name: "", text: `m${n - 1}`, me: true });
     expect(loadRun("thread", "u1").items).toEqual([{ i: 0, reply: "r" }]);
     expect(loadRun("dms", "u1").items).toEqual([]);
     saveGoal("u1", "guide");

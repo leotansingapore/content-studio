@@ -23,7 +23,7 @@
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
 import { addDays, localDateKey, weekOf } from "@/lib/dueDates";
-import { DM_GOALS, MAX_ITEMS, MAX_POSTS, MAX_THREAD, MAX_TOPICS, MAX_TOPIC_CHARS, type DmGoal, type Pasted, type ThreadLine } from "../../supabase/functions/engage-assist/logic.ts";
+import { DM_GOALS, MAX_ITEMS, MAX_POSTS, MAX_THREAD, MAX_THREAD_SCAN, MAX_TOPICS, MAX_TOPIC_CHARS, type DmGoal, type Pasted, type ThreadLine } from "../../supabase/functions/engage-assist/logic.ts";
 
 export {
   MAX_ITEMS,
@@ -31,6 +31,7 @@ export {
   MAX_POST_CHARS,
   MAX_POSTS,
   MAX_THREAD,
+  MAX_THREAD_SCAN,
   MAX_TOPICS,
   MAX_TOPIC_CHARS,
   DM_GOALS,
@@ -168,7 +169,7 @@ export function requestBody(tool: EngageTool, input: Pick<Run<unknown>, "post" |
     return { mode: tool, name: f.name ?? "", about: f.about ?? "", reason: f.reason ?? "", goal: f.goal ?? "know" };
   }
   if (tool === "comments") return { mode: tool, posts: input.posts.filter((p) => p.text.trim()).slice(0, MAX_POSTS) };
-  if (tool === "thread") return { mode: tool, lines: threadLines(input.pasted, input.form.mine).slice(-MAX_THREAD), goal, topics };
+  if (tool === "thread") return { mode: tool, lines: threadLines(input.pasted, input.form.mine).slice(-MAX_THREAD_SCAN), goal, topics };
   const list = splitPasted(input.pasted).slice(0, MAX_ITEMS);
   return tool === "replies" ? { mode: tool, post: input.post, comments: list, topics } : { mode: tool, messages: list, goal, topics };
 }

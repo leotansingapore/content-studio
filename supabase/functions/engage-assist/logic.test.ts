@@ -20,6 +20,7 @@ import {
   ESCALATE_MIN,
   ESCALATE_TOPICS,
   MAX_THREAD,
+  MAX_THREAD_SCAN,
   MAX_TOPICS,
   MAX_TOPIC_CHARS,
   TOPIC_LABEL,
@@ -245,13 +246,24 @@ describe("a conversation", () => {
     { name: "Karen Tan", text: "Is it worth keeping the rider?", me: false },
   ];
 
-  it("takes the marked lines, keeps the last MAX_THREAD, and defaults the goal to a call", () => {
-    const many = Array.from({ length: MAX_THREAD + 3 }, (_, i) => ({ text: `m${i}`, me: i % 2 === 1 }));
+  it("takes the marked lines, keeps the last MAX_THREAD_SCAN, and defaults the goal to a call", () => {
+    const many = Array.from({ length: MAX_THREAD_SCAN + 3 }, (_, i) => ({ text: `m${i}`, me: i % 2 === 1 }));
     const r = parseEngageRequest({ mode: "thread", lines: [...many, { text: " " }, null, { text: "last", me: "yes" }], goal: "nope" });
-    expect(r.ok && r.request.mode === "thread" && r.request.lines.length).toBe(MAX_THREAD);
+    expect(r.ok && r.request.mode === "thread" && r.request.lines.length).toBe(MAX_THREAD_SCAN);
     expect(r).toMatchObject({ ok: true, request: { mode: "thread", goal: "call" } });
     expect(r.ok && r.request.mode === "thread" && r.request.lines.at(-1)).toEqual({ name: "", text: "last", me: false });
     expect(r.ok && r.request.mode === "thread" && r.request.lines[0].text).toBe("m4");
+  });
+
+  it("escalation reads an early message in a long thread, while the draft reads only the last MAX_THREAD", () => {
+    // Leo 2026-10-11: an early "I'm 15" or "can I sue" must reach Jev, not only the last 10 lines.
+    const lines = [{ text: "I'm 15, can I buy a plan?", me: false }, ...Array.from({ length: 30 }, (_, i) => ({ text: `later ${i}`, me: i % 2 === 1 })), { text: "so?", me: false }];
+    const r = parseEngageRequest({ mode: "thread", lines });
+    if (!r.ok || r.request.mode !== "thread") throw new Error("parse");
+    expect(threadText(r.request.lines).text).toContain("I'm 15");
+    const { user } = buildThreadPrompt(r.request.lines, "call");
+    expect(user).not.toContain("I'm 15");
+    expect(user).toContain("so?");
   });
 
   it("refuses an empty paste, and one where the last message is yours: no double text", () => {
