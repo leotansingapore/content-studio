@@ -35,6 +35,8 @@ describe("export all", () => {
   it("checks each file it made before the next export starts, by the run's id, and notes a check that breaks", async () => {
     // a made file: startExport's fast route (mocked above) hands back a blob, delivered under the version's name
     vi.stubGlobal("document", { querySelector: () => ({}), fonts: { load: async () => [] }, createElement: () => ({ click() {} }) });
+    // both exports start in the same millisecond, as the mocked fast route often does
+    const now = vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
     const order: string[] = [];
     const run = (id: string) => ({
       id,
@@ -47,6 +49,7 @@ describe("export all", () => {
     });
     await exportAll([run("a"), run("b")]);
     vi.unstubAllGlobals();
+    now.mockRestore();
     expect(order).toEqual(["export a", "check Budget tips a", "export b", "check Budget tips b"]);
     const q = exportQueue()!;
     expect(Object.keys(q.files)).toEqual(["a", "b"]);

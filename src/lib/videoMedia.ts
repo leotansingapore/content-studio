@@ -1043,6 +1043,8 @@ export interface ExportJob {
 }
 
 let job: ExportJob | null = null;
+// a counter, not the clock: two exports can start in the same millisecond, and exportAll tells them apart by id
+let jobCount = 0;
 let stopper: AbortController | null = null;
 /** Stops a fast export; nothing is kept. A real-time one runs to its end. */
 export const stopExport = () => stopper?.abort();
@@ -1155,7 +1157,7 @@ export async function startExport(name: string, file: Blob, words: Word[], setti
   if (job?.state === "running") throw new Error("An export is already running.");
   await ensureCaptionFonts();
   const kind = settings.exportAs ?? "video";
-  job = { id: String(Date.now()), name, kind, progress: 0, state: "running" };
+  job = { id: String(++jobCount), name, kind, progress: 0, state: "running" };
   emit();
   let video: HTMLVideoElement | null = null;
   let actx: AudioContext | null = null;
