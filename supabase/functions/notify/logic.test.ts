@@ -13,6 +13,7 @@ import {
   moverLine,
   pickedMove,
   reportFacts,
+  reportLines,
   sharedLine,
   weekMoves,
   weekReport,
@@ -377,6 +378,12 @@ describe("weekReport (g44)", () => {
     expect([four.best.map((p) => p.id), four.worst.map((p) => p.id)]).toEqual([["w1", "w2"], ["w6", "w5"]]);
     const one = weekReport(posts.filter((p) => p.id === "w3"), [], "2026-10-11");
     expect([one.best.length, one.worst.length]).toEqual([1, 0]);
+  });
+
+  it("gives a week with one post that has numbers a Best post line and no empty Weakest list", () => {
+    const lines = reportLines(weekReport(posts.filter((p) => p.id === "w3"), [], "2026-10-11"));
+    expect(lines).toContain('Best post: "Hook w3" (LinkedIn): 1,200 impressions, 60 engagements');
+    expect(lines.join("\n")).not.toMatch(/Weakest|Best posts/);
   });
 
   it("counts the labels the best posts share, and how many of the weakest had them", () => {
