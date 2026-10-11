@@ -30,6 +30,10 @@
       "destination": "https://moneybees-studio.vercel.app/api/cards/:id/comments/:cid"
     },
     {
+      "source": "/t/:slug",
+      "destination": "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/tracked-link/:slug"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }

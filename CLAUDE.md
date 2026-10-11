@@ -42,6 +42,9 @@
   `link-in-bio` (/l/<slug>, 015). Each holds the service key but may only
   call its two service_role-only SQL functions; anon has no grant on any
   table or function from 012-015. Design and caps: `docs/gap-tables-design.md`.
+  `tracked-link` (019) works the same way for tracked short links: /t/<slug>
+  is a vercel.json rewrite to it, and /t/report/<slug> is the public
+  campaign report page. Design, caps and the visitor IP: `docs/tracked-links.md`.
 - `notify` (phone alerts and the Monday results email, 016) is deployed
   `--no-verify-jwt` too: pg_cron calls it hourly with the `x-notify-secret`
   header (NOTIFY_CRON_SECRET, also in Vault as `cs_notify_cron_secret`), and

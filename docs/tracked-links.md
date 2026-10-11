@@ -51,11 +51,14 @@ Public (`service_role` only, called by the edge function):
 - Visitor rows are deleted 90 days after the first tap (daily job `tracked-link-prune`), so a person who comes back after that counts again. The daily counts stay.
 - A visitor who changes user agent or IP counts as a new person; the caps below bound it.
 
-## Edge function contract (tracked-link, to build after apply)
+## Edge function (tracked-link)
 
-- `GET /tracked-link/<slug>`: check the slug shape before any query, compute the visitor key, send bots and link previewers on with `p_count = false` (reuse `isBot` from `link-in-bio/logic.ts`), and count only on GET, never HEAD. Re-parse the returned URL with `new URL()`, follow only http(s) (`safeRedirectUrl`), and answer 302 with `Cache-Control: no-store`. An unknown slug goes to the app's home page.
-- `GET /tracked-link/report/<report slug>`: check `^[a-z0-9]{20}$` first, return the JSON or 404, `X-Robots-Tag: noindex`.
-- `/t/<slug>` on the app domain reaches the function through a rewrite, so the function must read the visitor's IP from the header that survives it, not the rewrite's own address.
+`supabase/functions/tracked-link`, deployed `--no-verify-jwt` like link-in-bio; it holds the service key and calls only the two `service_role` functions.
+
+- `GET /tracked-link/<slug>`: checks the slug shape before any query, computes the visitor key, sends bots and link previewers on with `p_count = false` (`isBot` from `link-in-bio/logic.ts`) and counts only on GET, never HEAD. It re-parses the returned URL with `new URL()`, follows only http(s) (`safeRedirectUrl`) and answers 302 with `Cache-Control: no-store`. An unknown slug gets a plain-text 404 (Supabase serves `text/html` from a function as `text/plain`, so there is no HTML page).
+- `GET /tracked-link/report/<report slug>`: checks `^[a-z0-9]{20}$` first, returns the JSON or 404, `X-Robots-Tag: noindex`, `Cache-Control: no-store` (switching a report off works at once).
+- `/t/<slug>` on the app host is a `vercel.json` rewrite (before the SPA catch-all) to the function; Vercel passes the 302 through. The public report page is the SPA route `/t/report/<report slug>`, which the one-segment rewrite does not catch.
+- Errors are logged by code only: no slug, key or IP reaches the log.
 
 ## Caps
 
