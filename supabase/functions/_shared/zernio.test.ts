@@ -259,6 +259,21 @@ describe("M4: the first connect makes one Zernio profile per brand", () => {
     expect(calls[1].url.searchParams.get("name")).toBe(NAME);
   });
 
+  it("stores nothing and says so when no single profile has the exact name after three looks", async () => {
+    vi.useFakeTimers();
+    const { z, calls } = fake({
+      "POST /profiles": { status: 409, body: { error: "in progress" } },
+      "GET /profiles": { body: { profiles: [{ _id: MINE, name: NAME }, { _id: THEIRS, name: NAME }] } },
+    });
+    const r = rows(null);
+    const made = ensureProfile(z, r.row, UID, "me").catch((e) => e);
+    await vi.advanceTimersByTimeAsync(2100);
+    vi.useRealTimers();
+    expect(await made).toMatchObject({ status: 502 });
+    expect(calls.filter((c) => c.url.pathname.endsWith("/profiles") && c.init.method === "GET")).toHaveLength(3);
+    expect(r.inserts).toEqual([]);
+  });
+
   it("hands out the stored id when a concurrent connect won the insert", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const { z } = fake({ "POST /profiles": { status: 201, body: { profile: { _id: THEIRS } } } });
