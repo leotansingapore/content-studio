@@ -28,7 +28,8 @@ export interface Chart {
 export const MAX_CHARTS = 10;
 export const MAX_ROWS = 5;
 export const MAX_LABEL = 24;
-export const MAX_VALUE = 14;
+// a figure as said fits whole ("S$125.5 million", "US$1,250.75 thousand"); the drawing narrows a long one to its column
+export const MAX_VALUE = 20;
 export const MAX_TITLE = 40;
 
 /** On screen 4 s from a beat before the line; in like a number card, then each bar grows in turn. */

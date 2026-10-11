@@ -47,7 +47,7 @@ describe("keeping charts", () => {
     expect(c.kind).toBe("compare");
     expect(c.title).toHaveLength(40);
     expect(c.rows[0].label).toHaveLength(24);
-    expect(c.rows[0].value).toHaveLength(14);
+    expect(c.rows[0].value).toHaveLength(20);
   });
   it("drops broken ones and caps rows at 5 and charts at 10", () => {
     expect(sanitizeCharts("x")).toEqual([]);
@@ -75,6 +75,14 @@ describe("a chart from a figure said in the video", () => {
     const words = said("Your SA earns 4 percent a year.");
     const c = chartOfFigure(findFigures(words)[0], words);
     expect([c.kind, c.rows, c.s, c.e]).toEqual(["compare", rows(["a year", "4%"], ["", ""]), 1.5, 2.4]);
+  });
+  it("keeps a long spoken figure whole once saved, so its bar is sized by all of it", () => {
+    for (const [text, value, n] of [["The fund holds S$125.5 million today.", "S$125.5 million", 125.5e6], ["About US$1,250.75 thousand a year", "US$1,250.75 thousand", 1_250_750]] as const) {
+      const words = said(text);
+      const [c] = sanitizeCharts([chartOfFigure(findFigures(words)[0], words)]);
+      expect(c.rows[0].value).toBe(value);
+      expect(chartValue(c.rows[0].value)).toBe(n);
+    }
   });
 });
 
