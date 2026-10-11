@@ -20,6 +20,9 @@ export const DEFAULT_PROFILE_ID = "me";
 const LIST_PREFIX = "content-studio-profiles-";
 const ACTIVE_PREFIX = "cs-active-profile-"; // deliberately outside the sync prefix
 const SYNC_PREFIX = "content-studio-";
+// Connect Claude's rows (claudeConnect.ts), named here because it imports this module
+const LINK = "content-studio-mcplink-";
+const REVOKED = "content-studio-mcprevoked-";
 
 function storage(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -82,8 +85,11 @@ export async function removeProfile(userId: string, id: string): Promise<Profile
       const k = s.key(i);
       // a turned-off Claude link's revoked row stays: the sync has no tombstones, so deleting it
       // would let a device that still holds the link bring it back to life (claudeConnect.ts)
-      if (k && k.startsWith(SYNC_PREFIX) && k.endsWith(suffix) && !k.startsWith("content-studio-mcprevoked-")) doomed.push(k);
+      if (k && k.startsWith(SYNC_PREFIX) && k.endsWith(suffix) && !k.startsWith(REVOKED)) doomed.push(k);
     }
+    // a Claude link still on is turned off first, for the same reason: deleting its row alone doesn't stop it
+    const revokedAt = JSON.stringify({ revokedAt: new Date().toISOString() });
+    for (const k of doomed) if (k.startsWith(LINK)) s.setItem(REVOKED + k.slice(LINK.length), revokedAt);
     doomed.forEach((k) => s.removeItem(k));
     if (activeProfileId(userId) === id) setActiveProfile(userId, DEFAULT_PROFILE_ID);
   }

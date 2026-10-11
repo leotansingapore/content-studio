@@ -72,6 +72,22 @@ describe("profiles", () => {
     expect(callFn).toHaveBeenCalledTimes(1);
   });
 
+  it("turns off a Claude link still on when its profile is removed, so a device that still holds it can't bring it back", async () => {
+    const { createLink } = await import("./claudeConnect");
+    const { linkIsLive, linkKey } = await import("../../supabase/functions/content-studio-mcp/logic");
+    const ls = (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
+    const mb = addProfile(UID, "MoneyBees");
+    setActiveProfile(UID, mb.id);
+    const { link } = await createLink(UID);
+    const scope = `${UID}~${mb.id}`;
+    setActiveProfile(UID, DEFAULT_PROFILE_ID);
+    await removeProfile(UID, mb.id);
+    // the other device uploads the link row again
+    ls.setItem(linkKey(link.hash, scope), JSON.stringify({ createdAt: link.createdAt }));
+    const keys = Array.from({ length: ls.length }, (_, i) => ls.key(i)!);
+    expect(linkIsLive(keys, link.hash, scope)).toBe(false);
+  });
+
   it("keeps a brand whose social accounts couldn't be disconnected", async () => {
     const { EdgeError } = await import("@/lib/edgeFn");
     const mb = addProfile(UID, "MoneyBees");
