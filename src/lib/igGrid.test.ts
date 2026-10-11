@@ -24,6 +24,14 @@ describe("gridTiles", () => {
     ]);
   });
 
+  it("puts the later of two posts from the same day first, as Instagram does", () => {
+    const tiles = gridTiles([
+      d("morning", { status: "posted", postedAt: "2026-10-05T01:00:00Z" }),
+      d("evening", { status: "posted", postedAt: "2026-10-05T11:00:00Z" }),
+    ]);
+    expect(tiles.map((t) => t.draft.id)).toEqual(["evening", "morning"]);
+  });
+
   it("stops at the grid size", () => {
     const many = Array.from({ length: 30 }, (_, i) => d(`p${i}`, { status: "posted", postedAt: `2026-09-${String(i + 1).padStart(2, "0")}` }));
     expect(gridTiles(many)).toHaveLength(18);

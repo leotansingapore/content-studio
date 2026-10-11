@@ -21,8 +21,10 @@ export function gridTiles(drafts: DraftEntry[], max = GRID_SIZE): GridTile[] {
     .map((d): GridTile => ({ draft: d, kind: "planned", day: d.scheduledFor!.slice(0, 10) }));
   const posted = ig
     .filter((d) => d.status === "posted")
-    .map((d): GridTile => ({ draft: d, kind: "posted", day: (d.postedAt ?? d.scheduledFor ?? d.createdAt ?? "").slice(0, 10) }))
-    .sort((a, b) => b.day.localeCompare(a.day));
+    .map((d) => ({ at: d.postedAt ?? d.scheduledFor ?? d.createdAt ?? "", d }))
+    // by the moment it went up, so the later of two posts on one day comes first
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .map(({ at, d }): GridTile => ({ draft: d, kind: "posted", day: at.slice(0, 10) }));
   return [...planned, ...posted].slice(0, max);
 }
 
