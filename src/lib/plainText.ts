@@ -73,7 +73,9 @@ const HASHTAG = /#[\p{L}\p{N}_]+/gu;
 export function withSignOff(text: string, signOff: string | null | undefined): string {
   const body = text.trimEnd();
   const tail = (signOff ?? "").trim();
-  if (!tail || body.endsWith(tail)) return tail ? body : text;
+  // matched with hashtags left out too: a copy pasted back has the sign-off minus the hashtags the post had
+  const words = (s: string) => s.replace(HASHTAG, "").replace(/\s+/g, " ").trim();
+  if (!tail || body.endsWith(tail) || (words(tail) && words(body).endsWith(words(tail)))) return tail ? body : text;
   const have = new Set((body.match(HASHTAG) ?? []).map((t) => t.toLowerCase()));
   const lines = tail.split("\n").flatMap((line) => {
     if (!/#[\p{L}\p{N}_]/u.test(line)) return [line];

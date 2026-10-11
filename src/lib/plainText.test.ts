@@ -23,6 +23,14 @@ describe("withSignOff", () => {
     expect(withSignOff("Body #cpf #singapore", sign)).toBe("Body #cpf #singapore\n\nDM me PLAN for a free review.\nThis is not financial advice.");
     expect(withSignOff("Body #cpf", "#cpf")).toBe("Body #cpf");
   });
+
+  it("never adds it twice when a copied post with one of its hashtags is pasted back and copied again", () => {
+    const once = withSignOff("Body #cpf", sign);
+    expect(once).toBe("Body #cpf\n\nDM me PLAN for a free review.\nThis is not financial advice.\n#singapore");
+    expect(withSignOff(once, sign)).toBe(once);
+    // a sign-off of hashtags alone is still added
+    expect(withSignOff("Body.", "#cpf #singapore")).toBe("Body.\n\n#cpf #singapore");
+  });
 });
 
 describe("withDisclosure", () => {
