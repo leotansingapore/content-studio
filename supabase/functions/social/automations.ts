@@ -176,7 +176,8 @@ export function settingsBody(input: AutomationInput, platform: string, mode: "cr
 
 export type AutomationRequest =
   | { action: "automations"; profileId: string }
-  | { action: "automation-create"; profileId: string; accountId: string; input: AutomationInput }
+  /** paused: create it switched off ("Save as paused"), so it never answers anyone until switched on */
+  | { action: "automation-create"; profileId: string; accountId: string; input: AutomationInput; paused?: boolean }
   /** input null: only switch it on or off */
   | { action: "automation-update"; profileId: string; automationId: string; input: AutomationInput | null; active: boolean | null }
   | { action: "automation-delete"; profileId: string; automationId: string }
@@ -198,7 +199,7 @@ export function parseAutomationRequest(body: unknown): Parsed | null {
     if (!isZernioId(b.accountId)) return notFound;
     if (action === "account-posts") return { ok: true, req: { action, profileId, accountId: b.accountId } };
     const input = checkInput(b.automation);
-    return "error" in input ? { ok: false, status: 400, error: input.error } : { ok: true, req: { action, profileId, accountId: b.accountId, input: input.value } };
+    return "error" in input ? { ok: false, status: 400, error: input.error } : { ok: true, req: { action, profileId, accountId: b.accountId, input: input.value, paused: b.active === false } };
   }
   if (!isZernioId(b.automationId)) return notFound;
   const automationId = b.automationId;
@@ -388,6 +389,7 @@ export async function runAutomation(z: Zernio, mapped: string | null, q: Automat
         profileId: mapped,
         accountId,
         ...(post ? { platformPostId: post.id, postTitle: postTitle(post) } : {}),
+        ...(q.paused ? { isActive: false } : {}),
       },
     });
     return ok({ id: typeof data?.automation?.id === "string" ? data.automation.id : null });

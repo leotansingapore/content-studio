@@ -217,6 +217,16 @@ describe("creating", () => {
       alsoMatchInDms: false,
     });
     expect(f.body("POST /comment-automations")).not.toHaveProperty("platformPostId");
+    expect(f.body("POST /comment-automations")).not.toHaveProperty("isActive");
+  });
+
+  it("creates it paused when asked, so it answers no one until it is switched on", async () => {
+    const parsed = parseAutomationRequest({ action: "automation-create", profileId: "me", accountId: IG, automation: input(), active: false });
+    expect(parsed).toMatchObject({ ok: true, req: { paused: true } });
+    expect(parseAutomationRequest({ action: "automation-create", profileId: "me", accountId: IG, automation: input(), active: "false" })).toMatchObject({ req: { paused: false } });
+    const f = fake({ "GET /accounts": accounts, "POST /comment-automations": { automation: { id: AUTO } } });
+    await runAutomation(f.z, MINE, (parsed as { req: AutomationRequest }).req);
+    expect(f.body("POST /comment-automations")).toMatchObject({ isActive: false, profileId: MINE, accountId: IG });
   });
 
   it("refuses another adviser's account before anything is written", async () => {

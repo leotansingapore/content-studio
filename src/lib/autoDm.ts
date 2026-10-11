@@ -31,10 +31,11 @@ export const listAutoDms = (profileId: string) =>
 export const accountPosts = (profileId: string, accountId: string) =>
   callFn<{ posts: PostOption[] }>("social", { action: "account-posts", profileId, accountId }, "Couldn't load your posts. Try again in a minute.");
 
-export const saveAutoDm = (profileId: string, form: AutoDmForm, platform: string) =>
+/** active false creates a new one paused; an edit keeps its on or off. */
+export const saveAutoDm = (profileId: string, form: AutoDmForm, platform: string, active = true) =>
   form.id
     ? callFn<{ id: string }>("social", { action: "automation-update", profileId, automationId: form.id, automation: toInput(form, platform) }, "Couldn't save it. Try again in a minute.")
-    : callFn<{ id: string | null }>("social", { action: "automation-create", profileId, accountId: form.accountId, automation: toInput(form, platform) }, "Couldn't save it. Try again in a minute.");
+    : callFn<{ id: string | null }>("social", { action: "automation-create", profileId, accountId: form.accountId, automation: toInput(form, platform), ...(active ? {} : { active: false }) }, "Couldn't save it. Try again in a minute.");
 
 export const setAutoDmActive = (profileId: string, automationId: string, active: boolean) =>
   callFn<{ active: boolean }>("social", { action: "automation-update", profileId, automationId, active }, "Couldn't change it. Try again in a minute.");
@@ -66,6 +67,18 @@ export interface AutoDmForm {
 }
 
 export const splitKeywords = (text: string) => text.split(",").map((k) => k.trim()).filter(Boolean);
+
+/** Typing in the keyword box: each part before a comma becomes a chip (no repeats); the rest stays in the box. */
+export function typeKeywords(keywordsText: string, typed: string): { keywordsText: string; draft: string } {
+  const parts = typed.split(",");
+  const draft = parts.pop() ?? "";
+  const seen = new Set<string>();
+  const all = [...splitKeywords(keywordsText), ...parts.map((k) => k.trim()).filter(Boolean)].filter((k) => !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()));
+  return { keywordsText: all.join(", "), draft };
+}
+
+/** The form with what is still in the keyword box counted as a keyword, as Save sends it. */
+export const withDraft = (f: AutoDmForm, draft: string): AutoDmForm => (draft.trim() ? { ...f, keywordsText: typeKeywords(f.keywordsText, `${draft},`).keywordsText } : f);
 
 export const emptyForm = (accountId = "", keyword = ""): AutoDmForm => ({
   id: null,
@@ -169,7 +182,7 @@ export interface Starter {
 export const STARTERS: Starter[] = [
   {
     id: "guide",
-    label: "A free guide",
+    label: "Free guide",
     keyword: "GUIDE",
     dm: "Hi {{first_name}}, thanks for asking! Here's the guide I mentioned. Have a read, and message me here if anything is unclear.",
     button: "Get the guide",
@@ -178,7 +191,7 @@ export const STARTERS: Starter[] = [
   },
   {
     id: "webinar",
-    label: "A webinar seat",
+    label: "Webinar seat",
     keyword: "SEAT",
     dm: "Hi {{first_name}}, here's where to save your seat for the webinar. It's free, and there's time for your questions at the end.",
     button: "Save my seat",
@@ -187,7 +200,7 @@ export const STARTERS: Starter[] = [
   },
   {
     id: "chat",
-    label: "A 15-minute chat",
+    label: "15-minute chat",
     keyword: "CHAT",
     dm: "Hi {{first_name}}, happy to chat! Pick a 15-minute slot that suits you. No obligation, just your questions answered.",
     button: "Pick a time",

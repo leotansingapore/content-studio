@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scanCompliance } from "./compliance";
-import { STARTERS, applyStarter, ctaKeyword, emptyForm, fillName, formFlags, formProblem, keptForm, listensTo, logLine, toInput, type LogView } from "./autoDm";
+import { STARTERS, applyStarter, ctaKeyword, emptyForm, fillName, formFlags, formProblem, keptForm, listensTo, logLine, toInput, typeKeywords, withDraft, type LogView } from "./autoDm";
 
 const IG = "65000000000000000000a001";
 
@@ -101,5 +101,20 @@ describe("the list", () => {
     expect(listensTo({ trigger: "comment", platformPostId: null })).toBe("Comments on any post");
     expect(listensTo({ trigger: "story_reply", platformPostId: null })).toBe("Replies to your stories");
     expect(listensTo({ trigger: "story_mention", platformPostId: null })).toBe("Mentions in stories");
+  });
+});
+
+describe("the keyword box", () => {
+  it("turns each word before a comma into a chip, once, and keeps the rest typed", () => {
+    expect(typeKeywords("", "PLAN")).toEqual({ keywordsText: "", draft: "PLAN" });
+    expect(typeKeywords("", "PLAN,")).toEqual({ keywordsText: "PLAN", draft: "" });
+    expect(typeKeywords("PLAN", "guide, plan, ,LIST, CH")).toEqual({ keywordsText: "PLAN, guide, LIST", draft: " CH" });
+  });
+
+  it("counts what is still in the box when saving", () => {
+    const f = { ...emptyForm(IG, "PLAN"), dm: "Hi", reply: "" };
+    expect(withDraft(f, " GUIDE ").keywordsText).toBe("PLAN, GUIDE");
+    expect(withDraft(f, "  ")).toBe(f);
+    expect(formProblem(withDraft(emptyForm(IG), "PLAN"), "tiktok")).toBe("TikTok answers with a public reply only, so write one.");
   });
 });

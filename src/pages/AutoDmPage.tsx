@@ -5,14 +5,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Image as ImageIcon, LayoutGrid, MessageCircle, Plus, RotateCw, Trash2, X } from "lucide-react";
+import { Check, Image as ImageIcon, LayoutGrid, MessageCircle, Plus, RotateCw, Trash2, X } from "lucide-react";
 import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { hasComplianceErrors } from "@/lib/compliance";
 import { supabase } from "@/lib/supabase";
@@ -40,6 +39,9 @@ import {
   saveAutoDm,
   setAutoDmActive,
   splitKeywords,
+  toInput,
+  typeKeywords,
+  withDraft,
   type AccountOption,
   type AutoDmForm,
   type AutomationView,
@@ -60,11 +62,6 @@ const readKept = (userId: string) => {
 };
 
 const message = (e: unknown) => (e instanceof Error ? e.message : "That didn't go through. Try again in a minute.");
-const chip = (on: boolean) =>
-  `min-h-11 rounded-full border px-3 text-xs font-semibold transition-colors sm:min-h-9 [@media(pointer:coarse)]:min-h-11 ${
-    on ? "border-primary/60 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
-  }`;
-
 function Switch({ on, label, busy, onChange }: { on: boolean; label: string; busy?: boolean; onChange: (on: boolean) => void }) {
   return (
     <button
@@ -75,12 +72,10 @@ function Switch({ on, label, busy, onChange }: { on: boolean; label: string; bus
       aria-busy={busy || undefined}
       disabled={busy}
       onClick={() => onChange(!on)}
-      className="flex h-11 shrink-0 items-center gap-2 rounded-lg px-1 text-xs font-semibold disabled:opacity-60"
+      className="flex h-11 shrink-0 items-center gap-2 rounded-lg px-1.5 disabled:opacity-60"
     >
-      <span aria-hidden className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${on ? "bg-primary" : "bg-muted-foreground/60"}`}>
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${on ? "translate-x-[22px]" : "translate-x-0.5"}`} />
-      </span>
-      <span className={`w-12 text-left text-[13px] font-normal ${on ? "text-foreground" : "text-muted-foreground"}`}>{on ? "On" : "Paused"}</span>
+      <Track on={on} />
+      <span className={`w-12 text-left text-[13px] ${on ? "text-foreground" : "text-muted-foreground"}`}>{on ? "On" : "Paused"}</span>
     </button>
   );
 }
@@ -194,11 +189,11 @@ export default function AutoDmPage() {
     }
   };
 
-  const saved = (wasNew: boolean) => {
+  const saved = (wasNew: boolean, active: boolean) => {
     forgetForm();
     setForm(null);
     setBroughtKeyword("");
-    toast({ title: wasNew ? "Auto-DM saved and on" : "Auto-DM saved" });
+    toast({ title: !wasNew ? "Auto-DM saved" : active ? "Auto-DM saved and on" : "Auto-DM saved, paused" });
     if (userId) void load(userId);
   };
 
@@ -532,14 +527,19 @@ function Editor({
   broughtKeyword: string;
   draftKey: string;
   onCancel: () => void;
-  onSaved: (wasNew: boolean) => void;
+  onSaved: (wasNew: boolean, active: boolean) => void;
   deleting: boolean;
   /** Only for one that is saved already. */
   onDelete?: () => void;
 }) {
   const { toast } = useToast();
   const [f, setF] = useState<AutoDmForm>(start);
-  const [saving, setSaving] = useState(false);
+  // what is still typed in the keyword box; Save counts it as a keyword
+  const [draft, setDraft] = useState("");
+  const [picked, setPicked] = useState<string | null>(start.dm || start.reply ? null : "blank");
+  // One post with none picked yet must not save as Any post
+  const [onePost, setOnePost] = useState(!!start.platformPostId);
+  const [saving, setSaving] = useState<"" | "on" | "paused">("");
   const [postsState, setPostsState] = useState<"idle" | "loading" | "failed">("idle");
   const dmBox = useRef<HTMLTextAreaElement>(null);
   const account = accounts.find((a) => a.id === f.accountId);
@@ -547,18 +547,21 @@ function Editor({
   const dm = hasDm(platform);
   const story = f.trigger !== "comment";
   const list = posts[f.accountId];
-  const problem = formProblem(f, platform);
-  const flags = formFlags(f, platform);
+  const full = withDraft(f, draft);
+  const problem = !story && onePost && !f.platformPostId ? "Pick the post, or choose Any post." : formProblem(full, platform);
+  const flags = formFlags(full, platform);
   const blocked = hasComplianceErrors(flags);
+  const checked = toInput(full, platform);
+  const anyWords = [checked.dm, ...checked.dmVariations, ...checked.buttons.map((b) => b.title), checked.reply, ...checked.replyVariations].some(Boolean);
   const set = (patch: Partial<AutoDmForm>) => setF((x) => ({ ...x, ...patch }));
   useEffect(() => {
     if (!draftKey) return;
     try {
-      sessionStorage.setItem(draftKey, JSON.stringify(f));
+      sessionStorage.setItem(draftKey, JSON.stringify(full));
     } catch {
       // storage blocked: the form just won't survive a page change
     }
-  }, [draftKey, f]);
+  }, [draftKey, full]);
 
   const fetchPosts = async (id: string) => {
     if (!id || posts[id]) return;
@@ -581,290 +584,519 @@ function Editor({
     });
   };
 
-  const save = async () => {
+  const save = async (active: boolean) => {
     if (problem || blocked) return;
-    setSaving(true);
+    setSaving(active ? "on" : "paused");
     try {
-      await saveAutoDm(profileId, f, platform);
-      onSaved(!f.id);
+      await saveAutoDm(profileId, full, platform, active);
+      onSaved(!f.id, active);
     } catch (e) {
       toast({ title: message(e), variant: "destructive" });
     } finally {
-      setSaving(false);
+      setSaving("");
     }
   };
 
-  const list3 = (key: "dmVariations" | "replyVariations", max: number, label: string, placeholder: string) => (
-    <div className="space-y-1.5">
-      {f[key].map((v, i) => (
-        <div key={i} className="flex items-start gap-1">
-          <Textarea aria-label={`${label} ${i + 2}`} rows={2} value={v} placeholder={placeholder} onChange={(e) => set({ [key]: f[key].map((x, j) => (j === i ? e.target.value : x)) } as Partial<AutoDmForm>)} className="text-sm" />
-          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" aria-label={`Remove ${label.toLowerCase()} ${i + 2}`} onClick={() => set({ [key]: f[key].filter((_, j) => j !== i) } as Partial<AutoDmForm>)}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      ))}
-      {f[key].length < max && (
-        <Button variant="ghost" size="sm" className="h-11 gap-1.5 px-2 text-xs sm:h-9" onClick={() => set({ [key]: [...f[key], ""] } as Partial<AutoDmForm>)}>
-          <Plus className="h-3.5 w-3.5" /> Another wording
-        </Button>
-      )}
-    </div>
-  );
+  // ---- keyword box ----
+  const chips = splitKeywords(f.keywordsText);
+  const typeKw = (value: string) => {
+    const r = typeKeywords(f.keywordsText, value);
+    if (r.keywordsText !== f.keywordsText) set({ keywordsText: r.keywordsText });
+    setDraft(r.draft);
+  };
+  const commitKw = () => {
+    if (draft.trim()) set({ keywordsText: full.keywordsText });
+    setDraft("");
+  };
+  const firstKw = splitKeywords(full.keywordsText)[0] ?? "";
+  const kwOff = f.everyComment && !story;
+
+  // ---- public reply: the reply and its other wordings as one list ----
+  const replies = [f.reply, ...f.replyVariations];
+  const setReplies = (r: string[]) => set({ reply: r[0] ?? "", replyVariations: r.slice(1) });
+
+  const wordingCheck =
+    flags.length > 0 ? (
+      <ul className="space-y-1">
+        {flags.map((x) => (
+          <li key={x.id} className={`rounded-md border px-2 py-1 text-xs ${x.severity === "error" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/40 bg-warning/10"}`}>
+            "{x.match}" {x.message}
+          </li>
+        ))}
+      </ul>
+    ) : anyWords ? (
+      <p className="flex items-center gap-2 text-[13px] text-success">
+        <Check className="h-4 w-4" aria-hidden /> Wording check: nothing flagged
+      </p>
+    ) : null;
+
+  const card = "space-y-3 rounded-xl border border-border bg-card px-4 py-5 sm:px-6";
+  const seg = (on: boolean) => `min-h-10 rounded-[9px] px-4 text-sm font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${on ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`;
+  const pill = (on: boolean) => `min-h-11 rounded-full px-4 text-sm font-medium transition-colors ${on ? "border-[1.5px] border-primary bg-primary/10 text-primary" : "border border-input bg-background text-foreground/80 hover:border-primary/40"}`;
+  const linkBtn = "h-11 self-start px-1 text-sm font-medium text-primary hover:bg-transparent hover:text-primary hover:underline";
+  const title = f.id ? "Edit auto-DM" : "New auto-DM";
 
   return (
-    <section aria-label={f.id ? "Edit auto-DM" : "New auto-DM"} className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-      <div className="min-w-0 space-y-5">
-        <h2 className="font-serif text-lg font-semibold">{f.id ? "Edit auto-DM" : "New auto-DM"}</h2>
+    <section aria-labelledby="adm-editor" className="space-y-5">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <button type="button" className="min-h-11 text-primary hover:underline" onClick={onCancel} disabled={!!saving}>
+          Auto-DM
+        </button>
+        <span aria-hidden>/</span>
+        <span>{title}</span>
+      </nav>
+      <h1 id="adm-editor" className="font-serif text-2xl font-semibold tracking-tight sm:text-[32px] sm:leading-tight">
+        {title}
+      </h1>
 
-        {!f.id && (
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium">Start from</p>
-            <div className="flex flex-wrap gap-1.5">
-              {STARTERS.map((s) => (
-                <button key={s.id} type="button" className={chip(false)} onClick={() => setF((x) => applyStarter(x, s, platform, broughtKeyword))}>
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-1.5">
-          <Label htmlFor="adm-account">Account</Label>
-          <Select
-            value={f.accountId}
-            disabled={!!f.id}
-            onValueChange={(id) => {
-              const next = accounts.find((a) => a.id === id);
-              set({ accountId: id, platformPostId: null, ...(next?.platform !== "instagram" ? { trigger: "comment" as Trigger, followGate: false } : {}) });
-            }}
-          >
-            <SelectTrigger id="adm-account" className="h-11">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {accounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {accountLabel(a)} on {platformName(a.platform)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!dm && platform && <p className="text-xs text-muted-foreground">{platformName(platform)} can only answer with a public reply.</p>}
-        </div>
-
-        {platform === "instagram" && (
-          <div role="group" aria-label="Answer" className="flex flex-wrap gap-1.5">
-            {(
-              [
-                ["comment", "Comments"],
-                ["story_reply", "Story replies"],
-                ["story_mention", "Story mentions"],
-              ] as const
-            ).map(([t, label]) => (
-              <button key={t} type="button" aria-pressed={f.trigger === t} className={chip(f.trigger === t)} onClick={() => set({ trigger: t, ...(t !== "comment" ? { platformPostId: null } : {}) })}>
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {!story && (
-          <div className="space-y-1.5">
-            <p className="text-sm font-medium">Post</p>
-            <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-8">
-              <button
-                type="button"
-                aria-pressed={!f.platformPostId}
-                onClick={() => set({ platformPostId: null })}
-                className={`flex aspect-square min-h-11 items-center justify-center rounded-md border p-1 text-center text-xs font-semibold ${!f.platformPostId ? "border-primary bg-primary/10 text-primary" : "border-border/60 text-muted-foreground"}`}
-              >
-                Any post
-              </button>
-              {(list ?? []).map((p) => (
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          {!f.id && (
+            <section aria-labelledby="adm-start" className={card}>
+              <h2 id="adm-start" className="text-base font-semibold">
+                Start from
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {STARTERS.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    aria-pressed={picked === s.id}
+                    className={pill(picked === s.id)}
+                    onClick={() => {
+                      setF((x) => applyStarter(x, s, platform, broughtKeyword));
+                      setDraft("");
+                      setPicked(s.id);
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
                 <button
-                  key={p.id}
                   type="button"
-                  aria-pressed={f.platformPostId === p.id}
-                  aria-label={p.caption ? p.caption.slice(0, 80) : "A post"}
-                  title={p.caption.slice(0, 120)}
-                  onClick={() => set({ platformPostId: p.id })}
-                  className={`relative aspect-square min-h-11 overflow-hidden rounded-md border text-left ${f.platformPostId === p.id ? "border-primary ring-2 ring-primary" : "border-border/60"}`}
+                  aria-pressed={picked === "blank"}
+                  className={pill(picked === "blank")}
+                  onClick={() => {
+                    setF((x) => ({ ...emptyForm(x.accountId, broughtKeyword), platformPostId: x.platformPostId }));
+                    setDraft("");
+                    setPicked("blank");
+                  }}
                 >
-                  {p.picture ? (
-                    <img src={p.picture} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="line-clamp-4 p-1 text-[10px] leading-tight text-muted-foreground">{p.caption || "A post"}</span>
-                  )}
+                  Blank
                 </button>
-              ))}
-            </div>
-            {postsState === "loading" && <p className="text-xs text-muted-foreground">Loading your latest posts...</p>}
-            {postsState === "failed" && (
-              <p className="text-xs text-muted-foreground">
-                Couldn't load your posts, so Any post is the choice for now.{" "}
-                <button type="button" className="-my-2 py-2 font-semibold text-primary hover:underline" onClick={() => void fetchPosts(f.accountId)}>
-                  Try again
-                </button>
-              </p>
-            )}
-          </div>
-        )}
+              </div>
+            </section>
+          )}
 
-        {f.trigger !== "story_mention" && (
-          <div className="space-y-1.5">
-            <Label htmlFor="adm-keywords">Keywords</Label>
-            <Input
-              id="adm-keywords"
-              value={f.keywordsText}
-              disabled={f.everyComment && !story}
-              placeholder="GUIDE, INFO"
-              onChange={(e) => set({ keywordsText: e.target.value })}
-              className="h-11"
-            />
+          <section aria-labelledby="adm-where" className={`${card} space-y-4`}>
+            <h2 id="adm-where" className="text-base font-semibold">
+              Where it listens
+            </h2>
+            <div className="space-y-1.5">
+              <Label htmlFor="adm-account">Account</Label>
+              <Select
+                value={f.accountId}
+                disabled={!!f.id}
+                onValueChange={(id) => {
+                  const next = accounts.find((a) => a.id === id);
+                  set({ accountId: id, platformPostId: null, ...(next?.platform !== "instagram" ? { trigger: "comment" as Trigger, followGate: false } : {}) });
+                }}
+              >
+                <SelectTrigger id="adm-account" className="h-11 max-w-[360px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {platformName(a.platform)}, {accountLabel(a)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!dm && platform && <p className="text-[13px] text-muted-foreground">{platformName(platform)} can only answer with a public reply.</p>}
+            </div>
+
+            {platform === "instagram" && (
+              <div className="space-y-2.5">
+                <span id="adm-answers" className="text-sm font-medium">
+                  Answers
+                </span>
+                <div role="group" aria-labelledby="adm-answers" className="flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-muted p-1">
+                  {(
+                    [
+                      ["comment", "Comments"],
+                      ["story_reply", "Story replies"],
+                      ["story_mention", "Story mentions"],
+                    ] as const
+                  ).map(([t, label]) => (
+                    <button key={t} type="button" aria-pressed={f.trigger === t} className={seg(f.trigger === t)} onClick={() => set({ trigger: t, ...(t !== "comment" ? { platformPostId: null } : {}) })}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {!story && (
-              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:min-h-9 [@media(pointer:coarse)]:min-h-11">
-                <input type="checkbox" checked={f.everyComment} onChange={(e) => set({ everyComment: e.target.checked, ...(e.target.checked ? { alsoMatchInDms: false } : {}) })} className="h-4 w-4 accent-primary" />
-                Every comment
-              </label>
+              <div className="space-y-2.5">
+                <span id="adm-post" className="text-sm font-medium">
+                  Post
+                </span>
+                <div role="group" aria-labelledby="adm-post" className="flex w-fit gap-1 rounded-xl bg-muted p-1">
+                  <button type="button" aria-pressed={onePost} className={seg(onePost)} onClick={() => setOnePost(true)}>
+                    One post
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={!onePost}
+                    className={seg(!onePost)}
+                    onClick={() => {
+                      setOnePost(false);
+                      set({ platformPostId: null });
+                    }}
+                  >
+                    Any post
+                  </button>
+                </div>
+                {onePost ? (
+                  <>
+                    {list && list.length > 0 && (
+                      <div className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2.5">
+                        {list.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            aria-pressed={f.platformPostId === p.id}
+                            aria-label={p.caption ? p.caption.slice(0, 80) : "A post"}
+                            title={p.caption.slice(0, 120)}
+                            onClick={() => set({ platformPostId: p.id })}
+                            className={`relative aspect-[4/5] overflow-hidden rounded-[10px] border-2 bg-primary/10 text-left ${f.platformPostId === p.id ? "border-primary ring-[3px] ring-primary/25" : "border-transparent"}`}
+                          >
+                            {p.picture ? (
+                              <img src={p.picture} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="line-clamp-5 p-2 text-[11px] leading-tight text-foreground/80">{p.caption || "A post"}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {list && list.length === 0 && <p className="text-[13px] text-muted-foreground">No posts on this account yet, so Any post is the choice for now.</p>}
+                    {postsState === "loading" && <p className="text-[13px] text-muted-foreground">Loading your latest posts...</p>}
+                    {postsState === "failed" && (
+                      <p className="text-[13px] text-muted-foreground">
+                        Couldn't load your posts, so Any post is the choice for now.{" "}
+                        <button type="button" className="-my-2 py-2 font-semibold text-primary hover:underline" onClick={() => void fetchPosts(f.accountId)}>
+                          Try again
+                        </button>
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm leading-normal text-foreground/85">Listens under every post on this account. A post with its own auto-DM uses that one instead.</p>
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        {dm && (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="adm-dm">DM</Label>
-              <Button variant="ghost" size="sm" className="h-11 px-2 text-xs sm:h-8" onClick={insertName}>
-                Insert first name
-              </Button>
-            </div>
-            <Textarea id="adm-dm" ref={dmBox} rows={4} value={f.dm} onChange={(e) => set({ dm: e.target.value })} placeholder="Hi {{first_name}}, here's the guide." className="text-sm" />
-            {list3("dmVariations", LIMITS.dmVariations, "DM", "Another way to say it")}
-            <div className="space-y-1.5 pt-1">
-              <p className="flex items-center gap-1 text-sm font-medium">
-                Link buttons
-                <InfoTip label="About link buttons">Each one opens your own link. Zernio counts the clicks.</InfoTip>
-              </p>
-              {f.buttons.map((b, i) => (
-                <div key={i} className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] gap-1">
-                  <Input aria-label={`Button ${i + 1} title`} value={b.title} maxLength={LIMITS.buttonTitle} placeholder="Get the guide" onChange={(e) => set({ buttons: f.buttons.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)) })} className="h-11" />
-                  <Input aria-label={`Button ${i + 1} link`} type="url" inputMode="url" value={b.url} placeholder="https://your-link" onChange={(e) => set({ buttons: f.buttons.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)) })} className="h-11" />
-                  <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={`Remove button ${i + 1}`} onClick={() => set({ buttons: f.buttons.filter((_, j) => j !== i) })}>
+            {f.trigger !== "story_mention" && (
+              <div className="space-y-1.5">
+                <Label htmlFor="adm-keywords">Keywords</Label>
+                <div className={`flex min-h-[52px] flex-wrap items-center gap-2 rounded-md border border-input bg-background px-2 py-1 focus-within:ring-2 focus-within:ring-ring ${kwOff ? "opacity-50" : ""}`}>
+                  {!kwOff &&
+                    chips.map((k) => (
+                      <span key={k} className="inline-flex h-8 max-w-full items-center rounded-md bg-primary/10 pl-2.5 text-[13px] font-bold tracking-wide text-primary">
+                        <span className="truncate">{k}</span>
+                        <button
+                          type="button"
+                          aria-label={`Remove ${k}`}
+                          className="-my-1.5 flex h-11 w-11 shrink-0 items-center justify-center"
+                          onClick={() => set({ keywordsText: chips.filter((x) => x !== k).join(", ") })}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  <input
+                    id="adm-keywords"
+                    value={draft}
+                    disabled={kwOff}
+                    placeholder={kwOff ? "Every comment gets it" : chips.length ? "Add another" : "Add a keyword"}
+                    onChange={(e) => typeKw(e.target.value)}
+                    onBlur={commitKw}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        commitKw();
+                      } else if (e.key === "Backspace" && !draft && chips.length) {
+                        set({ keywordsText: chips.slice(0, -1).join(", ") });
+                      }
+                    }}
+                    className="min-h-10 min-w-0 flex-[1_1_140px] bg-transparent text-[15px] outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+                  />
+                </div>
+                {!kwOff && (
+                  <p className="text-[13px] text-muted-foreground">
+                    {firstKw ? `Whole words only: ${firstKw} will not fire on ${firstKw}${/[a-z]$/.test(firstKw) ? "s" : "S"}.` : `Up to ${LIMITS.keywords} keywords, whole words only.`}
+                  </p>
+                )}
+                {!story && (
+                  <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:min-h-9 [@media(pointer:coarse)]:min-h-11">
+                    <input
+                      type="checkbox"
+                      checked={f.everyComment}
+                      onChange={(e) => {
+                        set({ everyComment: e.target.checked, ...(e.target.checked ? { alsoMatchInDms: false } : {}) });
+                        if (e.target.checked) setDraft("");
+                      }}
+                      className="h-4 w-4 accent-primary"
+                    />
+                    Every comment
+                  </label>
+                )}
+              </div>
+            )}
+          </section>
+
+          {dm && (
+            <section aria-labelledby="adm-dm-h" className={card}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 id="adm-dm-h" className="text-base font-semibold">
+                  <label htmlFor="adm-dm">The DM</label>
+                </h2>
+                <Button variant="outline" className="h-11 px-3" onClick={insertName}>
+                  Insert first name
+                </Button>
+              </div>
+              <Textarea id="adm-dm" ref={dmBox} rows={4} value={f.dm} onChange={(e) => set({ dm: e.target.value })} placeholder="Write the message they get" className="text-[15px] leading-normal" />
+              {f.dmVariations.map((v, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <Textarea aria-label={`DM ${i + 2}`} rows={2} value={v} placeholder="Another way to say it" onChange={(e) => set({ dmVariations: f.dmVariations.map((x, j) => (j === i ? e.target.value : x)) })} className="text-sm" />
+                  <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label={`Remove DM ${i + 2}`} onClick={() => set({ dmVariations: f.dmVariations.filter((_, j) => j !== i) })}>
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
-              {f.buttons.length < LIMITS.buttons && (
-                <Button variant="ghost" size="sm" className="h-11 gap-1.5 px-2 text-xs sm:h-9" onClick={() => set({ buttons: [...f.buttons, { title: "", url: "" }] })}>
-                  <Plus className="h-3.5 w-3.5" /> Add a link button
+              {f.dmVariations.length < LIMITS.dmVariations && (
+                <Button variant="ghost" className={linkBtn} onClick={() => set({ dmVariations: [...f.dmVariations, ""] })}>
+                  Add another wording of the DM
                 </Button>
               )}
-            </div>
-          </div>
-        )}
+              {wordingCheck}
+              <div className="space-y-2 pt-1">
+                <p className="text-sm font-semibold">Link buttons</p>
+                {f.buttons.map((b, i) => (
+                  <div key={i} className="flex flex-wrap items-end gap-2">
+                    <label className="flex min-w-0 flex-[1_1_160px] flex-col gap-1.5 text-[13px] text-muted-foreground">
+                      Button text
+                      <Input value={b.title} maxLength={LIMITS.buttonTitle} placeholder="Get the guide" onChange={(e) => set({ buttons: f.buttons.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)) })} className="h-11 text-[15px] text-foreground" />
+                    </label>
+                    <label className="flex min-w-0 flex-[2_1_220px] flex-col gap-1.5 text-[13px] text-muted-foreground">
+                      Link
+                      <Input type="url" inputMode="url" value={b.url} placeholder="https://your-link" onChange={(e) => set({ buttons: f.buttons.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)) })} className="h-11 text-[15px] text-foreground" />
+                    </label>
+                    <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label={`Remove button ${i + 1}`} onClick={() => set({ buttons: f.buttons.filter((_, j) => j !== i) })}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {f.buttons.length < LIMITS.buttons && (
+                  <Button variant="ghost" className={linkBtn} onClick={() => set({ buttons: [...f.buttons, { title: "", url: "" }] })}>
+                    Add a button (up to {LIMITS.buttons})
+                  </Button>
+                )}
+              </div>
+            </section>
+          )}
 
-        {!story && (
-          <div className="space-y-1.5">
-            <Label htmlFor="adm-reply">Public reply{dm ? " (optional)" : ""}</Label>
-            <Textarea id="adm-reply" rows={2} value={f.reply} onChange={(e) => set({ reply: e.target.value })} placeholder="Sent it to your DMs!" className="text-sm" />
-            {list3("replyVariations", LIMITS.replyVariations, "Public reply", "Another way to say it")}
-          </div>
-        )}
+          {!story && (
+            <section aria-labelledby="adm-reply-h" className={card}>
+              <h2 id="adm-reply-h" className="text-base font-semibold">
+                Public reply under their comment
+              </h2>
+              {replies.length > 1 && <p className="text-[13px] text-muted-foreground">One of these is picked at random each time.</p>}
+              {replies.map((r, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    aria-label={`Public reply ${i + 1}`}
+                    value={r}
+                    placeholder={i ? "Another way to say it" : "Sent! Check your DMs"}
+                    onChange={(e) => setReplies(replies.map((x, j) => (j === i ? e.target.value : x)))}
+                    className="h-11 text-[15px]"
+                  />
+                  {replies.length > 1 && (
+                    <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label={`Remove public reply ${i + 1}`} onClick={() => setReplies(replies.filter((_, j) => j !== i))}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {f.replyVariations.length < LIMITS.replyVariations && (
+                <Button variant="ghost" className={linkBtn} onClick={() => setReplies([...replies, ""])}>
+                  Add another wording (up to {LIMITS.replyVariations + 1})
+                </Button>
+              )}
+              {!dm && wordingCheck}
+            </section>
+          )}
 
-        {dm && (f.trigger === "comment" || platform === "instagram") && (
-          <div className="space-y-0.5">
-            {f.trigger === "comment" && (
-              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:min-h-9 [@media(pointer:coarse)]:min-h-11">
-                <input type="checkbox" checked={f.alsoMatchInDms} disabled={f.everyComment} onChange={(e) => set({ alsoMatchInDms: e.target.checked })} className="h-4 w-4 accent-primary" />
-                Also answer when they DM the word
-              </label>
-            )}
-            {platform === "instagram" && (
-              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:min-h-9 [@media(pointer:coarse)]:min-h-11">
-                <input type="checkbox" checked={f.followGate} onChange={(e) => set({ followGate: e.target.checked })} className="h-4 w-4 accent-primary" />
-                Only followers get the DM
-                <InfoTip label="About the follower check">Anyone Instagram can't confirm gets a button to tap once they follow.</InfoTip>
-              </label>
-            )}
-          </div>
-        )}
+          {dm && (f.trigger === "comment" || platform === "instagram") && (
+            <section aria-labelledby="adm-opt" className="rounded-xl border border-border bg-card px-4 py-2 sm:px-6">
+              <h2 id="adm-opt" className="mb-1 mt-3 text-base font-semibold">
+                Options
+              </h2>
+              {f.trigger === "comment" && (
+                <div className="flex items-center justify-between gap-4 border-b border-border/60 py-2.5 last:border-0">
+                  <span id="adm-opt-dm" className={`text-[15px] font-medium ${f.everyComment ? "text-muted-foreground" : ""}`}>
+                    Also answer when they DM the word
+                  </span>
+                  <Toggle on={f.alsoMatchInDms} labelledBy="adm-opt-dm" disabled={f.everyComment} onChange={(on) => set({ alsoMatchInDms: on })} />
+                </div>
+              )}
+              {platform === "instagram" && (
+                <div className="flex items-center justify-between gap-4 py-2.5 pb-3.5">
+                  <div className="min-w-0 space-y-1">
+                    <span id="adm-opt-follow" className="block text-[15px] font-medium">
+                      Only followers get the DM
+                    </span>
+                    <span className="block text-[13px] leading-snug text-muted-foreground">Instagram only. Anyone Instagram can't confirm gets a button to tap once they follow.</span>
+                  </div>
+                  <Toggle on={f.followGate} labelledBy="adm-opt-follow" onChange={(on) => set({ followGate: on })} />
+                </div>
+              )}
+            </section>
+          )}
 
-        {flags.length > 0 && (
-          <ul className="space-y-1">
-            {flags.map((x) => (
-              <li key={x.id} className={`rounded-md border px-2 py-1 text-[11px] ${x.severity === "error" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/40 bg-warning/10"}`}>
-                "{x.match}" {x.message}
-              </li>
-            ))}
-          </ul>
-        )}
+          {story && !dm ? null : story && wordingCheck}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button className="h-11" disabled={saving || !!problem || blocked} onClick={save}>
-            {saving ? "Saving..." : f.id ? "Save changes" : "Save and switch on"}
-          </Button>
-          <Button variant="ghost" className="h-11" onClick={onCancel} disabled={saving}>
-            Cancel
-          </Button>
-          {onDelete && (
-            <Button variant="ghost" className="ml-auto h-11 gap-1.5 text-muted-foreground hover:text-destructive" onClick={onDelete} disabled={saving || deleting}>
-              <Trash2 className="h-4 w-4" /> {deleting ? "Deleting..." : "Delete"}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <Button className="h-12 px-[22px] text-[15px] font-semibold" disabled={!!saving || !!problem || blocked} onClick={() => save(true)}>
+              {saving === "on" ? "Saving..." : f.id ? "Save changes" : "Save and switch on"}
             </Button>
-          )}
-          {(problem || blocked) && (
-            <p className="basis-full text-xs text-muted-foreground" role="status">
-              {problem ?? "Reword the red flag above before saving."}
-            </p>
-          )}
+            {!f.id && (
+              <Button variant="outline" className="h-12 px-[18px] text-[15px]" disabled={!!saving || !!problem || blocked} onClick={() => save(false)}>
+                {saving === "paused" ? "Saving..." : "Save as paused"}
+              </Button>
+            )}
+            <Button variant="ghost" className="h-12 px-2 text-[15px] text-primary hover:bg-transparent hover:text-primary hover:underline" onClick={onCancel} disabled={!!saving}>
+              Cancel
+            </Button>
+            {onDelete && (
+              <Button variant="ghost" className="ml-auto h-12 gap-1.5 text-muted-foreground hover:text-destructive" onClick={onDelete} disabled={!!saving || deleting}>
+                <Trash2 className="h-4 w-4" /> {deleting ? "Deleting..." : "Delete"}
+              </Button>
+            )}
+            {(problem || blocked) && (
+              <p className="basis-full text-[13px] text-muted-foreground" role="status">
+                {problem ?? "Reword the red flag above before saving."}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
 
-      <Preview f={f} platform={platform} account={account} post={list?.find((p) => p.id === f.platformPostId)} />
+        <Preview f={full} platform={platform} account={account} post={list?.find((p) => p.id === f.platformPostId)} />
+      </div>
     </section>
   );
 }
 
+/** A plain on/off switch for a labelled option. */
+function Toggle({ on, labelledBy, disabled, onChange }: { on: boolean; labelledBy: string; disabled?: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} aria-labelledby={labelledBy} disabled={disabled} onClick={() => onChange(!on)} className="flex h-11 w-14 shrink-0 items-center justify-center disabled:opacity-50">
+      <Track on={on} />
+    </button>
+  );
+}
+
+function Track({ on }: { on: boolean }) {
+  return (
+    <span aria-hidden className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${on ? "bg-primary" : "bg-muted-foreground/60"}`}>
+      <span className={`absolute top-[3px] h-[18px] w-[18px] rounded-full bg-background shadow transition-transform ${on ? "translate-x-[23px]" : "translate-x-[3px]"}`} />
+    </span>
+  );
+}
+
+const initials = (name: string) =>
+  name
+    .replace(/^@/, "")
+    .split(/[._\s-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("") || "?";
+
 function Preview({ f, platform, account, post }: { f: AutoDmForm; platform: string; account?: AccountOption; post?: PostOption }) {
   const dm = hasDm(platform);
   const me = account ? accountLabel(account) : "@you";
+  const handle = me.replace(/^@/, "");
   const word = splitKeywords(f.keywordsText)[0] ?? "";
-  const said = f.trigger === "story_mention" ? "Mentioned you in their story" : f.everyComment && f.trigger === "comment" ? "Love this, thanks!" : word || "Your keyword";
-  const bubble = "max-w-[85%] rounded-2xl px-3 py-2 text-[13px] leading-snug [overflow-wrap:anywhere] whitespace-pre-line";
+  const said = f.everyComment && f.trigger === "comment" ? "Love this, thanks!" : word || "[keyword]";
+  const reply = f.reply.trim();
+  const buttons = f.buttons.filter((b) => b.title.trim());
+  const avatar = (text: string, mine: boolean) => (
+    <span aria-hidden className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${mine ? "bg-primary/10 text-primary" : "bg-muted text-foreground/80"}`}>
+      {text}
+    </span>
+  );
+  const bubble = "max-w-[88%] self-start overflow-hidden rounded-[18px] rounded-bl-md bg-muted";
   return (
-    <aside aria-label="Preview" className="lg:sticky lg:top-20">
-      <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Preview</p>
-      <div className="mx-auto w-full max-w-[320px] space-y-3 rounded-[28px] border-4 border-foreground/80 bg-background p-3 shadow-card">
-        {f.trigger === "comment" && (
-          <div className="flex items-center gap-2 rounded-lg bg-muted/40 p-1.5">
-            {post?.picture ? <img src={post.picture} alt="" referrerPolicy="no-referrer" className="h-9 w-9 rounded object-cover" /> : <span className="flex h-9 w-9 items-center justify-center rounded bg-muted"><ImageIcon className="h-4 w-4 text-muted-foreground" /></span>}
-            <p className="line-clamp-2 text-[11px] text-muted-foreground">{post ? post.caption || "Your post" : "Any of your posts"}</p>
+    <aside aria-label="Preview" className="min-w-0 space-y-2.5 lg:sticky lg:top-6">
+      <p className="text-sm font-semibold text-foreground/85">Preview</p>
+      <div className="mx-auto flex w-full max-w-[380px] flex-col gap-3.5 rounded-[28px] border border-input bg-card p-[18px] shadow-card">
+        <div className="flex items-center gap-2">
+          <span aria-hidden className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+            {initials(account?.name || handle)}
+          </span>
+          <span className="truncate text-[13px] font-semibold">{handle}</span>
+        </div>
+        {f.trigger === "comment" ? (
+          <div aria-hidden className="relative flex h-[150px] items-end overflow-hidden rounded-xl bg-primary/10 p-2.5">
+            {post?.picture && <img src={post.picture} alt="" referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover" />}
+            <span className="relative max-w-full truncate rounded bg-background px-1.5 py-0.5 text-xs font-semibold">{post ? post.caption || "Your post" : f.platformPostId ? "Your post" : "Any post"}</span>
+          </div>
+        ) : (
+          <div aria-hidden className="flex h-[150px] items-end rounded-xl bg-primary/10 p-2.5">
+            <span className="rounded bg-background px-1.5 py-0.5 text-xs font-semibold">{f.trigger === "story_reply" ? "Your story" : "Their story"}</span>
           </div>
         )}
-        <div className="space-y-1.5">
-          <p className="text-[12px]">
-            <span className="font-semibold">sarah.tan</span> {f.trigger === "comment" ? said : <span className="text-muted-foreground">{f.trigger === "story_reply" ? `replied to your story: ${said}` : said}</span>}
+        <div className="flex flex-col gap-2.5 text-[13px] leading-snug">
+          <p className="flex items-start gap-2 [overflow-wrap:anywhere]">
+            {avatar("ST", false)}
+            <span>
+              <strong>sarah.tan</strong> {f.trigger === "story_mention" ? <span className="text-muted-foreground">mentioned you in their story</span> : f.trigger === "story_reply" ? <span className="text-muted-foreground">replied to your story: {said}</span> : said}
+            </span>
           </p>
-          {f.trigger === "comment" && f.reply.trim() && (
-            <p className="ml-5 text-[12px]">
-              <span className="font-semibold">{me.replace(/^@/, "")}</span> {fillName(f.reply.trim())}
+          {f.trigger === "comment" && reply && (
+            <p className="flex items-start gap-2 pl-8 [overflow-wrap:anywhere]">
+              {avatar(initials(account?.name || handle), true)}
+              <span>
+                <strong>{handle}</strong> {fillName(reply)}
+              </span>
             </p>
           )}
         </div>
         {dm && (
-          <div className="space-y-1.5 border-t border-border/60 pt-2">
-            <p className="text-center text-[10px] text-muted-foreground">DM from {me}</p>
-            {f.followGate && <p className={`${bubble} bg-muted`}>Zernio first asks them to tap once they follow you.</p>}
-            <p className={`${bubble} bg-muted`}>{f.dm.trim() ? fillName(f.dm.trim()) : "Your DM"}</p>
-            {f.buttons
-              .filter((b) => b.title.trim())
-              .map((b, i) => (
-                <p key={i} className="max-w-[85%] rounded-lg border border-border bg-background px-3 py-1.5 text-center text-[12px] font-semibold text-primary">
+          <>
+            <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              In Sarah's DMs
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            {f.followGate && (
+              <div className={bubble}>
+                <p className="px-3.5 py-2.5 text-[13px] leading-normal">Follow {me}, then tap below and it is yours.</p>
+                <p className="border-t border-border px-3.5 py-2 text-center text-[13px] font-semibold text-primary">I'm following</p>
+              </div>
+            )}
+            <div className={bubble}>
+              <p className="whitespace-pre-line px-3.5 py-2.5 text-[13px] leading-normal [overflow-wrap:anywhere]">{f.dm.trim() ? fillName(f.dm.trim()) : "[Your DM]"}</p>
+              {buttons.map((b, i) => (
+                <p key={i} className="border-t border-border px-3.5 py-2 text-center text-[13px] font-semibold text-primary [overflow-wrap:anywhere]">
                   {fillName(b.title.trim())}
                 </p>
               ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
     </aside>
