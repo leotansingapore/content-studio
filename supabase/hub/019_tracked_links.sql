@@ -19,10 +19,10 @@
 --     URLs follow 015: http(s), a host of letters, digits, dots and hyphens
 --     and an optional port, and no spaces, control characters or backslashes
 --     after it; javascript:, data:, user@host and backslash tricks cannot be
---     stored. The edge function re-parses the URL and redirects to url.href.
+--     stored. A link cannot point at our own /t/ addresses (no loops). The
+--     edge function re-parses the URL and redirects to url.href.
 --   * Unique people: the edge function sends a visitor key, the SHA-256 of the
---     app's own per-recipient ?r= token when the link carries a well-formed
---     one, else of the IP address and user agent. The raw IP never reaches
+--     IP address and user agent. The raw IP never reaches
 --     the database. The database stores only SHA-256(salt, scope, key): the
 --     salt is 32 random bytes made when this file is first applied, readable
 --     by no client role and not by service_role; the scope is the link's
@@ -36,9 +36,9 @@
 --     any delete or rename of a link, including the cascade when an account
 --     is deleted. A slug released by its owner is held for 30 days, and the
 --     owner can take it back. A slug released because its account was
---     deleted is held for good: nobody can take it back, the account's posts
---     and bio links may stay up long after it is gone, and the rows are
---     bounded (100 per deleted account). Holds keep no foreign key to
+--     deleted is held for a year, since the account's posts and bio links may
+--     stay up long after it is gone; nobody can take it back, and the prune
+--     job drops it after that year. Holds keep no foreign key to
 --     auth.users, so they outlive the account. Saves and releases take
 --     advisory locks per slug in sorted order, so a release and a grab
 --     cannot race.
@@ -46,8 +46,8 @@
 --     20-character report slug (100 bits). Switching off deletes the slug, so
 --     an old report link never works again; switching on later makes a new
 --     one. A report shows the campaign name, total taps, people, the last 7
---     Singapore days and each link's label, address without its query string
---     or fragment, taps and people. No slug, id, account or owner detail.
+--     Singapore days and each link's label, host (no path, query string or
+--     fragment), taps and people. No slug, id, account or owner detail.
 --   * The owner reads their links, campaigns and daily counts through RLS
 --     (SELECT only) and writes only through the SECURITY DEFINER functions.
 --   * Every function pins search_path = public, pg_temp. Oversized raw input
@@ -86,9 +86,9 @@
 --   cs_tracked_link_days_owner_read: days of a link the caller owns.
 --
 -- Cron: tracked-link-prune runs daily at 04:23 UTC and deletes visitor rows
--- whose first tap is more than 90 Singapore days old and slug holds older
--- than 30 days (a deleted account's holds never age). It posts nothing and
--- reads no secret.
+-- whose first tap is more than 90 Singapore days old and slug holds whose
+-- 30 days have run out (a year for a deleted account's). It posts nothing
+-- and reads no secret.
 --
 -- Locks: the two foreign keys to auth.users take SHARE ROW EXCLUSIVE on
 -- auth.users for the length of this transaction; it is short, and
@@ -153,9 +153,9 @@ create index if not exists cs_tracked_link_visitors_owner_day_idx
 create index if not exists cs_tracked_link_visitors_link_idx
   on public.cs_tracked_link_visitors (link_id);
 
--- Released slugs, kept for their last owner for 30 days, or for good
--- (released_at = 'infinity') when the account was deleted. No foreign key:
--- a hold outlives its account.
+-- Released slugs, kept for their last owner for 30 days after released_at,
+-- or for a year when the account was deleted (released_at is then set 335
+-- days ahead). No foreign key: a hold outlives its account.
 create table if not exists public.cs_tracked_link_slug_holds (
   slug text primary key,
   owner_id uuid not null,
@@ -211,7 +211,8 @@ begin
   insert into public.cs_tracked_link_slug_holds (slug, owner_id, released_at)
   values (old.slug, old.owner_id, case
     when exists (select 1 from auth.users u where u.id = old.owner_id) then now()
-    else 'infinity'::timestamptz
+    -- A deleted account's slug is held a year: the 30-day window starts in 335 days.
+    else now() + interval '335 days'
   end)
   on conflict (slug) do update set owner_id = excluded.owner_id, released_at = excluded.released_at;
   return case when tg_op = 'DELETE' then old else new end;
@@ -242,6 +243,8 @@ language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   c_link_limit constant int := 100;
   c_url_re constant text := '^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?([/?#][^[:space:][:cntrl:]\\]*)?$';
+  -- Our own tracked-link addresses (app host and the function); add a custom domain here.
+  c_self_re constant text := '^https?://(consultant-content-studio\.vercel\.app|[a-z0-9-]+\.supabase\.co)\.?(:[0-9]{1,5})?/(t|functions/v1/tracked-link)([/?#]|$)';
   -- 015's list (admin-ish words and every top-level route in src/App.tsx)
   -- plus this feature's own words.
   c_reserved constant text[] := array[
@@ -265,6 +268,10 @@ begin
   if v_uid is null then
     raise exception 'Sign in first.' using errcode = '42501';
   end if;
+  -- The redirect sits on the app's own host: only members (001) make links.
+  if not public.hub_is_member() then
+    raise exception 'Tracked links come with a Members Hub membership.' using errcode = '42501';
+  end if;
   -- Bound the raw input before any regex runs over it.
   if char_length(p_slug) > 200 or char_length(p_label) > 400
      or char_length(p_url) > 4096 or char_length(p_campaign) > 400 then
@@ -285,6 +292,9 @@ begin
   end if;
   if char_length(v_url) > 2048 or v_url !~* c_url_re then
     raise exception 'The link must be a web address starting with https://' using errcode = '22023';
+  end if;
+  if v_url ~* c_self_re then
+    raise exception 'That is already a tracked link. Paste the address it goes to.' using errcode = '22023';
   end if;
   if char_length(v_campaign) > 60 then
     raise exception 'Keep the campaign name to 60 characters.' using errcode = '22023';
@@ -457,8 +467,8 @@ end $$;
 
 -- The public report for a report slug, or null when unknown or switched off:
 -- campaign name, total taps and people, the last 7 Singapore days, and each
--- link's label, address (no query string or fragment), taps and people, most
--- tapped first.
+-- link's label, host (no path, query string or fragment), taps and people,
+-- most tapped first.
 create or replace function public.cs_tracked_link_report_public(p_report_slug text) returns jsonb
 language sql stable security definer set search_path = public, pg_temp as $$
   with c as (
@@ -492,7 +502,8 @@ language sql stable security definer set search_path = public, pg_temp as $$
     'links', coalesce((
       select jsonb_agg(jsonb_build_object(
         'label', l.label,
-        'url', regexp_replace(l.url, '[?#].*$', ''),
+        -- Host only: a path can name the adviser or carry a share id (Drive, Docs).
+        'host', lower(substring(l.url from '^[A-Za-z]+://([^/?#]+)')),
         'clicks', l.clicks,
         'people', l.people) order by l.clicks desc, l.label, l.created_at, l.id)
       from l

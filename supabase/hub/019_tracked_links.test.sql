@@ -55,6 +55,20 @@ insert into auth.users (
 select '00000000-0000-0000-0000-000000000000', ('7e57c0de-0000-4000-8000-0000000000' || s)::uuid,
        'authenticated', 'authenticated', 'cs-test-' || s || '@example.test', '', now(), '{}', '{}', now(), now()
 from unnest(array['b1', 'b2']) s;
+insert into public.hub_memberships (user_id, email, status)
+select ('7e57c0de-0000-4000-8000-0000000000' || s)::uuid, 'cs-test-' || s || '@example.test', 'active'
+from unnest(array['b1', 'b2']) s;
+insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+values ('00000000-0000-0000-0000-000000000000', '7e57c0de-0000-4000-8000-0000000000b3', 'authenticated', 'authenticated',
+  'cs-test-b3@example.test', '', now(), '{}', '{}', now(), now());
+insert into public.hub_memberships (user_id, email, status)
+values ('7e57c0de-0000-4000-8000-0000000000b3', 'cs-test-b3@example.test', 'canceled');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b3","role":"authenticated"}';
+select public.cs_test_expect_error($$select public.cs_save_tracked_link(null, 'not-member', 'L', 'https://example.com')$$,
+  '%Members Hub membership%', '0.0 an account that is not a member (here: canceled) makes no link');
+reset role;
 
 -- ---------------------------------------------------------------------------
 -- 0. Catalog and anon
@@ -225,6 +239,14 @@ select public.cs_test_expect_error($$select public.cs_test_save_url(U&'https://b
   '%starting with https%', '1.30 a non-ASCII host refused (punycode works)');
 select public.cs_test_expect_error($$select public.cs_test_save_url('https://example.com:123456/')$$,
   '%starting with https%', '1.31 a 6-digit port refused');
+select public.cs_test_expect_error($$select public.cs_test_save_url('https://consultant-content-studio.vercel.app/t/ada-guide')$$,
+  '%already a tracked link%', '1.31b our own /t/ address refused (no loops)');
+select public.cs_test_expect_error($$select public.cs_test_save_url('HTTPS://Consultant-Content-Studio.Vercel.App.:443/t/x?r=1')$$,
+  '%already a tracked link%', '1.31c our own /t/ address refused in any case, with a trailing dot or a port');
+select public.cs_test_expect_error($$select public.cs_test_save_url('https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/tracked-link/ada-guide')$$,
+  '%already a tracked link%', '1.31d the tracked-link function address refused');
+select public.cs_test_save_url('https://consultant-content-studio.vercel.app/tutorial');
+select public.cs_test_save_url('https://consultant-content-studio.vercel.app/l/ada-tan');
 select public.cs_test_save_url('https://xn--bcher-kva.example:8443/a?b=c#d');
 select public.cs_test_save_url('HTTP://Example.com/path?q=1#top');
 select public.cs_test_save_url('https://example.com');
@@ -433,21 +455,24 @@ select public.cs_test_assert(
           and (v -> 'days' -> 0 ->> 'clicks')::int = 0
           and jsonb_array_length(v -> 'links') = 2
           and v -> 'links' -> 0 ->> 'label' = 'Free guide'
-          and v -> 'links' -> 0 ->> 'url' = 'https://example.com/guide'
+          and v -> 'links' -> 0 ->> 'host' = 'example.com'
+          and v -> 'links' -> 1 ->> 'host' = 'calendly.com'
           and (v -> 'links' -> 0 ->> 'clicks')::int = 5000
           and (v -> 'links' -> 1 ->> 'people')::int = 0
           and (select array_agg(k order by k) from jsonb_object_keys(v) k) = array['campaign', 'clicks', 'days', 'links', 'people']
-          and (select array_agg(k order by k) from jsonb_object_keys(v -> 'links' -> 0) k) = array['clicks', 'label', 'people', 'url']
+          and (select array_agg(k order by k) from jsonb_object_keys(v -> 'links' -> 0) k) = array['clicks', 'host', 'label', 'people']
    from (select current_setting('cs_test.json')::jsonb v) x),
   '4.4 the report has the campaign, totals, 7 days and each link, with exactly these fields');
 select public.cs_test_assert(
   (select current_setting('cs_test.json') not like '%utm_%'
+          and current_setting('cs_test.json') not like '%/guide%'
+          and current_setting('cs_test.json') not like '%/ada%'
           and current_setting('cs_test.json') not like '%#top%'
           and current_setting('cs_test.json') not like '%ada-guide%'
           and current_setting('cs_test.json') not like '%7e57c0de%'
           and current_setting('cs_test.json') not like '%cs-test-%'
           and current_setting('cs_test.json') not like '%' || current_setting('cs_test.campaign') || '%'),
-  '4.5 the report shows no query string, fragment, link slug, account, email or campaign id');
+  '4.5 the report shows no path, query string, fragment, link slug, account, email or campaign id');
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b1","role":"authenticated"}';
@@ -599,10 +624,10 @@ select public.cs_test_assert(
    join public.cs_tracked_link_slug_holds h on h.slug = s),
   '8.2 deleting an account holds every one of its 100 slugs');
 select public.cs_test_assert(
-  (select bool_and(coalesce(h.released_at = 'infinity', false))
+  (select bool_and(coalesce(h.released_at = now() + interval '335 days', false))
    from unnest(string_to_array(current_setting('cs_test.a_slugs'), ',')) s
    join public.cs_tracked_link_slug_holds h on h.slug = s),
-  '8.3 a deleted account''s holds never end');
+  '8.3 a deleted account''s holds last a year (the 30-day window starts in 335 days)');
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b2","role":"authenticated"}';
 select public.cs_test_expect_error($$select public.cs_save_tracked_link(null, 'ada-form', 'Mine', 'https://evil.example')$$,
@@ -613,6 +638,35 @@ select public.cs_test_assert(
   (select count(*) = 100 from unnest(string_to_array(current_setting('cs_test.a_slugs'), ',')) s
    join public.cs_tracked_link_slug_holds h on h.slug = s),
   '8.5 the prune job keeps a deleted account''s holds');
+
+-- 364 days later: still held.
+update public.cs_tracked_link_slug_holds h set released_at = released_at - interval '364 days'
+where h.slug = any (string_to_array(current_setting('cs_test.a_slugs'), ','));
+do $$ begin execute (select command from cron.job where jobname = 'tracked-link-prune'); end $$;
+select public.cs_test_assert(
+  (select count(*) = 100 from unnest(string_to_array(current_setting('cs_test.a_slugs'), ',')) s
+   join public.cs_tracked_link_slug_holds h on h.slug = s),
+  '8.6 after 364 days the prune job still keeps a deleted account''s holds');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b2","role":"authenticated"}';
+select public.cs_test_expect_error($$select public.cs_save_tracked_link(null, 'ada-form', 'Mine', 'https://evil.example')$$,
+  '%in use recently%', '8.7 after 364 days the slug is still held from others');
+reset role;
+
+-- 366 days later: dropped and free.
+update public.cs_tracked_link_slug_holds h set released_at = released_at - interval '2 days'
+where h.slug = any (string_to_array(current_setting('cs_test.a_slugs'), ','));
+do $$ begin execute (select command from cron.job where jobname = 'tracked-link-prune'); end $$;
+select public.cs_test_assert(
+  not exists (select 1 from unnest(string_to_array(current_setting('cs_test.a_slugs'), ',')) s
+              join public.cs_tracked_link_slug_holds h on h.slug = s),
+  '8.8 after a year the prune job drops a deleted account''s holds');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b2","role":"authenticated"}';
+select public.cs_test_assert(
+  (select slug from public.cs_save_tracked_link(null, 'ada-form', 'Mine', 'https://example.org')) = 'ada-form',
+  '8.9 after a year the slug is free again');
+reset role;
 
 -- ---------------------------------------------------------------------------
 

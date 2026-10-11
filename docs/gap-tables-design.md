@@ -38,6 +38,7 @@ The same shape holds for all four. Clients read through RLS (SELECT only) and wr
   - `GET /link-in-bio/<slug>` returns name, line, photo and link labels and ids (no URLs), with `Cache-Control: public, max-age=60`.
   - `GET /link-in-bio/<slug>/<linkId>` sends a 302 to the stored URL and counts the click. An unknown link goes to the page instead. The redirect never takes a URL from the request, so it is not an open redirect. User agents that look like bots or link previewers are sent on without counting (`p_count = false`).
 - Saved URLs must be http(s) with no spaces, control characters or `user@` part.
+- A released slug is held from others for 30 days. Since 020 (`020_bio_slug_holds.sql`, applied 2026-10-11) one trigger writes that hold on every delete or slug change, including the cascade when an account is deleted; a deleted account's slugs are held for a year, so nobody takes over an old bio address. Job `bio-slug-hold-prune` drops holds once their time is up.
 - Caps: 10 pages per account, one per brand profile, 20 links per page, label 1-60, URL up to 2,048 characters, photo a PNG/JPEG/WebP data URL of up to 350,000 characters (the brand kit's cap). Clicks are counted up to 5,000 per link per Singapore day; after that the redirect still works but stops counting.
 - In the app: an editor prefilled from the brand kit (name, role, photo), the slug, the links, a publish switch, and clicks for the last 7 and 30 days. It lists every page on the account, so a page left behind by a deleted profile can still be deleted (`profiles.ts` is off limits).
 

@@ -1,6 +1,8 @@
 # Tracked links and campaign reports (g39, g40), 019
 
-Migration `supabase/hub/019_tracked_links.sql`, tests in `019_tracked_links.test.sql`. Not applied yet: an independent review reads the migration first (Leo's rule), then it is applied by hand like 011-018. No edge function or screen exists yet.
+Migration `supabase/hub/019_tracked_links.sql`, tests in `019_tracked_links.test.sql`. Reviewed independently (approve with changes, fixes F1-F4 below are in), then applied to academy on 2026-10-11 through the Management API, like 011-018. Migration 020 (`020_bio_slug_holds.sql`) gives link-in-bio the same hold when an account is deleted.
+
+Only members make links: `cs_save_tracked_link` refuses an account where `hub_is_member()` (001: admin, client or active) is false, because the redirect sits on the app's own host. Deleting a link and the report switch need no membership, so a lapsed member can still clean up.
 
 It follows 015 (link-in-bio): clients read through RLS (SELECT only) and write through SECURITY DEFINER functions that check `auth.uid()`. anon holds no table privilege and no function EXECUTE. The public side goes through one edge function deployed `--no-verify-jwt` that holds the service key and calls only the two functions granted to `service_role`.
 
@@ -8,7 +10,7 @@ It follows 015 (link-in-bio): clients read through RLS (SELECT only) and write t
 
 - A short link `/t/<slug>` for any web address (an offer, a guide, a form), with a label and an optional campaign name. The slug is theirs to pick, or a random 10-character one.
 - Taps per link per Singapore day, and people: a person counts once per campaign (once per link for a link outside a campaign), however often they tap.
-- A public report per campaign, off until switched on. It shows the campaign name, total taps and people, the last 7 days, and each link's label, address without its query string or fragment, taps and people. Nothing about the adviser beyond the campaign name.
+- A public report per campaign, off until switched on. It shows the campaign name, total taps and people, the last 7 days, and each link's label, host (no path, query string or fragment: a path can name the adviser or carry a Drive or Docs share id), taps and people. Nothing about the adviser beyond the campaign name.
 
 ## Tables
 
@@ -18,10 +20,10 @@ It follows 015 (link-in-bio): clients read through RLS (SELECT only) and write t
 | `cs_tracked_link_campaigns` | owner, name (unique per owner ignoring case), report slug or null | owner SELECT (RLS) |
 | `cs_tracked_link_days` | per link per day: taps, new people | owner SELECT (RLS) |
 | `cs_tracked_link_visitors` | one 32-byte hash per person per campaign, the link and day of the first tap | none |
-| `cs_tracked_link_slug_holds` | released slugs, who released them and when (`infinity` for a deleted account); no foreign key, so a hold outlives its account | none |
+| `cs_tracked_link_slug_holds` | released slugs, who released them and when (set 335 days ahead for a deleted account, so its hold lasts a year); no foreign key, so a hold outlives its account | none |
 | `cs_tracked_link_salt` | one 32-byte random salt, made on first apply and kept | none, not even `service_role` |
 
-A campaign exists while it has a link: saving or deleting deletes the caller's campaigns left with none, report included.
+A campaign exists while it has a link: saving or deleting deletes the caller's campaigns left with none, report included. Moving or deleting the last link of a campaign whose report is on therefore kills that report link; the screen must say so before the save. A link that moves to another campaign keeps its daily counts, so the new campaign's report includes its earlier taps and people.
 
 ## Functions
 
@@ -34,29 +36,31 @@ Owner (authenticated, each checks `auth.uid()` and the row's owner):
 Slug holds come from one trigger, `cs_tracked_links_hold_slug` (function `cs_tracked_link_hold_slug`, SECURITY DEFINER), before every delete or slug change on `cs_tracked_links`: the owner's delete or rename, a direct delete, and the cascade when an account is deleted. It takes the slug's advisory lock, so a grab waits until the release commits and then sees the hold.
 
 - Released by its owner: held from everyone else for 30 days; the owner can take it back.
-- Released because the account was deleted: held for good (`released_at = infinity`). Nobody can take it back, and the account's bio and post links may stay up long after it is gone; the rows are bounded at 100 per deleted account.
+- Released because the account was deleted: held for a year (`released_at` set 335 days ahead, so the 30-day check and the prune job need nothing else), because the account's bio and post links may stay up long after it is gone. Nobody can take it back; the prune job drops it after the year.
+- No per-account cap on holds: each rename or delete holds one more slug for 30 days (as 015), so the table is bounded by 30 days of saves.
 
 Public (`service_role` only, called by the edge function):
 
 - `cs_tracked_link_click(p_slug, p_visitor, p_count)`: returns the stored URL or null. Counts the tap unless the link has 5,000 today. `p_visitor` is the visitor key below; a missing or malformed one counts the tap but no person. `p_count = false` counts nothing.
-- `cs_tracked_link_report_public(p_report_slug)`: the report JSON (`campaign`, `clicks`, `people`, `days[7]` of `{day, clicks, people}`, `links[]` of `{label, url, clicks, people}`, most tapped first), or null.
+- `cs_tracked_link_report_public(p_report_slug)`: the report JSON (`campaign`, `clicks`, `people`, `days[7]` of `{day, clicks, people}`, `links[]` of `{label, host, clicks, people}`, most tapped first), or null.
 
 ## Unique people
 
-- The edge function computes the visitor key and never sends the raw IP to the database: SHA-256 hex of `r:<token>` when the request has a well-formed `?r=` token (`^[A-Za-z0-9_-]{22}$`, for links the app puts in its own DMs, one token per recipient), else of `v:<ip>|<user agent>`, else none.
+- The edge function computes the visitor key and never sends the raw IP to the database: SHA-256 hex of `v:<ip>|<user agent>`, else none. It never logs the key or the IP. No `?r=` per-recipient token until the app mints them; when it does, sign each one (HMAC with an edge secret) and check the signature before using it as the key.
 - The database stores SHA-256(salt, scope, key), where scope is the link's campaign id, or the link id outside a campaign. One person therefore counts once per campaign, and the same person cannot be matched across campaigns or advisers.
 - Visitor rows are deleted 90 days after the first tap (daily job `tracked-link-prune`), so a person who comes back after that counts again. The daily counts stay.
-- A person who taps once from a DM (with `r`) and once from a bio (without) counts twice. Nothing checks that an `r` token was minted by the app, so a visitor who invents tokens inflates people the same way changing user agent would; the caps below bound it.
+- A visitor who changes user agent or IP counts as a new person; the caps below bound it.
 
 ## Edge function contract (tracked-link, to build after apply)
 
-- `GET /tracked-link/<slug>[?r=<token>]`: check the slug shape before any query, compute the visitor key, send bots and link previewers on with `p_count = false` (reuse `isBot` from `link-in-bio/logic.ts`), and count only on GET, never HEAD. Re-parse the returned URL with `new URL()`, follow only http(s) (`safeRedirectUrl`), and answer 302 with `Cache-Control: no-store`. An unknown slug goes to the app's home page.
+- `GET /tracked-link/<slug>`: check the slug shape before any query, compute the visitor key, send bots and link previewers on with `p_count = false` (reuse `isBot` from `link-in-bio/logic.ts`), and count only on GET, never HEAD. Re-parse the returned URL with `new URL()`, follow only http(s) (`safeRedirectUrl`), and answer 302 with `Cache-Control: no-store`. An unknown slug goes to the app's home page.
 - `GET /tracked-link/report/<report slug>`: check `^[a-z0-9]{20}$` first, return the JSON or 404, `X-Robots-Tag: noindex`.
 - `/t/<slug>` on the app domain reaches the function through a rewrite, so the function must read the visitor's IP from the header that survives it, not the rewrite's own address.
 
 ## Caps
 
 - 100 links per account. Labels and campaign names 1-60 characters, URLs up to 2,048, slugs 3-40 lowercase letters, digits or hyphens. Oversized raw input is refused before any regex runs.
+- A link cannot point at our own `/t/` or `tracked-link` function addresses (no redirect loops). Add a custom domain to `c_self_re` in `cs_save_tracked_link` when one is set up.
 - Taps counted up to 5,000 per link per Singapore day; the redirect keeps working after that.
 - New people counted up to 1,000 per account per Singapore day, under a per-account advisory lock, so visitor rows stay under about 91,000 per account.
 - Reserved slugs: 015's list (admin words and every top-level app route) plus t, track, tracked-link, link, links, report, reports, campaign, campaigns.
@@ -77,6 +81,11 @@ Public (`service_role` only, called by the edge function):
 
 Run after 011 (it uses `cs_clean_label` and `cs_generate_invite_code`) on a database with pg_cron. One transaction with `lock_timeout = 3s`: the foreign keys to `auth.users` take SHARE ROW EXCLUSIVE on it briefly; run again later if it times out. Safe to run twice; the salt is kept. Then run the test file, which rolls back.
 
+## Applied on academy (2026-10-11)
+
+- 019 then 020 through the Management API SQL endpoint. Both test files passed on academy (each ends in ROLLBACK; a copy with a last `select` before the rollback proved each ran to the end), and 015's own test still passed after 020. Bite checks on academy: with the test account's membership set to active, check 0.0 failed; with 020's trigger dropped inside the test, check 1.2 failed.
+- Catalog probe after apply: RLS on all six tables, the three SELECT policies for authenticated, execute on the click and report functions for service_role only, no anon grant, service_role cannot read the salt, the `cs_tracked_links_hold_slug` and `cs_bio_pages_hold_slug` triggers enabled, the `tracked-link-prune` (04:23 UTC) and `bio-slug-hold-prune` (04:29 UTC) jobs active, and the live function bodies carry the member gate, the year hold, the host-only report and the self-link check.
+
 ## Proof (2026-10-11)
 
 On a throwaway Postgres 18 with a Supabase stand-in that copies the live default grants (tables, functions and sequences granted to anon, authenticated and service_role) and a pg_cron stand-in:
@@ -84,4 +93,4 @@ On a throwaway Postgres 18 with a Supabase stand-in that copies the live default
 - 011, then 019 applied twice; the salt was unchanged by the second run.
 - The test file passes. 38 sabotage runs each removed or loosened one guard (every revoke and grant, search_path, each owner check and policy, the URL rules, reserved slugs, slug holds and the hold trigger, every cap, the salt and scope in the hash, the bot flag, the report's fields, query-string stripping and off switch, the prune windows), and each turned a named check red.
 - Parallel runs (not committed): the tap cap, the people cap across two links, one person tapping two links of a campaign at once, the link cap and the slug release race all held. With the per-account advisory lock removed, the people cap overshot (1,001 rows). An account deletion held open for 1.5 seconds while another adviser grabbed its 5 slugs lost none; without the trigger's slug lock it lost 1.
-- An account deleted by a non-superuser owner of `auth.users` with no rights on these tables still left a permanent hold (the cascade runs as the table owner and the trigger is SECURITY DEFINER).
+- An account deleted by a non-superuser owner of `auth.users` with no rights on these tables still left a year-long hold (the cascade runs as the table owner and the trigger is SECURITY DEFINER).
