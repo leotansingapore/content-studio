@@ -79,4 +79,11 @@ describe("the social function", () => {
     await call(UID, { action: "status", profileId: "me" });
     expect(db.spent).toEqual(["social-connect", "social-read"]);
   });
+
+  it("counts real numbers against the read cap", async () => {
+    await call(UID, { action: "metrics", profileId: "me" });
+    await call(UID, { action: "followers", profileId: "me" });
+    expect(db.spent).toEqual(["social-read", "social-read"]);
+    expect(zernio.every((c) => c.includes(`profileId=${MINE}`))).toBe(true);
+  });
 });

@@ -184,28 +184,49 @@ export async function checkAutomation(z: Zernio, own: Set<string>, automationId:
   return data;
 }
 
+// deno-lint-ignore no-explicit-any
+type Data = any;
+const accountIdOf = (item: unknown) => [refId((item as { accountId?: unknown })?.accountId)];
+
 // H3: the list, health and analytics reads, where each item's accounts sit. Add an endpoint here
 // (from its doc page) before reading it; scopedList refuses any other path.
-const SCOPED_LISTS = {
-  "/accounts/health": { key: "accounts", accountsOf: (item: unknown) => [refId((item as { accountId?: unknown })?.accountId)] },
-  "/posts": { key: "posts", accountsOf: postAccounts },
-  "/comment-automations": { key: "automations", accountsOf: (item: unknown) => [refId((item as { accountId?: unknown })?.accountId)] },
-} as const;
-export type ScopedPath = keyof typeof SCOPED_LISTS;
+const SCOPED_LISTS: Record<string, { items: (data: Data) => unknown; accountsOf: (item: Data, query: Query) => string[] }> = {
+  "/accounts/health": { items: (d) => d?.accounts, accountsOf: accountIdOf },
+  "/posts": { items: (d) => d?.posts, accountsOf: postAccounts },
+  "/comment-automations": { items: (d) => d?.automations, accountsOf: accountIdOf },
+  // a page of posts, each naming its accounts in platforms[]; one post (postId) is a single item naming them in platformAnalytics[]
+  "/analytics": {
+    items: (d) => (Array.isArray(d?.posts) ? d.posts : Array.isArray(d?.platformAnalytics) ? [d] : undefined),
+    accountsOf: (item) => postAccounts({ platforms: Array.isArray(item?.platforms) ? item.platforms : item?.platformAnalytics }),
+  },
+  // each account's daily counts come keyed by its id beside the list: attached to that account before the filter, dropped with it
+  "/accounts/follower-stats": {
+    items: (d) => (Array.isArray(d?.accounts) ? d.accounts.map((a: Data) => ({ ...a, series: d?.stats?.[refId(a?._id)] })) : undefined),
+    accountsOf: (item) => [refId(item?._id)],
+  },
+  // a slot names no account: it belongs to the one account asked about, which must be the caller's
+  "/analytics/best-time": { items: (d) => d?.slots, accountsOf: (_item, query) => [query.accountId ?? ""] },
+};
+export type ScopedPath = "/accounts/health" | "/posts" | "/comment-automations" | "/analytics" | "/accounts/follower-stats" | "/analytics/best-time";
 
 /**
  * H3: every list, health and analytics read. profileId is always the mapped one (a query can't override
  * it), it refuses to call without one, and each item is kept only when all its accounts are the caller's.
+ * pages: Zernio's page count, for a paged list.
  */
-export async function scopedList(z: Zernio, path: ScopedPath, mappedId: string, own: Set<string>, query: Query = {}): Promise<unknown[]> {
-  const spec = SCOPED_LISTS[path];
+export async function scopedPage(z: Zernio, path: ScopedPath, mappedId: string, own: Set<string>, query: Query = {}): Promise<{ items: unknown[]; pages: number }> {
+  const spec = Object.prototype.hasOwnProperty.call(SCOPED_LISTS, path) ? SCOPED_LISTS[path] : null;
   if (!spec) throw new Error(`not a scoped list: ${path}`);
   if (!isZernioId(mappedId)) throw new NotYours("no profile");
   const data = await z("GET", path, { query: { ...query, profileId: mappedId } });
-  const items = data?.[spec.key];
+  const items = spec.items(data);
   if (!Array.isArray(items)) throw new ZernioError(502, "unreadable", "Couldn't read that from Zernio.");
-  return items.filter((item) => allOwn(spec.accountsOf(item), own));
+  const pages = data?.pagination?.pages;
+  return { items: items.filter((item) => allOwn(spec.accountsOf(item, query), own)), pages: Number.isInteger(pages) && pages > 0 ? pages : 1 };
 }
+
+export const scopedList = async (z: Zernio, path: ScopedPath, mappedId: string, own: Set<string>, query: Query = {}): Promise<unknown[]> =>
+  (await scopedPage(z, path, mappedId, own, query)).items;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

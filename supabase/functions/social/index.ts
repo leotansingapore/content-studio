@@ -1,6 +1,7 @@
 // Social accounts (Playbook > Social accounts): status, connect and disconnect an adviser's own
 // accounts through Zernio, their comment keyword -> DM automations (Recruit > Auto-DM,
-// automations.ts) and Post it for me (posts.ts). Scoping rules, caps and rollout: docs/zernio-connection.md.
+// automations.ts), Post it for me (posts.ts) and their real post numbers (Analytics, metrics.ts).
+// Scoping rules, caps and rollout: docs/zernio-connection.md.
 //
 // Secrets: ZERNIO_API_KEY, SOCIAL_CONNECT_USERS (user ids separated by commas, or *),
 // ZERNIO_MAX_ACCOUNTS (team cap, 2 when unset). Off, with no Zernio call, unless the key is set and
@@ -13,6 +14,7 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { zernioClient, type ProfileRow } from "../_shared/zernio.ts";
 import { automationErrorReply, isAutomationWrite, parseAutomationRequest, runAutomation } from "./automations.ts";
 import { connect, disconnect, errorReply, isAllowed, offReply, parseRequest, status, teamCapOf, type Caller } from "./logic.ts";
+import { metricsErrorReply, parseMetricsRequest, runMetrics } from "./metrics.ts";
 import { parsePostRequest, postErrorReply, runPost } from "./posts.ts";
 
 const headers = {
@@ -42,9 +44,11 @@ Deno.serve(async (req) => {
   if (posting && !posting.ok) return json({ error: posting.error }, posting.status);
   const auto = posting ? null : parseAutomationRequest(body);
   if (auto && !auto.ok) return json({ error: auto.error }, auto.status);
-  const r = posting || auto ? null : parseRequest(body);
+  const metrics = posting || auto ? null : parseMetricsRequest(body);
+  if (metrics && !metrics.ok) return json({ error: metrics.error }, metrics.status);
+  const r = posting || auto || metrics ? null : parseRequest(body);
   if (r && !r.ok) return json({ error: r.error }, r.status);
-  const q = posting?.ok ? posting.req : auto?.ok ? auto.req : r?.ok ? r.req : null;
+  const q = posting?.ok ? posting.req : auto?.ok ? auto.req : metrics?.ok ? metrics.req : r?.ok ? r.req : null;
   if (!q) return json({ error: "Unknown action." }, 400);
   if (q.action === "status" && !q.profileId) return json({ enabled: true });
   const profileId = q.profileId!;
@@ -90,6 +94,8 @@ Deno.serve(async (req) => {
       ? await runPost(z, caller.mapped, uid, posting.req)
       : auto?.ok
       ? await runAutomation(z, caller.mapped, auto.req)
+      : metrics?.ok
+      ? await runMetrics(z, caller.mapped, metrics.req)
       : q.action === "connect"
         ? await connect(z, caller, row, q.platform, q.reconnectAccountId)
         : q.action === "disconnect"
@@ -97,7 +103,7 @@ Deno.serve(async (req) => {
           : await status(z, caller);
     return json(reply.body, reply.status);
   } catch (e) {
-    const reply = (posting ? postErrorReply(e) : auto ? automationErrorReply(e) : null) ?? errorReply(e);
+    const reply = (posting ? postErrorReply(e) : auto ? automationErrorReply(e) : metrics ? metricsErrorReply(e) : null) ?? errorReply(e);
     if (reply.status >= 500 || reply.status === 402) {
       console.error("social failed", q.action, e instanceof Error ? `${e.name}: ${e.message} ${(e as { code?: string }).code ?? ""}` : String(e));
     }

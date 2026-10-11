@@ -12,6 +12,7 @@ import {
   isZernioId,
   requireAccounts,
   scopedList,
+  scopedPage,
   zernioClient,
   type ProfileRow,
   type ZAccount,
@@ -183,7 +184,31 @@ describe("H3: list, health and analytics reads", () => {
     await expect(scopedList(z, "/accounts/health", "", own)).rejects.toBeInstanceOf(NotYours);
     await expect(scopedList(z, "/posts", "all", own)).rejects.toBeInstanceOf(NotYours);
     await expect(scopedList(z, "/accounts" as never, MINE, own)).rejects.toThrow("not a scoped list");
+    for (const path of ["/analytics", "/accounts/follower-stats", "/analytics/best-time"] as const) {
+      await expect(scopedList(z, path, "", own, { accountId: A1 })).rejects.toBeInstanceOf(NotYours);
+    }
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("keeps only the caller's analytics, daily follower counts and best times", async () => {
+    const { z } = fake({
+      "GET /analytics": (url) => ({
+        body: url.searchParams.get("postId")
+          ? { postId: "x", platformAnalytics: [{ accountId: VICTIM }] }
+          : { posts: [{ _id: "e1", platforms: [{ accountId: A1 }] }, { _id: "e2", platforms: [{ accountId: VICTIM }] }, { _id: "e3" }], pagination: { pages: 3 } },
+      }),
+      "GET /accounts/follower-stats": { body: { accounts: [{ _id: A1 }, { _id: VICTIM }], stats: { [A1]: [{ date: "2026-10-01", followers: 5 }], [VICTIM]: [{ date: "2026-10-01", followers: 9 }] } } },
+      "GET /analytics/best-time": { body: { slots: [{ day_of_week: 1, hour: 2 }] } },
+    });
+    const page = await scopedPage(z, "/analytics", MINE, own);
+    expect(page.items.map((p) => (p as { _id: string })._id)).toEqual(["e1"]);
+    expect(page.pages).toBe(3);
+    expect(await scopedList(z, "/analytics", MINE, own, { postId: "67000000000000000000d001" })).toEqual([]);
+    expect(await scopedList(z, "/accounts/follower-stats", MINE, own)).toEqual([{ _id: A1, series: [{ date: "2026-10-01", followers: 5 }] }]);
+    // a slot carries no account: only one asked for by a checked id of the caller's is kept
+    expect(await scopedList(z, "/analytics/best-time", MINE, own, { accountId: A1 })).toHaveLength(1);
+    expect(await scopedList(z, "/analytics/best-time", MINE, own, { accountId: VICTIM })).toEqual([]);
+    expect(await scopedList(z, "/analytics/best-time", MINE, own)).toEqual([]);
   });
 
   it("always sends the mapped profileId, even when the query names another", async () => {
