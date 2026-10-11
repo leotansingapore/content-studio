@@ -60,6 +60,15 @@ Public (`service_role` only, called by the edge function):
 - `/t/<slug>` on the app host is a `vercel.json` rewrite (before the SPA catch-all) to the function; Vercel passes the 302 through. The public report page is the SPA route `/t/report/<report slug>`, which the one-segment rewrite does not catch.
 - Errors are logged by code only: no slug, key or IP reaches the log.
 
+### Which IP the function sees (measured 2026-10-11)
+
+A temporary build of the function compared each header with the caller's own address and answered yes or no (no address was returned or logged), called through `/t/` on production and directly:
+
+- Through the `/t/` rewrite, `x-forwarded-for` (3 entries) and `cf-connecting-ip` hold Vercel's servers, never the visitor. `x-vercel-proxied-for` held the visitor every time, including with forged `X-Forwarded-For`, `X-Vercel-Forwarded-For`, `X-Vercel-Proxied-For`, `Forwarded` and `X-Real-IP` sent together (6 of 6). `x-vercel-forwarded-for` carried the visitor's forged value in 6 of 10 forged requests. There is no `x-real-ip`.
+- Direct to the function, Supabase's gateway rewrites `x-forwarded-for`: its first entry and `cf-connecting-ip` are the caller even when forged. Forged `x-vercel-*` headers do pass through on a direct call.
+- Live check with a test link (2026-10-11, IPv4): the same browser user agent through `/t/` twice and then directly to the function counted 3 taps and 1 person; a second user agent made 2 people; curl's user agent and a HEAD request counted nothing and were still sent on (302); forged `X-Vercel-Proxied-For`, `X-Vercel-Forwarded-For` and `X-Forwarded-For` through `/t/` counted the tap but no new person.
+- So `clientIp` takes `x-vercel-proxied-for`, then `x-vercel-forwarded-for`; a request with `x-vercel-id` and neither gets no person (the tap still counts), so people are never counted by Vercel's address; otherwise the first `x-forwarded-for` entry, then `cf-connecting-ip`. A direct caller who forges `x-vercel-proxied-for` makes one more person per value, as a changed user agent would; the caps bound it.
+
 ## Caps
 
 - 100 links per account. Labels and campaign names 1-60 characters, URLs up to 2,048, slugs 3-40 lowercase letters, digits or hyphens. Oversized raw input is refused before any regex runs.

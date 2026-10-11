@@ -32,16 +32,21 @@ const ipOrNull = (v: string | null | undefined) => {
 };
 
 /**
- * The visitor's IP. Supabase's gateway rewrites x-forwarded-for (first entry:
- * whoever called it) and cf-connecting-ip, so a forged one is dropped on a
- * direct call. Through the app's /t/ rewrite that caller is a Vercel server,
- * and Vercel names the visitor in x-vercel-forwarded-for. That header can be
- * forged on a direct call; it then only makes one more "person", like a
- * changed user agent, and the SQL caps bound it.
+ * The visitor's IP, measured on 2026-10-11 (docs/tracked-links.md). Through
+ * the app's /t/ rewrite the caller is a Vercel server: x-forwarded-for and
+ * cf-connecting-ip name Vercel, x-vercel-proxied-for names the visitor (a
+ * forged one never got through), and x-vercel-forwarded-for sometimes carries
+ * whatever the visitor sent. On a direct call Supabase's gateway rewrites
+ * x-forwarded-for, so its first entry is the caller. A Vercel request without
+ * a visitor header gets none: never count people by Vercel's address. Headers
+ * forged on a direct call only make one more "person", like a changed user
+ * agent; the SQL caps bound that.
  */
 export function clientIp(h: Headers): string | null {
-  return ipOrNull(h.get("x-vercel-forwarded-for")?.split(",")[0]) ??
-    ipOrNull(h.get("x-forwarded-for")?.split(",")[0]) ?? ipOrNull(h.get("cf-connecting-ip"));
+  const first = (name: string) => ipOrNull(h.get(name)?.split(",")[0]);
+  const visitor = first("x-vercel-proxied-for") ?? first("x-vercel-forwarded-for");
+  if (visitor || h.has("x-vercel-id")) return visitor;
+  return first("x-forwarded-for") ?? first("cf-connecting-ip");
 }
 
 /** SHA-256 hex of "v:<ip>|<user agent>", the key cs_tracked_link_click hashes again with its salt; null without an IP. */

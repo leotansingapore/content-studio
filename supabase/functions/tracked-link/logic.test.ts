@@ -23,8 +23,14 @@ describe("parsePath", () => {
 
 describe("clientIp", () => {
   const h = (o: Record<string, string>) => new Headers(o);
-  it("takes the visitor Vercel names through the /t/ rewrite, not the Vercel server", () => {
-    expect(clientIp(h({ "x-vercel-forwarded-for": "203.0.113.7", "x-forwarded-for": "76.76.21.1, 10.0.0.1", "cf-connecting-ip": "76.76.21.1" }))).toBe("203.0.113.7");
+  // Header sets as measured through the live /t/ rewrite and on direct calls (2026-10-11).
+  const vercel = { "x-vercel-id": "sin1::abc", "x-forwarded-for": "76.76.21.1, 172.70.1.1, 10.0.0.1", "cf-connecting-ip": "76.76.21.1" };
+  it("takes the visitor Vercel names through the /t/ rewrite, never the Vercel server", () => {
+    expect(clientIp(h({ ...vercel, "x-vercel-proxied-for": "203.0.113.7", "x-vercel-forwarded-for": "203.0.113.7" }))).toBe("203.0.113.7");
+    // x-vercel-forwarded-for can carry what the visitor sent; x-vercel-proxied-for wins.
+    expect(clientIp(h({ ...vercel, "x-vercel-proxied-for": "203.0.113.7", "x-vercel-forwarded-for": "198.51.100.9" }))).toBe("203.0.113.7");
+    expect(clientIp(h({ ...vercel, "x-vercel-forwarded-for": "203.0.113.8" }))).toBe("203.0.113.8");
+    expect(clientIp(h(vercel))).toBeNull();
   });
   it("takes the gateway's first forwarded address on a direct call", () => {
     expect(clientIp(h({ "x-forwarded-for": "198.51.100.4, 172.70.1.1, 10.0.0.1", "cf-connecting-ip": "198.51.100.4" }))).toBe("198.51.100.4");
@@ -32,7 +38,7 @@ describe("clientIp", () => {
     expect(clientIp(h({ "cf-connecting-ip": "198.51.100.5" }))).toBe("198.51.100.5");
   });
   it("gives none for junk", () => {
-    expect(clientIp(h({ "x-forwarded-for": "not an ip", "x-vercel-forwarded-for": "999.1.1.1" }))).toBeNull();
+    expect(clientIp(h({ "x-forwarded-for": "not an ip", "x-vercel-proxied-for": "999.1.1.1" }))).toBeNull();
     expect(clientIp(h({}))).toBeNull();
   });
 });
