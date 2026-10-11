@@ -139,9 +139,9 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       aria-label={`New name for ${p.name}`}
-                      className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+                      className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
                     />
-                    <button type="submit" className="h-8 rounded-md px-2 text-xs font-semibold text-primary hover:bg-primary/10">
+                    <button type="submit" className="h-8 rounded-md px-2 text-xs font-semibold text-primary hover:bg-primary/10 [@media(pointer:coarse)]:h-11">
                       Save
                     </button>
                   </form>
@@ -151,7 +151,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                       type="button"
                       onClick={() => switchTo(p.id)}
                       disabled={!!switching || !!removing}
-                      className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-accent"
+                      className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-accent [@media(pointer:coarse)]:min-h-11"
                     >
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">
                         {initial(p.name)}
@@ -169,7 +169,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                       }}
                       aria-label={`Rename ${p.name}`}
                       title={`Rename ${p.name}`}
-                      className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+                      className="rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-foreground [@media(pointer:coarse)]:p-[15px]"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
@@ -180,7 +180,7 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
                         disabled={!!removing}
                         aria-label={`Remove ${p.name}`}
                         title={`Remove ${p.name}`}
-                        className="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        className="rounded-md p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive [@media(pointer:coarse)]:p-[15px]"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -203,12 +203,12 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
               placeholder="Profile name"
               aria-label="New profile name"
               maxLength={40}
-              className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm"
+              className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
             />
             <button
               type="submit"
               disabled={!newName.trim()}
-              className="inline-flex h-8 items-center gap-1 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+              className="inline-flex h-8 items-center gap-1 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50 [@media(pointer:coarse)]:h-11"
             >
               <Plus className="h-3.5 w-3.5" /> Add
             </button>
