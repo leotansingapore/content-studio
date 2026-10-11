@@ -91,7 +91,7 @@ export default function ProfileScore({
             <ul className="space-y-1">
               {pinLinks.map((p) => (
                 <li key={p.id}>
-                  <a href={p.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 font-medium text-primary hover:underline sm:min-h-0">
+                  <a href={p.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 font-medium text-primary hover:underline sm:min-h-0 [@media(pointer:coarse)]:min-h-11">
                     <ExternalLink className="h-3 w-3 shrink-0" /> {firstLine(p.caption, 60) || "Open post"}
                   </a>
                 </li>
@@ -104,7 +104,7 @@ export default function ProfileScore({
     return (
       <p className="text-xs text-muted-foreground">
         Add a link people can book or message you from.{" "}
-        <Link to="/bio" className="inline-flex min-h-11 items-center font-semibold text-primary hover:underline sm:min-h-0">
+        <Link to="/bio" className="inline-flex min-h-11 items-center font-semibold text-primary hover:underline sm:min-h-0 [@media(pointer:coarse)]:min-h-11">
           Make a link-in-bio page
         </Link>
       </p>

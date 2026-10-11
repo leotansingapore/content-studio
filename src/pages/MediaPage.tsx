@@ -105,7 +105,7 @@ export default function MediaPage() {
       <SectionTabs tabs={WRITE_TABS} />
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Media</h1>
-        <label className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-95 ${adding ? "pointer-events-none opacity-70" : ""}`}>
+        <label className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-primary px-4 [@media(pointer:coarse)]:h-11 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-95 ${adding ? "pointer-events-none opacity-70" : ""}`}>
           <ImagePlus className="h-4 w-4" /> {adding ? `Adding ${adding}...` : "Add photos"}
           <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { void upload(e.target.files); e.target.value = ""; }} />
         </label>

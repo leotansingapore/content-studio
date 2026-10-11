@@ -21,7 +21,7 @@ export default function YouTubeTrends({ videos = TREND_VIDEOS }: { videos?: Tren
               <img src={videoThumb(v.id)} alt="" loading="lazy" className="aspect-video w-full object-cover" />
             </a>
             <CardContent className="flex flex-1 flex-col gap-2 p-3">
-              <a href={videoUrl(v.id)} target="_blank" rel="noopener noreferrer" className="line-clamp-2 text-sm font-medium text-foreground hover:underline">
+              <a href={videoUrl(v.id)} target="_blank" rel="noopener noreferrer" className="line-clamp-2 text-sm font-medium text-foreground hover:underline [@media(pointer:coarse)]:min-h-11">
                 {v.title}
               </a>
               <p className="text-xs text-muted-foreground">

@@ -468,7 +468,7 @@ export default function TrendsPage() {
           <button
             type="button"
             onClick={clearFilters}
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-xs font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
           >
             Clear filters
           </button>

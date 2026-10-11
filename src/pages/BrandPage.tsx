@@ -245,7 +245,7 @@ export default function BrandPage() {
                 {brand.photo ? <img src={brand.photo} alt="Your photo" className="h-full w-full object-cover" /> : <ImagePlus className="h-6 w-6 text-muted-foreground" aria-hidden />}
               </span>
               <div className="flex flex-wrap gap-2">
-                <label className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm font-semibold hover:border-primary/40">
+                <label className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm font-semibold hover:border-primary/40 [@media(pointer:coarse)]:h-11">
                   {brand.photo ? "Change photo" : "Add your photo"}
                   <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void upload(f, "photo"); }} />
                 </label>
@@ -463,7 +463,7 @@ export default function BrandPage() {
                   <img src={brand.logo} alt="Your logo" className="max-h-full max-w-full object-contain" />
                 </span>
               )}
-              <label className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm font-semibold hover:border-primary/40">
+              <label className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-3 text-sm font-semibold hover:border-primary/40 [@media(pointer:coarse)]:h-11">
                 {brand.logo ? "Change logo" : "Add a logo"}
                 <input type="file" accept="image/png,image/webp,image/jpeg" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void upload(f, "logo"); }} />
               </label>

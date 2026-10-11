@@ -420,7 +420,7 @@ function AuditPanel({
             )}
             <BestPosts platform={platform} handle={handle} audit={audit} stats={stats} byId={byId} />
             <details className="group rounded-xl border border-border/60">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-2.5 text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-2.5 text-sm font-medium text-foreground [@media(pointer:coarse)]:min-h-11 [&::-webkit-details-marker]:hidden">
                 See how all {posts.length} posts did
                 <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
               </summary>
