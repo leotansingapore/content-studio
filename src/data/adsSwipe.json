@@ -1,5 +1,5 @@
 {
- "fetched": "2026-10-08",
+ "fetched": "2026-10-12",
  "ads": [
   {
    "adId": "2095783381019179",
@@ -58,41 +58,21 @@
    "hookFamily": "Problem"
   },
   {
-   "adId": "1852777915694642",
+   "adId": "1440741058882430",
    "advertiser": "Prudential Singapore",
    "industry": "Insurance",
    "format": "image",
    "headline": "Promises, made real",
-   "body": "Some promises extend beyond a lifetime through the opportunities they help create. Our wealth and investment solutions seek to grow and safeguard the next generation.\n\nTerms & Conditions apply. Protected up to specified limits by SDIC. This advertisement has not been reviewed by the Monetary Authority of Singapore.\n\n#PromisesMadeReal #BuiltForGenerations",
+   "body": "Life doesn’t always go as planned. Our promise is to be there when it doesn’t. Over the last five years, S$5.2 billion in claims went to supporting people through life’s unexpected moments. \n\n#PromisesMadeReal #HereWhenItMatters",
    "cta": "Learn more",
-   "link": "https://www.prudential.com.sg/products/promotions/95-anniversary-lucky-draw?utm_source=meta&utm_medium=paid_social&utm_campaign=promises&utm_content=kv2",
+   "link": "https://www.prudential.com.sg/products/promotions/95-anniversary-lucky-draw?utm_source=meta&utm_medium=paid_social&utm_campaign=promises&utm_content=kv10",
    "start": "2026-09-16",
    "platforms": [
     "FACEBOOK",
     "INSTAGRAM"
    ],
-   "image": "/ads/1852777915694642.jpg",
-   "libraryUrl": "https://www.facebook.com/ads/library/?id=1852777915694642",
-   "hookFamily": "Desire"
-  },
-  {
-   "adId": "4597663317217471",
-   "advertiser": "Prudential Singapore",
-   "industry": "Insurance",
-   "format": "video",
-   "headline": null,
-   "body": "the audacity of also having to worry about money while healing 😭 past me would’ve really appreciated this\n\nDisclaimer: I am not licensed to provide regulated financial services. For financial planning advice, please reach out to a Prudential Financial Representative.",
-   "cta": "See details",
-   "link": "https://www.instagram.com/",
-   "start": "2026-09-21",
-   "platforms": [
-    "FACEBOOK",
-    "INSTAGRAM",
-    "AUDIENCE_NETWORK",
-    "THREADS"
-   ],
-   "image": "/ads/4597663317217471.jpg",
-   "libraryUrl": "https://www.facebook.com/ads/library/?id=4597663317217471",
+   "image": "/ads/1440741058882430.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1440741058882430",
    "hookFamily": "Problem"
   },
   {
@@ -112,6 +92,24 @@
    "image": "/ads/1731979964550267.jpg",
    "libraryUrl": "https://www.facebook.com/ads/library/?id=1731979964550267",
    "hookFamily": "Curiosity"
+  },
+  {
+   "adId": "1119402494362309",
+   "advertiser": "Prudential Singapore",
+   "industry": "Insurance",
+   "format": "video",
+   "headline": null,
+   "body": "𝐈𝐋𝐋,𝐏𝐈𝐋𝐋 𝐚𝐧𝐝 𝐁𝐈𝐋𝐋 🤮💊🧾\n\nWhen critical illness strikes, it’s not just about the ILL.\n\nThere may be:\n💊 PILLS\n🏥 BILLS\n⏳ Time away from work\n💰 Loss of income\n❤️ And a family that still depends on you\n\nProtect your income. \nProtect your choices.\nProtect the people who depend on you.\n\nThe best time to secure your coverage is when you’re still healthy. #favfullyyours",
+   "cta": "See details",
+   "link": "https://www.prudential.com.sg/",
+   "start": "2026-10-05",
+   "platforms": [
+    "FACEBOOK",
+    "INSTAGRAM"
+   ],
+   "image": "/ads/1119402494362309.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1119402494362309",
+   "hookFamily": "Problem"
   },
   {
    "adId": "1552615343060172",
@@ -204,12 +202,12 @@
    "hookFamily": "Desire"
   },
   {
-   "adId": "965462439956189",
+   "adId": "2922539938095710",
    "advertiser": "Virgin Active Singapore",
    "industry": "Fitness",
    "format": "carousel",
    "headline": "Virgin Active Singapore",
-   "body": "Discover the power of Reformer Pilates. Boost your strength and confidence with our curated classes. Experience real, physical and mental transformation at Virgin Active — Where Wellness Gets Real.",
+   "body": "Every day is different. So why stick to the same routine? Train, recover and switch things up at Virgin Active.\nStart now with 50% off for the rest of the year. The sooner you start, the more you save. T&Cs apply.",
    "cta": "Get offer",
    "link": "http://fb.me/",
    "start": "2026-09-30",
@@ -217,9 +215,9 @@
     "FACEBOOK",
     "INSTAGRAM"
    ],
-   "image": "/ads/965462439956189.jpg",
-   "libraryUrl": "https://www.facebook.com/ads/library/?id=965462439956189",
-   "hookFamily": "Desire"
+   "image": "/ads/2922539938095710.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=2922539938095710",
+   "hookFamily": "Curiosity"
   },
   {
    "adId": "908248645187707",
@@ -316,12 +314,12 @@
    "hookFamily": "Desire"
   },
   {
-   "adId": "1091447560310394",
+   "adId": "1420193940250907",
    "advertiser": "SleekFlow",
    "industry": "Software",
    "format": "image",
    "headline": "Unlock More From WhatsApp",
-   "body": "Not ready to give up your WhatsApp Business App? You don’t have to.\n\nKeep your existing number and continue using the app while unlocking automation, broadcasts, CRM and a shared team inbox with SleekFlow.",
+   "body": "Your WhatsApp Business App can do more with SleekFlow.\n\nKeep the app your team already knows while adding automation, CRM, broadcasts and a shared inbox—all using the same number.",
    "cta": "Learn more",
    "link": "https://sleekflow.io/en-sg/lp/coexistence",
    "start": "2026-10-06",
@@ -330,9 +328,9 @@
     "INSTAGRAM",
     "THREADS"
    ],
-   "image": "/ads/1091447560310394.jpg",
-   "libraryUrl": "https://www.facebook.com/ads/library/?id=1091447560310394",
-   "hookFamily": "Audience"
+   "image": "/ads/1420193940250907.jpg",
+   "libraryUrl": "https://www.facebook.com/ads/library/?id=1420193940250907",
+   "hookFamily": "Desire"
   },
   {
    "adId": "904267585865119",
