@@ -78,6 +78,16 @@ Built (C1, Post it for me), in `supabase/functions/social/posts.ts` (shapes from
 - `retry` `{profileId, postId}`: the post check; only a failed or partly failed post; `POST /v1/posts/{id}/retry`, and the post it returns is checked again.
 - `tiktok-creator-info` `{profileId, accountId, mediaType}`: the account check, TikTok only; the privacy levels the creator allows and which switches they turned off, so the screen offers only those.
 
+Media upload (`src/lib/autoPost.ts`): the browser asks `presign` for each file, PUTs the file straight to the `uploadUrl` with its `Content-Type` and shows the bytes sent, then sends the `publicUrl`s with the post. A file that went up stays up for the rest of that send, so a failed upload retries only what is left.
+
+Not yet checked: whether Zernio's storage answers a browser PUT from `https://consultant-content-studio.vercel.app` (CORS). It can't be tried without the key. With the key set, the first real upload answers it: a blocked PUT shows "The upload didn't go through" and the browser console names CORS. If it is blocked:
+
+1. First ask Zernio support to allow our origin for PUT with `Content-Type` on their upload bucket. Nothing changes in the app.
+2. Pictures (8 MB or less, which covers every carousel slide): relay them through `social` to `POST /v1/media/upload-direct` (25 MB, key auth, kept 7 days). Supabase caps an edge function's request body, so this route is for pictures only.
+3. Videos: upload to a Supabase Storage bucket on the academy project with a signed upload URL (our storage already answers our origin), and send that object's public https link in `mediaUrls` (Zernio downloads any public https link). That needs a new bucket and a cleanup after the post goes out, so Leo approves it first.
+
+Also unverified against live Zernio: every response shape above (from openapi.json), that `publicUrl` ends with the file's own ending (the schedule check reads the media type from it), and how long Zernio keeps an uploaded file for a post scheduled weeks ahead.
+
 Later builds: `metrics` (C3); the weekly orphan sweep and daily recount cron before the allowlist opens beyond Leo.
 
 ## Screens

@@ -48,6 +48,24 @@ export interface DraftEntry {
   hookFormula?: string;
   // An http(s) link to the photo or video that goes with it, from a CSV import.
   media?: string;
+  // Post it for me: the post Zernio is publishing for it (autoPost.ts). Not security state: the
+  // server checks the post is the adviser's on every call.
+  zernio?: ZernioLink;
+}
+
+export interface ZernioLink {
+  /** The client half of the Idempotency-Key: one per send, so a retry never posts twice. */
+  key: string;
+  /** Set once Zernio has the post. */
+  postId?: string;
+  /** Zernio's last known status: scheduled, publishing, published, partial, failed... */
+  status?: string;
+  /** When it goes out (ISO). */
+  at?: string;
+  /** Each platform's live post, once published. */
+  links?: { platform: string; url: string }[];
+  /** Why it failed, in Zernio's words. */
+  error?: string;
 }
 
 export interface Storyboard {
@@ -222,6 +240,7 @@ export function upsertDraft(
   if (prev?.metrics && !entry.metrics) entry = { ...entry, metrics: prev.metrics };
   if (prev?.labels && !entry.labels) entry = { ...entry, labels: prev.labels };
   if (prev?.storyboard && !entry.storyboard) entry = { ...entry, storyboard: prev.storyboard };
+  if (prev?.zernio && !entry.zernio) entry = { ...entry, zernio: prev.zernio };
   // ...or the formula its hook was written with, while the hook is unchanged
   if (prev?.hookFormula && !entry.hookFormula && prev.hook === entry.hook) entry = { ...entry, hookFormula: prev.hookFormula };
   const without = current.filter((d) => d.id !== entry.id);
@@ -262,6 +281,7 @@ export function setDraftStatus(
     const day = series.scheduledFor.slice(0, 10);
     const today = localDateKey();
     const moved = advance(series, day > today ? day : today);
+    delete moved.zernio; // that post was this occurrence's, kept on the posted record
     const next = [record, ...current.map((d) => (d.id === id ? moved : d))];
     saveDrafts(userId, next);
     return next;
@@ -287,6 +307,18 @@ export function setDraftStatus(
   return next;
 }
 
+/** Post it for me: sets or (null) clears the Zernio post a draft is linked to. */
+export function setDraftZernio(userId: string, id: string, link: ZernioLink | null): DraftEntry[] {
+  const next = loadDrafts(userId).map((d) => {
+    if (d.id !== id) return d;
+    const updated: DraftEntry = { ...d, zernio: link ?? undefined };
+    if (!link) delete updated.zernio;
+    return updated;
+  });
+  saveDrafts(userId, next);
+  return next;
+}
+
 /**
  * "Mark unposted": back to Scheduled on the day, time and repeat it had, numbers kept.
  * A post that never had a day goes back to the drafts.
@@ -306,7 +338,7 @@ export function duplicateDraft(userId: string, id: string): { drafts: DraftEntry
   const src = current.find((d) => d.id === id);
   if (!src) return null;
   const copy: DraftEntry = { ...src, id: newDraftId(), createdAt: new Date().toISOString(), hook: `${src.hook} (copy)`.trim(), status: "draft" };
-  for (const k of ["scheduledFor", "postedAt", "repeat", "metrics"] as const) delete copy[k];
+  for (const k of ["scheduledFor", "postedAt", "repeat", "metrics", "zernio"] as const) delete copy[k];
   const next = [copy, ...current];
   saveDrafts(userId, next);
   return { drafts: next.slice(0, MAX_DRAFTS), copy, dropped: next.slice(MAX_DRAFTS) };

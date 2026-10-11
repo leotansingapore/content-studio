@@ -13,6 +13,7 @@ import {
   undoDuplicate,
   undoPosted,
   markUnposted,
+  setDraftZernio,
   MAX_DRAFTS,
   type DraftEntry,
 } from "./draftHistory";
@@ -200,12 +201,12 @@ describe("markUnposted", () => {
 
 describe("duplicateDraft", () => {
   it("copies the content as a fresh draft at the top, without schedule or numbers", () => {
-    const original = post({ id: "o", status: "scheduled", scheduledFor: "2026-10-15T09:00", repeat: { every: "week", start: "2026-10-15" }, metrics: { impressions: 5 }, labels: ["l1"] });
+    const original = post({ id: "o", status: "scheduled", scheduledFor: "2026-10-15T09:00", repeat: { every: "week", start: "2026-10-15" }, metrics: { impressions: 5 }, labels: ["l1"], zernio: { key: "k", postId: "p" } });
     saveDrafts(UID, [post({ id: "first" }), original]);
     const r = duplicateDraft(UID, "o")!;
     expect(r.copy.id).not.toBe("o");
     expect(r.copy).toMatchObject({ hook: "Weekly tip (copy)", draft: "Body", platform: "linkedin", labels: ["l1"], status: "draft" });
-    for (const k of ["scheduledFor", "postedAt", "repeat", "metrics"]) expect(r.copy).not.toHaveProperty(k);
+    for (const k of ["scheduledFor", "postedAt", "repeat", "metrics", "zernio"]) expect(r.copy).not.toHaveProperty(k);
     expect(loadDrafts(UID).map((d) => d.id)).toEqual([r.copy.id, "first", "o"]);
     expect(loadDrafts(UID)[2]).toEqual(original);
     expect(duplicateDraft(UID, "missing")).toBeNull();
@@ -219,5 +220,25 @@ describe("duplicateDraft", () => {
     expect(loadDrafts(UID)).toHaveLength(MAX_DRAFTS);
     expect(undoDuplicate(UID, r.copy.id, r.dropped)).toEqual(full);
     expect(loadDrafts(UID)).toEqual(full);
+  });
+});
+
+describe("Post it for me's link to the Zernio post", () => {
+  const link = { key: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", postId: "67000000000000000000d001", status: "scheduled" };
+
+  it("is set and cleared, and an edit in Write keeps it", () => {
+    saveDrafts(UID, [post({ status: "scheduled", scheduledFor: "2026-10-15T09:00" })]);
+    expect(setDraftZernio(UID, "s", link)[0].zernio).toEqual(link);
+    upsertDraft(UID, post({ status: "scheduled", scheduledFor: "2026-10-15T09:00", draft: "Edited" }));
+    expect(loadDrafts(UID)[0].zernio).toEqual(link);
+    expect(setDraftZernio(UID, "s", null)[0]).not.toHaveProperty("zernio");
+  });
+
+  it("stays with the posted record of a recurring post, not the next occurrence", () => {
+    saveDrafts(UID, [post({ status: "scheduled", scheduledFor: "2026-10-08T09:00", repeat: { every: "week", start: "2026-10-08" }, zernio: link })]);
+    const [record, series] = setDraftStatus(UID, "s", "posted");
+    expect(record.zernio).toEqual(link);
+    expect(series.id).toBe("s");
+    expect(series).not.toHaveProperty("zernio");
   });
 });
