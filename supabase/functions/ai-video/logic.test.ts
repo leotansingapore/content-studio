@@ -210,4 +210,15 @@ describe("sceneReady", () => {
     expect(sceneReady({ say: "Most plans have a co-pay.", picture: "A clinic" })).toBe(false);
     expect(sceneReady({ say: "Most plans have a co-pay.", picture: "  a     b    c   " })).toBe(false);
   });
+
+  it("refuses a full-length picture the server would refuse after the voiceover is paid for", () => {
+    // 400 characters, all the box takes; the em dash becomes ", " on the server, so 401
+    const picture = "word ".repeat(79) + "ab—cd";
+    expect(picture).toHaveLength(400);
+    expect(parseVideoRequest({ mode: "explainer", pictures: [picture, picture, picture] }).ok).toBe(false);
+    expect(sceneReady({ say: "Most plans have a co-pay.", picture })).toBe(false);
+    const fits = "word ".repeat(79) + "abcde";
+    expect(parseVideoRequest({ mode: "explainer", pictures: [fits, fits, fits] }).ok).toBe(true);
+    expect(sceneReady({ say: "Most plans have a co-pay.", picture: fits })).toBe(true);
+  });
 });

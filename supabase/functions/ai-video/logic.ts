@@ -297,7 +297,10 @@ export interface Scene {
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 
 /** An edited scene can be made: words to say and a picture the server takes, checked before the voiceover is paid for. */
-export const sceneReady = (s: Scene) => s.say.trim().length > 0 && oneLineText(s.picture, 401).length >= MIN_PICTURE;
+export const sceneReady = (s: Scene) => {
+  const picture = oneLineText(s.picture, 401);
+  return s.say.trim().length > 0 && picture.length >= MIN_PICTURE && picture.length <= 400;
+};
 
 /** The scenes the model wrote, cleaned; null when there are too few or too many, or the script runs long. */
 export function validateScript(raw: unknown): Scene[] | null {
