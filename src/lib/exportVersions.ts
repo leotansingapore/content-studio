@@ -3,7 +3,7 @@
 // settings with only the shape (and its platform) changed, so the export frames
 // it exactly as it frames a single export of that shape.
 
-import { exportSize, type Aspect, type EditSettings, type ExportTarget } from "@/lib/videoEdit";
+import { EXPORT_TARGETS, exportSize, targetOf, type Aspect, type EditSettings, type ExportTarget } from "@/lib/videoEdit";
 
 export interface ExportVersion {
   /** Also the end of the file's name. */
@@ -34,9 +34,15 @@ export function currentVersion(s: Pick<EditSettings, "aspect" | "exportAs">): st
   return versionsFor(s).find((v) => v.aspect === s.aspect)?.id ?? null;
 }
 
-/** One version's settings. The edit's own shape keeps its platform too, so it is the file Export makes. */
+const capOf = (t: ExportTarget) => EXPORT_TARGETS[t].capMB || Infinity;
+
+/**
+ * One version's settings. The edit's own shape keeps its platform too, so it is the file Export makes, except
+ * when the version's platform caps the file tighter: "Reels, TikTok 9:16" always fits TikTok.
+ */
 export function versionSettings(s: EditSettings, v: ExportVersion): EditSettings {
-  return v.aspect === s.aspect ? s : { ...s, aspect: v.aspect, exportFor: v.exportFor };
+  if (v.aspect !== s.aspect) return { ...s, aspect: v.aspect, exportFor: v.exportFor };
+  return v.exportFor && capOf(v.exportFor) < capOf(targetOf(s)) ? { ...s, exportFor: v.exportFor } : s;
 }
 
 /** The file's name: the project's, cut so the version survives the 60 characters a download name keeps. */
