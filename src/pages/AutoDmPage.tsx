@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Image as ImageIcon, MessageCircle, Pencil, Plus, RotateCw, Trash2, Users, X } from "lucide-react";
+import { Image as ImageIcon, LayoutGrid, MessageCircle, Plus, RotateCw, Trash2, X } from "lucide-react";
 import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ import {
   fillName,
   keptForm,
   formFlags,
+  listensTo,
   formFromView,
   formProblem,
   hasDm,
@@ -76,10 +77,10 @@ function Switch({ on, label, busy, onChange }: { on: boolean; label: string; bus
       onClick={() => onChange(!on)}
       className="flex h-11 shrink-0 items-center gap-2 rounded-lg px-1 text-xs font-semibold disabled:opacity-60"
     >
-      <span aria-hidden className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${on ? "bg-primary" : "bg-muted-foreground/30"}`}>
+      <span aria-hidden className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${on ? "bg-primary" : "bg-muted-foreground/60"}`}>
         <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform ${on ? "translate-x-[22px]" : "translate-x-0.5"}`} />
       </span>
-      <span className={on ? "text-foreground" : "text-muted-foreground"}>{on ? "On" : "Paused"}</span>
+      <span className={`w-12 text-left text-[13px] font-normal ${on ? "text-foreground" : "text-muted-foreground"}`}>{on ? "On" : "Paused"}</span>
     </button>
   );
 }
@@ -176,6 +177,8 @@ export default function AutoDmPage() {
       await deleteAutoDm(profileId, a.id);
       setList((l) => l.filter((x) => x.id !== a.id));
       toast({ title: `Deleted the auto-DM for ${autoDmName(a)}` });
+      forgetForm();
+      setForm(null);
     } catch (e) {
       toast({ title: message(e), variant: "destructive" });
     } finally {
@@ -202,17 +205,19 @@ export default function AutoDmPage() {
   return (
     <div className="space-y-5">
       <SectionTabs tabs={RECRUIT_TABS} />
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div className="mr-auto flex items-center gap-1">
-          <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Auto-DM</h1>
-          <InfoTip label="About Auto-DM">When someone comments your keyword, Zernio sends them your DM.</InfoTip>
-        </div>
-        {state === "ready" && !form && accounts.length > 0 && (
-          <Button className="h-11 gap-1.5" onClick={() => setForm(emptyForm(accounts[0].id, broughtKeyword))}>
-            <Plus className="h-4 w-4" /> New auto-DM
-          </Button>
-        )}
-      </header>
+      {!(state === "ready" && form) && (
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div className="min-w-0 space-y-1.5">
+            <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-[34px] sm:leading-tight">Auto-DM</h1>
+            <p className="text-[15px] text-muted-foreground">When someone comments your keyword, they get your DM.</p>
+          </div>
+          {state === "ready" && accounts.length > 0 && (
+            <Button className="h-11 gap-2 px-[18px] text-[15px] font-semibold" onClick={() => setForm(emptyForm(accounts[0].id, broughtKeyword))}>
+              <Plus className="h-[18px] w-[18px]" /> New auto-DM
+            </Button>
+          )}
+        </header>
+      )}
 
       {state === "loading" && (
         <p className="text-sm text-muted-foreground" aria-live="polite">
@@ -261,46 +266,112 @@ export default function AutoDmPage() {
             setForm(null);
           }}
           onSaved={saved}
+          deleting={busy === `d${form.id}`}
+          onDelete={
+            form.id
+              ? () => {
+                  const a = list.find((x) => x.id === form.id);
+                  if (a) void remove(a);
+                }
+              : undefined
+          }
         />
       )}
 
       {state === "ready" && !form && accounts.length > 0 && (
-        <section className="space-y-2" aria-label="Your auto-DMs">
+        <>
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            {accounts.map((a) => (
+              <span key={a.id} className="inline-flex min-h-9 items-center gap-2 rounded-full border border-border bg-card px-3">
+                {platformName(a.platform)}
+                <span className="text-muted-foreground">{accountLabel(a)}</span>
+              </span>
+            ))}
+            <Link to="/accounts" className="inline-flex min-h-11 items-center text-primary hover:underline">
+              Social accounts
+            </Link>
+          </div>
+
           {list.length === 0 ? (
             <p className="text-sm text-muted-foreground">None yet.</p>
           ) : (
-            <ul className="space-y-2">
-              {list.map((a) => (
-                <Row
-                  key={a.id}
-                  a={a}
-                  account={accountOf(a.accountId)}
-                  post={posts[a.accountId]?.find((p) => p.id === a.platformPostId)}
-                  profileId={profileId}
-                  busy={busy}
-                  onToggle={() => toggle(a)}
-                  onEdit={() => {
-                    setForm(formFromView(a));
-                    void loadPosts(a.accountId);
-                  }}
-                  onDelete={() => remove(a)}
-                />
-              ))}
-            </ul>
+            <>
+              <section aria-label="Totals" className="space-y-2">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  {(
+                    [
+                      ["DMs sent", "sent"],
+                      ["Read", "read"],
+                      ["Link taps", "clicked"],
+                    ] as const
+                  ).map(([label, k]) => (
+                    <div key={k} className="flex min-w-0 flex-col gap-0.5 rounded-xl border border-border bg-card p-3 sm:gap-1.5 sm:px-5 sm:py-[18px]">
+                      <span className="text-xs text-muted-foreground sm:text-[13px]">{label}</span>
+                      <span className="text-[22px] font-semibold tabular-nums tracking-tight sm:text-[28px]">{list.reduce((n, a) => n + a.stats[k], 0)}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[13px] text-muted-foreground">Since each one was switched on</p>
+              </section>
+
+              <section aria-labelledby="adm-list" className="space-y-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 id="adm-list" className="text-lg font-semibold">
+                    Your auto-DMs
+                  </h2>
+                  <span className="text-sm text-muted-foreground">
+                    {list.filter((a) => a.active).length} of {list.length} on
+                  </span>
+                </div>
+                <ul className="space-y-3">
+                  {list.map((a) => (
+                    <Row
+                      key={a.id}
+                      a={a}
+                      account={accounts.length > 1 ? accountOf(a.accountId) : undefined}
+                      post={posts[a.accountId]?.find((p) => p.id === a.platformPostId)}
+                      profileId={profileId}
+                      busy={busy}
+                      onToggle={() => toggle(a)}
+                      onEdit={() => {
+                        setForm(formFromView(a));
+                        void loadPosts(a.accountId);
+                      }}
+                    />
+                  ))}
+                </ul>
+              </section>
+            </>
           )}
-        </section>
+        </>
       )}
     </div>
   );
 }
 
-function Thumb({ post, title }: { post?: PostOption; title: string }) {
-  if (post?.picture) return <img src={post.picture} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-12 w-12 shrink-0 rounded-md object-cover" />;
+/** The post the auto-DM listens on, a dashed tile for any post, or a story mark. */
+function Thumb({ a, post }: { a: AutomationView; post?: PostOption }) {
+  const box = "h-16 w-12 shrink-0 rounded-lg sm:h-[88px] sm:w-16";
+  if (a.platformPostId && post?.picture) return <img src={post.picture} alt="" loading="lazy" referrerPolicy="no-referrer" className={`${box} object-cover`} />;
+  if (a.platformPostId)
+    return (
+      <span aria-hidden className={`${box} flex items-center justify-center bg-primary/10 text-primary/70`}>
+        <ImageIcon className="h-5 w-5" />
+      </span>
+    );
   return (
-    <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-      {title ? <ImageIcon className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+    <span aria-hidden className={`${box} flex items-center justify-center border-[1.5px] border-dashed border-muted-foreground/50 text-muted-foreground`}>
+      {a.trigger === "comment" ? <LayoutGrid className="h-[22px] w-[22px]" /> : <MessageCircle className="h-[22px] w-[22px]" />}
     </span>
   );
+}
+
+/** Two lines about where it listens: the post's caption, or what "any" covers. */
+function caption(a: AutomationView, post?: PostOption) {
+  if (a.trigger === "story_reply") return "Any story on this account.";
+  if (a.trigger === "story_mention") return "Anyone who mentions you in their story.";
+  if (!a.platformPostId) return "Every post on this account without its own auto-DM.";
+  return post?.caption || a.postTitle || "One of your posts.";
 }
 
 function Row({
@@ -311,68 +382,78 @@ function Row({
   busy,
   onToggle,
   onEdit,
-  onDelete,
 }: {
   a: AutomationView;
+  /** Named on the card only when there is more than one account. */
   account?: AccountOption;
   post?: PostOption;
   profileId: string;
   busy: string;
   onToggle: () => void;
   onEdit: () => void;
-  onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const where = a.platformPostId ? post?.caption || a.postTitle || "One post" : a.trigger === "comment" ? "Any post" : "Your stories";
   const dm = hasDm(a.platform);
   // Instagram sends no delivery receipt, so Delivered shows on Facebook only
   const stats: [string, number][] = dm
-    ? [["Sent", a.stats.sent], ...(a.platform === "facebook" ? [["Delivered", a.stats.delivered] as [string, number]] : []), ["Read", a.stats.read], ["Clicked", a.stats.clicked]]
+    ? [["Sent", a.stats.sent], ...(a.platform === "facebook" ? [["Delivered", a.stats.delivered] as [string, number]] : []), ["Read", a.stats.read], ["Link taps", a.stats.clicked]]
     : [["Replied to", a.stats.triggered]];
-  const small = "h-11 gap-1.5 px-3 text-xs sm:h-9 [@media(pointer:coarse)]:h-11";
   return (
-    <li className="space-y-2 rounded-xl border border-border/60 bg-card p-3">
-      <div className="flex items-start gap-3">
-        <Thumb post={post} title={a.platformPostId ? where : ""} />
-        <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap gap-1">
+    <li className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-xl border border-border bg-card px-4 py-4 sm:px-5 sm:py-[18px]">
+      <div className={`flex min-w-0 flex-[1_1_320px] items-center gap-4 transition-opacity ${a.active ? "" : "opacity-60"}`}>
+        <Thumb a={a} post={post} />
+        <div className="min-w-0 space-y-2">
+          <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] text-muted-foreground">
+            <span className="font-semibold text-foreground/85">{listensTo(a)}</span>
+            {a.alsoMatchInDms && <span>and DMs with the word</span>}
+            {account && (
+              <span>
+                , {accountLabel(account)} on {platformName(a.platform)}
+              </span>
+            )}
+          </p>
+          <p className="line-clamp-2 text-sm leading-snug [overflow-wrap:anywhere]">{caption(a, post)}</p>
+          <p className="flex flex-wrap gap-1.5">
             {a.keywords.length ? (
               a.keywords.map((k) => (
-                <span key={k} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary [overflow-wrap:anywhere]">
+                <span key={k} className="rounded-md bg-primary/10 px-2 py-1 text-xs font-bold tracking-wide text-primary [overflow-wrap:anywhere]">
                   {k}
                 </span>
               ))
             ) : (
-              <span className="text-sm font-semibold first-letter:uppercase">{autoDmName(a)}</span>
+              <span className="text-xs font-semibold text-muted-foreground first-letter:uppercase">{autoDmName(a)}</span>
             )}
           </p>
-          <p className="mt-1 truncate text-xs text-muted-foreground">
-            {account ? `${accountLabel(account)} on ` : ""}
-            {platformName(a.platform)} / {where}
-          </p>
         </div>
-        <Switch on={a.active} label={`Auto-DM for ${autoDmName(a)}`} busy={busy === `t${a.id}`} onChange={onToggle} />
       </div>
-      <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+      <dl className="flex flex-wrap gap-x-6 gap-y-2">
         {stats.map(([label, n]) => (
-          <span key={label}>
-            {label} <span className="font-semibold text-foreground">{n}</span>
-          </span>
+          <div key={label} className="flex flex-col gap-0.5">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="text-lg font-semibold tabular-nums">{n}</dd>
+          </div>
         ))}
-        {dm && a.stats.failed > 0 && <span className="text-destructive">Failed {a.stats.failed}</span>}
-      </p>
-      <div className="flex flex-wrap items-center gap-1">
-        <Button variant="outline" size="sm" className={small} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-          <Users className="h-3.5 w-3.5" /> Who got it
+        {dm && a.stats.failed > 0 && (
+          <div className="flex flex-col gap-0.5 text-destructive">
+            <dt className="text-xs">Failed</dt>
+            <dd className="text-lg font-semibold tabular-nums">{a.stats.failed}</dd>
+          </div>
+        )}
+      </dl>
+      <Switch on={a.active} label={`Auto-DM for ${autoDmName(a)}`} busy={busy === `t${a.id}`} onChange={onToggle} />
+      <div className="flex gap-2">
+        <Button variant="outline" className="h-11 px-3.5" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+          Who got it
         </Button>
-        <Button variant="ghost" size="sm" className={small} onClick={onEdit} disabled={!!busy}>
-          <Pencil className="h-3.5 w-3.5" /> Edit
-        </Button>
-        <Button variant="ghost" size="sm" className={`${small} text-muted-foreground hover:text-destructive`} onClick={onDelete} disabled={!!busy}>
-          <Trash2 className="h-3.5 w-3.5" /> {busy === `d${a.id}` ? "Deleting..." : "Delete"}
+        <Button variant="ghost" className="h-11 px-3.5 text-primary hover:text-primary" aria-label={`Edit the auto-DM for ${autoDmName(a)}`} onClick={onEdit} disabled={!!busy}>
+          Edit
         </Button>
       </div>
-      {open && <Log profileId={profileId} a={a} />}
+      {open && (
+        <div className="basis-full">
+          <Log profileId={profileId} a={a} />
+        </div>
+      )}
     </li>
   );
 }
@@ -440,6 +521,8 @@ function Editor({
   draftKey,
   onCancel,
   onSaved,
+  deleting,
+  onDelete,
 }: {
   start: AutoDmForm;
   profileId: string;
@@ -450,6 +533,9 @@ function Editor({
   draftKey: string;
   onCancel: () => void;
   onSaved: (wasNew: boolean) => void;
+  deleting: boolean;
+  /** Only for one that is saved already. */
+  onDelete?: () => void;
 }) {
   const { toast } = useToast();
   const [f, setF] = useState<AutoDmForm>(start);
@@ -722,6 +808,11 @@ function Editor({
           <Button variant="ghost" className="h-11" onClick={onCancel} disabled={saving}>
             Cancel
           </Button>
+          {onDelete && (
+            <Button variant="ghost" className="ml-auto h-11 gap-1.5 text-muted-foreground hover:text-destructive" onClick={onDelete} disabled={saving || deleting}>
+              <Trash2 className="h-4 w-4" /> {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          )}
           {(problem || blocked) && (
             <p className="basis-full text-xs text-muted-foreground" role="status">
               {problem ?? "Reword the red flag above before saving."}

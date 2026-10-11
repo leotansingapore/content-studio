@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scanCompliance } from "./compliance";
-import { STARTERS, applyStarter, ctaKeyword, emptyForm, fillName, formFlags, formProblem, keptForm, logLine, toInput, type LogView } from "./autoDm";
+import { STARTERS, applyStarter, ctaKeyword, emptyForm, fillName, formFlags, formProblem, keptForm, listensTo, logLine, toInput, type LogView } from "./autoDm";
 
 const IG = "65000000000000000000a001";
 
@@ -92,5 +92,14 @@ describe("who got it", () => {
     // reply-only platforms answer with the public reply
     expect(logLine(log({ status: "skipped", reply: "sent" }), "tiktok")).toEqual({ text: "Replied", ok: true });
     expect(logLine(log({ reply: "failed", replyReason: "Comment deleted" }), "youtube")).toEqual({ text: "Reply failed: Comment deleted", ok: false });
+  });
+});
+
+describe("the list", () => {
+  it("says what each one listens to", () => {
+    expect(listensTo({ trigger: "comment", platformPostId: "1789_1" })).toBe("Comments on this post");
+    expect(listensTo({ trigger: "comment", platformPostId: null })).toBe("Comments on any post");
+    expect(listensTo({ trigger: "story_reply", platformPostId: null })).toBe("Replies to your stories");
+    expect(listensTo({ trigger: "story_mention", platformPostId: null })).toBe("Mentions in stories");
   });
 });

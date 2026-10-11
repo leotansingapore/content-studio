@@ -245,6 +245,13 @@ export function logLine(l: LogView, platform: string): { text: string; ok: boole
   return { text: `Skipped${why(l.reason)}`, ok: false };
 }
 
+/** A card's first line: what it listens to. */
+export function listensTo(a: Pick<AutomationView, "trigger" | "platformPostId">): string {
+  if (a.trigger === "story_reply") return "Replies to your stories";
+  if (a.trigger === "story_mention") return "Mentions in stories";
+  return a.platformPostId ? "Comments on this post" : "Comments on any post";
+}
+
 /** The automation's name on the page and in the delete question. */
 export const autoDmName = (a: Pick<AutomationView, "keywords" | "trigger">) =>
   a.keywords.length ? a.keywords.join(", ") : a.trigger === "story_mention" ? "story mentions" : a.trigger === "story_reply" ? "story replies" : "every comment";
