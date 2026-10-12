@@ -1,35 +1,43 @@
 {
-  "fetched": "2026-10-11",
+  "fetched": "2026-10-12",
   "videos": [
     {
       "id": "xXMztay6m7g",
       "title": "He Gave Up His Car: Is Saving Over S$2,000 A Month Worth It? | Money Mind",
       "channel": "CNA Insider",
-      "views": 201416,
-      "published": "1 day ago",
+      "views": 284830,
+      "published": "2 days ago",
       "length": "6:57"
     },
     {
       "id": "-Dsx_kv0h_c",
       "title": "4 Irish ETFs Just Launched On SGX | S&P 500, Nasdaq 100 (Cash & SRS)",
       "channel": "Kelvin Learns Investing",
-      "views": 75504,
+      "views": 75895,
       "published": "2 wk ago",
       "length": "12:24"
+    },
+    {
+      "id": "Q9ebldnCOxQ",
+      "title": "Interest rates are up: Should you pay down your debt now? | Money Talks",
+      "channel": "CNA",
+      "views": 70194,
+      "published": "13 days ago",
+      "length": "26:25"
     },
     {
       "id": "H3GKnOta5n8",
       "title": "Can This Young Investor Stick To Her Investment Plan When Markets Move? | Money Mind",
       "channel": "CNA Insider",
-      "views": 60534,
-      "published": "10 days ago",
+      "views": 60696,
+      "published": "11 days ago",
       "length": "6:40"
     },
     {
       "id": "EvYVOA9Jl8k",
       "title": "Looking into your retirement future? Take away the guesswork.",
       "channel": "CPF Board",
-      "views": 49430,
+      "views": 55432,
       "published": "2 wk ago",
       "length": "0:31"
     },
@@ -37,7 +45,15 @@
       "id": "dDSGLut-VD8",
       "title": "Figuring out your finances? Cut through the clutter.",
       "channel": "CPF Board",
-      "views": 48674,
+      "views": 53949,
+      "published": "2 wk ago",
+      "length": "0:31"
+    },
+    {
+      "id": "QQ16ojXd3GY",
+      "title": "Growing your savings? Don't rely on good fortune.",
+      "channel": "CPF Board",
+      "views": 51497,
       "published": "2 wk ago",
       "length": "0:31"
     },
@@ -45,25 +61,9 @@
       "id": "xKWZEVUbJF8",
       "title": "6 Shocking Money Stats Of The Average Singaporean",
       "channel": "Kelvin Learns Investing",
-      "views": 48598,
+      "views": 48724,
       "published": "2 wk ago",
       "length": "15:26"
-    },
-    {
-      "id": "BW6vqxVplck",
-      "title": "How to Start Investing in Singapore (Even with $100)",
-      "channel": "Shao Chun",
-      "views": 48371,
-      "published": "2 wk ago",
-      "length": "28:02"
-    },
-    {
-      "id": "R_PSjUhezWY",
-      "title": "CHECKLIST: Do you qualify for $40k Silver Housing Bonus?",
-      "channel": "Jiabao",
-      "views": 47249,
-      "published": "2 wk ago",
-      "length": "15:20"
     }
   ]
 }
