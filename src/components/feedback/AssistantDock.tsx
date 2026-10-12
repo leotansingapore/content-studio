@@ -20,17 +20,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export type AssistantIdentity = { id: string; name?: string | null; email?: string | null };
 
-type Link = { path: string; label: string };
-
-/** What the host app made of a message before the chat answers it: an answer shown at
- *  once, or a confirm card that changes nothing until it is tapped. Null lets the chat
- *  answer in words. `run` applies the change and says what happened; `open` is a page
- *  to go to now, `go` pages offered as chips, `undo` puts it back. */
-export type DockAct =
-  | { say: string; go?: Link[] }
-  | { ask: string; yes: string; run: () => DockDone };
-export type DockDone = { done: string; open?: string; go?: Link[]; undo?: () => void };
-
 type Action =
   | { type: "feedback"; category: "feature" | "improvement" | "bug" | "question"; title: string; body: string; label: string }
   | { type: "support"; message: string; label: string }
@@ -71,9 +60,7 @@ const btn = {
   primary:
     "inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50",
   chip:
-    "inline-flex min-h-8 [@media(pointer:coarse)]:min-h-11 items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-left text-[12px] font-medium text-foreground transition-colors hover:bg-primary/20 disabled:pointer-events-none disabled:opacity-60",
-  quiet:
-    "inline-flex h-9 [@media(pointer:coarse)]:h-11 items-center justify-center rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+    "inline-flex min-h-8 items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-left text-[12px] font-medium text-foreground transition-colors hover:bg-primary/20 disabled:pointer-events-none disabled:opacity-60",
   icon: "inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
 };
 
@@ -99,8 +86,6 @@ export function AssistantDock({
   mobileOffsetY,
   mobileBreakpoint = 768,
   label = "Ask",
-  act,
-  intro,
 }: {
   apiUrl: string;
   boardKey: string;
@@ -115,10 +100,6 @@ export function AssistantDock({
   /** Width in px under which mobileOffsetY applies. */
   mobileBreakpoint?: number;
   label?: string;
-  /** Content Studio: offers an in-app action for a message, as a confirm card or an answer. */
-  act?: (text: string) => Promise<DockAct | null>;
-  /** The line above the openers; defaults to the feedback one. */
-  intro?: string;
 }) {
   const base = apiUrl.replace(/\/$/, "");
   const voter = useMemo(() => voterId(identity), [identity?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -134,9 +115,6 @@ export function AssistantDock({
   });
   const [draft, setDraft] = useState(() => storage(`${threadKey}_draft`) ?? "");
   const [busy, setBusy] = useState(false);
-  /** The one confirm card waiting for a tap; kept in memory only, like the Undo after it. */
-  const [card, setCard] = useState<Extract<DockAct, { ask: string }> | null>(null);
-  const [undo, setUndo] = useState<{ mi: number; run: () => void; undone?: boolean } | null>(null);
   /** The board's own path in this app, read from the service (which derives it from
    *  boards.feedback_url) so the dock never hardcodes a route. Fetched when the dock
    *  first opens, so "See what others asked for" is there before anyone has typed. */
@@ -196,20 +174,10 @@ export function AssistantDock({
     const text = (seed ?? draft).trim();
     if (!text || busy) return;
     setDraft("");
-    setCard(null);
     const next: Msg[] = [...messages, { role: "user", text }];
     setMessages(next);
     setBusy(true);
     try {
-      const acted = act ? await act(text).catch(() => null) : null;
-      if (acted && "say" in acted) {
-        setMessages((m) => [...m, { role: "assistant", text: acted.say, actions: (acted.go ?? []).map((g) => ({ type: "go" as const, ...g })) }]);
-        return;
-      }
-      if (acted) {
-        setCard(acted);
-        return;
-      }
       const res = await fetch(`${base}/assistant/chat`, {
         method: "POST",
         headers,
@@ -229,41 +197,7 @@ export function AssistantDock({
     } finally {
       setBusy(false);
     }
-  }, [draft, busy, messages, base, headers, threadId, identity, act]);
-
-  const confirmCard = () => {
-    if (!card) return;
-    let d: DockDone;
-    try {
-      d = card.run();
-    } catch (e) {
-      d = { done: `That did not work: ${e instanceof Error ? e.message : "try again"}` };
-    }
-    setCard(null);
-    setUndo(d.undo ? { mi: messages.length, run: d.undo } : null);
-    setMessages((m) => [...m, { role: "assistant", text: d.done, actions: (d.go ?? []).map((g) => ({ type: "go" as const, ...g })) }]);
-    if (d.open) {
-      if (navigate) navigate(d.open);
-      else window.location.assign(d.open);
-      // the page it opened is under the panel on a phone
-      if (narrow) setOpen(false);
-    }
-  };
-
-  const cancelCard = () => {
-    setCard(null);
-    setMessages((m) => [...m, { role: "assistant", text: "Nothing changed." }]);
-  };
-
-  const runUndo = () => {
-    if (!undo || undo.undone) return;
-    try {
-      undo.run();
-      setUndo({ ...undo, undone: true });
-    } catch {
-      setMessages((m) => [...m, { role: "assistant", text: "Couldn't undo that. Change it back on the page.", error: true }]);
-    }
-  };
+  }, [draft, busy, messages, base, headers, threadId, identity]);
 
   const runAction = useCallback(
     async (mi: number, ai: number, a: Action) => {
@@ -318,8 +252,6 @@ export function AssistantDock({
 
   const reset = () => {
     setMessages([]);
-    setCard(null);
-    setUndo(null);
     storage(`${threadKey}_id`, null);
   };
 
@@ -333,13 +265,12 @@ export function AssistantDock({
           onClick={() => setOpen(true)}
           aria-label={`Ask the ${appName} assistant`}
           style={{ position: "fixed", bottom, zIndex: 60, ...side }}
-          className="inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 sm:w-auto sm:px-4"
+          className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0"
         >
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M21 11.5a8.38 8.38 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.38 8.38 0 0 1 4 11.5a8.5 8.5 0 0 1 8.5-8.5 8.38 8.38 0 0 1 8.5 8.5z" />
           </svg>
-          {/* Icon only on phones: the labelled pill covered buttons and fields on every screen. */}
-          <span className="hidden sm:inline">{label}</span>
+          {label}
         </button>
       ) : null}
 
@@ -379,7 +310,7 @@ export function AssistantDock({
               // that posts it or reaches the team.
               <div className="space-y-3">
                 <div className="rounded-xl bg-muted/60 px-3 py-3 text-[13px] leading-relaxed text-muted-foreground">
-                  {intro ?? `Ask how anything in ${appName} works, or use this to reach the team. Whatever you pick, you see the exact message before anything is sent.`}
+                  Ask how anything in {appName} works, or use this to reach the team. Whatever you pick, you see the exact message before anything is sent.
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {OPENERS.map((o) => (
@@ -413,19 +344,9 @@ export function AssistantDock({
               ) : (
                 <div key={mi} className="flex flex-col items-start gap-2">
                   <div className={`max-w-[92%] whitespace-pre-wrap rounded-2xl rounded-bl-md px-3 py-2 text-[13px] leading-relaxed ${m.error ? "bg-destructive/10 text-destructive" : "bg-muted text-foreground"}`}>{m.text}</div>
-                  {m.actions?.length || undo?.mi === mi ? (
+                  {m.actions && m.actions.length > 0 ? (
                     <div className="flex max-w-[92%] flex-wrap gap-1.5">
-                      {/* Undo first: it is beside the line saying what changed */}
-                      {undo?.mi === mi ? (
-                        undo.undone ? (
-                          <span className="rounded-full bg-muted px-3 py-1 text-[12px] text-muted-foreground">Undone.</span>
-                        ) : (
-                          <button type="button" onClick={runUndo} className={btn.chip} data-testid="assistant-undo">
-                            Undo
-                          </button>
-                        )
-                      ) : null}
-                      {(m.actions ?? []).map((a, ai) => {
+                      {m.actions.map((a, ai) => {
                         const outcome = m.done?.[ai];
                         return outcome ? (
                           <span key={ai} className="rounded-full bg-emerald-500/15 px-3 py-1 text-[12px] text-emerald-700 dark:text-emerald-300">{outcome}</span>
@@ -450,19 +371,6 @@ export function AssistantDock({
                 </div>
               )
             )}
-            {card ? (
-              <div className="max-w-[92%] space-y-2 rounded-2xl rounded-bl-md border border-primary/40 bg-primary/5 px-3 py-2.5" data-testid="assistant-card">
-                <p className="whitespace-pre-wrap text-[13px] leading-relaxed [overflow-wrap:anywhere]">{card.ask}</p>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={confirmCard} className={`${btn.primary} [@media(pointer:coarse)]:h-11`}>
-                    {card.yes}
-                  </button>
-                  <button type="button" onClick={cancelCard} className={btn.quiet}>
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : null}
             {busy ? (
               <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                 <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground/40 border-t-transparent" aria-hidden />
