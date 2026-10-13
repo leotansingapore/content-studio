@@ -72,11 +72,12 @@ class MemoryStorage implements SyncStorage {
 function fakeBackend(rows: SyncRow[] = []) {
   const table = new Map(rows.map((row) => [row.key, row]));
   const fail = { pull: 0, upsert: 0, remove: 0 };
-  const calls = { pull: 0, upsert: [] as SyncRow[][], remove: [] as string[][] };
+  const calls = { pull: 0, pullKeys: [] as (string[] | undefined)[], upsert: [] as SyncRow[][], remove: [] as string[][] };
   const offline = { message: "offline" };
   const backend: SyncBackend = {
-    async pull() {
+    async pull(keys) {
       calls.pull += 1;
+      calls.pullKeys.push(keys);
       if (fail.pull > 0) {
         fail.pull -= 1;
         return { data: null, error: offline };
@@ -240,5 +241,50 @@ describe("createCloudSync", () => {
     await sync.stop();
     expect(table.get(DRAFTS)?.data).toBe("last edit");
     expect(storage.getItem(`cs-sync-pending-${ME}`)).toBeNull();
+  });
+
+  it("refresh takes a job's newer row for the named keys only", async () => {
+    const TEAM = `content-studio-teamposts-${ME}`;
+    const storage = new MemoryStorage();
+    const { backend, table, calls } = fakeBackend([
+      { key: TEAM, data: "rev 1", updated_at: OLD },
+      { key: DRAFTS, data: "drafts v1", updated_at: OLD },
+    ]);
+    const sync = createCloudSync(ME, storage, backend);
+    await sync.start();
+
+    table.set(TEAM, { key: TEAM, data: "rev 2", updated_at: NEW });
+    table.set(DRAFTS, { key: DRAFTS, data: "drafts v2", updated_at: NEW });
+    await sync.refresh([TEAM]);
+    expect(calls.pullKeys.at(-1)).toEqual([TEAM]);
+    expect(storage.getItem(TEAM)).toBe("rev 2");
+    expect(storage.getItem(DRAFTS)).toBe("drafts v1"); // the fake returned it too; left for the next full pull
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(calls.upsert).toHaveLength(0);
+  });
+
+  it("refresh keeps an unsent local write over an older cloud row", async () => {
+    const REVIEWS = `content-studio-teamreviews-${ME}`;
+    const storage = new MemoryStorage();
+    const { backend, table } = fakeBackend([{ key: REVIEWS, data: "{}", updated_at: OLD }]);
+    const sync = createCloudSync(ME, storage, backend);
+    await sync.start();
+    write(storage, sync, REVIEWS, '{"tp1":{"approvedRev":1,"comments":[]}}');
+    await sync.refresh([REVIEWS]);
+    expect(storage.getItem(REVIEWS)).toContain("approvedRev");
+    await vi.advanceTimersByTimeAsync(800);
+    expect(table.get(REVIEWS)?.data).toContain("approvedRev");
+  });
+
+  it("refresh waits for the first pull and stops with the engine", async () => {
+    const storage = new MemoryStorage();
+    const { backend, calls } = fakeBackend();
+    const sync = createCloudSync(ME, storage, backend);
+    await sync.refresh([DRAFTS]);
+    expect(calls.pull).toBe(0);
+    await sync.start();
+    await sync.stop();
+    await sync.refresh([DRAFTS]);
+    expect(calls.pull).toBe(1);
   });
 });

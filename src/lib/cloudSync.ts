@@ -72,7 +72,8 @@ export interface SyncRow {
 type Outcome = { error: unknown };
 
 export interface SyncBackend {
-  pull(): PromiseLike<{ data: SyncRow[] | null; error: unknown }>;
+  /** Every row of this user's, or only the named keys. */
+  pull(keys?: string[]): PromiseLike<{ data: SyncRow[] | null; error: unknown }>;
   upsert(rows: SyncRow[]): PromiseLike<Outcome>;
   remove(keys: string[]): PromiseLike<Outcome>;
 }
@@ -95,6 +96,8 @@ export interface CloudSync {
   /** The network came back: pull or push now instead of waiting for the backoff. */
   retryNow(): void;
   flush(): Promise<void>;
+  /** Pull these keys again after the first pull, for rows a server job rewrites while the app is open. */
+  refresh(keys: string[]): Promise<void>;
   /** Send what's pending once, then stop. Anything unsent stays saved on the device. */
   stop(): Promise<void>;
 }
@@ -215,6 +218,23 @@ export function createCloudSync(
     return inFlight;
   };
 
+  const applyRow = (row: SyncRow) => {
+    if (!isSyncedKeyFor(row.key, userId)) return;
+    const decision = decideSync(
+      storage.getItem(row.key),
+      meta[row.key] ?? null,
+      row.updated_at,
+      pending.has(row.key),
+    );
+    if (decision === "apply-cloud") {
+      storage.setItem(row.key, row.data);
+      meta[row.key] = row.updated_at;
+      pending.delete(row.key);
+    } else if (decision === "push-local") {
+      pending.add(row.key);
+    }
+  };
+
   const pull = async (): Promise<boolean> => {
     let rows: SyncRow[];
     try {
@@ -228,20 +248,7 @@ export function createCloudSync(
     const cloudKeys = new Set<string>();
     for (const row of rows) {
       cloudKeys.add(row.key);
-      if (!isSyncedKeyFor(row.key, userId)) continue;
-      const decision = decideSync(
-        storage.getItem(row.key),
-        meta[row.key] ?? null,
-        row.updated_at,
-        pending.has(row.key),
-      );
-      if (decision === "apply-cloud") {
-        storage.setItem(row.key, row.data);
-        meta[row.key] = row.updated_at;
-        pending.delete(row.key);
-      } else if (decision === "push-local") {
-        pending.add(row.key);
-      }
+      applyRow(row);
     }
     // Local synced keys the cloud has never seen: push them up.
     for (let i = 0; i < storage.length; i++) {
@@ -280,9 +287,25 @@ export function createCloudSync(
     else if (pulled) schedulePush(PUSH_DEBOUNCE_MS);
   };
 
+  // Same rules as the first pull, for the named keys only; other keys are left alone.
+  const refresh = async (keys: string[]) => {
+    if (stopped || !pulled || !keys.length) return;
+    try {
+      const { data, error } = await backend.pull(keys);
+      if (error || !data || stopped) return;
+      data.filter((row) => keys.includes(row.key)).forEach(applyRow);
+    } catch {
+      return; // offline: the next refresh or reload catches up
+    }
+    writeJson(storage, META_KEY, meta);
+    savePending();
+    if (pending.size) schedulePush(PUSH_DEBOUNCE_MS);
+  };
+
   return {
     userId,
     start: pullUntilDone,
+    refresh,
     noteWrite,
     retryNow: () => {
       if (pulled) {
@@ -308,7 +331,10 @@ export function createCloudSync(
 function supabaseBackend(userId: string): SyncBackend {
   const table = () => supabase.from("cs_user_data");
   return {
-    pull: () => table().select("key,data,updated_at").eq("user_id", userId),
+    pull: (keys) => {
+      const rows = table().select("key,data,updated_at").eq("user_id", userId);
+      return keys ? rows.in("key", keys) : rows;
+    },
     upsert: (rows) =>
       table().upsert(
         rows.map((row) => ({ user_id: userId, ...row })),
@@ -375,6 +401,11 @@ export function initCloudSync(userId: string): Promise<void> {
       await engine.start();
     });
   return chain;
+}
+
+/** Pull these keys again now (a server job changed them); resolves once they are in localStorage. */
+export function refreshCloudKeys(keys: string[]): Promise<void> {
+  return active?.refresh(keys) ?? Promise.resolve();
 }
 
 /** Send pending changes (briefly) and detach sync from the signed-out user. */

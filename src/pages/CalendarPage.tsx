@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -60,6 +60,17 @@ import {
   type NoteColor,
 } from "@/lib/calendarNotes";
 import { sgDateLabel, sgDatesBetween, type SgDate } from "@/data/sgDates";
+import { refreshCloudKeys } from "@/lib/cloudSync";
+import {
+  readTeamPosts,
+  readTeamReviews,
+  statusOf,
+  teamPostsKey,
+  teamReviewsKey,
+  type TeamPost,
+  type TeamReviews,
+} from "@/lib/teamPosts";
+import { TeamPostChip, TeamPostPanel } from "@/components/TeamPostReview";
 import {
   ChevronDown,
   ChevronLeft,
@@ -108,6 +119,7 @@ const REPEAT_LABEL: Record<RepeatEvery, string> = {
   "2weeks": "every 2 weeks",
   month: "monthly",
 };
+const TEAM_BUSINESS = "Team posts"; // its own entry in the business filter
 const KEY_DATE_DAYS = 60; // how far ahead Upcoming lists holidays and money dates
 type StatusFilter = "all" | "scheduled" | "posted";
 
@@ -182,6 +194,11 @@ export default function CalendarPage() {
     }
   });
   const [profileName, setProfileName] = useState("");
+  // Team posts Leo reviews before a job sends them to Telegram; empty for every other account.
+  const [teamPosts, setTeamPosts] = useState<TeamPost[]>([]);
+  const [teamReviews, setTeamReviews] = useState<TeamReviews>({});
+  const [teamOpenId, setTeamOpenId] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
 
   useEffect(() => {
     document.title = "Calendar - Content Studio";
@@ -194,6 +211,8 @@ export default function CalendarPage() {
       setDrafts(loadDrafts(id));
       setNotes(loadNotes(id));
       setProfileName(activeProfile(id).name);
+      setTeamPosts(readTeamPosts(id));
+      setTeamReviews(readTeamReviews(id));
       if (REELS_BOARD_OWNERS.includes(data.user?.email?.toLowerCase() ?? "")) {
         fetchBoard()
           .then((b) => {
@@ -219,15 +238,52 @@ export default function CalendarPage() {
     };
   }, []);
 
+  // The job rewrites team posts in the cloud (a new version, posted): pull them again when the
+  // tab comes back and when a panel opens. Accounts without team posts send nothing extra.
+  const hasTeam = teamPosts.length > 0;
+  const refreshTeam = useCallback(() => {
+    if (!userId || !hasTeam) return;
+    void refreshCloudKeys([teamPostsKey(userId), teamReviewsKey(userId)]).then(() => {
+      setTeamPosts(readTeamPosts(userId));
+      setTeamReviews(readTeamReviews(userId));
+    });
+  }, [userId, hasTeam]);
+  useEffect(() => {
+    const onVisible = () => document.visibilityState === "visible" && refreshTeam();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshTeam]);
+  const openTeam = (id: string) => {
+    setTeamOpenId(id);
+    refreshTeam();
+  };
+
+  // /calendar?teampost=tp3 (from the Telegram prompt): go to its day and open it. Unknown ids are ignored.
+  const linkedTeam = params.get("teampost");
+  useEffect(() => {
+    const p = linkedTeam ? teamPosts.find((t) => t.id === linkedTeam) : undefined;
+    if (!p) return;
+    setAnchor(p.day);
+    setTeamOpenId(p.id);
+    setParams(
+      (prev) => {
+        prev.delete("teampost");
+        return prev;
+      },
+      { replace: true },
+    );
+  }, [linkedTeam, teamPosts, setParams]);
+  const teamOpen = teamPosts.find((p) => p.id === teamOpenId) ?? null;
+
   const todayKey = localDateKey();
 
   // The businesses on this calendar: the open profile (its drafts), each reels brand, each channel feed.
   const businesses = useMemo(() => {
     const m = new Map<string, string>();
-    for (const name of [profileName, ...reels.map((r) => r.business), ...feed.map((f) => f.business)])
+    for (const name of [profileName, ...reels.map((r) => r.business), ...feed.map((f) => f.business), ...(teamPosts.length ? [TEAM_BUSINESS] : [])])
       if (name && !m.has(businessKey(name))) m.set(businessKey(name), name);
     return [...m.entries()].map(([key, label]) => ({ key, label }));
-  }, [profileName, reels, feed]);
+  }, [profileName, reels, feed, teamPosts.length]);
   const pickBiz = (key: string) => {
     setBiz(key);
     try {
@@ -273,6 +329,14 @@ export default function CalendarPage() {
       ),
     [feed, platform, status, bizOn],
   );
+  // Team posts go to Telegram, not a social platform: shown only under "All platforms".
+  const teamByDate = useMemo(() => {
+    const map = new Map<string, TeamPost[]>();
+    if (platform !== "all" || !showsBiz(TEAM_BUSINESS)) return map;
+    for (const p of teamPosts)
+      if (status === "all" || (status === "posted") === Boolean(p.postedAt)) map.set(p.day, [...(map.get(p.day) ?? []), p]);
+    return map;
+  }, [teamPosts, platform, status, bizOn]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, DraftEntry[]>();
@@ -736,6 +800,10 @@ export default function CalendarPage() {
     );
   };
 
+  const teamChip = (p: TeamPost, roomy: boolean) => (
+    <TeamPostChip key={p.id} post={p} status={statusOf(p, teamReviews[p.id])} roomy={roomy} onOpen={() => openTeam(p.id)} />
+  );
+
   const keyDateLine = (k: SgDate, roomy: boolean) => (
     <p
       key={k.title}
@@ -799,6 +867,7 @@ export default function CalendarPage() {
     | { kind: "note"; date: string; item: CalNote }
     | { kind: "reel"; date: string; item: (typeof reels)[number] }
     | { kind: "feed"; date: string; item: CalendarFeedItem }
+    | { kind: "team"; date: string; item: TeamPost }
     | { kind: "post"; date: string; item: DraftEntry }
     | { kind: "ghost"; date: string; item: DraftEntry };
   const listItems = useMemo(() => {
@@ -810,11 +879,12 @@ export default function CalendarPage() {
       if (r.date >= todayKey && !r.posted) items.push({ kind: "reel", date: r.date, item: r, order: `${r.date}|2` });
     for (const f of visibleFeed)
       if (f.date >= todayKey && f.status !== "posted") items.push({ kind: "feed", date: f.date, item: f, order: `${f.date}|3|${f.time}` });
+    for (const [date, ps] of teamByDate) if (date >= todayKey) for (const p of ps) items.push({ kind: "team", date, item: p, order: `${date}|2` });
     for (const d of upcoming) items.push({ kind: "post", date: eventDate(d)!, item: d, order: `${eventDate(d)}|3|${sortKey(d)}` });
     // Repeats run as far ahead as the key dates do, so one weekly post doesn't fill three months.
     for (const [date, gs] of ghostsByDate) if (date <= rangeTo) for (const g of gs) items.push({ kind: "ghost", date, item: g, order: `${date}|4` });
     return items.sort((a, b) => (a.order < b.order ? -1 : a.order > b.order ? 1 : 0));
-  }, [view, keyDates, notes, visibleReels, visibleFeed, upcoming, ghostsByDate, todayKey, rangeTo]);
+  }, [view, keyDates, notes, visibleReels, visibleFeed, teamByDate, upcoming, ghostsByDate, todayKey, rangeTo]);
 
   const shortDay = (key: string) => keyToDate(key).toLocaleDateString(undefined, { day: "numeric", month: "short" });
   const dateBadge = (key: string) => (
@@ -1207,6 +1277,7 @@ export default function CalendarPage() {
                             )}
                             {visibleReels.filter((r) => r.date === key).map((r) => reelChip(r, false))}
                             {visibleFeed.filter((f) => f.date === key).map((f) => feedChip(f, false))}
+                            {(teamByDate.get(key) ?? []).map((p) => teamChip(p, false))}
                           </div>
                         </div>
                       );
@@ -1261,6 +1332,7 @@ export default function CalendarPage() {
                         ))}
                         {dayReels.map((r) => reelChip(r, true))}
                         {visibleFeed.filter((f) => f.date === key).map((f) => feedChip(f, true))}
+                        {(teamByDate.get(key) ?? []).map((p) => teamChip(p, true))}
                       </div>
                     </div>
                   );
@@ -1271,7 +1343,7 @@ export default function CalendarPage() {
 
           {view === "list" && (
             <div className="space-y-2">
-              {upcoming.length === 0 && overdue.length === 0 && !listItems.some((i) => i.kind === "reel" || i.kind === "feed") && (
+              {upcoming.length === 0 && overdue.length === 0 && !listItems.some((i) => i.kind === "reel" || i.kind === "feed" || i.kind === "team") && (
                 <Card className="border-border/60 shadow-card">
                   <CardContent className="py-10 text-center text-sm text-muted-foreground">
                     {platform === "all" && status === "all" ? "Nothing scheduled yet." : "Nothing matches these filters."}
@@ -1300,6 +1372,15 @@ export default function CalendarPage() {
                         {shortDay(i.date)}
                       </span>
                       <span className="min-w-0 flex-1">{noteChip(i.item, true)}</span>
+                    </div>
+                  );
+                if (i.kind === "team")
+                  return (
+                    <div key={`team-${i.item.id}`} className="flex items-center gap-3 px-3 py-0.5">
+                      <span className="w-14 shrink-0 text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                        {shortDay(i.date)}
+                      </span>
+                      <span className="min-w-0 flex-1">{teamChip(i.item, true)}</span>
                     </div>
                   );
                 if (i.kind === "ghost")
@@ -1370,6 +1451,16 @@ export default function CalendarPage() {
         </div>
       </div>
       <ChannelPostDrawer item={openFeed} onClose={() => setOpenFeed(null)} />
+      {teamOpen && userId && (
+        <TeamPostPanel
+          key={teamOpen.id}
+          uid={userId}
+          post={teamOpen}
+          reviews={teamReviews}
+          onReviews={setTeamReviews}
+          onClose={() => setTeamOpenId(null)}
+        />
+      )}
     </div>
   );
 }
