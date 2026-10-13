@@ -20,9 +20,9 @@ import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { REELS_BOARD_OWNERS, brandOf, fetchBoard } from "@/lib/reelsBoard";
 import { activeProfile } from "@/lib/profiles";
-import { FilterChip } from "@/components/ui/filter-chip";
+import { BusinessChips, useBusinessFilter } from "@/components/BusinessFilter";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
-import { STATUS_LABEL, businessKey, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
+import { STATUS_LABEL, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 import {
   addDays,
   daysOverdue,
@@ -185,14 +185,6 @@ export default function CalendarPage() {
   // Channel posts other jobs publish (the MoneyBees Telegram channel first), with their full caption and pictures.
   const [feed, setFeed] = useState<CalendarFeedItem[]>([]);
   const [openFeed, setOpenFeed] = useState<CalendarFeedItem | null>(null);
-  // Leo 2026-10-13: "sort the posts based on business, since I manage multiple businesses". Remembered per device.
-  const [biz, setBiz] = useState<string>(() => {
-    try {
-      return localStorage.getItem("cs-calendar-business") || "all";
-    } catch {
-      return "all";
-    }
-  });
   const [profileName, setProfileName] = useState("");
   // Team posts Leo reviews before a job sends them to Telegram; empty for every other account.
   const [teamPosts, setTeamPosts] = useState<TeamPost[]>([]);
@@ -277,24 +269,15 @@ export default function CalendarPage() {
 
   const todayKey = localDateKey();
 
-  // The businesses on this calendar: the open profile (its drafts), each reels brand, each channel feed.
-  const businesses = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const name of [profileName, ...reels.map((r) => r.business), ...feed.map((f) => f.business), ...(teamPosts.length ? [TEAM_BUSINESS] : [])])
-      if (name && !m.has(businessKey(name))) m.set(businessKey(name), name);
-    return [...m.entries()].map(([key, label]) => ({ key, label }));
-  }, [profileName, reels, feed, teamPosts.length]);
-  const pickBiz = (key: string) => {
-    setBiz(key);
-    try {
-      localStorage.setItem("cs-calendar-business", key);
-    } catch {
-      /* the filter still works for this visit */
-    }
-  };
-  // A remembered business that is no longer on the calendar falls back to all of them.
-  const bizOn = biz === "all" || businesses.some((b) => b.key === biz) ? biz : "all";
-  const showsBiz = (name: string) => bizOn === "all" || businessKey(name) === bizOn;
+  // The businesses on this calendar: the open profile (its drafts), each reels brand, each channel feed, the team.
+  // Shared with the board (BusinessFilter.tsx), so the pick carries between the two.
+  const bizFilter = useBusinessFilter([
+    profileName,
+    ...reels.map((r) => r.business),
+    ...feed.map((f) => f.business),
+    ...(teamPosts.length ? [TEAM_BUSINESS] : []),
+  ]);
+  const { bizOn, shows: showsBiz } = bizFilter;
 
   const visible = useMemo(
     () =>
@@ -1051,18 +1034,7 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {businesses.length > 1 && (
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Business">
-          <FilterChip active={bizOn === "all"} onClick={() => pickBiz("all")}>
-            All businesses
-          </FilterChip>
-          {businesses.map((b) => (
-            <FilterChip key={b.key} active={bizOn === b.key} onClick={() => pickBiz(b.key)}>
-              {b.label}
-            </FilterChip>
-          ))}
-        </div>
-      )}
+      <BusinessChips filter={bizFilter} />
 
       <div className={`grid gap-4 ${unscheduled.length > 0 ? "xl:grid-cols-[minmax(0,1fr)_15rem]" : ""}`}>
         {/* Unscheduled drafts: a side panel on wide screens, a collapsible section below that */}
