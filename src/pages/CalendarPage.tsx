@@ -20,6 +20,11 @@ import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { IG_HANDLES, REELS_BOARD_OWNERS, brandOf, fetchBoard, isCarousel } from "@/lib/reelsBoard";
 import { COVER_DAYS, dueByHand, runsOut, weekGlance, type DatedItem } from "@/lib/calendarCoverage";
+import { openSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
+import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
+import { loadGoals, saveGoals, setPlatformGoal, weekProgress } from "@/lib/goals";
+import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analytics";
+import { loadPositioning } from "@/lib/positioning";
 import { activeProfile } from "@/lib/profiles";
 import { BusinessChips, useBusinessFilter } from "@/components/BusinessFilter";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
@@ -203,6 +208,15 @@ export default function CalendarPage() {
   const [dayParam, openDayParam, closeDay] = useUrlItem("day");
   const dayOpen = linkDay(dayParam);
   const [waitOpen, setWaitOpen] = useState(false);
+  // Brand kit posting times ("<day 0 = Mon>T<HH:MM>"): open ones show on the calendar as slots to write for.
+  const [slots, setSlots] = useState<string[]>([]);
+  const [showSlots, setShowSlots] = useState(() => {
+    try {
+      return localStorage.getItem("cs-calendar-slots") !== "off";
+    } catch {
+      return true;
+    }
+  });
   const dayRef = useRef<HTMLDivElement>(null);
   // Channel posts other jobs publish (the MoneyBees Telegram channel first), with their full caption and pictures.
   const [feed, setFeed] = useState<CalendarFeedItem[]>([]);
@@ -226,6 +240,7 @@ export default function CalendarPage() {
       setDrafts(loadDrafts(id));
       setNotes(loadNotes(id));
       setProfileName(activeProfile(id).name);
+      setSlots(loadBrand(id)?.slots ?? []);
       setTeamPosts(readTeamPosts(id));
       setTeamReviews(readTeamReviews(id));
       if (REELS_BOARD_OWNERS.includes(data.user?.email?.toLowerCase() ?? "")) {
@@ -470,6 +485,59 @@ export default function CalendarPage() {
     [teamPosts, teamReviews, bizOn],
   );
   const handDue = useMemo(() => dueByHand(reels.filter((r) => showsBiz(r.business)), todayKey), [reels, bizOn, todayKey]);
+
+  // Open posting slots for six weeks: a scheduled post at a slot's time (or on its day with no time) takes it.
+  const taken = useMemo(
+    () => drafts.filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor).map((d) => d.scheduledFor as string),
+    [drafts],
+  );
+  const slotsByDate = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const o of openSlots(slots, taken, new Date(), 42)) map.set(o.date, [...(map.get(o.date) ?? []), o.time]);
+    return map;
+  }, [slots, taken]);
+  // Slots are the open profile's own posting times: shown with its posts, never under Posted.
+  const slotsOn = showSlots && slots.length > 0 && showsBiz(profileName) && platform === "all" && status !== "posted";
+  const nextSlotThisWeek = useMemo(() => {
+    for (const d of thisWeek) for (const t of slotsByDate.get(d) ?? []) return { date: d, time: t };
+    return null;
+  }, [slotsByDate, thisWeek]);
+  // This week against the weekly goal (goals.ts: Home and Plan set it).
+  const [goalTick, setGoalTick] = useState(0);
+  const progress = useMemo(() => weekProgress(drafts, loadGoals(userId)), [drafts, userId, goalTick]);
+
+  // A starting set of posting times from a posts-per-week goal, at the best time for each weekday; the goal on the
+  // main platform becomes the same number, so the week's progress and the slots agree. Undo puts both back.
+  const makeSlots = (n: number) => {
+    if (!userId) return;
+    const platform = loadPositioning(userId)?.platform ?? "linkedin";
+    const posts = getTrackedPosts(userId);
+    const next = slotsForGoal(n, (wd) => postingTimeOn(posts, platform, wd).time);
+    const before = loadBrand(userId);
+    const goalsBefore = loadGoals(userId);
+    saveBrand(userId, { ...(before ?? DEFAULT_BRAND), slots: next });
+    setPlatformGoal(userId, platform, n);
+    setSlots(next);
+    setGoalTick((t) => t + 1);
+    const times = [...new Set(next.map((x) => x.slice(2)))];
+    toast({
+      title: `Posting times: ${slotDaysLabel(next)}${times.length === 1 ? ` at ${timeLabel(times[0])}` : ""}`,
+      description: "Change them any time in Brand kit.",
+      action: (
+        <ToastAction
+          altText="Undo"
+          onClick={() => {
+            saveBrand(userId, { ...(before ?? DEFAULT_BRAND), slots: before?.slots ?? [] });
+            saveGoals(userId, goalsBefore);
+            setSlots(before?.slots ?? []);
+            setGoalTick((t) => t + 1);
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
 
   const selected = drafts.find((d) => d.id === selectedId) ?? null;
 
@@ -952,8 +1020,30 @@ export default function CalendarPage() {
     </button>
   );
 
+  // An open posting slot: tap it to write a post that lands at that time.
+  const slotChip = (date: string, time: string, roomy: boolean) => (
+    <Link
+      key={`slot-${date}-${time}`}
+      to={`/generate?day=${date}&time=${time}`}
+      title={`Open posting slot, ${timeLabel(time)}: write a post for it`}
+      className={`block w-full rounded border border-dashed border-muted-foreground/50 px-1.5 text-left font-medium text-muted-foreground hover:border-primary hover:text-primary ${
+        roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate py-0.5 text-[10px]"
+      }`}
+    >
+      {roomy ? (
+        <>
+          <span className="block text-[10px] opacity-80">Open slot · {timeLabel(time)}</span>
+          Write for this slot
+        </>
+      ) : (
+        `+ ${timeLabel(time)}`
+      )}
+    </Link>
+  );
+
   // Everything dated on one day under the current filters.
   const dayThings = (key: string) => ({
+    slots: slotsOn && key >= todayKey ? slotsByDate.get(key) ?? [] : [],
     events: byDate.get(key) ?? [],
     ghosts: ghostsByDate.get(key) ?? [],
     reels: visibleReels.filter((r) => r.date === key),
@@ -1018,6 +1108,7 @@ export default function CalendarPage() {
           {t.reels.map((r) => reelChip(r, true))}
           {t.feed.map((f) => feedChip(f, true))}
           {t.team.map((p) => teamChip(p, true))}
+          {t.slots.map((time) => slotChip(key, time, true))}
         </div>
         <div className="flex flex-wrap gap-2">
           {key >= todayKey && (
@@ -1077,7 +1168,8 @@ export default function CalendarPage() {
     | { kind: "feed"; date: string; item: CalendarFeedItem }
     | { kind: "team"; date: string; item: TeamPost }
     | { kind: "post"; date: string; item: DraftEntry }
-    | { kind: "ghost"; date: string; item: DraftEntry };
+    | { kind: "ghost"; date: string; item: DraftEntry }
+    | { kind: "slot"; date: string; item: string };
   const listItems = useMemo(() => {
     const items: (ListItem & { order: string })[] = [];
     if (view !== "upcoming") return items;
@@ -1091,14 +1183,22 @@ export default function CalendarPage() {
     for (const d of upcoming) items.push({ kind: "post", date: eventDate(d)!, item: d, order: `${eventDate(d)}|3|${sortKey(d)}` });
     // Repeats run as far ahead as the key dates do, so one weekly post doesn't fill three months.
     for (const [date, gs] of ghostsByDate) if (date <= rangeTo) for (const g of gs) items.push({ kind: "ghost", date, item: g, order: `${date}|4` });
+    // Open slots for two weeks, between the posts by time.
+    if (slotsOn)
+      for (const [date, times] of slotsByDate)
+        if (date <= addDays(todayKey, 13)) for (const t of times) items.push({ kind: "slot", date, item: t, order: `${date}|3|${date}T${t}` });
     return items.sort((a, b) => (a.order < b.order ? -1 : a.order > b.order ? 1 : 0));
-  }, [view, keyDates, notes, visibleReels, visibleFeed, teamByDate, upcoming, ghostsByDate, todayKey, rangeTo]);
+  }, [view, keyDates, notes, visibleReels, visibleFeed, teamByDate, upcoming, ghostsByDate, todayKey, rangeTo, slotsOn, slotsByDate]);
 
   const shortDay = (key: string) => keyToDate(key).toLocaleDateString(undefined, { day: "numeric", month: "short" });
   const dateBadge = (key: string) => (
     <div className="w-14 shrink-0 text-center">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-        {keyToDate(key).toLocaleDateString(undefined, { month: "short" })}
+      <div className={`text-[10px] font-semibold uppercase tracking-[0.1em] ${key === todayKey ? "text-primary" : "text-muted-foreground"}`}>
+        {key === todayKey
+          ? "Today"
+          : key === addDays(todayKey, 1)
+            ? "Tmrw"
+            : keyToDate(key).toLocaleDateString(undefined, { weekday: "short", month: "short" })}
       </div>
       <div className="font-serif text-lg font-semibold text-foreground">{keyToDate(key).getDate()}</div>
     </div>
@@ -1238,6 +1338,26 @@ export default function CalendarPage() {
         >
           <StickyNote className="h-3.5 w-3.5" /> Add note
         </button>
+        {slots.length > 0 && (
+          <button
+            type="button"
+            aria-pressed={showSlots}
+            onClick={() => {
+              const next = !showSlots;
+              setShowSlots(next);
+              try {
+                localStorage.setItem("cs-calendar-slots", next ? "on" : "off");
+              } catch {
+                /* the toggle still works for this visit */
+              }
+            }}
+            className={`inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold sm:h-8 [@media(pointer:coarse)]:h-11 ${
+              showSlots ? "border-primary/40 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Open slots
+          </button>
+        )}
         {view !== "upcoming" && (
           <div className="flex items-center gap-1.5 sm:ml-auto">
             <button
@@ -1318,12 +1438,60 @@ export default function CalendarPage() {
             <span className="font-semibold">This week:</span>
             <span>{glance.going ? `${glance.going} going out` : "nothing going out"}</span>
             {glance.posted > 0 && <span className="text-muted-foreground">· {glance.posted} posted</span>}
-            {glance.emptyDays.length > 0 && glance.emptyDays.length < 7 && (
+            {glance.going > 0 && glance.emptyDays.length > 0 && (
               <span className="text-muted-foreground">
                 · nothing on {glance.emptyDays.map((d) => keyToDate(d).toLocaleDateString(undefined, { weekday: "short" })).join(", ")}
               </span>
             )}
           </p>
+          {showsBiz(profileName) && progress.goal > 0 && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {profileName}: {Math.min(progress.goal, progress.posted + progress.scheduled)} of {progress.goal} planned
+              </span>
+              <span
+                role="progressbar"
+                aria-label={`${profileName} weekly goal`}
+                aria-valuemin={0}
+                aria-valuemax={progress.goal}
+                aria-valuenow={Math.min(progress.goal, progress.posted + progress.scheduled)}
+                className="relative h-1.5 w-24 overflow-hidden rounded-full bg-muted"
+              >
+                <span className="absolute inset-y-0 left-0 bg-success" style={{ width: `${(100 * Math.min(progress.goal, progress.posted)) / progress.goal}%` }} />
+                <span
+                  className="absolute inset-y-0 bg-primary"
+                  style={{
+                    left: `${(100 * Math.min(progress.goal, progress.posted)) / progress.goal}%`,
+                    width: `${(100 * Math.max(0, Math.min(progress.goal, progress.posted + progress.scheduled) - progress.posted)) / progress.goal}%`,
+                  }}
+                />
+              </span>
+              <span>{progress.toDo > 0 ? `${progress.toDo} to go` : "goal met"}</span>
+              {progress.toDo > 0 && (
+                <Link
+                  to={nextSlotThisWeek ? `/generate?day=${nextSlotThisWeek.date}&time=${nextSlotThisWeek.time}` : "/generate"}
+                  className="-my-2 py-2 font-semibold text-primary hover:underline"
+                >
+                  {nextSlotThisWeek ? `Write for ${dayLabel(nextSlotThisWeek.date)}, ${timeLabel(nextSlotThisWeek.time)}` : "Write a post"}
+                </Link>
+              )}
+            </div>
+          )}
+          {showsBiz(profileName) && slots.length === 0 && userId && (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>No posting times yet. Make them:</span>
+              {[3, 5, 7].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => makeSlots(n)}
+                  className="h-9 rounded-md border border-border/70 px-2.5 font-semibold text-foreground hover:border-primary/40 sm:h-8 [@media(pointer:coarse)]:h-11"
+                >
+                  {n} a week
+                </button>
+              ))}
+            </div>
+          )}
           {runningOut.length > 0 && (
             <ul className="space-y-1" aria-label={`Running out in the next ${COVER_DAYS / 7} weeks`}>
               {runningOut.map((r) => {
@@ -1384,6 +1552,20 @@ export default function CalendarPage() {
                       >
                         <p className="line-clamp-2 text-xs font-medium text-foreground">{titleOf(d)}</p>
                         <p className="truncate text-[10px] text-muted-foreground">{PLATFORM_LABEL[d.platform] ?? d.platform}</p>
+                        {(() => {
+                          const next = userId ? suggestPostingTime(getTrackedPosts(userId), d.platform, taken, new Date(), slots) : null;
+                          return next ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => reschedule(d.id, next.at)}
+                              className="mt-1.5 h-auto min-h-9 w-full justify-start whitespace-normal px-2 py-1.5 text-left text-[11px] sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
+                            >
+                              {next.why === "slot" ? "Next slot" : "Best time"}: {whenLabel(next.at)}
+                            </Button>
+                          ) : null;
+                        })()}
                         <form
                           onSubmit={(e) => {
                             e.preventDefault();
@@ -1592,6 +1774,7 @@ export default function CalendarPage() {
                         ...t.reels.map((r) => () => reelChip(r, false)),
                         ...t.feed.map((f) => () => feedChip(f, false)),
                         ...t.team.map((p) => () => teamChip(p, false)),
+                        ...t.slots.map((time) => () => slotChip(key, time, false)),
                       ];
                       const dots = dayDots(key);
                       return (
@@ -1699,6 +1882,7 @@ export default function CalendarPage() {
                         {dayReels.map((r) => reelChip(r, true))}
                         {visibleFeed.filter((f) => f.date === key).map((f) => feedChip(f, true))}
                         {(teamByDate.get(key) ?? []).map((p) => teamChip(p, true))}
+                        {key >= todayKey && slotsOn && (slotsByDate.get(key) ?? []).map((time) => slotChip(key, time, true))}
                       </div>
                     </div>
                   );
@@ -1748,6 +1932,20 @@ export default function CalendarPage() {
                       </span>
                       <span className="min-w-0 flex-1">{teamChip(i.item, true)}</span>
                     </div>
+                  );
+                if (i.kind === "slot")
+                  return (
+                    <Link
+                      key={`slot-${i.date}-${i.item}`}
+                      to={`/generate?day=${i.date}&time=${i.item}`}
+                      className="flex w-full items-center gap-3 rounded-xl border border-dashed border-muted-foreground/40 bg-card/50 p-3 text-left hover:border-primary"
+                    >
+                      {dateBadge(i.date)}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-muted-foreground">Open slot · {timeLabel(i.item)}</p>
+                        <p className="text-xs font-semibold text-primary">Write for this slot</p>
+                      </div>
+                    </Link>
                   );
                 if (i.kind === "ghost")
                   return (

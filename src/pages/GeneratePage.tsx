@@ -2104,10 +2104,17 @@ export default function GeneratePage() {
     const d = searchParams.get("day");
     return d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= localDateKey() ? d : null;
   });
+  // &time=HH:MM comes with an open posting slot: that exact time, not the weekday's best one.
+  const [pickedTime] = useState(() => {
+    const t = searchParams.get("time");
+    return t && /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? t : null;
+  });
   const suggestedTime = useMemo(() => {
     if (!userId || !currentDraftId) return null;
     if (pickedDay) {
-      const t = postingTimeOn(getTrackedPosts(userId), platform, (keyToDate(pickedDay).getDay() + 6) % 7, brandKit?.slots);
+      const t = pickedTime
+        ? { time: pickedTime, why: "slot" as const }
+        : postingTimeOn(getTrackedPosts(userId), platform, (keyToDate(pickedDay).getDay() + 6) % 7, brandKit?.slots);
       const at = `${pickedDay}T${t.time}`;
       // today with that time already gone: the day alone, never a time in the past
       return { at: new Date(at) < new Date() ? pickedDay : at, why: t.why };
