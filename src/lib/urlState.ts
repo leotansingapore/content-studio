@@ -2,7 +2,7 @@
 // (Leo 2026-10-13: "everything throughout the app should be deep-linked"). The params each page reads are
 // listed in docs/deep-links.md; links are built in src/lib/links.ts.
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { slug } from "./links";
 
 interface Opts<T extends string> {
@@ -141,4 +141,19 @@ export function useUrlLabels<T extends string>(name: string, options: readonly T
 export function useUrlFlag(name: string, on = "only"): [boolean, (next: boolean) => void] {
   const [v, set] = useUrlState<string>(name, "", { allowed: [on] });
   return [v === on, useCallback((next: boolean) => set(next ? on : ""), [set, on])];
+}
+
+/** A #section link scrolls to that section once the page has drawn it (`ready`), on every tap of the link. */
+export function useScrollToHash(ready = true) {
+  const { hash, key } = useLocation();
+  useEffect(() => {
+    if (!ready || !hash) return;
+    const go = (behavior: ScrollBehavior) =>
+      document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ behavior, block: "start" });
+    go("smooth");
+    // shortcut: a second landing once late layout (web fonts, pictures) has moved the section; a person who
+    // starts scrolling within that 600ms is moved back once. Upgrade to watching the section if that bites.
+    const t = window.setTimeout(() => go("auto"), 600);
+    return () => window.clearTimeout(t);
+  }, [ready, hash, key]);
 }

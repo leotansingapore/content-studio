@@ -59,4 +59,29 @@ describe("links", () => {
     expect(links.inspiration({ pillar: [], platform: [] })).toBe("/inspiration");
     expect(links.hubAdmin({ tab: "clients" })).toBe("/hub/admin");
   });
+
+  it("builds the Create pages' links with defaults left out (docs/deep-links.md, Create pages)", () => {
+    expect(links.generate({ draft: "d1", step: "topic" })).toBe("/generate?draft=d1");
+    expect(links.generate({ step: "format", panel: "shortcuts" })).toBe("/generate?step=format&panel=shortcuts");
+    expect(links.generate({ pillar: "topic", detail: "CPF at 35", platform: "linkedin" })).toBe(
+      "/generate?pillar=topic&detail=CPF+at+35&platform=linkedin",
+    );
+    expect(links.batch({ pillar: "topic", audience: "general" })).toBe("/generate/batch");
+    expect(links.batch({ pillar: "market", audience: "parent" })).toBe("/generate/batch?pillar=market&audience=parent");
+    expect(links.carousel({ tab: "drafts" })).toBe("/carousel");
+    expect(links.carousel({ tab: "saved", carousel: "d:abc" })).toBe("/carousel?tab=saved&carousel=d%3Aabc");
+    expect(links.edit({ tab: "style", mode: "fix" })).toBe("/edit");
+    expect(links.edit({ p: "v1", tab: "stickers", sticker: "o1", guide: "tiktok" })).toBe("/edit?p=v1&tab=stickers&sticker=o1&guide=tiktok");
+    expect(links.edit({ panel: ["join", "ai"], kind: "montage", template: "handheld-ugc-vlog" })).toBe(
+      "/edit?panel=join,ai&kind=montage&template=handheld-ugc-vlog",
+    );
+    expect(links.clone({ clone: "instagram:C1" })).toBe("/clone?clone=instagram%3AC1");
+    expect(links.coach({ report: "r1" })).toBe("/coach?report=r1");
+    expect(links.coach({ section: "idea-dump" })).toBe("/coach#idea-dump");
+    expect(links.media({ q: " cpf ", folder: "none" })).toBe("/media?q=cpf&folder=none");
+    expect(links.academy({ lesson: "0Q1AQAxpdGg" })).toBe("/academy?lesson=0Q1AQAxpdGg");
+    expect(links.brand({ section: "logo" })).toBe("/brand#logo");
+    expect(links.createGuide({ step: "reel" })).toBe("/create-guide#reel");
+    expect(links.tutorial()).toBe("/tutorial");
+  });
 });

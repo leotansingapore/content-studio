@@ -127,8 +127,85 @@ export const links = {
   hubGuides: (o: { category?: string } = {}) => `/hub/guides${qs({ category: o.category })}`,
   hubTrends: (o: { niche?: string } = {}) => `/hub/trends${qs({ niche: o.niche })}`,
   hubAdmin: (o: { tab?: "clients" | "posts" | "members" } = {}) => `/hub/admin${qs({ tab: o.tab !== "clients" && o.tab })}`,
+
+  // ---- Create pages (wave 2A) ----
+  /** Write. draft/step/panel are live state; the rest pre-fill the brief once and leave the URL (docs "Still read"). */
+  generate: (
+    o: {
+      draft?: string;
+      step?: WriteStep;
+      panel?: "shortcuts" | "post";
+      day?: string;
+      profile?: string;
+      ask?: string;
+      vibe?: string;
+      pillar?: string;
+      detail?: string;
+      audience?: string;
+      format?: string;
+      platform?: string;
+      cta?: string;
+      funnel?: string;
+      /** The idea source (real-question, ...), not the idea text: that is `detail`. */
+      idea?: string;
+      ctx?: string;
+      ref?: string;
+      formula?: string;
+    } = {},
+  ) => `/generate${qs({ ...o, step: o.step !== "topic" && o.step })}`,
+  batch: (o: { pillar?: string; audience?: string } = {}) =>
+    `/generate/batch${qs({ pillar: o.pillar !== "topic" && o.pillar, audience: o.audience !== "general" && o.audience })}`,
+  carousel: (o: { tab?: "drafts" | "paste" | "topic" | "saved"; draft?: string; carousel?: string } = {}) =>
+    `/carousel${qs({ tab: o.tab !== "drafts" && o.tab, draft: o.draft, carousel: o.carousel })}`,
+  edit: (
+    o: {
+      /** A video project id; projects live on one device. */
+      p?: string;
+      tab?: EditTab;
+      mode?: "fix" | "cut";
+      sticker?: string;
+      broll?: string;
+      guide?: "instagram" | "tiktok";
+      /** Start screen panels: join, ai, or both. */
+      panel?: ("join" | "ai")[];
+      kind?: "template" | "montage" | "avatar" | "explainer";
+      template?: string;
+    } = {},
+  ) =>
+    `/edit${qs({
+      p: o.p,
+      tab: o.tab !== "style" && o.tab,
+      mode: o.mode !== "fix" && o.mode,
+      sticker: o.sticker,
+      broll: o.broll,
+      guide: o.guide,
+      panel: o.panel?.join(","),
+      kind: o.kind,
+      template: o.template,
+    })}`,
+  clone: (o: { url?: string; clone?: string } = {}) => `/clone${qs({ url: o.url, clone: o.clone })}`,
+  coach: (o: { report?: string; view?: "quiz"; section?: "idea-dump" } = {}) =>
+    `/coach${qs({ report: o.report, view: o.view })}${o.section ? `#${o.section}` : ""}`,
+  voice: () => "/voice",
+  media: (o: { q?: string; folder?: string } = {}) => `/media${qs({ q: o.q?.trim(), folder: o.folder })}`,
+  brand: (o: { section?: BrandSection } = {}) => `/brand${o.section ? `#${o.section}` : ""}`,
+  createGuide: (o: { step?: GuideStep } = {}) => `/create-guide${o.step ? `#${o.step}` : ""}`,
+  tutorial: (o: { section?: TutorialSection } = {}) => `/tutorial${o.section ? `#${o.section}` : ""}`,
+  playbook: () => "/playbook",
+  academy: (o: { lesson?: string } = {}) => `/academy${qs({ lesson: o.lesson })}`,
+  // ---- end Create pages ----
 };
 
 /** An app path as a full URL: this host in the browser, production elsewhere (a job, a test). */
 export const absolute = (path: string) =>
   `${typeof window !== "undefined" && window.location?.origin?.startsWith("http") ? window.location.origin : APP_ORIGIN}${path}`;
+
+// ---- Create pages (wave 2A): the values their params and #sections take.
+export const WRITE_STEPS = ["topic", "funnel", "idea", "format"] as const;
+export type WriteStep = (typeof WRITE_STEPS)[number];
+export const EDIT_TABS = ["style", "cuts", "frame", "face", "stickers", "broll", "words"] as const;
+export type EditTab = (typeof EDIT_TABS)[number];
+export type BrandSection = "you" | "dm-links" | "offers" | "emoji-and-hashtags" | "colour" | "sign-off" | "posting-times" | "logo";
+export type GuideStep = "idea" | "draft" | "carousel" | "reel" | "reverse-engineer" | "compliance" | "schedule";
+export type TutorialSection = "why" | "voice" | "guided-flow" | "after" | "tabs" | "rules" | "rhythm" | "first-action";
+// ---- end Create pages ----
