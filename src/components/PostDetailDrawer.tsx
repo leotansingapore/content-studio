@@ -1,3 +1,4 @@
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import VideoEmbed from "@/components/VideoEmbed";
@@ -113,6 +114,11 @@ export default function PostDetailDrawer({
         className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
       />
       <div className="relative flex h-full w-full flex-col overflow-hidden bg-background shadow-xl sm:h-auto sm:max-h-[92vh] sm:max-w-md sm:rounded-2xl sm:border sm:border-border/70">
+        {/* The address bar holds ?post=, so this copies a link that opens this post. */}
+        <CopyLinkButton
+          label="Copy link to this post"
+          className="absolute right-14 top-3 z-20 rounded-full bg-black/55 text-white backdrop-blur hover:bg-black/75 hover:text-white"
+        />
         <button
           ref={closeRef}
           type="button"

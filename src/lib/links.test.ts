@@ -35,4 +35,28 @@ describe("links", () => {
   it("makes links absolute on the production host outside a browser", () => {
     expect(absolute(links.calendar({ teampost: "tp3" }))).toBe(`${APP_ORIGIN}/calendar?teampost=tp3`);
   });
+
+  it("builds the Grow, Discover and settings links in docs/deep-links.md", () => {
+    expect(links.inspiration({ pillar: ["authority", "tip"], saved: true, q: " cpf " })).toBe("/inspiration?q=cpf&pillar=authority,tip&saved=only");
+    expect(links.profiles({ company: ["aia", "none"] })).toBe("/profiles?company=aia,none");
+    expect(links.inspirationPost("a b")).toBe("/inspiration/a%20b");
+    expect(links.swipe({ tab: "news", topic: "scams" })).toBe("/swipe?tab=news&topic=scams");
+    expect(links.swipe({ post: "the-woke-salaryman-instagram-Ddkxv39j961" })).toBe("/swipe?post=the-woke-salaryman-instagram-Ddkxv39j961");
+    expect(links.trends({ trend: "t1" })).toBe("/trends?trend=t1");
+    expect(links.analytics({ period: "7d", rank: "engagement-rate" })).toBe("/analytics?period=7d&rank=engagement-rate");
+    expect(links.autoDm({ log: "a1", status: "failed" })).toBe("/recruit/auto-dm?log=a1&status=failed");
+    expect(links.autoDm({ log: "a1", status: "all" })).toBe("/recruit/auto-dm?log=a1");
+    expect(links.team({ status: "changes-requested" })).toBe("/team?status=changes-requested");
+    expect(links.hubAdmin({ tab: "members" })).toBe("/hub/admin?tab=members");
+  });
+
+  it("leaves the Grow pages' defaults out", () => {
+    expect(links.swipe({ tab: "posts", format: "all", from: "all", topic: "all", angle: "all", audience: "all", saved: false })).toBe("/swipe");
+    expect(links.analytics({ period: "30d", by: "platform", time: "all", rank: "engagements" })).toBe("/analytics");
+    expect(links.trackedLinks({ period: "30d" })).toBe("/links");
+    expect(links.engage({ tool: "replies" })).toBe("/recruit/engage");
+    expect(links.team({ status: "pending" })).toBe("/team");
+    expect(links.inspiration({ pillar: [], platform: [] })).toBe("/inspiration");
+    expect(links.hubAdmin({ tab: "clients" })).toBe("/hub/admin");
+  });
 });

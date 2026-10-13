@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { humanLabel } from "@/lib/utils";
+import { links } from "@/lib/links";
+import { toggled, useUrlLabels, useUrlFlag, useUrlSearch, useUrlUpdate } from "@/lib/urlState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -81,6 +83,7 @@ export const FORMAT_OPTIONS: { value: InspirationEntry["format"]; label: string 
   { value: "short-video", label: "Reel / short video" },
   { value: "text-only", label: "Text" },
 ];
+const FORMAT_VALUES = FORMAT_OPTIONS.map((f) => f.value);
 
 const AUDIENCE_OPTIONS = Array.from(
   new Set(ENTRIES.map((e) => e.audience)),
@@ -137,6 +140,7 @@ function InspirationCard({
   onToggleSave?: () => void;
 }) {
   const navigate = useNavigate();
+  const { search } = useLocation();
   const [expanded, setExpanded] = useState(false);
   const preview =
     entry.content.length > 140 && !expanded
@@ -218,7 +222,7 @@ function InspirationCard({
             size="sm"
             className="w-full gap-1.5 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
           >
-            <Link to={`/inspiration/${encodeURIComponent(entry.id)}`}>
+            <Link to={links.inspirationPost(entry.id)} state={{ back: `/inspiration${search}` }}>
               <ExternalLink className="h-3.5 w-3.5" />
               View
             </Link>
@@ -241,18 +245,22 @@ function InspirationCard({
 const PAGE_SIZE = 12;
 
 export default function Inspiration({ onUseAsVibe }: Props) {
-  const [search, setSearch] = useState("");
-  const [platforms, setPlatforms] = useState<Set<InspirationEntry["platform"]>>(
-    new Set(),
-  );
-  const [pillars, setPillars] = useState<Set<InspirationEntry["pillar"]>>(
-    new Set(),
-  );
-  const [audiences, setAudiences] = useState<Set<string>>(new Set());
-  const [formats, setFormats] = useState<Set<InspirationEntry["format"]>>(new Set());
+  // Search, chips and Saved live in the URL (docs/deep-links.md), so a filtered list can be linked.
+  const [search, setSearch] = useUrlSearch("q");
+  const [platformList, setPlatforms] = useUrlLabels("platform", PLATFORM_OPTIONS);
+  const [pillarList, setPillars] = useUrlLabels("pillar", PILLAR_OPTIONS);
+  const [audienceList, setAudiences] = useUrlLabels("audience", AUDIENCE_OPTIONS);
+  const [formatList, setFormats] = useUrlLabels("format", FORMAT_VALUES);
+  const [savedOnly, setSavedOnly] = useUrlFlag("saved");
+  const update = useUrlUpdate();
+  const platforms = new Set(platformList);
+  const pillars = new Set(pillarList);
+  const audiences = new Set(audienceList);
+  const formats = new Set(formatList);
   // Collapse the secondary filters and paginate the grid so the page opens
-  // as a short, scannable screen instead of one endless wall of cards.
-  const [showFilters, setShowFilters] = useState(false);
+  // as a short, scannable screen instead of one endless wall of cards. A link
+  // that names a hidden filter opens them.
+  const [showFilters, setShowFilters] = useState(() => platformList.length + audienceList.length + formatList.length > 0);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [userId, setUserId] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedItems>({
@@ -260,7 +268,6 @@ export default function Inspiration({ onUseAsVibe }: Props) {
     creators: [],
     topPosts: [],
   });
-  const [savedOnly, setSavedOnly] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -280,46 +287,14 @@ export default function Inspiration({ onUseAsVibe }: Props) {
     setSaved(toggleSaved(userId, "inspiration", id));
   };
 
-  const togglePlatform = (p: InspirationEntry["platform"]) => {
-    setPlatforms((s) => {
-      const next = new Set(s);
-      if (next.has(p)) next.delete(p);
-      else next.add(p);
-      return next;
-    });
-  };
-  const togglePillar = (p: InspirationEntry["pillar"]) => {
-    setPillars((s) => {
-      const next = new Set(s);
-      if (next.has(p)) next.delete(p);
-      else next.add(p);
-      return next;
-    });
-  };
-  const toggleFormat = (f: InspirationEntry["format"]) => {
-    setFormats((s) => {
-      const next = new Set(s);
-      if (next.has(f)) next.delete(f);
-      else next.add(f);
-      return next;
-    });
-  };
-  const toggleAudience = (a: string) => {
-    setAudiences((s) => {
-      const next = new Set(s);
-      if (next.has(a)) next.delete(a);
-      else next.add(a);
-      return next;
-    });
-  };
+  const togglePlatform = (p: InspirationEntry["platform"]) => setPlatforms(toggled(platformList, p));
+  const togglePillar = (p: InspirationEntry["pillar"]) => setPillars(toggled(pillarList, p));
+  const toggleFormat = (f: InspirationEntry["format"]) => setFormats(toggled(formatList, f));
+  const toggleAudience = (a: string) => setAudiences(toggled(audienceList, a));
 
   const clearFilters = () => {
-    setPlatforms(new Set());
-    setPillars(new Set());
-    setAudiences(new Set());
-    setFormats(new Set());
     setSearch("");
-    setSavedOnly(false);
+    update({ q: null, platform: null, pillar: null, audience: null, format: null, saved: null });
   };
 
   const filtered = useMemo(() => {
@@ -344,7 +319,8 @@ export default function Inspiration({ onUseAsVibe }: Props) {
       }
       return true;
     });
-  }, [search, platforms, pillars, audiences, formats, savedOnly, saved.inspiration]);
+    // The Sets are rebuilt every render, so the memo keys on the URL lists they come from.
+  }, [search, platformList.join(), pillarList.join(), audienceList.join(), formatList.join(), savedOnly, saved.inspiration]);
 
   const activeFilterCount =
     platforms.size + pillars.size + audiences.size + formats.size + (search.trim() ? 1 : 0);
@@ -352,7 +328,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
   // Any time the filters change, jump back to the first page of results.
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [search, platforms, pillars, audiences, formats]);
+  }, [search, platformList.join(), pillarList.join(), audienceList.join(), formatList.join()]);
 
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visible.length;
@@ -408,7 +384,7 @@ export default function Inspiration({ onUseAsVibe }: Props) {
               </Chip>
             ))}
             <span className="mx-1 hidden h-4 w-px bg-border sm:block" />
-            <Chip active={savedOnly} onClick={() => setSavedOnly((v) => !v)} count={saved.inspiration.length > 0 ? saved.inspiration.length : undefined}>
+            <Chip active={savedOnly} onClick={() => setSavedOnly(!savedOnly)} count={saved.inspiration.length > 0 ? saved.inspiration.length : undefined}>
               <Bookmark className="h-3 w-3" /> Saved
             </Chip>
           </div>

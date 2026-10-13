@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import {
   Card,
   CardContent,
@@ -44,6 +45,7 @@ const PLATFORM_META: Record<
 
 export default function ProfileDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { state } = useLocation();
   const { toast } = useToast();
   const entry = ENTRIES.find((e) => e.id === id);
 
@@ -98,12 +100,14 @@ export default function ProfileDetailPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="flex items-center justify-between gap-2">
         <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-          <Link to="/profiles">
+          {/* Back to the list as it was filtered when this was opened from it. */}
+          <Link to={(state as { back?: string } | null)?.back ?? "/profiles"}>
             <ArrowLeft className="h-3.5 w-3.5" /> Back to all creators
           </Link>
         </Button>
+        <CopyLinkButton label="Copy link to this creator" />
       </div>
 
       <Card className="border-border/60 shadow-card">

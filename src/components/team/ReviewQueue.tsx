@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { slug } from "@/lib/links";
+import { useUrlState } from "@/lib/urlState";
 import ReviewThread from "@/components/team/ReviewThread";
 import {
   EmptyBlock,
@@ -58,7 +60,10 @@ export default function ReviewQueue({
   userId: string;
   onReviewed: () => void;
 }) {
-  const [tab, setTab] = useState<ReviewStatus>("pending");
+  // ?status=approved etc. (hyphens in the URL: changes-requested), so a link opens one list.
+  const [tabParam, setTabParam] = useUrlState("status", "pending", { allowed: TABS.map((t) => slug(t.key)) });
+  const tab = TABS.find((t) => slug(t.key) === tabParam)?.key ?? "pending";
+  const setTab = (k: ReviewStatus) => setTabParam(slug(k));
   const [lists, setLists] = useState<Lists>(EMPTY);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");

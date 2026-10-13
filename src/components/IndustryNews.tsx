@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { slug } from "@/lib/links";
+import { useUrlSearch, useUrlState } from "@/lib/urlState";
 import { safeExternalUrl } from "@/lib/embed";
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Copy, ExternalLink, PenLine, Search, Share2 } from "lucide-react";
@@ -102,14 +104,17 @@ function StoryCard({ s }: { s: NewsStory }) {
 }
 
 export default function IndustryNews() {
-  const [query, setQueryRaw] = useState("");
-  const [topic, setTopicRaw] = useState("all");
+  // On /swipe?tab=news: ?q= and ?topic= (the topic's slug), per docs/deep-links.md.
+  const [query, setQueryRaw] = useUrlSearch("q");
+  const [topicSlug, setTopicSlug] = useUrlState("topic", "all");
   const found = useMemo(() => searchStories(NEWS, query), [query]);
   const topics = useMemo(() => topicCounts(found), [found]);
-  const shown = topic === "all" || !topics.some((t) => t.topic === topic) ? found : found.filter((s) => s.topic === topic);
+  // Topics come from the data, so an unknown slug reads as all.
+  const topic = topics.find((t) => slug(t.topic) === topicSlug)?.topic ?? "all";
+  const shown = topic === "all" ? found : found.filter((s) => s.topic === topic);
   // 39+ stories made a 33,000px page on a phone: start with the newest 12.
   const [limit, setLimit] = useState(12);
-  const setTopic = (t: string) => { setTopicRaw(t); setLimit(12); };
+  const setTopic = (t: string) => { setTopicSlug(t === "all" ? "all" : slug(t)); setLimit(12); };
   const setQuery = (q: string) => { setQueryRaw(q); setLimit(12); };
   const months = useMemo(() => byMonth(shown.slice(0, limit)), [shown, limit]);
 

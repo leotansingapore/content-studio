@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useUrlState } from "@/lib/urlState";
 import {
   EmptyBlock,
   ErrorBlock,
@@ -89,11 +90,17 @@ function eventDetails(e: ReviewEvent): string {
   }
 }
 
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
 export default function AuditTrail({ team, refreshKey }: { team: Team; refreshKey: number }) {
   const { toast } = useToast();
   const today = sgtDateString(new Date());
-  const [from, setFrom] = useState(() => sgtDateString(new Date(Date.now() - 29 * 86_400_000)));
-  const [to, setTo] = useState(today);
+  // The range is ?from=&to= (YYYY-MM-DD), so a link opens the same stretch; the last 30 days stay out of the URL.
+  const defaultFrom = sgtDateString(new Date(Date.now() - 29 * 86_400_000));
+  const [fromParam, setFrom] = useUrlState<string>("from", defaultFrom);
+  const [toParam, setTo] = useUrlState<string>("to", today);
+  const from = DAY.test(fromParam) ? fromParam : defaultFrom;
+  const to = DAY.test(toParam) ? toParam : today;
   const [rows, setRows] = useState<ReviewEvent[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");

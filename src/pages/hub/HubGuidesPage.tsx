@@ -5,11 +5,15 @@ import { BookOpen, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HUB_CATEGORIES, type HubPost } from "@/lib/hub";
 import { supabase } from "@/lib/supabase";
+import { useUrlState } from "@/lib/urlState";
 
 export default function HubGuidesPage() {
   const [posts, setPosts] = useState<HubPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [category, setCategory] = useState<string | null>(null);
+  // ?category= (docs/deep-links.md); an unknown one shows every guide.
+  const [cat, setCat] = useUrlState<string>("category", "", { allowed: HUB_CATEGORIES.map((c) => c.value) });
+  const category = cat || null;
+  const setCategory = (c: string | null) => setCat(c ?? "");
 
   useEffect(() => {
     supabase
@@ -32,6 +36,7 @@ export default function HubGuidesPage() {
 
       <div className="flex flex-wrap gap-2">
         <button
+          aria-pressed={category === null}
           className={`rounded-full border px-3 py-1 text-xs ${category === null ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
           onClick={() => setCategory(null)}
         >
@@ -40,6 +45,7 @@ export default function HubGuidesPage() {
         {HUB_CATEGORIES.map((c) => (
           <button
             key={c.value}
+            aria-pressed={category === c.value}
             className={`rounded-full border px-3 py-1 text-xs ${category === c.value ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
             onClick={() => setCategory(c.value)}
           >

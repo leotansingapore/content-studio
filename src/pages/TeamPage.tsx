@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { withParam } from "@/lib/urlState";
 
 import { Card, CardContent } from "@/components/ui/card";
 import LeaderView from "@/components/team/LeaderView";
@@ -50,7 +51,7 @@ export default function TeamPage() {
   }, [load]);
 
   const clearInvite = () => {
-    if (searchParams.has("code")) setSearchParams({}, { replace: true });
+    if (searchParams.has("code")) setSearchParams((prev) => withParam(prev, "code", null), { replace: true });
   };
 
   const handleChanged = () => {

@@ -544,7 +544,8 @@ export default function FadsPage() {
   }, [aiPolish, polishStorageKey, storageKey, hydratedKey]);
 
   useEffect(() => {
-    if (!tab) {
+    // A bare /fads, or an old or mistyped step, opens the first step.
+    if (!tab || !TABS.some((t) => t.id === tab)) {
       navigate(`${BASE_PATH}/personality`, { replace: true });
     } else {
       setActiveTab(tab);

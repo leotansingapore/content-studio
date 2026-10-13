@@ -3,7 +3,8 @@
 // comments or messages for you. Each tool is ?tool=<id>, so a link opens it.
 // Logic: src/lib/engageDrafts.ts and supabase/functions/engage-assist.
 import { useEffect, useState } from "react";
-import { useLocation, useSearchParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useUrlState } from "@/lib/urlState";
 import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
 import Replies from "@/components/engage/Replies";
 import Dms from "@/components/engage/Dms";
@@ -23,10 +24,9 @@ type ToolId = (typeof TOOLS)[number]["id"];
 
 export default function EngagePage() {
   const [userId, setUserId] = useState<string | null>(null);
-  const [params, setParams] = useSearchParams();
+  const [tool, setTool] = useUrlState<ToolId>("tool", "replies", { allowed: TOOLS.map((t) => t.id) });
   // Each visit reads a paste tool's saved text again, so text the assistant pasted in (or its Undo) shows.
   const { key } = useLocation();
-  const tool: ToolId = TOOLS.find((t) => t.id === params.get("tool"))?.id ?? "replies";
   useEffect(() => {
     let active = true;
     supabase.auth.getSession().then(({ data }) => {
@@ -47,7 +47,7 @@ export default function EngagePage() {
             key={t.id}
             type="button"
             aria-pressed={tool === t.id}
-            onClick={() => setParams(t.id === "replies" ? {} : { tool: t.id }, { replace: true })}
+            onClick={() => setTool(t.id)}
             className={`h-11 rounded-full border px-4 text-xs font-semibold transition-colors sm:h-9 [@media(pointer:coarse)]:h-11 ${
               tool === t.id ? "border-primary/60 bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
             }`}

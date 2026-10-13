@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { humanLabel } from "@/lib/utils";
 import { NICHE_GROUPS, inNicheGroups, nicheGroup } from "@/lib/nicheGroups";
+import { links } from "@/lib/links";
+import { toggled, useUrlLabels, useUrlFlag, useUrlSearch, useUrlUpdate } from "@/lib/urlState";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search,
@@ -118,6 +120,8 @@ const COMPANY_OPTIONS: AdvisorCompany[] = [
 ];
 
 const COMPANY_NONE = "__none__";
+// In links as their slugs: ?company=great-eastern,none
+const COMPANY_KEYS: string[] = [...COMPANY_OPTIONS, COMPANY_NONE];
 
 const AUDIENCE_OPTIONS = Array.from(
   new Set(ENTRIES.flatMap((e) => e.audience)),
@@ -164,6 +168,7 @@ function AdvisorCard({
   onToggleSave?: () => void;
 }) {
   const { toast } = useToast();
+  const { search } = useLocation();
 
   const handleCopy = async () => {
     try {
@@ -270,7 +275,7 @@ function AdvisorCard({
             size="sm"
             className="w-full gap-1.5 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
           >
-            <Link to={`/profiles/${encodeURIComponent(entry.id)}`}>
+            <Link to={links.profile(entry.id)} state={{ back: `/profiles${search}` }}>
               <Eye className="h-3.5 w-3.5" />
               Details
             </Link>
@@ -298,13 +303,20 @@ function AdvisorCard({
 const PAGE_SIZE = 12;
 
 export default function AdvisorProfiles() {
-  const [search, setSearch] = useState("");
-  const [platforms, setPlatforms] = useState<Set<AdvisorPlatform>>(new Set());
-  const [companies, setCompanies] = useState<Set<string>>(new Set());
-  const [audiences, setAudiences] = useState<Set<string>>(new Set());
-  const [niches, setNiches] = useState<Set<string>>(new Set());
-  const [showFilters, setShowFilters] = useState(false);
-  const [savedOnly, setSavedOnly] = useState(false);
+  // Search, chips and Saved live in the URL (docs/deep-links.md), so a filtered list can be linked.
+  const [search, setSearch] = useUrlSearch("q");
+  const [platformList, setPlatforms] = useUrlLabels("platform", PLATFORM_OPTIONS);
+  const [companyList, setCompanies] = useUrlLabels("company", COMPANY_KEYS);
+  const [audienceList, setAudiences] = useUrlLabels("audience", AUDIENCE_OPTIONS);
+  const [nicheList, setNiches] = useUrlLabels("niche", NICHE_OPTIONS);
+  const [savedOnly, setSavedOnly] = useUrlFlag("saved");
+  const update = useUrlUpdate();
+  const platforms = new Set(platformList);
+  const companies = new Set<string>(companyList);
+  const audiences = new Set(audienceList);
+  const niches = new Set(nicheList);
+  // A link that names a filter behind the Filters button opens them.
+  const [showFilters, setShowFilters] = useState(() => platformList.length + audienceList.length + nicheList.length > 0);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [userId, setUserId] = useState<string | null>(null);
   const [saved, setSaved] = useState<SavedItems>({
@@ -331,46 +343,14 @@ export default function AdvisorProfiles() {
     setSaved(toggleSaved(userId, "creators", id));
   };
 
-  const togglePlatform = (p: AdvisorPlatform) => {
-    setPlatforms((s) => {
-      const next = new Set(s);
-      if (next.has(p)) next.delete(p);
-      else next.add(p);
-      return next;
-    });
-  };
-  const toggleCompany = (c: string) => {
-    setCompanies((s) => {
-      const next = new Set(s);
-      if (next.has(c)) next.delete(c);
-      else next.add(c);
-      return next;
-    });
-  };
-  const toggleAudience = (a: string) => {
-    setAudiences((s) => {
-      const next = new Set(s);
-      if (next.has(a)) next.delete(a);
-      else next.add(a);
-      return next;
-    });
-  };
-  const toggleNiche = (n: string) => {
-    setNiches((s) => {
-      const next = new Set(s);
-      if (next.has(n)) next.delete(n);
-      else next.add(n);
-      return next;
-    });
-  };
+  const togglePlatform = (p: AdvisorPlatform) => setPlatforms(toggled(platformList, p));
+  const toggleCompany = (c: string) => setCompanies(toggled<string>(companyList, c));
+  const toggleAudience = (a: string) => setAudiences(toggled(audienceList, a));
+  const toggleNiche = (n: string) => setNiches(toggled(nicheList, n));
 
   const clearFilters = () => {
-    setPlatforms(new Set());
-    setCompanies(new Set());
-    setAudiences(new Set());
-    setNiches(new Set());
     setSearch("");
-    setSavedOnly(false);
+    update({ q: null, platform: null, company: null, audience: null, niche: null, saved: null });
   };
 
   const filtered = useMemo(() => {
@@ -403,7 +383,8 @@ export default function AdvisorProfiles() {
       }
       return true;
     });
-  }, [search, platforms, companies, audiences, niches, savedOnly, saved.creators]);
+    // The Sets are rebuilt every render, so the memo keys on the URL lists they come from.
+  }, [search, platformList.join(), companyList.join(), audienceList.join(), nicheList.join(), savedOnly, saved.creators]);
 
   const activeFilterCount =
     platforms.size +
@@ -414,7 +395,7 @@ export default function AdvisorProfiles() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [search, platforms, companies, audiences, niches]);
+  }, [search, platformList.join(), companyList.join(), audienceList.join(), nicheList.join()]);
 
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visible.length;
@@ -472,7 +453,7 @@ export default function AdvisorProfiles() {
               No company
             </Chip>
             <span className="mx-1 hidden h-4 w-px bg-border sm:block" />
-            <Chip active={savedOnly} onClick={() => setSavedOnly((v) => !v)} count={saved.creators.length > 0 ? saved.creators.length : undefined}>
+            <Chip active={savedOnly} onClick={() => setSavedOnly(!savedOnly)} count={saved.creators.length > 0 ? saved.creators.length : undefined}>
               <Bookmark className="h-3 w-3" /> Saved
             </Chip>
           </div>

@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import TrendCard from "@/components/hub/TrendCard";
 import type { HubTrend } from "@/lib/hub";
 import { supabase } from "@/lib/supabase";
+import { slug } from "@/lib/links";
+import { useUrlState } from "@/lib/urlState";
 
 function HowItWorks() {
   const [open, setOpen] = useState(false);
@@ -51,7 +53,8 @@ function HowItWorks() {
 export default function HubTrendsPage() {
   const [trends, setTrends] = useState<HubTrend[]>([]);
   const [loading, setLoading] = useState(true);
-  const [niche, setNiche] = useState<string | null>(null);
+  // ?niche=<slug> (docs/deep-links.md). Niches come from the data: one that is not in it shows them all.
+  const [nicheParam, setNicheParam] = useUrlState<string>("niche", "");
 
   useEffect(() => {
     supabase
@@ -69,6 +72,8 @@ export default function HubTrendsPage() {
     () => [...new Set(trends.map((t) => t.niche))].sort(),
     [trends],
   );
+  const niche = niches.find((n) => slug(n) === nicheParam) ?? null;
+  const setNiche = (n: string | null) => setNicheParam(n ? slug(n) : "");
   const shown = niche ? trends.filter((t) => t.niche === niche) : trends;
 
   return (
@@ -82,6 +87,7 @@ export default function HubTrendsPage() {
       {niches.length > 1 && (
         <div className="flex flex-wrap gap-2">
           <button
+            aria-pressed={niche === null}
             className={`rounded-full border px-3 py-1 text-xs ${niche === null ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
             onClick={() => setNiche(null)}
           >
@@ -90,6 +96,7 @@ export default function HubTrendsPage() {
           {niches.map((n) => (
             <button
               key={n}
+              aria-pressed={niche === n}
               className={`rounded-full border px-3 py-1 text-xs ${niche === n ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
               onClick={() => setNiche(n)}
             >

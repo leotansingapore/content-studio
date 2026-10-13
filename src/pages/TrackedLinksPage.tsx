@@ -3,6 +3,7 @@
 // public report per campaign. Server side: 019 and the tracked-link function.
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useUrlState } from "@/lib/urlState";
 import { Check, Copy, ExternalLink, Loader2, Pencil, Trash2 } from "lucide-react";
 
 import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
@@ -78,7 +79,10 @@ export default function TrackedLinksPage() {
   const [form, setForm] = useState<LinkInput>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
-  const [period, setPeriod] = useState<7 | 30>(30);
+  // ?period=7d (docs/deep-links.md); 30 days is the default and stays out of the URL.
+  const [periodParam, setPeriodParam] = useUrlState<"7d" | "30d">("period", "30d", { allowed: ["7d"] });
+  const period = periodParam === "7d" ? 7 : 30;
+  const setPeriod = (d: 7 | 30) => setPeriodParam(`${d}d`);
   const [editing, setEditing] = useState<{ id: string; label: string; campaign: string; warned: boolean } | null>(null);
   const [rowError, setRowError] = useState<{ id: string; text: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);

@@ -21,7 +21,10 @@ export const slug = (label: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
+const list = (values?: string[]) => (values?.length ? values.join(",") : undefined);
+
 export type CalendarView = "month" | "week" | "upcoming";
+export type AnalyticsPeriod = "7d" | "30d" | "90d" | "all";
 export type PostStatus = "scheduled" | "posted";
 
 export const links = {
@@ -72,6 +75,58 @@ export const links = {
   grid: () => "/grid",
   reels: (o: { brand?: string; view?: "board" | "grid"; archived?: boolean; card?: string; t?: number; slide?: number } = {}) =>
     `/reels${qs({ brand: o.brand, view: o.view, archived: o.archived && "show", card: o.card, t: o.t, slide: o.slide })}`,
+
+  // ---- Grow, Discover and settings pages ----
+  // Multi-selects take URL values (slugs, see slug()) and join as a comma list; defaults are left out.
+  inspiration: (o: { q?: string; pillar?: string[]; platform?: string[]; format?: string[]; audience?: string[]; saved?: boolean } = {}) =>
+    `/inspiration${qs({ q: o.q?.trim(), pillar: list(o.pillar), platform: list(o.platform), format: list(o.format), audience: list(o.audience), saved: o.saved && "only" })}`,
+  inspirationPost: (id: string) => `/inspiration/${encodeURIComponent(id)}`,
+  profiles: (o: { q?: string; company?: string[]; platform?: string[]; audience?: string[]; niche?: string[]; saved?: boolean } = {}) =>
+    `/profiles${qs({ q: o.q?.trim(), company: list(o.company), platform: list(o.platform), audience: list(o.audience), niche: list(o.niche), saved: o.saved && "only" })}`,
+  profile: (id: string) => `/profiles/${encodeURIComponent(id)}`,
+  swipe: (
+    o: {
+      tab?: "posts" | "news" | "ads";
+      q?: string;
+      format?: string;
+      from?: string;
+      /** A posts topic on the posts tab, a news topic with tab "news". */
+      topic?: string;
+      angle?: string;
+      audience?: string;
+      sort?: string;
+      saved?: boolean;
+      /** A top post's key, <advisorId>-<shortCode>: opens it. */
+      post?: string;
+      industry?: string;
+    } = {},
+  ) =>
+    `/swipe${qs({
+      tab: o.tab !== "posts" && o.tab,
+      q: o.q?.trim(),
+      format: o.format !== "all" && o.format,
+      from: o.from !== "all" && o.from,
+      topic: o.topic !== "all" && o.topic,
+      angle: o.angle !== "all" && o.angle,
+      audience: o.audience !== "all" && o.audience,
+      sort: o.sort,
+      saved: o.saved && "only",
+      post: o.post,
+      industry: o.industry !== "all" && o.industry,
+    })}`,
+  trends: (o: { platform?: string; type?: string; trend?: string } = {}) =>
+    `/trends${qs({ platform: o.platform !== "all" && o.platform, type: o.type !== "all" && o.type, trend: o.trend })}`,
+  analytics: (o: { period?: AnalyticsPeriod; by?: string; time?: string; rank?: string } = {}) =>
+    `/analytics${qs({ period: o.period !== "30d" && o.period, by: o.by !== "platform" && o.by, time: o.time !== "all" && o.time, rank: o.rank !== "engagements" && o.rank })}`,
+  trackedLinks: (o: { period?: "7d" | "30d" } = {}) => `/links${qs({ period: o.period !== "30d" && o.period })}`,
+  engage: (o: { tool?: string } = {}) => `/recruit/engage${qs({ tool: o.tool !== "replies" && o.tool })}`,
+  autoDm: (o: { log?: string; status?: "all" | "sent" | "skipped" | "failed"; edit?: string; keyword?: string } = {}) =>
+    `/recruit/auto-dm${qs({ log: o.log, status: o.status !== "all" && o.status, edit: o.edit, keyword: o.keyword })}`,
+  team: (o: { status?: string; from?: string; to?: string } = {}) =>
+    `/team${qs({ status: o.status !== "pending" && o.status, from: o.from, to: o.to })}`,
+  hubGuides: (o: { category?: string } = {}) => `/hub/guides${qs({ category: o.category })}`,
+  hubTrends: (o: { niche?: string } = {}) => `/hub/trends${qs({ niche: o.niche })}`,
+  hubAdmin: (o: { tab?: "clients" | "posts" | "members" } = {}) => `/hub/admin${qs({ tab: o.tab !== "clients" && o.tab })}`,
 };
 
 /** An app path as a full URL: this host in the browser, production elsewhere (a job, a test). */

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import {
   Card,
   CardContent,
@@ -33,6 +34,7 @@ const PLATFORM_META: Record<
 
 export default function InspirationDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { state } = useLocation();
   const navigate = useNavigate();
   const entry = ENTRIES.find((e) => e.id === id);
 
@@ -78,12 +80,14 @@ export default function InspirationDetailPage() {
 
   return (
     <div className="space-y-5">
-      <div>
+      <div className="flex items-center justify-between gap-2">
         <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-          <Link to="/inspiration">
+          {/* Back to the list as it was filtered when this was opened from it. */}
+          <Link to={(state as { back?: string } | null)?.back ?? "/inspiration"}>
             <ArrowLeft className="h-3.5 w-3.5" /> Back to all inspiration
           </Link>
         </Button>
+        <CopyLinkButton label="Copy link to this example" />
       </div>
 
       <Card className="border-border/60 shadow-card">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { safeExternalUrl } from "@/lib/embed";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +19,9 @@ import { cloneLinkFor } from "@/lib/reelClone";
 import VideoEmbed from "@/components/VideoEmbed";
 import YouTubeTrends from "@/components/YouTubeTrends";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { links } from "@/lib/links";
+import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import {
   Flame,
   Wand2,
@@ -69,9 +72,13 @@ const TREND_TYPE_STYLE: Record<string, string> = {
   sport: "border-success/30 bg-success/10 text-success",
 };
 
-function TrendCard({ trend }: { trend: TrendEntry }) {
+function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean; onToggle: () => void }) {
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  // A link to this trend lands on it, not on the top of the page.
+  useEffect(() => {
+    if (open) cardRef.current?.scrollIntoView({ block: "nearest" });
+  }, [open]);
   const platformMeta = PLATFORM_META[trend.platform];
   const PlatformIcon = platformMeta?.icon ?? Globe;
   const hooks = trendHooks(trend);
@@ -90,7 +97,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
   };
 
   return (
-    <Card className="flex flex-col border-border/60 shadow-card">
+    <Card ref={cardRef} id={`trend-${trend.id}`} className="flex scroll-mt-20 flex-col border-border/60 shadow-card">
       <CardContent className="flex flex-1 flex-col gap-3 py-4">
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -192,7 +199,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
         {hasKit && (
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
+            onClick={onToggle}
             aria-expanded={open}
             className="inline-flex w-fit items-center gap-1 py-1 text-[11px] font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
           >
@@ -297,6 +304,7 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
         )}
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
+          <CopyLinkButton path={links.trends({ trend: trend.id })} label="Copy link to this trend" className="order-last ml-auto" />
           <Button
             asChild
             size="sm"
@@ -325,9 +333,17 @@ function TrendCard({ trend }: { trend: TrendEntry }) {
 }
 
 export default function TrendsPage() {
-  const [platform, setPlatform] = useState<TrendPlatform | "all">("all");
-  const [type, setType] = useState<string>("all");
+  // Filters and the open kit live in the URL (docs/deep-links.md). Values come from the data, so an unknown
+  // one reads as all.
   const trends = useMemo(() => getTrends(), []);
+  const [platform, setPlatform] = useUrlState<TrendPlatform | "all">("platform", "all", { allowed: [...new Set(trends.map((t) => t.platform))] });
+  const [type, setType] = useUrlState<string>("type", "all", { allowed: trends.map((t) => t.trend_type ?? "").filter(Boolean) });
+  const [openId, openTrend, closeTrend] = useUrlItem("trend");
+  const update = useUrlUpdate();
+  // Bundled data: a trend that is not in it any more opens the page without it.
+  useEffect(() => {
+    if (openId && !trends.some((t) => t.id === openId)) closeTrend();
+  }, [openId, trends, closeTrend]);
 
   useEffect(() => {
     document.title = "Trends - Content Studio";
@@ -374,10 +390,7 @@ export default function TrendsPage() {
   }, [trends, types, platform]);
 
   const hasActiveFilter = platform !== "all" || type !== "all";
-  const clearFilters = () => {
-    setPlatform("all");
-    setType("all");
-  };
+  const clearFilters = () => update({ platform: null, type: null });
 
   const latestDate = trends[0]?.date_found;
 
@@ -491,7 +504,7 @@ export default function TrendsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((t) => (
-            <TrendCard key={t.id} trend={t} />
+            <TrendCard key={t.id} trend={t} open={openId === t.id} onToggle={() => (openId === t.id ? closeTrend() : openTrend(t.id))} />
           ))}
         </div>
       )}

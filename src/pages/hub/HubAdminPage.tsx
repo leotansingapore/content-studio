@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Shield } from "lucide-react";
 
@@ -7,6 +6,7 @@ import { useHub } from "@/components/hub/HubGate";
 import AllowlistManager from "@/components/hub/AllowlistManager";
 import PostEditor from "@/components/hub/PostEditor";
 import MemberList from "@/components/hub/MemberList";
+import { useUrlState } from "@/lib/urlState";
 
 const TABS = [
   { key: "clients", label: "Clients" },
@@ -16,7 +16,7 @@ const TABS = [
 
 export default function HubAdminPage() {
   const { access } = useHub();
-  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("clients");
+  const [tab, setTab] = useUrlState<(typeof TABS)[number]["key"]>("tab", "clients", { allowed: TABS.map((t) => t.key) });
 
   if (access !== "admin") {
     return (
@@ -46,6 +46,7 @@ export default function HubAdminPage() {
                 ? "border-primary font-medium text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
+            aria-pressed={tab === t.key}
             onClick={() => setTab(t.key)}
           >
             {t.label}

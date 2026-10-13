@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { slug } from "@/lib/links";
+import { useUrlSearch, useUrlState } from "@/lib/urlState";
 import { Link } from "react-router-dom";
 import { ExternalLink, PenLine, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -57,13 +59,15 @@ function AdCard({ ad }: { ad: SwipeAd }) {
 }
 
 export default function AdsSwipe() {
-  const [query, setQueryRaw] = useState("");
-  const [industry, setIndustryRaw] = useState("all");
+  // On /swipe?tab=ads: ?q= and ?industry= (the industry's slug), per docs/deep-links.md.
+  const [query, setQueryRaw] = useUrlSearch("q");
+  const [industrySlug, setIndustrySlug] = useUrlState("industry", "all");
   const [limit, setLimit] = useState(12);
   const found = useMemo(() => searchAds(ADS, query), [query]);
   const industries = useMemo(() => facetCounts(found, "industry"), [found]);
-  const shown = industry === "all" || !industries.some((i) => i.value === industry) ? found : found.filter((a) => a.industry === industry);
-  const setIndustry = (v: string) => { setIndustryRaw(v); setLimit(12); };
+  const industry = industries.find((i) => slug(i.value) === industrySlug)?.value ?? "all";
+  const shown = industry === "all" ? found : found.filter((a) => a.industry === industry);
+  const setIndustry = (v: string) => { setIndustrySlug(v === "all" ? "all" : slug(v)); setLimit(12); };
   const setQuery = (q: string) => { setQueryRaw(q); setLimit(12); };
 
   if (ADS.length === 0) {

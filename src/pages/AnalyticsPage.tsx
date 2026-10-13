@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { type AnalyticsPeriod } from "@/lib/links";
+import { useUrlState } from "@/lib/urlState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
@@ -126,6 +129,18 @@ const LENGTH_LABEL: Record<string, string> = {
   over: "Too long",
 };
 
+// ?rank= and ?by= values: words in the URL, the metric or dimension in the code.
+const RANK_PARAM: Record<string, RankMetric> = {
+  engagements: "engagementTotal",
+  "engagement-rate": "engagementRate",
+  impressions: "impressions",
+  reactions: "reactions",
+  comments: "comments",
+  shares: "shares",
+  reach: "reachMultiple",
+  "comment-ratio": "commentRatio",
+};
+
 // Top posts show the number they are ranked by.
 const RANK_UNIT: Record<RankMetric, string> = {
   engagementTotal: "engagements",
@@ -151,6 +166,8 @@ const DIMENSION_TABS: { id: BreakdownDimension; label: string }[] = [
   { id: "format", label: "Format" },
   { id: "hookFormula", label: "Hook formula" },
 ];
+const BY_PARAM: Record<string, BreakdownDimension> = { platform: "platform", pillar: "pillar", format: "format", "hook-formula": "hookFormula" };
+const paramOf = <V,>(map: Record<string, V>, v: V, fallback: string) => Object.keys(map).find((k) => map[k] === v) ?? fallback;
 
 const INSIGHT_STYLE: Record<
   Insight["tone"],
@@ -404,7 +421,10 @@ function ThisWeekCard({ userId, version }: { userId: string; version: number }) 
 export default function AnalyticsPage() {
   const [userId, setUserId] = useState<string | null | undefined>(undefined);
   const [postedCount, setPostedCount] = useState(0);
-  const [dimension, setDimension] = useState<BreakdownDimension>("platform");
+  // Period, breakdown, best-time platform and ranking live in the URL (docs/deep-links.md), as words.
+  const [by, setBy] = useUrlState("by", "platform", { allowed: Object.keys(BY_PARAM) });
+  const dimension = BY_PARAM[by] ?? "platform";
+  const setDimension = (d: BreakdownDimension) => setBy(paramOf(BY_PARAM, d, "platform"));
   // Bumps whenever bulk metrics are saved (or real ones pulled) so every derived memo recomputes.
   const [metricsVersion, setMetricsVersion] = useState(0);
   const bumpMetrics = useCallback(() => setMetricsVersion((v) => v + 1), []);
@@ -536,8 +556,12 @@ export default function AnalyticsPage() {
     };
   }, [tracked]);
 
-  const [period, setPeriod] = useState<0 | 7 | 30 | 90>(30);
-  const [rankBy, setRankBy] = useState<RankMetric>("engagementTotal");
+  const [periodParam, setPeriodParam] = useUrlState<AnalyticsPeriod>("period", "30d", { allowed: ["7d", "30d", "90d", "all"] });
+  const period = periodParam === "all" ? 0 : (Number(periodParam.slice(0, -1)) as 7 | 30 | 90);
+  const setPeriod = (d: 0 | 7 | 30 | 90) => setPeriodParam(d ? `${d}d` : "all");
+  const [rankParam, setRankParam] = useUrlState("rank", "engagements", { allowed: Object.keys(RANK_PARAM) });
+  const rankBy = RANK_PARAM[rankParam] ?? "engagementTotal";
+  const setRankBy = (m: RankMetric) => setRankParam(paramOf(RANK_PARAM, m, "engagements"));
   const cmp = useMemo(() => (period ? comparePeriods(tracked, period) : null), [tracked, period]);
   const ranked = useMemo(() => rankPosts(withinDays(tracked, period), rankBy, 5, followers), [tracked, rankBy, period, followers]);
   const followerPlatforms = useMemo(
@@ -598,7 +622,9 @@ export default function AnalyticsPage() {
     [tracked],
   );
   // Best time for one platform (null = all): its own posts once it has enough, else every platform's.
-  const [timePlatform, setTimePlatform] = useState<string | null>(null);
+  const [timeParam, setTimeParam] = useUrlState("time", "all", { allowed: Object.keys(PLATFORM_LABEL) });
+  const timePlatform = timeParam === "all" ? null : timeParam;
+  const setTimePlatform = (k: string | null) => setTimeParam(k ?? "all");
   const timePlatforms = useMemo(() => Object.keys(PLATFORM_LABEL).filter((k) => tracked.some((d) => d.platform === k)), [tracked]);
   const timePool = useMemo(() => bestTimePosts(tracked, timePlatform), [tracked, timePlatform]);
   const placedAll = useMemo(() => postingTimeGrid(tracked).placed, [tracked]);
@@ -798,13 +824,16 @@ export default function AnalyticsPage() {
       )}
 
       {(hasData || showMix) && (
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
-          {([[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
-            <button key={d} type="button" onClick={() => setPeriod(d)} aria-pressed={period === d}
-              className={`h-9 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
-              {label}
-            </button>
-          ))}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Period">
+            {([[7, "7 days"], [30, "30 days"], [90, "90 days"], [0, "All time"]] as const).map(([d, label]) => (
+              <button key={d} type="button" onClick={() => setPeriod(d)} aria-pressed={period === d}
+                className={`h-9 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${period === d ? "border-primary/50 bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:text-foreground"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <CopyLinkButton label="Copy link to this view" />
         </div>
       )}
       {hasData && (
@@ -902,6 +931,7 @@ export default function AnalyticsPage() {
                     key={t.id}
                     type="button"
                     onClick={() => setDimension(t.id)}
+                    aria-pressed={dimension === t.id}
                     className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
                       dimension === t.id
                         ? "border-primary/60 bg-primary/10 text-primary"

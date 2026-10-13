@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowRight, Check, Image as ImageIcon, LayoutGrid, MessageCircle, Plus, RotateCw, Trash2, X } from "lucide-react";
 import SectionTabs, { RECRUIT_TABS } from "@/components/SectionTabs";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,7 +88,12 @@ function Switch({ on, label, busy, bare, onChange }: { on: boolean; label: strin
 
 export default function AutoDmPage() {
   const { toast } = useToast();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
+  // Who got it (?log=) and the editor (?edit=<id> or new) are in the URL, so Back closes them and a link
+  // opens them (docs/deep-links.md). The typed form itself stays in sessionStorage, not the URL.
+  const [logId, openLog] = useUrlItem("log");
+  const [editId, openEdit, closeEdit] = useUrlItem("edit");
+  const update = useUrlUpdate();
   const [userId, setUserId] = useState<string | null>(null);
   const [state, setState] = useState<"loading" | "off" | "ready" | "error">("loading");
   const [error, setError] = useState("");
@@ -98,8 +105,7 @@ export default function AutoDmPage() {
   const [broughtKeyword, setBroughtKeyword] = useState("");
   const [busy, setBusy] = useState("");
   const profileId = activeProfile(userId).id;
-  // Who got it is its own view, in the URL so the back button returns to the list
-  const logOf = list.find((a) => a.id === params.get("log"));
+  const logOf = list.find((a) => a.id === logId);
 
   /** False when Zernio couldn't read them. */
   const loadPosts = async (accountId: string): Promise<boolean> => {
@@ -120,9 +126,9 @@ export default function AutoDmPage() {
       setAccounts(r.accounts);
       setList(r.automations);
       setState("ready");
+      // A form left open in this tab comes back (the editor below opens it from ?edit=), unless the link said where to go.
       const kept = keptForm(readKept(uid), r.accounts.map((a) => a.id), r.automations.map((a) => a.id));
-      if (keyword && r.accounts.length) setForm(emptyForm(r.accounts[0].id, keyword));
-      else if (kept) setForm(kept);
+      if (!keyword && kept && !linkedAtArrival) update({ edit: kept.id ?? "new" });
       const bound = new Set(r.automations.filter((a) => a.platformPostId).map((a) => a.accountId));
       for (const id of bound) void accountPosts(activeProfile(uid).id, id).then(({ posts: p }) => setPosts((m) => ({ ...m, [id]: p })), () => {});
     } catch (e) {
@@ -136,11 +142,14 @@ export default function AutoDmPage() {
     }
   };
 
+  // A link that names an editor or a log wins over the form left open in this tab.
+  const linkedAtArrival = useRef(params.has("edit") || params.has("log")).current;
   useEffect(() => {
     const keyword = splitKeywords(params.get("keyword") ?? "")[0]?.slice(0, LIMITS.keyword) ?? "";
     if (keyword) {
       setBroughtKeyword(keyword);
-      setParams({}, { replace: true });
+      // One write: the keyword is used up, and a new auto-DM opens with it.
+      update({ keyword: null, edit: "new", log: null });
     }
     supabase.auth.getUser().then(({ data }) => {
       const id = data.user?.id ?? null;
@@ -153,6 +162,29 @@ export default function AutoDmPage() {
   }, []);
 
   const accountOf = (id: string) => accounts.find((a) => a.id === id);
+
+  // The editor follows ?edit=: open what it names (the form kept in this tab when it is the same one), close
+  // when Back took it away, and drop an id that is not there any more. Typed text stays in sessionStorage.
+  useEffect(() => {
+    if (state !== "ready") return;
+    const open = form ? form.id ?? "new" : null;
+    if (editId === open) return;
+    if (!editId) return setForm(null);
+    const kept = userId ? keptForm(readKept(userId), accounts.map((a) => a.id), list.map((a) => a.id)) : null;
+    // A keyword brought from Write starts a fresh one, like before.
+    if (kept && (kept.id ?? "new") === editId && !(editId === "new" && broughtKeyword)) return setForm(kept);
+    const a = list.find((x) => x.id === editId);
+    if (editId === "new" && accounts.length) setForm(emptyForm(accounts[0].id, broughtKeyword));
+    else if (a) {
+      setForm(formFromView(a));
+      void loadPosts(a.accountId);
+    } else closeEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, editId, form, list, accounts]);
+  // A link to who got it for an auto-DM that is gone opens the list.
+  useEffect(() => {
+    if (state === "ready" && logId && !logOf) update({ log: null, status: null });
+  }, [state, logId, logOf, update]);
 
   const toggle = async (a: AutomationView) => {
     const next = !a.active;
@@ -180,6 +212,7 @@ export default function AutoDmPage() {
       toast({ title: `Deleted the auto-DM for ${autoDmName(a)}` });
       forgetForm();
       setForm(null);
+      update({ edit: null, log: null, status: null });
     } catch (e) {
       toast({ title: message(e), variant: "destructive" });
     } finally {
@@ -198,6 +231,7 @@ export default function AutoDmPage() {
   const saved = (wasNew: boolean, active: boolean) => {
     forgetForm();
     setForm(null);
+    closeEdit();
     setBroughtKeyword("");
     toast({ title: !wasNew ? "Auto-DM saved" : active ? "Auto-DM saved and on" : "Auto-DM saved, paused" });
     if (userId) void load(userId);
@@ -212,11 +246,8 @@ export default function AutoDmPage() {
           profileId={profileId}
           a={logOf}
           post={posts[logOf.accountId]?.find((p) => p.id === logOf.platformPostId)}
-          onBack={() => setParams({}, { replace: true })}
-          onEdit={() => {
-            setForm(formFromView(logOf));
-            void loadPosts(logOf.accountId);
-          }}
+          onBack={() => update({ log: null, status: null })}
+          onEdit={() => openEdit(logOf.id)}
         />
       )}
 
@@ -227,7 +258,7 @@ export default function AutoDmPage() {
             <p className="hidden text-[15px] text-muted-foreground sm:block">When someone comments your keyword, they get your DM.</p>
           </div>
           {state === "ready" && accounts.length > 0 && (
-            <Button className="h-11 gap-1.5 px-3.5 text-[15px] font-semibold sm:gap-2 sm:px-[18px]" aria-label="New auto-DM" onClick={() => setForm(emptyForm(accounts[0].id, broughtKeyword))}>
+            <Button className="h-11 gap-1.5 px-3.5 text-[15px] font-semibold sm:gap-2 sm:px-[18px]" aria-label="New auto-DM" onClick={() => openEdit("new")}>
               <Plus className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
               <span className="sm:hidden">New</span>
               <span className="hidden sm:inline">New auto-DM</span>
@@ -259,7 +290,7 @@ export default function AutoDmPage() {
         </div>
       )}
 
-      {state === "ready" && !form && list.length === 0 && <FirstVisit account={accounts[0]} onNew={() => setForm(emptyForm(accounts[0].id, broughtKeyword))} />}
+      {state === "ready" && !form && list.length === 0 && <FirstVisit account={accounts[0]} onNew={() => openEdit("new")} />}
 
       {state === "ready" && form && (
         <Editor
@@ -274,6 +305,7 @@ export default function AutoDmPage() {
           onCancel={() => {
             forgetForm();
             setForm(null);
+            closeEdit();
           }}
           onSaved={saved}
           deleting={busy === `d${form.id}`}
@@ -337,12 +369,9 @@ export default function AutoDmPage() {
                   account={accounts.length > 1 ? accountOf(a.accountId) : undefined}
                   post={posts[a.accountId]?.find((p) => p.id === a.platformPostId)}
                   busy={busy}
-                  onLog={() => setParams({ log: a.id })}
+                  onLog={() => openLog(a.id)}
                   onToggle={() => toggle(a)}
-                  onEdit={() => {
-                    setForm(formFromView(a));
-                    void loadPosts(a.accountId);
-                  }}
+                  onEdit={() => openEdit(a.id)}
                 />
               ))}
             </ul>
@@ -560,7 +589,7 @@ function WhoGotIt({ profileId, a, post, onBack, onEdit }: { profileId: string; a
   const [more, setMore] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState<(typeof FILTERS)[number][0]>("all");
+  const [view, setView] = useUrlState<(typeof FILTERS)[number][0]>("status", "all", { allowed: FILTERS.map(([id]) => id) });
   const page = async (skip: number) => {
     setLoading(true);
     setError("");
@@ -600,9 +629,12 @@ function WhoGotIt({ profileId, a, post, onBack, onEdit }: { profileId: string; a
           </h1>
           <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">{whoGotItLine(a, post?.caption || a.postTitle)}</p>
         </div>
-        <Button variant="outline" className="h-11 px-3.5" onClick={onEdit}>
-          Edit this auto-DM
-        </Button>
+        <span className="flex items-center gap-1">
+          <CopyLinkButton label="Copy link to who got it" />
+          <Button variant="outline" className="h-11 px-3.5" onClick={onEdit}>
+            Edit this auto-DM
+          </Button>
+        </span>
       </header>
 
       <div className="space-y-2">

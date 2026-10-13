@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import Mentions from "@/components/Mentions";
 import { NEWS } from "@/lib/industryNews";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
 import { InfoTip } from "@/components/ui/info-tip";
+import { useUrlFlag, useUrlItem, useUrlLabel, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { supabase } from "@/lib/supabase";
 import { loadSaved, toggleSaved } from "@/lib/savedItems";
@@ -86,30 +87,37 @@ function FilterSelect({
 }
 
 export default function SwipeFilePage() {
-  const [params, setParams] = useSearchParams();
-  const tabParam = params.get("tab");
-  const tab = tabParam === "news" || (tabParam === "ads" && ADS.length > 0) ? tabParam : "posts";
-  const setTab = (t: "posts" | "news" | "ads") => {
-    const next = new URLSearchParams(params);
-    if (t !== "posts") next.set("tab", t);
-    else next.delete("tab");
-    setParams(next, { replace: true });
-  };
+  // Tab, search, filters, sort and the open post live in the URL (docs/deep-links.md).
+  const [tab] = useUrlState<"posts" | "news" | "ads">("tab", "posts", { allowed: ADS.length ? ["news", "ads"] : ["news"] });
+  const update = useUrlUpdate();
+  // Each tab has its own search and filters, so a tab switch starts them clean in one write.
+  const setTab = (t: "posts" | "news" | "ads") =>
+    update({ tab: t === "posts" ? null : t, q: null, format: null, from: null, topic: null, angle: null, audience: null, sort: null, saved: null, post: null, industry: null });
   const [userId, setUserId] = useState<string | null>(null);
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
   const [hasPlaybook, setHasPlaybook] = useState(false);
 
-  const [search, setSearch] = useState("");
-  const [format, setFormat] = useState("all");
-  const [kind, setKind] = useState("all");
-  const [topic, setTopic] = useState("all");
-  const [angle, setAngle] = useState("all");
-  const [audience, setAudience] = useState("all");
-  const [sort, setSort] = useState<SortKey>("engagement");
-  const [savedOnly, setSavedOnly] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [search, setSearch] = useUrlSearch("q");
+  const [format, setFormat] = useUrlState("format", "all", { allowed: FORMAT_CHIPS.map((c) => c.value) });
+  const [kind, setKind] = useUrlState("from", "all", { allowed: KIND_OPTIONS.map((k) => k.value) });
+  const [topicLabel, setTopicLabel] = useUrlLabel("topic", TOPICS);
+  const [angleLabel, setAngleLabel] = useUrlLabel("angle", ANGLES);
+  const [audienceLabel, setAudienceLabel] = useUrlLabel("audience", AUDIENCES);
+  const topic: string = topicLabel ?? "all";
+  const angle: string = angleLabel ?? "all";
+  const audience: string = audienceLabel ?? "all";
+  const setTopic = (v: string) => setTopicLabel(TOPICS.find((t) => t === v) ?? null);
+  const setAngle = (v: string) => setAngleLabel(ANGLES.find((a) => a === v) ?? null);
+  const setAudience = (v: string) => setAudienceLabel(AUDIENCES.find((a) => a === v) ?? null);
+  // Best for you is the default once a Playbook exists; a link's sort wins either way.
+  const [sort, setSort] = useUrlState<SortKey>("sort", hasPlaybook ? "for-you" : "engagement", {
+    allowed: SORTS.map((x) => x.value).filter((v) => hasPlaybook || v !== "for-you"),
+  });
+  const [savedOnly, setSavedOnly] = useUrlFlag("saved");
+  // A link that names a filter behind the Filters button opens them.
+  const [showFilters, setShowFilters] = useState(() => [kind, topic, angle, audience].some((v) => v !== "all"));
   const [visible, setVisible] = useState(PAGE_SIZE);
-  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [openKey, openPost, closePost] = useUrlItem("post");
 
   const target = useMemo(
     () => (userId ? personalTargetFromPositioning(loadPositioning(userId)) : null),
@@ -124,9 +132,7 @@ export default function SwipeFilePage() {
       const id = data.user?.id ?? null;
       setUserId(id);
       setSavedSet(new Set(loadSaved(id).topPosts));
-      const t = personalTargetFromPositioning(loadPositioning(id));
-      setHasPlaybook(Boolean(t));
-      if (t) setSort("for-you"); // personalised by default once a Playbook exists
+      setHasPlaybook(Boolean(personalTargetFromPositioning(loadPositioning(id))));
     });
     return () => {
       active = false;
@@ -176,16 +182,15 @@ export default function SwipeFilePage() {
   const activeFilters = [kind, topic, angle, audience].filter((v) => v !== "all").length;
   const clearFilters = () => {
     setSearch("");
-    setFormat("all");
-    setKind("all");
-    setTopic("all");
-    setAngle("all");
-    setAudience("all");
-    setSavedOnly(false);
+    update({ q: null, format: null, from: null, topic: null, angle: null, audience: null, saved: null });
   };
   const shown = filtered.slice(0, visible);
   const remaining = filtered.length - shown.length;
   const openItem = openKey ? ENRICHED.find((p) => postKey(p) === openKey) ?? null : null;
+  // The posts are bundled, so an id that is not among them is gone: open the page without it.
+  useEffect(() => {
+    if (openKey && !openItem) closePost();
+  }, [openKey, openItem, closePost]);
 
   return (
     <div className="space-y-5">
@@ -338,7 +343,7 @@ export default function SwipeFilePage() {
                   </Chip>
                 ))}
                 <span className="mx-1 hidden h-4 w-px bg-border sm:block" />
-                <Chip active={savedOnly} onClick={() => setSavedOnly((v) => !v)} count={savedSet.size > 0 ? savedSet.size : undefined}>
+                <Chip active={savedOnly} onClick={() => setSavedOnly(!savedOnly)} count={savedSet.size > 0 ? savedSet.size : undefined}>
                   <Bookmark className="h-3 w-3" /> Saved
                 </Chip>
               </div>
@@ -406,7 +411,7 @@ export default function SwipeFilePage() {
               <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
                 {shown.map((item) => {
                   const key = postKey(item);
-                  return <ReelCard key={key} item={item} onOpen={() => setOpenKey(key)} />;
+                  return <ReelCard key={key} item={item} onOpen={() => openPost(key)} />;
                 })}
               </div>
               {remaining > 0 && (
@@ -430,8 +435,9 @@ export default function SwipeFilePage() {
             all={ENRICHED}
             saved={openKey ? savedSet.has(openKey) : false}
             onToggleSave={() => openKey && toggleSave(openKey)}
-            onOpen={(next) => setOpenKey(postKey(next))}
-            onClose={() => setOpenKey(null)}
+            // A similar post replaces the open one, so Back still closes the drawer in one step.
+            onOpen={(next) => update({ post: postKey(next) })}
+            onClose={closePost}
           />
 
           <p className="pt-1 text-center text-xs text-muted-foreground">
