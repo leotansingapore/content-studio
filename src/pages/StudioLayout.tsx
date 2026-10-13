@@ -9,7 +9,9 @@ import { disablePushHere, refreshPushHere } from "@/lib/notify";
 import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
-import { Sparkles, LogOut, Plus, LayoutGrid, X } from "lucide-react";
+import JumpTo, { jumpShortcut } from "@/components/JumpTo";
+import { pushRecent } from "@/lib/jumpTo";
+import { Sparkles, LogOut, Plus, LayoutGrid, Search, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 import {
   MOBILE_TABS,
@@ -167,6 +169,8 @@ function MoreTileLink({ tile, active }: { tile: MoreTile; active: boolean }) {
 export default function StudioLayout() {
   const { pathname, search } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  // Jump to: Cmd/Ctrl+K anywhere, the button under New post, or the search button on phones.
+  const [jumpOpen, setJumpOpen] = useState(false);
   const [email, setEmail] = useState<string>("");
   // Social accounts sits in the nav only once the server has said it is on for this sign-in.
   const [, setSocialOn] = useState(socialConnectShown);
@@ -193,6 +197,22 @@ export default function StudioLayout() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setJumpOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Jump to lists the pages opened lately on this device.
+  useEffect(() => {
+    pushRecent(pathname);
+  }, [pathname]);
 
   // Pages that know a better name (a creator, a 404) set theirs in an effect,
   // which runs after this one.
@@ -282,6 +302,17 @@ export default function StudioLayout() {
                 <Plus className="h-4 w-4" /> New post
               </Link>
             </Button>
+            <button
+              type="button"
+              onClick={() => setJumpOpen(true)}
+              aria-haspopup="dialog"
+              aria-keyshortcuts="Meta+K Control+K"
+              className="flex h-9 w-full items-center gap-2 rounded-lg border border-border/70 bg-background px-3 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground [@media(pointer:coarse)]:h-11"
+            >
+              <Search className="h-4 w-4 shrink-0" />
+              <span className="flex-1 text-left">Jump to...</span>
+              <kbd className="rounded border border-border/70 px-1.5 font-sans text-[10px] font-semibold">{jumpShortcut()}</kbd>
+            </button>
           </div>
           <nav aria-label={open.label} className="flex-1 overflow-y-auto px-3 pb-3 pt-3">
             <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -328,7 +359,19 @@ export default function StudioLayout() {
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-1.5">
           <Brandmark />
-          <ProfileSwitcher compact />
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setJumpOpen(true)}
+              aria-label="Jump to a page"
+              aria-haspopup="dialog"
+              className="h-11 w-11 p-0 text-muted-foreground"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+            <ProfileSwitcher compact />
+          </div>
         </div>
       </header>
 
@@ -437,6 +480,7 @@ export default function StudioLayout() {
           </ErrorBoundary>
         </main>
       </div>
+      <JumpTo open={jumpOpen} onClose={() => setJumpOpen(false)} email={email} />
       <ExportPill />
       <AssistantMount />
     </div>
