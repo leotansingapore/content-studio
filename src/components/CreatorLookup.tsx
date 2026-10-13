@@ -16,6 +16,7 @@ import {
 } from "@/lib/creatorAnalysis";
 import { parseInstagramInput } from "@/components/CompetitorReference";
 import { buildRemixUrl } from "@/lib/topPosts";
+import { links } from "@/lib/links";
 import {
   Search,
   UserSearch,
@@ -167,9 +168,7 @@ function AnalysisResult({
         )}
         <Button asChild size="sm" variant="outline" className="flex-1 gap-1.5">
           <Link
-            to={`/plan?competitor=${encodeURIComponent(
-              live ? advisor.handle : advisor.id,
-            )}`}
+            to={links.plan({ competitor: live ? advisor.handle : advisor.id })}
           >
             <UserSearch className="h-3.5 w-3.5" /> Use as competitor in my plan
           </Link>

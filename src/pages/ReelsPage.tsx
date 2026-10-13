@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile } from "@/lib/profiles";
 import {
   NEXT,
@@ -35,27 +36,19 @@ export default function ReelsPage() {
   const [owner, setOwner] = useState<boolean | null>(null);
   const [board, setBoard] = useState<Board | null>(null);
   const [error, setError] = useState("");
-  const [brand, setBrand] = useState<string | null>(params.get("brand"));
-  const [showArchived, setShowArchived] = useState(false);
+  // Profile, layout, archived and the open reel live in the URL (docs/deep-links.md). ?brand=all shows every
+  // profile; no ?brand= opens on the open profile's brand.
+  const [profileBrand, setProfileBrand] = useState<string | null>(null);
+  const brandParam = params.get("brand");
+  const known = (b: string) => !board || board.brands.some((x) => x.id === b);
+  const brand = brandParam === "all" ? "" : brandParam && known(brandParam) ? brandParam : profileBrand;
+  const setBrand = (b: string) => setParams((prev) => withParam(prev, "brand", b || "all"), { replace: true });
+  const [archived, setArchived] = useUrlState("archived", "hide", { allowed: ["hide", "show"] });
+  const showArchived = archived === "show";
   // Board (kanban columns, drag between stages) on wide screens, grid on phones; remembered per device.
-  const [view, setView] = useState<"board" | "grid">(() => {
-    try {
-      const v = localStorage.getItem("cs-reels-view");
-      if (v === "board" || v === "grid") return v;
-    } catch {
-      // storage blocked: fall through to the screen-size default
-    }
-    return typeof window !== "undefined" && window.innerWidth >= 1024 ? "board" : "grid";
-  });
+  const wide = typeof window !== "undefined" && window.innerWidth >= 1024;
+  const [view, pickView] = useUrlState<"board" | "grid">("view", wide ? "board" : "grid", { allowed: ["board", "grid"], remember: "cs-reels-view" });
   const [over, setOver] = useState<string | null>(null);
-  const pickView = (v: "board" | "grid") => {
-    setView(v);
-    try {
-      localStorage.setItem("cs-reels-view", v);
-    } catch {
-      // per-device convenience only
-    }
-  };
   const openId = params.get("card");
 
   useEffect(() => {
@@ -69,7 +62,7 @@ export default function ReelsPage() {
         .then((b) => {
           setBoard(b);
           // Open on the board brand that matches the open profile.
-          setBrand((cur) => cur ?? brandForProfile(b.brands, activeProfile(data.user?.id).name));
+          setProfileBrand(brandForProfile(b.brands, activeProfile(data.user?.id).name));
         })
         .catch((e) => setError(String(e.message || e)));
     });
@@ -150,7 +143,7 @@ export default function ReelsPage() {
               ))}
             </select>
             <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-              <input type="checkbox" className="h-4 w-4 accent-primary" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+              <input type="checkbox" className="h-4 w-4 accent-primary" checked={showArchived} onChange={(e) => setArchived(e.target.checked ? "show" : "hide")} />
               Archived
             </label>
             <div className="flex rounded-lg border border-border/60 bg-muted/30 p-0.5" role="group" aria-label="Layout">

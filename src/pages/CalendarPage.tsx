@@ -23,6 +23,9 @@ import { COVER_DAYS, dueByHand, runsOut, weekGlance, type DatedItem } from "@/li
 import { activeProfile } from "@/lib/profiles";
 import { BusinessChips, useBusinessFilter } from "@/components/BusinessFilter";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { links, slug } from "@/lib/links";
+import { useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import { STATUS_LABEL, businessKey, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 import {
   addDays,
@@ -100,7 +103,8 @@ const PLATFORM_LABEL: Record<string, string> = {
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DRAG_TYPE = "text/draft-id";
 
-type View = "month" | "week" | "list";
+const VIEWS = ["month", "week", "upcoming"] as const;
+type View = (typeof VIEWS)[number];
 type NoteForm = { id: string | null; date: string; title: string; color: NoteColor };
 
 // Note colours are theme tokens, spelled out so Tailwind keeps the classes.
@@ -125,7 +129,13 @@ const REPEAT_LABEL: Record<RepeatEvery, string> = {
 };
 const TEAM_BUSINESS = "Team posts"; // its own entry in the business filter
 const KEY_DATE_DAYS = 60; // how far ahead Upcoming lists holidays and money dates
-type StatusFilter = "all" | "scheduled" | "posted";
+const STATUSES = ["all", "scheduled", "posted"] as const;
+type StatusFilter = (typeof STATUSES)[number];
+const PLATFORMS = ["all", ...Object.keys(PLATFORM_LABEL)];
+
+// A day key (YYYY-MM-DD) or month (YYYY-MM) from a link, or null when it isn't a real one.
+const linkDay = (v: string | null) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) && localDateKey(keyToDate(v)) === v ? v : null);
+const linkMonth = (v: string | null) => (v && /^\d{4}-(0[1-9]|1[0-2])$/.test(v) ? v : null);
 
 // The date a post "sits on" in the calendar: scheduled date, else the day it was
 // posted (the same day Home's weekly count uses).
@@ -160,18 +170,16 @@ export default function CalendarPage() {
   // Team rule: members on approval can't mark a post posted until it is approved.
   const reviews = useDraftReviews(userId, drafts);
   const [postOpenId, setPostOpenId] = useState<string | null>(null);
+  const [params, setParams] = useSearchParams();
   useZernioRefresh(userId, drafts, setDrafts);
   // The assistant moves posts from outside this page: read them again when it does.
   useEffect(() => (userId ? onDraftsChanged(() => setDrafts(loadDrafts(userId))) : undefined), [userId]);
-  // Phones open on the list: the month grid only shows Mon-Thu at 390px.
-  const [view, setView] = useState<View>(() =>
-    typeof window !== "undefined" && window.innerWidth < 640 ? "list" : "month",
-  );
-  // The day the month or week view is showing.
-  const [anchor, setAnchor] = useState(() => localDateKey());
-  const [platform, setPlatform] = useState("all");
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Everything a link can name lives in the URL (docs/deep-links.md): view, filters, the month or week shown and
+  // the open post, day, team post or channel post.
+  const [view, setView] = useUrlState<View>("view", "month", { allowed: VIEWS, remember: "cs-calendar-view" });
+  const [platform, setPlatform] = useUrlState("platform", "all", { allowed: PLATFORMS });
+  const [status, setStatus] = useUrlState<StatusFilter>("status", "all", { allowed: STATUSES });
+  const [selectedId, openPost, closePost] = useUrlItem("post");
   // Set when the selected chip is a future occurrence of a recurring post (its day).
   const [selectedGhost, setSelectedGhost] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -192,18 +200,20 @@ export default function CalendarPage() {
   // Reels still in review or needing changes on the board: content waiting on Leo, with no date yet.
   const [waiting, setWaiting] = useState<{ id: string; title: string; business: string; brand: string; changes: boolean; carousel: boolean }[]>([]);
   // The day whose panel is open (tap a day number or an empty part of a day).
-  const [dayOpen, setDayOpen] = useState<string | null>(null);
+  const [dayParam, openDayParam, closeDay] = useUrlItem("day");
+  const dayOpen = linkDay(dayParam);
   const [waitOpen, setWaitOpen] = useState(false);
   const dayRef = useRef<HTMLDivElement>(null);
   // Channel posts other jobs publish (the MoneyBees Telegram channel first), with their full caption and pictures.
   const [feed, setFeed] = useState<CalendarFeedItem[]>([]);
-  const [openFeed, setOpenFeed] = useState<CalendarFeedItem | null>(null);
+  const [feedId, openFeedItem, closeFeed] = useUrlItem("feed");
+  const openFeed = feed.find((f) => f.id === feedId) ?? null;
   const [profileName, setProfileName] = useState("");
   // Team posts Leo reviews before a job sends them to Telegram; empty for every other account.
   const [teamPosts, setTeamPosts] = useState<TeamPost[]>([]);
   const [teamReviews, setTeamReviews] = useState<TeamReviews>({});
-  const [teamOpenId, setTeamOpenId] = useState<string | null>(null);
-  const [params, setParams] = useSearchParams();
+  // /calendar?teampost=tp3 (the Telegram prompt links it): opens that post's review panel once it is loaded.
+  const teamOpenId = params.get("teampost");
 
   useEffect(() => {
     document.title = "Calendar - Content Studio";
@@ -272,26 +282,25 @@ export default function CalendarPage() {
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refreshTeam]);
+  // A link with ?teampost= and no ?business= shows the team posts behind the panel. Opening one here names the
+  // business on screen instead, so the calendar behind it stays as it was; closing keeps a link's team view.
   const openTeam = (id: string) => {
-    setTeamOpenId(id);
+    setParams((prev) => {
+      const p = withParam(prev, "teampost", id);
+      if (!p.get("business")) p.set("business", bizFilter.bizSlug);
+      return p;
+    });
     refreshTeam();
   };
-
-  // /calendar?teampost=tp3 (from the Telegram prompt): go to its day and open it. Unknown ids are ignored.
-  const linkedTeam = params.get("teampost");
-  useEffect(() => {
-    const p = linkedTeam ? teamPosts.find((t) => t.id === linkedTeam) : undefined;
-    if (!p) return;
-    setAnchor(p.day);
-    setTeamOpenId(p.id);
+  const closeTeam = () =>
     setParams(
       (prev) => {
-        prev.delete("teampost");
-        return prev;
+        const p = withParam(prev, "teampost", null);
+        if (!p.get("business")) p.set("business", slug(TEAM_BUSINESS));
+        return p;
       },
       { replace: true },
     );
-  }, [linkedTeam, teamPosts, setParams]);
   const teamOpen = teamPosts.find((p) => p.id === teamOpenId) ?? null;
 
   const todayKey = localDateKey();
@@ -304,7 +313,7 @@ export default function CalendarPage() {
     ...waiting.map((w) => w.business),
     ...feed.map((f) => f.business),
     ...(teamPosts.length ? [TEAM_BUSINESS] : []),
-  ]);
+  ], teamOpenId ? slug(TEAM_BUSINESS) : undefined);
   const { bizOn, shows: showsBiz } = bizFilter;
 
   const visible = useMemo(
@@ -529,7 +538,7 @@ export default function CalendarPage() {
   const skip = (d: DraftEntry, day: string) => {
     if (!userId) return;
     setDrafts(skipOccurrence(userId, d.id, day));
-    if (selectedGhost === day) setSelectedId(null);
+    if (selectedGhost === day) closePost();
     toast({ title: `Skipped ${dayLabel(day)}`, action: undoAction(d) });
   };
 
@@ -563,7 +572,8 @@ export default function CalendarPage() {
 
   const select = (id: string, ghostDay: string | null = null) => {
     const same = selectedId === id && selectedGhost === ghostDay;
-    setSelectedId(same ? null : id);
+    if (same) closePost();
+    else openPost(id);
     setSelectedGhost(ghostDay);
     // On a phone the editor can sit above the fold of a long week.
     requestAnimationFrame(() => editorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
@@ -665,7 +675,7 @@ export default function CalendarPage() {
             </div>
             <button
               type="button"
-              onClick={() => setSelectedId(null)}
+              onClick={closePost}
               aria-label="Close"
               className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground"
             >
@@ -693,9 +703,10 @@ export default function CalendarPage() {
             </p>
             <p className="line-clamp-2 text-sm font-medium text-foreground">{titleOf(d)}</p>
           </div>
+          <CopyLinkButton label="Copy link to this post" className="-mt-1" />
           <button
             type="button"
-            onClick={() => setSelectedId(null)}
+            onClick={closePost}
             aria-label="Close"
             className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground"
           >
@@ -796,7 +807,7 @@ export default function CalendarPage() {
     <button
       key={r.id}
       type="button"
-      onClick={() => navigate(`/reels?card=${encodeURIComponent(r.id)}`)}
+      onClick={() => navigate(links.reels({ card: r.id }))}
       title={`${r.business} reel${r.time ? `, ${timeLabel(r.time)}` : ""}: ${r.title} (${r.posted ? "posted" : reelHow(r)})`}
       className={`block w-full rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
         roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"
@@ -828,7 +839,7 @@ export default function CalendarPage() {
     <button
       key={f.id}
       type="button"
-      onClick={() => setOpenFeed(f)}
+      onClick={() => openFeedItem(f.id)}
       title={`${f.business} ${f.channel}: ${f.title}`}
       className={`block w-full rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
         roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"
@@ -917,7 +928,8 @@ export default function CalendarPage() {
 
   // A day's panel: everything on it, plus "Write a post for this day" and "Add note".
   const openDay = (key: string) => {
-    setDayOpen((cur) => (cur === key ? null : key));
+    if (dayOpen === key) closeDay();
+    else openDayParam(key);
     requestAnimationFrame(() => dayRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   };
   // Tapping an empty part of a day opens it; chips and buttons inside keep their own action.
@@ -988,9 +1000,10 @@ export default function CalendarPage() {
           <p className="min-w-0 flex-1 text-sm font-semibold text-foreground">
             {keyToDate(key).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
           </p>
+          <CopyLinkButton label="Copy link to this day" className="-mt-1" />
           <button
             type="button"
-            onClick={() => setDayOpen(null)}
+            onClick={closeDay}
             aria-label="Close day"
             className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground"
           >
@@ -1018,7 +1031,7 @@ export default function CalendarPage() {
             size="sm"
             variant="outline"
             onClick={() => {
-              setDayOpen(null);
+              closeDay();
               openNote(null, key);
             }}
             className="h-9 gap-1.5 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
@@ -1030,6 +1043,10 @@ export default function CalendarPage() {
     );
   };
 
+  // The day the month or week view is showing: the link's week or month, else the open item's day (a link to a
+  // team post in November opens November behind it), else today.
+  const focusDay = dayOpen ?? teamOpen?.day ?? openFeed?.date ?? (selected && !selectedGhost ? eventDate(selected) : null);
+  const anchor = linkDay(params.get("week")) ?? (linkMonth(params.get("month")) ? `${params.get("month")}-01` : null) ?? focusDay ?? todayKey;
   const anchorDate = keyToDate(anchor);
   const grid = useMemo(() => {
     const d = keyToDate(anchor);
@@ -1063,7 +1080,7 @@ export default function CalendarPage() {
     | { kind: "ghost"; date: string; item: DraftEntry };
   const listItems = useMemo(() => {
     const items: (ListItem & { order: string })[] = [];
-    if (view !== "list") return items;
+    if (view !== "upcoming") return items;
     for (const [date, ks] of keyDates) for (const k of ks) items.push({ kind: "key", date, item: k, order: `${date}|0` });
     for (const n of notes) if (n.date >= todayKey) items.push({ kind: "note", date: n.date, item: n, order: `${n.date}|1` });
     for (const r of visibleReels)
@@ -1142,12 +1159,21 @@ export default function CalendarPage() {
         ).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`
       : anchorDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
-  const shift = (delta: number) =>
-    setAnchor((a) => {
-      if (view === "week") return addDays(a, delta * 7);
-      const d = keyToDate(a);
-      return localDateKey(new Date(d.getFullYear(), d.getMonth() + delta, 1));
-    });
+  // Paging writes ?week= (its Monday) or ?month=, left out for the current week or month.
+  const showDay = (day: string) =>
+    setParams(
+      (prev) => {
+        const p = withParam(withParam(prev, "month", null), "week", null);
+        return view === "week"
+          ? withParam(p, "week", weekOf(day)[0], weekOf(todayKey)[0])
+          : withParam(p, "month", day.slice(0, 7), todayKey.slice(0, 7));
+      },
+      { replace: true },
+    );
+  const shift = (delta: number) => {
+    const d = keyToDate(anchor);
+    showDay(view === "week" ? addDays(anchor, delta * 7) : localDateKey(new Date(d.getFullYear(), d.getMonth() + delta, 1)));
+  };
 
   const viewButton = (v: View, label: string, Icon: typeof List) => (
     <button
@@ -1178,7 +1204,7 @@ export default function CalendarPage() {
         <div className="inline-flex rounded-lg border border-border/70 bg-muted/30 p-0.5">
           {viewButton("month", "Month", CalendarDays)}
           {viewButton("week", "Week", CalendarRange)}
-          {viewButton("list", "Upcoming", List)}
+          {viewButton("upcoming", "Upcoming", List)}
         </div>
         <div className="flex gap-2">
           <Select value={platform} onValueChange={setPlatform}>
@@ -1212,7 +1238,7 @@ export default function CalendarPage() {
         >
           <StickyNote className="h-3.5 w-3.5" /> Add note
         </button>
-        {view !== "list" && (
+        {view !== "upcoming" && (
           <div className="flex items-center gap-1.5 sm:ml-auto">
             <button
               type="button"
@@ -1233,7 +1259,7 @@ export default function CalendarPage() {
             </button>
             <button
               type="button"
-              onClick={() => setAnchor(todayKey)}
+              onClick={() => showDay(todayKey)}
               className="h-9 rounded-md border border-border/70 px-3 text-xs font-semibold text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11"
             >
               Today
@@ -1268,7 +1294,7 @@ export default function CalendarPage() {
             <button
               key={r.id}
               type="button"
-              onClick={() => navigate(`/reels?card=${encodeURIComponent(r.id)}`)}
+              onClick={() => navigate(links.reels({ card: r.id }))}
               className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
             >
               <Hand className="h-4 w-4 shrink-0 text-warning" aria-hidden />
@@ -1308,7 +1334,7 @@ export default function CalendarPage() {
                     <span className="font-medium text-foreground">{r.business}</span>
                     <span>{r.last ? `planned to ${dayLabel(r.last)}, then nothing` : `nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
                     {w && (
-                      <Link to={`/reels?brand=${encodeURIComponent(w.brand)}`} className="-my-2 py-2 font-semibold text-primary hover:underline">
+                      <Link to={links.reels({ brand: w.brand })} className="-my-2 py-2 font-semibold text-primary hover:underline">
                         {w.count} reel{w.count > 1 ? "s" : ""} waiting for review
                       </Link>
                     )}
@@ -1417,7 +1443,7 @@ export default function CalendarPage() {
                         {g.items.slice(0, 3).map((w) => (
                           <Link
                             key={w.id}
-                            to={`/reels?card=${encodeURIComponent(w.id)}`}
+                            to={links.reels({ card: w.id })}
                             className="block rounded-md px-1.5 py-1.5 text-xs text-foreground hover:bg-muted/60 [@media(pointer:coarse)]:py-2.5"
                           >
                             <span className="line-clamp-2">{w.title}</span>
@@ -1432,7 +1458,7 @@ export default function CalendarPage() {
                         ))}
                         {g.items.length > 3 && (
                           <Link
-                            to={`/reels?brand=${encodeURIComponent(g.brand)}`}
+                            to={links.reels({ brand: g.brand })}
                             className="block px-1.5 py-1 text-[11px] font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-2.5"
                           >
                             +{g.items.length - 3} more on the board
@@ -1523,9 +1549,9 @@ export default function CalendarPage() {
             </div>
           )}
 
-          {dayOpen && view !== "list" && dayPanel(dayOpen)}
+          {dayOpen && view !== "upcoming" && dayPanel(dayOpen)}
 
-          {selected && view !== "list" && (
+          {selected && view !== "upcoming" && (
             <div ref={editorRef} className={view === "week" ? "hidden sm:block" : ""}>
               {editor(selected)}
             </div>
@@ -1681,7 +1707,7 @@ export default function CalendarPage() {
             </Card>
           )}
 
-          {view === "list" && (
+          {view === "upcoming" && (
             <div className="space-y-2">
               {upcoming.length === 0 && overdue.length === 0 && !listItems.some((i) => i.kind === "reel" || i.kind === "feed" || i.kind === "team") && (
                 <Card className="border-border/60 shadow-card">
@@ -1751,7 +1777,7 @@ export default function CalendarPage() {
                     <button
                       key={r.id}
                       type="button"
-                      onClick={() => navigate(`/reels?card=${encodeURIComponent(r.id)}`)}
+                      onClick={() => navigate(links.reels({ card: r.id }))}
                       className="flex w-full items-center gap-3 rounded-xl border border-brand/30 bg-card p-3 text-left shadow-card"
                     >
                       {dateBadge(r.date)}
@@ -1771,7 +1797,7 @@ export default function CalendarPage() {
                     <button
                       key={f.id}
                       type="button"
-                      onClick={() => setOpenFeed(f)}
+                      onClick={() => openFeedItem(f.id)}
                       className="flex w-full items-center gap-3 rounded-xl border border-sky-500/30 bg-card p-3 text-left shadow-card"
                     >
                       {dateBadge(f.date)}
@@ -1793,7 +1819,7 @@ export default function CalendarPage() {
           )}
         </div>
       </div>
-      <ChannelPostDrawer item={openFeed} onClose={() => setOpenFeed(null)} />
+      <ChannelPostDrawer item={openFeed} onClose={closeFeed} />
       {teamOpen && userId && (
         <TeamPostPanel
           key={teamOpen.id}
@@ -1801,7 +1827,7 @@ export default function CalendarPage() {
           post={teamOpen}
           reviews={teamReviews}
           onReviews={setTeamReviews}
-          onClose={() => setTeamOpenId(null)}
+          onClose={closeTeam}
         />
       )}
     </div>

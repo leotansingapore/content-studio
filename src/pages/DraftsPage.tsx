@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
 import {
   Card,
   CardContent,
@@ -89,6 +90,10 @@ const PILLAR_LABEL: Record<string, string> = {
   topic: "Topic",
   market: "Market",
 };
+
+const STATUSES = ["all", "draft", "scheduled", "posted"] as const;
+// Filters, search and the open review panel live in the URL (docs/deep-links.md).
+const FILTER_PARAMS = ["status", "platform", "pillar", "label", "q"];
 
 type MenuItem = { label: string; icon: typeof Pencil; onSelect: () => void };
 
@@ -184,23 +189,26 @@ export default function DraftsPage() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
-  const [platformFilter, setPlatformFilter] = useState<string>("all");
-  const [pillarFilter, setPillarFilter] = useState<string>("all");
-  const [search, setSearch] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<"all" | DraftStatus>("all");
+  const [, setParams] = useSearchParams();
+  const [platformFilter, setPlatformFilter] = useUrlState("platform", "all", { allowed: ["all", ...Object.keys(PLATFORM_LABEL)] });
+  const [pillarFilter, setPillarFilter] = useUrlState("pillar", "all", { allowed: ["all", ...Object.keys(PILLAR_LABEL)] });
+  const [search, setSearch, query] = useUrlSearch("q");
+  const [statusFilter, setStatusFilter] = useUrlState<"all" | DraftStatus>("status", "all", { allowed: STATUSES });
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [repurposeOpenId, setRepurposeOpenId] = useState<string | null>(null);
   const [labels, setLabels] = useState<ContentLabel[]>([]);
-  const [labelFilter, setLabelFilter] = useState<string>("all");
+  // A label id, "none", or "all"; an id that is not one of this account's labels reads as all.
+  const [labelParam, setLabelFilter] = useUrlState("label", "all");
   const [labelOpenId, setLabelOpenId] = useState<string | null>(null);
   const [manageLabels, setManageLabels] = useState(false);
   // A just-made copy: scrolled to and outlined for a moment.
   const [flashId, setFlashId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [previewOpenId, setPreviewOpenId] = useState<string | null>(null);
+  const [previewOpenId, openPreview, closePreview] = useUrlItem("review");
   const [previewLinks, setPreviewLinks] = useState<PreviewLink[]>([]);
   const [previewComments, setPreviewComments] = useState<PreviewComment[]>([]);
   const linksForDraft = useMemo(() => linksByDraft(previewLinks), [previewLinks]);
+  const labelFilter = labelParam === "none" || labels.some((l) => l.id === labelParam) ? labelParam : "all";
 
   // Preview links and their comments; silent when unavailable (My posts works without them).
   useEffect(() => {
@@ -253,7 +261,7 @@ export default function DraftsPage() {
     return c;
   }, [drafts]);
   const visible = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = query.toLowerCase();
     return drafts.filter((d) => {
       if (statusFilter !== "all" && draftStatus(d) !== statusFilter) return false;
       if (platformFilter !== "all" && d.platform !== platformFilter) return false;
@@ -263,7 +271,7 @@ export default function DraftsPage() {
       const blob = `${d.hook} ${d.draft}`.toLowerCase();
       return blob.includes(q);
     });
-  }, [drafts, statusFilter, platformFilter, pillarFilter, labelFilter, labels, search]);
+  }, [drafts, statusFilter, platformFilter, pillarFilter, labelFilter, labels, query]);
 
   const openManager = () => {
     setManageLabels(true);
@@ -337,12 +345,15 @@ export default function DraftsPage() {
     saveDrafts(userId, [...entries, ...loadDrafts(userId)]);
     setDrafts(loadDrafts(userId));
     setImportOpen(false);
-    // Show everything so the new posts are in view at the top.
-    setStatusFilter("all");
-    setPlatformFilter("all");
-    setPillarFilter("all");
-    setLabelFilter("all");
-    setSearch("");
+    // Show everything so the new posts are in view at the top. One write: each setter would read the same old URL.
+    setParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        FILTER_PARAMS.forEach((k) => p.delete(k));
+        return p;
+      },
+      { replace: true },
+    );
     setFlashId(entries[0].id);
     const ids = new Set(entries.map((e) => e.id));
     const scheduled = entries.filter((e) => e.scheduledFor).length;
@@ -415,6 +426,7 @@ export default function DraftsPage() {
             key={key}
             type="button"
             onClick={() => setStatusFilter(key)}
+            aria-pressed={statusFilter === key}
             className={`h-9 shrink-0 rounded-full border px-3 text-xs font-semibold transition-colors sm:h-8 [@media(pointer:coarse)]:h-11 ${
               statusFilter === key
                 ? "border-primary/60 bg-primary/10 text-primary"
@@ -639,7 +651,7 @@ export default function DraftsPage() {
                   return n > 0 && previewOpenId !== d.id ? (
                     <button
                       type="button"
-                      onClick={() => setPreviewOpenId(d.id)}
+                      onClick={() => openPreview(d.id)}
                       className="mb-3 inline-flex h-9 w-fit items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 text-[11px] font-semibold text-primary sm:h-7"
                     >
                       <MessageSquareText className="h-3.5 w-3.5" /> {n} reviewer {n === 1 ? "comment" : "comments"}
@@ -724,7 +736,7 @@ export default function DraftsPage() {
                         ? [{ label: "Make a carousel", icon: GalleryHorizontalEnd, onSelect: () => navigate(`/carousel?draft=${encodeURIComponent(d.id)}`) }]
                         : []),
                       ...(d.draft?.trim()
-                        ? [{ label: "Share for review", icon: Link2, onSelect: () => setPreviewOpenId(d.id) }]
+                        ? [{ label: "Share for review", icon: Link2, onSelect: () => openPreview(d.id) }]
                         : []),
                       { label: "Duplicate", icon: CopyPlus, onSelect: () => handleDuplicate(d.id) },
                     ]}
@@ -756,7 +768,7 @@ export default function DraftsPage() {
                       setPreviewLinks((prev) => [link, ...prev.filter((l) => l.id !== link.id)])
                     }
                     onComment={(c) => setPreviewComments((prev) => [...prev, c])}
-                    onClose={() => setPreviewOpenId(null)}
+                    onClose={closePreview}
                   />
                 )}
                 {repurposeOpenId === d.id && (

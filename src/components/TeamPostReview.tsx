@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Copy, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { keyToDate } from "@/lib/dueDates";
@@ -147,6 +148,7 @@ export function TeamPostPanel({
           <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${TEAM_STATUS[status].tone}`}>
             {TEAM_STATUS[status].label}
           </span>
+          <CopyLinkButton label="Copy link to this team post" className="-mt-1" />
           <button
             ref={closeRef}
             type="button"

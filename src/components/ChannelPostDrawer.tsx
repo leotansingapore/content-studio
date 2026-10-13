@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { ExternalLink, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { STATUS_LABEL, parseCaption, type CalendarFeedItem } from "@/lib/channelFeeds";
 
 const STATUS_NOTE: Record<CalendarFeedItem["status"], string> = {
@@ -65,7 +66,7 @@ export default function ChannelPostDrawer({ item, onClose }: { item: CalendarFee
     <div className="fixed inset-0 z-[70] flex items-stretch justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={item.title}>
       <button type="button" tabIndex={-1} aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
       <div className="relative flex h-full w-full flex-col overflow-hidden bg-background shadow-xl sm:h-auto sm:max-h-[92vh] sm:max-w-md sm:rounded-2xl sm:border sm:border-border/70">
-        <div className="flex items-start gap-3 border-b border-border/60 p-4 pr-14">
+        <div className="flex items-start gap-3 border-b border-border/60 p-4 pr-28">
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold">
               <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-sky-700 dark:text-sky-300">{item.business}</span>
@@ -80,6 +81,7 @@ export default function ChannelPostDrawer({ item, onClose }: { item: CalendarFee
             </p>
             <p className="font-serif text-lg font-semibold leading-snug text-foreground">{item.title}</p>
           </div>
+          <CopyLinkButton label="Copy link to this post" className="absolute right-14 top-3 rounded-full bg-muted text-foreground hover:bg-muted/70" />
           <button
             ref={closeRef}
             type="button"

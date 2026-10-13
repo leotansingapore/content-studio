@@ -34,6 +34,7 @@ import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/
 import { activeProfile } from "@/lib/profiles";
 import { BusinessChips, useBusinessFilter } from "@/components/BusinessFilter";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
+import { useUrlItem } from "@/lib/urlState";
 import { STATUS_LABEL, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 
 const PRODUCTION: BoardColumn[] = ["idea", "scripted", "to-film", "editing"];
@@ -240,7 +241,9 @@ export default function BoardPage() {
   const [dragOver, setDragOver] = useState<BoardColumn | null>(null);
   // Channel posts other jobs publish, in Scheduled (planned or previewed) and Posted (Leo 2026-10-13: a kanban view).
   const [feed, setFeed] = useState<CalendarFeedItem[]>([]);
-  const [openFeed, setOpenFeed] = useState<CalendarFeedItem | null>(null);
+  // ?feed=<id> opens that channel post (docs/deep-links.md); the business pick is ?business=, shared with the calendar.
+  const [feedId, openFeedItem, closeFeed] = useUrlItem("feed");
+  const openFeed = feed.find((f) => f.id === feedId) ?? null;
   const [profileName, setProfileName] = useState("");
 
   useEffect(() => {
@@ -459,7 +462,7 @@ export default function BoardPage() {
                       })}
 
                       {channel.map((f) => (
-                        <FeedCard key={f.id} item={f} onOpen={() => setOpenFeed(f)} />
+                        <FeedCard key={f.id} item={f} onOpen={() => openFeedItem(f.id)} />
                       ))}
 
                       {col.key === "scheduled" && scheduling && !scheduling.onCard && (
@@ -507,7 +510,7 @@ export default function BoardPage() {
           ))}
         </div>
       </div>
-      <ChannelPostDrawer item={openFeed} onClose={() => setOpenFeed(null)} />
+      <ChannelPostDrawer item={openFeed} onClose={closeFeed} />
     </div>
   );
 }

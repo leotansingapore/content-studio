@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Link2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { links } from "@/lib/links";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -106,16 +108,6 @@ export default function ReelDrawer({
     }
   };
 
-  const copyLink = (extra: Record<string, string | number | undefined> = {}) => {
-    const u = new URL(window.location.origin + "/reels");
-    u.searchParams.set("card", card.id);
-    for (const [k, val] of Object.entries(extra)) if (val !== undefined && val !== "") u.searchParams.set(k, String(val));
-    navigator.clipboard.writeText(u.toString().replace(/%7E/g, "~")).then(
-      () => toast({ title: "Link copied" }),
-      () => toast({ title: "Copy failed", variant: "destructive" }),
-    );
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={card.title}>
       <button type="button" aria-label="Close" className="absolute inset-0 bg-foreground/40" onClick={onClose} />
@@ -127,9 +119,7 @@ export default function ReelDrawer({
               {board.brands.find((b) => b.id === brandOf(card))?.name} - {card.styleName ?? card.style} - {stageName(card.stage)}
             </p>
           </div>
-          <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => copyLink()} aria-label="Copy link to this reel">
-            <Link2 className="h-4 w-4" />
-          </Button>
+          <CopyLinkButton path={links.reels({ card: card.id })} label="Copy link to this reel" />
           <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={onClose} aria-label="Close">
             <X className="h-4 w-4" />
           </Button>

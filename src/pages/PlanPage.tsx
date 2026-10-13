@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useUrlState, withParam } from "@/lib/urlState";
 import { draftStatus, loadDrafts, setDraftStatus, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import {
   Card,
@@ -145,7 +146,10 @@ export default function PlanPage() {
   const [weeks, setWeeks] = useState(2);
   const [plan, setPlan] = useState<ContentPlan | null>(null);
   const [thisWeek, setThisWeek] = useState("");
-  const [editing, setEditing] = useState(true);
+  // ?view=setup opens the positioning form over a built plan (docs/deep-links.md); with no plan it is the page.
+  const [view, setView] = useUrlState("view", "plan", { allowed: ["plan", "setup"] });
+  const setEditing = (on: boolean) => setView(on ? "setup" : "plan");
+  const editing = view === "setup" || !plan;
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   // Home's weekly goals: "Posts per week" here is the goal for the primary platform.
   const [goals, setGoals] = useState<WeeklyGoals>({});
@@ -175,7 +179,6 @@ export default function PlanPage() {
       const savedPlan = loadPlan(id);
       if (savedPlan) {
         setPlan(savedPlan);
-        setEditing(false);
         // last week's story is not this week's
         if (Date.now() - new Date(savedPlan.createdAt).getTime() < 7 * 86_400_000) setThisWeek(savedPlan.thisWeek ?? "");
       }
@@ -364,7 +367,6 @@ export default function PlanPage() {
       return;
     clearPlan(userId);
     setPlan(null);
-    setEditing(true);
   };
 
   // Push every plan slot onto the calendar as a scheduled post (dated from the
@@ -405,15 +407,13 @@ export default function PlanPage() {
     }
     if (found) {
       addCompetitor(found);
-      setEditing(true);
       toast({
         title: `Referencing ${found.name}`,
         description: "They're set as a competitor for your next plan build.",
       });
     }
-    const next = new URLSearchParams(searchParams);
-    next.delete("competitor");
-    setSearchParams(next, { replace: true });
+    // One write for both: two setSearchParams calls in one go would each start from the same old URL.
+    setSearchParams((prev) => withParam(withParam(prev, "competitor", null), "view", found ? "setup" : prev.get("view")), { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get("competitor")]);
 
