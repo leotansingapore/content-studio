@@ -3,6 +3,7 @@
 // listed in docs/deep-links.md; links are built in src/lib/links.ts.
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { slug } from "./links";
 
 interface Opts<T extends string> {
   /** Values outside this list read as the fallback, so an old or hand-typed link never breaks the page. */
@@ -100,4 +101,44 @@ export function useUrlSearch(name = "q"): [string, (text: string) => void, strin
   // Only when the param differs from what is typed: refilling on every write would eat a trailing space.
   useEffect(() => setText((cur) => (cur.trim() === q ? cur : q)), [q]);
   return [text, setText, q];
+}
+
+/**
+ * One write for several params: update({ tab: "news", q: null }). null or "" deletes a param, others stay.
+ * Two setters in one click keep only the last: React Router 6.30's functional setSearchParams starts each
+ * call from the params of the last render, not from the previous call.
+ */
+export function useUrlUpdate() {
+  const [, setParams] = useSearchParams();
+  return useCallback(
+    (changes: Record<string, string | null>, opts: { push?: boolean } = {}) =>
+      setParams(
+        (prev) => Object.entries(changes).reduce((p, [k, v]) => withParam(p, k, v), new URLSearchParams(prev)),
+        { replace: !opts.push },
+      ),
+    [setParams],
+  );
+}
+
+/** `list` with `v` added, or taken out when it is there: a chip in a multi-select. */
+export const toggled = <T extends string>(list: readonly T[], v: T): T[] => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+
+/** A choice among labels ("Estate Planning") that the URL carries as slugs (?topic=estate-planning). null = all. */
+export function useUrlLabel<T extends string>(name: string, options: readonly T[]): [T | null, (next: T | null) => void] {
+  const [s, set] = useUrlState(name, "", { allowed: options.map(slug) });
+  const pick = useCallback((next: T | null) => set(next ? slug(next) : ""), [set]);
+  return [options.find((o) => slug(o) === s) ?? null, pick];
+}
+
+/** Several labels at once, as a comma list of slugs (?pillar=authority,cta). Empty = all. */
+export function useUrlLabels<T extends string>(name: string, options: readonly T[]): [T[], (next: T[]) => void] {
+  const [s, set] = useUrlList(name, { allowed: options.map(slug) });
+  const pick = useCallback((next: T[]) => set(next.map(slug)), [set]);
+  return [options.filter((o) => s.includes(slug(o))), pick];
+}
+
+/** An on/off toggle as ?name=only (Saved only). Off = no param. */
+export function useUrlFlag(name: string, on = "only"): [boolean, (next: boolean) => void] {
+  const [v, set] = useUrlState<string>(name, "", { allowed: [on] });
+  return [v === on, useCallback((next: boolean) => set(next ? on : ""), [set, on])];
 }
