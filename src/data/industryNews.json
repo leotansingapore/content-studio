@@ -1,5 +1,16 @@
 [
   {
+    "id": "9dfae204d29f",
+    "title": "Air quality unhealthy across Singapore amid sustained haze",
+    "gist": "Air quality across Singapore stayed in the unhealthy range on Oct 12, with the west recording a 1-hour PM2.5 reading of 171 at 9pm. Subsidised medical treatments for haze-related conditions took effect on Monday at polyclinics for all Singaporeans, and at participating Public Health Preparedness Clinics for groups such as children and seniors. The government will distribute N95 masks to vulnerable individuals if the 24-hour PSI exceeds 200.",
+    "talkingPoint": "Clients may be concerned about healthcare costs or family clinic visits during the haze. You can ask if they are aware of the new clinic subsidies and offer to review how their current health policies handle outpatient or respiratory medical expenses.",
+    "clientMessage": "Hi [Client name], air quality across Singapore reached unhealthy levels on Monday, and the government has started subsidies for haze-related medical care at polyclinics and participating clinics. Poor air quality can affect health and increase visits to the doctor for respiratory issues. If you want, we can take a quick look at your current healthcare coverage together to see how your medical expenses are supported during this period. Stay safe and take care. [Your name]",
+    "source": "CNA",
+    "url": "https://channelnewsasia.com/singapore/haze-air-quality-unhealthy-psi-pm25-6451716",
+    "publishedAt": "2026-10-12T01:59:00+00:00",
+    "topic": "Healthcare costs"
+  },
+  {
     "id": "4595b1fe3a9d",
     "title": "Scheme providing subsidies for haze-related conditions to start Oct 12: Ong Ye Kung",
     "gist": "From Oct 12, Singapore will activate subsidies for haze-related conditions under the Haze Subsidy Scheme and Public Health Preparedness Clinic scheme. Minister for Health Ong Ye Kung announced the measure on Oct 11 due to transboundary haze. All Singapore citizens will pay no more than $10 at polyclinics, while qualifying seniors and children will pay capped fees of $5 or $10 at participating clinics.",
@@ -275,6 +286,18 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
+    "id": "38d77cf6f8ef",
+    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
+    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
+    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "clientMessage": null,
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/02/2026-budget-summary",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "Cost of living",
+    "clipping": "/news/38d77cf6f8ef.jpg"
+  },
+  {
     "id": "146ce01a9327",
     "title": "Budget 2026 Highlights",
     "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
@@ -297,18 +320,6 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/6d46dc1c57d8.jpg"
-  },
-  {
-    "id": "38d77cf6f8ef",
-    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
-    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
-    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
-    "clientMessage": null,
-    "source": "Mothership",
-    "url": "https://mothership.sg/2026/02/2026-budget-summary",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "Cost of living",
-    "clipping": "/news/38d77cf6f8ef.jpg"
   },
   {
     "id": "e98550debf11",

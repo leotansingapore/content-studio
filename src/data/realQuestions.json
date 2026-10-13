@@ -1,6 +1,54 @@
 {
-  "fetched": "2026-10-12",
+  "fetched": "2026-10-13",
   "questions": [
+    {
+      "question": "CPF enquiry",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x4dy28/cpf_enquiry/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-12T21:05:07.000Z"
+    },
+    {
+      "question": "Repricing HDB mortgage",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x41chh/repricing_hdb_mortgage/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-12T13:05:31.000Z"
+    },
+    {
+      "question": "Salary Progression (Tech)",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x3zrra/salary_progression_tech/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-12T11:50:13.000Z"
+    },
+    {
+      "question": "Can my parents retire ?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x3ziw9/can_my_parents_retire/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-12T11:37:06.000Z"
+    },
+    {
+      "question": "How to buy Tbills? I asked Google AI , it taught me the steps but ..",
+      "url": "https://forums.hardwarezone.com.sg/threads/how-to-buy-tbills-i-asked-google-ai-it-taught-me-the-steps-but.7225922/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-12T09:37:38.000Z"
+    },
+    {
+      "question": "How to sell on IBKR?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x3v730/how_to_sell_on_ibkr/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-12T07:10:20.000Z"
+    },
+    {
+      "question": "How do you earn another source of income",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x3t6le/how_do_you_earn_another_source_of_income/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-12T05:08:47.000Z"
+    },
+    {
+      "question": "Why investment-linked policy sales have surged even as complaints rise",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x3nmox/why_investmentlinked_policy_sales_have_surged/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-12T00:14:52.000Z"
+    },
     {
       "question": "Tiger broker Cash Boost - need help",
       "url": "https://forums.hardwarezone.com.sg/threads/tiger-broker-cash-boost-need-help.7226645/",
@@ -24,54 +72,6 @@
       "url": "https://www.reddit.com/r/singaporefi/comments/1x32sdv/is_ilp_that_bad/",
       "source": "r/singaporefi",
       "publishedAt": "2026-10-11T08:23:33.000Z"
-    },
-    {
-      "question": "How to buy Tbills? I asked Google AI , it taught me the steps but ..",
-      "url": "https://forums.hardwarezone.com.sg/threads/how-to-buy-tbills-i-asked-google-ai-it-taught-me-the-steps-but.7225922/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-11T08:04:50.000Z"
-    },
-    {
-      "question": "Im noob investor, what does this shows about my position on this share?",
-      "url": "https://forums.hardwarezone.com.sg/threads/im-noob-investor-what-does-this-shows-about-my-position-on-this-share.7226662/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-11T06:29:48.000Z"
-    },
-    {
-      "question": "Investment advice in this situation (overseas-->SG)",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x303gd/investment_advice_in_this_situation_overseassg/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-11T05:39:39.000Z"
-    },
-    {
-      "question": "How much to set aside for investment towards retirement vs permanent housing?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x2z108/how_much_to_set_aside_for_investment_towards/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-11T04:37:08.000Z"
-    },
-    {
-      "question": "Experience with TEP or TLP in singapore",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x2yl15/experience_with_tep_or_tlp_in_singapore/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-11T04:12:01.000Z"
-    },
-    {
-      "question": "Thoughts on Revolut Metal tier",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x2x6b2/thoughts_on_revolut_metal_tier/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-11T02:56:06.000Z"
-    },
-    {
-      "question": "Salary progression over the years?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x2v1dm/salary_progression_over_the_years/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-11T01:03:09.000Z"
-    },
-    {
-      "question": "Wise to IBKR fee",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x2kfyi/wise_to_ibkr_fee/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-10T17:07:42.000Z"
     }
   ]
 }
