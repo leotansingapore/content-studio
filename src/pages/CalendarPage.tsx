@@ -18,8 +18,11 @@ import { useDraftReviews } from "@/hooks/useDraftReviews";
 import { PostItForMePanel, ZernioChipLabel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
-import { REELS_BOARD_OWNERS, brandForProfile, brandOf, fetchBoard } from "@/lib/reelsBoard";
+import { REELS_BOARD_OWNERS, brandOf, fetchBoard } from "@/lib/reelsBoard";
 import { activeProfile } from "@/lib/profiles";
+import { FilterChip } from "@/components/ui/filter-chip";
+import ChannelPostDrawer from "@/components/ChannelPostDrawer";
+import { STATUS_LABEL, businessKey, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 import {
   addDays,
   daysOverdue,
@@ -77,6 +80,7 @@ const PLATFORM_LABEL: Record<string, string> = {
   instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
+  telegram: "Telegram",
 };
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DRAG_TYPE = "text/draft-id";
@@ -165,7 +169,19 @@ export default function CalendarPage() {
   const [noteForm, setNoteForm] = useState<NoteForm | null>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   // Reels scheduled on the reels board, for its owner: one calendar for everything that posts.
-  const [reels, setReels] = useState<{ id: string; title: string; date: string; posted: boolean }[]>([]);
+  const [reels, setReels] = useState<{ id: string; title: string; date: string; posted: boolean; business: string }[]>([]);
+  // Channel posts other jobs publish (the MoneyBees Telegram channel first), with their full caption and pictures.
+  const [feed, setFeed] = useState<CalendarFeedItem[]>([]);
+  const [openFeed, setOpenFeed] = useState<CalendarFeedItem | null>(null);
+  // Leo 2026-10-13: "sort the posts based on business, since I manage multiple businesses". Remembered per device.
+  const [biz, setBiz] = useState<string>(() => {
+    try {
+      return localStorage.getItem("cs-calendar-business") || "all";
+    } catch {
+      return "all";
+    }
+  });
+  const [profileName, setProfileName] = useState("");
 
   useEffect(() => {
     document.title = "Calendar - Content Studio";
@@ -177,18 +193,25 @@ export default function CalendarPage() {
       setUserId(id);
       setDrafts(loadDrafts(id));
       setNotes(loadNotes(id));
+      setProfileName(activeProfile(id).name);
       if (REELS_BOARD_OWNERS.includes(data.user?.email?.toLowerCase() ?? "")) {
         fetchBoard()
           .then((b) => {
             if (!active) return;
-            const brand = brandForProfile(b.brands, activeProfile(id).name);
+            // Every brand's reels: the business filter picks, not the open profile.
+            const label = (brand: string) => b.brands.find((x) => x.id === brand)?.name ?? brand;
             setReels(
               b.cards
-                .filter((c) => c.schedule && ["approved", "scheduled", "posted"].includes(c.stage) && (!brand || brandOf(c) === brand))
-                .map((c) => ({ id: c.id, title: c.title, date: c.schedule!.slice(0, 10), posted: c.stage === "posted" })),
+                .filter((c) => c.schedule && ["approved", "scheduled", "posted"].includes(c.stage))
+                .map((c) => ({ id: c.id, title: c.title, date: c.schedule!.slice(0, 10), posted: c.stage === "posted", business: label(brandOf(c)) })),
             );
           })
           .catch(() => {}); // the calendar works without the board
+      }
+      if (canSeeChannelFeeds(data.user?.email)) {
+        fetchChannelFeeds()
+          .then((items) => active && setFeed(items))
+          .catch(() => {}); // the calendar works without the feeds
       }
     })();
     return () => {
@@ -198,24 +221,57 @@ export default function CalendarPage() {
 
   const todayKey = localDateKey();
 
+  // The businesses on this calendar: the open profile (its drafts), each reels brand, each channel feed.
+  const businesses = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const name of [profileName, ...reels.map((r) => r.business), ...feed.map((f) => f.business)])
+      if (name && !m.has(businessKey(name))) m.set(businessKey(name), name);
+    return [...m.entries()].map(([key, label]) => ({ key, label }));
+  }, [profileName, reels, feed]);
+  const pickBiz = (key: string) => {
+    setBiz(key);
+    try {
+      localStorage.setItem("cs-calendar-business", key);
+    } catch {
+      /* the filter still works for this visit */
+    }
+  };
+  // A remembered business that is no longer on the calendar falls back to all of them.
+  const bizOn = biz === "all" || businesses.some((b) => b.key === biz) ? biz : "all";
+  const showsBiz = (name: string) => bizOn === "all" || businessKey(name) === bizOn;
+
   const visible = useMemo(
     () =>
-      drafts.filter(
-        (d) =>
-          (platform === "all" || d.platform === platform) &&
-          (status === "all" || draftStatus(d) === status),
-      ),
-    [drafts, platform, status],
+      showsBiz(profileName)
+        ? drafts.filter(
+            (d) =>
+              (platform === "all" || d.platform === platform) &&
+              (status === "all" || draftStatus(d) === status),
+          )
+        : [],
+    [drafts, platform, status, bizOn, profileName],
   );
   // Reels post to Instagram.
   const visibleReels = useMemo(
     () =>
       reels.filter(
         (r) =>
+          showsBiz(r.business) &&
           (platform === "all" || platform === "instagram") &&
           (status === "all" || (status === "posted") === r.posted),
       ),
-    [reels, platform, status],
+    [reels, platform, status, bizOn],
+  );
+  // Channel posts (Telegram first): "Scheduled" covers locked previews and planned posts.
+  const visibleFeed = useMemo(
+    () =>
+      feed.filter(
+        (f) =>
+          showsBiz(f.business) &&
+          (platform === "all" || platform === f.channel.toLowerCase()) &&
+          (status === "all" || (status === "posted") === (f.status === "posted")),
+      ),
+    [feed, platform, status, bizOn],
   );
 
   const byDate = useMemo(() => {
@@ -617,6 +673,33 @@ export default function CalendarPage() {
     </button>
   );
 
+  // A channel post (from a feed): tap it to see the whole post, every picture and the caption.
+  const feedChip = (f: CalendarFeedItem, roomy: boolean) => (
+    <button
+      key={f.id}
+      type="button"
+      onClick={() => setOpenFeed(f)}
+      title={`${f.business} ${f.channel}: ${f.title}`}
+      className={`block w-full rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
+        roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"
+      } ${f.status === "posted" ? "bg-success/15 text-success" : "bg-sky-500/15 text-sky-700 dark:text-sky-300"}`}
+    >
+      {roomy ? (
+        <>
+          <span className="block text-[10px] opacity-80">
+            {f.business} · {f.channel}
+            {f.time && ` · ${timeLabel(f.time)}`}
+          </span>
+          <span className="line-clamp-2">{f.title}</span>
+        </>
+      ) : (
+        <>
+          {f.channel}: {f.title.slice(0, 22)}
+        </>
+      )}
+    </button>
+  );
+
   // A future occurrence of a recurring post: not draggable (move the real one), tap to skip it.
   const ghostChip = (e: DraftEntry, day: string, roomy: boolean) => {
     const time = scheduleTime(e.scheduledFor);
@@ -715,6 +798,7 @@ export default function CalendarPage() {
     | { kind: "key"; date: string; item: SgDate }
     | { kind: "note"; date: string; item: CalNote }
     | { kind: "reel"; date: string; item: (typeof reels)[number] }
+    | { kind: "feed"; date: string; item: CalendarFeedItem }
     | { kind: "post"; date: string; item: DraftEntry }
     | { kind: "ghost"; date: string; item: DraftEntry };
   const listItems = useMemo(() => {
@@ -724,11 +808,13 @@ export default function CalendarPage() {
     for (const n of notes) if (n.date >= todayKey) items.push({ kind: "note", date: n.date, item: n, order: `${n.date}|1` });
     for (const r of visibleReels)
       if (r.date >= todayKey && !r.posted) items.push({ kind: "reel", date: r.date, item: r, order: `${r.date}|2` });
+    for (const f of visibleFeed)
+      if (f.date >= todayKey && f.status !== "posted") items.push({ kind: "feed", date: f.date, item: f, order: `${f.date}|3|${f.time}` });
     for (const d of upcoming) items.push({ kind: "post", date: eventDate(d)!, item: d, order: `${eventDate(d)}|3|${sortKey(d)}` });
     // Repeats run as far ahead as the key dates do, so one weekly post doesn't fill three months.
     for (const [date, gs] of ghostsByDate) if (date <= rangeTo) for (const g of gs) items.push({ kind: "ghost", date, item: g, order: `${date}|4` });
     return items.sort((a, b) => (a.order < b.order ? -1 : a.order > b.order ? 1 : 0));
-  }, [view, keyDates, notes, visibleReels, upcoming, ghostsByDate, todayKey, rangeTo]);
+  }, [view, keyDates, notes, visibleReels, visibleFeed, upcoming, ghostsByDate, todayKey, rangeTo]);
 
   const shortDay = (key: string) => keyToDate(key).toLocaleDateString(undefined, { day: "numeric", month: "short" });
   const dateBadge = (key: string) => (
@@ -894,6 +980,19 @@ export default function CalendarPage() {
           </div>
         )}
       </div>
+
+      {businesses.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Business">
+          <FilterChip active={bizOn === "all"} onClick={() => pickBiz("all")}>
+            All businesses
+          </FilterChip>
+          {businesses.map((b) => (
+            <FilterChip key={b.key} active={bizOn === b.key} onClick={() => pickBiz(b.key)}>
+              {b.label}
+            </FilterChip>
+          ))}
+        </div>
+      )}
 
       <div className={`grid gap-4 ${unscheduled.length > 0 ? "xl:grid-cols-[minmax(0,1fr)_15rem]" : ""}`}>
         {/* Unscheduled drafts: a side panel on wide screens, a collapsible section below that */}
@@ -1107,6 +1206,7 @@ export default function CalendarPage() {
                               </button>
                             )}
                             {visibleReels.filter((r) => r.date === key).map((r) => reelChip(r, false))}
+                            {visibleFeed.filter((f) => f.date === key).map((f) => feedChip(f, false))}
                           </div>
                         </div>
                       );
@@ -1160,6 +1260,7 @@ export default function CalendarPage() {
                           </div>
                         ))}
                         {dayReels.map((r) => reelChip(r, true))}
+                        {visibleFeed.filter((f) => f.date === key).map((f) => feedChip(f, true))}
                       </div>
                     </div>
                   );
@@ -1170,7 +1271,7 @@ export default function CalendarPage() {
 
           {view === "list" && (
             <div className="space-y-2">
-              {upcoming.length === 0 && overdue.length === 0 && !listItems.some((i) => i.kind === "reel") && (
+              {upcoming.length === 0 && overdue.length === 0 && !listItems.some((i) => i.kind === "reel" || i.kind === "feed") && (
                 <Card className="border-border/60 shadow-card">
                   <CardContent className="py-10 text-center text-sm text-muted-foreground">
                     {platform === "all" && status === "all" ? "Nothing scheduled yet." : "Nothing matches these filters."}
@@ -1240,12 +1341,35 @@ export default function CalendarPage() {
                     </button>
                   );
                 }
+                if (i.kind === "feed") {
+                  const f = i.item;
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setOpenFeed(f)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-sky-500/30 bg-card p-3 text-left shadow-card"
+                    >
+                      {dateBadge(f.date)}
+                      {f.media[0] && <img src={f.media[0]} alt="" loading="lazy" className="h-14 w-11 shrink-0 rounded-md border border-border/60 object-cover" />}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">{f.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {f.business} · {f.channel}
+                          {f.time && ` · ${timeLabel(f.time)}`} · {STATUS_LABEL[f.status]}
+                          {f.media.length > 1 && ` · ${f.media.length} pictures`}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                }
                 return postRow(i.item, i.date);
               })}
             </div>
           )}
         </div>
       </div>
+      <ChannelPostDrawer item={openFeed} onClose={() => setOpenFeed(null)} />
     </div>
   );
 }
