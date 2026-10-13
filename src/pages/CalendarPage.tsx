@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent as ReactMouseEvent } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,11 +18,12 @@ import { useDraftReviews } from "@/hooks/useDraftReviews";
 import { PostItForMePanel, ZernioChipLabel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
-import { REELS_BOARD_OWNERS, brandOf, fetchBoard } from "@/lib/reelsBoard";
+import { IG_HANDLES, REELS_BOARD_OWNERS, brandOf, fetchBoard, isCarousel } from "@/lib/reelsBoard";
+import { COVER_DAYS, dueByHand, runsOut, weekGlance, type DatedItem } from "@/lib/calendarCoverage";
 import { activeProfile } from "@/lib/profiles";
 import { BusinessChips, useBusinessFilter } from "@/components/BusinessFilter";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
-import { STATUS_LABEL, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
+import { STATUS_LABEL, businessKey, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 import {
   addDays,
   daysOverdue,
@@ -80,7 +81,10 @@ import {
   CalendarRange,
   List,
   CheckCircle2,
+  Clapperboard,
   Coins,
+  Hand,
+  PenLine,
   Repeat as RepeatIcon,
   StickyNote,
   X,
@@ -181,7 +185,16 @@ export default function CalendarPage() {
   const [noteForm, setNoteForm] = useState<NoteForm | null>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   // Reels scheduled on the reels board, for its owner: one calendar for everything that posts.
-  const [reels, setReels] = useState<{ id: string; title: string; date: string; posted: boolean; business: string }[]>([]);
+  // `auto`: the brand posts to Instagram by itself (IG_HANDLES); otherwise Leo posts it by hand.
+  const [reels, setReels] = useState<
+    { id: string; title: string; date: string; time: string | null; posted: boolean; business: string; auto: boolean; handle: string | null }[]
+  >([]);
+  // Reels still in review or needing changes on the board: content waiting on Leo, with no date yet.
+  const [waiting, setWaiting] = useState<{ id: string; title: string; business: string; brand: string; changes: boolean; carousel: boolean }[]>([]);
+  // The day whose panel is open (tap a day number or an empty part of a day).
+  const [dayOpen, setDayOpen] = useState<string | null>(null);
+  const [waitOpen, setWaitOpen] = useState(false);
+  const dayRef = useRef<HTMLDivElement>(null);
   // Channel posts other jobs publish (the MoneyBees Telegram channel first), with their full caption and pictures.
   const [feed, setFeed] = useState<CalendarFeedItem[]>([]);
   const [openFeed, setOpenFeed] = useState<CalendarFeedItem | null>(null);
@@ -214,7 +227,21 @@ export default function CalendarPage() {
             setReels(
               b.cards
                 .filter((c) => c.schedule && ["approved", "scheduled", "posted"].includes(c.stage))
-                .map((c) => ({ id: c.id, title: c.title, date: c.schedule!.slice(0, 10), posted: c.stage === "posted", business: label(brandOf(c)) })),
+                .map((c) => ({
+                  id: c.id,
+                  title: c.title,
+                  date: c.schedule!.slice(0, 10),
+                  time: scheduleTime(c.schedule),
+                  posted: c.stage === "posted",
+                  business: label(brandOf(c)),
+                  auto: Boolean(IG_HANDLES[brandOf(c)]),
+                  handle: IG_HANDLES[brandOf(c)] ?? null,
+                })),
+            );
+            setWaiting(
+              b.cards
+                .filter((c) => c.stage === "review" || c.stage === "changes")
+                .map((c) => ({ id: c.id, title: c.title, business: label(brandOf(c)), brand: brandOf(c), changes: c.stage === "changes", carousel: isCarousel(c) })),
             );
           })
           .catch(() => {}); // the calendar works without the board
@@ -274,6 +301,7 @@ export default function CalendarPage() {
   const bizFilter = useBusinessFilter([
     profileName,
     ...reels.map((r) => r.business),
+    ...waiting.map((w) => w.business),
     ...feed.map((f) => f.business),
     ...(teamPosts.length ? [TEAM_BUSINESS] : []),
   ]);
@@ -378,6 +406,61 @@ export default function CalendarPage() {
     }
     return map;
   }, [visible, todayKey]);
+
+  const visibleWaiting = useMemo(() => waiting.filter((w) => showsBiz(w.business)), [waiting, bizOn]);
+  // Waiting reels by business, needing changes first, for the side panel.
+  const waitingGroups = useMemo(() => {
+    const m = new Map<string, { business: string; brand: string; items: typeof waiting }>();
+    for (const w of visibleWaiting) {
+      const g = m.get(w.business) ?? { business: w.business, brand: w.brand, items: [] };
+      g.items.push(w);
+      m.set(w.business, g);
+    }
+    for (const g of m.values()) g.items.sort((a, b) => Number(b.changes) - Number(a.changes));
+    return [...m.values()];
+  }, [visibleWaiting]);
+
+  // Coverage: everything dated under the current filters, reduced to business, day and posted or not.
+  // Repeats count as planned; skipped team posts don't.
+  const coverItems = useMemo<DatedItem[]>(() => {
+    const items: DatedItem[] = [];
+    for (const d of visible) {
+      const date = eventDate(d);
+      if (date) items.push({ business: profileName, date, done: draftStatus(d) === "posted" });
+    }
+    for (const [date, gs] of ghostsByDate) for (let i = 0; i < gs.length; i++) items.push({ business: profileName, date, done: false });
+    for (const r of visibleReels) items.push({ business: r.business, date: r.date, done: r.posted });
+    for (const f of visibleFeed) items.push({ business: f.business, date: f.date, done: f.status === "posted" });
+    for (const [date, ps] of teamByDate) for (const p of ps) if (!p.skipped) items.push({ business: TEAM_BUSINESS, date, done: Boolean(p.postedAt) });
+    return items;
+  }, [visible, ghostsByDate, visibleReels, visibleFeed, teamByDate, profileName]);
+  const thisWeek = useMemo(() => weekOf(todayKey), [todayKey]);
+  const glance = useMemo(() => weekGlance(coverItems, thisWeek, todayKey), [coverItems, thisWeek, todayKey]);
+  // Matched on the filter's business key, so "MoneyBees" the profile and "Moneybees" the feed are one business.
+  const runningOut = useMemo(() => {
+    const shown = bizFilter.businesses.filter((b) => showsBiz(b.label));
+    const keyed = coverItems.map((i) => ({ ...i, business: businessKey(i.business) }));
+    return runsOut(keyed, shown.map((b) => b.key), todayKey).map((r) => ({
+      ...r,
+      business: shown.find((b) => b.key === r.business)?.label ?? r.business,
+    }));
+  }, [coverItems, bizFilter.businesses, bizOn, todayKey]);
+  // Reels waiting per business, and its board brand id, for "Review" links that open the board on that brand.
+  const waitingBy = useMemo(() => {
+    const m = new Map<string, { brand: string; count: number }>();
+    for (const w of waiting) m.set(businessKey(w.business), { brand: w.brand, count: (m.get(businessKey(w.business))?.count ?? 0) + 1 });
+    return m;
+  }, [waiting]);
+
+  // Needs you: team posts waiting for approval and reels nobody posts unless Leo does.
+  const teamToApprove = useMemo(
+    () =>
+      showsBiz(TEAM_BUSINESS)
+        ? teamPosts.filter((p) => statusOf(p, teamReviews[p.id]) === "waiting").sort((a, b) => (a.day < b.day ? -1 : 1))
+        : [],
+    [teamPosts, teamReviews, bizOn],
+  );
+  const handDue = useMemo(() => dueByHand(reels.filter((r) => showsBiz(r.business)), todayKey), [reels, bizOn, todayKey]);
 
   const selected = drafts.find((d) => d.id === selectedId) ?? null;
 
@@ -672,7 +755,7 @@ export default function CalendarPage() {
           k.preventDefault();
           select(e.id);
         }}
-        title={e.hook || e.draft.slice(0, 60)}
+        title={`${PLATFORM_LABEL[e.platform] ?? (e.platform || "Post")}: ${e.hook || e.draft.slice(0, 60)}`}
         className={`w-full rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
           posted
             ? "bg-success/15 text-success"
@@ -699,24 +782,44 @@ export default function CalendarPage() {
           <>
             <ZernioChipLabel draft={e} compact />
             {time && <span className="font-semibold">{timeLabel(time)} </span>}
-            {PLATFORM_LABEL[e.platform] ?? e.platform}: {(e.hook || e.draft).slice(0, 22)}
+            {titleOf(e)}
           </>
         )}
       </div>
     );
   };
 
+  // How a reel goes out: by itself to its Instagram account, or by Leo's hand.
+  const reelHow = (r: (typeof reels)[number]) => (r.auto ? `posts to @${r.handle} automatically` : "post it by hand");
+
   const reelChip = (r: (typeof reels)[number], roomy: boolean) => (
     <button
       key={r.id}
       type="button"
       onClick={() => navigate(`/reels?card=${encodeURIComponent(r.id)}`)}
-      title={r.title}
+      title={`${r.business} reel${r.time ? `, ${timeLabel(r.time)}` : ""}: ${r.title} (${r.posted ? "posted" : reelHow(r)})`}
       className={`block w-full rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
-        roomy ? "line-clamp-2 py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"
-      } ${r.posted ? "bg-success/15 text-success" : "bg-brand/15 text-brand"}`}
+        roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"
+      } ${r.posted ? "bg-success/15 text-success" : !r.auto && r.date <= todayKey ? "bg-warning/15 text-warning" : "bg-brand/15 text-brand"}`}
     >
-      Reel: {roomy ? r.title : r.title.slice(0, 22)}
+      {roomy ? (
+        <>
+          <span className="block text-[10px] opacity-80">
+            {r.business} · Reel{r.time && ` · ${timeLabel(r.time)}`}
+            {!r.posted && !r.auto && " · by hand"}
+          </span>
+          <span className="line-clamp-2">{r.title}</span>
+        </>
+      ) : (
+        <>
+          {r.posted || r.auto ? (
+            <Clapperboard className="mr-0.5 inline h-2.5 w-2.5 align-[-1px]" aria-label="Reel" />
+          ) : (
+            <Hand className="mr-0.5 inline h-2.5 w-2.5 align-[-1px]" aria-label="Reel, post it by hand" />
+          )}
+          {r.title}
+        </>
+      )}
     </button>
   );
 
@@ -740,9 +843,7 @@ export default function CalendarPage() {
           <span className="line-clamp-2">{f.title}</span>
         </>
       ) : (
-        <>
-          {f.channel}: {f.title.slice(0, 22)}
-        </>
+        f.title
       )}
     </button>
   );
@@ -776,7 +877,7 @@ export default function CalendarPage() {
         ) : (
           <>
             {time && `${timeLabel(time)} `}
-            {(e.hook || e.draft).slice(0, 22)}
+            {titleOf(e)}
           </>
         )}
       </div>
@@ -814,18 +915,120 @@ export default function CalendarPage() {
     </button>
   );
 
-  // Day number: tap it to pin a note on that day.
+  // A day's panel: everything on it, plus "Write a post for this day" and "Add note".
+  const openDay = (key: string) => {
+    setDayOpen((cur) => (cur === key ? null : key));
+    requestAnimationFrame(() => dayRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+  };
+  // Tapping an empty part of a day opens it; chips and buttons inside keep their own action.
+  const cellClick = (key: string) => (e: ReactMouseEvent) => {
+    if ((e.target as HTMLElement).closest("button, a, input, select, [role=button]")) return;
+    openDay(key);
+  };
+
+  // Day number: tap it to open the day.
   const dayNumber = (key: string, className: string) => (
     <button
       type="button"
-      onClick={() => openNote(null, key)}
-      aria-label={`Add a note on ${dayLabel(key)}`}
-      title="Add a note"
+      onClick={() => openDay(key)}
+      aria-label={`Open ${dayLabel(key)}`}
+      aria-expanded={dayOpen === key}
+      title="Open this day"
       className={`${className} hover:ring-2 hover:ring-border`}
     >
       {keyToDate(key).getDate()}
     </button>
   );
+
+  // Everything dated on one day under the current filters.
+  const dayThings = (key: string) => ({
+    events: byDate.get(key) ?? [],
+    ghosts: ghostsByDate.get(key) ?? [],
+    reels: visibleReels.filter((r) => r.date === key),
+    feed: visibleFeed.filter((f) => f.date === key),
+    team: teamByDate.get(key) ?? [],
+  });
+
+  // One coloured dot per item, for the month grid on phones (same colours as the chips).
+  const dayDots = (key: string) => {
+    const t = dayThings(key);
+    return [
+      ...(keyDates.get(key) ?? []).filter((k) => k.kind === "holiday").map((k) => ({ id: `k${k.title}`, tone: "bg-destructive" })),
+      ...(notesByDate.get(key) ?? []).map((n) => ({ id: n.id, tone: "border border-muted-foreground" })),
+      ...t.events.map((e) => ({
+        id: e.id,
+        tone: draftStatus(e) === "posted" ? "bg-success" : (e.scheduledFor ?? "").slice(0, 10) < todayKey ? "bg-warning" : "bg-primary",
+      })),
+      ...t.ghosts.map((g) => ({ id: `${g.id}@`, tone: "border border-primary" })),
+      ...t.reels.map((r) => ({ id: r.id, tone: r.posted ? "bg-success" : !r.auto && r.date <= todayKey ? "bg-warning" : "bg-brand" })),
+      ...t.feed.map((f) => ({ id: f.id, tone: f.status === "posted" ? "bg-success" : "bg-sky-500" })),
+      ...t.team.map((p) => {
+        const st = statusOf(p, teamReviews[p.id]);
+        return { id: p.id, tone: st === "waiting" ? "bg-warning" : st === "posted" ? "bg-success" : "bg-muted-foreground/60" };
+      }),
+    ];
+  };
+  const DOT_LABEL: Record<string, string> = {
+    "bg-warning": "Overdue or waiting for you",
+    "bg-primary": "Your post",
+    "border border-primary": "Repeats",
+    "bg-brand": "Reel",
+    "bg-sky-500": "Channel post",
+    "bg-muted-foreground/60": "Team post",
+    "bg-success": "Posted",
+    "border border-muted-foreground": "Note",
+    "bg-destructive": "Holiday",
+  };
+
+  const dayPanel = (key: string) => {
+    const t = dayThings(key);
+    return (
+      <div ref={dayRef} className="scroll-mt-4 space-y-2 rounded-xl border border-primary/30 bg-card p-3 shadow-card">
+        <div className="flex items-start gap-2">
+          <p className="min-w-0 flex-1 text-sm font-semibold text-foreground">
+            {keyToDate(key).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
+          </p>
+          <button
+            type="button"
+            onClick={() => setDayOpen(null)}
+            aria-label="Close day"
+            className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="space-y-1.5">
+          {(sgDatesBetween(key, key).get(key) ?? []).map((k) => keyDateLine(k, true))}
+          {(notesByDate.get(key) ?? []).map((n) => noteChip(n, true))}
+          {t.events.map((e) => chip(e, true))}
+          {t.ghosts.map((g) => ghostChip(g, key, true))}
+          {t.reels.map((r) => reelChip(r, true))}
+          {t.feed.map((f) => feedChip(f, true))}
+          {t.team.map((p) => teamChip(p, true))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {key >= todayKey && (
+            <Button asChild size="sm" className="h-9 gap-1.5 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+              <Link to={`/generate?day=${key}`}>
+                <PenLine className="h-3.5 w-3.5" /> Write a post for this day
+              </Link>
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setDayOpen(null);
+              openNote(null, key);
+            }}
+            className="h-9 gap-1.5 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11"
+          >
+            <StickyNote className="h-3.5 w-3.5" /> Add note
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   const anchorDate = keyToDate(anchor);
   const grid = useMemo(() => {
@@ -842,6 +1045,11 @@ export default function CalendarPage() {
     for (const n of notes) map.set(n.date, [...(map.get(n.date) ?? []), n]);
     return map;
   }, [notes]);
+  // The month's legend: only the colours this month actually uses, in DOT_LABEL order.
+  const monthTones = view === "month" ? new Set(grid.flatMap((k) => dayDots(k).map((d) => d.tone))) : new Set<string>();
+  const monthLegend = Object.entries(DOT_LABEL)
+    .filter(([tone]) => monthTones.has(tone))
+    .map(([tone, label]) => ({ tone, label }));
 
   // Upcoming: posts, reels, notes and the next few weeks of key dates, in date order
   // (key dates first in a day, then notes, then posts by time).
@@ -1036,68 +1244,206 @@ export default function CalendarPage() {
 
       <BusinessChips filter={bizFilter} />
 
-      <div className={`grid gap-4 ${unscheduled.length > 0 ? "xl:grid-cols-[minmax(0,1fr)_15rem]" : ""}`}>
-        {/* Unscheduled drafts: a side panel on wide screens, a collapsible section below that */}
-        {unscheduled.length > 0 && (
-          <aside className="xl:order-last xl:sticky xl:top-4 xl:self-start">
+      {(teamToApprove.length > 0 || handDue.length > 0) && (
+        <section aria-label="Needs you" className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-3">
+          <p className="text-sm font-semibold text-foreground">Needs you</p>
+          {teamToApprove.length > 0 && (
             <button
               type="button"
-              onClick={() => setPanelOpen((o) => !o)}
-              aria-expanded={panelOpen}
-              className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-card px-4 text-sm font-semibold text-foreground shadow-card xl:hidden"
+              onClick={() => openTeam(teamToApprove[0].id)}
+              className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
             >
-              Unscheduled drafts ({unscheduled.length})
-              <ChevronDown className={`h-4 w-4 transition-transform ${panelOpen ? "rotate-180" : ""}`} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-foreground">
+                  {teamToApprove.length} team post{teamToApprove.length > 1 ? "s" : ""} to approve
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  Next: {teamToApprove[0].title} · {dayLabel(teamToApprove[0].day)}
+                </span>
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-primary">Review</span>
             </button>
-            <div
-              className={`${panelOpen ? "mt-2" : "hidden"} space-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card xl:mt-0 xl:block`}
+          )}
+          {handDue.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => navigate(`/reels?card=${encodeURIComponent(r.id)}`)}
+              className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
             >
-              <p className="hidden items-center gap-1 text-sm font-semibold text-foreground xl:flex">
-                Unscheduled drafts ({unscheduled.length})
-                <InfoTip label="About unscheduled drafts">Drag one onto a day, or pick its date.</InfoTip>
-              </p>
-              <div className="max-h-[60vh] space-y-2 overflow-y-auto">
-                {unscheduled.map((d) => (
-                  <div
-                    key={d.id}
-                    {...dragProps(d.id)}
-                    className={`cursor-grab rounded-lg border border-border/60 bg-background p-2 active:cursor-grabbing ${
-                      dragging === d.id ? "opacity-40" : ""
-                    }`}
-                  >
-                    <p className="line-clamp-2 text-xs font-medium text-foreground">{titleOf(d)}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{PLATFORM_LABEL[d.platform] ?? d.platform}</p>
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const pick = rowPick[d.id];
-                        if (pick?.date) reschedule(d.id, scheduleAt(pick.date, pick.time));
-                      }}
-                      className="mt-1.5 flex flex-wrap items-center gap-1.5"
-                    >
-                      <DayInput
-                        min={todayKey}
-                        value={rowPick[d.id]?.date ?? ""}
-                        aria-label={`Date for ${titleOf(d)}`}
-                        onPick={(day) => setPick(d.id, { date: day })}
-                        className={`${dateInputClass} min-w-[8rem] flex-1`}
-                      />
-                      <input
-                        type="time"
-                        value={rowPick[d.id]?.time ?? ""}
-                        onChange={(e) => setPick(d.id, { time: e.target.value })}
-                        aria-label={`Time for ${titleOf(d)} (optional)`}
-                        title="Time (optional)"
-                        className={`${dateInputClass} w-24`}
-                      />
-                      <Button type="submit" size="sm" disabled={!rowPick[d.id]?.date} className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
-                        Schedule
-                      </Button>
-                    </form>
+              <Hand className="h-4 w-4 shrink-0 text-warning" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-foreground">Post by hand: {r.title}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {r.business} reel · {r.date < todayKey ? overdueLabel(daysOverdue(r.date, todayKey)) : "today"}
+                  {r.time && `, ${timeLabel(r.time)}`}
+                </span>
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-primary">Open</span>
+            </button>
+          ))}
+        </section>
+      )}
+
+      {status === "all" && (
+        <section aria-label="This week" className="space-y-1.5 rounded-xl border border-border/70 bg-card px-3 py-2.5 shadow-card">
+          <p className="flex flex-wrap items-center gap-x-1.5 text-sm text-foreground">
+            <CalendarRange className="h-4 w-4 text-muted-foreground" aria-hidden />
+            <span className="font-semibold">This week:</span>
+            <span>{glance.going ? `${glance.going} going out` : "nothing going out"}</span>
+            {glance.posted > 0 && <span className="text-muted-foreground">· {glance.posted} posted</span>}
+            {glance.emptyDays.length > 0 && glance.emptyDays.length < 7 && (
+              <span className="text-muted-foreground">
+                · nothing on {glance.emptyDays.map((d) => keyToDate(d).toLocaleDateString(undefined, { weekday: "short" })).join(", ")}
+              </span>
+            )}
+          </p>
+          {runningOut.length > 0 && (
+            <ul className="space-y-1" aria-label={`Running out in the next ${COVER_DAYS / 7} weeks`}>
+              {runningOut.map((r) => {
+                const w = waitingBy.get(businessKey(r.business));
+                const mine = businessKey(r.business) === businessKey(profileName);
+                return (
+                  <li key={r.business} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{r.business}</span>
+                    <span>{r.last ? `planned to ${dayLabel(r.last)}, then nothing` : `nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
+                    {w && (
+                      <Link to={`/reels?brand=${encodeURIComponent(w.brand)}`} className="-my-2 py-2 font-semibold text-primary hover:underline">
+                        {w.count} reel{w.count > 1 ? "s" : ""} waiting for review
+                      </Link>
+                    )}
+                    {mine && (
+                      <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline">
+                        Write a post
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
+
+      <div className={`grid gap-4 ${unscheduled.length > 0 || visibleWaiting.length > 0 ? "xl:grid-cols-[minmax(0,1fr)_15rem]" : ""}`}>
+        {/* Unscheduled drafts and reels waiting on the board: a side column on wide screens, collapsible sections below that */}
+        {(unscheduled.length > 0 || visibleWaiting.length > 0) && (
+          <aside className="space-y-2 xl:order-last xl:sticky xl:top-4 xl:self-start xl:space-y-3">
+            {unscheduled.length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setPanelOpen((o) => !o)}
+                  aria-expanded={panelOpen}
+                  className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-card px-4 text-sm font-semibold text-foreground shadow-card xl:hidden"
+                >
+                  Unscheduled drafts ({unscheduled.length})
+                  <ChevronDown className={`h-4 w-4 transition-transform ${panelOpen ? "rotate-180" : ""}`} />
+                </button>
+                <div
+                  className={`${panelOpen ? "mt-2" : "hidden"} space-y-2 rounded-xl border border-border/70 bg-card p-3 shadow-card xl:mt-0 xl:block`}
+                >
+                  <p className="hidden items-center gap-1 text-sm font-semibold text-foreground xl:flex">
+                    Unscheduled drafts ({unscheduled.length})
+                    <InfoTip label="About unscheduled drafts">Drag one onto a day, or pick its date.</InfoTip>
+                  </p>
+                  <div className="max-h-[60vh] space-y-2 overflow-y-auto">
+                    {unscheduled.map((d) => (
+                      <div
+                        key={d.id}
+                        {...dragProps(d.id)}
+                        className={`cursor-grab rounded-lg border border-border/60 bg-background p-2 active:cursor-grabbing ${
+                          dragging === d.id ? "opacity-40" : ""
+                        }`}
+                      >
+                        <p className="line-clamp-2 text-xs font-medium text-foreground">{titleOf(d)}</p>
+                        <p className="truncate text-[10px] text-muted-foreground">{PLATFORM_LABEL[d.platform] ?? d.platform}</p>
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const pick = rowPick[d.id];
+                            if (pick?.date) reschedule(d.id, scheduleAt(pick.date, pick.time));
+                          }}
+                          className="mt-1.5 flex flex-wrap items-center gap-1.5"
+                        >
+                          <DayInput
+                            min={todayKey}
+                            value={rowPick[d.id]?.date ?? ""}
+                            aria-label={`Date for ${titleOf(d)}`}
+                            onPick={(day) => setPick(d.id, { date: day })}
+                            className={`${dateInputClass} min-w-[8rem] flex-1`}
+                          />
+                          <input
+                            type="time"
+                            value={rowPick[d.id]?.time ?? ""}
+                            onChange={(e) => setPick(d.id, { time: e.target.value })}
+                            aria-label={`Time for ${titleOf(d)} (optional)`}
+                            title="Time (optional)"
+                            className={`${dateInputClass} w-24`}
+                          />
+                          <Button type="submit" size="sm" disabled={!rowPick[d.id]?.date} className="h-9 px-3 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+                            Schedule
+                          </Button>
+                        </form>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
+            )}
+            {visibleWaiting.length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setWaitOpen((o) => !o)}
+                  aria-expanded={waitOpen}
+                  className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-card px-4 text-sm font-semibold text-foreground shadow-card xl:hidden"
+                >
+                  Waiting on the board ({visibleWaiting.length})
+                  <ChevronDown className={`h-4 w-4 transition-transform ${waitOpen ? "rotate-180" : ""}`} />
+                </button>
+                <div className={`${waitOpen ? "mt-2" : "hidden"} space-y-3 rounded-xl border border-border/70 bg-card p-3 shadow-card xl:mt-0 xl:block`}>
+                  <p className="hidden items-center gap-1 text-sm font-semibold text-foreground xl:flex">
+                    <Clapperboard className="h-4 w-4 text-brand" aria-hidden />
+                    Waiting on the board ({visibleWaiting.length})
+                    <InfoTip label="About reels waiting on the board">Approve a reel on the board to give it a date.</InfoTip>
+                  </p>
+                  <div className="max-h-[50vh] space-y-3 overflow-y-auto">
+                    {waitingGroups.map((g) => (
+                      <div key={g.business} className="space-y-1">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                          {g.business} · {g.items.length}
+                        </p>
+                        {g.items.slice(0, 3).map((w) => (
+                          <Link
+                            key={w.id}
+                            to={`/reels?card=${encodeURIComponent(w.id)}`}
+                            className="block rounded-md px-1.5 py-1.5 text-xs text-foreground hover:bg-muted/60 [@media(pointer:coarse)]:py-2.5"
+                          >
+                            <span className="line-clamp-2">{w.title}</span>
+                            {(w.carousel || w.changes) && (
+                              <span className="text-[10px] font-semibold text-muted-foreground">
+                                {w.carousel && "Carousel"}
+                                {w.carousel && w.changes && " · "}
+                                {w.changes && <span className="text-warning">Needs changes</span>}
+                              </span>
+                            )}
+                          </Link>
+                        ))}
+                        {g.items.length > 3 && (
+                          <Link
+                            to={`/reels?brand=${encodeURIComponent(g.brand)}`}
+                            className="block px-1.5 py-1 text-[11px] font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-2.5"
+                          >
+                            +{g.items.length - 3} more on the board
+                          </Link>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </aside>
         )}
 
@@ -1177,6 +1523,8 @@ export default function CalendarPage() {
             </div>
           )}
 
+          {dayOpen && view !== "list" && dayPanel(dayOpen)}
+
           {selected && view !== "list" && (
             <div ref={editorRef} className={view === "week" ? "hidden sm:block" : ""}>
               {editor(selected)}
@@ -1196,7 +1544,8 @@ export default function CalendarPage() {
           {view === "month" && (
             <Card className="overflow-hidden border-border/60 shadow-card">
               <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Month calendar">
-                <div className="min-w-[620px]">
+                {/* Phones fit all 7 days with dots; from sm up each day lists its items. */}
+                <div className="sm:min-w-[620px]">
                   <div className="grid grid-cols-7 border-b border-border/60 bg-muted/30 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                     {WEEKDAYS.map((w) => (
                       <div key={w} className="py-2">
@@ -1209,20 +1558,29 @@ export default function CalendarPage() {
                       const day = keyToDate(key);
                       const inMonth = day.getMonth() === anchorDate.getMonth();
                       const isToday = key === todayKey;
-                      const events = byDate.get(key) ?? [];
-                      const ghosts = ghostsByDate.get(key) ?? [];
+                      const t = dayThings(key);
+                      // Posts, repeats, reels, channel and team posts share the 3 places; the rest opens the day.
+                      const items = [
+                        ...t.events.map((e) => () => chip(e, false)),
+                        ...t.ghosts.map((g) => () => ghostChip(g, key, false)),
+                        ...t.reels.map((r) => () => reelChip(r, false)),
+                        ...t.feed.map((f) => () => feedChip(f, false)),
+                        ...t.team.map((p) => () => teamChip(p, false)),
+                      ];
+                      const dots = dayDots(key);
                       return (
                         <div
                           key={key}
                           data-day={key}
                           {...dropProps(key)}
-                          className={`min-h-[84px] border-b border-r border-border/50 p-1.5 ${
+                          onClick={cellClick(key)}
+                          className={`min-h-[56px] cursor-pointer border-b border-r border-border/50 p-1 sm:min-h-[84px] sm:p-1.5 ${
                             inMonth ? "bg-card" : "bg-muted/20"
-                          } ${dropHighlight(key)}`}
+                          } ${dayOpen === key ? "ring-2 ring-inset ring-primary/60" : ""} ${dropHighlight(key)}`}
                         >
                           {dayNumber(
                             key,
-                            `mb-1 flex h-5 w-5 items-center justify-center rounded-full text-[11px] ${
+                            `mb-1 flex h-7 w-7 items-center justify-center rounded-full text-[11px] sm:h-5 sm:w-5 ${
                               isToday
                                 ? "bg-primary font-bold text-primary-foreground"
                                 : inMonth
@@ -1230,26 +1588,25 @@ export default function CalendarPage() {
                                   : "text-muted-foreground"
                             }`,
                           )}
-                          <div className="space-y-1">
+                          <div className="flex flex-wrap gap-1 px-0.5 sm:hidden" aria-hidden>
+                            {dots.slice(0, 6).map((d) => (
+                              <span key={d.id} className={`h-1.5 w-1.5 rounded-full ${d.tone}`} />
+                            ))}
+                            {dots.length > 6 && <span className="text-[9px] leading-none text-muted-foreground">+{dots.length - 6}</span>}
+                          </div>
+                          <div className="hidden space-y-1 sm:block">
                             {(keyDates.get(key) ?? []).map((k) => keyDateLine(k, false))}
                             {(notesByDate.get(key) ?? []).map((n) => noteChip(n, false))}
-                            {events.slice(0, 3).map((e) => chip(e, false))}
-                            {ghosts.slice(0, Math.max(0, 3 - events.length)).map((g) => ghostChip(g, key, false))}
-                            {events.length + ghosts.length > 3 && (
+                            {items.slice(0, 3).map((render) => render())}
+                            {items.length > 3 && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setAnchor(key);
-                                  setView("week");
-                                }}
+                                onClick={() => openDay(key)}
                                 className="px-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
                               >
-                                +{events.length + ghosts.length - 3} more
+                                +{items.length - 3} more
                               </button>
                             )}
-                            {visibleReels.filter((r) => r.date === key).map((r) => reelChip(r, false))}
-                            {visibleFeed.filter((f) => f.date === key).map((f) => feedChip(f, false))}
-                            {(teamByDate.get(key) ?? []).map((p) => teamChip(p, false))}
                           </div>
                         </div>
                       );
@@ -1257,6 +1614,16 @@ export default function CalendarPage() {
                   </div>
                 </div>
               </div>
+              {monthLegend.length > 0 && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1 border-t border-border/60 px-3 py-2 text-[11px] text-muted-foreground" aria-label="What the colours mean">
+                  {monthLegend.map((l) => (
+                    <span key={l.label} className="inline-flex items-center gap-1.5">
+                      <span className={`h-2 w-2 rounded-full ${l.tone}`} aria-hidden />
+                      {l.label}
+                    </span>
+                  ))}
+                </div>
+              )}
             </Card>
           )}
 
@@ -1272,9 +1639,10 @@ export default function CalendarPage() {
                       key={key}
                       data-day={key}
                       {...dropProps(key)}
-                      className={`flex gap-3 border-b border-border/50 p-2 sm:min-h-[220px] sm:flex-col sm:gap-1.5 sm:border-r ${
+                      onClick={cellClick(key)}
+                      className={`flex cursor-pointer gap-3 border-b border-border/50 p-2 sm:min-h-[220px] sm:flex-col sm:gap-1.5 sm:border-r ${
                         key < todayKey ? "bg-muted/20" : "bg-card"
-                      } ${dropHighlight(key)}`}
+                      } ${dayOpen === key ? "ring-2 ring-inset ring-primary/60" : ""} ${dropHighlight(key)}`}
                     >
                       <div className="w-12 shrink-0 text-center sm:w-auto sm:text-left">
                         <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -1389,7 +1757,10 @@ export default function CalendarPage() {
                       {dateBadge(r.date)}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-foreground">{r.title}</p>
-                        <p className="text-xs text-muted-foreground">Reel - posts automatically</p>
+                        <p className="text-xs text-muted-foreground">
+                          {r.business} · Reel{r.time && ` · ${timeLabel(r.time)}`} ·{" "}
+                          <span className={r.auto ? "" : "font-medium text-warning"}>{reelHow(r)}</span>
+                        </p>
                       </div>
                     </button>
                   );
