@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link } from "react-router-dom";
-import { ArrowRight, Columns3, GripVertical, Lightbulb, Pencil } from "lucide-react";
+import { ArrowRight, Columns3, GripVertical, Lightbulb, Pencil, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -31,6 +31,10 @@ import {
 } from "@/lib/draftHistory";
 import { supabase } from "@/lib/supabase";
 import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
+import { activeProfile } from "@/lib/profiles";
+import { BusinessChips, useBusinessFilter } from "@/components/BusinessFilter";
+import ChannelPostDrawer from "@/components/ChannelPostDrawer";
+import { STATUS_LABEL, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 
 const PRODUCTION: BoardColumn[] = ["idea", "scripted", "to-film", "editing"];
 
@@ -194,6 +198,38 @@ function BoardCard({
   );
 }
 
+// A channel post (the MoneyBees Telegram channel first) on the board: the posting job decides when it goes, so
+// it is not draggable; tap it to see the whole post.
+function FeedCard({ item, onOpen }: { item: CalendarFeedItem; onOpen: () => void }) {
+  const when =
+    keyToDate(item.date).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) +
+    (item.time ? `, ${timeLabel(item.time)}` : "");
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full min-w-0 items-start gap-2.5 rounded-xl border border-sky-500/30 bg-card p-3 text-left shadow-sm transition-shadow hover:shadow-card"
+    >
+      {item.media[0] && <img src={item.media[0]} alt="" loading="lazy" className="h-14 w-11 shrink-0 rounded-md border border-border/60 object-cover" />}
+      <span className="min-w-0 flex-1 space-y-1.5">
+        <span className="line-clamp-2 block text-sm font-medium leading-snug text-foreground">{item.title}</span>
+        <span className="flex flex-wrap items-center gap-1.5">
+          <span className="whitespace-nowrap rounded-full bg-sky-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300">
+            {item.business}
+          </span>
+          <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-full border border-border/70 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <Send className="h-2.5 w-2.5" /> {item.channel}
+          </span>
+          <span className="whitespace-nowrap text-[10px] text-muted-foreground">
+            {when} · {STATUS_LABEL[item.status]}
+            {item.media.length > 1 && ` · ${item.media.length} pictures`}
+          </span>
+        </span>
+      </span>
+    </button>
+  );
+}
+
 export default function BoardPage() {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
@@ -202,24 +238,49 @@ export default function BoardPage() {
   useEffect(() => (userId ? onDraftsChanged(() => setDrafts(loadDrafts(userId))) : undefined), [userId]);
   const [stages, setStages] = useState<Record<string, ProductionStage>>({});
   const [dragOver, setDragOver] = useState<BoardColumn | null>(null);
+  // Channel posts other jobs publish, in Scheduled (planned or previewed) and Posted (Leo 2026-10-13: a kanban view).
+  const [feed, setFeed] = useState<CalendarFeedItem[]>([]);
+  const [openFeed, setOpenFeed] = useState<CalendarFeedItem | null>(null);
+  const [profileName, setProfileName] = useState("");
 
   useEffect(() => {
+    let active = true;
     supabase.auth.getUser().then(({ data }) => {
       const uid = data.user?.id ?? null;
       setUserId(uid);
       if (uid) {
         setDrafts(loadDrafts(uid));
         setStages(loadStages(uid));
+        setProfileName(activeProfile(uid).name);
+      }
+      if (canSeeChannelFeeds(data.user?.email)) {
+        fetchChannelFeeds()
+          .then((items) => active && setFeed(items))
+          .catch(() => {}); // the board works without the feeds
       }
     });
+    return () => {
+      active = false;
+    };
   }, []);
 
+  // The same business filter as the calendar (the pick carries over): the open profile's drafts and each feed.
+  const bizFilter = useBusinessFilter([profileName, ...feed.map((f) => f.business)]);
+  const showDrafts = bizFilter.shows(profileName);
   const byColumn = useMemo(() => {
     const map = new Map<BoardColumn, DraftEntry[]>();
     BOARD_COLUMNS.forEach((c) => map.set(c.key, []));
-    drafts.forEach((d) => map.get(columnOf(d, stages))?.push(d));
+    if (showDrafts) drafts.forEach((d) => map.get(columnOf(d, stages))?.push(d));
     return map;
-  }, [drafts, stages]);
+  }, [drafts, stages, showDrafts]);
+  const feedIn = useMemo(() => {
+    const today = localDateKey();
+    const shown = feed.filter((f) => bizFilter.shows(f.business));
+    return {
+      scheduled: shown.filter((f) => f.status !== "posted" && f.date >= today).sort((a, b) => (a.date + a.time < b.date + b.time ? -1 : 1)),
+      posted: shown.filter((f) => f.status === "posted").sort((a, b) => (a.date + a.time > b.date + b.time ? -1 : 1)),
+    } as Partial<Record<BoardColumn, CalendarFeedItem[]>>;
+  }, [feed, bizFilter.shows]);
 
   const [newIdea, setNewIdea] = useState("");
   // Draft awaiting a posting date: asked on its card (Schedule button) or in the
@@ -316,8 +377,9 @@ export default function BoardPage() {
           Drag a card between columns, or use its quick-move button.
         </InfoTip>
       </div>
+      <BusinessChips filter={bizFilter} />
 
-      {drafts.length === 0 && (
+      {drafts.length === 0 && feed.length === 0 && (
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4 text-sm text-muted-foreground">
             <p>Nothing in production yet.</p>
@@ -343,6 +405,7 @@ export default function BoardPage() {
                 {phase.columns.map((key) => {
                   const col = BOARD_COLUMNS.find((c) => c.key === key)!;
                   const cards = byColumn.get(col.key) ?? [];
+                  const channel = feedIn[col.key] ?? [];
                   return (
                     <div
                       key={col.key}
@@ -363,7 +426,7 @@ export default function BoardPage() {
                           {col.label}
                         </p>
                         <span className="shrink-0 rounded-md bg-background px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground shadow-sm">
-                          {cards.length}
+                          {cards.length + channel.length}
                         </span>
                       </div>
 
@@ -395,6 +458,10 @@ export default function BoardPage() {
                         );
                       })}
 
+                      {channel.map((f) => (
+                        <FeedCard key={f.id} item={f} onOpen={() => setOpenFeed(f)} />
+                      ))}
+
                       {col.key === "scheduled" && scheduling && !scheduling.onCard && (
                         <ScheduleForm
                           key={scheduling.id}
@@ -404,7 +471,7 @@ export default function BoardPage() {
                         />
                       )}
 
-                      {col.key === "idea" && (
+                      {col.key === "idea" && showDrafts && (
                         <input
                           value={newIdea}
                           onChange={(e) => setNewIdea(e.target.value)}
@@ -427,7 +494,7 @@ export default function BoardPage() {
                         </Link>
                       )}
 
-                      {cards.length === 0 && col.key !== "idea" && (
+                      {cards.length === 0 && channel.length === 0 && col.key !== "idea" && (
                         <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-border/50 text-[11px] text-muted-foreground">
                           Drop posts here
                         </div>
@@ -440,6 +507,7 @@ export default function BoardPage() {
           ))}
         </div>
       </div>
+      <ChannelPostDrawer item={openFeed} onClose={() => setOpenFeed(null)} />
     </div>
   );
 }
