@@ -12,14 +12,16 @@ import { supabase } from "@/lib/supabase";
 import { getFile } from "@/lib/deviceFiles";
 import { addMedia, filterMedia, foldersOf, loadMedia, removeMedia, storePicture, updateMedia, type MediaItem } from "@/lib/mediaLibrary";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
+import { useUrlSearch, useUrlState } from "@/lib/urlState";
 
 export default function MediaPage() {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [items, setItems] = useState<MediaItem[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
-  const [query, setQuery] = useState("");
-  const [folder, setFolder] = useState("");
+  // Search and folder live in the URL (docs/deep-links.md): ?q=, ?folder=<name> or none.
+  const [query, setQuery] = useUrlSearch("q");
+  const [folderParam, setFolderParam] = useUrlState("folder", "");
   const [adding, setAdding] = useState(0);
   const [stock, setStock] = useState(false);
 
@@ -98,6 +100,9 @@ export default function MediaPage() {
   };
 
   const folders = useMemo(() => foldersOf(items), [items]);
+  // "" all, "-" no folder; a folder this device does not have reads as all
+  const folder = folderParam === "none" ? "-" : folders.includes(folderParam) ? folderParam : "";
+  const setFolder = (id: string) => setFolderParam(id === "-" ? "none" : id);
   const shown = useMemo(() => filterMedia(items, query, folder), [items, query, folder]);
 
   return (

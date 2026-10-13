@@ -10,7 +10,8 @@ words or real ids. An unknown or stale value is ignored and the page shows its d
 periods replace the history entry; opening an item pushes one, so Back closes it. Param names never change
 once shipped; a renamed param keeps reading the old name.
 
-Wave 1 covers the Pipeline pages. Other pages still read only the params listed under "Still read".
+The first table covers the Pipeline pages; the Grow, Discover and settings pages and the Create pages have their
+own sections below. Older params that still work are listed under "Still read".
 
 | Page | Param | Values | Default | History | Example |
 |---|---|---|---|---|---|
@@ -105,8 +106,7 @@ so one that is gone shows everything.
 - /plan?competitor=<advisor id or handle>: adds that creator as a competitor for the next plan build and
   opens the setup form; the param is removed once read.
 - /calendar#overdue (Home's Reschedule): scrolls to the overdue block.
-- /generate?day=YYYY-MM-DD (the calendar's "Write a post for this day"), /generate?draft=<id>,
-  /carousel?draft=<id>: Write's own params, not converted yet.
+- /generate and /carousel: see "Still read (Create pages)" below.
 
 Grow, Discover and settings pages:
 
@@ -118,3 +118,64 @@ Grow, Discover and settings pages:
 - /team?code=<invite code>: the team invite link (teamReview.ts inviteLink); removed once the invite is handled.
 - /feedback#<entry id>: the feedback board's changelog anchor.
 
+<!-- ==== Create pages (wave 2A) ==== -->
+## Create pages
+
+Write, Batch, Carousel, Video, Clone a reel, Coach, Media, Brand kit and the Learn guides. Same rules as above.
+Two exceptions, both on purpose: the open post on /generate and the open carousel on /carousel replace
+rather than push, because the editor is the page, not a panel over it (the address follows what is being
+edited); and selecting a sticker or B-roll clip in the video editor replaces, so tapping through a list does
+not fill Back. Sections of a reading page are `#anchors`, scrolled to once the page has drawn.
+
+| Page | Param | Values | Default | History | Example |
+|---|---|---|---|---|---|
+| /generate | draft | a post id: that post open in Write; the address follows the post as it is saved | none | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
+| /generate | step | topic, funnel, idea, format: the brief step shown | the tab's unfinished brief, else topic; format when the link pre-fills `detail` | replace | /generate?step=format |
+| /generate | panel | shortcuts (keyboard shortcuts dialog), post (Post it for me, on a scheduled post) | none | push | /generate?panel=shortcuts |
+| /generate/batch | pillar | topic, market, identity, interest | the tab's unfinished batch, else topic | replace | /generate/batch?pillar=market |
+| /generate/batch | audience | general, young-adult, working-adult, parent, pre-retiree | the tab's unfinished batch, else general | replace | /generate/batch?audience=parent |
+| /carousel | tab | drafts, paste, topic, saved (where the post comes from) | the tab's unfinished carousel, else drafts; drafts when there are no saved carousels | replace | /carousel?tab=topic |
+| /carousel | draft | a post id: fresh slides from that post | none | replace | /carousel?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
+| /carousel | carousel | a saved carousel id (d:<post id> or p:<time>): reopens it with its edits; beats draft; the address takes it once an edit is kept | none | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
+| /edit | p | a video project id. Projects live on one device: elsewhere the link opens the upload screen | none | push (opening a project drops the other /edit params) | /edit?p=vm1abc2 |
+| /edit | tab | style, cuts, frame, face, stickers, broll, words, with p | style | replace | /edit?p=vm1abc2&tab=words |
+| /edit | mode | fix, cut (the Words tab) | fix | replace | /edit?p=vm1abc2&tab=words&mode=cut |
+| /edit | sticker | a sticker id, selected (Stickers tab) | none | replace | /edit?p=vm1abc2&tab=stickers&sticker=o1 |
+| /edit | broll | a B-roll clip id, selected (B-roll tab) | none | replace | /edit?p=vm1abc2&tab=broll&broll=b1 |
+| /edit | guide | instagram, tiktok: that app's buttons drawn over the 9:16 preview | off | replace | /edit?p=vm1abc2&guide=instagram |
+| /edit | panel | join, ai, or both (join,ai): the start screen's Join takes and Make a video without filming | none; ai while a video is being made | push | /edit?panel=ai |
+| /edit | kind | template, montage, avatar, explainer, with panel=ai | the kind being made, else template | replace | /edit?panel=ai&kind=montage |
+| /edit | template | a video template id, with panel=ai: opens its form | none | push | /edit?panel=ai&template=handheld-ugc-vlog |
+| /clone | clone | a saved clone id (instagram:<post id>, tiktok:<id>): shows that result | none; the result just made | push | /clone?clone=instagram%3AC8xYz12AbCd |
+| /coach | report | a report id from Your progress, or the run just made | none | push | /coach?report=6f1c2d3e-4b5a-4c6d-8e9f-0a1b2c3d4e5f |
+| /coach | view | quiz: retake the diagnosis | quiz when there is no diagnosis yet | push | /coach?view=quiz |
+| /media | q | search text (names, folders, alt text) | empty | replace | /media?q=family |
+| /media | folder | a folder name, or none (photos with no folder) | all | replace | /media?folder=none |
+| /academy | lesson | a lesson's YouTube id: opens and plays it | none | push | /academy?lesson=0Q1AQAxpdGg |
+| /brand | #section | you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
+| /create-guide | #step | idea, draft, carousel, reel, reverse-engineer, compliance, schedule | top | (anchor) | /create-guide#reel |
+| /tutorial | #section | why, voice, guided-flow, after, tabs, rules, rhythm, first-action | top | (anchor) | /tutorial#tabs |
+| /voice | (none) | the past posts are typed text, kept for this tab until Save | | | /voice |
+| /playbook | (none) | a summary page with no state of its own | | | /playbook |
+
+Copy link: the open post in Write, the carousel preview, a clone result and each Academy lesson.
+
+### Still read (Create pages)
+
+Pre-fills read once on arrival, then removed from the address (except day, time, profile and vibe, which stay):
+
+- /generate?pillar= (interest, identity, topic, market), detail= (the topic text, opens the format step),
+  audience=, format= (text-post, carousel, short-video, story), platform= (linkedin, instagram, facebook,
+  tiktok), cta= (dm-keyword, comment-keyword, save-share, book-call, open-question), funnel= (a funnel stage
+  id), idea= (the idea source: real-question, common-mistake, news-hook, personal-story, before-after,
+  three-things, myth-bust; not the idea text), ctx= (context text), ref= (a competitor handle), formula=
+  (a hook formula id): Plan, Coach, Carousel and the assistant pre-fill the brief this way.
+- /generate?vibe=<inspiration id>: loads that example as the style reference.
+- /generate?draft=<id>&ask=<words>: opens the post and starts that rewrite (ask is removed once read).
+- /generate?draft=<id>&profile=<profile id>: a phone alert for another profile's post switches to it first.
+- /generate?day=YYYY-MM-DD (and &time=HH:MM for an open posting slot): the calendar's "Write a post for this
+  day"; the suggested time lands on that day, at that time when given.
+- /clone?url=<reel link>: fills the link box (a Clone button elsewhere); cloning stays a tap, since each
+  clone uses one of the day's.
+- /coach#idea-dump (the board's empty column) scrolls to the idea dump.
+<!-- ==== end Create pages ==== -->

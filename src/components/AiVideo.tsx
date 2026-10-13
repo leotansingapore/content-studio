@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { useUrlItem, useUrlState } from "@/lib/urlState";
 import { moveTake } from "@/lib/videoEdit";
 import { LEN_MAX, LEN_MIN, MAX_THEME, dismissMontage, montageBusy, montageJob, onMontageJob, startMontage, type MontageJob } from "@/lib/montage";
 import { VOICES, VOICE_IDS, speak, type VoiceId } from "@/lib/textVoice";
@@ -19,14 +20,19 @@ const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 const secs = (t: number) => `${Math.round(t)} seconds`;
 const cost = (credits: number) => `${credits} Higgsfield credits (about US$${creditsUsd(credits).toFixed(2)})`;
 
+const KINDS = ["template", "montage", "avatar", "explainer"] as const;
+type Kind = (typeof KINDS)[number];
+
 /** Edit a video's start screen: a video made without filming, from a template, of you or a presenter speaking, or an explainer. */
 export default function AiVideo({ onClose }: { onClose: () => void }) {
   const [job, setJob] = useState<AiJob | null>(aiJob());
   useEffect(() => onAiJob(setJob), []);
   // an avatar video paid for but never put together (a reload) carries on by itself
   useEffect(() => resumeAvatar(), []);
-  const [tab, setTab] = useState<"template" | "montage" | "avatar" | "explainer">(
+  // ?kind= (docs/deep-links.md); without one, the kind of video being made or that just failed
+  const [running] = useState<Kind>(() =>
     montageBusy() || montageJob()?.state === "failed" ? "montage" : job?.kind === "explainer" ? "explainer" : job?.kind === "avatar" || job?.kind === "presenter" ? "avatar" : "template");
+  const [tab, setTab] = useUrlState<Kind>("kind", running, { allowed: KINDS });
   const busy = job?.state === "working";
   const left = useUsesLeft(busy);
 
@@ -118,7 +124,9 @@ function Montage({ busy, left }: { busy: boolean; left: Left }) {
 
 /** The gallery: pick a look, fill its blanks, read its warnings and the cost, make one Seedance clip. */
 function Templates({ busy, left }: { busy: boolean; left: Left }) {
-  const [pick, setPick] = useState<VideoTemplate | null>(null);
+  // ?template=<id> opens its form (push, so Back goes back to the gallery)
+  const [templateId, openTemplate, closeTemplate] = useUrlItem("template");
+  const pick: VideoTemplate | null = TEMPLATES.find((t) => t.id === templateId) ?? null;
   // kept across templates, so a product typed once carries over
   const [fields, setFields] = useState<Partial<Record<FieldKey, string>>>({});
   const [photos, setPhotos] = useState<Partial<Record<PhotoRole, { file: File; url: string }>>>({});
@@ -133,7 +141,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
         <ul className="grid gap-2 sm:grid-cols-2">
           {TEMPLATES.map((t) => (
             <li key={t.id}>
-              <button type="button" onClick={() => setPick(t)} disabled={busy}
+              <button type="button" onClick={() => openTemplate(t.id)} disabled={busy}
                 className="flex h-full min-h-11 w-full flex-col items-start gap-0.5 rounded-xl border border-border/70 p-3 text-left hover:border-primary/40 disabled:opacity-60">
                 <span className="text-sm font-semibold">{t.title}</span>
                 <span className="text-xs text-muted-foreground">{t.blurb}</span>
@@ -166,7 +174,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
         <h3 className="text-sm font-semibold">{pick.title}</h3>
         <div className="flex items-center">
           <a href={examplesUrl(pick.id)} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center px-2 text-xs text-muted-foreground underline sm:h-9 [@media(pointer:coarse)]:h-11">Examples</a>
-          <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={() => setPick(null)} disabled={busy}>All templates</Button>
+          <Button size="sm" variant="ghost" className="h-11 sm:h-9" onClick={closeTemplate} disabled={busy}>All templates</Button>
         </div>
       </div>
       {pick.fields.map((f) => (

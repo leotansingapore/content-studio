@@ -27,6 +27,8 @@ import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -108,15 +110,19 @@ const WARN_BOX = "border-amber-200 bg-amber-50 text-amber-900";
 // leaving the page doesn't lose it. sessionStorage, outside the synced prefix.
 const workKey = (userId: string) => `cs-carousel-work-${scoped(userId)}`;
 
+// Where the post comes from: ?tab= (docs/deep-links.md). The editor's own carousel is ?draft= or ?carousel=.
+const SOURCE_TABS = ["drafts", "paste", "topic", "saved"] as const;
+
 export default function CarouselPage() {
   const { toast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const updateUrl = useUrlUpdate();
   const [userId, setUserId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [drafts, setDrafts] = useState<DraftEntry[]>([]);
   /** Posts that are still just a hook (board ideas), which can't make slides. */
   const [ideaOnly, setIdeaOnly] = useState(0);
-  const [mode, setMode] = useState<"drafts" | "paste" | "topic" | "saved">("drafts");
+  const [tab, setMode] = useUrlState("tab", "drafts", { allowed: SOURCE_TABS });
   const [topic, setTopic] = useState("");
   const [topicPlatform, setTopicPlatform] = useState<"instagram" | "linkedin">("instagram");
   const [writing, setWriting] = useState<AbortController | null>(null);
@@ -125,6 +131,8 @@ export default function CarouselPage() {
   const [checkingTopic, setCheckingTopic] = useState(false);
   const checkedTopics = useRef(new Set<string>());
   const [saved, setSaved] = useState<SavedCarousel[]>([]);
+  // the Saved tab goes with the last saved carousel, so a link to it with none shows My posts
+  const mode = tab === "saved" && ready && saved.length === 0 ? "drafts" : tab;
   // which saved carousel this is: "d:<draft id>" or "p:<time>" for pasted text
   const [carouselId, setCarouselId] = useState("");
   const [align, setAlign] = useState<"left" | "center">("left");
@@ -202,7 +210,6 @@ export default function CarouselPage() {
     let hook = "";
     let base = "";
     let nextPlatform: "instagram" | "linkedin" = "instagram";
-    const params = new URLSearchParams(searchParams);
     if (source.kind === "draft") {
       const d = drafts.find((x) => x.id === source.id);
       if (!d) return;
@@ -211,20 +218,18 @@ export default function CarouselPage() {
       base = d.hook || d.draft;
       nextPlatform = d.platform === "linkedin" ? "linkedin" : "instagram";
       setDraftId(d.id);
-      params.set("draft", d.id);
     } else if (source.kind === "ai") {
       // written from a topic and already saved to My posts
       text = source.text;
       base = source.title;
       nextPlatform = source.platform;
       setDraftId(source.id);
-      params.set("draft", source.id);
     } else {
       text = pasteText;
       base = pasteText.split("\n").find((l) => l.trim()) ?? "";
-      params.delete("draft");
     }
-    if (params.toString() !== searchParams.toString()) setSearchParams(params, { replace: true });
+    // the address names the post the slides come from (replace: the editor is the page, not a panel over it)
+    updateUrl({ draft: source.kind === "paste" ? null : source.id, carousel: null });
     setCarouselId(source.kind === "paste" ? `p:${Date.now().toString(36)}` : `d:${source.id}`);
     const { slides: made, ...info } = splitDraftIntoSlides(text, { hook });
     setSlides(made);
@@ -248,12 +253,20 @@ export default function CarouselPage() {
   useEffect(() => {
     if (!ready || deepLinkHandled.current) return;
     deepLinkHandled.current = true;
+    // ?carousel=<saved id> reopens a kept carousel with its edits; it beats ?draft=, which makes fresh slides
+    const savedId = searchParams.get("carousel");
+    const kept = savedId ? saved.find((c) => c.id === savedId) : null;
+    if (kept) {
+      openSaved(kept);
+      return;
+    }
     const id = searchParams.get("draft");
     if (!id) {
+      if (savedId) updateUrl({ carousel: null });
       try {
         const work = userId ? JSON.parse(sessionStorage.getItem(workKey(userId)) ?? "null") : null;
         if (work && Array.isArray(work.slides) && typeof work.pasteText === "string") {
-          setMode(work.mode === "paste" ? "paste" : "drafts");
+          if (!savedId && !searchParams.has("tab")) setMode(work.mode === "paste" ? "paste" : "drafts");
           setPasteText(work.pasteText);
           setDraftId(typeof work.draftId === "string" ? work.draftId : "");
           setSlides(work.slides);
@@ -283,9 +296,7 @@ export default function CarouselPage() {
         ? "That post is still just an idea, with no written text to turn into slides. Write it first, or pick another post."
         : "We couldn't find that post. Pick one of your posts below.",
     );
-    const params = new URLSearchParams(searchParams);
-    params.delete("draft");
-    setSearchParams(params, { replace: true });
+    updateUrl({ draft: null, carousel: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
@@ -424,6 +435,8 @@ export default function CarouselPage() {
     const id = carouselId || `p:${Date.now().toString(36)}`;
     if (!carouselId) setCarouselId(id);
     setSaved(saveCarousel(userId, { id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined, align, scale, font: look.font, paper: look.paper }));
+    // once kept, the address reopens it with its edits
+    if (searchParams.get("carousel") !== id) updateUrl({ carousel: id, draft: null });
   };
   useEffect(() => {
     if (!edited || slides.length < MIN_SLIDES) return;
@@ -434,8 +447,8 @@ export default function CarouselPage() {
 
   // the Saved tab goes with the last saved carousel, so don't leave the picker on it
   useEffect(() => {
-    if (mode === "saved" && saved.length === 0) setMode("drafts");
-  }, [mode, saved.length]);
+    if (ready && tab === "saved" && saved.length === 0) setMode("drafts");
+  }, [ready, tab, saved.length, setMode]);
 
   const openSaved = (c: SavedCarousel) => {
     setSlides(c.slides);
@@ -453,6 +466,7 @@ export default function CarouselPage() {
     setScale(c.scale ?? 1);
     setLook({ font: c.font ?? "classic", paper: c.paper ?? "light" });
     setNotice(null);
+    updateUrl({ carousel: c.id, draft: null });
   };
   const deleteSaved = (c: SavedCarousel) => {
     if (!userId) return;
@@ -1264,7 +1278,10 @@ export default function CarouselPage() {
             <Card className="border-border/60 shadow-card">
               <CardHeader className="gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1.5">
-                  <CardTitle className="font-serif text-xl">Preview</CardTitle>
+                  <div className="flex items-center gap-1">
+                    <CardTitle className="font-serif text-xl">Preview</CardTitle>
+                    {(searchParams.has("carousel") || searchParams.has("draft")) && <CopyLinkButton label="Copy link to this carousel" className="-my-2" />}
+                  </div>
                   <CardDescription>
                     {slides.length} slides, 1080 × 1350 PNG each.
                   </CardDescription>

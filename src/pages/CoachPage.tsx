@@ -48,6 +48,7 @@ import DiagnosisSummary from "@/components/DiagnosisSummary";
 import IdeaDump from "@/components/IdeaDump";
 import { scoped } from "@/lib/profiles";
 import LongPiece from "@/components/LongPiece";
+import { useUrlItem } from "@/lib/urlState";
 import {
   Gauge,
   Sparkles,
@@ -177,14 +178,18 @@ export default function CoachPage() {
   const [newDislike, setNewDislike] = useState("");
   const [diag, setDiag] = useState<DiagnosisResult | null>(null);
   const [role, setRole] = useState<string | undefined>();
-  const [showQuiz, setShowQuiz] = useState(false);
+  // ?view=quiz retakes the diagnosis, ?report=<id> opens a past report (docs/deep-links.md); both push, so Back closes.
+  const [view, openView, closeView] = useUrlItem("view");
   const [ready, setReady] = useState(false);
 
   // Post review (unchanged craft analyzer).
   const [text, setText] = useState("");
   const [platform, setPlatform] = useState<PlatformId>("linkedin");
-  const [report, setReport] = useState<CoachReport | null>(null);
+  const [reportId, openReport, closeReport] = useUrlItem("report");
+  // a run that could not be kept in history (no account or blocked storage) still shows
+  const [unkept, setUnkept] = useState<CoachReport | null>(null);
   const [history, setHistory] = useState<CoachHistoryEntry[]>([]);
+  const report = (reportId ? history.find((h) => h.id === reportId)?.report : null) ?? unkept;
   const [inAppCount, setInAppCount] = useState(0);
 
   useEffect(() => {
@@ -213,7 +218,6 @@ export default function CoachPage() {
       const result = loadResult(id);
       setDiag(result);
       setRole(loadDiagnosis(id)?.role);
-      setShowQuiz(!result); // no diagnosis yet → run it first
       setHistory(loadCoachHistory(id));
       setInAppCount(loadDrafts(id).length);
       setReady(true);
@@ -234,6 +238,12 @@ export default function CoachPage() {
     }
   }, [userId, dirty, fields, text]);
 
+  // No diagnosis yet → run it first. A report link to a run this account no longer has opens the page.
+  const showQuiz = !diag || view === "quiz";
+  useEffect(() => {
+    if (ready && reportId && !history.some((h) => h.id === reportId && h.report)) closeReport();
+  }, [ready, reportId, history, closeReport]);
+
   const completeness = useMemo(
     () => (profile ? profileCompleteness(profile) : { filled: 0, total: 0, pct: 0 }),
     [profile],
@@ -253,12 +263,12 @@ export default function CoachPage() {
     if (userId) saveDiagnosis(userId, record);
     setDiag(scoreDiagnosis(record.answers));
     setRole(record.role);
-    setShowQuiz(false);
+    closeView();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const retakeDiag = () => {
-    setShowQuiz(true);
+    openView("quiz");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -278,8 +288,12 @@ export default function CoachPage() {
 
   const runAnalysis = (posts: { text: string; platform?: PlatformId }[]) => {
     const result = analyzePosts(posts);
-    setReport(result);
-    if (result && userId) setHistory(addCoachEntry(userId, result));
+    const next = result && userId ? addCoachEntry(userId, result) : null;
+    if (next) setHistory(next);
+    const kept = next?.[0]?.report === result ? next[0] : null;
+    setUnkept(kept ? null : result);
+    if (kept) openReport(kept.id);
+    else if (reportId) closeReport();
   };
 
   const handleAnalyzePasted = () => {
@@ -713,7 +727,8 @@ export default function CoachPage() {
                     disabled={!openable}
                     onClick={() => {
                       if (!h.report) return;
-                      setReport(h.report);
+                      setUnkept(null);
+                      openReport(h.id);
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
                     className={`flex w-full items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-left ${

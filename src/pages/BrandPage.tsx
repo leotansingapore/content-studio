@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { useScrollToHash } from "@/lib/urlState";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { DM_PROBLEM, dmFields, dmLinks, fbPageName, igUsername, waDigits, type DmFields } from "@/lib/bioPage";
 import {
@@ -155,6 +156,8 @@ export default function BrandPage() {
   const [saved, setSaved] = useState(false);
   const savedTimer = useRef(0);
   const measure = useMemo(() => createCanvasMeasure(), []);
+  // /brand#logo (and the other section ids, docs/deep-links.md) lands on that section once the kit has loaded
+  useScrollToHash(ready);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -239,7 +242,7 @@ export default function BrandPage() {
       {ready && (
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)]">
         <div className="min-w-0 space-y-6">
-          <section className="space-y-4 rounded-xl border border-border/60 p-4 shadow-card">
+          <section id="you" className="scroll-mt-20 space-y-4 rounded-xl border border-border/60 p-4 shadow-card">
             <h2 className="font-serif text-lg font-semibold">You</h2>
             <div className="flex items-center gap-4">
               <span className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/70 bg-muted">
@@ -283,7 +286,7 @@ export default function BrandPage() {
             </div>
           </section>
 
-          <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="dm-links">
+          <section id="dm-links" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="dm-links">
             <div className="flex items-center gap-1">
               <h2 className="font-serif text-lg font-semibold">DM links</h2>
               <InfoTip label="About DM links">A tap opens a chat with you. Put one in a post or your bio.</InfoTip>
@@ -298,7 +301,7 @@ export default function BrandPage() {
             </DmField>
           </section>
 
-          <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="offers">
+          <section id="offers" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="offers">
             <div className="flex items-center gap-1">
               <h2 className="font-serif text-lg font-semibold">Offers</h2>
               <InfoTip label="About offers">Posts link only to these. Any other link gets flagged.</InfoTip>
@@ -343,7 +346,7 @@ export default function BrandPage() {
             )}
           </section>
 
-          <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="policies">
+          <section id="emoji-and-hashtags" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card" data-testid="policies">
             <div className="flex items-center gap-1">
               <h2 className="font-serif text-lg font-semibold">Emoji and hashtags</h2>
               <InfoTip label="About emoji and hashtags">Posts, carousels and video captions written for you keep to these.</InfoTip>
@@ -352,7 +355,7 @@ export default function BrandPage() {
             <PolicyChips id="brand-hashtags" label="Hashtags" value={brand.hashtagPolicy} options={[[undefined, "Any"], ["ten", "Up to 10"], ["few", "2 to 4"], ["none", "None"]]} onChange={(v) => update({ hashtagPolicy: v })} />
           </section>
 
-          <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
+          <section id="colour" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
             <h2 id="brand-colour-label" className="font-serif text-lg font-semibold">Colour</h2>
             <div role="group" aria-labelledby="brand-colour-label" className="flex flex-wrap items-center gap-2">
               {BRAND_PRESETS.map((p) => {
@@ -399,7 +402,7 @@ export default function BrandPage() {
             </div>
           </section>
 
-          <section className="space-y-2 rounded-xl border border-border/60 p-4 shadow-card">
+          <section id="sign-off" className="scroll-mt-20 space-y-2 rounded-xl border border-border/60 p-4 shadow-card">
             <Label htmlFor="brand-signoff" className="font-serif text-lg font-semibold">Sign-off</Label>
             <Textarea
               id="brand-signoff"
@@ -417,7 +420,7 @@ export default function BrandPage() {
             </label>
           </section>
 
-          <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
+          <section id="posting-times" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
             <div className="flex items-center gap-1">
               <h2 id="brand-slots-label" className="font-serif text-lg font-semibold">Posting times</h2>
               <InfoTip label="About posting times">A saved post suggests your next open time.</InfoTip>
@@ -457,7 +460,7 @@ export default function BrandPage() {
             )}
           </section>
 
-          <section className="space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
+          <section id="logo" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">
             <h2 className="font-serif text-lg font-semibold">Logo</h2>
             <div className="flex flex-wrap items-center gap-4">
               {brand.logo && (

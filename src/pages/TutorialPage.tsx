@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useScrollToHash } from "@/lib/urlState";
 import SectionTabs, { LEARN_TABS } from "@/components/SectionTabs";
 import {
   Card,
@@ -26,12 +27,14 @@ import {
 } from "lucide-react";
 
 export default function TutorialPage() {
+  // /tutorial#tabs and the other section ids (docs/deep-links.md) land on that card
+  useScrollToHash();
   return (
     <div className="space-y-6">
       <h1 className="sr-only">How the studio works</h1>
       <SectionTabs tabs={LEARN_TABS} />
       {/* Why */}
-      <Card className="border-border/60 shadow-card">
+      <Card id="why" className="scroll-mt-20 border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-2xl">
             Why this tool exists
@@ -62,7 +65,7 @@ export default function TutorialPage() {
       </Card>
 
       {/* Setup once */}
-      <Card className="border-accent/40 bg-accent/5 shadow-card">
+      <Card id="voice" className="scroll-mt-20 border-accent/40 bg-accent/5 shadow-card">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Mic className="h-5 w-5 text-accent-foreground" />
@@ -100,7 +103,7 @@ export default function TutorialPage() {
       </Card>
 
       {/* The flow */}
-      <Card className="border-border/60 shadow-card">
+      <Card id="guided-flow" className="scroll-mt-20 border-border/60 shadow-card">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Pencil className="h-5 w-5 text-primary" />
@@ -182,7 +185,7 @@ export default function TutorialPage() {
       </Card>
 
       {/* What happens after */}
-      <Card className="border-border/60 shadow-card">
+      <Card id="after" className="scroll-mt-20 border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">
             What happens after you pick a draft
@@ -234,7 +237,7 @@ export default function TutorialPage() {
       </Card>
 
       {/* Tabs */}
-      <Card className="border-border/60 shadow-card">
+      <Card id="tabs" className="scroll-mt-20 border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">The tabs</CardTitle>
         </CardHeader>
@@ -435,7 +438,7 @@ export default function TutorialPage() {
       </Card>
 
       {/* Hard rules */}
-      <Card className="border-destructive/30 shadow-card">
+      <Card id="rules" className="scroll-mt-20 border-destructive/30 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">Hard rules</CardTitle>
         </CardHeader>
@@ -464,7 +467,7 @@ export default function TutorialPage() {
       </Card>
 
       {/* Weekly rhythm */}
-      <Card className="border-border/60 shadow-card">
+      <Card id="rhythm" className="scroll-mt-20 border-border/60 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">Weekly rhythm</CardTitle>
         </CardHeader>
@@ -521,7 +524,7 @@ export default function TutorialPage() {
       </Card>
 
       {/* First action */}
-      <Card className="border-primary/40 bg-primary/5 shadow-card">
+      <Card id="first-action" className="scroll-mt-20 border-primary/40 bg-primary/5 shadow-card">
         <CardHeader>
           <CardTitle className="font-serif text-xl">First action</CardTitle>
         </CardHeader>

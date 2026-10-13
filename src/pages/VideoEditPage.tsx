@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { EDIT_TABS, links, type EditTab } from "@/lib/links";
+import { useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { Check, ChevronDown, ChevronUp, Download, Eye, Layers, Mic, Music as MusicIcon, RotateCw, Square, Volume2, Film, ImageIcon, Pause, Play, Search, Sparkles, Trash2, Undo2, Upload, Wand2, Languages } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
@@ -185,7 +187,10 @@ import { MAX_LONG_BYTES, MAX_LONG_SECONDS, hoursMinutes, isLong } from "@/lib/lo
 import { RATE, mediaLength, openSound } from "@/lib/longAudio";
 import { peaksFrom } from "@/lib/videoEdit";
 
-type Tab = "style" | "cuts" | "frame" | "face" | "stickers" | "broll" | "words";
+// Linkable state (docs/deep-links.md): ?p= the open project (push; opening one starts the editor's params afresh),
+// then ?tab= ?mode= ?sticker= ?broll= ?guide= inside it, and ?panel= ?kind= ?template= on the start screen.
+type Tab = EditTab;
+const START_PANELS = ["join", "ai"] as const;
 
 export default function VideoEditPage() {
   const { toast } = useToast();
@@ -292,7 +297,7 @@ export default function VideoEditPage() {
           onSave={(p) => setProjects(saveProject(userId, p))}
           onClips={(ps) => { let list = projects; for (const p of [...ps].reverse()) list = saveProject(userId, p); setProjects(list); }}
           onOpen={(id) => setParams({ p: id })}
-          onBack={() => setParams({})}
+          onBack={() => setParams({}, { replace: true })}
         />
       ) : (
         <Start userId={userId} busy={busy || joining} projects={projects} onUpload={upload} onOpen={(id) => setParams({ p: id })}
@@ -311,9 +316,18 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
   onRemove: (id: string) => void;
 }) {
   const [over, setOver] = useState(false);
-  const [joinOpen, setJoinOpen] = useState(false);
+  const [panels] = useUrlList("panel", { allowed: START_PANELS });
+  const updateUrl = useUrlUpdate();
   // reopened while a video is being made, or to show why the last one failed
-  const [aiOpen, setAiOpen] = useState(() => aiBusy() || montageBusy() || !!pendingAvatar() || aiJob()?.state === "failed");
+  const [aiAuto, setAiAuto] = useState(() => aiBusy() || montageBusy() || !!pendingAvatar() || aiJob()?.state === "failed");
+  const joinOpen = panels.includes("join");
+  const aiOpen = aiAuto || panels.includes("ai");
+  // opening pushes, so Back closes it; closing the AI panel drops its kind and template too
+  const openPanel = (k: (typeof START_PANELS)[number]) => updateUrl({ panel: [...panels, k].join(",") }, { push: true });
+  const closePanel = (k: (typeof START_PANELS)[number]) => {
+    if (k === "ai") setAiAuto(false);
+    updateUrl({ panel: panels.filter((x) => x !== k).join(","), ...(k === "ai" ? { kind: null, template: null } : {}) });
+  };
   const left = useUsesLeft(!!busy);
   const captions = left("video-transcribe");
   return (
@@ -352,12 +366,12 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
         <input type="file" accept="video/*,audio/*" className="sr-only" disabled={!!busy}
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onUpload(f); }} />
       </label>
-      {joinOpen && <JoinTakes onClose={() => setJoinOpen(false)} />}
-      {aiOpen && <AiVideo onClose={() => setAiOpen(false)} />}
+      {joinOpen && <JoinTakes onClose={() => closePanel("join")} />}
+      {aiOpen && <AiVideo onClose={() => closePanel("ai")} />}
       {!busy && (!joinOpen || !aiOpen) && (
         <div className="flex flex-col gap-2 sm:flex-row">
-          {!joinOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => setJoinOpen(true)}>Join several takes into one video</Button>}
-          {!aiOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => setAiOpen(true)}>Make a video without filming</Button>}
+          {!joinOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("join")}>Join several takes into one video</Button>}
+          {!aiOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("ai")}>Make a video without filming</Button>}
         </div>
       )}
       <CaptionJobStatus onOpen={onOpen} />
@@ -410,14 +424,17 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     backdrop: sanitizeBackdrop(project.settings.backdrop),
   }));
   // Words tab: fix spelling, or cut a stretch by tapping its first and last word
-  const [wordMode, setWordMode] = useState<"fix" | "cut">("fix");
+  const [wordMode, setWordMode] = useUrlState("mode", "fix", { allowed: ["fix", "cut"] });
   // words the captions always get wrong, fixed in every video; offer = a hand fix not saved yet
   const [fixes, setFixes] = useState<CaptionFix[]>(() => loadFixes(userId));
   const [offer, setOffer] = useState<CaptionFix | null>(null);
   const [heard, setHeard] = useState("");
   const [should, setShould] = useState("");
   const [cutStart, setCutStart] = useState<number | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  // the selected sticker and B-roll clip, by id (a stale id selects nothing)
+  const [selected, setSticker] = useUrlState("sticker", "");
+  const setSelected = (id: string | null) => setSticker(id ?? "");
+  const updateUrl = useUrlUpdate();
   const [words, setWords] = useState(project.words);
   const [subs, setSubs] = useState<Record<string, Record<string, string>>>(project.subs ?? {});
   const [caption, setCaption] = useState(project.caption ?? "");
@@ -436,7 +453,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [savedDraft, setSavedDraft] = useState(false);
   const [translating, setTranslating] = useState<string | null>(null);
   const [history, setHistory] = useState<EditSettings[]>([]);
-  const [tab, setTab] = useState<Tab>("style");
+  const [tab, setTab] = useUrlState<Tab>("tab", "style", { allowed: EDIT_TABS });
   const [playing, setPlaying] = useState(false);
   const [outT, setOutT] = useState(0);
   const [ask, setAsk] = useState("");
@@ -445,12 +462,15 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [captioning, setCaptioning] = useState(false);
   const [job, setJob] = useState<ExportJob | null>(exportJob());
   // a guide over the 9:16 preview: where Instagram or TikTok's own buttons and caption sit
-  const [coverApp, setCoverApp] = useState<CoverApp | null>(null);
+  const [guide, setGuide] = useUrlState<CoverApp | "">("guide", "", { allowed: ["instagram", "tiktok"] });
+  const coverApp = guide || null;
+  const setCoverApp = (a: CoverApp | null) => setGuide(a ?? "");
   // B-roll: each cutaway's clip from this device, a muted <video> per cutaway kept in step with the preview
   const [brollUrls, setBrollUrls] = useState<Record<string, string>>({});
   const brollEls = useRef(new Map<string, HTMLVideoElement>());
   const [brollSearch, setBrollSearch] = useState(false);
-  const [selBroll, setSelBroll] = useState<string | null>(null);
+  const [selBroll, setBrollParam] = useUrlState("broll", "");
+  const setSelBroll = (id: string | null) => setBrollParam(id ?? "");
   const video = useRef<HTMLVideoElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   // the source's size, once it has loaded: what a crop to the frame leaves out
@@ -1602,8 +1622,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 const hit = playing ? null : overlayHit(settings.overlays, outT, x, y, r.width / r.height);
                 if (hit) {
                   drag.current = { startX: x, startY: y, moved: false, overlay: hit.id };
-                  setSelected(hit.id);
-                  setTab("stickers");
+                  // one write: two setters in a row would keep only the second
+                  if (hit.id !== selected || tab !== "stickers") updateUrl({ sticker: hit.id, tab: "stickers" });
                 } else {
                   drag.current = settings.captions && Math.abs(y - captionCenter(settings)) < 0.09 ? { startX: x, startY: y, moved: false } : null;
                 }
@@ -2152,7 +2172,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               {art ? (
                 <>
                   <Row label="Logo in the corner">
-                    {art.logo ? <Toggle on={!!settings.logo} set={(v) => patch({ logo: v })} /> : <Link to="/brand" className="text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">Add a logo</Link>}
+                    {art.logo ? <Toggle on={!!settings.logo} set={(v) => patch({ logo: v })} /> : <Link to={links.brand({ section: "logo" })} className="text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">Add a logo</Link>}
                   </Row>
                   <Row label={`End card (${END_CARD_SECONDS}s)`}><Toggle on={!!settings.endCard} set={(v) => { endAt.current = v ? 0.6 : null; patch({ endCard: v }); }} /></Row>
                 </>

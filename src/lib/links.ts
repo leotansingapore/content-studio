@@ -136,6 +136,8 @@ export const links = {
       step?: WriteStep;
       panel?: "shortcuts" | "post";
       day?: string;
+      /** HH:MM, with day: an open posting slot's exact time. */
+      time?: string;
       profile?: string;
       ask?: string;
       vibe?: string;

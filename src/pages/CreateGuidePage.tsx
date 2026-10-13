@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import SectionTabs, { LEARN_TABS } from "@/components/SectionTabs";
 import { Link } from "react-router-dom";
+import type { GuideStep } from "@/lib/links";
+import { useScrollToHash } from "@/lib/urlState";
 import {
   Card,
   CardContent,
@@ -70,17 +72,20 @@ function ToolRow({ tool }: { tool: Tool }) {
 
 function Step({
   n,
+  id,
   icon: Icon,
   title,
   children,
 }: {
   n: number;
+  /** The step's #anchor (docs/deep-links.md). */
+  id: GuideStep;
   icon: typeof Wand2;
   title: string;
   children: React.ReactNode;
 }) {
   return (
-    <Card className="border-border/60 shadow-card">
+    <Card id={id} className="scroll-mt-20 border-border/60 shadow-card">
       <CardHeader className="space-y-1.5">
         <div className="flex items-center gap-2">
           <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gradient-primary text-[12px] font-bold text-primary-foreground">
@@ -100,6 +105,7 @@ function Step({
 }
 
 export default function CreateGuidePage() {
+  useScrollToHash();
   useEffect(() => {
     document.title = "Create the post - Content Studio";
     return () => {
@@ -116,7 +122,7 @@ export default function CreateGuidePage() {
         </h1>
       </header>
 
-      <Step n={1} icon={TrendingUp} title="Find an idea that already works">
+      <Step n={1} id="idea" icon={TrendingUp} title="Find an idea that already works">
         <p>
           Open <Link to="/swipe" className="font-semibold text-primary hover:underline">Top posts</Link>{" "}
           and browse the best-performing posts from advisors like you. Each card
@@ -125,7 +131,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={2} icon={Wand2} title="Turn it into your draft">
+      <Step n={2} id="draft" icon={Wand2} title="Turn it into your draft">
         <p>
           Hit <span className="font-semibold">Remix in Write</span> on any post.
           That opens <Link to="/generate" className="font-semibold text-primary hover:underline">Write</Link>{" "}
@@ -139,7 +145,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={3} icon={LayoutGrid} title="Build a carousel">
+      <Step n={3} id="carousel" icon={LayoutGrid} title="Build a carousel">
         <p>
           Carousels are the workhorse for advisors: one idea, one slide at a
           time, ending on a clear takeaway. Write already gives you the
@@ -184,7 +190,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={4} icon={Video} title="Film a reel">
+      <Step n={4} id="reel" icon={Video} title="Film a reel">
         <p>
           For talking-head reels, use the script from Write as your teleprompter.
           Hook in the first 2 seconds, keep it under 45 seconds, add captions.
@@ -209,7 +215,7 @@ export default function CreateGuidePage() {
         </div>
       </Step>
 
-      <Step n={5} icon={FileText} title="Reverse-engineer a video you love">
+      <Step n={5} id="reverse-engineer" icon={FileText} title="Reverse-engineer a video you love">
         <p>
           If a top post is a reel, get its transcript to study the exact hook and
           structure, then rebuild it in your own words.
@@ -236,7 +242,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={6} icon={ShieldCheck} title="Compliance check before you post">
+      <Step n={6} id="compliance" icon={ShieldCheck} title="Compliance check before you post">
         <p>
           Write flags risky claims automatically. As a licensed advisor, avoid
           guarantees and unbalanced return claims, add the usual advisory
@@ -245,7 +251,7 @@ export default function CreateGuidePage() {
         </p>
       </Step>
 
-      <Step n={7} icon={CalendarClock} title="Schedule and track">
+      <Step n={7} id="schedule" icon={CalendarClock} title="Schedule and track">
         <p>
           Batch a week of posts in{" "}
           <Link to="/plan" className="font-semibold text-primary hover:underline">Plan a week</Link>,

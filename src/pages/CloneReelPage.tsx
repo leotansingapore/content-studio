@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 
 import ShotList, { CopyButton } from "@/components/ShotList";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { useUrlItem, useUrlUpdate } from "@/lib/urlState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -952,6 +954,10 @@ export default function CloneReelPage() {
   const [linkError, setLinkError] = useState<string | null>(null);
   const [view, setView] = useState<View>({ kind: "idle" });
   const [saved, setSaved] = useState<SavedClone[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  // ?clone=<saved clone id> shows that result (docs/deep-links.md); opening one pushes, so Back goes back.
+  const [cloneParam, openCloneParam] = useUrlItem("clone");
+  const updateUrl = useUrlUpdate();
   const [visualsJob, setVisualsJob] = useState<VisualsJob | null>(() => currentVisualsJob());
   // The concept being written, and why the last one failed, for the clone on screen.
   const [building, setBuilding] = useState<{ cloneId: string; index: number } | null>(null);
@@ -970,6 +976,7 @@ export default function CloneReelPage() {
       const id = data.user?.id ?? null;
       setUserId(id);
       setSaved(loadSavedClones(id));
+      setLoaded(true);
       setHasVoice(isVoiceProfileUsable(loadVoiceProfile(id)));
       try {
         const link = id && !searchParams.get("url") ? sessionStorage.getItem(linkKey(id)) : null;
@@ -1022,6 +1029,21 @@ export default function CloneReelPage() {
     if (urlParam) setInput(urlParam);
   }, [urlParam]);
 
+  // The URL names the clone on screen: a link or Back/forward shows it, or the empty page when it is gone.
+  // Only on a param change: the render between a fresh result and its URL write must not reset it.
+  useEffect(() => {
+    if (!loaded) return;
+    const clone = cloneParam ? loadSavedClones(userId).find((c) => c.id === cloneParam) : null;
+    if (cloneParam && !clone) updateUrl({ clone: null });
+    if (!clone) {
+      if (view.kind === "result") setView({ kind: "idle" });
+    } else if (view.kind !== "result" || view.clone.id !== clone.id) {
+      setInput(clone.result.source.url);
+      setView({ kind: "result", clone });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloneParam, loaded]);
+
   const resultKey = view.kind === "result" ? view.clone.id + view.clone.savedAt : null;
   useEffect(() => {
     if (resultKey) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1040,6 +1062,7 @@ export default function CloneReelPage() {
     const controller = new AbortController();
     abortRef.current = controller;
     setView({ kind: "loading", url: parsed.url, startedAt: Date.now() });
+    if (cloneParam) updateUrl({ clone: null });
     try {
       // A click right after the page opens can beat the getUser() above; the session is local, so read it here.
       const uid = userId ?? (await supabase.auth.getSession()).data.session?.user.id ?? null;
@@ -1049,6 +1072,8 @@ export default function CloneReelPage() {
       const clone: SavedClone = { id: cloneIdOf(result), savedAt: new Date().toISOString(), result };
       if (uid) setSaved(rememberClone(uid, clone));
       setView({ kind: "result", clone });
+      // only a clone this device kept can be linked
+      if (uid && loadSavedClones(uid).some((c) => c.id === clone.id)) updateUrl({ clone: clone.id, url: null }, { push: true });
       if (uid && canReadVideo(clone)) void startVisualsJob(uid, clone);
     } catch (e) {
       if (controller.signal.aborted) return;
@@ -1079,6 +1104,7 @@ export default function CloneReelPage() {
 
   const reset = () => {
     setView({ kind: "idle" });
+    updateUrl({ clone: null, url: null });
     setInput("");
     setLinkError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1226,9 +1252,12 @@ export default function CloneReelPage() {
             <p className="text-xs text-muted-foreground">
               Cloned {timeAgo(view.clone.savedAt)}
             </p>
-            <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5">
-              <RotateCcw className="h-3.5 w-3.5" /> Clone another
-            </Button>
+            <div className="flex items-center gap-1">
+              {cloneParam === view.clone.id && <CopyLinkButton label="Copy link to this clone" />}
+              <Button variant="ghost" size="sm" onClick={reset} className="gap-1.5">
+                <RotateCcw className="h-3.5 w-3.5" /> Clone another
+              </Button>
+            </div>
           </div>
           {/* Phones read "Your version" first; from lg the source spans the top and the version sits right. */}
           <div className="grid items-start gap-4 lg:grid-cols-2">
@@ -1265,6 +1294,7 @@ export default function CloneReelPage() {
             setLinkError(null);
             setInput(clone.result.source.url);
             setView({ kind: "result", clone });
+            openCloneParam(clone.id);
           }}
         />
       )}

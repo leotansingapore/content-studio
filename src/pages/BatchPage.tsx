@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
-import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import {
   Card,
   CardContent,
@@ -85,10 +86,12 @@ type CardState = {
 
 export default function BatchPage() {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [topic, setTopic] = useState("");
-  const [pillar, setPillar] = useState<Pillar>("topic");
-  const [audience, setAudience] = useState<Audience>("general");
+  // Pillar and audience live in the URL (docs/deep-links.md); a batch left in this tab fills them when the link has none.
+  const [params] = useSearchParams();
+  const updateUrl = useUrlUpdate();
+  const [pillar, setPillar] = useUrlState<Pillar>("pillar", "topic", { allowed: PILLARS.map((p) => p.value) });
+  const [audience, setAudience] = useUrlState<Audience>("audience", "general", { allowed: AUDIENCES.map((a) => a.value) });
   const [selected, setSelected] = useState<Set<string>>(
     new Set(TARGETS.filter((t) => t.defaultOn).map((t) => t.key)),
   );
@@ -107,8 +110,12 @@ export default function BatchPage() {
         const work = id ? JSON.parse(sessionStorage.getItem(workKey(id)) ?? "null") : null;
         if (work && typeof work.topic === "string") {
           setTopic(work.topic);
-          if (PILLARS.some((p) => p.value === work.pillar)) setPillar(work.pillar);
-          if (AUDIENCES.some((a) => a.value === work.audience)) setAudience(work.audience);
+          // the link's value wins, else the batch's; one write, since two setters in a row keep only the second
+          const pick = (k: "pillar" | "audience", ok: string[], fallback: string) => {
+            const v = ok.includes(params.get(k) ?? "") ? params.get(k) : work[k];
+            return ok.includes(v) && v !== fallback ? v : null;
+          };
+          updateUrl({ pillar: pick("pillar", PILLARS.map((p) => p.value), "topic"), audience: pick("audience", AUDIENCES.map((a) => a.value), "general") });
           if (Array.isArray(work.selected)) setSelected(new Set(work.selected));
           if (work.cards && typeof work.cards === "object" && Object.keys(work.cards).length > 0) {
             setCards(work.cards);
@@ -311,6 +318,7 @@ export default function BatchPage() {
                     key={p.value}
                     type="button"
                     onClick={() => setPillar(p.value)}
+                    aria-pressed={pillar === p.value}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
                       pillar === p.value
                         ? "border-primary/60 bg-primary/10 text-primary"
@@ -330,6 +338,7 @@ export default function BatchPage() {
                     key={a.value}
                     type="button"
                     onClick={() => setAudience(a.value)}
+                    aria-pressed={audience === a.value}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11 ${
                       audience === a.value
                         ? "border-primary/60 bg-primary/10 text-primary"
@@ -471,7 +480,6 @@ export default function BatchPage() {
             )
               return;
             setCards({});
-            navigate("/generate/batch", { replace: true });
           }}
           className="gap-1.5 text-muted-foreground"
         >

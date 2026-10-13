@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import SectionTabs, { LEARN_TABS } from "@/components/SectionTabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { InfoTip } from "@/components/ui/info-tip";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { links } from "@/lib/links";
+import { useUrlItem } from "@/lib/urlState";
 import { supabase } from "@/lib/supabase";
 import { ACADEMY } from "@/data/academy";
 import { GraduationCap, Play, CheckCircle2, Circle } from "lucide-react";
@@ -32,7 +35,9 @@ const ALL_IDS = ACADEMY.flatMap((m) => m.lessons.map((l) => l.youtubeId));
 export default function AcademyPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [watched, setWatched] = useState<string[]>([]);
-  const [playing, setPlaying] = useState<string | null>(null);
+  // ?lesson=<YouTube id> opens and plays a lesson (docs/deep-links.md); Back closes it.
+  const [lessonParam, setPlaying] = useUrlItem("lesson");
+  const playing = lessonParam && ALL_IDS.includes(lessonParam) ? lessonParam : null;
 
   useEffect(() => {
     document.title = "Academy - Content Studio";
@@ -46,6 +51,12 @@ export default function AcademyPage() {
     return () => {
       active = false;
     };
+  }, []);
+
+  // A lesson link lands on its card (only on arrival: a tap in the page is already looking at it).
+  useEffect(() => {
+    if (playing) document.getElementById(`lesson-${playing}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleWatched = (id: string) => {
@@ -117,7 +128,8 @@ export default function AcademyPage() {
                 return (
                   <Card
                     key={lesson.youtubeId}
-                    className="overflow-hidden border-border/60 shadow-card"
+                    id={`lesson-${lesson.youtubeId}`}
+                    className="scroll-mt-20 overflow-hidden border-border/60 shadow-card"
                   >
                     <div className="relative aspect-video bg-muted">
                       {isPlaying ? (
@@ -164,6 +176,7 @@ export default function AcademyPage() {
                       <p className="text-xs leading-snug text-muted-foreground">
                         {lesson.why}
                       </p>
+                      <div className="flex items-center justify-between gap-2">
                       <button
                         type="button"
                         onClick={() => toggleWatched(lesson.youtubeId)}
@@ -178,6 +191,8 @@ export default function AcademyPage() {
                         )}
                         {isWatched ? "Watched" : "Mark watched"}
                       </button>
+                      <CopyLinkButton path={links.academy({ lesson: lesson.youtubeId })} label={`Copy link to ${lesson.title}`} className="-my-2 -mr-2" />
+                      </div>
                     </CardContent>
                   </Card>
                 );

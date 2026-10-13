@@ -3,6 +3,9 @@ import RealQuestions from "@/components/RealQuestions";
 import { withQuestion } from "@/lib/sgFeeds";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { links, WRITE_STEPS } from "@/lib/links";
+import { useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import {
   Card,
   CardContent,
@@ -742,6 +745,12 @@ export default function GeneratePage() {
   const [boardStages, setBoardStages] = useState<Record<string, ProductionStage>>({});
   const draftIdRef = useRef<string | null>(null);
   draftIdRef.current = currentDraftId;
+  // The address names the post being written, so a reload or a copied link reopens it (docs/deep-links.md).
+  useEffect(() => {
+    if (currentDraftId && searchParams.get("draft") !== currentDraftId)
+      setSearchParams((prev) => withParam(prev, "draft", currentDraftId), { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDraftId]);
   // A new or re-picked draft starts without versions or a rewrite on offer;
   // finished versions are already in My posts.
   const clearDraftExtras = () => {
@@ -779,13 +788,18 @@ export default function GeneratePage() {
     };
   }, []);
 
-  // Keyboard shortcuts dialog visibility.
-  const [showShortcuts, setShowShortcuts] = useState<boolean>(false);
+  // ?panel=shortcuts (the keyboard shortcuts dialog) or post (Post it for me); opening pushes, so Back closes it.
+  const [panel, openPanel, closePanel] = useUrlItem("panel");
+  const showShortcuts = panel === "shortcuts";
 
   // Guided wizard: which of the 4 brief steps is open, and whether the brief
   // editor is expanded. Once a draft exists the brief collapses to a summary so
   // the screen stays focused on the output.
-  const [wizardStep, setWizardStep] = useState<number>(0);
+  // ?step=topic|funnel|idea|format (docs/deep-links.md): the link's step wins, then the tab's unfinished brief.
+  const [stepParam, setStepParam] = useUrlState("step", "topic", { allowed: WRITE_STEPS });
+  const wizardStep = WRITE_STEPS.indexOf(stepParam);
+  const setWizardStep = (next: number | ((s: number) => number)) =>
+    setStepParam(WRITE_STEPS[Math.min(LAST_STEP, Math.max(0, typeof next === "function" ? next(wizardStep) : next))]);
   const [briefOpen, setBriefOpen] = useState<boolean>(true);
   // Read once at mount: the prefill effects strip their params from the URL
   // before the async user lookup below resolves.
@@ -832,7 +846,7 @@ export default function GeneratePage() {
             if (Array.isArray(brief.disclosure)) {
               setDisclosure(brief.disclosure.filter((d: string) => d in DISCLOSURES));
             }
-            if (typeof brief.wizardStep === "number") {
+            if (typeof brief.wizardStep === "number" && !new URLSearchParams(window.location.search).has("step")) {
               setWizardStep(Math.min(LAST_STEP, Math.max(0, brief.wizardStep)));
             }
             const hooks = restoreRows(brief.hookOptions);
@@ -910,7 +924,8 @@ export default function GeneratePage() {
   // Restore a draft into the form when ?draft=<id> arrives.
   useEffect(() => {
     const draftId = searchParams.get("draft");
-    if (!draftId || !userId) return;
+    // the address follows the post being written (below): that post is already in the editor
+    if (!draftId || !userId || draftId === draftIdRef.current) return;
     // A phone alert for another profile's post names that profile: open it first.
     const profile = searchParams.get("profile");
     if (profile && profile !== activeProfileId(userId) && loadProfiles(userId).some((p) => p.id === profile)) {
@@ -1016,12 +1031,7 @@ export default function GeneratePage() {
       setPillar(pillarParam as Pillar);
     }
     const detailParam = searchParams.get("detail");
-    if (detailParam) {
-      setPillarDetail(detailParam);
-      // Every step is filled in: open the one with Generate. The step chips
-      // show the rest as done and stay one tap away.
-      setWizardStep(LAST_STEP);
-    }
+    if (detailParam) setPillarDetail(detailParam);
 
     const audienceParam = searchParams.get("audience");
     if (audienceParam && AUDIENCES.some((a) => a.value === audienceParam)) {
@@ -1061,6 +1071,9 @@ export default function GeneratePage() {
     ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula"].forEach(
       (k) => next.delete(k),
     );
+    // Every step is filled in: open the one with Generate (in this same write, or the strip would undo it). The
+    // step chips show the rest as done and stay one tap away.
+    if (detailParam && !next.has("step")) next.set("step", WRITE_STEPS[LAST_STEP]);
     setSearchParams(next, { replace: true });
 
     toast({
@@ -2066,7 +2079,7 @@ export default function GeneratePage() {
       }
       if (e.key === "Escape") {
         if (showShortcuts) {
-          setShowShortcuts(false);
+          closePanel();
           return;
         }
         if (styleReference) {
@@ -2097,7 +2110,7 @@ export default function GeneratePage() {
   // The saved entry behind the draft card, for its "saved / scheduled" line.
   // the next good time to post this one: from the user's own results, else a common slot
   const [scheduleTick, setScheduleTick] = useState(0);
-  const [postOpen, setPostOpen] = useState(false);
+  const postOpen = panel === "post";
   // /generate?day=YYYY-MM-DD comes from a calendar day: the suggested time lands on that day. Read once,
   // so later URL rewrites on this page can't drop it; a past or malformed day is ignored.
   const [pickedDay] = useState(() => {
@@ -2362,6 +2375,7 @@ export default function GeneratePage() {
                   key={s.label}
                   type="button"
                   onClick={() => setWizardStep(i)}
+                  aria-current={active ? "step" : undefined}
                   className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-left transition-colors [@media(pointer:coarse)]:min-h-11 ${
                     active ? "bg-background shadow-sm" : "hover:bg-background/60"
                   }`}
@@ -2808,7 +2822,7 @@ export default function GeneratePage() {
           </label>
           <button
             type="button"
-            onClick={() => setShowShortcuts(true)}
+            onClick={() => openPanel("shortcuts")}
             title="Keyboard shortcuts"
             aria-label="Keyboard shortcuts"
             className="hidden h-8 w-8 items-center justify-center rounded-lg border border-border/70 text-muted-foreground hover:border-primary/40 hover:text-primary sm:inline-flex [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
@@ -3224,17 +3238,18 @@ export default function GeneratePage() {
             )}
             {savedEntry && (
               <p className="mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
+                <CopyLinkButton path={links.generate({ draft: savedEntry.id })} label="Copy link to this post" className="-my-2 -ml-2 order-last" />
                 <Check className="h-3.5 w-3.5 text-success" />
                 {savedEntry.status === "posted" ? (
                   "Posted. Edits save to My posts."
                 ) : savedEntry.status === "scheduled" && savedEntry.scheduledFor ? (
                   <>
                     Scheduled for {whenLabel(savedEntry.scheduledFor)}.
-                    <Link to="/calendar" className="-my-2 py-2 font-semibold text-primary hover:underline">
+                    <Link to={links.calendar({ post: savedEntry.id })} className="-my-2 py-2 font-semibold text-primary hover:underline">
                       Open calendar
                     </Link>
                     {!savedEntry.zernio?.postId && socialConnectShown() && (
-                      <button type="button" onClick={() => setPostOpen((o) => !o)} aria-expanded={postOpen} className="-my-2 py-2 font-semibold text-primary hover:underline">
+                      <button type="button" onClick={() => (postOpen ? closePanel() : openPanel("post"))} aria-expanded={postOpen} className="-my-2 py-2 font-semibold text-primary hover:underline">
                         Post it for me
                       </button>
                     )}
@@ -3272,7 +3287,7 @@ export default function GeneratePage() {
                   draft={savedEntry}
                   blockReason={mainCopyBlock}
                   onDrafts={() => setScheduleTick((n) => n + 1)}
-                  onClose={() => setPostOpen(false)}
+                  onClose={closePanel}
                 />
               </div>
             )}
@@ -3954,7 +3969,7 @@ export default function GeneratePage() {
       {showShortcuts && (
         <div
           className="fixed inset-0 z-50 !mt-0 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
-          onClick={() => setShowShortcuts(false)}
+          onClick={closePanel}
           role="dialog"
           aria-modal="true"
         >
@@ -3968,7 +3983,7 @@ export default function GeneratePage() {
               </h2>
               <button
                 type="button"
-                onClick={() => setShowShortcuts(false)}
+                onClick={closePanel}
                 className="rounded p-1 hover:bg-muted"
                 aria-label="Close shortcuts"
               >
