@@ -96,8 +96,8 @@ import {
   type DraftEntry,
 } from "@/lib/draftHistory";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
-import { getTrackedPosts, suggestPostingTime } from "@/lib/analytics";
-import { scheduleTime, timeLabel } from "@/lib/dueDates";
+import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analytics";
+import { keyToDate, localDateKey, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { ToastAction } from "@/components/ui/toast";
 import {
   BLANKS_RULE,
@@ -2098,8 +2098,20 @@ export default function GeneratePage() {
   // the next good time to post this one: from the user's own results, else a common slot
   const [scheduleTick, setScheduleTick] = useState(0);
   const [postOpen, setPostOpen] = useState(false);
+  // /generate?day=YYYY-MM-DD comes from a calendar day: the suggested time lands on that day. Read once,
+  // so later URL rewrites on this page can't drop it; a past or malformed day is ignored.
+  const [pickedDay] = useState(() => {
+    const d = searchParams.get("day");
+    return d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d >= localDateKey() ? d : null;
+  });
   const suggestedTime = useMemo(() => {
     if (!userId || !currentDraftId) return null;
+    if (pickedDay) {
+      const t = postingTimeOn(getTrackedPosts(userId), platform, (keyToDate(pickedDay).getDay() + 6) % 7, brandKit?.slots);
+      const at = `${pickedDay}T${t.time}`;
+      // today with that time already gone: the day alone, never a time in the past
+      return { at: new Date(at) < new Date() ? pickedDay : at, why: t.why };
+    }
     const taken = loadDrafts(userId).filter((d) => d.status === "scheduled" && d.scheduledFor).map((d) => d.scheduledFor as string);
     return suggestPostingTime(getTrackedPosts(userId), platform, taken, new Date(), brandKit?.slots);
     // eslint-disable-next-line react-hooks/exhaustive-deps
