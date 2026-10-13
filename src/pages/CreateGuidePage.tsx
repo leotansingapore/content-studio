@@ -41,7 +41,6 @@ interface Tool {
 function ToolRow({ tool }: { tool: Tool }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-background px-3 py-2">
-      <SectionTabs tabs={LEARN_TABS} />
       <div className="min-w-0">
         <p className="text-sm font-semibold text-foreground">{tool.name}</p>
         <p className="text-[11px] text-muted-foreground">{tool.what}</p>
@@ -115,6 +114,7 @@ export default function CreateGuidePage() {
 
   return (
     <div className="space-y-5">
+      <SectionTabs tabs={LEARN_TABS} />
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <Sparkles className="h-6 w-6 text-primary" />
