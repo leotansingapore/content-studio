@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
+import PostPreview from "@/components/PostPreview";
 import { PostItForMePanel, ZernioChipLabel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
@@ -49,6 +50,9 @@ import {
 import {
   loadDrafts,
   setDraftStatus,
+  duplicateDraft,
+  undoDuplicate,
+  MAX_DRAFTS,
   draftStatus,
   occurrencesBetween,
   restoreDraft,
@@ -175,6 +179,8 @@ export default function CalendarPage() {
   // Team rule: members on approval can't mark a post posted until it is approved.
   const reviews = useDraftReviews(userId, drafts);
   const [postOpenId, setPostOpenId] = useState<string | null>(null);
+  // The post whose network preview is open in its panel.
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const [params, setParams] = useSearchParams();
   useZernioRefresh(userId, drafts, setDrafts);
   // The assistant moves posts from outside this page: read them again when it does.
@@ -682,6 +688,50 @@ export default function CalendarPage() {
           },
         };
 
+  // A copy of the post, scheduled at the next open slot (or the best time); Undo removes it and brings back
+  // any post the copy pushed out of My posts.
+  const duplicateToSlot = (d: DraftEntry) => {
+    if (!userId) return;
+    const r = duplicateDraft(userId, d.id);
+    if (!r) return;
+    const next = suggestPostingTime(getTrackedPosts(userId), d.platform, taken, new Date(), slots);
+    setDrafts(setDraftStatus(userId, r.copy.id, "scheduled", next.at));
+    const pushedOut = r.dropped[0];
+    toast({
+      title: `Copy scheduled for ${whenLabel(next.at)}`,
+      description: pushedOut
+        ? `My posts keeps ${MAX_DRAFTS}, so "${(pushedOut.hook || pushedOut.draft).slice(0, 40)}" was removed. Undo brings it back.`
+        : undefined,
+      action: (
+        <ToastAction altText="Undo" onClick={() => setDrafts(undoDuplicate(userId, r.copy.id, r.dropped))}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
+  // Takes the post off the calendar: it waits in Unscheduled drafts. Undo puts it back on its day.
+  const unschedule = (d: DraftEntry) => {
+    if (!userId) return;
+    setDrafts(setDraftStatus(userId, d.id, "draft"));
+    closePost();
+    toast({ title: "Back in drafts", description: "It waits in Unscheduled drafts.", action: undoAction(d) });
+  };
+
+  // One-tap days for a scheduled post: today (when it is overdue), tomorrow, the next open slot.
+  const presets = (d: DraftEntry) => {
+    const day = d.scheduledFor?.slice(0, 10);
+    const time = scheduleTime(d.scheduledFor);
+    const out: { label: string; at: string }[] = [];
+    if (day && day < todayKey) out.push({ label: "Today", at: scheduleAt(todayKey, time) });
+    if (day !== addDays(todayKey, 1)) out.push({ label: "Tomorrow", at: scheduleAt(addDays(todayKey, 1), time) });
+    if (slots.length && userId) {
+      const at = suggestPostingTime(getTrackedPosts(userId), d.platform, taken.filter((x) => x !== d.scheduledFor), new Date(), slots).at;
+      if (at !== d.scheduledFor) out.push({ label: "Next slot", at });
+    }
+    return out;
+  };
+
   const moveInput = (d: DraftEntry) => (
     <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
       <label className="flex items-center gap-1.5 whitespace-nowrap">
@@ -723,6 +773,17 @@ export default function CalendarPage() {
           Skip this one
         </button>
       )}
+      {presets(d).map((p) => (
+        <button
+          key={p.label}
+          type="button"
+          onClick={() => reschedule(d.id, p.at)}
+          title={`Move to ${whenLabel(p.at)}`}
+          className="h-9 rounded-md border border-border/70 px-2 font-semibold text-foreground hover:border-primary/40 sm:h-8 [@media(pointer:coarse)]:h-11"
+        >
+          {p.label}
+        </button>
+      ))}
     </div>
   );
 
@@ -810,6 +871,37 @@ export default function CalendarPage() {
             </Button>
           )}
         </div>
+        <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs">
+          <button
+            type="button"
+            onClick={() => setPreviewId((cur) => (cur === d.id ? null : d.id))}
+            aria-expanded={previewId === d.id}
+            className="h-9 rounded-md px-2 font-semibold text-primary hover:underline sm:h-8 [@media(pointer:coarse)]:h-11"
+          >
+            {previewId === d.id ? "Hide preview" : `Preview on ${PLATFORM_LABEL[d.platform] ?? "the network"}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => duplicateToSlot(d)}
+            className="h-9 rounded-md px-2 font-semibold text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11"
+          >
+            Duplicate
+          </button>
+          {!posted && (
+            <button
+              type="button"
+              onClick={() => unschedule(d)}
+              className="h-9 rounded-md px-2 font-semibold text-muted-foreground hover:text-foreground sm:h-8 [@media(pointer:coarse)]:h-11"
+            >
+              Back to drafts
+            </button>
+          )}
+        </div>
+        {previewId === d.id && (
+          <div className="max-w-sm">
+            <PostPreview text={d.draft} platform={d.platform} format={d.format} />
+          </div>
+        )}
         {postOpenId === d.id && userId && (
           <PostItForMePanel userId={userId} draft={d} blockReason={reviews.blockReason(d)} onDrafts={setDrafts} onClose={() => setPostOpenId(null)} />
         )}
