@@ -14,6 +14,7 @@ import {
   undoPosted,
   markUnposted,
   setDraftZernio,
+  setDraftAttached,
   MAX_DRAFTS,
   type DraftEntry,
 } from "./draftHistory";
@@ -226,6 +227,16 @@ describe("duplicateDraft", () => {
     expect(loadDrafts(UID)).toHaveLength(MAX_DRAFTS);
     expect(undoDuplicate(UID, r.copy.id, r.dropped)).toEqual(full);
     expect(loadDrafts(UID)).toEqual(full);
+  });
+});
+
+describe("files attached in Write", () => {
+  it("are set, kept by an edit in Write, and an empty list removes them", () => {
+    saveDrafts(UID, [post({})]);
+    expect(setDraftAttached(UID, "s", ["cimg-a", "cimg-b"])[0].attached).toEqual(["cimg-a", "cimg-b"]);
+    upsertDraft(UID, post({ draft: "Edited" }));
+    expect(loadDrafts(UID)[0].attached).toEqual(["cimg-a", "cimg-b"]);
+    expect(setDraftAttached(UID, "s", [])[0]).not.toHaveProperty("attached");
   });
 });
 

@@ -278,8 +278,20 @@ export function PostItForMePanel({
   const [state, setState] = useState<"loading" | "off" | "ready" | "error">("loading");
   const [accounts, setAccounts] = useState<AccountView[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
-  const [mode, setMode] = useState<MediaMode>(carousel ? "carousel" : importLink ? "import" : "files");
+  // Files attached in Write come first: they were picked for this post.
+  const [mode, setMode] = useState<MediaMode>(draft.attached?.length ? "files" : carousel ? "carousel" : importLink ? "import" : "files");
   const [files, setFiles] = useState<MediaFile[]>([]);
+  const attachedSig = (draft.attached ?? []).join(",");
+  useEffect(() => {
+    let live = true;
+    void Promise.all((attachedSig ? attachedSig.split(",") : []).map((k) => getFile(k).catch(() => undefined))).then((blobs) => {
+      const got = blobs.flatMap((b, i) => (b ? [{ file: b, name: `attached-${i + 1}.${MEDIA_TYPES[b.type]?.[0] ?? "jpg"}`, type: b.type }] : []));
+      if (live && got.length) setFiles(got);
+    });
+    return () => {
+      live = false;
+    };
+  }, [attachedSig]);
   const draftTime = scheduleTime(draft.scheduledFor);
   const [time, setTime] = useState(draftTime ?? "09:00");
   const [now, setNow] = useState(false);

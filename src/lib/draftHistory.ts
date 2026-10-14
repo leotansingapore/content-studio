@@ -49,6 +49,9 @@ export interface DraftEntry {
   hookFormula?: string;
   // An http(s) link to the photo or video that goes with it, from a CSV import.
   media?: string;
+  // Pictures or one video attached in Write: deviceFiles keys, so the files stay on the device
+  // that attached them (like carousel pictures) while the keys sync with the draft.
+  attached?: string[];
   // Post it for me: the post Zernio is publishing for it (autoPost.ts). Not security state: the
   // server checks the post is the adviser's on every call.
   zernio?: ZernioLink;
@@ -256,6 +259,7 @@ export function upsertDraft(
   if (prev?.storyboard && !entry.storyboard) entry = { ...entry, storyboard: prev.storyboard };
   if (prev?.zernio && !entry.zernio) entry = { ...entry, zernio: prev.zernio };
   if (prev?.media && !entry.media) entry = { ...entry, media: prev.media };
+  if (prev?.attached && !entry.attached) entry = { ...entry, attached: prev.attached };
   // ...or the formula its hook was written with, while the hook is unchanged
   if (prev?.hookFormula && !entry.hookFormula && prev.hook === entry.hook) entry = { ...entry, hookFormula: prev.hookFormula };
   const without = current.filter((d) => d.id !== entry.id);
@@ -337,6 +341,18 @@ export function setDraftNumbers(userId: string, byDraft: Map<string, Numbers>, a
 }
 
 /** Post it for me: sets or (null) clears the Zernio post a draft is linked to. */
+/** The files attached in Write; an empty list removes the field. */
+export function setDraftAttached(userId: string, id: string, keys: string[]): DraftEntry[] {
+  const next = loadDrafts(userId).map((d) => {
+    if (d.id !== id) return d;
+    const updated: DraftEntry = { ...d, attached: keys };
+    if (!keys.length) delete updated.attached;
+    return updated;
+  });
+  saveDrafts(userId, next);
+  return next;
+}
+
 export function setDraftZernio(userId: string, id: string, link: ZernioLink | null): DraftEntry[] {
   const next = loadDrafts(userId).map((d) => {
     if (d.id !== id) return d;

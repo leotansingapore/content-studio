@@ -52,6 +52,7 @@ import {
   StopCircle,
   Wand2,
   AlertTriangle,
+  ImagePlus,
   Loader2,
   Mic,
   Hash,
@@ -71,7 +72,10 @@ import {
 import { ThinkingOrb } from "thinking-orbs";
 import inspirationData from "@/data/inspiration.json";
 import { type InspirationEntry } from "@/components/Inspiration";
-import PostPreview from "@/components/PostPreview";
+import PostPreview, { type PreviewMedia } from "@/components/PostPreview";
+import { deleteFile, getFile, putFile } from "@/lib/deviceFiles";
+import { storePicture } from "@/lib/mediaLibrary";
+import { fileProblem, fileType, MAX_PICTURES, NEEDS_MEDIA } from "@/lib/autoPost";
 import { analyzePosts } from "@/lib/coach";
 import type { PlatformId } from "@/lib/platformCounters";
 import {
@@ -96,6 +100,7 @@ import {
   getDraftById,
   loadDrafts,
   newDraftId,
+  setDraftAttached,
   upsertDraft,
   type DraftEntry,
 } from "@/lib/draftHistory";
@@ -1763,6 +1768,7 @@ export default function GeneratePage() {
       };
       upsertDraft(userId, entry);
       setCurrentDraftId(id);
+      return id;
     },
     [
       disclosure,
@@ -2098,6 +2104,72 @@ export default function GeneratePage() {
     document.addEventListener("visibilitychange", onHide);
     return () => document.removeEventListener("visibilitychange", onHide);
   }, []);
+
+  // Pictures or one video attached in Write: kept on this device, shown in the preview and
+  // loaded into Post it for me. Pictures are shrunk to 1080px JPEGs, so size and WebP never block them.
+  const [attachedKeys, setAttachedKeys] = useState<string[]>([]);
+  const [attachedMedia, setAttachedMedia] = useState<{ media: (PreviewMedia & { key: string })[]; missing: number }>({ media: [], missing: 0 });
+  const [attaching, setAttaching] = useState(false);
+  const attachInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    setAttachedKeys(userId && currentDraftId ? (getDraftById(userId, currentDraftId)?.attached ?? []) : []);
+  }, [userId, currentDraftId]);
+  useEffect(() => {
+    let live = true;
+    const urls: string[] = [];
+    void Promise.all(attachedKeys.map((k) => getFile(k).catch(() => undefined))).then((blobs) => {
+      if (!live) return;
+      const media = blobs.flatMap((b, i) => {
+        if (!b) return [];
+        const url = URL.createObjectURL(b);
+        urls.push(url);
+        return [{ key: attachedKeys[i]!, url, video: b.type.startsWith("video/") }];
+      });
+      setAttachedMedia({ media, missing: blobs.length - media.length });
+    });
+    return () => {
+      live = false;
+      urls.forEach((u) => URL.revokeObjectURL(u));
+    };
+  }, [attachedKeys]);
+  const attachedVideo = attachedMedia.media.some((m) => m.video);
+  const attachFiles = async (picked: File[]) => {
+    if (!picked.length || !userId || attaching) return;
+    const fail = (description: string) => toast({ title: "Couldn't attach that", description, variant: "destructive" });
+    const problem = picked.map((f) => (fileType(f)?.startsWith("image/") ? null : fileProblem(f))).find(Boolean);
+    if (problem) return fail(problem);
+    const video = attachedVideo || picked.some((f) => fileType(f)?.startsWith("video/"));
+    if (video && attachedKeys.length + picked.length > 1) return fail(`Attach one video on its own, or up to ${MAX_PICTURES} pictures.`);
+    if (attachedKeys.length + picked.length > MAX_PICTURES) return fail(`Attach up to ${MAX_PICTURES} pictures.`);
+    setAttaching(true);
+    try {
+      const id = persistDraftEntry(draft, chosenHook ?? "");
+      if (!id) return fail("Write the post first, then attach.");
+      const keys = await Promise.all(
+        picked.map(async (f) => {
+          if (fileType(f)?.startsWith("image/")) return (await storePicture(f)).key;
+          const key = `cvid-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+          await putFile(key, f);
+          return key;
+        }),
+      );
+      const next = [...attachedKeys, ...keys];
+      setDraftAttached(userId, id, next);
+      setAttachedKeys(next);
+    } catch (e) {
+      fail(e instanceof Error ? e.message : "Try a JPG, PNG or MP4 file.");
+    } finally {
+      setAttaching(false);
+    }
+  };
+  const detach = (key: string) => {
+    if (!userId || !currentDraftId) return;
+    const next = attachedKeys.filter((k) => k !== key);
+    setDraftAttached(userId, currentDraftId, next);
+    setAttachedKeys(next);
+    // a duplicate of this post can still be using the file
+    if (!loadDrafts(userId).some((d) => d.attached?.includes(key))) void deleteFile(key).catch(() => {});
+  };
 
   // Keyboard shortcuts: Cmd/Ctrl+Enter, Cmd/Ctrl+Shift+C, Esc.
   useEffect(() => {
@@ -3371,6 +3443,13 @@ export default function GeneratePage() {
                     if (undoText !== null) setUndoText(null);
                   }}
                   onBlur={() => flushSave.current()}
+                  onPaste={(e) => {
+                    // a picture on the clipboard is attached; text (even with a picture beside it) pastes as usual
+                    const files = [...e.clipboardData.files];
+                    if (!files.length || e.clipboardData.getData("text/plain")) return;
+                    e.preventDefault();
+                    void attachFiles(files);
+                  }}
                   rows={Math.min(28, Math.max(12, draft.split("\n").length + 2))}
                   className="flex-1 font-sans text-sm leading-relaxed"
                 />
@@ -3439,11 +3518,63 @@ export default function GeneratePage() {
                   </div>
                 )}
               </div>
-              <div className="space-y-1.5">
+              <div
+                className="space-y-1.5"
+                onDragOver={(e) => e.dataTransfer.types.includes("Files") && e.preventDefault()}
+                onDrop={(e) => {
+                  if (!e.dataTransfer.files.length) return;
+                  e.preventDefault();
+                  void attachFiles([...e.dataTransfer.files]);
+                }}
+              >
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5" /> Live preview
                 </div>
-                <PostPreview text={draft} platform={platform} format={format} disclosure={disclosure} />
+                <PostPreview text={draft} platform={platform} format={format} disclosure={disclosure} media={attachedMedia.media} />
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {attachedMedia.media.map((m, i) => (
+                    <span key={m.key} className="relative">
+                      {m.video ? (
+                        <video src={m.url} muted playsInline className="h-16 w-16 rounded-md bg-black object-cover" />
+                      ) : (
+                        <img src={m.url} alt={`Attached picture ${i + 1}`} className="h-16 w-16 rounded-md object-cover" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => detach(m.key)}
+                        aria-label={m.video ? "Remove the video" : `Remove picture ${i + 1}`}
+                        className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-destructive [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:w-10"
+                      >
+                        <XIcon className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                  {!attachedVideo && attachedKeys.length < MAX_PICTURES && (
+                    <Button type="button" size="sm" variant="outline" className="h-9 [@media(pointer:coarse)]:h-11" disabled={attaching} onClick={() => attachInput.current?.click()}>
+                      {attaching ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1.5 h-4 w-4" />}
+                      {attachedKeys.length ? "Add more" : "Add your photo or video"}
+                    </Button>
+                  )}
+                  <input
+                    ref={attachInput}
+                    type="file"
+                    multiple
+                    hidden
+                    accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,.mov"
+                    onChange={(e) => {
+                      void attachFiles([...(e.target.files ?? [])]);
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+                {attachedMedia.missing > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {attachedMedia.missing === 1 ? "1 file was" : `${attachedMedia.missing} files were`} attached on another device. Post from there, or add {attachedMedia.missing === 1 ? "it" : "them"} again here.
+                  </p>
+                )}
+                {!attachedKeys.length && format !== "carousel" && NEEDS_MEDIA.includes(platform) && (
+                  <p className="text-xs text-amber-800 dark:text-amber-300">{platformLabel(platform)} needs a picture or video to post.</p>
+                )}
               </div>
             </div>
 

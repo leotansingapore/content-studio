@@ -119,6 +119,30 @@ function Folded({ text, platform, more, lead }: { text: string; platform: string
   );
 }
 
+export interface PreviewMedia {
+  url: string;
+  video: boolean;
+}
+
+/** The adviser's own pictures or video: the first one at the shape the feed shows, 4:5 to 1.91:1. */
+function FeedMedia({ media }: { media: PreviewMedia[] }) {
+  const [ratio, setRatio] = useState(1);
+  const first = media[0]!;
+  const fit = (w: number, h: number) => w && h && setRatio(Math.min(1.91, Math.max(0.8, w / h)));
+  return (
+    <div className="relative overflow-hidden bg-black" style={{ aspectRatio: ratio }}>
+      {first.video ? (
+        <video src={first.url} muted playsInline controls className="h-full w-full object-cover" onLoadedMetadata={(e) => fit(e.currentTarget.videoWidth, e.currentTarget.videoHeight)} />
+      ) : (
+        <img src={first.url} alt="" className="h-full w-full object-cover" onLoad={(e) => fit(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)} />
+      )}
+      {media.length > 1 && (
+        <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white">1/{media.length}</span>
+      )}
+    </div>
+  );
+}
+
 function EmptyState() {
   return (
     <div className="flex h-full min-h-[200px] items-center justify-center rounded-xl border border-dashed border-border/70 bg-muted/20 p-6 text-center text-xs text-muted-foreground">
@@ -132,12 +156,15 @@ export default function PostPreview({
   platform,
   format,
   disclosure = [],
+  media = [],
 }: {
   text: string;
   platform: Platform;
   format?: string;
   /** Disclosure labels a copy adds after the sign-off. */
   disclosure?: readonly DisclosureId[];
+  /** Pictures or a video attached in Write, shown in place of the placeholder. */
+  media?: PreviewMedia[];
 }) {
   const brand = useBrandKit();
   const body = text.trim();
@@ -165,10 +192,14 @@ export default function PostPreview({
             </span>
             <MoreHorizontal className="ml-auto h-4 w-4 text-muted-foreground" />
           </div>
-          <div className="flex aspect-square flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/10 via-muted to-brand/10 text-xs text-muted-foreground">
-            {isShortVideo && <Play className="h-8 w-8" />}
-            {mediaLabel}
-          </div>
+          {media.length ? (
+            <FeedMedia key={media[0]!.url} media={media} />
+          ) : (
+            <div className="flex aspect-square flex-col items-center justify-center gap-2 bg-gradient-to-br from-primary/10 via-muted to-brand/10 text-xs text-muted-foreground">
+              {isShortVideo && <Play className="h-8 w-8" />}
+              {mediaLabel}
+            </div>
+          )}
           <div className="space-y-2 px-3 py-2.5">
             <div className="flex items-center gap-4 text-foreground">
               <Heart className="h-5 w-5" />
@@ -207,11 +238,13 @@ export default function PostPreview({
         <div className="px-4 py-3">
           <Folded text={caption} platform={isFacebook ? "facebook" : "linkedin"} more={isFacebook ? "... See more" : "...see more"} />
         </div>
-        {isShortVideo && (
+        {media.length ? (
+          <FeedMedia key={media[0]!.url} media={media} />
+        ) : isShortVideo ? (
           <div className="mx-4 mb-3 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-primary/10 via-muted to-brand/10 py-8 text-xs text-muted-foreground">
             <Play className="h-6 w-6" /> Your video
           </div>
-        )}
+        ) : null}
         <div className="mx-4 border-t border-border/60" />
         <div className="flex items-center justify-around px-2 py-1.5 text-xs font-medium text-muted-foreground">
           <span className="flex items-center gap-1.5 rounded-md px-2 py-1.5">
