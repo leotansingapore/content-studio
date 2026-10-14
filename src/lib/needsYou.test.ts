@@ -1,0 +1,46 @@
+import { describe, expect, it } from "vitest";
+import { badgeText, countNeedsYou } from "./needsYou";
+import type { DraftEntry } from "./draftHistory";
+import type { TeamPost } from "./teamPosts";
+
+const TODAY = "2026-10-14";
+const draft = (over: Partial<DraftEntry>): DraftEntry => ({ id: Math.random().toString(36), createdAt: "2026-10-01T00:00:00Z", draft: "x", hook: "x", platform: "linkedin", ...over }) as DraftEntry;
+const team = (over: Partial<TeamPost>): TeamPost => ({
+  id: "tp1", title: "t", product: "gac", day: "2026-10-20", time: "10:00", image: "", message: "", rev: 1,
+  revisedAt: null, postedAt: null, postLink: null, skipped: false, telegram: { approvedRev: null, comments: [] }, handled: [], ...over,
+});
+
+describe("countNeedsYou", () => {
+  it("counts scheduled posts whose day has passed, not today's or future ones", () => {
+    const drafts = [
+      draft({ status: "scheduled", scheduledFor: "2026-10-13T08:30" }),
+      draft({ status: "scheduled", scheduledFor: "2026-10-10" }),
+      draft({ status: "scheduled", scheduledFor: "2026-10-14T08:00" }),
+      draft({ status: "scheduled", scheduledFor: "2026-10-20" }),
+      draft({ status: "posted", scheduledFor: "2026-10-01", postedAt: "2026-10-01T09:00:00Z" }),
+      draft({ status: "draft" }),
+    ];
+    expect(countNeedsYou(drafts, [], {}, TODAY)).toBe(2);
+  });
+
+  it("counts team posts waiting for approval only", () => {
+    const posts = [
+      team({ id: "a" }),
+      team({ id: "b", rev: 2 }),
+      team({ id: "c", postedAt: "2026-10-13T02:00:00Z" }),
+      team({ id: "d", skipped: true }),
+    ];
+    expect(countNeedsYou([], posts, { b: { approvedRev: 2, comments: [] } }, TODAY)).toBe(1);
+  });
+
+  it("adds both", () => {
+    expect(countNeedsYou([draft({ status: "scheduled", scheduledFor: "2026-10-01" })], [team({})], {}, TODAY)).toBe(2);
+  });
+});
+
+describe("badgeText", () => {
+  it("caps at 9+", () => {
+    expect(badgeText(3)).toBe("3");
+    expect(badgeText(12)).toBe("9+");
+  });
+});

@@ -11,6 +11,10 @@ import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import JumpTo, { jumpShortcut } from "@/components/JumpTo";
 import { pushRecent } from "@/lib/jumpTo";
+import { badgeText, countNeedsYou } from "@/lib/needsYou";
+import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
+import { readTeamPosts, readTeamReviews } from "@/lib/teamPosts";
+import { localDateKey } from "@/lib/dueDates";
 import { Sparkles, LogOut, Plus, LayoutGrid, Search, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 import {
@@ -116,7 +120,7 @@ function useScrollMemory() {
   }, [key, pathname, navType]);
 }
 
-function RailLink({ s, to, active }: { s: NavSection; to: string; active: boolean }) {
+function RailLink({ s, to, active, count = 0 }: { s: NavSection; to: string; active: boolean; count?: number }) {
   const Icon = s.icon;
   const isNew = s.id === "feedback" && feedbackIsNew();
   return (
@@ -135,6 +139,17 @@ function RailLink({ s, to, active }: { s: NavSection; to: string; active: boolea
         <Icon className="h-[18px] w-[18px]" />
       </span>
       {s.label}
+      {count > 0 && (
+        <>
+          <span
+            aria-hidden
+            className="absolute right-1.5 top-0 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-warning px-1 text-[10px] font-bold leading-none text-primary-foreground ring-2 ring-rail"
+          >
+            {badgeText(count)}
+          </span>
+          <span className="sr-only">, {count} need you</span>
+        </>
+      )}
       {isNew && (
         <>
           <span aria-hidden className="absolute right-2.5 top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-rail" />
@@ -172,6 +187,9 @@ export default function StudioLayout() {
   // Jump to: Cmd/Ctrl+K anywhere, the button under New post, or the search button on phones.
   const [jumpOpen, setJumpOpen] = useState(false);
   const [email, setEmail] = useState<string>("");
+  const [uid, setUid] = useState<string | null>(null);
+  // Overdue posts and team posts waiting for approval: a count on Pipeline and the phone Calendar tab.
+  const [needsYou, setNeedsYou] = useState(0);
   // Social accounts sits in the nav only once the server has said it is on for this sign-in.
   const [, setSocialOn] = useState(socialConnectShown);
   const mainRef = useRef<HTMLElement>(null);
@@ -190,6 +208,7 @@ export default function StudioLayout() {
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (active) setEmail(data.user?.email ?? "");
+      if (active) setUid(data.user?.id ?? null);
       if (active && data.user) void refreshPushHere();
       if (active && data.user) void checkSocialConnect().then((on) => active && setSocialOn(on));
     });
@@ -208,6 +227,22 @@ export default function StudioLayout() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // Counted from what this device holds, again on every page change, tab return and half minute.
+  useEffect(() => {
+    if (!uid) return;
+    const recount = () => setNeedsYou(countNeedsYou(loadDrafts(uid), readTeamPosts(uid), readTeamReviews(uid), localDateKey()));
+    recount();
+    const timer = window.setInterval(recount, 30_000);
+    const onVisible = () => document.visibilityState === "visible" && recount();
+    document.addEventListener("visibilitychange", onVisible);
+    const off = onDraftsChanged(recount);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      off();
+    };
+  }, [uid, pathname]);
 
   // Jump to lists the pages opened lately on this device.
   useEffect(() => {
@@ -282,7 +317,13 @@ export default function StudioLayout() {
             <Logo />
           </Link>
           {MAIN_SECTIONS.map((s) => (
-            <RailLink key={s.id} s={s} to={lastInSection.current[s.id] ?? s.to} active={here?.id === s.id} />
+            <RailLink
+              key={s.id}
+              s={s}
+              to={lastInSection.current[s.id] ?? s.to}
+              active={here?.id === s.id}
+              count={s.id === "pipeline" ? needsYou : 0}
+            />
           ))}
           <div className="mt-auto flex flex-col items-center gap-1 pt-3">
             {FOOT_SECTIONS.map((s) => (
@@ -443,8 +484,19 @@ export default function StudioLayout() {
                 active(pathname) ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              <Icon className="h-5 w-5" />
+              <span className="relative">
+                <Icon className="h-5 w-5" />
+                {to === "/calendar" && needsYou > 0 && (
+                  <span
+                    aria-hidden
+                    className="absolute -right-2.5 -top-1.5 grid h-[16px] min-w-[16px] place-items-center rounded-full bg-warning px-1 text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background"
+                  >
+                    {badgeText(needsYou)}
+                  </span>
+                )}
+              </span>
               {label}
+              {to === "/calendar" && needsYou > 0 && <span className="sr-only">, {needsYou} need you</span>}
             </Link>
           ))}
           <button
