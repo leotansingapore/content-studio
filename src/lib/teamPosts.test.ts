@@ -4,11 +4,14 @@ import {
   approve,
   readTeamPosts,
   readTeamReviews,
+  skip,
+  skippedBy,
   statusOf,
   teamPostsKey,
   teamReviewsKey,
   threadOf,
   unapprove,
+  unskip,
   type TeamPost,
 } from "./teamPosts";
 
@@ -77,6 +80,38 @@ describe("statusOf", () => {
   it("waiting with no review at all", () => expect(statusOf(post())).toBe("waiting"));
 });
 
+describe("skipping: the later of Telegram's skip and the calendar's Skip/Undo wins", () => {
+  const T1 = "2026-10-14T01:00:00+00:00"; // the job writes seconds and +00:00
+  const T2 = "2026-10-14T02:00:00.000Z"; // the app writes toISOString
+  const none = { approvedRev: null, comments: [] };
+
+  it("a calendar Skip -> skipped", () => {
+    expect(statusOf(post(), { ...none, skip: { on: true, at: T2 } })).toBe("skipped");
+    expect(skippedBy(post(), { ...none, skip: { on: true, at: T2 } })).toBe("calendar");
+  });
+
+  it("a calendar Undo after a Telegram skip -> not skipped", () => {
+    const p = post({ skipped: true, skippedAt: T1 });
+    expect(statusOf(p, { ...none, skip: { on: false, at: T2 } })).toBe("waiting");
+    expect(skippedBy(p)).toBe("telegram");
+  });
+
+  it("a Telegram skip after a calendar Undo -> skipped, and said to be Telegram's", () => {
+    const p = post({ skipped: true, skippedAt: "2026-10-14T03:00:00+00:00" });
+    expect(statusOf(p, { ...none, skip: { on: false, at: T2 } })).toBe("skipped");
+    expect(skippedBy(p, { ...none, skip: { on: false, at: T2 } })).toBe("telegram");
+  });
+
+  it("an old post with skipped and no skippedAt -> skipped, and any calendar Undo is later", () => {
+    expect(statusOf(post({ skipped: true }))).toBe("skipped");
+    expect(statusOf(post({ skipped: true }), none)).toBe("skipped");
+    expect(statusOf(post({ skipped: true }), { ...none, skip: { on: false, at: T1 } })).toBe("waiting");
+  });
+
+  it("an approval under an Undo shows again", () =>
+    expect(statusOf(post({ skipped: true, skippedAt: T1 }), { approvedRev: 1, comments: [], skip: { on: false, at: T2 } })).toBe("approved"));
+});
+
 describe("threadOf", () => {
   it("merges calendar and Telegram comments by time, tagged with source and rev", () => {
     const p = post({
@@ -130,6 +165,29 @@ describe("storage", () => {
     expect(store.writes).toHaveLength(3);
     expect(store.getItem(teamPostsKey(UID))).toBe(before);
     expect(readTeamReviews(UID)).toEqual(next);
+  });
+
+  it("skip and unskip write only the reviews key, and keep the approval and comments", () => {
+    store.setItem(teamPostsKey(UID), JSON.stringify({ schema: 1, posts: [post({ skipped: true })] }));
+    const before = store.getItem(teamPostsKey(UID));
+    const p = readTeamPosts(UID)[0];
+    approve(UID, p);
+    addComment(UID, p, "hi");
+    store.writes = [];
+
+    const skipped = skip(UID, p);
+    expect(skipped.tp1.skip?.on).toBe(true);
+    expect(Date.parse(skipped.tp1.skip!.at)).toBeGreaterThan(Date.now() - 5000);
+    expect(statusOf(p, skipped.tp1)).toBe("skipped");
+    const undone = unskip(UID, p);
+    expect(undone.tp1.skip?.on).toBe(false);
+    expect(statusOf(p, undone.tp1)).toBe("approved"); // Undo reverses the Telegram skip too
+    expect(undone.tp1.approvedRev).toBe(1);
+    expect(undone.tp1.comments).toHaveLength(1);
+
+    expect(store.writes).toEqual([teamReviewsKey(UID), teamReviewsKey(UID)]);
+    expect(store.getItem(teamPostsKey(UID))).toBe(before);
+    expect(readTeamReviews(UID)).toEqual(undone);
   });
 
   it("keeps other posts' reviews when one changes", () => {

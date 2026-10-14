@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Copy, ExternalLink, X } from "lucide-react";
+import { Ban, Check, Copy, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,9 +10,12 @@ import { safeExternalUrl } from "@/lib/embed";
 import {
   addComment,
   approve,
+  skip,
+  skippedBy,
   statusOf,
   threadOf,
   unapprove,
+  unskip,
   type TeamPost,
   type TeamReviews,
   type TeamStatus,
@@ -68,7 +71,7 @@ export function TeamPostChip({
 // Typed, unsent comments per post: they outlive the panel closing.
 const unsent = new Map<string, string>();
 
-/** Review panel: the picture and text as they will post, Approve, and the comment thread. */
+/** Review panel: the picture and text as they will post, Approve or Skip, and the comment thread. */
 export function TeamPostPanel({
   uid,
   post,
@@ -177,7 +180,7 @@ export function TeamPostPanel({
                   </a>
                 )}
               </>
-            ) : post.skipped ? (
+            ) : status === "skipped" ? (
               "Skipped, it will not go out"
             ) : (
               `Goes out ${dayLabel(post.day)} at ${post.time}`
@@ -193,25 +196,43 @@ export function TeamPostPanel({
             </Button>
           </div>
 
-          {approvedHere ? (
+          {status === "skipped" ? (
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-10 items-center gap-1.5 text-sm font-semibold text-success">
-                <Check className="h-4 w-4" /> Approved
+              <span className="inline-flex h-10 items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                <Ban className="h-4 w-4" /> {skippedBy(post, review) === "telegram" ? "Skipped on Telegram" : "Skipped"}
               </span>
-              {!done && (
-                <Button variant="ghost" size="sm" onClick={() => onReviews(unapprove(uid, post))} className="text-muted-foreground">
-                  Undo
+              <Button variant="ghost" size="sm" onClick={() => onReviews(unskip(uid, post))} className="text-muted-foreground">
+                Undo
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {approvedHere ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-10 items-center gap-1.5 text-sm font-semibold text-success">
+                    <Check className="h-4 w-4" /> Approved
+                  </span>
+                  {!done && (
+                    <Button variant="ghost" size="sm" onClick={() => onReviews(unapprove(uid, post))} className="text-muted-foreground">
+                      Undo
+                    </Button>
+                  )}
+                </div>
+              ) : status === "approved" ? (
+                <p className="inline-flex h-10 items-center gap-1.5 text-sm font-semibold text-success">
+                  <Check className="h-4 w-4" /> Approved on Telegram
+                </p>
+              ) : (
+                <Button onClick={() => onReviews(approve(uid, post))} disabled={done} className="flex-1 sm:flex-none">
+                  <Check className="h-4 w-4" /> Approve
+                </Button>
+              )}
+              {!post.postedAt && (
+                <Button variant="outline" onClick={() => onReviews(skip(uid, post))}>
+                  Skip
                 </Button>
               )}
             </div>
-          ) : status === "approved" ? (
-            <p className="inline-flex h-10 items-center gap-1.5 text-sm font-semibold text-success">
-              <Check className="h-4 w-4" /> Approved on Telegram
-            </p>
-          ) : (
-            <Button onClick={() => onReviews(approve(uid, post))} disabled={done} className="w-full sm:w-auto">
-              <Check className="h-4 w-4" /> Approve
-            </Button>
           )}
 
           <section aria-label="Comments" className="space-y-2 border-t border-border/60 pt-4">

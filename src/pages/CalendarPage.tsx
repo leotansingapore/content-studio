@@ -461,9 +461,10 @@ export default function CalendarPage() {
     for (const [date, gs] of ghostsByDate) for (let i = 0; i < gs.length; i++) items.push({ business: profileName, date, done: false });
     for (const r of visibleReels) items.push({ business: r.business, date: r.date, done: r.posted });
     for (const f of visibleFeed) items.push({ business: f.business, date: f.date, done: f.status === "posted" });
-    for (const [date, ps] of teamByDate) for (const p of ps) if (!p.skipped) items.push({ business: TEAM_BUSINESS, date, done: Boolean(p.postedAt) });
+    for (const [date, ps] of teamByDate)
+      for (const p of ps) if (statusOf(p, teamReviews[p.id]) !== "skipped") items.push({ business: TEAM_BUSINESS, date, done: Boolean(p.postedAt) });
     return items;
-  }, [visible, ghostsByDate, visibleReels, visibleFeed, teamByDate, profileName]);
+  }, [visible, ghostsByDate, visibleReels, visibleFeed, teamByDate, teamReviews, profileName]);
   const thisWeek = useMemo(() => weekOf(todayKey), [todayKey]);
   const glance = useMemo(() => weekGlance(coverItems, thisWeek, todayKey), [coverItems, thisWeek, todayKey]);
   // Matched on the filter's business key, so "MoneyBees" the profile and "Moneybees" the feed are one business.
