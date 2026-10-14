@@ -31,15 +31,18 @@ describe("checkLimits", () => {
     expect(c.warnings).toEqual([]);
   });
 
-  it("warns past LinkedIn's 3 and blocks past Instagram's 30", () => {
+  it("warns past LinkedIn's 3 and blocks past Instagram's and TikTok's 5", () => {
     const tags = (n: number) => Array.from({ length: n }, (_, i) => `#t${i}`).join(" ");
     expect(checkLimits(tags(3), "linkedin").warnings).toEqual([]);
     expect(checkLimits(tags(5), "linkedin").warnings).toEqual([
       { level: "warn", message: "LinkedIn works best with 3 hashtags or fewer. Remove 2." },
     ]);
-    expect(checkLimits(tags(30), "instagram").warnings).toEqual([]);
-    expect(checkLimits(tags(32), "instagram").warnings).toEqual([
-      { level: "over", message: "Instagram allows 30 hashtags. Remove 2." },
+    expect(checkLimits(tags(5), "instagram").warnings).toEqual([]);
+    expect(checkLimits(tags(8), "instagram").warnings).toEqual([
+      { level: "over", message: "Instagram takes 5 hashtags at most. Remove 3." },
+    ]);
+    expect(checkLimits(tags(6), "tiktok").warnings).toEqual([
+      { level: "over", message: "TikTok takes 5 hashtags at most. Remove 1." },
     ]);
     expect(checkLimits(tags(40), "facebook").warnings).toEqual([]);
   });

@@ -208,13 +208,13 @@ export default function BatchPage() {
               ctaType: "comment-keyword",
               audience,
               voiceSummary: usableVoice,
-              ideaContext: brandRulesLine(kit) || undefined,
+              ideaContext: brandRulesLine(kit, t.platform) || undefined,
             },
             {
               onToken: (text) =>
                 setCards((prev) => ({ ...prev, [t.key]: { status: "streaming", text } })),
               onComplete: (text) =>
-                setCards((prev) => ({ ...prev, [t.key]: { status: "done", text: applyBrandRules(stripDashes(text), kit) } })),
+                setCards((prev) => ({ ...prev, [t.key]: { status: "done", text: applyBrandRules(stripDashes(text), kit, t.platform) } })),
               onError: (message) =>
                 setCards((prev) => ({
                   ...prev,

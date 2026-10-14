@@ -2,12 +2,13 @@
 // link to, an emoji policy and a hashtag policy. Write, Batch, the carousel's
 // Tighten and the video captions pass them to the writer as one line, then keep
 // the countable parts in code: emoji and hashtags over the policy are taken out,
-// and a link that is not one of the offers is flagged (checkLimits). Counting
-// and matching only, no judgment.
+// and a link that is not one of the offers is flagged (checkLimits). Given the
+// platform, Instagram's and TikTok's 5-hashtag cap holds whatever the kit says.
+// Counting and matching only, no judgment.
 
 import { dmFields, dmLinks } from "@/lib/bioPage";
 import type { CarouselBrand } from "@/lib/carousel";
-import { countHashtags } from "@/lib/platformCounters";
+import { HASHTAG_CAP, countHashtags } from "@/lib/platformCounters";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
 
 type Rules = Pick<CarouselBrand, "offers" | "emojiPolicy" | "hashtagPolicy" | "instagram" | "facebook" | "whatsapp" | "whatsappText"> | null | undefined;
@@ -45,14 +46,22 @@ export function allowedLinks(brand: Rules, accounts: Parameters<typeof dmFields>
   return offers.length ? [...offers, ...dmLinks(dmFields(brand ?? null, accounts)).map((l) => l.url)] : [];
 }
 
-/** The rules as one line for the writer's request, or "" when the kit sets none. */
-export function brandRulesLine(brand: Rules): string {
+/** The hashtags a post may keep: the kit's policy, held to the platform's cap. */
+function hashtagMax(brand: Rules, platform?: string): number | undefined {
+  const policy = brand?.hashtagPolicy ? HASHTAG_MAX[brand.hashtagPolicy] : undefined;
+  const cap = platform ? HASHTAG_CAP[platform] : undefined;
+  return policy === undefined ? cap : cap === undefined ? policy : Math.min(policy, cap);
+}
+
+/** The rules as one line for the writer's request, or "" when the kit and the platform set none. */
+export function brandRulesLine(brand: Rules, platform?: string): string {
   const parts: string[] = [];
   if (brand?.emojiPolicy === "none") parts.push("Use no emoji at all.");
   if (brand?.emojiPolicy === "one") parts.push("Use one emoji at most in the whole post.");
-  if (brand?.hashtagPolicy === "none") parts.push("Use no hashtags.");
-  if (brand?.hashtagPolicy === "few") parts.push("End with 2 to 4 relevant hashtags, never more.");
-  if (brand?.hashtagPolicy === "ten") parts.push("Use 10 hashtags at most.");
+  const tags = hashtagMax(brand, platform);
+  if (tags === 0) parts.push("Use no hashtags.");
+  else if (brand?.hashtagPolicy === "few") parts.push("End with 2 to 4 relevant hashtags, never more.");
+  else if (tags !== undefined) parts.push(`Use ${tags} hashtags at most.`);
   const offers = brandOffers(brand);
   if (offers.length) {
     parts.push(`When the post points people somewhere, use one of these links exactly as written and never any other link: ${offers.map((o) => `${o.name}: ${o.url}`).join("; ")}.`);
@@ -80,11 +89,11 @@ export function capEmoji(text: string, max: number): string {
     .trim();
 }
 
-/** Generated text inside the kit's emoji and hashtag policies; unchanged when it already is. */
-export function applyBrandRules(text: string, brand: Rules): string {
+/** Generated text inside the kit's emoji and hashtag policies and the platform's cap; unchanged when it already is. */
+export function applyBrandRules(text: string, brand: Rules, platform?: string): string {
   let out = text;
   const e = brand?.emojiPolicy ? EMOJI_MAX[brand.emojiPolicy] : undefined;
-  const h = brand?.hashtagPolicy ? HASHTAG_MAX[brand.hashtagPolicy] : undefined;
+  const h = hashtagMax(brand, platform);
   if (e !== undefined) out = capEmoji(out, e);
   if (h !== undefined && countHashtags(out) > h) out = capHashtags(out, h);
   return out;

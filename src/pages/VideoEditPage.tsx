@@ -1250,7 +1250,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         pillar: "topic",
         pillarDetail: project.name,
         ideaSource: "A reel I already filmed",
-        ideaContext: [`Write ONLY the post caption for this reel, not a script. What I say in it: ${transcript.slice(0, 1800)}\nShape: a strong first line, 2 to 4 short lines, a soft call to action or question, then 5 to 8 relevant hashtags. Use only facts that are in what I say.`, brandRulesLine(brandKit)].filter(Boolean).join("\n\n"),
+        ideaContext: [`Write ONLY the post caption for this reel, not a script. What I say in it: ${transcript.slice(0, 1800)}\nShape: a strong first line, 2 to 4 short lines, a soft call to action or question, then 3 to 5 relevant hashtags. Use only facts that are in what I say.`, brandRulesLine(brandKit, "instagram")].filter(Boolean).join("\n\n"),
         format: "short-video",
         platform: "instagram",
         ctaType: "save-share",
@@ -1263,7 +1263,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
         onError: (m) => toast({ title: "The caption didn't come through", description: m, variant: "destructive" }),
       },
     );
-    if (text) setCaption(applyBrandRules(stripDashes(splitScriptCaption(text).caption), brandKit));
+    if (text) setCaption(applyBrandRules(stripDashes(splitScriptCaption(text).caption), brandKit, "instagram"));
     setWritingCaption(false);
   };
   const captionFlags = useMemo(() => scanCompliance(caption), [caption]);

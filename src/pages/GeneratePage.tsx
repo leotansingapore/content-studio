@@ -113,6 +113,8 @@ import { ToastAction } from "@/components/ui/toast";
 import {
   BLANKS_RULE,
   checkLimits,
+  countHashtags,
+  HASHTAG_CAP,
   findBlanks,
   findLinks,
   MAX_CHARS,
@@ -146,6 +148,7 @@ import {
 } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
 import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { streamOnePost } from "@/lib/batchGenerate";
 import QuickTip from "@/components/QuickTip";
@@ -569,7 +572,7 @@ function LimitChips({ check, platform }: { check: LimitCheck; platform: Platform
     <>
       <span className="rounded-full border border-border/60 bg-muted/30 px-2 py-0.5 font-mono text-muted-foreground">
         Hashtags: {check.hashtags}
-        {platform === "instagram" ? "/30" : platform === "linkedin" ? " (3 max)" : ""}
+        {HASHTAG_CAP[platform] ? `/${HASHTAG_CAP[platform]}` : platform === "linkedin" ? " (3 max)" : ""}
       </span>
       <span
         className={`rounded-full border px-2 py-0.5 font-mono ${
@@ -1293,7 +1296,7 @@ export default function GeneratePage() {
     if (answered?.trim()) ctxParts.push(answered.trim());
     if (format === "short-video") ctxParts.push(reelLengthRule(reelSeconds));
     ctxParts.push(BLANKS_RULE);
-    const rules = brandRulesLine(brandKit);
+    const rules = brandRulesLine(brandKit, platform);
     if (rules) ctxParts.push(rules);
 
     // Combine an active vibe reference with a competitor's angle reference.
@@ -1448,8 +1451,8 @@ export default function GeneratePage() {
         );
       } else if (evt.type === "variant_complete") {
         const idx = firstRow + (evt.variantIndex as number);
-        // Dashes, and emoji or hashtags over the brand kit's policy, go before the text is shown or saved.
-        const finalText = applyBrandRules(stripDashes(evt.text as string), brandKit);
+        // Dashes, and emoji or hashtags over the brand kit's policy or the platform's cap, go before the text is shown or saved.
+        const finalText = applyBrandRules(stripDashes(evt.text as string), brandKit, platform);
         const setter = target === "hooks" ? setHookOptions : setVariants;
         setter((prev) =>
           prev.map((v) =>
@@ -1687,7 +1690,7 @@ export default function GeneratePage() {
         })
         .then((data) => {
           if (data?.hashtags && Array.isArray(data.hashtags)) {
-            setHashtags(data.hashtags);
+            setHashtags(data.hashtags.slice(0, HASHTAG_CAP[platform]));
           }
         })
         .catch((err) => {
@@ -1909,7 +1912,7 @@ export default function GeneratePage() {
         {
           onToken: (text) => updateVersion(id, { text }),
           onComplete: (raw) => {
-            const text = applyBrandRules(stripDashes(raw), brandKit).trim();
+            const text = applyBrandRules(stripDashes(raw), brandKit, target).trim();
             if (!text) return fail("The reply came back empty. Try again.");
             settled = true;
             updateVersion(id, { text, status: "done" });
@@ -1962,7 +1965,7 @@ export default function GeneratePage() {
         {
           onToken: (text) => mine() && setRewrite({ id, text, status: "streaming" }),
           onComplete: (raw) => {
-            const text = applyBrandRules(stripDashes(raw), brandKit).trim();
+            const text = applyBrandRules(stripDashes(raw), brandKit, platform).trim();
             if (!text) return fail("The reply came back empty. Try again.");
             if (mine()) setRewrite({ id, text, status: "done" });
           },
@@ -1990,6 +1993,18 @@ export default function GeneratePage() {
     setDraft(rewrite.text);
     persistDraftEntry(rewrite.text, chosenHook ?? "");
     setRewrite(null);
+  };
+
+  // Hashtags past the platform's cap, the first ones kept. The sign-off's own count first, so the posted text fits.
+  const tagCap = HASHTAG_CAP[platform];
+  const tagsToKeep = tagCap === undefined ? 0 : Math.max(0, tagCap - (limits.hashtags - countHashtags(svSplit ? svSplit.caption : draft)));
+  const tagsOver = tagCap !== undefined && limits.hashtags > tagCap;
+  const cutHashtags = () => {
+    setUndoText(draft);
+    setUndoNote(tagsToKeep ? `Kept the first ${tagsToKeep} hashtags.` : "Hashtags taken out.");
+    const text = capHashtags(draft, tagsToKeep);
+    setDraft(text);
+    persistDraftEntry(text, chosenHook ?? "");
   };
 
   // A transform with a fixed list, not a judgment, so it runs in the browser.
@@ -3647,6 +3662,12 @@ export default function GeneratePage() {
                 </span>
               )}
               <LimitChips check={limits} platform={platform} />
+              {tagsOver && (
+                <Button variant="outline" size="sm" onClick={cutHashtags} className="h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11">
+                  <Hash className="h-3.5 w-3.5" />
+                  {tagsToKeep ? `Keep the first ${tagsToKeep}` : "Take out the hashtags"}
+                </Button>
+              )}
               {draftBlanks.length > 0 && (
                 <span role="status" className="flex basis-full items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />

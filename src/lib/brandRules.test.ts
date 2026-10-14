@@ -41,6 +41,17 @@ describe("the line the writer gets", () => {
     expect(brandRulesLine({})).toBe("");
     expect(brandRulesLine(null)).toBe("");
   });
+  it("holds Instagram and TikTok to their 5 hashtags, whatever the kit allows", () => {
+    expect(brandRulesLine({}, "instagram")).toContain("Use 5 hashtags at most.");
+    expect(brandRulesLine(null, "tiktok")).toContain("Use 5 hashtags at most.");
+    const ten = brandRulesLine({ hashtagPolicy: "ten" }, "instagram");
+    expect(ten).toContain("Use 5 hashtags at most.");
+    expect(ten).not.toContain("10 hashtags");
+    expect(brandRulesLine({ hashtagPolicy: "few" }, "instagram")).toContain("2 to 4 relevant hashtags");
+    expect(brandRulesLine({ hashtagPolicy: "none" }, "tiktok")).toContain("Use no hashtags.");
+    expect(brandRulesLine({}, "linkedin")).toBe("");
+    expect(brandRulesLine({ hashtagPolicy: "ten" }, "linkedin")).toContain("10 hashtags at most");
+  });
 });
 
 describe("keeping the policies after writing", () => {
@@ -62,6 +73,14 @@ describe("keeping the policies after writing", () => {
     expect(countHashtags(applyBrandRules(text, { hashtagPolicy: "none" }))).toBe(0);
     expect(applyBrandRules(text, {})).toBe(text);
     expect(applyBrandRules(text, null)).toBe(text);
+  });
+  it("cuts Instagram and TikTok posts to 5 hashtags, and a stricter policy still wins", () => {
+    const text = "Your CPF at 55\n\n#cpf #retirement #singapore #money #planning #sg #fc #aia";
+    expect(applyBrandRules(text, {}, "instagram")).toBe("Your CPF at 55\n\n#cpf #retirement #singapore #money #planning");
+    expect(countHashtags(applyBrandRules(text, { hashtagPolicy: "ten" }, "tiktok"))).toBe(5);
+    expect(countHashtags(applyBrandRules(text, { hashtagPolicy: "few" }, "instagram"))).toBe(4);
+    expect(applyBrandRules(text, {}, "linkedin")).toBe(text);
+    expect(applyBrandRules(text, null, "facebook")).toBe(text);
   });
 });
 
