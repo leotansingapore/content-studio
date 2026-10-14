@@ -37,6 +37,11 @@ import {
 } from "@/lib/carousel";
 import { offerUrl } from "@/lib/brandRules";
 import TrackClicks from "@/components/TrackClicks";
+import { DAY_SETS, addSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
+import { getTrackedPosts, postingTimeOn } from "@/lib/analytics";
+import { loadPositioning } from "@/lib/positioning";
+import { setPlatformGoal } from "@/lib/goals";
+import { timeLabel } from "@/lib/dueDates";
 import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
 
@@ -152,6 +157,8 @@ export default function BrandPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [brand, setBrand] = useState<CarouselBrand>(DEFAULT_BRAND);
+  // The time the one-step presets add (every day / weekdays / weekends).
+  const [presetTime, setPresetTime] = useState("08:30");
   const [hexInput, setHexInput] = useState(DEFAULT_BRAND.color);
   const [saved, setSaved] = useState(false);
   const savedTimer = useRef(0);
@@ -457,6 +464,66 @@ export default function BrandPage() {
                 onClick={() => update({ slots: [...(brand.slots ?? []), (brand.slots ?? []).length ? `${(Number(brand.slots![brand.slots!.length - 1][0]) + 2) % 7}T${brand.slots![brand.slots!.length - 1].slice(2)}` : "1T08:30"] })}>
                 <Plus className="h-3.5 w-3.5" /> Add a time
               </Button>
+            )}
+            <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3 text-sm">
+              <span className="text-muted-foreground">Add</span>
+              <input
+                type="time"
+                value={presetTime}
+                aria-label="Time to add"
+                onChange={(e) => e.target.value && setPresetTime(e.target.value.slice(0, 5))}
+                className="h-10 rounded-md border border-input bg-background px-2 text-sm"
+              />
+              <span className="text-muted-foreground">to</span>
+              {(
+                [
+                  ["Every day", DAY_SETS.everyDay],
+                  ["Weekdays", DAY_SETS.weekdays],
+                  ["Weekends", DAY_SETS.weekends],
+                ] as const
+              ).map(([label, days]) => (
+                <Button
+                  key={label}
+                  variant="outline"
+                  size="sm"
+                  className="h-9 [@media(pointer:coarse)]:h-11"
+                  onClick={() => {
+                    const before = brand.slots ?? [];
+                    const r = addSlots(before, days, presetTime);
+                    const added = r.slots.length - before.length;
+                    update({ slots: r.slots });
+                    toast({
+                      title: added ? `Added ${timeLabel(presetTime)} on ${label.toLowerCase()}` : `${timeLabel(presetTime)} is already on ${label.toLowerCase()}`,
+                      description: r.skipped ? `14 posting times is the most, so ${r.skipped} were left out.` : undefined,
+                    });
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+            {(brand.slots?.length ?? 0) === 0 && userId && (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Or start from a weekly goal:</span>
+                {[3, 5, 7].map((n) => (
+                  <Button
+                    key={n}
+                    variant="outline"
+                    size="sm"
+                    className="h-9 [@media(pointer:coarse)]:h-11"
+                    onClick={() => {
+                      const platform = loadPositioning(userId)?.platform ?? "linkedin";
+                      const posts = getTrackedPosts(userId);
+                      const next = slotsForGoal(n, (wd) => postingTimeOn(posts, platform, wd).time);
+                      update({ slots: next });
+                      setPlatformGoal(userId, platform, n);
+                      toast({ title: `Posting times: ${slotDaysLabel(next)}`, description: `Your weekly goal is now ${n}.` });
+                    }}
+                  >
+                    {n} a week
+                  </Button>
+                ))}
+              </div>
             )}
           </section>
 

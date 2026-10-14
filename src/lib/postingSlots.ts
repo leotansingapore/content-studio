@@ -68,3 +68,23 @@ export function slotDaysLabel(slots: string[]): string {
   const days = [...new Set(slots.map((s) => SLOT_RE.exec(s)?.[1]).filter(Boolean).map(Number))].sort();
   return days.map((d) => names[d]).join(", ");
 }
+
+/** Weekdays (0 = Mon) for the Brand kit's one-step presets. */
+export const DAY_SETS = { everyDay: [0, 1, 2, 3, 4, 5, 6], weekdays: [0, 1, 2, 3, 4], weekends: [5, 6] } as const;
+
+/**
+ * Adds `time` on each of `days` to the slots, without repeats, in week order, up to `max` (the Brand kit
+ * keeps 14). `skipped` counts the times left out because the list was full.
+ */
+export function addSlots(existing: string[], days: readonly number[], time: string, max = 14): { slots: string[]; skipped: number } {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return { slots: existing, skipped: 0 };
+  const set = new Set(existing);
+  let skipped = 0;
+  for (const d of days) {
+    const s = `${d}T${time}`;
+    if (set.has(s)) continue;
+    if (set.size >= max) skipped++;
+    else set.add(s);
+  }
+  return { slots: [...set].sort(), skipped };
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GOAL_DAYS, monFirst, openSlots, slotDaysLabel, slotsForGoal, slotsOn } from "./postingSlots";
+import { DAY_SETS, GOAL_DAYS, addSlots, monFirst, openSlots, slotDaysLabel, slotsForGoal, slotsOn } from "./postingSlots";
 
 // 2026-10-14 is a Wednesday (Mon-first weekday 2).
 const SLOTS = ["0T08:30", "2T08:30", "2T19:30", "4T12:00"];
@@ -71,5 +71,22 @@ describe("slotsForGoal", () => {
 describe("slotDaysLabel", () => {
   it("names each weekday once in week order", () => {
     expect(slotDaysLabel(["4T08:30", "0T08:30", "0T19:30", "2T12:00"])).toBe("Mon, Wed, Fri");
+  });
+});
+
+describe("addSlots", () => {
+  it("adds one time to every chosen day, in week order, without repeats", () => {
+    expect(addSlots(["2T19:30"], DAY_SETS.weekdays, "08:30").slots).toEqual(["0T08:30", "1T08:30", "2T08:30", "2T19:30", "3T08:30", "4T08:30"]);
+    expect(addSlots(["5T10:00"], DAY_SETS.weekends, "10:00")).toEqual({ slots: ["5T10:00", "6T10:00"], skipped: 0 });
+  });
+  it("stops at the limit and says how many it left out", () => {
+    const full = addSlots([], DAY_SETS.everyDay, "08:00").slots;
+    expect(addSlots(full, DAY_SETS.everyDay, "19:30", 10)).toEqual({ slots: [...full, "0T19:30", "1T19:30", "2T19:30"].sort(), skipped: 4 });
+  });
+  it("ignores a malformed time", () => {
+    expect(addSlots(["1T08:30"], DAY_SETS.everyDay, "8:30")).toEqual({ slots: ["1T08:30"], skipped: 0 });
+  });
+  it("never counts a time it already has as left out, even when full", () => {
+    expect(addSlots(["0T08:00", "1T08:00"], [0, 1], "08:00", 2)).toEqual({ slots: ["0T08:00", "1T08:00"], skipped: 0 });
   });
 });
