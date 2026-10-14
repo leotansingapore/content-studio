@@ -75,6 +75,8 @@ import { type InspirationEntry } from "@/components/Inspiration";
 import PostPreview, { type PreviewMedia } from "@/components/PostPreview";
 import { deleteFile, getFile, putFile } from "@/lib/deviceFiles";
 import { storePicture } from "@/lib/mediaLibrary";
+import StockSearch from "@/components/StockSearch";
+import { downloadStock } from "@/lib/stockMedia";
 import { fileProblem, fileType, MAX_PICTURES, NEEDS_MEDIA } from "@/lib/autoPost";
 import { analyzePosts } from "@/lib/coach";
 import type { PlatformId } from "@/lib/platformCounters";
@@ -2110,6 +2112,7 @@ export default function GeneratePage() {
   const [attachedKeys, setAttachedKeys] = useState<string[]>([]);
   const [attachedMedia, setAttachedMedia] = useState<{ media: (PreviewMedia & { key: string })[]; missing: number }>({ media: [], missing: 0 });
   const [attaching, setAttaching] = useState(false);
+  const [stockOpen, setStockOpen] = useState(false);
   const attachInput = useRef<HTMLInputElement>(null);
   useEffect(() => {
     setAttachedKeys(userId && currentDraftId ? (getDraftById(userId, currentDraftId)?.attached ?? []) : []);
@@ -2141,26 +2144,39 @@ export default function GeneratePage() {
     const video = attachedVideo || picked.some((f) => fileType(f)?.startsWith("video/"));
     if (video && attachedKeys.length + picked.length > 1) return fail(`Attach one video on its own, or up to ${MAX_PICTURES} pictures.`);
     if (attachedKeys.length + picked.length > MAX_PICTURES) return fail(`Attach up to ${MAX_PICTURES} pictures.`);
+    try {
+      await attachWith(() =>
+        Promise.all(
+          picked.map(async (f) => {
+            if (fileType(f)?.startsWith("image/")) return (await storePicture(f)).key;
+            const key = `cvid-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+            await putFile(key, f);
+            return key;
+          }),
+        ),
+      );
+    } catch (e) {
+      fail(e instanceof Error ? e.message : "Try a JPG, PNG or MP4 file.");
+    }
+  };
+  // Saves the draft first (attachments hang off its id), then adds the files `store` kept on the device.
+  const attachWith = async (store: () => Promise<string[]>) => {
+    if (!userId) return;
     setAttaching(true);
     try {
       const id = persistDraftEntry(draft, chosenHook ?? "");
-      if (!id) return fail("Write the post first, then attach.");
-      const keys = await Promise.all(
-        picked.map(async (f) => {
-          if (fileType(f)?.startsWith("image/")) return (await storePicture(f)).key;
-          const key = `cvid-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-          await putFile(key, f);
-          return key;
-        }),
-      );
-      const next = [...attachedKeys, ...keys];
+      if (!id) throw new Error("Write the post first, then attach.");
+      const next = [...attachedKeys, ...(await store())];
       setDraftAttached(userId, id, next);
       setAttachedKeys(next);
-    } catch (e) {
-      fail(e instanceof Error ? e.message : "Try a JPG, PNG or MP4 file.");
     } finally {
       setAttaching(false);
     }
+  };
+  // A free Pexels photo; a throw shows on the photo's tile.
+  const attachStock = async (it: { src: string }) => {
+    if (attachedVideo || attachedKeys.length >= MAX_PICTURES) throw new Error(`Attach one video on its own, or up to ${MAX_PICTURES} pictures.`);
+    await attachWith(async () => [(await storePicture(await downloadStock(it.src))).key]);
   };
   const detach = (key: string) => {
     if (!userId || !currentDraftId) return;
@@ -3555,6 +3571,11 @@ export default function GeneratePage() {
                       {attachedKeys.length ? "Add more" : "Add your photo or video"}
                     </Button>
                   )}
+                  {!attachedVideo && attachedKeys.length < MAX_PICTURES && !stockOpen && (
+                    <Button type="button" size="sm" variant="ghost" className="h-9 [@media(pointer:coarse)]:h-11" onClick={() => setStockOpen(true)}>
+                      Free stock photo
+                    </Button>
+                  )}
                   <input
                     ref={attachInput}
                     type="file"
@@ -3567,6 +3588,7 @@ export default function GeneratePage() {
                     }}
                   />
                 </div>
+                {stockOpen && <StockSearch kind="photo" placeholder="Family dinner, office, Singapore skyline" onPick={attachStock} onClose={() => setStockOpen(false)} />}
                 {attachedMedia.missing > 0 && (
                   <p className="text-xs text-muted-foreground">
                     {attachedMedia.missing === 1 ? "1 file was" : `${attachedMedia.missing} files were`} attached on another device. Post from there, or add {attachedMedia.missing === 1 ? "it" : "them"} again here.
