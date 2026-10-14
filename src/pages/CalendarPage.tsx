@@ -1113,14 +1113,29 @@ export default function CalendarPage() {
   );
 
   // An open posting slot: tap it to write a post that lands at that time.
+  // Drop a post or draft on it and it moves to that slot's day and time (not just the day, as the cell would).
   const slotChip = (date: string, time: string, roomy: boolean) => (
     <Link
       key={`slot-${date}-${time}`}
       to={`/generate?day=${date}&time=${time}`}
-      title={`Open posting slot, ${timeLabel(time)}: write a post for it`}
-      className={`block w-full rounded border border-dashed border-muted-foreground/50 px-1.5 text-left font-medium text-muted-foreground hover:border-primary hover:text-primary ${
-        roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate py-0.5 text-[10px]"
-      }`}
+      title={dragging ? `Drop to post at ${timeLabel(time)}` : `Open posting slot, ${timeLabel(time)}: write a post for it`}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "move";
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation(); // the day cell underneath would move the day but keep the old time
+        setDragOver(null);
+        setDragging(null);
+        const id = e.dataTransfer.getData(DRAG_TYPE);
+        if (id) reschedule(id, scheduleAt(date, time));
+      }}
+      className={`block w-full rounded border border-dashed px-1.5 text-left font-medium hover:border-primary hover:text-primary ${
+        dragging ? "border-primary bg-primary/5 text-primary" : "border-muted-foreground/50 text-muted-foreground"
+      } ${roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate py-0.5 text-[10px]"}`}
     >
       {roomy ? (
         <>
