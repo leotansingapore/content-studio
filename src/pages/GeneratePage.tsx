@@ -52,6 +52,7 @@ import {
   StopCircle,
   Wand2,
   AlertTriangle,
+  Loader2,
   Mic,
   Hash,
   Image as ImageWandIcon,
@@ -2059,6 +2060,40 @@ export default function GeneratePage() {
     persistDraftEntry(draft, chosenHook ?? "");
   };
 
+  // Typed edits save 800ms after typing stops, on blur, and when the tab is hidden (a phone
+  // closing the browser keeps them). A full browser storage throws: that shows "Not saved".
+  const [saveState, setSaveState] = useState<"saved" | "saving" | "failed">("saved");
+  const pendingSave = useRef<{ draft: boolean; version: string | null }>({ draft: false, version: null });
+  const flushSave = useRef(() => {});
+  flushSave.current = () => {
+    const p = pendingSave.current;
+    try {
+      if (p.draft) {
+        handleDraftBlur();
+        p.draft = false;
+      }
+      const v = p.version ? versions.find((x) => x.draftId === p.version) : null;
+      if (v && v.status !== "streaming") {
+        saveVersion(v);
+        p.version = null;
+      }
+      setSaveState("saved");
+    } catch {
+      setSaveState("failed");
+    }
+  };
+  useEffect(() => {
+    if (!pendingSave.current.draft && !pendingSave.current.version) return;
+    setSaveState("saving");
+    const t = setTimeout(() => flushSave.current(), 800);
+    return () => clearTimeout(t);
+  }, [draft, versions]);
+  useEffect(() => {
+    const onHide = () => document.visibilityState === "hidden" && flushSave.current();
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, []);
+
   // Keyboard shortcuts: Cmd/Ctrl+Enter, Cmd/Ctrl+Shift+C, Esc.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -3236,10 +3271,18 @@ export default function GeneratePage() {
                 Team rule: approval needed before posting. {mainCopyBlock}
               </p>
             )}
+            {saveState === "failed" && (
+              <p role="alert" className="mb-3 flex flex-wrap items-center gap-x-1.5 text-xs font-medium text-red-700 dark:text-red-300">
+                <AlertTriangle className="h-3.5 w-3.5" /> Not saved: this browser's storage is full. Copy your post somewhere safe.
+                <button type="button" onClick={() => flushSave.current()} className="-my-2 py-2 font-semibold text-primary hover:underline">
+                  Retry
+                </button>
+              </p>
+            )}
             {savedEntry && (
               <p className="mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                 <CopyLinkButton path={links.generate({ draft: savedEntry.id })} label="Copy link to this post" className="-my-2 -ml-2 order-last" />
-                <Check className="h-3.5 w-3.5 text-success" />
+                {saveState === "saving" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-success" />}
                 {savedEntry.status === "posted" ? (
                   "Posted. Edits save to My posts."
                 ) : savedEntry.status === "scheduled" && savedEntry.scheduledFor ? (
@@ -3256,7 +3299,7 @@ export default function GeneratePage() {
                   </>
                 ) : (
                   <>
-                    Saved to My posts.
+                    {saveState === "saving" ? "Saving..." : "Saved to My posts."}
                     {suggestedTime && (
                       <>
                         <span className="font-medium text-foreground">Best time {whenLabel(suggestedTime.at)}</span>
@@ -3312,10 +3355,11 @@ export default function GeneratePage() {
                   value={draft}
                   onChange={(e) => {
                     setDraft(e.target.value);
+                    pendingSave.current.draft = true;
                     // Undo would throw away what was just typed.
                     if (undoText !== null) setUndoText(null);
                   }}
-                  onBlur={handleDraftBlur}
+                  onBlur={() => flushSave.current()}
                   rows={Math.min(28, Math.max(12, draft.split("\n").length + 2))}
                   className="flex-1 font-sans text-sm leading-relaxed"
                 />
@@ -3929,8 +3973,8 @@ export default function GeneratePage() {
                 </p>
               ) : versionSaved ? (
                 <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
-                  <Check className="h-3.5 w-3.5 text-success" />
-                  Saved to My posts.
+                  {saveState === "saving" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5 text-success" />}
+                  {saveState === "saving" ? "Saving..." : "Saved to My posts."}
                   <Link to="/calendar" className="-my-2 py-2 font-semibold text-primary hover:underline">
                     Schedule it
                   </Link>
@@ -3941,10 +3985,11 @@ export default function GeneratePage() {
                 aria-label={`${platformLabel(shownVersion.platform)} version`}
                 value={shownVersion.text}
                 readOnly={shownVersion.status === "streaming"}
-                onChange={(e) => updateVersion(shownVersion.draftId, { text: e.target.value })}
-                onBlur={() => {
-                  if (shownVersion.status !== "streaming") saveVersion(shownVersion);
+                onChange={(e) => {
+                  updateVersion(shownVersion.draftId, { text: e.target.value });
+                  pendingSave.current.version = shownVersion.draftId;
                 }}
+                onBlur={() => flushSave.current()}
                 rows={Math.min(28, Math.max(12, shownVersion.text.split("\n").length + 2))}
                 className="font-sans text-sm leading-relaxed"
               />
