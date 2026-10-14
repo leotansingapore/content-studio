@@ -15,7 +15,7 @@ import { splitScriptCaption } from "@/lib/scriptCaption";
 import { supabase } from "@/lib/supabase";
 import { loadBrand, type CarouselBrand } from "@/lib/carousel";
 import { withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
-import { blankRanges, foldAt } from "@/lib/platformCounters";
+import { blankRanges, foldAt, MAX_CHARS, type PlatformId } from "@/lib/platformCounters";
 
 // A lightweight, platform-flavoured preview of a draft so the consultant can
 // see roughly how the post will land as they edit. Not pixel-perfect — enough
@@ -90,11 +90,26 @@ function Avatar({ brand }: { brand: CarouselBrand | null }) {
 /** The caption cut at the feed's fold, with the platform's own "more" to open it. */
 function Folded({ text, platform, more, lead }: { text: string; platform: string; more: string; lead?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const cut = open ? null : foldAt(text, platform);
+  // Over the platform's limit: shown in full, with the part past the limit in red.
+  // shortcut: counts the sign-off and disclosure but not UTM tags, so the red can start a few
+  // characters later than Write's counter says; pass forPosting's text in if that matters.
+  const max = MAX_CHARS[platform as PlatformId] ?? Infinity;
+  const over = text.length > max;
+  const cut = open || over ? null : foldAt(text, platform);
   return (
     <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">
       {lead}
-      {marked(cut === null ? text : text.slice(0, cut).trimEnd())}
+      {over ? (
+        <>
+          {marked(text.slice(0, max))}
+          <mark className="rounded bg-red-200 px-0.5 text-foreground dark:bg-red-500/30" title={`Past the ${max.toLocaleString("en-US")}-character limit`}>
+            <span className="sr-only">Past the limit: </span>
+            {text.slice(max)}
+          </mark>
+        </>
+      ) : (
+        marked(cut === null ? text : text.slice(0, cut).trimEnd())
+      )}
       {cut !== null && (
         <button type="button" onClick={() => setOpen(true)} className="text-muted-foreground hover:underline">
           {more}

@@ -108,6 +108,7 @@ import {
   checkLimits,
   findBlanks,
   findLinks,
+  MAX_CHARS,
   moveLinksToComment,
   readout,
   REEL_LENGTHS,
@@ -1150,6 +1151,10 @@ export default function GeneratePage() {
     return brandKit?.tagLinks ? tagLinks(out, { source: plat, campaign: chosenHook || pillarDetail || "post" }) : out;
   };
   const limits = checkLimits(forPosting(svSplit ? svSplit.caption : draft), platform, brandLinks);
+  // A version whose posted text runs past its platform's limit gets a red dot on its tab.
+  const overLimit = (text: string, plat: string) =>
+    plat in MAX_CHARS &&
+    forPosting(format === "short-video" ? splitScriptCaption(text).caption : text, plat).length > MAX_CHARS[plat as PlatformId];
   const draftBlanks = useMemo(() => findBlanks(draft), [draft]);
   // tracked the same way the post's own links would have been
   const commentText = firstComment && brandKit?.tagLinks
@@ -3154,9 +3159,9 @@ export default function GeneratePage() {
               className="scrollbar-none flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/20 p-1 lg:hidden"
             >
               {[
-                { key: "original" as const, label: `${platformLabel(platform)} (original)` },
-                ...versions.map((v) => ({ key: v.platform, label: platformLabel(v.platform) })),
-              ].map((t) => (
+                { key: "original" as const, label: `${platformLabel(platform)} (original)`, over: overLimit(draft, platform) },
+                ...versions.map((v) => ({ key: v.platform, label: platformLabel(v.platform), over: overLimit(v.text, v.platform) })),
+              ].map(({ over, ...t }) => (
                 <button
                   key={t.key}
                   type="button"
@@ -3170,6 +3175,12 @@ export default function GeneratePage() {
                   }`}
                 >
                   {t.label}
+                  {over && (
+                    <>
+                      <span aria-hidden className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-destructive align-middle" />
+                      <span className="sr-only"> (over the limit)</span>
+                    </>
+                  )}
                 </button>
               ))}
             </div>
@@ -3950,6 +3961,12 @@ export default function GeneratePage() {
                       }`}
                     >
                       {platformLabel(v.platform)}
+                      {overLimit(v.text, v.platform) && (
+                        <>
+                          <span aria-hidden className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-destructive align-middle" />
+                          <span className="sr-only"> (over the limit)</span>
+                        </>
+                      )}
                     </button>
                   ))}
                 </div>
