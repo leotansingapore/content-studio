@@ -207,7 +207,7 @@ export const WRITE_STEPS = ["topic", "funnel", "idea", "format"] as const;
 export type WriteStep = (typeof WRITE_STEPS)[number];
 export const EDIT_TABS = ["style", "cuts", "frame", "face", "stickers", "broll", "words"] as const;
 export type EditTab = (typeof EDIT_TABS)[number];
-export type BrandSection = "you" | "dm-links" | "offers" | "emoji-and-hashtags" | "colour" | "sign-off" | "posting-times" | "logo";
+export type BrandSection = "you" | "dm-links" | "offers" | "emoji-and-hashtags" | "avoid-words" | "colour" | "sign-off" | "posting-times" | "logo";
 export type GuideStep = "idea" | "draft" | "carousel" | "reel" | "reverse-engineer" | "compliance" | "schedule";
 export type TutorialSection = "why" | "voice" | "guided-flow" | "after" | "tabs" | "rules" | "rhythm" | "first-action";
 // ---- end Create pages ----

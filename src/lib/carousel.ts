@@ -620,6 +620,8 @@ export interface CarouselBrand {
   emojiPolicy?: "one" | "none";
   /** Hashtags in written posts: up to 10, 2 to 4 or none (unset = each platform's usual). */
   hashtagPolicy?: "ten" | "few" | "none";
+  /** Words and phrases written posts leave out, as typed (commas or new lines between them; brandRules.ts avoidList). */
+  avoidWords?: string;
 }
 
 export const BRAND_PRESETS: { name: string; color: string }[] = [
@@ -641,6 +643,7 @@ export const MAX_WA_TEXT = 300;
 export const MAX_OFFERS = 5;
 export const MAX_OFFER_NAME = 60;
 export const MAX_OFFER_URL = 300;
+export const MAX_AVOID_CHARS = 400;
 /** Encoded image cap: keeps a synced brand kit small. */
 export const MAX_IMAGE_CHARS = 350_000;
 export const BRAND_KEY_PREFIX = "content-studio-carousel-brand-";
@@ -698,6 +701,7 @@ export function sanitizeBrand(raw: unknown, fallback: CarouselBrand = DEFAULT_BR
       : fallback.offers,
     emojiPolicy: r.emojiPolicy === "one" || r.emojiPolicy === "none" ? r.emojiPolicy : fallback.emojiPolicy,
     hashtagPolicy: r.hashtagPolicy === "ten" || r.hashtagPolicy === "few" || r.hashtagPolicy === "none" ? r.hashtagPolicy : fallback.hashtagPolicy,
+    avoidWords: typeof r.avoidWords === "string" ? r.avoidWords.slice(0, MAX_AVOID_CHARS) : fallback.avoidWords,
   };
 }
 

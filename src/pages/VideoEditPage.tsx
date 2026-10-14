@@ -48,7 +48,7 @@ import { stripDashes } from "@/lib/recruit";
 import { loadBrand } from "@/lib/carousel";
 import { tagLinks, withSignOff } from "@/lib/plainText";
 import { checkLimits, strayLinks } from "@/lib/platformCounters";
-import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { supabase } from "@/lib/supabase";
 import { useUsesLeft } from "@/lib/aiUsage";
@@ -1275,7 +1275,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const copyCaption = () =>
     navigator.clipboard.writeText(postText).then(() => toast({ title: brandKit?.signOff?.trim() ? "Caption copied with your sign-off" : "Caption copied" }));
   const brandLinks = useMemo(() => allowedLinks(brandKit, loadSocialAccounts(userId)), [brandKit, userId]);
-  const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram", brandLinks).warnings : []), [caption, postText, brandLinks]);
+  const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram", brandLinks, avoidList(brandKit)).warnings : []), [caption, postText, brandLinks, brandKit]);
   const saveToPosts = () => {
     upsertDraft(userId, {
       id: `video-${project.id}`,

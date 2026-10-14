@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BLANKS_RULE, blankRanges, checkLimits, findBlanks, findLinks, foldAt, moveLinksToComment, reelLengthRule, reelTooLong, reelWordRange, spokenWords } from "@/lib/platformCounters";
+import { BLANKS_RULE, blankRanges, checkLimits, findBlanks, findWords, findLinks, foldAt, moveLinksToComment, reelLengthRule, reelTooLong, reelWordRange, spokenWords } from "@/lib/platformCounters";
 
 describe("foldAt", () => {
   it("shows a short post whole", () => {
@@ -21,6 +21,22 @@ describe("foldAt", () => {
     expect(text.slice(0, foldAt(text, "linkedin")!)).toBe("Hook\n\nLine two");
     // Instagram shows 2: "Hook", ""
     expect(text.slice(0, foldAt(text, "instagram")!)).toBe("Hook\n");
+  });
+});
+
+describe("words the brand never uses", () => {
+  it("are found as whole words or phrases, any case, once each, as the user typed them", () => {
+    expect(findWords("The cheapest plan. CHEAPEST, really.", ["cheapest"])).toEqual(["cheapest"]);
+    expect(findWords("Cheapestly done", ["cheapest"])).toEqual([]);
+    expect(findWords("Pick the best\nplan for you", ["best plan", "hustle"])).toEqual(["best plan"]);
+    expect(findWords("Returns of 100% guaranteed, in S$ terms", ["100%", "S$"])).toEqual(["100%", "S$"]);
+    expect(findWords("Nothing here", [])).toEqual([]);
+  });
+  it("are flagged with the post's other limits", () => {
+    expect(checkLimits("Our cheapest plan, no hustle", "linkedin", [], ["hustle", "cheapest", "guru"]).warnings).toEqual([
+      { level: "warn", message: 'Words you never use: "hustle", "cheapest".' },
+    ]);
+    expect(checkLimits("Our plan", "linkedin", [], ["cheapest"]).warnings).toEqual([]);
   });
 });
 

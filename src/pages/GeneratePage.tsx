@@ -147,7 +147,7 @@ import {
   type DisclosureId,
 } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
-import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { streamOnePost } from "@/lib/batchGenerate";
@@ -1155,12 +1155,14 @@ export default function GeneratePage() {
   const brandSignOff = brandKit?.signOff?.trim() ?? "";
   // links that aren't the kit's offers are flagged under the post
   const brandLinks = useMemo(() => allowedLinks(brandKit, loadSocialAccounts(userId)), [brandKit, userId]);
+  // ...and so are the words the kit says never to use
+  const brandAvoid = useMemo(() => avoidList(brandKit), [brandKit]);
   // ...and, when the brand kit asks for it, UTM tracking on every link
   const forPosting = (text: string, plat: string = platform) => {
     const out = withDisclosure(withSignOff(toPlainText(text), brandSignOff), disclosure);
     return brandKit?.tagLinks ? tagLinks(out, { source: plat, campaign: chosenHook || pillarDetail || "post" }) : out;
   };
-  const limits = checkLimits(forPosting(svSplit ? svSplit.caption : draft), platform, brandLinks);
+  const limits = checkLimits(forPosting(svSplit ? svSplit.caption : draft), platform, brandLinks, brandAvoid);
   // A version whose posted text runs past its platform's limit gets a red dot on its tab.
   const overLimit = (text: string, plat: string) =>
     plat in MAX_CHARS &&
@@ -2353,6 +2355,7 @@ export default function GeneratePage() {
     ),
     shownVersion?.platform ?? platform,
     brandLinks,
+    brandAvoid,
   );
   const versionFlags =
     shownVersion && shownVersion.status !== "streaming"

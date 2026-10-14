@@ -19,6 +19,7 @@ import { DM_PROBLEM, dmFields, dmLinks, fbPageName, igUsername, waDigits, type D
 import {
   BRAND_PRESETS,
   DEFAULT_BRAND,
+  MAX_AVOID_CHARS,
   MAX_DM_CHARS,
   MAX_HANDLE_CHARS,
   MAX_IMAGE_CHARS,
@@ -360,6 +361,22 @@ export default function BrandPage() {
             </div>
             <PolicyChips id="brand-emoji" label="Emoji" value={brand.emojiPolicy} options={[[undefined, "Any"], ["one", "One at most"], ["none", "None"]]} onChange={(v) => update({ emojiPolicy: v })} />
             <PolicyChips id="brand-hashtags" label="Hashtags" value={brand.hashtagPolicy} options={[[undefined, "Any"], ["ten", "Up to 10"], ["few", "2 to 4"], ["none", "None"]]} onChange={(v) => update({ hashtagPolicy: v })} />
+          </section>
+
+          <section id="avoid-words" className="scroll-mt-20 space-y-2 rounded-xl border border-border/60 p-4 shadow-card">
+            <div className="flex items-center gap-1">
+              <Label htmlFor="brand-avoid" className="font-serif text-lg font-semibold">Words you never use</Label>
+              <InfoTip label="About words you never use">Posts written for you leave these out. Write flags any that slip in.</InfoTip>
+            </div>
+            <Textarea
+              id="brand-avoid"
+              rows={2}
+              value={brand.avoidWords ?? ""}
+              maxLength={MAX_AVOID_CHARS}
+              onChange={(e) => update({ avoidWords: e.target.value })}
+              placeholder="cheapest, best plan, hustle"
+            />
+            <p className="text-xs text-muted-foreground">Separate them with commas or new lines.</p>
           </section>
 
           <section id="colour" className="scroll-mt-20 space-y-3 rounded-xl border border-border/60 p-4 shadow-card">

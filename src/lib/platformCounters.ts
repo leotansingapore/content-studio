@@ -186,8 +186,19 @@ export function moveLinksToComment(text: string, comment = ""): { body: string; 
   return moved ? { body, comment: links.join("\n") } : null;
 }
 
-/** `offers`: the brand kit's links; when there are any, every other link is flagged. */
-export function checkLimits(text: string, platform: PlatformId, offers: string[] = []): LimitCheck {
+/**
+ * Which of `words` (the brand kit's words never used) are in the text: whole words or
+ * phrases, any case, any spacing between a phrase's words. Each once, as the user typed it.
+ */
+export function findWords(text: string, words: string[]): string[] {
+  return words.filter((w) => {
+    const body = w.trim().split(/\s+/).map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+    return !!body && new RegExp(`(?:^|[^\\p{L}\\p{N}])${body}(?=$|[^\\p{L}\\p{N}])`, "iu").test(text);
+  });
+}
+
+/** `offers`: the brand kit's links; when there are any, every other link is flagged. `avoid`: its words never used. */
+export function checkLimits(text: string, platform: PlatformId, offers: string[] = [], avoid: string[] = []): LimitCheck {
   const chars = countChars(text);
   const maxChars = MAX_CHARS[platform];
   const hashtags = countHashtags(text);
@@ -210,6 +221,8 @@ export function checkLimits(text: string, platform: PlatformId, offers: string[]
     warnings.push({ level: "warn", message: "LinkedIn shows posts with a link to fewer people." });
   }
   if (offers.length) for (const l of strayLinks(text, offers)) warnings.push({ level: "warn", message: `Not one of your offer links: ${l}` });
+  const avoided = findWords(text, avoid);
+  if (avoided.length) warnings.push({ level: "warn", message: `Words you never use: ${avoided.map((w) => `"${w}"`).join(", ")}.` });
   return { chars, maxChars, hashtags, links, warnings };
 }
 

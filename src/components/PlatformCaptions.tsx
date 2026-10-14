@@ -14,8 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { scanCompliance } from "@/lib/compliance";
-import { checkLimits, countHashtags, readout, strayLinks } from "@/lib/platformCounters";
-import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import { checkLimits, countHashtags, findWords, readout, strayLinks } from "@/lib/platformCounters";
+import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import type { CarouselBrand } from "@/lib/carousel";
 import {
@@ -94,19 +94,22 @@ export default function PlatformCaptions({
 
   const text = set[tab] ?? "";
   const allowed = useMemo(() => allowedLinks(brand, loadSocialAccounts(userId)), [brand, userId]);
+  const avoid = useMemo(() => avoidList(brand), [brand]);
   const known = tab === "tiktok" || tab === "linkedin" || tab === "facebook" ? tab : null;
+  const avoided = known ? [] : findWords(text, avoid);
   const parts = tab === "x" ? xParts(text) : [text];
   const max = PLATFORM_RULES[tab].maxChars;
   // TikTok's sweet spot is the words before the hashtags
   const count = known ? readout(known === "tiktok" ? text.replace(/#[\p{L}\p{N}_]+/gu, "").trim() : text, known) : null;
   const warnings = [
     ...(known
-      ? checkLimits(text, known, allowed).warnings
+      ? checkLimits(text, known, allowed, avoid).warnings
       : [
           ...parts.flatMap((p, i) =>
             p.length > max ? [{ level: "over", message: `${parts.length > 1 ? `Post ${i + 1} is over` : "Over"} ${NAME[tab]}'s ${n(max)} character limit by ${n(p.length - max)}. Trim before posting.` }] : [],
           ),
           ...(allowed.length ? strayLinks(text, allowed).map((l) => ({ level: "warn", message: `Not one of your offer links: ${l}` })) : []),
+          ...(avoided.length ? [{ level: "warn", message: `Words you never use: ${avoided.map((w) => `"${w}"`).join(", ")}.` }] : []),
         ]),
     ...scanCompliance(text).map((f) => ({ level: f.severity === "error" ? "over" : "warn", message: `"${f.match}" ${f.message}` })),
   ];

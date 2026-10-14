@@ -17,9 +17,9 @@ import { scoped } from "@/lib/profiles";
 import { streamOnePost } from "@/lib/batchGenerate";
 import { stripDashes, tagLinks, toPlainText, withSignOff } from "@/lib/plainText";
 import { loadBrand } from "@/lib/carousel";
-import { allowedLinks, applyBrandRules, brandRulesLine } from "@/lib/brandRules";
+import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { loadSocialAccounts } from "@/lib/socialAccounts";
-import { strayLinks } from "@/lib/platformCounters";
+import { findWords, strayLinks } from "@/lib/platformCounters";
 import {
   upsertDraft,
   newDraftId,
@@ -100,6 +100,7 @@ export default function BatchPage() {
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const offerLinks = useMemo(() => allowedLinks(loadBrand(userId), loadSocialAccounts(userId)), [userId]);
+  const avoidWords = useMemo(() => avoidList(loadBrand(userId)), [userId]);
 
   useEffect(() => {
     let active = true;
@@ -438,6 +439,9 @@ export default function BatchPage() {
                     strayLinks(card.text, offerLinks).map((l) => (
                       <p key={l} className="break-all text-xs font-medium text-warning">Not one of your offer links: {l}</p>
                     ))}
+                  {card.status !== "streaming" && findWords(card.text, avoidWords).length > 0 && (
+                    <p className="text-xs font-medium text-warning">Words you never use: {findWords(card.text, avoidWords).map((w) => `"${w}"`).join(", ")}.</p>
+                  )}
                   {card.status === "done" || card.status === "saved" ? (
                     <div className="flex flex-wrap gap-2">
                       <Button

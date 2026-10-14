@@ -1,8 +1,8 @@
 // The brand kit's writing rules (My Playbook > Brand kit): the offers a post may
-// link to, an emoji policy and a hashtag policy. Write, Batch, the carousel's
+// link to, an emoji policy, a hashtag policy and the words it never uses. Write, Batch, the carousel's
 // Tighten and the video captions pass them to the writer as one line, then keep
 // the countable parts in code: emoji and hashtags over the policy are taken out,
-// and a link that is not one of the offers is flagged (checkLimits). Given the
+// and a link that is not one of the offers, or a word never used, is flagged (checkLimits). Given the
 // platform, Instagram's and TikTok's 5-hashtag cap holds whatever the kit says.
 // Counting and matching only, no judgment.
 
@@ -11,7 +11,7 @@ import type { CarouselBrand } from "@/lib/carousel";
 import { HASHTAG_CAP, countHashtags } from "@/lib/platformCounters";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
 
-type Rules = Pick<CarouselBrand, "offers" | "emojiPolicy" | "hashtagPolicy" | "instagram" | "facebook" | "whatsapp" | "whatsappText"> | null | undefined;
+type Rules = Pick<CarouselBrand, "offers" | "emojiPolicy" | "hashtagPolicy" | "avoidWords" | "instagram" | "facebook" | "whatsapp" | "whatsappText"> | null | undefined;
 
 export const EMOJI_MAX = { one: 1, none: 0 } as const;
 export const HASHTAG_MAX = { ten: 10, few: 4, none: 0 } as const;
@@ -46,6 +46,16 @@ export function allowedLinks(brand: Rules, accounts: Parameters<typeof dmFields>
   return offers.length ? [...offers, ...dmLinks(dmFields(brand ?? null, accounts)).map((l) => l.url)] : [];
 }
 
+/** The words and phrases the kit says never to use, from what was typed: once each, at most 30. */
+export function avoidList(brand: Rules): string[] {
+  const seen = new Set<string>();
+  return String(brand?.avoidWords ?? "")
+    .split(/[,\n]/)
+    .map((w) => w.trim().replace(/\s+/g, " "))
+    .filter((w) => w && !seen.has(w.toLowerCase()) && seen.add(w.toLowerCase()))
+    .slice(0, 30);
+}
+
 /** The hashtags a post may keep: the kit's policy, held to the platform's cap. */
 function hashtagMax(brand: Rules, platform?: string): number | undefined {
   const policy = brand?.hashtagPolicy ? HASHTAG_MAX[brand.hashtagPolicy] : undefined;
@@ -62,6 +72,8 @@ export function brandRulesLine(brand: Rules, platform?: string): string {
   if (tags === 0) parts.push("Use no hashtags.");
   else if (brand?.hashtagPolicy === "few") parts.push("End with 2 to 4 relevant hashtags, never more.");
   else if (tags !== undefined) parts.push(`Use ${tags} hashtags at most.`);
+  const avoid = avoidList(brand);
+  if (avoid.length) parts.push(`Never use these words or phrases: ${avoid.join(", ")}.`);
   const offers = brandOffers(brand);
   if (offers.length) {
     parts.push(`When the post points people somewhere, use one of these links exactly as written and never any other link: ${offers.map((o) => `${o.name}: ${o.url}`).join("; ")}.`);

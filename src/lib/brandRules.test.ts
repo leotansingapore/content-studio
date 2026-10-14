@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { allowedLinks, applyBrandRules, brandOffers, brandRulesLine, capEmoji, countEmoji, offerUrl } from "@/lib/brandRules";
-import { sanitizeBrand } from "@/lib/carousel";
+import { allowedLinks, applyBrandRules, avoidList, brandOffers, brandRulesLine, capEmoji, countEmoji, offerUrl } from "@/lib/brandRules";
+import { MAX_AVOID_CHARS, sanitizeBrand } from "@/lib/carousel";
 import { checkLimits, countHashtags, strayLinks } from "@/lib/platformCounters";
 
 const offers = [
@@ -51,6 +51,21 @@ describe("the line the writer gets", () => {
     expect(brandRulesLine({ hashtagPolicy: "none" }, "tiktok")).toContain("Use no hashtags.");
     expect(brandRulesLine({}, "linkedin")).toBe("");
     expect(brandRulesLine({ hashtagPolicy: "ten" }, "linkedin")).toContain("10 hashtags at most");
+  });
+});
+
+describe("words the brand never uses", () => {
+  it("are read from what was typed: commas or new lines, trimmed, once each", () => {
+    expect(avoidList({ avoidWords: "cheapest, hustle\nbest plan, , Cheapest" })).toEqual(["cheapest", "hustle", "best plan"]);
+    expect(avoidList({ avoidWords: "   " })).toEqual([]);
+    expect(avoidList(null)).toEqual([]);
+  });
+  it("go to the writer, and the brand kit keeps them as typed up to its cap", () => {
+    expect(brandRulesLine({ avoidWords: "cheapest, hustle" })).toContain("Never use these words or phrases: cheapest, hustle.");
+    expect(brandRulesLine({ avoidWords: " , " })).toBe("");
+    expect(sanitizeBrand({ avoidWords: "cheapest,\nhustle" }).avoidWords).toBe("cheapest,\nhustle");
+    expect(sanitizeBrand({ avoidWords: "x".repeat(MAX_AVOID_CHARS + 50) }).avoidWords).toHaveLength(MAX_AVOID_CHARS);
+    expect(sanitizeBrand({ avoidWords: ["cheapest"] }).avoidWords).toBeUndefined();
   });
 });
 
