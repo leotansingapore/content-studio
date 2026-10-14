@@ -108,7 +108,8 @@ import {
 } from "@/lib/draftHistory";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
 import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analytics";
-import { keyToDate, localDateKey, scheduleTime, timeLabel } from "@/lib/dueDates";
+import { keyToDate, localDateKey, postedDay, scheduleTime, timeLabel } from "@/lib/dueDates";
+import { nearDuplicate } from "@/lib/nearDuplicate";
 import { ToastAction } from "@/components/ui/toast";
 import {
   BLANKS_RULE,
@@ -1168,6 +1169,11 @@ export default function GeneratePage() {
     plat in MAX_CHARS &&
     forPosting(format === "short-video" ? splitScriptCaption(text).caption : text, plat).length > MAX_CHARS[plat as PlatformId];
   const draftBlanks = useMemo(() => findBlanks(draft), [draft]);
+  // One of the last posts on this network that the draft mostly repeats (read fresh: Write saves as you type).
+  const repeats = useMemo(
+    () => (userId && draft.trim() ? nearDuplicate(draft, platform, loadDrafts(userId), currentDraftId) : null),
+    [userId, draft, platform, currentDraftId],
+  );
   // tracked the same way the post's own links would have been
   const commentText = firstComment && brandKit?.tagLinks
     ? tagLinks(firstComment, { source: platform, campaign: chosenHook || pillarDetail || "post" })
@@ -3670,6 +3676,16 @@ export default function GeneratePage() {
                   <Hash className="h-3.5 w-3.5" />
                   {tagsToKeep ? `Keep the first ${tagsToKeep}` : "Take out the hashtags"}
                 </Button>
+              )}
+              {repeats && (
+                <span role="status" className="flex basis-full items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  {repeats.percent}% the same words as your post "{repeats.post.hook.length > 40 ? `${repeats.post.hook.slice(0, 40).trim()}...` : repeats.post.hook}",{" "}
+                  {repeats.post.status === "posted" && repeats.post.postedAt
+                    ? `posted ${keyToDate(postedDay(repeats.post.postedAt)).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`
+                    : `scheduled for ${keyToDate((repeats.post.scheduledFor ?? "").slice(0, 10)).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`}
+                  . Near copies reach fewer people.
+                </span>
               )}
               {draftBlanks.length > 0 && (
                 <span role="status" className="flex basis-full items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
