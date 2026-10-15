@@ -169,6 +169,10 @@ describe("AI answers", () => {
     expect(a.sources.every((s) => /^https?:\/\//.test(s.url) && s.domain && !s.domain.startsWith("www."))).toBe(true);
     expect(new Set(a.sources.map((s) => s.url)).size).toBe(a.sources.length);
     expect(a.checkUrl).toMatch(/^https:\/\/chatgpt\.com/);
+    expect(a.sources.some((s) => s.domain === "localrank.sg")).toBe(true);
+    // cited only in the top-level sources, never inside a paragraph
+    expect(a.sources.some((s) => s.domain === "moneysense.gov.sg")).toBe(true);
+    expect(a.sources.some((s) => s.domain === "wsj.com")).toBe(false);
   });
 
   it("returns null for an errored or empty task", () => {
@@ -392,7 +396,7 @@ export function newsAsk(i: CheckInput, n: NewsItem): Ask {
 }
 
 export function judgeNews(n: NewsItem, answers: Record<string, JevAnswer> | null): JudgedNews {
-  if (!answers) return { ...n, relevant: null, tag: "watch" };
+  // Jev down (null answers): noulOf and choiceOf give null, so the item stays visible as unjudged Watch.
   const p = noulOf(answers, "relevant");
   return { ...n, relevant: p === null ? null : p >= RELEVANT_AT, tag: choiceOf(answers, "tag", TAGS) ?? "watch" };
 }
@@ -452,6 +456,9 @@ export function parseAnswer(body: unknown): { answer: string; sources: Source[];
     }
     Object.values(o).forEach(walk);
   };
+  // The answer's citations: the top-level sources plus those inside its paragraphs. search_results are search hits
+  // the answer may never cite (12 of 16 on the first real read were US WSJ pages), so they are skipped.
+  walk(r.sources);
   walk(r.items);
   return { answer: typeof r.markdown === "string" ? r.markdown : "", sources: [...seen.values()], checkUrl: typeof r.check_url === "string" ? r.check_url : null };
 }

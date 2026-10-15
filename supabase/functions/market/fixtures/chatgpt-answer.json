@@ -1,0 +1,741 @@
+{
+ "tasks": [
+  {
+   "status_code": 20000,
+   "result": [
+    {
+     "keyword": "best financial adviser for young families in Singapore",
+     "location_code": 2702,
+     "language_code": "en",
+     "model": "gpt-6",
+     "check_url": "https://chatgpt.com/?prompt=best%20financial%20adviser%20for%20young%20families%20in%20Singapore&hints=search",
+     "datetime": "2026-10-15 02:09:43 +00:00",
+     "markdown": "# Best financial advisers for young families in Singapore\n\nFor a young family in Singapore, I\u2019d look for an adviser who can help you build a complete financial plan\u2014not just sell you insurance or investment products. The key priorities are usually protecting both parents\u2019 income, planning for children\u2019s education, managing your mortgage, optimising CPF, and investing for retirement.\n\n**My recommendation is to compare a fee-only wealth planner with a broader financial advisory firm before committing.** Fee-only advice can make it easier to separate the cost of planning from the sale of financial products, while a broader adviser may be more convenient if you also need help arranging insurance.\n\n## My shortlist\n\nThese are options worth interviewing, not a definitive ranking of adviser quality. The best fit depends on your family\u2019s needs, budget and preferred fee structure.\n\n![List of the Top 5 Independent Financial Advisers in Singapore](https://images.openai.com/static-rsc-4/rogk5zrK0mTKzz8lDUihxCP6xJfi57NgBy7Ftm0vq6tYiXr0a9N3Dm3FREH-QOXxDbA7S0o05izE1RAWxFzoyVJloJmDx0aIVfhLy-ser6cJ8KpB5zGR2O5LnF0mB8rwtGuyNC6xjM-Vt7fk-tyaZJTyG5BrVN2kAAuWRmfMSfaqOEIfXs1ihOwbBFOqvE_e?purpose=fullsize)\n\n## 1\\. Providend\n\n(Best for fee-only advice)\n\n38 Duxton Hill, Singapore\n\nA strong starting point if you want a holistic plan covering wealth accumulation, retirement, risk management and estate planning. Providend describes its model as fee-only, with product commissions rebated to clients. Ask for",
+     "search_results": [
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://www.wsj.com/buyside/personal-finance/financial-advisors/best-financial-advisors",
+       "domain": "www.wsj.com",
+       "title": "11 of the Best Financial Advisor Companies: Well-Known Fiduciary Investment Firms to Consider",
+       "description": "The article provides a comprehensive guide on the best financial advisor companies in 2026, especially Registered Investment Advisers (RIAs) who act as fiduciaries, legally obligated to prioritize clients' interests. It highlights 11 top-rated firms evaluated by Buy Side based on advisor credentials, services, fees, customer support, and account minimums. Firms like Betterment Premium, Facet Wealth, and Retirable cater to various investment needs and demographics, from hands-off investors to retirees. Some, like Creative Planning and Modera Wealth, offer holistic services including tax and estate planning for high-net-worth clients. Pricing structures vary widely\u2014some charge based on assets under management (AUM), others use flat or tiered fees. The article emphasizes selecting fiduciaries with relevant certifications, like CFP, and reviewing advisor performance annually. Consumers are encouraged to understand fee structures, advisor roles, and available services before choosing. It also discusses the pros and cons of local versus national firms and fee-only versus commission-based advisors. The methodology used involved analyzing prominent RIAs using weighted criteria gathered from WSJ reader surveys and expert input, with firms ranked against a performance benchmark. Overall, the article aims to help individuals match financial advisory services with their personal goals and resources.",
+       "breadcrumb": "www.wsj.com"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://www.wsj.com/buyside/personal-finance/financial-advisors/financial-advisor-vs-financial-planner",
+       "domain": "www.wsj.com",
+       "title": "Financial Advisor vs. Financial Planner: What You Need to Know",
+       "description": "The article explains the differences, similarities, and considerations when choosing between a financial advisor and a financial planner. While both terms are often used interchangeably, financial advisors typically focus on investment management, whereas financial planners offer holistic financial planning that includes budgeting, tax planning, and retirement strategies. Both roles can overlap, depending on the services and credentials offered, such as CFP (Certified Financial Planner) or CFA (Chartered Financial Analyst). Fee structures vary, with professionals charging asset-based fees, hourly rates, or commissions. It's crucial to determine if a professional is a fiduciary, meaning they\u2019re legally required to act in your best interest. Depending on your needs\u2014whether managing investments or creating a comprehensive financial strategy\u2014you may need one or the other or a professional who fulfills both roles. Finding the right fit involves reviewing qualifications, compensation transparency, and client compatibility. Various platforms like the XY Planning Network or CFP Board can help locate suitable advisors. The article emphasizes that financial professionals should be chosen based on the services they offer, their qualifications, and how well they align with your financial goals and personal circumstances.",
+       "breadcrumb": "www.wsj.com"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://www.wsj.com/buyside/personal-finance/financial-advisors/how-to-find-a-financial-advisor-near-you",
+       "domain": "www.wsj.com",
+       "title": "How To Find a Financial Advisor Near You",
+       "description": "Finding the right financial advisor involves identifying your personal financial goals and preferences for interaction\u2014whether in-person or virtual. While face-to-face advisors may offer localized expertise and build stronger personal connections, virtual advisors expand your options and often provide more flexibility and lower costs. Trusted advisor networks such as the XY Planning Network, Napfa, and Garrett Planning Network can help locate fee-only fiduciaries who prioritize your best interests without commission biases. Before selecting a professional, it's essential to verify their fiduciary status, credentials (CFP, RIA, CFA, AFC), and reputation via tools like FINRA's BrokerCheck or the SEC's database. Costs vary by advisor and geography but average around $2,926 in flat fees or 0.96% in AUM-based fees per Envestnet\u2019s 2026 survey. Use professional databases and matching services like PlannerSearch or Wealthramp to narrow your search, and interview multiple candidates to compare services, specialties, and compatibility with your values. Ultimately, a well-vetted advisor\u2014local or virtual\u2014can provide effective and personalized financial planning support.",
+       "breadcrumb": "www.wsj.com"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://www.wsj.com/buyside/personal-finance/financial-advisors/facet-review",
+       "domain": "www.wsj.com",
+       "title": "Facet Review 2026",
+       "description": "Facet is a financial advisory platform founded in 2016 that offers personalized financial planning and investment management through a flat-fee subscription model with three membership tiers. Each tier includes services such as retirement planning, tax strategies, savings and debt management, and access to Certified Financial Planners (CFPs), with higher tiers providing advanced investing options like direct indexing and alternative investments. Facet manages taxable accounts and IRAs and can advise on external accounts like 401(k)s. Notably, all advisors are fiduciaries, bound to act in clients\u2019 best interests. A unique benefit of Facet is its emphasis on long-term, goal-based financial planning and the use of sophisticated tools typically reserved for high-net-worth individuals. While its flat-fee pricing can be cost-efficient for individuals with larger investment balances, it may be more expensive for those with smaller portfolios. New members undergo a personalized onboarding process, and CFPs are available for ongoing support. Estate planning is optionally available for an additional fee. Facet\u2019s services are well-suited for individuals seeking comprehensive, personalized financial planning, though beginners only seeking investment management might prefer less costly robo-advisors.",
+       "breadcrumb": "www.wsj.com"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://www.moneysense.gov.sg/financial-advice-who-you-could-be-dealing-with/",
+       "domain": "www.moneysense.gov.sg",
+       "title": "Financial advice: Who you could be dealing with | MoneySense",
+       "description": null,
+       "breadcrumb": "www.moneysense.gov.sg"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://thebestinsg.com/services/best-financial-adviser-singapore-ippfa/",
+       "domain": "thebestinsg.com",
+       "title": "Best Financial Adviser in Singapore 2026 | IPPFA",
+       "description": null,
+       "breadcrumb": "thebestinsg.com"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://localrank.sg/articles/best-financial-advisory-firms-singapore",
+       "domain": "localrank.sg",
+       "title": "6 Best Financial Advisory Firms in Singapore (2026) | LocalRank",
+       "description": null,
+       "breadcrumb": "localrank.sg"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://financialadvisor.com.sg/directory/",
+       "domain": "financialadvisor.com.sg",
+       "title": "Singapore Financial Advisor Directory 2026 | 20+ MAS-Licensed Advisors | FinancialAdvisor.com.sg",
+       "description": null,
+       "breadcrumb": "financialadvisor.com.sg"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://financialadvisor.com.sg/fee-only-financial-advisors-singapore/",
+       "domain": "financialadvisor.com.sg",
+       "title": "Fee-Only & Fee-Based Financial Advisors Singapore | Fixed Fee Independent Advice 2026",
+       "description": null,
+       "breadcrumb": "financialadvisor.com.sg"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://eservices.mas.gov.sg/fid/institution?category=Licensed+Financial+Adviser",
+       "domain": "eservices.mas.gov.sg",
+       "title": "Financial Institutions Directory",
+       "description": null,
+       "breadcrumb": "eservices.mas.gov.sg"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://eservices.mas.gov.sg/fid/institution?sector=Financial+Advisory",
+       "domain": "eservices.mas.gov.sg",
+       "title": "Financial Institutions Directory",
+       "description": null,
+       "breadcrumb": "eservices.mas.gov.sg"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://www.fortunecredit.com.sg/financial-services/singapore-financial-planners/",
+       "domain": "www.fortunecredit.com.sg",
+       "title": "5 Best Singapore Financial Planners: Your Guide for 2026",
+       "description": null,
+       "breadcrumb": "www.fortunecredit.com.sg"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://www.fortunecredit.com.sg/financial-services/list-of-independent-financial-advisers-in-singapore/",
+       "domain": "www.fortunecredit.com.sg",
+       "title": "List of Independent Financial Advisers in Singapore 2026",
+       "description": null,
+       "breadcrumb": "www.fortunecredit.com.sg"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://www.bestthingreview.com/business/best-financial-advisors-singapore",
+       "domain": "www.bestthingreview.com",
+       "title": "10 Best Financial Advisors in Singapore (2026): Wealth, Insurance & Retirement Planning | BestThingReview",
+       "description": null,
+       "breadcrumb": "www.bestthingreview.com"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://www.ascentawealth.com/team",
+       "domain": "www.ascentawealth.com",
+       "title": "Financial Planning Experts in Singapore | Ascenta Wealth Team",
+       "description": null,
+       "breadcrumb": "www.ascentawealth.com"
+      },
+      {
+       "type": "chatgpt_search_result",
+       "url": "https://www.fivefantastic.com/five-fantastic-financial-advisors-in-singapore/",
+       "domain": "www.fivefantastic.com",
+       "title": "Top 5 Financial Advisers in Singapore | 2026 Independent Shortlist \u2013 Five Fantastic\u2122",
+       "description": null,
+       "breadcrumb": "www.fivefantastic.com"
+      }
+     ],
+     "sources": [
+      {
+       "type": "chat_gpt_source",
+       "title": "6 Best Financial Advisory Firms in Singapore (2026)",
+       "snippet": null,
+       "domain": "localrank.sg",
+       "url": "https://localrank.sg/articles/best-financial-advisory-firms-singapore",
+       "thumbnail": null,
+       "source_name": "LocalRank",
+       "publication_date": "2026-10-06 00:00:00 +00:00",
+       "markdown": null
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "Providend",
+       "snippet": "38 Duxton Hl, Singapore 089616",
+       "domain": "www.google.com",
+       "url": "https://www.google.com/maps/place/Providend/@1.2785823,103.8428603,17z/data=!3m1!4b1!4m6!3m5!1s0x31da196d12e092f5:0xcd199c965f07ba9b!8m2!3d1.2785823!4d103.8428603!16s%2Fg%2F1tg_j4n2?hl=en&entry=ttu&g_ep=EgoyMDI2MDkyMi4wIKXMDSoASAFQAw%3D%3D",
+       "thumbnail": null,
+       "source_name": "google.com",
+       "publication_date": null,
+       "markdown": null
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "Official website",
+       "snippet": null,
+       "domain": "providend.com",
+       "url": "https://providend.com/",
+       "thumbnail": null,
+       "source_name": null,
+       "publication_date": null,
+       "markdown": "[Official website](https://providend.com/)"
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "Alpha Wealth Financial Advisers Pte. Ltd.",
+       "snippet": "151 Lorong Chuan, #05-06A, Singapore 556741",
+       "domain": "www.google.com",
+       "url": "https://www.google.com/maps/place/?q=place_id%3AChIJm19anC8Z2jER0Qw3rKddb48&hl=en",
+       "thumbnail": null,
+       "source_name": "google.com",
+       "publication_date": null,
+       "markdown": null
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "10 Best Financial Advisors in Singapore (2026): Wealth, Insurance & Retirement Planning",
+       "snippet": null,
+       "domain": "www.bestthingreview.com",
+       "url": "https://www.bestthingreview.com/business/best-financial-advisors-singapore",
+       "thumbnail": null,
+       "source_name": "BestThingReview",
+       "publication_date": "2026-08-12 00:00:00 +00:00",
+       "markdown": null
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "Official website",
+       "snippet": null,
+       "domain": "www.awfa.com.sg",
+       "url": "https://www.awfa.com.sg/",
+       "thumbnail": null,
+       "source_name": null,
+       "publication_date": null,
+       "markdown": "[Official website](https://www.awfa.com.sg/)"
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "Financial Alliance Pte Ltd",
+       "snippet": "150 Beach Rd, #12-01/08 Gateway West, Singapore 189720",
+       "domain": "www.google.com",
+       "url": "https://www.google.com/maps/place/?q=place_id%3AChIJjSfrZNEb2jER0fPB9Py482U&hl=en",
+       "thumbnail": null,
+       "source_name": "google.com",
+       "publication_date": null,
+       "markdown": null
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "Official website",
+       "snippet": null,
+       "domain": "www.fa.com.sg",
+       "url": "https://www.fa.com.sg/",
+       "thumbnail": null,
+       "source_name": null,
+       "publication_date": null,
+       "markdown": "[Official website](https://www.fa.com.sg/)"
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "Endowus",
+       "snippet": "158 Cecil St, #08-01, Singapore 069545",
+       "domain": "www.google.com",
+       "url": "https://www.google.com/maps/place/Endowus/@1.2796813,103.8481043,17z/data=!3m1!4b1!4m6!3m5!1s0x31da19be5b856351:0xed4f63d87fa8e38a!8m2!3d1.2796813!4d103.8481043!16s%2Fg%2F11g2v_dj90?hl=en&entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D",
+       "thumbnail": null,
+       "source_name": "google.com",
+       "publication_date": null,
+       "markdown": null
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "Official website",
+       "snippet": null,
+       "domain": "endowus.com",
+       "url": "https://endowus.com/",
+       "thumbnail": null,
+       "source_name": null,
+       "publication_date": null,
+       "markdown": "[Official website](https://endowus.com/)"
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "DC FINANCIAL",
+       "snippet": "371 Alexandra Rd, Singapore 159963",
+       "domain": "www.google.com",
+       "url": "https://www.google.com/maps/place/?q=place_id%3AChIJVUJ3NiAb2jERNaxfO7FA9Gc&hl=en",
+       "thumbnail": null,
+       "source_name": "google.com",
+       "publication_date": null,
+       "markdown": null
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "MAS Financial Institutions Directory",
+       "snippet": null,
+       "domain": "eservices.mas.gov.sg",
+       "url": "https://eservices.mas.gov.sg/fid/",
+       "thumbnail": null,
+       "source_name": null,
+       "publication_date": null,
+       "markdown": "[MAS Financial Institutions Directory](https://eservices.mas.gov.sg/fid/)"
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "MAS Representatives Register",
+       "snippet": null,
+       "domain": "eservices.mas.gov.sg",
+       "url": "https://eservices.mas.gov.sg/rr/",
+       "thumbnail": null,
+       "source_name": null,
+       "publication_date": null,
+       "markdown": "[MAS Representatives Register](https://eservices.mas.gov.sg/rr/)"
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "Financial advice: Who you could be dealing with",
+       "snippet": null,
+       "domain": "www.moneysense.gov.sg",
+       "url": "https://www.moneysense.gov.sg/financial-advice-who-you-could-be-dealing-with/",
+       "thumbnail": null,
+       "source_name": "MoneySense",
+       "publication_date": null,
+       "markdown": null
+      },
+      {
+       "type": "chat_gpt_source",
+       "title": "Financial Institutions Directory",
+       "snippet": null,
+       "domain": "eservices.mas.gov.sg",
+       "url": "https://eservices.mas.gov.sg/fid/institution?category=Licensed+Financial+Adviser",
+       "thumbnail": null,
+       "source_name": "MAS eServices",
+       "publication_date": null,
+       "markdown": null
+      }
+     ],
+     "fan_out_queries": [
+      "best financial adviser for young families Singapore independent fee-based financial planning MAS licensed 2026"
+     ],
+     "brand_entities": [
+      {
+       "type": "chat_gpt_brand_entity",
+       "title": "Providend",
+       "category": "local_business",
+       "markdown": "Providend",
+       "urls": null
+      },
+      {
+       "type": "chat_gpt_brand_entity",
+       "title": "Alpha Wealth Financial Advisers",
+       "category": "local_business",
+       "markdown": "Alpha Wealth Financial Advisers",
+       "urls": null
+      },
+      {
+       "type": "chat_gpt_brand_entity",
+       "title": "Financial Alliance",
+       "category": "local_business",
+       "markdown": "Financial Alliance",
+       "urls": null
+      },
+      {
+       "type": "chat_gpt_brand_entity",
+       "title": "Endowus",
+       "category": "local_business",
+       "markdown": "Endowus",
+       "urls": null
+      },
+      {
+       "type": "chat_gpt_brand_entity",
+       "title": "DC FINANCIAL",
+       "category": "local_business",
+       "markdown": "DC FINANCIAL",
+       "urls": null
+      }
+     ],
+     "se_results_count": 0,
+     "item_types": [
+      "chat_gpt_text",
+      "chat_gpt_images",
+      "chat_gpt_table",
+      "chat_gpt_local_businesses"
+     ],
+     "items_count": 15,
+     "items": [
+      {
+       "type": "chat_gpt_text",
+       "rank_group": 1,
+       "rank_absolute": 1,
+       "markdown": "# Best financial advisers for young families in Singapore\n\nFor a young family in Singapore, I\u2019d look for an adviser who can help you build a complete financial plan\u2014not just sell you insurance or investment products. The key priorities are usually protecting both parents\u2019 income, planning for children\u2019s education, managing your mortgage, optimising CPF, and investing for retirement.\n\n**My recommendation is to compare a fee-only wealth planner with a broader financial advisory firm before committing.** Fee-only advice can make it easier to separate the cost of planning from the sale of financia",
+       "sources": null,
+       "brand_entities": null
+      },
+      {
+       "type": "chat_gpt_images",
+       "rank_group": 1,
+       "rank_absolute": 2,
+       "markdown": "![List of the Top 5 Independent Financial Advisers in Singapore](https://images.openai.com/static-rsc-4/rogk5zrK0mTKzz8lDUihxCP6xJfi57NgBy7Ftm0vq6tYiXr0a9N3Dm3FREH-QOXxDbA7S0o05izE1RAWxFzoyVJloJmDx0aIVfhLy-ser6cJ8KpB5zGR2O5LnF0mB8rwtGuyNC6xjM-Vt7fk-tyaZJTyG5BrVN2kAAuWRmfMSfaqOEIfXs1ihOwbBFOqvE_e?purpose=fullsize)",
+       "items": [
+        {
+         "type": "chat_gpt_images_element",
+         "url": "https://www.rafflescredit.com.sg/financial-services/list-of-independent-financial-advisers-in-singapore/",
+         "alt": "List of the Top 5 Independent Financial Advisers in Singapore",
+         "image_url": "https://images.openai.com/static-rsc-4/rogk5zrK0mTKzz8lDUihxCP6xJfi57NgBy7Ftm0vq6tYiXr0a9N3Dm3FREH-QOXxDbA7S0o05izE1RAWxFzoyVJloJmDx0aIVfhLy-ser6cJ8KpB5zGR2O5LnF0mB8rwtGuyNC6xjM-Vt7fk-tyaZJTyG5BrVN2kAAuWRmfMSfaqOEIfXs1ihOwbBFOqvE_e?purpose=fullsize",
+         "markdown": "![List of the Top 5 Independent Financial Advisers in Singapore](https://images.openai.com/static-rsc-4/rogk5zrK0mTKzz8lDUihxCP6xJfi57NgBy7Ftm0vq6tYiXr0a9N3Dm3FREH-QOXxDbA7S0o05izE1RAWxFzoyVJloJmDx0aIVfhLy-ser6cJ8KpB5zGR2O5LnF0mB8rwtGuyNC6xjM-Vt7fk-tyaZJTyG5BrVN2kAAuWRmfMSfaqOEIfXs1ihOwbBFOqvE_e?purpose=fullsize)"
+        }
+       ]
+      },
+      {
+       "type": "chat_gpt_text",
+       "rank_group": 2,
+       "rank_absolute": 3,
+       "markdown": "\n\n## 1\\. Providend\n\n(Best for fee-only advice)\n\n38 Duxton Hill, Singapore\n\nA strong starting point if you want a holistic plan covering wealth accumulation, retirement, risk management and estate planning. Providend describes its model as fee-only, with product commissions rebated to clients. Ask for a written quote for your family\u2019s situation. [localrank.sg](https://localrank.sg/articles/best-financial-advisory-firms-singapore)[www.google.com](https://www.google.com/maps/place/Providend/@1.2785823,103.8428603,17z/data=!3m1!4b1!4m6!3m5!1s0x31da196d12e092f5:0xcd199c965f07ba9b!8m2!3d1.2785823!4d",
+       "sources": [
+        {
+         "type": "chat_gpt_source",
+         "title": "6 Best Financial Advisory Firms in Singapore (2026)",
+         "snippet": null,
+         "domain": "localrank.sg",
+         "url": "https://localrank.sg/articles/best-financial-advisory-firms-singapore",
+         "thumbnail": null,
+         "source_name": "LocalRank",
+         "publication_date": "2026-10-06 00:00:00 +00:00",
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "Providend",
+         "snippet": "38 Duxton Hl, Singapore 089616",
+         "domain": "www.google.com",
+         "url": "https://www.google.com/maps/place/Providend/@1.2785823,103.8428603,17z/data=!3m1!4b1!4m6!3m5!1s0x31da196d12e092f5:0xcd199c965f07ba9b!8m2!3d1.2785823!4d103.8428603!16s%2Fg%2F1tg_j4n2?hl=en&entry=ttu&g_ep=EgoyMDI2MDkyMi4wIKXMDSoASAFQAw%3D%3D",
+         "thumbnail": null,
+         "source_name": "google.com",
+         "publication_date": null,
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "Official website",
+         "snippet": null,
+         "domain": "providend.com",
+         "url": "https://providend.com/",
+         "thumbnail": null,
+         "source_name": null,
+         "publication_date": null,
+         "markdown": "[Official website](https://providend.com/)"
+        }
+       ],
+       "brand_entities": [
+        {
+         "type": "chat_gpt_brand_entity",
+         "title": "Providend",
+         "category": "local_business",
+         "markdown": "Providend",
+         "urls": null
+        }
+       ]
+      },
+      {
+       "type": "chat_gpt_images",
+       "rank_group": 2,
+       "rank_absolute": 4,
+       "markdown": "![askpaul Reviews | Read Customer Service Reviews of askpaul.ie](https://images.openai.com/static-rsc-4/1S5hzjqSfi4mtHiSg31sTdoQS99Ywqh6h1WpbQq1sRRxUEFKJ_aHx5korFJJLEk2UBrvwH2IWPfhohQv4eCmHQPvS33dOok4wD9ZtovkqDSAdkHCvT-hmpFam__y5tQyD9cW4Lz0xyFqRIBG7jBY9pSkEOhRPCpP_qgpHC_LjoiS7_Cr7PtEnt5SdwVbIEo-?purpose=fullsize)",
+       "items": [
+        {
+         "type": "chat_gpt_images_element",
+         "url": "https://www.trustpilot.com/review/askpaul.ie",
+         "alt": "askpaul Reviews | Read Customer Service Reviews of askpaul.ie",
+         "image_url": "https://images.openai.com/static-rsc-4/1S5hzjqSfi4mtHiSg31sTdoQS99Ywqh6h1WpbQq1sRRxUEFKJ_aHx5korFJJLEk2UBrvwH2IWPfhohQv4eCmHQPvS33dOok4wD9ZtovkqDSAdkHCvT-hmpFam__y5tQyD9cW4Lz0xyFqRIBG7jBY9pSkEOhRPCpP_qgpHC_LjoiS7_Cr7PtEnt5SdwVbIEo-?purpose=fullsize",
+         "markdown": "![askpaul Reviews | Read Customer Service Reviews of askpaul.ie](https://images.openai.com/static-rsc-4/1S5hzjqSfi4mtHiSg31sTdoQS99Ywqh6h1WpbQq1sRRxUEFKJ_aHx5korFJJLEk2UBrvwH2IWPfhohQv4eCmHQPvS33dOok4wD9ZtovkqDSAdkHCvT-hmpFam__y5tQyD9cW4Lz0xyFqRIBG7jBY9pSkEOhRPCpP_qgpHC_LjoiS7_Cr7PtEnt5SdwVbIEo-?purpose=fullsize)"
+        }
+       ]
+      },
+      {
+       "type": "chat_gpt_text",
+       "rank_group": 3,
+       "rank_absolute": 5,
+       "markdown": "\n\n## 2\\. Alpha Wealth Financial Advisers\n\n151 Lorong Chuan, Singapore\n\nWorth considering if you want a more comprehensive service spanning insurance, wealth accumulation and retirement planning. The firm is listed in the MAS Financial Institutions Directory; clarify how your individual adviser is paid and which products they can recommend. [www.google.com](https://www.google.com/maps/place/?q=place_id%3AChIJm19anC8Z2jER0Qw3rKddb48&hl=en)[www.bestthingreview.com](https://www.bestthingreview.com/business/best-financial-advisors-singapore)\n\n[Official website](https://www.awfa.com.sg/)\n\n---\n\n",
+       "sources": [
+        {
+         "type": "chat_gpt_source",
+         "title": "Alpha Wealth Financial Advisers Pte. Ltd.",
+         "snippet": "151 Lorong Chuan, #05-06A, Singapore 556741",
+         "domain": "www.google.com",
+         "url": "https://www.google.com/maps/place/?q=place_id%3AChIJm19anC8Z2jER0Qw3rKddb48&hl=en",
+         "thumbnail": null,
+         "source_name": "google.com",
+         "publication_date": null,
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "10 Best Financial Advisors in Singapore (2026): Wealth, Insurance & Retirement Planning",
+         "snippet": null,
+         "domain": "www.bestthingreview.com",
+         "url": "https://www.bestthingreview.com/business/best-financial-advisors-singapore",
+         "thumbnail": null,
+         "source_name": "BestThingReview",
+         "publication_date": "2026-08-12 00:00:00 +00:00",
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "Official website",
+         "snippet": null,
+         "domain": "www.awfa.com.sg",
+         "url": "https://www.awfa.com.sg/",
+         "thumbnail": null,
+         "source_name": null,
+         "publication_date": null,
+         "markdown": "[Official website](https://www.awfa.com.sg/)"
+        }
+       ],
+       "brand_entities": [
+        {
+         "type": "chat_gpt_brand_entity",
+         "title": "Alpha Wealth Financial Advisers",
+         "category": "local_business",
+         "markdown": "Alpha Wealth Financial Advisers",
+         "urls": null
+        }
+       ]
+      },
+      {
+       "type": "chat_gpt_images",
+       "rank_group": 3,
+       "rank_absolute": 6,
+       "markdown": "![What Makes a Quality Financial Adviser? - #ChooseQuality](https://images.openai.com/static-rsc-4/ZrcJNL7g23palP6OGwuSRqYEnzY_CgbnsDZ4-v19tCCX5Ug4FU9xuNIs7BGB1V4KyJqjnpVBq9pFl8YtZUvAxO3lJnOOvUeJCqmcgXCngWNhqfIa_RtvKI9QlVYFU5lsPexwB2itNetqCk1nQc62lPRiuLjXuEhxQ9g1NsnlG-vhZy5Qs43cxUmY9AN8-yBl?purpose=fullsize)",
+       "items": [
+        {
+         "type": "chat_gpt_images_element",
+         "url": "https://digital.fa.com.sg/quality.php?a_aid=%2AEMAIL_REMOVED%2A",
+         "alt": "What Makes a Quality Financial Adviser? - #ChooseQuality",
+         "image_url": "https://images.openai.com/static-rsc-4/ZrcJNL7g23palP6OGwuSRqYEnzY_CgbnsDZ4-v19tCCX5Ug4FU9xuNIs7BGB1V4KyJqjnpVBq9pFl8YtZUvAxO3lJnOOvUeJCqmcgXCngWNhqfIa_RtvKI9QlVYFU5lsPexwB2itNetqCk1nQc62lPRiuLjXuEhxQ9g1NsnlG-vhZy5Qs43cxUmY9AN8-yBl?purpose=fullsize",
+         "markdown": "![What Makes a Quality Financial Adviser? - #ChooseQuality](https://images.openai.com/static-rsc-4/ZrcJNL7g23palP6OGwuSRqYEnzY_CgbnsDZ4-v19tCCX5Ug4FU9xuNIs7BGB1V4KyJqjnpVBq9pFl8YtZUvAxO3lJnOOvUeJCqmcgXCngWNhqfIa_RtvKI9QlVYFU5lsPexwB2itNetqCk1nQc62lPRiuLjXuEhxQ9g1NsnlG-vhZy5Qs43cxUmY9AN8-yBl?purpose=fullsize)"
+        }
+       ]
+      },
+      {
+       "type": "chat_gpt_text",
+       "rank_group": 4,
+       "rank_absolute": 7,
+       "markdown": "\n\n## 3\\. Financial Alliance\n\n150 Beach Road, Gateway West\n\nWorth comparing if you want several types of financial planning under one roof, including protection, retirement and fee-based planning. Ask whether the particular service you need is fee-based, commission-based or a combination. [localrank.sg](https://localrank.sg/articles/best-financial-advisory-firms-singapore)[www.google.com](https://www.google.com/maps/place/?q=place_id%3AChIJjSfrZNEb2jER0fPB9Py482U&hl=en)\n\n[Official website](https://www.fa.com.sg/)\n\n---\n\n",
+       "sources": [
+        {
+         "type": "chat_gpt_source",
+         "title": "6 Best Financial Advisory Firms in Singapore (2026)",
+         "snippet": null,
+         "domain": "localrank.sg",
+         "url": "https://localrank.sg/articles/best-financial-advisory-firms-singapore",
+         "thumbnail": null,
+         "source_name": "LocalRank",
+         "publication_date": "2026-10-06 00:00:00 +00:00",
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "Financial Alliance Pte Ltd",
+         "snippet": "150 Beach Rd, #12-01/08 Gateway West, Singapore 189720",
+         "domain": "www.google.com",
+         "url": "https://www.google.com/maps/place/?q=place_id%3AChIJjSfrZNEb2jER0fPB9Py482U&hl=en",
+         "thumbnail": null,
+         "source_name": "google.com",
+         "publication_date": null,
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "Official website",
+         "snippet": null,
+         "domain": "www.fa.com.sg",
+         "url": "https://www.fa.com.sg/",
+         "thumbnail": null,
+         "source_name": null,
+         "publication_date": null,
+         "markdown": "[Official website](https://www.fa.com.sg/)"
+        }
+       ],
+       "brand_entities": [
+        {
+         "type": "chat_gpt_brand_entity",
+         "title": "Financial Alliance",
+         "category": "local_business",
+         "markdown": "Financial Alliance",
+         "urls": null
+        }
+       ]
+      },
+      {
+       "type": "chat_gpt_images",
+       "rank_group": 4,
+       "rank_absolute": 8,
+       "markdown": "![Invest better with Cash, CPF, SRS strategies | Endowus SG](https://images.openai.com/static-rsc-4/bVVLhVtPD9qU6d84yaeU4rhKo7XxGlqj6jeuSvJrBH7BCB6MfpaWWy0mx53GcuNO_5KBAQ_ISNtnEjndvXN9URSKIkqQkMceKrY1RvRnnTH88JAH2BEURNVilavSj-XSCnapDf3SmfeEW2gUfCUNcEh4QA051HeyKUOljxaihSK7D50NG8_HT1hXRkt2sb55?purpose=fullsize)",
+       "items": [
+        {
+         "type": "chat_gpt_images_element",
+         "url": "https://endowus.com/",
+         "alt": "Invest better with Cash, CPF, SRS strategies | Endowus SG",
+         "image_url": "https://images.openai.com/static-rsc-4/bVVLhVtPD9qU6d84yaeU4rhKo7XxGlqj6jeuSvJrBH7BCB6MfpaWWy0mx53GcuNO_5KBAQ_ISNtnEjndvXN9URSKIkqQkMceKrY1RvRnnTH88JAH2BEURNVilavSj-XSCnapDf3SmfeEW2gUfCUNcEh4QA051HeyKUOljxaihSK7D50NG8_HT1hXRkt2sb55?purpose=fullsize",
+         "markdown": "![Invest better with Cash, CPF, SRS strategies | Endowus SG](https://images.openai.com/static-rsc-4/bVVLhVtPD9qU6d84yaeU4rhKo7XxGlqj6jeuSvJrBH7BCB6MfpaWWy0mx53GcuNO_5KBAQ_ISNtnEjndvXN9URSKIkqQkMceKrY1RvRnnTH88JAH2BEURNVilavSj-XSCnapDf3SmfeEW2gUfCUNcEh4QA051HeyKUOljxaihSK7D50NG8_HT1hXRkt2sb55?purpose=fullsize)"
+        }
+       ]
+      },
+      {
+       "type": "chat_gpt_text",
+       "rank_group": 5,
+       "rank_absolute": 9,
+       "markdown": "\n\n## 4\\. Endowus\n\n158 Cecil Street, Singapore\n\nBest considered if your main goal is building long-term investments and understanding how to use cash, CPF and SRS for investing. It is more investment-platform-oriented than a traditional family financial planner, so check whether it covers your insurance and estate-planning needs. [www.google.com](https://www.google.com/maps/place/Endowus/@1.2796813,103.8481043,17z/data=!3m1!4b1!4m6!3m5!1s0x31da19be5b856351:0xed4f63d87fa8e38a!8m2!3d1.2796813!4d103.8481043!16s%2Fg%2F11g2v_dj90?hl=en&entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D)\n\n[Official ",
+       "sources": [
+        {
+         "type": "chat_gpt_source",
+         "title": "Endowus",
+         "snippet": "158 Cecil St, #08-01, Singapore 069545",
+         "domain": "www.google.com",
+         "url": "https://www.google.com/maps/place/Endowus/@1.2796813,103.8481043,17z/data=!3m1!4b1!4m6!3m5!1s0x31da19be5b856351:0xed4f63d87fa8e38a!8m2!3d1.2796813!4d103.8481043!16s%2Fg%2F11g2v_dj90?hl=en&entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D",
+         "thumbnail": null,
+         "source_name": "google.com",
+         "publication_date": null,
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "Official website",
+         "snippet": null,
+         "domain": "endowus.com",
+         "url": "https://endowus.com/",
+         "thumbnail": null,
+         "source_name": null,
+         "publication_date": null,
+         "markdown": "[Official website](https://endowus.com/)"
+        }
+       ],
+       "brand_entities": [
+        {
+         "type": "chat_gpt_brand_entity",
+         "title": "Endowus",
+         "category": "local_business",
+         "markdown": "Endowus",
+         "urls": null
+        }
+       ]
+      },
+      {
+       "type": "chat_gpt_images",
+       "rank_group": 5,
+       "rank_absolute": 10,
+       "markdown": "![Cash Advance Singapore: Emergency Financial Relief for Families](https://images.openai.com/static-rsc-4/Vcwxsg3N8IUatcOdemK0dB9k29uz9ZAywjXFiCrohLB3IfqS5bob51YizeYZYbQLAHnZGN0PqsxU2tvW7CMHZiSMkcbuwJYOC5bJMkilTR0HDmf6JdeFTE0Y-4vYLr3WrnsoHcTdCaHW6NoKq1lmPC357NG73lNrQ_VewGXBKSOZfskKQMOr4R6QY9Ougs_w?purpose=fullsize)",
+       "items": [
+        {
+         "type": "chat_gpt_images_element",
+         "url": "https://www.allesautoscredit.com/post/cash-advance-singapore-emergency-financial-relief-for-families",
+         "alt": "Cash Advance Singapore: Emergency Financial Relief for Families",
+         "image_url": "https://images.openai.com/static-rsc-4/Vcwxsg3N8IUatcOdemK0dB9k29uz9ZAywjXFiCrohLB3IfqS5bob51YizeYZYbQLAHnZGN0PqsxU2tvW7CMHZiSMkcbuwJYOC5bJMkilTR0HDmf6JdeFTE0Y-4vYLr3WrnsoHcTdCaHW6NoKq1lmPC357NG73lNrQ_VewGXBKSOZfskKQMOr4R6QY9Ougs_w?purpose=fullsize",
+         "markdown": "![Cash Advance Singapore: Emergency Financial Relief for Families](https://images.openai.com/static-rsc-4/Vcwxsg3N8IUatcOdemK0dB9k29uz9ZAywjXFiCrohLB3IfqS5bob51YizeYZYbQLAHnZGN0PqsxU2tvW7CMHZiSMkcbuwJYOC5bJMkilTR0HDmf6JdeFTE0Y-4vYLr3WrnsoHcTdCaHW6NoKq1lmPC357NG73lNrQ_VewGXBKSOZfskKQMOr4R6QY9Ougs_w?purpose=fullsize)"
+        }
+       ]
+      },
+      {
+       "type": "chat_gpt_text",
+       "rank_group": 6,
+       "rank_absolute": 11,
+       "markdown": "\n\n## 5\\. DC FINANCIAL\n\n371 Alexandra Road, Singapore\n\nWorth interviewing if you have a baby or young children and want hands-on help with family protection, maternity and newborn insurance, and claims support. Because it is presented as an insurance-focused advisory team, ask about product-provider restrictions and commissions. [www.google.com](https://www.google.com/maps/place/?q=place_id%3AChIJm19anC8Z2jER0Qw3rKddb48&hl=en)[www.bestthingreview.com](https://www.bestthingreview.com/business/best-financial-advisors-singapore)[localrank.sg](https://localrank.sg/articles/best-financial-advisory-f",
+       "sources": [
+        {
+         "type": "chat_gpt_source",
+         "title": "Alpha Wealth Financial Advisers Pte. Ltd.",
+         "snippet": "151 Lorong Chuan, #05-06A, Singapore 556741",
+         "domain": "www.google.com",
+         "url": "https://www.google.com/maps/place/?q=place_id%3AChIJm19anC8Z2jER0Qw3rKddb48&hl=en",
+         "thumbnail": null,
+         "source_name": "google.com",
+         "publication_date": null,
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "10 Best Financial Advisors in Singapore (2026): Wealth, Insurance & Retirement Planning",
+         "snippet": null,
+         "domain": "www.bestthingreview.com",
+         "url": "https://www.bestthingreview.com/business/best-financial-advisors-singapore",
+         "thumbnail": null,
+         "source_name": "BestThingReview",
+         "publication_date": "2026-08-12 00:00:00 +00:00",
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "6 Best Financial Advisory Firms in Singapore (2026)",
+         "snippet": null,
+         "domain": "localrank.sg",
+         "url": "https://localrank.sg/articles/best-financial-advisory-firms-singapore",
+         "thumbnail": null,
+         "source_name": "LocalRank",
+         "publication_date": "2026-10-06 00:00:00 +00:00",
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "Financial Alliance Pte Ltd",
+         "snippet": "150 Beach Rd, #12-01/08 Gateway West, Singapore 189720",
+         "domain": "www.google.com",
+         "url": "https://www.google.com/maps/place/?q=place_id%3AChIJjSfrZNEb2jER0fPB9Py482U&hl=en",
+         "thumbnail": null,
+         "source_name": "google.com",
+         "publication_date": null,
+         "markdown": null
+        },
+        {
+         "type": "chat_gpt_source",
+         "title": "DC FINANCIAL",
+         "snippet": "371 Alexandra Rd, Singapore 159963",
+         "domain": "www.google.com",
+         "url": "https://www.google.com/maps/place/?q=place_id%3AChIJVUJ3NiAb2jERNaxfO7FA9Gc&hl=en",
+         "thumbnail": null,
+         "source_name": "google.com",
+         "publication_date": null,
+         "markdown": null
+        }
+       ],
+       "brand_entities": [
+        {
+         "type": "chat_gpt_brand_entity",
+         "title": "DC FINANCIAL",
+         "category": "local_business",
+         "markdown": "DC FINANCIAL",
+         "urls": null
+        }
+       ]
+      },
+      {
+       "type": "chat_gpt_table",
+       "rank_group": 1,
+       "rank_absolute": 12,
+       "text": null,
+       "markdown": "| If your main priority is\u2026 | Start with |\n|--------|--------|\n| Independent, holistic financial planning | Providend |\n| Insurance plus broader financial planning | Alpha Wealth or Financial Alliance |\n| CPF, SRS and long-term investing | Endowus |\n| Newborn and young-child protection | DC FINANCIAL |\n\n",
+       "table": {
+        "table_header": [
+         "If your main priority is\u2026",
+         "Start with"
+        ],
+        "table_content": [
+         [
+          "Independent, holistic financial planning",
+          "Providend"
+         ],
+         [
+          "Insurance plus broader financial planning",
+          "Alpha Wealth or Financial Alliance"
+         ],
+         [
+          "CPF, SRS and long-term investing",
+          "Endowus"
+         ],
+         [
+          "Newborn and young-child protection",
+          "DC FINANCIAL"
+         ]
+        ]
+       },
+       "brand_entities": null
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

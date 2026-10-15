@@ -1,0 +1,329 @@
+// The market edge function's rules (Discover > Your market). Everything that cleans, gates or decides lives here
+// so vitest can run it; index.ts only wires Supabase, DataForSEO, OpenAI and Jev. Ported from the market-loop
+// skill (~/.claude/skills/market-loop, 2026-10-15), which condenses MIA (mia.ambr.io).
+
+import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { decode, safeFeedUrl } from "../feed-ideas/logic.ts";
+import { cleanKeywords, type Mention } from "../mentions/logic.ts";
+
+export const MAX_QUESTIONS = 5;
+export const MAX_POSTS = 10;
+export const MAX_CANDIDATES = 8;
+export const MAX_SOURCES = 20;
+/** A Jev yes at or above this counts; on the AT market-loop run (2026-10-15) the lower yeses were junk. */
+export const RELEVANT_AT = 0.5;
+export const SAME_STORY_CANDIDATES = 10;
+const DAY_MS = 86_400_000;
+const COUNTRY = "Singapore";
+
+export type Position = "not-mentioned" | "passing" | "named" | "cited";
+export const TAGS = ["act", "watch"] as const;
+export type Tag = (typeof TAGS)[number];
+
+export interface MarketPost { id: string; url: string; handle: string; caption: string }
+export interface CheckInput { name: string; site: string; audience: string; topics: string[]; questions: string[]; keywords: string[]; posts: MarketPost[] }
+export interface NewsItem { keyword: string; title: string; url: string; source: string; date: string; snippet: string }
+export interface JudgedNews extends NewsItem {
+  /** null: Jev could not judge it, so it stays visible as Watch. */
+  relevant: boolean | null;
+  tag: Tag;
+  /** The link of the first report of the same story. */
+  sameAs?: string;
+}
+export interface Source { url: string; domain: string; title: string }
+export interface GeoRead { question: string; position: Position | null; sources: Source[]; checkUrl: string | null; error?: string }
+export interface JudgedPost extends MarketPost { tag: Tag }
+export interface MarketDigest { checkedAt: string; news: JudgedNews[]; geo: GeoRead[]; posts: JudgedPost[] }
+export interface Ask { state: Record<string, unknown>; questions: Record<string, JevQuestion> }
+
+const text = (v: unknown, max: number): string => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "");
+
+/** MARKET_USERS: user ids separated by commas, or *. Same shape as social's SOCIAL_CONNECT_USERS. */
+export function isAllowed(list: string | undefined, uid: string): boolean {
+  const entries = (list ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  return !!uid && (entries.includes("*") || entries.includes(uid));
+}
+
+function distinct(raw: unknown, max: number, clean: (v: unknown) => string, min: number): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const v of raw) {
+    const t = clean(v);
+    if (t.length >= min && !out.some((o) => o.toLowerCase() === t.toLowerCase())) out.push(t);
+    if (out.length === max) break;
+  }
+  return out;
+}
+
+export const cleanQuestions = (raw: unknown, max = MAX_QUESTIONS) => distinct(raw, max, (v) => text(v, 160), 8);
+export const cleanTerms = (raw: unknown, max = MAX_CANDIDATES) => distinct(raw, max, (v) => text(v, 40).replace(/["']/g, ""), 2);
+
+/** The site's host without www, or "" when there is none or it is not a public web address. */
+export function siteHost(raw: unknown): string {
+  const t = text(raw, 300);
+  if (!t) return "";
+  const u = safeFeedUrl(/^https?:\/\//i.test(t) ? t : `https://${t}`);
+  return u ? u.hostname.toLowerCase().replace(/^www\./, "") : "";
+}
+
+export function cleanPosts(raw: unknown): MarketPost[] {
+  if (!Array.isArray(raw)) return [];
+  const out: MarketPost[] = [];
+  for (const p of raw) {
+    if (!p || typeof p !== "object") continue;
+    const o = p as Record<string, unknown>;
+    const url = safeFeedUrl(o.url);
+    const post = { id: text(o.id, 80), url: url?.href ?? "", handle: text(o.handle, 60).replace(/^@/, ""), caption: text(o.caption, 400) };
+    if (url && post.id && post.handle && post.caption) out.push(post);
+    if (out.length === MAX_POSTS) break;
+  }
+  return out;
+}
+
+export function cleanInput(raw: unknown): CheckInput {
+  const b = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return {
+    name: text(b.name, 80),
+    site: siteHost(b.site),
+    audience: text(b.audience, 300),
+    topics: distinct(b.topics, 12, (v) => text(v, 60), 2),
+    questions: cleanQuestions(b.questions),
+    keywords: cleanKeywords(b.keywords),
+    posts: cleanPosts(b.posts),
+  };
+}
+
+/** What stops a check before anything is paid for, in the adviser's words; null when it can run. */
+export function checkProblem(i: CheckInput): string | null {
+  if (!i.audience) return "Say who you serve first, so the check knows what matters to them.";
+  if (!i.questions.length && !i.keywords.length && !i.posts.length) return "Add a client question or a news topic to watch first.";
+  return null;
+}
+
+export const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
+
+/** The 6 UTC days before today. cs_ai_usage counts on UTC dates, which start at 8am in Singapore. */
+export function earlierWeekDays(now: Date): string[] {
+  return Array.from({ length: 6 }, (_, k) => utcDay(now.getTime() - (k + 1) * DAY_MS));
+}
+
+/** Closed when a check was counted on any of those days; it opens 7 days after the latest one. */
+export function weekGate(rows: unknown, now: Date): { open: true } | { open: false; nextDay: string } {
+  const days = new Set(earlierWeekDays(now));
+  const used = (Array.isArray(rows) ? rows : [])
+    .filter((r): r is { day: string; count: number } => typeof r?.day === "string" && typeof r?.count === "number")
+    .filter((r) => days.has(r.day) && r.count > 0)
+    .map((r) => r.day)
+    .sort();
+  if (!used.length) return { open: true };
+  return { open: false, nextDay: utcDay(Date.parse(`${used[used.length - 1]}T00:00:00Z`) + 7 * DAY_MS) };
+}
+
+/** "Thu 22 Oct". */
+export const dayWords = (day: string) =>
+  new Date(`${day}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+
+export function newsItems(keyword: string, items: Mention[]): NewsItem[] {
+  return items
+    .filter((m) => safeFeedUrl(m.url))
+    .map((m) => ({ keyword, title: text(m.title, 200), url: m.url, source: text(m.source, 80).replace(/^www\./, ""), date: text(m.date, 40), snippet: text(m.snippet, 300) }))
+    .filter((n) => n.title);
+}
+
+/** One item per link across keywords; the first keyword that found it keeps it. */
+export function uniqueByUrl(items: NewsItem[]): NewsItem[] {
+  const seen = new Set<string>();
+  return items.filter((n) => {
+    if (seen.has(n.url)) return false;
+    seen.add(n.url);
+    return true;
+  });
+}
+
+const TAG_CRITERIA = {
+  act: "Yes: it is timely and concrete, and gives the people they serve something to understand or do",
+  watch: "Not now: background, thin, or nothing for those people to do",
+};
+
+export function newsAsk(i: CheckInput, n: NewsItem): Ask {
+  return {
+    state: { serves: i.audience, topics: i.topics.join(", "), country: COUNTRY, story: `${n.title} (${n.source})`, summary: n.snippet },
+    questions: {
+      relevant: { type: "noul", instructions: "Does the news `story` matter to the people a financial adviser serves (`serves`, in `country`), or touch the adviser's `topics`?" },
+      tag: { type: "choice", instructions: "Should the adviser post about `story` this week for the people they serve?", criteria: TAG_CRITERIA },
+    },
+  };
+}
+
+export function judgeNews(n: NewsItem, answers: Record<string, JevAnswer> | null): JudgedNews {
+  // Jev down (null answers): noulOf and choiceOf give null, so the item stays visible as unjudged Watch.
+  const p = noulOf(answers, "relevant");
+  return { ...n, relevant: p === null ? null : p >= RELEVANT_AT, tag: choiceOf(answers, "tag", TAGS) ?? "watch" };
+}
+
+/** Jev picks which earlier relevant report (at most 10) tells the same story, or none. */
+export function sameStoryAsk(n: NewsItem, earlier: JudgedNews[]): (Ask & { ids: string[] }) | null {
+  const cands = earlier.filter((e) => e.relevant && !e.sameAs).slice(-SAME_STORY_CANDIDATES);
+  if (!cands.length) return null;
+  const criteria: Record<string, string> = { none: "None of them: a different story" };
+  cands.forEach((c, k) => {
+    criteria[`s${k}`] = c.title;
+  });
+  return {
+    state: { story: n.title },
+    questions: { same: { type: "choice", instructions: "Which earlier report tells the same news or event as `story`?", criteria } },
+    ids: cands.map((c) => c.url),
+  };
+}
+
+export function sameStoryOf(answers: Record<string, JevAnswer> | null, ids: string[]): string | undefined {
+  const pick = choiceOf(answers, "same", ["none", ...ids.map((_, k) => `s${k}`)]);
+  return pick && pick !== "none" ? ids[Number(pick.slice(1))] : undefined;
+}
+
+/** Points every repeat at the first report of its story (a -> b -> c becomes a -> c). */
+export function foldStories(items: JudgedNews[]): JudgedNews[] {
+  const byUrl = new Map(items.map((n) => [n.url, n]));
+  const root = (n: JudgedNews, hops = 0): string => {
+    const up = n.sameAs ? byUrl.get(n.sameAs) : undefined;
+    return up && up !== n && hops < 50 ? root(up, hops + 1) : n.url;
+  };
+  return items.map((n) => (n.sameAs ? { ...n, sameAs: root(n) } : n));
+}
+
+const hostOf = (u: string) => {
+  try {
+    return new URL(u).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+};
+
+/** The answer text and every linked source in a DataForSEO llm_scraper reply; null when the task has no result. */
+export function parseAnswer(body: unknown): { answer: string; sources: Source[]; checkUrl: string | null } | null {
+  const res = (body as { tasks?: { result?: unknown[] | null }[] } | null)?.tasks?.[0]?.result?.[0];
+  if (!res || typeof res !== "object") return null;
+  const r = res as Record<string, unknown>;
+  const seen = new Map<string, Source>();
+  const walk = (x: unknown): void => {
+    if (Array.isArray(x)) return x.forEach(walk);
+    if (!x || typeof x !== "object") return;
+    const o = x as Record<string, unknown>;
+    const isImage = typeof o.type === "string" && o.type.includes("image");
+    if (!isImage && typeof o.url === "string" && /^https?:\/\//.test(o.url) && !seen.has(o.url)) {
+      const domain = (typeof o.domain === "string" && o.domain ? o.domain : hostOf(o.url)).toLowerCase().replace(/^www\./, "");
+      if (domain) seen.set(o.url, { url: o.url, domain, title: text(o.title, 140) });
+    }
+    Object.values(o).forEach(walk);
+  };
+  // The answer's citations: the top-level sources plus those inside its paragraphs. search_results are search hits
+  // the answer may never cite (12 of 16 on the first real read were US WSJ pages), so they are skipped.
+  walk(r.sources);
+  walk(r.items);
+  return { answer: typeof r.markdown === "string" ? r.markdown : "", sources: [...seen.values()], checkUrl: typeof r.check_url === "string" ? r.check_url : null };
+}
+
+/** A name of 3 or more letters inside the answer, case blind. A blank name is never "in" anything. */
+export function namedIn(answer: string, name: string): boolean {
+  const n = name.trim().toLowerCase();
+  return n.length >= 3 && answer.toLowerCase().includes(n);
+}
+
+/** MIA GEO's four positions. Cited: a page on the adviser's own site is a source. */
+export function position(answer: string, sources: Source[], host: string, name: string, judged: "passing" | "named" | null): Position {
+  if (host && sources.some((s) => { const h = hostOf(s.url); return h === host || h.endsWith(`.${host}`); })) return "cited";
+  if (!namedIn(answer, name)) return "not-mentioned";
+  return judged ?? "named";
+}
+
+export function geoAsk(name: string, answer: string): Ask {
+  return {
+    state: { name, answer: answer.slice(0, 6000) },
+    questions: {
+      how: {
+        type: "choice",
+        instructions: "How does the AI `answer` treat `name`?",
+        criteria: { passing: "Named in a list or aside with nothing said about them", named: "Carried in the body of the answer: described, recommended or reasoned about" },
+      },
+    },
+  };
+}
+
+export const geoJudged = (answers: Record<string, JevAnswer> | null) => choiceOf(answers, "how", ["passing", "named"] as const);
+
+export function postAsk(i: CheckInput, p: MarketPost): Ask {
+  return {
+    state: { serves: i.audience, topics: i.topics.join(", "), competitor: `@${p.handle}`, post: p.caption },
+    questions: {
+      tag: {
+        type: "choice",
+        instructions: "This post by `competitor` did better than their usual posts. Should the adviser make their own post on its angle this week for the people they serve?",
+        criteria: TAG_CRITERIA,
+      },
+    },
+  };
+}
+
+export const judgePost = (p: MarketPost, answers: Record<string, JevAnswer> | null): JudgedPost => ({ ...p, tag: choiceOf(answers, "tag", TAGS) ?? "watch" });
+
+export const SUGGEST_FORMAT = {
+  type: "json_schema",
+  json_schema: {
+    name: "market_setup",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["keywords", "questions"],
+      properties: { keywords: { type: "array", items: { type: "string" } }, questions: { type: "array", items: { type: "string" } } },
+    },
+  },
+};
+
+export function suggestMessages(s: { name: string; audience: string; topics: string[]; siteText: string }) {
+  const user = [
+    `Adviser: ${s.name || "not given"}`,
+    `Who they serve: ${s.audience}`,
+    s.topics.length ? `Topics they post about: ${s.topics.join(", ")}` : "",
+    s.siteText ? `Their website says: ${s.siteText}` : "",
+    "",
+    "keywords: 8 short news search terms (1 to 3 words) for Singapore news these people would care about this month: a scheme, a rule, a product type or a life event.",
+    "questions: 8 questions these people would type into ChatGPT when they want help with their money or are looking for an adviser, in their own words, each under 15 words.",
+  ];
+  return [
+    { role: "system", content: "You help a financial adviser in Singapore watch their market. Answer in JSON only." },
+    { role: "user", content: user.filter((l, k) => l || k === 4).join("\n") },
+  ];
+}
+
+export function parseSuggest(content: unknown): { keywords: string[]; questions: string[] } {
+  try {
+    const o = JSON.parse(String(content));
+    return { keywords: cleanTerms(o?.keywords), questions: cleanQuestions(o?.questions, MAX_CANDIDATES) };
+  } catch {
+    return { keywords: [], questions: [] };
+  }
+}
+
+export function keepAsk(kind: "keyword" | "question", audience: string, value: string): Ask {
+  const instructions = kind === "keyword"
+    ? "Would the people `serves` in `country` care about Singapore news on `keyword`?"
+    : "Would one of the people `serves` in `country` ask an AI assistant `question`?";
+  return { state: { serves: audience, country: COUNTRY, [kind]: value }, questions: { keep: { type: "noul", instructions } } };
+}
+
+/** Jev's best `max` at or above 0.5; the LLM's own first `max` when Jev answered none. */
+export function keepTop(values: string[], scores: (number | null)[], max = 5): string[] {
+  if (scores.every((s) => s === null)) return values.slice(0, max);
+  return values
+    .map((v, k) => ({ v, s: scores[k] ?? 0 }))
+    .filter((x) => x.s >= RELEVANT_AT)
+    .sort((a, b) => b.s - a.s)
+    .slice(0, max)
+    .map((x) => x.v);
+}
+
+export function htmlText(html: string, max = 3000): string {
+  const bare = html.replace(/<(script|style|noscript|svg)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ");
+  return decode(bare).replace(/\s+/g, " ").trim().slice(0, max);
+}
