@@ -5,7 +5,7 @@
 import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { cleanKeywords, searchTerm, type Mention } from "../mentions/logic.ts";
-import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal, type UsageClient } from "../_shared/usageCaps.ts";
+import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal, type UsageClient, type UsageFeature } from "../_shared/usageCaps.ts";
 
 export const MAX_QUESTIONS = 5;
 export const MAX_POSTS = 10;
@@ -39,7 +39,17 @@ export const TAGS = ["act", "watch"] as const;
 export type Tag = (typeof TAGS)[number];
 
 export interface MarketPost { id: string; url: string; handle: string; caption: string }
-export interface CheckInput { name: string; site: string; audience: string; topics: string[]; questions: string[]; keywords: string[]; posts: MarketPost[] }
+export interface CheckInput {
+  /** The brand profile the check is for ("me" is the account's default); each has its own week. */
+  profile: string;
+  name: string;
+  site: string;
+  audience: string;
+  topics: string[];
+  questions: string[];
+  keywords: string[];
+  posts: MarketPost[];
+}
 export interface NewsItem { keyword: string; title: string; url: string; source: string; date: string; snippet: string }
 export interface JudgedNews extends NewsItem {
   /** null: Jev could not judge it, so it stays visible as Watch. */
@@ -136,6 +146,8 @@ export function cleanPosts(raw: unknown): MarketPost[] {
 export function cleanInput(raw: unknown): CheckInput {
   const b = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   return {
+    // the same shape profiles.ts gives ids (and notify accepts); anything else is the default profile
+    profile: typeof b.profile === "string" && /^[a-z0-9]{1,40}$/.test(b.profile) ? b.profile : "me",
     name: text(b.name, 80),
     site: siteScope(b.site),
     audience: text(b.audience, 300),
@@ -161,19 +173,49 @@ export function paidPartsFailed(i: CheckInput, newsFailed: boolean, geo: GeoRead
 
 export const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
 
+/** Checks an account may run in any 7 days across its brand profiles, so made-up profile ids can't buy more. */
+export const ACCOUNT_WEEK = 3;
+/** The usage counter of one profile's check (cs_ai_usage.feature is free text; the account's own is "market-check"). */
+export const profileFeature = (profile: string) => `market-check:${profile}`;
+
+/** The account's checks over today and the 6 days before: closed at ACCOUNT_WEEK, opening 7 days after the oldest. */
+export function accountGate(rows: unknown, now: Date, max = ACCOUNT_WEEK): { open: true } | { open: false; nextDay: string } {
+  const days = new Set([utcDay(now.getTime()), ...earlierWeekDays(now)]);
+  const used = (Array.isArray(rows) ? rows : [])
+    .filter((r): r is { day: string; count: number } => typeof r?.day === "string" && typeof r?.count === "number")
+    .filter((r) => days.has(r.day) && r.count > 0);
+  if (used.reduce((s, r) => s + r.count, 0) < max) return { open: true };
+  const oldest = used.map((r) => r.day).sort()[0];
+  return { open: false, nextDay: utcDay(Date.parse(`${oldest}T00:00:00Z`) + 7 * DAY_MS) };
+}
+
 /**
- * This week's slot: the adviser's own cap first, so someone who has already checked can't use up the studio's;
- * the studio's 20 a day next, giving the adviser's slot back when those are gone so they don't lose the week.
+ * This week's slots, each atomic: the profile's own (one a day here; its 6-day read happens before), then the
+ * account's (ACCOUNT_WEEK a day), then the studio's 20 a day. A refusal gives back the slots already taken, so nobody
+ * loses a week to a cap further down.
  */
-export async function takeSlots(admin: UsageClient, uid: string, today: string): Promise<{ ok: true } | { ok: false; status: number; body: Record<string, unknown> }> {
-  const mine = await consumeUsage(admin, uid, "market-check");
-  if (mine.allowed === false) {
-    if (mine.reason === "limit") return { ok: false, ...weeklyRefusal(utcDay(Date.parse(`${today}T00:00:00Z`) + 7 * DAY_MS)) };
-    return { ok: false, ...usageRefusal(mine) };
+export async function takeSlots(admin: UsageClient, uid: string, profile: string, today: string): Promise<{ ok: true } | { ok: false; status: number; body: Record<string, unknown> }> {
+  const next = utcDay(Date.parse(`${today}T00:00:00Z`) + 7 * DAY_MS);
+  // refundUsage only matches on the feature text, so a profile's free-text key is safe to pass through it
+  const giveBackProfile = () => refundUsage(admin, uid, profileFeature(profile) as UsageFeature, today);
+  let mine: unknown;
+  try {
+    const { data, error } = await admin.rpc("cs_consume_ai_usage", { p_user: uid, p_feature: profileFeature(profile), p_limit: 1 });
+    if (error) return { ok: false, ...usageRefusal({ allowed: false, limit: 1, reason: "unavailable" }) };
+    mine = data;
+  } catch {
+    return { ok: false, ...usageRefusal({ allowed: false, limit: 1, reason: "unavailable" }) };
+  }
+  if (typeof mine !== "number") return { ok: false, ...weeklyRefusal(next) };
+  const account = await consumeUsage(admin, uid, "market-check");
+  if (account.allowed === false) {
+    await giveBackProfile();
+    return account.reason === "limit" ? { ok: false, ...accountRefusal(next) } : { ok: false, ...usageRefusal(account) };
   }
   const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "market-check-global");
   if (everyone.allowed === true) return { ok: true };
   await refundUsage(admin, uid, "market-check", today);
+  await giveBackProfile();
   return everyone.reason === "limit"
     ? { ok: false, status: 429, body: { code: "daily_limit", error: "Today's market checks for the whole studio are used up. Try again after 8am Singapore time." } }
     : { ok: false, ...usageRefusal(everyone) };
@@ -181,7 +223,12 @@ export async function takeSlots(admin: UsageClient, uid: string, today: string):
 
 export const weeklyRefusal = (nextDay: string) => ({
   status: 429,
-  body: { code: "weekly_limit", nextDay, error: `You've had this week's check. The next one opens ${dayWords(nextDay)} at 8am.` },
+  body: { code: "weekly_limit", nextDay, error: `This profile has had its check this week. The next one opens ${dayWords(nextDay)} at 8am.` },
+});
+
+export const accountRefusal = (nextDay: string) => ({
+  status: 429,
+  body: { code: "account_limit", nextDay, error: `Your account has had its ${ACCOUNT_WEEK} checks this week. The next one opens ${dayWords(nextDay)} at 8am.` },
 });
 
 /** The 6 UTC days before today. cs_ai_usage counts on UTC dates, which start at 8am in Singapore. */

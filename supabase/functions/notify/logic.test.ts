@@ -535,13 +535,14 @@ describe("marketAlert: the weekly Your market reminder", () => {
     expect(marketAlert(withMarket(market()), MON_9AM, false)).toBeNull();
   });
 
-  it("counts the account's latest check across profiles, since the week's check is shared", () => {
-    const data = {
+  it("goes when any set-up profile's week is open, since each profile has its own check", () => {
+    const two = (me: object[], mb: object[]) => profilesFrom(UID, {
       [`content-studio-profiles-${UID}`]: JSON.stringify([{ id: "me", name: "Me" }, { id: "mb", name: "MoneyBees" }]),
-      [`content-studio-market-${UID}`]: market(),
-      [`content-studio-market-${UID}~mb`]: market([digest("2026-10-09T02:00:00Z")]),
-    };
-    expect(marketAlert(profilesFrom(UID, data), MON_9AM, true)).toBeNull();
+      [`content-studio-market-${UID}`]: market(me),
+      [`content-studio-market-${UID}~mb`]: market(mb),
+    });
+    expect(marketAlert(two([], [digest("2026-10-09T02:00:00Z")]), MON_9AM, true)?.item).toBe("market:2026-10-12");
+    expect(marketAlert(two([digest("2026-10-10T02:00:00Z")], [digest("2026-10-09T02:00:00Z")]), MON_9AM, true)).toBeNull();
   });
 });
 
@@ -550,7 +551,7 @@ describe("the Monday email's Your market line", () => {
   const ready = profilesFrom(UID, { [`content-studio-market-${UID}`]: JSON.stringify({ audience: "Young families", questions: ["Is CPF enough for us?"], checks: [] }) });
   const usedThisWeek = profilesFrom(UID, { [`content-studio-market-${UID}`]: JSON.stringify({ audience: "Young families", questions: ["Is CPF enough for us?"], checks: [{ checkedAt: "2026-10-09T02:00:00Z", news: [], geo: [], posts: [] }] }) });
 
-  it("is open for an allowed, set-up account whose week is unused, whatever the hour", () => {
+  it("is open for an allowed account with a set-up profile whose week is unused, whatever the hour", () => {
     expect(marketOpen(ready, MON_8AM_SG, true)).toBe(true);
     expect(marketOpen(usedThisWeek, MON_8AM_SG, true)).toBe(false);
     expect(marketOpen(ready, MON_8AM_SG, false)).toBe(false);

@@ -73,14 +73,16 @@ describe("a digest synced from an older or newer app", () => {
 });
 
 describe("what the page says about the week", () => {
-  const job = (code = "weekly_limit") => ({ state: "failed" as const, startedAt: 0, error: "You've had this week's check. The next one opens Thu 22 Oct at 8am.", code });
+  const job = (code = "weekly_limit", error = "This profile has had its check this week. The next one opens Thu 22 Oct at 8am.") => ({ state: "failed" as const, startedAt: 0, error, code });
   const at = new Date("2026-10-16T03:00:00Z");
   it("explains a refused check when no result reached this page", () => {
-    expect(m.weekNote(m.EMPTY_MARKET, job(), at)).toBe("You've had this week's check. The next one opens Thu 22 Oct at 8am. Its result is on another profile, or was lost when a page closed mid-check.");
+    expect(m.weekNote(m.EMPTY_MARKET, job(), at)).toBe("This profile has had its check this week. The next one opens Thu 22 Oct at 8am. Its result hasn't reached this page: it may still be syncing from another device, or a page closed mid-check.");
   });
   it("repeats the server's words when this page has the week's result", () => {
     const s = { ...m.EMPTY_MARKET, checks: [digest("2026-10-15T01:00:00Z")] };
-    expect(m.weekNote(s, job(), at)).toBe("You've had this week's check. The next one opens Thu 22 Oct at 8am.");
+    expect(m.weekNote(s, job(), at)).toBe("This profile has had its check this week. The next one opens Thu 22 Oct at 8am.");
+    const account = "Your account has had its 3 checks this week. The next one opens Sat 17 Oct at 8am.";
+    expect(m.weekNote(m.EMPTY_MARKET, job("account_limit", account), at)).toBe(account);
   });
   it("says when the next check opens, or nothing", () => {
     const s = { ...m.EMPTY_MARKET, checks: [digest("2026-10-15T01:00:00Z")] };
@@ -225,7 +227,7 @@ describe("the check job", () => {
     const off = m.onMarketJob((j) => seen.push(j?.state));
     await m.runMarketCheck("u1");
     off();
-    expect(callFn).toHaveBeenCalledWith("market", expect.objectContaining({ action: "check", name: "Leo", audience: "young families", questions: ["Is CPF enough for me?"], keywords: ["CPF"], posts: [] }), expect.any(String));
+    expect(callFn).toHaveBeenCalledWith("market", expect.objectContaining({ action: "check", profile: "me", name: "Leo", audience: "young families", questions: ["Is CPF enough for me?"], keywords: ["CPF"], posts: [] }), expect.any(String));
     expect(seen).toEqual(["running", "done"]);
     expect(m.loadMarket("u1").checks).toHaveLength(1);
   });

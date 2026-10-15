@@ -401,12 +401,12 @@ export function goalAlert(profiles: Profile[], now: number): { item: string; mes
   };
 }
 
-/** An allowed account with Your market set up whose week's check is unused (the check is one a week per account). */
+/** An allowed account with a set-up profile whose own week's check is unused (each brand profile has one a week). */
 export function marketOpen(profiles: Profile[], now: number, enabled: boolean): boolean {
-  if (!enabled || !profiles.some((p) => p.market?.ready)) return false;
-  const last = profiles.map((p) => p.market?.lastCheck ?? "").filter(Boolean).sort().pop();
-  // the server opens a week 7 UTC days after the last check's UTC day (market/logic.ts weekGate)
-  return !last || now >= Date.parse(`${last.slice(0, 10)}T00:00:00Z`) + 7 * 86_400_000;
+  if (!enabled) return false;
+  // the server opens a profile's week 7 UTC days after its last check's UTC day (market/logic.ts weekGate)
+  const open = (last: string | null) => !last || now >= Date.parse(`${last.slice(0, 10)}T00:00:00Z`) + 7 * 86_400_000;
+  return profiles.some((p) => p.market?.ready && open(p.market.lastCheck));
 }
 
 /**

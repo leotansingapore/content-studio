@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
-  answerGist, citesSite, isAllowed, judgeNews, newsAsk, newsTask, shownNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
+  accountGate, answerGist, citesSite, isAllowed, judgeNews, newsAsk, newsTask, shownNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
   sameStoryAsk, sameStoryOf, shortlistAct, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
 import type { UsageClient } from "../_shared/usageCaps";
@@ -60,6 +60,13 @@ describe("cleaning what the browser sends", () => {
     expect(cleanPosts(Array.from({ length: 12 }, (_, k) => ({ ...ok, id: String(k) })))).toHaveLength(10);
   });
 
+  it("takes the brand profile the check is for, the default one when it is missing or malformed", () => {
+    expect(cleanInput({ profile: "mb7" }).profile).toBe("mb7");
+    expect(cleanInput({}).profile).toBe("me");
+    expect(cleanInput({ profile: "../x" }).profile).toBe("me");
+    expect(cleanInput({ profile: "A".repeat(41) }).profile).toBe("me");
+  });
+
   it("needs who they serve and at least one thing to check", () => {
     expect(checkProblem(cleanInput({ questions: ["How much insurance do I need?"] }))).toMatch(/who you serve/);
     expect(checkProblem(cleanInput({ audience: "young families" }))).toMatch(/question or a news topic/);
@@ -83,6 +90,13 @@ describe("one check a week", () => {
     expect(weekGate([{ day: "2026-10-12", count: 0 }], now)).toEqual({ open: true });
     expect(weekGate([{ day: 5 }, null], now)).toEqual({ open: true });
     expect(weekGate(null, now)).toEqual({ open: true });
+  });
+
+  it("lets an account run 3 checks in any 7 days, counting today", () => {
+    expect(accountGate([{ day: "2026-10-15", count: 1 }, { day: "2026-10-10", count: 1 }], now)).toEqual({ open: true });
+    expect(accountGate([{ day: "2026-10-15", count: 1 }, { day: "2026-10-12", count: 1 }, { day: "2026-10-10", count: 1 }], now)).toEqual({ open: false, nextDay: "2026-10-17" });
+    expect(accountGate([{ day: "2026-10-08", count: 3 }], now)).toEqual({ open: true });
+    expect(accountGate(null, now)).toEqual({ open: true });
   });
 
   it("says the day in words", () => {
@@ -307,24 +321,34 @@ describe("taking this week's slot", () => {
   }
   const OWNER = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
 
-  it("takes the adviser's slot, then the studio's", async () => {
+  it("takes the profile's slot, the account's and the studio's", async () => {
     const u = usage();
-    expect(await takeSlots(u.client, "u1", "2026-10-15")).toEqual({ ok: true });
+    expect(await takeSlots(u.client, "u1", "mb", "2026-10-15")).toEqual({ ok: true });
+    expect(u.rows.get("u1|market-check:mb")).toBe(1);
     expect(u.rows.get("u1|market-check")).toBe(1);
     expect(u.rows.get(`${OWNER}|market-check-global`)).toBe(1);
   });
 
-  it("refuses a second check the same day without touching the studio's count", async () => {
-    const u = usage({ "u1|market-check": 1, [`${OWNER}|market-check-global`]: 1 });
-    const r = await takeSlots(u.client, "u1", "2026-10-15");
+  it("refuses a profile's second check the same day without touching the account's or the studio's", async () => {
+    const u = usage({ "u1|market-check:me": 1, "u1|market-check": 1, [`${OWNER}|market-check-global`]: 1 });
+    const r = await takeSlots(u.client, "u1", "me", "2026-10-15");
     expect(r).toMatchObject({ ok: false, status: 429, body: { code: "weekly_limit", nextDay: "2026-10-22" } });
+    expect(u.rows.get("u1|market-check")).toBe(1);
     expect(u.rows.get(`${OWNER}|market-check-global`)).toBe(1);
   });
 
-  it("gives the adviser's slot back when the studio's are used up", async () => {
+  it("refuses a fourth profile the same day and gives its slot back", async () => {
+    const u = usage({ "u1|market-check": 3 });
+    const r = await takeSlots(u.client, "u1", "x4", "2026-10-15");
+    expect(r).toMatchObject({ ok: false, status: 429, body: { code: "account_limit" } });
+    expect(u.rows.get("u1|market-check:x4")).toBe(0);
+  });
+
+  it("gives the profile's and the account's slots back when the studio's are used up", async () => {
     const u = usage({ [`${OWNER}|market-check-global`]: 20 });
-    const r = await takeSlots(u.client, "u1", "2026-10-15");
+    const r = await takeSlots(u.client, "u1", "me", "2026-10-15");
     expect(r).toMatchObject({ ok: false, status: 429, body: { code: "daily_limit" } });
+    expect(u.rows.get("u1|market-check:me")).toBe(0);
     expect(u.rows.get("u1|market-check")).toBe(0);
   });
 });

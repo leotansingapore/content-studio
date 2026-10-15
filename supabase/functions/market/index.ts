@@ -11,10 +11,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
-import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal, type UsageFeature } from "../_shared/usageCaps.ts";
 import { parseNews } from "../mentions/logic.ts";
 import {
-  type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, answerGist, checkProblem, cleanInput, earlierWeekDays,
+  type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, accountGate, accountRefusal, answerGist, checkProblem, cleanInput,
+  earlierWeekDays, profileFeature,
   foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsFailed, newsItems, newsTask, paidPartsFailed,
   parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, shortlistAct, shownNews, SUGGEST_FORMAT, suggestMessages, takeSlots,
   utcDay,
@@ -127,15 +128,21 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
 
   const now = new Date();
   const today = utcDay(now.getTime());
-  const { data: rows, error } = await admin.from("cs_ai_usage").select("day,count").eq("user_id", uid).eq("feature", "market-check").in("day", earlierWeekDays(now));
+  const usage = (feature: string, days: string[]) => admin.from("cs_ai_usage").select("day,count").eq("user_id", uid).eq("feature", feature).in("day", days);
+  const [profileWeek, accountWeek] = await Promise.all([usage(profileFeature(input.profile), earlierWeekDays(now)), usage("market-check", [today, ...earlierWeekDays(now)])]);
   // Fail closed: these checks cost money, so an unreadable counter blocks them.
-  if (error) return json({ code: "usage_unavailable", error: "This is unavailable for a moment. Try again shortly." }, 503);
-  const gate = weekGate(rows, now);
+  if (profileWeek.error || accountWeek.error) return json({ code: "usage_unavailable", error: "This is unavailable for a moment. Try again shortly." }, 503);
+  const gate = weekGate(profileWeek.data, now);
   if (!gate.open) {
     const r = weeklyRefusal(gate.nextDay);
     return json(r.body, r.status);
   }
-  const slot = await takeSlots(admin, uid, today);
+  const account = accountGate(accountWeek.data, now);
+  if (!account.open) {
+    const r = accountRefusal(account.nextDay);
+    return json(r.body, r.status);
+  }
+  const slot = await takeSlots(admin, uid, input.profile, today);
   if (!slot.ok) return json(slot.body, slot.status);
 
   const auth = `Basic ${btoa(`${login}:${password}`)}`;
@@ -145,6 +152,7 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
     pool(input.posts, 10, async (p) => judgePost(p, await jev(postAsk(input, p), "market post"))),
   ]);
   if (paidPartsFailed(input, news === null, geo)) {
+    await refundUsage(admin, uid, profileFeature(input.profile) as UsageFeature, today);
     await refundUsage(admin, uid, "market-check", today);
     await refundUsage(admin, GLOBAL_COUNTER_USER, "market-check-global", today);
     return json({ error: "Couldn't reach the news or the AI answers. This check wasn't counted; try again in a few minutes." }, 502);

@@ -7,7 +7,7 @@ import { callFn, EdgeError } from "@/lib/edgeFn";
 import { storyWriteUrl } from "@/lib/feeds";
 import { loadFollowing, type FollowedAccount } from "@/lib/following";
 import { loadWatch } from "@/lib/mentions";
-import { scoped } from "@/lib/profiles";
+import { activeProfileId, scoped } from "@/lib/profiles";
 import { dayWords, type GeoRead, type JudgedNews, type JudgedPost, type MarketDigest, type MarketPost, type Position } from "../../supabase/functions/market/logic.ts";
 
 export type { GeoRead, JudgedNews, JudgedPost, MarketDigest, Position };
@@ -200,13 +200,15 @@ export function nextCheckDay(s: MarketState, now = new Date()): string | null {
 }
 
 /**
- * The line beside the check button. A weekly refusal with no result on this page in the last 7 days means the check
- * ran on another profile (the cap is per account) or its page closed mid-check; say so instead of looking broken.
+ * The line beside the check button. Each profile has its own week, so a weekly refusal with no result here in the
+ * last 7 days means it ran from another device (still syncing) or its page closed mid-check; say so instead of
+ * looking broken. The account's 3-a-week limit speaks for itself.
  */
 export function weekNote(s: MarketState, job: MarketJob | null, now = new Date()): string {
+  if (job?.state === "failed" && job.code === "account_limit") return job.error ?? "";
   if (job?.state === "failed" && job.code === "weekly_limit") {
     const recent = s.checks.some((c) => now.getTime() - Date.parse(c.checkedAt) < 7 * DAY_MS);
-    return recent ? job.error ?? "" : `${job.error} Its result is on another profile, or was lost when a page closed mid-check.`;
+    return recent ? job.error ?? "" : `${job.error} Its result hasn't reached this page: it may still be syncing from another device, or a page closed mid-check.`;
   }
   const next = nextCheckDay(s, now);
   return next ? `Next check opens ${dayWords(next)} at 8am.` : "";
@@ -279,7 +281,7 @@ export async function runMarketCheck(userId: string): Promise<void> {
     const s = loadMarket(userId);
     const digest = await callFn<MarketDigest>(
       "market",
-      { action: "check", name: s.name, site: s.site, audience: s.audience, topics: s.topics, questions: s.questions, keywords: loadWatch(userId), posts: outperformers(loadFollowing(userId)) },
+      { action: "check", profile: activeProfileId(userId), name: s.name, site: s.site, audience: s.audience, topics: s.topics, questions: s.questions, keywords: loadWatch(userId), posts: outperformers(loadFollowing(userId)) },
       "Couldn't check your market. Try again in a minute.",
     );
     const latest = loadMarket(userId); // read again: the set-up may have changed while it ran

@@ -15,6 +15,7 @@ Dismiss hides an item for good. Writing from an item marks it Written.
 ## Limits (approved)
 
 - Leo only: server allow-list `MARKET_USERS` (user ids separated by commas, or `*`), same shape as `SOCIAL_CONNECT_USERS`. Off for everyone else, nav entry hidden.
+- (Changed 2026-10-15, after launch: one check a week per brand profile, at most 3 a week per account, so an owner of several brands can check each; counted in `market-check:<profile>` rows plus the account's `market-check` row read over 7 days. The original rule follows.)
 - One check a week per adviser, up to 5 questions: about USD 0.02 a check (USD 0.004 a read, measured on the AT run 2026-10-15). Enforced on the server: refuse when any `cs_ai_usage` row for `market-check` exists in the 6 UTC days before today, then `consumeUsage(market-check)` with a daily limit of 1 (atomic, so same-day races fail too). Plus `market-check-global` 20 a day on `GLOBAL_COUNTER_USER`.
 - Set-up suggestions: `market-suggest` 5 a day.
 - No new tables, no migration, no new dependency, no cron.
