@@ -158,6 +158,36 @@ describe("links into Write", () => {
   });
 });
 
+describe("this pass's fields survive sync", () => {
+  it("keeps who the answer recommends and Jev's act score", () => {
+    m.saveMarket("u1", { ...m.EMPTY_MARKET, checks: [digest("2026-10-15T00:00:00Z", [n("https://a.sg/1", { actScore: 0.8 })], [{ ...g("Is CPF enough for me?", "not-mentioned"), named: ["Providend", 5 as unknown as string] }])] });
+    const c = m.loadMarket("u1").checks[0];
+    expect(c.news[0].actScore).toBe(0.8);
+    expect(c.geo[0].named).toEqual(["Providend"]);
+  });
+});
+
+describe("news by topic", () => {
+  it("groups stories under each topic in the order they came, with picking-up topics first", () => {
+    const items = [n("https://a.sg/1", { keyword: "HDB" }), n("https://a.sg/2", { keyword: "CPF" }), n("https://a.sg/3", { keyword: "HDB" })];
+    expect(m.newsByTopic(items, []).map((t) => [t.keyword, t.items.length])).toEqual([["HDB", 2], ["CPF", 1]]);
+    expect(m.newsByTopic(items, ["CPF"]).map((t) => t.keyword)).toEqual(["CPF", "HDB"]);
+  });
+});
+
+describe("dismissing a client question", () => {
+  it("hides it and stops asking it next week; undo puts both back in place", () => {
+    const q = g("Is CPF enough for me?", "not-mentioned");
+    const s = { ...m.EMPTY_MARKET, questions: ["First question here?", "Is CPF enough for me?", "Last question here?"] };
+    const off = m.dismissQuestion(s, q, true);
+    expect(off.questions).toEqual(["First question here?", "Last question here?"]);
+    expect(off.dismissed).toContain(m.geoKey(q));
+    const back = m.dismissQuestion(off, q, false, 1);
+    expect(back.questions).toEqual(s.questions);
+    expect(back.dismissed).not.toContain(m.geoKey(q));
+  });
+});
+
 describe("sources", () => {
   it("lists each site once, in the answer's order", () => {
     const x: GeoRead = { question: "How much CPF can I use?", position: "not-mentioned", checkUrl: null, sources: ["https://cpf.gov.sg/a", "https://cpf.gov.sg/b", "https://hdb.gov.sg/c"].map((url) => ({ url, domain: new URL(url).hostname, title: "" })) };

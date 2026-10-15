@@ -60,11 +60,13 @@ function cleanDigest(c: unknown): MarketDigest | null {
     news: list(c.news).filter((x) => strs(x, "url", "title", "keyword", "source")).map((x) => ({
       keyword: x.keyword as string, title: x.title as string, url: x.url as string, source: x.source as string, date: str(x.date), snippet: str(x.snippet),
       relevant: typeof x.relevant === "boolean" ? x.relevant : null, tag: tagOf(x.tag), ...(typeof x.sameAs === "string" ? { sameAs: x.sameAs } : {}),
+      ...(typeof x.actScore === "number" && Number.isFinite(x.actScore) ? { actScore: x.actScore } : {}),
     })),
     geo: list(c.geo).filter((x) => strs(x, "question") && Array.isArray(x.sources)).map((x) => ({
       question: x.question as string,
       position: POSITIONS.includes(x.position as Position) ? (x.position as Position) : null,
       sources: (x.sources as unknown[]).filter(obj).filter((o) => strs(o, "url", "domain")).map((o) => ({ url: o.url as string, domain: o.domain as string, title: str(o.title) })),
+      ...(Array.isArray(x.named) ? { named: x.named.filter((t): t is string => typeof t === "string") } : {}),
       checkUrl: typeof x.checkUrl === "string" ? x.checkUrl : null,
       ...(typeof x.error === "string" ? { error: x.error } : {}),
     })),
@@ -143,6 +145,25 @@ export function outperformers(accounts: FollowedAccount[], max = 10): MarketPost
 export const visibleNews = (d: MarketDigest, s: MarketState, show: Show) =>
   d.news.filter((x) => x.relevant !== false && !x.sameAs && !s.dismissed.includes(newsKey(x)) && (show === "all" || x.tag === "act"));
 export const alsoReported = (d: MarketDigest, x: JudgedNews) => d.news.filter((o) => o.sameAs === x.url);
+
+/** Stories under their topic, in the order they came; topics picking up go first. */
+export function newsByTopic(items: JudgedNews[], rising: string[]): { keyword: string; items: JudgedNews[] }[] {
+  const groups = new Map<string, JudgedNews[]>();
+  for (const x of items) groups.set(x.keyword, [...(groups.get(x.keyword) ?? []), x]);
+  const all = [...groups].map(([keyword, list]) => ({ keyword, items: list }));
+  return [...all.filter((t) => rising.includes(t.keyword)), ...all.filter((t) => !rising.includes(t.keyword))];
+}
+
+/**
+ * Dismissing a client question hides this week's answer and stops asking it (each read is paid every week);
+ * undo puts the question back where it was.
+ */
+export function dismissQuestion(s: MarketState, x: GeoRead, on: boolean, at = s.questions.length): MarketState {
+  const key = geoKey(x);
+  const rest = s.questions.filter((q) => q.toLowerCase() !== x.question.toLowerCase());
+  const questions = on ? rest : [...rest.slice(0, at), x.question, ...rest.slice(at)].slice(0, 5);
+  return { ...s, questions, dismissed: withKey(s.dismissed, key, on) };
+}
 export const visibleGeo = (d: MarketDigest, s: MarketState, show: Show) =>
   d.geo.filter((x) => !s.dismissed.includes(geoKey(x)) && (show === "all" || x.position === "not-mentioned" || x.position === "passing"));
 export const visiblePosts = (d: MarketDigest, s: MarketState, show: Show) =>

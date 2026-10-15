@@ -16,9 +16,10 @@ import { useToast } from "@/hooks/use-toast";
 import { loadBrand } from "@/lib/carousel";
 import {
   EMPTY_MARKET, POSITION_LABEL, actCount, alsoReported, geoKey, geoWriteUrl, loadMarket, marketJob, newsKey, newsWriteUrl, nextCheckDay,
-  onMarketJob, pickingUp, postKey, postWriteUrl, runMarketCheck, saveMarket, suggestSetup, siteList, visibleGeo, visibleNews, visiblePosts,
-  weekNote, withKey, type MarketState, type Show,
+  dismissQuestion, newsByTopic, onMarketJob, pickingUp, postKey, postWriteUrl, runMarketCheck, saveMarket, suggestSetup, siteList, visibleGeo, visibleNews, visiblePosts,
+  weekNote, withKey, type GeoRead, type MarketState, type Show,
 } from "@/lib/market";
+import { loadFollowing } from "@/lib/following";
 import { MAX_WATCH, loadWatch, saveWatch } from "@/lib/mentions";
 import { loadPositioning } from "@/lib/positioning";
 import { supabase } from "@/lib/supabase";
@@ -77,9 +78,9 @@ function SetupForm({ uid, state, onSaved }: { uid: string; state: MarketState; o
       setSuggesting(false);
     }
   };
-  const add = (list: string[], set: (l: string[]) => void, draft: string, clear: () => void, max: number) => {
+  const add = (list: string[], set: (l: string[]) => void, draft: string, clear: () => void, max: number, min: number) => {
     const t = draft.replace(/\s+/g, " ").trim();
-    if (t.length < 2 || list.length >= max || list.some((x) => x.toLowerCase() === t.toLowerCase())) return;
+    if (t.length < min || list.length >= max || list.some((x) => x.toLowerCase() === t.toLowerCase())) return;
     set([...list, t]);
     clear();
   };
@@ -123,7 +124,8 @@ function SetupForm({ uid, state, onSaved }: { uid: string; state: MarketState; o
         draft={kwDraft}
         setDraft={setKwDraft}
         placeholder="CPF LIFE"
-        onAdd={() => add(keywords, setKeywords, kwDraft, () => setKwDraft(""), MAX_WATCH)}
+        onAdd={() => add(keywords, setKeywords, kwDraft, () => setKwDraft(""), MAX_WATCH, 2)}
+        min={2}
         full={keywords.length >= MAX_WATCH}
       />
       <ListField
@@ -134,7 +136,8 @@ function SetupForm({ uid, state, onSaved }: { uid: string; state: MarketState; o
         draft={qDraft}
         setDraft={setQDraft}
         placeholder="How much insurance does a young family need in Singapore?"
-        onAdd={() => add(questions, setQuestions, qDraft, () => setQDraft(""), 5)}
+        onAdd={() => add(questions, setQuestions, qDraft, () => setQDraft(""), 5, 8)}
+        min={8}
         full={questions.length >= 5}
       />
       <p className="text-sm text-muted-foreground">
@@ -151,7 +154,10 @@ function SetupForm({ uid, state, onSaved }: { uid: string; state: MarketState; o
 function ListField(props: {
   title: string; tip: string; items: string[]; onRemove: (v: string) => void; draft: string; setDraft: (v: string) => void;
   placeholder: string; onAdd: () => void; full: boolean;
+  /** Shortest entry the server keeps: 8 letters for a question, 2 for a topic. */
+  min: number;
 }) {
+  const tooShort = props.draft.trim().length < props.min;
   return (
     <section className="space-y-2">
       <h2 className="flex items-center gap-1.5 text-base font-medium">{props.title}<InfoTip>{props.tip}</InfoTip></h2>
@@ -168,7 +174,7 @@ function ListField(props: {
       {!props.full && (
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); props.onAdd(); }}>
           <Input value={props.draft} onChange={(e) => props.setDraft(e.target.value)} placeholder={props.placeholder} maxLength={160} aria-label={props.title} />
-          <Button type="submit" variant="outline" size="icon" className="h-10 w-10 shrink-0" aria-label="Add"><Plus className="h-4 w-4" /></Button>
+          <Button type="submit" variant="outline" size="icon" className="h-10 w-10 shrink-0" aria-label="Add" disabled={tooShort}><Plus className="h-4 w-4" /></Button>
         </form>
       )}
     </section>
@@ -211,6 +217,16 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
     update({ ...before, dismissed: withKey(before.dismissed, key, true) });
     toast({ title: "Hidden for good", action: <ToastAction altText="Undo" onClick={() => update({ ...loadMarket(uid), dismissed: withKey(loadMarket(uid).dismissed, key, false) })}>Undo</ToastAction> });
   };
+  const dismissAsked = (x: GeoRead) => {
+    const before = loadMarket(uid);
+    const at = before.questions.findIndex((q) => q.toLowerCase() === x.question.toLowerCase());
+    update(dismissQuestion(before, x, true));
+    toast({
+      title: "Hidden, and not asked again",
+      action: <ToastAction altText="Undo" onClick={() => update(dismissQuestion(loadMarket(uid), x, false, at < 0 ? undefined : at))}>Undo</ToastAction>,
+    });
+  };
+  const following = loadFollowing(uid).length;
   const wrote = (key: string) => update({ ...loadMarket(uid), written: withKey(loadMarket(uid).written, key, true) });
 
   const news = latest ? visibleNews(latest, state, show) : [];
@@ -255,20 +271,30 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
 
           {news.length > 0 && (
             <Section title="News on your topics">
-              {news.map((x) => {
-                const also = alsoReported(latest, x);
-                return (
-                  <Card key={x.url} label={x.title} tag={x.relevant === null ? "Not judged" : x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"}
-                    written={state.written.includes(newsKey(x))} writeUrl={newsWriteUrl(x)} writeLabel="Write a post from this"
-                    onWrite={() => wrote(newsKey(x))} onDismiss={() => dismiss(newsKey(x))}>
-                    <a href={x.url} target="_blank" rel="noreferrer" className="block py-1.5 font-medium hover:underline">{x.title}</a>
-                    <p className="text-sm text-muted-foreground">
-                      {x.source}{x.date ? `, ${x.date.slice(0, 10)}` : ""}, {x.keyword}{rising.includes(x.keyword) ? " (picking up)" : ""}
-                      {also.length > 0 && <>, also in {also.map((o) => o.source).join(", ")}</>}
-                    </p>
-                  </Card>
-                );
-              })}
+              {newsByTopic(news, rising).map((t) => (
+                <li key={t.keyword} className="space-y-3">
+                  <h3 className="flex flex-wrap items-center gap-2 text-sm font-medium text-muted-foreground">
+                    {t.keyword}, {t.items.length} {t.items.length === 1 ? "story" : "stories"}
+                    {rising.includes(t.keyword) && <span className="rounded-full border border-primary px-2 py-0.5 text-xs text-primary">Picking up</span>}
+                  </h3>
+                  <ul className="space-y-3">
+                    {t.items.map((x) => {
+                      const also = alsoReported(latest, x);
+                      return (
+                        <Card key={x.url} label={x.title} tag={x.relevant === null ? "Not judged" : x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"}
+                          written={state.written.includes(newsKey(x))} writeUrl={newsWriteUrl(x)} writeLabel="Write a post from this"
+                          onWrite={() => wrote(newsKey(x))} onDismiss={() => dismiss(newsKey(x))}>
+                          <a href={x.url} target="_blank" rel="noreferrer" className="block py-1.5 font-medium hover:underline">{x.title}</a>
+                          <p className="text-sm text-muted-foreground">
+                            {x.source}{x.date ? `, ${x.date.slice(0, 10)}` : ""}
+                            {also.length > 0 && <>, also in {also.map((o) => o.source).join(", ")}</>}
+                          </p>
+                        </Card>
+                      );
+                    })}
+                  </ul>
+                </li>
+              ))}
             </Section>
           )}
 
@@ -277,8 +303,11 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
               {geo.map((x) => (
                 <Card key={x.question} label={x.question} tag={x.position ? POSITION_LABEL[x.position] : "No answer"} act={x.position === "not-mentioned" || x.position === "passing"}
                   written={state.written.includes(geoKey(x))} writeUrl={x.error ? undefined : geoWriteUrl(x)} writeLabel="Write a post that answers this"
-                  onWrite={() => wrote(geoKey(x))} onDismiss={() => dismiss(geoKey(x))}>
+                  onWrite={() => wrote(geoKey(x))} onDismiss={() => dismissAsked(x)}>
                   <p className="font-medium">"{x.question}"</p>
+                  {!x.error && (x.named?.length ?? 0) > 0 && (
+                    <p className="text-sm">Recommended instead: {x.named!.slice(0, 5).join(", ")}</p>
+                  )}
                   {x.error ? <p className="text-sm text-muted-foreground">{x.error}</p> : x.sources.length > 0 && (
                     <p className="text-sm text-muted-foreground">
                       Sources it used:{" "}
@@ -290,6 +319,12 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
                 </Card>
               ))}
             </Section>
+          )}
+
+          {following === 0 && posts.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              <Link to="/following" className="underline underline-offset-2">Follow up to 5 competitor accounts</Link> to see their best posts here.
+            </p>
           )}
 
           {posts.length > 0 && (
