@@ -3,7 +3,7 @@ import fixture from "./fixtures/chatgpt-answer.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
   citesSite, isAllowed, judgeNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
-  sameStoryAsk, sameStoryOf, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
+  sameStoryAsk, sameStoryOf, shortlistAct, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
 import type { UsageClient } from "../_shared/usageCaps";
 
@@ -96,7 +96,7 @@ describe("news", () => {
       { title: "CPF changes", url: "https://www.straitstimes.com/a", source: "www.straitstimes.com", snippet: "", date: "2026-10-14" },
       { title: "", url: "https://x.com/b", source: "x", snippet: "", date: "" },
       { title: "Bad", url: "ftp://x.com/c", source: "x", snippet: "", date: "" },
-    ]);
+    ], NOW);
     expect(items).toEqual([{ keyword: "CPF", title: "CPF changes", url: "https://www.straitstimes.com/a", source: "straitstimes.com", date: "2026-10-14", snippet: "" }]);
     expect(uniqueByUrl([news("https://a.sg/1"), news("https://a.sg/1", "Story", "MediShield"), news("https://a.sg/2")]).map((n) => n.keyword)).toEqual(["CPF", "CPF"]);
   });
@@ -108,6 +108,19 @@ describe("news", () => {
     expect(judgeNews(news("https://a.sg/1"), null)).toMatchObject({ relevant: null, tag: "watch" });
   });
 
+  it("keeps Act to the 5 stories Jev rates most worth posting, the rest Watch", () => {
+    const scored = Array.from({ length: 8 }, (_, k) => judged(`https://a.sg/${k}`, { actScore: [0.9, 0.4, 0.95, 0.7, 0.8, 0.6, 0.85, null][k] ?? undefined }));
+    scored.push(judged("https://a.sg/irrelevant", { relevant: false, actScore: 0.99 }), judged("https://a.sg/repeat", { sameAs: "https://a.sg/0", actScore: 0.99 }));
+    const out = shortlistAct(scored, 5);
+    expect(out.filter((n) => n.tag === "act").map((n) => n.url)).toEqual(["https://a.sg/0", "https://a.sg/2", "https://a.sg/3", "https://a.sg/4", "https://a.sg/6"]);
+    expect(out.find((n) => n.url === "https://a.sg/7")?.tag).toBe("watch");
+    expect(shortlistAct([judged("https://a.sg/x", { actScore: 0.3 })], 5)[0].tag).toBe("watch");
+  });
+
+  it("reads Jev's act probability with the tag", () => {
+    expect(judgeNews(news("https://a.sg/1"), { relevant: { type: "noul", noul: 0.9 }, tag: { type: "choice", choice: "act", probabilities: { act: 0.82, watch: 0.18 } } }).actScore).toBe(0.82);
+  });
+
   it("asks about the same story only against earlier relevant reports", () => {
     const earlier = [judged("https://a.sg/1"), judged("https://a.sg/2", { relevant: false }), judged("https://a.sg/3", { sameAs: "https://a.sg/1" })];
     const ask = sameStoryAsk(news("https://a.sg/4"), earlier)!;
@@ -117,6 +130,13 @@ describe("news", () => {
     expect(sameStoryOf({ same: { type: "choice", choice: "s0" } }, ask.ids)).toBe("https://a.sg/1");
     expect(sameStoryOf({ same: { type: "choice", choice: "none" } }, ask.ids)).toBeUndefined();
     expect(sameStoryOf(null, ask.ids)).toBeUndefined();
+  });
+
+  it("lets a late repeat see the very first report, however many came between", () => {
+    const earlier = Array.from({ length: 30 }, (_, k) => judged(`https://a.sg/e${k}`));
+    const ask = sameStoryAsk(news("https://a.sg/late"), earlier)!;
+    expect(ask.ids[0]).toBe("https://a.sg/e0");
+    expect(ask.ids).toHaveLength(30);
   });
 
   it("points every repeat at the first report of its story", () => {
@@ -137,6 +157,12 @@ describe("AI answers", () => {
     // cited only in the top-level sources, never inside a paragraph
     expect(a.sources.some((s) => s.domain === "moneysense.gov.sg")).toBe(true);
     expect(a.sources.some((s) => s.domain === "wsj.com")).toBe(false);
+  });
+
+  it("lists who the answer recommends, never the adviser", () => {
+    const a = parseAnswer(fixture)!;
+    expect(a.named.slice(0, 2)).toEqual(["Providend", "Alpha Wealth Financial Advisers"]);
+    expect(parseAnswer({ tasks: [{ result: [{ markdown: "x", brand_entities: [{ title: "Leo Tan Advisory" }, { title: "Endowus" }, { title: 5 }] }] }] }, "Leo Tan")!.named).toEqual(["Endowus"]);
   });
 
   it("returns null for an errored or empty task", () => {
@@ -175,6 +201,16 @@ describe("AI answers", () => {
   });
 });
 
+const NOW = new Date("2026-10-15T03:00:00Z");
+
+describe("fresh news only", () => {
+  it("drops stories older than 30 days and keeps undated ones", () => {
+    const m = (date: string, k: string) => ({ title: `T${k}`, url: `https://a.sg/${k}`, source: "a.sg", snippet: "", date });
+    const kept = newsItems("HDB", [m("2026-10-14T00:00:00.000Z", "new"), m("2026-09-16T00:00:00.000Z", "edge"), m("2026-09-14T00:00:00.000Z", "old"), m("2021-01-14T00:00:00.000Z", "2021"), m("", "undated")], NOW);
+    expect(kept.map((n) => n.title)).toEqual(["Tnew", "Tedge", "Tundated"]);
+  });
+});
+
 describe("news lookups", () => {
   it("treats a DataForSEO task error as failed, and no results as empty", () => {
     expect(newsFailed({ status_code: 20000, tasks: [{ status_code: 20000, result: [] }] })).toBe(false);
@@ -186,7 +222,7 @@ describe("news lookups", () => {
 
   it("keeps 10 stories a keyword and 40 in all", () => {
     const m = (k: number) => ({ title: `T${k}`, url: `https://a.sg/${k}`, source: "a.sg", snippet: "", date: "" });
-    expect(newsItems("CPF", Array.from({ length: 14 }, (_, k) => m(k)))).toHaveLength(10);
+    expect(newsItems("CPF", Array.from({ length: 14 }, (_, k) => m(k)), NOW)).toHaveLength(10);
     const lists = Array.from({ length: 5 }, (_, j) => Array.from({ length: 10 }, (_, k) => news(`https://a.sg/${j}-${k}`)));
     expect(pickNews(lists)).toHaveLength(40);
     expect(pickNews([[news("https://a.sg/1")], [news("https://a.sg/1")]])).toHaveLength(1);

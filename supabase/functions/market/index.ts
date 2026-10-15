@@ -16,7 +16,7 @@ import { parseNews, searchTerm } from "../mentions/logic.ts";
 import {
   type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, checkProblem, cleanInput, earlierWeekDays,
   foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsFailed, newsItems, paidPartsFailed,
-  parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, SUGGEST_FORMAT, suggestMessages, takeSlots, utcDay,
+  parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, shortlistAct, SUGGEST_FORMAT, suggestMessages, takeSlots, utcDay,
   weekGate, weeklyRefusal,
 } from "./logic.ts";
 
@@ -82,11 +82,11 @@ async function suggest(admin: Admin, uid: string, body: unknown): Promise<Respon
 
 async function readAnswer(question: string, input: CheckInput, auth: string): Promise<GeoRead> {
   try {
-    const parsed = parseAnswer(await dfs("ai_optimization/chat_gpt/llm_scraper/live/advanced", { keyword: question, location_code: SINGAPORE, language_code: "en", force_web_search: true }, auth, 100_000));
+    const parsed = parseAnswer(await dfs("ai_optimization/chat_gpt/llm_scraper/live/advanced", { keyword: question, location_code: SINGAPORE, language_code: "en", force_web_search: true }, auth, 100_000), input.name);
     if (!parsed) return { question, position: null, sources: [], checkUrl: null, error: "No answer came back for this one." };
     let pos = position(parsed.answer, parsed.sources, input.site, input.name, null);
     if (pos === "named") pos = position(parsed.answer, parsed.sources, input.site, input.name, geoJudged(await jev(geoAsk(input.name, parsed.answer), "market geo")));
-    return { question, position: pos, sources: parsed.sources.slice(0, MAX_SOURCES), checkUrl: parsed.checkUrl };
+    return { question, position: pos, sources: parsed.sources.slice(0, MAX_SOURCES), named: parsed.named, checkUrl: parsed.checkUrl };
   } catch (e) {
     console.error("market geo failed", msg(e));
     return { question, position: null, sources: [], checkUrl: null, error: "Couldn't read the AI answer for this one." };
@@ -94,12 +94,12 @@ async function readAnswer(question: string, input: CheckInput, auth: string): Pr
 }
 
 /** The news for every keyword, judged, with repeats pointed at their first report. null when every lookup failed. */
-async function readNews(input: CheckInput, auth: string): Promise<JudgedNews[] | null> {
+async function readNews(input: CheckInput, auth: string, now: Date): Promise<JudgedNews[] | null> {
   const found = await Promise.all(input.keywords.map(async (k) => {
     try {
       const body = await dfs("serp/google/news/live/advanced", { keyword: searchTerm(k), location_code: SINGAPORE, language_code: "en", depth: 10 }, auth, 25_000);
       if (newsFailed(body)) throw new Error(`news task answered ${(body as { tasks?: { status_code?: number }[] })?.tasks?.[0]?.status_code}`);
-      return newsItems(k, parseNews(body));
+      return newsItems(k, parseNews(body), now);
     } catch (e) {
       console.error("market news failed", msg(e));
       return null;
@@ -113,7 +113,7 @@ async function readNews(input: CheckInput, auth: string): Promise<JudgedNews[] |
     const sameAs = a ? sameStoryOf(await jev(a, "market same story"), a.ids) : undefined;
     return sameAs ? { ...n, sameAs } : n;
   });
-  return foldStories(linked);
+  return shortlistAct(foldStories(linked));
 }
 
 async function check(admin: Admin, uid: string, body: unknown): Promise<Response> {
@@ -140,7 +140,7 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
   const auth = `Basic ${btoa(`${login}:${password}`)}`;
   const [geo, news, posts] = await Promise.all([
     Promise.all(input.questions.map((q) => readAnswer(q, input, auth))),
-    readNews(input, auth),
+    readNews(input, auth, now),
     pool(input.posts, 10, async (p) => judgePost(p, await jev(postAsk(input, p), "market post"))),
   ]);
   if (paidPartsFailed(input, news === null, geo)) {

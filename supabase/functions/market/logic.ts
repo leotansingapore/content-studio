@@ -13,10 +13,13 @@ export const MAX_CANDIDATES = 8;
 export const MAX_SOURCES = 20;
 /** A Jev yes at or above this counts; on the AT market-loop run (2026-10-15) the lower yeses were junk. */
 export const RELEVANT_AT = 0.5;
-export const SAME_STORY_CANDIDATES = 10;
 /** Stories judged per check: 10 a keyword, 40 in all, so the Jev pools finish well inside the function's time limit. */
 export const NEWS_PER_KEYWORD = 10;
 export const MAX_NEWS = 40;
+/** Older stories are background, not news: the first real run tagged 2021 to early-2025 articles as Act. */
+export const NEWS_MAX_AGE_DAYS = 30;
+/** Act is a to-do, not a reading list: the first real run tagged 18 stories Act. */
+export const ACT_SHORTLIST = 5;
 const DAY_MS = 86_400_000;
 const COUNTRY = "Singapore";
 
@@ -33,9 +36,19 @@ export interface JudgedNews extends NewsItem {
   tag: Tag;
   /** The link of the first report of the same story. */
   sameAs?: string;
+  /** Jev's probability that it is worth posting about this week; ranks the Act shortlist. */
+  actScore?: number;
 }
 export interface Source { url: string; domain: string; title: string }
-export interface GeoRead { question: string; position: Position | null; sources: Source[]; checkUrl: string | null; error?: string }
+export interface GeoRead {
+  question: string;
+  position: Position | null;
+  sources: Source[];
+  /** Advisers, firms and brands the answer recommends (its brand entities), the adviser left out. */
+  named?: string[];
+  checkUrl: string | null;
+  error?: string;
+}
 export interface JudgedPost extends MarketPost { tag: Tag }
 export interface MarketDigest { checkedAt: string; news: JudgedNews[]; geo: GeoRead[]; posts: JudgedPost[] }
 export interface Ask { state: Record<string, unknown>; questions: Record<string, JevQuestion> }
@@ -184,9 +197,12 @@ export function dayWords(day: string): string {
   return `${WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 }
 
-export function newsItems(keyword: string, items: Mention[]): NewsItem[] {
+export function newsItems(keyword: string, items: Mention[], now: Date): NewsItem[] {
+  const oldest = now.getTime() - NEWS_MAX_AGE_DAYS * DAY_MS;
   return items
     .filter((m) => safeFeedUrl(m.url))
+    // an undated story stays: Google News usually dates them, and dropping it would hide a real one
+    .filter((m) => { const t = Date.parse(m.date); return Number.isNaN(t) || t >= oldest; })
     .map((m) => ({ keyword, title: text(m.title, 200), url: m.url, source: text(m.source, 80).replace(/^www\./, ""), date: text(m.date, 40), snippet: text(m.snippet, 300) }))
     .filter((n) => n.title)
     .slice(0, NEWS_PER_KEYWORD);
@@ -230,12 +246,28 @@ export function newsAsk(i: CheckInput, n: NewsItem): Ask {
 export function judgeNews(n: NewsItem, answers: Record<string, JevAnswer> | null): JudgedNews {
   // Jev down (null answers): noulOf and choiceOf give null, so the item stays visible as unjudged Watch.
   const p = noulOf(answers, "relevant");
-  return { ...n, relevant: p === null ? null : p >= RELEVANT_AT, tag: choiceOf(answers, "tag", TAGS) ?? "watch" };
+  const tag = choiceOf(answers, "tag", TAGS) ?? "watch";
+  const prob = answers?.tag?.probabilities?.act;
+  // without probabilities an "act" pick still qualifies, at the threshold
+  const actScore = typeof prob === "number" && Number.isFinite(prob) ? prob : tag === "act" ? RELEVANT_AT : undefined;
+  return { ...n, relevant: p === null ? null : p >= RELEVANT_AT, tag, ...(actScore === undefined ? {} : { actScore }) };
 }
 
-/** Jev picks which earlier relevant report (at most 10) tells the same story, or none. */
+/** Act for the `max` first reports Jev rates most worth posting about (at least 0.5), Watch for everything else. */
+export function shortlistAct(items: JudgedNews[], max = ACT_SHORTLIST): JudgedNews[] {
+  const top = new Set(
+    items
+      .filter((n) => n.relevant === true && !n.sameAs && (n.actScore ?? 0) >= RELEVANT_AT)
+      .sort((a, b) => (b.actScore ?? 0) - (a.actScore ?? 0))
+      .slice(0, max)
+      .map((n) => n.url),
+  );
+  return items.map((n) => ({ ...n, tag: top.has(n.url) ? "act" : "watch" }));
+}
+
+/** Jev picks which earlier relevant report tells the same story, or none. Every earlier one is offered (at most 39), so a repeat found under a later topic still sees the first report. */
 export function sameStoryAsk(n: NewsItem, earlier: JudgedNews[]): (Ask & { ids: string[] }) | null {
-  const cands = earlier.filter((e) => e.relevant && !e.sameAs).slice(-SAME_STORY_CANDIDATES);
+  const cands = earlier.filter((e) => e.relevant && !e.sameAs).slice(0, MAX_NEWS);
   if (!cands.length) return null;
   const criteria: Record<string, string> = { none: "None of them: a different story" };
   cands.forEach((c, k) => {
@@ -272,7 +304,7 @@ const hostOf = (u: string) => {
 };
 
 /** The answer text and every linked source in a DataForSEO llm_scraper reply; null when the task has no result. */
-export function parseAnswer(body: unknown): { answer: string; sources: Source[]; checkUrl: string | null } | null {
+export function parseAnswer(body: unknown, name = ""): { answer: string; sources: Source[]; named: string[]; checkUrl: string | null } | null {
   const res = (body as { tasks?: { result?: unknown[] | null }[] } | null)?.tasks?.[0]?.result?.[0];
   if (!res || typeof res !== "object") return null;
   const r = res as Record<string, unknown>;
@@ -292,7 +324,10 @@ export function parseAnswer(body: unknown): { answer: string; sources: Source[];
   // the answer may never cite (12 of 16 on the first real read were US WSJ pages), so they are skipped.
   walk(r.sources);
   walk(r.items);
-  return { answer: typeof r.markdown === "string" ? r.markdown : "", sources: [...seen.values()], checkUrl: typeof r.check_url === "string" ? r.check_url : null };
+  const named = [...new Set((Array.isArray(r.brand_entities) ? r.brand_entities : [])
+    .map((e) => text((e as { title?: unknown } | null)?.title, 80))
+    .filter((t) => t && !namedIn(t, name)))].slice(0, 8);
+  return { answer: typeof r.markdown === "string" ? r.markdown : "", sources: [...seen.values()], named, checkUrl: typeof r.check_url === "string" ? r.check_url : null };
 }
 
 /** A whole name of 3 or more letters in the answer, case blind: "Ian" is not in "guardian". A blank name is never "in" anything. */
