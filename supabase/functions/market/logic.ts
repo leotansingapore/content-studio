@@ -18,6 +18,12 @@ export const NEWS_PER_KEYWORD = 10;
 export const MAX_NEWS = 40;
 /** Older stories are background, not news: the first real run tagged 2021 to early-2025 articles as Act. */
 export const NEWS_MAX_AGE_DAYS = 30;
+/**
+ * Jev's "is it a news report or an explainer?" at or above this counts as news. Set 2026-10-15 on 80 hand-labelled real
+ * results of the past-month request: 0.6 keeps 30 of 32 news and explainers and lets 4 of 48 listings, adverts, job ads
+ * and social posts through (0.5 let 7 through; 0.7 also dropped a third real story).
+ */
+export const NEWS_AT = 0.6;
 /** Act is a to-do, not a reading list: the first real run tagged 18 stories Act. */
 export const ACT_SHORTLIST = 5;
 const DAY_MS = 86_400_000;
@@ -241,9 +247,13 @@ const TAG_CRITERIA = {
 
 export function newsAsk(i: CheckInput, n: NewsItem): Ask {
   return {
-    state: { serves: i.audience, topics: i.topics.join(", "), country: COUNTRY, story: `${n.title} (${n.source})`, summary: n.snippet },
+    state: { serves: i.audience, topics: i.topics.join(", "), country: COUNTRY, story: n.title, source: n.source, summary: n.snippet },
     questions: {
       relevant: { type: "noul", instructions: "Does the news `story` matter to the people a financial adviser serves (`serves`, in `country`), or touch the adviser's `topics`?" },
+      news: {
+        type: "noul",
+        instructions: "Is `story` from `source` a news report or an explainer article (about a change, event, rule, price trend, scheme, or how something works)? No when it is a property or product listing, a sale, launch or rental page, a price table, a service advert, a contest, a job ad, a profile page, a forum thread, a video, or a social media post.",
+      },
       tag: { type: "choice", instructions: "Should the adviser post about `story` this week for the people they serve?", criteria: TAG_CRITERIA },
     },
   };
@@ -256,7 +266,10 @@ export function judgeNews(n: NewsItem, answers: Record<string, JevAnswer> | null
   const prob = answers?.tag?.probabilities?.act;
   // without probabilities an "act" pick still qualifies, at the threshold
   const actScore = typeof prob === "number" && Number.isFinite(prob) ? prob : tag === "act" ? RELEVANT_AT : undefined;
-  return { ...n, relevant: p === null ? null : p >= RELEVANT_AT, tag, ...(actScore === undefined ? {} : { actScore }) };
+  // without a news answer, relevance decides alone (as before this check existed)
+  const isNews = noulOf(answers, "news");
+  const relevant = p === null ? null : p >= RELEVANT_AT && (isNews === null || isNews >= NEWS_AT);
+  return { ...n, relevant, tag, ...(actScore === undefined ? {} : { actScore }) };
 }
 
 /** Act for the `max` first reports Jev rates most worth posting about (at least 0.5), Watch for everything else. */

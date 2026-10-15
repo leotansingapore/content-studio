@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
-  citesSite, isAllowed, judgeNews, newsTask, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
+  citesSite, isAllowed, judgeNews, newsAsk, newsTask, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
   sameStoryAsk, sameStoryOf, shortlistAct, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
 import type { UsageClient } from "../_shared/usageCaps";
@@ -99,6 +99,19 @@ describe("news", () => {
     ], NOW);
     expect(items).toEqual([{ keyword: "CPF", title: "CPF changes", url: "https://www.straitstimes.com/a", source: "straitstimes.com", date: "2026-10-14", snippet: "" }]);
     expect(uniqueByUrl([news("https://a.sg/1"), news("https://a.sg/1", "Story", "MediShield"), news("https://a.sg/2")]).map((n) => n.keyword)).toEqual(["CPF", "CPF"]);
+  });
+
+  it("counts only news and explainers as news: listings, adverts and social posts are dropped", () => {
+    const ans = (relevant: number, news?: number) => ({ relevant: { type: "noul" as const, noul: relevant }, tag: { type: "choice" as const, choice: "act" }, ...(news === undefined ? {} : { news: { type: "noul" as const, noul: news } }) });
+    expect(judgeNews(news("https://99.co/listing"), ans(0.9, 0.2)).relevant).toBe(false);
+    expect(judgeNews(news("https://a.sg/edge"), ans(0.9, 0.59)).relevant).toBe(false);
+    expect(judgeNews(news("https://a.sg/story"), ans(0.9, 0.6)).relevant).toBe(true);
+    expect(judgeNews(news("https://a.sg/no-news-answer"), ans(0.9)).relevant).toBe(true);
+    expect(judgeNews(news("https://a.sg/off-topic"), ans(0.2, 0.9)).relevant).toBe(false);
+  });
+
+  it("asks Jev whether it is news in the same call", () => {
+    expect(Object.keys(newsAsk(cleanInput({ audience: "families" }), news("https://a.sg/1")).questions)).toEqual(["relevant", "news", "tag"]);
   });
 
   it("reads Jev's answers, and keeps the item as Watch when Jev is down", () => {
