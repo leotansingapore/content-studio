@@ -16,11 +16,12 @@ import { useToast } from "@/hooks/use-toast";
 import { loadBrand } from "@/lib/carousel";
 import {
   EMPTY_MARKET, POSITION_LABEL, actCount, alsoReported, geoKey, geoWriteUrl, loadMarket, marketJob, newsKey, newsWriteUrl, nextCheckDay,
-  dismissQuestion, newsByTopic, onMarketJob, pickingUp, postKey, postWriteUrl, runMarketCheck, saveMarket, suggestSetup, siteList, visibleGeo, visibleNews, visiblePosts,
+  dismissQuestion, newsByTopic, onMarketJob, reminderOffer, pickingUp, postKey, postWriteUrl, runMarketCheck, saveMarket, suggestSetup, siteList, visibleGeo, visibleNews, visiblePosts,
   weekNote, withKey, type GeoRead, type MarketState, type Show,
 } from "@/lib/market";
 import { loadFollowing } from "@/lib/following";
 import { MAX_WATCH, loadWatch, saveWatch } from "@/lib/mentions";
+import { browserPushSupport, enablePushHere, loadNotifyPrefs, pushOnHere, saveNotifyPrefs } from "@/lib/notify";
 import { loadPositioning } from "@/lib/positioning";
 import { supabase } from "@/lib/supabase";
 import { useUrlState } from "@/lib/urlState";
@@ -185,6 +186,10 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
   const { toast } = useToast();
   const [show, setShow] = useUrlState<Show>("show", "act", { allowed: ["act", "all"] });
   const [, tick] = useState(0);
+  // phone alerts on for the account and this device; null while it is being read
+  const [alertsOn, setAlertsOn] = useState<boolean | null>(null);
+  const [turningOn, setTurningOn] = useState(false);
+  const support = browserPushSupport();
   const job = marketJob();
   const running = job?.state === "running";
   const latest = state.checks[state.checks.length - 1];
@@ -196,6 +201,33 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
     tick((n) => n + 1);
     if (j?.state === "failed") toast({ title: "Check didn't run", description: j.error, variant: "destructive" });
   }), [uid, setState, toast]);
+  useEffect(() => {
+    let live = true;
+    void pushOnHere().then((here) => live && setAlertsOn(loadNotifyPrefs(uid).push && here));
+    return () => {
+      live = false;
+    };
+  }, [uid]);
+  const turnOnAlerts = async () => {
+    setTurningOn(true);
+    try {
+      const result = await enablePushHere();
+      if (result === "ok") {
+        saveNotifyPrefs(uid, { ...loadNotifyPrefs(uid), push: true });
+        setAlertsOn(true);
+        toast({ title: "Phone alerts on", description: "You'll get a reminder on Mondays when your check opens." });
+      } else {
+        toast({
+          title: result === "denied" ? "Alerts are blocked for this site" : "Couldn't switch alerts on",
+          description: result === "denied" ? "Allow them in your browser settings, then try again." : "Try again in a minute.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setTurningOn(false);
+    }
+  };
+
   useEffect(() => {
     if (!running) return;
     const t = setInterval(() => tick((n) => n + 1), 1000);
@@ -252,6 +284,15 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
           {running ? "Reading the news and asking ChatGPT. About a minute; other pages are fine, but keep this tab open." : weekNote(state, job)}
         </span>
       </div>
+
+      {alertsOn === false && reminderOffer(false, support) && (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>Get phone alerts, including a reminder on Mondays when your check opens.</span>
+          <Button type="button" size="sm" variant="outline" onClick={() => void turnOnAlerts()} disabled={turningOn}>
+            {turningOn ? "Turning on..." : "Turn on alerts"}
+          </Button>
+        </div>
+      )}
 
       {!latest && !running && <p className="text-muted-foreground">No check yet.</p>}
 

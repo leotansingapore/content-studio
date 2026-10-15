@@ -169,6 +169,15 @@ describe("this pass's fields survive sync", () => {
   });
 });
 
+describe("the Monday reminder offer", () => {
+  it("shows only when reminders are off and this browser can show them", () => {
+    expect(m.reminderOffer(false, "ok")).toBe(true);
+    expect(m.reminderOffer(true, "ok")).toBe(false);
+    expect(m.reminderOffer(false, "ios-install")).toBe(false);
+    expect(m.reminderOffer(false, "unsupported")).toBe(false);
+  });
+});
+
 describe("news by topic", () => {
   it("groups stories under each topic in the order they came, with picking-up topics first", () => {
     const items = [n("https://a.sg/1", { keyword: "HDB" }), n("https://a.sg/2", { keyword: "CPF" }), n("https://a.sg/3", { keyword: "HDB" })];

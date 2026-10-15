@@ -188,6 +188,9 @@ export function geoWriteUrl(x: GeoRead): string {
 export const postWriteUrl = (x: JudgedPost) =>
   `/generate?${new URLSearchParams({ ctx: `Remix this angle from @${x.handle} (adapt to my niche and voice, never copy): "${x.caption.slice(0, 220)}"` }).toString()}`;
 
+/** Offer the Monday reminder on this page: only while it is off, on a browser that can show alerts. */
+export const reminderOffer = (on: boolean, support: "ok" | "ios-install" | "unsupported") => !on && support === "ok";
+
 /** The UTC day the next check opens (7 days after the latest one's), or null when one can run now. The server decides. */
 export function nextCheckDay(s: MarketState, now = new Date()): string | null {
   const last = s.checks[s.checks.length - 1]?.checkedAt;
