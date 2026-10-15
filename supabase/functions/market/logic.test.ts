@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
-  citesSite, isAllowed, judgeNews, newsAsk, newsTask, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
+  citesSite, isAllowed, judgeNews, newsAsk, newsTask, shownNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
   sameStoryAsk, sameStoryOf, shortlistAct, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
 import type { UsageClient } from "../_shared/usageCaps";
@@ -237,6 +237,13 @@ describe("fresh news only", () => {
     const m = (date: string, k: string) => ({ title: `T${k}`, url: `https://a.sg/${k}`, source: "a.sg", snippet: "", date });
     const kept = newsItems("HDB", [m("2026-10-14T00:00:00.000Z", "new"), m("2026-09-16T00:00:00.000Z", "edge"), m("2026-09-14T00:00:00.000Z", "old"), m("2021-01-14T00:00:00.000Z", "2021"), m("", "undated")], NOW);
     expect(kept.map((n) => n.title)).toEqual(["Tnew", "Tedge", "Tundated"]);
+  });
+});
+
+describe("what a check returns", () => {
+  it("leaves out the stories Jev rejected, keeping repeats and unjudged ones the page can show", () => {
+    const list = [judged("https://a.sg/1"), judged("https://a.sg/2", { relevant: false }), judged("https://a.sg/3", { sameAs: "https://a.sg/1" }), judged("https://a.sg/4", { relevant: null })];
+    expect(shownNews(list).map((n) => n.url)).toEqual(["https://a.sg/1", "https://a.sg/3", "https://a.sg/4"]);
   });
 });
 

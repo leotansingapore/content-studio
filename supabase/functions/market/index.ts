@@ -16,7 +16,8 @@ import { parseNews } from "../mentions/logic.ts";
 import {
   type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, checkProblem, cleanInput, earlierWeekDays,
   foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsFailed, newsItems, newsTask, paidPartsFailed,
-  parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, shortlistAct, SUGGEST_FORMAT, suggestMessages, takeSlots, utcDay,
+  parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, shortlistAct, shownNews, SUGGEST_FORMAT, suggestMessages, takeSlots,
+  utcDay,
   weekGate, weeklyRefusal,
 } from "./logic.ts";
 
@@ -148,7 +149,7 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
     await refundUsage(admin, GLOBAL_COUNTER_USER, "market-check-global", today);
     return json({ error: "Couldn't reach the news or the AI answers. This check wasn't counted; try again in a few minutes." }, 502);
   }
-  const digest: MarketDigest = { checkedAt: now.toISOString(), news: news ?? [], geo, posts };
+  const digest: MarketDigest = { checkedAt: now.toISOString(), news: shownNews(news ?? []), geo, posts };
   return json(digest);
 }
 

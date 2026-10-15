@@ -234,6 +234,9 @@ export function newsFailed(body: unknown): boolean {
  */
 export const newsTask = (keyword: string) => ({ keyword: searchTerm(keyword), location_code: 2702, language_code: "en", depth: 10, search_param: "&tbs=qdr:m" });
 
+/** What a check sends back: the page never shows a story Jev rejected, so it is not stored and synced (about 45 KB a check). */
+export const shownNews = (items: JudgedNews[]) => items.filter((n) => n.relevant !== false);
+
 /** Every keyword's stories, one per link, at most 40. */
 export const pickNews = (lists: NewsItem[][]) => uniqueByUrl(lists.flat()).slice(0, MAX_NEWS);
 
