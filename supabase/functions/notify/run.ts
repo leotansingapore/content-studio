@@ -8,6 +8,7 @@ import {
   duePosts,
   emailWeeks,
   goalAlert,
+  marketAlert,
   moveAsk,
   parsePrefs,
   pickedMove,
@@ -21,6 +22,7 @@ import {
   type Profile,
   type PushMessage,
 } from "./logic.ts";
+import { isAllowed } from "../market/logic.ts";
 
 /** Advisers per request. */
 export const PAGE = 10;
@@ -43,6 +45,8 @@ export interface Options {
   /** Set on a hand-off: the last adviser of the page that was cut short; no next page from here. */
   upTo: string | null;
   testTo: string | null;
+  /** The market function's MARKET_USERS: who gets the Monday Your market reminder. */
+  marketUsers?: string;
 }
 
 export interface Sub {
@@ -125,13 +129,15 @@ export async function runUser(deps: Deps, uid: string, prefs: { email: boolean; 
     const subs = (await deps.subs(uid)).filter((s) => Date.parse(s.updated_at) >= o.now - DEVICE_STALE_MS);
     const due = duePosts(profiles, o.now);
     const goal = goalAlert(profiles, o.now);
-    const items = [...due.map((d) => d.item), ...(goal ? [goal.item] : [])];
+    const market = marketAlert(profiles, o.now, isAllowed(o.marketUsers, uid));
+    const items = [...due.map((d) => d.item), ...(goal ? [goal.item] : []), ...(market ? [market.item] : [])];
     if (subs.length && items.length) {
       const mine = await available(items, null);
       const dueMine = due.filter((d) => mine.has(d.item));
       const sends: [PushMessage | null, string[]][] = [
         [dueMessage(dueMine), dueMine.map((d) => d.item)],
         [goal && mine.has(goal.item) ? goal.message : null, goal ? [goal.item] : []],
+        [market && mine.has(market.item) ? market.message : null, market ? [market.item] : []],
       ];
       for (const [m, sent] of sends) {
         if (!m) continue;

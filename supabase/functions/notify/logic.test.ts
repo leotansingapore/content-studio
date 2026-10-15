@@ -23,6 +23,7 @@ import {
   duePosts,
   goalAlert,
   isPushEndpoint,
+  marketAlert,
   parsePrefs,
   profilesFrom,
   weekProgress,
@@ -502,5 +503,43 @@ describe("the names in the report", () => {
     expect(HOOK_NAME).toEqual(Object.fromEntries(HOOK_FORMULAS.map((f) => [f.id, f.name])));
     for (const [k, v] of Object.entries(PILLAR_NAME)) expect(labelForDimension("pillar", k)).toBe(v);
     for (const k of Object.keys(FORMAT_NOUN)) expect(labelForDimension("format", k)).not.toBe(k);
+  });
+});
+
+describe("marketAlert: the weekly Your market reminder", () => {
+  const MON_9AM = sg(2026, 10, 12, 9);
+  const digest = (checkedAt: string) => ({ checkedAt, news: [], geo: [], posts: [] });
+  const market = (checks: object[] = [], over: object = {}) => JSON.stringify({ audience: "Young families", questions: ["Is CPF enough for us?"], checks, ...over });
+  const withMarket = (raw: string | undefined, id = "me") => profilesFrom(UID, raw === undefined ? {} : { [`content-studio-market-${id === "me" ? UID : `${UID}~${id}`}`]: raw });
+  const message = { title: "This week's market check is open", body: "See the news and client questions to post about this week.", url: "/market", tag: "market", ttl: 43200 };
+
+  it("reads the set-up and the latest check from the synced key", () => {
+    expect(withMarket(market([digest("2026-10-01T02:00:00Z"), digest("2026-10-05T02:00:00Z")]))[0].market).toEqual({ ready: true, lastCheck: "2026-10-05T02:00:00Z" });
+    expect(withMarket(market([], { audience: "" }))[0].market).toEqual({ ready: false, lastCheck: null });
+    expect(withMarket("{junk")[0].market).toBeUndefined();
+    expect(withMarket(undefined)[0].market).toBeUndefined();
+  });
+
+  it("Monday from 9am, once a week, when the week's check is open", () => {
+    expect(marketAlert(withMarket(market([digest("2026-10-05T02:00:00Z")])), MON_9AM, true)).toEqual({ item: "market:2026-10-12", message });
+    expect(marketAlert(withMarket(market()), MON_9AM, true)?.item).toBe("market:2026-10-12");
+  });
+
+  it("not while this week's check is used, not before 9am or on other days, not without a set-up, not when switched off", () => {
+    expect(marketAlert(withMarket(market([digest("2026-10-08T02:00:00Z")])), MON_9AM, true)).toBeNull();
+    expect(marketAlert(withMarket(market()), MON_9AM - 60_000, true)).toBeNull();
+    expect(marketAlert(withMarket(market()), sg(2026, 10, 13, 9), true)).toBeNull();
+    expect(marketAlert(withMarket(market([], { audience: "" })), MON_9AM, true)).toBeNull();
+    expect(marketAlert(withMarket(undefined), MON_9AM, true)).toBeNull();
+    expect(marketAlert(withMarket(market()), MON_9AM, false)).toBeNull();
+  });
+
+  it("counts the account's latest check across profiles, since the week's check is shared", () => {
+    const data = {
+      [`content-studio-profiles-${UID}`]: JSON.stringify([{ id: "me", name: "Me" }, { id: "mb", name: "MoneyBees" }]),
+      [`content-studio-market-${UID}`]: market(),
+      [`content-studio-market-${UID}~mb`]: market([digest("2026-10-09T02:00:00Z")]),
+    };
+    expect(marketAlert(profilesFrom(UID, data), MON_9AM, true)).toBeNull();
   });
 });

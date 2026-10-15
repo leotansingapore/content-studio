@@ -86,6 +86,8 @@ function wire(secret: string): Deps {
               `key.like.content-studio-goals-${uid}*`,
               `key.like.content-studio-positioning-${uid}*`,
               `key.like.content-studio-following-${uid}*`,
+              `key.like.content-studio-market-${uid}*`,
+              `key.like.content-studio-mentions-${uid}*`,
               `key.eq.content-studio-profiles-${uid}`,
             ].join(","),
           ),
@@ -215,6 +217,7 @@ Deno.serve(async (req) => {
     after: id(body.after),
     upTo: id(body.upTo),
     testTo,
+    marketUsers: Deno.env.get("MARKET_USERS"),
   };
   const deps = wire(secret);
 

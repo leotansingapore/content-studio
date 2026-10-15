@@ -88,6 +88,8 @@ export interface Profile {
   posts: Post[];
   goals: Record<string, number>;
   followed?: Followed[];
+  /** Your market (src/lib/market.ts): set up enough to check, and when the last check ran. */
+  market?: { ready: boolean; lastCheck: string | null };
 }
 
 function parseJson(raw: string | null | undefined): unknown {
@@ -171,6 +173,19 @@ function goalsFrom(goalsRaw: string | undefined, positioningRaw: string | undefi
  * (key -> data). Profile keys follow src/lib/profiles.ts: the default profile
  * "me" uses the bare user id, others `${uid}~${profileId}`.
  */
+/** The Your market key: ready once it has who they serve plus a question (or Mentions topics); the latest check's time. */
+function marketFrom(raw: string | undefined, topicsRaw: string | undefined): Profile["market"] {
+  const m = parseJson(raw) as { audience?: unknown; questions?: unknown; checks?: unknown } | null;
+  if (!m || typeof m !== "object") return undefined;
+  const topics = parseJson(topicsRaw);
+  const asks = (Array.isArray(m.questions) && m.questions.length > 0) || (Array.isArray(topics) && topics.length > 0);
+  const times = (Array.isArray(m.checks) ? m.checks : [])
+    .map((c) => (c as { checkedAt?: unknown } | null)?.checkedAt)
+    .filter((t): t is string => typeof t === "string" && Number.isFinite(Date.parse(t)))
+    .sort();
+  return { ready: typeof m.audience === "string" && m.audience.trim().length > 0 && asks, lastCheck: times[times.length - 1] ?? null };
+}
+
 export function profilesFrom(uid: string, data: Record<string, string>): Profile[] {
   const listed = parseJson(data[`content-studio-profiles-${uid}`]);
   const valid = (Array.isArray(listed) ? listed : []).filter(
@@ -186,6 +201,7 @@ export function profilesFrom(uid: string, data: Record<string, string>): Profile
       posts: postsFrom(data[`content-studio-drafts-${scope}`]),
       goals: goalsFrom(data[`content-studio-goals-${scope}`], data[`content-studio-positioning-${scope}`]),
       followed: followedFrom(data[`content-studio-following-${scope}`]),
+      ...(data[`content-studio-market-${scope}`] === undefined ? {} : { market: marketFrom(data[`content-studio-market-${scope}`], data[`content-studio-mentions-${scope}`]) }),
     };
   });
 }
@@ -382,6 +398,22 @@ export function goalAlert(profiles: Profile[], now: number): { item: string; mes
   return {
     item: `goal:${today}`,
     message: { title: "This week's goal is behind", body: clip(body, 180), url: "/home", tag: "goal", ttl: 6 * 3600 },
+  };
+}
+
+/**
+ * Monday from 9am, the account's week of Your market is open (the check is one a week per account, shared by its
+ * profiles): a nudge to run it. `enabled` is the market function's MARKET_USERS allow-list for this account.
+ */
+export function marketAlert(profiles: Profile[], now: number, enabled: boolean): { item: string; message: PushMessage } | null {
+  if (!enabled || sgWeekday(now) !== 0 || sgHour(now) < 9) return null;
+  if (!profiles.some((p) => p.market?.ready)) return null;
+  const last = profiles.map((p) => p.market?.lastCheck ?? "").filter(Boolean).sort().pop();
+  // the server opens a week 7 UTC days after the last check's UTC day (market/logic.ts weekGate)
+  if (last && now < Date.parse(`${last.slice(0, 10)}T00:00:00Z`) + 7 * 86_400_000) return null;
+  return {
+    item: `market:${sgDay(now)}`,
+    message: { title: "This week's market check is open", body: "See the news and client questions to post about this week.", url: "/market", tag: "market", ttl: 12 * 3600 },
   };
 }
 

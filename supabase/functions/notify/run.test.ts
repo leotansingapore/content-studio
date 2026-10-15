@@ -245,3 +245,22 @@ describe("runPage", () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe("runUser: the Your market reminder", () => {
+  const MON_9AM = sg(2026, 10, 12, 9);
+  const marketRows = { ...rows, [`content-studio-market-${UID}`]: JSON.stringify({ audience: "Young families", questions: ["Is CPF enough for us?"], checks: [] }) };
+
+  it("goes to an allowed account's phone on Monday, claimed once for the week", async () => {
+    const { deps, calls } = fake({ userRows: async () => marketRows, subsList: [sub(1, 1, MON_9AM)] });
+    await runUser(deps, UID, { email: false, push: true }, opts({ now: MON_9AM, marketUsers: UID }));
+    expect(calls).toContain("claim market:2026-10-12 null");
+    expect(calls).toContain("push 1 This week's market check is open");
+    expect(calls).toContain("markSent market:2026-10-12");
+  });
+
+  it("never goes to an account Your market is not switched on for", async () => {
+    const { deps, calls } = fake({ userRows: async () => marketRows, subsList: [sub(1, 1, MON_9AM)] });
+    await runUser(deps, UID, { email: false, push: true }, opts({ now: MON_9AM, marketUsers: "someone-else" }));
+    expect(calls.some((c) => c.includes("market"))).toBe(false);
+  });
+});
