@@ -175,9 +175,14 @@ export function weekGate(rows: unknown, now: Date): { open: true } | { open: fal
   return { open: false, nextDay: utcDay(Date.parse(`${used[used.length - 1]}T00:00:00Z`) + 7 * DAY_MS) };
 }
 
-/** "Thu 22 Oct". */
-export const dayWords = (day: string) =>
-  new Date(`${day}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "Thu 22 Oct", built by hand: Supabase's edge runtime formats en-GB as "Thu, 22 Oct" while browsers don't. */
+export function dayWords(day: string): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  return `${WEEKDAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+}
 
 export function newsItems(keyword: string, items: Mention[]): NewsItem[] {
   return items

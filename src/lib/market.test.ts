@@ -158,6 +158,14 @@ describe("links into Write", () => {
   });
 });
 
+describe("sources", () => {
+  it("lists each site once, in the answer's order", () => {
+    const x: GeoRead = { question: "How much CPF can I use?", position: "not-mentioned", checkUrl: null, sources: ["https://cpf.gov.sg/a", "https://cpf.gov.sg/b", "https://hdb.gov.sg/c"].map((url) => ({ url, domain: new URL(url).hostname, title: "" })) };
+    expect(m.siteList(x.sources).map((s) => s.domain)).toEqual(["cpf.gov.sg", "hdb.gov.sg"]);
+    expect(new URL(`https://x${m.geoWriteUrl(x)}`).searchParams.get("ctx")).toContain("draw on: cpf.gov.sg, hdb.gov.sg.");
+  });
+});
+
 describe("the week", () => {
   it("opens 7 UTC days after the latest check, like the server", () => {
     const s = { ...m.EMPTY_MARKET, checks: [digest("2026-10-09T10:00:00Z")] };

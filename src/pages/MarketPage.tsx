@@ -16,8 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { loadBrand } from "@/lib/carousel";
 import {
   EMPTY_MARKET, POSITION_LABEL, actCount, alsoReported, geoKey, geoWriteUrl, loadMarket, marketJob, newsKey, newsWriteUrl, nextCheckDay,
-  onMarketJob, pickingUp, postKey, postWriteUrl, runMarketCheck, saveMarket, suggestSetup, visibleGeo, visibleNews, visiblePosts, weekNote,
-  withKey, type MarketState, type Show,
+  onMarketJob, pickingUp, postKey, postWriteUrl, runMarketCheck, saveMarket, suggestSetup, siteList, visibleGeo, visibleNews, visiblePosts,
+  weekNote, withKey, type MarketState, type Show,
 } from "@/lib/market";
 import { MAX_WATCH, loadWatch, saveWatch } from "@/lib/mentions";
 import { loadPositioning } from "@/lib/positioning";
@@ -282,7 +282,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
                   {x.error ? <p className="text-sm text-muted-foreground">{x.error}</p> : x.sources.length > 0 && (
                     <p className="text-sm text-muted-foreground">
                       Sources it used:{" "}
-                      {x.sources.slice(0, 5).map((s, k) => (
+                      {siteList(x.sources).slice(0, 5).map((s, k) => (
                         <span key={s.url}>{k > 0 && ", "}<a href={s.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">{s.domain}</a></span>
                       ))}
                     </p>

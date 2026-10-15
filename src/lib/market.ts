@@ -151,10 +151,13 @@ export const actCount = (d: MarketDigest, s: MarketState) => visibleNews(d, s, "
 
 export const newsWriteUrl = (x: JudgedNews) => storyWriteUrl({ title: x.title, link: x.url, date: x.date, summary: x.snippet, source: x.source });
 
+/** One source per site, in the answer's order: an answer often cites several pages of one site. */
+export const siteList = (sources: GeoRead["sources"]) => [...new Map(sources.map((s) => [s.domain, s])).values()];
+
 export function geoWriteUrl(x: GeoRead): string {
   const ctx = [
     `People I serve ask AI assistants: "${x.question}"`,
-    x.sources.length ? `The answers today draw on: ${x.sources.slice(0, 5).map((s) => s.domain).join(", ")}.` : "",
+    x.sources.length ? `The answers today draw on: ${siteList(x.sources).slice(0, 5).map((s) => s.domain).join(", ")}.` : "",
     "Write a post that answers this question in my own words, with one clear takeaway.",
   ].filter(Boolean).join("\n");
   return `/generate?${new URLSearchParams({ idea: "real-question", ctx }).toString()}`;
