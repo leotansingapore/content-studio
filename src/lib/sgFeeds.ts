@@ -2,6 +2,7 @@
 // real questions people asked this fortnight (r/singaporefi, HardwareZone Money Mind) for Write, and
 // this month's most-viewed Singapore personal-finance videos on YouTube for /trends.
 import questionsData from "@/data/realQuestions.json";
+import type { PlanAudience } from "@/lib/positioning";
 import videosData from "@/data/youtubeTrends.json";
 
 export interface RealQuestion {
@@ -9,6 +10,8 @@ export interface RealQuestion {
   url: string;
   source: string;
   publishedAt: string | null;
+  /** The Plan audience the asker is in, judged by Jev from the post (missing on questions before 2026-10-15). */
+  audience?: PlanAudience;
 }
 
 export interface TrendVideo {
@@ -22,6 +25,27 @@ export interface TrendVideo {
 
 export const REAL_QUESTIONS: RealQuestion[] = (questionsData as { questions?: RealQuestion[] }).questions ?? [];
 export const TREND_VIDEOS: TrendVideo[] = (videosData as { videos?: TrendVideo[] }).videos ?? [];
+
+const GROUP: Record<Exclude<PlanAudience, "general">, string> = {
+  "young-adult": "young adults",
+  "working-adult": "working adults",
+  parent: "parents",
+  "pre-retiree": "pre-retirees",
+};
+
+/**
+ * Write's real questions for an adviser's Plan audience: only theirs when there are 3 or more, under their group's
+ * name; otherwise theirs first, then general ones, then the rest, under the usual label.
+ */
+export function questionsFor(audience: PlanAudience | undefined, list: RealQuestion[] = REAL_QUESTIONS, max = 5): { label: string; questions: RealQuestion[] } {
+  const usual = "Asked this week in Singapore";
+  if (!audience || audience === "general") return { label: usual, questions: list.slice(0, max) };
+  const mine = list.filter((q) => q.audience === audience);
+  if (mine.length >= 3) return { label: `Asked this week by ${GROUP[audience]} in Singapore`, questions: mine.slice(0, max) };
+  const general = list.filter((q) => q.audience === "general");
+  const rest = list.filter((q) => q.audience !== audience && q.audience !== "general");
+  return { label: usual, questions: [...mine, ...general, ...rest].slice(0, max) };
+}
 
 /** The picked question goes on top; whatever the consultant already typed stays below it. */
 export function withQuestion(context: string, question: string): string {

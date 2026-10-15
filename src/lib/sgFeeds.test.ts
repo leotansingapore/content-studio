@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REAL_QUESTIONS, TREND_VIDEOS, buildVideoWriteUrl, videoUrl, withQuestion } from "./sgFeeds";
+import { REAL_QUESTIONS, TREND_VIDEOS, buildVideoWriteUrl, questionsFor, videoUrl, withQuestion, type RealQuestion } from "./sgFeeds";
 
 describe("sgFeeds", () => {
   it("puts a picked question above what the consultant typed, never over it", () => {
@@ -20,5 +20,25 @@ describe("sgFeeds", () => {
   it("ships only safe links in the committed drops", () => {
     for (const q of REAL_QUESTIONS) expect(q.url).toMatch(/^https:\/\/(www\.reddit\.com|forums\.hardwarezone\.com\.sg)\//);
     for (const v of TREND_VIDEOS) expect(videoUrl(v.id)).toMatch(/^https:\/\/www\.youtube\.com\/watch\?v=[\w-]{11}$/);
+  });
+});
+
+describe("real questions for an adviser's audience", () => {
+  const q = (n: number, audience?: RealQuestion["audience"]) => ({ question: `Q${n}?`, url: `https://x/${n}`, source: "r/singaporefi", publishedAt: null, audience });
+  const list = [q(1, "young-adult"), q(2, "parent"), q(3, "general"), q(4, "parent"), q(5, "pre-retiree"), q(6, "parent"), q(7, "general"), q(8, "parent")];
+
+  it("shows only their audience's questions when there are 3 or more, under their group's name", () => {
+    expect(questionsFor("parent", list)).toEqual({ label: "Asked this week by parents in Singapore", questions: [q(2, "parent"), q(4, "parent"), q(6, "parent"), q(8, "parent")] });
+  });
+
+  it("puts their audience first, then general, then the rest, under the usual label when there are fewer than 3", () => {
+    expect(questionsFor("pre-retiree", list)).toEqual({ label: "Asked this week in Singapore", questions: [q(5, "pre-retiree"), q(3, "general"), q(7, "general"), q(1, "young-adult"), q(2, "parent")] });
+  });
+
+  it("keeps the newest five for no audience, general, or questions from before audiences", () => {
+    expect(questionsFor(undefined, list).questions.map((x) => x.question)).toEqual(["Q1?", "Q2?", "Q3?", "Q4?", "Q5?"]);
+    expect(questionsFor("general", list).label).toBe("Asked this week in Singapore");
+    const old = [q(1), q(2), q(3)];
+    expect(questionsFor("parent", old)).toEqual({ label: "Asked this week in Singapore", questions: old });
   });
 });

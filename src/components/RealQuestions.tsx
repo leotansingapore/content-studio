@@ -1,21 +1,25 @@
 import { ExternalLink } from "lucide-react";
 import { safeExternalUrl } from "@/lib/embed";
-import { REAL_QUESTIONS, type RealQuestion } from "@/lib/sgFeeds";
+import type { PlanAudience } from "@/lib/positioning";
+import { REAL_QUESTIONS, questionsFor, type RealQuestion } from "@/lib/sgFeeds";
 
-/** Under Write's spark when the source is "a real question": questions people asked this fortnight. */
+/** Under Write's spark when the source is "a real question": questions people asked this fortnight, the adviser's Plan audience first. */
 export default function RealQuestions({
   onPick,
   questions = REAL_QUESTIONS,
+  audience,
 }: {
   onPick: (question: string) => void;
   questions?: RealQuestion[];
+  audience?: PlanAudience;
 }) {
-  if (!questions.length) return null;
+  const { label, questions: shown } = questionsFor(audience, questions);
+  if (!shown.length) return null;
   return (
     <div className="space-y-1.5" data-testid="real-questions">
-      <p className="text-xs font-medium text-muted-foreground">Asked this week in Singapore</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <ul className="space-y-1.5">
-        {questions.slice(0, 5).map((q) => (
+        {shown.map((q) => (
           <li key={q.url} className="flex items-stretch gap-1.5">
             <button
               type="button"
