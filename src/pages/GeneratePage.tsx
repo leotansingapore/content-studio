@@ -1089,9 +1089,10 @@ export default function GeneratePage() {
     if (detailParam && !next.has("step")) next.set("step", WRITE_STEPS[LAST_STEP]);
     setSearchParams(next, { replace: true });
 
+    // links come from the plan, Mentions, Your market, feeds and remixes, so the toast names none of them
     toast({
-      title: "Loaded from your plan",
-      description: "Form pre-filled for this funnel slot. Tweak and generate.",
+      title: "Filled in for you",
+      description: "Every step is set. Check what it's about, then generate.",
     });
     setTimeout(() => {
       formAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2849,6 +2850,8 @@ export default function GeneratePage() {
           <CardTitle className="font-serif text-xl">
             Where and how to post
           </CardTitle>
+          {/* a link opens Write on this step, so say what the post is about here, not only two steps back */}
+          {pillarDetail.trim() && <p className="text-sm text-muted-foreground">About: {pillarDetail.trim()}</p>}
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
