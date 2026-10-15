@@ -24,6 +24,11 @@ export const NEWS_MAX_AGE_DAYS = 30;
  * and social posts through (0.5 let 7 through; 0.7 also dropped a third real story).
  */
 export const NEWS_AT = 0.6;
+/**
+ * Jev's "about Singapore, or directly affects people here?" at or above this counts. Set 2026-10-15 on 110 hand-labelled
+ * real results: 0.6 keeps 74 of 75 Singapore stories and lets 0 of 35 foreign ones through (0.5 let a Malaysian post in).
+ */
+export const SG_AT = 0.6;
 /** Act is a to-do, not a reading list: the first real run tagged 18 stories Act. */
 export const ACT_SHORTLIST = 5;
 const DAY_MS = 86_400_000;
@@ -256,6 +261,10 @@ export function newsAsk(i: CheckInput, n: NewsItem): Ask {
         type: "noul",
         instructions: "Is `story` from `source` a news report or an explainer article (about a change, event, rule, price trend, scheme, or how something works)? No when it is a property or product listing, a sale, launch or rental page, a price table, a service advert, a contest, a job ad, a profile page, a forum thread, a video, or a social media post.",
       },
+      sg: {
+        type: "noul",
+        instructions: "Is `story` from `source` about Singapore, or does it directly affect people living in Singapore (its rules, prices, schemes, banks, insurers or markets)? No when it is about another country only.",
+      },
       tag: { type: "choice", instructions: "Should the adviser post about `story` this week for the people they serve?", criteria: TAG_CRITERIA },
     },
   };
@@ -270,7 +279,8 @@ export function judgeNews(n: NewsItem, answers: Record<string, JevAnswer> | null
   const actScore = typeof prob === "number" && Number.isFinite(prob) ? prob : tag === "act" ? RELEVANT_AT : undefined;
   // without a news answer, relevance decides alone (as before this check existed)
   const isNews = noulOf(answers, "news");
-  const relevant = p === null ? null : p >= RELEVANT_AT && (isNews === null || isNews >= NEWS_AT);
+  const local = noulOf(answers, "sg");
+  const relevant = p === null ? null : p >= RELEVANT_AT && (isNews === null || isNews >= NEWS_AT) && (local === null || local >= SG_AT);
   return { ...n, relevant, tag, ...(actScore === undefined ? {} : { actScore }) };
 }
 

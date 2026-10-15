@@ -110,8 +110,16 @@ describe("news", () => {
     expect(judgeNews(news("https://a.sg/off-topic"), ans(0.2, 0.9)).relevant).toBe(false);
   });
 
-  it("asks Jev whether it is news in the same call", () => {
-    expect(Object.keys(newsAsk(cleanInput({ audience: "families" }), news("https://a.sg/1")).questions)).toEqual(["relevant", "news", "tag"]);
+  it("asks Jev whether it is news, and whether it is about Singapore, in the same call", () => {
+    expect(Object.keys(newsAsk(cleanInput({ audience: "families" }), news("https://a.sg/1")).questions)).toEqual(["relevant", "news", "sg", "tag"]);
+  });
+
+  it("drops stories about another country only", () => {
+    const ans = (sg?: number) => ({ relevant: { type: "noul" as const, noul: 0.9 }, news: { type: "noul" as const, noul: 0.9 }, tag: { type: "choice" as const, choice: "act" }, ...(sg === undefined ? {} : { sg: { type: "noul" as const, noul: sg } }) });
+    expect(judgeNews(news("https://bbc.co.uk/uk-first-buyers"), ans(0.02)).relevant).toBe(false);
+    expect(judgeNews(news("https://fmt.com.my/edge"), ans(0.59)).relevant).toBe(false);
+    expect(judgeNews(news("https://straitstimes.com/hdb"), ans(0.6)).relevant).toBe(true);
+    expect(judgeNews(news("https://a.sg/no-sg-answer"), ans()).relevant).toBe(true);
   });
 
   it("reads Jev's answers, and keeps the item as Watch when Jev is down", () => {
