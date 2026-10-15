@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
-  citesSite, isAllowed, judgeNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
+  citesSite, isAllowed, judgeNews, newsTask, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
   sameStoryAsk, sameStoryOf, shortlistAct, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
 import type { UsageClient } from "../_shared/usageCaps";
@@ -202,6 +202,13 @@ describe("AI answers", () => {
 });
 
 const NOW = new Date("2026-10-15T03:00:00Z");
+
+describe("the news request", () => {
+  it("asks Google News for the past month, newest first", () => {
+    // measured 2026-10-15: plain search gave 0-1 stories from the last 30 days out of 10; this gave 10 of 10
+    expect(newsTask("CPF housing grants")).toEqual({ keyword: '"CPF housing grants"', location_code: 2702, language_code: "en", depth: 10, search_param: "&tbs=qdr:m,sbd:1" });
+  });
+});
 
 describe("fresh news only", () => {
   it("drops stories older than 30 days and keeps undated ones", () => {

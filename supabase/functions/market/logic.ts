@@ -4,7 +4,7 @@
 
 import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { safeFeedUrl } from "../feed-ideas/logic.ts";
-import { cleanKeywords, type Mention } from "../mentions/logic.ts";
+import { cleanKeywords, searchTerm, type Mention } from "../mentions/logic.ts";
 import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal, type UsageClient } from "../_shared/usageCaps.ts";
 
 export const MAX_QUESTIONS = 5;
@@ -214,6 +214,12 @@ export function newsFailed(body: unknown): boolean {
   const code = (body as { tasks?: { status_code?: number }[] } | null)?.tasks?.[0]?.status_code;
   return code !== 20000 && code !== 40102;
 }
+
+/**
+ * The Google News request for one topic: past month, newest first. Measured 2026-10-15 on three topics: plain search
+ * returned 0 to 1 stories from the last 30 days out of 10 (evergreen guides rank first); this returned 10 of 10.
+ */
+export const newsTask = (keyword: string) => ({ keyword: searchTerm(keyword), location_code: 2702, language_code: "en", depth: 10, search_param: "&tbs=qdr:m,sbd:1" });
 
 /** Every keyword's stories, one per link, at most 40. */
 export const pickNews = (lists: NewsItem[][]) => uniqueByUrl(lists.flat()).slice(0, MAX_NEWS);

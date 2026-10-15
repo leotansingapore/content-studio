@@ -12,10 +12,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { parseNews, searchTerm } from "../mentions/logic.ts";
+import { parseNews } from "../mentions/logic.ts";
 import {
   type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, checkProblem, cleanInput, earlierWeekDays,
-  foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsFailed, newsItems, paidPartsFailed,
+  foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsFailed, newsItems, newsTask, paidPartsFailed,
   parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, shortlistAct, SUGGEST_FORMAT, suggestMessages, takeSlots, utcDay,
   weekGate, weeklyRefusal,
 } from "./logic.ts";
@@ -97,7 +97,7 @@ async function readAnswer(question: string, input: CheckInput, auth: string): Pr
 async function readNews(input: CheckInput, auth: string, now: Date): Promise<JudgedNews[] | null> {
   const found = await Promise.all(input.keywords.map(async (k) => {
     try {
-      const body = await dfs("serp/google/news/live/advanced", { keyword: searchTerm(k), location_code: SINGAPORE, language_code: "en", depth: 10 }, auth, 25_000);
+      const body = await dfs("serp/google/news/live/advanced", newsTask(k), auth, 25_000);
       if (newsFailed(body)) throw new Error(`news task answered ${(body as { tasks?: { status_code?: number }[] })?.tasks?.[0]?.status_code}`);
       return newsItems(k, parseNews(body), now);
     } catch (e) {
