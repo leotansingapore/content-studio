@@ -54,6 +54,8 @@ export interface Source { url: string; domain: string; title: string }
 export interface GeoRead {
   question: string;
   position: Position | null;
+  /** What the answer tells people, in brief (answerGist). */
+  gist?: string;
   sources: Source[];
   /** Advisers, firms and brands the answer recommends (its brand entities), the adviser left out. */
   named?: string[];
@@ -362,6 +364,25 @@ export function parseAnswer(body: unknown, name = ""): { answer: string; sources
     .map((e) => text((e as { title?: unknown } | null)?.title, 80))
     .filter((t) => t && !namedIn(t, name)))].slice(0, 8);
   return { answer: typeof r.markdown === "string" ? r.markdown : "", sources: [...seen.values()], named, checkUrl: typeof r.check_url === "string" ? r.check_url : null };
+}
+
+/**
+ * What the answer tells people, in brief: its first paragraph that is not a heading, image, list or table, without
+ * the formatting, cut to two sentences and `max` characters. ChatGPT search answers open with their summary.
+ */
+export function answerGist(markdown: string, max = 240): string {
+  const para = markdown.split(/\n\s*\n/).map((p) => p.trim()).find((p) => p && !/^(#|!\[|[-*|>]|\d+\.)/.test(p)) ?? "";
+  const plain = para
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`]+/g, "")
+    .replace(/\\([\\.()[\]*_#+!-])/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+  const [first = plain, second = ""] = (plain.match(/[^.!?]+[.!?]+(?=\s|$)/g) ?? []).map((t) => t.trim());
+  // the second sentence only when it fits whole; a first sentence that is too long is cut at a word
+  if (first.length > max) return `${first.slice(0, first.lastIndexOf(" ", max - 3))}...`;
+  return second && first.length + 1 + second.length <= max ? `${first} ${second}` : first;
 }
 
 /** A whole name of 3 or more letters in the answer, case blind: "Ian" is not in "guardian". A blank name is never "in" anything. */

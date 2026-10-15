@@ -67,6 +67,7 @@ function cleanDigest(c: unknown): MarketDigest | null {
       position: POSITIONS.includes(x.position as Position) ? (x.position as Position) : null,
       sources: (x.sources as unknown[]).filter(obj).filter((o) => strs(o, "url", "domain")).map((o) => ({ url: o.url as string, domain: o.domain as string, title: str(o.title) })),
       ...(Array.isArray(x.named) ? { named: x.named.filter((t): t is string => typeof t === "string") } : {}),
+      ...(typeof x.gist === "string" ? { gist: x.gist } : {}),
       checkUrl: typeof x.checkUrl === "string" ? x.checkUrl : null,
       ...(typeof x.error === "string" ? { error: x.error } : {}),
     })),

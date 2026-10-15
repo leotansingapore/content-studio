@@ -159,11 +159,13 @@ describe("links into Write", () => {
 });
 
 describe("this pass's fields survive sync", () => {
-  it("keeps who the answer recommends and Jev's act score", () => {
-    m.saveMarket("u1", { ...m.EMPTY_MARKET, checks: [digest("2026-10-15T00:00:00Z", [n("https://a.sg/1", { actScore: 0.8 })], [{ ...g("Is CPF enough for me?", "not-mentioned"), named: ["Providend", 5 as unknown as string] }])] });
+  it("keeps who the answer recommends, what it says and Jev's act score", () => {
+    m.saveMarket("u1", { ...m.EMPTY_MARKET, checks: [digest("2026-10-15T00:00:00Z", [n("https://a.sg/1", { actScore: 0.8 })], [{ ...g("Is CPF enough for me?", "not-mentioned"), named: ["Providend", 5 as unknown as string], gist: "Most people need more than CPF." }, { ...g("Second question here?", "named"), gist: 7 as unknown as string }])] });
     const c = m.loadMarket("u1").checks[0];
     expect(c.news[0].actScore).toBe(0.8);
     expect(c.geo[0].named).toEqual(["Providend"]);
+    expect(c.geo[0].gist).toBe("Most people need more than CPF.");
+    expect("gist" in c.geo[1]).toBe(false);
   });
 });
 

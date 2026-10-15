@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
-  citesSite, isAllowed, judgeNews, newsAsk, newsTask, shownNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
+  answerGist, citesSite, isAllowed, judgeNews, newsAsk, newsTask, shownNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
   sameStoryAsk, sameStoryOf, shortlistAct, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
 import type { UsageClient } from "../_shared/usageCaps";
@@ -184,6 +184,17 @@ describe("AI answers", () => {
     const a = parseAnswer(fixture)!;
     expect(a.named.slice(0, 2)).toEqual(["Providend", "Alpha Wealth Financial Advisers"]);
     expect(parseAnswer({ tasks: [{ result: [{ markdown: "x", brand_entities: [{ title: "Leo Tan Advisory" }, { title: "Endowus" }, { title: 5 }] }] }] }, "Leo Tan")!.named).toEqual(["Endowus"]);
+  });
+
+  it("gives the gist of what the answer tells people: its opening, plain, at most 240 characters", () => {
+    const g = answerGist(parseAnswer(fixture)!.answer);
+    expect(g.startsWith("For a young family in Singapore")).toBe(true);
+    // a second sentence that would not fit whole is left out, rather than cut mid-sentence
+    expect(g.endsWith("not just sell you insurance or investment products.")).toBe(true);
+    expect(g.length).toBeLessThanOrEqual(240);
+    expect(g).not.toMatch(/[#*]|\]\(/);
+    expect(answerGist("# Best CRM\n\nFor agents, I'd shortlist **Zoho CRM** and [HubSpot](https://hubspot.com)\\. It depends on team size. More here.")).toBe("For agents, I'd shortlist Zoho CRM and HubSpot. It depends on team size.");
+    expect(answerGist("")).toBe("");
   });
 
   it("returns null for an errored or empty task", () => {

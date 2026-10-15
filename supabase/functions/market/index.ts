@@ -14,7 +14,7 @@ import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { parseNews } from "../mentions/logic.ts";
 import {
-  type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, checkProblem, cleanInput, earlierWeekDays,
+  type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, answerGist, checkProblem, cleanInput, earlierWeekDays,
   foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsFailed, newsItems, newsTask, paidPartsFailed,
   parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, shortlistAct, shownNews, SUGGEST_FORMAT, suggestMessages, takeSlots,
   utcDay,
@@ -87,7 +87,7 @@ async function readAnswer(question: string, input: CheckInput, auth: string): Pr
     if (!parsed) return { question, position: null, sources: [], checkUrl: null, error: "No answer came back for this one." };
     let pos = position(parsed.answer, parsed.sources, input.site, input.name, null);
     if (pos === "named") pos = position(parsed.answer, parsed.sources, input.site, input.name, geoJudged(await jev(geoAsk(input.name, parsed.answer), "market geo")));
-    return { question, position: pos, sources: parsed.sources.slice(0, MAX_SOURCES), named: parsed.named, checkUrl: parsed.checkUrl };
+    return { question, position: pos, gist: answerGist(parsed.answer), sources: parsed.sources.slice(0, MAX_SOURCES), named: parsed.named, checkUrl: parsed.checkUrl };
   } catch (e) {
     console.error("market geo failed", msg(e));
     return { question, position: null, sources: [], checkUrl: null, error: "Couldn't read the AI answer for this one." };

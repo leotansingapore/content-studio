@@ -305,6 +305,9 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
                   written={state.written.includes(geoKey(x))} writeUrl={x.error ? undefined : geoWriteUrl(x)} writeLabel="Write a post that answers this"
                   onWrite={() => wrote(geoKey(x))} onDismiss={() => dismissAsked(x)}>
                   <p className="font-medium">"{x.question}"</p>
+                  {!x.error && x.gist && (
+                    <p className="text-sm"><span className="text-muted-foreground">ChatGPT says: </span>{x.gist}</p>
+                  )}
                   {!x.error && (x.named?.length ?? 0) > 0 && (
                     <p className="text-sm">Recommended instead: {x.named!.slice(0, 5).join(", ")}</p>
                   )}
