@@ -12,11 +12,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { parseNews, searchTerm } from "../mentions/logic.ts";
 import {
   type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, checkProblem, cleanInput, dayWords,
-  earlierWeekDays, foldStories, geoAsk, geoJudged, htmlText, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsItems,
+  earlierWeekDays, foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsItems,
   paidPartsFailed, parseAnswer, parseSuggest, position, postAsk, sameStoryAsk, sameStoryOf, SUGGEST_FORMAT, suggestMessages, uniqueByUrl, utcDay,
   weekGate,
 } from "./logic.ts";
@@ -57,42 +56,6 @@ async function pool<T, R>(items: T[], limit: number, fn: (t: T, k: number) => Pr
   return out;
 }
 
-/**
- * The site's home page as plain text: public http(s) hosts only (safeFeedUrl, as feed-ideas), 3 redirects each
- * re-checked, 512 KB read at most. Like feed-ideas, a public name that resolves to a private address is not caught.
- */
-async function siteText(host: string): Promise<string> {
-  let url = safeFeedUrl(`https://${host}`);
-  for (let hop = 0; url && hop < 4; hop++) {
-    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(8000), headers: { "User-Agent": "ContentStudio-Market/1.0", Accept: "text/html" } });
-    if (res.status >= 300 && res.status < 400) {
-      url = safeFeedUrl(new URL(res.headers.get("location") ?? "", url).href);
-      continue;
-    }
-    if (!res.ok || !res.body) return "";
-    const reader = res.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      size += value.byteLength;
-      if (size > 512_000) {
-        await reader.cancel();
-        break;
-      }
-    }
-    const all = new Uint8Array(size);
-    let at = 0;
-    for (const c of chunks) {
-      all.set(c, at);
-      at += c.byteLength;
-    }
-    return htmlText(new TextDecoder().decode(all));
-  }
-  return "";
-}
 
 async function suggest(admin: Admin, uid: string, body: unknown): Promise<Response> {
   const input = cleanInput(body);
@@ -103,9 +66,8 @@ async function suggest(admin: Admin, uid: string, body: unknown): Promise<Respon
     const r = usageRefusal(usage);
     return json(r.body, r.status);
   }
-  const site = input.site ? await siteText(input.site).catch(() => "") : "";
   const res = await openaiChat(
-    { model: OPENAI_MODEL, max_tokens: 900, response_format: SUGGEST_FORMAT, messages: suggestMessages({ ...input, siteText: site }) },
+    { model: OPENAI_MODEL, max_tokens: 900, response_format: SUGGEST_FORMAT, messages: suggestMessages(input) },
     { signal: AbortSignal.timeout(45_000) },
   );
   if (!res.ok) {

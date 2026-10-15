@@ -3,7 +3,7 @@
 // skill (~/.claude/skills/market-loop, 2026-10-15), which condenses MIA (mia.ambr.io).
 
 import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
-import { decode, safeFeedUrl } from "../feed-ideas/logic.ts";
+import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { cleanKeywords, type Mention } from "../mentions/logic.ts";
 
 export const MAX_QUESTIONS = 5;
@@ -286,12 +286,13 @@ export const SUGGEST_FORMAT = {
   },
 };
 
-export function suggestMessages(s: { name: string; audience: string; topics: string[]; siteText: string }) {
+/** The website goes in by name only: its pages are never fetched, so there is no request to an address the adviser typed. */
+export function suggestMessages(s: { name: string; audience: string; topics: string[]; site: string }) {
   const user = [
     `Adviser: ${s.name || "not given"}`,
     `Who they serve: ${s.audience}`,
     s.topics.length ? `Topics they post about: ${s.topics.join(", ")}` : "",
-    s.siteText ? `Their website says: ${s.siteText}` : "",
+    s.site ? `Their website: ${s.site}` : "",
     "",
     "keywords: 8 short news search terms (1 to 3 words) for Singapore news these people would care about this month: a scheme, a rule, a product type or a life event.",
     "questions: 8 questions these people would type into ChatGPT when they want help with their money or are looking for an adviser, in their own words, each under 15 words.",
@@ -329,7 +330,3 @@ export function keepTop(values: string[], scores: (number | null)[], max = 5): s
     .map((x) => x.v);
 }
 
-export function htmlText(html: string, max = 3000): string {
-  const bare = html.replace(/<(script|style|noscript|svg)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ");
-  return decode(bare).replace(/\s+/g, " ").trim().slice(0, max);
-}

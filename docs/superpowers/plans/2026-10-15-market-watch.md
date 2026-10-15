@@ -40,7 +40,7 @@ Code blocks carry `file=<path>`: each one is the whole file at that path.
 
 **Interfaces:**
 - Consumes: `askJev` types and `choiceOf`, `noulOf` from `_shared/jev.ts`; `decode`, `safeFeedUrl` from `feed-ideas/logic.ts`; `cleanKeywords`, `Mention` from `mentions/logic.ts`.
-- Produces: types `Position`, `Tag`, `MarketPost`, `CheckInput`, `NewsItem`, `JudgedNews`, `Source`, `GeoRead`, `JudgedPost`, `MarketDigest`, `Ask`; functions `isAllowed`, `cleanQuestions`, `cleanTerms`, `siteHost`, `cleanPosts`, `cleanInput`, `checkProblem`, `earlierWeekDays`, `weekGate`, `utcDay`, `dayWords`, `newsItems`, `uniqueByUrl`, `newsAsk`, `judgeNews`, `sameStoryAsk`, `sameStoryOf`, `foldStories`, `parseAnswer`, `namedIn`, `position`, `geoAsk`, `geoJudged`, `postAsk`, `judgePost`, `SUGGEST_FORMAT`, `suggestMessages`, `parseSuggest`, `keepAsk`, `keepTop`, `htmlText`.
+- Produces: types `Position`, `Tag`, `MarketPost`, `CheckInput`, `NewsItem`, `JudgedNews`, `Source`, `GeoRead`, `JudgedPost`, `MarketDigest`, `Ask`; functions `isAllowed`, `cleanQuestions`, `cleanTerms`, `siteHost`, `cleanPosts`, `cleanInput`, `checkProblem`, `earlierWeekDays`, `weekGate`, `utcDay`, `dayWords`, `newsItems`, `uniqueByUrl`, `newsAsk`, `judgeNews`, `sameStoryAsk`, `sameStoryOf`, `foldStories`, `parseAnswer`, `namedIn`, `position`, `geoAsk`, `geoJudged`, `postAsk`, `judgePost`, `SUGGEST_FORMAT`, `suggestMessages`, `parseSuggest`, `keepAsk`, `keepTop`, `paidPartsFailed`.
 
 - [ ] **Step 1: Save a real answer as the fixture.** One live read (USD 0.004) of "best financial adviser for young families in Singapore" through `ai_optimization/chat_gpt/llm_scraper/live/advanced`, keeping `tasks[0].result[0]` with `markdown` cut to 1,500 characters and `items` cut to the first 12, wrapped back as `{ "tasks": [{ "status_code": 20000, "result": [ ... ] }] }`.
 
@@ -50,7 +50,7 @@ Code blocks carry `file=<path>`: each one is the whole file at that path.
 import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
-  checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, htmlText,
+  checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
   isAllowed, judgeNews, judgePost, keepTop, namedIn, newsItems, paidPartsFailed, parseAnswer, parseSuggest, position, sameStoryAsk, sameStoryOf,
   siteHost, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
@@ -240,9 +240,10 @@ describe("set-up suggestions", () => {
     expect(keepTop(v, v.map(() => null))).toEqual(["a", "b", "c", "d", "e"]);
   });
 
-  it("turns a home page into plain text", () => {
-    expect(htmlText("<html><head><style>p{}</style><script>x()</script></head><body><h1>Leo &amp; Co</h1><p>Plans   for <b>families</b></p></body></html>"))
-      .toBe("Leo & Co Plans for families");
+  it("names the website as a hint and never quotes its pages", () => {
+    const user = suggestMessages({ name: "Leo", audience: "young families", topics: [], site: "leotan.sg" })[1].content;
+    expect(user).toContain("Their website: leotan.sg");
+    expect(suggestMessages({ name: "Leo", audience: "young families", topics: [], site: "" })[1].content).not.toContain("website");
   });
 });
 ```
@@ -257,7 +258,7 @@ describe("set-up suggestions", () => {
 // skill (~/.claude/skills/market-loop, 2026-10-15), which condenses MIA (mia.ambr.io).
 
 import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
-import { decode, safeFeedUrl } from "../feed-ideas/logic.ts";
+import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { cleanKeywords, type Mention } from "../mentions/logic.ts";
 
 export const MAX_QUESTIONS = 5;
@@ -540,12 +541,13 @@ export const SUGGEST_FORMAT = {
   },
 };
 
-export function suggestMessages(s: { name: string; audience: string; topics: string[]; siteText: string }) {
+/** The website goes in by name only: its pages are never fetched, so there is no request to an address the adviser typed. */
+export function suggestMessages(s: { name: string; audience: string; topics: string[]; site: string }) {
   const user = [
     `Adviser: ${s.name || "not given"}`,
     `Who they serve: ${s.audience}`,
     s.topics.length ? `Topics they post about: ${s.topics.join(", ")}` : "",
-    s.siteText ? `Their website says: ${s.siteText}` : "",
+    s.site ? `Their website: ${s.site}` : "",
     "",
     "keywords: 8 short news search terms (1 to 3 words) for Singapore news these people would care about this month: a scheme, a rule, a product type or a life event.",
     "questions: 8 questions these people would type into ChatGPT when they want help with their money or are looking for an adviser, in their own words, each under 15 words.",
@@ -583,10 +585,6 @@ export function keepTop(values: string[], scores: (number | null)[], max = 5): s
     .map((x) => x.v);
 }
 
-export function htmlText(html: string, max = 3000): string {
-  const bare = html.replace(/<(script|style|noscript|svg)\b[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ");
-  return decode(bare).replace(/\s+/g, " ").trim().slice(0, max);
-}
 ```
 
 - [ ] **Step 5: Run to see it pass.** `npx vitest run supabase/functions/market/logic.test.ts`: all pass. Then prove the Review Focus lines bite: delete `host &&` in `position`, and `n.length >= 3 &&` in `namedIn`; each makes a test fail; restore.
@@ -631,11 +629,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
-import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { parseNews, searchTerm } from "../mentions/logic.ts";
 import {
   type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, checkProblem, cleanInput, dayWords,
-  earlierWeekDays, foldStories, geoAsk, geoJudged, htmlText, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsItems,
+  earlierWeekDays, foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsItems,
   paidPartsFailed, parseAnswer, parseSuggest, position, postAsk, sameStoryAsk, sameStoryOf, SUGGEST_FORMAT, suggestMessages, uniqueByUrl, utcDay,
   weekGate,
 } from "./logic.ts";
@@ -676,42 +673,6 @@ async function pool<T, R>(items: T[], limit: number, fn: (t: T, k: number) => Pr
   return out;
 }
 
-/**
- * The site's home page as plain text: public http(s) hosts only (safeFeedUrl, as feed-ideas), 3 redirects each
- * re-checked, 512 KB read at most. Like feed-ideas, a public name that resolves to a private address is not caught.
- */
-async function siteText(host: string): Promise<string> {
-  let url = safeFeedUrl(`https://${host}`);
-  for (let hop = 0; url && hop < 4; hop++) {
-    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(8000), headers: { "User-Agent": "ContentStudio-Market/1.0", Accept: "text/html" } });
-    if (res.status >= 300 && res.status < 400) {
-      url = safeFeedUrl(new URL(res.headers.get("location") ?? "", url).href);
-      continue;
-    }
-    if (!res.ok || !res.body) return "";
-    const reader = res.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      size += value.byteLength;
-      if (size > 512_000) {
-        await reader.cancel();
-        break;
-      }
-    }
-    const all = new Uint8Array(size);
-    let at = 0;
-    for (const c of chunks) {
-      all.set(c, at);
-      at += c.byteLength;
-    }
-    return htmlText(new TextDecoder().decode(all));
-  }
-  return "";
-}
 
 async function suggest(admin: Admin, uid: string, body: unknown): Promise<Response> {
   const input = cleanInput(body);
@@ -722,9 +683,8 @@ async function suggest(admin: Admin, uid: string, body: unknown): Promise<Respon
     const r = usageRefusal(usage);
     return json(r.body, r.status);
   }
-  const site = input.site ? await siteText(input.site).catch(() => "") : "";
   const res = await openaiChat(
-    { model: OPENAI_MODEL, max_tokens: 900, response_format: SUGGEST_FORMAT, messages: suggestMessages({ ...input, siteText: site }) },
+    { model: OPENAI_MODEL, max_tokens: 900, response_format: SUGGEST_FORMAT, messages: suggestMessages(input) },
     { signal: AbortSignal.timeout(45_000) },
   );
   if (!res.ok) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
-  checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, htmlText,
+  checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
   isAllowed, judgeNews, judgePost, keepTop, namedIn, newsItems, paidPartsFailed, parseAnswer, parseSuggest, position, sameStoryAsk, sameStoryOf,
   siteHost, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
@@ -191,8 +191,9 @@ describe("set-up suggestions", () => {
     expect(keepTop(v, v.map(() => null))).toEqual(["a", "b", "c", "d", "e"]);
   });
 
-  it("turns a home page into plain text", () => {
-    expect(htmlText("<html><head><style>p{}</style><script>x()</script></head><body><h1>Leo &amp; Co</h1><p>Plans   for <b>families</b></p></body></html>"))
-      .toBe("Leo & Co Plans for families");
+  it("names the website as a hint and never quotes its pages", () => {
+    const user = suggestMessages({ name: "Leo", audience: "young families", topics: [], site: "leotan.sg" })[1].content;
+    expect(user).toContain("Their website: leotan.sg");
+    expect(suggestMessages({ name: "Leo", audience: "young families", topics: [], site: "" })[1].content).not.toContain("website");
   });
 });

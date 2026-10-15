@@ -26,7 +26,7 @@ Dismiss hides an item for good. Writing from an item marks it Written.
 | action | Body | Does |
 |---|---|---|
 | status | none | `{enabled}` for this caller; no paid call |
-| suggest | name, site, audience, topics | Fetches the site's text (guarded like feed-ideas: http(s) only, public hosts, 3 redirects re-checked, body capped). OpenAI writes up to 8 news keywords and 8 client questions. Jev keeps those a person this adviser serves would search or ask (noul at least 0.5), at most 5 each. |
+| suggest | name, site, audience, topics | The website goes in by name only and is never fetched (no request to an address the adviser typed). OpenAI writes up to 8 news keywords and 8 client questions. Jev keeps those a person this adviser serves would search or ask (noul at least 0.5), at most 5 each. |
 | check | name, site, audience, topics, questions (at most 5), keywords (the Mentions list, at most 5), posts (at most 10) | Weekly gate first, so a refused check spends nothing. Then in parallel: one ChatGPT read per question; the news for each keyword (the same DataForSEO request and parser as `mentions`); one Jev call per news item (relevant noul, act/watch choice); one Jev same-story choice per relevant item against earlier relevant items (at most 10 candidates); one Jev act/watch per post. Returns the digest. |
 
 Rules in `logic.ts`:
