@@ -1,5 +1,16 @@
 [
   {
+    "id": "0ac3f9e44758",
+    "title": "MAS holds monetary policy settings, pausing after two straight tightenings",
+    "gist": "The Monetary Authority of Singapore (MAS) kept monetary policy settings unchanged on Wednesday (Oct 14), pausing after two straight tightenings earlier this year. MAS narrowed its 2026 core inflation forecast to 1.5 to 2 per cent and projected core and headline inflation to average 1.5 to 2.5 per cent in 2027. Stronger imported cost pressures are expected to keep inflation slightly elevated in the coming months before core inflation eases from mid-2027.",
+    "talkingPoint": "Clients may watch how inflation staying slightly elevated before easing from mid-2027 affects their ongoing living expenses. You can ask how comfortable they are with the cost assumptions used in their current financial plan.",
+    "clientMessage": "Hi [Client name], the central bank kept its policy settings unchanged on Wednesday. It expects inflation to stay slightly elevated in the coming months before core inflation eases from mid-2027. This matters because price trends affect everyday expenses and future targets. If you would like, we can look at your financial plan together to see how your current savings assumptions match these projections. Let me know if you would like to do that. [Your name]",
+    "source": "The Business Times",
+    "url": "https://businesstimes.com.sg/singapore/mas-holds-monetary-policy-settings-pausing-after-two-straight-tightenings",
+    "publishedAt": "2026-10-14T00:06:10+00:00",
+    "topic": "Rates and markets"
+  },
+  {
     "id": "9dfae204d29f",
     "title": "Air quality unhealthy across Singapore amid sustained haze",
     "gist": "Air quality across Singapore stayed in the unhealthy range on Oct 12, with the west recording a 1-hour PM2.5 reading of 171 at 9pm. Subsidised medical treatments for haze-related conditions took effect on Monday at polyclinics for all Singaporeans, and at participating Public Health Preparedness Clinics for groups such as children and seniors. The government will distribute N95 masks to vulnerable individuals if the 24-hour PSI exceeds 200.",
@@ -286,18 +297,6 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
-    "id": "38d77cf6f8ef",
-    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
-    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
-    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
-    "clientMessage": null,
-    "source": "Mothership",
-    "url": "https://mothership.sg/2026/02/2026-budget-summary",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "Cost of living",
-    "clipping": "/news/38d77cf6f8ef.jpg"
-  },
-  {
     "id": "146ce01a9327",
     "title": "Budget 2026 Highlights",
     "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
@@ -320,6 +319,18 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/6d46dc1c57d8.jpg"
+  },
+  {
+    "id": "38d77cf6f8ef",
+    "title": "PM Wong's Budget 2026 in summary: AI, supporting workers, vouchers & helping businesses",
+    "gist": "A S$154.69 billion Budget, delivered on 12 February 2026, built around an ambition to hold growth at the higher end of 2 to 3 per cent over the next decade. Eligible Singaporeans receive S$200 to S$400 in a Cost-of-Living Special Payment in September 2026, and up to S$570 in U-Save rebates over the financial year. Every Singaporean household gets S$500 in CDC vouchers in January 2027. Children aged 12 and below in 2026 receive S$500 in Child LifeSG credits.",
+    "talkingPoint": "Put the payout dates on the table beside the client's own cashflow. Money that arrives on a known date is money that can be pointed at something. Careful: Eligibility differs for each payout. Never tell a client what they will receive without checking their own assessable income and property, which the Budget site sets out. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "clientMessage": null,
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/02/2026-budget-summary",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "Cost of living",
+    "clipping": "/news/38d77cf6f8ef.jpg"
   },
   {
     "id": "e98550debf11",
