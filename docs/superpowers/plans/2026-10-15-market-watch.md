@@ -874,7 +874,10 @@ class MemStorage {
 }
 
 beforeEach(() => {
-  vi.stubGlobal("localStorage", new MemStorage());
+  const storage = new MemStorage();
+  vi.stubGlobal("localStorage", storage);
+  // Mentions reads window.localStorage, which node lacks
+  vi.stubGlobal("window", { localStorage: storage });
   callFn.mockReset();
 });
 afterEach(() => {
@@ -955,7 +958,7 @@ describe("competitors doing well", () => {
 
   it("keeps posts at 1.5 times their account's average, best first, from accounts with 4 or more posts", () => {
     const a = acct("rival", [post("1", 10), post("2", 10), post("3", 10), post("4", 50)]);
-    const small = acct("tiny", [post("9", 1000)]);
+    const small = acct("tiny", [post("9", 10), post("10", 10), post("11", 100)]);
     const b = acct("other", [post("5", 1), post("6", 1), post("7", 1), post("8", 20, 5)]);
     expect(m.outperformers([a, small, b]).map((x) => x.id)).toEqual(["instagram:8", "instagram:4"]);
     expect(m.outperformers([acct("zero", [post("1", 0), post("2", 0), post("3", 0), post("4", 0)])])).toEqual([]);
@@ -1115,7 +1118,7 @@ export function pickingUp(checks: MarketDigest[]): string[] {
   if (!latest || !earlier.length) return [];
   return [...new Set(latest.news.map((x) => x.keyword))].filter((k) => {
     const now = counted(latest, k);
-    const avg = earlier.reduce((s, c) => s + counted(c, k), 0) / earlier.length;
+    const avg = earlier.reduce((s, c) => s + counted(c, k), 0) / Math.max(earlier.length, 1);
     return now >= 3 && now >= 2 * Math.max(avg, 1);
   });
 }
