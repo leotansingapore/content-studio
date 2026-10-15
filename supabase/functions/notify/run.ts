@@ -9,6 +9,7 @@ import {
   emailWeeks,
   goalAlert,
   marketAlert,
+  marketOpen,
   moveAsk,
   parsePrefs,
   pickedMove,
@@ -156,7 +157,7 @@ export async function runUser(deps: Deps, uid: string, prefs: { email: boolean; 
         report.email = { skipped: "no confirmed sign-in email" };
       } else if (test || (await available([due.item], EMAIL_RETAKE)).has(due.item)) {
         // Jev is asked only once the email is ours to send, so an hourly rerun costs nothing.
-        const email = weeklyEmail(profiles, o.now, await weekPicks(deps, uid, profiles, o.now))!;
+        const email = weeklyEmail(profiles, o.now, await weekPicks(deps, uid, profiles, o.now), marketOpen(profiles, o.now, isAllowed(o.marketUsers, uid)))!;
         const sent = o.dryRun ? null : await deps.sendEmail(to, email, `cs-${email.item}-${uid}${test ? "-test" : ""}`);
         // A failed send keeps its claim unsent; the next hourly run takes it again.
         if (sent && !test) await deps.markSent(uid, [email.item]);
