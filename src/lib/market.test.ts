@@ -49,6 +49,47 @@ describe("the synced key", () => {
   });
 });
 
+describe("a digest synced from an older or newer app", () => {
+  it("drops a check with an unreadable date and items that would break the page, keeping the rest", () => {
+    const good = n("https://a.sg/1");
+    localStorage.setItem("content-studio-market-u1", JSON.stringify({
+      checks: [
+        { checkedAt: "soon", news: [], geo: [], posts: [] },
+        {
+          checkedAt: "2026-10-15T00:00:00Z",
+          news: [null, { ...good, title: { x: 1 } }, { ...good, url: 5 }, good],
+          geo: [{}, { question: "Is CPF enough?", position: "named", sources: "nope" }, g("Is CPF enough for me?", "not-mentioned")],
+          posts: [{ id: "1" }, p("2")],
+        },
+      ],
+    }));
+    const s = m.loadMarket("u1");
+    expect(s.checks).toHaveLength(1);
+    expect(s.checks[0].news.map((x) => x.url)).toEqual(["https://a.sg/1"]);
+    expect(s.checks[0].geo.map((x) => x.question)).toEqual(["Is CPF enough for me?"]);
+    expect(s.checks[0].posts.map((x) => x.id)).toEqual(["2"]);
+    expect(() => [m.nextCheckDay(s), m.actCount(s.checks[0], s), m.pickingUp(s.checks)]).not.toThrow();
+  });
+});
+
+describe("what the page says about the week", () => {
+  const job = (code = "weekly_limit") => ({ state: "failed" as const, startedAt: 0, error: "You've had this week's check. The next one opens Thu 22 Oct at 8am.", code });
+  const at = new Date("2026-10-16T03:00:00Z");
+  it("explains a refused check when no result reached this page", () => {
+    expect(m.weekNote(m.EMPTY_MARKET, job(), at)).toBe("You've had this week's check. The next one opens Thu 22 Oct at 8am. Its result is on another profile, or was lost when a page closed mid-check.");
+  });
+  it("repeats the server's words when this page has the week's result", () => {
+    const s = { ...m.EMPTY_MARKET, checks: [digest("2026-10-15T01:00:00Z")] };
+    expect(m.weekNote(s, job(), at)).toBe("You've had this week's check. The next one opens Thu 22 Oct at 8am.");
+  });
+  it("says when the next check opens, or nothing", () => {
+    const s = { ...m.EMPTY_MARKET, checks: [digest("2026-10-15T01:00:00Z")] };
+    expect(m.weekNote(s, null, at)).toBe("Next check opens Thu 22 Oct at 8am.");
+    expect(m.weekNote(m.EMPTY_MARKET, null, at)).toBe("");
+    expect(m.weekNote(m.EMPTY_MARKET, job("daily_limit"), at)).toBe("");
+  });
+});
+
 describe("what the digest shows", () => {
   const s = { ...m.EMPTY_MARKET, dismissed: ["n:https://a.sg/3"] };
   const d = digest("2026-10-15T00:00:00Z",

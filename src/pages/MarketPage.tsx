@@ -16,14 +16,13 @@ import { useToast } from "@/hooks/use-toast";
 import { loadBrand } from "@/lib/carousel";
 import {
   EMPTY_MARKET, POSITION_LABEL, actCount, alsoReported, geoKey, geoWriteUrl, loadMarket, marketJob, newsKey, newsWriteUrl, nextCheckDay,
-  onMarketJob, pickingUp, postKey, postWriteUrl, runMarketCheck, saveMarket, suggestSetup, visibleGeo, visibleNews, visiblePosts, withKey,
-  type MarketState, type Show,
+  onMarketJob, pickingUp, postKey, postWriteUrl, runMarketCheck, saveMarket, suggestSetup, visibleGeo, visibleNews, visiblePosts, weekNote,
+  withKey, type MarketState, type Show,
 } from "@/lib/market";
 import { MAX_WATCH, loadWatch, saveWatch } from "@/lib/mentions";
 import { loadPositioning } from "@/lib/positioning";
 import { supabase } from "@/lib/supabase";
 import { useUrlState } from "@/lib/urlState";
-import { dayWords } from "../../supabase/functions/market/logic.ts";
 
 const ago = (iso: string) => {
   const d = Math.floor((Date.now() - Date.parse(iso)) / 86_400_000);
@@ -194,7 +193,16 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
   useEffect(() => {
     if (!running) return;
     const t = setInterval(() => tick((n) => n + 1), 1000);
-    return () => clearInterval(t);
+    // the result only comes back to this tab, and the week's check is already counted: ask before it closes
+    const keep = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", keep);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("beforeunload", keep);
+    };
   }, [running]);
 
   const update = (next: MarketState) => setState(saveMarket(uid, next));
@@ -204,7 +212,6 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
     toast({ title: "Hidden for good", action: <ToastAction altText="Undo" onClick={() => update({ ...loadMarket(uid), dismissed: withKey(loadMarket(uid).dismissed, key, false) })}>Undo</ToastAction> });
   };
   const wrote = (key: string) => update({ ...loadMarket(uid), written: withKey(loadMarket(uid).written, key, true) });
-  const blockedWords = job?.state === "failed" && job.code === "weekly_limit" ? job.error : nextDay ? `Next check opens ${dayWords(nextDay)} at 8am.` : "";
 
   const news = latest ? visibleNews(latest, state, show) : [];
   const geo = latest ? visibleGeo(latest, state, show) : [];
@@ -226,7 +233,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
           {running ? `Checking... ${Math.round((Date.now() - job!.startedAt) / 1000)}s` : "Check my market"}
         </Button>
         <span className="text-sm text-muted-foreground" aria-live="polite">
-          {running ? "Reading the news and asking ChatGPT. About a minute; you can leave this page." : blockedWords}
+          {running ? "Reading the news and asking ChatGPT. About a minute; other pages are fine, but keep this tab open." : weekNote(state, job)}
         </span>
       </div>
 
@@ -251,7 +258,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
               {news.map((x) => {
                 const also = alsoReported(latest, x);
                 return (
-                  <Card key={x.url} tag={x.relevant === null ? "Not judged" : x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"}
+                  <Card key={x.url} label={x.title} tag={x.relevant === null ? "Not judged" : x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"}
                     written={state.written.includes(newsKey(x))} writeUrl={newsWriteUrl(x)} writeLabel="Write a post from this"
                     onWrite={() => wrote(newsKey(x))} onDismiss={() => dismiss(newsKey(x))}>
                     <a href={x.url} target="_blank" rel="noreferrer" className="block py-1.5 font-medium hover:underline">{x.title}</a>
@@ -268,7 +275,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
           {geo.length > 0 && (
             <Section title="Your clients' questions in ChatGPT">
               {geo.map((x) => (
-                <Card key={x.question} tag={x.position ? POSITION_LABEL[x.position] : "No answer"} act={x.position === "not-mentioned" || x.position === "passing"}
+                <Card key={x.question} label={x.question} tag={x.position ? POSITION_LABEL[x.position] : "No answer"} act={x.position === "not-mentioned" || x.position === "passing"}
                   written={state.written.includes(geoKey(x))} writeUrl={x.error ? undefined : geoWriteUrl(x)} writeLabel="Write a post that answers this"
                   onWrite={() => wrote(geoKey(x))} onDismiss={() => dismiss(geoKey(x))}>
                   <p className="font-medium">"{x.question}"</p>
@@ -288,7 +295,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
           {posts.length > 0 && (
             <Section title="Competitors doing well">
               {posts.map((x) => (
-                <Card key={x.id} tag={x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"} written={state.written.includes(postKey(x))}
+                <Card key={x.id} label={`@${x.handle}'s post`} tag={x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"} written={state.written.includes(postKey(x))}
                   writeUrl={postWriteUrl(x)} writeLabel="Write your take" onWrite={() => wrote(postKey(x))} onDismiss={() => dismiss(postKey(x))}>
                   <a href={x.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 py-1.5 font-medium hover:underline">@{x.handle}<ExternalLink className="h-3.5 w-3.5" /></a>
                   <p className="line-clamp-3 text-sm text-muted-foreground">{x.caption}</p>
@@ -312,6 +319,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Card(props: {
+  /** Names the item in each control's accessible name, so a screen reader can tell one card's Dismiss from the next. */
+  label: string;
   tag: string; act: boolean; written: boolean; writeUrl?: string; writeLabel: string; onWrite: () => void; onDismiss: () => void; children: ReactNode;
 }) {
   return (
@@ -323,10 +332,10 @@ function Card(props: {
       <div className="flex flex-wrap items-center gap-2">
         {props.writeUrl && (
           <Button asChild size="sm" className="gap-1.5">
-            <Link to={props.writeUrl} onClick={props.onWrite}><PenLine className="h-3.5 w-3.5" />{props.written ? "Write another" : props.writeLabel}</Link>
+            <Link to={props.writeUrl} onClick={props.onWrite} aria-label={`${props.written ? "Write another" : props.writeLabel}: ${props.label}`}><PenLine className="h-3.5 w-3.5" />{props.written ? "Write another" : props.writeLabel}</Link>
           </Button>
         )}
-        <Button type="button" size="sm" variant="ghost" onClick={props.onDismiss}>Dismiss</Button>
+        <Button type="button" size="sm" variant="ghost" onClick={props.onDismiss} aria-label={`Dismiss: ${props.label}`}>Dismiss</Button>
         {props.written && <span className="text-xs text-muted-foreground">Written</span>}
       </div>
     </li>

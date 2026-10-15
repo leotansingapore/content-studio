@@ -8,7 +8,7 @@ import { storyWriteUrl } from "@/lib/feeds";
 import { loadFollowing, type FollowedAccount } from "@/lib/following";
 import { loadWatch } from "@/lib/mentions";
 import { scoped } from "@/lib/profiles";
-import type { GeoRead, JudgedNews, JudgedPost, MarketDigest, MarketPost, Position } from "../../supabase/functions/market/logic.ts";
+import { dayWords, type GeoRead, type JudgedNews, type JudgedPost, type MarketDigest, type MarketPost, type Position } from "../../supabase/functions/market/logic.ts";
 
 export type { GeoRead, JudgedNews, JudgedPost, MarketDigest, Position };
 
@@ -42,8 +42,37 @@ const DAY_MS = 86_400_000;
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const strings = (v: unknown, max: number) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").slice(-max) : []);
-const isDigest = (c: unknown): c is MarketDigest =>
-  !!c && typeof c === "object" && typeof (c as MarketDigest).checkedAt === "string" && Array.isArray((c as MarketDigest).news) && Array.isArray((c as MarketDigest).geo) && Array.isArray((c as MarketDigest).posts);
+type Raw = Record<string, unknown>;
+const obj = (v: unknown): v is Raw => !!v && typeof v === "object" && !Array.isArray(v);
+const strs = (o: Raw, ...keys: string[]) => keys.every((k) => typeof o[k] === "string");
+const tagOf = (v: unknown) => (v === "act" ? "act" : "watch") as JudgedNews["tag"];
+const POSITIONS: Position[] = ["not-mentioned", "passing", "named", "cited"];
+
+/**
+ * A check as synced, rebuilt field by field: a check whose date doesn't read is dropped, and so is any item missing
+ * what the page renders, so an older or newer app's digest can never crash the page (it syncs to every device).
+ */
+function cleanDigest(c: unknown): MarketDigest | null {
+  if (!obj(c) || typeof c.checkedAt !== "string" || !Number.isFinite(Date.parse(c.checkedAt))) return null;
+  const list = (v: unknown) => (Array.isArray(v) ? v.filter(obj) : []);
+  return {
+    checkedAt: c.checkedAt,
+    news: list(c.news).filter((x) => strs(x, "url", "title", "keyword", "source")).map((x) => ({
+      keyword: x.keyword as string, title: x.title as string, url: x.url as string, source: x.source as string, date: str(x.date), snippet: str(x.snippet),
+      relevant: typeof x.relevant === "boolean" ? x.relevant : null, tag: tagOf(x.tag), ...(typeof x.sameAs === "string" ? { sameAs: x.sameAs } : {}),
+    })),
+    geo: list(c.geo).filter((x) => strs(x, "question") && Array.isArray(x.sources)).map((x) => ({
+      question: x.question as string,
+      position: POSITIONS.includes(x.position as Position) ? (x.position as Position) : null,
+      sources: (x.sources as unknown[]).filter(obj).filter((o) => strs(o, "url", "domain")).map((o) => ({ url: o.url as string, domain: o.domain as string, title: str(o.title) })),
+      checkUrl: typeof x.checkUrl === "string" ? x.checkUrl : null,
+      ...(typeof x.error === "string" ? { error: x.error } : {}),
+    })),
+    posts: list(c.posts).filter((x) => strs(x, "id", "url", "handle", "caption")).map((x) => ({
+      id: x.id as string, url: x.url as string, handle: x.handle as string, caption: x.caption as string, tag: tagOf(x.tag),
+    })),
+  };
+}
 
 export function loadMarket(userId: string): MarketState {
   try {
@@ -55,7 +84,7 @@ export function loadMarket(userId: string): MarketState {
       audience: str(v.audience),
       topics: strings(v.topics, 12),
       questions: strings(v.questions, 5),
-      checks: (Array.isArray(v.checks) ? v.checks : []).filter(isDigest).slice(-12),
+      checks: (Array.isArray(v.checks) ? v.checks : []).map(cleanDigest).filter((c): c is MarketDigest => c !== null).slice(-12),
       dismissed: strings(v.dismissed, 300),
       written: strings(v.written, 300),
     };
@@ -140,6 +169,19 @@ export function nextCheckDay(s: MarketState, now = new Date()): string | null {
   if (!last) return null;
   const opens = Date.parse(`${last.slice(0, 10)}T00:00:00Z`) + 7 * DAY_MS;
   return now.getTime() >= opens ? null : new Date(opens).toISOString().slice(0, 10);
+}
+
+/**
+ * The line beside the check button. A weekly refusal with no result on this page in the last 7 days means the check
+ * ran on another profile (the cap is per account) or its page closed mid-check; say so instead of looking broken.
+ */
+export function weekNote(s: MarketState, job: MarketJob | null, now = new Date()): string {
+  if (job?.state === "failed" && job.code === "weekly_limit") {
+    const recent = s.checks.some((c) => now.getTime() - Date.parse(c.checkedAt) < 7 * DAY_MS);
+    return recent ? job.error ?? "" : `${job.error} Its result is on another profile, or was lost when a page closed mid-check.`;
+  }
+  const next = nextCheckDay(s, now);
+  return next ? `Next check opens ${dayWords(next)} at 8am.` : "";
 }
 
 function readShown(): { on: boolean; at: number } | null {

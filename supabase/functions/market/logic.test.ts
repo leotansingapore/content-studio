@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
-  isAllowed, judgeNews, judgePost, keepTop, namedIn, newsItems, paidPartsFailed, parseAnswer, parseSuggest, position, sameStoryAsk, sameStoryOf,
-  siteHost, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
+  citesSite, isAllowed, judgeNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
+  sameStoryAsk, sameStoryOf, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
+import type { UsageClient } from "../_shared/usageCaps";
 
 const src = (url: string): Source => ({ url, domain: new URL(url).hostname, title: "" });
 const news = (url: string, title = "Story", keyword = "CPF"): NewsItem => ({ keyword, title, url, source: "straitstimes.com", date: "2026-10-14", snippet: "" });
@@ -32,13 +33,25 @@ describe("cleaning what the browser sends", () => {
     expect(cleanTerms(['"CPF LIFE"'])).toEqual(["CPF LIFE"]);
   });
 
-  it("reads a site as its public host only", () => {
-    expect(siteHost("https://www.leotan.sg/about")).toBe("leotan.sg");
-    expect(siteHost("leotan.sg")).toBe("leotan.sg");
-    expect(siteHost("http://localhost:3000")).toBe("");
-    expect(siteHost("http://10.0.0.1")).toBe("");
-    expect(siteHost("")).toBe("");
-    expect(siteHost(42)).toBe("");
+  it("reads a site as its public host plus any path, lower case", () => {
+    expect(siteScope("https://www.leotan.sg/")).toBe("leotan.sg");
+    expect(siteScope("leotan.sg")).toBe("leotan.sg");
+    expect(siteScope("https://www.LinkedIn.com/in/LeoTan/")).toBe("linkedin.com/in/leotan");
+    expect(siteScope("http://localhost:3000")).toBe("");
+    expect(siteScope("http://10.0.0.1")).toBe("");
+    expect(siteScope("")).toBe("");
+    expect(siteScope(42)).toBe("");
+  });
+
+  it("counts a source as the adviser's own only inside their host and path", () => {
+    expect(citesSite("https://blog.leotan.sg/x", "leotan.sg")).toBe(true);
+    expect(citesSite("https://notleotan.sg/x", "leotan.sg")).toBe(false);
+    expect(citesSite("https://www.linkedin.com/in/leotan/details", "linkedin.com/in/leotan")).toBe(true);
+    expect(citesSite("https://www.linkedin.com/in/janelim", "linkedin.com/in/leotan")).toBe(false);
+    expect(citesSite("https://linkedin.com/in/leotanner", "linkedin.com/in/leotan")).toBe(false);
+    expect(citesSite("https://www.aia.com.sg/en/agents/someone-else", "aia.com.sg/en/agents/leo-tan")).toBe(false);
+    expect(citesSite("not a url", "leotan.sg")).toBe(false);
+    expect(citesSite("https://leotan.sg/", "")).toBe(false);
   });
 
   it("drops posts without a public link, id, handle or caption, and stops at 10", () => {
@@ -131,8 +144,13 @@ describe("AI answers", () => {
     expect(parseAnswer(null)).toBeNull();
   });
 
-  it("matches a name of 3 or more letters, case blind", () => {
+  it("matches a whole name of 3 or more letters, case blind", () => {
     expect(namedIn("Try Leo Tan or a robo-adviser.", "leo tan")).toBe(true);
+    expect(namedIn("Leo Tan's clients say", "Leo Tan")).toBe(true);
+    expect(namedIn("Speak to Ian, an adviser.", "Ian")).toBe(true);
+    expect(namedIn("Try A+B Advisory.", "A+B Advisory")).toBe(true);
+    expect(namedIn("Plan your annual review.", "Ann")).toBe(false);
+    expect(namedIn("A guardian plan.", "Ian")).toBe(false);
     expect(namedIn("Anything at all.", "")).toBe(false);
     expect(namedIn("Leo is mentioned.", "Le")).toBe(false);
   });
@@ -154,6 +172,77 @@ describe("AI answers", () => {
     expect(geoJudged({ how: { type: "choice", choice: "passing" } })).toBe("passing");
     expect(geoJudged({ how: { type: "choice", choice: "cited" } })).toBeNull();
     expect(geoJudged(null)).toBeNull();
+  });
+});
+
+describe("news lookups", () => {
+  it("treats a DataForSEO task error as failed, and no results as empty", () => {
+    expect(newsFailed({ status_code: 20000, tasks: [{ status_code: 20000, result: [] }] })).toBe(false);
+    expect(newsFailed({ status_code: 20000, tasks: [{ status_code: 40102, result: null }] })).toBe(false);
+    expect(newsFailed({ status_code: 20000, tasks: [{ status_code: 50000, result: null }] })).toBe(true);
+    expect(newsFailed({ status_code: 40100, tasks: [] })).toBe(true);
+    expect(newsFailed(null)).toBe(true);
+  });
+
+  it("keeps 10 stories a keyword and 40 in all", () => {
+    const m = (k: number) => ({ title: `T${k}`, url: `https://a.sg/${k}`, source: "a.sg", snippet: "", date: "" });
+    expect(newsItems("CPF", Array.from({ length: 14 }, (_, k) => m(k)))).toHaveLength(10);
+    const lists = Array.from({ length: 5 }, (_, j) => Array.from({ length: 10 }, (_, k) => news(`https://a.sg/${j}-${k}`)));
+    expect(pickNews(lists)).toHaveLength(40);
+    expect(pickNews([[news("https://a.sg/1")], [news("https://a.sg/1")]])).toHaveLength(1);
+  });
+});
+
+describe("taking this week's slot", () => {
+  /** cs_consume_ai_usage and the cs_ai_usage row reads and updates, in memory, for one day. */
+  function usage(seed: Record<string, number> = {}) {
+    const rows = new Map(Object.entries(seed));
+    const key = (u: unknown, f: unknown) => `${u}|${f}`;
+    const client = {
+      rpc: async (_fn: string, a: Record<string, unknown>) => {
+        const k = key(a.p_user, a.p_feature);
+        const c = rows.get(k) ?? 0;
+        if (c >= (a.p_limit as number)) return { data: null, error: null };
+        rows.set(k, c + 1);
+        return { data: c + 1, error: null };
+      },
+      from: () => ({
+        select: () => ({ match: async (q: Record<string, unknown>) => ({ data: rows.has(key(q.user_id, q.feature)) ? [{ count: rows.get(key(q.user_id, q.feature)) }] : [], error: null }) }),
+        update: (v: { count: number }) => ({
+          match: (q: Record<string, unknown>) => ({
+            select: async () => {
+              const k = key(q.user_id, q.feature);
+              if (rows.get(k) !== q.count) return { data: [], error: null };
+              rows.set(k, v.count);
+              return { data: [{ count: v.count }], error: null };
+            },
+          }),
+        }),
+      }),
+    };
+    return { rows, client: client as unknown as UsageClient };
+  }
+  const OWNER = "13b28b1d-2ecb-40be-b3a9-aefc90366f9b";
+
+  it("takes the adviser's slot, then the studio's", async () => {
+    const u = usage();
+    expect(await takeSlots(u.client, "u1", "2026-10-15")).toEqual({ ok: true });
+    expect(u.rows.get("u1|market-check")).toBe(1);
+    expect(u.rows.get(`${OWNER}|market-check-global`)).toBe(1);
+  });
+
+  it("refuses a second check the same day without touching the studio's count", async () => {
+    const u = usage({ "u1|market-check": 1, [`${OWNER}|market-check-global`]: 1 });
+    const r = await takeSlots(u.client, "u1", "2026-10-15");
+    expect(r).toMatchObject({ ok: false, status: 429, body: { code: "weekly_limit", nextDay: "2026-10-22" } });
+    expect(u.rows.get(`${OWNER}|market-check-global`)).toBe(1);
+  });
+
+  it("gives the adviser's slot back when the studio's are used up", async () => {
+    const u = usage({ [`${OWNER}|market-check-global`]: 20 });
+    const r = await takeSlots(u.client, "u1", "2026-10-15");
+    expect(r).toMatchObject({ ok: false, status: 429, body: { code: "daily_limit" } });
+    expect(u.rows.get("u1|market-check")).toBe(0);
   });
 });
 

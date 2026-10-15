@@ -5,6 +5,7 @@
 import { choiceOf, noulOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { cleanKeywords, type Mention } from "../mentions/logic.ts";
+import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal, type UsageClient } from "../_shared/usageCaps.ts";
 
 export const MAX_QUESTIONS = 5;
 export const MAX_POSTS = 10;
@@ -13,6 +14,9 @@ export const MAX_SOURCES = 20;
 /** A Jev yes at or above this counts; on the AT market-loop run (2026-10-15) the lower yeses were junk. */
 export const RELEVANT_AT = 0.5;
 export const SAME_STORY_CANDIDATES = 10;
+/** Stories judged per check: 10 a keyword, 40 in all, so the Jev pools finish well inside the function's time limit. */
+export const NEWS_PER_KEYWORD = 10;
+export const MAX_NEWS = 40;
 const DAY_MS = 86_400_000;
 const COUNTRY = "Singapore";
 
@@ -58,12 +62,35 @@ function distinct(raw: unknown, max: number, clean: (v: unknown) => string, min:
 export const cleanQuestions = (raw: unknown, max = MAX_QUESTIONS) => distinct(raw, max, (v) => text(v, 160), 8);
 export const cleanTerms = (raw: unknown, max = MAX_CANDIDATES) => distinct(raw, max, (v) => text(v, 40).replace(/["']/g, ""), 2);
 
-/** The site's host without www, or "" when there is none or it is not a public web address. */
-export function siteHost(raw: unknown): string {
+/**
+ * The adviser's own corner of the web: the host without www, plus the path when there is one ("linkedin.com/in/leotan"),
+ * lower case. A profile on a shared site keeps its path, so another person's page there never counts as theirs.
+ * "" when there is none or it is not a public web address.
+ */
+export function siteScope(raw: unknown): string {
   const t = text(raw, 300);
   if (!t) return "";
   const u = safeFeedUrl(/^https?:\/\//i.test(t) ? t : `https://${t}`);
-  return u ? u.hostname.toLowerCase().replace(/^www\./, "") : "";
+  if (!u) return "";
+  return `${u.hostname.replace(/^www\./, "")}${u.pathname.replace(/\/+$/, "")}`.toLowerCase();
+}
+
+/** A source inside the scope: the same host or a subdomain of it, and under its path when it has one. */
+export function citesSite(url: string, scope: string): boolean {
+  if (!scope) return false;
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  const slash = scope.indexOf("/");
+  const host = slash < 0 ? scope : scope.slice(0, slash);
+  const path = slash < 0 ? "" : scope.slice(slash);
+  const h = u.hostname.toLowerCase().replace(/^www\./, "");
+  if (h !== host && !h.endsWith(`.${host}`)) return false;
+  const p = u.pathname.toLowerCase().replace(/\/+$/, "");
+  return !path || p === path || p.startsWith(`${path}/`);
 }
 
 export function cleanPosts(raw: unknown): MarketPost[] {
@@ -84,7 +111,7 @@ export function cleanInput(raw: unknown): CheckInput {
   const b = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   return {
     name: text(b.name, 80),
-    site: siteHost(b.site),
+    site: siteScope(b.site),
     audience: text(b.audience, 300),
     topics: distinct(b.topics, 12, (v) => text(v, 60), 2),
     questions: cleanQuestions(b.questions),
@@ -107,6 +134,29 @@ export function paidPartsFailed(i: CheckInput, newsFailed: boolean, geo: GeoRead
 }
 
 export const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
+
+/**
+ * This week's slot: the adviser's own cap first, so someone who has already checked can't use up the studio's;
+ * the studio's 20 a day next, giving the adviser's slot back when those are gone so they don't lose the week.
+ */
+export async function takeSlots(admin: UsageClient, uid: string, today: string): Promise<{ ok: true } | { ok: false; status: number; body: Record<string, unknown> }> {
+  const mine = await consumeUsage(admin, uid, "market-check");
+  if (mine.allowed === false) {
+    if (mine.reason === "limit") return { ok: false, ...weeklyRefusal(utcDay(Date.parse(`${today}T00:00:00Z`) + 7 * DAY_MS)) };
+    return { ok: false, ...usageRefusal(mine) };
+  }
+  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "market-check-global");
+  if (everyone.allowed === true) return { ok: true };
+  await refundUsage(admin, uid, "market-check", today);
+  return everyone.reason === "limit"
+    ? { ok: false, status: 429, body: { code: "daily_limit", error: "Today's market checks for the whole studio are used up. Try again after 8am Singapore time." } }
+    : { ok: false, ...usageRefusal(everyone) };
+}
+
+export const weeklyRefusal = (nextDay: string) => ({
+  status: 429,
+  body: { code: "weekly_limit", nextDay, error: `You've had this week's check. The next one opens ${dayWords(nextDay)} at 8am.` },
+});
 
 /** The 6 UTC days before today. cs_ai_usage counts on UTC dates, which start at 8am in Singapore. */
 export function earlierWeekDays(now: Date): string[] {
@@ -133,8 +183,19 @@ export function newsItems(keyword: string, items: Mention[]): NewsItem[] {
   return items
     .filter((m) => safeFeedUrl(m.url))
     .map((m) => ({ keyword, title: text(m.title, 200), url: m.url, source: text(m.source, 80).replace(/^www\./, ""), date: text(m.date, 40), snippet: text(m.snippet, 300) }))
-    .filter((n) => n.title);
+    .filter((n) => n.title)
+    .slice(0, NEWS_PER_KEYWORD);
 }
+
+/** DataForSEO reports most task errors as HTTP 200 with a non-20000 code; 40102 (no results) is an empty answer, not a failure. */
+export function newsFailed(body: unknown): boolean {
+  // a request-level error (bad login, no credit) comes with no task, which reads as failed here too
+  const code = (body as { tasks?: { status_code?: number }[] } | null)?.tasks?.[0]?.status_code;
+  return code !== 20000 && code !== 40102;
+}
+
+/** Every keyword's stories, one per link, at most 40. */
+export const pickNews = (lists: NewsItem[][]) => uniqueByUrl(lists.flat()).slice(0, MAX_NEWS);
 
 /** One item per link across keywords; the first keyword that found it keeps it. */
 export function uniqueByUrl(items: NewsItem[]): NewsItem[] {
@@ -229,15 +290,17 @@ export function parseAnswer(body: unknown): { answer: string; sources: Source[];
   return { answer: typeof r.markdown === "string" ? r.markdown : "", sources: [...seen.values()], checkUrl: typeof r.check_url === "string" ? r.check_url : null };
 }
 
-/** A name of 3 or more letters inside the answer, case blind. A blank name is never "in" anything. */
+/** A whole name of 3 or more letters in the answer, case blind: "Ian" is not in "guardian". A blank name is never "in" anything. */
 export function namedIn(answer: string, name: string): boolean {
-  const n = name.trim().toLowerCase();
-  return n.length >= 3 && answer.toLowerCase().includes(n);
+  const n = name.trim();
+  if (n.length < 3) return false;
+  const escaped = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  return new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}($|[^\\p{L}\\p{N}])`, "iu").test(answer);
 }
 
 /** MIA GEO's four positions. Cited: a page on the adviser's own site is a source. */
-export function position(answer: string, sources: Source[], host: string, name: string, judged: "passing" | "named" | null): Position {
-  if (host && sources.some((s) => { const h = hostOf(s.url); return h === host || h.endsWith(`.${host}`); })) return "cited";
+export function position(answer: string, sources: Source[], scope: string, name: string, judged: "passing" | "named" | null): Position {
+  if (sources.some((s) => citesSite(s.url, scope))) return "cited";
   if (!namedIn(answer, name)) return "not-mentioned";
   return judged ?? "named";
 }

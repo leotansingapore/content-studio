@@ -14,10 +14,10 @@ import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { parseNews, searchTerm } from "../mentions/logic.ts";
 import {
-  type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, checkProblem, cleanInput, dayWords,
-  earlierWeekDays, foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsItems,
-  paidPartsFailed, parseAnswer, parseSuggest, position, postAsk, sameStoryAsk, sameStoryOf, SUGGEST_FORMAT, suggestMessages, uniqueByUrl, utcDay,
-  weekGate,
+  type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, checkProblem, cleanInput, earlierWeekDays,
+  foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsFailed, newsItems, paidPartsFailed,
+  parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, SUGGEST_FORMAT, suggestMessages, takeSlots, utcDay,
+  weekGate, weeklyRefusal,
 } from "./logic.ts";
 
 const headers = {
@@ -97,14 +97,16 @@ async function readAnswer(question: string, input: CheckInput, auth: string): Pr
 async function readNews(input: CheckInput, auth: string): Promise<JudgedNews[] | null> {
   const found = await Promise.all(input.keywords.map(async (k) => {
     try {
-      return newsItems(k, parseNews(await dfs("serp/google/news/live/advanced", { keyword: searchTerm(k), location_code: SINGAPORE, language_code: "en", depth: 10 }, auth, 25_000)));
+      const body = await dfs("serp/google/news/live/advanced", { keyword: searchTerm(k), location_code: SINGAPORE, language_code: "en", depth: 10 }, auth, 25_000);
+      if (newsFailed(body)) throw new Error(`news task answered ${(body as { tasks?: { status_code?: number }[] })?.tasks?.[0]?.status_code}`);
+      return newsItems(k, parseNews(body));
     } catch (e) {
       console.error("market news failed", msg(e));
       return null;
     }
   }));
   if (input.keywords.length && found.every((f) => f === null)) return null;
-  const items = uniqueByUrl(found.flatMap((f) => f ?? []));
+  const items = pickNews(found.map((f) => f ?? []));
   const judged = await pool(items, 10, async (n) => judgeNews(n, await jev(newsAsk(input, n), "market news")));
   const linked = await pool(judged, 10, async (n, k) => {
     const a = n.relevant ? sameStoryAsk(n, judged.slice(0, k)) : null;
@@ -124,23 +126,16 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
 
   const now = new Date();
   const today = utcDay(now.getTime());
-  const weekly = (nextDay: string) => json({ code: "weekly_limit", nextDay, error: `You've had this week's check. The next one opens ${dayWords(nextDay)} at 8am.` }, 429);
   const { data: rows, error } = await admin.from("cs_ai_usage").select("day,count").eq("user_id", uid).eq("feature", "market-check").in("day", earlierWeekDays(now));
   // Fail closed: these checks cost money, so an unreadable counter blocks them.
   if (error) return json({ code: "usage_unavailable", error: "This is unavailable for a moment. Try again shortly." }, 503);
   const gate = weekGate(rows, now);
-  if (!gate.open) return weekly(gate.nextDay);
-  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "market-check-global");
-  if (!everyone.allowed) {
-    const r = usageRefusal(everyone);
+  if (!gate.open) {
+    const r = weeklyRefusal(gate.nextDay);
     return json(r.body, r.status);
   }
-  const usage = await consumeUsage(admin, uid, "market-check");
-  if (!usage.allowed) {
-    if (usage.reason === "limit") return weekly(utcDay(Date.parse(`${today}T00:00:00Z`) + 7 * 86_400_000));
-    const r = usageRefusal(usage);
-    return json(r.body, r.status);
-  }
+  const slot = await takeSlots(admin, uid, today);
+  if (!slot.ok) return json(slot.body, slot.status);
 
   const auth = `Basic ${btoa(`${login}:${password}`)}`;
   const [geo, news, posts] = await Promise.all([
