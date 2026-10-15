@@ -1,0 +1,219 @@
+// Your market (Discover > Your market): one check a week of an adviser's market. ChatGPT search's answer to up to
+// 5 client questions (DataForSEO llm_scraper, about USD 0.004 each), the news on their Mentions keywords (the same
+// request as mentions) and their Following accounts' best posts, each judged by Jev against who they serve.
+// Leo only while MARKET_USERS lists him. Rules in logic.ts (tested); design in
+// docs/superpowers/specs/2026-10-15-market-watch-design.md.
+//
+// Secrets: MARKET_USERS (user ids separated by commas, or *), DATAFORSEO_LOGIN, DATAFORSEO_PASSWORD,
+// OPENAI_API_KEY, TYPESAFE_API_KEY. Deploy WITH JWT verification:
+//   supabase functions deploy market --project-ref hgdbflprrficdoyxmdxe --use-api
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
+import { askJev, noulOf } from "../_shared/jev.ts";
+import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
+import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { safeFeedUrl } from "../feed-ideas/logic.ts";
+import { parseNews, searchTerm } from "../mentions/logic.ts";
+import {
+  type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, checkProblem, cleanInput, dayWords,
+  earlierWeekDays, foldStories, geoAsk, geoJudged, htmlText, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsItems,
+  paidPartsFailed, parseAnswer, parseSuggest, position, postAsk, sameStoryAsk, sameStoryOf, SUGGEST_FORMAT, suggestMessages, uniqueByUrl, utcDay,
+  weekGate,
+} from "./logic.ts";
+
+const headers = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
+const msg = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 200);
+const SINGAPORE = 2702;
+// deno-lint-ignore no-explicit-any
+type Admin = any; // as clone-reel: ReturnType<typeof createClient> resolves to a schema the usage helpers reject
+
+const jev = (a: Ask, who: string) => askJev(a.state, a.questions, { who });
+
+async function dfs(path: string, task: Record<string, unknown>, auth: string, timeoutMs: number): Promise<unknown> {
+  const res = await fetch(`https://api.dataforseo.com/v3/${path}`, {
+    method: "POST",
+    headers: { Authorization: auth, "Content-Type": "application/json" },
+    body: JSON.stringify([task]),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) throw new Error(`DataForSEO answered ${res.status}`);
+  return await res.json();
+}
+
+/** fn over items, at most `limit` at a time, results in order. */
+async function pool<T, R>(items: T[], limit: number, fn: (t: T, k: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const k = next++;
+      out[k] = await fn(items[k], k);
+    }
+  }));
+  return out;
+}
+
+/**
+ * The site's home page as plain text: public http(s) hosts only (safeFeedUrl, as feed-ideas), 3 redirects each
+ * re-checked, 512 KB read at most. Like feed-ideas, a public name that resolves to a private address is not caught.
+ */
+async function siteText(host: string): Promise<string> {
+  let url = safeFeedUrl(`https://${host}`);
+  for (let hop = 0; url && hop < 4; hop++) {
+    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(8000), headers: { "User-Agent": "ContentStudio-Market/1.0", Accept: "text/html" } });
+    if (res.status >= 300 && res.status < 400) {
+      url = safeFeedUrl(new URL(res.headers.get("location") ?? "", url).href);
+      continue;
+    }
+    if (!res.ok || !res.body) return "";
+    const reader = res.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      size += value.byteLength;
+      if (size > 512_000) {
+        await reader.cancel();
+        break;
+      }
+    }
+    const all = new Uint8Array(size);
+    let at = 0;
+    for (const c of chunks) {
+      all.set(c, at);
+      at += c.byteLength;
+    }
+    return htmlText(new TextDecoder().decode(all));
+  }
+  return "";
+}
+
+async function suggest(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const input = cleanInput(body);
+  if (!input.audience) return json({ error: "Say who you serve first." }, 400);
+  if (!Deno.env.get("OPENAI_API_KEY")) return json({ error: "Suggestions aren't switched on yet." }, 503);
+  const usage = await consumeUsage(admin, uid, "market-suggest");
+  if (!usage.allowed) {
+    const r = usageRefusal(usage);
+    return json(r.body, r.status);
+  }
+  const site = input.site ? await siteText(input.site).catch(() => "") : "";
+  const res = await openaiChat(
+    { model: OPENAI_MODEL, max_tokens: 900, response_format: SUGGEST_FORMAT, messages: suggestMessages({ ...input, siteText: site }) },
+    { signal: AbortSignal.timeout(45_000) },
+  );
+  if (!res.ok) {
+    console.error("market suggest: openai", res.status, (await res.text().catch(() => "")).slice(0, 200));
+    return json({ error: "Couldn't suggest anything right now. Add your own below." }, 502);
+  }
+  const cand = parseSuggest((await res.json())?.choices?.[0]?.message?.content);
+  const score = (kind: "keyword" | "question") => async (v: string) => noulOf(await jev(keepAsk(kind, input.audience, v), "market keep"), "keep");
+  const [kw, qs] = await Promise.all([Promise.all(cand.keywords.map(score("keyword"))), Promise.all(cand.questions.map(score("question")))]);
+  return json({ keywords: keepTop(cand.keywords, kw), questions: keepTop(cand.questions, qs) });
+}
+
+async function readAnswer(question: string, input: CheckInput, auth: string): Promise<GeoRead> {
+  try {
+    const parsed = parseAnswer(await dfs("ai_optimization/chat_gpt/llm_scraper/live/advanced", { keyword: question, location_code: SINGAPORE, language_code: "en", force_web_search: true }, auth, 100_000));
+    if (!parsed) return { question, position: null, sources: [], checkUrl: null, error: "No answer came back for this one." };
+    let pos = position(parsed.answer, parsed.sources, input.site, input.name, null);
+    if (pos === "named") pos = position(parsed.answer, parsed.sources, input.site, input.name, geoJudged(await jev(geoAsk(input.name, parsed.answer), "market geo")));
+    return { question, position: pos, sources: parsed.sources.slice(0, MAX_SOURCES), checkUrl: parsed.checkUrl };
+  } catch (e) {
+    console.error("market geo failed", msg(e));
+    return { question, position: null, sources: [], checkUrl: null, error: "Couldn't read the AI answer for this one." };
+  }
+}
+
+/** The news for every keyword, judged, with repeats pointed at their first report. null when every lookup failed. */
+async function readNews(input: CheckInput, auth: string): Promise<JudgedNews[] | null> {
+  const found = await Promise.all(input.keywords.map(async (k) => {
+    try {
+      return newsItems(k, parseNews(await dfs("serp/google/news/live/advanced", { keyword: searchTerm(k), location_code: SINGAPORE, language_code: "en", depth: 10 }, auth, 25_000)));
+    } catch (e) {
+      console.error("market news failed", msg(e));
+      return null;
+    }
+  }));
+  if (input.keywords.length && found.every((f) => f === null)) return null;
+  const items = uniqueByUrl(found.flatMap((f) => f ?? []));
+  const judged = await pool(items, 10, async (n) => judgeNews(n, await jev(newsAsk(input, n), "market news")));
+  const linked = await pool(judged, 10, async (n, k) => {
+    const a = n.relevant ? sameStoryAsk(n, judged.slice(0, k)) : null;
+    const sameAs = a ? sameStoryOf(await jev(a, "market same story"), a.ids) : undefined;
+    return sameAs ? { ...n, sameAs } : n;
+  });
+  return foldStories(linked);
+}
+
+async function check(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const input = cleanInput(body);
+  const problem = checkProblem(input);
+  if (problem) return json({ error: problem }, 400);
+  const login = Deno.env.get("DATAFORSEO_LOGIN");
+  const password = Deno.env.get("DATAFORSEO_PASSWORD");
+  if (!login || !password) return json({ error: "Your market isn't switched on yet." }, 503);
+
+  const now = new Date();
+  const today = utcDay(now.getTime());
+  const weekly = (nextDay: string) => json({ code: "weekly_limit", nextDay, error: `You've had this week's check. The next one opens ${dayWords(nextDay)} at 8am.` }, 429);
+  const { data: rows, error } = await admin.from("cs_ai_usage").select("day,count").eq("user_id", uid).eq("feature", "market-check").in("day", earlierWeekDays(now));
+  // Fail closed: these checks cost money, so an unreadable counter blocks them.
+  if (error) return json({ code: "usage_unavailable", error: "This is unavailable for a moment. Try again shortly." }, 503);
+  const gate = weekGate(rows, now);
+  if (!gate.open) return weekly(gate.nextDay);
+  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "market-check-global");
+  if (!everyone.allowed) {
+    const r = usageRefusal(everyone);
+    return json(r.body, r.status);
+  }
+  const usage = await consumeUsage(admin, uid, "market-check");
+  if (!usage.allowed) {
+    if (usage.reason === "limit") return weekly(utcDay(Date.parse(`${today}T00:00:00Z`) + 7 * 86_400_000));
+    const r = usageRefusal(usage);
+    return json(r.body, r.status);
+  }
+
+  const auth = `Basic ${btoa(`${login}:${password}`)}`;
+  const [geo, news, posts] = await Promise.all([
+    Promise.all(input.questions.map((q) => readAnswer(q, input, auth))),
+    readNews(input, auth),
+    pool(input.posts, 10, async (p) => judgePost(p, await jev(postAsk(input, p), "market post"))),
+  ]);
+  if (paidPartsFailed(input, news === null, geo)) {
+    await refundUsage(admin, uid, "market-check", today);
+    await refundUsage(admin, GLOBAL_COUNTER_USER, "market-check-global", today);
+    return json({ error: "Couldn't reach the news or the AI answers. This check wasn't counted; try again in a few minutes." }, 502);
+  }
+  const digest: MarketDigest = { checkedAt: now.toISOString(), news: news ?? [], geo, posts };
+  return json(digest);
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers });
+  if (req.method !== "POST") return json({ error: "Use POST." }, 405);
+  try {
+    const body = await req.json().catch(() => ({}));
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const { data: userData } = await admin.auth.getUser(jwt);
+    const uid = userData?.user?.id;
+    if (!uid) return json({ error: "Sign in to check your market." }, 401);
+    const enabled = isAllowed(Deno.env.get("MARKET_USERS"), uid);
+    // off is a plain 200 for the status probe, so the browser logs no failed request
+    if (body?.action === "status") return json({ enabled });
+    if (!enabled) return json({ error: "Your market is not enabled for this account yet." }, 404);
+    if (body?.action === "suggest") return await suggest(admin, uid, body);
+    if (body?.action === "check") return await check(admin, uid, body);
+    return json({ error: "Unknown action." }, 400);
+  } catch (e) {
+    console.error("market failed", msg(e));
+    return json({ error: "Couldn't check your market right now. Try again in a minute." }, 500);
+  }
+});

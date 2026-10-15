@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, htmlText,
-  isAllowed, judgeNews, judgePost, keepTop, namedIn, newsItems, parseAnswer, parseSuggest, position, sameStoryAsk, sameStoryOf,
+  isAllowed, judgeNews, judgePost, keepTop, namedIn, newsItems, paidPartsFailed, parseAnswer, parseSuggest, position, sameStoryAsk, sameStoryOf,
   siteHost, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
 
@@ -154,6 +154,20 @@ describe("AI answers", () => {
     expect(geoJudged({ how: { type: "choice", choice: "passing" } })).toBe("passing");
     expect(geoJudged({ how: { type: "choice", choice: "cited" } })).toBeNull();
     expect(geoJudged(null)).toBeNull();
+  });
+});
+
+describe("when a check is given back", () => {
+  const input = (keywords: string[], questions: string[]) => cleanInput({ audience: "families", keywords, questions });
+  const failed = { question: "q", position: null, sources: [], checkUrl: null, error: "x" };
+  const read = { question: "q", position: "named" as const, sources: [], checkUrl: null };
+  it("refunds only when every paid part that was asked for failed", () => {
+    expect(paidPartsFailed(input(["CPF"], ["Is CPF enough for me?"]), true, [failed])).toBe(true);
+    expect(paidPartsFailed(input([], ["Is CPF enough for me?"]), false, [failed])).toBe(true);
+    expect(paidPartsFailed(input(["CPF"], []), true, [])).toBe(true);
+    expect(paidPartsFailed(input(["CPF"], ["Is CPF enough for me?"]), false, [failed])).toBe(false);
+    expect(paidPartsFailed(input(["CPF"], ["Is CPF enough for me?"]), true, [read])).toBe(false);
+    expect(paidPartsFailed(input([], []), false, [])).toBe(false);
   });
 });
 

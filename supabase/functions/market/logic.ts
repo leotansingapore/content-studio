@@ -100,6 +100,12 @@ export function checkProblem(i: CheckInput): string | null {
   return null;
 }
 
+/** True when every paid lookup that was asked for (the news, the AI answers) failed: the check is then given back. */
+export function paidPartsFailed(i: CheckInput, newsFailed: boolean, geo: GeoRead[]): boolean {
+  if (!i.keywords.length && !i.questions.length) return false;
+  return (!i.keywords.length || newsFailed) && (!i.questions.length || geo.every((g) => !!g.error));
+}
+
 export const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
 
 /** The 6 UTC days before today. cs_ai_usage counts on UTC dates, which start at 8am in Singapore. */

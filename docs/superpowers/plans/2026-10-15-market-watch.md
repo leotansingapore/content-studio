@@ -51,7 +51,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, htmlText,
-  isAllowed, judgeNews, judgePost, keepTop, namedIn, newsItems, parseAnswer, parseSuggest, position, sameStoryAsk, sameStoryOf,
+  isAllowed, judgeNews, judgePost, keepTop, namedIn, newsItems, paidPartsFailed, parseAnswer, parseSuggest, position, sameStoryAsk, sameStoryOf,
   siteHost, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
 
@@ -206,6 +206,20 @@ describe("AI answers", () => {
   });
 });
 
+describe("when a check is given back", () => {
+  const input = (keywords: string[], questions: string[]) => cleanInput({ audience: "families", keywords, questions });
+  const failed = { question: "q", position: null, sources: [], checkUrl: null, error: "x" };
+  const read = { question: "q", position: "named" as const, sources: [], checkUrl: null };
+  it("refunds only when every paid part that was asked for failed", () => {
+    expect(paidPartsFailed(input(["CPF"], ["Is CPF enough for me?"]), true, [failed])).toBe(true);
+    expect(paidPartsFailed(input([], ["Is CPF enough for me?"]), false, [failed])).toBe(true);
+    expect(paidPartsFailed(input(["CPF"], []), true, [])).toBe(true);
+    expect(paidPartsFailed(input(["CPF"], ["Is CPF enough for me?"]), false, [failed])).toBe(false);
+    expect(paidPartsFailed(input(["CPF"], ["Is CPF enough for me?"]), true, [read])).toBe(false);
+    expect(paidPartsFailed(input([], []), false, [])).toBe(false);
+  });
+});
+
 describe("competitor posts", () => {
   it("tags Act or Watch, Watch when Jev is down", () => {
     const p = { id: "1", url: "https://www.instagram.com/p/a/", handle: "rival", caption: "CPF myths" };
@@ -338,6 +352,12 @@ export function checkProblem(i: CheckInput): string | null {
   if (!i.audience) return "Say who you serve first, so the check knows what matters to them.";
   if (!i.questions.length && !i.keywords.length && !i.posts.length) return "Add a client question or a news topic to watch first.";
   return null;
+}
+
+/** True when every paid lookup that was asked for (the news, the AI answers) failed: the check is then given back. */
+export function paidPartsFailed(i: CheckInput, newsFailed: boolean, geo: GeoRead[]): boolean {
+  if (!i.keywords.length && !i.questions.length) return false;
+  return (!i.keywords.length || newsFailed) && (!i.questions.length || geo.every((g) => !!g.error));
 }
 
 export const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
@@ -610,13 +630,14 @@ export function htmlText(html: string, max = 3000): string {
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
-import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal, type UsageClient } from "../_shared/usageCaps.ts";
+import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { parseNews, searchTerm } from "../mentions/logic.ts";
 import {
   type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, checkProblem, cleanInput, dayWords,
   earlierWeekDays, foldStories, geoAsk, geoJudged, htmlText, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsItems,
-  parseAnswer, parseSuggest, position, postAsk, sameStoryAsk, sameStoryOf, SUGGEST_FORMAT, suggestMessages, uniqueByUrl, utcDay, weekGate,
+  paidPartsFailed, parseAnswer, parseSuggest, position, postAsk, sameStoryAsk, sameStoryOf, SUGGEST_FORMAT, suggestMessages, uniqueByUrl, utcDay,
+  weekGate,
 } from "./logic.ts";
 
 const headers = {
@@ -626,7 +647,8 @@ const headers = {
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 200);
 const SINGAPORE = 2702;
-type Admin = ReturnType<typeof createClient>;
+// deno-lint-ignore no-explicit-any
+type Admin = any; // as clone-reel: ReturnType<typeof createClient> resolves to a schema the usage helpers reject
 
 const jev = (a: Ask, who: string) => askJev(a.state, a.questions, { who });
 
@@ -783,10 +805,9 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
     readNews(input, auth),
     pool(input.posts, 10, async (p) => judgePost(p, await jev(postAsk(input, p), "market post"))),
   ]);
-  const nothingRead = news === null && (!input.questions.length || geo.every((g) => g.error)) && !input.posts.length;
-  if (nothingRead || (news === null && input.questions.length && geo.every((g) => g.error))) {
-    await refundUsage(admin as unknown as UsageClient, uid, "market-check", today);
-    await refundUsage(admin as unknown as UsageClient, GLOBAL_COUNTER_USER, "market-check-global", today);
+  if (paidPartsFailed(input, news === null, geo)) {
+    await refundUsage(admin, uid, "market-check", today);
+    await refundUsage(admin, GLOBAL_COUNTER_USER, "market-check-global", today);
     return json({ error: "Couldn't reach the news or the AI answers. This check wasn't counted; try again in a few minutes." }, 502);
   }
   const digest: MarketDigest = { checkedAt: now.toISOString(), news: news ?? [], geo, posts };

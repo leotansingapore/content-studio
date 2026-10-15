@@ -33,6 +33,12 @@ export const DAILY_LIMITS = {
   mentions: 10,
   "yt-captions": 10,
   "track-accounts": 10,
+  // Your market (market): one check a week per adviser (the function also refuses when one was counted in the 6 days
+  // before), up to 5 ChatGPT answers at about USD 0.004 each plus the news; across everyone 20 a day on GLOBAL_COUNTER_USER.
+  "market-check": 1,
+  "market-check-global": 20,
+  // Set-up suggestions on Your market (market suggest): the LLM writes candidates, Jev keeps the ones that fit.
+  "market-suggest": 5,
   // Engage this week: one Jev call over the people who commented on your posts.
   "engage-picks": 20,
   // The one move for the week (g44): Jev picks it for the Monday email (notify) and Analytics' This week card (week-pick).
