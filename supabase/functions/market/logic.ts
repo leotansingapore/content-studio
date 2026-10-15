@@ -190,6 +190,12 @@ export function accountGate(rows: unknown, now: Date, max = ACCOUNT_WEEK): { ope
 }
 
 /**
+ * The re-read after the slots are taken (commit security review, 2026-10-15): accountGate's read and the atomic consume
+ * are separate, so simultaneous requests naming new profiles can all pass the read; over ACCOUNT_WEEK now means give back.
+ */
+export const overAccountWeek = (rows: unknown, now: Date) => !accountGate(rows, now, ACCOUNT_WEEK + 1).open;
+
+/**
  * This week's slots, each atomic: the profile's own (one a day here; its 6-day read happens before), then the
  * account's (ACCOUNT_WEEK a day), then the studio's 20 a day. A refusal gives back the slots already taken, so nobody
  * loses a week to a cap further down.

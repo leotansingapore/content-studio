@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
-  accountGate, answerGist, citesSite, isAllowed, judgeNews, newsAsk, newsTask, shownNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
+  accountGate, answerGist, overAccountWeek, citesSite, isAllowed, judgeNews, newsAsk, newsTask, shownNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
   sameStoryAsk, sameStoryOf, shortlistAct, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
 } from "./logic";
 import type { UsageClient } from "../_shared/usageCaps";
@@ -97,6 +97,13 @@ describe("one check a week", () => {
     expect(accountGate([{ day: "2026-10-15", count: 1 }, { day: "2026-10-12", count: 1 }, { day: "2026-10-10", count: 1 }], now)).toEqual({ open: false, nextDay: "2026-10-17" });
     expect(accountGate([{ day: "2026-10-08", count: 3 }], now)).toEqual({ open: true });
     expect(accountGate(null, now)).toEqual({ open: true });
+  });
+
+  it("re-reads after taking the slot: over 3 in 7 days means simultaneous requests got past the first read", () => {
+    const rows = (n: number) => Array.from({ length: n }, (_, k) => ({ day: ["2026-10-15", "2026-10-14", "2026-10-12", "2026-10-11"][k], count: 1 }));
+    expect(overAccountWeek(rows(3), now)).toBe(false);
+    expect(overAccountWeek(rows(4), now)).toBe(true);
+    expect(overAccountWeek([{ day: "2026-10-15", count: 5 }], now)).toBe(true);
   });
 
   it("says the day in words", () => {

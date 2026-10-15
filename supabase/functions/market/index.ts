@@ -15,7 +15,7 @@ import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal, type Usag
 import { parseNews } from "../mentions/logic.ts";
 import {
   type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, accountGate, accountRefusal, answerGist, checkProblem, cleanInput,
-  earlierWeekDays, profileFeature,
+  earlierWeekDays, overAccountWeek, profileFeature,
   foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsFailed, newsItems, newsTask, paidPartsFailed,
   parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, shortlistAct, shownNews, SUGGEST_FORMAT, suggestMessages, takeSlots,
   utcDay,
@@ -144,6 +144,18 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
   }
   const slot = await takeSlots(admin, uid, input.profile, today);
   if (!slot.ok) return json(slot.body, slot.status);
+  const giveBack = async () => {
+    await refundUsage(admin, uid, profileFeature(input.profile) as UsageFeature, today);
+    await refundUsage(admin, uid, "market-check", today);
+    await refundUsage(admin, GLOBAL_COUNTER_USER, "market-check-global", today);
+  };
+  const after = await usage("market-check", [today, ...earlierWeekDays(now)]);
+  if (after.error || overAccountWeek(after.data, now)) {
+    await giveBack();
+    if (after.error) return json({ code: "usage_unavailable", error: "This is unavailable for a moment. Try again shortly." }, 503);
+    const r = accountRefusal(utcDay(Date.parse(`${today}T00:00:00Z`) + 7 * 86_400_000));
+    return json(r.body, r.status);
+  }
 
   const auth = `Basic ${btoa(`${login}:${password}`)}`;
   const [geo, news, posts] = await Promise.all([
@@ -152,9 +164,7 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
     pool(input.posts, 10, async (p) => judgePost(p, await jev(postAsk(input, p), "market post"))),
   ]);
   if (paidPartsFailed(input, news === null, geo)) {
-    await refundUsage(admin, uid, profileFeature(input.profile) as UsageFeature, today);
-    await refundUsage(admin, uid, "market-check", today);
-    await refundUsage(admin, GLOBAL_COUNTER_USER, "market-check-global", today);
+    await giveBack();
     return json({ error: "Couldn't reach the news or the AI answers. This check wasn't counted; try again in a few minutes." }, 502);
   }
   const digest: MarketDigest = { checkedAt: now.toISOString(), news: shownNews(news ?? []), geo, posts };
