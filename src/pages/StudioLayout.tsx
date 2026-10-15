@@ -6,6 +6,7 @@ import ProfileSwitcher from "@/components/ProfileSwitcher";
 import ExportPill from "@/components/ExportPill";
 import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
+import { checkMarketEnabled, forgetMarketShown, marketShown } from "@/lib/market";
 import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
@@ -192,6 +193,7 @@ export default function StudioLayout() {
   const [needsYou, setNeedsYou] = useState(0);
   // Social accounts sits in the nav only once the server has said it is on for this sign-in.
   const [, setSocialOn] = useState(socialConnectShown);
+  const [, setMarketOn] = useState(marketShown);
   const mainRef = useRef<HTMLElement>(null);
   const moreRef = useRef<HTMLDialogElement>(null);
   const prevPath = useRef(pathname);
@@ -211,6 +213,7 @@ export default function StudioLayout() {
       if (active) setUid(data.user?.id ?? null);
       if (active && data.user) void refreshPushHere();
       if (active && data.user) void checkSocialConnect().then((on) => active && setSocialOn(on));
+      if (active && data.user) void checkMarketEnabled().then((on) => active && setMarketOn(on));
     });
     return () => {
       active = false;
@@ -285,6 +288,7 @@ export default function StudioLayout() {
     await Promise.race([disablePushHere().catch(() => undefined), new Promise((r) => setTimeout(r, 2_000))]);
     await stopCloudSync();
     forgetSocialConnect();
+    forgetMarketShown();
     await supabase.auth.signOut();
     window.location.replace("/auth");
   };

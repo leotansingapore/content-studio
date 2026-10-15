@@ -154,6 +154,15 @@ function readShown(): { on: boolean; at: number } | null {
 /** Whether the nav shows Your market on this device. */
 export const marketShown = (): boolean => readShown()?.on === true;
 
+/** On sign-out, so the next person on this browser asks the server afresh. */
+export function forgetMarketShown(): void {
+  try {
+    localStorage.removeItem(SHOWN);
+  } catch {
+    // storage blocked: nothing was kept
+  }
+}
+
 /** Asks the server whether this sign-in has Your market (no paid call), at most every 6 hours. */
 export async function checkMarketEnabled(): Promise<boolean> {
   const known = readShown();

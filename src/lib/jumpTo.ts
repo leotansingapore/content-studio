@@ -44,6 +44,7 @@ const KEYWORDS: Record<string, string> = {
   "/inspiration": "ideas examples",
   "/profiles": "creators accounts",
   "/following": "creators followed",
+  "/market": "market news competitors chatgpt ai answers geo",
   "/recruit": "recruitment brand brain",
   "/recruit/engage": "replies comments dms",
   "/academy": "lessons course",

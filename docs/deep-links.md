@@ -82,6 +82,8 @@ so one that is gone shows everything.
 | /trends | platform | a platform in the drop (instagram, tiktok) | all | replace | /trends?platform=tiktok |
 | /trends | type | a trend type in the drop (news, culture, meme...) | all | replace | /trends?type=news |
 | /trends | trend | a trend id; opens its full kit and scrolls to it, Copy link on every card | none | push | /trends?trend=trend-2026-10-11-the-little-treat-trap-why-small-splurges-quietly |
+| /market | show | act, all | act | replace | /market?show=all |
+| /market | view | digest, setup (the set-up form over a finished set-up) | digest; setup when nothing is set up | replace | /market?view=setup |
 | /analytics | period | 7d, 30d, 90d, all | 30d | replace | /analytics?period=90d |
 | /analytics | by | platform, pillar, format, hook-formula (engagement rate by) | platform | replace | /analytics?by=hook-formula |
 | /analytics | time | linkedin, instagram, facebook, tiktok (best time to post for) | all platforms | replace | /analytics?time=linkedin |

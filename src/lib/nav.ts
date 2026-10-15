@@ -17,6 +17,7 @@ import {
   MessageSquarePlus,
   PenLine,
   CalendarClock,
+  Radar,
   ShieldCheck,
   Sparkles,
   Target,
@@ -27,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { REELS_BOARD_OWNERS } from "@/lib/reelsBoard";
+import { marketShown } from "@/lib/market";
 import { socialConnectShown } from "@/lib/socialConnect";
 
 export type NavPage = {
@@ -134,6 +136,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/inspiration", label: "Inspiration", icon: Lightbulb },
       { to: "/profiles", label: "Creators", icon: Users },
       { to: "/following", label: "Following", icon: UserCheck },
+      { to: "/market", label: "Your market", icon: Radar, show: marketShown },
     ],
   },
   {

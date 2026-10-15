@@ -1144,6 +1144,15 @@ function readShown(): { on: boolean; at: number } | null {
 /** Whether the nav shows Your market on this device. */
 export const marketShown = (): boolean => readShown()?.on === true;
 
+/** On sign-out, so the next person on this browser asks the server afresh. */
+export function forgetMarketShown(): void {
+  try {
+    localStorage.removeItem(SHOWN);
+  } catch {
+    // storage blocked: nothing was kept
+  }
+}
+
 /** Asks the server whether this sign-in has Your market (no paid call), at most every 6 hours. */
 export async function checkMarketEnabled(): Promise<boolean> {
   const known = readShown();
@@ -1446,7 +1455,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
         <h1 className="flex items-center gap-1.5 text-2xl font-semibold">
           Your market<InfoTip>One check a week: news, AI answers and competitors' best posts.</InfoTip>
         </h1>
-        <Link to="/market?view=setup" className="text-sm underline underline-offset-2">Edit set-up</Link>
+        <Button asChild variant="outline" size="sm"><Link to="/market?view=setup">Edit set-up</Link></Button>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -1483,7 +1492,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
                   <Card key={x.url} tag={x.relevant === null ? "Not judged" : x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"}
                     written={state.written.includes(newsKey(x))} writeUrl={newsWriteUrl(x)} writeLabel="Write a post from this"
                     onWrite={() => wrote(newsKey(x))} onDismiss={() => dismiss(newsKey(x))}>
-                    <a href={x.url} target="_blank" rel="noreferrer" className="font-medium hover:underline">{x.title}</a>
+                    <a href={x.url} target="_blank" rel="noreferrer" className="block py-1.5 font-medium hover:underline">{x.title}</a>
                     <p className="text-sm text-muted-foreground">
                       {x.source}{x.date ? `, ${x.date.slice(0, 10)}` : ""}, {x.keyword}{rising.includes(x.keyword) ? " (picking up)" : ""}
                       {also.length > 0 && <>, also in {also.map((o) => o.source).join(", ")}</>}
@@ -1519,7 +1528,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
               {posts.map((x) => (
                 <Card key={x.id} tag={x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"} written={state.written.includes(postKey(x))}
                   writeUrl={postWriteUrl(x)} writeLabel="Write your take" onWrite={() => wrote(postKey(x))} onDismiss={() => dismiss(postKey(x))}>
-                  <a href={x.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium hover:underline">@{x.handle}<ExternalLink className="h-3.5 w-3.5" /></a>
+                  <a href={x.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 py-1.5 font-medium hover:underline">@{x.handle}<ExternalLink className="h-3.5 w-3.5" /></a>
                   <p className="line-clamp-3 text-sm text-muted-foreground">{x.caption}</p>
                 </Card>
               ))}
