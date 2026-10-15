@@ -8,7 +8,7 @@ One page. They give their name, website and who they serve (prefilled from Brand
 
 1. **News on your topics.** The Mentions keywords (existing list; the lookup reuses `mentions/logic.ts`), each story judged by Jev against who they serve. Repeats of one story are folded together. A keyword with at least 3 relevant stories and at least twice its average over earlier checks says "picking up".
 2. **Are you in the AI answer?** For each client question, ChatGPT search's answer (DataForSEO `ai_optimization/chat_gpt/llm_scraper/live/advanced`, `force_web_search`): position (not mentioned, passing, named, cited) and the sites the answer used.
-3. **Competitors doing well.** Posts in Following (already checked there) that beat their own account's average engagement. No new scraping.
+3. **Competitors doing well.** Posts in Following (already checked there) that drew at least 1.5 times their own account's average likes and comments, from accounts with 4 or more posts. No new scraping.
 
 Dismiss hides an item for good. Writing from an item marks it Written.
 
