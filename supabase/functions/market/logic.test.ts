@@ -217,9 +217,10 @@ describe("AI answers", () => {
 const NOW = new Date("2026-10-15T03:00:00Z");
 
 describe("the news request", () => {
-  it("asks Google News for the past month, newest first", () => {
-    // measured 2026-10-15: plain search gave 0-1 stories from the last 30 days out of 10; this gave 10 of 10
-    expect(newsTask("CPF housing grants")).toEqual({ keyword: '"CPF housing grants"', location_code: 2702, language_code: "en", depth: 10, search_param: "&tbs=qdr:m,sbd:1" });
+  it("asks Google News for the past month, ranked by relevance", () => {
+    // measured 2026-10-15 on 6 topics: newest-first gave 2 results from known SG news sites and 29 social, listing or
+    // forum pages; relevance gave 16 and 16, with 56 of 59 still from the last 30 days
+    expect(newsTask("CPF housing grants")).toEqual({ keyword: '"CPF housing grants"', location_code: 2702, language_code: "en", depth: 10, search_param: "&tbs=qdr:m" });
   });
 });
 

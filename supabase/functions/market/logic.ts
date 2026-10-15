@@ -222,10 +222,12 @@ export function newsFailed(body: unknown): boolean {
 }
 
 /**
- * The Google News request for one topic: past month, newest first. Measured 2026-10-15 on three topics: plain search
- * returned 0 to 1 stories from the last 30 days out of 10 (evergreen guides rank first); this returned 10 of 10.
+ * The Google News request for one topic: the past month, ranked by relevance. Measured 2026-10-15: plain search gave
+ * 0 to 1 stories from the last 30 days out of 10 (evergreen guides rank first). Newest-first fixed freshness but, on 6
+ * topics, returned 2 results from known SG news sites against 29 social, listing and forum pages; relevance returned
+ * 16 and 16, with 56 of 59 still from the last 30 days (the date cut in newsItems drops the rest).
  */
-export const newsTask = (keyword: string) => ({ keyword: searchTerm(keyword), location_code: 2702, language_code: "en", depth: 10, search_param: "&tbs=qdr:m,sbd:1" });
+export const newsTask = (keyword: string) => ({ keyword: searchTerm(keyword), location_code: 2702, language_code: "en", depth: 10, search_param: "&tbs=qdr:m" });
 
 /** Every keyword's stories, one per link, at most 40. */
 export const pickNews = (lists: NewsItem[][]) => uniqueByUrl(lists.flat()).slice(0, MAX_NEWS);
