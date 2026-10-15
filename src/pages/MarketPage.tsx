@@ -404,9 +404,10 @@ function Card(props: {
 }) {
   return (
     <li className="space-y-3 rounded-lg border border-border bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
+      {/* on phones the tag sits above, so a long one ("Not in the answer") never squeezes the text */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        <span className={`self-start rounded-full border px-2 py-0.5 text-xs sm:order-last sm:shrink-0 ${props.act ? "border-primary text-primary" : "border-border text-muted-foreground"}`}>{props.tag}</span>
         <div className="min-w-0 space-y-1 break-words">{props.children}</div>
-        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${props.act ? "border-primary text-primary" : "border-border text-muted-foreground"}`}>{props.tag}</span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {props.writeUrl && (
