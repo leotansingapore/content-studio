@@ -2,8 +2,10 @@
 //
 //   src/data/realQuestions.json  the newest personal-finance questions people asked in the last two
 //     weeks on r/singaporefi and HardwareZone's Money Mind forum, read from their public RSS. The
-//     question and a link only, never the post body. Write shows them under "A real question from a
-//     client this week".
+//     question, a link and the Plan audience it comes from, never the post body: Jev reads the body to
+//     judge, and it is not written anywhere. Every earlier question carries forward until it is two
+//     weeks old, so each audience has enough. Write shows them under "A real question from a client
+//     this week", the adviser's own audience first (Plan positioning).
 //   src/data/youtubeTrends.json  this month's most-viewed Singapore personal-finance videos on
 //     YouTube, read logged out with api-anything (`youtube recent`, plain HTTP, ~/.api-anything).
 //     /trends shows them.
@@ -23,7 +25,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { askJev, noulOf } from "../supabase/functions/_shared/jev.ts";
+import { askJev, choiceOf, noulOf } from "../supabase/functions/_shared/jev.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const QUESTIONS_OUT = path.join(ROOT, "src/data/realQuestions.json");
@@ -34,12 +36,23 @@ const FEEDS = [
   { source: "HardwareZone Money Mind", url: "https://forums.hardwarezone.com.sg/forums/money-mind.210/index.rss" },
 ];
 const QUERIES = ["Singapore personal finance", "CPF", "Singapore insurance", "Singapore investing"];
-const KEEP_QUESTIONS = 12;
+// two weeks of questions, so each Plan audience has enough (12 left 1 or 2 per audience)
+const KEEP_QUESTIONS = 60;
 const KEEP_VIDEOS = 8;
 const MAX_AGE_DAYS = 14;
 const YES = 0.6;
 const QUESTION_RULE =
   "Is this forum post someone asking a real personal-finance question (money, CPF, insurance, investing, saving, loans, property or retirement) that a Singapore financial adviser could answer in a social media post? Forum rules, adverts, referral requests and bare news links are no.";
+/** Plan's audiences (PlanAudience in src/lib/positioning.ts); general when nothing points to one. */
+export const AUDIENCES = ["young-adult", "working-adult", "parent", "pre-retiree", "general"];
+const AUDIENCE_RULE = "Judging from the post's `post_title` and `post_text`, which group is the person who wrote it in?";
+const AUDIENCE_CRITERIA = {
+  "young-adult": "A young adult around 21 to 27: a student, fresh graduate or in their first jobs, early savings and first investments",
+  "working-adult": "A working adult around 28 to 40: growing income and investments, career moves, a flat as a single, supporting parents",
+  parent: "A parent or a couple planning or raising children, or buying and paying for a family home",
+  "pre-retiree": "Someone around 50 to 62 planning retirement: CPF at 55 or 65, drawing down savings",
+  general: "Anyone at all, or the post does not say enough to tell",
+};
 const VIDEO_RULE =
   "Is this video a creator or news explainer about personal finance for people in Singapore (money, CPF, insurance, investing, property or retirement)? Adverts and customer testimonials, politics, one company's results, and anything about another country (France's CPF is a training account, not Singapore's) are no.";
 
@@ -48,7 +61,18 @@ const decode = (s) =>
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&amp;/g, "&")
     .trim();
 
-/** RSS 2.0 items or Atom entries -> { title, url, publishedAt }. */
+/** A post body as plain words: Reddit's Atom escapes its HTML twice and ends with "submitted by /u/...". */
+function bodyText(raw) {
+  const once = decode(raw).replace(/<!--[\s\S]*?-->/g, " ").replace(/<[^>]+>/g, " ");
+  return decode(once)
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/\s*submitted by\s[\s\S]*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 1500);
+}
+
+/** RSS 2.0 items or Atom entries -> { title, url, publishedAt, body }; body is for judging only. */
 export function parseFeed(xml) {
   return (xml.match(/<(item|entry)\b[\s\S]*?<\/\1>/g) ?? [])
     .map((block) => {
@@ -58,6 +82,7 @@ export function parseFeed(xml) {
         title: tag("title"),
         url: tag("link") || decode(block.match(/<link\b[^>]*href="([^"]+)"/)?.[1] ?? ""),
         publishedAt: Number.isFinite(when) ? new Date(when).toISOString() : null,
+        body: bodyText(block.match(/<content\b[^>]*>([\s\S]*?)<\/content>/)?.[1] ?? tag("content:encoded") ?? "") || bodyText(tag("description")),
       };
     })
     .filter((i) => i.title && i.url.startsWith("https://"));
@@ -65,17 +90,20 @@ export function parseFeed(xml) {
 
 export const parseViews = (s) => Number(String(s ?? "").replace(/[^0-9]/g, "")) || 0;
 
-/** Jev's yes, or the fallback rule when Jev gave no answer; recent, newest first, one per link. */
-export function pickQuestions(items, scores, now = Date.now()) {
+/**
+ * Jev's yes, or the fallback rule when Jev gave no answer; recent, newest first, one per link. Each keeps the
+ * audience Jev picked (or the one it carried in), general without one. The post body is never kept.
+ */
+export function pickQuestions(items, scores, now = Date.now(), audiences = []) {
   const seen = new Set();
   return items
-    .map((it, k) => ({ ...it, score: scores[k] }))
+    .map((it, k) => ({ ...it, score: scores[k], audience: audiences[k] ?? it.audience }))
     .filter((it) => (it.score == null ? /\?\s*$/.test(it.title) : it.score >= YES))
     .filter((it) => !it.publishedAt || now - Date.parse(it.publishedAt) <= MAX_AGE_DAYS * 86_400_000)
     .filter((it) => !seen.has(it.url) && seen.add(it.url))
     .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""))
     .slice(0, KEEP_QUESTIONS)
-    .map(({ title, url, source, publishedAt }) => ({ question: title, url, source, publishedAt }));
+    .map(({ title, url, source, publishedAt, audience }) => ({ question: title, url, source, publishedAt, audience: AUDIENCES.includes(audience) ? audience : "general" }));
 }
 
 /** Jev's yes (all, without Jev), most viewed first. `rows` are already one per video id. */
@@ -88,11 +116,9 @@ export function pickVideos(rows, scores) {
     .slice(0, KEEP_VIDEOS);
 }
 
-/** The previous drop's questions from forums that failed this run, as already-approved candidates. */
-export function carryOver(previous, failedSources) {
-  return (previous ?? [])
-    .filter((q) => failedSources.has(q.source))
-    .map((q) => ({ title: q.question, url: q.url, source: q.source, publishedAt: q.publishedAt }));
+/** Every question from the previous drop, as already-approved candidates with their audience (null before audiences). */
+export function carryOver(previous) {
+  return (previous ?? []).map((q) => ({ title: q.question, url: q.url, source: q.source, publishedAt: q.publishedAt, audience: q.audience ?? null }));
 }
 
 const env = { get: (name) => process.env[name] };
@@ -123,22 +149,45 @@ async function judge(items, stateOf, instructions) {
   return scores;
 }
 
+/** One Jev call a post: is it a real question an adviser could answer (score), and whose (audience). */
+async function judgeQuestions(items) {
+  const scores = new Array(items.length).fill(null);
+  const audiences = new Array(items.length).fill(null);
+  let next = 0;
+  await Promise.all(Array.from({ length: 6 }, async () => {
+    while (next < items.length) {
+      const k = next++;
+      const it = items[k];
+      const answers = await askJev(
+        { post_title: it.title, post_text: it.body ?? "", forum: it.source },
+        { yes: { type: "noul", instructions: QUESTION_RULE }, who: { type: "choice", instructions: AUDIENCE_RULE, criteria: AUDIENCE_CRITERIA } },
+        { who: "cs-feeds" },
+        { env },
+      );
+      scores[k] = noulOf(answers, "yes");
+      audiences[k] = choiceOf(answers, "who", AUDIENCES);
+    }
+  }));
+  return { scores, audiences };
+}
+
 async function readQuestions() {
   const items = [];
-  const failed = new Set();
   for (const f of FEEDS) {
     try {
       items.push(...parseFeed(await fetchText(f.url)).map((i) => ({ ...i, source: f.source })));
     } catch (e) {
-      failed.add(f.source);
       console.error(`feeds: ${f.source}: ${e.message}; keeping its previous questions`);
     }
   }
-  const scores = await judge(items, (i) => ({ post_title: i.title, forum: i.source }), QUESTION_RULE);
   let previous = [];
   try { previous = JSON.parse(fs.readFileSync(QUESTIONS_OUT, "utf8")).questions; } catch { /* first run */ }
-  const carried = carryOver(previous, failed);
-  return pickQuestions([...items, ...carried], [...scores, ...carried.map(() => 1)]);
+  const carried = carryOver(previous);
+  // questions from before audiences are judged once more, on their title; tagged ones pass straight through
+  const untagged = carried.filter((q) => !q.audience);
+  const tagged = carried.filter((q) => q.audience);
+  const judged = await judgeQuestions([...items, ...untagged]);
+  return pickQuestions([...items, ...untagged, ...tagged], [...judged.scores, ...tagged.map(() => 1)], Date.now(), judged.audiences);
 }
 
 async function readVideos() {
