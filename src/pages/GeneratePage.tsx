@@ -1093,7 +1093,8 @@ export default function GeneratePage() {
     // links come from the plan, Mentions, Your market, feeds and remixes, so the toast names none of them
     toast({
       title: "Filled in for you",
-      description: "Every step is set. Check what it's about, then generate.",
+      // only a link with a topic opens on the last step; the rest open where the person carries on
+      description: detailParam ? "Every step is set. Check what it's about, then generate." : "Check what's filled in, then carry on.",
     });
     setTimeout(() => {
       formAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
