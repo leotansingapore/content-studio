@@ -32,10 +32,10 @@ import {
 import { supabase } from "@/lib/supabase";
 import { keyToDate, localDateKey, scheduleAt, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { activeProfile } from "@/lib/profiles";
-import { BusinessChips, useBusinessFilter } from "@/components/BusinessFilter";
+
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
 import { useUrlItem } from "@/lib/urlState";
-import { STATUS_LABEL, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
+import { STATUS_LABEL, businessKey, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 
 const PRODUCTION: BoardColumn[] = ["idea", "scripted", "to-film", "editing"];
 
@@ -267,23 +267,22 @@ export default function BoardPage() {
     };
   }, []);
 
-  // The same business filter as the calendar (the pick carries over): the open profile's drafts and each feed.
-  const bizFilter = useBusinessFilter([profileName, ...feed.map((f) => f.business)]);
-  const showDrafts = bizFilter.shows(profileName);
+  // The open brand only (docs/brand-isolation.md): its drafts, and the channel feeds that belong to it.
+  // The Calendar is the one page that shows every brand at once.
   const byColumn = useMemo(() => {
     const map = new Map<BoardColumn, DraftEntry[]>();
     BOARD_COLUMNS.forEach((c) => map.set(c.key, []));
-    if (showDrafts) drafts.forEach((d) => map.get(columnOf(d, stages))?.push(d));
+    drafts.forEach((d) => map.get(columnOf(d, stages))?.push(d));
     return map;
-  }, [drafts, stages, showDrafts]);
+  }, [drafts, stages]);
   const feedIn = useMemo(() => {
     const today = localDateKey();
-    const shown = feed.filter((f) => bizFilter.shows(f.business));
+    const shown = feed.filter((f) => businessKey(f.business) === businessKey(profileName));
     return {
       scheduled: shown.filter((f) => f.status !== "posted" && f.date >= today).sort((a, b) => (a.date + a.time < b.date + b.time ? -1 : 1)),
       posted: shown.filter((f) => f.status === "posted").sort((a, b) => (a.date + a.time > b.date + b.time ? -1 : 1)),
     } as Partial<Record<BoardColumn, CalendarFeedItem[]>>;
-  }, [feed, bizFilter.shows]);
+  }, [feed, profileName]);
 
   const [newIdea, setNewIdea] = useState("");
   // Draft awaiting a posting date: asked on its card (Schedule button) or in the
@@ -380,7 +379,6 @@ export default function BoardPage() {
           Drag a card between columns, or use its quick-move button.
         </InfoTip>
       </div>
-      <BusinessChips filter={bizFilter} />
 
       {drafts.length === 0 && feed.length === 0 && (
         <Card>
@@ -474,7 +472,7 @@ export default function BoardPage() {
                         />
                       )}
 
-                      {col.key === "idea" && showDrafts && (
+                      {col.key === "idea" && (
                         <input
                           value={newIdea}
                           onChange={(e) => setNewIdea(e.target.value)}

@@ -26,7 +26,7 @@ import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
 import { loadGoals, saveGoals, setPlatformGoal, weekProgress } from "@/lib/goals";
 import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analytics";
 import { loadPositioning } from "@/lib/positioning";
-import { activeProfile } from "@/lib/profiles";
+import { activeProfile, activeProfileId, loadProfiles, profileForBoardBrand } from "@/lib/profiles";
 import { BusinessChips, useBusinessFilter } from "@/components/BusinessFilter";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
 import CopyLinkButton from "@/components/CopyLinkButton";
@@ -48,6 +48,7 @@ import {
   weekOf,
 } from "@/lib/dueDates";
 import {
+  draftsOfBrand,
   loadDrafts,
   setDraftStatus,
   duplicateDraft,
@@ -206,8 +207,11 @@ export default function CalendarPage() {
   // Reels scheduled on the reels board, for its owner: one calendar for everything that posts.
   // `auto`: the brand posts to Instagram by itself (IG_HANDLES); otherwise Leo posts it by hand.
   const [reels, setReels] = useState<
-    { id: string; title: string; date: string; time: string | null; posted: boolean; business: string; auto: boolean; handle: string | null }[]
+    { id: string; title: string; date: string; time: string | null; posted: boolean; business: string; auto: boolean; handle: string | null; href: string }[]
   >([]);
+  // Every other brand's dated posts (docs/brand-isolation.md: the Calendar is the one page that shows all brands).
+  // Read-only here; tapping one opens it in its own brand.
+  const [otherBrands, setOtherBrands] = useState<typeof reels>([]);
   // Reels still in review or needing changes on the board: content waiting on Leo, with no date yet.
   const [waiting, setWaiting] = useState<{ id: string; title: string; business: string; brand: string; changes: boolean; carousel: boolean }[]>([]);
   // The day whose panel is open (tap a day number or an empty part of a day).
@@ -246,6 +250,22 @@ export default function CalendarPage() {
       setDrafts(loadDrafts(id));
       setNotes(loadNotes(id));
       setProfileName(activeProfile(id).name);
+      if (id) {
+        const open = activeProfileId(id);
+        setOtherBrands(
+          loadProfiles(id)
+            .filter((p) => p.id !== open)
+            .flatMap((p) =>
+              draftsOfBrand(id, p.id).flatMap((d) => {
+                const date = eventDate(d);
+                return date
+                  ? [{ id: `${p.id}:${d.id}`, title: titleOf(d), date, time: scheduleTime(d.scheduledFor), posted: draftStatus(d) === "posted",
+                      business: p.name, auto: false, handle: null, href: `/generate?draft=${encodeURIComponent(d.id)}&profile=${encodeURIComponent(p.id)}` }]
+                  : [];
+              }),
+            ),
+        );
+      }
       setSlots(loadBrand(id)?.slots ?? []);
       setTeamPosts(readTeamPosts(id));
       setTeamReviews(readTeamReviews(id));
@@ -255,7 +275,8 @@ export default function CalendarPage() {
           .then((b) => {
             if (!active) return;
             // Every brand's reels: the business filter picks, not the open profile.
-            const label = (brand: string) => b.brands.find((x) => x.id === brand)?.name ?? brand;
+            // a board brand linked to one of the brands goes under that brand's name, so it shares its chip
+            const label = (brand: string) => (id && profileForBoardBrand(id, brand)?.name) || b.brands.find((x) => x.id === brand)?.name || brand;
             setReels(
               b.cards
                 .filter((c) => c.schedule && ["approved", "scheduled", "posted"].includes(c.stage))
@@ -268,6 +289,7 @@ export default function CalendarPage() {
                   business: label(brandOf(c)),
                   auto: Boolean(IG_HANDLES[brandOf(c)]),
                   handle: IG_HANDLES[brandOf(c)] ?? null,
+                  href: links.reels({ card: c.id, brand: brandOf(c) }),
                 })),
             );
             setWaiting(
@@ -332,6 +354,7 @@ export default function CalendarPage() {
   const bizFilter = useBusinessFilter([
     profileName,
     ...reels.map((r) => r.business),
+    ...otherBrands.map((r) => r.business),
     ...waiting.map((w) => w.business),
     ...feed.map((f) => f.business),
     ...(teamPosts.length ? [TEAM_BUSINESS] : []),
@@ -352,13 +375,13 @@ export default function CalendarPage() {
   // Reels post to Instagram.
   const visibleReels = useMemo(
     () =>
-      reels.filter(
+      [...reels, ...otherBrands].filter(
         (r) =>
           showsBiz(r.business) &&
           (platform === "all" || platform === "instagram") &&
           (status === "all" || (status === "posted") === r.posted),
       ),
-    [reels, platform, status, bizOn],
+    [reels, otherBrands, platform, status, bizOn],
   );
   // Channel posts (Telegram first): "Scheduled" covers locked previews and planned posts.
   const visibleFeed = useMemo(
@@ -969,7 +992,7 @@ export default function CalendarPage() {
     <button
       key={r.id}
       type="button"
-      onClick={() => navigate(links.reels({ card: r.id }))}
+      onClick={() => navigate(r.href)}
       title={`${r.business} reel${r.time ? `, ${timeLabel(r.time)}` : ""}: ${r.title} (${r.posted ? "posted" : reelHow(r)})`}
       className={`block w-full rounded px-1.5 py-0.5 text-left text-[10px] font-medium ${
         roomy ? "py-1.5 text-xs sm:py-1 sm:text-[11px]" : "truncate"
@@ -1523,7 +1546,7 @@ export default function CalendarPage() {
             <button
               key={r.id}
               type="button"
-              onClick={() => navigate(links.reels({ card: r.id }))}
+              onClick={() => navigate(r.href)}
               className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
             >
               <Hand className="h-4 w-4 shrink-0 text-warning" aria-hidden />
@@ -2084,7 +2107,7 @@ export default function CalendarPage() {
                     <button
                       key={r.id}
                       type="button"
-                      onClick={() => navigate(links.reels({ card: r.id }))}
+                      onClick={() => navigate(r.href)}
                       className="flex w-full items-center gap-3 rounded-xl border border-brand/30 bg-card p-3 text-left shadow-card"
                     >
                       {dateBadge(r.date)}

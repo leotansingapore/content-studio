@@ -14,6 +14,8 @@ export interface Profile {
   id: string;
   name: string;
   createdAt: string;
+  /** The posts-board brand this brand owns (moneybees-reels studio/api/_db.js BRANDS id), for /reels. */
+  boardBrand?: string;
 }
 
 export const DEFAULT_PROFILE_ID = "me";
@@ -63,6 +65,14 @@ export function addProfile(userId: string, name: string): Profile {
   return p;
 }
 
+/** Gives a brand its posts-board brand; a board brand belongs to one brand, so any other link to it goes. */
+export function linkBoardBrand(userId: string, profileId: string, boardBrand: string): Profile[] {
+  return saveProfiles(userId, loadProfiles(userId).map((p) =>
+    p.id === profileId ? { ...p, boardBrand } : p.boardBrand === boardBrand ? { ...p, boardBrand: undefined } : p));
+}
+
+export const profileForBoardBrand = (userId: string, boardBrand: string) => loadProfiles(userId).find((p) => p.boardBrand === boardBrand);
+
 export function renameProfile(userId: string, id: string, name: string): Profile[] {
   const trimmed = name.trim().slice(0, 40);
   if (!trimmed) return loadProfiles(userId);
@@ -109,6 +119,38 @@ export function activeProfile(userId: string | null | undefined): Profile {
 
 export function setActiveProfile(userId: string, id: string): void {
   storage()?.setItem(ACTIVE_PREFIX + userId, id);
+}
+
+// The signed-in user, known once the studio has loaded, so a copied link can name the open brand.
+let knownUser: string | null = null;
+export const rememberUser = (userId: string | null) => {
+  knownUser = userId;
+};
+
+/** A link to this app that opens on the brand open now (?profile=), so it lands right on any device. */
+export function withBrand(href: string): string {
+  if (!knownUser) return href;
+  try {
+    const u = new URL(href);
+    u.searchParams.set("profile", activeProfileId(knownUser));
+    return u.toString();
+  } catch {
+    return href;
+  }
+}
+
+/**
+ * A ?profile=<id> link switches to that brand first. Returns "reload" when it switched (the caller reloads, as the
+ * switcher does), "drop" when the brand is already open (the caller removes the param, so the switcher's own reload
+ * can't switch back), or "keep" when this device doesn't know the brand yet (its list may still be syncing).
+ */
+export function applyBrandLink(userId: string, wanted: string | null): "reload" | "drop" | "keep" | "none" {
+  if (!wanted) return "none";
+  if (!loadProfiles(userId).some((p) => p.id === wanted)) return "keep";
+  if (wanted === activeProfileId(userId)) return "drop";
+  setActiveProfile(userId, wanted);
+  // only when the switch stuck: blocked storage would otherwise reload forever
+  return activeProfileId(userId) === wanted ? "reload" : "drop";
 }
 
 /** The id per-profile stores key their data on. */

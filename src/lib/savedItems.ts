@@ -1,8 +1,11 @@
 // Saved / bookmarked reference items (inspiration examples + creators).
 //
 // Lets a consultant build a personal library they refer back to, instead of
-// re-searching the full lists each time. Persisted per user to localStorage:
-//   key: content-studio-saved-${userId}
+// re-searching the full lists each time. Persisted per brand to localStorage
+// (docs/brand-isolation.md): key content-studio-saved-${scoped(userId)}, which is
+// the old per-user key for the default brand.
+
+import { scoped } from "@/lib/profiles";
 
 export type SavedKind = "inspiration" | "creators" | "topPosts";
 
@@ -29,7 +32,7 @@ export function loadSaved(userId: string | null | undefined): SavedItems {
   if (!userId) return { ...EMPTY };
   const storage = safeStorage();
   if (!storage) return { ...EMPTY };
-  const raw = storage.getItem(`${KEY_PREFIX}${userId}`);
+  const raw = storage.getItem(`${KEY_PREFIX}${scoped(userId)}`);
   if (!raw) return { ...EMPTY };
   try {
     const parsed = JSON.parse(raw) as Partial<SavedItems>;
@@ -46,7 +49,7 @@ export function loadSaved(userId: string | null | undefined): SavedItems {
 function save(userId: string, items: SavedItems): void {
   const storage = safeStorage();
   if (!storage) return;
-  storage.setItem(`${KEY_PREFIX}${userId}`, JSON.stringify(items));
+  storage.setItem(`${KEY_PREFIX}${scoped(userId)}`, JSON.stringify(items));
 }
 
 export function toggleSaved(

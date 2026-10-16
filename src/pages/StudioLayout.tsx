@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigationType } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
@@ -9,6 +9,7 @@ import { disablePushHere, refreshPushHere } from "@/lib/notify";
 import { checkMarketEnabled, forgetMarketShown, marketShown } from "@/lib/market";
 import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
 import { checkMe, forgetMe, reelsShown, seesBoard } from "@/lib/reelsBoard";
+import { applyBrandLink, rememberUser } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import JumpTo, { jumpShortcut } from "@/components/JumpTo";
@@ -185,6 +186,7 @@ function MoreTileLink({ tile, active }: { tile: MoreTile; active: boolean }) {
 
 export default function StudioLayout() {
   const { pathname, search } = useLocation();
+  const navigate = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
   // Jump to: Cmd/Ctrl+K anywhere, the button under New post, or the search button on phones.
   const [jumpOpen, setJumpOpen] = useState(false);
@@ -213,6 +215,17 @@ export default function StudioLayout() {
     supabase.auth.getUser().then(({ data }) => {
       if (active) setEmail(data.user?.email ?? "");
       if (active) setUid(data.user?.id ?? null);
+      if (active && data.user) {
+        rememberUser(data.user.id);
+        // a link that names a brand (?profile=) opens on it (docs/brand-isolation.md)
+        const brandLink = applyBrandLink(data.user.id, new URLSearchParams(window.location.search).get("profile"));
+        if (brandLink === "reload") return window.location.reload();
+        if (brandLink === "drop") {
+          const u = new URL(window.location.href);
+          u.searchParams.delete("profile");
+          navigate(u.pathname + u.search + u.hash, { replace: true });
+        }
+      }
       if (active && data.user) void refreshPushHere();
       if (active && data.user) void checkSocialConnect().then((on) => active && setSocialOn(on));
       if (active && data.user) void checkMe().then((m) => active && setReelsOn(seesBoard(m))).catch(() => {});

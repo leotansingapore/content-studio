@@ -9,7 +9,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useUrlState, withParam } from "@/lib/urlState";
-import { activeProfile } from "@/lib/profiles";
+import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setActiveProfile } from "@/lib/profiles";
 import {
   NEXT,
   accessChanged,
@@ -46,12 +46,16 @@ export default function ReelsPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [board, setBoard] = useState<Board | null>(null);
   const [error, setError] = useState("");
-  // Profile, layout, archived and the open reel live in the URL (docs/deep-links.md). ?brand=all shows every
-  // profile; no ?brand= opens on the open profile's brand.
-  const [profileBrand, setProfileBrand] = useState<string | null>(null);
+  // Leo sees the open brand's posts only (docs/brand-isolation.md): its posts-board brand is linked on the profile.
+  // A ?brand= link to another board brand switches to the brand that owns it, or offers to link it.
+  // Members keep a picker over the brands their role gives them (?brand=, all by default).
+  const [uid, setUid] = useState("");
+  const [ownBrand, setOwnBrand] = useState<string | null>(null);
+  const [unlinked, setUnlinked] = useState("");
+  const [profileName, setProfileName] = useState("");
   const brandParam = params.get("brand");
   const known = (b: string) => !board || board.brands.some((x) => x.id === b);
-  const brand = brandParam === "all" ? "" : brandParam && known(brandParam) ? brandParam : profileBrand;
+  const brand = me?.owner ? unlinked || ownBrand : brandParam === "all" ? "" : brandParam && known(brandParam) ? brandParam : "";
   const setBrand = (b: string) => setParams((prev) => withParam(prev, "brand", b || "all"), { replace: true });
   const [archived, setArchived] = useUrlState("archived", "hide", { allowed: ["hide", "show"] });
   const showArchived = archived === "show";
@@ -83,8 +87,28 @@ export default function ReelsPage() {
       fetchBoard()
         .then((b) => {
           setBoard(b);
-          // Open on the board brand that matches the open profile.
-          setProfileBrand(brandForProfile(b.brands, activeProfile(data.user?.id).name));
+          const id = data.user?.id ?? "";
+          if (!who.owner || !id) return;
+          setUid(id);
+          let prof = activeProfile(id);
+          // first visit since brands were linked by id: link the board brand its name matches, once
+          const guess = prof.boardBrand ? "" : brandForProfile(b.brands, prof.name);
+          if (guess && !profileForBoardBrand(id, guess)) {
+            linkBoardBrand(id, prof.id, guess);
+            prof = { ...prof, boardBrand: guess };
+          }
+          setProfileName(prof.name);
+          setOwnBrand(prof.boardBrand ?? "");
+          const asked = new URLSearchParams(window.location.search).get("brand");
+          if (asked && asked !== "all" && asked !== prof.boardBrand && b.brands.some((x) => x.id === asked)) {
+            const owner = profileForBoardBrand(id, asked);
+            if (owner) {
+              setActiveProfile(id, owner.id);
+              window.location.reload();
+              return;
+            }
+            setUnlinked(asked);
+          }
         })
         .catch((e) => setError(errorText(e, "check your connection")));
     });
@@ -149,6 +173,21 @@ export default function ReelsPage() {
   }
 
   const openCard = board ? findCard(board.cards, openId) : undefined;
+  // Leo on a brand with no posts board linked yet: ask which one, instead of showing every brand's posts
+  const needsLink = !!me?.owner && ownBrand === "" && !unlinked;
+  const brandName = (id: string) => board?.brands.find((b) => b.id === id)?.name ?? id;
+  const link = (boardBrand: string) => {
+    linkBoardBrand(uid, activeProfile(uid).id, boardBrand);
+    setOwnBrand(boardBrand);
+    setUnlinked("");
+    toast({ title: `${brandName(boardBrand)} posts now belong to ${profileName}` });
+  };
+  const ownBrandFor = (boardBrand: string) => {
+    const p = addProfile(uid, brandName(boardBrand));
+    linkBoardBrand(uid, p.id, boardBrand);
+    setActiveProfile(uid, p.id);
+    window.location.reload();
+  };
   const stages = (board?.stages ?? []).filter((s) => showArchived || s.id !== "archived");
 
   return (
@@ -163,17 +202,19 @@ export default function ReelsPage() {
         )}
         {board && (
           <>
-            <select
-              value={brand ?? ""}
-              onChange={(e) => setBrand(e.target.value)}
-              aria-label="Profile"
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-            >
-              <option value="">All profiles</option>
-              {board.brands.map((b) => (
-                <option key={b.id} value={b.id}>{b.name} ({counts[b.id] ?? 0})</option>
-              ))}
-            </select>
+            {!me?.owner && board.brands.length > 1 && (
+              <select
+                value={brand ?? ""}
+                onChange={(e) => setBrand(e.target.value)}
+                aria-label="Brand"
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              >
+                <option value="">All brands</option>
+                {board.brands.map((b) => (
+                  <option key={b.id} value={b.id}>{b.name} ({counts[b.id] ?? 0})</option>
+                ))}
+              </select>
+            )}
             <label className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               <input type="checkbox" className="h-4 w-4 accent-primary" checked={showArchived} onChange={(e) => setArchived(e.target.checked ? "show" : "hide")} />
               Archived
@@ -190,7 +231,7 @@ export default function ReelsPage() {
         )}
       </header>
 
-      {board && view === "feed" && (
+      {board && !needsLink && view === "feed" && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Show">
           {[...stages.map((s) => [s.id, s.name] as const), ["all", "All"] as const].map(([id, name]) => {
             const n = feedCards(board.cards, id as StageId | "all", brand ?? "").length;
@@ -215,11 +256,32 @@ export default function ReelsPage() {
       )}
       {!board && !error && <div className="h-64 animate-pulse rounded-xl bg-muted/50" aria-busy="true" aria-label="Loading reels" />}
 
-      {board && view === "feed" && (
+      {board && unlinked && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-warning/50 bg-warning/10 p-3 text-sm" role="status">
+          <span className="mr-auto">{brandName(unlinked)} posts aren't linked to any of your brands yet.</span>
+          <Button size="sm" onClick={() => ownBrandFor(unlinked)}>Make {brandName(unlinked)} a brand</Button>
+          <Button size="sm" variant="outline" onClick={() => link(unlinked)}>Link to {profileName}</Button>
+        </div>
+      )}
+      {board && needsLink && (
+        <div className="space-y-3 rounded-xl border border-dashed border-border/70 p-6 text-center">
+          <p className="text-sm font-semibold">Which posts belong to {profileName}?</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {board.brands.filter((b) => !profileForBoardBrand(uid, b.id)).map((b) => (
+              <Button key={b.id} size="sm" variant="outline" onClick={() => link(b.id)}>{b.name} ({counts[b.id] ?? 0})</Button>
+            ))}
+          </div>
+          {board.brands.every((b) => profileForBoardBrand(uid, b.id)) && (
+            <p className="text-xs text-muted-foreground">Every posts board already belongs to another brand. Switch brand to see its posts.</p>
+          )}
+        </div>
+      )}
+
+      {board && !needsLink && view === "feed" && (
         <ReelFeed cards={feedCards(board.cards, stage, brand ?? "")} board={board} me={me} onChange={replace} onMove={move} onOpen={open} focus={openCard?.id} />
       )}
 
-      {board && view === "board" && (
+      {board && !needsLink && view === "board" && (
         <div className="-mx-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
           <div className="flex items-start gap-3">
             {stages.map((s) => {
@@ -285,7 +347,7 @@ export default function ReelsPage() {
         </div>
       )}
 
-      {board && view === "grid" &&
+      {board && !needsLink && view === "grid" &&
         stages.map((s) => {
           const cards = cardsIn(board.cards, s.id, brand ?? "");
           return (
