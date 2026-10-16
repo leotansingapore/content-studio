@@ -203,7 +203,7 @@ export default function ReelDrawer({
               <label className="block space-y-1 text-xs font-semibold text-muted-foreground">
                 Version
                 <select value={card.version} disabled={!p.edit} onChange={(e) => patch({ version: e.target.value }, "the version")}
-                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground">
+                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground disabled:cursor-not-allowed disabled:opacity-60">
                   {card.versions.map((x) => (
                     <option key={x.file} value={x.file}>{x.label} ({new Date(x.mtime * 1000).toLocaleDateString([], { day: "numeric", month: "short" })})</option>
                   ))}
@@ -213,7 +213,7 @@ export default function ReelDrawer({
                 <label className="block space-y-1 text-xs font-semibold text-muted-foreground">
                   Profile
                   <select value={brandOf(card)} onChange={(e) => patch({ brand: e.target.value }, "the profile")}
-                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground">
+                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground disabled:cursor-not-allowed disabled:opacity-60">
                     {board.brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </label>
@@ -221,7 +221,7 @@ export default function ReelDrawer({
               <label className="block space-y-1 text-xs font-semibold text-muted-foreground">
                 Post at
                 <input type="datetime-local" value={card.schedule ?? ""} disabled={!p.edit} onChange={(e) => patch({ schedule: e.target.value }, "the date")}
-                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground" />
+                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground disabled:cursor-not-allowed disabled:opacity-60" />
               </label>
             </div>
           </div>
@@ -231,7 +231,7 @@ export default function ReelDrawer({
               <h3 className="text-sm font-semibold">Caption</h3>
               <span className="text-[11px] text-muted-foreground" aria-live="polite">{capState}</span>
             </div>
-            <Textarea rows={7} value={caption} maxLength={2200} readOnly={!p.edit} onChange={(e) => onCaption(e.target.value)} className="text-sm" />
+            <Textarea rows={7} value={caption} maxLength={2200} readOnly={!p.edit} onChange={(e) => onCaption(e.target.value)} className={`text-sm ${p.edit ? "" : "cursor-default bg-muted/40"}`} />
           </section>
 
           <section className="space-y-2">
