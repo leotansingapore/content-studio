@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aspectOf, brandForProfile, cardsIn, feedCards, igLine, mmss, type ReelCard } from "./reelsBoard";
+import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, mmss, type ReelCard } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -69,5 +69,16 @@ describe("column order", () => {
   it("puts undated cards after dated ones", () => {
     const cards = [card("undated", "review", "leo"), card("dated", "review", "leo", "2026-10-20T19:30")];
     expect(cardsIn(cards, "review", "leo").map((c) => c.id)).toEqual(["dated", "undated"]);
+  });
+});
+
+describe("findCard", () => {
+  const cards = [card("at-1016-car1~carousel", "review"), card("at-r-hits~animated", "review")];
+  it("finds a card by its full id or by the id a chat app cut at the ~", () => {
+    expect(findCard(cards, "at-1016-car1~carousel")?.id).toBe("at-1016-car1~carousel");
+    expect(findCard(cards, "at-1016-car1")?.id).toBe("at-1016-car1~carousel");
+    expect(findCard(cards, "at-r-hits")?.id).toBe("at-r-hits~animated");
+    expect(findCard(cards, "nope")).toBeUndefined();
+    expect(findCard(cards, null)).toBeUndefined();
   });
 });

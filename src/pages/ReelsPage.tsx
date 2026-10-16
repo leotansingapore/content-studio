@@ -20,6 +20,7 @@ import {
   currentVersion,
   feedCards,
   fetchBoard,
+  findCard,
   IG_HANDLES,
   igLine,
   isCarousel,
@@ -134,7 +135,7 @@ export default function ReelsPage() {
     );
   }
 
-  const openCard = board?.cards.find((c) => c.id === openId);
+  const openCard = board ? findCard(board.cards, openId) : undefined;
   const stages = (board?.stages ?? []).filter((s) => showArchived || s.id !== "archived");
 
   return (
@@ -197,7 +198,7 @@ export default function ReelsPage() {
       {!board && !error && <div className="h-64 animate-pulse rounded-xl bg-muted/50" aria-busy="true" aria-label="Loading reels" />}
 
       {board && view === "feed" && (
-        <ReelFeed cards={feedCards(board.cards, stage, brand ?? "")} board={board} onChange={replace} onMove={move} onOpen={open} />
+        <ReelFeed cards={feedCards(board.cards, stage, brand ?? "")} board={board} onChange={replace} onMove={move} onOpen={open} focus={openCard?.id} />
       )}
 
       {board && view === "board" && (

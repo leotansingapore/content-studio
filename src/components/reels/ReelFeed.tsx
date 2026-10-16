@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,13 +21,19 @@ const when = (iso?: string) =>
   iso ? new Date(iso).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "No date yet";
 
 /** The whole post as it will look: every slide or the reel itself, the full caption, and the decision beside it. */
-function Post({ card, board, onChange, onMove, onOpen }: {
+function Post({ card, board, onChange, onMove, onOpen, focused }: {
   card: ReelCard;
   board: Board;
   onChange: (c: ReelCard) => void;
   onMove: (id: string, to: StageId) => void;
   onOpen: (id: string) => void;
+  focused?: boolean;
 }) {
+  const box = useRef<HTMLElement>(null);
+  // a ?card= link lands on this post: bring it into view so closing the drawer leaves you on it
+  useEffect(() => {
+    if (focused) box.current?.scrollIntoView({ block: "center" });
+  }, [focused]);
   const { toast } = useToast();
   const v = currentVersion(card);
   const car = isCarousel(card);
@@ -68,7 +74,7 @@ function Post({ card, board, onChange, onMove, onOpen }: {
   };
 
   return (
-    <article className="grid gap-4 rounded-2xl border border-border/60 bg-card p-3 shadow-card sm:p-4 lg:grid-cols-[minmax(0,420px)_1fr]" aria-label={card.title}>
+    <article ref={box} className={`grid gap-4 rounded-2xl border bg-card p-3 shadow-card sm:p-4 lg:grid-cols-[minmax(0,420px)_1fr] ${focused ? "border-primary ring-2 ring-primary/30" : "border-border/60"}`} aria-label={card.title}>
       <div className="mx-auto w-full" style={{ maxWidth: car ? 420 : 300 }}>
         {car ? (
           <div className="space-y-2">
@@ -156,17 +162,18 @@ function Post({ card, board, onChange, onMove, onOpen }: {
   );
 }
 
-export default function ReelFeed({ cards, board, onChange, onMove, onOpen }: {
+export default function ReelFeed({ cards, board, onChange, onMove, onOpen, focus }: {
   cards: ReelCard[];
   board: Board;
   onChange: (c: ReelCard) => void;
   onMove: (id: string, to: StageId) => void;
   onOpen: (id: string) => void;
+  focus?: string;
 }) {
   if (cards.length === 0) return <p className="rounded-xl border border-dashed border-border/70 py-8 text-center text-sm text-muted-foreground">Nothing here.</p>;
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      {cards.map((c) => <Post key={c.id} card={c} board={board} onChange={onChange} onMove={onMove} onOpen={onOpen} />)}
+      {cards.map((c) => <Post key={c.id} card={c} board={board} onChange={onChange} onMove={onMove} onOpen={onOpen} focused={c.id === focus} />)}
     </div>
   );
 }

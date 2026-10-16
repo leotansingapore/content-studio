@@ -110,6 +110,12 @@ const byDate = (a: ReelCard, b: ReelCard) =>
 /** A post's real shape: carousels and picture posts are 4:5 on Instagram, reels 9:16 (thumbs keep their own shape). */
 export const aspectOf = (c: ReelCard) => (isCarousel(c) ? "4 / 5" : "9 / 16");
 
+/** The card a ?card= link names. Also accepts the id without its "~style" tail, because some chat apps end a link at "~". */
+export function findCard(cards: ReelCard[], id: string | null): ReelCard | undefined {
+  if (!id) return undefined;
+  return cards.find((c) => c.id === id) ?? cards.find((c) => c.id.split("~")[0] === id.split("~")[0]);
+}
+
 /** Posts view: one stage, or every stage but Archived ("all"), soonest date first, undated last. */
 export function feedCards(cards: ReelCard[], stage: StageId | "all", brand: string): ReelCard[] {
   return cards
