@@ -16,6 +16,25 @@ export function siteUrl(raw: unknown): URL | null {
   return safeFeedUrl(/^https?:\/\//i.test(t) ? t : `https://${t}`);
 }
 
+/**
+ * Whether an address a host name resolves to is inside a network: loopback, private, shared (CGNAT), link-local
+ * (cloud metadata lives there), unspecified, multicast or reserved, in IPv4 or IPv6 (mapped IPv4 included).
+ * A host is read only when every address it resolves to is public.
+ */
+export function privateIp(addr: string): boolean {
+  const a = addr.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  const v4 = a.match(/^(?:::ffff:)?(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const [o1, o2] = [Number(v4[1]), Number(v4[2])];
+    return o1 === 0 || o1 === 10 || o1 === 127 || o1 >= 224 || (o1 === 100 && o2 >= 64 && o2 <= 127) || (o1 === 169 && o2 === 254)
+      || (o1 === 172 && o2 >= 16 && o2 <= 31) || (o1 === 192 && o2 === 168) || (o1 === 192 && o2 === 0) || (o1 === 198 && (o2 === 18 || o2 === 19));
+  }
+  if (!a.includes(":")) return true; // not an address we can read: refuse
+  if (a === "::" || a === "::1") return true;
+  const first = parseInt(a.split(":")[0] || "0", 16);
+  return (first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80 || (first & 0xff00) === 0xff00 || a.startsWith("64:ff9b:") || a.startsWith("2001:db8:");
+}
+
 export interface SiteFacts {
   name: string;
   description: string;

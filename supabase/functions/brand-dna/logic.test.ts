@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { handleOf, hex, parseWritten, pickColour, readSite, siteUrl } from "./logic";
+import { handleOf, hex, parseWritten, pickColour, privateIp, readSite, siteUrl } from "./logic";
 
 const BASE = new URL("https://www.acme.sg/");
 const PAGE = `<!doctype html><html><head>
@@ -77,5 +77,17 @@ describe("what the LLM writes", () => {
     expect(w).toMatchObject({ name: "Acme", oneLiner: "We help parents , save", topics: ["Savings", "Kids"] });
     expect(w.audienceDetail).toHaveLength(160);
     expect(parseWritten("not json")).toBeNull();
+  });
+});
+
+describe("addresses a host resolves to", () => {
+  it("refuses anything inside a network", () => {
+    for (const a of ["127.0.0.1", "10.1.2.3", "172.16.0.1", "172.31.255.255", "192.168.1.1", "169.254.169.254", "100.64.0.1", "0.0.0.0",
+      "224.0.0.1", "::1", "::", "fe80::1", "fc00::1", "fd12:3456::1", "::ffff:127.0.0.1", "::ffff:10.0.0.1", "ff02::1", "nonsense"]) {
+      expect(privateIp(a), a).toBe(true);
+    }
+  });
+  it("lets public addresses through", () => {
+    for (const a of ["8.8.8.8", "172.32.0.1", "100.128.0.1", "151.101.1.69", "2606:4700::6810:84e5", "2a00:1450:4001::200e"]) expect(privateIp(a), a).toBe(false);
   });
 });

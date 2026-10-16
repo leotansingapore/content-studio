@@ -18,7 +18,12 @@ const seen: string[] = [];
 let llm: unknown = { name: "Acme Wealth", oneLiner: "We help families save so they can relax.", audienceDetail: "Young families", topics: ["Savings"], edge: "Plain advice", voice: "Warm. Plain." };
 
 beforeAll(async () => {
-  vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => ({ OPENAI_API_KEY: "k" } as Record<string, string>)[k] } });
+  vi.stubGlobal("Deno", {
+    serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn),
+    env: { get: (k: string) => ({ OPENAI_API_KEY: "k" } as Record<string, string>)[k] },
+    // acme.sg and down.sg are public; inside.sg points into a network
+    resolveDns: async (host: string, type: string) => (type === "AAAA" ? [] : host === "inside.sg" ? ["10.0.0.7"] : ["151.101.1.69"]),
+  });
   vi.stubGlobal("fetch", async (u: URL | string) => {
     const url = String(u);
     seen.push(url);
@@ -54,6 +59,12 @@ describe("brand-dna", () => {
     expect(seen).toEqual([]);
     expect(db.spent).toEqual([]);
     expect((await call({ url: "acme.sg" }, "")).status).toBe(401);
+  });
+
+  it("refuses a name that resolves inside a network, without fetching it", async () => {
+    const r = await call({ url: "inside.sg" });
+    expect(r.status).toBe(422);
+    expect(seen.some((u) => u.includes("inside.sg"))).toBe(false);
   });
 
   it("says plainly when the site can't be opened", async () => {
