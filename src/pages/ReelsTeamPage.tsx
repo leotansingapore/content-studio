@@ -120,7 +120,8 @@ export default function ReelsTeamPage() {
   }
 
   const live = (members ?? []).filter((m) => m.status === "joined");
-  const gone = (members ?? []).filter((m) => m.status === "removed");
+  // people who rejoined through a newer link are on the team, not in the removed line
+  const gone = (members ?? []).filter((m) => m.status === "removed" && !live.some((x) => x.email && x.email === m.email));
   const activeLinks = links.filter((l) => l.status === "active");
 
   return (
