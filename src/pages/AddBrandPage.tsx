@@ -4,11 +4,10 @@ import { ArrowLeft, Check, Globe, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_BRAND, saveBrand } from "@/lib/carousel";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { EMPTY_POSITIONING, savePositioning, type PlanAudience } from "@/lib/positioning";
-import { addProfile, setActiveProfile } from "@/lib/profiles";
+import { addProfile, loadProfiles, setActiveProfile } from "@/lib/profiles";
 import { saveSocialAccounts, type SocialAccounts, type SocialPlatform } from "@/lib/socialAccounts";
 import { saveVoiceProfile } from "@/lib/voiceProfile";
 import { supabase } from "@/lib/supabase";
@@ -49,7 +48,6 @@ const NETWORKS: { key: SocialPlatform; label: string; base: string }[] = [
 ];
 
 export default function AddBrandPage() {
-  const { toast } = useToast();
   const [uid, setUid] = useState("");
   const [address, setAddress] = useState("");
   const [phase, setPhase] = useState<"url" | "reading" | "confirm" | "done">("url");
@@ -64,7 +62,17 @@ export default function AddBrandPage() {
 
   useEffect(() => {
     document.title = "Add a brand - Content Studio";
-    supabase.auth.getUser().then(({ data }) => setUid(data.user?.id ?? ""));
+    supabase.auth.getUser().then(({ data }) => {
+      const id = data.user?.id ?? "";
+      setUid(id);
+      // back from creating one (?done=<id>): the page reloaded so every module, the switcher too, is on the new brand
+      const made = new URLSearchParams(window.location.search).get("done");
+      const brand = made && id ? loadProfiles(id).find((p) => p.id === made) : undefined;
+      if (brand) {
+        setCreated(brand.name);
+        setPhase("done");
+      }
+    });
     return () => window.clearInterval(timer.current);
   }, []);
 
@@ -131,9 +139,7 @@ export default function AddBrandPage() {
       saveSocialAccounts(uid, accounts);
       if (brand.voice) saveVoiceProfile(uid, { posts: [], voiceSummary: brand.voice, updatedAt: now });
     }
-    setCreated(title);
-    setPhase("done");
-    toast({ title: `${title} is ready` });
+    window.location.assign(`/brands/new?done=${encodeURIComponent(p.id)}`);
   };
 
   const pct = Math.round((done.size / CARDS.length) * 100);
