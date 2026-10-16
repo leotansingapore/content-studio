@@ -34,6 +34,8 @@ export interface ReelComment {
   resolved: boolean;
   /** Stamped by the board: missing on Leo's older notes, "claude" on the fix pass's answers. */
   by?: string | { id: string; label: string; role?: string };
+  /** Leo sent this teammate's note to the daily fix pass (Fix this). */
+  forFix?: { at: string };
 }
 
 /** Who wrote a note, for showing beside it; "" for Leo's older notes. Members pick their own account name, so theirs say so. */
@@ -143,6 +145,10 @@ export const updateCard = (id: string, patch: Partial<Pick<ReelCard, "stage" | "
 export const addNote = (id: string, note: { text: string; t?: number | null; slide?: number }) =>
   board<ReelCard>({ action: "comment", id, ...note });
 export const resolveNote = (id: string, cid: string, resolved: boolean) => board<ReelCard>({ action: "resolve", id, cid, resolved });
+/** Leo sends a teammate's note to the daily fix pass; the post moves to Needs changes. */
+export const sendToFix = (id: string, cid: string) => board<ReelCard>({ action: "endorse", id, cid });
+/** A teammate's note the fix pass acts on without Leo: from an editor or approver. A commenter's needs Fix this. */
+export const fixesOnItsOwn = (m: ReelComment) => typeof m.by === "object" && !!m.by && (m.by.role === "editor" || m.by.role === "approver");
 
 // ---- Who is looking: Leo, a team member, or neither (docs/team-roles.md) ----
 

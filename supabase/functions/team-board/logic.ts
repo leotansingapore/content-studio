@@ -97,6 +97,7 @@ export type Req =
   | { action: "card"; id: string; patch: CardPatch }
   | { action: "comment"; id: string; text: string; t: number | null; slide: number | null }
   | { action: "resolve"; id: string; cid: string; resolved: boolean }
+  | { action: "endorse"; id: string; cid: string }
   | { action: "claim"; token: string }
   | { action: "team.list" }
   | { action: "team.invite"; role: Role; brands: string[] }
@@ -118,7 +119,7 @@ export function parseRequest(body: unknown): Parsed {
   const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
   const a = b.action;
   if (a === "me" || a === "board" || a === "team.list") return { ok: true, req: { action: a } };
-  if (a === "card" || a === "comment" || a === "resolve") {
+  if (a === "card" || a === "comment" || a === "resolve" || a === "endorse") {
     const id = str(b.id, 200);
     if (!id) return bad("Which post?");
     if (a === "card") {
@@ -141,6 +142,7 @@ export function parseRequest(body: unknown): Parsed {
     }
     const cid = str(b.cid, 40);
     if (!cid) return bad("Which note?");
+    if (a === "endorse") return { ok: true, req: { action: "endorse", id, cid } };
     return { ok: true, req: { action: "resolve", id, cid, resolved: b.resolved === true } };
   }
   if (a === "claim") {
@@ -167,10 +169,11 @@ export function parseRequest(body: unknown): Parsed {
 }
 
 /** The board path and method for a card action (moneybees-reels studio/vercel.json keeps /api/card). */
-export function boardCall(req: Extract<Req, { action: "board" | "card" | "comment" | "resolve" }>): { path: string; body?: unknown } {
+export function boardCall(req: Extract<Req, { action: "board" | "card" | "comment" | "resolve" | "endorse" }>): { path: string; body?: unknown } {
   if (req.action === "board") return { path: "/api/board" };
   const id = encodeURIComponent(req.id);
   if (req.action === "card") return { path: `/api/card?id=${id}`, body: req.patch };
   if (req.action === "comment") return { path: `/api/card?id=${id}&op=comment`, body: { text: req.text, t: req.t, ...(req.slide ? { slide: req.slide } : {}) } };
+  if (req.action === "endorse") return { path: `/api/card?id=${id}&op=endorse&cid=${encodeURIComponent(req.cid)}`, body: {} };
   return { path: `/api/card?id=${id}&op=resolve&cid=${encodeURIComponent(req.cid)}`, body: { resolved: req.resolved } };
 }

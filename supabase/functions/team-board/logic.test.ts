@@ -114,5 +114,7 @@ describe("board paths", () => {
     expect(boardCall({ action: "resolve", id: "a", cid: "x&y", resolved: true }))
       .toEqual({ path: "/api/card?id=a&op=resolve&cid=x%26y", body: { resolved: true } });
     expect(boardCall({ action: "board" })).toEqual({ path: "/api/board" });
+    expect(boardCall({ action: "endorse", id: "a~b", cid: "n1" })).toEqual({ path: "/api/card?id=a~b&op=endorse&cid=n1", body: {} });
+    expect(req({ action: "endorse", id: "a" })).toBe("Which note?");
   });
 });

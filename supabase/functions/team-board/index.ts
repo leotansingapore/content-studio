@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     }
     if (!actor) return json({ error: "You're not on this team." }, 403);
 
-    if (r.action === "board" || r.action === "card" || r.action === "comment" || r.action === "resolve") {
+    if (r.action === "board" || r.action === "card" || r.action === "comment" || r.action === "resolve" || r.action === "endorse") {
       if (!owner && !member!.modules.includes("reels")) return json({ error: "You're not on this team." }, 403);
       if (r.action === "comment" && !owner) {
         const usage = await consumeUsage(admin, uid, "team-comment");

@@ -19,6 +19,8 @@ import {
   openNotes,
   perms,
   resolveNote,
+  fixesOnItsOwn,
+  sendToFix,
   updateCard,
   type Board,
   type Me,
@@ -249,6 +251,15 @@ export default function ReelDrawer({
                   ) : null}
                   <div className="min-w-0 flex-1">
                     <p className={m.resolved ? "line-through" : ""}>{m.text}</p>
+                    {/* a commenter's note reaches the 9:30am fix pass only when Leo sends it on; editors' and approvers' go on their own */}
+                    {me?.owner && !m.resolved && typeof m.by === "object" && m.by && m.by.role !== "owner" && (
+                      m.forFix || fixesOnItsOwn(m) ? (
+                        <p className="text-[11px] font-semibold text-primary">Will be fixed in the next 9:30am pass</p>
+                      ) : (
+                        <Button size="sm" variant="outline" className="my-1 h-7 text-[11px]"
+                          onClick={() => sendToFix(card.id, m.id).then(onChange).catch((e) => fail("that", e))}>Fix this</Button>
+                      )
+                    )}
                     <p className="text-[11px] text-muted-foreground">
                       {noteAuthor(m) && <span className="font-semibold">{noteAuthor(m)} - </span>}
                       {when(m.at)}{m.version !== card.version ? ` - on ${card.versions.find((x) => x.file === m.version)?.label ?? "an older version"}` : ""}
