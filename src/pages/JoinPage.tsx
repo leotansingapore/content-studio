@@ -34,6 +34,8 @@ function takeToken(): string {
 export default function JoinPage() {
   const token = useRef(takeToken()).current;
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  // already signed in: ask before the invite becomes this account's (a forwarded link, a shared computer)
+  const [asEmail, setAsEmail] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +65,7 @@ export default function JoinPage() {
     document.title = "Join the posts board - Content Studio";
     supabase.auth.getSession().then(({ data }) => {
       setSignedIn(!!data.session);
-      if (data.session && token) void claim();
+      setAsEmail(data.session?.user.email ?? "");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -84,6 +86,7 @@ export default function JoinPage() {
       return;
     }
     setSignedIn(true);
+    setAsEmail("");
     await claim();
   };
 
@@ -120,6 +123,16 @@ export default function JoinPage() {
         ) : signedIn ? (
           <Card>
             <CardContent className="space-y-3 pt-6 text-center">
+              {asEmail && !busy && !error && (
+                <>
+                  <h1 className="font-serif text-xl font-semibold">Join Leo's posts board</h1>
+                  <p className="text-sm text-muted-foreground">You're signed in as <span className="font-semibold text-foreground">{asEmail}</span>.</p>
+                  <div className="flex flex-col gap-2">
+                    <Button size="lg" onClick={claim}>Join as {asEmail}</Button>
+                    <Button variant="outline" onClick={() => supabase.auth.signOut().then(() => { setAsEmail(""); setSignedIn(false); })}>Use another account</Button>
+                  </div>
+                </>
+              )}
               {busy ? <Loader2 className="mx-auto h-6 w-6 animate-spin" aria-label="Joining" /> : error && (
                 <>
                   <p className="text-sm" role="alert">{error}</p>

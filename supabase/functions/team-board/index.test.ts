@@ -185,5 +185,7 @@ describe("team-board", () => {
   it("hides a board failure behind a plain message", async () => {
     boardStatus = 500;
     expect(await call(LEO, { action: "board" })).toEqual({ status: 502, body: { error: "The board didn't answer. Try again." } });
+    boardStatus = 401;                                                                  // our key, not the person's access
+    expect((await call(LEO, { action: "board" })).status).toBe(502);
   });
 });

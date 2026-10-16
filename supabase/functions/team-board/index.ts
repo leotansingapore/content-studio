@@ -93,7 +93,8 @@ Deno.serve(async (req) => {
       });
       const body = await res.json().catch(() => null);
       // the board's refusals are plain sentences meant for the person; anything else stays in the log
-      if (res.status >= 500 || !body) {
+      // a 401 from the board means this function's key is wrong, not that the person lost access
+      if (res.status >= 500 || res.status === 401 || !body) {
         console.error("board answered", res.status, call.path);
         return json({ error: "The board didn't answer. Try again." }, 502);
       }
