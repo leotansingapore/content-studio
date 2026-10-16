@@ -232,20 +232,30 @@ export const errorText = (e: unknown, fallback: string) => (e instanceof EdgeErr
 
 export interface TeamMember {
   id: string;
+  /** From their own account (name, else the start of their email). */
   label: string;
   role: Role;
   brands: string[];
   email: string | null;
-  status: "invited" | "expired" | "joined" | "revoked";
-  invite_expires_at: string | null;
+  status: "joined" | "removed";
   created_at: string;
 }
-export const listTeam = () => callFn<{ members: TeamMember[] }>("team-board", { action: "team.list" }).then((r) => r.members);
-export const inviteMember = (m: { label: string; role: Role; brands: string[] }) =>
-  callFn<{ member: TeamMember; link: string }>("team-board", { action: "team.invite", ...m });
-export const updateMember = (id: string, patch: Partial<Pick<TeamMember, "label" | "role" | "brands">>) =>
-  callFn<{ member: TeamMember }>("team-board", { action: "team.update", id, ...patch }).then((r) => r.member);
-export const revokeMember = (id: string) => callFn<{ revoked: true }>("team-board", { action: "team.revoke", id });
-export const reinviteMember = (id: string) => callFn<{ link: string }>("team-board", { action: "team.reinvite", id }).then((r) => r.link);
-export const claimInvite = (token: string) =>
-  callFn<{ joined: true; label: string; role: Role; brands: string[] }>("team-board", { action: "claim", token });
+/** A link Leo shares: whoever opens it while it works joins with its role and brands. */
+export interface TeamLink {
+  id: string;
+  role: Role;
+  brands: string[];
+  expires_at: string;
+  max_uses: number | null;
+  uses: number;
+  status: "active" | "expired" | "used" | "off";
+  created_at: string;
+}
+const team = <T>(body: Record<string, unknown>) => callFn<T>("team-board", body);
+export const listTeam = () => team<{ members: TeamMember[]; links: TeamLink[] }>({ action: "team.list" });
+export const createLink = (l: { role: Role; brands: string[] }) => team<{ link: TeamLink; url: string }>({ action: "team.invite", ...l });
+export const linkOff = (id: string) => team<{ off: true }>({ action: "team.linkOff", id });
+export const updateMember = (id: string, patch: Partial<Pick<TeamMember, "role" | "brands">>) =>
+  team<{ member: TeamMember }>({ action: "team.update", id, ...patch }).then((r) => r.member);
+export const revokeMember = (id: string) => team<{ revoked: true }>({ action: "team.revoke", id });
+export const claimInvite = (token: string) => team<{ joined: true; role: Role; brands: string[] }>({ action: "claim", token });

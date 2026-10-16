@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { actorFor, boardCall, encodeActor, hashToken, idSet, newToken, parseRequest, statusOf, type MemberRow } from "./logic";
+import { actorFor, boardCall, encodeActor, hashToken, idSet, linkStatus, maxUsesFor, nameOf, newToken, parseRequest, type InviteRow, type MemberRow } from "./logic";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const ROW: MemberRow = {
   id: "0f8fad5b-d9cb-469f-a165-70867728950e", label: "Mei", role: "commenter", brands: ["activitytracker"], modules: ["reels"],
-  member_id: UID, invite_expires_at: null, claimed_at: "2026-10-16T00:00:00Z", revoked_at: null, created_at: "2026-10-16T00:00:00Z",
+  member_id: UID, claimed_at: "2026-10-16T00:00:00Z", revoked_at: null, created_at: "2026-10-16T00:00:00Z",
+};
+const LINK: InviteRow = {
+  id: "11111111-2222-4333-8444-555555555555", role: "commenter", brands: ["activitytracker"], expires_at: "2026-10-20T00:00:00Z",
+  max_uses: null, uses: 3, revoked_at: null, created_at: "2026-10-16T00:00:00Z",
 };
 const req = (b: unknown) => {
   const p = parseRequest(b);
@@ -39,13 +43,22 @@ describe("invite tokens", () => {
     expect(newToken()).not.toBe(t);
     expect(await hashToken("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
   });
-  it("show their status from the row", () => {
+  it("say whether a link still lets people in", () => {
     const now = Date.parse("2026-10-16T12:00:00Z");
-    const open = { ...ROW, member_id: null, claimed_at: null };
-    expect(statusOf({ ...open, invite_expires_at: "2026-10-20T00:00:00Z" }, now)).toBe("invited");
-    expect(statusOf({ ...open, invite_expires_at: "2026-10-10T00:00:00Z" }, now)).toBe("expired");
-    expect(statusOf(ROW, now)).toBe("joined");
-    expect(statusOf({ ...ROW, revoked_at: "2026-10-16T01:00:00Z" }, now)).toBe("revoked");
+    expect(linkStatus(LINK, now)).toBe("active");
+    expect(linkStatus({ ...LINK, expires_at: "2026-10-10T00:00:00Z" }, now)).toBe("expired");
+    expect(linkStatus({ ...LINK, max_uses: 1, uses: 1 }, now)).toBe("used");
+    expect(linkStatus({ ...LINK, revoked_at: "2026-10-16T01:00:00Z" }, now)).toBe("off");
+  });
+  it("work for one person only when they make an approver", () => {
+    expect(maxUsesFor("approver")).toBe(1);
+    expect(maxUsesFor("commenter")).toBeNull();
+  });
+  it("name a member from their account, never blank", () => {
+    expect(nameOf({ email: "mei.tan@x.com", user_metadata: { full_name: " Mei Tan " } })).toBe("Mei Tan");
+    expect(nameOf({ email: "mei.tan@x.com", user_metadata: {} })).toBe("mei.tan");
+    expect(nameOf({ email: null, user_metadata: null })).toBe("Team member");
+    expect(nameOf({ email: "a@b.c", user_metadata: { full_name: "x".repeat(80) } })).toHaveLength(60);
   });
   it("reads owner and deny lists", () => {
     expect([...idSet(" a, b ,,")]).toEqual(["a", "b"]);
@@ -65,13 +78,13 @@ describe("requests", () => {
     expect(req({ action: "comment", id: "a", text: " hi ", by: { id: "leo" }, slide: 3 })).toEqual({ action: "comment", id: "a", text: "hi", t: null, slide: 3 });
     expect(req({ action: "comment", id: "a", text: "x".repeat(2001) })).toBe("A note is 1 to 2000 characters.");
   });
-  it("checks invites: a name, a member role, known brands", () => {
-    expect(req({ action: "team.invite", label: " Mei ", role: "approver", brands: ["activitytracker", "activitytracker"] }))
-      .toEqual({ action: "team.invite", label: "Mei", role: "approver", brands: ["activitytracker"] });
-    expect(req({ action: "team.invite", label: "Mei", role: "owner", brands: ["activitytracker"] })).toBe("Pick a role.");
-    expect(req({ action: "team.invite", label: "Mei", role: "viewer", brands: ["*"] })).toBe("Pick at least one brand.");
-    expect(req({ action: "team.invite", label: "Mei", role: "viewer", brands: [] })).toBe("Pick at least one brand.");
-    expect(req({ action: "team.invite", label: "", role: "viewer", brands: ["leo"] })).toBe("Give them a name, up to 60 characters.");
+  it("checks links: a member role and known brands, no name", () => {
+    expect(req({ action: "team.invite", label: "ignored", role: "approver", brands: ["activitytracker", "activitytracker"] }))
+      .toEqual({ action: "team.invite", role: "approver", brands: ["activitytracker"] });
+    expect(req({ action: "team.invite", role: "owner", brands: ["activitytracker"] })).toBe("Pick a role.");
+    expect(req({ action: "team.invite", role: "viewer", brands: ["*"] })).toBe("Pick at least one brand.");
+    expect(req({ action: "team.invite", role: "viewer", brands: [] })).toBe("Pick at least one brand.");
+    expect(req({ action: "team.linkOff", id: "x" })).toBe("Which link?");
   });
   it("needs a real id to change, revoke or re-invite someone", () => {
     expect(req({ action: "team.revoke", id: "1 or 1=1" })).toBe("Which person?");

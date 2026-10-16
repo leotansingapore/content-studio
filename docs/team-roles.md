@@ -184,3 +184,17 @@ Order of work on every request:
   - Leo's owner session works end to end;
   - `studio.py sync` and `publish_ig.py --check` still work;
   - two QA members (commenter and approver) scoped to `businessacademy`, which has no Instagram, see only that brand. Every action outside their role is refused by the server, and both rows are revoked afterwards [4].
+
+## v3: invite links without names, and sign-in by email link (16 Oct)
+
+Leo asked for "an invite link" with "no need for me to indicate their name", and for "a magic link login".
+
+- **Links** (migration 023 `cs_board_invites`). Leo picks a role and brands and gets one link. Anyone who opens it within 7 days joins with that role and those brands, until he turns it off. An approver link works for one person, because approvals post to Instagram. The link is stored only as a sha256 hash and shown to Leo once.
+- **Members** keep only people who joined. Their name comes from their own account: the name on it, else the start of their email.
+- **Joining** goes through `cs_board_claim(hash, member, name)`, a security definer function only the service role may call. It locks the link row, checks expiry, turn-off and uses, refuses the link's owner, adds the member and counts the use, all in one transaction. Two people can't both take a one-use link, and a refused claim counts no use.
+- **Sign-in** on /auth and /join is an emailed link first, then the code from the same email (for a link opened on another device), then a password for people who have one.
+  - /join may create an account. /auth may not.
+  - The email link brings people back to `/join?invite=<token>`, so the invite survives a mail app that opens another browser.
+  - Addresses @demo.com are never emailed.
+  - The email comes from the academy project's shared Resend sender ("CMFAS Prep"), which other apps use too, so it was left as it is.
+- **The project's allowed redirect list** gains `https://consultant-content-studio.vercel.app/**`.

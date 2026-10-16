@@ -1,44 +1,40 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { CheckCircle2, Loader2, Mail, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
+import { sendSignInLink, verifySignInCode } from "@/lib/magicLink";
 import { ROLE_HELP, ROLE_NAMES, claimInvite, errorText, fetchBoard, forgetMe, type Role } from "@/lib/reelsBoard";
 
-// /join#<token>: someone Leo invited to his posts board signs in, or makes an account, and the invite becomes
-// theirs (docs/team-roles.md). The token sits after # so it never reaches a server log; it moves to this
-// tab's session storage and leaves the address bar at once.
+// /join#<token>: someone Leo invited to his posts board signs in by an email link (or a code, or a password)
+// and the invite becomes theirs (docs/team-roles.md). The email link brings them back to /join?invite=<token>,
+// so the token survives a phone's mail app opening a different browser.
 const TOKEN_KEY = "cs-join-token";
+const TOKEN = /^[A-Za-z0-9_-]{43}$/;
 
-function takeToken(): string {
+function takeToken(): { token: string; viaEmail: boolean } {
+  const fromQuery = new URLSearchParams(window.location.search).get("invite") ?? "";
   const fromHash = window.location.hash.slice(1);
-  if (fromHash) {
-    try {
-      sessionStorage.setItem(TOKEN_KEY, fromHash);
-    } catch {
-      // private mode: the token lives in memory for this visit
-    }
-    history.replaceState(null, "", window.location.pathname);
-    return fromHash;
-  }
+  const token = TOKEN.test(fromQuery) ? fromQuery : TOKEN.test(fromHash) ? fromHash : "";
   try {
-    return sessionStorage.getItem(TOKEN_KEY) ?? "";
+    if (token) sessionStorage.setItem(TOKEN_KEY, token);
+    return { token: token || sessionStorage.getItem(TOKEN_KEY) || "", viaEmail: TOKEN.test(fromQuery) };
   } catch {
-    return "";
+    return { token, viaEmail: TOKEN.test(fromQuery) };
   }
 }
 
 export default function JoinPage() {
-  const token = useRef(takeToken()).current;
+  const { token, viaEmail } = useRef(takeToken()).current;
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  // already signed in: ask before the invite becomes this account's (a forwarded link, a shared computer)
   const [asEmail, setAsEmail] = useState("");
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"email" | "code" | "password">("email");
+  const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get("error_description") ?? "");
   const [done, setDone] = useState<{ role: Role; brands: string[] } | null>(null);
 
   const claim = async () => {
@@ -63,31 +59,51 @@ export default function JoinPage() {
 
   useEffect(() => {
     document.title = "Join the posts board - Content Studio";
+    // getSession waits for supabase-js to read a sign-in from the email link, so the address is tidied after it
     supabase.auth.getSession().then(({ data }) => {
+      history.replaceState(null, "", "/join");
       setSignedIn(!!data.session);
       setAsEmail(data.session?.user.email ?? "");
+      // back from their own email link: they just proved who they are, so join straight away
+      if (data.session && token && viaEmail) void claim();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const email = String(form.get("email") ?? "").trim();
-    const password = String(form.get("password") ?? "");
-    setBusy(true);
-    setError("");
-    const { data, error: authError } = mode === "signin"
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password });
-    if (authError || !data.session) {
-      setBusy(false);
-      setError(authError?.message ?? "Check your email for a confirmation link, then open your invite link again.");
-      return;
-    }
+  const signedInNow = async () => {
     setSignedIn(true);
     setAsEmail("");
     await claim();
+  };
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    setBusy(true);
+    setError("");
+    if (mode === "email") {
+      const to = String(form.get("email") ?? "").trim();
+      const problem = await sendSignInLink(to, `${window.location.origin}/join?invite=${token}`, true);
+      setBusy(false);
+      if (problem) return setError(problem);
+      setEmail(to);
+      setMode("code");
+      return;
+    }
+    if (mode === "code") {
+      const problem = await verifySignInCode(email, String(form.get("code") ?? ""));
+      if (problem) {
+        setBusy(false);
+        return setError(problem);
+      }
+      return signedInNow();
+    }
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email: String(form.get("email") ?? "").trim(), password: String(form.get("password") ?? "") });
+    if (authError || !data.session) {
+      setBusy(false);
+      return setError(authError?.message ?? "Couldn't sign in.");
+    }
+    return signedInNow();
   };
 
   return (
@@ -138,7 +154,7 @@ export default function JoinPage() {
                   <p className="text-sm" role="alert">{error}</p>
                   <div className="flex justify-center gap-2">
                     <Button size="sm" onClick={claim}>Try again</Button>
-                    <Button size="sm" variant="outline" onClick={() => supabase.auth.signOut().then(() => setSignedIn(false))}>Use another account</Button>
+                    <Button size="sm" variant="outline" onClick={() => supabase.auth.signOut().then(() => { setError(""); setSignedIn(false); })}>Use another account</Button>
                   </div>
                 </>
               )}
@@ -148,29 +164,43 @@ export default function JoinPage() {
           <Card>
             <CardHeader>
               <CardTitle className="font-serif text-xl">Join Leo's posts board</CardTitle>
-              <CardDescription>{mode === "signin" ? "Sign in with your Content Studio or Academy account." : "Make an account with your own email."}</CardDescription>
+              <CardDescription>
+                {mode === "code" ? <>We sent a sign-in link to <span className="font-semibold text-foreground">{email}</span>. Tap it, or type the code from the email here.</>
+                  : mode === "password" ? "Sign in with your Content Studio or Academy password."
+                  : "Enter your email and we'll send you a sign-in link. No password needed."}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={submit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="join-email">Email</Label>
-                  <Input id="join-email" name="email" type="email" required autoComplete="email" placeholder="you@example.com" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="join-password">Password</Label>
-                  <Input id="join-password" name="password" type="password" required minLength={mode === "signup" ? 8 : undefined}
-                    autoComplete={mode === "signin" ? "current-password" : "new-password"} />
-                  {mode === "signup" && <p className="text-xs text-muted-foreground">At least 8 characters.</p>}
-                </div>
+              <form onSubmit={submit} className="space-y-4" key={mode}>
+                {mode !== "code" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="join-email">Email</Label>
+                    <Input id="join-email" name="email" type="email" required autoComplete="email" defaultValue={email} placeholder="you@example.com" />
+                  </div>
+                )}
+                {mode === "code" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="join-code">Code from the email</Label>
+                    <Input id="join-code" name="code" inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9 ]{6,12}" placeholder="123456" />
+                  </div>
+                )}
+                {mode === "password" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="join-password">Password</Label>
+                    <Input id="join-password" name="password" type="password" required autoComplete="current-password" />
+                  </div>
+                )}
                 {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
                 <Button type="submit" size="lg" className="w-full" disabled={busy}>
-                  {busy && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
-                  {mode === "signin" ? "Sign in and join" : "Create account and join"}
+                  {busy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : mode === "email" && <Mail className="mr-1.5 h-4 w-4" />}
+                  {mode === "email" ? "Email me a sign-in link" : mode === "code" ? "Sign in and join" : "Sign in and join"}
                 </Button>
               </form>
-              <button type="button" className="mt-4 text-sm font-semibold text-primary" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); }}>
-                {mode === "signin" ? "No account yet? Create one" : "Already have an account? Sign in"}
-              </button>
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-primary">
+                {mode === "code" && <button type="button" onClick={() => { setMode("email"); setError(""); }}>Use a different email</button>}
+                {mode !== "password" && <button type="button" onClick={() => { setMode("password"); setError(""); }}>Use a password instead</button>}
+                {mode === "password" && <button type="button" onClick={() => { setMode("email"); setError(""); }}>Email me a link instead</button>}
+              </div>
             </CardContent>
           </Card>
         ) : (

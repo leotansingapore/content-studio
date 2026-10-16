@@ -11,8 +11,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import {
-  actorFor, boardCall, encodeActor, hashToken, idSet, INVITE_DAYS, inviteLink, MODULES, newToken, parseRequest, statusOf,
-  type MemberRow,
+  actorFor, boardCall, encodeActor, hashToken, idSet, INVITE_DAYS, inviteLink, linkStatus, maxUsesFor, MODULES, nameOf, newToken, parseRequest,
+  type InviteRow, type MemberRow,
 } from "./logic.ts";
 
 const APP = "https://consultant-content-studio.vercel.app";
@@ -21,7 +21,8 @@ const headers = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
-const COLS = "id, label, role, brands, modules, member_id, invite_expires_at, claimed_at, revoked_at, created_at";
+const COLS = "id, label, role, brands, modules, member_id, claimed_at, revoked_at, created_at";
+const LINK_COLS = "id, role, brands, expires_at, max_uses, uses, revoked_at, created_at";
 const expiry = () => new Date(Date.now() + INVITE_DAYS * 864e5).toISOString();
 
 Deno.serve(async (req) => {
@@ -31,7 +32,8 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   const { data: userData } = await admin.auth.getUser(jwt);
-  const uid = userData?.user?.id;
+  const user = userData?.user;
+  const uid = user?.id;
   if (!uid) return json({ error: "Sign in again." }, 401);
 
   const parsed = parseRequest(await req.json().catch(() => ({})));
@@ -45,17 +47,14 @@ Deno.serve(async (req) => {
       if (owner || idSet(Deno.env.get("TEAM_CLAIM_DENY_IDS")).has(uid)) {
         return json({ error: "This account can't join a team. Sign in with your own account." }, 403);
       }
-      const { data, error } = await admin.from("cs_board_members")
-        .update({ member_id: uid, claimed_at: new Date().toISOString(), invite_hash: null })
-        .eq("invite_hash", await hashToken(r.token)).is("claimed_at", null).is("revoked_at", null)
-        .gt("invite_expires_at", new Date().toISOString())
-        .select("label, role, brands");
+      // one transaction locks the link, checks it, adds the person and counts the use (023 cs_board_claim)
+      const { data, error } = await admin.rpc("cs_board_claim", { p_hash: await hashToken(r.token), p_member: uid, p_label: nameOf(user!) });
       if (error?.code === "23505") return json({ error: "You're already on Leo's team. Ask Leo to add the brand instead." }, 409);
-      // the table's own check: an owner can never join their own team, even if TEAM_OWNER_IDS is wrong
-      if (error?.code === "23514") return json({ error: "This account can't join a team. Sign in with your own account." }, 403);
-      if (error) throw new Error(`claim: ${error.message}`);
-      if (!data?.length) return json({ error: "This invite link has expired or was already used. Ask Leo for a new one." }, 410);
-      return json({ joined: true, ...data[0] });
+      if (error?.message?.includes("owner_self")) return json({ error: "This account can't join a team. Sign in with your own account." }, 403);
+      if (error?.message?.includes("invite_gone")) return json({ error: "This invite link has expired or was turned off. Ask Leo for a new one." }, 410);
+      if (error || !data) throw new Error(`claim: ${error?.message}`);
+      const m = data as MemberRow;
+      return json({ joined: true, role: m.role, brands: m.brands });
     }
 
     let member: MemberRow | null = null;
@@ -104,44 +103,48 @@ Deno.serve(async (req) => {
     // The team itself: Leo only.
     if (!owner) return json({ error: "Only Leo manages the team." }, 403);
     if (r.action === "team.list") {
-      const { data, error } = await admin.from("cs_board_members").select(COLS).eq("owner_id", uid).order("created_at");
-      if (error) throw new Error(`list: ${error.message}`);
-      const rows = (data ?? []) as MemberRow[];
-      // which account joined, so Leo can tell two people with one name apart
+      const [members, links] = await Promise.all([
+        admin.from("cs_board_members").select(COLS).eq("owner_id", uid).order("created_at"),
+        admin.from("cs_board_invites").select(LINK_COLS).eq("owner_id", uid).order("created_at", { ascending: false }),
+      ]);
+      if (members.error || links.error) throw new Error(`list: ${members.error?.message ?? links.error?.message}`);
+      const rows = (members.data ?? []) as MemberRow[];
+      // which account joined, so Leo can tell people apart
       const emails = new Map<string, string>();
-      await Promise.all(rows.filter((x) => x.member_id).map(async (x) => {
-        const { data: u } = await admin.auth.admin.getUserById(x.member_id!);
-        if (u?.user?.email) emails.set(x.member_id!, u.user.email);
+      await Promise.all(rows.map(async (x) => {
+        const { data: u } = await admin.auth.admin.getUserById(x.member_id);
+        if (u?.user?.email) emails.set(x.member_id, u.user.email);
       }));
-      return json({ members: rows.map((x) => ({ ...x, member_id: undefined, email: x.member_id ? emails.get(x.member_id) ?? null : null, status: statusOf(x) })) });
+      return json({
+        members: rows.map((x) => ({ ...x, member_id: undefined, email: emails.get(x.member_id) ?? null, status: x.revoked_at ? "removed" : "joined" })),
+        links: ((links.data ?? []) as InviteRow[]).map((x) => ({ ...x, status: linkStatus(x) })),
+      });
     }
     if (r.action === "team.invite") {
       const token = newToken();
-      const { data, error } = await admin.from("cs_board_members")
-        .insert({ owner_id: uid, label: r.label, role: r.role, brands: r.brands, invite_hash: await hashToken(token), invite_expires_at: expiry() })
-        .select(COLS).single();
+      const { data, error } = await admin.from("cs_board_invites")
+        .insert({ owner_id: uid, role: r.role, brands: r.brands, token_hash: await hashToken(token), expires_at: expiry(), max_uses: maxUsesFor(r.role) })
+        .select(LINK_COLS).single();
       if (error) throw new Error(`invite: ${error.message}`);
-      return json({ member: { ...data, member_id: undefined, email: null, status: "invited" }, link: inviteLink(APP, token) });
+      return json({ link: { ...data, status: "active" }, url: inviteLink(APP, token) });
     }
-    if (r.action === "team.reinvite") {
-      const token = newToken();
-      const { data, error } = await admin.from("cs_board_members")
-        .update({ invite_hash: await hashToken(token), invite_expires_at: expiry() })
-        .eq("id", r.id).eq("owner_id", uid).is("claimed_at", null).is("revoked_at", null).select("id");
-      if (error) throw new Error(`reinvite: ${error.message}`);
-      if (!data?.length) return json({ error: "That invite was already used or removed. Send a new invite instead." }, 409);
-      return json({ link: inviteLink(APP, token) });
+    if (r.action === "team.linkOff") {
+      const { data, error } = await admin.from("cs_board_invites").update({ revoked_at: new Date().toISOString() })
+        .eq("id", r.id).eq("owner_id", uid).is("revoked_at", null).select("id");
+      if (error) throw new Error(`linkOff: ${error.message}`);
+      if (!data?.length) return json({ error: "That link is already off." }, 404);
+      return json({ off: true });
     }
     if (r.action === "team.update") {
-      const patch = { ...(r.label ? { label: r.label } : {}), ...(r.role ? { role: r.role } : {}), ...(r.brands ? { brands: r.brands } : {}) };
+      const patch = { ...(r.role ? { role: r.role } : {}), ...(r.brands ? { brands: r.brands } : {}) };
       const { data, error } = await admin.from("cs_board_members").update(patch)
         .eq("id", r.id).eq("owner_id", uid).is("revoked_at", null).select(COLS);
       if (error) throw new Error(`update: ${error.message}`);
       if (!data?.length) return json({ error: "That person isn't on the team any more." }, 404);
-      return json({ member: { ...data[0], member_id: undefined, status: statusOf(data[0] as MemberRow) } });
+      return json({ member: { ...data[0], member_id: undefined, status: "joined" } });
     }
     // team.revoke
-    const { data, error } = await admin.from("cs_board_members").update({ revoked_at: new Date().toISOString(), invite_hash: null })
+    const { data, error } = await admin.from("cs_board_members").update({ revoked_at: new Date().toISOString() })
       .eq("id", r.id).eq("owner_id", uid).is("revoked_at", null).select("id");
     if (error) throw new Error(`revoke: ${error.message}`);
     if (!data?.length) return json({ error: "That person isn't on the team any more." }, 404);

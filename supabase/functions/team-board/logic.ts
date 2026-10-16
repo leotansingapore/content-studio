@@ -17,11 +17,33 @@ export interface MemberRow {
   role: Role;
   brands: string[];
   modules: string[];
-  member_id: string | null;
-  invite_expires_at: string | null;
-  claimed_at: string | null;
+  member_id: string;
+  claimed_at: string;
   revoked_at: string | null;
   created_at: string;
+}
+
+/** A link Leo shares (023): its role and brands, for anyone who opens it while it works. */
+export interface InviteRow {
+  id: string;
+  role: Role;
+  brands: string[];
+  expires_at: string;
+  max_uses: number | null;
+  uses: number;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+/** Approver links work for one person: an approval posts to Instagram. */
+export const maxUsesFor = (role: Role) => (role === "approver" ? 1 : null);
+
+/** The name a member's notes carry: their account's name, else the start of their email. */
+export function nameOf(user: { email?: string | null; user_metadata?: Record<string, unknown> | null }): string {
+  const m = user.user_metadata ?? {};
+  const named = [m.full_name, m.name, m.display_name].find((v) => typeof v === "string" && v.trim());
+  const label = ((named as string | undefined) ?? (user.email ?? "").split("@")[0]).trim().slice(0, 60);
+  return label || "Team member";
 }
 
 export interface Actor {
@@ -52,11 +74,11 @@ export async function hashToken(token: string): Promise<string> {
 }
 export const inviteLink = (origin: string, token: string) => `${origin}/join#${token}`;
 
-/** What the owner's team list shows; never the hash. */
-export function statusOf(r: MemberRow, now = Date.now()): "revoked" | "joined" | "expired" | "invited" {
-  if (r.revoked_at) return "revoked";
-  if (r.claimed_at) return "joined";
-  return r.invite_expires_at && Date.parse(r.invite_expires_at) > now ? "invited" : "expired";
+/** Whether a link still lets people in. */
+export function linkStatus(r: InviteRow, now = Date.now()): "active" | "expired" | "used" | "off" {
+  if (r.revoked_at) return "off";
+  if (r.max_uses !== null && r.uses >= r.max_uses) return "used";
+  return Date.parse(r.expires_at) > now ? "active" : "expired";
 }
 
 export type CardPatch = Partial<Record<"stage" | "caption" | "schedule" | "version" | "brand", string>>;
@@ -68,15 +90,14 @@ export type Req =
   | { action: "resolve"; id: string; cid: string; resolved: boolean }
   | { action: "claim"; token: string }
   | { action: "team.list" }
-  | { action: "team.invite"; label: string; role: Role; brands: string[] }
-  | { action: "team.update"; id: string; label?: string; role?: Role; brands?: string[] }
+  | { action: "team.invite"; role: Role; brands: string[] }
+  | { action: "team.update"; id: string; role?: Role; brands?: string[] }
   | { action: "team.revoke"; id: string }
-  | { action: "team.reinvite"; id: string };
+  | { action: "team.linkOff"; id: string };
 type Parsed = { ok: true; req: Req } | { ok: false; status: number; error: string };
 
 const bad = (error: string): Parsed => ({ ok: false, status: 400, error });
 const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() && v.length <= max ? v : null);
-const label = (v: unknown) => (typeof v === "string" && v.trim().length >= 1 && v.trim().length <= 60 ? v.trim() : null);
 const role = (v: unknown): Role | null => (ROLES as readonly string[]).includes(v as string) ? (v as Role) : null;
 function brands(v: unknown): string[] | null {
   if (!Array.isArray(v) || v.length === 0 || v.length > 20) return null;
@@ -119,20 +140,18 @@ export function parseRequest(body: unknown): Parsed {
       : bad("This invite link isn't complete. Open the whole link Leo sent.");
   }
   if (a === "team.invite") {
-    const l = label(b.label), r = role(b.role), br = brands(b.brands);
-    if (!l) return bad("Give them a name, up to 60 characters.");
+    const r = role(b.role), br = brands(b.brands);
     if (!r) return bad("Pick a role.");
     if (!br) return bad("Pick at least one brand.");
-    return { ok: true, req: { action: a, label: l, role: r, brands: br } };
+    return { ok: true, req: { action: a, role: r, brands: br } };
   }
-  if (a === "team.update" || a === "team.revoke" || a === "team.reinvite") {
-    if (typeof b.id !== "string" || !UUID.test(b.id)) return bad("Which person?");
+  if (a === "team.update" || a === "team.revoke" || a === "team.linkOff") {
+    if (typeof b.id !== "string" || !UUID.test(b.id)) return bad(a === "team.linkOff" ? "Which link?" : "Which person?");
     if (a !== "team.update") return { ok: true, req: { action: a, id: b.id } };
     const out: Extract<Req, { action: "team.update" }> = { action: a, id: b.id };
-    if ("label" in b) { const l = label(b.label); if (!l) return bad("Give them a name, up to 60 characters."); out.label = l; }
     if ("role" in b) { const r = role(b.role); if (!r) return bad("Pick a role."); out.role = r; }
     if ("brands" in b) { const br = brands(b.brands); if (!br) return bad("Pick at least one brand."); out.brands = br; }
-    if (out.label === undefined && out.role === undefined && out.brands === undefined) return bad("Nothing to change.");
+    if (out.role === undefined && out.brands === undefined) return bad("Nothing to change.");
     return { ok: true, req: out };
   }
   return bad("Unknown action.");
