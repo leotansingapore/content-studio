@@ -90,8 +90,8 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
         await deleteBrandLinks(id);
       }));
     } catch (e) {
-      // its social accounts are still connected, so the brand stays
-      toast({ title: `${p.name} wasn't removed`, description: e instanceof Error ? e.message : "Try again in a minute.", variant: "destructive" });
+      // the brand stays; its social accounts, bio page or some links may already be gone, and trying again finishes it
+      toast({ title: `${p.name} was only partly removed`, description: `${e instanceof Error ? e.message : "Something didn't go through."} Try again to finish.`, variant: "destructive" });
       return;
     } finally {
       setRemoving(null);

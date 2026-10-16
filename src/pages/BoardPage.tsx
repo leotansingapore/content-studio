@@ -245,6 +245,7 @@ export default function BoardPage() {
   const [feedId, openFeedItem, closeFeed] = useUrlItem("feed");
   const openFeed = feed.find((f) => f.id === feedId) ?? null;
   const [profileName, setProfileName] = useState("");
+  const [boardBrand, setBoardBrand] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -255,6 +256,7 @@ export default function BoardPage() {
         setDrafts(loadDrafts(uid));
         setStages(loadStages(uid));
         setProfileName(activeProfile(uid).name);
+        setBoardBrand(activeProfile(uid).boardBrand ?? "");
       }
       if (canSeeChannelFeeds(data.user?.email)) {
         fetchChannelFeeds()
@@ -277,12 +279,14 @@ export default function BoardPage() {
   }, [drafts, stages]);
   const feedIn = useMemo(() => {
     const today = localDateKey();
-    const shown = feed.filter((f) => businessKey(f.business) === businessKey(profileName));
+    // a feed belongs to the brand of the same name, or to the brand that owns that posts-board brand ("Me" owns "leo")
+    const mine = new Set([businessKey(profileName), businessKey(boardBrand)].filter(Boolean));
+    const shown = feed.filter((f) => mine.has(businessKey(f.business)));
     return {
       scheduled: shown.filter((f) => f.status !== "posted" && f.date >= today).sort((a, b) => (a.date + a.time < b.date + b.time ? -1 : 1)),
       posted: shown.filter((f) => f.status === "posted").sort((a, b) => (a.date + a.time > b.date + b.time ? -1 : 1)),
     } as Partial<Record<BoardColumn, CalendarFeedItem[]>>;
-  }, [feed, profileName]);
+  }, [feed, profileName, boardBrand]);
 
   const [newIdea, setNewIdea] = useState("");
   // Draft awaiting a posting date: asked on its card (Schedule button) or in the

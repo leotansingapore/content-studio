@@ -260,7 +260,7 @@ export default function ReelsPage() {
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-warning/50 bg-warning/10 p-3 text-sm" role="status">
           <span className="mr-auto">{brandName(unlinked)} posts aren't linked to any of your brands yet.</span>
           <Button size="sm" onClick={() => ownBrandFor(unlinked)}>Make {brandName(unlinked)} a brand</Button>
-          <Button size="sm" variant="outline" onClick={() => link(unlinked)}>Link to {profileName}</Button>
+          {ownBrand === "" && <Button size="sm" variant="outline" onClick={() => link(unlinked)}>Link to {profileName}</Button>}
         </div>
       )}
       {board && needsLink && (

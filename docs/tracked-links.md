@@ -1,6 +1,6 @@
 # Tracked links and campaign reports (g39, g40), 019
 
-Migration `supabase/hub/019_tracked_links.sql`, tests in `019_tracked_links.test.sql`. Reviewed independently (approve with changes, fixes F1-F4 below are in), then applied to academy on 2026-10-11 through the Management API, like 011-018. Migration 020 (`020_bio_slug_holds.sql`) gives link-in-bio the same hold when an account is deleted.
+Migration `supabase/hub/019_tracked_links.sql`, tests in `019_tracked_links.test.sql`. Since 024 (docs/brand-isolation.md) a link and a campaign belong to one brand, and `cs_save_tracked_link` takes a sixth argument, `p_profile`. Reviewed independently (approve with changes, fixes F1-F4 below are in), then applied to academy on 2026-10-11 through the Management API, like 011-018. Migration 020 (`020_bio_slug_holds.sql`) gives link-in-bio the same hold when an account is deleted.
 
 Only members make links: `cs_save_tracked_link` refuses an account where `hub_is_member()` (001: admin, client or active) is false, because the redirect sits on the app's own host. Deleting a link and the report switch need no membership, so a lapsed member can still clean up.
 

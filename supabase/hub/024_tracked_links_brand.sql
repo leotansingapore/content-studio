@@ -3,7 +3,7 @@
 -- its own. Every row from before belongs to the default brand "me".
 --
 -- cs_save_tracked_link gains p_profile (the open brand) and keeps a link's brand when it is edited. Its old
--- five-argument form is dropped, so no caller can make a link without a brand. A campaign name is unique per
+-- five-argument form is dropped; a caller that sends no brand (a tab open from before) files under "me". A campaign name is unique per
 -- brand. Reads keep 019's owner-only RLS; the app filters by brand.
 --
 -- 2026-10-16: 0 links and 0 campaigns live when written. Idempotent; one transaction. Short locks on two
