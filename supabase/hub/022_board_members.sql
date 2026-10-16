@@ -18,10 +18,11 @@
 --     revoke all from public, anon, authenticated: undoes Supabase's default
 --       ALL grant. The service role bypasses RLS and keeps its own grants.
 --
--- Idempotent: safe to run again. One transaction. The foreign keys to
--- auth.users take SHARE ROW EXCLUSIVE on auth.users for this short
--- transaction; lock_timeout gives up after 3 seconds; run it again later if it
--- times out.
+-- Idempotent: safe to run again, but `if not exists` skips an object that is already there, so a
+-- change after this is applied needs a new migration number. One transaction.
+-- The foreign keys to auth.users take SHARE ROW EXCLUSIVE on it, which queues
+-- sign-ins behind this transaction while it waits for the lock: apply in a quiet
+-- window. lock_timeout gives up after 3 seconds; a timeout is safe to retry.
 
 begin;
 set local lock_timeout = '3s';
@@ -56,6 +57,9 @@ create unique index if not exists cs_board_members_invite_hash on public.cs_boar
 -- a revoked person can be invited again
 create unique index if not exists cs_board_members_live_member on public.cs_board_members (member_id)
   where revoked_at is null and member_id is not null;
+-- Leo's team list, and the cascades when an account is deleted
+create index if not exists cs_board_members_owner on public.cs_board_members (owner_id, created_at);
+create index if not exists cs_board_members_member on public.cs_board_members (member_id);
 
 alter table public.cs_board_members enable row level security;
 

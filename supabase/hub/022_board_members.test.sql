@@ -49,7 +49,10 @@ from unnest(array['e1', 'e2', 'e3']) s;
 select public.cs_test_assert(
   not has_table_privilege('anon', 'public.cs_board_members', 'select,insert,update,delete,truncate,references,trigger')
   and not has_table_privilege('authenticated', 'public.cs_board_members', 'select,insert,update,delete,truncate,references,trigger')
-  and has_table_privilege('service_role', 'public.cs_board_members', 'select,insert,update,delete'),
+  and has_table_privilege('service_role', 'public.cs_board_members', 'select')
+  and has_table_privilege('service_role', 'public.cs_board_members', 'insert')
+  and has_table_privilege('service_role', 'public.cs_board_members', 'update')
+  and has_table_privilege('service_role', 'public.cs_board_members', 'delete'),
   '0.1 anon and authenticated hold nothing; service_role reads and writes');
 select public.cs_test_assert(
   (select relrowsecurity from pg_class where oid = 'public.cs_board_members'::regclass)
@@ -58,8 +61,9 @@ select public.cs_test_assert(
 select public.cs_test_assert(
   (select count(*) = 2 from pg_indexes where schemaname = 'public' and tablename = 'cs_board_members'
      and indexname in ('cs_board_members_invite_hash', 'cs_board_members_live_member')
-     and indexdef like 'CREATE UNIQUE INDEX%' and indexdef like '%WHERE%'),
-  '0.3 both partial unique indexes exist');
+     and indexdef like 'CREATE UNIQUE INDEX%' and indexdef like '%WHERE%')
+  and (select indexdef like '%revoked_at IS NULL%' from pg_indexes where schemaname = 'public' and indexname = 'cs_board_members_live_member'),
+  '0.3 both partial unique indexes exist, the live one only over unrevoked rows');
 
 set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
@@ -104,6 +108,10 @@ select public.cs_test_expect_error(
   $$insert into public.cs_board_members (owner_id, label, role) values ('7e57c0de-0000-4000-8000-0000000000e1', 'X', 'viewer')$$,
   '%check%', '1.6 an open invite needs a hash and an expiry');
 select public.cs_test_expect_error(
+  format('insert into public.cs_board_members (owner_id, label, role, brands, invite_hash, invite_expires_at) values (%L, %L, %L, %L, %L, now())',
+    '7e57c0de-0000-4000-8000-0000000000e1', 'X', 'viewer', (select array_agg('b' || g) from generate_series(1, 21) g), repeat('e', 64)),
+  '%cs_board_members_brands_check%', '1.8 at most 20 brands');
+select public.cs_test_expect_error(
   $$insert into public.cs_board_members (owner_id, label, role, modules, invite_hash, invite_expires_at)
     values ('7e57c0de-0000-4000-8000-0000000000e1', 'X', 'viewer', '{reels,billing}', repeat('d', 64), now())$$,
   '%cs_board_members_modules_check%', '1.7 only known modules');
@@ -122,7 +130,7 @@ with again as (
   update public.cs_board_members set member_id = '7e57c0de-0000-4000-8000-0000000000e3', claimed_at = now(), invite_hash = null
   where invite_hash = repeat('a', 64) and claimed_at is null and revoked_at is null and invite_expires_at > now()
   returning 1)
-select public.cs_test_assert((select count(*) from again) = 0, '2.2 the same link cannot be claimed twice');
+select public.cs_test_assert((select count(*) from again) = 0, '2.2 a claimed link is gone: its hash was cleared');
 
 select public.cs_test_expect_error(
   $$update public.cs_board_members set member_id = '7e57c0de-0000-4000-8000-0000000000e2', claimed_at = now(), invite_hash = null
@@ -135,6 +143,17 @@ select public.cs_test_expect_error(
 select public.cs_test_expect_error(
   $$update public.cs_board_members set claimed_at = now(), invite_hash = null where invite_hash = repeat('b', 64)$$,
   '%check%', '2.5 a claimed row needs its person');
+
+-- reinvite an open invite (new hash and expiry), then revoke one that was never claimed
+insert into public.cs_board_members (owner_id, label, role, brands, invite_hash, invite_expires_at)
+values ('7e57c0de-0000-4000-8000-0000000000e1', 'Ann', 'editor', '{leo}', repeat('f', 64), now() + interval '7 days');
+update public.cs_board_members set invite_hash = repeat('9', 64), invite_expires_at = now() + interval '7 days'
+where invite_hash = repeat('f', 64) and claimed_at is null and revoked_at is null;
+select public.cs_test_assert((select count(*) = 1 from public.cs_board_members where invite_hash = repeat('9', 64)), '2.7 a reinvite swaps the hash');
+update public.cs_board_members set revoked_at = now(), invite_hash = null where invite_hash = repeat('9', 64);
+select public.cs_test_assert(
+  (select count(*) = 1 from public.cs_board_members where label = 'Ann' and revoked_at is not null and invite_hash is null and member_id is null),
+  '2.8 an open invite can be revoked, its hash cleared');
 
 -- revoked, then invited again
 update public.cs_board_members set revoked_at = now() where member_id = '7e57c0de-0000-4000-8000-0000000000e2';

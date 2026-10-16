@@ -51,6 +51,8 @@ Deno.serve(async (req) => {
         .gt("invite_expires_at", new Date().toISOString())
         .select("label, role, brands");
       if (error?.code === "23505") return json({ error: "You're already on Leo's team. Ask Leo to add the brand instead." }, 409);
+      // the table's own check: an owner can never join their own team, even if TEAM_OWNER_IDS is wrong
+      if (error?.code === "23514") return json({ error: "This account can't join a team. Sign in with your own account." }, 403);
       if (error) throw new Error(`claim: ${error.message}`);
       if (!data?.length) return json({ error: "This invite link has expired or was already used. Ask Leo for a new one." }, 410);
       return json({ joined: true, ...data[0] });
