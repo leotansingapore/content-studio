@@ -57,6 +57,7 @@ revoke all on table public.cs_board_invites from public, anon, authenticated;
 
 -- Joins p_member through the link whose token hashes to p_hash. Returns the new member row, or raises:
 --   'invite_gone' (no such link, expired, turned off or used up), 'owner_self' (the owner's own link),
+--   'removed' (Leo removed this person after the link was made: only a newer link lets them back),
 --   23505 from cs_board_members_live_member (already on the team).
 create or replace function public.cs_board_claim(p_hash text, p_member uuid, p_label text)
 returns public.cs_board_members
@@ -76,6 +77,10 @@ begin
   end if;
   if inv.owner_id = p_member then
     raise exception 'owner_self';
+  end if;
+  if exists (select 1 from public.cs_board_members
+             where owner_id = inv.owner_id and member_id = p_member and revoked_at is not null and revoked_at >= inv.created_at) then
+    raise exception 'removed';
   end if;
   insert into public.cs_board_members (owner_id, label, member_id, role, brands, modules, claimed_at, invite_id)
   values (inv.owner_id, left(btrim(p_label), 60), p_member, inv.role, inv.brands, inv.modules, now(), inv.id)

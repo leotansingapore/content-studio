@@ -60,6 +60,13 @@ describe("invite tokens", () => {
     expect(nameOf({ email: null, user_metadata: null })).toBe("Team member");
     expect(nameOf({ email: "a@b.c", user_metadata: { full_name: "x".repeat(80) } })).toHaveLength(60);
   });
+  it("never lets a member's name pass for Leo's, or hide characters", () => {
+    expect(nameOf({ email: "sam@x.com", user_metadata: { full_name: "Leo" } })).toBe("sam");
+    expect(nameOf({ email: "leo.tan@x.com", user_metadata: { full_name: "LEO Tan" } })).toBe("Team member");
+    expect(nameOf({ email: "sam@x.com", user_metadata: { full_name: "\u202eoeL" } })).toBe("oeL");
+    expect(nameOf({ email: "sam@x.com", user_metadata: { full_name: "Mei\u200b\nTan" } })).toBe("Mei Tan");
+    expect(nameOf({ email: "sam@x.com", user_metadata: { full_name: "Leonard" } })).toBe("Leonard");
+  });
   it("reads owner and deny lists", () => {
     expect([...idSet(" a, b ,,")]).toEqual(["a", "b"]);
     expect(idSet(undefined).size).toBe(0);

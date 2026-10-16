@@ -48,6 +48,9 @@ const db = vi.hoisted(() => {
       && (i.max_uses === null || (i.uses as number) < (i.max_uses as number)));
     if (!inv) return { data: null, error: { code: "P0001", message: "invite_gone" } };
     if (inv.owner_id === a.p_member) return { data: null, error: { code: "P0001", message: "owner_self" } };
+    if (tables.cs_board_members.some((m) => m.owner_id === inv.owner_id && m.member_id === a.p_member && m.revoked_at && String(m.revoked_at) >= String(inv.created_at))) {
+      return { data: null, error: { code: "P0001", message: "removed" } };
+    }
     if (tables.cs_board_members.some((m) => m.member_id === a.p_member && !m.revoked_at)) return { data: null, error: { code: "23505", message: "cs_board_members_live_member" } };
     const now = new Date().toISOString();
     const m = { id: crypto.randomUUID(), owner_id: inv.owner_id, label: a.p_label, member_id: a.p_member, role: inv.role, brands: inv.brands, modules: inv.modules, claimed_at: now, revoked_at: null, created_at: now, invite_id: inv.id };
@@ -166,12 +169,15 @@ describe("team-board", () => {
     expect(sent.map((s) => s.actor!.role)).toEqual(["commenter", "owner"]);
   });
 
-  it("stops a removed member on their next request, and lets them back in through a link", async () => {
-    await call(MEI, { action: "claim", token: (await link()).token });
+  it("stops a removed member at once, keeps the old link shut to them, and lets a newer link back in", async () => {
+    const old = await link();
+    await call(MEI, { action: "claim", token: old.token });
     const id = (await call(LEO, { action: "team.list" })).body.members[0].id;
     expect((await call(LEO, { action: "team.revoke", id })).status).toBe(200);
     expect((await call(MEI, { action: "board" })).status).toBe(403);
     expect(await call(MEI, { action: "me" })).toEqual({ status: 200, body: { owner: false, member: false } });
+    expect(await call(MEI, { action: "claim", token: old.token })).toEqual({ status: 403, body: { error: "Leo removed you from this board. Ask him for a new link." } });
+    await new Promise((r) => setTimeout(r, 5));
     await call(MEI, { action: "claim", token: (await link("editor")).token });
     await call(MEI, { action: "board" });
     expect(sent[0].actor).toMatchObject({ role: "editor" });

@@ -36,8 +36,9 @@ export interface ReelComment {
   by?: string | { id: string; label: string; role?: string };
 }
 
-/** Who wrote a note, for showing beside it; "" for Leo's older notes. */
-export const noteAuthor = (m: ReelComment) => (typeof m.by === "object" && m.by ? m.by.label : m.by === "claude" ? "Claude" : "");
+/** Who wrote a note, for showing beside it; "" for Leo's older notes. Members pick their own account name, so theirs say so. */
+export const noteAuthor = (m: ReelComment) =>
+  typeof m.by === "object" && m.by ? (m.by.role === "owner" ? m.by.label : `${m.by.label} (team)`) : m.by === "claude" ? "Claude" : "";
 
 /**
  * Board brand -> Instagram handle the Mac publisher posts to at the slot

@@ -9,32 +9,35 @@ import { supabase } from "@/lib/supabase";
 import { sendSignInLink, verifySignInCode } from "@/lib/magicLink";
 import { ROLE_HELP, ROLE_NAMES, claimInvite, errorText, fetchBoard, forgetMe, type Role } from "@/lib/reelsBoard";
 
-// /join#<token>: someone Leo invited to his posts board signs in by an email link (or a code, or a password)
-// and the invite becomes theirs (docs/team-roles.md). The email link brings them back to /join?invite=<token>,
-// so the token survives a phone's mail app opening a different browser.
+// /join#<token>: someone Leo invited to his posts board signs in by an email link (or its code, or a password)
+// and the invite becomes theirs (docs/team-roles.md). The token stays on this device (never in the email):
+// the sign-in link only finishes in this browser (PKCE), and the code works in this tab from any phone.
 const TOKEN_KEY = "cs-join-token";
 const TOKEN = /^[A-Za-z0-9_-]{43}$/;
 
-function takeToken(): { token: string; viaEmail: boolean } {
-  const fromQuery = new URLSearchParams(window.location.search).get("invite") ?? "";
+function takeToken(): string {
   const fromHash = window.location.hash.slice(1);
-  const token = TOKEN.test(fromQuery) ? fromQuery : TOKEN.test(fromHash) ? fromHash : "";
   try {
-    if (token) sessionStorage.setItem(TOKEN_KEY, token);
-    return { token: token || sessionStorage.getItem(TOKEN_KEY) || "", viaEmail: TOKEN.test(fromQuery) };
+    if (TOKEN.test(fromHash)) localStorage.setItem(TOKEN_KEY, fromHash);
+    return localStorage.getItem(TOKEN_KEY) ?? "";
   } catch {
-    return { token, viaEmail: TOKEN.test(fromQuery) };
+    return TOKEN.test(fromHash) ? fromHash : "";
   }
 }
+// back from our own email link: PKCE puts ?code= on the address, and only this browser can finish it
+const fromEmail = () => new URLSearchParams(window.location.search).has("code");
+const linkFailed = () => /error/.test(window.location.search + window.location.hash);
 
 export default function JoinPage() {
-  const { token, viaEmail } = useRef(takeToken()).current;
+  const token = useRef(takeToken()).current;
+  const viaEmail = useRef(fromEmail()).current;
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [asEmail, setAsEmail] = useState("");
   const [mode, setMode] = useState<"email" | "code" | "password">("email");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(() => new URLSearchParams(window.location.hash.slice(1)).get("error_description") ?? "");
+  // a fixed message: the wording in the address could say anything
+  const [error, setError] = useState(() => (linkFailed() ? "That sign-in link has expired or was already used. Send yourself a new one." : ""));
   const [done, setDone] = useState<{ role: Role; brands: string[] } | null>(null);
 
   const claim = async () => {
@@ -43,7 +46,7 @@ export default function JoinPage() {
     try {
       const r = await claimInvite(token);
       try {
-        sessionStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(TOKEN_KEY);
       } catch {
         // nothing stored
       }
@@ -83,7 +86,7 @@ export default function JoinPage() {
     setError("");
     if (mode === "email") {
       const to = String(form.get("email") ?? "").trim();
-      const problem = await sendSignInLink(to, `${window.location.origin}/join?invite=${token}`, true);
+      const problem = await sendSignInLink(to, `${window.location.origin}/join`, true);
       setBusy(false);
       if (problem) return setError(problem);
       setEmail(to);

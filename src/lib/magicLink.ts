@@ -1,6 +1,6 @@
 // Sign-in by email link (Leo, 2026-10-16: "make it like a magic link login"). Supabase sends the email
-// from the academy project's Resend SMTP; it carries both a link and a code, so a link opened on another
-// device can still be finished here by typing the code.
+// from the academy project's Resend SMTP; it carries both a link and a code. The client uses PKCE, so the
+// link only finishes in the browser that asked; on another device the person types the code here.
 
 import { supabase } from "@/lib/supabase";
 
@@ -12,7 +12,8 @@ export async function sendSignInLink(email: string, redirectTo: string, createAc
   if (NO_MAIL.test(e)) return "Demo accounts sign in with their password.";
   const { error } = await supabase.auth.signInWithOtp({ email: e, options: { emailRedirectTo: redirectTo, shouldCreateUser: createAccount } });
   if (!error) return null;
-  if (/signups? not allowed|not found/i.test(error.message)) return "No account uses that email yet. Ask Leo for an invite link.";
+  // the same answer whether or not an account uses the email, so the form can't be used to look people up
+  if (/signups? not allowed|not found/i.test(error.message)) return null;
   if (error.status === 429 || /rate limit|security purposes/i.test(error.message)) return "Too many emails just now. Wait a minute, then try again.";
   return error.message;
 }

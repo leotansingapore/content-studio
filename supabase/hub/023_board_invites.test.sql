@@ -33,14 +33,14 @@ end $$;
 grant execute on function public.cs_test_assert(boolean, text) to anon, authenticated, service_role;
 grant execute on function public.cs_test_expect_error(text, text, text) to anon, authenticated, service_role;
 
--- O ...e1 owns the board. M ...e2, N ...e3 and P ...e4 are advisers.
+-- O ...e1 owns the board. M ...e2, N ...e3, P ...e4 and Q ...e5 are advisers.
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 )
 select '00000000-0000-0000-0000-000000000000', ('7e57c0de-0000-4000-8000-0000000000' || s)::uuid,
        'authenticated', 'authenticated', 'cs-test-' || s || '@example.test', '', now(), '{}', '{}', now(), now()
-from unnest(array['e1', 'e2', 'e3', 'e4']) s;
+from unnest(array['e1', 'e2', 'e3', 'e4', 'e5']) s;
 
 -- ---------------------------------------------------------------------------
 -- 0. Catalog: nobody but the service role reaches either table or the claim
@@ -70,6 +70,9 @@ select public.cs_test_assert(
   not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'cs_board_members'
               and column_name in ('invite_hash', 'invite_expires_at')),
   '0.5 members no longer carry invite columns');
+select public.cs_test_assert(
+  (select prosecdef and proconfig @> array['search_path=""'] from pg_proc where oid = 'public.cs_board_claim(text, uuid, text)'::regprocedure),
+  '0.8 the claim runs as definer with an empty search_path');
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000e2","role":"authenticated"}';
@@ -102,6 +105,15 @@ select public.cs_test_expect_error(
 select public.cs_test_expect_error(
   $$insert into public.cs_board_invites (owner_id, role, brands, token_hash, expires_at) values ('7e57c0de-0000-4000-8000-0000000000e1', 'viewer', '{leo}', 'nope', now())$$,
   '%cs_board_invites_token_hash_check%', '1.4 a token hash is 64 hex characters');
+select public.cs_test_expect_error(
+  $$insert into public.cs_board_invites (owner_id, role, brands, token_hash, expires_at, max_uses) values ('7e57c0de-0000-4000-8000-0000000000e1', 'viewer', '{leo}', repeat('e', 64), now(), 0)$$,
+  '%cs_board_invites_max_uses_check%', '1.5 a link lets at least one person in');
+select public.cs_test_expect_error(
+  $$insert into public.cs_board_invites (owner_id, role, brands, token_hash, expires_at, max_uses, uses) values ('7e57c0de-0000-4000-8000-0000000000e1', 'viewer', '{leo}', repeat('e', 64), now(), 1, 2)$$,
+  '%cs_board_invites_check%', '1.6 a link is never used more than it allows');
+select public.cs_test_expect_error(
+  $$insert into public.cs_board_invites (owner_id, role, brands, modules, token_hash, expires_at) values ('7e57c0de-0000-4000-8000-0000000000e1', 'viewer', '{leo}', '{billing}', repeat('e', 64), now())$$,
+  '%cs_board_invites_modules_check%', '1.7 only known modules');
 
 -- ---------------------------------------------------------------------------
 -- 2. Claiming through cs_board_claim
@@ -116,7 +128,7 @@ select public.cs_test_assert(
   '2.1 a shared link lets several people in with its role and brands, and counts them');
 
 select public.cs_board_claim(repeat('b', 64), '7e57c0de-0000-4000-8000-0000000000e4', 'Ann');
-select public.cs_test_expect_error($$select public.cs_board_claim(repeat('b', 64), '7e57c0de-0000-4000-8000-0000000000e1', 'x')$$,
+select public.cs_test_expect_error($$select public.cs_board_claim(repeat('b', 64), '7e57c0de-0000-4000-8000-0000000000e5', 'x')$$,
   '%invite_gone%', '2.2 a one-use link is used up after one person');
 select public.cs_test_expect_error($$select public.cs_board_claim(repeat('c', 64), '7e57c0de-0000-4000-8000-0000000000e4', 'x')$$,
   '%invite_gone%', '2.3 an expired link lets nobody in');
@@ -128,20 +140,29 @@ select public.cs_test_expect_error($$select public.cs_board_claim(repeat('a', 64
   '%owner_self%', '2.6 the owner cannot join their own board');
 select public.cs_test_expect_error($$select public.cs_board_claim(repeat('a', 64), '7e57c0de-0000-4000-8000-0000000000e2', 'x')$$,
   '%cs_board_members_live_member%', '2.7 one live membership per person');
-select public.cs_test_assert((select uses from public.cs_board_invites where token_hash = repeat('a', 64)) = 2,
-  '2.8 a refused claim counts no use');
 select public.cs_test_expect_error($$select public.cs_board_claim(repeat('a', 64), '7e57c0de-0000-4000-8000-0000000000e4', '   ')$$,
   '%cs_board_members_label_check%', '2.9 a blank name is refused');
 
--- removed, then back in through a link
+-- removed: the link they came through (made before the removal) stays shut to them; a newer link lets them back
 update public.cs_board_members set revoked_at = now() where member_id = '7e57c0de-0000-4000-8000-0000000000e2';
-select public.cs_board_claim(repeat('a', 64), '7e57c0de-0000-4000-8000-0000000000e2', 'Mei');
+select public.cs_test_expect_error($$select public.cs_board_claim(repeat('a', 64), '7e57c0de-0000-4000-8000-0000000000e2', 'Mei')$$,
+  '%removed%', '2.10 a removed person cannot rejoin through a link made before the removal');
+insert into public.cs_board_invites (owner_id, role, brands, token_hash, expires_at, created_at)
+values ('7e57c0de-0000-4000-8000-0000000000e1', 'viewer', '{leo}', repeat('7', 64), now() + interval '7 days', clock_timestamp() + interval '1 second');
+select public.cs_board_claim(repeat('7', 64), '7e57c0de-0000-4000-8000-0000000000e2', 'Mei');
 select public.cs_test_assert(
   (select count(*) = 1 from public.cs_board_members where member_id = '7e57c0de-0000-4000-8000-0000000000e2' and revoked_at is null),
-  '2.10 a removed person can join again; one live row');
+  '2.14 a newer link lets a removed person back in; one live row');
 select public.cs_test_expect_error(
   $$update public.cs_board_members set member_id = null where member_id = '7e57c0de-0000-4000-8000-0000000000e3'$$,
   '%null value%', '2.11 a member row always has its person');
+select public.cs_test_expect_error(
+  $$update public.cs_board_members set claimed_at = null where member_id = '7e57c0de-0000-4000-8000-0000000000e3'$$,
+  '%null value%', '2.12 a member row always has its join time');
+delete from public.cs_board_invites where token_hash = repeat('b', 64);
+select public.cs_test_assert(
+  (select invite_id is null from public.cs_board_members where member_id = '7e57c0de-0000-4000-8000-0000000000e4'),
+  '2.13 deleting a link keeps the people who joined through it');
 reset role;
 
 -- ---------------------------------------------------------------------------

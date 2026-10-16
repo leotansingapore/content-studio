@@ -51,6 +51,7 @@ Deno.serve(async (req) => {
       const { data, error } = await admin.rpc("cs_board_claim", { p_hash: await hashToken(r.token), p_member: uid, p_label: nameOf(user!) });
       if (error?.code === "23505") return json({ error: "You're already on Leo's team. Ask Leo to add the brand instead." }, 409);
       if (error?.message?.includes("owner_self")) return json({ error: "This account can't join a team. Sign in with your own account." }, 403);
+      if (error?.message?.includes("removed")) return json({ error: "Leo removed you from this board. Ask him for a new link." }, 403);
       if (error?.message?.includes("invite_gone")) return json({ error: "This invite link has expired or was turned off. Ask Leo for a new one." }, 410);
       if (error || !data) throw new Error(`claim: ${error?.message}`);
       const m = data as MemberRow;

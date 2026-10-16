@@ -38,12 +38,21 @@ export interface InviteRow {
 /** Approver links work for one person: an approval posts to Instagram. */
 export const maxUsesFor = (role: Role) => (role === "approver" ? 1 : null);
 
-/** The name a member's notes carry: their account's name, else the start of their email. */
+// line breaks become spaces; zero-width and direction characters go: a name can't hide text or flip how it reads
+const CONTROL = /[\u0000-\u001f\u007f-\u009f]/g;
+const HIDDEN = /[\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g;
+const clean = (v: unknown) => (typeof v === "string" ? v.replace(CONTROL, " ").replace(HIDDEN, "").replace(/\s+/g, " ").trim().slice(0, 60) : "");
+
+/**
+ * The name a member's notes carry: their account's name, else the start of their email. People set their
+ * own account name, so one that reads as Leo's is never used (the app also marks every member's note).
+ */
 export function nameOf(user: { email?: string | null; user_metadata?: Record<string, unknown> | null }): string {
   const m = user.user_metadata ?? {};
-  const named = [m.full_name, m.name, m.display_name].find((v) => typeof v === "string" && v.trim());
-  const label = ((named as string | undefined) ?? (user.email ?? "").split("@")[0]).trim().slice(0, 60);
-  return label || "Team member";
+  const named = [m.full_name, m.name, m.display_name].map(clean).find(Boolean) ?? "";
+  const mail = clean((user.email ?? "").split("@")[0]);
+  const isLeo = (s: string) => /^leo\b/i.test(s) || /^claude\b/i.test(s);
+  return [named, mail].find((s) => s && !isLeo(s)) || "Team member";
 }
 
 export interface Actor {

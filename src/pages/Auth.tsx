@@ -30,7 +30,22 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   // An emailed sign-in link first (Leo, 2026-10-16), its code as the fallback, a password for those who have one
-  const [mode, setMode] = useState<"email" | "code" | "password">("email");
+  // remembered per device, so someone who signs in with a password isn't sent to the email form each time
+  const [mode, setModeState] = useState<"email" | "code" | "password">(() => {
+    try {
+      return localStorage.getItem("cs-auth-mode") === "password" ? "password" : "email";
+    } catch {
+      return "email";
+    }
+  });
+  const setMode = (m: "email" | "code" | "password") => {
+    setModeState(m);
+    try {
+      if (m !== "code") localStorage.setItem("cs-auth-mode", m);
+    } catch {
+      // private mode: it just isn't remembered
+    }
+  };
   const [sentTo, setSentTo] = useState("");
 
   const handleEmail = async (e: React.FormEvent) => {
@@ -118,7 +133,7 @@ export default function Auth() {
           <CardHeader>
             <CardTitle className="font-serif text-xl">Sign in</CardTitle>
             <CardDescription>
-              {mode === "code" ? <>We sent a sign-in link to <span className="font-semibold text-foreground">{sentTo}</span>. Tap it, or type the code from the email.</>
+              {mode === "code" ? <>If an account uses <span className="font-semibold text-foreground">{sentTo}</span>, a sign-in link is on its way. Tap it in this browser, or type the code from the email.</>
                 : mode === "email" ? "We'll email you a sign-in link. No password needed." : "Use your Academy email and password."}
             </CardDescription>
           </CardHeader>

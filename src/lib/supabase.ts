@@ -11,5 +11,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: typeof window !== "undefined" ? window.localStorage : undefined,
     persistSession: true,
     autoRefreshToken: true,
+    // an emailed sign-in link only finishes in the browser that asked for it; elsewhere the code in the email does
+    flowType: "pkce",
   },
 });
