@@ -38,9 +38,21 @@ const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"'
 // a code point past Unicode's end (&#99999999;) would throw: keep the text as written
 const point = (n: number, raw: string) => (n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : raw);
 
+/** CDATA sections unwrapped in one pass with indexOf: a page of unclosed "<![CDATA[" can't make it scan again and again. */
+function unwrapCdata(s: string): string {
+  let out = "";
+  let at = 0;
+  for (let open = s.indexOf("<![CDATA["); open >= 0; open = s.indexOf("<![CDATA[", at)) {
+    const close = s.indexOf("]]>", open + 9);
+    if (close < 0) break;
+    out += s.slice(at, open) + s.slice(open + 9, close);
+    at = close + 3;
+  }
+  return out + s.slice(at);
+}
+
 export function decode(s: string): string {
-  return s
-    .replace(/<!\[CDATA\[([\s\S]{0,200000}?)\]\]>/g, "$1")
+  return unwrapCdata(s)
     .replace(/&#x([0-9a-f]{1,6});/gi, (m, h) => point(parseInt(h, 16), m))
     .replace(/&#(\d{1,7});/g, (m, d) => point(Number(d), m))
     .replace(/&([a-z]+);/gi, (m, n) => ENTITIES[n.toLowerCase()] ?? m);

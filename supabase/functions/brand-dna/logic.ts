@@ -114,6 +114,22 @@ export function handleOf(platform: Platform, href: string): string {
   return "";
 }
 
+/** Drops <script>, <style>, <noscript>, <svg> and <template> blocks in one pass (indexOf, nothing to backtrack); an unclosed one ends the text. */
+export function stripBlocks(html: string): string {
+  const lower = html.toLowerCase();
+  const open = /<(script|style|noscript|svg|template)\b/g;
+  let out = "";
+  let at = 0;
+  for (let m = open.exec(lower); m; m = open.exec(lower)) {
+    out += html.slice(at, m.index) + " ";
+    const close = lower.indexOf(`</${m[1]}`, m.index + 1);
+    const end = close < 0 ? -1 : lower.indexOf(">", close);
+    if (end < 0) return out;
+    at = open.lastIndex = end + 1;
+  }
+  return out + html.slice(at);
+}
+
 export function readSite(html: string, base: URL): SiteFacts {
   // a home page's name, links and first words sit in its first 300 KB
   const body = html.slice(0, 300_000);
@@ -141,9 +157,7 @@ export function readSite(html: string, base: URL): SiteFacts {
   }
   for (const p of PLATFORMS) if (!handles[p]) delete handles[p];
 
-  const text = decode(body
-    .replace(/<(script|style|noscript|svg|template)\b[^<>]{0,2000}>[\s\S]{0,100000}?<\/\1>/gi, " ")
-    .replace(/<[^<>]{0,2000}>/g, " "))
+  const text = decode(stripBlocks(body).replace(/<[^<>]{0,2000}>/g, " "))
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 6000);

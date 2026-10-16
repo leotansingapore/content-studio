@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { handleOf, hex, parseWritten, pickColour, privateIp, readSite, siteUrl } from "./logic";
+import { handleOf, hex, parseWritten, pickColour, privateIp, readSite, siteUrl, stripBlocks } from "./logic";
+import { decode } from "../feed-ideas/logic";
 
 const BASE = new URL("https://www.acme.sg/");
 const PAGE = `<!doctype html><html><head>
@@ -96,6 +97,14 @@ describe("a hostile page", () => {
   it("is read quickly even when it never closes its tags", () => {
     const started = Date.now();
     readSite("<a ".repeat(70_000) + "<script " .repeat(20_000) + "<meta ".repeat(20_000), BASE);
+    readSite("<script>".repeat(37_000), BASE);
+    decode("<![CDATA[".repeat(33_000));
     expect(Date.now() - started).toBeLessThan(1500);
+  });
+  it("drops script and style blocks, and stops at one that never closes", () => {
+    expect(stripBlocks("a<script>x</script>b<STYLE type=x>y</style>c")).toBe("a b c");
+    expect(stripBlocks("a<script>never closed")).toBe("a ");
+    expect(stripBlocks("<scripts>kept</scripts>")).toBe("<scripts>kept</scripts>");
+    expect(decode("<![CDATA[a]]> and <![CDATA[b]]><![CDATA[open")).toBe("a and b<![CDATA[open");
   });
 });
