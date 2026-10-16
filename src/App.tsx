@@ -57,12 +57,14 @@ const RecruitPage = lazy(() => import("@/pages/RecruitPage"));
 const EngagePage = lazy(() => import("@/pages/EngagePage"));
 const AutoDmPage = lazy(() => import("@/pages/AutoDmPage"));
 const ReelsPage = lazy(() => import("@/pages/ReelsPage"));
+const ReelsTeamPage = lazy(() => import("@/pages/ReelsTeamPage"));
 const VideoEditPage = lazy(() => import("@/pages/VideoEditPage"));
 // Public pages (no sign-in), each in its own chunk.
 const PreviewReviewPage = lazy(() => import("@/pages/PreviewReviewPage"));
 const BioPublicPage = lazy(() => import("@/pages/BioPublicPage"));
 const LinkInBioPage = lazy(() => import("@/pages/LinkInBioPage"));
 const TrackedReportPublicPage = lazy(() => import("@/pages/TrackedReportPublicPage"));
+const JoinPage = lazy(() => import("@/pages/JoinPage"));
 const TrackedLinksPage = lazy(() => import("@/pages/TrackedLinksPage"));
 
 export default function App() {
@@ -85,6 +87,14 @@ export default function App() {
           element={
             <Suspense fallback={null}>
               <BioPublicPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/join"
+          element={
+            <Suspense fallback={null}>
+              <JoinPage />
             </Suspense>
           }
         />
@@ -140,6 +150,7 @@ export default function App() {
           <Route path="/team" element={<TeamPage />} />
           <Route path="/board" element={<BoardPage />} />
           <Route path="/reels" element={<ReelsPage />} />
+          <Route path="/reels/team" element={<ReelsTeamPage />} />
           <Route path="/coach" element={<CoachPage />} />
           {/* Diagnosis now lives inside the Coach as its first step. */}
           <Route path="/diagnosis" element={<Navigate to="/coach" replace />} />

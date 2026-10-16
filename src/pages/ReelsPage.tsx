@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Clapperboard, Columns3, Images, LayoutGrid, RefreshCw, Rows3 } from "lucide-react";
+import { Clapperboard, Columns3, Images, LayoutGrid, RefreshCw, Rows3, Users } from "lucide-react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import ReelDrawer from "@/components/reels/ReelDrawer";
 import ReelFeed from "@/components/reels/ReelFeed";
@@ -12,12 +12,14 @@ import { useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile } from "@/lib/profiles";
 import {
   NEXT,
-  REELS_BOARD_OWNERS,
+  accessChanged,
   aspectOf,
   brandForProfile,
   brandOf,
   cardsIn,
+  checkMe,
   currentVersion,
+  errorText,
   feedCards,
   fetchBoard,
   findCard,
@@ -25,8 +27,11 @@ import {
   igLine,
   isCarousel,
   openNotes,
+  perms,
+  seesBoard,
   updateCard,
   type Board,
+  type Me,
   type ReelCard,
   type StageId,
 } from "@/lib/reelsBoard";
@@ -37,7 +42,8 @@ const when = (iso?: string) =>
 export default function ReelsPage() {
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
-  const [owner, setOwner] = useState<boolean | null>(null);
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
   const [board, setBoard] = useState<Board | null>(null);
   const [error, setError] = useState("");
   // Profile, layout, archived and the open reel live in the URL (docs/deep-links.md). ?brand=all shows every
@@ -61,24 +67,26 @@ export default function ReelsPage() {
     setLoading(true);
     fetchBoard()
       .then((b) => { setBoard(b); setError(""); })
-      .catch((e) => setError(String(e.message || e)))
+      .catch((e) => setError(errorText(e, "check your connection")))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     document.title = "Reels - Content Studio";
-    supabase.auth.getUser().then(({ data }) => {
-      const email = data.user?.email?.toLowerCase() ?? "";
-      const isOwner = REELS_BOARD_OWNERS.includes(email);
-      setOwner(isOwner);
-      if (!isOwner) return;
+    supabase.auth.getUser().then(async ({ data }) => {
+      // the server says who this is on the team; the board checks it again on every request
+      const who = await checkMe(true).catch((e) => (setError(errorText(e, "check your connection")), null));
+      if (!who) return;
+      setMe(who);
+      setAllowed(seesBoard(who));
+      if (!seesBoard(who)) return;
       fetchBoard()
         .then((b) => {
           setBoard(b);
           // Open on the board brand that matches the open profile.
           setProfileBrand(brandForProfile(b.brands, activeProfile(data.user?.id).name));
         })
-        .catch((e) => setError(String(e.message || e)));
+        .catch((e) => setError(errorText(e, "check your connection")));
     });
   }, []);
 
@@ -88,6 +96,10 @@ export default function ReelsPage() {
     (id: string, to: StageId, quiet = false) => {
       const c = board?.cards.find((x) => x.id === id);
       if (!c || c.stage === to) return;
+      if (!perms(me, c).move(to)) {
+        toast({ title: "Your role can't move this post there", description: "Leave a note instead, or ask Leo." });
+        return;
+      }
       const from = c.stage;
       replace({ ...c, stage: to === "approved" ? "scheduled" : to }); // optimistic: approve lands in Scheduled
       updateCard(id, { stage: to })
@@ -103,12 +115,13 @@ export default function ReelsPage() {
             action: <ToastAction altText="Undo" onClick={() => move(id, from, true)}>Undo</ToastAction>,
           });
         })
-        .catch(() => {
+        .catch((e) => {
           replace(c);
-          toast({ title: "Couldn't save that move", description: "Check your connection and try again.", variant: "destructive" });
+          toast({ title: errorText(e, "Couldn't save that move. Check your connection and try again."), variant: "destructive" });
+          if (accessChanged(e)) void checkMe(true).then(setMe).catch(() => {});
         });
     },
-    [board, replace, toast],
+    [board, me, replace, toast],
   );
 
   const open = (id: string | null) => {
@@ -124,7 +137,7 @@ export default function ReelsPage() {
     return m;
   }, [board]);
 
-  if (owner === false) {
+  if (allowed === false) {
     return (
       <div className="space-y-5">
         <SectionTabs tabs={PIPELINE_TABS} />
@@ -143,6 +156,11 @@ export default function ReelsPage() {
       <SectionTabs tabs={PIPELINE_TABS} />
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Reels</h1>
+        {me?.owner && (
+          <Button asChild variant="outline" size="sm" className="h-9">
+            <Link to="/reels/team"><Users className="mr-1.5 h-3.5 w-3.5" /> Team</Link>
+          </Button>
+        )}
         {board && (
           <>
             <select
@@ -198,7 +216,7 @@ export default function ReelsPage() {
       {!board && !error && <div className="h-64 animate-pulse rounded-xl bg-muted/50" aria-busy="true" aria-label="Loading reels" />}
 
       {board && view === "feed" && (
-        <ReelFeed cards={feedCards(board.cards, stage, brand ?? "")} board={board} onChange={replace} onMove={move} onOpen={open} focus={openCard?.id} />
+        <ReelFeed cards={feedCards(board.cards, stage, brand ?? "")} board={board} me={me} onChange={replace} onMove={move} onOpen={open} focus={openCard?.id} />
       )}
 
       {board && view === "board" && (
@@ -229,15 +247,16 @@ export default function ReelsPage() {
                     )}
                     {cards.map((c) => {
                       const v = currentVersion(c);
-                      const next = NEXT[c.stage];
+                      const p = perms(me, c);
+                      const next = NEXT[c.stage] && p.move(NEXT[c.stage]![0]) ? NEXT[c.stage] : undefined;
                       const notes = openNotes(c);
                       const ig = igLine(c);
                       return (
                         <li
                           key={c.id}
-                          draggable
+                          draggable={p.edit}
                           onDragStart={(e) => { e.dataTransfer.setData("text/plain", c.id); e.dataTransfer.effectAllowed = "move"; }}
-                          className="grid cursor-grab grid-cols-[52px_1fr] gap-2 rounded-lg border border-border/60 bg-card p-2 shadow-sm active:cursor-grabbing"
+                          className={`grid grid-cols-[52px_1fr] gap-2 rounded-lg border border-border/60 bg-card p-2 shadow-sm ${p.edit ? "cursor-grab active:cursor-grabbing" : ""}`}
                         >
                           <button type="button" onClick={() => open(c.id)} className="block self-start overflow-hidden rounded-md bg-muted" style={{ aspectRatio: aspectOf(c) }} aria-label={`Open ${c.title}`}>
                             {v.thumbUrl && <img src={v.thumbUrl} alt="" loading="lazy" className="h-full w-full object-cover" />}
@@ -280,7 +299,7 @@ export default function ReelsPage() {
                 <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                   {cards.map((c) => {
                     const v = currentVersion(c);
-                    const next = NEXT[c.stage];
+                    const next = NEXT[c.stage] && perms(me, c).move(NEXT[c.stage]![0]) ? NEXT[c.stage] : undefined;
                     const notes = openNotes(c);
                     return (
                       <li key={c.id} className="flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
@@ -328,6 +347,7 @@ export default function ReelsPage() {
           key={openCard.id}
           card={openCard}
           board={board}
+          me={me}
           onChange={replace}
           onMove={move}
           onClose={() => open(null)}

@@ -7,12 +7,15 @@ import {
   NEXT,
   addNote,
   aspectOf,
+  errorText,
   brandOf,
   currentVersion,
   igLine,
   isCarousel,
   openNotes,
+  perms,
   type Board,
+  type Me,
   type ReelCard,
   type StageId,
 } from "@/lib/reelsBoard";
@@ -21,9 +24,10 @@ const when = (iso?: string) =>
   iso ? new Date(iso).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "No date yet";
 
 /** The whole post as it will look: every slide or the reel itself, the full caption, and the decision beside it. */
-function Post({ card, board, onChange, onMove, onOpen, focused }: {
+function Post({ card, board, me, onChange, onMove, onOpen, focused }: {
   card: ReelCard;
   board: Board;
+  me: Me | null;
   onChange: (c: ReelCard) => void;
   onMove: (id: string, to: StageId) => void;
   onOpen: (id: string) => void;
@@ -45,7 +49,8 @@ function Post({ card, board, onChange, onMove, onOpen, focused }: {
   const [noting, setNoting] = useState(() => !!localStorage.getItem(key));
   const [note, setNote] = useState(() => localStorage.getItem(key) ?? "");
   const [sending, setSending] = useState(false);
-  const next = NEXT[card.stage];
+  const p = perms(me, card);
+  const next = NEXT[card.stage] && p.move(NEXT[card.stage]![0]) ? NEXT[card.stage] : undefined;
   const ig = igLine(card);
   const notes = openNotes(card);
 
@@ -65,9 +70,10 @@ function Post({ card, board, onChange, onMove, onOpen, focused }: {
       localStorage.removeItem(key);
       setNote("");
       setNoting(false);
-      if (card.stage !== "changes") onMove(card.id, "changes");
-    } catch {
-      toast({ title: "Couldn't save the note", description: "Your text is still here; check your connection and try again.", variant: "destructive" });
+      // a commenter's note stays a note; a role that can move the post sends it to Needs changes
+      if (card.stage !== "changes" && p.move("changes")) onMove(card.id, "changes");
+    } catch (e) {
+      toast({ title: errorText(e, "Couldn't save the note"), description: "Your text is still here.", variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -147,12 +153,12 @@ function Post({ card, board, onChange, onMove, onOpen, focused }: {
           {!noting && (
             <div className="flex flex-wrap gap-2">
               {next && <Button size="sm" className="min-w-28" onClick={() => onMove(card.id, next[0])}>{next[1]}</Button>}
-              {card.stage !== "posted" && card.stage !== "archived" && (
+              {p.note && card.stage !== "posted" && card.stage !== "archived" && (
                 <Button size="sm" variant="outline" onClick={() => setNoting(true)}>
-                  <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> Needs changes
+                  <MessageSquare className="mr-1.5 h-3.5 w-3.5" /> {p.move("changes") ? "Needs changes" : "Leave a note"}
                 </Button>
               )}
-              {card.stage !== "archived" && <Button size="sm" variant="ghost" onClick={() => onMove(card.id, "archived")}>Archive</Button>}
+              {card.stage !== "archived" && p.move("archived") && <Button size="sm" variant="ghost" onClick={() => onMove(card.id, "archived")}>Archive</Button>}
               <Button size="sm" variant="ghost" className="ml-auto" onClick={() => onOpen(card.id)}>Details</Button>
             </div>
           )}
@@ -162,9 +168,10 @@ function Post({ card, board, onChange, onMove, onOpen, focused }: {
   );
 }
 
-export default function ReelFeed({ cards, board, onChange, onMove, onOpen, focus }: {
+export default function ReelFeed({ cards, board, me, onChange, onMove, onOpen, focus }: {
   cards: ReelCard[];
   board: Board;
+  me: Me | null;
   onChange: (c: ReelCard) => void;
   onMove: (id: string, to: StageId) => void;
   onOpen: (id: string) => void;
@@ -173,7 +180,7 @@ export default function ReelFeed({ cards, board, onChange, onMove, onOpen, focus
   if (cards.length === 0) return <p className="rounded-xl border border-dashed border-border/70 py-8 text-center text-sm text-muted-foreground">Nothing here.</p>;
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      {cards.map((c) => <Post key={c.id} card={c} board={board} onChange={onChange} onMove={onMove} onOpen={onOpen} focused={c.id === focus} />)}
+      {cards.map((c) => <Post key={c.id} card={c} board={board} me={me} onChange={onChange} onMove={onMove} onOpen={onOpen} focused={c.id === focus} />)}
     </div>
   );
 }

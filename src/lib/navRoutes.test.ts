@@ -13,6 +13,8 @@ const EXCEPTIONS: Record<string, string> = {
   "/review/:token": "public compliance preview link",
   "/l/:slug": "public link-in-bio page",
   "/t/report/:slug": "public tracked-link report",
+  "/join": "invite link to Leo's posts board, opened from the link he sends",
+  "/reels/team": "Leo's team for the posts board, opened from the Team button on /reels",
   "/diagnosis": "redirects to /coach",
   "/hub": "paid hub, unlinked on purpose (e0da451)",
   "/fads/:tab": "a tab of /fads",

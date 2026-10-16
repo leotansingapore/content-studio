@@ -27,7 +27,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { REELS_BOARD_OWNERS } from "@/lib/reelsBoard";
+import { reelsShown } from "@/lib/reelsBoard";
 import { marketShown } from "@/lib/market";
 import { socialConnectShown } from "@/lib/socialConnect";
 
@@ -96,7 +96,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/board", label: "Board" },
       { to: "/drafts", label: "My posts" },
       { to: "/grid", label: "Grid", title: "Instagram grid" },
-      { to: "/reels", label: "Reels", owners: REELS_BOARD_OWNERS },
+      { to: "/reels", label: "Reels", show: reelsShown },
     ],
   },
   {

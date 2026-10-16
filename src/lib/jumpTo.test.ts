@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CREATE_ITEMS, jumpList, loadRecent, pageItems, pushRecent, searchJump, RECENT_MAX } from "./jumpTo";
 import { SECTIONS, visiblePages } from "./nav";
 
@@ -25,9 +25,15 @@ describe("pageItems", () => {
     expect(new Set(items).size).toBe(items.length);
   });
 
-  it("hides owner-only pages from other sign-ins", () => {
+  it("shows Reels only once the server has said this sign-in sees the posts board", () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
+    expect(pageItems("tanjunsing@gmail.com").some((i) => i.to === "/reels")).toBe(false);
+    store.set("cs-team-me", JSON.stringify({ owner: false, member: true, modules: ["reels"], at: Date.now() }));
+    expect(pageItems("user@demo.com").some((i) => i.to === "/reels")).toBe(true);
+    store.set("cs-team-me", JSON.stringify({ owner: false, member: false, at: Date.now() }));
     expect(pageItems("user@demo.com").some((i) => i.to === "/reels")).toBe(false);
-    expect(pageItems("tanjunsing@gmail.com").some((i) => i.to === "/reels")).toBe(true);
+    vi.unstubAllGlobals();
   });
 });
 

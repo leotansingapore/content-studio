@@ -8,6 +8,7 @@ import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
 import { checkMarketEnabled, forgetMarketShown, marketShown } from "@/lib/market";
 import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
+import { checkMe, forgetMe, reelsShown, seesBoard } from "@/lib/reelsBoard";
 import { supabase } from "@/lib/supabase";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import JumpTo, { jumpShortcut } from "@/components/JumpTo";
@@ -193,6 +194,7 @@ export default function StudioLayout() {
   const [needsYou, setNeedsYou] = useState(0);
   // Social accounts sits in the nav only once the server has said it is on for this sign-in.
   const [, setSocialOn] = useState(socialConnectShown);
+  const [, setReelsOn] = useState(reelsShown);
   const [, setMarketOn] = useState(marketShown);
   const mainRef = useRef<HTMLElement>(null);
   const moreRef = useRef<HTMLDialogElement>(null);
@@ -213,6 +215,7 @@ export default function StudioLayout() {
       if (active) setUid(data.user?.id ?? null);
       if (active && data.user) void refreshPushHere();
       if (active && data.user) void checkSocialConnect().then((on) => active && setSocialOn(on));
+      if (active && data.user) void checkMe().then((m) => active && setReelsOn(seesBoard(m))).catch(() => {});
       if (active && data.user) void checkMarketEnabled().then((on) => active && setMarketOn(on));
     });
     return () => {
@@ -289,6 +292,7 @@ export default function StudioLayout() {
     await stopCloudSync();
     forgetSocialConnect();
     forgetMarketShown();
+    forgetMe();
     await supabase.auth.signOut();
     window.location.replace("/auth");
   };

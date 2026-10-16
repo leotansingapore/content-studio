@@ -11,13 +11,17 @@ import {
   addNote,
   brandOf,
   currentVersion,
+  errorText,
   igLine,
   isCarousel,
   mmss,
+  noteAuthor,
   openNotes,
+  perms,
   resolveNote,
   updateCard,
   type Board,
+  type Me,
   type ReelCard,
   type StageId,
 } from "@/lib/reelsBoard";
@@ -28,6 +32,7 @@ const when = (iso?: string) =>
 export default function ReelDrawer({
   card,
   board,
+  me,
   onChange,
   onMove,
   onClose,
@@ -35,6 +40,7 @@ export default function ReelDrawer({
 }: {
   card: ReelCard;
   board: Board;
+  me: Me | null;
   onChange: (c: ReelCard) => void;
   onMove: (id: string, to: StageId) => void;
   onClose: () => void;
@@ -53,7 +59,8 @@ export default function ReelDrawer({
   const v = currentVersion(card);
   const car = isCarousel(card);
   const stageName = (id: string) => board.stages.find((s) => s.id === id)?.name ?? id;
-  const next = NEXT[card.stage];
+  const p = perms(me, card);
+  const next = NEXT[card.stage] && p.move(NEXT[card.stage]![0]) ? NEXT[card.stage] : undefined;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -73,10 +80,11 @@ export default function ReelDrawer({
     setSlide(k);
   };
 
-  const fail = (what: string) => toast({ title: `Couldn't save ${what}`, description: "Check your connection and try again.", variant: "destructive" });
+  const fail = (what: string, e?: unknown) =>
+    toast({ title: errorText(e, `Couldn't save ${what}. Check your connection and try again.`), variant: "destructive" });
 
-  const patch = (p: Parameters<typeof updateCard>[1], what: string) =>
-    updateCard(card.id, p).then(onChange).catch(() => fail(what));
+  const patch = (change: Parameters<typeof updateCard>[1], what: string) =>
+    updateCard(card.id, change).then(onChange).catch((e) => fail(what, e));
 
   const onCaption = (text: string) => {
     setCaption(text);
@@ -88,7 +96,7 @@ export default function ReelDrawer({
           onChange(c);
           setCapState(`Saved - ${text.length}/2200`);
         })
-        .catch(() => setCapState("Not saved. Your text is still here; check your connection."));
+        .catch((e) => setCapState(errorText(e, "Not saved. Your text is still here; check your connection.")));
     }, 500);
   };
 
@@ -101,8 +109,8 @@ export default function ReelDrawer({
       onChange(c);
       setNote("");
       localStorage.removeItem(`cs-reelnote-draft-${card.id}`);
-    } catch {
-      fail("the note");
+    } catch (e) {
+      fail("the note", e);
     } finally {
       setSending(false);
     }
@@ -185,32 +193,34 @@ export default function ReelDrawer({
               })()}
               <div className="flex flex-wrap gap-2">
                 {next && <Button size="sm" onClick={() => onMove(card.id, next[0])}>{next[1]}</Button>}
-                {card.stage !== "changes" && card.stage !== "posted" && (
+                {card.stage !== "changes" && card.stage !== "posted" && p.move("changes") && (
                   <Button size="sm" variant="outline" onClick={() => onMove(card.id, "changes")}>Needs changes</Button>
                 )}
-                {card.stage !== "archived" && (
+                {card.stage !== "archived" && p.move("archived") && (
                   <Button size="sm" variant="ghost" onClick={() => onMove(card.id, "archived")}>Archive</Button>
                 )}
               </div>
               <label className="block space-y-1 text-xs font-semibold text-muted-foreground">
                 Version
-                <select value={card.version} onChange={(e) => patch({ version: e.target.value }, "the version")}
+                <select value={card.version} disabled={!p.edit} onChange={(e) => patch({ version: e.target.value }, "the version")}
                   className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground">
                   {card.versions.map((x) => (
                     <option key={x.file} value={x.file}>{x.label} ({new Date(x.mtime * 1000).toLocaleDateString([], { day: "numeric", month: "short" })})</option>
                   ))}
                 </select>
               </label>
-              <label className="block space-y-1 text-xs font-semibold text-muted-foreground">
-                Profile
-                <select value={brandOf(card)} onChange={(e) => patch({ brand: e.target.value }, "the profile")}
-                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground">
-                  {board.brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </label>
+              {p.brand && (
+                <label className="block space-y-1 text-xs font-semibold text-muted-foreground">
+                  Profile
+                  <select value={brandOf(card)} onChange={(e) => patch({ brand: e.target.value }, "the profile")}
+                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground">
+                    {board.brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </label>
+              )}
               <label className="block space-y-1 text-xs font-semibold text-muted-foreground">
                 Post at
-                <input type="datetime-local" value={card.schedule ?? ""} onChange={(e) => patch({ schedule: e.target.value }, "the date")}
+                <input type="datetime-local" value={card.schedule ?? ""} disabled={!p.edit} onChange={(e) => patch({ schedule: e.target.value }, "the date")}
                   className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm font-normal text-foreground" />
               </label>
             </div>
@@ -221,7 +231,7 @@ export default function ReelDrawer({
               <h3 className="text-sm font-semibold">Caption</h3>
               <span className="text-[11px] text-muted-foreground" aria-live="polite">{capState}</span>
             </div>
-            <Textarea rows={7} value={caption} maxLength={2200} onChange={(e) => onCaption(e.target.value)} className="text-sm" />
+            <Textarea rows={7} value={caption} maxLength={2200} readOnly={!p.edit} onChange={(e) => onCaption(e.target.value)} className="text-sm" />
           </section>
 
           <section className="space-y-2">
@@ -240,6 +250,7 @@ export default function ReelDrawer({
                   <div className="min-w-0 flex-1">
                     <p className={m.resolved ? "line-through" : ""}>{m.text}</p>
                     <p className="text-[11px] text-muted-foreground">
+                      {noteAuthor(m) && <span className="font-semibold">{noteAuthor(m)} - </span>}
                       {when(m.at)}{m.version !== card.version ? ` - on ${card.versions.find((x) => x.file === m.version)?.label ?? "an older version"}` : ""}
                     </p>
                   </div>
@@ -248,26 +259,31 @@ export default function ReelDrawer({
                     aria-label="Resolved"
                     title="Resolved"
                     checked={m.resolved}
-                    onChange={(e) => resolveNote(card.id, m.id, e.target.checked).then(onChange).catch(() => fail("that"))}
+                    disabled={!p.resolve(m)}
+                    onChange={(e) => resolveNote(card.id, m.id, e.target.checked).then(onChange).catch((err) => fail("that", err))}
                     className="mt-1 h-4 w-4 shrink-0 accent-primary"
                   />
                 </li>
               ))}
             </ul>
-            <Textarea
-              rows={2}
-              value={note}
-              placeholder={car ? `Note on slide ${slide}` : `Note at ${mmss(now)}`}
-              onChange={(e) => {
-                setNote(e.target.value);
-                localStorage.setItem(`cs-reelnote-draft-${card.id}`, e.target.value);
-              }}
-              onKeyDown={(e) => e.key === "Enter" && (e.metaKey || e.ctrlKey) && sendNote()}
-              className="text-sm"
-            />
-            <Button size="sm" disabled={!note.trim() || sending} onClick={sendNote}>
-              {sending ? "Adding..." : car ? `Pin to slide ${slide}` : `Pin to ${mmss(now)}`}
-            </Button>
+            {p.note && (
+              <>
+                <Textarea
+                  rows={2}
+                  value={note}
+                  placeholder={car ? `Note on slide ${slide}` : `Note at ${mmss(now)}`}
+                  onChange={(e) => {
+                    setNote(e.target.value);
+                    localStorage.setItem(`cs-reelnote-draft-${card.id}`, e.target.value);
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && (e.metaKey || e.ctrlKey) && sendNote()}
+                  className="text-sm"
+                />
+                <Button size="sm" disabled={!note.trim() || sending} onClick={sendNote}>
+                  {sending ? "Adding..." : car ? `Pin to slide ${slide}` : `Pin to ${mmss(now)}`}
+                </Button>
+              </>
+            )}
           </section>
 
           {card.history.length > 0 && (
@@ -275,7 +291,7 @@ export default function ReelDrawer({
               <h3 className="text-sm font-semibold">History</h3>
               <ul className="space-y-0.5 text-xs text-muted-foreground">
                 {[...card.history].reverse().map((h, i) => (
-                  <li key={i}>{when(h.at)}: {h.from ? `${stageName(h.from)} to ` : ""}{stageName(h.to)}{h.note ? ` (${h.note})` : ""}</li>
+                  <li key={i}>{when(h.at)}: {h.from ? `${stageName(h.from)} to ` : ""}{stageName(h.to)}{h.note ? ` (${h.note})` : ""}{h.by ? `, by ${h.by}` : ""}</li>
                 ))}
               </ul>
             </section>

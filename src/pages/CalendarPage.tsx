@@ -19,7 +19,7 @@ import PostPreview from "@/components/PostPreview";
 import { PostItForMePanel, ZernioChipLabel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
-import { IG_HANDLES, REELS_BOARD_OWNERS, brandOf, fetchBoard, isCarousel } from "@/lib/reelsBoard";
+import { IG_HANDLES, brandOf, checkMe, fetchBoard, isCarousel, seesBoard } from "@/lib/reelsBoard";
 import { COVER_DAYS, dueByHand, runsOut, weekGlance, type DatedItem } from "@/lib/calendarCoverage";
 import { openSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
 import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
@@ -249,7 +249,8 @@ export default function CalendarPage() {
       setSlots(loadBrand(id)?.slots ?? []);
       setTeamPosts(readTeamPosts(id));
       setTeamReviews(readTeamReviews(id));
-      if (REELS_BOARD_OWNERS.includes(data.user?.email?.toLowerCase() ?? "")) {
+      // Leo, and team members with the posts board, see its posts here (docs/team-roles.md)
+      if (data.user && seesBoard(await checkMe().catch(() => null))) {
         fetchBoard()
           .then((b) => {
             if (!active) return;

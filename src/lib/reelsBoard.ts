@@ -1,15 +1,15 @@
 // Reels review board, folded in from MoneyBees Studio (moneybees-studio.vercel.app).
 // The board's data and videos stay where they are (MoneyBees Supabase, written
-// by the reels pipeline on Leo's Mac); this app reads and writes it through a
-// same-origin proxy (/mb-studio/api -> moneybees-studio's /api, see vercel.json
-// and vite.config.ts), so no CORS change and no second copy of the data.
-//
-// That API has no auth of its own (Leo chose "anyone with the link can edit",
-// 2026-10-06), so showing the board only to its owner here is a UX gate, not
-// a security boundary.
+// by the reels pipeline on Leo's Mac). This app reaches it only through the
+// team-board edge function, which proves who is signed in and passes their role
+// and brands to the board; the board decides every read and write against them
+// (docs/team-roles.md). Everything here that hides a button is a convenience,
+// not the boundary.
 
+import { callFn, EdgeError } from "@/lib/edgeFn";
+
+/** Leo's sign-in. Still gates the channel feeds (public data, every business) and nothing on the board. */
 export const REELS_BOARD_OWNERS = ["tanjunsing@gmail.com"];
-const API = "/mb-studio/api";
 
 export type StageId = "review" | "changes" | "approved" | "scheduled" | "posted" | "archived";
 
@@ -32,7 +32,12 @@ export interface ReelComment {
   slide?: number;
   version: string;
   resolved: boolean;
+  /** Stamped by the board: missing on Leo's older notes, "claude" on the fix pass's answers. */
+  by?: string | { id: string; label: string; role?: string };
 }
+
+/** Who wrote a note, for showing beside it; "" for Leo's older notes. */
+export const noteAuthor = (m: ReelComment) => (typeof m.by === "object" && m.by ? m.by.label : m.by === "claude" ? "Claude" : "");
 
 /**
  * Board brand -> Instagram handle the Mac publisher posts to at the slot
@@ -58,7 +63,7 @@ export interface ReelCard {
   version: string;
   versions: ReelVersion[];
   comments: ReelComment[];
-  history: { at: string; from?: string; to: string; note?: string }[];
+  history: { at: string; from?: string; to: string; note?: string; by?: string }[];
   /** Written by the publisher once the post is live. */
   ig?: { state: "publishing" | "posted"; permalink?: string; account?: string; mediaId?: string };
 }
@@ -130,20 +135,117 @@ export function cardsIn(cards: ReelCard[], stage: StageId, brand: string): ReelC
     .sort(byDate);
 }
 
-async function call<T>(path: string, body?: unknown): Promise<T> {
-  const r = await fetch(API + path, body === undefined ? {} : {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(`The board answered ${r.status}`);
-  return r.json() as Promise<T>;
+const board = <T>(body: Record<string, unknown>) => callFn<T>("team-board", body, "The board didn't answer. Try again.");
+export const fetchBoard = () => board<Board>({ action: "board" });
+export const updateCard = (id: string, patch: Partial<Pick<ReelCard, "stage" | "caption" | "schedule" | "version" | "brand">>) =>
+  board<ReelCard>({ action: "card", id, patch });
+export const addNote = (id: string, note: { text: string; t?: number | null; slide?: number }) =>
+  board<ReelCard>({ action: "comment", id, ...note });
+export const resolveNote = (id: string, cid: string, resolved: boolean) => board<ReelCard>({ action: "resolve", id, cid, resolved });
+
+// ---- Who is looking: Leo, a team member, or neither (docs/team-roles.md) ----
+
+export type Role = "viewer" | "commenter" | "editor" | "approver";
+export interface Me {
+  owner: boolean;
+  member: boolean;
+  id?: string;
+  role?: Role | "owner";
+  brands?: string[];
+  modules?: string[];
+  label?: string;
+}
+export const ROLE_NAMES: Record<Role, string> = { viewer: "Viewer", commenter: "Commenter", editor: "Editor", approver: "Approver" };
+export const ROLE_HELP: Record<Role, string> = {
+  viewer: "Sees the posts, nothing else",
+  commenter: "Leaves notes on posts",
+  editor: "Edits words, dates and versions before approval",
+  approver: "Approves, schedules and archives posts",
+};
+
+export const seesBoard = (me: Me | null) => !!me && (me.owner || (me.member && !!me.modules?.includes("reels")));
+
+const RANK: Record<string, number> = { viewer: 0, commenter: 1, editor: 2, approver: 3, owner: 4 };
+
+/** What the signed-in person may do to a card: a mirror of the board's own rules, so the screen offers only what will work. */
+export function perms(me: Me | null, c: ReelCard) {
+  const owner = !!me?.owner;
+  const r = owner ? 4 : RANK[me?.role ?? ""] ?? -1;
+  const live = c.stage === "posted" || !!c.ig?.state;
+  const open = c.stage === "review" || c.stage === "changes";
+  return {
+    note: r >= 1,
+    edit: owner || (!live && (r >= 3 || (r >= 2 && open))),
+    move: (to: StageId) => owner || (!live && to !== "posted" && (r >= 3 || (r >= 2 && open && (to === "review" || to === "changes")))),
+    brand: owner,
+    resolve: (m: ReelComment) => owner || (r >= 1 && typeof m.by === "object" && !!m.by && m.by.id === me?.id),
+  };
 }
 
-export const fetchBoard = () => call<Board>("/board");
-export const updateCard = (id: string, patch: Partial<Pick<ReelCard, "stage" | "caption" | "schedule" | "version" | "brand">>) =>
-  call<ReelCard>(`/cards/${encodeURIComponent(id)}`, patch);
-export const addNote = (id: string, note: { text: string; t?: number | null; slide?: number }) =>
-  call<ReelCard>(`/cards/${encodeURIComponent(id)}/comments`, note);
-export const resolveNote = (id: string, cid: string, resolved: boolean) =>
-  call<ReelCard>(`/cards/${encodeURIComponent(id)}/comments/${encodeURIComponent(cid)}`, { resolved });
+// Per device and outside the sync prefix: a hint for the nav, never security state.
+const ME_KEY = "cs-team-me";
+const ME_RECHECK_MS = 10 * 60_000;
+
+function readMe(): (Me & { at: number }) | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(ME_KEY) ?? "null");
+    return v && typeof v.owner === "boolean" && typeof v.at === "number" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Whether the nav shows Reels on this device. */
+export const reelsShown = (): boolean => seesBoard(readMe());
+
+/** Asks the server who this sign-in is on the team, at most every 10 minutes unless forced. */
+export async function checkMe(force = false): Promise<Me> {
+  const known = readMe();
+  if (known && !force && Date.now() - known.at < ME_RECHECK_MS) return known;
+  try {
+    const me = await callFn<Me>("team-board", { action: "me" });
+    try {
+      localStorage.setItem(ME_KEY, JSON.stringify({ ...me, at: Date.now() }));
+    } catch {
+      // private mode: the page still asks the server each time
+    }
+    return me;
+  } catch (e) {
+    if (known) return known;
+    throw e;
+  }
+}
+
+export function forgetMe(): void {
+  try {
+    localStorage.removeItem(ME_KEY);
+  } catch {
+    // nothing stored
+  }
+}
+
+/** A refusal that means this person's access changed mid-session (removed, or their role changed). */
+export const accessChanged = (e: unknown) => e instanceof EdgeError && (e.status === 403 || e.status === 401);
+export const errorText = (e: unknown, fallback: string) => (e instanceof EdgeError && e.status > 0 ? e.message : fallback);
+
+// ---- The team, for Leo (/reels/team) ----
+
+export interface TeamMember {
+  id: string;
+  label: string;
+  role: Role;
+  brands: string[];
+  email: string | null;
+  status: "invited" | "expired" | "joined" | "revoked";
+  invite_expires_at: string | null;
+  created_at: string;
+}
+export const listTeam = () => callFn<{ members: TeamMember[] }>("team-board", { action: "team.list" }).then((r) => r.members);
+export const inviteMember = (m: { label: string; role: Role; brands: string[] }) =>
+  callFn<{ member: TeamMember; link: string }>("team-board", { action: "team.invite", ...m });
+export const updateMember = (id: string, patch: Partial<Pick<TeamMember, "label" | "role" | "brands">>) =>
+  callFn<{ member: TeamMember }>("team-board", { action: "team.update", id, ...patch }).then((r) => r.member);
+export const revokeMember = (id: string) => callFn<{ revoked: true }>("team-board", { action: "team.revoke", id });
+export const reinviteMember = (id: string) => callFn<{ link: string }>("team-board", { action: "team.reinvite", id }).then((r) => r.link);
+export const claimInvite = (token: string) =>
+  callFn<{ joined: true; label: string; role: Role; brands: string[] }>("team-board", { action: "claim", token });

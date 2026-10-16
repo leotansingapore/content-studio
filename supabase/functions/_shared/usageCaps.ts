@@ -110,6 +110,8 @@ export const DAILY_LIMITS = {
   // Post it for me (social posts.ts): scheduling a post or trying a failed one again, and each file's upload link.
   "social-schedule": 30,
   "social-presign": 30,
+  // A team member's note on Leo's posts board (team-board); Leo's own notes are not counted.
+  "team-comment": 60,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
