@@ -1,4 +1,5 @@
--- Team members on Leo's posts board (design: docs/team-roles.md).
+-- People on Leo's posts board (design: docs/team-roles.md). Not the Team review
+-- feature's cs_team_members (011): a separate table with its own rules.
 -- One row per person Leo invites: their role, the board brands they see and the
 -- modules they reach. The row starts as an invite (only a hash of the link's
 -- token is kept), and the person's account claims it once.
@@ -13,7 +14,7 @@
 --   * Deleting either account deletes the row (on delete cascade).
 --
 -- Grants
---   table cs_team_members
+--   table cs_board_members
 --     revoke all from public, anon, authenticated: undoes Supabase's default
 --       ALL grant. The service role bypasses RLS and keeps its own grants.
 --
@@ -25,7 +26,7 @@
 begin;
 set local lock_timeout = '3s';
 
-create table if not exists public.cs_team_members (
+create table if not exists public.cs_board_members (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
   -- the name Leo gives the person; shown on their notes
@@ -49,15 +50,15 @@ create table if not exists public.cs_team_members (
   check (claimed_at is not null or revoked_at is not null or (invite_hash is not null and invite_expires_at is not null))
 );
 
-create unique index if not exists cs_team_members_invite_hash on public.cs_team_members (invite_hash)
+create unique index if not exists cs_board_members_invite_hash on public.cs_board_members (invite_hash)
   where invite_hash is not null;
 -- one live membership per person (there is one board), found on every request;
 -- a revoked person can be invited again
-create unique index if not exists cs_team_members_live_member on public.cs_team_members (member_id)
+create unique index if not exists cs_board_members_live_member on public.cs_board_members (member_id)
   where revoked_at is null and member_id is not null;
 
-alter table public.cs_team_members enable row level security;
+alter table public.cs_board_members enable row level security;
 
-revoke all on table public.cs_team_members from public, anon, authenticated;
+revoke all on table public.cs_board_members from public, anon, authenticated;
 
 commit;

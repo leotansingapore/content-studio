@@ -1,5 +1,5 @@
 // team-board: Leo's posts board for Leo and the people he invites (design: docs/team-roles.md).
-// Proves who is asking (the Supabase user id, never the email), finds their live row in cs_team_members
+// Proves who is asking (the Supabase user id, never the email), finds their live row in cs_board_members
 // (022), and forwards board actions to the posts board (moneybees-reels studio/api) with BOARD_KEY and the
 // actor. The board decides every write against the card as it is now; this function never does.
 //
@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       if (owner || idSet(Deno.env.get("TEAM_CLAIM_DENY_IDS")).has(uid)) {
         return json({ error: "This account can't join a team. Sign in with your own account." }, 403);
       }
-      const { data, error } = await admin.from("cs_team_members")
+      const { data, error } = await admin.from("cs_board_members")
         .update({ member_id: uid, claimed_at: new Date().toISOString(), invite_hash: null })
         .eq("invite_hash", await hashToken(r.token)).is("claimed_at", null).is("revoked_at", null)
         .gt("invite_expires_at", new Date().toISOString())
@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
 
     let member: MemberRow | null = null;
     if (!owner) {
-      const { data, error } = await admin.from("cs_team_members").select(COLS).eq("member_id", uid).is("revoked_at", null).maybeSingle();
+      const { data, error } = await admin.from("cs_board_members").select(COLS).eq("member_id", uid).is("revoked_at", null).maybeSingle();
       if (error) throw new Error(`member: ${error.message}`);
       member = data as MemberRow | null;
     }
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
     // The team itself: Leo only.
     if (!owner) return json({ error: "Only Leo manages the team." }, 403);
     if (r.action === "team.list") {
-      const { data, error } = await admin.from("cs_team_members").select(COLS).eq("owner_id", uid).order("created_at");
+      const { data, error } = await admin.from("cs_board_members").select(COLS).eq("owner_id", uid).order("created_at");
       if (error) throw new Error(`list: ${error.message}`);
       const rows = (data ?? []) as MemberRow[];
       // which account joined, so Leo can tell two people with one name apart
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
     }
     if (r.action === "team.invite") {
       const token = newToken();
-      const { data, error } = await admin.from("cs_team_members")
+      const { data, error } = await admin.from("cs_board_members")
         .insert({ owner_id: uid, label: r.label, role: r.role, brands: r.brands, invite_hash: await hashToken(token), invite_expires_at: expiry() })
         .select(COLS).single();
       if (error) throw new Error(`invite: ${error.message}`);
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     }
     if (r.action === "team.reinvite") {
       const token = newToken();
-      const { data, error } = await admin.from("cs_team_members")
+      const { data, error } = await admin.from("cs_board_members")
         .update({ invite_hash: await hashToken(token), invite_expires_at: expiry() })
         .eq("id", r.id).eq("owner_id", uid).is("claimed_at", null).is("revoked_at", null).select("id");
       if (error) throw new Error(`reinvite: ${error.message}`);
@@ -131,14 +131,14 @@ Deno.serve(async (req) => {
     }
     if (r.action === "team.update") {
       const patch = { ...(r.label ? { label: r.label } : {}), ...(r.role ? { role: r.role } : {}), ...(r.brands ? { brands: r.brands } : {}) };
-      const { data, error } = await admin.from("cs_team_members").update(patch)
+      const { data, error } = await admin.from("cs_board_members").update(patch)
         .eq("id", r.id).eq("owner_id", uid).is("revoked_at", null).select(COLS);
       if (error) throw new Error(`update: ${error.message}`);
       if (!data?.length) return json({ error: "That person isn't on the team any more." }, 404);
       return json({ member: { ...data[0], member_id: undefined, status: statusOf(data[0] as MemberRow) } });
     }
     // team.revoke
-    const { data, error } = await admin.from("cs_team_members").update({ revoked_at: new Date().toISOString(), invite_hash: null })
+    const { data, error } = await admin.from("cs_board_members").update({ revoked_at: new Date().toISOString(), invite_hash: null })
       .eq("id", r.id).eq("owner_id", uid).is("revoked_at", null).select("id");
     if (error) throw new Error(`revoke: ${error.message}`);
     if (!data?.length) return json({ error: "That person isn't on the team any more." }, 404);

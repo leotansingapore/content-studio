@@ -80,7 +80,7 @@ index.html becomes a redirect to `https://consultant-content-studio.vercel.app/r
 
 ### 4. Academy project, Content Studio
 
-**Migration 022 `cs_team_members`** (`supabase/hub/022_team_members.sql` plus `022_team_members.test.sql`):
+**Migration 022 `cs_board_members`** (`supabase/hub/022_board_members.sql` plus `022_board_members.test.sql`):
 
 ```
 id uuid pk default gen_random_uuid()
@@ -100,7 +100,7 @@ unique index on (member_id) where revoked_at is null and member_id is not null  
 ```
 
 - RLS is enabled with NO policies.
-- `revoke all on cs_team_members from public, anon, authenticated` [19]. Only the service role touches the table.
+- `revoke all on cs_board_members from public, anon, authenticated` [19]. Only the service role touches the table.
 - The test asserts the grants, RLS, both partial unique indexes, and that anon and authenticated cannot select.
 
 **Edge function `team-board`** (JWT verification on):

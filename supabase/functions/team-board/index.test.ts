@@ -30,7 +30,7 @@ const db = vi.hoisted(() => {
       const hit = rows.filter((r) => where.every((w) => w(r)));
       if (op === "update") {
         if (values!.member_id && rows.some((r) => r.member_id === values!.member_id && !r.revoked_at && !hit.includes(r))) {
-          return { data: null, error: { code: "23505", message: "cs_team_members_live_member" } };
+          return { data: null, error: { code: "23505", message: "cs_board_members_live_member" } };
         }
         hit.forEach((r) => Object.assign(r, values));
       }
