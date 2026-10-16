@@ -91,3 +91,11 @@ describe("addresses a host resolves to", () => {
     for (const a of ["8.8.8.8", "172.32.0.1", "100.128.0.1", "151.101.1.69", "2606:4700::6810:84e5", "2a00:1450:4001::200e"]) expect(privateIp(a), a).toBe(false);
   });
 });
+
+describe("a hostile page", () => {
+  it("is read quickly even when it never closes its tags", () => {
+    const started = Date.now();
+    readSite("<a ".repeat(70_000) + "<script " .repeat(20_000) + "<meta ".repeat(20_000), BASE);
+    expect(Date.now() - started).toBeLessThan(1500);
+  });
+});

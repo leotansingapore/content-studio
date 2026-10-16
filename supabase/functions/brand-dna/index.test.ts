@@ -14,6 +14,7 @@ vi.mock("https://esm.sh/@supabase/supabase-js@2.117.3", () => ({ createClient: (
 const PAGE = `<title>Acme Wealth | Plans</title><link rel="apple-touch-icon" href="/t.png"><style>.a{color:#1f6feb}</style>
 <p>We help young families save.</p><a href="https://instagram.com/acmewealth">ig</a>`;
 const PNG = new Uint8Array(400).fill(7);
+PNG.set([0x89, 0x50, 0x4e, 0x47]);
 const seen: string[] = [];
 let llm: unknown = { name: "Acme Wealth", oneLiner: "We help families save so they can relax.", audienceDetail: "Young families", topics: ["Savings"], edge: "Plain advice", voice: "Warm. Plain." };
 

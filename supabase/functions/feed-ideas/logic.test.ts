@@ -10,7 +10,7 @@ describe("safeFeedUrl", () => {
   it("refuses anything that could reach inside a network", () => {
     for (const bad of [
       "ftp://x.com/feed", "file:///etc/passwd", "https://127.0.0.1/feed", "https://169.254.169.254/latest/meta-data",
-      "https://[::1]/feed", "https://10.0.0.5/rss", "https://localhost/feed", "https://db.internal/feed", "https://printer.local/x",
+      "https://[::1]/feed", "https://10.0.0.5/rss", "https://localhost/feed", "https://localhost./feed", "https://db.internal./x", "https://db.internal/feed", "https://printer.local/x",
       "https://user:pw@example.com/feed", "https://example.com:8080/feed", "https://intranet/feed", "not a url", 42, "https://1.1.1.1.nip.io.arpa/x",
     ]) {
       expect(safeFeedUrl(bad), String(bad)).toBeNull();
@@ -46,5 +46,11 @@ describe("parseFeed", () => {
     expect(parseFeed("<html><body>Hello</body></html>", "https://x.sg").items).toEqual([]);
     expect(parseFeed(`<rss><item><title>Bad</title><link>javascript:alert(1)</link></item></rss>`, "https://x.sg").items).toEqual([]);
     expect(decode("&amp;lt;b&amp;gt;")).toBe("&lt;b&gt;");
+  });
+});
+
+describe("decode on hostile entities", () => {
+  it("keeps a code point past Unicode's end as written instead of throwing", () => {
+    expect(decode("a&#x110000;b&#99999999;c&#65;")).toBe("a&#x110000;b&#99999999;cA");
   });
 });

@@ -19,7 +19,8 @@ export function safeFeedUrl(raw: unknown): URL | null {
   }
   if (u.protocol !== "https:" && u.protocol !== "http:") return null;
   if (u.username || u.password || u.port) return null;
-  const host = u.hostname.toLowerCase();
+  // "localhost." and "db.internal." name the same hosts as without the dot
+  const host = u.hostname.toLowerCase().replace(/\.+$/, "");
   if (!host.includes(".") || host.startsWith("[") || /^[\d.]+$/.test(host) || /^[0-9a-f:]+$/.test(host)) return null;
   if (/(^|\.)(localhost|local|internal|intranet|lan|home|corp|arpa)$/.test(host)) return null;
   return u;
@@ -34,11 +35,14 @@ export interface FeedItem {
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
 
+// a code point past Unicode's end (&#99999999;) would throw: keep the text as written
+const point = (n: number, raw: string) => (n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : raw);
+
 export function decode(s: string): string {
   return s
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/<!\[CDATA\[([\s\S]{0,200000}?)\]\]>/g, "$1")
+    .replace(/&#x([0-9a-f]{1,6});/gi, (m, h) => point(parseInt(h, 16), m))
+    .replace(/&#(\d{1,7});/g, (m, d) => point(Number(d), m))
     .replace(/&([a-z]+);/gi, (m, n) => ENTITIES[n.toLowerCase()] ?? m);
 }
 

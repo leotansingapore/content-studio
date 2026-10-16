@@ -14,8 +14,9 @@ import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { safeFeedUrl } from "../feed-ideas/logic.ts";
 import { AUDIENCES, audienceAsk, parseWritten, privateIp, readSite, siteUrl, WRITE_FORMAT, writeMessages } from "./logic.ts";
 
-const PAGE_BYTES = 1_500_000;
-const LOGO_BYTES = 300_000;
+const PAGE_BYTES = 300_000;
+// under the brand kit's 350,000-character limit once base64 grows it by a third
+const LOGO_BYTES = 250_000;
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -36,12 +37,13 @@ async function publicHost(url: URL): Promise<boolean> {
 }
 
 /** Follows up to 3 redirects that each pass the same guard, and reads at most `max` bytes. */
-async function fetchCapped(start: URL, max: number, accept: string): Promise<{ bytes: Uint8Array; type: string; url: URL }> {
+async function fetchCapped(start: URL, max: number, accept: string, deadline: AbortSignal): Promise<{ bytes: Uint8Array; type: string; url: URL }> {
   let url = start;
   for (let hop = 0; hop < 4; hop++) {
     if (!(await publicHost(url))) throw new Error(`${url.hostname} doesn't resolve to a public address`);
-    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(10_000), headers: { "User-Agent": "ContentStudio-BrandReader/1.0", Accept: accept } });
+    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.any([deadline, AbortSignal.timeout(8_000)]), headers: { "User-Agent": "ContentStudio-BrandReader/1.0", Accept: accept } });
     if (res.status >= 300 && res.status < 400) {
+      await res.body?.cancel();
       const next = safeFeedUrl(new URL(res.headers.get("location") ?? "", url).href);
       if (!next) throw new Error("redirects somewhere we can't read");
       url = next;
@@ -69,14 +71,23 @@ async function fetchCapped(start: URL, max: number, accept: string): Promise<{ b
   throw new Error("redirects too many times");
 }
 
-/** The first logo that is a small PNG, JPEG or WebP, as a data URL (the brand kit keeps logos inline). */
+// the file's own first bytes, not the server's word for it
+const imageType = (b: Uint8Array) =>
+  b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 ? "image/png"
+  : b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff ? "image/jpeg"
+  : String.fromCharCode(...b.subarray(0, 4)) === "RIFF" && String.fromCharCode(...b.subarray(8, 12)) === "WEBP" ? "image/webp"
+  : null;
+
+/** The first of up to 3 logos that is a small PNG, JPEG or WebP, as a data URL; 15 seconds for all of them. */
 async function logoOf(candidates: string[]): Promise<string | null> {
-  for (const href of candidates) {
+  const deadline = AbortSignal.timeout(15_000);
+  for (const href of candidates.slice(0, 3)) {
     const u = safeFeedUrl(href);
-    if (!u) continue;
+    if (!u || deadline.aborted) continue;
     try {
-      const { bytes, type } = await fetchCapped(u, LOGO_BYTES + 1, "image/png,image/webp,image/jpeg;q=0.8");
-      if (bytes.byteLength > LOGO_BYTES || !["image/png", "image/jpeg", "image/webp"].includes(type) || bytes.byteLength < 200) continue;
+      const { bytes } = await fetchCapped(u, LOGO_BYTES + 1, "image/png,image/webp,image/jpeg;q=0.8", deadline);
+      const type = imageType(bytes);
+      if (bytes.byteLength > LOGO_BYTES || !type || bytes.byteLength < 200) continue;
       let bin = "";
       for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
       return `data:${type};base64,${btoa(bin)}`;
@@ -109,13 +120,19 @@ Deno.serve(async (req) => {
 
   let page: { bytes: Uint8Array; type: string; url: URL };
   try {
-    page = await fetchCapped(url, PAGE_BYTES, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5");
+    page = await fetchCapped(url, PAGE_BYTES, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5", AbortSignal.timeout(20_000));
   } catch (e) {
     console.warn("brand-dna: page", url.host, e instanceof Error ? e.message : e);
     return json({ error: `We couldn't open ${url.host}. Check the address, or start with just a name.` }, 422);
   }
   if (!/html|xml|text/.test(page.type)) return json({ error: `${url.host} didn't send a web page. Check the address.` }, 422);
-  const site = readSite(new TextDecoder().decode(page.bytes), page.url);
+  let site: ReturnType<typeof readSite>;
+  try {
+    site = readSite(new TextDecoder().decode(page.bytes), page.url);
+  } catch (e) {
+    console.warn("brand-dna: read", url.host, e instanceof Error ? e.message : e);
+    return json({ error: `We couldn't read ${url.host}. Start with just a name instead.` }, 422);
+  }
 
   // the words (LLM) and the logo download run side by side; either may come back empty
   const [written, logo] = await Promise.all([

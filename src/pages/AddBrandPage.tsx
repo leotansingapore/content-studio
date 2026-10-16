@@ -96,7 +96,7 @@ export default function AddBrandPage() {
   });
 
   const create = (brand: Dna | null) => {
-    const title = (brand?.name ?? name).trim();
+    const title = (brand?.name ?? name).trim().slice(0, 40);
     if (!uid || !title) return;
     const p = addProfile(uid, title);
     // the stores below key on the open brand, so it opens first
