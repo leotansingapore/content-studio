@@ -37,6 +37,7 @@ describe("igLine", () => {
   it("says where a scheduled reel posts, or that it is posted by hand", () => {
     expect(igLine(card("a", "scheduled", "moneybees"))?.text).toBe("Posts to @the_moneybees automatically");
     expect(igLine(card("a", "scheduled", "leo"))?.text).toBe("Not linked to Instagram: post it by hand");
+    expect(igLine(card("a", "scheduled", "activitytracker"))?.text).toBe("Posts to @activity_tracker_io automatically");
     expect(igLine(card("a", "review", "moneybees"))).toBeNull();
   });
   it("links a posted reel to its Instagram post", () => {

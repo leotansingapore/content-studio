@@ -39,7 +39,11 @@ export interface ReelComment {
  * (moneybees-reels/tools/publish_ig.py keeps the same map). A brand missing here
  * is posted by hand.
  */
-export const IG_HANDLES: Record<string, string> = { moneybees: "the_moneybees", finternship: "finternshipofficial" };
+export const IG_HANDLES: Record<string, string> = {
+  moneybees: "the_moneybees",
+  finternship: "finternshipofficial",
+  activitytracker: "activity_tracker_io",
+};
 
 export interface ReelCard {
   id: string;
