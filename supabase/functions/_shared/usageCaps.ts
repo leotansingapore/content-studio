@@ -112,6 +112,8 @@ export const DAILY_LIMITS = {
   "social-presign": 30,
   // A team member's note on Leo's posts board (team-board); Leo's own notes are not counted.
   "team-comment": 60,
+  // Adding a brand from its website (brand-dna): one home page read plus one short LLM call and one Jev pick.
+  "brand-dna": 10,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;

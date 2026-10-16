@@ -7,8 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { socialConnectShown } from "@/lib/socialConnect";
 import {
   activeProfileId,
-  addProfile,
-  DEFAULT_PROFILE_ID,
+    DEFAULT_PROFILE_ID,
   loadProfiles,
   removeProfile,
   renameProfile,
@@ -25,7 +24,6 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeId, setActiveId] = useState(DEFAULT_PROFILE_ID);
   const [open, setOpen] = useState(false);
-  const [newName, setNewName] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [switching, setSwitching] = useState<string | null>(null);
@@ -65,14 +63,6 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
     setActiveProfile(userId, id);
     window.location.reload();
   };
-
-  const add = () => {
-    if (!newName.trim()) return;
-    const p = addProfile(userId, newName);
-    setNewName("");
-    switchTo(p.id);
-  };
-
   const saveRename = (id: string) => {
     setProfiles(renameProfile(userId, id, editName));
     setEditing(null);
@@ -196,29 +186,13 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
               </li>
             ))}
           </ul>
-          <form
-            className="mt-1 flex items-center gap-1 border-t border-border/70 p-1 pt-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              add();
-            }}
+          {/* from its website (docs/brand-isolation.md), or just a name, on its own page */}
+          <a
+            href="/brands/new"
+            className="mt-1 flex h-9 items-center gap-1.5 border-t border-border/70 px-2.5 pt-1 text-sm font-semibold text-primary [@media(pointer:coarse)]:h-11"
           >
-            <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Profile name"
-              aria-label="New profile name"
-              maxLength={40}
-              className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
-            />
-            <button
-              type="submit"
-              disabled={!newName.trim()}
-              className="inline-flex h-8 items-center gap-1 rounded-md bg-primary px-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50 [@media(pointer:coarse)]:h-11"
-            >
-              <Plus className="h-3.5 w-3.5" /> Add
-            </button>
-          </form>
+            <Plus className="h-4 w-4" /> Add a brand
+          </a>
         </div>
       )}
     </div>

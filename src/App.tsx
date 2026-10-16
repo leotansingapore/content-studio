@@ -58,6 +58,7 @@ const EngagePage = lazy(() => import("@/pages/EngagePage"));
 const AutoDmPage = lazy(() => import("@/pages/AutoDmPage"));
 const ReelsPage = lazy(() => import("@/pages/ReelsPage"));
 const ReelsTeamPage = lazy(() => import("@/pages/ReelsTeamPage"));
+const AddBrandPage = lazy(() => import("@/pages/AddBrandPage"));
 const VideoEditPage = lazy(() => import("@/pages/VideoEditPage"));
 // Public pages (no sign-in), each in its own chunk.
 const PreviewReviewPage = lazy(() => import("@/pages/PreviewReviewPage"));
@@ -151,6 +152,7 @@ export default function App() {
           <Route path="/board" element={<BoardPage />} />
           <Route path="/reels" element={<ReelsPage />} />
           <Route path="/reels/team" element={<ReelsTeamPage />} />
+          <Route path="/brands/new" element={<AddBrandPage />} />
           <Route path="/coach" element={<CoachPage />} />
           {/* Diagnosis now lives inside the Coach as its first step. */}
           <Route path="/diagnosis" element={<Navigate to="/coach" replace />} />
