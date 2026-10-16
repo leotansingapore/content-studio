@@ -103,11 +103,15 @@ export function brandForProfile(brands: Board["brands"], profileName: string): s
   return brands.find((b) => b.name.toLowerCase() === n || b.id === n)?.id ?? "";
 }
 
+/** Soonest slot first, undated last, then by title. (localeCompare put a "~" placeholder BEFORE digits.) */
+const byDate = (a: ReelCard, b: ReelCard) =>
+  Number(!a.schedule) - Number(!b.schedule) || (a.schedule ?? "").localeCompare(b.schedule ?? "") || a.title.localeCompare(b.title);
+
 /** Cards for one stage column: scheduled ones by date, then by title. */
 export function cardsIn(cards: ReelCard[], stage: StageId, brand: string): ReelCard[] {
   return cards
     .filter((c) => c.stage === stage && (!brand || brandOf(c) === brand))
-    .sort((a, b) => (a.schedule || "~").localeCompare(b.schedule || "~") || a.title.localeCompare(b.title));
+    .sort(byDate);
 }
 
 async function call<T>(path: string, body?: unknown): Promise<T> {

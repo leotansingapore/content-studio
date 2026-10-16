@@ -45,3 +45,10 @@ describe("igLine", () => {
     expect(igLine(c)).toEqual({ text: "On Instagram @finternshipofficial", href: "https://instagram.com/p/x" });
   });
 });
+
+describe("column order", () => {
+  it("puts undated cards after dated ones", () => {
+    const cards = [card("undated", "review", "leo"), card("dated", "review", "leo", "2026-10-20T19:30")];
+    expect(cardsIn(cards, "review", "leo").map((c) => c.id)).toEqual(["dated", "undated"]);
+  });
+});
