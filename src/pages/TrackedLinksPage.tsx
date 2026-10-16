@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { brandOffers } from "@/lib/brandRules";
 import { loadBrand } from "@/lib/carousel";
 import { supabase } from "@/lib/supabase";
+import { scoped } from "@/lib/profiles";
 import {
   MAX_CAMPAIGN,
   MAX_LABEL,
@@ -90,7 +91,7 @@ export default function TrackedLinksPage() {
   // The report switch shows its new position at once, while the server catches up.
   const [pending, setPending] = useState<{ id: string; on: boolean } | null>(null);
 
-  const draftKey = userId ? DRAFT_PREFIX + userId : "";
+  const draftKey = userId ? DRAFT_PREFIX + scoped(userId) : "";
   const offers = useMemo(() => (userId ? brandOffers(loadBrand(userId)).filter((o) => !isTrackedUrl(o.url)) : []), [userId]);
 
   const load = async () => {
@@ -103,7 +104,7 @@ export default function TrackedLinksPage() {
       const [ok, all] = await Promise.all([canTrack(), fetchMine()]);
       setMember(ok);
       setMine(all);
-      setForm(readDraft(DRAFT_PREFIX + uid) ?? EMPTY);
+      setForm(readDraft(DRAFT_PREFIX + scoped(uid)) ?? EMPTY);
       setState("ready");
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : "Couldn't load your links.");

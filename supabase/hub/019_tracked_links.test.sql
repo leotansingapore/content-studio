@@ -93,7 +93,7 @@ select public.cs_test_assert(
   and not has_table_privilege('service_role', 'public.cs_tracked_link_salt', 'select,insert,update,delete,truncate,references,trigger'),
   '0.2 owners can read their three tables; not even service_role can read the salt');
 select public.cs_test_assert(
-  not has_function_privilege('anon', 'public.cs_save_tracked_link(uuid, text, text, text, text)', 'execute')
+  not has_function_privilege('anon', 'public.cs_save_tracked_link(uuid, text, text, text, text, text)', 'execute')
   and not has_function_privilege('anon', 'public.cs_delete_tracked_link(uuid)', 'execute')
   and not has_function_privilege('anon', 'public.cs_set_tracked_link_report(uuid, boolean)', 'execute')
   and not has_function_privilege('anon', 'public.cs_tracked_link_click(text, text, boolean)', 'execute')
@@ -104,7 +104,7 @@ select public.cs_test_assert(
   and not has_function_privilege('authenticated', 'public.cs_tracked_link_hold_slug()', 'execute')
   and not has_function_privilege('authenticated', 'public.cs_tracked_link_click(text, text, boolean)', 'execute')
   and not has_function_privilege('authenticated', 'public.cs_tracked_link_report_public(text)', 'execute')
-  and has_function_privilege('authenticated', 'public.cs_save_tracked_link(uuid, text, text, text, text)', 'execute')
+  and has_function_privilege('authenticated', 'public.cs_save_tracked_link(uuid, text, text, text, text, text)', 'execute')
   and has_function_privilege('authenticated', 'public.cs_delete_tracked_link(uuid)', 'execute')
   and has_function_privilege('authenticated', 'public.cs_set_tracked_link_report(uuid, boolean)', 'execute')
   and has_function_privilege('service_role', 'public.cs_tracked_link_click(text, text, boolean)', 'execute')

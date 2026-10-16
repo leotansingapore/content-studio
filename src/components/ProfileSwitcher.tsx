@@ -1,3 +1,5 @@
+import { deleteBioPage } from "@/lib/bioPage";
+import { deleteBrandLinks } from "@/lib/trackedLinks";
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -78,11 +80,15 @@ export default function ProfileSwitcher({ compact = false }: { compact?: boolean
 
   const remove = async (p: Profile) => {
     const social = socialConnectShown() ? " Its connected social accounts are disconnected." : "";
-    if (!window.confirm(`Remove ${p.name}? Its posts, plan, voice and recruit kit are deleted on every device.${social} This can't be undone.`)) return;
+    if (!window.confirm(`Remove ${p.name}? Its posts, plan, voice, recruit kit, link-in-bio page and tracked links are deleted on every device.${social} This can't be undone.`)) return;
     const wasActive = p.id === activeId;
     setRemoving(p.id);
     try {
-      setProfiles(await removeProfile(userId, p.id));
+      // its link-in-bio page and tracked links go too (docs/brand-isolation.md)
+      setProfiles(await removeProfile(userId, p.id, async (id) => {
+        await deleteBioPage(id);
+        await deleteBrandLinks(id);
+      }));
     } catch (e) {
       // its social accounts are still connected, so the brand stays
       toast({ title: `${p.name} wasn't removed`, description: e instanceof Error ? e.message : "Try again in a minute.", variant: "destructive" });

@@ -105,6 +105,24 @@ describe("profiles", () => {
     expect(loadProfiles(UID).map((p) => p.id)).not.toContain(mb.id);
   });
 
+  it("removes a brand's server rows first, keeps it all when that fails, and clears this device's cs- data too", async () => {
+    const ls = (globalThis as unknown as { window: { localStorage: MemStorage } }).window.localStorage;
+    const mb = addProfile(UID, "MoneyBees");
+    setActiveProfile(UID, mb.id);
+    saveDrafts(UID, [{ id: "mb" } as never]);
+    ls.setItem(`cs-track-draft-${UID}~${mb.id}`, "{}");
+    ls.setItem(`cs-track-draft-${UID}`, "{}");
+    callFn.mockResolvedValue({ disconnected: 0 });
+    await expect(removeProfile(UID, mb.id, async () => { throw new Error("bio page still there"); })).rejects.toThrow("bio page");
+    expect(loadProfiles(UID).map((p) => p.id)).toContain(mb.id);
+    expect(loadDrafts(UID).map((d) => d.id)).toEqual(["mb"]);
+    const cleaned: string[] = [];
+    await removeProfile(UID, mb.id, async (id) => void cleaned.push(id));
+    expect(cleaned).toEqual([mb.id]);
+    expect(ls.getItem(`cs-track-draft-${UID}~${mb.id}`)).toBeNull();
+    expect(ls.getItem(`cs-track-draft-${UID}`)).toBe("{}");
+  });
+
   it("falls back to the default when the open profile was removed on another device", () => {
     setActiveProfile(UID, "pgone");
     expect(scoped(UID)).toBe(UID);

@@ -26,11 +26,11 @@ Each profile records the posts-board brand it owns (`boardBrand`), filled once f
 
 Saved items move to `scoped(uid)`. The default brand's storage name doesn't change, so nothing already saved goes missing.
 
-Migration 024 adds `profile_id text not null default 'me'` to tracked links, their campaigns and preview links; lists filter on it and new rows carry it.
+Migration 024 adds `profile_id text not null default 'me'` to tracked links and their campaigns; lists filter on it, new rows carry it, and a campaign name is unique per brand. Preview links needed no change: each one belongs to a post, and My posts only lists the open brand's posts.
 
 /board shows the open brand only. The Calendar keeps its All brands view, the one place brands meet.
 
-Removing a brand takes everything with it: its bio page, tracked links, preview links, device data and media, after its social accounts are disconnected as today.
+Removing a brand takes everything with it: after its social accounts are disconnected as today, its bio page and tracked links are deleted on the server, and only then its synced data and this device's `cs-*` data. If the server part fails, nothing is removed.
 
 ## Phase 2: add a brand from its website
 

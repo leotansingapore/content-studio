@@ -84,9 +84,11 @@ export function renameProfile(userId: string, id: string, name: string): Profile
  * accounts are disconnected first, or they would keep running in Zernio with nothing in the app to reach
  * them; when that fails nothing is removed and the error says why.
  */
-export async function removeProfile(userId: string, id: string): Promise<Profile[]> {
+export async function removeProfile(userId: string, id: string, cleanup?: (id: string) => Promise<void>): Promise<Profile[]> {
   if (id === DEFAULT_PROFILE_ID) return loadProfiles(userId);
   await disconnectBrand(id);
+  // the brand's server rows (its bio page, tracked links): a failure stops here, before anything local goes
+  await cleanup?.(id);
   const s = storage();
   if (s) {
     const suffix = `${userId}~${id}`;
@@ -95,7 +97,8 @@ export async function removeProfile(userId: string, id: string): Promise<Profile
       const k = s.key(i);
       // a turned-off Claude link's revoked row stays: the sync has no tombstones, so deleting it
       // would let a device that still holds the link bring it back to life (claudeConnect.ts)
-      if (k && k.startsWith(SYNC_PREFIX) && k.endsWith(suffix) && !k.startsWith(REVOKED)) doomed.push(k);
+      // synced data, and this device's own cs-* data for the brand (drafts in progress, media index)
+      if (k && (k.startsWith(SYNC_PREFIX) || k.startsWith("cs-")) && k.endsWith(suffix) && !k.startsWith(REVOKED)) doomed.push(k);
     }
     // a Claude link still on is turned off first, for the same reason: deleting its row alone doesn't stop it
     const revokedAt = JSON.stringify({ revokedAt: new Date().toISOString() });

@@ -7,6 +7,7 @@
 // the judge. Design: docs/tracked-links.md.
 
 import { SUPABASE_URL, supabase } from "@/lib/supabase";
+import { activeProfileId } from "@/lib/profiles";
 import { MAX_LABEL, MAX_URL, RESERVED_SLUGS, isValidLinkUrl, sgDay, withScheme } from "@/lib/bioPage";
 import { fetchMembership, hubAccess } from "@/lib/hub";
 import { friendlyError } from "@/lib/teamReview";
@@ -159,11 +160,18 @@ export interface Mine {
   days: DayRow[];
 }
 
-/** The caller's links, campaigns and the last 30 Singapore days of counts. */
+/** The brand open now (docs/brand-isolation.md, 024): links and campaigns belong to one brand. */
+async function openBrand(): Promise<string> {
+  const uid = (await supabase.auth.getSession()).data.session?.user.id;
+  return activeProfileId(uid);
+}
+
+/** The caller's links and campaigns in the open brand, and the last 30 Singapore days of counts. */
 export async function fetchMine(now = new Date()): Promise<Mine> {
+  const brand = await openBrand();
   const [l, c, d] = await Promise.all([
-    supabase.from("cs_tracked_links").select("id,campaign_id,slug,label,url,created_at").order("created_at", { ascending: false }),
-    supabase.from("cs_tracked_link_campaigns").select("id,name,report_slug").order("name"),
+    supabase.from("cs_tracked_links").select("id,campaign_id,slug,label,url,created_at").eq("profile_id", brand).order("created_at", { ascending: false }),
+    supabase.from("cs_tracked_link_campaigns").select("id,name,report_slug").eq("profile_id", brand).order("name"),
     supabase.from("cs_tracked_link_days").select("link_id,day,clicks,people").gte("day", sgDay(now, 29)).limit(5000),
   ]);
   for (const r of [l, c, d]) if (r.error) fail(r.error);
@@ -178,9 +186,17 @@ export async function saveTrackedLink(id: string | null, l: LinkInput): Promise<
     p_label: l.label,
     p_url: withScheme(l.url),
     p_campaign: l.campaign.trim() || null,
+    p_profile: await openBrand(),
   });
   if (error) fail(error);
   return data as TrackedLink;
+}
+
+/** Deletes every tracked link of one brand (removing the brand), with their counts; their addresses are held 30 days. */
+export async function deleteBrandLinks(profileId: string): Promise<void> {
+  const { data, error } = await supabase.from("cs_tracked_links").select("id").eq("profile_id", profileId);
+  if (error) fail(error);
+  for (const l of data ?? []) await deleteTrackedLink(l.id as string);
 }
 
 export async function deleteTrackedLink(id: string): Promise<boolean> {
