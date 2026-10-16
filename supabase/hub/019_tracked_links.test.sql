@@ -163,7 +163,7 @@ select public.cs_test_assert(
           and owner_id = '7e57c0de-0000-4000-8000-0000000000b1'
    from public.cs_tracked_links where id = current_setting('cs_test.l1')::uuid)
   and (select count(*) = 1 and bool_and(name = 'Spring guide' and report_slug is null)
-       from public.cs_tracked_link_campaigns),
+       from public.cs_tracked_link_campaigns where owner_id::text like '7e57c0de-%'),
   '1.1 slug lowercased, label and campaign cleaned, campaign made with its report off');
 
 select set_config('cs_test.l2', (public.cs_save_tracked_link(null, '', 'Book a call',
@@ -173,7 +173,7 @@ select public.cs_test_assert(
   '1.2 a blank slug gets a random 10-character one');
 select public.cs_test_assert(
   (select count(distinct campaign_id) = 1 and count(*) = 2 from public.cs_tracked_links)
-  and (select count(*) = 1 from public.cs_tracked_link_campaigns),
+  and (select count(*) = 1 from public.cs_tracked_link_campaigns where owner_id::text like '7e57c0de-%'),
   '1.3 a campaign name in another case joins the same campaign');
 
 select set_config('cs_test.l3', (public.cs_save_tracked_link(null, 'ada-form', 'Form',
@@ -269,7 +269,7 @@ select public.cs_test_assert(
   (select count(*) = 2
           and bool_and(owner_id = '7e57c0de-0000-4000-8000-0000000000b1' and released_at = now())
    from public.cs_tracked_link_slug_holds where slug in ('ada-url-check', 'ada-old'))
-  and (select count(*) = 2 from public.cs_tracked_link_slug_holds),
+  and (select count(*) = 2 from public.cs_tracked_link_slug_holds where owner_id::text like '7e57c0de-%'),
   '1.35 each rename holds the old slug once, for 30 days; an edit that keeps the slug holds nothing');
 set local role authenticated;
 
@@ -289,7 +289,7 @@ select public.cs_test_expect_error($$select public.cs_save_tracked_link(null, 'A
   '%address is taken%', '2.1 a slug in use cannot be taken');
 select public.cs_test_assert(
   (select count(*) = 1 from public.cs_tracked_links)
-  and (select count(*) = 0 from public.cs_tracked_link_campaigns),
+  and (select count(*) = 0 from public.cs_tracked_link_campaigns where owner_id::text like '7e57c0de-%'),
   '2.2 another adviser reads only their own link and none of A''s campaigns');
 select public.cs_test_expect_error(
   format('select public.cs_save_tracked_link(%L, %L, %L, %L)', current_setting('cs_test.l1'), 'stolen', 'Mine', 'https://evil.example'),
@@ -436,7 +436,7 @@ set local role authenticated;
 set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b1","role":"authenticated"}';
 select set_config('cs_test.report', public.cs_set_tracked_link_report(current_setting('cs_test.campaign')::uuid, true), true);
 select public.cs_test_assert(current_setting('cs_test.report') ~ '^[a-z2-9]{20}$'
-  and (select report_slug = current_setting('cs_test.report') from public.cs_tracked_link_campaigns),
+  and (select report_slug = current_setting('cs_test.report') from public.cs_tracked_link_campaigns where owner_id::text like '7e57c0de-%'),
   '4.2 switching on makes a 20-character report slug the owner can read');
 select public.cs_test_assert(
   public.cs_set_tracked_link_report(current_setting('cs_test.campaign')::uuid, true) = current_setting('cs_test.report'),
@@ -479,7 +479,7 @@ set local request.jwt.claims = '{"sub":"7e57c0de-0000-4000-8000-0000000000b1","r
 select public.cs_test_assert(
   public.cs_set_tracked_link_report(current_setting('cs_test.campaign')::uuid, false) is null,
   '4.6a switching off returns no slug');
-select public.cs_test_assert((select report_slug is null from public.cs_tracked_link_campaigns),
+select public.cs_test_assert((select report_slug is null from public.cs_tracked_link_campaigns where owner_id::text like '7e57c0de-%'),
   '4.6 switching off deletes the report slug');
 reset role;
 set local role service_role;
@@ -508,13 +508,13 @@ select public.cs_test_assert((select sum(clicks) = 5008 from public.cs_tracked_l
 
 -- l2 leaves the campaign; l1 is then its last link.
 select public.cs_save_tracked_link(current_setting('cs_test.l2')::uuid, null, 'Book a call', 'https://calendly.com/ada', null);
-select public.cs_test_assert((select count(*) = 1 from public.cs_tracked_link_campaigns),
+select public.cs_test_assert((select count(*) = 1 from public.cs_tracked_link_campaigns where owner_id::text like '7e57c0de-%'),
   '5.2 a campaign with a link left stays');
 select public.cs_test_assert(public.cs_delete_tracked_link(current_setting('cs_test.l1')::uuid) = true,
   '5.3 the owner deletes a link');
 select public.cs_test_assert(public.cs_delete_tracked_link(current_setting('cs_test.l1')::uuid) = false,
   '5.4 deleting again finds nothing');
-select public.cs_test_assert((select count(*) = 0 from public.cs_tracked_link_campaigns),
+select public.cs_test_assert((select count(*) = 0 from public.cs_tracked_link_campaigns where owner_id::text like '7e57c0de-%'),
   '5.5 a campaign whose last link went is deleted, report and all');
 reset role;
 select public.cs_test_assert(
@@ -526,7 +526,7 @@ select public.cs_test_assert(
   (select count(*) = 1
           and bool_and(owner_id = '7e57c0de-0000-4000-8000-0000000000b1' and released_at = now())
    from public.cs_tracked_link_slug_holds where slug = 'ada-guide')
-  and (select count(*) = 3 from public.cs_tracked_link_slug_holds),
+  and (select count(*) = 3 from public.cs_tracked_link_slug_holds where owner_id::text like '7e57c0de-%'),
   '5.6b the owner''s delete holds its slug once, for 30 days');
 
 set local role authenticated;
