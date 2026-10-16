@@ -58,6 +58,11 @@
   from a request is checked against the caller's own Zernio profile first.
   Off unless ZERNIO_API_KEY is set and the caller is in SOCIAL_CONNECT_USERS.
   Rules, caps and secrets: `docs/zernio-connection.md`.
+- Leo's posts board (/reels, moneybees-reels studio/api) is reached only through `team-board`
+  (JWT on, 022 `cs_board_members`, not 011's `cs_team_members`): it sends the board BOARD_KEY plus the
+  caller's role and brands, and the board decides every write. Leo invites people at /reels/team; they
+  join at /join#<token>. Secrets: BOARD_KEY (same value on the moneybees-studio Vercel project),
+  MB_STUDIO_URL, TEAM_OWNER_IDS, TEAM_CLAIM_DENY_IDS. Rules: `docs/team-roles.md`.
 - Decisions in edge functions (classify, detect yes/no, score, rank, route,
   pick one) go through `supabase/functions/_shared/jev.ts` (TypeSafe Jev,
   pinned jev-1.13.0, TYPESAFE_API_KEY set as a secret 2026-10-08), never an
