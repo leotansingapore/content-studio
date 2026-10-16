@@ -1,12 +1,61 @@
 {
-  "fetched": "2026-10-15",
+  "fetched": "2026-10-16",
   "questions": [
+    {
+      "question": "[Fresh Grad] Repay Parents first or invest",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x6rrom/fresh_grad_repay_parents_first_or_invest/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-15T17:22:05.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "IBKR VUAA or MOOMOO VOO",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x6ovet/ibkr_vuaa_or_moomoo_voo/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-15T15:33:31.000Z",
+      "audience": "working-adult"
+    },
     {
       "question": "MARI invest",
       "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
       "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-15T03:13:30.000Z",
+      "publishedAt": "2026-10-15T14:40:37.000Z",
       "audience": "general"
+    },
+    {
+      "question": "Anyone considered selling their endowment policy instead of surrendering it?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x6kvz8/anyone_considered_selling_their_endowment_policy/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-15T12:55:55.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Resale without grants",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x6fdbi/resale_without_grants/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-15T07:37:05.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Advice on ETF’s in Stashaway",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x6f8hq/advice_on_etfs_in_stashaway/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-15T07:28:01.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Just started work need insurance advice",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x6d1y2/just_started_work_need_insurance_advice/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-15T05:12:24.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "How do I contact Incomeshield Claims Recovery Department",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x6cjd5/how_do_i_contact_incomeshield_claims_recovery/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-15T04:42:29.000Z",
+      "audience": "working-adult"
     },
     {
       "question": "32y/o",
@@ -279,7 +328,7 @@
       "url": "https://forums.hardwarezone.com.sg/threads/supplementary-retirement-schemes-srs.6410066/",
       "source": "HardwareZone Money Mind",
       "publishedAt": "2026-10-11T17:14:26.000Z",
-      "audience": "working-adult"
+      "audience": "pre-retiree"
     },
     {
       "question": "Tiger broker Cash Boost - need help",

@@ -1,5 +1,29 @@
 [
   {
+    "id": "c4a182d1e82b",
+    "title": "MoneyOwl launches planning tool to gauge income sufficiency in retirement",
+    "gist": "Financial advisory firm MoneyOwl rolled out a free retirement income planning tool called the OwlRetirement Planner. It combines Central Provident Fund accounts, cash savings and investments to show how long assets can produce retirement income. This helps Singaporeans plan for long life spans, with 2025 average life expectancy at birth reaching 81.8 for males and 86 for females.",
+    "talkingPoint": "Clients may be concerned about outliving their funds or having insufficient cash for unexpected expenses. You can ask how their current mix of CPF Life, savings and investments balances lifelong income with liquidity.",
+    "clientMessage": "Hi [Client name], a financial advisory firm launched a retirement tool to help people see if their savings can last. Life expectancy in Singapore is high, with many reaching past age 90. Planning involves balancing steady lifelong income with cash for unexpected needs. If you like, we can look at your own retirement plan together to review your projections. Let me know if you want to connect. [Your name]",
+    "source": "The Business Times",
+    "url": "https://businesstimes.com.sg/wealth/wealth-investing/moneyowl-launches-planning-tool-gauge-income-sufficiency-retirement",
+    "publishedAt": "2026-10-15T02:07:41+00:00",
+    "topic": "CPF and retirement",
+    "clipping": "/news/c4a182d1e82b.jpg"
+  },
+  {
+    "id": "677f3f4086c7",
+    "title": "What to know about paying for elderly parents’ expenses",
+    "gist": "Taking care of elderly parents can become a burden without prior planning, especially for Generation X families facing healthcare and living costs. A 2025 survey by the TIAA institute found that only 33% of respondents knew how long a 65-year-old typically lives. For a 65-year-old woman, the average lifespan is 87 years, and for a man, it is 84 years.",
+    "talkingPoint": "Clients may find that supporting aging relatives touches their finances and living arrangements if they underestimate longevity. You can ask clients how their current financial plan accounts for their parents' potential healthcare and daily expenses.",
+    "clientMessage": "Hi [Client name], a recent 2025 survey showed that many people underestimate how long retirees live, with average lifespans reaching 84 for men and 87 for women at age 65. Paying for elderly parents can become a burden if these years are not planned for in advance. If you would like, we can look at your current family plans and financial goals together to see where you stand. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/business/invest/5-things-to-know-about-paying-for-elderly-parents-expenses",
+    "publishedAt": "2026-10-15T21:00:00+00:00",
+    "topic": "CPF and retirement",
+    "clipping": "/news/677f3f4086c7.jpg"
+  },
+  {
     "id": "0ac3f9e44758",
     "title": "MAS holds monetary policy settings, pausing after two straight tightenings",
     "gist": "The Monetary Authority of Singapore (MAS) kept monetary policy settings unchanged on Wednesday (Oct 14), pausing after two straight tightenings earlier this year. MAS narrowed its 2026 core inflation forecast to 1.5 to 2 per cent and projected core and headline inflation to average 1.5 to 2.5 per cent in 2027. Stronger imported cost pressures are expected to keep inflation slightly elevated in the coming months before core inflation eases from mid-2027.",
@@ -213,18 +237,6 @@
     "clipping": "/news/f2a8cedb0cb3.jpg"
   },
   {
-    "id": "eab7f642835b",
-    "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
-    "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
-    "talkingPoint": "The best opening line on this wall. Ask a client how long they expect to live, then how long they expect to stay well. The gap they name is the conversation, and you have not mentioned a product yet. Careful: AIA's own study, so attribute it as AIA research rather than independent data, and quote the figures as what people EXPECT, not as a forecast of how long anyone will live.",
-    "clientMessage": "Hi [Client name],\n\nSingaporeans expect to live to about 80 but expect their health to start declining around 70. That ten-year gap is the part of retirement most plans forget to fund.\n\nSource: AIA Singapore, 23 Jul 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
-    "source": "AIA Singapore",
-    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-longevity-study-finds-singaporeans-view-longevity-with-more-anxiety-than-opportunity",
-    "publishedAt": "2026-07-22T16:00:00+00:00",
-    "topic": "Insurance",
-    "clipping": "/news/eab7f642835b.jpg"
-  },
-  {
     "id": "5e4ceccda4ff",
     "title": "Allianz to buy HSBC's Singapore insurance unit for $2.09 billion",
     "gist": "Allianz announced on 24 July 2026 (Singapore time) that it had agreed to acquire HSBC Life Singapore for about 2.0 billion euros. Closing is expected in the first half of 2027, subject to approval from the Monetary Authority of Singapore. The deal comes with a 15-year exclusive bancassurance agreement with HSBC Bank Singapore.",
@@ -235,6 +247,18 @@
     "publishedAt": "2026-07-22T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/5e4ceccda4ff.jpg"
+  },
+  {
+    "id": "eab7f642835b",
+    "title": "The longer we live, the more we worry: AIA Longevity Study finds Singaporeans view longevity with more anxiety than opportunity",
+    "gist": "More than half of Singaporeans, 51 per cent, see living longer as more of a concern than an opportunity. Only 22 per cent see it as an opportunity. Singaporeans expect to live to 80.2 and expect their health to start declining at 70.2, a ten-year gap between lifespan and healthspan. 53 per cent say they feel uncertain when they think about growing older. Financial preparedness is the weakest of the four pillars, with 61 per cent concerned about running out of retirement savings. Younger Singaporeans are more worried than older ones, and expect an even longer gap.",
+    "talkingPoint": "The best opening line on this wall. Ask a client how long they expect to live, then how long they expect to stay well. The gap they name is the conversation, and you have not mentioned a product yet. Careful: AIA's own study, so attribute it as AIA research rather than independent data, and quote the figures as what people EXPECT, not as a forecast of how long anyone will live.",
+    "clientMessage": "Hi [Client name],\n\nSingaporeans expect to live to about 80 but expect their health to start declining around 70. That ten-year gap is the part of retirement most plans forget to fund.\n\nSource: AIA Singapore, 23 Jul 2026. If you'd like, we can look at what this means for your own plan.\n\n[Your name]",
+    "source": "AIA Singapore",
+    "url": "https://aia.com.sg/en/about-aia/media-centre/press-releases/2026/aia-longevity-study-finds-singaporeans-view-longevity-with-more-anxiety-than-opportunity",
+    "publishedAt": "2026-07-22T16:00:00+00:00",
+    "topic": "Insurance",
+    "clipping": "/news/eab7f642835b.jpg"
   },
   {
     "id": "cc5c9a27e256",
