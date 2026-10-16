@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { brandForProfile, cardsIn, igLine, mmss, type ReelCard } from "./reelsBoard";
+import { aspectOf, brandForProfile, cardsIn, feedCards, igLine, mmss, type ReelCard } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -43,6 +43,25 @@ describe("igLine", () => {
   it("links a posted reel to its Instagram post", () => {
     const c = { ...card("a", "posted", "finternship"), ig: { state: "posted" as const, permalink: "https://instagram.com/p/x", account: "finternshipofficial" } };
     expect(igLine(c)).toEqual({ text: "On Instagram @finternshipofficial", href: "https://instagram.com/p/x" });
+  });
+});
+
+describe("posts view", () => {
+  it("shows carousels at 4:5 and reels at 9:16", () => {
+    expect(aspectOf({ ...card("a", "review"), kind: "carousel" })).toBe("4 / 5");
+    expect(aspectOf(card("b", "review"))).toBe("9 / 16");
+  });
+  it("lists every stage but Archived for 'all', soonest first, undated last, one brand only", () => {
+    const cards = [
+      card("late", "review", "activitytracker", "2026-11-03T19:30"),
+      card("undated", "scheduled", "activitytracker"),
+      card("soon", "approved", "activitytracker", "2026-10-20T19:30"),
+      card("gone", "archived", "activitytracker", "2026-10-18T19:30"),
+      card("other", "review", "moneybees", "2026-10-19T19:30"),
+    ];
+    expect(feedCards(cards, "all", "activitytracker").map((c) => c.id)).toEqual(["soon", "late", "undated"]);
+    expect(feedCards(cards, "review", "").map((c) => c.id)).toEqual(["other", "late"]);
+    expect(feedCards(cards, "archived", "activitytracker").map((c) => c.id)).toEqual(["gone"]);
   });
 });
 

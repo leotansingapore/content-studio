@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Clapperboard, Columns3, Images, LayoutGrid } from "lucide-react";
+import { Clapperboard, Columns3, Images, LayoutGrid, RefreshCw, Rows3 } from "lucide-react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import ReelDrawer from "@/components/reels/ReelDrawer";
+import ReelFeed from "@/components/reels/ReelFeed";
 import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
@@ -12,10 +13,12 @@ import { activeProfile } from "@/lib/profiles";
 import {
   NEXT,
   REELS_BOARD_OWNERS,
+  aspectOf,
   brandForProfile,
   brandOf,
   cardsIn,
   currentVersion,
+  feedCards,
   fetchBoard,
   IG_HANDLES,
   igLine,
@@ -45,11 +48,21 @@ export default function ReelsPage() {
   const setBrand = (b: string) => setParams((prev) => withParam(prev, "brand", b || "all"), { replace: true });
   const [archived, setArchived] = useUrlState("archived", "hide", { allowed: ["hide", "show"] });
   const showArchived = archived === "show";
-  // Board (kanban columns, drag between stages) on wide screens, grid on phones; remembered per device.
-  const wide = typeof window !== "undefined" && window.innerWidth >= 1024;
-  const [view, pickView] = useUrlState<"board" | "grid">("view", wide ? "board" : "grid", { allowed: ["board", "grid"], remember: "cs-reels-view" });
+  // Posts (every post at its real shape, full caption, decide beside it) is the default; Board (kanban, drag between
+  // stages) and Grid stay one tap away. Remembered per device under a new key so the Posts default reaches everyone once.
+  const [view, pickView] = useUrlState<"feed" | "board" | "grid">("view", "feed", { allowed: ["feed", "board", "grid"], remember: "cs-reels-view-2" });
+  const [stage, pickStage] = useUrlState<StageId | "all">("stage", "review", { allowed: ["review", "changes", "approved", "scheduled", "posted", "archived", "all"] });
+  const [loading, setLoading] = useState(false);
   const [over, setOver] = useState<string | null>(null);
   const openId = params.get("card");
+
+  const reload = () => {
+    setLoading(true);
+    fetchBoard()
+      .then((b) => { setBoard(b); setError(""); })
+      .catch((e) => setError(String(e.message || e)))
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
     document.title = "Reels - Content Studio";
@@ -147,7 +160,7 @@ export default function ReelsPage() {
               Archived
             </label>
             <div className="flex rounded-lg border border-border/60 bg-muted/30 p-0.5" role="group" aria-label="Layout">
-              {([["board", "Board", Columns3], ["grid", "Grid", LayoutGrid]] as const).map(([id, label, Icon]) => (
+              {([["feed", "Posts", Rows3], ["board", "Board", Columns3], ["grid", "Grid", LayoutGrid]] as const).map(([id, label, Icon]) => (
                 <button key={id} type="button" onClick={() => pickView(id)} aria-pressed={view === id}
                   className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold ${view === id ? "bg-background shadow-sm" : "text-muted-foreground"}`}>
                   <Icon className="h-3.5 w-3.5" /> {label}
@@ -158,6 +171,23 @@ export default function ReelsPage() {
         )}
       </header>
 
+      {board && view === "feed" && (
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Show">
+          {[...stages.map((s) => [s.id, s.name] as const), ["all", "All"] as const].map(([id, name]) => {
+            const n = feedCards(board.cards, id as StageId | "all", brand ?? "").length;
+            return (
+              <button key={id} type="button" onClick={() => pickStage(id as StageId | "all")} aria-pressed={stage === id}
+                className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold ${stage === id ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground hover:text-foreground"}`}>
+                {name} <span className={stage === id ? "opacity-80" : "opacity-70"}>{n}</span>
+              </button>
+            );
+          })}
+          <Button variant="ghost" size="sm" className="ml-auto h-9" onClick={reload} disabled={loading} aria-label="Refresh the board">
+            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+        </div>
+      )}
+
       {error && (
         <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
           The reels board didn't load ({error}).{" "}
@@ -165,6 +195,10 @@ export default function ReelsPage() {
         </div>
       )}
       {!board && !error && <div className="h-64 animate-pulse rounded-xl bg-muted/50" aria-busy="true" aria-label="Loading reels" />}
+
+      {board && view === "feed" && (
+        <ReelFeed cards={feedCards(board.cards, stage, brand ?? "")} board={board} onChange={replace} onMove={move} onOpen={open} />
+      )}
 
       {board && view === "board" && (
         <div className="-mx-4 overflow-x-auto px-4 pb-3 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
@@ -204,7 +238,7 @@ export default function ReelsPage() {
                           onDragStart={(e) => { e.dataTransfer.setData("text/plain", c.id); e.dataTransfer.effectAllowed = "move"; }}
                           className="grid cursor-grab grid-cols-[52px_1fr] gap-2 rounded-lg border border-border/60 bg-card p-2 shadow-sm active:cursor-grabbing"
                         >
-                          <button type="button" onClick={() => open(c.id)} className="block aspect-[9/16] overflow-hidden rounded-md bg-black" aria-label={`Open ${c.title}`}>
+                          <button type="button" onClick={() => open(c.id)} className="block self-start overflow-hidden rounded-md bg-muted" style={{ aspectRatio: aspectOf(c) }} aria-label={`Open ${c.title}`}>
                             {v.thumbUrl && <img src={v.thumbUrl} alt="" loading="lazy" className="h-full w-full object-cover" />}
                           </button>
                           <div className="min-w-0 space-y-1">
@@ -250,7 +284,7 @@ export default function ReelsPage() {
                     return (
                       <li key={c.id} className="flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
                         <button type="button" onClick={() => open(c.id)} className="group relative block text-left">
-                          <span className="relative block aspect-[9/16] bg-black">
+                          <span className="relative block bg-muted" style={{ aspectRatio: aspectOf(c) }}>
                             {v.thumbUrl && <img src={v.thumbUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-opacity group-hover:opacity-90" />}
                             <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
                               {isCarousel(c) ? <Images className="h-3 w-3" /> : <Clapperboard className="h-3 w-3" />}

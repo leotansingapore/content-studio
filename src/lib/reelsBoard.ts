@@ -107,6 +107,16 @@ export function brandForProfile(brands: Board["brands"], profileName: string): s
 const byDate = (a: ReelCard, b: ReelCard) =>
   Number(!a.schedule) - Number(!b.schedule) || (a.schedule ?? "").localeCompare(b.schedule ?? "") || a.title.localeCompare(b.title);
 
+/** A post's real shape: carousels and picture posts are 4:5 on Instagram, reels 9:16 (thumbs keep their own shape). */
+export const aspectOf = (c: ReelCard) => (isCarousel(c) ? "4 / 5" : "9 / 16");
+
+/** Posts view: one stage, or every stage but Archived ("all"), soonest date first, undated last. */
+export function feedCards(cards: ReelCard[], stage: StageId | "all", brand: string): ReelCard[] {
+  return cards
+    .filter((c) => (stage === "all" ? c.stage !== "archived" : c.stage === stage) && (!brand || brandOf(c) === brand))
+    .sort(byDate);
+}
+
 /** Cards for one stage column: scheduled ones by date, then by title. */
 export function cardsIn(cards: ReelCard[], stage: StageId, brand: string): ReelCard[] {
   return cards

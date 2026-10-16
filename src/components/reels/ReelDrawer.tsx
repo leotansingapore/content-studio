@@ -111,7 +111,7 @@ export default function ReelDrawer({
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={card.title}>
       <button type="button" aria-label="Close" className="absolute inset-0 bg-foreground/40" onClick={onClose} />
-      <div className="relative flex h-full w-full max-w-[600px] flex-col bg-background shadow-elegant">
+      <div className="relative flex h-full w-full max-w-[960px] flex-col bg-background shadow-elegant">
         <div className="flex items-start gap-3 border-b border-border/70 px-4 py-3">
           <div className="min-w-0 flex-1">
             <h2 className="font-serif text-lg font-semibold leading-snug">{card.title}</h2>
@@ -126,7 +126,7 @@ export default function ReelDrawer({
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4">
-          <div className="grid gap-4 sm:grid-cols-[240px_1fr]">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,420px)_1fr]">
             {car ? (
               <div className="space-y-2">
                 <div ref={slides} className="flex aspect-[4/5] snap-x snap-mandatory overflow-x-auto rounded-xl bg-black"
@@ -156,7 +156,7 @@ export default function ReelDrawer({
                 preload="metadata"
                 onLoadedMetadata={(e) => start?.t && (e.currentTarget.currentTime = start.t)}
                 onTimeUpdate={(e) => setNow(e.currentTarget.currentTime)}
-                className="mx-auto aspect-[9/16] w-full max-w-[240px] rounded-xl bg-black"
+                className="mx-auto aspect-[9/16] w-full max-w-[300px] rounded-xl bg-black"
               />
             )}
 
