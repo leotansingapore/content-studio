@@ -1,6 +1,55 @@
 {
-  "fetched": "2026-10-16",
+  "fetched": "2026-10-17",
   "questions": [
+    {
+      "question": "what does FI actually mean? is it possible income only considered FI?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x7t2i6/what_does_fi_actually_mean_is_it_possible_income/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-16T21:50:17.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Should I top-up CPF?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x7ko8t/should_i_topup_cpf/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-16T16:21:51.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "31M, employed, clueless about long term savings and retirement planning",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x7bs7f/31m_employed_clueless_about_long_term_savings_and/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-16T09:37:55.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "AMUNDI US vs DBS",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x7ai8u/amundi_us_vs_dbs/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-16T08:14:42.000Z",
+      "audience": "young-adult"
+    },
+    {
+      "question": "did anyone buy the new SGX SDRs?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x78pg4/did_anyone_buy_the_new_sgx_sdrs/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-16T06:22:28.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "HSBC Step Up Promo - Part 2",
+      "url": "https://forums.hardwarezone.com.sg/threads/hsbc-step-up-promo-part-2.6319480/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-16T02:21:58.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "MARI invest",
+      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-16T02:13:37.000Z",
+      "audience": "young-adult"
+    },
     {
       "question": "[Fresh Grad] Repay Parents first or invest",
       "url": "https://www.reddit.com/r/singaporefi/comments/1x6rrom/fresh_grad_repay_parents_first_or_invest/",
@@ -14,13 +63,6 @@
       "source": "r/singaporefi",
       "publishedAt": "2026-10-15T15:33:31.000Z",
       "audience": "working-adult"
-    },
-    {
-      "question": "MARI invest",
-      "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-15T14:40:37.000Z",
-      "audience": "general"
     },
     {
       "question": "Anyone considered selling their endowment policy instead of surrendering it?",
@@ -282,13 +324,6 @@
       "audience": "young-adult"
     },
     {
-      "question": "HSBC Step Up Promo - Part 2",
-      "url": "https://forums.hardwarezone.com.sg/threads/hsbc-step-up-promo-part-2.6319480/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-12T15:03:15.000Z",
-      "audience": "working-adult"
-    },
-    {
       "question": "Repricing HDB mortgage",
       "url": "https://www.reddit.com/r/singaporefi/comments/1x41chh/repricing_hdb_mortgage/",
       "source": "r/singaporefi",
@@ -385,13 +420,6 @@
       "source": "HardwareZone Money Mind",
       "publishedAt": "2026-10-10T10:31:29.000Z",
       "audience": "working-adult"
-    },
-    {
-      "question": "Interactive Brokers - SGD now available for funding - Part 2",
-      "url": "https://forums.hardwarezone.com.sg/threads/interactive-brokers-sgd-now-available-for-funding-part-2.6411054/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-10T04:55:40.000Z",
-      "audience": "general"
     }
   ]
 }
