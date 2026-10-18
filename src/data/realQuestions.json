@@ -1,6 +1,41 @@
 {
-  "fetched": "2026-10-17",
+  "fetched": "2026-10-18",
   "questions": [
+    {
+      "question": "Should I buy a studio in Singapore instead of renting room?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x8ndt0/should_i_buy_a_studio_in_singapore_instead_of/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-17T22:43:06.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "Singapore Finance With Ronny - Stocks vs Property in Singapore Over 20 Years — Who Actually Won?",
+      "url": "https://forums.hardwarezone.com.sg/threads/singapore-finance-with-ronny-stocks-vs-property-in-singapore-over-20-years-who-actually-won.7225688/",
+      "source": "HardwareZone Money Mind",
+      "publishedAt": "2026-10-17T13:27:43.000Z",
+      "audience": "general"
+    },
+    {
+      "question": "Property investment",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x86klu/property_investment/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-17T10:07:44.000Z",
+      "audience": "working-adult"
+    },
+    {
+      "question": "To Slow Down or Nah?",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x842j8/to_slow_down_or_nah/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-17T07:30:00.000Z",
+      "audience": "parent"
+    },
+    {
+      "question": "When is a good time to take a break from work",
+      "url": "https://www.reddit.com/r/singaporefi/comments/1x82oyt/when_is_a_good_time_to_take_a_break_from_work/",
+      "source": "r/singaporefi",
+      "publishedAt": "2026-10-17T06:06:47.000Z",
+      "audience": "working-adult"
+    },
     {
       "question": "what does FI actually mean? is it possible income only considered FI?",
       "url": "https://www.reddit.com/r/singaporefi/comments/1x7t2i6/what_does_fi_actually_mean_is_it_possible_income/",
@@ -48,7 +83,7 @@
       "url": "https://forums.hardwarezone.com.sg/threads/mari-invest.6956665/",
       "source": "HardwareZone Money Mind",
       "publishedAt": "2026-10-16T02:13:37.000Z",
-      "audience": "young-adult"
+      "audience": "general"
     },
     {
       "question": "[Fresh Grad] Repay Parents first or invest",
@@ -174,7 +209,7 @@
       "url": "https://www.reddit.com/r/singaporefi/comments/1x5k3m0/possible_retirement_plan/",
       "source": "r/singaporefi",
       "publishedAt": "2026-10-14T06:36:00.000Z",
-      "audience": "pre-retiree"
+      "audience": "working-adult"
     },
     {
       "question": "How to buy Tbills? I asked Google AI , it taught me the steps but ..",
@@ -384,41 +419,6 @@
       "url": "https://www.reddit.com/r/singaporefi/comments/1x32sdv/is_ilp_that_bad/",
       "source": "r/singaporefi",
       "publishedAt": "2026-10-11T08:23:33.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Im noob investor, what does this shows about my position on this share?",
-      "url": "https://forums.hardwarezone.com.sg/threads/im-noob-investor-what-does-this-shows-about-my-position-on-this-share.7226662/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-11T06:29:48.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "Investment advice in this situation (overseas-->SG)",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x303gd/investment_advice_in_this_situation_overseassg/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-11T05:39:39.000Z",
-      "audience": "young-adult"
-    },
-    {
-      "question": "How much to set aside for investment towards retirement vs permanent housing?",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x2z108/how_much_to_set_aside_for_investment_towards/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-11T04:37:08.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "Thoughts on Revolut Metal tier",
-      "url": "https://www.reddit.com/r/singaporefi/comments/1x2x6b2/thoughts_on_revolut_metal_tier/",
-      "source": "r/singaporefi",
-      "publishedAt": "2026-10-11T02:56:06.000Z",
-      "audience": "working-adult"
-    },
-    {
-      "question": "FIRE (Financial Independence, Retire Early) Movement",
-      "url": "https://forums.hardwarezone.com.sg/threads/fire-financial-independence-retire-early-movement.6370468/",
-      "source": "HardwareZone Money Mind",
-      "publishedAt": "2026-10-10T10:31:29.000Z",
       "audience": "working-adult"
     }
   ]
