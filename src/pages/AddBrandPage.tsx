@@ -11,24 +11,11 @@ import { addProfile, loadProfiles, setActiveProfile } from "@/lib/profiles";
 import { saveSocialAccounts, type SocialAccounts, type SocialPlatform } from "@/lib/socialAccounts";
 import { saveVoiceProfile } from "@/lib/voiceProfile";
 import { supabase } from "@/lib/supabase";
+import { keptBrand, keptBrandKey, type BrandDna as Dna } from "@/lib/addBrand";
 
 // /brands/new: add a brand from its website (docs/brand-isolation.md, phase 2; Holo's Brand DNA flow).
 // One address, a short wait with named steps, then pre-filled cards to confirm instead of typing. The brand's
 // own stores (brand kit, positioning, social accounts, voice) are filled when it is created.
-
-interface Dna {
-  url: string;
-  name: string;
-  colour: string | null;
-  logo: string | null;
-  handles: Partial<Record<SocialPlatform, string>>;
-  oneLiner: string;
-  audience: PlanAudience;
-  audienceDetail: string;
-  topics: string[];
-  edge: string;
-  voice: string;
-}
 
 const STEPS = ["Opening the site", "Name and logo", "Brand colour", "Social accounts", "What you do and for whom", "How you sound"];
 const CARDS = ["identity", "colour", "social", "offer", "topics", "voice"] as const;
@@ -71,10 +58,39 @@ export default function AddBrandPage() {
       if (brand) {
         setCreated(brand.name);
         setPhase("done");
+        return;
+      }
+      // a form left half done in this tab: the address, or the site read and the cards already checked
+      let raw: string | null = null;
+      try {
+        raw = id ? sessionStorage.getItem(keptBrandKey(id)) : null;
+      } catch {
+        // storage blocked: start empty
+      }
+      const kept = keptBrand(raw, CARDS);
+      if (!kept) return;
+      setAddress(kept.address);
+      setName(kept.name);
+      setJustName(kept.justName);
+      if (kept.dna) {
+        setDna(kept.dna);
+        setDone(new Set(kept.done as Card[]));
+        setPhase("confirm");
       }
     });
     return () => window.clearInterval(timer.current);
   }, []);
+
+  // Kept for the tab until the brand is created, so leaving the page or reloading loses nothing.
+  useEffect(() => {
+    if (!uid || phase === "reading" || phase === "done") return;
+    try {
+      if (!address && !name && !dna) sessionStorage.removeItem(keptBrandKey(uid));
+      else sessionStorage.setItem(keptBrandKey(uid), JSON.stringify({ address, name, justName, dna, done: [...done] }));
+    } catch {
+      // storage full or blocked: the form just isn't kept
+    }
+  }, [uid, phase, address, name, justName, dna, done]);
 
   const read = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +112,11 @@ export default function AddBrandPage() {
   };
 
   const patch = (p: Partial<Dna>) => setDna((d) => d && { ...d, ...p });
+  const startOver = () => {
+    setDna(null);
+    setDone(new Set());
+    setPhase("url");
+  };
   const confirm = (c: Card) => setDone((s) => new Set(s).add(c));
   const reopen = (c: Card) => setDone((s) => {
     const n = new Set(s);
@@ -106,6 +127,11 @@ export default function AddBrandPage() {
   const create = (brand: Dna | null) => {
     const title = (brand?.name ?? name).trim().slice(0, 40);
     if (!uid || !title) return;
+    try {
+      sessionStorage.removeItem(keptBrandKey(uid));
+    } catch {
+      // nothing was kept
+    }
     const p = addProfile(uid, title);
     // the stores below key on the open brand, so it opens first
     setActiveProfile(uid, p.id);
@@ -165,7 +191,7 @@ export default function AddBrandPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <header className="space-y-1">
-        <Link to="/home" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
+        <Link to="/home" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11">
           <ArrowLeft className="h-3.5 w-3.5" /> Back
         </Link>
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Add a brand</h1>
@@ -182,7 +208,7 @@ export default function AddBrandPage() {
           </label>
           <p className="text-xs text-muted-foreground">Takes under a minute. We read the home page only, and nothing is posted.</p>
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
-          <button type="button" className="text-sm font-semibold text-primary" onClick={() => setJustName(true)}>No website? Start with just a name</button>
+          <button type="button" className="text-sm font-semibold text-primary [@media(pointer:coarse)]:min-h-11" onClick={() => setJustName(true)}>No website? Start with just a name</button>
         </form>
       )}
 
@@ -195,7 +221,7 @@ export default function AddBrandPage() {
               <Button type="submit" disabled={!name.trim()}>Add brand</Button>
             </div>
           </label>
-          <button type="button" className="text-sm font-semibold text-primary" onClick={() => setJustName(false)}>Read its website instead</button>
+          <button type="button" className="text-sm font-semibold text-primary [@media(pointer:coarse)]:min-h-11" onClick={() => setJustName(false)}>Read its website instead</button>
         </form>
       )}
 
@@ -228,7 +254,7 @@ export default function AddBrandPage() {
           ))}
           {row("colour", "Brand colour", dna.colour ?? "none found", (
             <label className="flex items-center gap-3 text-sm">
-              <input type="color" value={dna.colour ?? "#2563eb"} onChange={(e) => patch({ colour: e.target.value })} className="h-10 w-14 rounded border border-border/60" aria-label="Brand colour" />
+              <input type="color" value={dna.colour ?? "#2563eb"} onChange={(e) => patch({ colour: e.target.value })} className="h-10 w-14 rounded border border-border/60 [@media(pointer:coarse)]:h-11" aria-label="Brand colour" />
               {dna.colour ? dna.colour : "None on the site. Pick one, or keep the default."}
             </label>
           ))}
@@ -246,7 +272,7 @@ export default function AddBrandPage() {
             <div className="space-y-2">
               <Textarea rows={2} value={dna.oneLiner} onChange={(e) => patch({ oneLiner: e.target.value })} placeholder="We help ... so they can ..." className="text-sm" aria-label="One-line description" />
               <div className="flex flex-wrap gap-2">
-                <select value={dna.audience} onChange={(e) => patch({ audience: e.target.value as PlanAudience })} className="h-9 rounded-md border border-input bg-background px-2 text-sm" aria-label="Who it serves">
+                <select value={dna.audience} onChange={(e) => patch({ audience: e.target.value as PlanAudience })} className="h-9 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" aria-label="Who it serves">
                   {(Object.keys(AUDIENCE_NAMES) as PlanAudience[]).map((a) => <option key={a} value={a}>{AUDIENCE_NAMES[a]}</option>)}
                 </select>
                 <Input value={dna.audienceDetail} onChange={(e) => patch({ audienceDetail: e.target.value })} placeholder="Exactly who" className="flex-1 text-sm" aria-label="Exactly who" />
@@ -266,6 +292,7 @@ export default function AddBrandPage() {
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Button size="lg" disabled={!dna.name.trim()} onClick={() => create(dna)}>Create {dna.name.trim() || "brand"}</Button>
             {done.size < CARDS.length && <span className="text-xs text-muted-foreground">Anything you haven't checked is kept as shown.</span>}
+            <Button variant="ghost" className="ml-auto text-muted-foreground" onClick={startOver}>Read a different site</Button>
           </div>
         </div>
       )}
