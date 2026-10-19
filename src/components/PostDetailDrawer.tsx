@@ -124,7 +124,7 @@ export default function PostDetailDrawer({
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition-colors hover:bg-black/75"
+          className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition-colors hover:bg-black/75 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
           <X className="h-4 w-4" />
         </button>
