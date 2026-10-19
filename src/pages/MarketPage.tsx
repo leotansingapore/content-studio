@@ -325,7 +325,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
                         <Card key={x.url} label={x.title} tag={x.relevant === null ? "Not judged" : x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"}
                           written={state.written.includes(newsKey(x))} writeUrl={newsWriteUrl(x)} writeLabel="Write a post from this"
                           onWrite={() => wrote(newsKey(x))} onDismiss={() => dismiss(newsKey(x))}>
-                          <a href={x.url} target="_blank" rel="noreferrer" className="block py-1.5 font-medium hover:underline">{x.title}</a>
+                          <a href={x.url} target="_blank" rel="noreferrer" className="block py-1.5 font-medium hover:underline [@media(pointer:coarse)]:py-2.5">{x.title}</a>
                           <p className="text-sm text-muted-foreground">
                             {x.source}{x.date ? `, ${x.date.slice(0, 10)}` : ""}
                             {also.length > 0 && <>, also in {also.map((o) => o.source).join(", ")}</>}
