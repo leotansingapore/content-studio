@@ -781,7 +781,7 @@ export default function DraftsPage() {
                         type="button"
                         onClick={() => setRepurposeOpenId(null)}
                         aria-label="Close"
-                        className="text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:-m-3.5 [@media(pointer:coarse)]:grid [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11 [@media(pointer:coarse)]:place-items-center"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
