@@ -58,7 +58,7 @@ function BrandBoxes({ brands, value, onChange }: { brands: Board["brands"]; valu
       {brands.map((b) => {
         const on = value.includes(b.id);
         return (
-          <label key={b.id} className={`inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border px-3 text-xs font-semibold ${on ? "border-primary bg-primary/10" : "border-border/60 text-muted-foreground"}`}>
+          <label key={b.id} className={`inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:h-11 ${on ? "border-primary bg-primary/10" : "border-border/60 text-muted-foreground"}`}>
             <input type="checkbox" className="h-4 w-4 accent-primary" checked={on}
               onChange={(e) => onChange(e.target.checked ? [...value, b.id] : value.filter((x) => x !== b.id))} />
             {b.name}
@@ -127,7 +127,7 @@ export default function ReelsTeamPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="space-y-1">
-        <Link to="/reels" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
+        <Link to="/reels" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11">
           <ArrowLeft className="h-3.5 w-3.5" /> Reels
         </Link>
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Team</h1>
@@ -209,7 +209,7 @@ export default function ReelsTeamPage() {
                     {m.email && <span className="text-xs text-muted-foreground">{m.email}</span>}
                     <select value={m.role} aria-label={`${m.label}'s role`}
                       onChange={(e) => updateMember(m.id, { role: e.target.value as Role }).then(put, (err) => fail(err, "change the role"))}
-                      className="ml-auto h-9 rounded-md border border-input bg-background px-2 text-sm">
+                      className="ml-auto h-9 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11">
                       {ROLES.map((r) => <option key={r} value={r}>{ROLE_NAMES[r]}</option>)}
                     </select>
                   </div>
