@@ -13,6 +13,11 @@ once shipped; a renamed param keeps reading the old name.
 The first table covers the Pipeline pages; the Grow, Discover and settings pages and the Create pages have their
 own sections below. Older params that still work are listed under "Still read".
 
+**Brand, on every page:** `?profile=<profile id>` (`me` for the default brand, else `p` plus letters and digits)
+opens that brand first, then the page. The page reloads once to switch and the param is removed once the brand is
+open; a device that doesn't know the brand yet keeps the param until its list syncs. Copy link adds it to every
+link it copies (docs/brand-isolation.md). Example: /calendar?view=upcoming&profile=pmg2k1x9ab.
+
 | Page | Param | Values | Default | History | Example |
 |---|---|---|---|---|---|
 | /plan | view | plan, setup (the positioning form over a built plan) | plan; setup when there is no plan | replace | /plan?view=setup |
@@ -36,9 +41,10 @@ own sections below. Older params that still work are listed under "Still read".
 | /drafts | review | a post id, opens its Share for review panel and reviewer comments | none | push | /drafts?review=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f |
 | /grid | (none) | the grid has no state of its own; tiles open /generate or /carousel | | | /grid |
 | /reels | brand | a reels board brand id, or all | the open profile's brand | replace | /reels?brand=moneybees |
-| /reels | view | board, grid | remembered, else board on wide screens, grid on phones | replace | /reels?view=grid |
+| /reels | view | feed (Posts: each post whole, caption and decision beside it), board, grid | remembered, else feed | replace | /reels?view=board |
+| /reels | stage | review, changes, approved, scheduled, posted, archived, all (the Posts view's stage chips) | review; a card link without it shows the card's own stage | replace | /reels?stage=scheduled |
 | /reels | archived | show, hide | hide | replace | /reels?archived=show |
-| /reels | card | a reel card id, opens it | none | push | /reels?card=c123 |
+| /reels | card | a reel card id, opens it; the Posts view also scrolls to it and marks it. A chat app that cuts the link at a `~` still opens it (the part before the `~` is matched), but put card last | none | push | /reels?card=c123 |
 | /reels | t, slide | seconds into the video, or the carousel slide, with card | none | with card | /reels?card=c123&t=12 |
 
 A link to an item that has not loaded yet keeps its param and opens when the data arrives; a link to an
@@ -101,7 +107,8 @@ so one that is gone shows everything.
 | /fads/:tab | (path) | personality, purpose, experience, audience, solutions, messaging, output; anything else opens personality | personality | push (Next/Back steps) | /fads/audience |
 | /recruit/:tab | (path) | /recruit (Brand Brain), /recruit/conversations, /recruit/agent | | | /recruit/conversations |
 | /feedback | tab, post, status, category, entry | owned by the shared feedback board (components/feedback/FeedbackBoard.tsx, copied from leotansingapore/feedback-board, not edited here): tab=roadmap, feedback, changelog; post=<number>; with tab=feedback, status=under_review, planned, in_progress, complete, declined and category=<category>; entry=<changelog slug> | roadmap | replace | /feedback?tab=feedback&status=planned |
-| /home, /bio, /accounts, /connect, /following | (none) | nothing on these is a view or filter: forms, one editor per profile, settings | | | /bio |
+| /home, /bio, /accounts, /connect, /following, /reels/team, /brands/new | (none) | nothing on these is a view or filter: forms, one editor per profile, settings, the board's invite links, the add-a-brand flow | | | /bio |
+| /join, /review/:token, /l/:slug, /t/report/:slug, /roadmap | (path or #) | public pages that a link already fully names: /join#<invite token>, a preview, a bio page, a campaign report, the public roadmap | | | /join#abc123 |
 
 ## Still read
 
@@ -118,6 +125,8 @@ Grow, Discover and settings pages:
   scrolls to the recruitment numbers.
 - /accounts?connected=<platform> and ?error=: Zernio's return from connecting an account; read once, then removed.
 - /team?code=<invite code>: the team invite link (teamReview.ts inviteLink); removed once the invite is handled.
+- /brands/new?done=<profile id>: the add-a-brand flow's own reload once the brand is made; opens its ready screen.
+- /diagnosis: sends you to /coach.
 - /feedback#<entry id>: the feedback board's changelog anchor.
 
 <!-- ==== Create pages (wave 2A) ==== -->

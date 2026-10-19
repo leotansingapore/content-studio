@@ -73,8 +73,20 @@ export const links = {
       review: o.review,
     })}`,
   grid: () => "/grid",
-  reels: (o: { brand?: string; view?: "board" | "grid"; archived?: boolean; card?: string; t?: number; slide?: number } = {}) =>
-    `/reels${qs({ brand: o.brand, view: o.view, archived: o.archived && "show", card: o.card, t: o.t, slide: o.slide })}`,
+  reels: (
+    o: {
+      brand?: string;
+      /** feed is the Posts view, the default (a job may still name it, to beat a remembered board or grid). */
+      view?: "feed" | "board" | "grid";
+      /** The Posts view's stage chip; a card link without it lands on the card's own stage. */
+      stage?: "review" | "changes" | "approved" | "scheduled" | "posted" | "archived" | "all";
+      archived?: boolean;
+      card?: string;
+      t?: number;
+      slide?: number;
+    } = {},
+  ) =>
+    `/reels${qs({ brand: o.brand, view: o.view, stage: o.stage !== "review" && o.stage, archived: o.archived && "show", card: o.card, t: o.t, slide: o.slide })}`,
 
   // ---- Grow, Discover and settings pages ----
   // Multi-selects take URL values (slugs, see slug()) and join as a comma list; defaults are left out.

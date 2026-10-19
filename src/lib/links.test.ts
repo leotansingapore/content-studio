@@ -22,6 +22,11 @@ describe("links", () => {
   it("encodes values and keeps the item params", () => {
     expect(links.drafts({ q: "cpf & you", review: "d1" })).toBe("/drafts?q=cpf+%26+you&review=d1");
     expect(links.reels({ brand: "moneybees", archived: true, card: "c1", t: 12 })).toBe("/reels?brand=moneybees&archived=show&card=c1&t=12");
+    // the AT newsjack job's Telegram link: card last, so a chat app cutting at the ~ keeps the rest
+    expect(links.reels({ brand: "activitytracker", view: "feed", stage: "scheduled", card: "at-1019-car1~carousel" })).toBe(
+      "/reels?brand=activitytracker&view=feed&stage=scheduled&card=at-1019-car1%7Ecarousel",
+    );
+    expect(links.reels({ stage: "review" })).toBe("/reels");
     expect(links.board({ business: "moneybees", feed: "f1" })).toBe("/board?business=moneybees&feed=f1");
     expect(links.plan({ view: "setup", competitor: "@leo" })).toBe("/plan?view=setup&competitor=%40leo");
   });
