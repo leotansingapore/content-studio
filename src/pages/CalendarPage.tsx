@@ -831,7 +831,7 @@ export default function CalendarPage() {
               type="button"
               onClick={closePost}
               aria-label="Close"
-              className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground"
+              className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
             >
               <X className="h-4 w-4" />
             </button>
@@ -862,7 +862,7 @@ export default function CalendarPage() {
             type="button"
             onClick={closePost}
             aria-label="Close"
-            className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground"
+            className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
           >
             <X className="h-4 w-4" />
           </button>
@@ -1227,7 +1227,7 @@ export default function CalendarPage() {
             type="button"
             onClick={closeDay}
             aria-label="Close day"
-            className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground"
+            className="-mr-1 -mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-md text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
           >
             <X className="h-4 w-4" />
           </button>
@@ -1602,7 +1602,7 @@ export default function CalendarPage() {
               {progress.toDo > 0 && (
                 <Link
                   to={nextSlotThisWeek ? `/generate?day=${nextSlotThisWeek.date}&time=${nextSlotThisWeek.time}` : "/generate"}
-                  className="-my-2 py-2 font-semibold text-primary hover:underline"
+                  className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center"
                 >
                   {nextSlotThisWeek ? `Write for ${dayLabel(nextSlotThisWeek.date)}, ${timeLabel(nextSlotThisWeek.time)}` : "Write a post"}
                 </Link>
@@ -1634,12 +1634,12 @@ export default function CalendarPage() {
                     <span className="font-medium text-foreground">{r.business}</span>
                     <span>{r.last ? `planned to ${dayLabel(r.last)}, then nothing` : `nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
                     {w && (
-                      <Link to={links.reels({ brand: w.brand })} className="-my-2 py-2 font-semibold text-primary hover:underline">
+                      <Link to={links.reels({ brand: w.brand })} className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
                         {w.count} reel{w.count > 1 ? "s" : ""} waiting for review
                       </Link>
                     )}
                     {mine && (
-                      <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline">
+                      <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
                         Write a post
                       </Link>
                     )}
