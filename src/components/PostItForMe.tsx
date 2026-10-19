@@ -433,7 +433,7 @@ export function PostItForMePanel({
     <section ref={root} aria-label="Post it for me" className="mt-3 space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">Post it for me</p>
-        <button type="button" onClick={onClose} aria-label="Close" className="-m-2 grid h-11 w-11 place-items-center text-muted-foreground hover:text-foreground sm:h-8 sm:w-8">
+        <button type="button" onClick={onClose} aria-label="Close" className="-m-2 grid h-11 w-11 place-items-center text-muted-foreground hover:text-foreground sm:h-8 sm:w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11">
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
