@@ -1041,7 +1041,7 @@ function Editor({
                         set({ keywordsText: chips.slice(0, -1).join(", ") });
                       }
                     }}
-                    className="min-h-10 min-w-0 flex-[1_1_140px] bg-transparent text-[15px] outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+                    className="min-h-10 min-w-0 flex-[1_1_140px] bg-transparent text-[15px] outline-none [@media(pointer:coarse)]:min-h-11 placeholder:text-muted-foreground disabled:cursor-not-allowed"
                   />
                 </div>
                 {!kwOff && (
