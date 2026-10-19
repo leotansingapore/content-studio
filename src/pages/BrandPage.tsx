@@ -456,7 +456,7 @@ export default function BrandPage() {
                     value={slot[0]}
                     aria-label="Day"
                     onChange={(e) => update({ slots: (brand.slots ?? []).map((x, j) => (j === i ? `${e.target.value}${x.slice(1)}` : x)) })}
-                    className="h-10 rounded-md border border-input bg-background px-2 text-sm"
+                    className="h-10 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
                   >
                     {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((d, n) => (
                       <option key={d} value={n}>{d}</option>
@@ -467,7 +467,7 @@ export default function BrandPage() {
                     value={slot.slice(2)}
                     aria-label="Time"
                     onChange={(e) => e.target.value && update({ slots: (brand.slots ?? []).map((x, j) => (j === i ? `${x[0]}T${e.target.value.slice(0, 5)}` : x)) })}
-                    className="h-10 rounded-md border border-input bg-background px-2 text-sm"
+                    className="h-10 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
                   />
                   <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" aria-label="Remove this time"
                     onClick={() => update({ slots: (brand.slots ?? []).filter((_, j) => j !== i) })}>
@@ -489,7 +489,7 @@ export default function BrandPage() {
                 value={presetTime}
                 aria-label="Time to add"
                 onChange={(e) => e.target.value && setPresetTime(e.target.value.slice(0, 5))}
-                className="h-10 rounded-md border border-input bg-background px-2 text-sm"
+                className="h-10 rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11"
               />
               <span className="text-muted-foreground">to</span>
               {(
