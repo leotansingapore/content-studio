@@ -22,13 +22,14 @@ export const CREATE_ITEMS: JumpItem[] = [
 /** Words a page is looked for by that its label doesn't say. */
 const KEYWORDS: Record<string, string> = {
   "/home": "dashboard start",
-  "/calendar": "schedule dates planner",
+  "/calendar": "schedule scheduled posts upcoming queue dates planner content",
   "/plan": "weekly plan ideas",
-  "/drafts": "posts history saved",
+  "/drafts": "posts history saved mark posted",
   "/board": "kanban pipeline",
   "/grid": "instagram feed preview",
   "/reels": "reels board approve",
-  "/brand": "posting times slots logo photo colours sign-off",
+  "/playbook": "notifications alerts reminders",
+  "/brand": "posting times best time when slots logo photo colours sign-off",
   "/voice": "tone writing style",
   "/bio": "link in bio page",
   "/links": "short links utm clicks",
@@ -36,12 +37,12 @@ const KEYWORDS: Record<string, string> = {
   "/fads": "fads framework",
   "/connect": "claude mcp ai",
   "/coach": "diagnosis score feedback",
-  "/analytics": "results numbers stats",
-  "/team": "approval review leader",
+  "/analytics": "results numbers stats insights performance",
+  "/team": "approval approve review leader",
   "/swipe": "top posts examples",
   "/trends": "trending videos",
   "/clone": "copy a reel style",
-  "/inspiration": "ideas examples",
+  "/inspiration": "ideas examples posts",
   "/profiles": "creators accounts",
   "/following": "creators followed",
   "/market": "market news competitors chatgpt ai answers geo",
@@ -51,7 +52,8 @@ const KEYWORDS: Record<string, string> = {
   "/create-guide": "how to post guide",
   "/tutorial": "help how it works",
   "/feedback": "ideas requests bugs roadmap",
-  "/media": "library pictures images",
+  "/media": "library pictures images photos",
+  "/edit": "reel clip captions subtitles",
 };
 
 /** Every page this sign-in sees, labelled with its section. */
@@ -69,8 +71,9 @@ export function pageItems(email: string): JumpItem[] {
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
 /**
- * Items matching every word typed, best first: label starts with the query, then a label word starts
- * with it, then the words appear anywhere in label, section or keywords. Ties: shorter label, then list order.
+ * Items matching every word typed, best first: label or the page's own address word starts with the
+ * query ("drafts" is My posts, at /drafts), then a label word starts with it, then the words appear
+ * anywhere in label, address, section or keywords. Ties: shorter label, then list order.
  */
 export function searchJump(items: JumpItem[], query: string): JumpItem[] {
   const q = norm(query);
@@ -79,9 +82,10 @@ export function searchJump(items: JumpItem[], query: string): JumpItem[] {
   const scored: { item: JumpItem; score: number; len: number; i: number }[] = [];
   items.forEach((item, i) => {
     const label = norm(item.label);
-    const hay = `${label} ${norm(item.group)} ${norm(item.keywords)}`;
+    const address = norm(item.to.split("/").pop() ?? "");
+    const hay = `${label} ${address} ${norm(item.group)} ${norm(item.keywords)}`;
     if (!words.every((w) => hay.includes(w))) return;
-    const score = label.startsWith(q) ? 0 : label.split(" ").some((w) => w.startsWith(words[0])) ? 1 : 2;
+    const score = label.startsWith(q) || address.startsWith(q) ? 0 : label.split(" ").some((w) => w.startsWith(words[0])) ? 1 : 2;
     scored.push({ item, score, len: label.length, i });
   });
   // the shorter label is the closer match ("Brand kit" before "Brand Brain" for "brand")

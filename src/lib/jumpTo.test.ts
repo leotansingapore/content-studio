@@ -55,6 +55,32 @@ describe("searchJump", () => {
     expect(searchJump(items, "fads").map((i) => i.to)).toContain("/fads");
   });
 
+  it("puts the page first for the everyday goals as people type them", () => {
+    expect(searchJump(items, "drafts")[0].to).toBe("/drafts");
+    expect(searchJump(items, "draft")[0].to).toBe("/drafts");
+    expect(searchJump(items, "mark posted")[0].to).toBe("/drafts");
+    expect(searchJump(items, "schedule a post")[0].to).toBe("/calendar");
+    expect(searchJump(items, "scheduled")[0].to).toBe("/calendar");
+    expect(searchJump(items, "best time to post")[0].to).toBe("/brand");
+    expect(searchJump(items, "when to post")[0].to).toBe("/brand");
+    expect(searchJump(items, "posting times")[0].to).toBe("/brand");
+    expect(searchJump(items, "insights")[0].to).toBe("/analytics");
+    expect(searchJump(items, "post ideas")[0].to).toBe("/inspiration");
+    expect(searchJump(items, "photos")[0].to).toBe("/media");
+    expect(searchJump(items, "subtitles")[0].to).toBe("/edit");
+    expect(searchJump(items, "approve")[0].to).toBe("/team");
+    expect(searchJump(items, "my posts")[0].to).toBe("/drafts");
+    expect(searchJump(items, "bio")[0].to).toBe("/bio");
+    expect(searchJump(items, "notifications")[0].to).toBe("/playbook");
+    expect(searchJump(items, "alerts")[0].to).toBe("/playbook");
+  });
+
+  it("finds a page by the word in its own address", () => {
+    expect(searchJump(items, "tutorial")[0].to).toBe("/tutorial");
+    expect(searchJump(items, "swipe")[0].to).toBe("/swipe");
+    expect(searchJump(items, "create guide")[0].to).toBe("/create-guide");
+  });
+
   it("needs every word typed", () => {
     expect(searchJump(items, "calendar zzz")).toEqual([]);
   });
