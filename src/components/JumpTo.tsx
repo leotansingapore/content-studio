@@ -98,7 +98,7 @@ export default function JumpTo({ open, onClose, email }: { open: boolean; onClos
           aria-activedescendant={items.length ? `jump-opt-${current}` : undefined}
           aria-autocomplete="list"
           placeholder="Jump to a page or start something"
-          className="h-12 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground sm:text-sm"
+          className="h-12 min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground sm:text-sm [@media(pointer:coarse)]:text-base"
         />
       </div>
       <div ref={listRef} id="jump-list" role="listbox" aria-label="Pages and actions" className="max-h-[60vh] overflow-y-auto p-2">
