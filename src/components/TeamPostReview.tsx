@@ -175,7 +175,7 @@ export function TeamPostPanel({
               <>
                 Posted {whenLabel(post.postedAt)}
                 {link && (
-                  <a href={link} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-1 font-medium text-primary hover:underline">
+                  <a href={link} target="_blank" rel="noopener noreferrer" className="ml-2 inline-flex items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
                     Open in Telegram <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 )}
