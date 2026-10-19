@@ -124,6 +124,16 @@ export function findCard(cards: ReelCard[], id: string | null): ReelCard | undef
   return cards.find((c) => c.id === id) ?? cards.find((c) => c.id.split("~")[0] === id.split("~")[0]);
 }
 
+/**
+ * The Posts view's stage a link should land on: a ?card= link with no ?stage= shows that post's stage behind it,
+ * so closing the post leaves it in the list (calendar links and Copy link carry only the card). null = leave it.
+ */
+export function stageForLink(cards: ReelCard[], search: URLSearchParams): StageId | null {
+  if (search.get("stage")) return null;
+  const c = findCard(cards, search.get("card"));
+  return c && c.stage !== "review" ? c.stage : null;
+}
+
 /** Posts view: one stage, or every stage but Archived ("all"), soonest date first, undated last. */
 export function feedCards(cards: ReelCard[], stage: StageId | "all", brand: string): ReelCard[] {
   return cards

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, mmss, type ReelCard } from "./reelsBoard";
+import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, mmss, stageForLink, type ReelCard } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -80,5 +80,21 @@ describe("findCard", () => {
     expect(findCard(cards, "at-r-hits")?.id).toBe("at-r-hits~animated");
     expect(findCard(cards, "nope")).toBeUndefined();
     expect(findCard(cards, null)).toBeUndefined();
+  });
+});
+
+describe("stageForLink", () => {
+  const cards = [card("a1~carousel", "scheduled"), card("a2", "review"), card("a3", "posted")];
+  const at = (q: string) => stageForLink(cards, new URLSearchParams(q));
+  it("lands a post link on that post's stage, even when a chat app cut the id at the ~", () => {
+    expect(at("card=a1~carousel")).toBe("scheduled");
+    expect(at("card=a1")).toBe("scheduled");
+    expect(at("card=a3&view=feed")).toBe("posted");
+  });
+  it("leaves the stage alone when the link names one, the post is in Review, or the post is gone", () => {
+    expect(at("card=a1&stage=all")).toBeNull();
+    expect(at("card=a2")).toBeNull();
+    expect(at("card=gone")).toBeNull();
+    expect(at("view=feed")).toBeNull();
   });
 });

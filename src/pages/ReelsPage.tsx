@@ -29,6 +29,7 @@ import {
   openNotes,
   perms,
   seesBoard,
+  stageForLink,
   updateCard,
   type Board,
   type Me,
@@ -87,6 +88,9 @@ export default function ReelsPage() {
       fetchBoard()
         .then((b) => {
           setBoard(b);
+          // on arrival only: a link to one post shows its stage, so opening a post in the app never moves the chips
+          const landOn = stageForLink(b.cards, new URLSearchParams(window.location.search));
+          if (landOn) setParams((prev) => withParam(prev, "stage", landOn), { replace: true });
           const id = data.user?.id ?? "";
           if (!who.owner || !id) return;
           setUid(id);
