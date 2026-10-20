@@ -1,6 +1,6 @@
 # The price on every button
 
-`business-cost-preview` | business | phase 1 | status: partial | /north-star#business-cost-preview
+`business-cost-preview` | business | phase 1 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#business-cost-preview
 
 ## Leo asked
 

@@ -1,6 +1,6 @@
 # Wall of text over a video
 
-`formats-wall-of-text` | formats | phase 1 | status: partial | /north-star#formats-wall-of-text
+`formats-wall-of-text` | formats | phase 1 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#formats-wall-of-text
 
 ## Leo asked
 
