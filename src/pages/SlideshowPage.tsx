@@ -53,6 +53,8 @@ import {
   redo,
   remember,
   removeSlideshow,
+  restoreBox,
+  restoreSlide,
   saveSlideshow,
   saveStyleHint,
   slideshowToDraft,
@@ -309,10 +311,13 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
   };
 
   const removeBox = (id: string) => {
-    const before = work;
-    commit(deleteBox(work, slide.id, id));
+    const slideId = slide.id;
+    const at = slide.boxes.findIndex((b) => b.id === id);
+    const gone = slide.boxes[at];
+    if (!gone) return;
+    commit(deleteBox(work, slideId, id));
     update({ box: null });
-    toast({ title: "Text box deleted", action: <ToastAction altText="Undo" onClick={() => commit(before)}>Undo</ToastAction> });
+    toast({ title: "Text box deleted", action: <ToastAction altText="Undo" onClick={() => commit(restoreBox(workRef.current, slideId, gone, at))}>Undo</ToastAction> });
   };
 
   const style = (patch: Partial<BoxStyle>) => {
@@ -387,10 +392,17 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
       go(index + 1);
     },
     deleteSlide: () => {
-      const before = work;
+      const gone = slide;
+      const at = index;
       commit(deleteSlide(work, index));
       go(Math.max(0, index - 1));
-      toast({ title: "Slide deleted", action: <ToastAction altText="Undo" onClick={() => commit(before)}>Undo</ToastAction> });
+      const back = () => {
+        const next = restoreSlide(workRef.current, gone, at);
+        commit(next);
+        const i = next.slides.findIndex((x) => x.id === gone.id);
+        if (i >= 0) go(i);
+      };
+      toast({ title: "Slide deleted", action: <ToastAction altText="Undo" onClick={back}>Undo</ToastAction> });
     },
     addText: () => {
       const b = makeBox(NEW_WORDS, { ...loadStyleHint(), y: NEW_BOX_Y[slide.boxes.length] ?? 0.5 });

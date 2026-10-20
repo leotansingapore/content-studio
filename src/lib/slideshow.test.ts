@@ -20,6 +20,8 @@ import {
   remember,
   emptyHistory,
   removeSlideshow,
+  restoreBox,
+  restoreSlide,
   sanitizeSlideshows,
   saveSlideshow,
   saveStyleHint,
@@ -115,6 +117,27 @@ describe("slides and boxes", () => {
     const moved = changeBox(s, slide.id, b.id, { x: 2, size: 4, text: "New words" });
     expect(moved.slides[0].boxes[0]).toMatchObject({ x: 1, size: 16, text: "New words" });
     expect(deleteBox(moved, slide.id, b.id).slides[0].boxes).toEqual([]);
+  });
+
+  it("toast Undo puts back only what was deleted, at its place, once", () => {
+    let s = withSlides(4);
+    const gone = s.slides[1];
+    s = deleteSlide(s, 1);
+    s = changeBox(s, s.slides[0].id, s.slides[0].boxes[0].id, { text: "Typed after the delete" });
+    const back = restoreSlide(s, gone, 1);
+    expect(ids(back)[1]).toBe(gone.id);
+    expect(back.slides[0].boxes[0].text).toBe("Typed after the delete");
+    expect(restoreSlide(back, gone, 1)).toBe(back);
+    let b = blankSlideshow();
+    const sid = b.slides[0].id;
+    b = addBox(b, sid, makeBox("second"));
+    const box0 = b.slides[0].boxes[0];
+    b = deleteBox(b, sid, box0.id);
+    b = changeBox(b, sid, b.slides[0].boxes[0].id, { color: "#FF0000" });
+    const restored = restoreBox(b, sid, box0, 0);
+    expect(restored.slides[0].boxes.map((x) => x.id)[0]).toBe(box0.id);
+    expect(restored.slides[0].boxes[1].color).toBe("#FF0000");
+    expect(restoreBox(restored, sid, box0, 0)).toEqual(restored);
   });
 
   it("apply to all changes style keys on every box and never the words", () => {

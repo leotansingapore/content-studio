@@ -201,6 +201,21 @@ export function deleteBox(s: Slideshow, slideId: string, boxId: string): Slidesh
   return changeSlide(s, slideId, (x) => ({ ...x, boxes: x.boxes.filter((b) => b.id !== boxId) }));
 }
 
+// Undo in a toast: puts back only what was deleted, at its old place, so edits made since stay
+
+export function restoreSlide(s: Slideshow, slide: ShowSlide, at: number): Slideshow {
+  if (s.slides.length >= MAX_SLIDES || s.slides.some((x) => x.id === slide.id)) return s;
+  const slides = [...s.slides];
+  slides.splice(clamp(at, 0, slides.length), 0, slide);
+  return { ...s, slides };
+}
+
+export function restoreBox(s: Slideshow, slideId: string, box: TextBox, at: number): Slideshow {
+  return changeSlide(s, slideId, (x) =>
+    x.boxes.length >= MAX_BOXES || x.boxes.some((b) => b.id === box.id) ? x : { ...x, boxes: [...x.boxes.slice(0, at), box, ...x.boxes.slice(at)] },
+  );
+}
+
 /** "Apply to all text boxes": the style keys in `patch` on every box of every slide; the words stay. */
 export function applyToAll(s: Slideshow, patch: Partial<Record<string, unknown>>): Slideshow {
   const style = styleOf(patch);
