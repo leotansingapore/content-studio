@@ -232,6 +232,53 @@ describe("createCloudSync", () => {
     expect(table.has(DRAFTS)).toBe(false);
   });
 
+  it("sends an edit made while an earlier save was still on its way", async () => {
+    const storage = new MemoryStorage();
+    const { backend, table } = fakeBackend();
+    const upsert = backend.upsert;
+    let release!: () => void;
+    const slow = new Promise<void>((resolve) => (release = resolve));
+    let first = true;
+    backend.upsert = async (rows) => {
+      if (first) {
+        first = false;
+        await slow;
+      }
+      return upsert(rows);
+    };
+    const sync = createCloudSync(ME, storage, backend);
+    await sync.start();
+
+    write(storage, sync, DRAFTS, "v1");
+    await vi.advanceTimersByTimeAsync(800); // v1 is on its way
+    write(storage, sync, DRAFTS, "v2");
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(table.get(DRAFTS)?.data).toBe("v1");
+    await vi.advanceTimersByTimeAsync(800);
+    expect(table.get(DRAFTS)?.data).toBe("v2");
+  });
+
+  it("keeps a removal the server rejected, so the post doesn't come back after a reload", async () => {
+    const storage = new MemoryStorage();
+    const cloud = fakeBackend([{ key: DRAFTS, data: "x", updated_at: OLD }]);
+    const first = createCloudSync(ME, storage, cloud.backend);
+    await first.start();
+    cloud.fail.remove = 1;
+    storage.removeItem(DRAFTS);
+    first.noteWrite(DRAFTS);
+    await vi.advanceTimersByTimeAsync(800);
+    expect(cloud.calls.remove).toHaveLength(1);
+    expect(cloud.table.has(DRAFTS)).toBe(true);
+    vi.clearAllTimers(); // the tab closes before the retry
+
+    const second = createCloudSync(ME, storage, cloud.backend);
+    await second.start();
+    await vi.advanceTimersByTimeAsync(800);
+    expect(storage.getItem(DRAFTS)).toBeNull();
+    expect(cloud.table.has(DRAFTS)).toBe(false);
+  });
+
   it("sends pending saves when it stops (sign-out)", async () => {
     const storage = new MemoryStorage();
     const { backend, table } = fakeBackend();
