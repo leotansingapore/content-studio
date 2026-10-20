@@ -52,6 +52,7 @@ import { localTeardown, type Teardown } from "@/lib/remixTeardown";
 import { resolveSource } from "@/lib/resolveSource";
 import { useUrlFlag, useUrlItem, useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import type { LeoUser } from "@/lib/useLeoOnly";
+import { DAILY_LIMITS } from "../../../supabase/functions/_shared/usageCaps.ts";
 import { VOICE_MIN_CHARS, isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
 
 // The Remix sheet (docs/north-star/items/remix-everywhere.md): opened over any page by ?remix=<key>, mounted
@@ -225,6 +226,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const uses = as.length;
   const out = left === 0;
   const short = left !== null && uses > left;
+  const videosLeft = leftOf("ai-video");
   const videoStop = picked ? videoBlock(picked, { busy: aiBusy, waiting: !!pendingAvatar(), left: leftOf }) : null;
   // The press: weak or poor fits and video formats ask first; nothing is spent until the run starts.
   const [asking, setAsking] = useState<FitResult | null>(null);
@@ -459,6 +461,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           {!out && (
             <span className="min-w-0 text-right leading-tight [&>span]:text-primary-foreground/85">
               <PriceChip price={makePrice(as)} left={left} uses={uses} fallback={left === null ? null : `${left} left today`} />
+              {picked && videosLeft !== null && <span className="text-[11px] tabular-nums">{` | ${videosLeft} of ${DAILY_LIMITS["ai-video"]} videos left`}</span>}
             </span>
           )}
         </Button>
