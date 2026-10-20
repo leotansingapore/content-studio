@@ -4,7 +4,10 @@ import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { priceOf, reasonText, sumPrices, type Price, type PriceOpts } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlState } from "@/lib/urlState";
 import { moveTake } from "@/lib/videoEdit";
 import { LEN_MAX, LEN_MIN, MAX_THEME, dismissMontage, montageBusy, montageJob, onMontageJob, startMontage, type MontageJob } from "@/lib/montage";
@@ -15,6 +18,7 @@ import {
   makeTemplateClip, onAiJob, pendingAvatar, resumeAvatar, sceneReady, sliceVoiceover, writeExplainer,
   type AiJob, type ClipQuality, type ClipSeconds, type FieldKey, type PhotoRole, type Scene, type VideoTemplate, type Voiceover,
 } from "@/lib/aiVideo";
+import type { UsageFeature } from "../../supabase/functions/_shared/usageCaps.ts";
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 const secs = (t: number) => `${Math.round(t)} seconds`;
@@ -109,7 +113,7 @@ function Montage({ busy, left }: { busy: boolean; left: Left }) {
             <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-9" disabled={off} onClick={() => setMusic(null)}>Remove</Button>
           </>
         )}
-        <Left n={uses} what="Montages" />
+        <Left n={uses} what="Montages" feature="montage-beats" />
       </div>
       {running && job && (
         <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
@@ -134,6 +138,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
   const [quality, setQuality] = useState<ClipQuality>("720p");
   const urls = useRef<string[]>([]);
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
+  const leo = useLeoOnly();
 
   if (!pick) {
     return (
@@ -220,10 +225,10 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
           {CLIP_QUALITIES.map((q) => <Pill key={q} on={quality === q} disabled={busy} onClick={() => setQuality(q)}>{q}</Pill>)}
         </div>
       </div>
-      <p className="text-sm">Costs {cost(clipCredits(seconds, quality))}.</p>
+      {!leo && <p className="text-sm">Costs {cost(clipCredits(seconds, quality))}.</p>}
       <div className="flex flex-wrap items-center gap-2">
         <Button className="h-11 sm:h-10" disabled={busy || !ready || clips === 0} onClick={make}>Make the clip</Button>
-        <Left n={clips} what="AI clips" />
+        <Left n={clips} what="AI clips" feature="ai-clip" opts={{ seconds, quality }} />
       </div>
     </div>
   );
@@ -266,6 +271,7 @@ function Avatar({ job, busy, left }: { job: AiJob | null; busy: boolean; left: L
   const tooLong = !!vo && vo.seconds > MAX_AVATAR_SECONDS + 0.5;
   const credits = vo ? avatarCredits(vo.slices.map((s) => s.end - s.start)) : 0;
   const videos = left("ai-video");
+  const leo = useLeoOnly();
 
   return (
     <div className="space-y-3">
@@ -304,7 +310,7 @@ function Avatar({ job, busy, left }: { job: AiJob | null; busy: boolean; left: L
                   onClick={() => setLook(LOOKS[(LOOKS.indexOf(look) + 1) % LOOKS.length])}>Another look</Button>
                 <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || look.trim().length < 10 || left("ai-image") === 0}
                   onClick={() => void makePresenter(look.trim())}>{presenter ? "Make another presenter" : "Make the presenter"}</Button>
-                <Left n={left("ai-image")} what="AI images" />
+                <Left n={left("ai-image")} what="AI images" feature="ai-image" />
               </div>
             </div>
           </div>
@@ -326,8 +332,10 @@ function Avatar({ job, busy, left }: { job: AiJob | null; busy: boolean; left: L
             {voBusy ? "Making the voiceover..." : vo ? "Make the voiceover again" : "Make the voiceover"}
           </Button>
           {n > 0 && <span className="text-[11px] text-muted-foreground">{n} words, about {secs(n / 2.5)}</span>}
-          <Left n={left("ai-voice")} what="Voiceovers" />
+          <Left n={left("ai-voice")} what="Voiceovers" feature="ai-voice" />
         </div>
+        {/* the video's price before its voiceover exists, from the script at 2.5 words a second */}
+        {leo && !vo && n > 0 && <p className="text-[11px] text-muted-foreground">The video: <PriceChip feature="ai-video" opts={{ seconds: n / 2.5 }} left={videos} /></p>}
         {voError && <p className="text-xs text-destructive" role="alert">{voError}</p>}
       </div>
 
@@ -337,13 +345,13 @@ function Avatar({ job, busy, left }: { job: AiJob | null; busy: boolean; left: L
           {tooLong ? (
             <p className="text-sm text-destructive" role="alert">It runs {secs(vo.seconds)}. Cut the script to about {MAX_AVATAR_SECONDS} seconds.</p>
           ) : (
-            <p className="text-sm">{secs(vo.seconds)} in {vo.slices.length} {vo.slices.length === 1 ? "part" : "parts"}. Costs {cost(credits)}.</p>
+            <p className="text-sm">{secs(vo.seconds)} in {vo.slices.length} {vo.slices.length === 1 ? "part" : "parts"}.{leo ? "" : ` Costs ${cost(credits)}.`}</p>
           )}
           <div className="flex flex-wrap items-center gap-2">
             <Button className="h-11 sm:h-10" disabled={busy || tooLong || !image || videos === 0}
               onClick={() => void makeAvatar(script.trim().slice(0, 40) || "AI video", image!, vo)}>Make the video</Button>
             {!image && <span className="text-xs text-muted-foreground">{face === "photo" ? "Pick a photo first." : "Make the presenter first."}</span>}
-            <Left n={videos} what="AI videos" />
+            <Left n={videos} what="AI videos" feature="ai-video" opts={{ slices: vo.slices.map((s) => s.end - s.start) }} />
           </div>
         </div>
       )}
@@ -371,6 +379,8 @@ function Explainer({ busy, left }: { busy: boolean; left: Left }) {
   };
   const total = scenes ? scenes.reduce((n, s) => n + words(s.say), 0) : 0;
   const videos = left("ai-video");
+  const voices = left("ai-voice");
+  const leo = useLeoOnly();
   const edit = (i: number, change: Partial<Scene>) => setScenes(scenes!.map((x, j) => (j === i ? { ...x, ...change } : x)));
   const iconBtn = "h-11 w-11 p-0 sm:h-8 [@media(pointer:coarse)]:h-11 sm:w-8 [@media(pointer:coarse)]:w-11";
 
@@ -384,7 +394,7 @@ function Explainer({ busy, left }: { busy: boolean; left: Left }) {
           {writing ? "Writing..." : scenes ? "Write it again" : "Write it"}
         </Button>
       </form>
-      <Left n={left("ai-video-script")} what="Explainer scripts" />
+      <Left n={left("ai-video-script")} what="Explainer scripts" feature="ai-video-script" />
       {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
       {scenes && (
         <>
@@ -416,15 +426,17 @@ function Explainer({ busy, left }: { busy: boolean; left: Left }) {
             {VOICE_IDS.map((v) => <Pill key={v} on={voice === v} disabled={busy} onClick={() => setVoice(v)}>{VOICES[v].label}, {VOICES[v].note}</Pill>)}
           </div>
           <p className="text-sm" aria-live="polite">
-            {scenes.length} pictures, about {secs(total / 2.5)}. Costs {cost(explainerCredits(scenes.length))} and 1 voiceover.
+            {scenes.length} pictures, about {secs(total / 2.5)}.{leo ? "" : ` Costs ${cost(explainerCredits(scenes.length))} and 1 voiceover.`}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <Button className="h-11 sm:h-10" disabled={busy || videos === 0 || left("ai-voice") === 0 || !scenes.every(sceneReady)}
+            <Button className="h-11 sm:h-10" disabled={busy || videos === 0 || voices === 0 || !scenes.every(sceneReady)}
               onClick={() => void makeExplainer(topic.trim().slice(0, 40) || "Explainer", scenes.map((s) => ({ say: s.say.trim(), picture: s.picture.trim() })), voice)}>
               Make the video
             </Button>
             {!scenes.every(sceneReady) && <span className="text-xs text-muted-foreground">Fill in every scene first.</span>}
-            <Left n={videos} what="AI videos" />
+            {/* the pictures and the voiceover: two caps, so the smaller of the two is what's left */}
+            <Left n={videos} what="AI videos" price={sumPrices(priceOf("ai-video", { scenes: scenes.length }), priceOf("ai-voice"))}
+              least={videos === null || voices === null ? null : Math.min(videos, voices)} />
           </div>
         </>
       )}
@@ -439,7 +451,17 @@ function Pill({ on, onClick, disabled, children }: { on: boolean; onClick: () =>
   );
 }
 
-function Left({ n, what }: { n: number | null; what: string }) {
-  if (n === null) return null;
-  return <span className={`text-[11px] ${n ? "text-muted-foreground" : "font-medium text-destructive"}`}>{what}: {n ? `${n} left today` : "none left today"}</span>;
+/**
+ * Uses left beside an AI button. Leo sees the price and what is left after this run instead (PriceChip), with the
+ * reason on its own line when the button can't run. `least` is the smallest left when a button spends from several caps.
+ */
+function Left({ n, what, least = n, ...chip }: { n: number | null; what: string; least?: number | null; feature?: UsageFeature; opts?: PriceOpts; price?: Price | "pick" | null }) {
+  const why = reasonText({ left: least, leo: useLeoOnly() });
+  const today = n === null ? null : <span className={`text-[11px] ${n ? "text-muted-foreground" : "font-medium text-destructive"}`}>{what}: {n ? `${n} left today` : "none left today"}</span>;
+  return (
+    <>
+      <PriceChip {...chip} left={least} fallback={today} />
+      {why && <span className="order-last block basis-full text-xs text-destructive">{why}</span>}
+    </>
+  );
 }
