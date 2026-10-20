@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setActiveProfile } from "@/lib/profiles";
+import { connectLink } from "@/lib/socialConnect";
 import {
   NEXT,
   accessChanged,
@@ -24,6 +25,10 @@ import {
   fetchBoard,
   findCard,
   IG_HANDLES,
+  igHandle,
+  loadConnectedIg,
+  type IgConnection,
+  ZERNIO_IG_BRANDS,
   igLine,
   isCarousel,
   openNotes,
@@ -54,6 +59,9 @@ export default function ReelsPage() {
   const [ownBrand, setOwnBrand] = useState<string | null>(null);
   const [unlinked, setUnlinked] = useState("");
   const [profileName, setProfileName] = useState("");
+  // the open brand's Instagram as connected here: undefined until asked, null when it isn't a brand connected here
+  const [igConn, setIgConn] = useState<IgConnection | null | undefined>(undefined);
+  const [connecting, setConnecting] = useState(false);
   const brandParam = params.get("brand");
   const known = (b: string) => !board || board.brands.some((x) => x.id === b);
   const brand = me?.owner ? unlinked || ownBrand : brandParam === "all" ? "" : brandParam && known(brandParam) ? brandParam : "";
@@ -103,6 +111,8 @@ export default function ReelsPage() {
           }
           setProfileName(prof.name);
           setOwnBrand(prof.boardBrand ?? "");
+          const own = prof.boardBrand;
+          if (own && ZERNIO_IG_BRANDS.includes(own)) loadConnectedIg(id).then((m) => setIgConn(m[own] ?? null), () => setIgConn(null));
           const asked = new URLSearchParams(window.location.search).get("brand");
           if (asked && asked !== "all" && asked !== prof.boardBrand && b.brands.some((x) => x.id === asked)) {
             const owner = profileForBoardBrand(id, asked);
@@ -138,7 +148,7 @@ export default function ReelsPage() {
           toast({
             title:
               fresh.stage === "scheduled" && fresh.schedule
-                ? `Scheduled for ${when(fresh.schedule)}${IG_HANDLES[brandOf(fresh)] ? `, posts to @${IG_HANDLES[brandOf(fresh)]}` : ""}`
+                ? `Scheduled for ${when(fresh.schedule)}${igHandle(brandOf(fresh)) ? `, posts to @${igHandle(brandOf(fresh))}` : ""}`
                 : `Moved to ${name}`,
             action: <ToastAction altText="Undo" onClick={() => move(id, from, true)}>Undo</ToastAction>,
           });
@@ -193,6 +203,18 @@ export default function ReelsPage() {
     window.location.reload();
   };
   const stages = (board?.stages ?? []).filter((s) => showArchived || s.id !== "archived");
+  const connectIg = () => {
+    if (!igConn) return;
+    setConnecting(true);
+    const again = igConn.account?.needsReconnect ? igConn.account.id : undefined;
+    connectLink(igConn.profileId, "instagram", again)
+      .then(({ authUrl }) => window.location.assign(authUrl))
+      .catch((e) => {
+        setConnecting(false);
+        toast({ title: errorText(e, "try again in a minute"), variant: "destructive" });
+      });
+  };
+  const igMissing = !!igConn && (!igConn.account || igConn.account.needsReconnect);
 
   return (
     <div className="space-y-5">
@@ -265,6 +287,16 @@ export default function ReelsPage() {
           <span className="mr-auto">{brandName(unlinked)} posts aren't linked to any of your brands yet.</span>
           <Button size="sm" onClick={() => ownBrandFor(unlinked)}>Make {brandName(unlinked)} a brand</Button>
           {ownBrand === "" && <Button size="sm" variant="outline" onClick={() => link(unlinked)}>Link to {profileName}</Button>}
+        </div>
+      )}
+      {board && igMissing && !needsLink && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-warning/50 bg-warning/10 p-3 text-sm" role="status">
+          <span className="mr-auto">
+            {igConn!.account ? `@${igConn!.account.username.replace(/^@/, "")} needs reconnecting.` : `${profileName}'s Instagram isn't connected.`} Approved posts won't go out by themselves until it is.
+          </span>
+          <Button size="sm" onClick={connectIg} disabled={connecting}>
+            {connecting ? "Opening Instagram..." : igConn!.account ? "Reconnect Instagram" : "Connect Instagram"}
+          </Button>
         </div>
       )}
       {board && needsLink && (

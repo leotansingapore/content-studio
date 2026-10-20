@@ -7,6 +7,8 @@
 // not the boundary.
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
+import { loadProfiles } from "@/lib/profiles";
+import { checkSocialConnect, socialStatus, type AccountView } from "@/lib/socialConnect";
 
 /** Leo's sign-in. Still gates the channel feeds (public data, every business) and nothing on the board. */
 export const REELS_BOARD_OWNERS = ["tanjunsing@gmail.com"];
@@ -71,9 +73,56 @@ export interface ReelCard {
   ig?: { state: "publishing" | "posted"; permalink?: string; account?: string; mediaId?: string };
 }
 
+/**
+ * Board brands the Mac publisher posts to Instagram through the account connected here, under the brand
+ * (Social accounts, through Zernio; moneybees-reels/tools/publish_ig.py IG_ZERNIO keeps the same list).
+ */
+export const ZERNIO_IG_BRANDS = ["radiant"];
+
+// Which of those are connected right now, filled by loadConnectedIg.
+const connectedIg: Record<string, string> = {};
+export const setConnectedIg = (brand: string, handle: string | null) => {
+  if (handle) connectedIg[brand] = handle;
+  else delete connectedIg[brand];
+};
+
+/** The Instagram handle a brand's approved posts go to by themselves, or undefined when they're posted by hand. */
+export const igHandle = (brand: string): string | undefined => IG_HANDLES[brand] ?? connectedIg[brand];
+
+/** A brand's Instagram as connected in Content Studio: the account (null when none), and the brand profile to connect under. */
+export interface IgConnection {
+  profileId: string;
+  account: AccountView | null;
+}
+
+/** The working Instagram handle among a brand profile's connected accounts, without the @. */
+export function instagramHandle(accounts: AccountView[]): string | null {
+  const ig = accounts.find((a) => a.platform === "instagram" && !a.needsReconnect);
+  return ig?.username ? ig.username.replace(/^@/, "") : null;
+}
+
+/** For each of the owner's brands the publisher posts through Zernio, asks which Instagram is connected here. */
+export async function loadConnectedIg(uid: string): Promise<Record<string, IgConnection>> {
+  if (!uid || !(await checkSocialConnect())) return {};
+  const out: Record<string, IgConnection> = {};
+  const brands = loadProfiles(uid).filter((p) => p.boardBrand && !IG_HANDLES[p.boardBrand] && ZERNIO_IG_BRANDS.includes(p.boardBrand));
+  await Promise.all(
+    brands.map(async (p) => {
+      try {
+        const accounts = (await socialStatus(p.id)).accounts;
+        out[p.boardBrand!] = { profileId: p.id, account: accounts.find((a) => a.platform === "instagram") ?? null };
+        setConnectedIg(p.boardBrand!, instagramHandle(accounts));
+      } catch {
+        // couldn't ask: the line keeps saying what it said before
+      }
+    }),
+  );
+  return out;
+}
+
 /** Where an approved card will go, or went, on Instagram. */
 export function igLine(c: ReelCard): { text: string; href?: string } | null {
-  const handle = IG_HANDLES[brandOf(c)];
+  const handle = igHandle(brandOf(c));
   if (c.ig?.state === "posted") return { text: `On Instagram @${c.ig.account ?? handle}`, href: c.ig.permalink };
   if (c.stage !== "scheduled" && c.stage !== "approved") return null;
   return handle ? { text: `Posts to @${handle} automatically` } : { text: "Not linked to Instagram: post it by hand" };

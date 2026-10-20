@@ -3,7 +3,7 @@
 // Server: supabase/functions/social. Until the server says it is switched on, the page says only that.
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { RotateCw, Unplug } from "lucide-react";
 import SectionTabs, { PLAYBOOK_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { activeProfile, DEFAULT_PROFILE_ID } from "@/lib/profiles";
+import { ZERNIO_IG_BRANDS } from "@/lib/reelsBoard";
 import {
   capLine,
   connectLink,
@@ -49,6 +50,8 @@ export default function AccountsPage() {
   // the platform or account a button is working on
   const [busy, setBusy] = useState("");
   const [back, setBack] = useState<{ ok: boolean; text: string } | null>(null);
+  // Instagram just connected for a brand whose approved posts then go out by themselves (the posts board)
+  const [igBack, setIgBack] = useState(false);
 
   const load = async (uid: string) => {
     try {
@@ -72,6 +75,7 @@ export default function AccountsPage() {
     const result = readRedirect(params);
     if (result) {
       setBack(result);
+      setIgBack(result.ok && params.get("connected") === "instagram");
       setParams({}, { replace: true });
     }
     supabase.auth.getUser().then(({ data }) => {
@@ -126,6 +130,12 @@ export default function AccountsPage() {
       {back && (
         <p role="status" className={`rounded-lg border px-3 py-2 text-sm ${back.ok ? "border-success/40 bg-success/10" : "border-destructive/40 bg-destructive/10"}`}>
           {back.text}
+          {igBack && profile.boardBrand && ZERNIO_IG_BRANDS.includes(profile.boardBrand) && (
+            <>
+              {" "}Approved posts for {profile.name} now go out to Instagram by themselves.{" "}
+              <Link to="/reels" className="font-semibold text-primary underline-offset-2 hover:underline">Back to your posts</Link>
+            </>
+          )}
         </p>
       )}
 

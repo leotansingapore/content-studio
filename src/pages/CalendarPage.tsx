@@ -19,7 +19,7 @@ import PostPreview from "@/components/PostPreview";
 import { PostItForMePanel, ZernioChipLabel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
-import { IG_HANDLES, brandOf, checkMe, fetchBoard, isCarousel, seesBoard } from "@/lib/reelsBoard";
+import { brandOf, checkMe, fetchBoard, igHandle, isCarousel, loadConnectedIg, seesBoard } from "@/lib/reelsBoard";
 import { COVER_DAYS, dueByHand, runsOut, weekGlance, type DatedItem } from "@/lib/calendarCoverage";
 import { openSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
 import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
@@ -205,7 +205,7 @@ export default function CalendarPage() {
   const [noteForm, setNoteForm] = useState<NoteForm | null>(null);
   const noteRef = useRef<HTMLDivElement>(null);
   // Reels scheduled on the reels board, for its owner: one calendar for everything that posts.
-  // `auto`: the brand posts to Instagram by itself (IG_HANDLES); otherwise Leo posts it by hand.
+  // `auto`: the brand posts to Instagram by itself (igHandle: Meta, or connected in Content Studio); otherwise Leo posts it by hand.
   const [reels, setReels] = useState<
     { id: string; title: string; date: string; time: string | null; posted: boolean; business: string; auto: boolean; handle: string | null; href: string }[]
   >([]);
@@ -271,8 +271,9 @@ export default function CalendarPage() {
       setTeamReviews(readTeamReviews(id));
       // Leo, and team members with the posts board, see its posts here (docs/team-roles.md)
       if (data.user && seesBoard(await checkMe().catch(() => null))) {
-        fetchBoard()
-          .then((b) => {
+        // which brands' posts go out by themselves needs both the board and what's connected here
+        Promise.all([fetchBoard(), loadConnectedIg(id ?? "").catch(() => ({}))])
+          .then(([b]) => {
             if (!active) return;
             // Every brand's reels: the business filter picks, not the open profile.
             // a board brand linked to one of the brands goes under that brand's name, so it shares its chip
@@ -287,8 +288,8 @@ export default function CalendarPage() {
                   time: scheduleTime(c.schedule),
                   posted: c.stage === "posted",
                   business: label(brandOf(c)),
-                  auto: Boolean(IG_HANDLES[brandOf(c)]),
-                  handle: IG_HANDLES[brandOf(c)] ?? null,
+                  auto: Boolean(igHandle(brandOf(c))),
+                  handle: igHandle(brandOf(c)) ?? null,
                   href: links.reels({ card: c.id, brand: brandOf(c) }),
                 })),
             );

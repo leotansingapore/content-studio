@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, mmss, stageForLink, type ReelCard } from "./reelsBoard";
+import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, setConnectedIg, stageForLink, type ReelCard } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -43,6 +43,23 @@ describe("igLine", () => {
   it("links a posted reel to its Instagram post", () => {
     const c = { ...card("a", "posted", "finternship"), ig: { state: "posted" as const, permalink: "https://instagram.com/p/x", account: "finternshipofficial" } };
     expect(igLine(c)).toEqual({ text: "On Instagram @finternshipofficial", href: "https://instagram.com/p/x" });
+  });
+});
+
+describe("Instagram connected in Content Studio", () => {
+  const acct = (platform: string, username: string, needsReconnect = false) =>
+    ({ id: "x", platform, username, name: "", url: null, picture: null, health: "healthy" as const, needsReconnect, issues: [] });
+  it("takes the working Instagram, without the @", () => {
+    expect(instagramHandle([acct("tiktok", "t"), acct("instagram", "@radiant_vep_solutions")])).toBe("radiant_vep_solutions");
+    expect(instagramHandle([acct("instagram", "r", true)])).toBeNull();
+    expect(instagramHandle([])).toBeNull();
+  });
+  it("says a connected brand's posts go out by themselves, and stops when it is disconnected", () => {
+    expect(igLine(card("a", "scheduled", "radiant"))?.text).toBe("Not linked to Instagram: post it by hand");
+    setConnectedIg("radiant", "radiant_vep_solutions");
+    expect(igLine(card("a", "scheduled", "radiant"))?.text).toBe("Posts to @radiant_vep_solutions automatically");
+    setConnectedIg("radiant", null);
+    expect(igLine(card("a", "scheduled", "radiant"))?.text).toBe("Not linked to Instagram: post it by hand");
   });
 });
 
