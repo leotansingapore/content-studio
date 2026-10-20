@@ -76,6 +76,19 @@ describe("the synced list", () => {
     expect(c.removeCompetitor("u1", "nope")).toBeNull();
   });
 
+  it("Undo puts nothing back once the same business was added again or the list is full", () => {
+    const a = added(c.addCompetitor("u1", row("Singlife", { site: "singlife.com" })));
+    const gone = c.removeCompetitor("u1", a.id)!;
+    added(c.addCompetitor("u1", row("Singlife Pte", { site: "singlife.com" })));
+    expect(c.restoreCompetitor("u1", gone)).toBe(false);
+    expect(c.loadCompetitors("u1").list.map((x) => x.name)).toEqual(["Singlife Pte"]);
+    for (let k = 1; k < c.MAX_COMPETITORS; k++) added(c.addCompetitor("u1", row(`Rival ${k}`)));
+    const last = c.removeCompetitor("u1", c.loadCompetitors("u1").list[5].id)!;
+    added(c.addCompetitor("u1", row("Late add")));
+    expect(c.restoreCompetitor("u1", last)).toBe(false);
+    expect(c.loadCompetitors("u1").list).toHaveLength(c.MAX_COMPETITORS);
+  });
+
   it("keeps each brand's list apart", async () => {
     const { addProfile, setActiveProfile } = await import("@/lib/profiles");
     c.addCompetitor("u1", row("Singlife"));
