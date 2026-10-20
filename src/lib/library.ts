@@ -238,7 +238,9 @@ const dayLabel = (day: string) => {
 
 /** The card's line under its title, by status. Making and failed say their note. */
 export function statusLine(it: Pick<LibraryItem, "status" | "when" | "note">): string {
-  if (it.status === "scheduled" && it.when) {
+  if (it.status === "scheduled") {
+    // Plan can mark a post scheduled with no day yet
+    if (!it.when) return STATUS_LABELS.scheduled;
     const time = scheduleTime(it.when);
     return `Goes out ${dayLabel(it.when.slice(0, 10))}${time ? `, ${timeLabel(time)}` : ""}`;
   }

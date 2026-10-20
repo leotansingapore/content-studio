@@ -206,6 +206,7 @@ describe("statusLine", () => {
     expect(statusLine({ status: "ready" })).toBe("Not scheduled yet");
     expect(statusLine({ status: "scheduled", when: "2026-10-23T20:00" })).toBe("Goes out Fri 23 Oct, 8pm");
     expect(statusLine({ status: "scheduled", when: "2026-10-23" })).toBe("Goes out Fri 23 Oct");
+    expect(statusLine({ status: "scheduled" })).toBe("Scheduled");
     expect(statusLine({ status: "posted", when: "2026-10-15" })).toBe("Posted Thu 15 Oct");
     expect(statusLine({ status: "making", note: "Making the voiceover" })).toBe("Making the voiceover");
   });
