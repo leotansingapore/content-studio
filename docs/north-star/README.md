@@ -28,7 +28,8 @@ Leo set the north star on 2026-10-19: "the idea is that one can remix any conten
 
 ## The gate
 
-- North-star work goes to Leo's accounts only until he says otherwise: `leoOnly(email)` from `src/lib/leoOnly.ts` (tanjunsing@gmail.com and leotanjs95@gmail.com). Hide the entry point (nav `owners`, a button) AND guard the page or action, because a typed URL skips the nav.
+- North-star work goes to Leo's accounts only until he says otherwise: `useLeoOnly()` / `useLeoUser()` from `src/lib/useLeoOnly.ts` in components (one shared session read; `useLeoUser()` is undefined while loading), `leoOnly(email)` from `src/lib/leoOnly.ts` elsewhere (tanjunsing@gmail.com and leotanjs95@gmail.com). Hide the entry point (nav `owners`, a button) AND guard the page or action, because a typed URL skips the nav. On the server, paid north-star functions check the `NORTH_STAR_USERS` secret (uid list, `isAllowed` from supabase/functions/market/logic.ts) and answer 403 `not_enabled`.
+- Localhost checks: sign in as the academy demo user and add `?asLeo=1` once; the tab counts as Leo in dev builds only.
 - Turning anything on for everyone is Leo's call, in his words ("on for everyone"). Never infer it.
 - Hard stops that still go to Leo before you build: a database schema change, money (new paid providers, Stripe, plans, credits that charge anyone), auth changes, new npm dependencies, and facts only he has.
 
