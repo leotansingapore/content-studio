@@ -239,6 +239,13 @@ describe("the read job", () => {
     expect(b.isReading(r.item.key)).toBe(false);
   });
 
+  it("keeps a short link's own post link once read, so it plays", async () => {
+    callFn.mockResolvedValueOnce({ source: { ...answer.source, platform: "tiktok", url: "https://www.tiktok.com/@mrbrown/video/7412345678901234567" } });
+    const r = ok(await b.saveLink("u1", "https://vt.tiktok.com/ZS123/", ""));
+    await settle();
+    expect(stored().items[0]).toMatchObject({ key: r.item.key, url: "https://www.tiktok.com/@mrbrown/video/7412345678901234567", read: "done" });
+  });
+
   it("marks a 429 as capped and any other failure as failed, and keeps the item", async () => {
     callFn.mockRejectedValueOnce(new EdgeError("You've used all 20 for today. It resets at 8am Singapore time.", 429, "daily_limit"));
     ok(await b.saveLink("u1", reel, ""));

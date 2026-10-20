@@ -511,8 +511,11 @@ export async function runRead(userId: string, key: string): Promise<void> {
   try {
     const { source: s } = await callFn<{ source: CloneSource }>("clone-reel", { url: item.url, style: true }, "Couldn't read that post right now.");
     const m = s.metrics;
+    // a short link (vt.tiktok.com/...) comes back as the post's own link, which plays in the drawer
+    const own = parseReelUrl(s.url);
     const done = patchAt(k, key, {
       read: "done",
+      url: own.ok ? own.url : item.url,
       caption: (s.caption ?? "").trim().slice(0, MAX_CAPTION),
       author: s.author ? `@${s.author.replace(/^@+/, "")}` : item.author,
       numbers: cleanNumbers({ views: m?.views ?? undefined, likes: m?.likes ?? undefined, comments: m?.comments ?? undefined }),
