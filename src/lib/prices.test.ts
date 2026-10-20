@@ -56,14 +56,19 @@ describe("chipText", () => {
 
 describe("reasonText", () => {
   it("explains a disabled button", () => {
-    expect(reasonText({ left: 0})).toBe("Back at 8am Singapore time.");
-    expect(reasonText({ left: 2, uses: 3 })).toBe("This needs 3 uses and 2 are left today.");
-    expect(reasonText({ left: 1, uses: 3 })).toBe("This needs 3 uses and 1 is left today.");
+    expect(reasonText({ left: 0, leo: true })).toBe("Back at 8am Singapore time.");
+    expect(reasonText({ left: 2, uses: 3, leo: true })).toBe("This needs 3 uses and 2 are left today.");
+    expect(reasonText({ left: 1, uses: 3, leo: true })).toBe("This needs 3 uses and 1 is left today.");
+  });
+
+  it("says nothing to anyone but Leo", () => {
+    expect(reasonText({ left: 0, leo: false })).toBeNull();
+    expect(reasonText({ left: 2, uses: 3, leo: false })).toBeNull();
   });
 
   it("says nothing while the run can go or usage is unread", () => {
-    expect(reasonText({ left: 2 })).toBeNull();
-    expect(reasonText({ left: 3, uses: 3 })).toBeNull();
-    expect(reasonText({ left: null, uses: 3 })).toBeNull();
+    expect(reasonText({ left: 2, leo: true })).toBeNull();
+    expect(reasonText({ left: 3, uses: 3, leo: true })).toBeNull();
+    expect(reasonText({ left: null, uses: 3, leo: true })).toBeNull();
   });
 });
