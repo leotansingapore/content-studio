@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Clapperboard, Columns3, Images, LayoutGrid, RefreshCw, Rows3, Users } from "lucide-react";
 import SectionTabs, { BOARD_TABS } from "@/components/SectionTabs";
@@ -36,6 +36,7 @@ import {
   openNotes,
   perms,
   seesBoard,
+  sharedBoard,
   stageForLink,
   updateCard,
   type Board,
@@ -95,7 +96,7 @@ export default function ReelsPage() {
       setMe(who);
       setAllowed(seesBoard(who));
       if (!seesBoard(who)) return;
-      fetchBoard()
+      sharedBoard() // the shell asked a moment ago on a cold load; Refresh asks again
         .then((b) => {
           setBoard(b);
           // on arrival only: a link to one post shows its stage, so opening a post in the app never moves the chips
@@ -136,6 +137,8 @@ export default function ReelsPage() {
   }, [board]);
 
   const replace = useCallback((c: ReelCard) => setBoard((b) => b && { ...b, cards: b.cards.map((x) => (x.id === c.id ? c : x)) }), []);
+  // a move touches the stage only, so a note added a moment before (the drawer's move to Needs changes) is never undone
+  const setStage = useCallback((id: string, stage: StageId) => setBoard((b) => b && { ...b, cards: b.cards.map((x) => (x.id === id ? { ...x, stage } : x)) }), []);
 
   const move = useCallback(
     (id: string, to: StageId, quiet = false) => {
@@ -146,7 +149,7 @@ export default function ReelsPage() {
         return;
       }
       const from = c.stage;
-      replace({ ...c, stage: to === "approved" ? "scheduled" : to }); // optimistic: approve lands in Scheduled
+      setStage(id, to === "approved" ? "scheduled" : to); // optimistic: approve lands in Scheduled
       updateCard(id, { stage: to })
         .then((fresh) => {
           replace(fresh);
@@ -161,12 +164,12 @@ export default function ReelsPage() {
           });
         })
         .catch((e) => {
-          replace(c);
+          setStage(id, from);
           toast({ title: errorText(e, "Couldn't save that move. Check your connection and try again."), variant: "destructive" });
           if (accessChanged(e)) void checkMe(true).then(setMe).catch(() => {});
         });
     },
-    [board, me, replace, toast],
+    [board, me, replace, setStage, toast],
   );
 
   const open = (id: string | null) => {
@@ -201,7 +204,8 @@ export default function ReelsPage() {
   // read on arrival only; the brand that owns it opens first, so it lands without the switcher's second reload.
   const elsewhere = board && me?.owner ? waitingByBrand(board, brand ?? "") : [];
   const hrefFor = (w: (typeof elsewhere)[number]) => links.reels({ brand: w.id, stage: w.changes ? "all" : undefined });
-  const openBrand = (boardBrand: string) => {
+  const openBrand = (e: MouseEvent, boardBrand: string) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab switches on arrival; this one keeps its brand
     const p = profileForBoardBrand(uid, boardBrand);
     if (p) setActiveProfile(uid, p.id);
   };
@@ -293,7 +297,7 @@ export default function ReelsPage() {
               {elsewhere.map((w, i) => (
                 <span key={w.id}>
                   {i > 0 && ", "}
-                  <a href={hrefFor(w)} onClick={() => openBrand(w.id)} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
+                  <a href={hrefFor(w)} onClick={(e) => openBrand(e, w.id)} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
                     {w.name} {w.n}
                   </a>
                 </span>
@@ -341,7 +345,7 @@ export default function ReelsPage() {
               <div className="flex flex-wrap justify-center gap-2">
                 {elsewhere.map((w) => (
                   <Button key={w.id} asChild size="sm" variant="outline" className="[@media(pointer:coarse)]:h-11">
-                    <a href={hrefFor(w)} onClick={() => openBrand(w.id)}>{w.name} {w.n} to review</a>
+                    <a href={hrefFor(w)} onClick={(e) => openBrand(e, w.id)}>{w.name} {w.n} to review</a>
                   </Button>
                 ))}
               </div>
