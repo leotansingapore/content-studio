@@ -73,6 +73,9 @@ Deno.serve(async (req) => {
       { role: "system", content: system },
       { role: "user", content: user },
     ];
+    // tokens per OpenAI call, logged so remix-make's price can be set from real runs (usageCaps.ts / prices.ts)
+    const tokens: string[] = [];
+    let rewrote = false;
     const write = async (msgs: typeof messages): Promise<{ result: MakeResult; raw: string } | null> => {
       const res = await openaiChat(
         { model: FALLBACK_MODEL, temperature: 0.7, max_tokens: 1800, response_format: MAKE_RESPONSE_FORMATS[make.as as "post"], messages: msgs },
@@ -82,7 +85,9 @@ Deno.serve(async (req) => {
         console.error("openai failed", res.status, (await res.text().catch(() => "")).slice(0, 300));
         return null;
       }
-      const content = (await res.json().catch(() => null))?.choices?.[0]?.message?.content ?? null;
+      const data = await res.json().catch(() => null);
+      tokens.push(`${data?.model ?? "?"} ${data?.usage?.prompt_tokens ?? "?"} in ${data?.usage?.completion_tokens ?? "?"} out`);
+      const content = data?.choices?.[0]?.message?.content ?? null;
       const result = validateMake(make.as, content);
       if (!result) console.error("openai output rejected", String(content ?? "").slice(0, 300));
       return result ? { result, raw: String(content) } : null;
@@ -96,14 +101,16 @@ Deno.serve(async (req) => {
 
     const source = make.source!;
     const held = await holdTheLine(first.result, source.text, dontReuseFor(make), {
-      rewrite: async (lines) =>
-        (await write([...messages, { role: "assistant", content: first.raw }, { role: "user", content: rewriteMessage(lines) }]).catch(() => null))?.result ?? null,
+      rewrite: async (lines) => {
+        rewrote = true;
+        return (await write([...messages, { role: "assistant", content: first.raw }, { role: "user", content: rewriteMessage(lines) }]).catch(() => null))?.result ?? null;
+      },
       ask: async (state) => {
         const answers = await askJev({ ...(state as object), facts: make.brand.facts }, MAKE_QUESTIONS, { who: "remix make" });
         return answers ? { claim: noulOf(answers, "copied_claim"), invented: noulOf(answers, "invented_self") } : null;
       },
     });
-    console.log("remix ok", make.as, make.keep, make.close, `copied ${held.flags.copied.length}`, `${Date.now() - startedAt}ms`);
+    console.log("remix ok", make.as, make.keep, make.close, `copied ${held.flags.copied.length}`, `rewrote ${rewrote}`, `tokens ${tokens.join(" | ")}`, `${Date.now() - startedAt}ms`);
     return json({ as: make.as, result: held.result, flags: held.flags, usage: { used: usage.used, limit: usage.limit } });
   } catch (e) {
     console.error("remix failed", e);
