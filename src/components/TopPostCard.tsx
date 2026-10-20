@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { buildRemixUrl, generatorFormat, topAdvisorId, type TopPost, type TopPostWithAdvisor } from "@/lib/topPosts";
 import { cloneLinkFor } from "@/lib/reelClone";
+import { cutAtWord } from "../../supabase/functions/video-assist/captions.ts";
 import RemixButton from "@/components/remix/RemixButton";
 import { fromTopPost } from "@/lib/remixSource";
 import {
@@ -88,7 +89,7 @@ export default function TopPostCard({
   const fmt = generatorFormat(post);
   const insight = displayInsight(post, insightProp);
   const Icon = FORMAT_ICON[fmt] ?? FileText;
-  const hook = post.idea?.hook || post.caption.slice(0, 80).replace(/\s+\S*$/, "") || "Untitled post";
+  const hook = post.idea?.hook || cutAtWord(post.caption.trim(), 80) || "Untitled post";
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card transition-all hover:border-primary/40 hover:shadow-elegant">

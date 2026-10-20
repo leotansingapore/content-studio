@@ -10,6 +10,17 @@ describe("buildRemixUrl", () => {
     expect((advisors as { id: string }[]).some((a) => a.id === post.advisorId)).toBe(true);
   });
 
+  it("keeps a short caption whole as the topic and style reference, and cuts a long one at a word", () => {
+    const params = (caption: string) =>
+      new URL(buildRemixUrl({ shortCode: "X1", url: "", type: "Image", likes: 1, comments: 0, views: 0, caption }, { name: "Sam", handle: "@sam" }), "https://x").searchParams;
+    const short = params("I have an announcement to make.");
+    expect(short.get("detail")).toBe("I have an announcement to make.");
+    expect(short.get("ctx")).toContain('"I have an announcement to make."');
+    const long = params(`${"word ".repeat(30)}lastwordhere`);
+    expect(long.get("detail")!.length).toBeLessThanOrEqual(90);
+    expect(long.get("detail")).toMatch(/word$/);
+  });
+
   it("sends no source for a creator the library doesn't know", () => {
     const post = getAllTopPosts()[0];
     expect(new URL(buildRemixUrl(post, { name: "Someone", handle: "@nobody_here_123" }), "https://x").searchParams.has("source")).toBe(false);

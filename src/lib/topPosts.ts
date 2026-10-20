@@ -13,6 +13,7 @@ import advisorsData from "@/data/advisors.json";
 import type { AdvisorEntry } from "@/components/AdvisorProfiles";
 import { sourceKey } from "@/lib/remixSource";
 import type { PostTags } from "../../supabase/functions/remix/teardown.ts";
+import { cutAtWord } from "../../supabase/functions/video-assist/captions.ts";
 
 export interface PostIdea {
   hook: string;
@@ -133,7 +134,7 @@ export function buildRemixUrl(
 ): string {
   const topic =
     post.idea?.hook ||
-    post.caption.slice(0, 90).replace(/\s+\S*$/, "") ||
+    cutAtWord(post.caption.trim(), 90) ||
     "A proven post idea";
   // Inspiration, not plagiarism: we pass the idea, why it worked, the angle,
   // the structure and the caption as a style reference (Leo, 2026-10-08:
@@ -144,7 +145,7 @@ export function buildRemixUrl(
     post.idea?.hook ? `Original idea: ${post.idea.hook}` : "",
     post.idea?.why ? `Why it worked: ${post.idea.why}` : "",
     post.caption
-      ? `Original caption, a style reference only (rewrite it for my business, never copy it): "${post.caption.slice(0, 400).replace(/\s+\S*$/, "")}"`
+      ? `Original caption, a style reference only (rewrite it for my business, never copy it): "${cutAtWord(post.caption, 400)}"`
       : "",
     extras?.angle ? `Content angle to keep: ${extras.angle}` : "",
     extras?.structure ? `Structure to follow: ${extras.structure}` : "",
