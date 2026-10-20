@@ -80,6 +80,87 @@ describe("links", () => {
     expect(links.hubAdmin({ tab: "clients" })).toBe("/hub/admin");
   });
 
+  it("builds the Competitors links (docs/deep-links.md, Phase 2: /competitors)", () => {
+    expect(links.competitors()).toBe("/competitors");
+    // ads is the default once a competitor exists, so links leave it out
+    expect(links.competitors({ view: "ads", running: false })).toBe("/competitors");
+    expect(links.competitors({ view: "list" })).toBe("/competitors?view=list");
+    expect(links.competitors({ view: "list", edit: "c-lq3k9z" })).toBe("/competitors?view=list&edit=c-lq3k9z");
+    expect(links.competitors({ c: "c-lq3k9z", running: true })).toBe("/competitors?c=c-lq3k9z&running=only");
+    expect(links.competitors({ view: "posts", c: "c-lq3k9z", platform: "tiktok", sort: "newest" })).toBe(
+      "/competitors?view=posts&c=c-lq3k9z&platform=tiktok&sort=newest",
+    );
+    expect(links.competitors({ view: "posts", sort: "views" })).toBe("/competitors?view=posts&sort=views");
+    expect(links.competitors({ ad: "2095783381019179" })).toBe("/competitors?ad=2095783381019179");
+  });
+
+  it("builds the phase-2 swipe tabs with each tab's default left out", () => {
+    expect(links.swipe({ tab: "foryou" })).toBe("/swipe?tab=foryou");
+    expect(links.swipe({ tab: "foryou", kind: "organic", hidden: true })).toBe("/swipe?tab=foryou&kind=organic&hidden=only");
+    expect(links.swipe({ tab: "foryou", kind: "all", hidden: false })).toBe("/swipe?tab=foryou");
+    // reach is the search tab's default sort, so the spec's sort=reach stays out
+    expect(links.swipe({ tab: "search", q: "cpf", sort: "reach" })).toBe("/swipe?tab=search&q=cpf");
+    expect(links.swipe({ tab: "search", q: "cpf", platform: "tiktok", sort: "views", posted: "30d" })).toBe(
+      "/swipe?tab=search&q=cpf&sort=views&platform=tiktok&posted=30d",
+    );
+    expect(links.swipe({ tab: "search", platform: "all", posted: "90d" })).toBe("/swipe?tab=search");
+    expect(links.swipe({ tab: "search", posted: "any" })).toBe("/swipe?tab=search&posted=any");
+    // reach only drops on the search tab: Top posts reads sort with its own list
+    expect(links.swipe({ sort: "reach" })).toBe("/swipe?sort=reach");
+    expect(
+      links.swipe({ tab: "ads", scope: "space", hook: "problem", running: true, run: "30", format: "video", platform: "instagram", emotion: "worry", audience: "parents", sort: "longest" }),
+    ).toBe("/swipe?tab=ads&format=video&audience=parents&sort=longest&scope=space&hook=problem&running=only&run=30&platform=instagram&emotion=worry");
+    expect(links.swipe({ tab: "ads", scope: "all", hook: "all", emotion: "all", sort: "relevant", running: false })).toBe("/swipe?tab=ads");
+    expect(links.swipe({ tab: "ads", scope: "sg", industry: "banking" })).toBe("/swipe?tab=ads&industry=banking&scope=sg");
+    // the open ad stays last, under the filters
+    expect(links.swipe({ tab: "ads", scope: "c-lq3k9z", q: "cpf", ad: "2095783381019179" })).toBe(
+      "/swipe?tab=ads&q=cpf&scope=c-lq3k9z&ad=2095783381019179",
+    );
+    expect(links.swipe({ tab: "hooks", formula: "myth-bust", why: "fear-of-loss", q: "cpf" })).toBe(
+      "/swipe?tab=hooks&q=cpf&why=fear-of-loss&formula=myth-bust",
+    );
+    expect(links.swipe({ tab: "hooks", formula: "all", why: "all" })).toBe("/swipe?tab=hooks");
+  });
+
+  it("builds the Saved links (docs/deep-links.md, Phase 2: /saved)", () => {
+    expect(links.saved()).toBe("/saved");
+    expect(links.saved({ board: "b-lq3k9z" })).toBe("/saved?board=b-lq3k9z");
+    expect(links.saved({ board: "unsorted" })).toBe("/saved?board=unsorted");
+    expect(links.saved({ platform: "tiktok", q: " cpf " })).toBe("/saved?platform=tiktok&q=cpf");
+    expect(links.saved({ item: "link:tiktok:7412345678901234567" })).toBe("/saved?item=link%3Atiktok%3A7412345678901234567");
+    expect(links.saved({ hook: "myth-bust" })).toBe("/saved?hook=myth-bust");
+    expect(links.saved({ angle: "contrarian", topic: "cpf", emotion: "worry", audience: "parents", format: "reel" })).toBe(
+      "/saved?angle=contrarian&topic=cpf&emotion=worry&audience=parents&format=reel",
+    );
+    expect(links.saved({ board: "b-lq3k9z", platform: "ad", hook: "myth-bust", item: "ad:2095783381019179" })).toBe(
+      "/saved?board=b-lq3k9z&platform=ad&hook=myth-bust&item=ad%3A2095783381019179",
+    );
+    expect(links.saved({ item: "link:tiktok:7412345678901234567", breakdown: true })).toBe(
+      "/saved?item=link%3Atiktok%3A7412345678901234567#breakdown",
+    );
+    // a breakdown needs an open item
+    expect(links.saved({ breakdown: true, hook: "all" })).toBe("/saved");
+  });
+
+  it("builds the phase-2 Trends, Profiles, Following and Home links", () => {
+    expect(links.trends({ view: "kits" })).toBe("/trends");
+    expect(links.trends({ view: "search" })).toBe("/trends?view=search");
+    expect(links.trends({ view: "hashtags" })).toBe("/trends?view=hashtags");
+    expect(links.trends({ view: "search", show: "rising" })).toBe("/trends?view=search&show=rising");
+    expect(links.trends({ view: "search", show: "gap" })).toBe("/trends?view=search&show=gap");
+    expect(links.trends({ view: "search", topic: "cpf-life" })).toBe("/trends?view=search&topic=cpf-life");
+    expect(links.trends({ view: "hashtags", tag: "moneytok" })).toBe("/trends?view=hashtags&tag=moneytok");
+    expect(links.trends({ platform: "tiktok", trend: "t1" })).toBe("/trends?platform=tiktok&trend=t1");
+    expect(links.profiles({ sort: "for-you" })).toBe("/profiles?sort=for-you");
+    expect(links.profiles({ niche: ["cpf-and-retirement"], sort: "for-you" })).toBe("/profiles?niche=cpf-and-retirement&sort=for-you");
+    expect(links.profile("the-astute-parent-youtube")).toBe("/profiles/the-astute-parent-youtube");
+    expect(links.profile("the-astute-parent-youtube", { works: true })).toBe("/profiles/the-astute-parent-youtube#works");
+    expect(links.following({ account: "instagram:sleekflow", view: "patterns" })).toBe("/following?account=instagram%3Asleekflow&view=patterns");
+    expect(links.following()).toBe("/following");
+    expect(links.home()).toBe("/home");
+    expect(links.home({ section: "what-moved" })).toBe("/home#what-moved");
+  });
+
   it("builds the Create pages' links with defaults left out (docs/deep-links.md, Create pages)", () => {
     expect(links.generate({ draft: "d1", step: "topic" })).toBe("/generate?draft=d1");
     expect(links.generate({ step: "format", panel: "shortcuts" })).toBe("/generate?step=format&panel=shortcuts");

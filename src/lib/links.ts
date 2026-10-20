@@ -95,12 +95,17 @@ export const links = {
   inspiration: (o: { q?: string; pillar?: string[]; platform?: string[]; format?: string[]; audience?: string[]; saved?: boolean } = {}) =>
     `/inspiration${qs({ q: o.q?.trim(), pillar: list(o.pillar), platform: list(o.platform), format: list(o.format), audience: list(o.audience), saved: o.saved && "only" })}`,
   inspirationPost: (id: string) => `/inspiration/${encodeURIComponent(id)}`,
-  profiles: (o: { q?: string; company?: string[]; platform?: string[]; audience?: string[]; niche?: string[]; saved?: boolean } = {}) =>
-    `/profiles${qs({ q: o.q?.trim(), company: list(o.company), platform: list(o.platform), audience: list(o.audience), niche: list(o.niche), saved: o.saved && "only" })}`,
-  profile: (id: string) => `/profiles/${encodeURIComponent(id)}`,
+  /** sort=for-you (Leo only, with a Plan positioning); the tier sections are the default, left out. */
+  profiles: (
+    o: { q?: string; company?: string[]; platform?: string[]; audience?: string[]; niche?: string[]; saved?: boolean; sort?: "for-you" } = {},
+  ) =>
+    `/profiles${qs({ q: o.q?.trim(), company: list(o.company), platform: list(o.platform), audience: list(o.audience), niche: list(o.niche), saved: o.saved && "only", sort: o.sort })}`,
+  /** works: scrolls to "What works for them" (#works). */
+  profile: (id: string, o: { works?: boolean } = {}) => `/profiles/${encodeURIComponent(id)}${o.works ? "#works" : ""}`,
+  /** foryou, search and hooks are Leo's tabs (phase 2); each tab reads the shared params with its own allowed list. */
   swipe: (
     o: {
-      tab?: "posts" | "news" | "ads";
+      tab?: "posts" | "news" | "ads" | "foryou" | "search" | "hooks";
       q?: string;
       format?: string;
       from?: string;
@@ -108,6 +113,7 @@ export const links = {
       topic?: string;
       angle?: string;
       audience?: string;
+      /** Left out when it is the tab's default: reach on search, relevant on ads. */
       sort?: string;
       saved?: boolean;
       /** A top post's key, <advisorId>-<shortCode>: opens it. */
@@ -115,8 +121,28 @@ export const links = {
       industry?: string;
       /** With tab "news": a story's id, scrolled to and marked. */
       story?: string;
-      /** With tab "ads": an ad's id, scrolled to, marked and read in full. */
+      /** With tab "ads": an ad's id, scrolled to, marked and read in full; Leo's sign-ins open its drawer. */
       ad?: string;
+      /** For you: organic posts or ads only. */
+      kind?: "all" | "organic" | "ads";
+      /** For you: the hidden cards only. */
+      hidden?: boolean;
+      /** Ads: a competitor id, space or sg. */
+      scope?: string;
+      /** Ads: a hook family id (_shared/tags.ts HOOK_FAMILIES). */
+      hook?: string;
+      running?: boolean;
+      /** Ads: running at least this many days. */
+      run?: "7" | "30" | "90";
+      /** Ads: facebook, instagram, messenger, threads; search: tiktok, youtube. */
+      platform?: string;
+      emotion?: string;
+      /** Search: posted in the last 30 days or any time; 90d is the default, left out. */
+      posted?: "30d" | "90d" | "any";
+      /** Hooks: a psychology id (_shared/tags.ts PSYCHOLOGY). */
+      why?: string;
+      /** Hooks: a hook formula id. */
+      formula?: string;
     } = {},
   ) =>
     `/swipe${qs({
@@ -127,17 +153,96 @@ export const links = {
       topic: o.topic !== "all" && o.topic,
       angle: o.angle !== "all" && o.angle,
       audience: o.audience !== "all" && o.audience,
-      sort: o.sort,
+      sort: !(o.tab === "search" && o.sort === "reach") && !(o.tab === "ads" && o.sort === "relevant") && o.sort,
       saved: o.saved && "only",
       post: o.post,
       industry: o.industry !== "all" && o.industry,
       story: o.story,
+      kind: o.kind !== "all" && o.kind,
+      hidden: o.hidden && "only",
+      scope: o.scope !== "all" && o.scope,
+      hook: o.hook !== "all" && o.hook,
+      running: o.running && "only",
+      run: o.run,
+      platform: o.platform !== "all" && o.platform,
+      emotion: o.emotion !== "all" && o.emotion,
+      posted: o.posted !== "90d" && o.posted,
+      why: o.why !== "all" && o.why,
+      formula: o.formula !== "all" && o.formula,
       ad: o.ad,
     })}`,
-  trends: (o: { platform?: string; type?: string; trend?: string } = {}) =>
-    `/trends${qs({ platform: o.platform !== "all" && o.platform, type: o.type !== "all" && o.type, trend: o.trend })}`,
-  /** ?post=<platform>:<post id>: a followed account's post, scrolled to and marked. */
-  following: (o: { post?: string } = {}) => `/following${qs({ post: o.post })}`,
+  /** Leo's views (search, hashtags; kits is the default, left out): show filters search, topic and tag open a drawer (push). */
+  trends: (
+    o: { platform?: string; type?: string; trend?: string; view?: "kits" | "search" | "hashtags"; show?: "rising" | "gap"; topic?: string; tag?: string } = {},
+  ) =>
+    `/trends${qs({
+      view: o.view !== "kits" && o.view,
+      platform: o.platform !== "all" && o.platform,
+      type: o.type !== "all" && o.type,
+      trend: o.trend,
+      show: o.show,
+      topic: o.topic,
+      tag: o.tag,
+    })}`,
+  /** ?post=<platform>:<post id>: a followed account's post, scrolled to and marked. account=<platform>:<handle> with view=patterns opens What worked (push). */
+  following: (o: { post?: string; account?: string; view?: "patterns" } = {}) =>
+    `/following${qs({ post: o.post, account: o.account, view: o.view })}`,
+  /** Competitors (Leo only). ads is the default view once a competitor exists, left out; edit and ad open an item (push). */
+  competitors: (
+    o: {
+      view?: "ads" | "posts" | "list";
+      /** With view=list: a competitor id, its editor open. */
+      edit?: string;
+      /** One competitor's pill. */
+      c?: string;
+      running?: boolean;
+      platform?: "instagram" | "tiktok";
+      /** Posts: the outlier order is the default, left out. */
+      sort?: "views" | "newest";
+      /** An ad's Library id: its drawer open. */
+      ad?: string;
+    } = {},
+  ) =>
+    `/competitors${qs({
+      view: o.view !== "ads" && o.view,
+      edit: o.edit,
+      c: o.c,
+      running: o.running && "only",
+      platform: o.platform,
+      sort: o.sort,
+      ad: o.ad,
+    })}`,
+  /** Saved (Leo only). Filters replace; item opens one (push), breakdown scrolls to its Breakdown (#breakdown). */
+  saved: (
+    o: {
+      /** A board id, or unsorted; all boards is the default. */
+      board?: string;
+      platform?: "instagram" | "tiktok" | "youtube" | "ad" | "link";
+      q?: string;
+      item?: string;
+      hook?: string;
+      angle?: string;
+      topic?: string;
+      emotion?: string;
+      audience?: string;
+      format?: string;
+      breakdown?: boolean;
+    } = {},
+  ) =>
+    `/saved${qs({
+      board: o.board,
+      platform: o.platform,
+      q: o.q?.trim(),
+      hook: o.hook !== "all" && o.hook,
+      angle: o.angle !== "all" && o.angle,
+      topic: o.topic !== "all" && o.topic,
+      emotion: o.emotion !== "all" && o.emotion,
+      audience: o.audience !== "all" && o.audience,
+      format: o.format !== "all" && o.format,
+      item: o.item,
+    })}${o.item && o.breakdown ? "#breakdown" : ""}`,
+  /** Home; what-moved scrolls to the What moved card. */
+  home: (o: { section?: "what-moved" } = {}) => `/home${o.section ? `#${o.section}` : ""}`,
   /** Your market (Leo only). post=<platform>:<post id> shows that competitor post under either chip, scrolled to. */
   market: (o: { show?: "act" | "all"; view?: "digest" | "setup"; post?: string } = {}) =>
     `/market${qs({ show: o.show !== "act" && o.show, view: o.view !== "digest" && o.view, post: o.post })}`,
