@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("./edgeFn")>()), callFn: vi.fn(async () => ({ id: "a1" })) }));
+import { callFn } from "./edgeFn";
 import { scanCompliance } from "./compliance";
-import { STARTERS, applyStarter, ctaKeyword, emptyForm, fillName, formFlags, formProblem, keptForm, listensTo, logOutcome, plainReason, toInput, typeKeywords, whoGotItLine, withDraft, type LogView } from "./autoDm";
+import { STARTERS, applyStarter, saveAutoDm, ctaKeyword, emptyForm, fillName, formFlags, formProblem, keptForm, listensTo, logOutcome, plainReason, toInput, typeKeywords, whoGotItLine, withDraft, type LogView } from "./autoDm";
 
 const IG = "65000000000000000000a001";
 
@@ -74,6 +76,20 @@ describe("the form", () => {
     expect(keptForm(raw, ["other"], [])).toBeNull();
     expect(keptForm(JSON.stringify({ ...filled, id: "gone" }), [IG], ["a1"])).toBeNull();
     for (const bad of [null, "", "null", "{", "[]", '"text"', JSON.stringify({ accountId: IG })]) expect(keptForm(bad, [IG], [])).toBeNull();
+  });
+
+  it("saves a new one paused when asked, and an edit never switches it on or off", async () => {
+    const call = vi.mocked(callFn);
+    call.mockClear();
+    await saveAutoDm("p1", filled, "instagram", false);
+    await saveAutoDm("p1", { ...filled, id: "a1" }, "instagram", true);
+    await saveAutoDm("p1", filled, "instagram");
+    const [created, edited, live] = call.mock.calls.map((c) => c[1] as Record<string, unknown>);
+    expect(created).toMatchObject({ action: "automation-create", profileId: "p1", accountId: IG, active: false });
+    expect(edited).toMatchObject({ action: "automation-update", automationId: "a1" });
+    expect(edited).not.toHaveProperty("active");
+    expect(live.action).toBe("automation-create");
+    expect(live).not.toHaveProperty("active");
   });
 
   it("previews the commenter's name", () => {
