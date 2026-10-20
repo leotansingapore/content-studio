@@ -69,6 +69,8 @@ const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // where a new text box lands, so it doesn't cover the ones already there
 const NEW_BOX_Y = [0.5, 0.72, 0.28, 0.86, 0.14, 0.6];
 const EXPORT_FAILED = "Couldn't make the pictures. Try again, or try another browser.";
+/** "slide 3" or "slides 2, 5", for the lines under the slide. */
+const slidesText = (nums: number[]) => `${nums.length === 1 ? "slide" : "slides"} ${nums.join(", ")}`;
 
 export default function SlideshowPage() {
   const leo = useLeoUser();
@@ -431,7 +433,10 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
   };
 
   const look = useMemo(() => lookOf(userId, work), [userId, work.overlay]);
-  const layout = useMemo(() => (ready ? layoutBoxes(slide, work.size, screenMeasure()) : { boxes: [], overflow: false }), [ready, slide, work.size]);
+  // every slide, so the lines under the slide name the ones Download would clip or that have words to check
+  const layouts = useMemo(() => (ready ? work.slides.map((s) => layoutBoxes(s, work.size, screenMeasure())) : null), [ready, work.slides, work.size]);
+  const layout = layouts?.[index] ?? { boxes: [], overflow: false };
+  const overOthers = (layouts ?? []).flatMap((l, i) => (l.overflow && i !== index ? [i + 1] : []));
   const brand = useMemo(() => {
     const b = loadBrand(userId);
     return { handle: !!b?.handle, logo: !!b?.logo };
@@ -572,9 +577,10 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
               onSwap={() => void swapPicture()}
             />
           </div>
-          {layout.overflow && (
+          {(layout.overflow || overOthers.length > 0) && (
             <p className="flex items-start justify-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
-              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> Too many words for this slide. Cut some or make the text smaller.
+              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+              {layout.overflow ? "Too many words for this slide." : `Too many words on ${slidesText(overOthers)}.`} Cut some or make the text smaller.
             </p>
           )}
           <div className="flex items-center justify-center gap-2">
