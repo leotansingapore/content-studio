@@ -173,4 +173,30 @@ describe("the status chip", () => {
     expect(isDue(link({ status: "published", at: "2026-10-14T01:30:00Z" }), now)).toBe(false);
     expect(isDue({ key: "k" }, now)).toBe(false);
   });
+
+  it("says a partly posted post went wrong somewhere, offers Retry but never Cancel, and stops asking about it", () => {
+    const now = Date.now();
+    const partial = link({ status: "partial", at: new Date(now - 3600_000).toISOString() });
+    expect(chipOf(partial)).toEqual({ label: "Partly posted", tone: "bad" });
+    expect(canRetry(partial)).toBe(true);
+    expect(canCancel(partial)).toBe(false);
+    expect(isDue(partial, now)).toBe(false);
+  });
+
+  it("shows Posting while it goes out, and a cancelled post offers neither Retry nor Cancel and is not asked about again", () => {
+    const now = Date.now();
+    const going = link({ status: "publishing", at: new Date(now - 60_000).toISOString() });
+    expect(chipOf(going)).toEqual({ label: "Posting", tone: "wait" });
+    expect(isDue(going, now)).toBe(true);
+    const cancelled = link({ status: "cancelled", at: new Date(now - 60_000).toISOString() });
+    expect(chipOf(cancelled)).toEqual({ label: "Cancelled", tone: "muted" });
+    expect(canCancel(cancelled)).toBe(false);
+    expect(canRetry(cancelled)).toBe(false);
+    expect(isDue(cancelled, now)).toBe(false);
+  });
+
+  it("asks Zernio about a post it sent without a time, which says just Scheduled", () => {
+    expect(chipOf(link({ status: "scheduled" }))).toEqual({ label: "Scheduled", tone: "wait" });
+    expect(isDue(link({ status: "scheduled" }))).toBe(true);
+  });
 });
