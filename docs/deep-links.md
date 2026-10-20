@@ -238,6 +238,16 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /slideshow | box | a text box id on the open slide: that box picked; one not on the slide is ignored | none | replace | /slideshow?s=ssmh2k9x01ab&slide=2&panel=text&box=bmh2k9x02cd |
 | /generate | compare | original, more: on a remixed post (Leo's sign-ins only), phones open the compare strip's Original or More like this tab and large screens scroll to that part; a draft with no source ignores it | your version | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&compare=original |
 | /carousel | compare | original, more: the same strip above the slides of a remixed post, with draft or carousel=d:<post id> | your version | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&compare=more |
+| /slideshow | view | original: a remixed slideshow's Original tab (the source's snapshot) in place of the slide, with s; a slideshow with no source shows its slides | the slides | replace | /slideshow?s=ssmh2k9x01ab&view=original |
+| /make/slideshow | source | a remix source key (the same keys as /generate?source= below): the slideshow to remix. Leo's sign-ins only (src/lib/leoOnly.ts); anyone else, and any /make/<slug> not in src/data/formats.ts, gets the not-found page. A key that no longer resolves says so and starts from a topic | none | replace | /make/slideshow?source=top%3Agrace-koh-instagram-C931K |
+| /make/slideshow | from | topic, remix (Start from) | remix with a source, else topic | replace | /make/slideshow?from=remix |
+| /make/slideshow | mention | no: the slides leave the brand out | yes | replace | /make/slideshow?from=topic&mention=no |
+| /make/slideshow | size | 9x16 | 4x5 | replace | /make/slideshow?size=9x16 |
+| /make/slideshow | pictures | mine: the brand's own Media photos instead of Pexels stock | stock | replace | /make/slideshow?pictures=mine |
+| /make/slideshow | tab | original: the source's snapshot in place of the result | your result | replace | /make/slideshow?source=top%3Agrace-koh-instagram-C931K&tab=original |
+| /make/slideshow | pick | open: the list of slideshows that did well, to pick one to remix | closed | replace | /make/slideshow?from=remix&pick=open |
+| /make/slideshow | show | a made slideshow's id: shows it as the result (the page sets it when its run finishes) | the run in progress or just made | push | /make/slideshow?show=ssmh2k9x01ab |
+| /make/slideshow | slide | the result's slide, 1-based; out of range reads as 1 | 1 | replace | /make/slideshow?show=ssmh2k9x01ab&slide=3 |
 
 Copy link: the open post in Write, the carousel preview, a clone result, each Academy lesson and the open slideshow
 (and every post elsewhere, see "Every post has a link" at the top).
@@ -268,4 +278,7 @@ Pre-fills read once on arrival, then removed from the address (except day, time,
   clone uses one of the day's. On Leo's sign-ins it fills the Remix a post box, which takes any link
   parseRemixLink accepts (supabase/functions/remix-link/logic.ts); reading stays a tap, since it is paid.
 - /coach#idea-dump (the board's empty column) scrolls to the idea dump.
+- /make/slideshow?go=1 (with source=<key> and any of the params above): starts making on arrival, then go is
+  removed. The Remix sheet's "Also make: Slideshow" link sends it (links.makeFormat), adding mention=no when the
+  sheet's Mention is off. Each arrival is one make, so it uses one of the day's remixes.
 <!-- ==== end Create pages ==== -->

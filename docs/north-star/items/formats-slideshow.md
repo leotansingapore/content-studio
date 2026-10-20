@@ -168,7 +168,7 @@ Not Leo: `NotFoundPage`.
 - [ ] A topic with no source works the same way.
 - [ ] Mention "No" leaves the brand name off every slide, and "Yes" names it once.
 - [ ] 4:5 and 9:16 both draw with every text box inside the slide, checked at both sizes.
-- [ ] "Save" puts it in My posts. "Edit slides" opens it in `/carousel` with the photos. Old saved carousels still open.
+- [ ] "Save" puts it in My posts. "Edit slides" opens it in `/slideshow?s=<id>` with the photos. Old saved slideshows still open. (Rewritten 2026-10-20, see Open questions.)
 - [ ] Schedule hands the PNGs to Post it for me when social is on, and the PNGs show the photos, checked by opening one.
 - [ ] Leaving mid-make and coming back shows the step or the result.
 - [ ] Over the cap, a failed writer and a refused source each show their message. A failed writer gives the use back.
@@ -188,6 +188,10 @@ Not Leo: `NotFoundPage`.
 - Update `src/lib/nav.test.ts` and `src/lib/navRoutes.test.ts` for the new route.
 
 ## Open questions
+
+- 2026-10-20, formats-slideshow build: the made slideshow is a `Slideshow` (edit-slideshow's model, `src/lib/slideshow.ts`, which gains `caption`, `source` and a per-slide `fill`), not a `SavedCarousel`, because phase 1 keeps one slideshow model. So "Edit slides" opens `/slideshow?s=<id>`, not `/carousel`, and the Data section's `style`, `aspect` and `photo` fields on `SavedCarousel`, `photoDataUrl` and the `photo` style in `carouselLayout.ts` are not built; `slideshowDraw.ts` draws the slides and `slideshowPngs` makes the PNGs. The Done-when line above was rewritten to match.
+- 2026-10-20: "Swap picture" lives in the slideshow editor (Edit slides), not on the result panel. The swipe drawer and `/carousel` entry buttons are replaced by "Also make: Slideshow" under the Remix sheet's Make chips and "Remix a trending one" on `/slideshow`'s start card. The example slides from `public/formats/` are left out; a dashed slide-shaped placeholder says "Your result shows here once you make it."
+- 2026-10-20, Leo's dogfood bar, checked in code: no photo twice in one slideshow, and none this brand used in its last 5 (`content-studio-slideshow-photos-<scoped uid>`, `src/lib/slideshowJob.ts`); a caption of complete sentences that ends with its call to action and is never the slide text (`slideshowCaption`, `supabase/functions/remix/logic.ts`); a hook that names a number gets exactly that many numbered slides, and a business with Mention on gets a slide that names it and says what it does (`slideshowProblem`: one fixing pass, then a 422 refusal with the use given back). "Says what it does" is checked as the naming slide carrying at least 5 more words; the words themselves are not judged.
 
 - The slides' own words of a trending slideshow are not stored today: only the caption and cover of 61 Instagram carousels. Reading every slide needs the scraper's child posts plus a picture read, which belongs to `find-trending-formats`. Builder default: write from the caption, cover and idea. Leo decides when to pay for reading slides.
 - Fastlane charges on save or schedule. Our caps count on make. Leo decides if that should change once credits exist.
