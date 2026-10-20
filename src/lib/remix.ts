@@ -239,11 +239,19 @@ export const VIDEO_LIMITS = {
   noVideos: "No videos left today.",
   noVoices: "No voiceovers left today.",
   noPresenter: "No AI presenters left today.",
+  waiting: "Your last video is paid for and waiting. Open it in the editor to finish it at no cost.",
 };
 
-/** Why a video chip can't be picked now, or null: another video running, then the caps it spends. */
-export function videoBlock(as: "speaking" | "explainer", a: { busy: boolean; left: (f: "ai-video" | "ai-voice" | "ai-image") => number | null }): string | null {
+/**
+ * Why a video chip can't be picked now, or null: another video running, a paid avatar still waiting (a new one would
+ * write over it, so only "You speaking" stops), then the caps it spends.
+ */
+export function videoBlock(
+  as: "speaking" | "explainer",
+  a: { busy: boolean; waiting?: boolean; left: (f: "ai-video" | "ai-voice" | "ai-image") => number | null },
+): string | null {
   if (a.busy) return VIDEO_LIMITS.busy;
+  if (as === "speaking" && a.waiting) return VIDEO_LIMITS.waiting;
   if (a.left("ai-video") === 0) return VIDEO_LIMITS.noVideos;
   if (a.left("ai-voice") === 0) return VIDEO_LIMITS.noVoices;
   if (as === "speaking" && a.left("ai-image") === 0) return VIDEO_LIMITS.noPresenter;

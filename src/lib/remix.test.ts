@@ -179,6 +179,10 @@ describe("the Make row", () => {
     expect(videoBlock("speaking", { busy: false, left: left({ "ai-image": 0 }) })).toBe(VIDEO_LIMITS.noPresenter);
     expect(videoBlock("explainer", { busy: false, left: left({ "ai-image": 0 }) })).toBeNull();
     expect(videoBlock("speaking", { busy: false, left: () => null })).toBeNull();
+    // a paid avatar still waiting stops a new one, which would write over it, but not an explainer
+    expect(videoBlock("speaking", { busy: false, waiting: true, left: () => null })).toBe(VIDEO_LIMITS.waiting);
+    expect(videoBlock("speaking", { busy: true, waiting: true, left: () => null })).toBe(VIDEO_LIMITS.busy);
+    expect(videoBlock("explainer", { busy: false, waiting: true, left: () => null })).toBeNull();
   });
 
   it("names a voiceover that runs too long", () => {

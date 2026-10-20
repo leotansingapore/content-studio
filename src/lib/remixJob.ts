@@ -16,6 +16,7 @@ import {
   makeExplainer,
   makePresenter,
   onAiJob,
+  pendingAvatar,
   sliceVoiceover,
 } from "@/lib/aiVideo";
 import { applyBrandRules } from "@/lib/brandRules";
@@ -86,6 +87,8 @@ export interface RemixRow {
   tooLong?: boolean;
   /** A finished avatar's Higgsfield credits (avatarCredits). */
   credits?: number;
+  /** A paid avatar waits on this device: the editor finishes it at no cost, and a new one would write over it. */
+  waiting?: boolean;
 }
 
 export interface RemixJobState {
@@ -260,6 +263,7 @@ async function makeVideo(id: number, i: number, run: RemixRun, r: MakeResult, ho
       return patch(id, i, { state: "done", step: "", href: links.edit({ panel: ["ai"], kind: "explainer" }) });
     }
     if (r.as !== "speaking") return fail();
+    if (pendingAvatar()) return fail(VIDEO_LIMITS.waiting, { waiting: true });
     patch(id, i, { step: VOICEOVER });
     const vo = await sliceVoiceover(await speak(r.script, voice));
     if (vo.seconds > MAX_AVATAR_SECONDS + 0.5) return fail(tooLongLine(vo.seconds), { tooLong: true });
@@ -270,7 +274,8 @@ async function makeVideo(id: number, i: number, run: RemixRun, r: MakeResult, ho
     if (aiBusy()) return fail(VIDEO_LIMITS.busy);
     await makeAvatar(name, face.url, vo);
     const j = aiJob();
-    if (j?.kind !== "avatar" || j.state !== "done") return fail();
+    // paid for but not put together (a dropped download, a slow poll): the editor picks it up for free
+    if (j?.kind !== "avatar" || j.state !== "done") return pendingAvatar() ? fail(VIDEO_LIMITS.waiting, { waiting: true }) : fail();
     patch(id, i, { state: "done", step: "", href: links.edit({ panel: ["ai"], kind: "avatar" }), credits: avatarCredits(vo.slices.map((x) => x.end - x.start)) });
   } catch {
     fail();

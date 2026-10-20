@@ -6,7 +6,7 @@ import PriceChip from "@/components/PriceChip";
 import BreakdownRow from "@/components/remix/BreakdownRow";
 import FitLine from "@/components/remix/FitLine";
 import ForRow from "@/components/remix/ForRow";
-import MakeRow, { useAiBusy } from "@/components/remix/MakeRow";
+import MakeRow, { WaitingLink, useAiBusy } from "@/components/remix/MakeRow";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -16,7 +16,7 @@ import { loadBrand } from "@/lib/carousel";
 import { getDraftById } from "@/lib/draftHistory";
 import { links, slug } from "@/lib/links";
 import { loadPositioning } from "@/lib/positioning";
-import { creditsUsd } from "@/lib/aiVideo";
+import { creditsUsd, pendingAvatar } from "@/lib/aiVideo";
 import { reasonText } from "@/lib/prices";
 import {
   AS_LABELS,
@@ -35,6 +35,7 @@ import {
   makePrice,
   noteKey,
   remixLabel,
+  VIDEO_LIMITS,
   videoAsk,
   videoBlock,
   whatRemixDoes,
@@ -223,7 +224,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const uses = as.length;
   const out = left === 0;
   const short = left !== null && uses > left;
-  const videoStop = picked ? videoBlock(picked, { busy: aiBusy, left: leftOf }) : null;
+  const videoStop = picked ? videoBlock(picked, { busy: aiBusy, waiting: !!pendingAvatar(), left: leftOf }) : null;
   // The press: weak or poor fits and video formats ask first; nothing is spent until the run starts.
   const [asking, setAsking] = useState<FitResult | null>(null);
   const [waiting, setWaiting] = useState(false);
@@ -465,7 +466,12 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
         </Button>
         {out && <p className="text-center text-xs text-muted-foreground">They reset at 8am Singapore time.</p>}
         {short && !out && <p className="text-center text-xs text-muted-foreground">{reasonText({ left, uses, leo: true })}</p>}
-        {videoStop && !out && <p className="text-center text-xs text-muted-foreground">{videoStop}</p>}
+        {videoStop && !out && (
+          <p className="text-center text-xs text-muted-foreground">
+            {videoStop}
+            {videoStop === VIDEO_LIMITS.waiting && <WaitingLink />}
+          </p>
+        )}
         {otherRunning && <p className="text-center text-xs text-muted-foreground">Your other remix is still going. This one can start once it's done.</p>}
       </div>
     );
@@ -567,10 +573,16 @@ function ResultRow({ row, primary, madeWith, onRetry }: { row: RemixRow; primary
               </Link>
             </Button>
           )}
-          {!row.tooLong && (
-            <Button type="button" variant="ghost" size="sm" onClick={onRetry}>
-              Try again
+          {row.waiting ? (
+            <Button asChild size="sm">
+              <Link to={links.edit({ panel: ["ai"], kind: "avatar" })}>Open the editor</Link>
             </Button>
+          ) : (
+            !row.tooLong && (
+              <Button type="button" variant="ghost" size="sm" onClick={onRetry}>
+                Try again
+              </Button>
+            )
           )}
         </div>
       </section>

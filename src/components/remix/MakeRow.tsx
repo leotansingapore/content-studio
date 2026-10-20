@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { FilterChip } from "@/components/ui/filter-chip";
-import { aiBusy as aiWorking, onAiJob } from "@/lib/aiVideo";
+import { aiBusy as aiWorking, onAiJob, pendingAvatar } from "@/lib/aiVideo";
+import { links } from "@/lib/links";
 import { priceText } from "@/lib/prices";
 import { AS_LABELS, MAKE_CHIPS, MAX_FORMATS, VIDEO_LIMITS, formatsAllowed, isVideo, videoBlock, videoPrice, type RemixAs } from "@/lib/remix";
 import type { RemixSource } from "@/lib/remixSource";
@@ -14,7 +16,7 @@ export default function MakeRow(p: { source: RemixSource; as: RemixAs[]; setAs(n
   const [warn, setWarn] = useState(false);
   const aiBusy = useAiBusy();
   const picked = p.as.find(isVideo);
-  const block = (a: "speaking" | "explainer") => videoBlock(a, { busy: aiBusy, left: p.left });
+  const block = (a: "speaking" | "explainer") => videoBlock(a, { busy: aiBusy, waiting: !!pendingAvatar(), left: p.left });
   const blocked = block("speaking") ?? block("explainer");
   const line = blocked ?? (picked ? VIDEO_LIMITS.oneVideo : VIDEO_LIMITS.pickMore);
   const pick = (a: RemixAs) => {
@@ -43,8 +45,18 @@ export default function MakeRow(p: { source: RemixSource; as: RemixAs[]; setAs(n
       </div>
       <p role={warn ? "alert" : undefined} className={`text-xs ${warn || blocked ? "font-medium text-amber-700 dark:text-amber-300" : "text-muted-foreground"}`}>
         {warn ? VIDEO_LIMITS.pickMore : line}
+        {!warn && line === VIDEO_LIMITS.waiting && <WaitingLink />}
       </p>
     </section>
+  );
+}
+
+/** Opens the editor, which finishes a paid avatar that is still waiting at no cost. */
+export function WaitingLink() {
+  return (
+    <Link to={links.edit({ panel: ["ai"], kind: "avatar" })} className="ml-1 inline-flex items-center font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+      Open the editor
+    </Link>
   );
 }
 

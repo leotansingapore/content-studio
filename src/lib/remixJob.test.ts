@@ -32,7 +32,7 @@ vi.mock("@/lib/textVoice", async (orig) => ({ ...(await orig<typeof import("./te
 import { splitDraftIntoSlides } from "./carousel";
 import { loadDrafts } from "./draftHistory";
 import { EdgeError } from "./edgeFn";
-import type { MakeResponse, MakeResult } from "./remix";
+import { VIDEO_LIMITS, type MakeResponse, type MakeResult } from "./remix";
 import {
   BREAKING,
   CHECKING,
@@ -393,6 +393,40 @@ describe("several formats and the videos", () => {
     startRemix(UID, run(["speaking"]));
     expect((await done).rows[0]).toMatchObject({ state: "failed", error: NOT_THROUGH });
     expect(ai.avatar).not.toHaveBeenCalled();
+  });
+
+  it("never writes over a paid avatar that is still waiting, and points a failed one to the editor", async () => {
+    const PENDING = "cs-ai-video-pending";
+    const waiting = JSON.stringify({ name: "Earlier", tokens: ["t1"], seconds: [9.4] });
+    make.mockResolvedValue(speaking);
+    local.setItem(PENDING, waiting);
+    let done = finished();
+    startRemix(UID, run(["speaking"]));
+    expect((await done).rows[0]).toMatchObject({ state: "failed", waiting: true, error: VIDEO_LIMITS.waiting, scriptHref: expect.any(String) });
+    expect(ai.speak).not.toHaveBeenCalled();
+    expect(local.getItem(PENDING)).toBe(waiting);
+
+    // this run's avatar was paid for, then didn't download: aiVideo keeps its tokens for a free finish
+    local.removeItem(PENDING);
+    ai.avatar.mockImplementation(async () => {
+      local.setItem(PENDING, waiting);
+      ai.job = { kind: "avatar", state: "failed", step: "", error: "It was made but didn't download. Try again." };
+    });
+    done = finished();
+    startRemix(UID, run(["speaking"]));
+    expect((await done).rows[0]).toMatchObject({ state: "failed", waiting: true, error: VIDEO_LIMITS.waiting });
+
+    // Higgsfield failed it, so nothing waits and the row offers Try again
+    local.removeItem(PENDING);
+    ai.avatar.mockImplementation(async () => {
+      local.removeItem(PENDING);
+      ai.job = { kind: "avatar", state: "failed", step: "", error: "Higgsfield failed." };
+    });
+    done = finished();
+    startRemix(UID, run(["speaking"]));
+    const row = (await done).rows[0];
+    expect(row).toMatchObject({ state: "failed", error: NOT_THROUGH });
+    expect(row.waiting).toBeUndefined();
   });
 
   it("hands an explainer's scenes and voice to the explainer job, and saves its lines first", async () => {
