@@ -38,10 +38,11 @@ export default function FormatShell(p: { title: string; blurb: string; options: 
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">{p.title}</h1>
         <p className="text-sm text-muted-foreground">{p.blurb}</p>
       </header>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start">
         <div className="min-w-0">
           <div className="space-y-5">{p.options}</div>
-          <div className="sticky bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-20 -mx-4 mt-5 border-t border-border/70 bg-background/95 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:bottom-0 lg:mx-0 lg:rounded-lg lg:border lg:px-4">
+          {/* on a phone the right edge stays clear for the Ask button that floats there */}
+          <div className="sticky bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-20 -mx-4 mt-5 border-t border-border/70 bg-background/95 py-3 pl-4 pr-[4.5rem] backdrop-blur-md sm:-mx-6 sm:pl-6 lg:bottom-0 lg:mx-0 lg:rounded-lg lg:border lg:px-4">
             <div className="flex items-center gap-3">
               <span className="min-w-0 flex-1" aria-live="polite">
                 <PriceChip feature={f.cap} left={left} />
