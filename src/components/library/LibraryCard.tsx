@@ -168,11 +168,14 @@ function LibraryCard({ item, brand, carousel, show, userId, fontsReady }: { item
         )}
       </div>
       <div className="mt-auto flex flex-wrap gap-1">
-        <Button asChild size="sm" variant="outline" className={cn("h-8 px-2.5 text-xs", TOUCH)}>
-          <Link to={item.href} aria-label={`Open ${item.title}`}>
-            Open
-          </Link>
-        </Button>
+        {/* a failed job's Try again opens the same maker, so it stands alone */}
+        {item.retryHref !== item.href && (
+          <Button asChild size="sm" variant="outline" className={cn("h-8 px-2.5 text-xs", TOUCH)}>
+            <Link to={item.href} aria-label={`Open ${item.title}`}>
+              Open
+            </Link>
+          </Button>
+        )}
         {item.scheduleHref && (
           <Button asChild size="sm" variant="outline" className={cn("h-8 px-2.5 text-xs", TOUCH)}>
             <Link to={item.scheduleHref}>Schedule</Link>
