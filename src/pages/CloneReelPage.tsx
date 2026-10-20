@@ -1112,6 +1112,7 @@ function RemixLinkBox({
   input,
   setInput,
   idle,
+  cloning,
   onClone,
 }: {
   userId: string;
@@ -1119,6 +1120,8 @@ function RemixLinkBox({
   setInput: (v: string) => void;
   /** No clone is on screen. */
   idle: boolean;
+  /** A clone is being made. */
+  cloning: boolean;
   onClone: (url: string) => void;
 }) {
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -1130,8 +1133,8 @@ function RemixLinkBox({
   const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const working = read?.state === "working";
-  // read again once a clone ends too, so the Clone it chip counts it
-  const left = useUsesLeft(working || !idle);
+  // read again once a clone run ends too, so the Clone it chip counts it
+  const left = useUsesLeft(working || cloning);
 
   // A read that finishes opens here, now or the next time this page opens, and waits in Recent reads. With a
   // clone on screen it only joins Recent reads, so the clone Leo opened meanwhile stays put.
@@ -1563,6 +1566,7 @@ export default function CloneReelPage() {
           input={input}
           setInput={setInput}
           idle={view.kind === "idle"}
+          cloning={loading}
           onClone={(url) => {
             setInput(url);
             updateUrl({ source: null });
