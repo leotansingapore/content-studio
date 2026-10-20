@@ -99,7 +99,8 @@ export function localTeardown(userId: string, s: RemixSource): Teardown | null {
   const stored = loadTeardown(userId, s.key);
   if (stored) return stored;
   const clone = cloneFor(userId, s);
-  return clone ? { ...teardownFromClone(clone), key: s.key } : null;
+  // Stamped now: a clone saved over 30 days ago would otherwise read as missing and be rewritten on every open.
+  return clone ? { ...teardownFromClone(clone), key: s.key, at: new Date().toISOString() } : null;
 }
 
 const running = new Map<string, Promise<Teardown>>();

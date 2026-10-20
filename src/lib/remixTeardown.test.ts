@@ -148,7 +148,16 @@ describe("ensureTeardown", () => {
     const t = await ensureTeardown("u1", topReel, "text");
     expect(t.key).toBe(topReel.key);
     expect(invoke).not.toHaveBeenCalled();
-    expect(loadTeardown("u1", topReel.key, new Date("2026-10-19T00:00:00.000Z"))?.beats).toHaveLength(3);
+    expect(loadTeardown("u1", topReel.key)?.beats).toHaveLength(3);
+  });
+
+  it("stores a clone saved over 30 days ago once, not on every open", async () => {
+    rememberClone("u1", clone({ savedAt: new Date(Date.now() - 40 * 86_400_000).toISOString() }));
+    const setItem = vi.spyOn(window.localStorage, "setItem");
+    await ensureTeardown("u1", topReel, "text");
+    await ensureTeardown("u1", topReel, "text");
+    expect(setItem.mock.calls.filter(([k]) => k.startsWith("content-studio-remix-teardowns-"))).toHaveLength(1);
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it("calls remix once for two callers, sends every formula and the text, and saves the answer", async () => {
