@@ -109,13 +109,12 @@ export default function YourFeeds() {
     <section className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto font-serif text-lg font-semibold tracking-tight text-foreground">Your feeds</h2>
+        {/* beside the title even with no feeds yet, since adding one reads it */}
+        {!loading && <PriceChip feature="feeds" left={left} />}
         {feeds.length > 0 && (
-          <>
-            {!loading && <PriceChip feature="feeds" left={left} />}
-            <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => void load(feeds, true)} disabled={loading || left === 0}>
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> {loading ? "Reading..." : "Refresh"}
-            </Button>
-          </>
+          <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => void load(feeds, true)} disabled={loading || left === 0}>
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> {loading ? "Reading..." : "Refresh"}
+          </Button>
         )}
       </div>
       {feeds.length > 0 && why && <p className="text-right text-xs text-destructive">{why}</p>}
