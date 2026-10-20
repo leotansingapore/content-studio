@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { fromAuditPost, rememberSource } from "@/lib/remixSource";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -755,6 +756,8 @@ function BestPosts({
   stats: AuditStats;
   byId: Map<string, RatedPost>;
 }) {
+  // Leo's sign-ins remember the post on press, so Write can name it as the remix source
+  const leo = useLeoUser();
   const top = stats.topIds
     .map((id) => byId.get(id))
     .filter((p): p is RatedPost => p !== undefined)
@@ -796,7 +799,7 @@ function BestPosts({
               )}
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5">
-                  <Link to={remixUrl(p, platform, handle, pick?.newAngle)} onClick={() => rememberSource(fromAuditPost(p, platform, handle))}>
+                  <Link to={remixUrl(p, platform, handle, pick?.newAngle)} onClick={leo ? () => rememberSource(fromAuditPost(p, platform, handle), leo.id) : undefined}>
                     <Wand2 className="h-3.5 w-3.5" /> Remix this
                   </Link>
                 </Button>

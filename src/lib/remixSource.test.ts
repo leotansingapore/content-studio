@@ -43,7 +43,7 @@ class MemStorage {
   clear() { this.m.clear(); }
 }
 
-beforeEach(() => vi.stubGlobal("window", { localStorage: new MemStorage() }));
+beforeEach(() => vi.stubGlobal("window", { localStorage: new MemStorage(), sessionStorage: new MemStorage() }));
 afterEach(() => vi.unstubAllGlobals());
 
 const draft = (id: string, extra: Partial<DraftEntry> = {}): DraftEntry => ({
@@ -201,12 +201,19 @@ describe("remix history", () => {
 
 describe("the seen registry", () => {
   it("keeps the newest 30, one per key", () => {
-    for (let i = 0; i < 35; i++) rememberSource({ key: `audit:instagram:${i}`, kind: "own", remixedAt: "" });
-    rememberSource({ key: "audit:instagram:10", kind: "own", remixedAt: "" });
-    const seen = seenSources();
+    for (let i = 0; i < 35; i++) rememberSource({ key: `audit:instagram:${i}`, kind: "own", remixedAt: "" }, UID);
+    rememberSource({ key: "audit:instagram:10", kind: "own", remixedAt: "" }, UID);
+    const seen = seenSources(UID);
     expect(seen).toHaveLength(30);
     expect(seen[0].key).toBe("audit:instagram:10");
     expect(seen.filter((s) => s.key === "audit:instagram:10")).toHaveLength(1);
+  });
+
+  it("is per brand and per tab: nothing lands in device storage", () => {
+    rememberSource({ key: "audit:instagram:1", kind: "own", remixedAt: "" }, UID);
+    expect(window.localStorage.length).toBe(0);
+    setActiveProfile(UID, addProfile(UID, "MoneyBees").id);
+    expect(seenSources(UID)).toEqual([]);
   });
 });
 

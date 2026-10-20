@@ -38,9 +38,6 @@ const INSPIRATION = inspirationData as InspirationEntry[];
 
 /** The record for a key, or null when it is unknown, rotated out of its drop, or a pattern: key. */
 export function resolveSource(key: string, userId: string): RemixSource | null {
-  if (key.startsWith("pattern:")) return null;
-  const seen = seenSources().find((s) => s.key === key);
-  if (seen) return { ...seen, remixedAt: "" };
   const [prefix] = key.split(":", 1);
   const rest = key.slice(prefix.length + 1);
   switch (prefix) {
@@ -90,6 +87,12 @@ export function resolveSource(key: string, userId: string): RemixSource | null {
       // the read text stays in the store; a draft keeps only the small snapshot
       const { text, ...s } = found;
       return { ...s, remixedAt: "" };
+    }
+    case "audit":
+    case "hubtrend": {
+      // server rows the device doesn't keep: only this tab's registry, for this brand, has them
+      const seen = seenSources(userId).find((s) => s.key === key);
+      return seen ? { ...seen, remixedAt: "" } : null;
     }
     default:
       return null;

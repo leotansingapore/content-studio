@@ -4,6 +4,7 @@
 // drops); the only value imports are draftHistory.ts and profiles.ts, and draftHistory.ts imports the type only.
 
 import { draftsRaw, loadDrafts, type DraftEntry } from "@/lib/draftHistory";
+import { scoped } from "@/lib/profiles";
 import type { TopPost } from "@/lib/topPosts";
 import type { FollowedAccount, TrackedPost } from "@/lib/following";
 import type { SwipeAd } from "@/lib/adsSwipe";
@@ -293,14 +294,14 @@ export const canCredit = (s: RemixSource, keep?: string) => s.kind !== "own" && 
 
 // ---- this tab's registry: sources seen in a list, so keys with no data drop resolve -----------
 
-// A device hint, not synced: audit: and hubtrend: keys come from server rows the device doesn't keep, so the
-// card remembers what it showed when it is pressed and Write, opened in this tab or another, finds it here.
-const SEEN = "cs-remix-seen";
+// A tab hint, not synced: audit: and hubtrend: keys come from server rows the device doesn't keep, so the
+// card remembers what it showed when it is pressed and Write, opened in this tab, finds it here. Per brand.
+const SEEN = "cs-remix-seen-";
 const MAX_SEEN = 30;
 
-function localStore(): Storage | null {
+function tabStore(): Storage | null {
   try {
-    return globalThis.window?.localStorage ?? null;
+    return globalThis.window?.sessionStorage ?? null;
   } catch {
     return null;
   }
@@ -309,18 +310,18 @@ function localStore(): Storage | null {
 const isSource = (v: unknown): v is RemixSource =>
   Boolean(v) && typeof (v as RemixSource).key === "string" && typeof (v as RemixSource).kind === "string";
 
-export function seenSources(): RemixSource[] {
+export function seenSources(userId: string): RemixSource[] {
   try {
-    const list = JSON.parse(localStore()?.getItem(SEEN) ?? "[]");
+    const list = JSON.parse(tabStore()?.getItem(SEEN + scoped(userId)) ?? "[]");
     return Array.isArray(list) ? list.filter(isSource) : [];
   } catch {
     return [];
   }
 }
 
-export function rememberSource(s: RemixSource): void {
+export function rememberSource(s: RemixSource, userId: string): void {
   try {
-    localStore()?.setItem(SEEN, JSON.stringify([s, ...seenSources().filter((x) => x.key !== s.key)].slice(0, MAX_SEEN)));
+    tabStore()?.setItem(SEEN + scoped(userId), JSON.stringify([s, ...seenSources(userId).filter((x) => x.key !== s.key)].slice(0, MAX_SEEN)));
   } catch {
     // full or blocked storage: the key just won't resolve, and Write carries on without a source
   }

@@ -6,6 +6,7 @@ import inspiration from "@/data/inspiration.json";
 import { ADS } from "./adsSwipe";
 import { saveDrafts, type DraftEntry } from "./draftHistory";
 import { saveFollowing, type FollowedAccount } from "./following";
+import { addProfile, setActiveProfile } from "./profiles";
 import { rememberClone, type CloneResponse } from "./reelClone";
 import { rememberSource, sourceKey } from "./remixSource";
 import { REMIX_LINKS_PREFIX, resolveSource, type LinkedSource } from "./resolveSource";
@@ -26,8 +27,8 @@ class MemStorage {
 
 beforeEach(() => {
   const storage = new MemStorage();
-  // following.ts reads the bare global, the rest window.localStorage
-  vi.stubGlobal("window", { localStorage: storage });
+  // following.ts reads the bare global, the rest window.localStorage; the seen registry is per tab
+  vi.stubGlobal("window", { localStorage: storage, sessionStorage: new MemStorage() });
   vi.stubGlobal("localStorage", storage);
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -78,8 +79,23 @@ describe("resolveSource", () => {
     expect(s).not.toHaveProperty("text");
 
     expect(resolveSource("audit:instagram:C9y", UID)).toBeNull();
-    rememberSource({ key: "audit:instagram:C9y", kind: "own", remixedAt: "2026-10-01T00:00:00.000Z" });
+    rememberSource({ key: "audit:instagram:C9y", kind: "own", remixedAt: "2026-10-01T00:00:00.000Z" }, UID);
     expect(resolveSource("audit:instagram:C9y", UID)).toMatchObject({ kind: "own", remixedAt: "" });
+    rememberSource({ key: "hubtrend:h1", kind: "trend", title: "Rate cuts", remixedAt: "" }, UID);
+    expect(resolveSource("hubtrend:h1", UID)).toMatchObject({ kind: "trend", title: "Rate cuts" });
+  });
+
+  it("reads the seen registry only for audit and hub trend keys, and only this brand's", () => {
+    // a snapshot of another brand's draft never stands in for this brand's own data
+    rememberSource({ key: "own:A1", kind: "own", caption: "Brand A's post", remixedAt: "" }, UID);
+    expect(resolveSource("own:A1", UID)).toBeNull();
+    const ad = ADS[0];
+    rememberSource({ key: sourceKey.ad(ad.adId), kind: "ad", author: "Stale snapshot", remixedAt: "" }, UID);
+    expect(resolveSource(sourceKey.ad(ad.adId), UID)).toMatchObject({ author: ad.advertiser });
+
+    rememberSource({ key: "audit:instagram:A2", kind: "own", remixedAt: "" }, UID);
+    setActiveProfile(UID, addProfile(UID, "MoneyBees").id);
+    expect(resolveSource("audit:instagram:A2", UID)).toBeNull();
   });
 
   it("returns null for an unknown, rotated-out or pattern key", () => {
@@ -87,7 +103,7 @@ describe("resolveSource", () => {
     expect(resolveSource("top:grace-koh-instagram-NOTAPOST", UID)).toBeNull();
     expect(resolveSource("ad:0", UID)).toBeNull();
     expect(resolveSource("own:missing", UID)).toBeNull();
-    rememberSource({ key: "pattern:instagram:mrbrown:1", kind: "pattern", remixedAt: "" });
+    rememberSource({ key: "pattern:instagram:mrbrown:1", kind: "pattern", remixedAt: "" }, UID);
     expect(resolveSource("pattern:instagram:mrbrown:1", UID)).toBeNull();
   });
 });
