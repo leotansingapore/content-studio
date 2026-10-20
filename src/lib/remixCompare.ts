@@ -7,9 +7,9 @@ import type { DraftEntry } from "@/lib/draftHistory";
 import { loadFollowing, reach } from "@/lib/following";
 import { buildCreatorAverages, enrich, similarPosts, type ScoredPost } from "@/lib/postInsights";
 import { CLOSE_LABELS, KEEP_LABELS } from "@/lib/remix";
-import { fromAd, fromFollowPost, fromTopPost, sourceKey, sourceNoun, type RemixSource } from "@/lib/remixSource";
+import { fromAd, fromFollowPost, fromTopPost, sourceKey, type RemixSource } from "@/lib/remixSource";
 import type { Teardown } from "@/lib/remixTeardown";
-import { compactNum, getAllTopPosts } from "@/lib/topPosts";
+import { getAllTopPosts } from "@/lib/topPosts";
 import { reusedItems, sharedRuns } from "../../supabase/functions/remix/overlap.ts";
 
 export const MORE_MAX = 4;
@@ -92,36 +92,4 @@ export function moreLikeThis(source: RemixSource, userId: string): RemixSource[]
   return candidates(source, userId)
     .filter((s) => s.key !== source.key)
     .slice(0, MORE_MAX);
-}
-
-// ---- words the panes use --------------------------------------------------------------------
-
-const PLATFORM_NAME: Record<string, string> = {
-  instagram: "Instagram",
-  tiktok: "TikTok",
-  youtube: "YouTube",
-  linkedin: "LinkedIn",
-  x: "X",
-  facebook: "Facebook",
-  "meta-ad": "Meta",
-};
-
-/** "Instagram reel", "Meta ad", "YouTube Short"; "Your post" for the adviser's own. */
-export function kindLabel(s: Pick<RemixSource, "kind" | "format" | "platform">): string {
-  if (s.kind === "own") return "Your post";
-  const noun = sourceNoun(s);
-  const name = labelOf(PLATFORM_NAME, s.platform);
-  return name ? `${name} ${noun}` : noun.charAt(0).toUpperCase() + noun.slice(1);
-}
-
-/** ["32.6K views", "249 likes", "2.4x their usual"]: only the numbers the source has. */
-export function numberParts(n: RemixSource["numbers"]): string[] {
-  if (!n) return [];
-  const parts: string[] = [];
-  if (n.views) parts.push(`${compactNum(n.views)} views`);
-  if (n.likes) parts.push(`${compactNum(n.likes)} likes`);
-  if (n.comments) parts.push(`${compactNum(n.comments)} comments`);
-  if (n.daysRunning) parts.push(`${n.daysRunning} ${n.daysRunning === 1 ? "day" : "days"} running`);
-  if (n.ratio) parts.push(`${Math.round(n.ratio * 10) / 10}x their usual`);
-  return parts;
 }
