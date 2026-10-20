@@ -216,12 +216,25 @@ export async function drawSlide(
   paintSlide(ctx, slide, size, picture, mark, logo);
 }
 
+/** A slide whose picture can't be had here: drawing it anyway would post a plain grey slide. */
+export class MissingPictureError extends Error {
+  constructor(slide: number, stock: boolean) {
+    super(
+      stock
+        ? `Couldn't load slide ${slide}'s picture. Check your connection and try again.`
+        : `Slide ${slide}'s picture is on the device you added it from. Swap it in the slideshow first.`,
+    );
+    this.name = "MissingPictureError";
+  }
+}
+
 const pngOf = (c: HTMLCanvasElement) =>
   new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("The image couldn't be created."))), "image/png"));
 
 /**
  * Every slide as a 1080-wide PNG, drawn one at a time on a canvas that is released after each, so a phone
- * never holds ten 1080x1920 canvases. `signal` stops it between slides.
+ * never holds ten 1080x1920 canvases. `signal` stops it between slides. A slide whose picture is missing throws
+ * MissingPictureError instead of drawing grey.
  */
 export async function slideshowPngs(
   userId: string,
@@ -234,9 +247,12 @@ export async function slideshowPngs(
   for (const [i, slide] of s.slides.entries()) {
     if (o.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
     const pictures = new Map<string, Blob>();
-    const blob = await slidePicture(slide);
     const key = pictureKey(slide);
-    if (blob && key) pictures.set(key, blob);
+    if (key) {
+      const blob = await slidePicture(slide);
+      if (!blob) throw new MissingPictureError(i + 1, !!slide.photo);
+      pictures.set(key, blob);
+    }
     const c = document.createElement("canvas");
     c.width = FRAME_W;
     c.height = frameHeight(s.size);

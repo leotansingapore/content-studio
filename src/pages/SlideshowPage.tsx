@@ -60,13 +60,14 @@ import {
   type ShowSlide,
   type Slideshow,
 } from "@/lib/slideshow";
-import { layoutBoxes, lookOf, pictureKey, screenMeasure, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
+import { MissingPictureError, layoutBoxes, lookOf, pictureKey, screenMeasure, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
 import { PER_PAGE as STOCK_PER_PAGE } from "../../supabase/functions/stock-media/logic.ts";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // where a new text box lands, so it doesn't cover the ones already there
 const NEW_BOX_Y = [0.5, 0.72, 0.28, 0.86, 0.14, 0.6];
+const EXPORT_FAILED = "Couldn't make the pictures. Try again, or try another browser.";
 
 export default function SlideshowPage() {
   const leo = useLeoUser();
@@ -205,7 +206,8 @@ function Start({ userId, shows, ready, onShows, onOpen }: { userId: string; show
   );
 }
 
-type Prep = { done: number; total: number } | "failed" | null;
+/** Preparing slides n of N, or the line a failed export shows. */
+type Prep = { done: number; total: number } | string | null;
 
 function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show: Slideshow; ready: boolean; onSaved: (s: Slideshow[]) => void; onBack: () => void }) {
   const { toast } = useToast();
@@ -432,7 +434,7 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
 
   // ---- Download, Save to My posts, Schedule ----
   const download = async () => {
-    if (prep && prep !== "failed") return;
+    if (prep && typeof prep !== "string") return;
     saveNow();
     const ctrl = new AbortController();
     abort.current = ctrl;
@@ -449,8 +451,9 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
       toast({ title: "Slideshow downloaded" });
     } catch (e) {
       if (ctrl.signal.aborted) return setPrep(null);
+      if (e instanceof MissingPictureError) return setPrep(e.message);
       console.error("slideshow export failed", e);
-      setPrep("failed");
+      setPrep(EXPORT_FAILED);
     }
   };
   const cancel = () => {
@@ -476,7 +479,7 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
   // the calendar dates the post; Post it for me shows there once it has a date
   const schedule = () => navigate(links.calendar({ post: toPosts() }));
   const canSchedule = socialConnectShown();
-  const busy = prep !== null && prep !== "failed";
+  const busy = prep !== null && typeof prep !== "string";
 
   return (
     <>
@@ -520,9 +523,9 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
         <div className="min-w-0 space-y-3">
           {prep && (
             <div role="status" className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm">
-              {prep === "failed" ? (
+              {typeof prep === "string" ? (
                 <>
-                  <span className="flex-1 text-destructive">Couldn't make the pictures. Try again, or try another browser.</span>
+                  <span className="flex-1 text-destructive">{prep}</span>
                   <Button size="sm" variant="outline" onClick={() => void download()} className={TOUCH}>Try again</Button>
                 </>
               ) : (

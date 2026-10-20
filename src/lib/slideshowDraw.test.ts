@@ -1,6 +1,11 @@
-import { describe, expect, it } from "vitest";
-import { LINE_HEIGHT, layoutBoxes, pictureKey } from "@/lib/slideshowDraw";
-import { makeBox, type ShowSlide, type ShowSize } from "@/lib/slideshow";
+import { describe, expect, it, vi } from "vitest";
+import { LINE_HEIGHT, MissingPictureError, layoutBoxes, pictureKey, slideshowPngs } from "@/lib/slideshowDraw";
+import { blankSlideshow, makeBox, type ShowSlide, type ShowSize } from "@/lib/slideshow";
+
+// slideshowPngs on a device that has none of the pictures and no network: it must stop before drawing anything
+vi.mock("@/lib/videoMedia", () => ({ ensureCaptionFonts: async () => {} }));
+vi.mock("@/lib/deviceFiles", () => ({ getFile: async () => undefined }));
+vi.mock("@/lib/stockMedia", () => ({ downloadStock: async () => Promise.reject(new Error("offline")) }));
 
 // Every character is half the font size wide; the size is read back out of the css string.
 const measure = (text: string, css: string) => text.length * Number(css.match(/(\d+)px/)![1]) * 0.5;
@@ -57,6 +62,16 @@ describe("layoutBoxes", () => {
       expect(out[i].rect.h).toBe(out[0].rect.h);
       expect(out[i].rect.y + out[i].rect.h / 2).toBeCloseTo(0.4 * H);
     }
+  });
+});
+
+describe("slideshowPngs", () => {
+  it("refuses a slide whose picture isn't here instead of drawing it grey", async () => {
+    const s = blankSlideshow();
+    const device = { ...s, slides: [{ ...s.slides[0], image: "cimg-abc1234" }, s.slides[1]] };
+    await expect(slideshowPngs("u1", device)).rejects.toThrow("Slide 1's picture is on the device you added it from.");
+    const stock = { ...s, slides: [{ ...s.slides[0], photo: { src: "https://images.pexels.com/a.jpg", by: "", byUrl: "" } }, s.slides[1]] };
+    await expect(slideshowPngs("u1", stock)).rejects.toBeInstanceOf(MissingPictureError);
   });
 });
 
