@@ -105,7 +105,8 @@ function draftItem(d: DraftEntry, show?: Slideshow, car?: SavedCarousel, project
     ...(status === "posted" && d.postedAt ? { when: d.postedAt } : {}),
     ...(show ? { thumb: { kind: "show" as const, showId: show.id } } : car ? { thumb: { kind: "slide" as const, carouselId: car.id } } : project?.thumb ? { thumb: { kind: "url" as const, url: project.thumb } } : {}),
     href,
-    ...(status === "ready" ? { scheduleHref: links.calendar({ post: d.id }) } : {}),
+    // month view, as SlideshowPage does: a remembered Upcoming view shows no editor for the post
+    ...(status === "ready" ? { scheduleHref: `${links.calendar({ post: d.id })}&view=month` } : {}),
     ...(zFailed ? { retryHref: links.drafts({ status: "scheduled" }) } : {}),
     ...(status === "posted" && z?.links?.length ? { live: z.links } : {}),
     ...(zFailed

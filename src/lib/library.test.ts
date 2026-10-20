@@ -113,7 +113,7 @@ describe("buildLibrary", () => {
     expect(byKey(items, "s:sh2").href).toBe(links.slideshow({ s: "sh2" }));
     expect(byKey(items, "v:p2").href).toBe(links.edit({ p: "p2" }));
     expect(byKey(items, "i:cimg-aaaaaa").href).toBe(links.media({ folder: "AI images", q: "Pic cimg-aaaaaa" }));
-    expect(byKey(items, "d:t1").scheduleHref).toBe(links.calendar({ post: "t1" }));
+    expect(byKey(items, "d:t1").scheduleHref).toBe(`${links.calendar({ post: "t1" })}&view=month`);
   });
 
   it("gives a tied draft its carousel slide, slideshow or video thumb and name", () => {
