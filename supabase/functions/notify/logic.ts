@@ -6,10 +6,14 @@
 // this function and in week-pick.
 
 import { choiceOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
+import { scoreAccount, times } from "../_shared/outlier.ts";
+import { median } from "../_shared/socialAudit.ts";
 import { realMetrics } from "../social/metrics.ts";
 
 export const APP_URL = "https://consultant-content-studio.vercel.app";
 export const PREFS_PREFIX = "content-studio-notify-";
+/** The per-brand synced keys profilesFrom reads (content-studio-<name>-<uid>[~<profile>]), besides the profile list. */
+export const BRAND_KEYS = ["drafts", "goals", "positioning", "following", "market", "mentions", "competitor-posts", "competitor-ads"] as const;
 
 const SG_MS = 8 * 3_600_000; // Singapore is UTC+8 all year, no DST
 /** A post is "due soon" from an hour before its time to 10 minutes after (a late cron run). */
@@ -34,15 +38,19 @@ const MAX_WEEKLY_GOAL = 21;
 export interface Prefs {
   email: boolean;
   push: boolean;
+  /** What moved in the Monday email; only NORTH_STAR_USERS get it (run.ts). */
+  brief: boolean;
+  /** A phone alert when a followed account posts a hit; same gate. */
+  alerts: boolean;
 }
 
 /** The switches in My Playbook. Anything but an explicit true is off. */
 export function parsePrefs(data: string | null | undefined): Prefs {
   try {
     const p = JSON.parse(data ?? "");
-    return { email: p?.email === true, push: p?.push === true };
+    return { email: p?.email === true, push: p?.push === true, brief: p?.brief === true, alerts: p?.alerts === true };
   } catch {
-    return { email: false, push: false };
+    return { email: false, push: false, brief: false, alerts: false };
   }
 }
 
@@ -74,12 +82,35 @@ export interface Post {
   hookFormula?: string;
 }
 
-/** An account the adviser follows (src/lib/following.ts): follower snapshots and its newest posts. */
+/** A followed or competitor post (TrackedPost). Lists stored before What moved may hold only the date. */
+export interface FollowedPost {
+  postedAt: string | null;
+  id?: string;
+  url?: string;
+  format?: string;
+  caption?: string;
+  views?: number | null;
+  likes?: number;
+  comments?: number;
+}
+
+/** An account the adviser follows (src/lib/following.ts), or a competitor's in the same shape: follower snapshots and its newest posts. */
 export interface Followed {
   platform: string;
   handle: string;
   history: { at: string; followers: number | null }[];
-  posts: { postedAt: string | null }[];
+  posts: FollowedPost[];
+  /** Ids new on the latest check. */
+  fresh?: string[];
+}
+
+/** A competitor's Meta ads (src/lib/competitorAds.ts): ids new on the latest check, and the newest of them by start day. */
+export interface CompetitorAds {
+  competitorId: string;
+  name: string;
+  checkedAt: string;
+  fresh: string[];
+  newest: string;
 }
 
 export interface Profile {
@@ -90,6 +121,11 @@ export interface Profile {
   followed?: Followed[];
   /** Your market (src/lib/market.ts): set up enough to check, and when the last check ran. */
   market?: { ready: boolean; lastCheck: string | null };
+  /** Their posts and Their ads on /competitors; absent without the keys. */
+  competitorPosts?: Followed[];
+  competitorAds?: CompetitorAds[];
+  /** What the brand sells and who it serves, for What moved's Jev question (decision 6); absent when neither is set. */
+  brand?: { sells: string; serves: string };
 }
 
 function parseJson(raw: string | null | undefined): unknown {
@@ -130,22 +166,67 @@ function postsFrom(raw: string | undefined): Post[] {
   return out;
 }
 
+function accountFrom(a: unknown): Followed[] {
+  const v = a as { platform?: unknown; handle?: unknown; history?: unknown; posts?: unknown; fresh?: unknown } | null;
+  if (!v || typeof v !== "object" || typeof v.handle !== "string" || !v.handle || !Array.isArray(v.history)) return [];
+  return [{
+    platform: str(v.platform) ?? "",
+    handle: clip(v.handle, 60),
+    history: v.history.slice(-120).flatMap((x: unknown) => {
+      const snap = x as { at?: unknown; followers?: unknown } | null;
+      return snap && typeof snap.at === "string" ? [{ at: snap.at, followers: num(snap.followers) ?? null }] : [];
+    }),
+    posts: (Array.isArray(v.posts) ? v.posts : []).slice(0, 60).flatMap((x: unknown): FollowedPost[] => {
+      if (!x || typeof x !== "object") return [];
+      const p = x as Record<string, unknown>;
+      const postedAt = str(p.postedAt) ?? null;
+      // what an outlier needs; a post without an id keeps only its date, as before
+      return [typeof p.id === "string" && p.id
+        ? { postedAt, id: p.id.slice(0, 120), url: str(p.url) ?? "", format: str(p.format) ?? "", caption: clip(str(p.caption) ?? "", 120),
+            views: num(p.views) ?? null, likes: num(p.likes) ?? 0, comments: num(p.comments) ?? 0 }
+        : { postedAt }];
+    }),
+    ...(Array.isArray(v.fresh) ? { fresh: v.fresh.filter((id): id is string => typeof id === "string").slice(0, 60) } : {}),
+  }];
+}
+
 function followedFrom(raw: string | undefined): Followed[] {
   const list = parseJson(raw);
-  if (!Array.isArray(list)) return [];
-  return list.slice(0, 10).flatMap((a) =>
-    a && typeof a === "object" && typeof a.handle === "string" && a.handle && Array.isArray(a.history)
-      ? [{
-          platform: str(a.platform) ?? "",
-          handle: clip(a.handle, 60),
-          history: a.history.slice(-120).flatMap((x: unknown) => {
-            const snap = x as { at?: unknown; followers?: unknown } | null;
-            return snap && typeof snap.at === "string" ? [{ at: snap.at, followers: num(snap.followers) ?? null }] : [];
-          }),
-          posts: (Array.isArray(a.posts) ? a.posts : []).slice(0, 60).flatMap((x: unknown) =>
-            x && typeof x === "object" ? [{ postedAt: str((x as { postedAt?: unknown }).postedAt) ?? null }] : []),
-        }]
-      : []);
+  return Array.isArray(list) ? list.slice(0, 10).flatMap(accountFrom) : [];
+}
+
+const entries = (raw: string | undefined): unknown[] => {
+  const v = parseJson(raw);
+  return v && typeof v === "object" && !Array.isArray(v) ? Object.values(v) : [];
+};
+
+/** Their posts: one Following-shaped account per competitor handle (12 competitors, 2 platforms). */
+const competitorPostsFrom = (raw: string | undefined): Followed[] => entries(raw).slice(0, 24).flatMap(accountFrom);
+
+/** Their ads, keyed by competitor id. */
+function competitorAdsFrom(raw: string | undefined): CompetitorAds[] {
+  const v = parseJson(raw);
+  if (!v || typeof v !== "object" || Array.isArray(v)) return [];
+  return Object.entries(v).slice(0, 12).flatMap(([competitorId, e]) => {
+    const x = e as { checkedAt?: unknown; pageName?: unknown; ads?: unknown; fresh?: unknown } | null;
+    if (!x || typeof x.checkedAt !== "string" || !Array.isArray(x.fresh)) return [];
+    const fresh = x.fresh.filter((id): id is string => typeof id === "string" && !!id).slice(0, 30);
+    if (!fresh.length) return [];
+    const started = (Array.isArray(x.ads) ? x.ads : [])
+      .flatMap((a) => (a && fresh.includes(a.id) ? [{ id: a.id as string, start: str(a.start) ?? "" }] : []))
+      .sort((a, b) => b.start.localeCompare(a.start));
+    return [{ competitorId: competitorId.slice(0, 80), name: clip(str(x.pageName) ?? "", 60), checkedAt: x.checkedAt, fresh, newest: started[0]?.id ?? fresh[0] }];
+  });
+}
+
+/** competitors.ts brandFacts without the brand kit's offers (that row carries the photo and logo as data URLs). */
+function brandFrom(positioningRaw: string | undefined, marketRaw: string | undefined): Profile["brand"] {
+  const p = (parseJson(positioningRaw) ?? {}) as Record<string, unknown>;
+  const m = (parseJson(marketRaw) ?? {}) as Record<string, unknown>;
+  const sells = [p.oneLiner, p.edge].map((v) => clip(str(v) ?? "", 300).replace(/[.\s]+$/, "")).filter(Boolean).join(". ");
+  const audience = str(p.audience);
+  const serves = clip(str(p.audienceDetail)?.trim() || (audience && audience !== "general" ? `${audience.replace("-", " ")}s` : "") || (str(m.audience) ?? ""), 400);
+  return sells || serves ? { sells, serves } : undefined;
 }
 
 function cleanGoals(raw: unknown): Record<string, number> {
@@ -195,6 +276,7 @@ export function profilesFrom(uid: string, data: Record<string, string>): Profile
   const me = valid.find((p) => p.id === "me") ?? { id: "me", name: "Me" };
   return [me, ...valid.filter((p) => p.id !== "me")].map((p) => {
     const scope = p.id === "me" ? uid : `${uid}~${p.id}`;
+    const brand = brandFrom(data[`content-studio-positioning-${scope}`], data[`content-studio-market-${scope}`]);
     return {
       id: p.id,
       name: clip(p.name, 40),
@@ -202,6 +284,9 @@ export function profilesFrom(uid: string, data: Record<string, string>): Profile
       goals: goalsFrom(data[`content-studio-goals-${scope}`], data[`content-studio-positioning-${scope}`]),
       followed: followedFrom(data[`content-studio-following-${scope}`]),
       ...(data[`content-studio-market-${scope}`] === undefined ? {} : { market: marketFrom(data[`content-studio-market-${scope}`], data[`content-studio-mentions-${scope}`]) }),
+      ...(data[`content-studio-competitor-posts-${scope}`] === undefined ? {} : { competitorPosts: competitorPostsFrom(data[`content-studio-competitor-posts-${scope}`]) }),
+      ...(data[`content-studio-competitor-ads-${scope}`] === undefined ? {} : { competitorAds: competitorAdsFrom(data[`content-studio-competitor-ads-${scope}`]) }),
+      ...(brand ? { brand } : {}),
     };
   });
 }
@@ -704,7 +789,7 @@ function resultLine(posted: number, goal: number, change: string | null): string
 }
 
 /** The profiles the Monday email reports on, with last week's progress, report and this week's schedule. */
-export function emailWeeks(profiles: Profile[], now: number) {
+export function emailWeeks(profiles: Profile[], now: number, brief: Record<string, Finding[]> = {}) {
   const monday = sgDay(now);
   const lastStart = addDays(monday, -7);
   const lastEnd = addDays(monday, -1);
@@ -724,7 +809,7 @@ export function emailWeeks(profiles: Profile[], now: number) {
       return { p, last, report, coming };
     })
     // The default profile always reports; another only when it has something to say.
-    .filter((w, i) => i === 0 || w.last.goal > 0 || w.last.posted > 0 || w.coming.length > 0);
+    .filter((w, i) => i === 0 || w.last.goal > 0 || w.last.posted > 0 || w.coming.length > 0 || (brief[w.p.id]?.length ?? 0) >= 2);
 }
 
 /**
@@ -732,18 +817,27 @@ export function emailWeeks(profiles: Profile[], now: number) {
  * before, the best and weakest by their numbers, what the best share, followed
  * accounts' movement, the one move Jev picked (`picks`, by profile id; none
  * without one), and what is scheduled this week, per profile. Sent-log item
- * email:<monday>, so once a week.
+ * email:<monday>, so once a week. `brief` (NORTH_STAR_USERS only) puts What
+ * moved first in a profile's block; without it the email is as it always was.
  */
-export function weeklyEmail(profiles: Profile[], now: number, picks: Record<string, MoveId> = {}, marketCheckOpen = false): Email | null {
+export function weeklyEmail(
+  profiles: Profile[],
+  now: number,
+  picks: Record<string, MoveId> = {},
+  marketCheckOpen = false,
+  brief: Record<string, Finding[]> = {},
+): Email | null {
   if (sgWeekday(now) !== 0 || sgHour(now) < 8) return null;
   const monday = sgDay(now);
   const lastStart = addDays(monday, -7);
   const lastEnd = addDays(monday, -1);
-  const weeks = emailWeeks(profiles, now);
+  const weeks = emailWeeks(profiles, now, brief);
 
   const blocks = weeks.map(({ p, last, report, coming }) => {
     const lines: string[] = [];
     if (weeks.length > 1) lines.push(p.name.toUpperCase(), "");
+    const moved = briefLines(brief[p.id] ?? []);
+    if (moved.length) lines.push(...moved, "");
     lines.push(`Last week, ${shortDate(lastStart)} to ${shortDate(lastEnd)}`, resultLine(last.posted, last.goal, postsChange(report)));
     lines.push(...reportLines(report));
     if (!report.best.length && last.posted > 0) lines.push("Log the numbers for last week's posts in My posts to see your best one.");
@@ -775,4 +869,219 @@ export function weeklyEmail(profiles: Profile[], now: number, picks: Record<stri
     "You get this every Monday because it is switched on in My Playbook. Switch it off there to stop.",
   ].join("\n");
   return { item: `email:${monday}`, subject, text };
+}
+
+// ---------------------------------------------------------------------------
+// What moved (find-alerts-digest): a short list of findings from the synced
+// stores, in the Monday email and on Home, and one phone alert a day when a
+// followed account posts a hit. NORTH_STAR_USERS only (run.ts, week-pick's
+// brief mode). Jev keeps the findings worth the week; every word is a template.
+// ---------------------------------------------------------------------------
+
+export type FindingKind = "outlier" | "post" | "ad" | "growing";
+/** The fallback order: what Home and the email show when Jev has no answer. */
+export const FINDING_KINDS: readonly FindingKind[] = ["outlier", "post", "ad", "growing"];
+export const FINDING_LABEL: Record<FindingKind, string> = { outlier: "Outlier", post: "Your post", ad: "New ad", growing: "Growing" };
+export const FINDING_ACTION: Record<FindingKind, string> = { outlier: "Make this", post: "Make another", ad: "See the ads", growing: "See them" };
+
+export type OutlierFinding = { kind: "outlier"; id: string; platform: string; handle: string; post: Required<FollowedPost>; ratio: number; views: boolean; rank: number };
+export type Finding =
+  | OutlierFinding
+  | { kind: "post"; id: string; post: Post; ratio: number }
+  | { kind: "ad"; id: string; name: string; n: number; ad: string }
+  | { kind: "growing"; id: string; handle: string; gained: number };
+
+/** Jev keeps a finding at this yes-probability or more. Proposal (decision 7): read the dry runs between 0.35 and 0.65. */
+export const BRIEF_MIN = 0.5;
+export const BRIEF_MAX = 5;
+/** Findings put to Jev, best first (question ids f0 to f9). */
+export const BRIEF_ASK = 10;
+const DAY_MS = 86_400_000;
+
+/** Posts at 3x their own account's usual or more (viral or mega, 5+ posts to compare), best first, each once. */
+function outliersIn(accounts: Followed[], now: number, keep: (a: Followed, p: Required<FollowedPost>) => boolean): OutlierFinding[] {
+  const out: OutlierFinding[] = [];
+  for (const a of accounts) {
+    const posts = a.posts.filter((p): p is Required<FollowedPost> => !!p.id);
+    const scores = scoreAccount(posts, now);
+    for (const p of posts) {
+      const s = scores[p.id];
+      if (s.ratio === null || (s.tier !== "viral" && s.tier !== "mega") || s.confidence !== "high" || !keep(a, p)) continue;
+      out.push({ kind: "outlier", id: `outlier:${a.platform}:${p.id}`, platform: a.platform, handle: a.handle, post: p, ratio: s.ratio, views: s.basis === "views", rank: s.rank });
+    }
+  }
+  out.sort((a, b) => b.rank - a.rank || Date.parse(b.post.postedAt!) - Date.parse(a.post.postedAt!));
+  return out.filter((f, i) => out.findIndex((g) => g.id === f.id) === i);
+}
+
+const ageOf = (p: { postedAt: string | null }, now: number) => now - Date.parse(p.postedAt ?? "");
+
+/**
+ * The week's findings for one brand, in fallback order (Outlier, Your post, New ad, Growing), at most 10: followed
+ * and competitor posts from the last 7 days at 3x their account's usual, your own posts of the 7 days before today
+ * at 2x the median of the 8 weeks before them, competitors with ads new on a check in the last 7 days, and the
+ * followed account that grew most when it gained 3% and 250 followers.
+ */
+export function briefFindings(p: Profile, now: number): Finding[] {
+  const today = sgDay(now);
+  const start = addDays(today, -7);
+  const outliers = outliersIn([...(p.followed ?? []), ...(p.competitorPosts ?? [])], now, (_, x) => ageOf(x, now) <= 7 * DAY_MS);
+
+  const postedOn = (x: Post) => (x.status === "posted" ? postedDayOf(x.postedAt) : null);
+  const before = p.posts.filter((x) => {
+    const d = postedOn(x);
+    return !!d && d >= addDays(start, -56) && d < start && hasNumbers(x);
+  });
+  const usual = before.length >= 3 ? median(before.map((x) => engagementOf(x.metrics))) : null;
+  const own: Finding[] = usual
+    ? p.posts
+        .flatMap((x) => {
+          const d = postedOn(x);
+          const ratio = engagementOf(x.metrics) / usual;
+          return d && d >= start && d < today && ratio >= 2 ? [{ kind: "post" as const, id: `post:${x.id.slice(0, 120)}`, post: x, ratio }] : [];
+        })
+        .sort((a, b) => b.ratio - a.ratio)
+    : [];
+
+  const ads: Finding[] = (p.competitorAds ?? [])
+    .filter((e) => now - Date.parse(e.checkedAt) < 7 * DAY_MS)
+    .sort((a, b) => b.fresh.length - a.fresh.length)
+    .map((e) => ({ kind: "ad", id: `ad:${e.competitorId}`, name: e.name, n: e.fresh.length, ad: e.newest }));
+
+  const m = weekReport([], p.followed ?? [], addDays(today, -1)).movers[0];
+  const growing: Finding[] = m && m.gained >= 250 && m.gained >= 0.03 * (m.followers - m.gained)
+    ? [{ kind: "growing", id: `growing:${m.platform}:${m.handle}`, handle: m.handle, gained: m.gained }]
+    : [];
+  return [...outliers, ...own, ...ads, ...growing].slice(0, BRIEF_ASK);
+}
+
+const usualOf = (f: OutlierFinding) => `${times(f.ratio)} their usual ${f.views ? "views" : "engagement"}`;
+
+/** The finding in words, without its label. */
+export function findingLine(f: Finding): string {
+  switch (f.kind) {
+    case "outlier": {
+      const noun = f.post.format === "video" ? (f.platform === "instagram" ? "reel" : "video") : "post";
+      const said = clip(f.post.caption, 60);
+      return `@${f.handle}'s ${noun} did ${usualOf(f)}.${said ? ` "${said}"` : ""}`;
+    }
+    case "post":
+      return `"${clip(f.post.hook || "Untitled post", 60)}" got ${times(f.ratio)} your usual engagement.`;
+    case "ad":
+      return `${f.name || "A competitor"} started ${plural(f.n, "new ad")} this week.`;
+    case "growing":
+      return `@${f.handle} gained ${fmt(f.gained)} followers this week.`;
+  }
+}
+
+/** src/lib/links.ts's query: logic.test.ts holds these links equal to links.clone, links.generate and links.competitors. */
+const query = (o: Record<string, string>) => new URLSearchParams(o).toString().replace(/%2C/g, ",");
+const MAS = "No promised returns, no named insurer products, no invented numbers.";
+
+/** Where a finding's button goes, a path in the app: a video to Clone a reel, other posts to Write, ads to their drawer. */
+export function findingUrl(f: Finding): string {
+  switch (f.kind) {
+    case "outlier":
+      if (f.post.format === "video" && f.post.url) return `/clone?${query({ url: f.post.url })}`;
+      return `/generate?${query({
+        pillar: "topic",
+        detail: f.post.caption.split(/[.!?]/)[0].slice(0, 80) || `@${f.handle}'s post`,
+        ctx: `A post by @${f.handle} did ${usualOf(f)}. What it says: "${f.post.caption}". Write my own take in my voice. Do not copy its wording. ${MAS}`,
+        source: `follow:${f.platform}:${f.post.id}`,
+      })}`;
+    case "post":
+      return `/generate?${query({
+        detail: clip(f.post.hook || "Untitled post", 80),
+        ctx: `My post "${clip(f.post.hook || "Untitled post", 120)}" did ${times(f.ratio)} my usual engagement. Write a new post on the same idea in a different format. ${MAS}`,
+        format: (f.post.format ?? "text-post") === "text-post" ? "carousel" : "text-post",
+      })}`;
+    case "ad":
+      return `/competitors?${query({ ad: f.ad })}`;
+    case "growing":
+      return "/following";
+  }
+}
+
+/** The email's WHAT MOVED block, numbered, each with its full link; nothing under 2 findings (a thin week is skipped). */
+export function briefLines(findings: Finding[]): string[] {
+  if (findings.length < 2) return [];
+  return ["WHAT MOVED", ...findings.flatMap((f, i) => [`${i + 1}. ${FINDING_LABEL[f.kind]}: ${findingLine(f)}`, `   ${FINDING_ACTION[f.kind]}: ${APP_URL}${findingUrl(f)}`])];
+}
+
+/** What Jev reads for a finding: the email and Home's card send the same. */
+export interface BriefItem {
+  id: string;
+  kind: FindingKind;
+  line: string;
+}
+
+/** One yes or no per finding, ids f0 to f9: is it worth this brand's time this week? The state names the brand (decision 6). */
+export function briefAsk(items: BriefItem[], brand?: { sells: string; serves: string }): { state: string; questions: Record<string, JevQuestion> } {
+  const fact = (label: string, v: string | undefined) => (v?.trim() ? `${label}: ${v.trim().replace(/[.\s]+$/, "")}.` : "");
+  return {
+    state: [
+      "A business posts on social media to win clients.",
+      fact("What it sells", brand?.sells),
+      fact("Who it serves", brand?.serves),
+      "This week's findings:",
+      ...items.map((f, i) => `${i + 1}. ${FINDING_LABEL[f.kind]}: ${f.line}`),
+    ].filter(Boolean).join("\n"),
+    questions: Object.fromEntries(items.map((_, i) => [`f${i}`, {
+      type: "noul" as const,
+      instructions: `Is finding ${i + 1} worth this business's time this week: something concrete they could post about or learn from for the people they serve?`,
+    }])),
+  };
+}
+
+/** Jev's keeps (BRIEF_MIN and up), surest first, at most 5; with no answer, the first 5 in fallback order. */
+export function pickedFindings<T>(answers: Record<string, JevAnswer> | null, findings: T[]): T[] {
+  if (!answers) return findings.slice(0, BRIEF_MAX);
+  return findings
+    .flatMap((f, i) => {
+      const p = answers[`f${i}`]?.noul;
+      return typeof p === "number" && p >= BRIEF_MIN ? [{ f, p }] : [];
+    })
+    .sort((a, b) => b.p - a.p)
+    .slice(0, BRIEF_MAX)
+    .map((x) => x.f);
+}
+
+/** week-pick's brief body, checked: 2 to 10 findings, each once, and the brand's facts. Null when anything is off. */
+export function briefBody(body: unknown): { items: BriefItem[]; brand: { sells: string; serves: string } } | null {
+  const b = body as { findings?: unknown; brand?: unknown } | null;
+  if (!b || !Array.isArray(b.findings) || b.findings.length < 2 || b.findings.length > BRIEF_ASK) return null;
+  const items: BriefItem[] = [];
+  for (const x of b.findings as { id?: unknown; kind?: unknown; line?: unknown }[]) {
+    if (
+      !x || typeof x.id !== "string" || !x.id || x.id.length > 200 || !FINDING_KINDS.includes(x.kind as FindingKind) ||
+      typeof x.line !== "string" || !x.line.trim() || items.some((f) => f.id === x.id)
+    ) return null;
+    items.push({ id: x.id, kind: x.kind as FindingKind, line: clip(x.line, 300) });
+  }
+  const brand = (b.brand && typeof b.brand === "object" ? b.brand : {}) as Record<string, unknown>;
+  return { items, brand: { sells: clip(str(brand.sells) ?? "", 600), serves: clip(str(brand.serves) ?? "", 400) } };
+}
+
+/** The phone alert's candidates: followed posts new on the latest check, 2 to 5 days old, at 3x or more, best first. */
+export function outlierHits(profiles: Profile[], now: number): OutlierFinding[] {
+  return outliersIn(profiles.flatMap((p) => p.followed ?? []), now, (a, x) => !!a.fresh?.includes(x.id) && ageOf(x, now) <= 5 * DAY_MS);
+}
+
+/** Claimed with the alert, so a second one that Singapore day is refused. */
+export const alertDay = (now: number) => `alert-day:${sgDay(now)}`;
+
+/**
+ * One alert for the best hit not alerted before (`logged`: the sent log for alertDay and the hits), from 9am to
+ * 9pm Singapore, at most one a day; the others wait for Monday's brief. Sent-log items alert-day:<day> and the hit's
+ * outlier:<platform>:<post id>.
+ */
+export function outlierAlert(hits: OutlierFinding[], now: number, logged: Set<string>): { items: string[]; message: PushMessage } | null {
+  const hour = sgHour(now);
+  if (hour < 9 || hour >= 21 || logged.has(alertDay(now))) return null;
+  const f = hits.find((h) => !logged.has(h.id));
+  if (!f) return null;
+  return {
+    items: [alertDay(now), f.id],
+    message: { title: `@${f.handle} posted a hit`, body: `${usualOf(f)}. Tap to make your own.`, url: findingUrl(f), tag: "outlier", ttl: 3 * 3600 },
+  };
 }

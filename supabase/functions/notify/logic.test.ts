@@ -3,8 +3,21 @@ import { weekProgress as appWeekProgress } from "@/lib/goals";
 import type { DraftEntry } from "@/lib/draftHistory";
 import { HOOK_FORMULAS } from "@/lib/hookFormulas";
 import { labelForDimension } from "@/lib/analytics";
+import { links } from "@/lib/links";
 import {
   APP_URL,
+  alertDay,
+  BRIEF_ASK,
+  briefAsk,
+  briefBody,
+  briefFindings,
+  briefLines,
+  findingLine,
+  findingUrl,
+  outlierAlert,
+  outlierHits,
+  pickedFindings,
+  type Finding,
   FORMAT_NOUN,
   HOOK_NAME,
   PILLAR_NAME,
@@ -45,10 +58,12 @@ const profile = (over: Partial<Profile> = {}): Profile => ({ id: "me", name: "Me
 
 describe("parsePrefs", () => {
   it("is on only for an explicit true", () => {
-    expect(parsePrefs('{"email":true,"push":false}')).toEqual({ email: true, push: false });
-    expect(parsePrefs('{"email":"true","push":1}')).toEqual({ email: false, push: false });
-    expect(parsePrefs("not json")).toEqual({ email: false, push: false });
-    expect(parsePrefs(null)).toEqual({ email: false, push: false });
+    const off = { email: false, push: false, brief: false, alerts: false };
+    expect(parsePrefs('{"email":true,"push":false}')).toEqual({ ...off, email: true });
+    expect(parsePrefs('{"email":"true","push":1}')).toEqual(off);
+    expect(parsePrefs("not json")).toEqual(off);
+    expect(parsePrefs(null)).toEqual(off);
+    expect(parsePrefs('{"email":true,"brief":true,"alerts":"yes"}')).toEqual({ ...off, email: true, brief: true });
   });
 });
 
@@ -562,5 +577,244 @@ describe("the Monday email's Your market line", () => {
     expect(weeklyEmail(ready, MON_8AM_SG, {}, true)!.text).toContain(line);
     expect(weeklyEmail(ready, MON_8AM_SG, {}, false)!.text).not.toContain("Your market");
     expect(weeklyEmail(ready, MON_8AM_SG)!.text).not.toContain("Your market");
+  });
+});
+
+describe("What moved (find-alerts-digest)", () => {
+  const DAY = 86_400_000;
+  const MON_9AM = sg(2026, 10, 12, 9);
+  const at = (daysAgo: number, now = MON_9AM) => new Date(now - daysAgo * DAY).toISOString();
+  const reel = (id: string, daysAgo: number, views: number | null, over: object = {}) => ({
+    id, url: `https://www.instagram.com/reel/${id}/`, format: "video", caption: `Caption ${id}`, postedAt: at(daysAgo), views, likes: 5, comments: 1, ...over,
+  });
+  /** Five settled reels at 1,000 views, so the account's usual is 1,000. */
+  const usual = [10, 12, 14, 16, 18].map((d, i) => reel(`u${i}`, d, 1000));
+  const followed = (posts: object[], over: object = {}): Followed => ({ platform: "instagram", handle: "rival", history: [], posts, ...over } as Followed);
+  const kinds = (fs: Finding[]) => fs.map((f) => f.id);
+
+  describe("followedFrom (through profilesFrom)", () => {
+    it("keeps each post's id, link, words and numbers, and the fresh ids", () => {
+      const [me] = profilesFrom(UID, {
+        [`content-studio-following-${UID}`]: JSON.stringify([
+          { platform: "tiktok", handle: "rival", history: [], fresh: ["p1", 7], posts: [{ id: "p1", url: "https://www.tiktok.com/@rival/video/1", format: "video", caption: "Line one\nline two", postedAt: "2026-10-08T00:00:00Z", views: 900, likes: 30, comments: 2 }, { id: "p2", postedAt: null, views: null }] },
+        ]),
+      });
+      expect(me.followed![0].fresh).toEqual(["p1"]);
+      expect(me.followed![0].posts).toEqual([
+        { id: "p1", url: "https://www.tiktok.com/@rival/video/1", format: "video", caption: "Line one line two", postedAt: "2026-10-08T00:00:00Z", views: 900, likes: 30, comments: 2 },
+        { id: "p2", url: "", format: "", caption: "", postedAt: null, views: null, likes: 0, comments: 0 },
+      ]);
+    });
+
+    it("still reads a list stored before posts had ids or fresh", () => {
+      const [me] = profilesFrom(UID, { [`content-studio-following-${UID}`]: JSON.stringify([{ platform: "instagram", handle: "old", history: [], posts: [{ postedAt: "2026-10-07T00:00:00Z" }] }]) });
+      expect(me.followed).toEqual([{ platform: "instagram", handle: "old", history: [], posts: [{ postedAt: "2026-10-07T00:00:00Z" }] }]);
+      expect(briefFindings(me, MON_9AM)).toEqual([]);
+    });
+
+    it("reads Their posts and Their ads only when their keys exist, and the brand's facts from positioning", () => {
+      expect(profilesFrom(UID, {})[0]).not.toHaveProperty("competitorAds");
+      const [me] = profilesFrom(UID, {
+        [`content-studio-competitor-ads-${UID}`]: JSON.stringify({
+          "acme-x1": { checkedAt: "2026-10-10T00:00:00Z", pageName: "Acme", ads: [{ id: "a1", start: "2026-10-01" }, { id: "a2", start: "2026-10-09" }], fresh: ["a1", "a2"] },
+          "quiet-x2": { checkedAt: "2026-10-10T00:00:00Z", pageName: "Quiet", ads: [], fresh: [] },
+          broken: "x",
+        }),
+        [`content-studio-competitor-posts-${UID}`]: JSON.stringify({ "acme-x1:instagram": { platform: "instagram", handle: "acme", history: [], posts: [] } }),
+        [`content-studio-positioning-${UID}`]: JSON.stringify({ oneLiner: "A sales app.", edge: "Built for field reps", audience: "general", audienceDetail: "" }),
+        [`content-studio-market-${UID}`]: JSON.stringify({ audience: "Sales teams in Singapore" }),
+      });
+      expect(me.competitorAds).toEqual([{ competitorId: "acme-x1", name: "Acme", checkedAt: "2026-10-10T00:00:00Z", fresh: ["a1", "a2"], newest: "a2" }]);
+      expect(me.competitorPosts).toEqual([{ platform: "instagram", handle: "acme", history: [], posts: [] }]);
+      expect(me.brand).toEqual({ sells: "A sales app. Built for field reps", serves: "Sales teams in Singapore" });
+    });
+  });
+
+  describe("briefFindings", () => {
+    it("finds a followed post at exactly 3x its account's usual views, and none at 2.9x", () => {
+      expect(kinds(briefFindings(profile({ followed: [followed([...usual, reel("hit", 3, 3000)])] }), MON_9AM))).toEqual(["outlier:instagram:hit"]);
+      expect(briefFindings(profile({ followed: [followed([...usual, reel("hit", 3, 2900)])] }), MON_9AM)).toEqual([]);
+    });
+
+    it("needs 5 other posts with views to compare with", () => {
+      expect(briefFindings(profile({ followed: [followed([...usual.slice(1), reel("hit", 3, 9000)])] }), MON_9AM)).toEqual([]);
+    });
+
+    it("skips posts under 48 hours old and over 7 days old", () => {
+      for (const days of [1.9, 7.1]) expect(briefFindings(profile({ followed: [followed([...usual, reel("hit", days, 9000)])] }), MON_9AM)).toEqual([]);
+      expect(briefFindings(profile({ followed: [followed([...usual, reel("hit", 2.1, 9000)])] }), MON_9AM)).toHaveLength(1);
+    });
+
+    it("scores competitors' posts the same way, picture posts on likes and comments", () => {
+      const pic = (id: string, daysAgo: number, likes: number) => ({ id, url: `https://www.instagram.com/p/${id}/`, format: "image", caption: "", postedAt: at(daysAgo), views: null, likes, comments: 0 });
+      const comp = followed([...[10, 12, 14, 16, 18].map((d, i) => pic(`c${i}`, d, 100)), pic("chit", 3, 400)], { handle: "acme" });
+      const [f] = briefFindings(profile({ competitorPosts: [comp] }), MON_9AM);
+      expect(findingLine(f)).toBe("@acme's post did 4x their usual engagement.");
+    });
+
+    it("makes one New ad finding per competitor with ads new on a check in the last 7 days", () => {
+      const ads = [
+        { competitorId: "a", name: "Acme", checkedAt: at(2), fresh: ["1"], newest: "1" },
+        { competitorId: "b", name: "Beta", checkedAt: at(3), fresh: ["2", "3", "4"], newest: "4" },
+        { competitorId: "c", name: "Stale", checkedAt: at(8), fresh: ["5"], newest: "5" },
+      ];
+      const fs = briefFindings(profile({ competitorAds: ads }), MON_9AM);
+      expect(kinds(fs)).toEqual(["ad:b", "ad:a"]);
+      expect(fs.map(findingLine)).toEqual(["Beta started 3 new ads this week.", "Acme started 1 new ad this week."]);
+    });
+
+    it("finds your own post of the last 7 days at 2x the median of the 8 weeks before, and not at 1.9x", () => {
+      const mine = (id: string, daysAgo: number, reactions: number) => post({ id, status: "posted", postedAt: at(daysAgo), metrics: { reactions } });
+      const before = [mine("b1", 10, 10), mine("b2", 20, 20), mine("b3", 40, 30), mine("old", 70, 1)];
+      expect(kinds(briefFindings(profile({ posts: [...before, mine("w", 3, 40)] }), MON_9AM))).toEqual(["post:w"]);
+      expect(briefFindings(profile({ posts: [...before, mine("w", 3, 38)] }), MON_9AM)).toEqual([]);
+      // fewer than 3 posts with numbers before: no usual to beat
+      expect(briefFindings(profile({ posts: [...before.slice(1), mine("w", 3, 400)] }), MON_9AM)).toEqual([]);
+    });
+
+    it("finds the fastest-growing account only at 3% and 250 followers", () => {
+      const grew = (from: number, to: number) =>
+        briefFindings(profile({ followed: [followed([], { history: [{ at: at(9), followers: from }, { at: at(2), followers: to }] })] }), MON_9AM);
+      expect(grew(5000, 5250).map(findingLine)).toEqual(["@rival gained 250 followers this week."]);
+      expect(grew(10000, 10250)).toEqual([]); // 2.5%
+      expect(grew(1000, 1240)).toEqual([]); // 240
+    });
+
+    it("orders Outlier, Your post, New ad, Growing and asks about 10 at most", () => {
+      const many = Array.from({ length: 12 }, (_, i) => ({ competitorId: `c${i}`, name: `C${i}`, checkedAt: at(1), fresh: ["x"], newest: "x" }));
+      const fs = briefFindings(
+        profile({ competitorAds: many, followed: [followed([...usual, reel("hit", 3, 5000)], { history: [{ at: at(9), followers: 5000 }, { at: at(2), followers: 6000 }] })] }),
+        MON_9AM,
+      );
+      expect(fs).toHaveLength(BRIEF_ASK);
+      expect(fs[0].kind).toBe("outlier");
+    });
+  });
+
+  const hit = (over: object = {}) => briefFindings(profile({ followed: [followed([...usual, reel("hit", 3, 4100, { caption: "3 CPF mistakes at 25 that cost you later", ...over })])] }), MON_9AM)[0];
+  const ad: Finding = { kind: "ad", id: "ad:acme", name: "Acme", n: 2, ad: "123" };
+  const growing: Finding = { kind: "growing", id: "growing:instagram:jo", handle: "jo", gained: 1240 };
+
+  describe("the words and links", () => {
+    it("says what moved in the spec's lines", () => {
+      expect(findingLine(hit())).toBe(`@rival's reel did 4.1x their usual views. "3 CPF mistakes at 25 that cost you later"`);
+      expect(findingLine(growing)).toBe("@jo gained 1,240 followers this week.");
+    });
+
+    it("sends a video to Clone a reel and anything else to Write with the MAS line", () => {
+      const video = hit();
+      expect(findingUrl(video)).toBe(links.clone({ url: "https://www.instagram.com/reel/hit/" }));
+      const picture = hit({ format: "image", caption: "Why your CPF is not enough. And what to do." });
+      const url = findingUrl(picture);
+      expect(url).toBe(
+        links.generate({
+          pillar: "topic",
+          detail: "Why your CPF is not enough",
+          ctx: `A post by @rival did 4.1x their usual views. What it says: "Why your CPF is not enough. And what to do.". Write my own take in my voice. Do not copy its wording. No promised returns, no named insurer products, no invented numbers.`,
+          source: "follow:instagram:hit",
+        }),
+      );
+      const own = findingUrl({ kind: "post", id: "post:a", post: post({ id: "a", hook: "Why I stopped selling", format: "text-post" }), ratio: 2.3 });
+      expect(new URLSearchParams(own.split("?")[1]).get("ctx")).toBe(
+        `My post "Why I stopped selling" did 2.3x my usual engagement. Write a new post on the same idea in a different format. No promised returns, no named insurer products, no invented numbers.`,
+      );
+      expect(new URLSearchParams(own.split("?")[1]).get("format")).toBe("carousel");
+      expect(new URLSearchParams(findingUrl({ kind: "post", id: "post:b", post: post({ id: "b", format: "carousel" }), ratio: 2 }).split("?")[1]).get("format")).toBe("text-post");
+      expect(findingUrl(ad)).toBe(links.competitors({ ad: "123" }));
+      expect(findingUrl(growing)).toBe(links.following());
+    });
+
+    it("writes the WHAT MOVED block, and nothing for a single finding", () => {
+      expect(briefLines([hit(), growing])).toEqual([
+        "WHAT MOVED",
+        `1. Outlier: @rival's reel did 4.1x their usual views. "3 CPF mistakes at 25 that cost you later"`,
+        `   Make this: ${APP_URL}/clone?url=https%3A%2F%2Fwww.instagram.com%2Freel%2Fhit%2F`,
+        "2. Growing: @jo gained 1,240 followers this week.",
+        `   See them: ${APP_URL}/following`,
+      ]);
+      expect(briefLines([hit()])).toEqual([]);
+      expect(briefLines([hit(), ad, growing]).join("\n")).toMatch(/^[\x20-\x7e\n]*$/);
+    });
+  });
+
+  describe("Jev's pick", () => {
+    const items = [hit(), ad, growing].map((f) => ({ id: f.id, kind: f.kind, line: findingLine(f) }));
+
+    it("asks one yes or no per finding about this brand, never about a financial adviser", () => {
+      const ask = briefAsk(items, { sells: "A sales app.", serves: "Self-employed salespeople" });
+      expect(Object.keys(ask.questions)).toEqual(["f0", "f1", "f2"]);
+      expect(Object.values(ask.questions).every((q) => q.type === "noul")).toBe(true);
+      expect(ask.state).toBe(
+        [
+          "A business posts on social media to win clients.",
+          "What it sells: A sales app.",
+          "Who it serves: Self-employed salespeople.",
+          "This week's findings:",
+          `1. Outlier: ${items[0].line}`,
+          "2. New ad: Acme started 2 new ads this week.",
+          "3. Growing: @jo gained 1,240 followers this week.",
+        ].join("\n"),
+      );
+      expect(briefAsk(items).state.startsWith("A business posts on social media to win clients.\nThis week's findings:")).toBe(true);
+      expect(JSON.stringify(briefAsk(items))).not.toMatch(/adviser/i);
+    });
+
+    it("keeps 0.5 and up, surest first, at most 5, and falls back to the fixed order without an answer", () => {
+      const seven = Array.from({ length: 7 }, (_, i) => `f${i}`);
+      const yes = (...ps: number[]) => Object.fromEntries(ps.map((p, i) => [`f${i}`, { type: "noul" as const, noul: p }]));
+      expect(pickedFindings(yes(0.49, 0.5, 0.9, 0.2), seven)).toEqual(["f2", "f1"]);
+      expect(pickedFindings(yes(0.6, 0.7, 0.8, 0.9, 0.95, 0.55, 0.65), seven)).toEqual(["f4", "f3", "f2", "f1", "f6"]);
+      expect(pickedFindings(null, seven)).toEqual(["f0", "f1", "f2", "f3", "f4"]);
+    });
+
+    it("checks week-pick's brief body", () => {
+      expect(briefBody({ findings: items, brand: { sells: "x", serves: 5 } })).toEqual({ items, brand: { sells: "x", serves: "" } });
+      for (const bad of [null, { findings: items.slice(0, 1) }, { findings: [...items, items[0]] }, { findings: [items[0], { ...items[1], kind: "rumour" }] }, { findings: Array.from({ length: 11 }, (_, i) => ({ ...items[0], id: `x${i}` })) }]) {
+        expect(briefBody(bad)).toBeNull();
+      }
+    });
+  });
+
+  describe("the email block", () => {
+    const week = [post({ id: "a", hook: "CPF at 55", status: "posted", postedAt: "2026-10-06T03:00:00.000Z", metrics: { reactions: 4 } })];
+
+    it("opens the email with WHAT MOVED and leaves the rest as it was", () => {
+      const plain = weeklyEmail([profile({ posts: week })], MON_8AM)!;
+      const email = weeklyEmail([profile({ posts: week })], MON_8AM, {}, false, { me: [hit(), growing] })!;
+      expect(email.text.startsWith("WHAT MOVED\n1. Outlier: @rival's reel")).toBe(true);
+      expect(email.text).toBe([...briefLines([hit(), growing]), "", plain.text].join("\n"));
+      expect(email.subject).toBe(plain.subject);
+    });
+
+    it("puts it under the brand's name, shows a brand that has only findings, and skips a thin week", () => {
+      const brands = [profile({ posts: week }), profile({ id: "pat", name: "ActivityTracker" })];
+      const email = weeklyEmail(brands, MON_8AM, {}, false, { pat: [ad, growing] })!;
+      expect(email.text).toContain("\nACTIVITYTRACKER\n\nWHAT MOVED\n1. New ad: Acme started 2 new ads this week.\n");
+      expect(weeklyEmail(brands, MON_8AM, {}, false, { pat: [ad], me: [growing] })!.text).toBe(weeklyEmail(brands, MON_8AM)!.text);
+    });
+  });
+
+  describe("the phone alert", () => {
+    const at10 = sg(2026, 10, 12, 10);
+    const fresh = (days: number, fr = ["hit"]) => [profile({ followed: [followed([...usual.map((p) => ({ ...p, postedAt: at(Number(p.id.slice(1)) + 10, at10) })), reel("hit", 0, 4100, { postedAt: at(days, at10) })], { fresh: fr })] })];
+
+    it("takes followed posts new on the last check, 2 to 5 days old", () => {
+      expect(outlierHits(fresh(3), at10).map((h) => h.id)).toEqual(["outlier:instagram:hit"]);
+      expect(outlierHits(fresh(5.1), at10)).toEqual([]);
+      expect(outlierHits(fresh(3, []), at10)).toEqual([]);
+    });
+
+    it("sends one from 9am to 9pm Singapore, refused once the day's alert is claimed", () => {
+      const hits = outlierHits(fresh(3), at10);
+      expect(outlierAlert(hits, at10, new Set())).toEqual({
+        items: ["alert-day:2026-10-12", "outlier:instagram:hit"],
+        message: { title: "@rival posted a hit", body: "4.1x their usual views. Tap to make your own.", url: findingUrl(hits[0]), tag: "outlier", ttl: 10800 },
+      });
+      expect(outlierAlert(hits, sg(2026, 10, 12, 8, 59), new Set())).toBeNull();
+      expect(outlierAlert(hits, sg(2026, 10, 12, 21), new Set())).toBeNull();
+      expect(outlierAlert(hits, sg(2026, 10, 12, 20, 59), new Set())).not.toBeNull();
+      expect(outlierAlert(hits, at10, new Set([alertDay(at10)]))).toBeNull();
+      expect(outlierAlert(hits, at10, new Set(["outlier:instagram:hit"]))).toBeNull();
+    });
   });
 });

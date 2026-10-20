@@ -16,7 +16,8 @@
 // Secrets: NOTIFY_CRON_SECRET (the same value is in Vault as
 // cs_notify_cron_secret), VAPID_KEYS (JSON {publicKey, privateKey} JWKs),
 // RESEND_API_KEY, TYPESAFE_API_KEY (optional: Jev picks the email's one move
-// for the week; without it the email has none). Deploy with --no-verify-jwt:
+// for the week; without it the email has none), NORTH_STAR_USERS (optional:
+// the uids that get What moved and the outlier alert). Deploy with --no-verify-jwt:
 // the secret header is the auth.
 //   supabase functions deploy notify --project-ref hgdbflprrficdoyxmdxe --use-api --no-verify-jwt
 
@@ -25,7 +26,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { ApplicationServer, importVapidKeys, PushMessageError, Urgency } from "jsr:@negrel/webpush@0.5.0";
 import { askJev } from "../_shared/jev.ts";
 import { consumeUsage } from "../_shared/usageCaps.ts";
-import { APP_URL, isPushEndpoint, PREFS_PREFIX } from "./logic.ts";
+import { APP_URL, BRAND_KEYS, isPushEndpoint, PREFS_PREFIX } from "./logic.ts";
 import { runPage, type Deps, type Options } from "./run.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
@@ -80,17 +81,7 @@ function wire(secret: string): Deps {
           .from("cs_user_data")
           .select("key,data")
           .eq("user_id", uid)
-          .or(
-            [
-              `key.like.content-studio-drafts-${uid}*`,
-              `key.like.content-studio-goals-${uid}*`,
-              `key.like.content-studio-positioning-${uid}*`,
-              `key.like.content-studio-following-${uid}*`,
-              `key.like.content-studio-market-${uid}*`,
-              `key.like.content-studio-mentions-${uid}*`,
-              `key.eq.content-studio-profiles-${uid}`,
-            ].join(","),
-          ),
+          .or([...BRAND_KEYS.map((k) => `key.like.content-studio-${k}-${uid}*`), `key.eq.content-studio-profiles-${uid}`].join(",")),
       ) ?? [];
       return Object.fromEntries(rows.map((r) => [r.key as string, r.data as string]));
     },
@@ -177,6 +168,11 @@ function wire(secret: string): Deps {
       if (!usage.allowed) return null;
       return askJev(ask.state, ask.questions, { who: "notify" });
     },
+    async briefPick(uid, ask) {
+      const usage = await consumeUsage(admin, uid, "brief-pick");
+      if (!usage.allowed) return null;
+      return askJev(ask.state, ask.questions, { who: "notify brief" });
+    },
     async next(body) {
       const res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/notify`, {
         method: "POST",
@@ -218,6 +214,7 @@ Deno.serve(async (req) => {
     upTo: id(body.upTo),
     testTo,
     marketUsers: Deno.env.get("MARKET_USERS"),
+    northStarUsers: Deno.env.get("NORTH_STAR_USERS"),
   };
   const deps = wire(secret);
 

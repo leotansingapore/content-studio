@@ -38,6 +38,7 @@ function fake(over: Partial<Deps> & { subsList?: Sub[]; user?: object | null; se
     sendPush: async (subs, m) => (log(`push ${subs.map((s) => s.id)} ${m.title}`), over.delivered ?? subs.length),
     sendEmail: async (to, e, key) => (log(`email ${to} ${key}`), over.sent ?? true),
     pick: async (_u, ask) => (log(`pick ${Object.keys(ask.questions)}`), over.answers ?? null),
+    briefPick: async (_u, ask) => (log(`briefPick ${Object.keys(ask.questions)}`), null),
     next: async (b) => void log(`next ${JSON.stringify(b)}`),
     clock: () => t,
     ...over,
@@ -283,30 +284,96 @@ describe("runUser: the Monday email mentions Your market", () => {
 describe("runUser: a busy week, frozen before What moved", () => {
   // fixtures/busy-week-before.json was captured from this function before What moved existed: a followed account's
   // 4.1x reel, a competitor's fresh ads and posts, your own 3.6x post, a growing account and a post due within the hour.
-  const busy = () => {
+  const busy = (over: Partial<Deps> & { kept?: Record<string, JevAnswer> | null; done?: string[] } = {}) => {
     const calls: string[] = [];
     const log = (s: string) => calls.push(s);
+    let text = "";
     const deps: Deps = {
       listPrefs: async () => [],
       userRows: async () => before.rows,
       subs: async () => (log("subs"), [{ id: 1, endpoint: "https://fcm.googleapis.com/fcm/send/d1", p256dh: "B".repeat(87), auth: "k".repeat(22), updated_at: "2026-10-11T00:00:00Z" }]),
       authUser: async () => (log("authUser"), { email: "ada@example.test", email_confirmed_at: "2026-01-01" }),
-      logged: async (_u, items) => (log(`logged ${items}`), new Set()),
+      logged: async (_u, items) => (log(`logged ${items}`), new Set(over.done ?? [])),
       claim: async (_u, items, retake) => (log(`claim ${items} ${retake}`), new Set(items)),
       markSent: async (_u, items) => void log(`markSent ${items}`),
       sendPush: async (subs, m) => (log(`push ${subs.map((s) => s.id)} ${m.title} | ${m.body} | ${m.url}`), 1),
-      sendEmail: async (to, e, key) => (log(`email ${to} ${key} ${e.subject}`), true),
+      sendEmail: async (to, e, key) => ((text = e.text), log(`email ${to} ${key} ${e.subject}`), true),
       pick: async (_u, ask) => (log(`pick ${Object.keys(ask.questions)}`), null),
+      briefPick: async (_u, ask) => (log(`briefPick ${Object.keys(ask.questions)}`), over.kept ?? null),
       next: async () => {},
       clock: () => 0,
+      ...over,
     };
-    return { deps, calls };
+    return { deps, calls, text: () => text };
   };
+  const all = { email: true, push: true, brief: true, alerts: true };
+  const now = Date.parse(before.now);
+  const beforeText = before.report.email.text;
+  /** The numbered lines of the WHAT MOVED block (the report's best and weakest are numbered too). */
+  const moved = (text: string) => text.slice(0, text.indexOf("Last week, ")).split("\n").filter((l) => /^\d\. /.test(l));
 
-  it("sends the same alerts and the same email, byte for byte", async () => {
-    const { deps, calls } = busy();
-    const r = await runUser(deps, UID, { email: true, push: true }, opts({ now: Date.parse(before.now) }));
-    expect(calls).toEqual(before.calls);
+  it("gives a uid off NORTH_STAR_USERS the same alerts and the same email, byte for byte, even with both switches on", async () => {
+    for (const northStarUsers of [undefined, "", "someone-else,another"]) {
+      const { deps, calls } = busy();
+      const r = await runUser(deps, UID, all, opts({ now, northStarUsers }));
+      expect(calls).toEqual(before.calls);
+      expect(r).toEqual(before.report);
+    }
+  });
+
+  it("gives a listed uid the alert claim and What moved first in the email, the rest unchanged", async () => {
+    const { deps, calls, text } = busy();
+    const r = await runUser(deps, UID, all, opts({ now, northStarUsers: `x,${UID}` }));
+    const hit = "alert-day:2026-10-12,outlier:instagram:hit";
+    expect(calls).toEqual([
+      "subs",
+      `logged ${hit}`,
+      `claim due:me:d1:2026-10-12T10:30,${hit} null`,
+      ...before.calls.slice(2, 4),
+      "push 1 @sgmoneybro posted a hit | 4.1x their usual views. Tap to make your own. | /clone?url=https%3A%2F%2Fwww.instagram.com%2Freel%2Fhit%2F",
+      `markSent ${hit}`,
+      ...before.calls.slice(4, 7),
+      "briefPick f0,f1,f2,f3,f4",
+      ...before.calls.slice(7),
+    ]);
+    // Jev had no answer: the fallback order, Outlier, Your post, New ad, Growing
+    expect(moved(text())).toEqual([
+      `1. Outlier: @sgmoneybro's reel did 4.1x their usual views. "3 CPF mistakes at 25 that cost you later"`,
+      `2. Outlier: @pipedrive's post did 5x their usual engagement. "Picture c-hit"`,
+      `3. Your post: "Why I stopped selling on the first call" got 3.6x your usual engagement.`,
+      "4. New ad: Pipedrive started 2 new ads this week.",
+      "5. Growing: @sgmoneybro gained 1,240 followers this week.",
+    ]);
+    expect(text().startsWith("WHAT MOVED\n1. Outlier:")).toBe(true);
+    expect(text().slice(text().indexOf("Last week, "))).toBe(beforeText);
+    expect((r.email as { brief: unknown }).brief).toEqual([{ profile: "me", findings: expect.arrayContaining([{ id: "ad:pipedrive-ab12", line: "Pipedrive started 2 new ads this week.", p: null }]) }]);
+  });
+
+  it("keeps what Jev keeps, surest first, and spends one brief-pick per email", async () => {
+    const yes = (...ps: number[]) => Object.fromEntries(ps.map((p, i) => [`f${i}`, { type: "noul" as const, noul: p }]));
+    const { deps, calls, text } = busy({ kept: yes(0.4, 0.2, 0.9, 0.6, 0.55) });
+    await runUser(deps, UID, { ...all, push: false }, opts({ now, northStarUsers: UID }));
+    expect(calls.filter((c) => c.startsWith("briefPick"))).toHaveLength(1);
+    expect(moved(text()).map((l) => l.split(":")[0])).toEqual(["1. Your post", "2. New ad", "3. Growing"]);
+    // an hourly rerun that finds the email claimed asks nothing
+    const again = busy({ claim: async () => new Set<string>() });
+    await runUser(again.deps, UID, all, opts({ now, northStarUsers: UID }));
+    expect(again.calls.some((c) => c.startsWith("briefPick"))).toBe(false);
+  });
+
+  it("sends no block when Jev keeps fewer than 2", async () => {
+    const { deps, text } = busy({ kept: { f0: { type: "noul", noul: 0.9 } } });
+    await runUser(deps, UID, { ...all, push: false }, opts({ now, northStarUsers: UID }));
+    expect(text()).toBe(beforeText);
+  });
+
+  it("asks nothing and alerts nothing for a listed uid with the switches off, or after today's alert", async () => {
+    const off = busy();
+    const r = await runUser(off.deps, UID, { email: true, push: true, brief: false, alerts: false }, opts({ now, northStarUsers: UID }));
+    expect(off.calls).toEqual(before.calls);
     expect(r).toEqual(before.report);
+    const sent = busy({ done: ["alert-day:2026-10-12"] });
+    await runUser(sent.deps, UID, { ...all, email: false }, opts({ now, northStarUsers: UID }));
+    expect(sent.calls).toEqual(["subs", "logged alert-day:2026-10-12,outlier:instagram:hit", ...before.calls.slice(1, 4)]);
   });
 });

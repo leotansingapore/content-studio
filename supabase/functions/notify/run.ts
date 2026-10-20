@@ -4,14 +4,21 @@
 
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
 import {
+  alertDay,
+  briefAsk,
+  briefFindings,
   dueMessage,
   duePosts,
   emailWeeks,
+  findingLine,
   goalAlert,
   marketAlert,
   marketOpen,
   moveAsk,
+  outlierAlert,
+  outlierHits,
   parsePrefs,
+  pickedFindings,
   pickedMove,
   PREFS_PREFIX,
   profilesFrom,
@@ -19,7 +26,9 @@ import {
   weekMoves,
   weeklyEmail,
   type Email,
+  type Finding,
   type MoveId,
+  type Prefs,
   type Profile,
   type PushMessage,
 } from "./logic.ts";
@@ -48,6 +57,8 @@ export interface Options {
   testTo: string | null;
   /** The market function's MARKET_USERS: who gets the Monday Your market reminder. */
   marketUsers?: string;
+  /** NORTH_STAR_USERS: who gets What moved and the outlier alert (their brief and alerts switches still decide). */
+  northStarUsers?: string;
 }
 
 export interface Sub {
@@ -75,7 +86,7 @@ export interface Deps {
   userRows(uid: string): Promise<Record<string, string>>;
   subs(uid: string): Promise<Sub[]>;
   authUser(uid: string): Promise<AuthUser | null>;
-  /** Dry run: which of these items already have a sent-log row. */
+  /** Which of these items already have a sent-log row (a dry run's claim; the outlier alert's look-up). */
   logged(uid: string, items: string[]): Promise<Set<string>>;
   /** cs_notify_claim: the items this run may send. */
   claim(uid: string, items: string[], retakeAfter: string | null): Promise<Set<string>>;
@@ -85,6 +96,8 @@ export interface Deps {
   sendEmail(to: string, email: Email, idempotencyKey: string): Promise<boolean>;
   /** Jev's answer to the week's move question, behind the adviser's "week-pick" daily cap; null without one. */
   pick(uid: string, ask: { state: string; questions: Record<string, JevQuestion> }): Promise<Record<string, JevAnswer> | null>;
+  /** Jev's yes or no on each What moved finding, behind the adviser's "brief-pick" daily cap; null without one. */
+  briefPick(uid: string, ask: { state: string; questions: Record<string, JevQuestion> }): Promise<Record<string, JevAnswer> | null>;
   /** Starts this function again as a fresh request with its own CPU budget. */
   next(body: { after: string; upTo?: string }): Promise<void>;
   clock(): number;
@@ -113,7 +126,28 @@ export async function weekPicks(deps: Deps, uid: string, profiles: Profile[], no
   return out;
 }
 
-export async function runUser(deps: Deps, uid: string, prefs: { email: boolean; push: boolean }, o: Options) {
+/**
+ * What moved per brand (at most 3 asks), once the email is ours to send. `scored` is every finding with Jev's
+ * yes-probability, for a dry run's reader to check the 0.5 cut against.
+ */
+export async function briefPicks(deps: Deps, uid: string, profiles: Profile[], now: number) {
+  const picked: Record<string, Finding[]> = {};
+  const scored: { profile: string; findings: { id: string; line: string; p: number | null }[] }[] = [];
+  for (const p of profiles) {
+    if (scored.length >= 3) break;
+    const findings = briefFindings(p, now);
+    if (findings.length < 2) continue;
+    const items = findings.map((f) => ({ id: f.id, kind: f.kind, line: findingLine(f) }));
+    const answers = await deps.briefPick(uid, briefAsk(items, p.brand));
+    picked[p.id] = pickedFindings(answers, findings);
+    scored.push({ profile: p.id, findings: items.map((f, i) => ({ id: f.id, line: f.line, p: answers?.[`f${i}`]?.noul ?? null })) });
+  }
+  return { picked, scored };
+}
+
+export async function runUser(deps: Deps, uid: string, prefs: Prefs, o: Options) {
+  // What moved and the outlier alert go only to NORTH_STAR_USERS; everyone else's run is exactly what it was.
+  const listed = isAllowed(o.northStarUsers, uid);
   const profiles = profilesFrom(uid, await deps.userRows(uid));
   const report: { user: string; push: object[]; email: object | null } = { user: uid.slice(0, 8), push: [], email: null };
   // A test send goes to a test inbox only: no phone alerts, nothing claimed or marked sent.
@@ -131,7 +165,9 @@ export async function runUser(deps: Deps, uid: string, prefs: { email: boolean; 
     const due = duePosts(profiles, o.now);
     const goal = goalAlert(profiles, o.now);
     const market = marketAlert(profiles, o.now, isAllowed(o.marketUsers, uid));
-    const items = [...due.map((d) => d.item), ...(goal ? [goal.item] : []), ...(market ? [market.item] : [])];
+    const hits = listed && prefs.alerts && subs.length ? outlierHits(profiles, o.now) : [];
+    const hit = hits.length ? outlierAlert(hits, o.now, await deps.logged(uid, [alertDay(o.now), ...hits.map((h) => h.id)])) : null;
+    const items = [...due.map((d) => d.item), ...(goal ? [goal.item] : []), ...(market ? [market.item] : []), ...(hit ? hit.items : [])];
     if (subs.length && items.length) {
       const mine = await available(items, null);
       const dueMine = due.filter((d) => mine.has(d.item));
@@ -139,6 +175,7 @@ export async function runUser(deps: Deps, uid: string, prefs: { email: boolean; 
         [dueMessage(dueMine), dueMine.map((d) => d.item)],
         [goal && mine.has(goal.item) ? goal.message : null, goal ? [goal.item] : []],
         [market && mine.has(market.item) ? market.message : null, market ? [market.item] : []],
+        [hit && hit.items.every((i) => mine.has(i)) ? hit.message : null, hit ? hit.items : []],
       ];
       for (const [m, sent] of sends) {
         if (!m) continue;
@@ -157,11 +194,13 @@ export async function runUser(deps: Deps, uid: string, prefs: { email: boolean; 
         report.email = { skipped: "no confirmed sign-in email" };
       } else if (test || (await available([due.item], EMAIL_RETAKE)).has(due.item)) {
         // Jev is asked only once the email is ours to send, so an hourly rerun costs nothing.
-        const email = weeklyEmail(profiles, o.now, await weekPicks(deps, uid, profiles, o.now), marketOpen(profiles, o.now, isAllowed(o.marketUsers, uid)))!;
+        const picks = await weekPicks(deps, uid, profiles, o.now);
+        const brief = listed && prefs.brief ? await briefPicks(deps, uid, profiles, o.now) : null;
+        const email = weeklyEmail(profiles, o.now, picks, marketOpen(profiles, o.now, isAllowed(o.marketUsers, uid)), brief?.picked)!;
         const sent = o.dryRun ? null : await deps.sendEmail(to, email, `cs-${email.item}-${uid}${test ? "-test" : ""}`);
         // A failed send keeps its claim unsent; the next hourly run takes it again.
         if (sent && !test) await deps.markSent(uid, [email.item]);
-        report.email = { to: mask(to), subject: email.subject, text: email.text, sent };
+        report.email = { to: mask(to), subject: email.subject, text: email.text, sent, ...(brief ? { brief: brief.scored } : {}) };
       }
     }
   }
