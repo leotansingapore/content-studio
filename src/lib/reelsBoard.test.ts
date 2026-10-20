@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: vi.fn() }));
 import { callFn } from "@/lib/edgeFn";
-import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, setConnectedIg, sharedBoard, stageForLink, teamNotes, updateCard, type ReelCard, type ReelComment } from "./reelsBoard";
+import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, setConnectedIg, sharedBoard, stageForLink, checkMe, forgetMe, waitsOnMe, teamNotes, updateCard, type ReelCard, type ReelComment } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -151,5 +151,43 @@ describe("sharedBoard", () => {
     await expect(sharedBoard()).rejects.toThrow("down");
     await sharedBoard();
     expect(call).toHaveBeenCalledTimes(6);
+  });
+
+  it("asks again after 30 seconds, and after a sign-out", () => {
+    const call = vi.mocked(callFn);
+    call.mockClear();
+    call.mockResolvedValue({ stages: [], brands: [], cards: [] });
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-20T10:00:00Z"));
+    forgetMe();
+    const first = sharedBoard();
+    vi.setSystemTime(new Date("2026-10-20T10:00:29Z"));
+    expect(sharedBoard()).toBe(first);
+    vi.setSystemTime(new Date("2026-10-20T10:00:31Z"));
+    const second = sharedBoard();
+    expect(second).not.toBe(first);
+    forgetMe();
+    expect(sharedBoard()).not.toBe(second);
+    expect(call).toHaveBeenCalledTimes(3);
+    vi.useRealTimers();
+  });
+});
+
+describe("checkMe and waitsOnMe", () => {
+  it("shares one server call between screens asking at once", async () => {
+    const call = vi.mocked(callFn);
+    call.mockClear();
+    call.mockResolvedValue({ owner: false, member: true, role: "viewer", modules: ["reels"] });
+    const [a, b] = await Promise.all([checkMe(true), checkMe(true)]);
+    expect(a).toBe(b);
+    expect(call).toHaveBeenCalledTimes(1);
+  });
+  it("counts posts as waiting on owners, commenters and up, never on a viewer", () => {
+    const member = { owner: false, member: true, modules: ["reels"] };
+    expect(waitsOnMe({ ...member, role: "viewer" })).toBe(false);
+    expect(waitsOnMe({ ...member, role: "commenter" })).toBe(true);
+    expect(waitsOnMe({ owner: true, member: false })).toBe(true);
+    expect(waitsOnMe({ owner: false, member: false })).toBe(false);
+    expect(waitsOnMe(null)).toBe(false);
   });
 });

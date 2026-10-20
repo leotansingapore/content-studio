@@ -86,7 +86,7 @@ and the ask-first step are moments inside the sheet and never land in the URL.
 | /grid | (none) | the grid has no state of its own; tiles open /generate or /carousel | | | /grid |
 | /reels | brand | a reels board brand id, or all | the open profile's brand | replace | /reels?brand=moneybees |
 | /reels | view | feed (Posts: each post whole, caption and decision beside it), board, grid | remembered, else feed | replace | /reels?view=board |
-| /reels | stage | review, changes, approved, scheduled, posted, archived, all (the Posts view's stage chips) | review; a card link without it shows the card's own stage | replace | /reels?stage=scheduled |
+| /reels | stage | review, changes, approved, scheduled, posted, archived, all, notes (the Posts view's stage chips; notes = open notes from someone else) | review; a card link without it shows the card's own stage | replace | /reels?stage=scheduled |
 | /reels | archived | show, hide | hide | replace | /reels?archived=show |
 | /reels | card | a reel card id, opens it; the Posts view also scrolls to it and marks it. A chat app that cuts the link at a `~` still opens it (the part before the `~` is matched), but put card last | none | push | /reels?card=c123 |
 | /reels | t, slide | seconds into the video, or the carousel slide, with card | none | with card | /reels?card=c123&t=12 |

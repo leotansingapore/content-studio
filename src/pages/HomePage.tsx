@@ -52,8 +52,8 @@ import {
   Plus,
 } from "lucide-react";
 import { loadBrand } from "@/lib/carousel";
-import { checkMe, reelsShown, seesBoard, sharedBoard, type Board, type Me } from "@/lib/reelsBoard";
-import { countPostingToday, notesByBrand, waitingByBrand } from "@/lib/needsYou";
+import { checkMe, sharedBoard, waitsOnMe, type Board, type Me } from "@/lib/reelsBoard";
+import { homeToday } from "@/lib/needsYou";
 import { marketShown } from "@/lib/market";
 import { activeProfileId, loadProfiles } from "@/lib/profiles";
 
@@ -159,10 +159,10 @@ export default function HomePage() {
       const diag = loadResult(id);
       setContentScore(diag?.overall ?? null);
       setNextAct(nextAction(diag));
-      // After the first-run check; the board call is the one the shell already made for its count.
-      if (!reelsShown()) return;
+      // After the first-run check. checkMe shares the shell's call on a first sign-in, so Today shows then too;
+      // the board call is the one the shell already made for its count.
       const me = await checkMe().catch(() => null);
-      if (!me || !seesBoard(me)) return;
+      if (!me || !waitsOnMe(me)) return;
       const board = await sharedBoard().catch(() => null);
       if (active) setDay({ me, board });
     })();
@@ -239,25 +239,12 @@ export default function HomePage() {
     });
   };
 
-  // Board users' daily jobs, counts and links only; teammates get the To review rows for their own brands.
-  // Plain URLs, as links.reels and links.calendar build them: links.ts stays out of the main chunk.
+  // Board users' daily jobs, counts and links only (needsYou.homeToday). Leo's "Posting today" counts every brand's drafts.
   const today = useMemo(() => {
     if (!day || !userId) return [];
-    const { me, board } = day;
-    const rows: { label: string; n?: number; to: string }[] = (board ? waitingByBrand(board, "") : []).map((b) => ({
-      label: `To review: ${b.name}`,
-      n: b.n,
-      to: `/reels?brand=${encodeURIComponent(b.id)}${b.changes ? "&stage=all" : ""}`,
-    }));
-    if (!me.owner) return rows;
     const open = activeProfileId(userId);
-    const allDrafts = [...drafts, ...loadProfiles(userId).filter((p) => p.id !== open).flatMap((p) => draftsOfBrand(userId, p.id))];
-    rows.push({ label: "Posting today", n: countPostingToday(board?.cards ?? [], allDrafts, localDateKey()), to: "/calendar?view=week" });
-    // per brand, since /reels shows Leo one brand at a time
-    for (const b of board ? notesByBrand(board, me) : [])
-      rows.push({ label: `Team notes: ${b.name}`, n: b.n, to: `/reels?brand=${encodeURIComponent(b.id)}&stage=notes` });
-    if (marketShown()) rows.push({ label: "Your market", to: "/market" });
-    return rows;
+    const all = day.me.owner ? [...drafts, ...loadProfiles(userId).filter((p) => p.id !== open).flatMap((p) => draftsOfBrand(userId, p.id))] : [];
+    return homeToday(day.me, day.board, all, localDateKey(), marketShown());
   }, [day, userId, drafts]);
 
   const kit = loadBrand(userId);

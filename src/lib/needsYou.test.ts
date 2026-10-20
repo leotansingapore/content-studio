@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, countBoardWaiting, countNeedsYou, countPostingToday, notesByBrand, waitingByBrand } from "./needsYou";
+import { badgeText, countBoardWaiting, countNeedsYou, countPostingToday, homeToday, notesByBrand, waitingByBrand } from "./needsYou";
 import type { DraftEntry } from "./draftHistory";
 import type { ReelCard, ReelComment, StageId } from "./reelsBoard";
 import type { TeamPost } from "./teamPosts";
@@ -79,6 +79,31 @@ describe("notesByBrand", () => {
     const brands = [{ id: "moneybees", name: "MoneyBees" }, { id: "radiant", name: "Radiant" }, { id: "at", name: "ActivityTracker" }];
     const cards = [card("moneybees", [note(amy)]), card("moneybees", [note(amy)]), card("radiant", [note(amy, true), note(undefined)]), card("at", [note(amy)], "archived")];
     expect(notesByBrand({ stages: [], brands, cards }, { owner: true, member: false })).toEqual([{ id: "moneybees", name: "MoneyBees", n: 2 }]);
+  });
+});
+
+describe("homeToday", () => {
+  const note = { id: "n", at: "", text: "x", t: null, version: "v1", resolved: false, by: { id: "u2", label: "Amy", role: "editor" } } as ReelComment;
+  const card = (stage: StageId, brand: string, comments: ReelComment[] = []) => ({ id: stage + brand, title: "t", stage, brand, version: "v1", versions: [], comments, history: [] }) as ReelCard;
+  const board = {
+    stages: [],
+    brands: [{ id: "moneybees", name: "MoneyBees" }, { id: "radiant", name: "Radiant" }],
+    cards: [card("review", "moneybees"), card("changes", "radiant", [note])],
+  };
+
+  it("gives Leo review rows, today, team notes in the Posts view and Your market", () => {
+    expect(homeToday({ owner: true, member: false }, board, [], TODAY, true)).toEqual([
+      { label: "To review: MoneyBees", n: 1, to: "/reels?brand=moneybees" },
+      { label: "To review: Radiant", n: 1, to: "/reels?brand=radiant&stage=all" },
+      { label: "Posting today", n: 0, to: "/calendar?view=week" },
+      { label: "Team notes: Radiant", n: 1, to: "/reels?brand=radiant&view=feed&stage=notes" },
+      { label: "Your market", to: "/market" },
+    ]);
+  });
+
+  it("gives a teammate only the review rows, and nothing breaks when the board didn't answer", () => {
+    expect(homeToday({ owner: false, member: true, role: "editor" }, board, [], TODAY, true).map((r) => r.label)).toEqual(["To review: MoneyBees", "To review: Radiant"]);
+    expect(homeToday({ owner: true, member: false }, null, [], TODAY, false)).toEqual([{ label: "Posting today", n: 0, to: "/calendar?view=week" }]);
   });
 });
 

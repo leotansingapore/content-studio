@@ -34,6 +34,24 @@ export const countPostingToday = (cards: ReelCard[], drafts: DraftEntry[], today
   cards.filter((c) => (c.stage === "approved" || c.stage === "scheduled") && c.schedule?.slice(0, 10) === today).length +
   drafts.filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor?.slice(0, 10) === today).length;
 
+/** Home's Today rows for posts board users. Teammates who act on the board get To review per brand; Leo also gets
+ * what posts today, team notes per brand and Your market. Plain URLs as links.reels builds them: links.ts stays out
+ * of the main chunk. */
+export function homeToday(me: Me, board: Board | null, drafts: DraftEntry[], today: string, market: boolean) {
+  const rows: { label: string; n?: number; to: string }[] = (board ? waitingByBrand(board, "") : []).map((b) => ({
+    label: `To review: ${b.name}`,
+    n: b.n,
+    to: `/reels?brand=${encodeURIComponent(b.id)}${b.changes ? "&stage=all" : ""}`,
+  }));
+  if (!me.owner) return rows;
+  rows.push({ label: "Posting today", n: countPostingToday(board?.cards ?? [], drafts, today), to: "/calendar?view=week" });
+  // per brand, since /reels shows Leo one brand at a time; view=feed beats a remembered Board or Grid, which ignore stage
+  for (const b of board ? notesByBrand(board, me) : [])
+    rows.push({ label: `Team notes: ${b.name}`, n: b.n, to: `/reels?brand=${encodeURIComponent(b.id)}&view=feed&stage=notes` });
+  if (market) rows.push({ label: "Your market", to: "/market" });
+  return rows;
+}
+
 // The posts board hands the shell its new count after every change, so the badge drops without another board call.
 const BOARD_WAITING = "content-studio-board-waiting";
 export const boardWaitingChanged = (n: number) => void globalThis.dispatchEvent?.(new CustomEvent(BOARD_WAITING, { detail: n }));

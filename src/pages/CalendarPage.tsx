@@ -19,7 +19,7 @@ import PostPreview from "@/components/PostPreview";
 import { PostItForMePanel, ZernioChipLabel, ZernioStatus, useZernioRefresh } from "@/components/PostItForMe";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { supabase } from "@/lib/supabase";
-import { brandOf, checkMe, fetchBoard, igHandle, isCarousel, loadConnectedIg, seesBoard } from "@/lib/reelsBoard";
+import { brandOf, checkMe, igHandle, isCarousel, loadConnectedIg, seesBoard, sharedBoard } from "@/lib/reelsBoard";
 import { COVER_DAYS, dueByHand, runsOut, weekGlance, type DatedItem } from "@/lib/calendarCoverage";
 import { openSlots, slotDaysLabel, slotsForGoal } from "@/lib/postingSlots";
 import { DEFAULT_BRAND, loadBrand, saveBrand } from "@/lib/carousel";
@@ -275,7 +275,7 @@ export default function CalendarPage() {
       // Leo, and team members with the posts board, see its posts here (docs/team-roles.md)
       if (data.user && seesBoard(await checkMe().catch(() => null))) {
         // which brands' posts go out by themselves needs both the board and what's connected here
-        Promise.all([fetchBoard(), loadConnectedIg(id ?? "").catch(() => ({}))])
+        Promise.all([sharedBoard(), loadConnectedIg(id ?? "").catch(() => ({}))])
           .then(([b]) => {
             if (!active) return;
             // Every brand's reels: the business filter picks, not the open profile.

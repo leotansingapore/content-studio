@@ -208,22 +208,24 @@ export function cardsIn(cards: ReelCard[], stage: StageId, brand: string): ReelC
     .sort(byDate);
 }
 
-// The last board fetch, so the shell's count and Home share one call per visit; any write drops it.
-let lastBoard: Promise<Board> | null = null;
+// The last board fetch, so the shell's count, Home and the page opened with them share one call; it is reused for
+// 30 seconds only, and any write or sign-out (forgetMe) drops it.
+const SHARE_MS = 30_000;
+let lastBoard: { p: Promise<Board>; at: number } | null = null;
 const board = <T>(body: Record<string, unknown>) => {
   if (body.action !== "board") lastBoard = null;
   return callFn<T>("team-board", body, "The board didn't answer. Try again.");
 };
 export function fetchBoard(): Promise<Board> {
   const p = board<Board>({ action: "board" });
-  lastBoard = p;
+  lastBoard = { p, at: Date.now() };
   p.catch(() => {
-    if (lastBoard === p) lastBoard = null;
+    if (lastBoard?.p === p) lastBoard = null;
   });
   return p;
 }
-/** The board this visit already asked for, else a new call. */
-export const sharedBoard = () => lastBoard ?? fetchBoard();
+/** The board asked for in the last 30 seconds, else a new call. */
+export const sharedBoard = () => (lastBoard && Date.now() - lastBoard.at < SHARE_MS ? lastBoard.p : fetchBoard());
 export const updateCard = (id: string, patch: Partial<Pick<ReelCard, "stage" | "caption" | "schedule" | "version" | "brand">>) =>
   board<ReelCard>({ action: "card", id, patch });
 export const addNote = (id: string, note: { text: string; t?: number | null; slide?: number }) =>
@@ -286,15 +288,21 @@ function readMe(): (Me & { at: number }) | null {
   }
 }
 
-/** Whether the nav shows Reels on this device. */
+/** Whether the nav shows the posts board on this device. */
 export const reelsShown = (): boolean => seesBoard(readMe());
+/** Whether this device's sign-in is the board's owner, as the server last said (its Team page). */
+export const ownerShown = (): boolean => !!readMe()?.owner;
+/** Whether posts waiting on the board wait on this person: a viewer only looks, so gets no counts. */
+export const waitsOnMe = (me: Me | null = readMe()): boolean => seesBoard(me) && (!!me?.owner || me?.role !== "viewer");
+
+let asking: Promise<Me> | null = null; // one server call at a time, however many screens ask
 
 /** Asks the server who this sign-in is on the team, at most every 10 minutes unless forced. */
 export async function checkMe(force = false): Promise<Me> {
   const known = readMe();
   if (known && !force && Date.now() - known.at < ME_RECHECK_MS) return known;
   try {
-    const me = await callFn<Me>("team-board", { action: "me" });
+    const me = await (asking = asking ?? callFn<Me>("team-board", { action: "me" }).finally(() => (asking = null)));
     try {
       localStorage.setItem(ME_KEY, JSON.stringify({ ...me, at: Date.now() }));
     } catch {
@@ -308,6 +316,7 @@ export async function checkMe(force = false): Promise<Me> {
 }
 
 export function forgetMe(): void {
+  lastBoard = null;
   try {
     localStorage.removeItem(ME_KEY);
   } catch {
