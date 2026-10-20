@@ -202,13 +202,13 @@ describe("the job", () => {
     expect(stock.search.mock.calls.every((c) => c[0] === "photo" && c[3] === "portrait")).toBe(true);
   });
 
-  it("tries page 2 once when Jev says none, then gives the slide the brand colour", async () => {
+  it("tries page 2 once when Jev says none, then takes the first free photo rather than a blank slide", async () => {
     local.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#1D4ED8", name: "MoneyBees", handle: "" }));
     answer({ ...pages, "phone on desk|2": [photo("22")] }, (n) => (n === 1 ? [0, -1, -1] : [null, 0, -1]));
     const j = await run();
-    expect(srcs(j)).toEqual(["10", "22", null]);
+    expect(srcs(j)).toEqual(["10", "22", "30"]);
     expect(stock.search).toHaveBeenCalledWith("photo", "calendar", 2, "portrait");
-    expect(madeShow(j).slides[2].photo).toBeUndefined();
+    expect(madeShow(j).slides[2].fill).toBeUndefined();
     expect(j.state).toBe("done");
   });
 

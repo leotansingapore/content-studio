@@ -217,7 +217,7 @@ async function askJev(slides: SlideCopy[], descs: string[][]): Promise<(number |
   return slides.map((_, i) => (typeof r?.picks?.[i] === "number" ? r.picks[i] : null));
 }
 
-/** Pexels, page 1 for every slide, then page 2 once for a slide Jev said none to or that found nothing free. */
+/** Pexels, page 1 for every slide, then page 2 once for a slide Jev said none to or that found nothing free, then the first free photo. */
 async function stockPictures(userId: string, slides: SlideCopy[], progress: (n: number) => void): Promise<(Picture | null)[]> {
   const skip = new Set(loadUsed(userId).flatMap((u) => u.ids));
   const taken = new Set<string>();
@@ -230,12 +230,15 @@ async function stockPictures(userId: string, slides: SlideCopy[], progress: (n: 
   }
   const chosen = resolvePicks(first, await askJev(slides, first.map((l) => l.map(photoDesc))), (it) => it.id, taken);
   const again = chosen.flatMap((c, i) => (c ? [] : [i]));
+  const second: StockItem[][] = slides.map(() => []);
   if (again.length) {
-    const second: StockItem[][] = slides.map(() => []);
     for (const i of again) second[i] = await find(slides[i].search, 2);
     const more = resolvePicks(second, await askJev(slides, second.map((l) => l.map(photoDesc))), (it) => it.id, taken);
     for (const i of again) chosen[i] = more[i];
   }
+  // Jev's none on both pages still gets the first free photo: a blank slide, a cover above all, read as broken next
+  // to Fastlane's in the ActivityTracker dogfood (20 Oct 2026, 10 of 79 slides). Only a slide with nothing new stays blank.
+  for (const i of again) chosen[i] ??= resolvePicks([[...first[i], ...second[i]]], [null], (it) => it.id, taken)[0];
   const out: (Picture | null)[] = [];
   for (const it of chosen) {
     if (!it) {
