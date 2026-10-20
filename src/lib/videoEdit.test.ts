@@ -465,10 +465,13 @@ describe("words over a video", () => {
     expect(sanitizeOverlays(s.overlays)).toEqual(s.overlays);
   });
 
-  it("never carries the wall switch in a look, and a look keeps a wall's captions off", () => {
+  it("never carries the wall switch in a look, and a look keeps a wall's captions off, its 9:16 and no progress bar", () => {
     const wall = { ...defaultSettings("bold"), ...wallSettings("Hi", 5) };
     expect(lookOf(wall)).not.toHaveProperty("wall");
     expect(withLook(wall, { captions: true, style: "minimal" })).toMatchObject({ captions: false, wall: true, style: "minimal" });
+    // a skill saved on a bold 16:9 project
+    expect(withLook(wall, lookOf({ ...defaultSettings("bold"), aspect: "16:9" }))).toMatchObject({ aspect: "9:16", progressBar: false, captions: false });
+    expect(withLook(defaultSettings("bold"), { aspect: "16:9", progressBar: false })).toMatchObject({ aspect: "16:9", progressBar: false });
     expect(withLook(defaultSettings("bold"), { captions: false }).captions).toBe(false);
     expect(withLook({ ...defaultSettings("bold"), captions: false }, { captions: true }).captions).toBe(true);
   });

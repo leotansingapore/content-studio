@@ -580,11 +580,11 @@ export function lookOf(s: EditSettings): Record<string, unknown> {
   return look;
 }
 
-/** Settings with a saved look laid over them, through applyPatch so a bad saved value can't break the editor. A words-over-video project keeps its captions off. */
+/** Settings with a saved look laid over them, through applyPatch so a bad saved value can't break the editor. A words-over-video project keeps its captions off and its own frame and progress bar. */
 export function withLook(s: EditSettings, look: Record<string, unknown> | null | undefined): EditSettings {
   if (!look || typeof look !== "object") return s;
   const next = applyPatch(s, look).next;
-  return s.wall ? { ...next, captions: false } : next;
+  return s.wall ? { ...next, captions: false, aspect: s.aspect, progressBar: s.progressBar } : next;
 }
 
 export function sameLook(s: EditSettings, look: Record<string, unknown> | null | undefined): boolean {
