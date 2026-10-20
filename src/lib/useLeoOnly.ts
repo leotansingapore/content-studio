@@ -42,14 +42,20 @@ function readLeo(): Promise<LeoUser | null> {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") pending = null;
     });
   }
-  pending ??= supabase.auth.getSession().then(
-    ({ data }) => {
+  const read = () =>
+    supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user;
       known = u && (leoOnly(u.email) || devAsLeo()) ? { id: u.id, email: u.email ?? "" } : null;
       return known;
-    },
-    () => null,
-  );
+    });
+  // A read that loses the auth lock to another call on page load is not an answer: answering null there drops
+  // Leo's ?remix= on a reload. Try once more, then treat the tab as not Leo and read again on the next mount.
+  pending ??= read()
+    .catch(() => new Promise((r) => setTimeout(r, 300)).then(read))
+    .catch(() => {
+      pending = null;
+      return null;
+    });
   return pending;
 }
 
