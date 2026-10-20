@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CREDIT_USD, avatarCredits, clipCredits, creditsUsd, explainerCredits } from "../ai-video/logic";
-import { NO_PRICE, PRICES, WRITE_PRICE, priceOf, priceText, sumPrices } from "./prices";
+import { AVATAR_MAX, NO_PRICE, PRICES, WRITE_PRICE, priceOf, priceText, sumPrices } from "./prices";
 import { DAILY_LIMITS, type UsageFeature } from "./usageCaps";
 
 describe("the price table", () => {
@@ -26,7 +26,15 @@ describe("the price table", () => {
     expect((priceOf("ai-video", { slices: [7.5, 7.5] }) as { usd: number }).usd).toBe(2.75);
     // before the voiceover exists, 15 s from the script's words gives the same 2 slices
     expect(priceOf("ai-video", { seconds: 15 })).toEqual(priceOf("ai-video", { slices: [7.5, 7.5] }));
-    expect(priceOf("ai-video", { seconds: 25 })).toEqual({ usd: creditsUsd(avatarCredits([25 / 3, 25 / 3, 25 / 3])), kind: "about" });
+    expect(priceOf("ai-video", { seconds: 25 })).toEqual({ usd: creditsUsd(avatarCredits([9.5, 9.5, 6])), kind: "about" });
+    // cut like planSlices, so a short last slice bills 5 s and the price does not drop once the voiceover exists
+    expect(priceText(priceOf("ai-video", { seconds: 12 }) as { usd: number; kind: "about" })).toBe("About US$2.06");
+    // never past what the server takes: 30 s and 4 slices
+    expect(priceOf("ai-video", { seconds: 40 })).toEqual(priceOf("ai-video", { seconds: 30 }));
+    expect(priceText(priceOf("ai-video", { seconds: 40 }) as { usd: number; kind: "about" })).toBe("About US$4.81");
+    expect(priceOf("ai-video", { slices: [9.5, 9.5, 9.5, 9.5, 9.5] })).toEqual({ usd: 5.5, kind: "about" });
+    expect(priceText(AVATAR_MAX)).toBe("Up to US$5.50");
+    expect(sumPrices(priceOf("remix-make"), AVATAR_MAX)).toMatchObject({ kind: "upTo" });
     expect(priceOf("ai-video", { scenes: 5 })).toEqual({ usd: explainerCredits(5) * CREDIT_USD, kind: "about" });
     expect(priceOf("ai-clip", { seconds: 8, quality: "720p" })).toEqual({ usd: clipCredits(8, "720p") * CREDIT_USD, kind: "about" });
   });

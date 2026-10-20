@@ -3,7 +3,7 @@
 // through src/lib/prices.ts, and business-credits charges from it later.
 // "unverified" marks a first estimate: check it against the provider's reported cost on Leo's first runs.
 
-import { CLIP_QUALITIES, CLIP_SECONDS, MAX_SLICE, avatarCredits, clipCredits, creditsUsd, explainerCredits, type ClipQuality } from "../ai-video/logic.ts";
+import { CLIP_QUALITIES, CLIP_SECONDS, MAX_AVATAR_SECONDS, MAX_SLICE, MAX_SLICES, avatarCredits, clipCredits, creditsUsd, explainerCredits, type ClipQuality } from "../ai-video/logic.ts";
 import type { UsageFeature } from "./usageCaps.ts";
 
 export type PriceKind = "about" | "from" | "upTo";
@@ -25,15 +25,18 @@ const upTo = (usd: number): Price => ({ usd, kind: "upTo" });
 
 /** Every paid cap, priced from the cost constants in the functions. A function gives null while its option is not picked. */
 export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Price | null)>> = {
-  // Higgsfield credits (ai-video/logic.ts). An avatar by its voiceover slices: about US$2.75 for 15 s, up to US$5.50.
-  // Before the voiceover exists, `seconds` (from the script's words) splits evenly into slices under MAX_SLICE.
-  // An explainer by its scene pictures; its voiceover is the separate ai-voice cap.
+  // Higgsfield credits (ai-video/logic.ts). An avatar by its voiceover slices: about US$2.75 for 15 s, up to US$5.50
+  // (AVATAR_MAX, for a price before the script exists). Before the voiceover exists, `seconds` (from the script's
+  // words, capped at MAX_AVATAR_SECONDS) is cut the way planSlices cuts flat audio: whole MAX_SLICE slices, then the rest.
+  // An explainer by its scene pictures only: callers add priceOf("ai-voice") for its voiceover (sumPrices).
   "ai-video": (o) => {
-    if (o.slices?.length) return about(creditsUsd(avatarCredits(o.slices)));
+    if (o.slices?.length) return about(creditsUsd(avatarCredits(o.slices.slice(0, MAX_SLICES))));
     if (o.scenes && o.scenes > 0) return about(creditsUsd(explainerCredits(o.scenes)));
     if (o.seconds && o.seconds > 0) {
-      const n = Math.ceil(o.seconds / MAX_SLICE);
-      return about(creditsUsd(avatarCredits(Array<number>(n).fill(o.seconds / n))));
+      const slices: number[] = [];
+      let rest = Math.min(o.seconds, MAX_AVATAR_SECONDS);
+      for (; rest > MAX_SLICE; rest -= MAX_SLICE) slices.push(MAX_SLICE);
+      return about(creditsUsd(avatarCredits([...slices, rest])));
     }
     return null;
   },
@@ -88,6 +91,9 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "remix-link": about(0.01), // unverified
   "remix-image": about(0.02), // unverified
 };
+
+/** The dearest avatar the server takes (MAX_SLICES full slices): "Up to US$5.50" before a script exists. */
+export const AVATAR_MAX: Price = upTo(creditsUsd(avatarCredits(Array<number>(MAX_SLICES).fill(MAX_SLICE))));
 
 /** Caps that never show a price: Jev-only calls, free or relay calls, across-everyone counters, social reads and writes, team comments. */
 export const NO_PRICE: UsageFeature[] = [
