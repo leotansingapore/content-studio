@@ -1097,7 +1097,6 @@ function RemixLinkBox({
   input,
   setInput,
   idle,
-  empty,
   onClone,
 }: {
   userId: string;
@@ -1105,7 +1104,6 @@ function RemixLinkBox({
   setInput: (v: string) => void;
   /** No clone is on screen. */
   idle: boolean;
-  empty: JSX.Element;
   onClone: (url: string) => void;
 }) {
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -1277,7 +1275,6 @@ function RemixLinkBox({
       {!read && idle && shown && (
         <LinkResult source={shown} onRemix={() => openRemix(shown.key)} onClone={() => onClone(shown.url!)} onReset={reset} />
       )}
-      {!read && idle && !shown && empty}
       {!working && idle && (
         <RecentReads
           items={saved.filter((s) => s.key !== shown?.key)}
@@ -1550,7 +1547,6 @@ export default function CloneReelPage() {
           input={input}
           setInput={setInput}
           idle={view.kind === "idle"}
-          empty={<EmptyState hasVoice={hasVoice} />}
           onClone={(url) => {
             setInput(url);
             updateUrl({ source: null });
