@@ -55,10 +55,14 @@ async function brandsFromRows() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error("Give a brands JSON file, or set SUPABASE_SERVICE_ROLE_KEY to read Leo's rows.");
   const out = [];
+  // only the three key kinds a brand needs: an unfiltered read pulls every draft and kit image and stops at max_rows (1000)
+  const keys = encodeURIComponent("(key.like.content-studio-profiles-*,key.like.content-studio-carousel-brand-*,key.like.content-studio-positioning-*)");
   for (const uid of LEO) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/cs_user_data?select=key,data&user_id=eq.${uid}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/cs_user_data?select=key,data&user_id=eq.${uid}&or=${keys}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
     if (!res.ok) throw new Error(`cs_user_data read failed: ${res.status}`);
-    const rows = Object.fromEntries((await res.json()).map((r) => [r.key, r.data]));
+    const list = await res.json();
+    if (list.length >= 1000) throw new Error(`cs_user_data gave ${list.length} rows for ${uid.slice(0, 8)}, so some brands may be missing; stopping.`);
+    const rows = Object.fromEntries(list.map((r) => [r.key, r.data]));
     const parse = (k) => {
       try {
         return rows[k] ? JSON.parse(rows[k]) : null;
@@ -71,7 +75,10 @@ async function brandsFromRows() {
       const scope = pr.id === "me" ? uid : `${uid}~${pr.id}`;
       const kit = parse(`content-studio-carousel-brand-${scope}`);
       const positioning = parse(`content-studio-positioning-${scope}`);
-      if (!positioning) continue;
+      if (!positioning) {
+        console.log(`skipped: ${uid.slice(0, 8)} ${pr.name} has no positioning row`);
+        continue;
+      }
       out.push({ name: kit?.name || (pr.name !== "Me" ? pr.name : ""), positioning, from: `${uid.slice(0, 8)} ${pr.name}` });
     }
   }
