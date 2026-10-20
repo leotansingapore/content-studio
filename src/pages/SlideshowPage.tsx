@@ -73,6 +73,18 @@ const EXPORT_FAILED = "Couldn't make the pictures. Try again, or try another bro
 /** "slide 3" or "slides 2, 5", for the lines under the slide. */
 const slidesText = (nums: number[]) => `${nums.length === 1 ? "slide" : "slides"} ${nums.join(", ")}`;
 
+/** Wide enough that the tallest frame (1080x1920) covers the picture without stretching it. */
+async function coverWidth(file: Blob): Promise<number> {
+  try {
+    const b = await createImageBitmap(file);
+    const w = Math.min(4096, Math.max(1080, Math.ceil((1920 * b.width) / b.height)));
+    b.close();
+    return w;
+  } catch {
+    return 1080;
+  }
+}
+
 export default function SlideshowPage() {
   const leo = useLeoUser();
   if (leo === undefined) return <div className="min-h-[40vh]" aria-busy="true" />;
@@ -352,7 +364,7 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
     if (!file.type.startsWith("image/")) return toast({ title: "Pick an image file", variant: "destructive" });
     const slideId = slide.id;
     try {
-      const pic = await storePicture(file);
+      const pic = await storePicture(file, await coverWidth(file));
       addMedia(userId, { key: pic.key, name: file.name.replace(/\.[^.]+$/, "").slice(0, 80), folder: "", alt: "", width: pic.width, height: pic.height, addedAt: new Date().toISOString() });
       setPicture(slideId, pic.key, file);
     } catch (e) {
