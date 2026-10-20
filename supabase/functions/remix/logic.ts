@@ -15,12 +15,13 @@ import {
   type ShotBeat,
   type VoiceInput,
 } from "../clone-reel/logic.ts";
+import { MAX_SCENES, MIN_SCENES, validateScript } from "../ai-video/logic.ts";
 import { numbersIn, reusedItems, sharedRuns } from "./overlap.ts";
 
 /** No 'face': "You speaking" in the Make row replaces it. */
 export type Keep = "structure" | "hook" | "energy" | "topic" | "part2" | "react";
 export type Close = "loose" | "balanced" | "close";
-/** This wave makes post, carousel and script; remix-sheet-formats adds speaking and explainer, formats-pages the rest. */
+/** post, carousel, script, speaking and explainer are made here; formats-pages adds slideshow and wall. */
 export type RemixAs = "post" | "carousel" | "script" | "speaking" | "explainer" | "slideshow" | "wall";
 export type FitReason = "serves" | "retell" | "masSafe" | "textHeavy";
 /** Who the post speaks as: the adviser in the first person, or a business that never claims a personal story. */
@@ -28,7 +29,11 @@ export type Speaker = "person" | "business";
 
 export const KEEPS: readonly Keep[] = ["structure", "hook", "energy", "topic", "part2", "react"];
 export const CLOSES: readonly Close[] = ["loose", "balanced", "close"];
-export const MAKE_AS = ["post", "carousel", "script"] as const satisfies readonly RemixAs[];
+export const MAKE_AS = ["post", "carousel", "script", "speaking", "explainer"] as const satisfies readonly RemixAs[];
+/** The two formats that go on to a paid AI video after the script. */
+export const VIDEO_AS = ["speaking", "explainer"] as const satisfies readonly RemixAs[];
+/** A "You speaking" script stays under the avatar's 30 s (MAX_AVATAR_SECONDS) at a calm pace. */
+export const MAX_SPEAKING_WORDS = 70;
 const FIT_REASONS: readonly FitReason[] = ["serves", "retell", "masSafe", "textHeavy"];
 const FORMATS = ["video", "carousel", "image", "text"] as const;
 
@@ -264,6 +269,20 @@ const FORMAT_RULES: Record<(typeof MAKE_AS)[number], string[]> = {
     "- caption: the post caption, under 120 words, ending with the call to action and at most 3 hashtags.",
     "- cta: the call to action as one line.",
   ],
+  speaking: [
+    "",
+    "Write a script an AI presenter says to camera, about 25 seconds:",
+    `- script: only the spoken words, at most ${MAX_SPEAKING_WORDS} words in short spoken sentences. Open with a line that stops the scroll and end with a soft call to action. No stage directions, brackets, labels, emoji or hashtags.`,
+    "- caption: the post caption, under 120 words, ending with the call to action and at most 3 hashtags.",
+  ],
+  explainer: [
+    "",
+    "Write an explainer video: an AI voice reads the script over one picture per scene.",
+    `- scenes: ${MIN_SCENES} to ${MAX_SCENES} scenes in order (4 or 5 is best). For each scene:`,
+    "  - say: one or two short spoken sentences. The whole script is 60 to 80 words and never over 110.",
+    "  - picture: one realistic photo for that line, in 10 to 400 characters. Describe the setting and any person individually (age, look, hair, clothes); people are Singaporean (Chinese, Malay, Indian or Eurasian) and never the same face twice. No text, words, charts, phones or screens in the photo.",
+    "- caption: the post caption, under 120 words, ending with a soft call to action and at most 3 hashtags.",
+  ],
 };
 
 export const MAS_LINE =
@@ -384,12 +403,40 @@ export const MAKE_RESPONSE_FORMATS: Record<(typeof MAKE_AS)[number], unknown> = 
     caption: str("Post caption ending with the call to action"),
     cta: str("Call to action, one line"),
   }),
+  speaking: schema("remix_speaking", {
+    script: str(`Only the spoken words, at most ${MAX_SPEAKING_WORDS} words`),
+    caption: str("Post caption ending with the call to action"),
+  }),
+  explainer: schema("remix_explainer", {
+    scenes: {
+      type: "array",
+      description: `${MIN_SCENES} to ${MAX_SCENES} scenes in order`,
+      items: { type: "object", additionalProperties: false, required: ["say", "picture"], properties: { say: str("One or two spoken sentences"), picture: str("One realistic photo, no text") } },
+    },
+    caption: str("Post caption ending with a soft call to action"),
+  }),
 };
+
+const wordCount = (t: string) => t.split(/\s+/).filter(Boolean).length;
+/** "[smiles]", "(pause)" or "*beat*": the voice would read them out. */
+const STAGE_DIRECTION = /[[\]()*]/;
 
 /** The result cleaned and capped, or null when it can't be used as is. */
 export function validateMake(as: RemixAs, raw: unknown): MakeResult | null {
   const r = parseObject(raw);
   if (!r) return null;
+  if (as === "speaking") {
+    const script = blockText(r.script, 1000);
+    const caption = blockText(r.caption, 2200);
+    const ok = script && caption && wordCount(script) <= MAX_SPEAKING_WORDS && !STAGE_DIRECTION.test(script);
+    return ok ? { as, script, caption } : null;
+  }
+  if (as === "explainer") {
+    // ai-video's own check (3..6 scenes, a 10..400 character picture, 110 words), so a voiceover is never paid for scenes it refuses
+    const scenes = validateScript({ scenes: r.scenes });
+    const caption = blockText(r.caption, 2200);
+    return scenes && caption ? { as, scenes, caption } : null;
+  }
   const hook = line(r.hook, 300);
   const cta = line(r.cta, 300);
   if (!hook) return null;

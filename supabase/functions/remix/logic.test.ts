@@ -71,7 +71,9 @@ describe("parseMakeRequest", () => {
   });
 
   it("refuses a format not made yet, a note over 300, and a source with no words", () => {
-    expect(parseMakeRequest(body({ as: "speaking" })).ok).toBe(false);
+    expect(parseMakeRequest(body({ as: "slideshow" })).ok).toBe(false);
+    expect(parseMakeRequest(body({ as: "speaking" })).ok).toBe(true);
+    expect(parseMakeRequest(body({ as: "explainer" })).ok).toBe(true);
     expect(parseMakeRequest(body({ note: "x".repeat(301) })).ok).toBe(false);
     expect(parseMakeRequest(body({ note: "x".repeat(300) })).ok).toBe(true);
     expect(parseMakeRequest(body({ source: { key: "ad:1", kind: "ad", text: "  " } })).ok).toBe(false);
@@ -94,6 +96,14 @@ describe("parseMakeRequest", () => {
 });
 
 describe("buildMakePrompt", () => {
+  it("asks each video format for its own shape", () => {
+    expect(buildMakePrompt(make({ as: "speaking" })).system).toContain("- script: only the spoken words, at most 70 words");
+    const explainer = buildMakePrompt(make({ as: "explainer" })).system;
+    expect(explainer).toContain("- scenes: 3 to 6 scenes in order");
+    expect(explainer).toContain("never over 110");
+    expect(explainer).not.toContain("- script: only the spoken words");
+  });
+
   it("holds the shared compliance block and the injection line", () => {
     const { system } = buildMakePrompt(make());
     expect(system).toContain(COMPLIANCE_RULES.join("\n"));
@@ -237,8 +247,31 @@ describe("validateMake", () => {
     expect(validateMake("script", { hook: "Hook", beats: [beat("a"), beat("b"), beat("c")], caption: "Cap", cta: "x" })).toBeNull();
   });
 
+  it("keeps a speaking script to 70 spoken words with no stage directions, and a caption", () => {
+    const words = (n: number) => Array.from({ length: n }, (_, i) => `word${i}`).join(" ");
+    expect(validateMake("speaking", { script: words(70), caption: "Cap" })).toEqual({ as: "speaking", script: words(70), caption: "Cap" });
+    expect(validateMake("speaking", { script: words(71), caption: "Cap" })).toBeNull();
+    expect(validateMake("speaking", { script: "Hi. [smiles] Check your CPF.", caption: "Cap" })).toBeNull();
+    expect(validateMake("speaking", { script: "Hi. (pause) Check your CPF.", caption: "Cap" })).toBeNull();
+    expect(validateMake("speaking", { script: "Check your CPF.", caption: " " })).toBeNull();
+    expect(validateMake("speaking", { script: "", caption: "Cap" })).toBeNull();
+  });
+
+  it("holds an explainer to ai-video's own rule: 3 to 6 scenes, real pictures, 110 words", () => {
+    const scene = (say = "One short line.", picture = "A Malay Singaporean woman at a kopitiam table") => ({ say, picture });
+    const scenes = (n: number) => Array.from({ length: n }, () => scene());
+    expect(validateMake("explainer", { scenes: scenes(3), caption: "Cap" })).toMatchObject({ as: "explainer", caption: "Cap" });
+    expect(validateMake("explainer", { scenes: scenes(6), caption: "Cap" })).not.toBeNull();
+    expect(validateMake("explainer", { scenes: scenes(2), caption: "Cap" })).toBeNull();
+    expect(validateMake("explainer", { scenes: scenes(7), caption: "Cap" })).toBeNull();
+    // a picture of "chart" would fail ai-video after the voiceover was paid for
+    expect(validateMake("explainer", { scenes: [scene(), scene(), scene("x", "chart")], caption: "Cap" })).toBeNull();
+    expect(validateMake("explainer", { scenes: [scene(), scene(), scene(Array(110).fill("w").join(" "))], caption: "Cap" })).toBeNull();
+    expect(validateMake("explainer", { scenes: scenes(4), caption: "" })).toBeNull();
+  });
+
   it("refuses formats this function doesn't make yet", () => {
-    expect(validateMake("speaking", { hook: "x", script: "y", caption: "z" })).toBeNull();
+    expect(validateMake("slideshow", { slides: [], caption: "z" })).toBeNull();
   });
 });
 
@@ -247,6 +280,8 @@ describe("textFields", () => {
     expect(textFields({ as: "post", hook: "H", body: "B", cta: "C", hashtags: ["cpf"] })).toEqual(["H", "B", "C"]);
     const script: MakeResult = { as: "script", hook: "H", beats: [{ say: "S", onScreen: "O", visual: "V", seconds: 3, delivery: "D" }], caption: "Cap", cta: "C" };
     expect(textFields(script)).toEqual(["H", "S", "O", "Cap", "C"]);
+    expect(textFields({ as: "speaking", script: "Say", caption: "Cap" })).toEqual(["Say", "Cap"]);
+    expect(textFields({ as: "explainer", scenes: [{ say: "A", picture: "a photo of a desk" }], caption: "Cap" })).toEqual(["A", "Cap"]);
   });
 });
 

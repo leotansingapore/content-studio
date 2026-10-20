@@ -1,6 +1,6 @@
 // Remix (docs/north-star/items/remix-everywhere.md). A signed-in adviser on the north-star list sends one source
 // (a post, ad or trend, its words already read on the device), what to keep, how close, the brand block and their
-// voice; this writes one format (post, carousel or script) in their brand, checks it against the original (one
+// voice; this writes one format (post, carousel, script, a speaking script or explainer scenes) in their brand, checks it against the original (one
 // rewrite when it repeats it, then one Jev call for claims and invented facts) and sends it back. The app saves it
 // as a draft; nothing is stored here.
 //
@@ -76,9 +76,10 @@ Deno.serve(async (req) => {
     // tokens per OpenAI call, logged so remix-make's price can be set from real runs (usageCaps.ts / prices.ts)
     const tokens: string[] = [];
     let rewrote = false;
+    let rejected = false;
     const write = async (msgs: typeof messages): Promise<{ result: MakeResult; raw: string } | null> => {
       const res = await openaiChat(
-        { model: FALLBACK_MODEL, temperature: 0.7, max_tokens: 1800, response_format: MAKE_RESPONSE_FORMATS[make.as as "post"], messages: msgs },
+        { model: FALLBACK_MODEL, temperature: 0.7, max_tokens: 1800, response_format: MAKE_RESPONSE_FORMATS[make.as as keyof typeof MAKE_RESPONSE_FORMATS], messages: msgs },
         { signal: AbortSignal.timeout(AI_TIMEOUT_MS) },
       );
       if (!res.ok) {
@@ -89,11 +90,14 @@ Deno.serve(async (req) => {
       tokens.push(`${data?.model ?? "?"} ${data?.usage?.prompt_tokens ?? "?"} in ${data?.usage?.completion_tokens ?? "?"} out`);
       const content = data?.choices?.[0]?.message?.content ?? null;
       const result = validateMake(make.as, content);
+      rejected = !result;
       if (!result) console.error("openai output rejected", String(content ?? "").slice(0, 300));
       return result ? { result, raw: String(content) } : null;
     };
 
-    const first = await write(messages);
+    let first = await write(messages);
+    // an answer the format can't use (a 90-word speaking script, an explainer picture of "chart") gets one more try
+    if (!first && rejected) first = await write(messages);
     if (!first) {
       await refundUsage(admin, uid, "remix-make", charged.day);
       return fail("failed", "That remix didn't go through. Nothing was used.", 502);
