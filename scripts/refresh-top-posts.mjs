@@ -1,8 +1,9 @@
 // One command to refresh the /swipe data: scrape every Instagram profile in
 // src/data/advisors.json with Apify, rank (build-top-posts), save covers
 // (fetch-covers), then write idea breakdowns with the free Claude CLI
-// (gen-ideas). Idempotent: ideas and covers already present are kept, so a
-// re-run only pays for the scrape.
+// (gen-ideas), then Jev's tags (tag-top-posts; nothing without
+// TYPESAFE_API_KEY). Idempotent: ideas, covers and tags already present are
+// kept, so a re-run only pays for the scrape and the new posts' tags.
 //
 // Usage:
 //   APIFY_TOKEN=apify_... node scripts/refresh-top-posts.mjs
@@ -153,6 +154,7 @@ async function main() {
   node("fetch-covers.mjs");
   pruneCovers();
   node("gen-ideas.mjs");
+  node("tag-top-posts.mjs");
 }
 
 main().catch((err) => {

@@ -59,6 +59,14 @@ describe("buildTopPosts", () => {
     expect(out.adv[0]).toMatchObject({ shortCode: "a1", idea: { hook: "h" }, cover: "/covers/a1.jpg" });
   });
 
+  it("carries Jev's tags over by shortCode, as ideas and covers", () => {
+    const tags = { formula: "myth-bust", angle: "Contrarian", topic: "CPF", emotion: "worry", audience: "parents", p: { topic: 0.9 } };
+    const prev = { adv: [{ shortCode: "a1", tags }, { shortCode: "gone-now", tags: { ...tags, topic: "Insurance" } }] };
+    const { out } = buildTopPosts([item("adv", "a1", 10), item("adv", "a2", 5)], advisors, prev);
+    expect(out.adv.find((p) => p.shortCode === "a1").tags).toEqual(tags);
+    expect(out.adv.find((p) => p.shortCode === "a2")).not.toHaveProperty("tags");
+  });
+
   it("treats hidden like counts (-1) as zero", () => {
     const { out } = buildTopPosts([item("adv", "a1", -1)], advisors);
     expect(out.adv[0].likes).toBe(0);

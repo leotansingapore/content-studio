@@ -57,7 +57,8 @@ export function toPost(p) {
 /**
  * New topPosts map from scraped items. Profiles the scrape returned nothing for
  * (private for a day, a failed page) keep their previous posts, and existing
- * idea breakdowns and cover paths carry over so a re-scrape never wipes them.
+ * idea breakdowns, cover paths and Jev tags (tag-top-posts.mjs) carry over so a
+ * re-scrape never wipes them.
  */
 export function buildTopPosts(items, advisors, prev = {}) {
   const byHandle = {};
@@ -81,16 +82,19 @@ export function buildTopPosts(items, advisors, prev = {}) {
 
   const prevIdea = {};
   const prevCover = {};
+  const prevTags = {};
   for (const list of Object.values(prev)) {
     for (const p of list) {
       if (p.idea) prevIdea[p.shortCode] = p.idea;
       if (p.cover) prevCover[p.shortCode] = p.cover;
+      if (p.tags) prevTags[p.shortCode] = p.tags;
     }
   }
   for (const list of Object.values(out)) {
     for (const p of list) {
       if (!p.idea && prevIdea[p.shortCode]) p.idea = prevIdea[p.shortCode];
       if (!p.cover && prevCover[p.shortCode]) p.cover = prevCover[p.shortCode];
+      if (!p.tags && prevTags[p.shortCode]) p.tags = prevTags[p.shortCode];
     }
   }
   return { out, scraped: Object.keys(groups).length };
