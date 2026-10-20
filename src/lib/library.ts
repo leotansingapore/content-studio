@@ -13,6 +13,7 @@ import type { MontageJob } from "@/lib/montage";
 import type { RemixAs } from "@/lib/remix";
 import { runParams, type RemixJobState } from "@/lib/remixJob";
 import { slideWords, type Slideshow } from "@/lib/slideshow";
+import { askParams, stepText, type SlideshowJob } from "@/lib/slideshowJob";
 import type { ExportJob, JoinJob } from "@/lib/videoMedia";
 import { fileKey, type VideoProject } from "@/lib/videoProjects";
 
@@ -329,4 +330,12 @@ export function remixJobs(j: RemixJobState | null, base: string = links.library(
     if (j.state !== "working" || r.state === "done") return [];
     return [{ ...one, state: "working", step: r.state === "working" ? r.step || j.step : "Up next" }];
   });
+}
+
+/** A slideshow being made or failed; a done one is already saved, so it shows as its slideshow. */
+export function slideshowJobs(j: SlideshowJob | null): LibraryJob[] {
+  if (!j || j.state === "done") return [];
+  const base = { kind: "slideshow", label: "Slideshow", format: "carousel" as const, href: links.makeFormat("slideshow", askParams(j.ask)) };
+  if (j.state === "failed") return [{ ...base, state: "failed", error: j.error }];
+  return [{ ...base, state: "working", step: stepText(j).replace(/\.\.\.$/, "") }];
 }

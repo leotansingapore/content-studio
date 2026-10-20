@@ -6,6 +6,7 @@ import { links, withRemix } from "@/lib/links";
 import type { MediaItem } from "@/lib/mediaLibrary";
 import type { RemixJobState } from "@/lib/remixJob";
 import type { Slideshow } from "@/lib/slideshow";
+import type { SlideshowAsk } from "@/lib/slideshowJob";
 import type { JoinJob } from "@/lib/videoMedia";
 import type { VideoProject } from "@/lib/videoProjects";
 import {
@@ -19,6 +20,7 @@ import {
   madeCount,
   montageJobs,
   remixJobs,
+  slideshowJobs,
   statusLine,
   type LibraryItem,
   type LibraryJob,
@@ -246,6 +248,16 @@ describe("job mappers", () => {
     expect(montageJobs({ state: "joining", done: 6, of: 6 })[0].step).toBe("Putting it together");
     expect(montageJobs({ state: "failed", done: 0, of: 0, error: "No clips" })[0]).toMatchObject({ state: "failed", error: "No clips" });
     expect(montageJobs({ state: "done", done: 6, of: 6 })).toEqual([]);
+  });
+
+  it("follows a slideshow being made, links back to its page with the run's choices, and drops a done one", () => {
+    const ask: SlideshowAsk = { source: { key: "top:a-b", kind: "top-post", remixedAt: "" }, topic: "", mention: false, note: "", size: "9x16", pictures: "stock" };
+    const href = links.makeFormat("slideshow", { source: "top:a-b", mention: "no", size: "9x16" });
+    expect(slideshowJobs({ id: 1, state: "writing", done: 0, of: 0, ask })).toEqual([{ kind: "slideshow", label: "Slideshow", format: "carousel", href, state: "working", step: "Writing the slides" }]);
+    expect(slideshowJobs({ id: 1, state: "finding", done: 3, of: 8, ask })[0].step).toBe("Finding pictures, 3 of 8");
+    expect(slideshowJobs({ id: 1, state: "failed", done: 0, of: 0, ask, error: "Couldn't write the slides. Try again in a minute." })[0]).toMatchObject({ state: "failed", error: "Couldn't write the slides. Try again in a minute." });
+    expect(slideshowJobs({ id: 1, state: "done", done: 8, of: 8, ask, showId: "ss1" })).toEqual([]);
+    expect(slideshowJobs(null)).toEqual([]);
   });
 
   it("counts an image that is saving as making", () => {
