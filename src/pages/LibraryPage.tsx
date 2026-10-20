@@ -97,6 +97,7 @@ function Library({ userId }: { userId: string }) {
   const counts = countBy(scoped);
   const shown = st ? scoped.filter((i) => i.status === st) : scoped;
   const making = jobs.filter((j) => j.state === "working").length;
+  const failedJobs = jobs.filter((j) => j.state === "failed").length;
   const carouselById = useMemo(() => new Map(stores.carousels.map((c) => [c.id, c])), [stores.carousels]);
   const showById = useMemo(() => new Map(stores.slideshows.map((s) => [s.id, s])), [stores.slideshows]);
 
@@ -113,7 +114,7 @@ function Library({ userId }: { userId: string }) {
           <header className="flex flex-wrap items-center justify-between gap-2">
             <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">Library</h1>
             <Button size="sm" variant="outline" onClick={() => openPanel("making")} className={`lg:hidden ${TOUCH}`}>
-              Making now ({making})
+              Making now ({making}){failedJobs ? ` | ${failedJobs} failed` : ""}
             </Button>
           </header>
 
