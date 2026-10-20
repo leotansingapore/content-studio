@@ -869,8 +869,8 @@ export function drawOverlay(g: CanvasRenderingContext2D, o: Overlay, intro = 1) 
     g.font = font;
     g.textAlign = "center";
     g.textBaseline = "middle";
-    if (o.box === "bar") {
-      // one dark band across the frame behind the whole block
+    if (o.box === "bar" && lines.length) {
+      // one dark band across the frame behind the whole block (none when there are no words)
       g.shadowColor = "transparent";
       g.fillStyle = "rgba(0,0,0,0.55)";
       g.fillRect(-W, top - lh * 0.75, W * 2, lines.length * lh + lh * 0.5);
