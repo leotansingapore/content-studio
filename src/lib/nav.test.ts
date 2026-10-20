@@ -4,7 +4,7 @@ import { mobileTabs, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFo
 const routes = [
   "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/slideshow", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
-  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/playbook", "/voice", "/brand", "/bio", "/links", "/accounts", "/fads", "/connect",
+  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/playbook", "/voice", "/brand", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star",
 ];
 
@@ -90,6 +90,17 @@ describe("nav", () => {
     expect(pipeline("leotanjs95@gmail.com")).toEqual(expect.arrayContaining(["/drafts", "/library"]));
     expect(pipeline("leotanjs95@gmail.com").indexOf("/library")).toBe(pipeline("leotanjs95@gmail.com").indexOf("/drafts") + 1);
     expect(pageFor("/library")?.page.label).toBe("Library");
+  });
+
+  it("shows Competitors only to Leo's sign-ins, in Discover after Following", () => {
+    const discover = (email: string) => visiblePages(section("discover").pages, email).map((p) => p.to);
+    expect(discover("someone@example.com")).not.toContain("/competitors");
+    expect(discover("tanjunsing@gmail.com").indexOf("/competitors")).toBe(discover("tanjunsing@gmail.com").indexOf("/following") + 1);
+    expect(pageFor("/competitors")?.page.label).toBe("Competitors");
+    expect(pageTitle("/competitors")).toBe("Competitors - Content Studio");
+    const tiles = (email: string) => moreSheet(email, false).groups.flatMap((g) => g.tiles).map((t) => t.to);
+    expect(tiles("someone@example.com")).not.toContain("/competitors");
+    expect(tiles("leotanjs95@gmail.com")).toContain("/competitors");
   });
 
   it("shows Social accounts and Auto-DM only once the server has said it is switched on", () => {
