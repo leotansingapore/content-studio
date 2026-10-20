@@ -12,6 +12,7 @@ import topPostsData from "@/data/topPosts.json";
 import advisorsData from "@/data/advisors.json";
 import type { AdvisorEntry } from "@/components/AdvisorProfiles";
 import { sourceKey } from "@/lib/remixSource";
+import type { PostTags } from "../../supabase/functions/remix/teardown.ts";
 
 export interface PostIdea {
   hook: string;
@@ -33,6 +34,8 @@ export interface TopPost {
   idea?: PostIdea;
   /** Our committed copy of the post's cover image, e.g. "/covers/ABC123.jpg". */
   cover?: string;
+  /** Jev's tags from the drop (scripts/tag-top-posts.mjs); read only by enrich(..., { useTags: true }). */
+  tags?: Omit<PostTags, "by">;
 }
 
 export interface TopPostWithAdvisor extends TopPost {

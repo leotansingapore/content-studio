@@ -203,3 +203,34 @@ describe("most viewed sort", () => {
     expect(out.map((p: { post: { shortCode: string } }) => p.post.shortCode)).toEqual(["b", "a", "c"]);
   });
 });
+
+describe("enrich with Jev's tags (find-ai-tagging)", () => {
+  const tags = {
+    formula: "myth-bust",
+    angle: "Contrarian",
+    topic: "Retirement",
+    emotion: "worry",
+    audience: "parents",
+    p: { formula: 0.7, angle: 0.64, topic: 0.88, emotion: 0.6, audience: 0.58 },
+  };
+  // the keyword rules read this as CPF, Educational, and the creator's tags as Young Adults
+  const tagged = post({ caption: "Step-by-step guide to your CPF", audience: ["young-adult"], tags });
+
+  it("changes nothing unless useTags is on", () => {
+    for (const insight of [enrich(tagged, {}), enrich(tagged, {}, { useTags: false })]) {
+      expect(insight).toMatchObject({ topic: "CPF", angle: "Educational", audiences: ["Young Adults"] });
+    }
+  });
+
+  it("uses sure tags with useTags on, as /swipe's labels", () => {
+    expect(enrich(tagged, {}, { useTags: true })).toMatchObject({ topic: "Retirement", angle: "Contrarian", audiences: ["Parents"] });
+    expect(enrich(post({ ...tagged, tags: { ...tags, audience: "general" } }), {}, { useTags: true }).audiences).toEqual([]);
+  });
+
+  it("falls back to the keyword rules for a post without tags, and for an unsure tag", () => {
+    const plain = post({ caption: "Step-by-step guide to your CPF", audience: ["young-adult"] });
+    expect(enrich(plain, {}, { useTags: true })).toEqual(enrich(plain, {}));
+    const unsure = post({ ...tagged, tags: { ...tags, p: { ...tags.p, topic: 0.42 } } });
+    expect(enrich(unsure, {}, { useTags: true })).toMatchObject({ topic: "CPF", angle: "Contrarian" });
+  });
+});
