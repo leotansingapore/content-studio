@@ -28,12 +28,12 @@ function devAsLeo(): boolean {
   }
 }
 
-let pending: Promise<LeoUser | null> | null = null;
+let pending: Promise<LeoUser | null | undefined> | null = null;
 // The last answer, so a hook mounted after the first read paints the right state on its first frame.
 let known: LeoUser | null | undefined;
 let watching = false;
 
-function readLeo(): Promise<LeoUser | null> {
+function readLeo(): Promise<LeoUser | null | undefined> {
   if (!watching) {
     watching = true;
     // A sign-in or sign-out reads the session again on the next hook mount.
@@ -49,12 +49,13 @@ function readLeo(): Promise<LeoUser | null> {
       return known;
     });
   // A read that loses the auth lock to another call on page load is not an answer: answering null there drops
-  // Leo's ?remix= on a reload. Try once more, then treat the tab as not Leo and read again on the next mount.
+  // Leo's ?remix= on a reload. Try once more, then answer the last known state (undefined, still unknown, if
+  // none) and read again on the next mount.
   pending ??= read()
     .catch(() => new Promise((r) => setTimeout(r, 300)).then(read))
     .catch(() => {
       pending = null;
-      return null;
+      return known ?? undefined;
     });
   return pending;
 }
