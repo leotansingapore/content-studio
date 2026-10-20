@@ -59,7 +59,7 @@
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { askJev, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { brollLines, brollQuestions, buildBrollMessages, kindQuestions, parseBrollReply, parseBrollRequest, pickBrollLines, readBroll, readKinds } from "./broll.ts";
@@ -218,9 +218,12 @@ Deno.serve(async (req) => {
       if (!c.ok) return json({ error: c.error }, 400);
       // a long recording is read in passes of about 40 minutes, each one use of the cap
       const windows = clipWindows(c.sentences, c.duration);
+      const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), as cs_consume_ai_usage keeps it
       for (let i = 0; i < windows.length; i++) {
         const usage = await consumeUsage(admin, uid, "video-clips");
         if (!usage.allowed) {
+          // a find needs every pass, so the ones already counted come back
+          for (let j = 0; j < i; j++) await refundUsage(admin, uid, "video-clips", day);
           const r = usageRefusal(usage);
           return json(r.body, r.status);
         }
