@@ -39,8 +39,8 @@ function keptIds(key: string, asked: string): string[] | null {
   }
 }
 
-/** The open brand as notify reads it. */
-function openBrand(userId: string) {
+/** The open brand's profile as notify reads it. */
+function openProfile(userId: string) {
   const scope = scoped(userId);
   const data: Record<string, string> = {};
   for (const k of [`content-studio-profiles-${userId}`, ...BRAND_KEYS.map((n) => `content-studio-${n}-${scope}`)]) {
@@ -54,8 +54,8 @@ function openBrand(userId: string) {
 export default function WhatMovedCard({ userId }: { userId: string }) {
   const leo = useLeoUser();
   const now = useMemo(() => Date.now(), []);
-  const brand = useMemo(() => (leo ? openBrand(userId) : null), [leo, userId]);
-  const findings = useMemo<Finding[]>(() => (brand ? briefFindings(brand, now) : []), [brand, now]);
+  const profile = useMemo(() => (leo ? openProfile(userId) : null), [leo, userId]);
+  const findings = useMemo<Finding[]>(() => (profile ? briefFindings(profile, now) : []), [profile, now]);
   const key = briefKey(userId, now);
   const asked = findings.map((f) => f.id).join(",");
   const shown = useMemo(() => {
@@ -67,7 +67,7 @@ export default function WhatMovedCard({ userId }: { userId: string }) {
     if (findings.length < 2 || keptIds(key, asked) || asking.has(key + asked)) return;
     asking.add(key + asked);
     const items = findings.map((f) => ({ id: f.id, kind: f.kind, line: findingLine(f) }));
-    callFn<{ ids: string[] | null }>("week-pick", { mode: "brief", findings: items, brand: brand?.brand ?? {} })
+    callFn<{ ids: string[] | null }>("week-pick", { mode: "brief", findings: items, brand: profile?.brand ?? {} })
       .then(({ ids }) => {
         if (ids) localStorage.setItem(key, JSON.stringify({ asked, ids }));
       })
