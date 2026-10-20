@@ -1,6 +1,6 @@
 # Text-over-video editor
 
-`edit-text-video` | edit | phase 1 | status: partial | /north-star#edit-text-video
+`edit-text-video` | edit | phase 1 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#edit-text-video
 
 ## Leo asked
 

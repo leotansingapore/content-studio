@@ -1,6 +1,6 @@
 # Slideshow editor
 
-`edit-slideshow` | edit | phase 1 | status: missing | /north-star#edit-slideshow
+`edit-slideshow` | edit | phase 1 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#edit-slideshow
 
 ## Leo asked
 
