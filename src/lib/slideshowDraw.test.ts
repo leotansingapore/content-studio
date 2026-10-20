@@ -1,11 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import { LINE_HEIGHT, MissingPictureError, layoutBoxes, pictureKey, slideshowPngs } from "@/lib/slideshowDraw";
+import { LINE_HEIGHT, MissingPictureError, layoutBoxes, lookOf, pictureKey, slidePicture, slideshowPngs } from "@/lib/slideshowDraw";
 import { blankSlideshow, makeBox, type ShowSlide, type ShowSize } from "@/lib/slideshow";
 
 // slideshowPngs on a device that has none of the pictures and no network: it must stop before drawing anything
+const media = vi.hoisted(() => ({
+  getFile: vi.fn(async (_key: string): Promise<Blob | undefined> => undefined),
+  downloadStock: vi.fn(async (_src: string): Promise<Blob> => Promise.reject(new Error("offline"))),
+}));
 vi.mock("@/lib/videoMedia", () => ({ ensureCaptionFonts: async () => {} }));
-vi.mock("@/lib/deviceFiles", () => ({ getFile: async () => undefined }));
-vi.mock("@/lib/stockMedia", () => ({ downloadStock: async () => Promise.reject(new Error("offline")) }));
+vi.mock("@/lib/deviceFiles", () => ({ getFile: media.getFile }));
+vi.mock("@/lib/stockMedia", () => ({ downloadStock: media.downloadStock }));
 
 // Every character is half the font size wide; the size is read back out of the css string.
 const measure = (text: string, css: string) => text.length * Number(css.match(/(\d+)px/)![1]) * 0.5;
@@ -80,5 +84,39 @@ describe("pictureKey", () => {
     expect(pictureKey({ id: "s", boxes: [], image: "cimg-abc1234", photo: { src: "https://images.pexels.com/a", by: "", byUrl: "" } })).toBe("cimg-abc1234");
     expect(pictureKey({ id: "s", boxes: [], photo: { src: "https://images.pexels.com/a", by: "", byUrl: "" } })).toBe("https://images.pexels.com/a");
     expect(pictureKey({ id: "s", boxes: [] })).toBeNull();
+  });
+});
+
+describe("slidePicture", () => {
+  const photo = { src: "https://images.pexels.com/photos/9/b.jpeg", by: "Ann", byUrl: "" };
+
+  it("uses the picture on this device first, else fetches the Pexels photo again, and tries again after a failed download", async () => {
+    const own = new Blob(["own"]);
+    const stock = new Blob(["stock"]);
+    media.downloadStock.mockClear();
+    media.getFile.mockResolvedValueOnce(own);
+    expect(await slidePicture({ id: "s", boxes: [], image: "cimg-abc1234", photo })).toBe(own);
+    expect(media.downloadStock).not.toHaveBeenCalled();
+    // offline: no picture this time, and the next try downloads again
+    expect(await slidePicture({ id: "s", boxes: [], image: "cimg-abc1234", photo })).toBeNull();
+    media.downloadStock.mockResolvedValueOnce(stock);
+    expect(await slidePicture({ id: "s", boxes: [], photo })).toBe(stock);
+    expect(media.downloadStock).toHaveBeenCalledTimes(2);
+    expect(await slidePicture({ id: "s", boxes: [] })).toBeNull();
+  });
+});
+
+describe("lookOf", () => {
+  it("adds the handle or logo only when Overlay picked it and the brand kit has one", () => {
+    const store = new Map([["content-studio-carousel-brand-u1", JSON.stringify({ color: "#000000", name: "Ada", handle: "@ada.tan" })]]);
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null } });
+    try {
+      expect(lookOf("u1", { overlay: { darken: 0.3, mark: "handle" } })).toEqual({ darken: 0.3, handle: "@ada.tan" });
+      expect(lookOf("u1", { overlay: { darken: 0.3, mark: "off" } })).toEqual({ darken: 0.3 });
+      // no logo in the kit: nothing is drawn rather than an empty mark
+      expect(lookOf("u1", { overlay: { darken: 0, mark: "logo" } })).toEqual({ darken: 0 });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
