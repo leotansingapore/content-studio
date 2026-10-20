@@ -1,6 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { cleanAiTells, scanAiTells, withCredit, withDisclosure, withSignOff, tagLinks } from "@/lib/plainText";
+import { cleanAiTells, scanAiTells, toPlainText, withCredit, withDisclosure, withSignOff, tagLinks } from "@/lib/plainText";
 import type { RemixSource } from "@/lib/remixSource";
+
+describe("toPlainText (what a copied post pastes as)", () => {
+  it("drops bold, headings, quotes, rules and code marks, keeps link targets, and turns list markers into bullets", () => {
+    const md = [
+      "## **CAPTION:**",
+      "> Most people *never* check their __CPF__ ~~balance~~.",
+      "",
+      "---",
+      "",
+      "- Check `MyCPF`",
+      "  * Then [book a call](https://cal.com/leo) or [https://x.sg](https://x.sg)",
+      "![chart](https://x.sg/c.png)",
+      "```text",
+      "Keep this",
+      "```",
+    ].join("\n");
+    expect(toPlainText(md)).toBe(
+      ["CAPTION:", "Most people never check their CPF balance.", "", "\u2022 Check MyCPF", "  \u2022 Then book a call (https://cal.com/leo) or https://x.sg", "chart", "Keep this"].join("\n"),
+    );
+  });
+
+  it("leaves hashtags, handles, snake_case and footnote stars alone, and keeps one blank line between paragraphs", () => {
+    expect(toPlainText("#cpf #retirement_sg\n\n\n\n@that_ang_moh_in_finance file_name_v2\n\nReturns of 3%* p.a.\n*Not guaranteed")).toBe(
+      "#cpf #retirement_sg\n\n@that_ang_moh_in_finance file_name_v2\n\nReturns of 3%* p.a.\n*Not guaranteed",
+    );
+    expect(toPlainText("")).toBe("");
+  });
+});
 
 describe("withCredit", () => {
   const src = (o: Partial<RemixSource>): RemixSource => ({ key: "ad:1", kind: "ad", author: "Singlife", remixedAt: "", credit: true, ...o });
