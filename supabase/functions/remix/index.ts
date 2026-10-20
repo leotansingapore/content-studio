@@ -7,8 +7,9 @@
 // Order: JWT, NORTH_STAR_USERS, validate, consumeUsage "remix-make", OpenAI, validate, holdTheLine, respond. Any
 // failure after the count gives the use back.
 //
-// One more mode after the same JWT and NORTH_STAR_USERS checks:
+// Two more modes after the same JWT and NORTH_STAR_USERS checks:
 //   teardown: a post broken down into its hook, beats and what not to reuse (./teardown.ts, cap remix-teardown).
+//   fit: Jev only, is this source a good fit for the brand (cap remix-fit); always 200, "unknown" when it can't tell.
 //
 // Secrets: OPENAI_API_KEY, TYPESAFE_API_KEY (Jev; works without it), NORTH_STAR_USERS, APIFY_API_KEY (teardown's
 // reel read). Deploy WITH JWT verification.
@@ -19,10 +20,16 @@ import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts
 import { openaiChat } from "../_shared/openaiChat.ts";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { isAllowed } from "../market/logic.ts";
+import { mostlyEnglish } from "../post-score/logic.ts";
 import { FETCH_BUDGET_MS } from "../clone-reel/logic.ts";
 import { readPost } from "../clone-reel/source.ts";
 import { handleTeardown } from "./teardown.ts";
 import {
+  UNKNOWN_FIT,
+  fitQuestions,
+  fitState,
+  fitVerdict,
+  parseFitRequest,
   makeQuestions,
   MAKE_RESPONSE_FORMATS,
   buildMakePrompt,
@@ -49,6 +56,26 @@ const today = () => new Date().toISOString().slice(0, 10); // the counter's day 
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
+
+/** Jev only. No key, a source that isn't mostly English, the cap or a Jev outage all answer unknown, with no use kept. */
+async function fit(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const req = parseFitRequest(body);
+  if (!req) return fail("bad_request", "There's nothing in this post to check.", 400);
+  if (!Deno.env.get("TYPESAFE_API_KEY") || !mostlyEnglish(req.source.text)) return json(UNKNOWN_FIT);
+  const usage = await consumeUsage(admin, uid, "remix-fit");
+  if (!usage.allowed) return json(UNKNOWN_FIT);
+  const day = today();
+  const answers = await askJev(fitState(req), fitQuestions(req.video), { who: "remix fit" });
+  const result = fitVerdict({
+    serves: noulOf(answers, "serves"),
+    retell: noulOf(answers, "retell"),
+    masSafe: noulOf(answers, "masSafe"),
+    textHeavy: req.video ? noulOf(answers, "textHeavy") : null,
+  });
+  if (result.verdict === "unknown") await refundUsage(admin, uid, "remix-fit", day);
+  console.log("remix fit", result.verdict, result.reasons.join(",") || "-", req.video ? "video" : "text");
+  return json(result);
+}
 
 /** teardown.ts holds the flow; this gives it the reader, the counter, OpenAI and Jev. */
 async function teardown(admin: Admin, uid: string, body: unknown): Promise<Response> {
@@ -87,6 +114,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => null);
     const mode = (body as { mode?: unknown } | null)?.mode;
+    if (mode === "fit") return await fit(admin, uid, body);
     if (mode === "teardown") return await teardown(admin, uid, body);
 
     const parsed = parseMakeRequest(body);

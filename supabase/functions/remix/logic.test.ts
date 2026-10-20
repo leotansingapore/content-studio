@@ -5,14 +5,22 @@ import {
   BUSINESS_VOICE,
   CLOSE_RULES,
   FACTS_ONLY,
+  FIT_AT,
+  FIT_COPY,
+  UNKNOWN_FIT,
   KEEP_RULES,
   MAKE_QUESTIONS,
   MAS_LINE,
   buildMakePrompt,
   dontReuseFor,
+  fitQuestions,
+  fitReasonLine,
+  fitState,
+  fitVerdict,
   holdTheLine,
   intentsFor,
   makeQuestions,
+  parseFitRequest,
   parseMakeRequest,
   rewriteMessage,
   textFields,
@@ -346,5 +354,61 @@ describe("rewriteMessage", () => {
     expect(rewriteMessage(["never check their CPF statement until", "$12,000"])).toBe(
       "These parts repeat the original:\n- never check their CPF statement until\n- $12,000\nRewrite only the lines that contain them, in new words, and keep everything else as it is. Return the whole JSON object again.",
     );
+  });
+});
+
+describe("the fit check", () => {
+  const n = (o: Partial<Record<"serves" | "retell" | "masSafe" | "textHeavy", number | null>>) => ({ serves: 0.9, retell: 0.9, masSafe: 0.9, textHeavy: null, ...o });
+  const below = (x: number) => Math.round((x - 0.01) * 100) / 100;
+
+  it("is poor under 0.3 serves, weak under 0.55 serves, and good at each line", () => {
+    expect(fitVerdict(n({ serves: below(FIT_AT.poorServes) }))).toEqual({ verdict: "poor", reasons: ["serves"] });
+    expect(fitVerdict(n({ serves: FIT_AT.poorServes }))).toEqual({ verdict: "weak", reasons: ["serves"] });
+    expect(fitVerdict(n({ serves: below(FIT_AT.weakServes) }))).toEqual({ verdict: "weak", reasons: ["serves"] });
+    expect(fitVerdict(n({ serves: FIT_AT.weakServes }))).toEqual({ verdict: "good", reasons: [] });
+    expect(fitVerdict(n({ serves: 0.56 }))).toEqual({ verdict: "good", reasons: [] });
+  });
+
+  it("is weak under 0.5 retell or masSafe, and good at 0.5", () => {
+    expect(fitVerdict(n({ retell: 0.49 }))).toEqual({ verdict: "weak", reasons: ["retell"] });
+    expect(fitVerdict(n({ retell: 0.5 }))).toEqual({ verdict: "good", reasons: [] });
+    expect(fitVerdict(n({ masSafe: 0.49 }))).toEqual({ verdict: "weak", reasons: ["masSafe"] });
+    expect(fitVerdict(n({ masSafe: 0.5 }))).toEqual({ verdict: "good", reasons: [] });
+    expect(fitVerdict(n({ serves: 0.1, masSafe: 0.2 })).verdict).toBe("poor");
+  });
+
+  it("adds text-heavy at 0.6 to any verdict, and is unknown when Jev answered nothing", () => {
+    expect(fitVerdict(n({ textHeavy: 0.6 }))).toEqual({ verdict: "good", reasons: ["textHeavy"] });
+    expect(fitVerdict(n({ textHeavy: 0.59 }))).toEqual({ verdict: "good", reasons: [] });
+    expect(fitVerdict(n({ retell: 0.2, textHeavy: 0.9 }))).toEqual({ verdict: "weak", reasons: ["retell", "textHeavy"] });
+    expect(fitVerdict({ serves: null, retell: null, masSafe: null, textHeavy: 0.9 })).toEqual(UNKNOWN_FIT);
+    expect(fitVerdict(n({ serves: null })).verdict).toBe("good");
+  });
+
+  it("asks text-heavy only with a video format", () => {
+    expect(Object.keys(fitQuestions(false))).toEqual(["serves", "retell", "masSafe"]);
+    expect(Object.keys(fitQuestions(true))).toEqual(["serves", "retell", "masSafe", "textHeavy"]);
+    for (const q of Object.values(fitQuestions(true))) expect(q.type).toBe("noul");
+  });
+
+  it("maps each missed question to its exact line, poor serves first, then MAS-safe, retell and weak serves", () => {
+    expect(fitReasonLine({ verdict: "poor", reasons: ["serves", "masSafe"] })).toBe("Not recommended: people you serve may not care about this topic.");
+    expect(fitReasonLine({ verdict: "weak", reasons: ["serves", "retell", "masSafe"] })).toBe(FIT_COPY.masSafe);
+    expect(fitReasonLine({ verdict: "weak", reasons: ["serves", "retell"] })).toBe("Weak fit: it leans on its own footage or people, so a remix keeps only the idea.");
+    expect(fitReasonLine({ verdict: "weak", reasons: ["serves"] })).toBe("Weak fit: people you serve may not care about this topic.");
+    expect(fitReasonLine({ verdict: "weak", reasons: ["masSafe"] })).toBe("Weak fit: it needs a new angle to be MAS-safe, so the remix keeps the format and changes the topic.");
+    expect(fitReasonLine({ verdict: "good", reasons: ["textHeavy"] })).toBeNull();
+    expect(fitReasonLine(UNKNOWN_FIT)).toBeNull();
+  });
+
+  it("takes a source with words and the brand's four fields, and nothing else", () => {
+    const req = parseFitRequest({ mode: "fit", source: body().source, brand: { ...body().brand, facts: "secret" }, video: true });
+    expect(req?.brand).toEqual({ name: "MoneyBees", oneLiner: "I help young adults sort their money", audience: "fresh grads", topics: ["CPF", "Insurance basics"] });
+    expect(req?.video).toBe(true);
+    expect(JSON.stringify(fitState(req!))).not.toContain("secret");
+    expect(fitState(req!).source.text).toBe(SOURCE_TEXT);
+    expect(parseFitRequest({ mode: "fit", source: { key: "ad:1", kind: "ad", text: " " }, brand: {} })).toBeNull();
+    expect(parseFitRequest({ mode: "make", source: body().source, brand: {} })).toBeNull();
+    expect(parseFitRequest({ mode: "fit", source: body().source, brand: {}, video: "yes" })?.video).toBe(false);
   });
 });

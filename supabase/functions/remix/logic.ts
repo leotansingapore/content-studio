@@ -16,6 +16,7 @@ import {
   type VoiceInput,
 } from "../clone-reel/logic.ts";
 import { MAX_SCENES, MIN_SCENES, validateScript } from "../ai-video/logic.ts";
+import type { JevQuestion } from "../_shared/jev.ts";
 import { numbersIn, reusedItems, sharedRuns } from "./overlap.ts";
 
 /** No 'face': "You speaking" in the Make row replaces it. */
@@ -150,16 +151,12 @@ const https = (v: unknown) => {
 
 export const BAD_KEEP = "That way of remixing doesn't fit this post.";
 
-/** The request as sent, cleaned, or the 400 message. Nothing here counts a use. */
-export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest } | { ok: false; error: string } {
-  const r = obj(raw);
-  if (r.mode !== "make") return { ok: false, error: "Unknown request." };
-  const as = r.as as RemixAs;
-  if (!(MAKE_AS as readonly string[]).includes(as)) return { ok: false, error: "That format can't be made yet." };
-  const s = obj(r.source);
+/** The original as sent, cleaned, or null when it has no words. */
+function parseSource(raw: unknown): SourceIn | null {
+  const s = obj(raw);
   const text = blockText(s.text, 2000);
-  if (typeof s.key !== "string" || typeof s.kind !== "string" || !text) return { ok: false, error: "There's nothing in this post to remix." };
-  const source: SourceIn = {
+  if (typeof s.key !== "string" || typeof s.kind !== "string" || !text) return null;
+  return {
     key: s.key.slice(0, 300),
     kind: s.kind.slice(0, 20),
     format: FORMATS.find((f) => f === s.format),
@@ -169,6 +166,16 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
     url: https(s.url),
     text,
   };
+}
+
+/** The request as sent, cleaned, or the 400 message. Nothing here counts a use. */
+export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest } | { ok: false; error: string } {
+  const r = obj(raw);
+  if (r.mode !== "make") return { ok: false, error: "Unknown request." };
+  const as = r.as as RemixAs;
+  if (!(MAKE_AS as readonly string[]).includes(as)) return { ok: false, error: "That format can't be made yet." };
+  const source = parseSource(r.source);
+  if (!source) return { ok: false, error: "There's nothing in this post to remix." };
   const keep = (r.keep ?? "structure") as Keep;
   if (!(KEEPS as readonly string[]).includes(keep) || !intentsFor(source).includes(keep)) return { ok: false, error: BAD_KEEP };
   const close = (r.close ?? "balanced") as Close;
@@ -530,4 +537,100 @@ export async function holdTheLine(
     result: out,
     flags: { copied, claim: (answers?.claim ?? 0) >= FLAG_AT, invented: (answers?.invented ?? 0) >= FLAG_AT },
   };
+}
+
+// ---- Is this a good fit? (docs/north-star/items/remix-fit-check.md) ----------------------------------
+
+export type FitVerdict = "good" | "weak" | "poor" | "unknown";
+export interface FitResult {
+  verdict: FitVerdict;
+  reasons: FitReason[];
+}
+
+export interface FitRequest {
+  mode: "fit";
+  source: SourceIn;
+  brand: Pick<BrandPack, "name" | "oneLiner" | "audience" | "topics">;
+  /** A video format is picked and the source is a video or carousel: asks textHeavy too. */
+  video: boolean;
+}
+
+export const UNKNOWN_FIT: FitResult = { verdict: "unknown", reasons: [] };
+
+export function parseFitRequest(raw: unknown): FitRequest | null {
+  const r = obj(raw);
+  const source = parseSource(r.source);
+  if (r.mode !== "fit" || !source) return null;
+  const b = obj(r.brand);
+  return {
+    mode: "fit",
+    source,
+    brand: { name: line(b.name, 80), oneLiner: line(b.oneLiner, 300), audience: line(b.audience, 300), topics: list(b.topics, 12, 60) },
+    video: r.video === true,
+  };
+}
+
+/** Jev only, one call: three nouls always, textHeavy only for a video. */
+export function fitQuestions(video: boolean): Record<string, JevQuestion> {
+  return {
+    serves: { type: "noul", instructions: "Would the people `brand` serves care about the problem or idea in `source`, once it is retold for them?" },
+    retell: {
+      type: "noul",
+      instructions:
+        "Can `source` be retold without its original footage, people or brand? No when it depends on one person's face or story, a celebrity, a live event, a product demo, or footage that cannot be made again.",
+    },
+    masSafe: {
+      type: "noul",
+      instructions:
+        "Can the idea in `source` be told by a licensed financial adviser in Singapore without promising returns, naming an insurer's product or a fund, or giving personal advice to a stranger?",
+    },
+    ...(video ? { textHeavy: { type: "noul", instructions: "Is most of what `source` says carried by words written on screen or on slides, rather than spoken or shown?" } as const } : {}),
+  };
+}
+
+export function fitState(req: FitRequest) {
+  const { format, platform, title, text } = req.source;
+  return { source: { format: format ?? "post", platform: platform ?? "", title: title ?? "", text }, brand: req.brand };
+}
+
+/**
+ * proposal (remix-fit-check spec, 2026-10-20): these are the spec's numbers, not yet read against real sources.
+ * scripts/fit-shadow.mjs runs them over the 167 drop sources per brand; set them from that run and date this note.
+ */
+export const FIT_AT = { poorServes: 0.3, weakServes: 0.55, retell: 0.5, masSafe: 0.5, textHeavy: 0.6 } as const;
+
+/** Code over Jev's numbers: poor, weak or good with the questions that missed; unknown when Jev answered none of them. */
+export function fitVerdict(a: { serves: number | null; retell: number | null; masSafe: number | null; textHeavy: number | null }): FitResult {
+  if (a.serves === null && a.retell === null && a.masSafe === null) return UNKNOWN_FIT;
+  const below = (n: number | null, at: number) => n !== null && n < at;
+  const reasons: FitReason[] = [];
+  if (below(a.serves, FIT_AT.weakServes)) reasons.push("serves");
+  if (below(a.retell, FIT_AT.retell)) reasons.push("retell");
+  if (below(a.masSafe, FIT_AT.masSafe)) reasons.push("masSafe");
+  const verdict: FitVerdict = below(a.serves, FIT_AT.poorServes) ? "poor" : reasons.length ? "weak" : "good";
+  if (a.textHeavy !== null && a.textHeavy >= FIT_AT.textHeavy) reasons.push("textHeavy");
+  return { verdict, reasons };
+}
+
+/** Fixed strings, chosen by which number missed; no model writes them. */
+export const FIT_COPY = {
+  checking: "Checking the fit...",
+  good: (brand: string) => `Good fit for ${brand}.`,
+  servesWeak: "Weak fit: people you serve may not care about this topic.",
+  servesPoor: "Not recommended: people you serve may not care about this topic.",
+  retell: "Weak fit: it leans on its own footage or people, so a remix keeps only the idea.",
+  masSafe: "Weak fit: it needs a new angle to be MAS-safe, so the remix keeps the format and changes the topic.",
+  textHeavy: "Mostly words on screen, so it works better as a carousel than a video.",
+  switch: "Make a carousel instead",
+  askWeak: "This one is a weak fit. Remix anyway?",
+  askPoor: "This one isn't recommended. Remix anyway?",
+};
+
+/** The one warning line for weak or poor: poor serves, then MAS-safe, then retell, then weak serves. */
+export function fitReasonLine(f: FitResult): string | null {
+  if (f.verdict === "poor") return FIT_COPY.servesPoor;
+  if (f.verdict !== "weak") return null;
+  if (f.reasons.includes("masSafe")) return FIT_COPY.masSafe;
+  if (f.reasons.includes("retell")) return FIT_COPY.retell;
+  return f.reasons.includes("serves") ? FIT_COPY.servesWeak : null;
 }
