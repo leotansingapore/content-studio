@@ -1,11 +1,14 @@
 // Saved (/saved, Leo's sign-ins only; docs/north-star/items/find-save-anywhere.md): every post, ad, trend and pasted
 // link he saved, in boards. The board, platform, search and open item live in the URL; /saved?url= (or text=, from a
 // share sheet) saves that link once and opens it. Reads run outside React (boards.ts), so leaving the page keeps them.
-import { useEffect, useRef, useState, type FormEvent } from "react";
+// Each saved post is broken down on save (find-ai-tagging): tag chips on the card, a Breakdown in the drawer
+// (/saved?item=<key>#breakdown), and the hook, angle, topic, emotion, audience and format filters in the URL.
+import { Fragment, useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { AtSign, ExternalLink, Facebook, Globe, Instagram, Linkedin, Megaphone, MoreHorizontal, Music, Shuffle, Trash2, X, Youtube } from "lucide-react";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import PriceChip from "@/components/PriceChip";
 import RemixButton from "@/components/remix/RemixButton";
 import { BoardChecklist, NewBoard, useBoards, useRemoveWithUndo } from "@/components/SaveButton";
 import VideoEmbed from "@/components/VideoEmbed";
@@ -22,27 +25,36 @@ import {
   SAVE_COPY,
   boardCounts,
   deleteBoard,
+  fetchTranscript,
   filterItems,
   findItem,
   fromSavedItem,
+  isTagging,
   lastBoard,
   loadBoards,
+  loadTranscripts,
   onReads,
   readShown,
   rememberBoard,
   remixUrlFor,
   runRead,
+  runTags,
   saveLink,
   setNote,
+  tagShown,
   titleOf,
+  writeUrlFor,
   type BoardItem,
   type BoardsState,
   type PlatformChip,
   type SavePlatform,
 } from "@/lib/boards";
+import { useUsesLeft } from "@/lib/aiUsage";
 import { embedUrlFor, safeExternalUrl } from "@/lib/embed";
 import { links } from "@/lib/links";
-import { useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { TAG_COPY, TAG_FILTERS, chipsFor, filterByTags, formatLine, hookRow, sureTag, tagCounts, tagLabel, tagText, type TagFilter } from "@/lib/postTags";
+import { useScrollToHash, useUrlItem, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { parseReelUrl } from "../../supabase/functions/clone-reel/logic.ts";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { cn } from "@/lib/utils";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -77,6 +89,7 @@ function Saved({ userId }: { userId: string }) {
   const [board, setBoard] = useUrlState("board", "all", { allowed: ["all", "unsorted", ...store.boards.map((b) => b.id)] });
   const [platform, setPlatform] = useUrlState<PlatformChip | "all">("platform", "all", { allowed: CHIPS.map(([c]) => c) });
   const [text, setText, q] = useUrlSearch("q");
+  const tagFilter = useTagFilters();
   const [itemKey, openItem, closeItem] = useUrlItem("item");
   const [link, setLink] = useState("");
   const [picked, setPick] = useState(() => lastBoard(userId));
@@ -134,7 +147,9 @@ function Saved({ userId }: { userId: string }) {
 
   const full = store.items.length >= MAX_ITEMS;
   const counts = boardCounts(store);
-  const shown = filterItems(store.items, { board, platform, q });
+  const inView = filterItems(store.items, { board, platform, q });
+  const shown = filterByTags(inView, tagFilter.values);
+  const anyTags = store.items.some((i) => i.tags) || tagFilter.on;
   const current = store.boards.find((b) => b.id === board);
 
   const submit = async (e: FormEvent) => {
@@ -275,6 +290,8 @@ function Saved({ userId }: { userId: string }) {
             </div>
           )}
 
+          {store.items.length > 0 && anyTags && <TagFilters filter={tagFilter} counts={tagCounts(inView)} />}
+
           {store.items.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Nothing saved yet.{" "}
@@ -293,7 +310,7 @@ function Saved({ userId }: { userId: string }) {
                 type="button"
                 onClick={() => {
                   setText("");
-                  update({ platform: null, q: null });
+                  update({ platform: null, q: null, ...Object.fromEntries(TAG_FILTERS.map((f) => [f.param, null])) });
                 }}
                 className="font-medium text-primary underline-offset-4 hover:underline"
               >
@@ -326,6 +343,250 @@ function Saved({ userId }: { userId: string }) {
         />
       )}
     </div>
+  );
+}
+
+type TagParam = TagFilter["param"];
+const allowed = (param: TagParam) => ["all", ...TAG_FILTERS.find((f) => f.param === param)!.options.map((o) => o.value)];
+
+/** The six tag filters in the URL (?hook=myth-bust...), "all" left out. */
+function useTagFilters() {
+  const hook = useUrlState<string>("hook", "all", { allowed: allowed("hook") });
+  const angle = useUrlState<string>("angle", "all", { allowed: allowed("angle") });
+  const topic = useUrlState<string>("topic", "all", { allowed: allowed("topic") });
+  const emotion = useUrlState<string>("emotion", "all", { allowed: allowed("emotion") });
+  const audience = useUrlState<string>("audience", "all", { allowed: allowed("audience") });
+  const format = useUrlState<string>("format", "all", { allowed: allowed("format") });
+  const all: Record<TagParam, [string, (v: string) => void]> = { hook, angle, topic, emotion, audience, format };
+  const values = Object.fromEntries(TAG_FILTERS.map((f) => [f.param, all[f.param][0]])) as Record<TagParam, string>;
+  return { values, set: (param: TagParam, v: string) => all[param][1](v), on: Object.values(values).some((v) => v !== "all") };
+}
+
+function TagFilters({ filter, counts }: { filter: ReturnType<typeof useTagFilters>; counts: ReturnType<typeof tagCounts> }) {
+  return (
+    <div role="group" aria-label="Filter by tag" className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+      {TAG_FILTERS.map((f) => {
+        const value = filter.values[f.param];
+        const options = f.options.filter((o) => counts[f.param][o.value] || o.value === value);
+        return (
+          <label key={f.param} className="inline-flex h-9 min-w-0 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-xs [@media(pointer:coarse)]:h-11">
+            <span className="shrink-0 font-semibold text-muted-foreground">{f.label}</span>
+            <select value={value} onChange={(e) => filter.set(f.param, e.target.value)} aria-label={f.label} className="h-full min-w-0 flex-1 bg-transparent font-medium text-foreground outline-none sm:max-w-[10rem]">
+              <option value="all">All</option>
+              {options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label} ({counts[f.param][o.value] ?? 0})
+                </option>
+              ))}
+            </select>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+const PILL = "rounded-full px-2 py-0.5 text-[11px] font-medium";
+
+/** Under a card's caption: the tag chips, or where the breakdown is. Nothing while the read runs (ReadChip says so). */
+function TagChips({ item, userId }: { item: BoardItem; userId: string }) {
+  const state = tagShown(item);
+  if (readShown(item) === "pending") return null;
+  if (state === "pending") return <span className={cn(PILL, "bg-primary/10 text-primary")}>{TAG_COPY.running}</span>;
+  if (state === "capped") return <span className={cn(PILL, "bg-muted text-muted-foreground")}>{TAG_COPY.capped}</span>;
+  if (state === "failed") {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className={cn(PILL, "bg-muted text-muted-foreground")}>{TAG_COPY.failed}</span>
+        <button type="button" onClick={() => void runTags(userId, item.key)} className="text-[11px] font-medium text-primary underline-offset-4 hover:underline [@media(pointer:coarse)]:min-h-11">
+          Try again
+        </button>
+      </span>
+    );
+  }
+  const chips = chipsFor(item);
+  if (!chips.length) return null;
+  return (
+    <span className="flex flex-wrap gap-1">
+      {chips.map((c) => (
+        <span key={c} className={cn(PILL, "bg-secondary text-secondary-foreground")}>
+          {c}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const LABEL = "pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
+const TEXT = "min-w-0 text-sm leading-relaxed text-foreground/85 [overflow-wrap:anywhere]";
+
+/** The drawer's Breakdown: the teardown's rows and the tags, or where it is; #breakdown scrolls here. */
+function Breakdown({ userId, item, note }: { userId: string; item: BoardItem; note: string }) {
+  const { toast } = useToast();
+  const state = tagShown(item);
+  const running = state === "pending" && isTagging(item.key);
+  const left = useUsesLeft(running);
+  const [shown, setShown] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [, tick] = useState(0);
+  const t = item.tags;
+  if (readShown(item) === "pending") return null;
+
+  const transcript = loadTranscripts(userId)[item.key] ?? "";
+  const canRead = tagText({ ...item, note }, transcript) !== "";
+  const press = (again: boolean) => {
+    // the note box saves a second after typing stops: Break it down reads what is in it now
+    if (note !== item.note) setNote(userId, item.key, note);
+    void runTags(userId, item.key, again);
+  };
+  const load = () => {
+    setLoading(true);
+    setLoadError("");
+    fetchTranscript(userId, item.key)
+      .then((words) => (words ? setShown(true) : setLoadError("No transcript came back for this post.")))
+      .catch((e: Error) => setLoadError(e.message))
+      .finally(() => {
+        setLoading(false);
+        tick((n) => n + 1);
+      });
+  };
+  const copy = () =>
+    navigator.clipboard.writeText(transcript).then(
+      () => toast({ title: "Transcript copied." }),
+      () => toast({ title: "Couldn't copy. Select the text instead." }),
+    );
+  const chip = <PriceChip feature="post-tags" left={left("post-tags")} />;
+  const formula = t ? sureTag(t, "formula") : null;
+  const hook = t ? hookRow(t) : null;
+  const rows = t
+    ? ([
+        ["Angle", tagLabel(item, "angle")],
+        ["Topic", tagLabel(item, "topic")],
+        ["Feeling", tagLabel(item, "emotion")],
+        ["For", tagLabel(item, "audience")],
+        ["Format", formatLine(t)],
+      ] as const).filter(([, v]) => v)
+    : [];
+
+  return (
+    <section id="breakdown" aria-label="Breakdown" className="scroll-mt-16 space-y-3 rounded-lg border border-border/60 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Breakdown</h3>
+        {t && !running && (
+          <span className="ml-auto flex items-center gap-2">
+            {chip}
+            <Button type="button" variant="ghost" size="sm" onClick={() => press(true)}>
+              Break it down again
+            </Button>
+          </span>
+        )}
+      </div>
+
+      {running && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {TAG_COPY.running}...
+        </p>
+      )}
+      {state === "capped" && <p className="text-sm text-foreground/85">{TAG_COPY.capped}</p>}
+      {state === "failed" && (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-foreground/85">{TAG_COPY.failed}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => press(false)}>
+            Try again
+          </Button>
+          {chip}
+        </div>
+      )}
+      {!t && !running && state !== "failed" && state !== "capped" && (
+        <div className="space-y-2">
+          {!canRead && <p className="text-sm text-muted-foreground">{TAG_COPY.nothing}</p>}
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={!canRead} onClick={() => press(false)}>
+              Break it down
+            </Button>
+            {chip}
+          </div>
+        </div>
+      )}
+
+      {t && hook && (
+        <>
+          <dl className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-3 gap-y-3">
+            {(hook.name || hook.line) && (
+              <>
+                <dt className={LABEL}>Hook</dt>
+                <dd className={TEXT}>
+                  {hook.name && <span className="font-medium text-foreground">{hook.name} </span>}
+                  {hook.line && `"${hook.line}"`}
+                </dd>
+              </>
+            )}
+            {rows.map(([label, value]) => (
+              <Fragment key={label}>
+                <dt className={LABEL}>{label}</dt>
+                <dd className={TEXT}>{value}</dd>
+              </Fragment>
+            ))}
+            {t.beats.length > 0 && (
+              <>
+                <dt className={LABEL}>How it is built</dt>
+                <dd className={TEXT}>
+                  <ol className="list-decimal space-y-1 pl-4">
+                    {t.beats.map((beat, n) => (
+                      <li key={n}>{beat}</li>
+                    ))}
+                  </ol>
+                </dd>
+              </>
+            )}
+            {t.words !== null && (
+              <>
+                <dt className={LABEL}>Transcript</dt>
+                <dd className={cn(TEXT, "space-y-2")}>
+                  {t.words === 0 ? (
+                    TAG_COPY.noSpeech
+                  ) : (
+                    <>
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span>{t.words} words</span>
+                        {transcript ? (
+                          <>
+                            <Button type="button" variant="link" size="sm" className="h-auto px-0" onClick={() => void copy()}>
+                              Copy transcript
+                            </Button>
+                            <Button type="button" variant="link" size="sm" className="h-auto px-0" aria-expanded={shown} onClick={() => setShown((v) => !v)}>
+                              {shown ? "Hide transcript" : "Show transcript"}
+                            </Button>
+                          </>
+                        ) : (
+                          parseReelUrl(item.url).ok && (
+                            <Button type="button" variant="link" size="sm" className="h-auto px-0" disabled={loading} onClick={load}>
+                              {loading ? "Loading..." : "Load transcript"}
+                            </Button>
+                          )
+                        )}
+                      </span>
+                      {!transcript && parseReelUrl(item.url).ok && <span className="block text-[11px] text-muted-foreground">Uses 1 of today's reads</span>}
+                      {loadError && <span role="alert" className="block text-[11px] text-destructive">{loadError}</span>}
+                      {shown && transcript && <span className="block max-h-48 overflow-y-auto whitespace-pre-line rounded-md bg-muted/50 p-2 text-[13px]">{transcript}</span>}
+                    </>
+                  )}
+                </dd>
+              </>
+            )}
+          </dl>
+          {t.by === "llm" && <p className="text-[11px] text-muted-foreground">{TAG_COPY.noJev}</p>}
+          {formula && (
+            <Button asChild variant="outline" size="sm" className="w-full gap-1.5">
+              <Link to={writeUrlFor(item, { formula })}>
+                <Shuffle className="h-3.5 w-3.5" /> Remix with this hook
+              </Link>
+            </Button>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
@@ -400,6 +661,7 @@ function ItemCard({ item, userId, onOpen, onRemove }: { item: BoardItem; userId:
       </button>
       <div className="mt-auto space-y-2 px-3 pb-3">
         <ReadChip item={item} userId={userId} />
+        <TagChips item={item} userId={userId} />
         <div ref={root} className="relative flex items-center gap-2">
           <RemixFor item={item} />
           <Button
@@ -497,6 +759,8 @@ function ItemDrawer({
     [userId, item.key],
   );
 
+  useScrollToHash();
+
   const embed = embedUrlFor(item.url) !== null;
   const original = safeExternalUrl(item.url);
   const numbers = numbersLine(item);
@@ -553,6 +817,8 @@ function ItemDrawer({
                 </Button>
               </div>
             </div>
+
+            <Breakdown userId={userId} item={item} note={note} />
 
             <Textarea
               id="saved-note"
