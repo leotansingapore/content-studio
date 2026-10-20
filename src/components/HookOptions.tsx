@@ -33,7 +33,8 @@ export default function HookOptions({ projectId, words, segs, total, speed, hook
   const [state, setState] = useState(() => kept.get(projectId) ?? null);
   const [busy, setBusy] = useState(false);
   const left = useUsesLeft(busy)("vibe-edit");
-  const why = reasonText({ left, leo: useLeoOnly() });
+  const leo = useLeoOnly();
+  const why = reasonText({ left, leo });
 
   const write = async () => {
     const set = state ? state.set + 1 : 0;
@@ -59,7 +60,7 @@ export default function HookOptions({ projectId, words, segs, total, speed, hook
           {busy ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
           {busy ? "Writing..." : state ? "Write 3 more" : "Write 3 hooks from what I say"}
         </Button>
-        <PriceChip feature="vibe-edit" left={left} fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />
+        {!(leo && busy) && <PriceChip feature="vibe-edit" left={left} fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />}
       </div>
       {why && <p className="text-xs text-destructive">{why}</p>}
       {state && (

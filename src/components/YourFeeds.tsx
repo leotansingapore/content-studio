@@ -111,7 +111,7 @@ export default function YourFeeds() {
         <h2 className="mr-auto font-serif text-lg font-semibold tracking-tight text-foreground">Your feeds</h2>
         {feeds.length > 0 && (
           <>
-            <PriceChip feature="feeds" left={left} />
+            {!loading && <PriceChip feature="feeds" left={left} />}
             <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => void load(feeds, true)} disabled={loading || left === 0}>
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> {loading ? "Reading..." : "Refresh"}
             </Button>

@@ -159,7 +159,7 @@ export default function LongPiece() {
             >
               <Sparkles className="h-4 w-4" /> Make 5 posts
             </Button>
-            <PriceChip feature="repurpose-long" left={left} />
+            {!loading && <PriceChip feature="repurpose-long" left={left} />}
             <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
               {text.length.toLocaleString()}/{MAX_LONG_CHARS.toLocaleString()}
             </span>

@@ -1782,7 +1782,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                   {watching ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Eye className="h-3.5 w-3.5" />}
                   {watching ? "Watching it, 1-2 minutes..." : watch?.exportId === job.id && watch.state === "done" ? "Watch it again" : "Watch it like a viewer"}
                 </Button>
-                <Left n={left("video-watch")} feature="video-watch" />
+                <Left n={left("video-watch")} feature="video-watch" busy={watching} />
               </span>
               {watch?.exportId === job.id && watch.state === "failed" && <p className="text-xs text-destructive" role="alert">{watch.error}</p>}
               {watch?.exportId === job.id && watch.state === "done" && watch.findings && (
@@ -2003,7 +2003,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                 <Film className="h-3.5 w-3.5" /> Match a reference video
                 <input type="file" accept="video/*" className="sr-only" disabled={none("vibe-edit")} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void matchReference(f); }} />
               </label>
-              <Left n={left("vibe-edit")} feature="vibe-edit" />
+              <Left n={left("vibe-edit")} feature="vibe-edit" busy={thinking} />
               {!skillForm && (
                 <button type="button" onClick={openSkillForm} className="min-h-8 px-1 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">Save as a skill</button>
               )}
@@ -2065,7 +2065,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="mr-auto text-sm font-semibold">Title and cover</p>
                 <span className="flex flex-wrap items-center justify-end gap-2 text-right">
-                  <Left n={left("video-publish")} feature="video-publish" />
+                  <Left n={left("video-publish")} feature="video-publish" busy={ideating} />
                   <Button size="sm" variant="outline" onClick={suggestPublish} disabled={ideating || !words.length || none("video-publish")} className={`h-11 gap-1.5 sm:h-9 ${ideating ? "disabled:opacity-100" : ""}`}>
                     {ideating ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
                     {ideating ? "Writing..." : publish ? "Write again" : "Suggest from what I say"}
@@ -2277,7 +2277,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                     </Chip>
                   );
                 })}
-                <Left n={left("video-translate")} feature="video-translate" quiet />
+                <Left n={left("video-translate")} feature="video-translate" quiet busy={!!translating} />
               </Row>
               {noTranslate && <p className="text-right text-xs text-destructive">{reasonText({ left: 0, leo })}</p>}
               <Row label="ALL CAPS"><Toggle on={settings.uppercase} set={(v) => patch({ uppercase: v })} /></Row>
@@ -2342,7 +2342,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                         {dubBusy || `Dub into ${DUB_LANGS[dubLang]}`}
                       </Button>
                       {/* the translation and the new voice: two caps, so the smaller of the two is what's left */}
-                      <Left n={left("ai-voice")} price={sumPrices(priceOf("ai-voice"), priceOf("video-translate"))} least={smaller(left("ai-voice"), left("video-translate"))} />
+                      <Left n={left("ai-voice")} price={sumPrices(priceOf("ai-voice"), priceOf("video-translate"))} least={smaller(left("ai-voice"), left("video-translate"))} busy={!!dubBusy} />
                     </div>
                   </div>
                 )}
@@ -2357,7 +2357,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                         {ttsBusy ? "Making the voiceover..." : `Make it from ${fmtTime(Math.min(outT, Math.max(0, plan.total - 0.5)))}`}
                       </Button>
                       <span className="text-[11px] text-muted-foreground">{ttsText.length.toLocaleString("en-US")} / {MAX_SCRIPT.toLocaleString("en-US")}</span>
-                      <Left n={left("ai-voice")} feature="ai-voice" />
+                      <Left n={left("ai-voice")} feature="ai-voice" busy={ttsBusy} />
                     </div>
                   </div>
                 )}
@@ -2400,7 +2400,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                         {musicMaking || !mood ? <ThinkingOrb state="working" size={20} theme="dark" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
                         {musicMaking ? "Making the track..." : !mood ? "Picking a mood..." : `Make a ${Math.floor(trackSecs / 60)}:${String(trackSecs % 60).padStart(2, "0")} track`}
                       </Button>
-                      <Left n={left("ai-music")} feature="ai-music" opts={{ minutes: trackSecs / 60 }} />
+                      <Left n={left("ai-music")} feature="ai-music" opts={{ minutes: trackSecs / 60 }} busy={musicMaking} />
                     </div>
                   </div>
                 )}
@@ -2469,7 +2469,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                   <Button size="sm" variant="outline" onClick={() => void recaption()} disabled={captioning || none("video-transcribe")} className="gap-1.5">
                     {captioning ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : null} {captioning ? "Captioning..." : "Caption it"}
                   </Button>
-                  <Left n={left("video-transcribe")} feature="video-transcribe" opts={{ minutes: duration / 60 }} />
+                  <Left n={left("video-transcribe")} feature="video-transcribe" opts={{ minutes: duration / 60 }} busy={captioning} />
                   {!captioning && <SubtitleImport userId={userId} duration={duration} onWords={setWords} />}
                 </div>
               )}
@@ -2654,7 +2654,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                   <span className="mr-auto text-sm font-medium">Callouts and cutaways
                     <InfoTip label="About callouts">Read from what you say. Add the ones you want.</InfoTip></span>
                   <span className="flex flex-wrap items-center justify-end gap-2 text-right">
-                    <Left n={left("video-cutaways")} feature="video-cutaways" />
+                    <Left n={left("video-cutaways")} feature="video-cutaways" busy={suggesting} />
                     <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 ${suggesting ? "disabled:opacity-100" : ""}`} onClick={suggest} disabled={suggesting || !words.length || none("video-cutaways")}>
                       {suggesting ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
                       {suggesting ? "Reading..." : cutaways.length ? "Suggest again" : "Suggest from what I say"}
@@ -2765,7 +2765,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                 isLong(duration, project.size) ? null : (
                 <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => void recaption()} disabled={captioning || none("video-transcribe")}>{captioning ? "Captioning..." : "Caption it"}</Button>
-                  <Left n={left("video-transcribe")} feature="video-transcribe" opts={{ minutes: duration / 60 }} />
+                  <Left n={left("video-transcribe")} feature="video-transcribe" opts={{ minutes: duration / 60 }} busy={captioning} />
                   {!captioning && <SubtitleImport userId={userId} duration={duration} onWords={setWords} />}
                 </div>
                 )
@@ -2870,14 +2870,16 @@ const smaller = (a: number | null, b: number | null) => (a === null || b === nul
 
 /**
  * Uses left today beside an AI button; nothing until today's count has been read. Leo sees the price and what is left
- * after this run instead (PriceChip), after `what` when given, with the reason on its own line when the button can't run
- * (`quiet` leaves it out where nothing is disabled). `least` is the smallest left when a button spends from several caps.
+ * after this run instead (PriceChip), after `what` when given and hidden while `busy`, with the reason on its own line when
+ * the button can't run (`quiet` leaves it out where nothing is disabled). `least` is the smallest left when a button spends
+ * from several caps.
  */
-function Left({ n, what, least = n, quiet, ...chip }: {
+function Left({ n, what, least = n, quiet, busy, ...chip }: {
   n: number | null;
   what?: string;
   least?: number | null;
   quiet?: boolean;
+  busy?: boolean;
   feature?: UsageFeature;
   opts?: PriceOpts;
   price?: Price | "pick" | null;
@@ -2888,7 +2890,7 @@ function Left({ n, what, least = n, quiet, ...chip }: {
   const today = n === null ? null : <span className={`text-[11px] ${n ? "text-muted-foreground" : "font-medium text-destructive"}`}>{what ? `${what}: ${text.toLowerCase()}` : text}</span>;
   return (
     <>
-      {leo && what ? <span className="text-[11px] text-muted-foreground">{what}: <PriceChip {...chip} left={least} /></span> : <PriceChip {...chip} left={least} fallback={today} />}
+      {leo && busy ? null : leo && what ? <span className="text-[11px] text-muted-foreground">{what}: <PriceChip {...chip} left={least} /></span> : <PriceChip {...chip} left={least} fallback={today} />}
       {why && !quiet && <span className="order-last block basis-full text-xs text-destructive">{why}</span>}
     </>
   );

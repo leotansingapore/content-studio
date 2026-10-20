@@ -63,7 +63,7 @@ export default function Replies({ userId }: { userId: string }) {
             <Button onClick={go} disabled={busy || !count || tooMany || left === 0} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
               Sort and draft replies
             </Button>
-            <PriceChip feature="engage-replies" left={left} />
+            {!busy && <PriceChip feature="engage-replies" left={left} />}
             <span className={`ml-auto text-[11px] tabular-nums ${tooMany ? "font-medium text-warning" : "text-muted-foreground"}`}>
               {tooMany ? `${count} comments: up to ${MAX_ITEMS} at a time` : plural(count, "comment")}
             </span>

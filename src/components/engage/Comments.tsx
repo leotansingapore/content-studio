@@ -106,7 +106,7 @@ export default function Comments({ userId }: { userId: string }) {
             <Button onClick={go} disabled={busy || !filled || left === 0} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
               {slots.length > 1 ? "Write a comment for each" : "Write 2 comments"}
             </Button>
-            <PriceChip feature="engage-comments" left={left} />
+            {!busy && <PriceChip feature="engage-comments" left={left} />}
             {slots.length < MAX_POSTS && (
               <Button variant="outline" onClick={() => edit({ posts: [...slots, { name: "", text: "" }] })} disabled={busy} className="h-11 gap-1.5 sm:h-10">
                 <Plus className="h-4 w-4" /> Add another post

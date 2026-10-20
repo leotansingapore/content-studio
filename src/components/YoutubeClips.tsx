@@ -52,7 +52,7 @@ export default function YoutubeClips({ userId }: { userId: string | null }) {
           {busy ? <><Loader2 className="h-4 w-4 animate-spin" /> {STEP[job.state]}</> : "Find clips"}
         </Button>
       </form>
-      {leo && <p><PriceChip price={RUN_PRICE} left={left} /></p>}
+      {leo && !busy && <p><PriceChip price={RUN_PRICE} left={left} /></p>}
       {why && <p className="text-xs text-destructive">{why}</p>}
       {job?.state === "failed" && <p role="alert" className="text-xs text-destructive">{job.error}</p>}
       {result && !busy && (

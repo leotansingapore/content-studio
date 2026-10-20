@@ -125,7 +125,7 @@ export default function Connect({ userId }: { userId: string }) {
             <Button onClick={go} disabled={busy || !ready || left === 0} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
               Write the note and follow-ups
             </Button>
-            <PriceChip feature="engage-connect" left={left} />
+            {!busy && <PriceChip feature="engage-connect" left={left} />}
           </div>
           {why && <p className="text-xs text-destructive">{why}</p>}
         </CardContent>

@@ -100,7 +100,7 @@ function Montage({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
       </form>
       {leo && (
         <div className="flex flex-wrap items-center gap-2 sm:justify-end sm:text-right">
-          <Left n={uses} what="Montages" feature="montage-beats" />
+          <Left n={uses} what="Montages" feature="montage-beats" busy={off} />
         </div>
       )}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -236,7 +236,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
       {!leo && <p className="text-sm">Costs {cost(clipCredits(seconds, quality))}.</p>}
       <div className="flex flex-wrap items-center gap-2">
         <Button className="h-11 sm:h-10" disabled={busy || !ready || clips === 0} onClick={make}>Make the clip</Button>
-        <Left n={clips} what="AI clips" feature="ai-clip" opts={{ seconds, quality }} />
+        <Left n={clips} what="AI clips" feature="ai-clip" opts={{ seconds, quality }} busy={busy} />
       </div>
     </div>
   );
@@ -321,7 +321,7 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
                   onClick={() => setLook(LOOKS[(LOOKS.indexOf(look) + 1) % LOOKS.length])}>Another look</Button>
                 <Button size="sm" variant="outline" className="h-11 sm:h-9" disabled={busy || look.trim().length < 10 || left("ai-image") === 0}
                   onClick={() => void makePresenter(look.trim())}>{presenter ? "Make another presenter" : "Make the presenter"}</Button>
-                <Left n={left("ai-image")} what="AI images" feature="ai-image" />
+                <Left n={left("ai-image")} what="AI images" feature="ai-image" busy={busy} />
               </div>
             </div>
           </div>
@@ -343,7 +343,7 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
             {voBusy ? "Making the voiceover..." : vo ? "Make the voiceover again" : "Make the voiceover"}
           </Button>
           {n > 0 && <span className="text-[11px] text-muted-foreground">{n} words, about {secs(n / 2.5)}</span>}
-          <Left n={left("ai-voice")} what="Voiceovers" feature="ai-voice" />
+          <Left n={left("ai-voice")} what="Voiceovers" feature="ai-voice" busy={busy || voBusy} />
         </div>
         {/* the video's price before its voiceover exists, from the script at 2.5 words a second */}
         {leo && !vo && n > 0 && <p className="text-[11px] text-muted-foreground">The video: <PriceChip feature="ai-video" opts={{ seconds: n / 2.5 }} left={videos} /></p>}
@@ -362,7 +362,7 @@ function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boole
             <Button className="h-11 sm:h-10" disabled={busy || tooLong || !image || videos === 0}
               onClick={() => void makeAvatar(script.trim().slice(0, 40) || "AI video", image!, vo)}>Make the video</Button>
             {!image && <span className="text-xs text-muted-foreground">{face === "photo" ? "Pick a photo first." : "Make the presenter first."}</span>}
-            <Left n={videos} what="AI videos" feature="ai-video" opts={{ slices: vo.slices.map((s) => s.end - s.start) }} />
+            <Left n={videos} what="AI videos" feature="ai-video" opts={{ slices: vo.slices.map((s) => s.end - s.start) }} busy={busy} />
           </div>
         </div>
       )}
@@ -408,7 +408,7 @@ function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
           {writing ? "Writing..." : scenes ? "Write it again" : "Write it"}
         </Button>
       </form>
-      <Left n={left("ai-video-script")} what="Explainer scripts" feature="ai-video-script" />
+      <Left n={left("ai-video-script")} what="Explainer scripts" feature="ai-video-script" busy={writing} />
       {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
       {scenes && (
         <>
@@ -450,7 +450,7 @@ function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
             {!scenes.every(sceneReady) && <span className="text-xs text-muted-foreground">Fill in every scene first.</span>}
             {/* the pictures and the voiceover: two caps, so the smaller of the two is what's left */}
             <Left n={videos} what="AI videos" price={sumPrices(priceOf("ai-video", { scenes: scenes.length }), priceOf("ai-voice"))}
-              least={videos === null || voices === null ? null : Math.min(videos, voices)} />
+              least={videos === null || voices === null ? null : Math.min(videos, voices)} busy={busy} />
           </div>
         </>
       )}
@@ -466,15 +466,17 @@ function Pill({ on, onClick, disabled, children }: { on: boolean; onClick: () =>
 }
 
 /**
- * Uses left beside an AI button. Leo sees the price and what is left after this run instead (PriceChip), with the
- * reason on its own line when the button can't run. `least` is the smallest left when a button spends from several caps.
+ * Uses left beside an AI button. Leo sees the price and what is left after this run instead (PriceChip), hidden while
+ * `busy`, with the reason on its own line when the button can't run. `least` is the smallest left when a button spends
+ * from several caps.
  */
-function Left({ n, what, least = n, ...chip }: { n: number | null; what: string; least?: number | null; feature?: UsageFeature; opts?: PriceOpts; price?: Price | "pick" | null }) {
-  const why = reasonText({ left: least, leo: useLeoOnly() });
+function Left({ n, what, least = n, busy, ...chip }: { n: number | null; what: string; least?: number | null; busy?: boolean; feature?: UsageFeature; opts?: PriceOpts; price?: Price | "pick" | null }) {
+  const leo = useLeoOnly();
+  const why = reasonText({ left: least, leo });
   const today = n === null ? null : <span className={`text-[11px] ${n ? "text-muted-foreground" : "font-medium text-destructive"}`}>{what}: {n ? `${n} left today` : "none left today"}</span>;
   return (
     <>
-      <PriceChip {...chip} left={least} fallback={today} />
+      {!(leo && busy) && <PriceChip {...chip} left={least} fallback={today} />}
       {why && <span className="order-last block basis-full text-xs text-destructive">{why}</span>}
     </>
   );

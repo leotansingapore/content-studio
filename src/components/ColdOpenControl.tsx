@@ -30,7 +30,8 @@ export default function ColdOpenControl({ settings, words, duration, segs, speed
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const left = useUsesLeft(busy)("cold-open");
-  const why = reasonText({ left, leo: useLeoOnly() });
+  const leo = useLeoOnly();
+  const why = reasonText({ left, leo });
   const co = sanitizeColdOpen(settings.coldOpen);
   const teaser = coldLength(segs, co) / speed;
   // to the start once the new order is in place (seeking before it lands on the old order)
@@ -71,7 +72,7 @@ export default function ColdOpenControl({ settings, words, duration, segs, speed
           <Button size="sm" variant="ghost" className="h-11 text-xs text-muted-foreground sm:h-8" onClick={() => apply({ coldOpen: undefined })}>Remove</Button>
         ) : (
           <>
-            <PriceChip feature="cold-open" left={left} fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />
+            {!(leo && busy) && <PriceChip feature="cold-open" left={left} fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />}
             <Button size="sm" variant="outline" onClick={() => void find()} disabled={busy || !words.length || left === 0}
               className={`h-11 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
               {busy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}

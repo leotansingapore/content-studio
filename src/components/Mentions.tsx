@@ -97,7 +97,7 @@ export default function Mentions() {
         </h2>
         {watch.length > 0 && (
           <>
-            <PriceChip feature="mentions" left={left} />
+            {!checking && <PriceChip feature="mentions" left={left} />}
             <Button size="sm" className="h-9 gap-1.5" onClick={check} disabled={checking || left === 0}>
               <Search className="h-3.5 w-3.5" /> {checking ? "Checking..." : "Check now"}
             </Button>

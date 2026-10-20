@@ -142,7 +142,7 @@ export default function ProfileScore({
             {running ? "Scoring..." : "Score my profile"}
           </Button>
           <span className="text-[11px] text-muted-foreground">Uses 1 of your {DAILY_LIMITS["profile-score"]} a day.</span>
-          <PriceChip feature="profile-score" left={left} />
+          {!running && <PriceChip feature="profile-score" left={left} />}
           {why && <p className="basis-full text-xs text-destructive">{why}</p>}
           {error && (
             <p role="alert" className="basis-full text-xs text-destructive">

@@ -179,7 +179,7 @@ export default function Dms({ userId }: { userId: string }) {
               <Button onClick={goBatch} disabled={batch.busy || !count || tooMany || left === 0} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
                 Sort and draft replies
               </Button>
-              <PriceChip feature="engage-dms" left={left} />
+              {!batch.busy && <PriceChip feature="engage-dms" left={left} />}
               <span className={`ml-auto text-[11px] tabular-nums ${tooMany ? "font-medium text-warning" : "text-muted-foreground"}`}>
                 {tooMany ? `${count} messages: up to ${MAX_ITEMS} at a time` : plural(count, "message")}
               </span>
@@ -189,7 +189,7 @@ export default function Dms({ userId }: { userId: string }) {
               <Button onClick={goThread} disabled={thread.busy || !lines.length || lastIsMine || left === 0} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
                 Draft my reply
               </Button>
-              <PriceChip feature="engage-dms" left={left} />
+              {!thread.busy && <PriceChip feature="engage-dms" left={left} />}
               <span className={`ml-auto text-[11px] ${lastIsMine ? "font-medium text-warning" : "tabular-nums text-muted-foreground"}`}>
                 {lastIsMine ? "The last message is yours. Wait for their reply." : plural(lines.length, "message")}
               </span>

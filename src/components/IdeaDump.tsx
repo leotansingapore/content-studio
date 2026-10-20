@@ -584,7 +584,7 @@ export default function IdeaDump() {
             >
               <Sparkles className="h-4 w-4" /> Develop my ideas
             </Button>
-            <PriceChip feature="idea-dump" left={left} />
+            {!loading && <PriceChip feature="idea-dump" left={left} />}
             {speechSupported && (
               <Button
                 type="button"
