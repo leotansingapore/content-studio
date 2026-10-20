@@ -40,7 +40,7 @@ const calls: string[] = [];
 beforeAll(async () => {
   // one fixed instant, so the counter's day can't turn between the handler and these rows
   vi.useFakeTimers({ toFake: ["Date"] });
-  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k" };
+  const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", OPENAI_API_KEY: "k", GEMINI_API_KEY: "k" };
   vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
   vi.stubGlobal("fetch", async (u: string) => {
     calls.push(String(u));
@@ -72,6 +72,25 @@ describe("Find clips on a long recording", () => {
     expect(res.status).toBe(429);
     expect(await res.json()).toMatchObject({ code: "daily_limit" });
     expect(db.rows.get(`${UID}|video-clips|${db.today()}`)).toBe(19);
+    expect(calls).toEqual([]);
+  });
+});
+
+describe("Watch it like a viewer", () => {
+  const watch = (q: string, headers: Record<string, string>) =>
+    db.handler!(new Request(`http://x/video-assist?mode=watch${q}`, { method: "POST", headers: { Authorization: `Bearer ${UID}`, ...headers }, body: new Uint8Array(2000) }));
+
+  it("refuses an export it can't watch before counting one of the day's watches or sending it to Gemini", async () => {
+    const mp4 = { "content-type": "video/mp4", "content-length": "2000" };
+    const refused = [
+      await watch("&seconds=91", mp4),
+      await watch("&seconds=40", { ...mp4, "content-length": "120000001" }),
+      await watch("&seconds=40", { ...mp4, "content-type": "image/gif" }),
+      await watch("", mp4),
+    ];
+    expect(refused.map((r) => r.status)).toEqual([400, 413, 400, 400]);
+    expect(await refused[0].json()).toEqual({ error: "Watch it takes videos up to 90 seconds." });
+    expect(db.rows.size).toBe(0);
     expect(calls).toEqual([]);
   });
 });
