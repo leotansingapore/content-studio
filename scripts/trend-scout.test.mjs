@@ -378,13 +378,14 @@ describe("hashtags", () => {
 
   const TODAY = "2026-10-20";
   const v = (n, tags, views = 0) => ({ url: `https://www.tiktok.com/@a/video/${n}`, tags, views });
-  // moneytok on 6 videos (views 100..500 and 6000, so the median 350 is not the mean), fyp on 5, budgeting on 3, savings on 1, and one repeat of video 1
+  // moneytok on 6 videos (views 100..500 and 6000, so the median 350 is not the mean), fyp on 5, budgeting on 4,
+  // savings on 1, and one repeat of video 1
   const videos = [
     v(1, ["moneytok", "fyp", "budgeting", "savings"], 100),
     { ...v(1, ["moneytok", "fyp"], 100), url: "https://www.tiktok.com/@a/video/1?lang=en" },
     v(2, ["moneytok", "fyp", "budgeting"], 200),
     v(3, ["moneytok", "fyp", "budgeting"], 300),
-    v(4, ["moneytok", "fyp"], 400),
+    v(4, ["moneytok", "fyp", "budgeting"], 400),
     v(5, ["moneytok", "fyp"], 500),
     v(6, ["moneytok"], 6000),
   ];
@@ -396,11 +397,23 @@ describe("hashtags", () => {
     expect(stats.tags.moneytok).toEqual({
       history: [{ day: TODAY, videos: 6, medianViews: 350 }],
       related: [
-        { tag: "budgeting", overlap: 0.5 },
+        { tag: "budgeting", overlap: 0.67 },
         { tag: "savings", overlap: 0.17 },
       ],
       finance: null,
     });
+  });
+
+  it("keeps the 5 tags most often beside a tag", async () => {
+    const crowd = [1, 2, 3, 4, 5].map((n) => v(n, ["moneytok", ...(n === 1 ? ["a", "b", "c", "d", "e", "f"] : ["b"])]));
+    const stats = await updateHashtagStats(null, crowd, TODAY, null);
+    expect(stats.tags.moneytok.related).toEqual([
+      { tag: "b", overlap: 1 },
+      { tag: "a", overlap: 0.2 },
+      { tag: "c", overlap: 0.2 },
+      { tag: "d", overlap: 0.2 },
+      { tag: "e", overlap: 0.2 },
+    ]);
   });
 
   it("drops the six generic tags before counting when Jev is not available", async () => {
@@ -420,6 +433,12 @@ describe("hashtags", () => {
     ask.mockClear();
     await updateHashtagStats(first, videos, "2026-10-21", ask);
     expect(ask).not.toHaveBeenCalled();
+  });
+
+  it("calls a tag finance at 0.6 and above", async () => {
+    const stats = await updateHashtagStats(null, videos, TODAY, async (tag) => (tag === "moneytok" ? 0.6 : 0.59));
+    expect(stats.tags.moneytok.finance).toBe(true);
+    expect(stats.tags.fyp.finance).toBe(false);
   });
 
   it("asks again next run when Jev gave no answer, except for a generic tag", async () => {
