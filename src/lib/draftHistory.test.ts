@@ -16,8 +16,12 @@ import {
   setDraftZernio,
   setDraftAttached,
   MAX_DRAFTS,
+  draftsOfBrand,
+  getDraftStats,
+  getPostingActivity,
   type DraftEntry,
 } from "./draftHistory";
+import { addProfile, DEFAULT_PROFILE_ID, setActiveProfile } from "./profiles";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -148,6 +152,15 @@ describe("upsertDraft", () => {
     upsertDraft(UID, post({ draft: "Edited in Write" }));
     expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited in Write", media: "https://drive.example.com/reel.mp4", labels: ["format:carousel"] });
   });
+
+  it("editing a post when My posts is full loses no other post", () => {
+    const full = Array.from({ length: MAX_DRAFTS }, (_, i) => post({ id: `p${i}` }));
+    saveDrafts(UID, full);
+    upsertDraft(UID, post({ id: "p10", hook: "Edited in Write" }));
+    const after = loadDrafts(UID);
+    expect(after[0]).toMatchObject({ id: "p10", hook: "Edited in Write" });
+    expect(after.map((d) => d.id).sort()).toEqual(full.map((d) => d.id).sort());
+  });
 });
 
 describe("upsertDraft and the remix source", () => {
@@ -276,5 +289,43 @@ describe("Post it for me's link to the Zernio post", () => {
     expect(record.zernio).toEqual(link);
     expect(series.id).toBe("s");
     expect(series).not.toHaveProperty("zernio");
+  });
+});
+
+describe("Home's posting numbers", () => {
+  // days before the frozen now (Thu 8 Oct), at midday local
+  const ago = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    d.setHours(12, 0, 0, 0);
+    return d.toISOString();
+  };
+  const posted = (id: string, days: number) => post({ id, status: "posted", postedAt: ago(days) });
+
+  it("counts the weeks in a row with a post, and a week not posted in yet doesn't break the run", () => {
+    // last week, the week before, then a week with nothing, then one more
+    saveDrafts(UID, [posted("a", 7), posted("b", 14), posted("c", 28), post({ id: "d" }), post({ id: "e", status: "posted" })]);
+    expect(getPostingActivity(UID)).toEqual({ thisWeekPosted: 0, weekStreak: 2 });
+    saveDrafts(UID, [posted("today", 1), ...loadDrafts(UID)]);
+    expect(getPostingActivity(UID)).toEqual({ thisWeekPosted: 1, weekStreak: 3 });
+  });
+
+  it("counts this month's posts and the last one out", () => {
+    saveDrafts(UID, [posted("a", 7), posted("b", 1), posted("c", 14), post({ id: "d" }), post({ id: "e", status: "scheduled" })]);
+    expect(getDraftStats(UID)).toEqual({ total: 5, drafts: 1, scheduled: 1, posted: 3, postedThisMonth: 2, lastPostedAt: ago(1) });
+  });
+});
+
+describe("another brand's posts, for the Calendar's every-brand view", () => {
+  it("reads each brand's list as stored, whichever brand is open, and a damaged one as empty", () => {
+    const mb = addProfile(UID, "MoneyBees");
+    setActiveProfile(UID, mb.id);
+    saveDrafts(UID, [post({ id: "mb1" })]);
+    setActiveProfile(UID, DEFAULT_PROFILE_ID);
+    saveDrafts(UID, [post({ id: "me1" })]);
+    expect(draftsOfBrand(UID, mb.id).map((d) => d.id)).toEqual(["mb1"]);
+    expect(draftsOfBrand(UID, DEFAULT_PROFILE_ID).map((d) => d.id)).toEqual(["me1"]);
+    (globalThis as unknown as { window: { localStorage: Storage } }).window.localStorage.setItem(`content-studio-drafts-${UID}~${mb.id}`, "{oops");
+    expect(draftsOfBrand(UID, mb.id)).toEqual([]);
   });
 });
