@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import fixture from "./fixtures/facebook-ads.json";
 import {
-  type Brand, cleanSuggest, excluded, firstHttpsLogo, organicResults, parseInput, parseProposals, parseWhys, pickSite, siteAsk, siteRetry, suggestFilter,
+  type Brand, adLibraryUrl, adsInput, cleanAds, cleanSuggest, excluded, firstHttpsLogo, organicResults, pageMissing, pageOf, parseInput, parseProposals, parseWhys,
+  pickSite, postsFailure, sgDay, shapeAds, siteAsk, siteRetry, suggestFilter,
 } from "./logic";
 
 describe("what the add bar reads", () => {
@@ -138,5 +140,126 @@ describe("suggesting competitors", () => {
     expect(whys.c1).toHaveLength(160);
     expect(whys.c1).not.toMatch(/—/);
     expect(parseWhys("nope", ["c1"])).toEqual({});
+  });
+});
+
+describe("ads: where the actor starts", () => {
+  it("reads a page id's Ad Library view in Singapore or anywhere, and a bare handle's page", () => {
+    expect(adLibraryUrl({ fbPageId: "104504174628", facebook: "SinglifeSG", country: "SG" })).toBe(
+      "https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=SG&view_all_page_id=104504174628&search_type=page&media_type=all",
+    );
+    expect(adLibraryUrl({ fbPageId: "104504174628", facebook: null, country: "ALL" })).toContain("&country=ALL&view_all_page_id=104504174628&");
+    expect(adLibraryUrl({ fbPageId: null, facebook: "sleekflow.io", country: "SG" })).toBe("https://www.facebook.com/sleekflow.io");
+  });
+
+  it("sends the contract's input with no charged add-ons", () => {
+    expect(adsInput("https://www.facebook.com/x")).toEqual({
+      startUrls: [{ url: "https://www.facebook.com/x" }], resultsLimit: 30, activeStatus: "", sorting: "relevancy_monthly_grouped",
+      isDetailsPerAd: false, includeAboutPage: false, enrichWithEcommerceData: false,
+    });
+  });
+
+  it("refuses a body with no page, and anything that could reshape the URL", () => {
+    expect(cleanAds({ competitorId: "c-1", name: "Singlife" })).toBe("Add their Facebook page first.");
+    expect(cleanAds({ name: "Singlife", fbPageId: "123456" })).toBe("Say which competitor.");
+    expect(cleanAds({ competitorId: "c-1", fbPageId: "12&x=1", facebook: "../ads" })).toBe("Add their Facebook page first.");
+    expect(cleanAds({ competitorId: "c-1", name: " Singlife ", fbPageId: "123456", country: "XX" })).toEqual({ competitorId: "c-1", name: "Singlife", fbPageId: "123456", facebook: null, country: "SG" });
+    expect(cleanAds({ competitorId: "c-1", facebook: "SinglifeSG", country: "ALL" })).toMatchObject({ fbPageId: null, facebook: "SinglifeSG", country: "ALL" });
+  });
+});
+
+describe("ads: shaping the actor's answer (the saved run)", () => {
+  const items = fixture as Record<string, unknown>[];
+  const NOW = Date.parse("2026-10-20T12:00:00Z");
+
+  it("keeps every ad of the run with its fields, running first", () => {
+    const ads = shapeAds(items, NOW);
+    expect(ads).toHaveLength(10);
+    expect(ads.filter((a) => !a.active).map((a) => a.id)).toEqual(["964733842858227"]);
+    expect(ads.at(-1)!.id).toBe("964733842858227");
+    const muncly = ads.find((a) => a.id === "977824304753041")!;
+    expect(muncly).toMatchObject({
+      format: "image", headline: "Get a free audit", cta: "See details", link: "https://muncly.com/crm-audit-offer/",
+      start: "2026-10-20", end: "2026-10-20", active: true, platforms: ["facebook", "instagram", "threads"], versions: 1, video: null,
+    });
+    expect(muncly.image).toMatch(/^https:\/\/scontent/);
+    expect(muncly.body.startsWith("A new CRM won")).toBe(true);
+    expect(muncly.body.length).toBeLessThanOrEqual(600);
+  });
+
+  it("reads the format from the media: a video's poster, a DCO's first card, lowercase platforms", () => {
+    const ads = shapeAds(items, NOW);
+    const video = ads.find((a) => a.id === "1496068682350336")!;
+    expect(video.format).toBe("video");
+    expect(video.video).toMatch(/^https:\/\/video/);
+    expect(video.image).toMatch(/^https:\/\//);
+    const dco = ads.find((a) => a.id === "2098596340759533")!;
+    expect(dco).toMatchObject({ format: "image", headline: "Card spend beside closed deals.", versions: 1 });
+    expect(dco.image).toMatch(/^https:\/\//);
+    expect(ads.find((a) => a.id === "1135500952358956")!.platforms).toEqual(["facebook", "instagram", "audience_network", "threads"]);
+  });
+
+  it("turns a numeric startDate into the day in Singapore", () => {
+    expect(sgDay(1792479600)).toBe("2026-10-20"); // 07:00 UTC
+    expect(sgDay(1792432800)).toBe("2026-10-20"); // 18:00 UTC on the 19th is 02:00 on the 20th in Singapore
+    expect(sgDay(1792432800000)).toBe("2026-10-20");
+    expect(sgDay("2026-10-19T18:00:00.000Z")).toBe("2026-10-20");
+    expect(sgDay(null)).toBeNull();
+    expect(sgDay("soon")).toBeNull();
+  });
+
+  it("keeps one ad per collationId and drops catalog templates", () => {
+    const twin = { ...items[0], adArchiveID: "977824304753999" };
+    const template = { ...items[2], adArchiveID: "111222333444", collationId: "999", snapshot: { ...(items[2].snapshot as object), body: { text: "Hi {{product.name}}, only {{product.price}}" } } };
+    const ads = shapeAds([...items, twin, template], NOW);
+    expect(ads).toHaveLength(10);
+    expect(ads.filter((a) => a.id.startsWith("9778243047")).length).toBe(1);
+    expect(ads.some((a) => a.id === "111222333444")).toBe(false);
+  });
+
+  it("gives nulls, never a throw, for missing snapshot fields, and sorts the longest running first", () => {
+    const ads = shapeAds([
+      { adArchiveID: "500", isActive: true, startDate: 1790000000 },
+      { adArchiveID: "501", isActive: true, startDate: 1780000000, snapshot: { body: "plain string body", ctaType: "LEARN_MORE", images: [{ originalImageUrl: "http://insecure.jpg" }] } },
+      { adArchiveID: "x" },
+      null,
+      { adArchiveID: "502", isActive: false, startDate: 1700000000, endDate: 1700864000 },
+    ], NOW);
+    expect(ads.map((a) => a.id)).toEqual(["501", "500", "502"]);
+    expect(ads[1]).toEqual({
+      id: "500", format: "text", headline: null, body: "", cta: null, link: null, image: null, video: null,
+      start: sgDay(1790000000), end: null, active: true, platforms: [], versions: 1,
+    });
+    expect(ads[0]).toMatchObject({ body: "plain string body", cta: "Learn more", image: null });
+    expect(shapeAds("nope" as unknown as unknown[])).toEqual([]);
+  });
+
+  it("caps the list at 30", () => {
+    const many = Array.from({ length: 40 }, (_, k) => ({ adArchiveID: String(1000 + k), isActive: true, startDate: 1790000000 + k }));
+    expect(shapeAds(many, NOW)).toHaveLength(30);
+  });
+
+  it("finds the page the ads came from, and tells a missing page from no ads", () => {
+    expect(pageOf(items)).toEqual({ pageId: "362293550309745", pageName: "Muncly" });
+    expect(pageOf([])).toEqual({ pageId: null, pageName: null });
+    expect(pageMissing([{ url: "https://www.facebook.com/nope", error: "Page not found" }])).toBe(true);
+    expect(pageMissing([])).toBe(false);
+    expect(pageMissing(items)).toBe(false);
+  });
+});
+
+describe("posts: what a failed read answers", () => {
+  it("keeps the use for a private or missing account and rewrites the private line", () => {
+    const p = postsFailure("@acme is private, so its posts can't be read. Make the account public, then refresh.", "acme");
+    expect(p).toEqual({ status: 422, code: "private", error: "@acme is private, so we can't read its posts.", refund: false });
+    expect(p.error).not.toContain("Make the account public");
+    expect(postsFailure("We couldn't find a public Instagram account called @acme. Check the spelling.", "acme")).toMatchObject({ status: 422, code: "not_found", refund: false });
+    expect(postsFailure("We couldn't find public TikTok videos for @acme. Check the spelling and that the account is public.", "acme").code).toBe("not_found");
+  });
+
+  it("gives both uses back when Apify never answered", () => {
+    for (const m of ["The platform took too long to answer. Try again in a few minutes.", "Account audits are paused while the scraping account is sorted out. Try again later.", "Couldn't read the account right now. Try again in a few minutes."]) {
+      expect(postsFailure(m, "acme")).toEqual({ status: 502, code: "failed", error: "Couldn't read that account right now. Try again in a few minutes.", refund: true });
+    }
   });
 });

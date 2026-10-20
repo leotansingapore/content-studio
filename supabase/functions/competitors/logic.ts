@@ -300,3 +300,167 @@ export function parseWhys(content: unknown, keys: string[]): Record<string, stri
     return {};
   }
 }
+
+// ---- ads: one competitor's Meta ads (docs/north-star/items/find-competitor-ads.md) -------------------------------
+
+export interface CompetitorAd {
+  /** adArchiveID */
+  id: string;
+  format: "image" | "video" | "carousel" | "text";
+  /** 120 characters */
+  headline: string | null;
+  /** 600 characters, line breaks kept */
+  body: string;
+  cta: string | null;
+  link: string | null;
+  /** The first picture, video poster or first card's picture: Meta's link, which expires. */
+  image: string | null;
+  /** Expires too. */
+  video: string | null;
+  /** YYYY-MM-DD in Singapore time. */
+  start: string | null;
+  end: string | null;
+  active: boolean;
+  /** facebook, instagram, messenger, threads, audience_network */
+  platforms: string[];
+  /** collationCount: how many versions Meta groups under this ad. */
+  versions: number;
+  // added by find-ad-library
+  hookFamily?: string | null;
+  emotion?: string | null;
+  audience?: string | null;
+}
+
+export const ADS_MAX = 30;
+export const ADS_ACTOR = "apify~facebook-ads-scraper";
+export interface AdsRequest { competitorId: string; name: string; fbPageId: string | null; facebook: string | null; country: "SG" | "ALL" }
+
+/** The ads body, cleaned, or the reason it can't be used (400, before anything is counted). */
+export function cleanAds(body: unknown): AdsRequest | string {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const competitorId = text(b.competitorId, 120);
+  if (!competitorId) return "Say which competitor.";
+  const fbPageId = typeof b.fbPageId === "string" && /^\d{3,25}$/.test(b.fbPageId) ? b.fbPageId : null;
+  const facebook = typeof b.facebook === "string" && /^[A-Za-z0-9._-]{2,60}$/.test(b.facebook) ? b.facebook : null;
+  if (!fbPageId && !facebook) return "Add their Facebook page first.";
+  return { competitorId, name: text(b.name, 80), fbPageId, facebook, country: b.country === "ALL" ? "ALL" : "SG" };
+}
+
+/** Where the actor starts: the page's Ad Library view (country filter applies), else the Facebook page itself. */
+export function adLibraryUrl(r: Pick<AdsRequest, "fbPageId" | "facebook" | "country">): string {
+  if (r.fbPageId) {
+    return `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=${r.country}&view_all_page_id=${r.fbPageId}&search_type=page&media_type=all`;
+  }
+  return `https://www.facebook.com/${r.facebook}`;
+}
+
+/** The actor's input with none of its charged add-ons (phase2-build-brief.md, Contracts). */
+export const adsInput = (url: string) => ({
+  startUrls: [{ url }], resultsLimit: ADS_MAX, activeStatus: "", sorting: "relevancy_monthly_grouped",
+  isDetailsPerAd: false, includeAboutPage: false, enrichWithEcommerceData: false,
+});
+
+type Rec = Record<string, unknown>;
+const rec = (v: unknown): Rec => (v && typeof v === "object" ? (v as Rec) : {});
+const https = (v: unknown) => (typeof v === "string" && v.startsWith("https://") && v.length <= 2000 ? v : null);
+const firstOf = (v: unknown): Rec => rec(Array.isArray(v) ? v[0] : null);
+const PLATFORM_IDS = ["facebook", "instagram", "messenger", "threads", "audience_network"];
+const DAY_MS = 86_400_000;
+const SG_MS = 8 * 3_600_000;
+
+/** Epoch seconds (or ms, or an ISO string) as the day in Singapore, YYYY-MM-DD; null when unreadable. */
+export function sgDay(v: unknown): string | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && /^\d+$/.test(v) ? Number(v) : NaN;
+  const ms = Number.isFinite(n) ? (n > 1e12 ? n : n * 1000) : typeof v === "string" ? Date.parse(v) : NaN;
+  return Number.isFinite(ms) && ms > 0 ? new Date(ms + SG_MS).toISOString().slice(0, 10) : null;
+}
+
+/** "SEE_DETAILS" -> "See details", for an ad with no ctaText. */
+const ctaWords = (t: unknown) => (typeof t === "string" && /^[A-Z_]{2,40}$/.test(t) ? t[0] + t.slice(1).toLowerCase().replace(/_/g, " ") : null);
+
+/** Days from start to the end (or `now` while it runs); -1 when the start is unknown. */
+const runDays = (a: CompetitorAd, now: number) =>
+  a.start ? Math.max(0, Math.floor(((a.active || !a.end ? now : Date.parse(a.end)) - Date.parse(a.start)) / DAY_MS)) : -1;
+
+/**
+ * The actor's items as the ads the app keeps: one per collationId, no catalog templates ({{product.), text trimmed,
+ * platforms lowercased, running ads first, then the longest running, 30 at most. Missing fields give nulls.
+ * Field names from the integrator's real run (fixtures/facebook-ads.json, 20 Oct 2026).
+ */
+export function shapeAds(items: unknown[], now = Date.now()): CompetitorAd[] {
+  const out: { group: string; ad: CompetitorAd }[] = [];
+  for (const raw of Array.isArray(items) ? items : []) {
+    const i = rec(raw);
+    const id = String(i.adArchiveID ?? i.adArchiveId ?? "").trim();
+    if (!/^\d{3,30}$/.test(id)) continue;
+    const s = rec(i.snapshot);
+    const card = firstOf(s.cards);
+    const img = firstOf(s.images);
+    const vid = firstOf(s.videos);
+    const body = String((typeof s.body === "string" ? s.body : rec(s.body).text) ?? card.body ?? "").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+    const headline = text(s.title ?? card.title, 120) || null;
+    if (`${headline ?? ""} ${body}`.includes("{{product.")) continue;
+    const video = https(vid.videoHdUrl) ?? https(vid.videoSdUrl) ?? https(card.videoHdUrl) ?? https(card.videoSdUrl);
+    const image = https(img.resizedImageUrl) ?? https(img.originalImageUrl) ?? https(vid.videoPreviewImageUrl)
+      ?? https(card.resizedImageUrl) ?? https(card.originalImageUrl) ?? https(card.videoPreviewImageUrl);
+    const display = String(s.displayFormat ?? "").toUpperCase();
+    const platforms = (Array.isArray(i.publisherPlatform) ? i.publisherPlatform : []).map((p) => String(p).toLowerCase()).filter((p) => PLATFORM_IDS.includes(p));
+    out.push({
+      group: i.collationId == null ? "" : String(i.collationId),
+      ad: {
+        id,
+        format: video ? "video" : /CAROUSEL|MULTI|DPA/.test(display) ? "carousel" : image ? "image" : "text",
+        headline,
+        body: body.slice(0, 600).trim(),
+        cta: text(s.ctaText ?? card.ctaText, 40) || ctaWords(s.ctaType),
+        link: https(s.linkUrl) ?? https(card.linkUrl),
+        image,
+        video,
+        start: sgDay(i.startDate) ?? sgDay(i.startDateFormatted),
+        end: sgDay(i.endDate) ?? sgDay(i.endDateFormatted),
+        active: i.isActive === true,
+        platforms: [...new Set(platforms)],
+        versions: typeof i.collationCount === "number" && i.collationCount >= 1 ? Math.floor(i.collationCount) : 1,
+      },
+    });
+  }
+  const groups = new Set<string>();
+  return out
+    .sort((x, y) => Number(y.ad.active) - Number(x.ad.active) || runDays(y.ad, now) - runDays(x.ad, now) || x.ad.id.localeCompare(y.ad.id))
+    .filter(({ group }) => !group || (groups.has(group) ? false : (groups.add(group), true)))
+    .slice(0, ADS_MAX)
+    .map((x) => x.ad);
+}
+
+/** The page the ads came from (written back onto the competitor so later checks use the country filter). */
+export function pageOf(items: unknown[]): { pageId: string | null; pageName: string | null } {
+  for (const raw of Array.isArray(items) ? items : []) {
+    const i = rec(raw);
+    const id = String(i.pageID ?? i.pageId ?? rec(i.snapshot).pageId ?? "");
+    if (/^\d{3,25}$/.test(id)) return { pageId: id, pageName: text(i.pageName ?? rec(i.snapshot).pageName, 120) || null };
+  }
+  return { pageId: null, pageName: null };
+}
+
+/**
+ * Nothing came back but an error item: the page couldn't be opened. shape unverified: the saved run has no failed
+ * page, so this follows Apify's usual { url, error } item; an empty dataset stays "no ads".
+ */
+export const pageMissing = (items: unknown[]) =>
+  Array.isArray(items) && items.length > 0 && items.every((i) => typeof rec(i).error === "string" || typeof rec(i).errorDescription === "string");
+
+// ---- posts: one competitor's Instagram or TikTok posts (find-competitor-posts.md) --------------------------------
+
+/** Read a few over 30, for pinned posts, which are left out. */
+export const POSTS_READ = 33;
+export const POSTS_KEPT = 30;
+
+/**
+ * What the posts mode answers when scrapeAccount throws (its AuditError text): a wrong or private account keeps the
+ * use, since the read was billed; anything else means Apify never answered, so both uses go back.
+ */
+export function postsFailure(message: string, handle: string): { status: 422 | 502; code: string; error: string; refund: boolean } {
+  if (message.includes(" is private")) return { status: 422, code: "private", error: `@${handle} is private, so we can't read its posts.`, refund: false };
+  if (message.startsWith("We couldn't find")) return { status: 422, code: "not_found", error: message, refund: false };
+  return { status: 502, code: "failed", error: "Couldn't read that account right now. Try again in a few minutes.", refund: true };
+}

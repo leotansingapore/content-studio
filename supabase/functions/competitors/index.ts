@@ -5,27 +5,34 @@
 //            the app adds them itself with parseInput.
 //   suggest  up to 6 competitors with a why line: the app's candidates plus up to 8 the LLM proposes (each site must
 //            open), scored by Jev, then one LLM call for the why lines.
-// Later waves add ads, posts, space, label and match.
+//   ads      one competitor's Meta ads (apify~facebook-ads-scraper, up to 30 at US$5.80 per 1,000 on Free).
+//   posts    one competitor's Instagram or TikTok posts, 30 kept (the actors Following uses).
+// Later waves add space, label and match.
 //
-// Leo only while NORTH_STAR_USERS lists the caller. Caps "competitor-read" and "competitor-suggest". A use goes back
-// only when a provider never answered (502/503); "not found" and an empty list keep it (phase2-build-brief.md).
+// Leo only while NORTH_STAR_USERS lists the caller. Caps "competitor-read", "competitor-suggest", "competitor-ads"
+// and "competitor-posts" per user, the last two also across everyone on GLOBAL_COUNTER_USER. A use goes back only
+// when a provider never answered (502/503); "not found", "private" and an empty list keep it (phase2-build-brief.md).
 //
-// Secrets (all set already): NORTH_STAR_USERS, DATAFORSEO_LOGIN, DATAFORSEO_PASSWORD, OPENAI_API_KEY, TYPESAFE_API_KEY.
+// Secrets (all set already): NORTH_STAR_USERS, DATAFORSEO_LOGIN, DATAFORSEO_PASSWORD, OPENAI_API_KEY, TYPESAFE_API_KEY,
+// APIFY_API_KEY.
 // Deploy WITH JWT verification:
 //   supabase functions deploy competitors --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
+import { AuditError, apifyItems, scrapeAccount } from "../_shared/auditRunner.ts";
 import { dfs, dfsAuth } from "../_shared/dataforseo.ts";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { pool } from "../_shared/pool.ts";
 import { fetchCapped } from "../_shared/safeFetch.ts";
-import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, type UsageResult, usageRefusal } from "../_shared/usageCaps.ts";
 import { readSite, siteUrl, type SiteFacts } from "../brand-dna/logic.ts";
 import { isAllowed, newsFailed } from "../market/logic.ts";
+import { parseTrackRequest, shapeResult } from "../track-accounts/logic.ts";
 import {
-  type Ask, type Candidate, cleanSuggest, compareAsk, excluded, firstHttpsLogo, hostOf, nameTask, organicResults, parseInput, parseProposals,
-  parseWhys, pickSite, PROPOSE_FORMAT, proposeMessages, siteAsk, siteRetry, suggestFilter, WHY_FORMAT, whyMessages,
+  ADS_ACTOR, adLibraryUrl, adsInput, type Ask, type Candidate, cleanAds, cleanSuggest, compareAsk, excluded, firstHttpsLogo, hostOf, nameTask,
+  organicResults, pageMissing, pageOf, parseInput, parseProposals, parseWhys, pickSite, POSTS_KEPT, POSTS_READ, postsFailure, PROPOSE_FORMAT,
+  proposeMessages, shapeAds, siteAsk, siteRetry, suggestFilter, WHY_FORMAT, whyMessages,
 } from "./logic.ts";
 
 const headers = {
@@ -42,7 +49,14 @@ const PAGE_BYTES = 300_000;
 const HTML = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5";
 const SITE_FAILED = "Couldn't read their site. Try again in a few minutes.";
 const SUGGEST_FAILED = "Couldn't suggest anything right now. Try again in a few minutes.";
+const ADS_FAILED = "Couldn't read Meta's ad library right now. Try again in a few minutes.";
+const ADS_PAUSED = "Ad checks are paused for today. They resume at 8am Singapore time.";
+const POSTS_PAUSED = "Account checks are paused for today. They resume at 8am Singapore time.";
 const jev = (a: Ask, who: string) => askJev(a.state, a.questions, { who });
+const refusal = (u: Extract<UsageResult, { allowed: false }>) => {
+  const r = usageRefusal(u);
+  return json(r.body, r.status);
+};
 
 /** A home page's facts, or whether the failure is worth another try (the site never answered). */
 async function readHome(url: URL, deadline = AbortSignal.timeout(20_000)): Promise<{ ok: true; host: string; facts: SiteFacts } | { ok: false; retry: boolean }> {
@@ -165,6 +179,63 @@ async function suggest(admin: Admin, uid: string, body: unknown): Promise<Respon
   return json({ suggestions: kept.map((c) => ({ name: c.name, site: c.site ?? null, why: whys[c.key] ?? "", score: Math.round(c.score * 100) / 100 })) });
 }
 
+async function ads(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const r = cleanAds(body);
+  if (typeof r === "string") return fail(400, "bad_request", r);
+  const token = Deno.env.get("APIFY_API_KEY");
+  if (!token) return fail(503, "failed", "Ad checks aren't switched on yet.");
+
+  const day = new Date().toISOString().slice(0, 10);
+  const mine = await consumeUsage(admin, uid, "competitor-ads");
+  if (!mine.allowed) return refusal(mine);
+  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "competitor-ads-global");
+  if (!everyone.allowed) {
+    await refundUsage(admin, uid, "competitor-ads", day);
+    return everyone.reason === "limit" ? fail(429, "global_limit", ADS_PAUSED) : refusal(everyone);
+  }
+
+  let items: unknown[];
+  try {
+    items = await apifyItems(ADS_ACTOR, adsInput(adLibraryUrl(r)), token);
+  } catch (e) {
+    console.error("competitors ads: apify", r.competitorId, msg(e));
+    await Promise.all([refundUsage(admin, uid, "competitor-ads", day), refundUsage(admin, GLOBAL_COUNTER_USER, "competitor-ads-global", day)]);
+    return fail(502, "failed", ADS_FAILED);
+  }
+  // Apify answered (and billed): from here the uses are kept, ads or none
+  const list = shapeAds(items);
+  if (!list.length && pageMissing(items)) return fail(422, "not_found", "That page wasn't found on Meta. Check the link.");
+  const page = pageOf(items);
+  return json({ competitorId: r.competitorId, pageId: page.pageId ?? r.fbPageId, pageName: page.pageName, ads: list, checkedAt: new Date().toISOString() });
+}
+
+async function posts(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const r = parseTrackRequest(body);
+  if (!r.ok) return fail(400, "bad_request", r.error);
+  const token = Deno.env.get("APIFY_API_KEY");
+  if (!token) return fail(503, "failed", "Post checks aren't switched on yet.");
+
+  const day = new Date().toISOString().slice(0, 10);
+  const mine = await consumeUsage(admin, uid, "competitor-posts");
+  if (!mine.allowed) return refusal(mine);
+  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "competitor-posts-global");
+  if (!everyone.allowed) {
+    await refundUsage(admin, uid, "competitor-posts", day);
+    return everyone.reason === "limit" ? fail(429, "global_limit", POSTS_PAUSED) : refusal(everyone);
+  }
+
+  try {
+    const read = await scrapeAccount(r.platform, r.handle, token, POSTS_READ);
+    return json({ ...shapeResult(r.platform, read.profile, read.posts, POSTS_KEPT), checkedAt: new Date().toISOString() });
+  } catch (e) {
+    if (!(e instanceof AuditError)) throw e;
+    const f = postsFailure(e.message, r.handle);
+    console.warn("competitors posts:", r.platform, r.handle, f.code, msg(e));
+    if (f.refund) await Promise.all([refundUsage(admin, uid, "competitor-posts", day), refundUsage(admin, GLOBAL_COUNTER_USER, "competitor-posts-global", day)]);
+    return fail(f.status, f.code, f.error);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -178,6 +249,8 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body?.mode === "read") return await read(admin, uid, body);
     if (body?.mode === "suggest") return await suggest(admin, uid, body);
+    if (body?.mode === "ads") return await ads(admin, uid, body);
+    if (body?.mode === "posts") return await posts(admin, uid, body);
     return fail(400, "bad_request", "Unknown mode.");
   } catch (e) {
     console.error("competitors failed", msg(e));

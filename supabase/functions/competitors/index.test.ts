@@ -1,16 +1,19 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import FB_ADS from "./fixtures/facebook-ads.json";
 
 // The handler with every provider faked (DataForSEO, the sites, OpenAI, Jev): which counters move, which come back.
 const db = vi.hoisted(() => ({
   spent: [] as string[],
   refunded: [] as string[],
   limit: false,
+  /** features whose counter is spent */
+  refuse: [] as string[],
   admin: {} as Record<string, unknown>,
   handler: null as null | ((r: Request) => Promise<Response>),
 }));
 db.admin = {
   auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
-  rpc: async (_fn: string, a: Record<string, unknown>) => (db.spent.push(String(a.p_feature)), { data: db.limit ? null : 1, error: null }),
+  rpc: async (_fn: string, a: Record<string, unknown>) => (db.spent.push(String(a.p_feature)), { data: db.limit || db.refuse.includes(String(a.p_feature)) ? null : 1, error: null }),
   from: () => ({
     select: () => ({ match: async () => ({ data: [{ count: 1 }], error: null }) }),
     update: () => ({ match: (q: { feature: string }) => ({ select: async () => (db.refunded.push(q.feature), { data: [{ count: 0 }], error: null }) }) }),
@@ -35,6 +38,12 @@ let serp: "ok" | "down" = "ok";
 let jevMode: "up" | "down" = "up";
 let site: { choice: string; probabilities: Record<string, number> } = { choice: "r1", probabilities: { r1: 0.9 } };
 let openai: "ok" | "down" | "why-down" = "ok";
+let apify: "ok" | "down" | "timeout" | "missing" | "empty" | "private" = "ok";
+const apifyRuns: { actor: string; input: Record<string, unknown> }[] = [];
+const IG_POSTS = Array.from({ length: 40 }, (_, k) => ({
+  shortCode: `C${k}`, type: k % 3 ? "Image" : "Video", productType: k % 3 ? "feed" : "clips", caption: `Post ${k}`, ownerUsername: "acmewealth",
+  timestamp: new Date(Date.UTC(2026, 9, 19) - k * 86_400_000).toISOString(), likesCount: 100 + k, commentsCount: 3, videoPlayCount: k % 3 ? null : 5000 + k,
+}));
 const compare: Record<string, number> = { SleekFlow: 0.9, "respond.io": 0.7, Pipedrive: 0.65, Spotio: 0.95, Sunsama: 0.3 };
 
 beforeAll(async () => {
@@ -66,6 +75,18 @@ beforeAll(async () => {
         : { competitors: [{ name: "Spotio", site: "spotio.com" }, { name: "Made Up", site: "invented.sg" }] };
       return Response.json({ model: "m", choices: [{ message: { content: JSON.stringify(content) } }] });
     }
+    if (url.startsWith("https://api.apify.com/")) {
+      const input = JSON.parse(String(init?.body));
+      apifyRuns.push({ actor: url.split("/acts/")[1].split("/")[0], input });
+      if (apify === "down") return new Response("actor failed", { status: 500 });
+      if (apify === "timeout") throw new DOMException("The signal has been aborted", "TimeoutError");
+      if (url.includes("facebook-ads-scraper")) return Response.json(apify === "missing" ? [{ url: input.startUrls[0].url, error: "Page not found" }] : apify === "empty" ? [] : FB_ADS);
+      if (url.includes("instagram-profile-scraper")) {
+        return Response.json(apify === "missing" ? [] : [{ username: input.usernames[0], fullName: "Acme Wealth", followersCount: 4200, postsCount: 90, private: apify === "private" }]);
+      }
+      if (url.includes("instagram-post-scraper")) return Response.json(IG_POSTS.slice(0, input.resultsLimit));
+      return Response.json([]); // TikTok with no videos
+    }
     if (url === "https://down.sg/") throw new TypeError("error sending request");
     if (url === "https://gone.sg/") return new Response("missing", { status: 404 });
     const host = new URL(url).hostname.replace(/^www\./, "").split(".")[0];
@@ -78,7 +99,10 @@ beforeEach(() => {
   db.spent.length = 0;
   db.refunded.length = 0;
   db.limit = false;
-  env = { NORTH_STAR_USERS: `someone-else,${LEO}`, DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p", OPENAI_API_KEY: "k", TYPESAFE_API_KEY: "t" };
+  db.refuse = [];
+  apify = "ok";
+  apifyRuns.length = 0;
+  env = { NORTH_STAR_USERS: `someone-else,${LEO}`, DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p", OPENAI_API_KEY: "k", TYPESAFE_API_KEY: "t", APIFY_API_KEY: "a" };
   serp = "ok";
   jevMode = "up";
   openai = "ok";
@@ -211,5 +235,105 @@ describe("competitors suggest", () => {
     const r = await call({ mode: "suggest", brand, candidates: candidates.filter((c) => c.name === "Sunsama") , exclude: ["spotio"] });
     expect(r.body).toEqual({ suggestions: [] });
     expect(db.refunded).toEqual([]);
+  });
+});
+
+const adsBody = { mode: "ads", competitorId: "sleekflow-ab12", name: "SleekFlow", fbPageId: "362293550309745", facebook: "sleekflow.io", country: "SG" };
+const postsBody = { mode: "posts", platform: "instagram", handle: "@AcmeWealth" };
+const ADS_FAILED = "Couldn't read Meta's ad library right now. Try again in a few minutes.";
+
+describe("competitors ads and posts: the gate and the counters", () => {
+  it("answers 403 for anyone not listed, before any counter or Apify", async () => {
+    for (const body of [adsBody, postsBody]) expect((await call(body, "not-listed")).body.code).toBe("not_enabled");
+    expect(db.spent).toEqual([]);
+    expect(apifyRuns).toEqual([]);
+  });
+
+  it("refuses a body it can't use before counting", async () => {
+    expect((await call({ ...adsBody, fbPageId: null, facebook: null })).body).toEqual({ code: "bad_request", error: "Add their Facebook page first." });
+    expect((await call({ ...postsBody, handle: "https://www.instagram.com/reel/abc/" })).body.code).toBe("bad_request");
+    expect((await call({ ...postsBody, platform: "youtube" })).status).toBe(400);
+    expect(db.spent).toEqual([]);
+  });
+
+  it("counts the user first, then everyone; a spent user cap never touches everyone's", async () => {
+    await call(adsBody);
+    await call(postsBody);
+    expect(db.spent).toEqual(["competitor-ads", "competitor-ads-global", "competitor-posts", "competitor-posts-global"]);
+    db.spent.length = 0;
+    db.refuse = ["competitor-ads"];
+    const r = await call(adsBody);
+    expect(r.status).toBe(429);
+    expect(r.body.code).toBe("daily_limit");
+    expect(db.spent).toEqual(["competitor-ads"]);
+    expect(apifyRuns).toHaveLength(3); // the ads run, then Instagram profile + posts: none for the refused call
+  });
+
+  it("answers global_limit with the paused line when everyone's counter is spent, and gives the user's use back", async () => {
+    db.refuse = ["competitor-ads-global", "competitor-posts-global"];
+    expect(await call(adsBody)).toEqual({ status: 429, body: { code: "global_limit", error: "Ad checks are paused for today. They resume at 8am Singapore time." } });
+    expect(await call(postsBody)).toEqual({ status: 429, body: { code: "global_limit", error: "Account checks are paused for today. They resume at 8am Singapore time." } });
+    expect(db.refunded).toEqual(["competitor-ads", "competitor-posts"]);
+    expect(apifyRuns).toEqual([]);
+  });
+});
+
+describe("competitors ads", () => {
+  it("reads the page's Singapore ads with no add-ons and answers the shaped list", async () => {
+    const r = await call(adsBody);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ competitorId: "sleekflow-ab12", pageId: "362293550309745", pageName: "Muncly" });
+    expect(r.body.ads).toHaveLength(10);
+    expect(Date.parse(r.body.checkedAt)).toBeGreaterThan(0);
+    expect(apifyRuns).toEqual([{ actor: "apify~facebook-ads-scraper", input: expect.objectContaining({ resultsLimit: 30, activeStatus: "", sorting: "relevancy_monthly_grouped" }) }]);
+    expect((apifyRuns[0].input.startUrls as { url: string }[])[0].url).toContain("country=SG&view_all_page_id=362293550309745");
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("starts from the Facebook page when there is no page id", async () => {
+    await call({ ...adsBody, fbPageId: null, country: "ALL" });
+    expect((apifyRuns[0].input.startUrls as { url: string }[])[0].url).toBe("https://www.facebook.com/sleekflow.io");
+  });
+
+  it("gives both uses back when Apify fails or times out, and keeps them for no ads or a missing page", async () => {
+    for (const mode of ["down", "timeout"] as const) {
+      apify = mode;
+      expect(await call(adsBody)).toEqual({ status: 502, body: { code: "failed", error: ADS_FAILED } });
+    }
+    expect(db.refunded).toEqual(["competitor-ads", "competitor-ads-global", "competitor-ads", "competitor-ads-global"]);
+    db.refunded.length = 0;
+    apify = "empty";
+    expect((await call(adsBody)).body).toMatchObject({ pageId: "362293550309745", pageName: null, ads: [] });
+    apify = "missing";
+    expect(await call({ ...adsBody, fbPageId: null })).toEqual({ status: 422, body: { code: "not_found", error: "That page wasn't found on Meta. Check the link." } });
+    expect(db.refunded).toEqual([]);
+  });
+});
+
+describe("competitors posts", () => {
+  it("reads 33 and keeps the newest 30 in Following's shape", async () => {
+    const r = await call(postsBody);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ platform: "instagram", handle: "acmewealth", name: "Acme Wealth", followers: 4200 });
+    expect(r.body.posts).toHaveLength(30);
+    expect(r.body.posts[0].id).toBe("C0");
+    expect(apifyRuns.find((a) => a.actor === "apify~instagram-post-scraper")?.input).toMatchObject({ username: ["acmewealth"], resultsLimit: 33 });
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("keeps the use for a private or missing account, with the rewritten private line", async () => {
+    apify = "private";
+    expect(await call(postsBody)).toEqual({ status: 422, body: { code: "private", error: "@acmewealth is private, so we can't read its posts." } });
+    apify = "missing";
+    const r = await call(postsBody);
+    expect(r).toEqual({ status: 422, body: { code: "not_found", error: "We couldn't find a public Instagram account called @acmewealth. Check the spelling." } });
+    expect((await call({ mode: "posts", platform: "tiktok", handle: "acme" })).body.code).toBe("not_found");
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("gives both uses back when Apify fails", async () => {
+    apify = "down";
+    expect(await call(postsBody)).toEqual({ status: 502, body: { code: "failed", error: "Couldn't read that account right now. Try again in a few minutes." } });
+    expect(db.refunded).toEqual(["competitor-posts", "competitor-posts-global"]);
   });
 });
