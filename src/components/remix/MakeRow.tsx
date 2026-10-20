@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { FORMATS } from "@/data/formats";
 import { aiBusy as aiWorking, onAiJob, pendingAvatar } from "@/lib/aiVideo";
 import { links } from "@/lib/links";
-import { priceText } from "@/lib/prices";
+import { priceOf, priceText } from "@/lib/prices";
 import { AS_LABELS, MAKE_CHIPS, MAX_FORMATS, VIDEO_LIMITS, formatsAllowed, isVideo, videoBlock, videoPrice, type RemixAs } from "@/lib/remix";
 import type { RemixSource } from "@/lib/remixSource";
 import type { UsageFeature } from "../../../supabase/functions/_shared/usageCaps.ts";
@@ -65,15 +66,21 @@ export default function MakeRow(p: {
       </p>
       <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
         Also make:
-        {FORMATS.map((f) => (
-          <Link
-            key={f.slug}
-            to={links.makeFormat(f.slug, { source: p.source.key, go: 1, mention: p.mention === false ? "no" : undefined })}
-            className="inline-flex h-9 items-center rounded-full border border-border/60 px-3 font-medium text-foreground hover:border-primary/40 sm:h-7 [@media(pointer:coarse)]:min-h-11"
-          >
-            {f.name}
-          </Link>
-        ))}
+        {/* a link that makes on arrival, so it reads as a link with its price, not as one of the toggle chips above */}
+        {FORMATS.map((f) => {
+          const price = priceOf(f.cap);
+          return (
+            <Link
+              key={f.slug}
+              to={links.makeFormat(f.slug, { source: p.source.key, go: 1, mention: p.mention === false ? "no" : undefined })}
+              className="inline-flex items-center gap-1 font-semibold text-primary underline-offset-4 hover:underline [@media(pointer:coarse)]:min-h-11"
+            >
+              {f.name}
+              {price && price !== "pick" && <span className="font-normal tabular-nums text-muted-foreground">{priceText(price)}</span>}
+              <ArrowRight className="h-3 w-3" aria-hidden />
+            </Link>
+          );
+        })}
       </p>
     </section>
   );
