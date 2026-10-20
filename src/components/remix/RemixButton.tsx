@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode } from "react";
+import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Shuffle } from "lucide-react";
 import { Button, type ButtonProps } from "@/components/ui/button";
@@ -32,9 +32,21 @@ export default function RemixButton({
 }) {
   const leo = useLeoUser();
   const [params, setParams] = useSearchParams();
+  const opening = params.get("remix") === source.key;
+  // "Opening..." only until the sheet is on screen (its chunk can still be loading on the first press); then "Remix"
+  const [up, setUp] = useState(false);
+  useEffect(() => {
+    if (!opening || !leo) return;
+    let frame = 0;
+    const check = () => (document.getElementById("remix-title") ? setUp(true) : (frame = requestAnimationFrame(check)));
+    frame = requestAnimationFrame(check);
+    return () => {
+      cancelAnimationFrame(frame);
+      setUp(false);
+    };
+  }, [opening, leo]);
   if (!leo) return <>{children}</>;
   const remixed = remixedKeys(leo.id).get(source.key);
-  const opening = params.get("remix") === source.key;
   const open = (e: MouseEvent) => {
     // cards are often links themselves
     e.preventDefault();
@@ -48,7 +60,7 @@ export default function RemixButton({
     <span className={cn("inline-flex flex-wrap items-center gap-x-2 gap-y-1", className)}>
       <Button type="button" variant="outline" size={size} onClick={open} disabled={opening} aria-label={label && `Remix: ${label}`} className={cn("gap-1.5", className)}>
         <Shuffle className="h-3.5 w-3.5" />
-        {opening ? "Opening..." : "Remix"}
+        {opening && !up ? "Opening..." : "Remix"}
       </Button>
       {remixed && <span className="whitespace-nowrap text-[11px] text-muted-foreground">Remixed {dayMonth(remixed)}</span>}
     </span>
