@@ -725,12 +725,15 @@ function ConceptPicker({
   concepts,
   active,
   building,
+  built,
   error,
   onChoose,
 }: {
   concepts: Concept[];
   active: number;
   building: number | null;
+  /** Written before, so switching to it is free (withConcept). */
+  built: (index: number) => boolean;
   error: string | null;
   onChoose: (index: number) => void;
 }) {
@@ -752,7 +755,7 @@ function ConceptPicker({
               type="button"
               role="radio"
               aria-checked={on}
-              disabled={building !== null && !busy}
+              disabled={(building !== null && !busy) || (Boolean(why) && !on && !built(i))}
               onClick={() => onChoose(i)}
               className={`flex min-h-11 w-full items-start gap-2.5 rounded-lg border p-3 text-left transition-colors disabled:opacity-60 ${
                 on || busy ? "border-primary/40 bg-primary/5" : "border-border/60 hover:bg-accent/60"
@@ -842,6 +845,7 @@ function VersionCard({
             concepts={concepts}
             active={clone.concept ?? 0}
             building={building}
+            built={(i) => Boolean(clone.builds?.[i])}
             error={conceptError}
             onChoose={onChooseConcept}
           />
