@@ -72,6 +72,8 @@ export const writingStep = (as: RemixAs) => `Writing your ${AS_NOUN[as]}`;
 // shortcut: the check runs inside the one server call, so "Checking it" shows after a typical write time;
 // switch on a real signal if the function ever streams its steps.
 const CHECK_AFTER_MS = 12_000;
+/** The read is on the device and instant; its step holds this long so the walk shows it. The call starts at once. */
+const READ_MS = 600;
 
 let job: RemixJobState | null = null;
 let seq = 0;
@@ -162,7 +164,7 @@ async function makeRow(id: number, i: number, userId: string, run: RemixRun) {
     brand: brandPack(userId, { platform, mention: run.mention, offer: run.offer }),
     fit: run.fit as MakeRequest["fit"],
   };
-  patch(id, i, { step: writingStep(as) });
+  const writing = setTimeout(() => patch(id, i, { step: writingStep(as) }), READ_MS);
   const timer = setTimeout(() => patch(id, i, { step: CHECKING }), CHECK_AFTER_MS);
   try {
     const res = await requestMake(body);
@@ -173,6 +175,7 @@ async function makeRow(id: number, i: number, userId: string, run: RemixRun) {
   } catch (e) {
     patch(id, i, { state: "failed", step: "", ...failure(e) });
   } finally {
+    clearTimeout(writing);
     clearTimeout(timer);
   }
 }

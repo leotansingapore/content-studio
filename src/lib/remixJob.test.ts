@@ -8,7 +8,7 @@ import { splitDraftIntoSlides } from "./carousel";
 import { loadDrafts } from "./draftHistory";
 import { EdgeError } from "./edgeFn";
 import type { MakeResponse, MakeResult } from "./remix";
-import { clearRemixJob, onRemixJob, remixJob, runParams, startRemix, type RemixJobState, type RemixRun } from "./remixJob";
+import { CHECKING, READING, clearRemixJob, onRemixJob, remixJob, runParams, startRemix, writingStep, type RemixJobState, type RemixRun } from "./remixJob";
 import type { RemixSource } from "./remixSource";
 import { splitScriptCaption } from "./scriptCaption";
 
@@ -110,6 +110,27 @@ describe("startRemix", () => {
     release(answer({ as: "post", hook: "H", body: "B", cta: "", hashtags: [] }));
     await done;
     expect(make).toHaveBeenCalledTimes(1);
+  });
+
+  it("walks Reading the post, Writing your <format>, Checking it, with the call sent at once", async () => {
+    vi.useFakeTimers();
+    let release!: (v: MakeResponse) => void;
+    make.mockReturnValue(new Promise((r) => (release = r)));
+    const done = finished();
+    try {
+      startRemix(UID, run(["carousel"]));
+      expect(remixJob()!.step).toBe(READING);
+      expect(make).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(600);
+      expect(remixJob()!.step).toBe(writingStep("carousel"));
+      vi.advanceTimersByTime(12_000);
+      expect(remixJob()!.step).toBe(CHECKING);
+    } finally {
+      // finish the run either way, so a failure here never leaves a job running into the next test
+      release(answer({ as: "carousel", hook: "H", slides: Array.from({ length: 4 }, (_, i) => ({ title: `T${i}`, body: "B" })), cta: "Save this" }));
+      await done;
+      vi.useRealTimers();
+    }
   });
 
   it("caps a carousel at 7 points when the splitter won't read its CTA as one, so nothing is dropped", async () => {
