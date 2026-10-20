@@ -93,6 +93,14 @@ export function runPostsCheck(userId: string, competitorId: string, platform: Fo
   }, POSTS_FAILED);
 }
 
+/** Check now on one competitor: its handles one at a time (only `platform`'s when given), stopping at a refusal. */
+export async function checkCompetitorPosts(userId: string, c: Competitor, platform?: FollowPlatform): Promise<void> {
+  for (const h of handlesOf(c)) {
+    if (platform && h.platform !== platform) continue;
+    if (!(await runPostsCheck(userId, c.id, h.platform, h.handle))) return;
+  }
+}
+
 /** The handles a round would check now. */
 export function duePosts(userId: string, now = Date.now()): { competitorId: string; platform: FollowPlatform; handle: string }[] {
   const state = loadCompetitorPosts(userId);
