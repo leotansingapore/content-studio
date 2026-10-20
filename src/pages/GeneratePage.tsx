@@ -152,6 +152,9 @@ import {
   type DisclosureId,
 } from "@/lib/plainText";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { useUsesLeft } from "@/lib/aiUsage";
+import PriceChip from "@/components/PriceChip";
+import { WRITE_PRICE, priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { canCredit, dayMonth, draftLine, earlierRemix, rememberSource, sourceChip, type RemixSource } from "@/lib/remixSource";
 import { reusedItems, sharedRuns } from "../../supabase/functions/remix/overlap.ts";
 import { loadBrand } from "@/lib/carousel";
@@ -2464,6 +2467,17 @@ export default function GeneratePage() {
   const scriptLong = shortScript ? reelTooLong(scriptWords, reelSeconds) : null;
   const storyboardStale = Boolean(storyboard && storyboard.script !== shortScript);
   const storyboardBusy = Boolean(currentDraftId && storyboardFor === currentDraftId);
+  // Leo's price chips (business-cost-preview): only his sessions read today's uses, so everyone else's stay null
+  const imgRunning = imgJob?.state === "working" || imgJob?.state === "saving";
+  const usesLeft = useUsesLeft(!leo || storyboardBusy || imgRunning);
+  const storyboardLeft = usesLeft("storyboard");
+  const storyboardWhy = reasonText({ left: storyboardLeft, leo: Boolean(leo) });
+  const imageLeft = usesLeft("ai-image");
+  const imageWhy = reasonText({ left: imageLeft, leo: Boolean(leo) });
+  // a fix spends from the adviser's cap and the across-everyone one, so the smaller of the two is what's left
+  const fixMine = usesLeft("ai-image-fix");
+  const fixLeft = fixMine === null ? null : Math.min(fixMine, usesLeft("ai-image-fix-global") ?? fixMine);
+  const fixWhy = reasonText({ left: fixLeft, leo: Boolean(leo) });
   const boardColumn = savedEntry ? columnOf(savedEntry, boardStages) : null;
   const readyToFilm = boardColumn !== null && boardColumn !== "idea" && boardColumn !== "scripted";
 
@@ -3214,6 +3228,8 @@ export default function GeneratePage() {
               {generateButtonLabel}
             </Button>
           )}
+          {/* Write's generation is uncapped, so Leo sees the price only */}
+          {!isStreaming && <PriceChip price={WRITE_PRICE} left={null} />}
         </div>
         {templateForm && (
           <form
@@ -4033,11 +4049,13 @@ export default function GeneratePage() {
                         <button
                           type="button"
                           onClick={handleStoryboard}
-                          disabled={storyboardBusy}
+                          disabled={storyboardBusy || storyboardLeft === 0}
                           className="-my-3.5 py-3.5 font-semibold text-primary hover:underline disabled:opacity-60 sm:-my-2 sm:py-2"
                         >
                           {storyboardBusy ? "Redoing it..." : "Redo it"}
                         </button>
+                        {!storyboardBusy && <PriceChip feature="storyboard" left={storyboardLeft} />}
+                        {storyboardWhy && <span className="basis-full text-destructive">{storyboardWhy}</span>}
                       </p>
                     )}
                     {readyToFilm ? (
@@ -4060,7 +4078,7 @@ export default function GeneratePage() {
                       variant="outline"
                       size="sm"
                       onClick={handleStoryboard}
-                      disabled={storyboardBusy || !shortScript}
+                      disabled={storyboardBusy || !shortScript || storyboardLeft === 0}
                       className="h-11 gap-1.5 disabled:opacity-100 sm:h-9"
                     >
                       {storyboardBusy ? (
@@ -4073,6 +4091,8 @@ export default function GeneratePage() {
                     <span className="text-[11px] text-muted-foreground">
                       Uses 1 of your {DAILY_LIMITS.storyboard} a day.
                     </span>
+                    {!storyboardBusy && <PriceChip feature="storyboard" left={storyboardLeft} />}
+                    {storyboardWhy && <p className="basis-full text-xs text-destructive">{storyboardWhy}</p>}
                   </div>
                 )}
                 {storyboardError && (
@@ -4230,7 +4250,7 @@ export default function GeneratePage() {
                     <ImageWandIcon className="h-3.5 w-3.5" /> Image prompt
                   </div>
                   {imagePrompt && (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
                       <Button
                         size="sm"
                         variant="ghost"
@@ -4240,18 +4260,22 @@ export default function GeneratePage() {
                         <Copy className="h-3 w-3" /> Copy
                       </Button>
                       {!(imgJob?.prompt === imagePrompt && imgJob.state === "done") && (
-                        <Button
-                          size="sm"
-                          disabled={imageBusy() || !userId}
-                          onClick={() => userId && void makeImage(userId, imagePrompt, (chosenHook || draft.trim().split("\n")[0] || "AI image").slice(0, 80))}
-                          className="h-9 gap-1.5 text-xs"
-                        >
-                          <Sparkles className="h-3.5 w-3.5" />
-                          {imgJob?.prompt === imagePrompt && imgJob.state === "failed" ? "Try again" : "Make the image"}
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            disabled={imageBusy() || !userId || imageLeft === 0}
+                            onClick={() => userId && void makeImage(userId, imagePrompt, (chosenHook || draft.trim().split("\n")[0] || "AI image").slice(0, 80))}
+                            className="h-9 gap-1.5 text-xs"
+                          >
+                            <Sparkles className="h-3.5 w-3.5" />
+                            {imgJob?.prompt === imagePrompt && imgJob.state === "failed" ? "Try again" : "Make the image"}
+                          </Button>
+                          {!imgRunning && <PriceChip feature="ai-image" left={imageLeft} />}
+                        </>
                       )}
                     </div>
                   )}
+                  {imagePrompt && imageWhy && !imgRunning && !(imgJob?.prompt === imagePrompt && imgJob.state === "done") && <p className="basis-full text-right text-xs text-destructive">{imageWhy}</p>}
                 </div>
                 {imagePromptLoading && !imagePrompt ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -4299,7 +4323,7 @@ export default function GeneratePage() {
                             className="flex w-full flex-wrap items-center gap-2"
                             onSubmit={(e) => {
                               e.preventDefault();
-                              if (fixText.trim().length < 3) return;
+                              if (fixText.trim().length < 3 || fixLeft === 0) return;
                               void fixImage(userId, fixText);
                               setFixText("");
                             }}
@@ -4312,9 +4336,16 @@ export default function GeneratePage() {
                               aria-label="What to fix in the picture"
                               className="h-11 min-w-0 flex-1 text-xs sm:h-9"
                             />
-                            <Button type="submit" size="sm" variant="outline" disabled={fixText.trim().length < 3} className="h-11 gap-1.5 text-xs sm:h-9">
+                            <Button type="submit" size="sm" variant="outline" disabled={fixText.trim().length < 3 || fixLeft === 0} className="h-11 gap-1.5 text-xs sm:h-9">
                               <ImageWandIcon className="h-3.5 w-3.5" /> Fix it
                             </Button>
+                            {/* its own line on phones, so the box beside Fix it keeps its width */}
+                            {leo && (
+                              <span className="basis-full sm:basis-auto">
+                                <PriceChip price={sumPrices(priceOf("ai-image-fix"), priceOf("ai-image-fix-global"))} left={fixLeft} />
+                              </span>
+                            )}
+                            {fixWhy && <p className="w-full text-xs text-destructive">{fixWhy}</p>}
                             {imgJob.fixError && <p className="w-full text-xs text-destructive" role="alert">{imgJob.fixError}</p>}
                           </form>
                         )}
