@@ -47,7 +47,8 @@ const OPENAI_MODEL = "gpt-4.1-2025-04-14";
 const APIFY_TIMEOUT_SECS = 90;
 const OPENAI_TIMEOUT_MS = 45_000;
 
-async function apifyItems(actor: string, input: unknown, token: string): Promise<Item[]> {
+/** One actor run's dataset items; AuditError (audit wording) when Apify never answered. Callers map it to their own copy. */
+export async function apifyItems(actor: string, input: unknown, token: string): Promise<Item[]> {
   let res: Response;
   try {
     res = await fetch(

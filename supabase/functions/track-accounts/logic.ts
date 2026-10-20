@@ -37,8 +37,8 @@ export function parseTrackRequest(body: unknown): { ok: true; platform: AuditPla
   return { ok: true, platform, handle };
 }
 
-/** What the app keeps: numbers and the newest posts, captions cut to 240 characters, pinned posts left out. */
-export function shapeResult(platform: AuditPlatform, profile: AuditProfile, posts: SocialPost[]): TrackResult {
+/** What the app keeps: numbers and the newest `max` posts (Following 12, Competitors 30), captions cut to 240 characters, pinned posts left out. */
+export function shapeResult(platform: AuditPlatform, profile: AuditProfile, posts: SocialPost[], max = POSTS_PER_CHECK): TrackResult {
   return {
     platform,
     handle: profile.handle,
@@ -49,7 +49,7 @@ export function shapeResult(platform: AuditPlatform, profile: AuditProfile, post
     posts: posts
       .filter((p) => !p.pinned)
       .sort((a, b) => (b.postedAt ?? "").localeCompare(a.postedAt ?? ""))
-      .slice(0, POSTS_PER_CHECK)
+      .slice(0, max)
       .map((p) => ({
         id: p.id, url: p.url, format: p.format, caption: p.caption.slice(0, 240), postedAt: p.postedAt,
         views: p.views, likes: p.likes, comments: p.comments,

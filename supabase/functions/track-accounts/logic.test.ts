@@ -34,4 +34,13 @@ describe("shaping a check", () => {
     expect(r.posts[0].caption).toHaveLength(240);
     expect(Object.keys(r.posts[0]).sort()).toEqual(["caption", "comments", "format", "id", "likes", "postedAt", "url", "views"]);
   });
+
+  it("keeps 12 for Following by default and 30 for Competitors when asked", () => {
+    const posts = Array.from({ length: 33 }, (_, i) => post(i + 1, { postedAt: new Date(Date.UTC(2026, 8, 1) + i * 86_400_000).toISOString() }));
+    expect(POSTS_PER_CHECK).toBe(12);
+    expect(shapeResult("instagram", profile, posts).posts).toHaveLength(12);
+    const thirty = shapeResult("instagram", profile, posts, 30).posts;
+    expect(thirty).toHaveLength(30);
+    expect(thirty[0].id).toBe("p33");
+  });
 });
