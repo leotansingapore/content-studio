@@ -61,6 +61,8 @@ export async function fetchCapped(start: URL, max: number, accept: string, deadl
       if (done) break;
       size += value.byteLength;
       if (size > max) {
+        // keep exactly `max` bytes: a caller that asks for one byte over its limit can tell the file was too big
+        chunks.push(value.subarray(0, value.byteLength - (size - max)));
         await reader.cancel();
         break;
       }

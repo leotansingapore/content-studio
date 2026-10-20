@@ -75,4 +75,20 @@ describe("reading a site someone typed", () => {
     await expect(read("https://acme.sg/")).rejects.toThrow("redirects too many times");
     expect(fetched).toHaveLength(4);
   });
+
+  it("hands back a file over the cap cut at the cap, so a caller can tell it was too big", async () => {
+    // three 400-byte pieces against a 1000-byte cap
+    const chunks = () => new ReadableStream<Uint8Array>({
+      start(c) {
+        for (const n of [1, 2, 3]) c.enqueue(new Uint8Array(400).fill(n));
+        c.close();
+      },
+    });
+    answer = () => page(chunks());
+    const big = await read("https://acme.sg/", 1000);
+    expect(big.bytes.byteLength).toBe(1000);
+    expect([big.bytes[0], big.bytes[400], big.bytes[999]]).toEqual([1, 2, 3]);
+    answer = () => page(chunks());
+    expect((await read("https://acme.sg/", 5000)).bytes.byteLength).toBe(1200);
+  });
 });
