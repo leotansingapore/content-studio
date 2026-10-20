@@ -20,6 +20,8 @@ import { layoutSlide, renderSvg } from "@/lib/carouselLayout";
 import { createCanvasMeasure, svgToPng } from "@/lib/carouselRender";
 import { getFile } from "@/lib/deviceFiles";
 import { draftStatus, setDraftStatus, setDraftZernio, type DraftEntry } from "@/lib/draftHistory";
+import { loadSlideshows } from "@/lib/slideshow";
+import { slideshowPngs } from "@/lib/slideshowDraw";
 import { scheduleTime } from "@/lib/dueDates";
 import {
   CAPTION_MAX,
@@ -252,7 +254,7 @@ export function ZernioStatus({ userId, draft, onDrafts }: { userId: string; draf
   );
 }
 
-type MediaMode = "carousel" | "import" | "files" | "none";
+type MediaMode = "carousel" | "slideshow" | "import" | "files" | "none";
 type TikTokForm = { privacyLevel: string; allowComment: boolean; allowDuet: boolean; allowStitch: boolean };
 
 /** The panel under a dated draft: accounts, media, time, caption, platform settings, then one Schedule button. */
@@ -274,12 +276,14 @@ export function PostItForMePanel({
   const profileId = activeProfileId(userId);
   const platform = draft.platform;
   const carousel = useMemo(() => loadCarousels(userId).find((c) => c.draftId === draft.id) ?? null, [userId, draft.id]);
+  // a /slideshow saved to My posts: its slides are drawn the way the slideshow editor draws them
+  const slideshow = useMemo(() => loadSlideshows(userId).find((s) => s.draftId === draft.id) ?? null, [userId, draft.id]);
   const importLink = draft.media && mediaKind(draft.media) ? draft.media : null;
   const [state, setState] = useState<"loading" | "off" | "ready" | "error">("loading");
   const [accounts, setAccounts] = useState<AccountView[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
   // Files attached in Write come first: they were picked for this post.
-  const [mode, setMode] = useState<MediaMode>(draft.attached?.length ? "files" : carousel ? "carousel" : importLink ? "import" : "files");
+  const [mode, setMode] = useState<MediaMode>(draft.attached?.length ? "files" : carousel ? "carousel" : slideshow ? "slideshow" : importLink ? "import" : "files");
   const [files, setFiles] = useState<MediaFile[]>([]);
   const attachedSig = (draft.attached ?? []).join(",");
   useEffect(() => {
@@ -303,6 +307,7 @@ export function PostItForMePanel({
   const [error, setError] = useState("");
   const uploaded = useRef(new Map<Blob, string>());
   const slides = useRef<MediaFile[] | null>(null);
+  const showSlides = useRef<MediaFile[] | null>(null);
   const root = useRef<HTMLElement>(null);
   // one key per send: an unanswered earlier try is resent with its own key, so it never posts twice
   const key = useRef(draft.zernio && !draft.zernio.postId ? draft.zernio.key : crypto.randomUUID());
@@ -328,6 +333,7 @@ export function PostItForMePanel({
   // stand-in links with each file's own ending, so the same platform rules as the server's apply here
   const mediaUrls =
     mode === "carousel" && carousel ? carousel.slides.map((_, i) => `https://upload.local/${i}.png`)
+    : mode === "slideshow" && slideshow ? slideshow.slides.map((_, i) => `https://upload.local/${i}.png`)
     : mode === "import" && importLink ? [importLink]
     : mode === "files" ? files.map((f, i) => `https://upload.local/${i}.${MEDIA_TYPES[f.type]?.[0] ?? "bin"}`)
     : [];
@@ -397,6 +403,13 @@ export function PostItForMePanel({
           slides.current = await carouselPngs(userId, carousel);
         }
         media = slides.current;
+      }
+      if (mode === "slideshow" && slideshow) {
+        if (!showSlides.current) {
+          setBusy("render");
+          showSlides.current = await slideshowPngs(userId, slideshow);
+        }
+        media = showSlides.current;
       }
       let mediaUrls = mode === "import" && importLink ? [importLink] : [];
       if (media.length) {
@@ -471,6 +484,7 @@ export function PostItForMePanel({
             <legend className="mb-1 font-semibold text-foreground">With</legend>
             <div className="flex flex-wrap gap-1.5">
               {carousel && <button type="button" aria-pressed={mode === "carousel"} onClick={() => setMode("carousel")} className={pill(mode === "carousel")}>Carousel slides ({carousel.slides.length})</button>}
+              {slideshow && <button type="button" aria-pressed={mode === "slideshow"} onClick={() => setMode("slideshow")} className={pill(mode === "slideshow")}>Slideshow slides ({slideshow.slides.length})</button>}
               {importLink && <button type="button" aria-pressed={mode === "import"} onClick={() => setMode("import")} className={pill(mode === "import")}>Your imported {mediaKind(importLink) === "video" ? "video" : "picture"}</button>}
               <button type="button" aria-pressed={mode === "files"} onClick={() => setMode("files")} className={pill(mode === "files")}>A file</button>
               {!NEEDS_MEDIA.includes(platform) && <button type="button" aria-pressed={mode === "none"} onClick={() => setMode("none")} className={pill(mode === "none")}>Text only</button>}
