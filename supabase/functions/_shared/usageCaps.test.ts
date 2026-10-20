@@ -104,7 +104,7 @@ describe("the edge functions that spend", () => {
       for (const call of source.matchAll(/consumeUsage\(\s*admin,\s*[^,]+,\s*([^)]+)\)/g)) {
         let arg = call[1].trim();
         if (/^\w+$/.test(arg)) arg = source.match(new RegExp(`const ${arg} = ([^;]+);`))?.[1] ?? "";
-        const names = [...arg.replace(/[!=]==\s*"[^"]*"/g, "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+        const names = [...arg.replace(/[!=]==\s*["'][^"']*["']/g, "").matchAll(/["']([^"']+)["']/g)].map((m) => m[1]);
         expect(names, `${dir.name}: ${call[0]}`).not.toEqual([]);
         for (const name of names) {
           expect(Object.keys(DAILY_LIMITS), `${dir.name} spends on "${name}"`).toContain(name);
