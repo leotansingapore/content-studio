@@ -79,7 +79,9 @@ function Saved({ userId }: { userId: string }) {
   const [text, setText, q] = useUrlSearch("q");
   const [itemKey, openItem, closeItem] = useUrlItem("item");
   const [link, setLink] = useState("");
-  const [pick, setPick] = useState(() => lastBoard(userId));
+  const [picked, setPick] = useState(() => lastBoard(userId));
+  // a board deleted since it was picked: back to Unsorted
+  const pick = store.boards.some((b) => b.id === picked) ? picked : "";
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ text: string; show?: string } | null>(null);
   const [focus, setFocus] = useState<Part | null>(null);
