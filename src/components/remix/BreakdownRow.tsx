@@ -69,7 +69,12 @@ export default function BreakdownRow(p: { userId: string; source: RemixSource; t
       <div className="flex items-center justify-between gap-2 py-1.5 pl-3 pr-1.5">
         <h3 className="text-sm font-semibold text-foreground">Breakdown</h3>
         <div className="flex min-w-0 items-center gap-2">
-          {!teardown && <PriceChip feature="remix-teardown" left={left("remix-teardown")} />}
+          {!teardown && (
+            // wraps to two right-aligned lines beside "See it" on a phone
+            <span className="min-w-0 text-right leading-tight">
+              <PriceChip feature="remix-teardown" left={left("remix-teardown")} />
+            </span>
+          )}
           <Button type="button" variant="ghost" size="sm" aria-expanded={open} aria-controls={bodyId} onClick={() => onOpen(!open)}>
             {open ? "Hide it" : "See it"}
             <ChevronDown className={`transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
