@@ -6,6 +6,7 @@ import advisorsData from "@/data/advisors.json";
 import inspirationData from "@/data/inspiration.json";
 import type { AdvisorEntry } from "@/components/AdvisorProfiles";
 import type { InspirationEntry } from "@/components/Inspiration";
+import { loadSpaceAds } from "@/lib/adLibrary";
 import { ADS } from "@/lib/adsSwipe";
 import { loadCompetitorAds, toAdLike } from "@/lib/competitorAds";
 import { loadCompetitorPosts } from "@/lib/competitorPosts";
@@ -61,7 +62,9 @@ export function resolveSource(key: string, userId: string): RemixSource | null {
         const found = e.ads.find((a) => a.id === rest);
         if (found) return fromAd(toAdLike(found, loadCompetitors(userId).list.find((c) => c.id === id)?.name ?? e.pageName ?? "a competitor"));
       }
-      return null;
+      // an ad in your space (the ad library), named after the page that runs it
+      const spaced = loadSpaceAds(userId).ads.find((a) => a.id === rest);
+      return spaced ? fromAd(toAdLike(spaced, spaced.advertiser)) : null;
     }
     case "follow": {
       const [platform, ...id] = rest.split(":");

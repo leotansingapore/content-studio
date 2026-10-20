@@ -86,6 +86,15 @@ describe("resolveSource", () => {
     });
     // a competitor no longer on the list still names the page its ad came from
     expect(resolveSource("ad:555", UID)).toMatchObject({ author: "Old page" });
+    // then your space's ads, named after the page that runs them; a competitor's copy of the same ad wins
+    window.localStorage.setItem(`content-studio-space-ads-${UID}`, JSON.stringify({ checkedAt: "2026-10-20T00:00:00Z", keywords: ["crm"], ads: [
+      { ...theirAd, id: "1413109077116870", headline: "Stop Chasing the Wrong Leads", advertiser: "Leadensity", pageId: "1210295338843222", fit: 0.8 },
+      { ...theirAd, advertiser: "Someone else", pageId: "1", fit: null },
+    ] }));
+    expect(resolveSource("ad:1413109077116870", UID)).toMatchObject({
+      key: "ad:1413109077116870", kind: "ad", author: "Leadensity", title: "Stop Chasing the Wrong Leads", url: "https://www.facebook.com/ads/library/?id=1413109077116870",
+    });
+    expect(resolveSource("ad:977824304753041", UID)).toMatchObject({ author: "SleekFlow" });
 
     const post = { id: "C9comp", url: "https://www.instagram.com/p/C9comp/", format: "video", caption: "Three habits", postedAt: null, views: 900, likes: 40, comments: 2 };
     window.localStorage.setItem(`content-studio-competitor-posts-${UID}`, JSON.stringify({
