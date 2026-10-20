@@ -17,9 +17,11 @@ import { loadBrand } from "@/lib/carousel";
 import {
   EMPTY_MARKET, POSITION_LABEL, actCount, alsoReported, geoKey, geoWriteUrl, loadMarket, marketJob, newsKey, newsWriteUrl, nextCheckDay,
   dismissQuestion, newsByTopic, onMarketJob, reminderOffer, pickingUp, postKey, postWriteUrl, runMarketCheck, saveMarket, suggestSetup, siteList, visibleGeo, visibleNews, visiblePosts,
-  weekNote, withKey, type GeoRead, type MarketState, type Show,
+  weekNote, withKey, type GeoRead, type JudgedPost, type MarketState, type Show,
 } from "@/lib/market";
-import { loadFollowing } from "@/lib/following";
+import RemixButton from "@/components/remix/RemixButton";
+import { loadFollowing, type FollowedAccount } from "@/lib/following";
+import { fromFollowPost, type RemixSource } from "@/lib/remixSource";
 import { MAX_WATCH, loadWatch, saveWatch } from "@/lib/mentions";
 import { browserPushSupport, enablePushHere, loadNotifyPrefs, pushOnHere, saveNotifyPrefs } from "@/lib/notify";
 import { loadPositioning } from "@/lib/positioning";
@@ -258,7 +260,8 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
       action: <ToastAction altText="Undo" onClick={() => update(dismissQuestion(loadMarket(uid), x, false, at < 0 ? undefined : at))}>Undo</ToastAction>,
     });
   };
-  const following = loadFollowing(uid).length;
+  const followed = loadFollowing(uid);
+  const following = followed.length;
   const wrote = (key: string) => update({ ...loadMarket(uid), written: withKey(loadMarket(uid).written, key, true) });
 
   const news = latest ? visibleNews(latest, state, show) : [];
@@ -375,7 +378,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
             <Section title="Competitors doing well">
               {posts.map((x) => (
                 <Card key={x.id} label={`@${x.handle}'s post`} tag={x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"} written={state.written.includes(postKey(x))}
-                  writeUrl={postWriteUrl(x)} writeLabel="Write your take" onWrite={() => wrote(postKey(x))} onDismiss={() => dismiss(postKey(x))}>
+                  source={marketSource(followed, x)} writeUrl={postWriteUrl(x)} writeLabel="Write your take" onWrite={() => wrote(postKey(x))} onDismiss={() => dismiss(postKey(x))}>
                   <a href={x.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 py-1.5 font-medium hover:underline">@{x.handle}<ExternalLink className="h-3.5 w-3.5" /></a>
                   <p className="line-clamp-3 text-sm text-muted-foreground">{x.caption}</p>
                 </Card>
@@ -397,11 +400,28 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/** A competitor post as a remix source, read from the followed post it came from (x.id is <platform>:<postId>). */
+function marketSource(followed: FollowedAccount[], x: JudgedPost): RemixSource | null {
+  for (const a of followed) {
+    const post = a.posts.find((p) => `${a.platform}:${p.id}` === x.id);
+    if (post) return fromFollowPost(a, post);
+  }
+  // shortcut: a post no longer on this device keeps today's link, build a snapshot from MarketPost if Leo wants Remix there too
+  return null;
+}
+
 function Card(props: {
   /** Names the item in each control's accessible name, so a screen reader can tell one card's Dismiss from the next. */
   label: string;
   tag: string; act: boolean; written: boolean; writeUrl?: string; writeLabel: string; onWrite: () => void; onDismiss: () => void; children: ReactNode;
+  /** Leo's sign-ins get the Remix button in place of the write link. */
+  source?: RemixSource | null;
 }) {
+  const write = props.writeUrl && (
+    <Button asChild size="sm" className="gap-1.5">
+      <Link to={props.writeUrl} onClick={props.onWrite} aria-label={`${props.written ? "Write another" : props.writeLabel}: ${props.label}`}><PenLine className="h-3.5 w-3.5" />{props.written ? "Write another" : props.writeLabel}</Link>
+    </Button>
+  );
   return (
     <li className="space-y-3 rounded-lg border border-border bg-card p-4">
       {/* on phones the tag sits above, so a long one ("Not in the answer") never squeezes the text */}
@@ -410,11 +430,7 @@ function Card(props: {
         <div className="min-w-0 space-y-1 break-words">{props.children}</div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {props.writeUrl && (
-          <Button asChild size="sm" className="gap-1.5">
-            <Link to={props.writeUrl} onClick={props.onWrite} aria-label={`${props.written ? "Write another" : props.writeLabel}: ${props.label}`}><PenLine className="h-3.5 w-3.5" />{props.written ? "Write another" : props.writeLabel}</Link>
-          </Button>
-        )}
+        {props.source ? <RemixButton source={props.source}>{write}</RemixButton> : write}
         <Button type="button" size="sm" variant="ghost" onClick={props.onDismiss} aria-label={`Dismiss: ${props.label}`}>Dismiss</Button>
         {props.written && <span className="text-xs text-muted-foreground">Written</span>}
       </div>

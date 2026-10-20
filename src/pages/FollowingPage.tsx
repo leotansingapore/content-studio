@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Loader2, RefreshCw, Shuffle, Trash2 } from "lucide-react";
+import { Clapperboard, ExternalLink, Loader2, RefreshCw, Shuffle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EngageWeek from "@/components/EngageWeek";
+import RemixButton from "@/components/remix/RemixButton";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
@@ -13,6 +14,8 @@ import {
   MAX_FOLLOWED, checkFailure, followStats, isChecking, loadFollowing, onFollowing, remixUrl, runCheck, sameAccount, saveFollowing,
   type FollowPlatform, type FollowedAccount, type TrackedPost,
 } from "@/lib/following";
+import { fromFollowPost } from "@/lib/remixSource";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 
 const LIMIT = DAILY_LIMITS["track-accounts"];
 const fmt = (n: number) => (n >= 10_000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
@@ -29,6 +32,8 @@ export default function FollowingPage() {
   const [platform, setPlatform] = useState<FollowPlatform>("instagram");
   const [handle, setHandle] = useState("");
   const [, tick] = useState(0);
+  // read once for the page: Leo's video rows keep Clone beside the Remix button
+  const leo = useLeoOnly();
 
   useEffect(() => {
     document.title = "Following - Content Studio";
@@ -112,14 +117,14 @@ export default function FollowingPage() {
         <p className="text-sm text-muted-foreground">Follow a competitor or a creator you like to see their growth, how often they post, and their new posts to remix.</p>
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
-          {list.map((a) => <AccountCard key={`${a.platform}:${a.handle}`} a={a} onCheck={() => userId && runCheck(userId, a)} onRemove={() => remove(a)} />)}
+          {list.map((a) => <AccountCard key={`${a.platform}:${a.handle}`} a={a} leo={leo} onCheck={() => userId && runCheck(userId, a)} onRemove={() => remove(a)} />)}
         </ul>
       )}
     </div>
   );
 }
 
-function AccountCard({ a, onCheck, onRemove }: { a: FollowedAccount; onCheck: () => void; onRemove: () => void }) {
+function AccountCard({ a, leo, onCheck, onRemove }: { a: FollowedAccount; leo: boolean; onCheck: () => void; onRemove: () => void }) {
   const s = followStats(a);
   const checking = isChecking(a);
   const failure = checkFailure(a);
@@ -171,7 +176,7 @@ function AccountCard({ a, onCheck, onRemove }: { a: FollowedAccount; onCheck: ()
         <div className="space-y-2">
           <h3 className="text-xs font-semibold">{fresh.length ? `${fresh.length} new since the last check` : "Latest posts"}</h3>
           <ul className="space-y-2">
-            {shown.map((p) => <PostRow key={p.id} a={a} p={p} best={s.best?.id === p.id} />)}
+            {shown.map((p) => <PostRow key={p.id} a={a} p={p} best={s.best?.id === p.id} leo={leo} />)}
           </ul>
         </div>
       )}
@@ -179,7 +184,7 @@ function AccountCard({ a, onCheck, onRemove }: { a: FollowedAccount; onCheck: ()
   );
 }
 
-function PostRow({ a, p, best }: { a: FollowedAccount; p: TrackedPost; best: boolean }) {
+function PostRow({ a, p, best, leo }: { a: FollowedAccount; p: TrackedPost; best: boolean; leo: boolean }) {
   const numbers = [p.views !== null ? `${fmt(p.views)} views` : "", `${fmt(p.likes)} likes`, `${fmt(p.comments)} comments`].filter(Boolean).join(", ");
   return (
     <li className="space-y-1.5 rounded-xl bg-secondary/40 p-3">
@@ -190,9 +195,17 @@ function PostRow({ a, p, best }: { a: FollowedAccount; p: TrackedPost; best: boo
         {best && <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 font-medium text-primary">Top post</span>}
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button asChild size="sm" variant="outline" className="h-9">
-          <Link to={remixUrl(a, p)}><Shuffle className="h-3.5 w-3.5" /> Remix</Link>
-        </Button>
+        <RemixButton source={fromFollowPost(a, p)}>
+          <Button asChild size="sm" variant="outline" className="h-9">
+            <Link to={remixUrl(a, p)}><Shuffle className="h-3.5 w-3.5" /> Remix</Link>
+          </Button>
+        </RemixButton>
+        {/* a video's link above is Clone a reel; Leo's Remix button replaced it, so it stays as its own link */}
+        {leo && p.format === "video" && (
+          <Button asChild size="sm" variant="ghost" className="h-9 [@media(pointer:coarse)]:h-11">
+            <Link to={remixUrl(a, p)}><Clapperboard className="h-3.5 w-3.5" /> Clone</Link>
+          </Button>
+        )}
         <Button asChild size="sm" variant="ghost" className="h-9">
           <a href={p.url} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Open</a>
         </Button>
