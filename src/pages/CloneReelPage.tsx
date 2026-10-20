@@ -1076,7 +1076,7 @@ function RecentReads({ items, onOpen }: { items: LinkedSource[]; onOpen: (s: Lin
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-foreground">{s.title || s.text.slice(0, 80)}</span>
                 <span className="block truncate text-[11px] text-muted-foreground">
-                  {[linkLabel(s), s.author].filter(Boolean).join(" · ")}
+                  {[linkLabel(s), s.author].filter(Boolean).join(" | ")}
                 </span>
               </span>
               <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
