@@ -254,8 +254,10 @@ describe("the speaker", () => {
 
   it("asks Jev about the business's claims for a business, the adviser's for a person", () => {
     expect(makeQuestions("person")).toBe(MAKE_QUESTIONS);
-    expect(makeQuestions("business").invented_self.instructions).toBe("Does `post` say something about the business, its customers or its results that is not in `facts`?");
-    expect(makeQuestions("business").copied_claim).toEqual(MAKE_QUESTIONS.copied_claim);
+    // tips to the reader and product lines from facts are not claims: the adviser wording flagged 12 of 12 clean posts
+    expect(makeQuestions("business").invented_self.instructions).toMatch(/General advice to the reader is not a fact about the business/);
+    expect(makeQuestions("business").copied_claim.instructions).toMatch(/Statements about the business that come from `facts` do not count/);
+    expect(makeQuestions("business").invented_self).not.toEqual(MAKE_QUESTIONS.invented_self);
   });
 });
 

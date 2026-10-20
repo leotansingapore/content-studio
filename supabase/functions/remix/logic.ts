@@ -730,12 +730,18 @@ export const MAKE_QUESTIONS = {
   invented_self: { type: "noul", instructions: "Does `post` say something about the adviser, their clients or their results that is not in `facts`?" },
 } as const;
 
-/** A business is asked about its own claims, not an adviser's. */
+/**
+ * A business is asked about its own claims, not an adviser's. Measured 20 Oct 2026 on 12 ActivityTracker slideshows
+ * (docs/north-star/dogfood-activity-tracker.md): the adviser-shaped wording flagged 12 of 12 clean posts as invented
+ * and 4 as copied claims, because tips to the reader and facts-backed product lines read as claims. These flag 0 clean
+ * posts and still catch 11 of 12 planted false product claims at FLAG_AT. The person wording stays: on 16 real adviser
+ * captions it catches 10 of 12 personal stories, the sharper wording only 6.
+ */
 export function makeQuestions(speaker: Speaker) {
   if (speaker === "person") return MAKE_QUESTIONS;
   return {
-    ...MAKE_QUESTIONS,
-    invented_self: { type: "noul", instructions: "Does `post` say something about the business, its customers or its results that is not in `facts`?" },
+    copied_claim: { type: "noul", instructions: "Does `post` reuse a specific figure, statistic, result or promise that is stated in `source`? Statements about the business that come from `facts` do not count." },
+    invented_self: { type: "noul", instructions: "Does `post` state a specific fact about the business (a feature, a price, a number, a customer, a result or a promise of a result) that `facts` does not support? General advice to the reader is not a fact about the business." },
   } as const;
 }
 
