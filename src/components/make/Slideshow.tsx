@@ -24,7 +24,7 @@ import { slideFileName } from "@/lib/carousel";
 import { downloadBlob } from "@/lib/carouselRender";
 import { scanCompliance } from "@/lib/compliance";
 import { draftsChanged, getDraftById, upsertDraft } from "@/lib/draftHistory";
-import { fromFollowPost, fromTopPost, rememberSource, type RemixSource } from "@/lib/remixSource";
+import { fromFollowPost, fromTopPost, noteKey, rememberSource, type RemixSource } from "@/lib/remixSource";
 import { loadFollowing } from "@/lib/following";
 import { links } from "@/lib/links";
 import { loadMedia } from "@/lib/mediaLibrary";
@@ -82,6 +82,15 @@ function useWords(): [{ topic: string; note: string }, (w: { topic: string; note
   return [words, save];
 }
 
+/** The note typed in the Remix sheet for this post, or "". */
+function sheetNote(key: string): string {
+  try {
+    return localStorage.getItem(noteKey(key)) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 /** A saved slideshow by id, current as the editor or a job saves it. */
 function useShow(userId: string, id: string | null | undefined): Show | null {
   const [shows, setShows] = useState(() => loadSlideshows(userId));
@@ -132,10 +141,10 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
     : null;
 
   /** Starts a run on the setup as it is now; `changes` ride in the same URL write (two writes in a row keep only the last). */
-  const makeIt = (changes: Record<string, string | null> = {}) => {
+  const makeIt = (changes: Record<string, string | null> = {}, over: Partial<SlideshowAsk> = {}) => {
     if (reason || slideshowBusy()) return void (Object.keys(changes).length && update(changes));
     update({ ...changes, show: null, slide: null, tab: null });
-    void startSlideshow(userId, ask);
+    void startSlideshow(userId, { ...ask, ...over });
     started.current = slideshowJob()?.id ?? null;
   };
 
@@ -164,7 +173,10 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   useEffect(() => {
     if (went.current || params.get("go") !== "1") return;
     went.current = true;
-    makeIt({ go: null });
+    // the Remix sheet's own note for this post rides along; a steer typed here earlier for another post never does
+    const note = source ? sheetNote(source.key) : words.note;
+    if (note !== words.note) setWords({ ...words, note });
+    makeIt({ go: null }, { note });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
