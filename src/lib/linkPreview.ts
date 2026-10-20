@@ -55,6 +55,7 @@ export const PAGES: Record<string, string> = {
   "/profiles": "Creators",
   "/following": "Following",
   "/competitors": "Competitors",
+  "/saved": "Saved",
   "/market": "Your market",
   "/playbook": "My Playbook",
   "/voice": "Your voice",

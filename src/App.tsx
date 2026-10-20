@@ -42,6 +42,7 @@ const CloneReelPage = lazy(() => import("@/pages/CloneReelPage"));
 const InspirationPage = lazy(() => import("@/pages/InspirationPage"));
 const FollowingPage = lazy(() => import("@/pages/FollowingPage"));
 const CompetitorsPage = lazy(() => import("@/pages/CompetitorsPage"));
+const SavedPage = lazy(() => import("@/pages/SavedPage"));
 const MarketPage = lazy(() => import("@/pages/MarketPage"));
 const NorthStarPage = lazy(() => import("@/pages/NorthStarPage"));
 const InspirationDetailPage = lazy(() => import("@/pages/InspirationDetailPage"));
@@ -139,6 +140,7 @@ export default function App() {
           <Route path="/inspiration" element={<InspirationPage />} />
           <Route path="/following" element={<FollowingPage />} />
           <Route path="/competitors" element={<CompetitorsPage />} />
+          <Route path="/saved" element={<SavedPage />} />
           <Route path="/market" element={<MarketPage />} />
           <Route path="/north-star" element={<NorthStarPage />} />
           <Route path="/inspiration/:id" element={<InspirationDetailPage />} />

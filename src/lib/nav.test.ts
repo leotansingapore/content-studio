@@ -4,7 +4,7 @@ import { mobileTabs, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFo
 const routes = [
   "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/slideshow", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/library", "/grid", "/reels", "/reels/team", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
-  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/playbook", "/voice", "/brand", "/bio", "/links", "/accounts", "/fads", "/connect",
+  "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/competitors", "/saved", "/playbook", "/voice", "/brand", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star",
 ];
 
@@ -101,6 +101,16 @@ describe("nav", () => {
     const tiles = (email: string) => moreSheet(email, false).groups.flatMap((g) => g.tiles).map((t) => t.to);
     expect(tiles("someone@example.com")).not.toContain("/competitors");
     expect(tiles("leotanjs95@gmail.com")).toContain("/competitors");
+  });
+
+  it("shows Saved only to Leo's sign-ins, in Discover after Competitors", () => {
+    const discover = (email: string) => visiblePages(section("discover").pages, email).map((p) => p.to);
+    expect(discover("someone@example.com")).not.toContain("/saved");
+    expect(discover("leotanjs95@gmail.com").indexOf("/saved")).toBe(discover("leotanjs95@gmail.com").indexOf("/competitors") + 1);
+    expect(pageTitle("/saved")).toBe("Saved - Content Studio");
+    const tiles = (email: string) => moreSheet(email, false).groups.flatMap((g) => g.tiles).map((t) => t.to);
+    expect(tiles("someone@example.com")).not.toContain("/saved");
+    expect(tiles("tanjunsing@gmail.com")).toContain("/saved");
   });
 
   it("shows Social accounts and Auto-DM only once the server has said it is switched on", () => {

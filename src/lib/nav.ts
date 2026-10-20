@@ -5,6 +5,7 @@
 import {
   BarChart3,
   BookMarked,
+  Bookmark,
   Clapperboard,
   Columns3,
   Compass,
@@ -154,6 +155,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/profiles", label: "Creators", icon: Users },
       { to: "/following", label: "Following", icon: UserCheck },
       { to: "/competitors", label: "Competitors", icon: Swords, owners: LEO_EMAILS },
+      { to: "/saved", label: "Saved", icon: Bookmark, owners: LEO_EMAILS },
       { to: "/market", label: "Your market", icon: Radar, show: marketShown },
     ],
   },
