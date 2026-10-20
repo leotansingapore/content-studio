@@ -1,7 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
+import { links } from "@/lib/links";
+import { draftLine } from "@/lib/remixSource";
 import {
   Card,
   CardContent,
@@ -594,6 +596,15 @@ export default function DraftsPage() {
                   {preview}
                   {d.draft.length > 100 ? "..." : ""}
                 </p>
+                {/* only Leo's drafts carry a source (north-star gate), so this needs no check of its own */}
+                {d.source && (
+                  <Link
+                    to={links.generate({ draft: d.id })}
+                    className="mb-2 inline-flex w-fit items-center text-[11px] text-muted-foreground hover:text-foreground hover:underline [@media(pointer:coarse)]:min-h-11"
+                  >
+                    {draftLine(d.source)}
+                  </Link>
+                )}
                 {d.media && /^https?:\/\//i.test(d.media) && (
                   <a
                     href={d.media}

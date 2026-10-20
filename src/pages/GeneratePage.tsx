@@ -69,6 +69,7 @@ import {
   Columns3,
   ArrowRight,
   Star,
+  Shuffle,
 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import inspirationData from "@/data/inspiration.json";
@@ -144,10 +145,13 @@ import {
   stripDashes,
   tagLinks,
   toPlainText,
+  withCredit,
   withDisclosure,
   withSignOff,
   type DisclosureId,
 } from "@/lib/plainText";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { canCredit, dayMonth, draftLine, remixedOn, sourceChip, type RemixSource } from "@/lib/remixSource";
 import { loadBrand } from "@/lib/carousel";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
@@ -684,6 +688,13 @@ export default function GeneratePage() {
   const [draft, setDraft] = useState<string>("");
   const [styleReference, setStyleReference] = useState<string | null>(null);
   const [vibeSourceId, setVibeSourceId] = useState<string | null>(null);
+  // The post, ad or trend this one is remixed from (remixSource.ts), saved with the draft. Only Leo's sessions
+  // read ?source= (north-star gate); a draft that already carries one keeps it on every save.
+  const leo = useLeoUser();
+  const [remixSource, setRemixSource] = useState<RemixSource | null>(null);
+  const [pendingSourceKey, setPendingSourceKey] = useState<string | null>(null);
+  // "Remix it again" hides the repeat notice for that key
+  const [repeatHidden, setRepeatHidden] = useState<string | null>(null);
   const formAnchorRef = useRef<HTMLDivElement | null>(null);
   // After a hook or variant pick, bring the next card into view: on a phone it
   // renders a full screen or more below the button that was tapped.
@@ -860,6 +871,7 @@ export default function GeneratePage() {
             if (Array.isArray(brief.disclosure)) {
               setDisclosure(brief.disclosure.filter((d: string) => d in DISCLOSURES));
             }
+            if (typeof brief.source?.key === "string" && typeof brief.source?.kind === "string") setRemixSource(brief.source);
             if (typeof brief.wizardStep === "number" && !new URLSearchParams(window.location.search).has("step")) {
               setWizardStep(Math.min(LAST_STEP, Math.max(0, brief.wizardStep)));
             }
@@ -989,6 +1001,7 @@ export default function GeneratePage() {
         ? entry.id
         : null;
     setVibeSourceId(entry.vibeSourceId ?? null);
+    setRemixSource(entry.source ?? null);
     setDisclosure((entry.disclosure ?? []).filter((d): d is DisclosureId => d in DISCLOSURES));
     toast({
       title: isBareIdea ? "Idea loaded" : "Draft restored",
@@ -1036,7 +1049,8 @@ export default function GeneratePage() {
       searchParams.has("detail") ||
       searchParams.has("funnel") ||
       searchParams.has("idea") ||
-      searchParams.has("ctx");
+      searchParams.has("ctx") ||
+      searchParams.has("source");
     if (!has) return;
     prefillAppliedRef.current = true;
 
@@ -1080,9 +1094,12 @@ export default function GeneratePage() {
       if (found) setCompetitorRef(found);
     }
     planFormulaRef.current = hookFormula(searchParams.get("formula") ?? undefined)?.id ?? null;
+    // resolved below once the session is read: other sign-ins ignore it
+    const sourceParam = searchParams.get("source");
+    if (sourceParam) setPendingSourceKey(sourceParam.slice(0, 300));
 
     const next = new URLSearchParams(searchParams);
-    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula"].forEach(
+    ["pillar", "detail", "audience", "format", "platform", "cta", "funnel", "idea", "ctx", "ref", "formula", "source"].forEach(
       (k) => next.delete(k),
     );
     // Every step is filled in: open the one with Generate (in this same write, or the strip would undo it). The
@@ -1101,6 +1118,31 @@ export default function GeneratePage() {
     }, 50);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ?source=<key> becomes the chip, from data on this device (resolveSource.ts, loaded only for Leo). A key that
+  // doesn't resolve opens Write as it opens today.
+  useEffect(() => {
+    if (!pendingSourceKey || leo === undefined || !userId) return;
+    const key = pendingSourceKey;
+    setPendingSourceKey(null);
+    if (!leo) return;
+    void import("@/lib/resolveSource")
+      .then(({ resolveSource }) => setRemixSource(resolveSource(key, userId)))
+      .catch(() => {});
+  }, [pendingSourceKey, leo, userId]);
+
+  // The chip's x and the credit box change the saved post too, once there is one.
+  const changeSource = (next: RemixSource | null) => {
+    setRemixSource(next);
+    const e = userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
+    if (e && userId) upsertDraft(userId, { ...e, source: next ?? undefined });
+  };
+  const sourceKeyNow = remixSource?.key;
+  // An earlier remix of the same source in the last 30 days, other than the post open now.
+  const repeat = useMemo(() => {
+    const r = userId && sourceKeyNow ? remixedOn(userId, sourceKeyNow) : null;
+    return r && r.draftId !== currentDraftId && repeatHidden !== sourceKeyNow ? r : null;
+  }, [userId, sourceKeyNow, currentDraftId, repeatHidden]);
 
   const handleClearVibe = () => {
     setStyleReference(null);
@@ -1163,7 +1205,7 @@ export default function GeneratePage() {
   const brandAvoid = useMemo(() => avoidList(brandKit), [brandKit]);
   // ...and, when the brand kit asks for it, UTM tracking on every link
   const forPosting = (text: string, plat: string = platform) => {
-    const out = withDisclosure(withSignOff(toPlainText(text), brandSignOff), disclosure);
+    const out = withCredit(withDisclosure(withSignOff(toPlainText(text), brandSignOff), disclosure), remixSource ?? undefined);
     return brandKit?.tagLinks ? tagLinks(out, { source: plat, campaign: chosenHook || pillarDetail || "post" }) : out;
   };
   const limits = checkLimits(forPosting(svSplit ? svSplit.caption : draft), platform, brandLinks, brandAvoid);
@@ -1258,6 +1300,7 @@ export default function GeneratePage() {
             chosenHook,
             hookOptions,
             variants,
+            source: remixSource ?? undefined,
           }),
         );
       }
@@ -1285,6 +1328,7 @@ export default function GeneratePage() {
     chosenHook,
     hookOptions,
     variants,
+    remixSource,
   ]);
 
   // The variant rows mount once the stream starts, after an async session read.
@@ -1762,6 +1806,9 @@ export default function GeneratePage() {
       // Preserve scheduling/status/created-at when updating an existing entry
       // (e.g. writing a slot that was scheduled from the Plan).
       const existing = getDraftById(userId, id);
+      // Write always sets the key (no source clears it); dated on the first save and kept after that.
+      const source = remixSource && !remixSource.remixedAt ? { ...remixSource, remixedAt: new Date().toISOString() } : (remixSource ?? undefined);
+      if (source && source !== remixSource) setRemixSource(source);
       const entry: DraftEntry = {
         id,
         createdAt: existing?.createdAt ?? new Date().toISOString(),
@@ -1781,6 +1828,7 @@ export default function GeneratePage() {
         disclosure: disclosure.length ? disclosure : undefined,
         firstComment: comment ?? undefined,
         hookFormula: formulaOfHook(hookText, hookOptions)?.id,
+        source,
       };
       upsertDraft(userId, entry);
       setCurrentDraftId(id);
@@ -1799,6 +1847,7 @@ export default function GeneratePage() {
       platform,
       userId,
       vibeSourceId,
+      remixSource,
     ],
   );
 
@@ -1894,6 +1943,7 @@ export default function GeneratePage() {
       platform: v.platform,
       ctaType,
       vibeSourceId: vibeSourceId ?? undefined,
+      source: remixSource ? { ...remixSource, remixedAt: remixSource.remixedAt || new Date().toISOString() } : undefined,
       status: existing?.status,
       scheduledFor: existing?.scheduledFor,
       postedAt: existing?.postedAt,
@@ -2517,6 +2567,51 @@ export default function GeneratePage() {
       )}
 
       <QuickTip context="generate" />
+
+      {leo && remixSource && (
+        <div className="space-y-1.5 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex min-w-0 items-center gap-2 font-semibold text-foreground">
+              <Shuffle className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <span className="truncate">{sourceChip(remixSource)}</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => changeSource(null)}
+              aria-label="Remove the source"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-background hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+            >
+              <XIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {canCredit(remixSource, savedEntry?.remix?.keep) && (
+            <label className="flex w-fit cursor-pointer items-center gap-2 text-muted-foreground [@media(pointer:coarse)]:min-h-11">
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5 accent-primary"
+                checked={remixSource.credit === true}
+                onChange={(e) => changeSource({ ...remixSource, credit: e.target.checked })}
+              />
+              Credit them when I copy
+            </label>
+          )}
+          {repeat && (
+            <p className="flex flex-wrap items-center gap-x-3 text-muted-foreground">
+              You remixed this on {dayMonth(repeat.at)}.
+              <Link to={links.generate({ draft: repeat.draftId })} className="inline-flex items-center py-1 font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+                Open that draft
+              </Link>
+              <button
+                type="button"
+                onClick={() => setRepeatHidden(remixSource.key)}
+                className="inline-flex items-center py-1 font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
+              >
+                Remix it again
+              </button>
+            </p>
+          )}
+        </div>
+      )}
 
       {briefOpen ? (
         <div className="space-y-6">
@@ -3407,6 +3502,7 @@ export default function GeneratePage() {
                 </button>
               </p>
             )}
+            {savedEntry?.source && <p className="mb-2 text-xs text-muted-foreground">{draftLine(savedEntry.source)}</p>}
             {savedEntry && (
               <p className="mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                 <CopyLinkButton path={links.generate({ draft: savedEntry.id })} label="Copy link to this post" className="-my-2 -ml-2 order-last" />
@@ -3575,7 +3671,7 @@ export default function GeneratePage() {
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   <Sparkles className="h-3.5 w-3.5" /> Live preview
                 </div>
-                <PostPreview text={draft} platform={platform} format={format} disclosure={disclosure} media={attachedMedia.media} />
+                <PostPreview text={draft} platform={platform} format={format} disclosure={disclosure} media={attachedMedia.media} source={remixSource ?? undefined} />
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   {attachedMedia.media.map((m, i) => (
                     <span key={m.key} className="relative">
@@ -4218,6 +4314,7 @@ export default function GeneratePage() {
                 platform={shownVersion.platform}
                 format={format}
                 disclosure={disclosure}
+                source={remixSource ?? undefined}
               />
             </CardContent>
           </Card>
