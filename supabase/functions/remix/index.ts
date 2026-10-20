@@ -12,10 +12,12 @@
 // Two more modes after the same JWT and NORTH_STAR_USERS checks:
 //   teardown: a post broken down into its hook, beats and what not to reuse (./teardown.ts, cap remix-teardown).
 //   fit: Jev only, is this source a good fit for the brand (cap remix-fit); always 200, "unknown" when it can't tell.
+//   creator-fit: Jev only, which hand-picked creators fit the brand (./creatorFit.ts, cap creator-fit); { fit: null }
+//   when it can't tell.
 //
 // Secrets: OPENAI_API_KEY, TYPESAFE_API_KEY (Jev; works without it), NORTH_STAR_USERS, APIFY_API_KEY (teardown's
 // reel read). Deploy WITH JWT verification.
-// Logic: ./logic.ts, ./overlap.ts and ./teardown.ts (tested).
+// Logic: ./logic.ts, ./overlap.ts, ./teardown.ts and ./creatorFit.ts (tested).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
@@ -26,6 +28,7 @@ import { mostlyEnglish } from "../post-score/logic.ts";
 import { FETCH_BUDGET_MS } from "../clone-reel/logic.ts";
 import { readPost } from "../clone-reel/source.ts";
 import { handleTeardown } from "./teardown.ts";
+import { handleCreatorFit } from "./creatorFit.ts";
 import {
   UNKNOWN_FIT,
   fitQuestions,
@@ -103,6 +106,17 @@ async function teardown(admin: Admin, uid: string, body: unknown): Promise<Respo
   return json(reply.body, reply.status);
 }
 
+/** creatorFit.ts holds the flow; this gives it the counter and Jev. */
+async function creatorFit(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const reply = await handleCreatorFit(body, {
+    hasJev: Boolean(Deno.env.get("TYPESAFE_API_KEY")),
+    consume: () => consumeUsage(admin, uid, "creator-fit"),
+    refund: (day) => refundUsage(admin, uid, "creator-fit", day),
+    ask: (state, q) => askJev(state, q, { who: "remix creator-fit" }),
+  });
+  return json(reply.body, reply.status);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return fail("bad_request", "Use POST.", 405);
@@ -122,6 +136,7 @@ Deno.serve(async (req) => {
     const mode = (body as { mode?: unknown } | null)?.mode;
     if (mode === "fit") return await fit(admin, uid, body);
     if (mode === "teardown") return await teardown(admin, uid, body);
+    if (mode === "creator-fit") return await creatorFit(admin, uid, body);
 
     const parsed = parseMakeRequest(body);
     if (parsed.ok === false) return fail("bad_request", parsed.error, 400);
