@@ -5,7 +5,8 @@ vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn(() => new Promise(() => {})) }));
 
 import { callFn } from "@/lib/edgeFn";
 import {
-  MAX_FOLLOWED, applyCheck, followAccount, followStats, isChecking, loadFollowing, remixUrl, type FollowedAccount, type TrackedPost,
+  MAX_FOLLOWED, applyCheck, checkCapped, checkFailure, followAccount, followStats, isChecking, loadFollowing, remixUrl, runCheck, saveFollowing,
+  type FollowedAccount, type TrackedPost,
 } from "@/lib/following";
 
 const post = (id: string, day: number, extra: Partial<TrackedPost> = {}): TrackedPost => ({
@@ -99,5 +100,47 @@ describe("followAccount", () => {
     expect(followAccount("u1", "instagram", "https://www.instagram.com/explore/")).toBe("invalid");
     expect(store.size).toBe(0);
     expect(callFn).not.toHaveBeenCalled();
+  });
+});
+
+describe("a check running outside React", () => {
+  const store = new Map<string, string>();
+  beforeEach(() => {
+    store.clear();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) });
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.mocked(callFn).mockReset().mockImplementation(() => new Promise(() => {}));
+  });
+  const acct = (handle: string): FollowedAccount => ({ ...base, handle });
+  const result = (handle: string, followers: number) => ({ ...check("2026-10-05T09:00:00Z", followers, [post("p1", 4)]), handle });
+
+  it("leaves an account removed while its check ran removed, and keeps one added meanwhile", async () => {
+    const answers: ((v: unknown) => void)[] = [];
+    vi.mocked(callFn).mockImplementation(() => new Promise((r) => answers.push(r)));
+    saveFollowing("u1", [acct("gone_one"), acct("kept_one")]);
+    const checks = [runCheck("u1", acct("gone_one")), runCheck("u1", acct("kept_one"))];
+    saveFollowing("u1", [acct("kept_one"), acct("new_one")]);
+    answers[0](result("gone_one", 500));
+    answers[1](result("kept_one", 800));
+    await Promise.all(checks);
+    const list = loadFollowing("u1");
+    expect(list.map((a) => a.handle)).toEqual(["kept_one", "new_one"]);
+    expect(list[0].history.map((h) => h.followers)).toEqual([800]);
+  });
+
+  it("keeps the account as it was when the check is refused, and says it can run again after 8am only for today's limit", async () => {
+    saveFollowing("u1", [acct("capped_one")]);
+    const before = store.get("content-studio-following-u1");
+    vi.mocked(callFn).mockRejectedValueOnce(Object.assign(new Error("You've used all 20 checks for today. It resets at 8am Singapore time."), { code: "daily_limit" }));
+    await runCheck("u1", acct("capped_one"));
+    expect(store.get("content-studio-following-u1")).toBe(before);
+    expect(isChecking(acct("capped_one"))).toBe(false);
+    expect(checkFailure(acct("capped_one"))).toMatch(/resets at 8am/);
+    expect(checkCapped(acct("capped_one"))).toBe(true);
+    vi.mocked(callFn).mockRejectedValueOnce(Object.assign(new Error("Couldn't check that account right now."), { code: "failed" }));
+    await runCheck("u1", acct("capped_one"));
+    expect(checkCapped(acct("capped_one"))).toBe(false);
   });
 });
