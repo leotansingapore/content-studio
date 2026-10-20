@@ -3,6 +3,7 @@
 // and industry news: content-studio users never call Meta.
 
 import adsData from "@/data/adsSwipe.json";
+import { sourceKey } from "@/lib/remixSource";
 
 export interface SwipeAd {
   adId: string;
@@ -59,6 +60,6 @@ export function buildAdWriteUrl(ad: SwipeAd): string {
     `Its opening lines: "${ad.body.split("\n").filter(Boolean).slice(0, 2).join(" ").slice(0, 280)}"`,
     `Write an organic post for my audience that opens the same KIND of way. Do not reuse its wording, brand or claims, and do not recommend a product.`,
   ].join("\n");
-  const params = new URLSearchParams({ pillar: "topic", detail: `${ad.hookFamily} hook, like ${ad.advertiser}'s ad`, ctx });
+  const params = new URLSearchParams({ pillar: "topic", detail: `${ad.hookFamily} hook, like ${ad.advertiser}'s ad`, ctx, source: sourceKey.ad(ad.adId) });
   return `/generate?${params.toString()}`;
 }

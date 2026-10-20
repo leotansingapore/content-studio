@@ -11,6 +11,7 @@
 import topPostsData from "@/data/topPosts.json";
 import advisorsData from "@/data/advisors.json";
 import type { AdvisorEntry } from "@/components/AdvisorProfiles";
+import { sourceKey } from "@/lib/remixSource";
 
 export interface PostIdea {
   hook: string;
@@ -151,6 +152,8 @@ export function buildRemixUrl(
     format: generatorFormat(post),
     platform: "instagram",
   });
+  const advisorId = byHandle[advisor.handle.replace("@", "").toLowerCase()]?.id;
+  if (advisorId) params.set("source", sourceKey.top(advisorId, post.shortCode));
   return `/generate?${params.toString()}`;
 }
 

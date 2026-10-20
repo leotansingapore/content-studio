@@ -193,6 +193,13 @@ Pre-fills read once on arrival, then removed from the address (except day, time,
 - /generate?draft=<id>&profile=<profile id>: a phone alert for another profile's post switches to it first.
 - /generate?day=YYYY-MM-DD (and &time=HH:MM for an open posting slot): the calendar's "Write a post for this
   day"; the suggested time lands on that day, at that time when given.
+- /generate?source=<key>: the post, ad or trend a remix link came from (src/lib/remixSource.ts), shown as the
+  "Remixing ..." chip and saved with the draft. Leo's sign-ins only (north-star gate); every other sign-in
+  ignores it. Read once with the other pre-fills, then removed. Keys: top:<advisor id>-<short code> (Swipe
+  file, profiles, Creator lookup), follow:<platform>:<post id> (Following, and Your market, whose post ids are
+  already <platform>:<post id>), ad:<ad id> (Ads swipe), audit:<platform>:<post id> (Account audit; resolves
+  only on the device that pressed Remix), trend:<trend id> (Trends), insp:<id>, hubtrend:<id>, clone:<platform>:<post id>,
+  own:<draft id>, link:<platform>:<id> and upload:<sha1>. A key that doesn't resolve opens Write without a source.
 - /clone?url=<reel link>: fills the link box (a Clone button elsewhere); cloning stays a tap, since each
   clone uses one of the day's.
 - /coach#idea-dump (the board's empty column) scrolls to the idea dump.

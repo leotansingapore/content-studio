@@ -156,7 +156,10 @@ describe("links into Write", () => {
     expect(q.get("idea")).toBe("real-question");
     expect(q.get("ctx")).toContain('"Is CPF enough?"');
     expect(q.get("ctx")).toContain("moneysmart.sg");
-    expect(new URL(`https://x${m.postWriteUrl(p("1"))}`).searchParams.get("ctx")).toContain("@rival");
+    // a Your market post id is already <platform>:<postId>, so the source is a follow: key loadFollowing resolves
+    const remix = new URL(`https://x${m.postWriteUrl(p("instagram:1"))}`).searchParams;
+    expect(remix.get("ctx")).toContain("@rival");
+    expect(remix.get("source")).toBe("follow:instagram:1");
   });
 });
 

@@ -34,5 +34,6 @@ describe("adsSwipe", () => {
     expect(ctx).toContain("Problem hook");
     expect(ctx).toContain("Do not reuse its wording");
     expect(url.searchParams.get("pillar")).toBe("topic");
+    expect(url.searchParams.get("source")).toBe("ad:1");
   });
 });

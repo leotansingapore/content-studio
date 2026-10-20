@@ -6,6 +6,7 @@
 
 import { callFn } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
+import { sourceKey } from "@/lib/remixSource";
 import type { TrackedPost, TrackResult } from "../../supabase/functions/track-accounts/logic.ts";
 
 export type { TrackedPost };
@@ -103,13 +104,13 @@ export function followStats(a: FollowedAccount, now = Date.now()): FollowStats {
 }
 
 /** Where a post goes to be remixed: a video to Clone a reel, anything else to Write. */
-export function remixUrl(a: Pick<FollowedAccount, "handle">, p: TrackedPost): string {
+export function remixUrl(a: Pick<FollowedAccount, "handle" | "platform">, p: TrackedPost): string {
   if (p.format === "video") return `/clone?${new URLSearchParams({ url: p.url })}`;
   const ctx = [
     `A post by @${a.handle} did well (${p.url}). What it says: "${p.caption}"`,
     "Write my own take on the idea in my voice. Do not copy its wording.",
   ].join("\n");
-  return `/generate?${new URLSearchParams({ pillar: "topic", detail: p.caption.split(/[.!?\n]/)[0].slice(0, 80) || `@${a.handle}'s post`, ctx })}`;
+  return `/generate?${new URLSearchParams({ pillar: "topic", detail: p.caption.split(/[.!?\n]/)[0].slice(0, 80) || `@${a.handle}'s post`, ctx, source: sourceKey.follow(a.platform, p.id) })}`;
 }
 
 export async function checkAccount(a: Pick<FollowedAccount, "platform" | "handle">): Promise<TrackResult & { checkedAt: string }> {

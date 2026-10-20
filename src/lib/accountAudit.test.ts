@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { auditedHandles, connectedFor, followerSeries, growthSeries, type AuditSnapshot } from "@/lib/accountAudit";
+import { auditedHandles, connectedFor, followerSeries, growthSeries, remixUrl, type AuditSnapshot, type RatedPost } from "@/lib/accountAudit";
+
+const rated = (o: Partial<RatedPost> = {}): RatedPost => ({
+  id: "C9xyz", url: "https://www.instagram.com/p/C9xyz/", format: "carousel", caption: "Three CPF mistakes\nand how to fix them",
+  postedAt: "2026-09-30T02:00:00Z", views: null, likes: 120, comments: 14, shares: null, saves: null, durationSec: null,
+  pinned: false, collab: false, interactions: 134, engagementRate: 2.1, ratio: 2.4, young: false, ...o,
+});
+
+describe("remixUrl", () => {
+  it("names the post as its source, audit:<platform>:<post id>", () => {
+    const url = new URL(remixUrl(rated(), "instagram", "leo.tan"), "https://x");
+    expect(url.searchParams.get("source")).toBe("audit:instagram:C9xyz");
+    expect(url.searchParams.get("format")).toBe("carousel");
+  });
+});
 
 const snap = (takenAt: string, followers: number | null): AuditSnapshot => ({
   taken_at: takenAt,

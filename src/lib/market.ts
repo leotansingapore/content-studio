@@ -185,8 +185,9 @@ export function geoWriteUrl(x: GeoRead): string {
   return `/generate?${new URLSearchParams({ idea: "real-question", ctx }).toString()}`;
 }
 
+// x.id is already <platform>:<postId>, so the key is follow:<id> and loadFollowing resolves it (remixSource.ts).
 export const postWriteUrl = (x: JudgedPost) =>
-  `/generate?${new URLSearchParams({ ctx: `Remix this angle from @${x.handle} (adapt to my niche and voice, never copy): "${x.caption.slice(0, 220)}"` }).toString()}`;
+  `/generate?${new URLSearchParams({ ctx: `Remix this angle from @${x.handle} (adapt to my niche and voice, never copy): "${x.caption.slice(0, 220)}"`, source: `follow:${x.id}` }).toString()}`;
 
 /** Offer the Monday reminder on this page: only while it is off, on a browser that can show alerts. */
 export const reminderOffer = (on: boolean, support: "ok" | "ios-install" | "unsupported") => !on && support === "ok";

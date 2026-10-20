@@ -48,5 +48,8 @@ describe("following", () => {
     expect(url.startsWith("/generate?")).toBe(true);
     expect(p.get("detail")).toBe("Most people buy insurance backwards");
     expect(p.get("ctx")).toContain("Do not copy its wording");
+    expect(p.get("source")).toBe("follow:instagram:b");
+    // a video goes to Clone a reel, whose draft gets a clone: key
+    expect(remixUrl(base, post("a", 1))).not.toContain("source=");
   });
 });

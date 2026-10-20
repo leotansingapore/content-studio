@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { compactNum, postAge } from "./topPosts";
+import advisors from "@/data/advisors.json";
+import { buildRemixUrl, compactNum, getAllTopPosts, postAge } from "./topPosts";
+
+describe("buildRemixUrl", () => {
+  it("names the post as its source, top:<advisor id>-<short code>", () => {
+    const post = getAllTopPosts()[0];
+    const url = new URL(buildRemixUrl(post, { name: post.advisorName, handle: post.handle }), "https://x");
+    expect(url.searchParams.get("source")).toBe(`top:${post.advisorId}-${post.shortCode}`);
+    expect((advisors as { id: string }[]).some((a) => a.id === post.advisorId)).toBe(true);
+  });
+
+  it("sends no source for a creator the library doesn't know", () => {
+    const post = getAllTopPosts()[0];
+    expect(new URL(buildRemixUrl(post, { name: "Someone", handle: "@nobody_here_123" }), "https://x").searchParams.has("source")).toBe(false);
+  });
+});
 
 describe("compactNum", () => {
   it("shortens counts the way the reel cards show them", () => {

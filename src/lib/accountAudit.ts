@@ -5,6 +5,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { localDateKey } from "@/lib/dueDates";
+import { sourceKey } from "@/lib/remixSource";
 import { IDEAS_PER_BATCH } from "../../supabase/functions/_shared/postIdeas.ts";
 import type { SocialAccounts } from "@/lib/socialAccounts";
 import {
@@ -210,6 +211,8 @@ export function remixUrl(
     ctx,
     format: post.format === "video" ? "short-video" : post.format === "carousel" ? "carousel" : "text-post",
     platform,
+    // resolves through rememberSource: the audit's posts are server rows the device doesn't keep
+    source: sourceKey.audit(platform, post.id),
   });
   return `/generate?${params.toString()}`;
 }

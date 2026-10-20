@@ -8,6 +8,7 @@
 // wrote.
 
 import trendsData from "@/data/trends.json";
+import { sourceKey } from "@/lib/remixSource";
 
 export type TrendPlatform = "linkedin" | "instagram" | "facebook" | "tiktok";
 
@@ -167,6 +168,7 @@ export function buildTrendRemixUrl(trend: TrendEntry, hook?: string): string {
     ctx: ctxParts.join("\n"),
     format: trend.format,
     platform: trend.platform,
+    source: sourceKey.trend(trend.id),
   });
   if (trend.cta_type && VALID_CTA_TYPES.includes(trend.cta_type)) {
     params.set("cta", trend.cta_type);
