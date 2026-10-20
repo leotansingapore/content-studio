@@ -1176,7 +1176,8 @@ function RemixLinkBox({
   // At 0, Read it stays on (a post read before is free) but says why its chip is red; Upload stops.
   const linkReason = reasonText({ left: linkLeft, leo: true });
   const fileReason = reasonText({ left: fileLeft, leo: true });
-  const hint = `${LINK_COPY.hint} Each link uses 1 of your ${DAILY_LIMITS["remix-link"]} a day${linkLeft === null ? "" : `, ${linkLeft} left today`}; each file 1 of your ${DAILY_LIMITS["remix-image"]}${fileLeft === null ? "" : `, ${fileLeft} left`} (a video also uses 1 transcription). Posts read before are free.`;
+  // the chips under each button carry the price and the uses left; the hint says only what they can't
+  const hint = `${LINK_COPY.hint} Posts read before are free, and a video also uses 1 transcription.`;
 
   return (
     <>
