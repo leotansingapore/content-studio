@@ -1,0 +1,18 @@
+{
+ "status_code": 20000,
+ "tasks": [
+  {
+   "status_code": 20000,
+   "status_message": "Ok.",
+   "cost": 0.012,
+   "result": [
+    {
+     "seed_keyword": "sales follow up",
+     "total_count": null,
+     "items_count": 0,
+     "items": []
+    }
+   ]
+  }
+ ]
+}

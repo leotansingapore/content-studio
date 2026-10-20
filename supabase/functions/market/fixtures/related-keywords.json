@@ -1,0 +1,909 @@
+{
+ "status_code": 20000,
+ "tasks": [
+  {
+   "status_code": 20000,
+   "status_message": "Ok.",
+   "cost": 0.01308,
+   "result": [
+    {
+     "seed_keyword": "life insurance",
+     "total_count": 9,
+     "items_count": 9,
+     "items": [
+      {
+       "se_type": "google",
+       "depth": 0,
+       "related_keywords": [
+        "life insurance singapore",
+        "life insurance singapore for foreigners",
+        "life insurance iras",
+        "best life insurance singapore",
+        "singlife life insurance",
+        "life insurance aia",
+        "whole life insurance singapore",
+        "ntuc income life insurance"
+       ],
+       "keyword_data": {
+        "keyword": "life insurance",
+        "location_code": 2702,
+        "language_code": "en",
+        "keyword_info": {
+         "search_volume": 22200,
+         "monthly_searches": [
+          {
+           "year": 2026,
+           "month": 9,
+           "search_volume": 720
+          },
+          {
+           "year": 2026,
+           "month": 8,
+           "search_volume": 590
+          },
+          {
+           "year": 2026,
+           "month": 7,
+           "search_volume": 1000
+          },
+          {
+           "year": 2026,
+           "month": 6,
+           "search_volume": 1600
+          },
+          {
+           "year": 2026,
+           "month": 5,
+           "search_volume": 880
+          },
+          {
+           "year": 2026,
+           "month": 4,
+           "search_volume": 1900
+          },
+          {
+           "year": 2026,
+           "month": 3,
+           "search_volume": 49500
+          },
+          {
+           "year": 2026,
+           "month": 2,
+           "search_volume": 60500
+          },
+          {
+           "year": 2026,
+           "month": 1,
+           "search_volume": 60500
+          },
+          {
+           "year": 2025,
+           "month": 12,
+           "search_volume": 40500
+          },
+          {
+           "year": 2025,
+           "month": 11,
+           "search_volume": 14800
+          },
+          {
+           "year": 2025,
+           "month": 10,
+           "search_volume": 18100
+          }
+         ],
+         "search_volume_trend": {
+          "monthly": 22,
+          "quarterly": -28,
+          "yearly": -94
+         },
+         "competition": 0.24,
+         "competition_level": "LOW",
+         "cpc": 7.66,
+         "last_updated_time": "2026-10-18 09:35:12 +00:00"
+        },
+        "search_intent_info": {
+         "se_type": "google",
+         "main_intent": "informational",
+         "foreign_intent": [
+          "commercial"
+         ],
+         "last_updated_time": "2026-04-28 08:06:47 +00:00"
+        }
+       }
+      },
+      {
+       "se_type": "google",
+       "depth": 1,
+       "related_keywords": [
+        "best life insurance singapore",
+        "life insurance singapore for foreigners",
+        "life insurance singapore review",
+        "whole life insurance singapore",
+        "cheapest life insurance singapore",
+        "life insurance singapore reddit",
+        "life insurance singapore tax relief",
+        "aia life insurance singapore"
+       ],
+       "keyword_data": {
+        "keyword": "life insurance singapore",
+        "location_code": 2702,
+        "language_code": "en",
+        "keyword_info": {
+         "search_volume": 1600,
+         "monthly_searches": [
+          {
+           "year": 2026,
+           "month": 9,
+           "search_volume": 1000
+          },
+          {
+           "year": 2026,
+           "month": 8,
+           "search_volume": 1600
+          },
+          {
+           "year": 2026,
+           "month": 7,
+           "search_volume": 1600
+          },
+          {
+           "year": 2026,
+           "month": 6,
+           "search_volume": 880
+          },
+          {
+           "year": 2026,
+           "month": 5,
+           "search_volume": 590
+          },
+          {
+           "year": 2026,
+           "month": 4,
+           "search_volume": 590
+          },
+          {
+           "year": 2026,
+           "month": 3,
+           "search_volume": 880
+          },
+          {
+           "year": 2026,
+           "month": 2,
+           "search_volume": 8100
+          },
+          {
+           "year": 2026,
+           "month": 1,
+           "search_volume": 880
+          },
+          {
+           "year": 2025,
+           "month": 12,
+           "search_volume": 590
+          },
+          {
+           "year": 2025,
+           "month": 11,
+           "search_volume": 590
+          },
+          {
+           "year": 2025,
+           "month": 10,
+           "search_volume": 720
+          }
+         ],
+         "search_volume_trend": {
+          "monthly": -38,
+          "quarterly": -38,
+          "yearly": 0
+         },
+         "competition": 0.36,
+         "competition_level": "MEDIUM",
+         "cpc": 8.76,
+         "last_updated_time": "2026-10-18 09:05:49 +00:00"
+        },
+        "search_intent_info": {
+         "se_type": "google",
+         "main_intent": "commercial",
+         "foreign_intent": null,
+         "last_updated_time": "2026-04-29 16:46:26 +00:00"
+        }
+       }
+      },
+      {
+       "se_type": "google",
+       "depth": 1,
+       "related_keywords": [
+        "life insurance aia singapore",
+        "life insurance aia review",
+        "best life insurance aia",
+        "life insurance aia contact number",
+        "life insurance singapore",
+        "aia whole life insurance",
+        "aia login with singpass",
+        "aia life plus"
+       ],
+       "keyword_data": {
+        "keyword": "life insurance aia",
+        "location_code": 2702,
+        "language_code": "en",
+        "keyword_info": {
+         "search_volume": 260,
+         "monthly_searches": [
+          {
+           "year": 2026,
+           "month": 9,
+           "search_volume": 170
+          },
+          {
+           "year": 2026,
+           "month": 8,
+           "search_volume": 260
+          },
+          {
+           "year": 2026,
+           "month": 7,
+           "search_volume": 210
+          },
+          {
+           "year": 2026,
+           "month": 6,
+           "search_volume": 210
+          },
+          {
+           "year": 2026,
+           "month": 5,
+           "search_volume": 260
+          },
+          {
+           "year": 2026,
+           "month": 4,
+           "search_volume": 320
+          },
+          {
+           "year": 2026,
+           "month": 3,
+           "search_volume": 390
+          },
+          {
+           "year": 2026,
+           "month": 2,
+           "search_volume": 170
+          },
+          {
+           "year": 2026,
+           "month": 1,
+           "search_volume": 260
+          },
+          {
+           "year": 2025,
+           "month": 12,
+           "search_volume": 210
+          },
+          {
+           "year": 2025,
+           "month": 11,
+           "search_volume": 210
+          },
+          {
+           "year": 2025,
+           "month": 10,
+           "search_volume": 260
+          }
+         ],
+         "search_volume_trend": {
+          "monthly": -35,
+          "quarterly": -19,
+          "yearly": -47
+         },
+         "competition": 0.57,
+         "competition_level": "MEDIUM",
+         "cpc": 0.88,
+         "last_updated_time": "2026-10-15 16:55:11 +00:00"
+        },
+        "search_intent_info": {
+         "se_type": "google",
+         "main_intent": "commercial",
+         "foreign_intent": null,
+         "last_updated_time": "2026-04-29 14:13:30 +00:00"
+        }
+       }
+      },
+      {
+       "se_type": "google",
+       "depth": 1,
+       "related_keywords": [
+        "singlife life insurance review",
+        "singlife term life insurance",
+        "singlife life insurance claims",
+        "singapore life insurance",
+        "singlife ezsub",
+        "singlife sol",
+        "singlife premium payment",
+        "singlife login with singpass"
+       ],
+       "keyword_data": {
+        "keyword": "singlife life insurance",
+        "location_code": 2702,
+        "language_code": "en",
+        "keyword_info": {
+         "search_volume": 140,
+         "monthly_searches": [
+          {
+           "year": 2026,
+           "month": 9,
+           "search_volume": 110
+          },
+          {
+           "year": 2026,
+           "month": 8,
+           "search_volume": 110
+          },
+          {
+           "year": 2026,
+           "month": 7,
+           "search_volume": 140
+          },
+          {
+           "year": 2026,
+           "month": 6,
+           "search_volume": 140
+          },
+          {
+           "year": 2026,
+           "month": 5,
+           "search_volume": 110
+          },
+          {
+           "year": 2026,
+           "month": 4,
+           "search_volume": 140
+          },
+          {
+           "year": 2026,
+           "month": 3,
+           "search_volume": 210
+          },
+          {
+           "year": 2026,
+           "month": 2,
+           "search_volume": 90
+          },
+          {
+           "year": 2026,
+           "month": 1,
+           "search_volume": 110
+          },
+          {
+           "year": 2025,
+           "month": 12,
+           "search_volume": 90
+          },
+          {
+           "year": 2025,
+           "month": 11,
+           "search_volume": 110
+          },
+          {
+           "year": 2025,
+           "month": 10,
+           "search_volume": 110
+          }
+         ],
+         "search_volume_trend": {
+          "monthly": 0,
+          "quarterly": -21,
+          "yearly": 0
+         },
+         "competition": 0.56,
+         "competition_level": "MEDIUM",
+         "cpc": 4.49,
+         "last_updated_time": "2026-10-17 16:54:09 +00:00"
+        },
+        "search_intent_info": {
+         "se_type": "google",
+         "main_intent": "navigational",
+         "foreign_intent": [
+          "commercial"
+         ],
+         "last_updated_time": "2026-04-28 21:53:40 +00:00"
+        }
+       }
+      },
+      {
+       "se_type": "google",
+       "depth": 1,
+       "related_keywords": [
+        "best whole life insurance singapore",
+        "whole life insurance singapore review",
+        "term life insurance singapore",
+        "cheapest whole life insurance singapore",
+        "whole life insurance singapore reddit",
+        "whole life insurance great eastern",
+        "aia whole life insurance",
+        "term life insurance singapore premium calculator"
+       ],
+       "keyword_data": {
+        "keyword": "whole life insurance singapore",
+        "location_code": 2702,
+        "language_code": "en",
+        "keyword_info": {
+         "search_volume": 140,
+         "monthly_searches": [
+          {
+           "year": 2026,
+           "month": 9,
+           "search_volume": 170
+          },
+          {
+           "year": 2026,
+           "month": 8,
+           "search_volume": 110
+          },
+          {
+           "year": 2026,
+           "month": 7,
+           "search_volume": 170
+          },
+          {
+           "year": 2026,
+           "month": 6,
+           "search_volume": 170
+          },
+          {
+           "year": 2026,
+           "month": 5,
+           "search_volume": 110
+          },
+          {
+           "year": 2026,
+           "month": 4,
+           "search_volume": 110
+          },
+          {
+           "year": 2026,
+           "month": 3,
+           "search_volume": 390
+          },
+          {
+           "year": 2026,
+           "month": 2,
+           "search_volume": 110
+          },
+          {
+           "year": 2026,
+           "month": 1,
+           "search_volume": 140
+          },
+          {
+           "year": 2025,
+           "month": 12,
+           "search_volume": 110
+          },
+          {
+           "year": 2025,
+           "month": 11,
+           "search_volume": 90
+          },
+          {
+           "year": 2025,
+           "month": 10,
+           "search_volume": 140
+          }
+         ],
+         "search_volume_trend": {
+          "monthly": 55,
+          "quarterly": 0,
+          "yearly": 21
+         },
+         "competition": 0.25,
+         "competition_level": "LOW",
+         "cpc": 5.27,
+         "last_updated_time": "2026-10-15 15:54:25 +00:00"
+        },
+        "search_intent_info": {
+         "se_type": "google",
+         "main_intent": "commercial",
+         "foreign_intent": null,
+         "last_updated_time": "2026-04-30 04:55:42 +00:00"
+        }
+       }
+      },
+      {
+       "se_type": "google",
+       "depth": 1,
+       "related_keywords": [
+        "best life insurance singapore reddit",
+        "best life insurance singapore review",
+        "life insurance singapore for foreigners",
+        "singlife life insurance",
+        "aia life insurance singapore",
+        "whole life insurance singapore",
+        "great eastern life insurance singapore",
+        "aia whole life insurance"
+       ],
+       "keyword_data": {
+        "keyword": "best life insurance singapore",
+        "location_code": 2702,
+        "language_code": "en",
+        "keyword_info": {
+         "search_volume": 110,
+         "monthly_searches": [
+          {
+           "year": 2026,
+           "month": 9,
+           "search_volume": 90
+          },
+          {
+           "year": 2026,
+           "month": 8,
+           "search_volume": 90
+          },
+          {
+           "year": 2026,
+           "month": 7,
+           "search_volume": 110
+          },
+          {
+           "year": 2026,
+           "month": 6,
+           "search_volume": 140
+          },
+          {
+           "year": 2026,
+           "month": 5,
+           "search_volume": 90
+          },
+          {
+           "year": 2026,
+           "month": 4,
+           "search_volume": 140
+          },
+          {
+           "year": 2026,
+           "month": 3,
+           "search_volume": 140
+          },
+          {
+           "year": 2026,
+           "month": 2,
+           "search_volume": 90
+          },
+          {
+           "year": 2026,
+           "month": 1,
+           "search_volume": 90
+          },
+          {
+           "year": 2025,
+           "month": 12,
+           "search_volume": 110
+          },
+          {
+           "year": 2025,
+           "month": 11,
+           "search_volume": 90
+          },
+          {
+           "year": 2025,
+           "month": 10,
+           "search_volume": 170
+          }
+         ],
+         "search_volume_trend": {
+          "monthly": 0,
+          "quarterly": -18,
+          "yearly": -36
+         },
+         "competition": 0.68,
+         "competition_level": "HIGH",
+         "cpc": 9.41,
+         "last_updated_time": "2026-10-19 02:44:32 +00:00"
+        },
+        "search_intent_info": {
+         "se_type": "google",
+         "main_intent": "commercial",
+         "foreign_intent": null,
+         "last_updated_time": "2026-04-29 13:59:30 +00:00"
+        }
+       }
+      },
+      {
+       "se_type": "google",
+       "depth": 1,
+       "related_keywords": [
+        "ntuc income life insurance singapore",
+        "ntuc income life insurance review",
+        "ntuc income life insurance promotion",
+        "ntuc income hotline",
+        "ntuc income living policy",
+        "life insurance singapore",
+        "ntuc income living policy product summary",
+        "ntuc income login"
+       ],
+       "keyword_data": {
+        "keyword": "ntuc income life insurance",
+        "location_code": 2702,
+        "language_code": "en",
+        "keyword_info": {
+         "search_volume": 70,
+         "monthly_searches": [
+          {
+           "year": 2026,
+           "month": 9,
+           "search_volume": 40
+          },
+          {
+           "year": 2026,
+           "month": 8,
+           "search_volume": 50
+          },
+          {
+           "year": 2026,
+           "month": 7,
+           "search_volume": 50
+          },
+          {
+           "year": 2026,
+           "month": 6,
+           "search_volume": 50
+          },
+          {
+           "year": 2026,
+           "month": 5,
+           "search_volume": 70
+          },
+          {
+           "year": 2026,
+           "month": 4,
+           "search_volume": 70
+          },
+          {
+           "year": 2026,
+           "month": 3,
+           "search_volume": 90
+          },
+          {
+           "year": 2026,
+           "month": 2,
+           "search_volume": 50
+          },
+          {
+           "year": 2026,
+           "month": 1,
+           "search_volume": 90
+          },
+          {
+           "year": 2025,
+           "month": 12,
+           "search_volume": 70
+          },
+          {
+           "year": 2025,
+           "month": 11,
+           "search_volume": 50
+          },
+          {
+           "year": 2025,
+           "month": 10,
+           "search_volume": 70
+          }
+         ],
+         "search_volume_trend": {
+          "monthly": -20,
+          "quarterly": -20,
+          "yearly": -56
+         },
+         "competition": 0.65,
+         "competition_level": "MEDIUM",
+         "cpc": 2.95,
+         "last_updated_time": "2026-10-15 14:49:19 +00:00"
+        },
+        "search_intent_info": {
+         "se_type": "google",
+         "main_intent": "navigational",
+         "foreign_intent": [
+          "informational"
+         ],
+         "last_updated_time": "2026-04-29 16:35:27 +00:00"
+        }
+       }
+      },
+      {
+       "se_type": "google",
+       "depth": 1,
+       "related_keywords": [
+        "provident fund/ life insurance iras",
+        "iras insurance premium deduction",
+        "life insurance iras calculator",
+        "insurance premium iras",
+        "group term life insurance iras",
+        "iras life insurance relief for foreigners",
+        "medical insurance iras",
+        "life insurance relief iras"
+       ],
+       "keyword_data": {
+        "keyword": "life insurance iras",
+        "location_code": 2702,
+        "language_code": "en",
+        "keyword_info": {
+         "search_volume": 40,
+         "monthly_searches": [
+          {
+           "year": 2026,
+           "month": 9,
+           "search_volume": 10
+          },
+          {
+           "year": 2026,
+           "month": 8,
+           "search_volume": 20
+          },
+          {
+           "year": 2026,
+           "month": 7,
+           "search_volume": 10
+          },
+          {
+           "year": 2026,
+           "month": 6,
+           "search_volume": 30
+          },
+          {
+           "year": 2026,
+           "month": 5,
+           "search_volume": 20
+          },
+          {
+           "year": 2026,
+           "month": 4,
+           "search_volume": 110
+          },
+          {
+           "year": 2026,
+           "month": 3,
+           "search_volume": 170
+          },
+          {
+           "year": 2026,
+           "month": 2,
+           "search_volume": 30
+          },
+          {
+           "year": 2026,
+           "month": 1,
+           "search_volume": 30
+          },
+          {
+           "year": 2025,
+           "month": 12,
+           "search_volume": 20
+          },
+          {
+           "year": 2025,
+           "month": 11,
+           "search_volume": 20
+          },
+          {
+           "year": 2025,
+           "month": 10,
+           "search_volume": 20
+          }
+         ],
+         "search_volume_trend": {
+          "monthly": -50,
+          "quarterly": 0,
+          "yearly": -50
+         },
+         "competition": 0.01,
+         "competition_level": "LOW",
+         "cpc": null,
+         "last_updated_time": "2026-10-15 19:40:16 +00:00"
+        },
+        "search_intent_info": {
+         "se_type": "google",
+         "main_intent": "informational",
+         "foreign_intent": [
+          "commercial"
+         ],
+         "last_updated_time": "2026-04-29 14:21:08 +00:00"
+        }
+       }
+      },
+      {
+       "se_type": "google",
+       "depth": 1,
+       "related_keywords": null,
+       "keyword_data": {
+        "keyword": "life insurance singapore for foreigners",
+        "location_code": 2702,
+        "language_code": "en",
+        "keyword_info": {
+         "search_volume": 30,
+         "monthly_searches": [
+          {
+           "year": 2026,
+           "month": 9,
+           "search_volume": 20
+          },
+          {
+           "year": 2026,
+           "month": 8,
+           "search_volume": 20
+          },
+          {
+           "year": 2026,
+           "month": 7,
+           "search_volume": 20
+          },
+          {
+           "year": 2026,
+           "month": 6,
+           "search_volume": 20
+          },
+          {
+           "year": 2026,
+           "month": 5,
+           "search_volume": 30
+          },
+          {
+           "year": 2026,
+           "month": 4,
+           "search_volume": 20
+          },
+          {
+           "year": 2026,
+           "month": 3,
+           "search_volume": 30
+          },
+          {
+           "year": 2026,
+           "month": 2,
+           "search_volume": 20
+          },
+          {
+           "year": 2026,
+           "month": 1,
+           "search_volume": 20
+          },
+          {
+           "year": 2025,
+           "month": 12,
+           "search_volume": 30
+          },
+          {
+           "year": 2025,
+           "month": 11,
+           "search_volume": 50
+          },
+          {
+           "year": 2025,
+           "month": 10,
+           "search_volume": 20
+          }
+         ],
+         "search_volume_trend": {
+          "monthly": 0,
+          "quarterly": 0,
+          "yearly": -33
+         },
+         "competition": 0.78,
+         "competition_level": "HIGH",
+         "cpc": 4.64,
+         "last_updated_time": "2026-10-19 00:32:22 +00:00"
+        },
+        "search_intent_info": {
+         "se_type": "google",
+         "main_intent": "informational",
+         "foreign_intent": null,
+         "last_updated_time": "2026-04-28 12:38:37 +00:00"
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
