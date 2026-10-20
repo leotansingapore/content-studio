@@ -18,7 +18,18 @@
       "destination": "https://hgdbflprrficdoyxmdxe.supabase.co/functions/v1/tracked-link/:slug"
     },
     {
-      "source": "/(.*)",
+      "source": "/:path((?!api/|og/|assets/|news/|ads/|covers/|t/).*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|WhatsApp|TelegramBot|Twitterbot|Slackbot|LinkedInBot|Discordbot|SkypeUriPreview|MicrosoftPreview|Google-PageRenderer|redditbot|Embedly|Iframely|Pinterestbot).*"
+        }
+      ],
+      "destination": "/api/page-og?path=:path"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/"
     }
   ],

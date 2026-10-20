@@ -32,6 +32,13 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 | A picture (an AI picture, an upload, a stock photo) | /media?item=<key> | every picture in Media; an AI picture's Library card opens it |
 | Your own social post in the account audit | /analytics?audit=<platform>:<post id> | each best post and each post that fell short |
 
+**Link previews.** A link pasted into Telegram, WhatsApp, Slack or LinkedIn shows a preview from api/page-og.ts
+(vercel.json sends only those fetchers there; src/lib/linkPreview.ts decides the words). Public posts show their
+own title, words and picture: news stories, ads, top posts, trends, inspiration examples and creators. Every
+other link shows the name of its page on the site card (public/og/site.jpg), never what is on it, because those
+pages sit behind a login. Telegram keeps the first preview it fetched for a link: re-share an old link with
+`&s=1` on the end, or send it to @WebpageBot, to see the new card.
+
 The first table covers the Pipeline pages; the Grow, Discover and settings pages and the Create pages have their
 own sections below. Older params that still work are listed under "Still read".
 
