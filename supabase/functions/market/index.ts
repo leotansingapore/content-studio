@@ -9,8 +9,10 @@
 //   supabase functions deploy market --project-ref hgdbflprrficdoyxmdxe --use-api
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
+import { dfs, dfsAuth, SINGAPORE } from "../_shared/dataforseo.ts";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
+import { pool } from "../_shared/pool.ts";
 import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, usageRefusal, type UsageFeature } from "../_shared/usageCaps.ts";
 import { parseNews } from "../mentions/logic.ts";
 import {
@@ -28,36 +30,10 @@ const headers = {
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 200);
-const SINGAPORE = 2702;
 // deno-lint-ignore no-explicit-any
 type Admin = any; // as clone-reel: ReturnType<typeof createClient> resolves to a schema the usage helpers reject
 
 const jev = (a: Ask, who: string) => askJev(a.state, a.questions, { who });
-
-async function dfs(path: string, task: Record<string, unknown>, auth: string, timeoutMs: number): Promise<unknown> {
-  const res = await fetch(`https://api.dataforseo.com/v3/${path}`, {
-    method: "POST",
-    headers: { Authorization: auth, "Content-Type": "application/json" },
-    body: JSON.stringify([task]),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`DataForSEO answered ${res.status}`);
-  return await res.json();
-}
-
-/** fn over items, at most `limit` at a time, results in order. */
-async function pool<T, R>(items: T[], limit: number, fn: (t: T, k: number) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length);
-  let next = 0;
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const k = next++;
-      out[k] = await fn(items[k], k);
-    }
-  }));
-  return out;
-}
-
 
 async function suggest(admin: Admin, uid: string, body: unknown): Promise<Response> {
   const input = cleanInput(body);
@@ -122,9 +98,8 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
   const input = cleanInput(body);
   const problem = checkProblem(input);
   if (problem) return json({ error: problem }, 400);
-  const login = Deno.env.get("DATAFORSEO_LOGIN");
-  const password = Deno.env.get("DATAFORSEO_PASSWORD");
-  if (!login || !password) return json({ error: "Your market isn't switched on yet." }, 503);
+  const auth = dfsAuth();
+  if (!auth) return json({ error: "Your market isn't switched on yet." }, 503);
 
   const now = new Date();
   const today = utcDay(now.getTime());
@@ -157,7 +132,6 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
     return json(r.body, r.status);
   }
 
-  const auth = `Basic ${btoa(`${login}:${password}`)}`;
   const [geo, news, posts] = await Promise.all([
     Promise.all(input.questions.map((q) => readAnswer(q, input, auth))),
     readNews(input, auth, now),

@@ -10,9 +10,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { askJev, choiceOf } from "../_shared/jev.ts";
 import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
+import { fetchCapped } from "../_shared/safeFetch.ts";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { safeFeedUrl } from "../feed-ideas/logic.ts";
-import { AUDIENCES, audienceAsk, parseWritten, privateIp, readSite, siteUrl, WRITE_FORMAT, writeMessages } from "./logic.ts";
+import { AUDIENCES, audienceAsk, parseWritten, readSite, siteUrl, WRITE_FORMAT, writeMessages } from "./logic.ts";
 
 const PAGE_BYTES = 300_000;
 // under the brand kit's 350,000-character limit once base64 grows it by a third
@@ -22,54 +23,6 @@ const headers = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, "Content-Type": "application/json" } });
-
-/**
- * Every address the host resolves to must be public (privateIp), checked before each request: the first one, every
- * redirect and every logo. shortcut: a DNS answer could still change between this check and the connection (rebinding),
- * so a host that resolves privately at fetch time slips through; pinning the vetted IP needs a fetch that takes one.
- */
-async function publicHost(url: URL): Promise<boolean> {
-  const resolve = (Deno as unknown as { resolveDns?: (h: string, t: "A" | "AAAA") => Promise<string[]> }).resolveDns;
-  if (typeof resolve !== "function") return false;
-  const answers = await Promise.all((["A", "AAAA"] as const).map((t) => resolve(url.hostname, t).catch(() => [] as string[])));
-  const all = answers.flat();
-  return all.length > 0 && !all.some(privateIp);
-}
-
-/** Follows up to 3 redirects that each pass the same guard, and reads at most `max` bytes. */
-async function fetchCapped(start: URL, max: number, accept: string, deadline: AbortSignal): Promise<{ bytes: Uint8Array; type: string; url: URL }> {
-  let url = start;
-  for (let hop = 0; hop < 4; hop++) {
-    if (!(await publicHost(url))) throw new Error(`${url.hostname} doesn't resolve to a public address`);
-    const res = await fetch(url, { redirect: "manual", signal: AbortSignal.any([deadline, AbortSignal.timeout(8_000)]), headers: { "User-Agent": "ContentStudio-BrandReader/1.0", Accept: accept } });
-    if (res.status >= 300 && res.status < 400) {
-      await res.body?.cancel();
-      const next = safeFeedUrl(new URL(res.headers.get("location") ?? "", url).href);
-      if (!next) throw new Error("redirects somewhere we can't read");
-      url = next;
-      continue;
-    }
-    if (!res.ok || !res.body) throw new Error(`answered ${res.status}`);
-    const reader = res.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > max) {
-        await reader.cancel();
-        break;
-      }
-      chunks.push(value);
-    }
-    const bytes = new Uint8Array(chunks.reduce((n, c) => n + c.byteLength, 0));
-    let at = 0;
-    for (const c of chunks) (bytes.set(c, at), (at += c.byteLength));
-    return { bytes, type: (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase(), url };
-  }
-  throw new Error("redirects too many times");
-}
 
 // the file's own first bytes, not the server's word for it
 const imageType = (b: Uint8Array) =>
