@@ -7,7 +7,7 @@
 import { callFn } from "@/lib/edgeFn";
 import type { DraftEntry, ZernioLink } from "@/lib/draftHistory";
 import type { CarouselBrand } from "@/lib/carousel";
-import { tagLinks, toPlainText, withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
+import { tagLinks, toPlainText, withCredit, withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
 import { keyToDate, timeLabel } from "@/lib/dueDates";
 import {
   MAX_IMAGE_BYTES,
@@ -23,9 +23,9 @@ export { MAX_PICTURES, MEDIA_TYPES, type CreatorInfo, type PostView };
 
 // ---- the draft ----
 
-/** The draft as it would be pasted: plain text, the brand kit sign-off, its disclosure, tracked links when the kit asks. */
-export function postText(d: Pick<DraftEntry, "draft" | "disclosure" | "platform" | "hook" | "pillarDetail">, brand: CarouselBrand | null): string {
-  const out = withDisclosure(withSignOff(toPlainText(d.draft), brand?.signOff?.trim() ?? ""), (d.disclosure ?? []) as DisclosureId[]);
+/** The draft as it would be pasted: plain text, the brand kit sign-off, its disclosure, the remix credit when ticked, tracked links when the kit asks. */
+export function postText(d: Pick<DraftEntry, "draft" | "disclosure" | "platform" | "hook" | "pillarDetail" | "source">, brand: CarouselBrand | null): string {
+  const out = withCredit(withDisclosure(withSignOff(toPlainText(d.draft), brand?.signOff?.trim() ?? ""), (d.disclosure ?? []) as DisclosureId[]), d.source);
   return brand?.tagLinks ? tagLinks(out, { source: d.platform, campaign: d.hook || d.pillarDetail || "post" }) : out;
 }
 

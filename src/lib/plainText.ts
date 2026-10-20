@@ -10,6 +10,8 @@
 // Deliberately conservative: preserves line breaks and paragraph spacing, which
 // carry the visual rhythm of a social post.
 
+import type { RemixSource } from "@/lib/remixSource";
+
 /** Markdown bullet markers -> a bullet social platforms render natively. */
 const BULLET = "•";
 
@@ -101,6 +103,18 @@ export function withDisclosure(text: string, ids: readonly DisclosureId[]): stri
     .map((id) => DISCLOSURES[id].line)
     .join(" ");
   if (!line) return text;
+  const body = text.trimEnd();
+  if (body.endsWith(line)) return body;
+  return body ? `${body}\n\n${line}` : line;
+}
+
+/**
+ * "Idea from @mrbrown." as the last line, when the remix source asks for credit. Never for your own posts, and
+ * running it twice leaves the text as it is.
+ */
+export function withCredit(text: string, source: RemixSource | undefined): string {
+  if (!source?.credit || source.kind === "own" || !source.author) return text;
+  const line = `Idea from ${source.author}.`;
   const body = text.trimEnd();
   if (body.endsWith(line)) return body;
   return body ? `${body}\n\n${line}` : line;

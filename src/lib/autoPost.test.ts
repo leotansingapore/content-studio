@@ -137,6 +137,14 @@ describe("the draft as it goes out", () => {
     expect(postText(d, null)).toBe("Three checks.");
     expect(postText(d, { color: "#000", name: "", handle: "", signOff: "Leo, AIA" })).toBe("Three checks.\n\nLeo, AIA");
   });
+
+  it("adds the remix credit last, only when it is ticked", () => {
+    const source = { key: "top:a-1", kind: "top-post" as const, author: "@mrbrown", remixedAt: "" };
+    const d = { draft: "Three checks.", disclosure: [], platform: "instagram", hook: "", pillarDetail: "" };
+    expect(postText({ ...d, source }, null)).toBe("Three checks.");
+    expect(postText({ ...d, source: { ...source, credit: true } }, null)).toBe("Three checks.\n\nIdea from @mrbrown.");
+    expect(postText({ ...d, source: { ...source, credit: true, kind: "own" } }, null)).toBe("Three checks.");
+  });
 });
 
 describe("the status chip", () => {

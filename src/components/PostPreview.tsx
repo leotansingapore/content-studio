@@ -14,7 +14,8 @@ import { useEffect, useState } from "react";
 import { splitScriptCaption } from "@/lib/scriptCaption";
 import { supabase } from "@/lib/supabase";
 import { loadBrand, type CarouselBrand } from "@/lib/carousel";
-import { withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
+import { withCredit, withDisclosure, withSignOff, type DisclosureId } from "@/lib/plainText";
+import type { RemixSource } from "@/lib/remixSource";
 import { blankRanges, foldAt, MAX_CHARS, type PlatformId } from "@/lib/platformCounters";
 
 // A lightweight, platform-flavoured preview of a draft so the consultant can
@@ -157,6 +158,7 @@ export default function PostPreview({
   format,
   disclosure = [],
   media = [],
+  source,
 }: {
   text: string;
   platform: Platform;
@@ -165,6 +167,8 @@ export default function PostPreview({
   disclosure?: readonly DisclosureId[];
   /** Pictures or a video attached in Write, shown in place of the placeholder. */
   media?: PreviewMedia[];
+  /** The remix source: its "Idea from ..." line shows when credit is ticked. */
+  source?: RemixSource;
 }) {
   const brand = useBrandKit();
   const body = text.trim();
@@ -177,7 +181,7 @@ export default function PostPreview({
     ? splitScriptCaption(body)
     : { script: null, caption: body };
   const script = split.script;
-  const caption = withDisclosure(withSignOff(split.caption, brand?.signOff), disclosure);
+  const caption = withCredit(withDisclosure(withSignOff(split.caption, brand?.signOff), disclosure), source);
   const handle = (brand?.handle ?? "").replace(/^@/, "").trim() || "your_handle";
   const mediaLabel = MEDIA_LABELS[format ?? ""] ?? "Your image / carousel";
 

@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { cleanAiTells, scanAiTells, withDisclosure, withSignOff, tagLinks } from "@/lib/plainText";
+import { cleanAiTells, scanAiTells, withCredit, withDisclosure, withSignOff, tagLinks } from "@/lib/plainText";
+import type { RemixSource } from "@/lib/remixSource";
+
+describe("withCredit", () => {
+  const src = (o: Partial<RemixSource>): RemixSource => ({ key: "ad:1", kind: "ad", author: "Singlife", remixedAt: "", credit: true, ...o });
+
+  it("adds the credit line once, at the end", () => {
+    expect(withCredit("Post body.\n", src({}))).toBe("Post body.\n\nIdea from Singlife.");
+    expect(withCredit(withCredit("Post body.", src({})), src({}))).toBe("Post body.\n\nIdea from Singlife.");
+  });
+
+  it("leaves the text alone unless ticked, for your own posts and with no one to credit", () => {
+    expect(withCredit("Body", src({ credit: false }))).toBe("Body");
+    expect(withCredit("Body", src({ kind: "own", author: "@me" }))).toBe("Body");
+    expect(withCredit("Body", src({ author: undefined }))).toBe("Body");
+    expect(withCredit("Body", undefined)).toBe("Body");
+  });
+});
 
 describe("withSignOff", () => {
   const sign = "DM me PLAN for a free review.\nThis is not financial advice.\n#cpf #singapore";
