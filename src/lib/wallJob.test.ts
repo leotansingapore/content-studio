@@ -166,7 +166,7 @@ describe("the wall job", () => {
     expect(block).toMatchObject({ kind: "block", text: TEXT, from: 0, to: 6, font: "clean", box: "none", color: "#FFFFFF" });
     expect(opts.extra.toast).toBe(WALL_TOAST);
     expect(opts.extra.caption).toBe("Busy weeks hide the work.\n\nFollow for more.");
-    expect(opts.extra.note).toBe(`Remixed from @moneygirl, ${SOURCE.url}.`);
+    expect(opts.extra.note).toBe(`Remixed from @moneygirl, ${SOURCE.url}`);
     expect(opts.extra.source).toMatchObject({ key: SOURCE.key });
     expect(opts.extra.source.remixedAt).not.toBe("");
     expect(j.extra).toBe(opts.extra);
@@ -301,8 +301,8 @@ describe("the page's words and links", () => {
   });
 
   it("says where the words came from, and any copy-check warning", () => {
-    expect(noteOf(SOURCE)).toBe(`Remixed from @moneygirl, ${SOURCE.url}.`);
-    expect(noteOf({ ...SOURCE, url: undefined })).toBe("Remixed from @moneygirl.");
+    expect(noteOf(SOURCE)).toBe(`Remixed from @moneygirl, ${SOURCE.url}`);
+    expect(noteOf({ ...SOURCE, url: undefined })).toBe("Remixed from @moneygirl");
     expect(noteOf(null)).toBeUndefined();
     expect(noteOf(SOURCE, { copied: ["you finally check where your money went"], claim: true, invented: false })).toBe(
       `Remixed from @moneygirl, ${SOURCE.url}. These words repeat the original: "you finally check where your money went". Change them before you post. Uses a figure or claim from the original. Check it or take it out.`,

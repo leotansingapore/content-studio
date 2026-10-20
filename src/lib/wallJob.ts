@@ -119,7 +119,9 @@ export function noteOf(source: RemixSource | null, flags?: Flags): string | unde
     flags?.claim ? "Uses a figure or claim from the original. Check it or take it out." : "",
     flags?.invented ? "Says something about you that isn't in your profile. Check it." : "",
   ];
-  return [from && `${from}.`, ...warn].filter(Boolean).join(" ") || undefined;
+  const warns = warn.filter(Boolean);
+  // no stop glued to the link unless a warning follows it
+  return [from && (warns.length ? `${from}.` : from), ...warns].filter(Boolean).join(" ") || undefined;
 }
 
 // ---- the job ----
