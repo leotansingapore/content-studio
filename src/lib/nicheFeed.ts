@@ -302,6 +302,9 @@ export function nicheFor(userId: string, sig: string): NicheState {
 
 // ---- The matching job, outside React ---------------------------------------------------------------------------
 
+/** The brand's own sources (its competitors, Following, its space) are asked first; the shared drops after. */
+const OWN: FeedFrom[] = ["cp", "fo", "ca", "sa"];
+
 const running = new Map<string, number>();
 /** Brands whose matching was refused, capped or answered nothing this session: the banner shows. */
 const off = new Set<string>();
@@ -328,8 +331,9 @@ export function settlePicks(userId: string, feed: FeedItem[], now = Date.now()):
 }
 
 /**
- * One match run: up to 80 items without a score, best first, sent once (one niche-match use); the scores land in the
- * synced key and the feed re-sorts once. Then Today's 5. Without brand facts nothing is sent.
+ * One match run: up to 80 items without a score, the brand's own sources first, then best first, sent once (one
+ * niche-match use); the scores land in the synced key and the feed re-sorts once. Then Today's 5. Without brand facts
+ * nothing is sent.
  */
 export async function runMatch(userId: string, feed = loadFeed(userId), now = Date.now()): Promise<void> {
   const k = scoped(userId);
@@ -341,6 +345,7 @@ export async function runMatch(userId: string, feed = loadFeed(userId), now = Da
   const s = nicheFor(userId, sig);
   const todo = arrange(feed, s.scores, { hidden: s.hidden }).other
     .filter((i) => !(i.id in s.scores) && !asked.has(`${k}|${sig}|${i.id}`) && i.text.trim())
+    .sort((a, b) => Number(!OWN.includes(a.from)) - Number(!OWN.includes(b.from)))
     .slice(0, MATCH_MAX);
   if (!todo.length) return settlePicks(userId, feed, now);
   todo.forEach((i) => asked.add(`${k}|${sig}|${i.id}`));

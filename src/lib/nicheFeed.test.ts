@@ -208,7 +208,8 @@ describe("the match job", () => {
   const feed = n.buildFeed(STORES, NOW);
 
   it("sends only unscored items, 80 at most, once, and keeps the scores it gets back", async () => {
-    const many = n.buildFeed({ ...STORES, topPosts: getAllTopPosts() }, NOW);
+    // drop ads running 300 days sort before the competitor's and the space's
+    const many = n.buildFeed({ ...STORES, topPosts: getAllTopPosts(), ads: [...Array.from({ length: 5 }, (_, k) => ad(`90${k}`, "sg", { days: 300 })), ...ADS] }, NOW);
     n.saveNiche("u2", { ...n.EMPTY_NICHE, brandSig: n.brandSig(facts), scores: { "cp:instagram:P7": 0.9 } });
     callFn.mockImplementation(async (_fn: string, body: { items: { id: string }[] }) => ({ scores: { [body.items[0].id]: 0.8, [body.items[1].id]: 0.1 } }));
     await n.runMatch("u2", many, NOW);
@@ -218,6 +219,9 @@ describe("the match job", () => {
     expect(body).toMatchObject({ mode: "match", brand: { name: "ActivityTracker", sells: facts.sells, serves: facts.serves } });
     expect(body.items).toHaveLength(80);
     expect(body.items.some((i: { id: string }) => i.id === "cp:instagram:P7")).toBe(false);
+    // the brand's own sources go first, whatever the shared drops' order
+    const own = many.filter((i) => /^(cp|fo|ca|sa):/.test(i.id) && i.id !== "cp:instagram:P7").map((i) => i.id);
+    expect(body.items.slice(0, own.length).map((i: { id: string }) => i.id).sort()).toEqual(own.sort());
     expect(body.items.every((i: { text: string }) => i.text.length <= 400)).toBe(true);
     expect(Object.keys(n.loadNiche("u2").scores)).toHaveLength(3);
     expect(n.matchOff("u2")).toBe(false);
