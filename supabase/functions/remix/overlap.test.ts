@@ -38,6 +38,16 @@ describe("reusedItems", () => {
     expect(reusedItems("about 12000", ["S$12,000"])).toEqual(["S$12,000"]);
   });
 
+  it("counts a small amount or percent only when it comes back with its unit", () => {
+    const items = numbersIn("Just $5 a day. Save 4% of pay.");
+    expect(items).toEqual(["$5", "4%"]);
+    expect(reusedItems("5 ways in 4 steps", items)).toEqual([]);
+    expect(reusedItems("My 10 tips", ["10%"])).toEqual([]);
+    expect(reusedItems("Only S$5 a day, about 4 percent", items)).toEqual(["$5", "4%"]);
+    expect(reusedItems("SGD 5 and 4 %", items)).toEqual(["$5", "4%"]);
+    expect(reusedItems("$50, $5.50, $5,000 and 14%", items)).toEqual([]);
+  });
+
   it("matches names case-insensitively, as whole words", () => {
     expect(reusedItems("Ask about singlife today", ["Singlife", "AIA"])).toEqual(["Singlife"]);
     expect(reusedItems("Saying hi to aiad", ["AIA"])).toEqual([]);

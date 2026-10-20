@@ -46,8 +46,19 @@ const NUMBER = /\d[\d,.]*\d|\d/g;
 /** "$12,000", "S$1.5", "SGD 300", "5%": digits with no letters once a currency word is off. */
 const isFigure = (t: string) => /\d/.test(t) && !/\p{L}/u.test(t.replace(/^(?:S|SGD|USD)\s?/i, ""));
 const escape = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/**
+ * A money or percent figure under 100 with no decimals needs its unit back to count: "5 ways in 4 steps" keeps
+ * the number of points, not "$5" or "4%".
+ */
+function smallFigure(item: string): RegExp | null {
+  const d = digits(item);
+  if (!/[$%]|SGD|USD/i.test(item) || d.includes(".") || Number(d) >= 100) return null;
+  return item.includes("%")
+    ? new RegExp(`(^|[^\\d.,])${d}\\s?(%|percent\\b)`, "i")
+    : new RegExp(`(\\$|SGD\\s?|USD\\s?)${d}(?!\\d|[.,]\\d)`, "i");
+}
 
-/** The dontReuse items found in the text: words case-insensitively, figures with or without separators. */
+/** The dontReuse items found in the text: words case-insensitively, figures with or without separators, small amounts with their unit. */
 export function reusedItems(text: string, items: string[]): string[] {
   const t = String(text ?? "");
   const lower = t.toLowerCase();
@@ -56,7 +67,10 @@ export function reusedItems(text: string, items: string[]): string[] {
   for (const raw of items) {
     const item = String(raw ?? "").trim();
     if (!item || out.includes(item)) continue;
-    const hit = isFigure(item)
+    const small = isFigure(item) ? smallFigure(item) : null;
+    const hit = small
+      ? small.test(t)
+      : isFigure(item)
       ? figures.has(digits(item))
       : new RegExp(`(^|[^\\p{L}\\p{N}])${escape(item.toLowerCase())}($|[^\\p{L}\\p{N}])`, "u").test(lower);
     if (hit) out.push(item);
