@@ -375,5 +375,9 @@ describe("runUser: a busy week, frozen before What moved", () => {
     const sent = busy({ done: ["alert-day:2026-10-12"] });
     await runUser(sent.deps, UID, { ...all, email: false }, opts({ now, northStarUsers: UID }));
     expect(sent.calls).toEqual(["subs", "logged alert-day:2026-10-12,outlier:instagram:hit", ...before.calls.slice(1, 4)]);
+    // another run took the day's claim between the look-up and this claim: no second alert
+    const raced = busy({ claim: async (_u, items) => new Set(items.filter((i) => !i.startsWith("alert-day"))) });
+    await runUser(raced.deps, UID, { ...all, email: false }, opts({ now, northStarUsers: UID }));
+    expect(raced.calls.filter((c) => c.startsWith("push"))).toEqual([before.calls[2]]);
   });
 });
