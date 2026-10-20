@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getSession: async () => ({ data: { session: { access_token: "jwt" } } }) } },
 }));
 
-import { CUT_THRESHOLD, MAX_FRAMES, detectCuts, fetchReelVideo, pacingOf, pickFrameTimes } from "./reelFrames";
+import { CUT_THRESHOLD, MAX_FRAMES, detectCuts, fetchReelVideo, pacingOf, pickFrameTimes, sampleVideoFrames } from "./reelFrames";
 
 describe("detectCuts", () => {
   it("marks a sample that differs past the threshold, and a two-sample fade once", () => {
@@ -75,5 +75,12 @@ describe("fetchReelVideo", () => {
       return new Response(JSON.stringify({ error: "That isn't an Instagram video link." }), { status: 400 });
     }));
     await expect(fetchReelVideo(IG)).rejects.toThrow("That isn't an Instagram video link.");
+  });
+});
+
+describe("sampleVideoFrames (an uploaded video, remix-any-link)", () => {
+  it("takes a Blob and refuses one over 80 MB before opening it", async () => {
+    const big = { size: 80 * 1024 * 1024 + 1 } as Blob;
+    await expect(sampleVideoFrames(big, () => {})).rejects.toThrow("That file is over 80 MB. Trim it or take a screenshot.");
   });
 });

@@ -1,11 +1,13 @@
 // Frames for the visual breakdown in "Clone a reel": downloads the Instagram
 // reel (most of its CDN hosts send CORS headers; clone-reel relays the rest), finds the
 // scene changes from tiny greyscale samples, measures the pacing, and returns
-// a handful of JPEG frames for reel-visuals to read.
+// a handful of JPEG frames for reel-visuals to read. An uploaded video read for Remix (remix-link frames) takes
+// the same path from its Blob, through sampleVideoFrames.
 
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
 import { loadVideo, seek } from "@/lib/videoMedia";
 import type { FrameInput, Pacing } from "../../supabase/functions/reel-visuals/logic.ts";
+import { LINK_COPY } from "../../supabase/functions/remix-link/logic.ts";
 
 export type { FrameInput, Pacing };
 
@@ -110,9 +112,30 @@ export async function sampleReelFrames(
     throw new Error("Couldn't download the video. Instagram's link may have expired, so clone it again to read it.");
   }
   if (blob.size > MAX_VIDEO_BYTES) throw new Error("This video is too large to read in the browser.");
+  return framesOf(blob, onProgress, signal);
+}
 
+/** An uploaded video read for Remix (remix-any-link): refused over 80 MB or 3 minutes, then at most `max` frames. */
+export async function sampleVideoFrames(
+  blob: Blob,
+  onProgress: (phase: FramesPhase, fraction: number) => void,
+  signal?: AbortSignal,
+  max = 6,
+): Promise<{ frames: FrameInput[]; pacing: Pacing }> {
+  if (blob.size > MAX_VIDEO_BYTES) throw new Error(LINK_COPY.tooBig(80));
+  return framesOf(blob, onProgress, signal, { max, refuseOver: MAX_SCAN_SEC });
+}
+
+/** The part after the download: scene changes, pacing and frames from a video file. */
+async function framesOf(
+  blob: Blob,
+  onProgress: (phase: FramesPhase, fraction: number) => void,
+  signal?: AbortSignal,
+  o: { max?: number; refuseOver?: number } = {},
+): Promise<{ frames: FrameInput[]; pacing: Pacing }> {
   const v = await loadVideo(blob);
   try {
+    if (o.refuseOver && v.duration > o.refuseOver + 0.5) throw new Error(LINK_COPY.tooLong);
     const duration = Math.min(v.duration || 0, MAX_SCAN_SEC);
     if (!(duration > 3) || !v.videoWidth) throw new Error("This video is too short or couldn't be read.");
     const ratio = v.videoHeight / v.videoWidth;
@@ -143,7 +166,7 @@ export async function sampleReelFrames(
     big.height = Math.round(FRAME_W * ratio);
     const bg = big.getContext("2d")!;
     const frames: FrameInput[] = [];
-    for (const t of pickFrameTimes(cuts, duration)) {
+    for (const t of pickFrameTimes(cuts, duration, o.max)) {
       await seek(v, t);
       bg.drawImage(v, 0, 0, big.width, big.height);
       frames.push({ t, image: big.toDataURL("image/jpeg", 0.72) });
