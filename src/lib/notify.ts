@@ -1,5 +1,7 @@
 // Phone alerts and the Monday results email (supabase/functions/notify).
-//   key: content-studio-notify-${userId}   {"email": boolean, "push": boolean}
+//   key: content-studio-notify-${userId}   {"email": boolean, "push": boolean, "brief"?: boolean, "alerts"?: boolean}
+// brief and alerts are Leo's (What moved, the hit alert): absent until he first
+// switches one, so nobody else's key changes by a byte.
 // Account-wide, not per profile, and synced, so the hourly job reads it from
 // cs_user_data. Off is written as an explicit false, never by removing the key:
 // the sync has no tombstones, so a removed key comes back from another device.
@@ -16,6 +18,10 @@ export const VAPID_PUBLIC_KEY = "BHXVNSVTIWp65KR3r6IDByi4YIM33e0rz0nNKDUdZQVsjKo
 export interface NotifyPrefs {
   email: boolean;
   push: boolean;
+  /** What moved in the Monday email. Off unless true. */
+  brief?: boolean;
+  /** A phone alert when a followed account posts a hit. Off unless true. */
+  alerts?: boolean;
 }
 
 function storage(): Storage | null {
@@ -31,15 +37,22 @@ export function loadNotifyPrefs(userId: string | null | undefined): NotifyPrefs 
   if (!userId) return { email: false, push: false };
   try {
     const p = JSON.parse(storage()?.getItem(NOTIFY_PREFIX + userId) ?? "{}");
-    return { email: p?.email === true, push: p?.push === true };
+    return {
+      email: p?.email === true,
+      push: p?.push === true,
+      ...(p?.brief === undefined ? {} : { brief: p.brief === true }),
+      ...(p?.alerts === undefined ? {} : { alerts: p.alerts === true }),
+    };
   } catch {
     return { email: false, push: false };
   }
 }
 
-/** Always writes both switches, so turning one off is a value that syncs. */
+/** Always writes both switches (and brief and alerts once set), so turning one off is a value that syncs. */
 export function saveNotifyPrefs(userId: string, prefs: NotifyPrefs): NotifyPrefs {
-  const tidy = { email: prefs.email === true, push: prefs.push === true };
+  const tidy: NotifyPrefs = { email: prefs.email === true, push: prefs.push === true };
+  if (prefs.brief !== undefined) tidy.brief = prefs.brief === true;
+  if (prefs.alerts !== undefined) tidy.alerts = prefs.alerts === true;
   storage()?.setItem(NOTIFY_PREFIX + userId, JSON.stringify(tidy));
   return tidy;
 }

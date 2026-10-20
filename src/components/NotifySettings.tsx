@@ -1,8 +1,10 @@
 // My Playbook's two reminder switches: the Monday results email and phone
-// alerts (src/lib/notify.ts). Both start off.
+// alerts (src/lib/notify.ts). Both start off. Leo's sign-ins also get What
+// moved under the email and the hit alert under phone alerts.
 import { useEffect, useId, useState } from "react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { cn } from "@/lib/utils";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import {
   browserPushSupport,
   disablePushHere,
@@ -76,6 +78,7 @@ function SwitchRow({
 }
 
 export default function NotifySettings({ userId, email }: { userId: string; email: string }) {
+  const leo = useLeoUser();
   const [prefs, setPrefs] = useState<NotifyPrefs>(() => loadNotifyPrefs(userId));
   const [here, setHere] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -138,6 +141,16 @@ export default function NotifySettings({ userId, email }: { userId: string; emai
         onChange={(email) => save({ ...loadNotifyPrefs(userId), email })}
         note={prefs.email && email ? `Sent to ${email} at 8am.` : null}
       />
+      {leo && prefs.email && (
+        <div className="ml-1 border-l-2 border-border/60 pl-3">
+          <SwitchRow
+            label="What moved, in the Monday email"
+            checked={prefs.brief === true}
+            onChange={(brief) => save({ ...loadNotifyPrefs(userId), brief })}
+            note={prefs.brief ? "Up to 5 findings, only in weeks with something to say." : null}
+          />
+        </div>
+      )}
       <SwitchRow
         label="Phone alerts"
         checked={prefs.push && here}
@@ -147,6 +160,16 @@ export default function NotifySettings({ userId, email }: { userId: string; emai
         tip="When a post is due, and Thursday if your goal is behind."
         note={pushNote}
       />
+      {leo && prefs.push && here && (
+        <div className="ml-1 border-l-2 border-border/60 pl-3">
+          <SwitchRow
+            label="Alert me when an account I follow posts a hit"
+            checked={prefs.alerts === true}
+            onChange={(alerts) => save({ ...loadNotifyPrefs(userId), alerts })}
+            note={prefs.alerts ? "At most one a day, 9am to 9pm." : null}
+          />
+        </div>
+      )}
     </div>
   );
 }

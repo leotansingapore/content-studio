@@ -50,6 +50,23 @@ describe("notify prefs", () => {
     expect(store.calls.some((c) => c.startsWith("remove"))).toBe(false);
   });
 
+  it("writes What moved and the hit alert only once set, explicit either way, and keeps them through other saves", () => {
+    saveNotifyPrefs(UID, { ...loadNotifyPrefs(UID), email: true });
+    expect(store.getItem(`${NOTIFY_PREFIX}${UID}`)).toBe('{"email":true,"push":false}');
+    saveNotifyPrefs(UID, { ...loadNotifyPrefs(UID), brief: true, alerts: false });
+    expect(store.getItem(`${NOTIFY_PREFIX}${UID}`)).toBe('{"email":true,"push":false,"brief":true,"alerts":false}');
+    saveNotifyPrefs(UID, { ...loadNotifyPrefs(UID), push: true });
+    expect(loadNotifyPrefs(UID)).toEqual({ email: true, push: true, brief: true, alerts: false });
+  });
+
+  it("reads brief and alerts as off unless set to true", () => {
+    expect(loadNotifyPrefs(UID).brief).toBeUndefined();
+    store.setItem(`${NOTIFY_PREFIX}${UID}`, '{"brief":"yes","alerts":1}');
+    expect(loadNotifyPrefs(UID)).toEqual({ email: false, push: false, brief: false, alerts: false });
+    store.setItem(`${NOTIFY_PREFIX}${UID}`, '{"brief":true,"alerts":true}');
+    expect(loadNotifyPrefs(UID)).toMatchObject({ brief: true, alerts: true });
+  });
+
   it("reads anything but true as off", () => {
     store.setItem(`${NOTIFY_PREFIX}${UID}`, '{"email":"yes","push":1}');
     expect(loadNotifyPrefs(UID)).toEqual({ email: false, push: false });
