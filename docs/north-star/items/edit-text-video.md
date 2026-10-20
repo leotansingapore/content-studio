@@ -176,6 +176,10 @@ Add `"wall"` to `panel` and `view?: "all"` to `links.edit` in `src/lib/links.ts`
 - Words that appear line by line in time with the clip (a common wall-of-text look) are not built; the block shows the whole time, as in Fastlane.
 - Hard stops checked: no schema change, no new npm package, no new paid provider and no auth change.
 
+## New evidence (20 Oct 2026)
+
+Wall of text results to edit against: [review notes](../videos/fastlane-2026-10-20-review/notes.md) section 2.3.
+
 ## Related
 
 formats-wall-of-text, formats-text-over-clip, formats-custom, edit-video, edit-slideshow, edit-captions, edit-by-chat, remix-compare, brand-media-library, people-face-swap

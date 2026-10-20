@@ -153,6 +153,10 @@ AngleMix on the campaign page, inside the "THE GOAL" panel:
 - Fastlane asks for at least 5 angles. This spec asks for 3 to 8 because an adviser's campaign is often 12 posts, not 28. Leo decides.
 - Should angles also come from the competitors' best posts once find-competitor-posts ships (Atria's approach)? Proposed: yes, as `examples`, structure only. Leo decides when that item lands.
 
+## New evidence (20 Oct 2026)
+
+The five angles and their 6/6/6/5/5 posts, rotated in strict order: [settings notes](../videos/fastlane-2026-10-20-settings/notes.md) and [review notes](../videos/fastlane-2026-10-20-review/notes.md) section 2.4.
+
 ## Related
 
 plan-campaign, plan-goal, plan-campaign-page, plan-review-queue, brand-audiences, find-competitor-posts, remix-patterns, plan-content-plan

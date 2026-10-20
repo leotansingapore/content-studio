@@ -193,6 +193,10 @@ Not Leo: `NotFoundPage`.
 - Fastlane charges on save or schedule. Our caps count on make. Leo decides if that should change once credits exist.
 - Whether TikTok photo posts through Zernio can carry a sound is unverified.
 
+## New evidence (20 Oct 2026)
+
+What Fastlane's 12 slideshows for Activity Tracker actually say, slide by slide, and their flaws (stock photos reused, captions cut mid-sentence): [review notes](../videos/fastlane-2026-10-20-review/notes.md) sections 2.3 and 2.4. This format is part of the [dogfood run](../dogfood-activity-tracker.md).
+
 ## Related
 
 edit-slideshow, find-trending-formats, remix-any-format, remix-your-brand, remix-compare, remix-source-trail, brand-media-sets, formats-carousel-designs, formats-gallery, business-cost-preview, publish-schedule

@@ -32,12 +32,18 @@ import {
   NS_SKIP,
   NS_SOURCES,
   NS_THESIS,
-  RECORDING,
+  NS_DOGFOOD,
+  RECORDINGS,
   buildPrompt,
+  frameRef,
+  frameSrc,
+  parseFrame,
   frameLabel,
   rollup,
   specUrl,
+  type NsDogfoodPost,
   type NsItem,
+  type NsRecording,
   type NsStatus,
 } from "@/data/northStar";
 import { NS_COMPETITORS, NS_COMPETITOR_CATEGORIES } from "@/data/northStarCompetitors";
@@ -49,7 +55,6 @@ const STATUS_META: Record<NsStatus, { label: string; chip: string; bar: string }
   missing: { label: "Not built", chip: "bg-muted text-muted-foreground", bar: "bg-muted-foreground/25" },
 };
 const competitorName = new Map(NS_COMPETITORS.map((c) => [c.id, c.name]));
-const frameSrc = (f: string) => `/north-star/fastlane/${f}.webp`;
 
 function StatusChip({ status }: { status: NsStatus }) {
   const s = STATUS_META[status];
@@ -100,12 +105,20 @@ function Section({ id, title, tip, children, action }: { id: string; title: stri
 /** Touch screens get 44 px targets (UX law 2) without bloating the desktop layout. */
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 
-/** The listed frame at or after a second ("t011" -> "t013"), so an old or hand-typed second still lands. */
-function nearestFrame(f: string | null): string | null {
-  if (!f) return null;
-  const s = Number(f.replace(/^t/, ""));
-  if (!Number.isFinite(s)) return null;
-  return RECORDING.frames.find((x) => Number(x.slice(1)) >= s) ?? RECORDING.frames[RECORDING.frames.length - 1];
+/** The listed second at or after `t` in a recording ("t011" -> "t013"); past the end, the last one. */
+function nearestIn(rec: NsRecording, t: string): string {
+  const s = Number(t.replace(/^t/, ""));
+  if (!Number.isFinite(s)) return rec.frames[0];
+  return rec.frames.find((x) => Number(x.slice(1)) >= s) ?? rec.frames[rec.frames.length - 1];
+}
+
+/** A frame ref that lands on a listed frame, so an old or hand-typed second still opens. */
+function nearestFrame(ref: string | null): string | null {
+  if (!ref) return null;
+  const [id, t] = ref.includes(":") ? ref.split(":") : ["tour", ref];
+  const rec = RECORDINGS.find((r) => r.id === id) ?? null;
+  if (!rec || !t) return null;
+  return frameRef(rec, nearestIn(rec, t));
 }
 
 function ItemCard({
@@ -255,9 +268,11 @@ function FrameViewer({ frame, onSettle, onClose }: { frame: string; onSettle: (f
     const t = window.setTimeout(() => onSettle(cur), 300);
     return () => window.clearTimeout(t);
   }, [cur, frame, onSettle]);
-  const i = RECORDING.frames.indexOf(cur);
-  const prev = i > 0 ? RECORDING.frames[i - 1] : null;
-  const next = i >= 0 && i < RECORDING.frames.length - 1 ? RECORDING.frames[i + 1] : null;
+  const p = parseFrame(cur);
+  const list = p ? p.rec.frames.map((t) => frameRef(p.rec, t)) : [];
+  const i = list.indexOf(cur);
+  const prev = i > 0 ? list[i - 1] : null;
+  const next = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
   const closeRef = useRef<HTMLButtonElement>(null);
   // Once: focus Close, park the page behind (inert keeps Tab inside the dialog), and give focus back on close.
   useEffect(() => {
@@ -291,7 +306,9 @@ function FrameViewer({ frame, onSettle, onClose }: { frame: string; onSettle: (f
       onClick={onClose}
     >
       <div className="mx-auto flex w-full max-w-6xl items-center gap-2 pb-2 text-white" onClick={stop}>
-        <p className="flex-1 text-sm font-semibold tabular-nums">Fastlane, {frameLabel(cur)}</p>
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold tabular-nums">
+          {p?.rec.label ?? "Fastlane"}, {frameLabel(cur)}
+        </p>
         <a href={frameSrc(cur)} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-xs font-semibold hover:bg-white/10">
           <ExternalLink className="h-3.5 w-3.5" aria-hidden />
           Full size
@@ -326,46 +343,57 @@ function FrameViewer({ frame, onSettle, onClose }: { frame: string; onSettle: (f
   );
 }
 
-/** Leo's Fastlane recording as one frame a second. ?at= keeps the second, written once a drag settles. */
+/** Leo's Fastlane recordings, one frame a second. ?rec= picks one, ?at= keeps the second, written once a drag settles. */
 function Recording({ onOpen }: { onOpen: (f: string) => void }) {
-  const [at, setAt] = useUrlState<string>("at", RECORDING.frames[0]);
-  const fromUrl = Math.max(0, RECORDING.frames.indexOf(nearestFrame(at) ?? RECORDING.frames[0]));
+  const [recId] = useUrlState<string>("rec", RECORDINGS[0].id, { allowed: RECORDINGS.map((r) => r.id) });
+  const update = useUrlUpdate();
+  const rec = RECORDINGS.find((r) => r.id === recId) ?? RECORDINGS[0];
+  const [at, setAt] = useUrlState<string>("at", rec.frames[0]);
+  const fromUrl = Math.max(0, rec.frames.indexOf(nearestIn(rec, at)));
   const [pos, setPos] = useState(fromUrl);
   useEffect(() => setPos(fromUrl), [fromUrl]);
   useEffect(() => {
     if (pos === fromUrl) return;
-    const t = window.setTimeout(() => setAt(RECORDING.frames[pos]), 300);
+    const t = window.setTimeout(() => setAt(rec.frames[pos]), 300);
     return () => window.clearTimeout(t);
-  }, [pos, fromUrl, setAt]);
-  const frame = RECORDING.frames[pos];
-  const chapter = [...RECORDING.chapters].reverse().find((c) => c.at <= Number(frame.slice(1)));
+  }, [pos, fromUrl, setAt, rec]);
+  const t = rec.frames[Math.min(pos, rec.frames.length - 1)];
+  const ref = frameRef(rec, t);
+  const chapter = [...rec.chapters].reverse().find((c) => c.at <= Number(t.slice(1)));
   return (
     <div className="space-y-2 rounded-xl border bg-card p-3">
-      <button type="button" onClick={() => onOpen(frame)} className="block w-full overflow-hidden rounded-md border bg-muted" aria-label={`Open the frame at ${frameLabel(frame)} full size`}>
-        <img src={frameSrc(frame)} alt={`Fastlane screen at ${frameLabel(frame)}`} className="aspect-video w-full object-cover object-top" />
+      <div className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1" role="group" aria-label="Pick a recording">
+        {RECORDINGS.map((r) => (
+          <FilterChip key={r.id} active={r.id === rec.id} onClick={() => update({ rec: r.id === RECORDINGS[0].id ? null : r.id, at: null })}>
+            {r.label} <span className="text-muted-foreground">{r.date.replace(" 2026", "")}</span>
+          </FilterChip>
+        ))}
+      </div>
+      <button type="button" onClick={() => onOpen(ref)} className="block w-full overflow-hidden rounded-md border bg-muted" aria-label={`Open the frame at ${frameLabel(t)} full size`}>
+        <img src={frameSrc(ref)} alt={`${rec.label} at ${frameLabel(t)}`} className="aspect-video w-full object-cover object-top" />
       </button>
       <div className="flex items-center gap-3">
-        <span className="w-10 shrink-0 text-xs font-semibold tabular-nums">{frameLabel(frame)}</span>
+        <span className="w-10 shrink-0 text-xs font-semibold tabular-nums">{frameLabel(t)}</span>
         <input
           type="range"
           min={0}
-          max={RECORDING.frames.length - 1}
-          value={pos}
+          max={rec.frames.length - 1}
+          value={Math.min(pos, rec.frames.length - 1)}
           onChange={(e) => setPos(Number(e.target.value))}
           aria-label="Second of the recording"
-          aria-valuetext={frameLabel(frame)}
+          aria-valuetext={frameLabel(t)}
           className="h-11 flex-1 accent-primary"
         />
-        <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{frameLabel(RECORDING.frames[RECORDING.frames.length - 1])}</span>
+        <span className="w-10 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{frameLabel(rec.frames[rec.frames.length - 1])}</span>
       </div>
       <ol className="max-h-56 space-y-0.5 overflow-y-auto border-t pt-2" aria-label="Chapters">
-        {RECORDING.chapters.map((c) => {
-          const near = nearestFrame(`t${c.at}`) ?? RECORDING.frames[0];
+        {rec.chapters.map((c) => {
+          const near = nearestIn(rec, `t${c.at}`);
           return (
             <li key={c.at}>
               <button
                 type="button"
-                onClick={() => setPos(RECORDING.frames.indexOf(near))}
+                onClick={() => setPos(rec.frames.indexOf(near))}
                 aria-current={chapter?.at === c.at}
                 className={cn(
                   "flex min-h-9 w-full items-baseline gap-2 rounded-md px-2 py-1 text-left text-xs hover:bg-muted/50",
@@ -380,7 +408,34 @@ function Recording({ onOpen }: { onOpen: (f: string) => void }) {
           );
         })}
       </ol>
+      <a href={rec.notes} target="_blank" rel="noreferrer" className={cn("inline-flex min-h-9 items-center gap-1 text-xs font-semibold text-primary hover:underline", TOUCH)}>
+        <FileText className="h-3.5 w-3.5" aria-hidden />
+        Second-by-second notes
+      </a>
     </div>
+  );
+}
+
+function DogfoodRow({ p, onFrame }: { p: NsDogfoodPost; onFrame: (f: string) => void }) {
+  return (
+    <li className="grid grid-cols-[2rem_1fr] gap-2 px-3 py-2 text-xs sm:grid-cols-[2rem_7rem_1fr]">
+      <span className="font-semibold tabular-nums text-muted-foreground">{p.n}</span>
+      <span className="col-start-2 text-muted-foreground sm:col-start-auto">
+        {p.date}
+        <br className="hidden sm:block" />
+        <span className="sm:hidden">, </span>
+        {p.format}
+      </span>
+      <span className="col-start-2 sm:col-start-auto">
+        <span className={cn(p.kind === "ai" && "text-muted-foreground")}>{p.hook}</span>{" "}
+        <span className="text-muted-foreground">{p.angle}.</span>
+        {p.frame && (
+          <button type="button" onClick={() => onFrame(p.frame!)} className={cn("ml-1 inline-flex items-center font-semibold text-primary hover:underline", TOUCH)}>
+            See it
+          </button>
+        )}
+      </span>
+    </li>
   );
 }
 
@@ -405,6 +460,7 @@ const JUMPS: [string, string][] = [
   ["spec", "Spec"],
   ["recording", "Recording"],
   ["competitors", "Competitors"],
+  ["dogfood", "Dogfood"],
   ["decisions", "Decisions"],
   ["leave-out", "Left out"],
 ];
@@ -751,7 +807,7 @@ function NorthStar() {
         )}
       </section>
 
-      <Section id="recording" title="The Fastlane recording" tip="Leo's 19 Oct screen recording of Fastlane, one frame a second.">
+      <Section id="recording" title="The Fastlane recordings" tip="Leo's screen recordings of Fastlane on 19 and 20 Oct, one frame a second.">
         <Recording onOpen={openFrame} />
       </Section>
 
@@ -808,6 +864,43 @@ function NorthStar() {
             {showAllCompetitors ? `Show the first ${FIRST_COMPETITORS}` : `Show all ${catList.length}`}
           </button>
         )}
+      </Section>
+
+      <Section id="dogfood" title="Dogfood: activity-tracker.io" tip="Our posts for Activity Tracker against the 28 Fastlane made for it.">
+        <div className="space-y-3 rounded-xl border bg-card p-3">
+          <p className="text-sm leading-relaxed">{NS_DOGFOOD.fastlane.summary}</p>
+          <div>
+            <p className="text-xs font-bold">What we have to beat</p>
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-xs leading-relaxed text-muted-foreground">
+              {NS_DOGFOOD.toBeat.map((x) => (
+                <li key={x.slice(0, 24)}>{x}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-lg border border-dashed p-3 text-xs leading-relaxed">
+            <p className="font-bold">Ours</p>
+            {NS_DOGFOOD.ours.length ? (
+              <ol className="mt-1 divide-y">
+                {NS_DOGFOOD.ours.map((p) => (
+                  <DogfoodRow key={p.n} p={p} onFrame={openFrame} />
+                ))}
+              </ol>
+            ) : (
+              <p className="mt-1 text-muted-foreground">{NS_DOGFOOD.plan}</p>
+            )}
+          </div>
+        </div>
+        <details className="group rounded-xl border bg-card">
+          <summary className={cn("flex min-h-12 cursor-pointer list-none items-center gap-2 px-3 text-sm font-semibold", TOUCH)}>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden />
+            Fastlane's {NS_DOGFOOD.fastlane.posts.length} posts, as drafted on 20 Oct
+          </summary>
+          <ol className="divide-y border-t">
+            {NS_DOGFOOD.fastlane.posts.map((p) => (
+              <DogfoodRow key={p.n} p={p} onFrame={openFrame} />
+            ))}
+          </ol>
+        </details>
       </Section>
 
       <Section id="decisions" title="Decisions">

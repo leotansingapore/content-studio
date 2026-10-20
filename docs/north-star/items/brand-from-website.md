@@ -207,6 +207,10 @@ Caps in `supabase/functions/_shared/usageCaps.ts` DAILY_LIMITS:
 - An earlier draft of this spec ran its own Google search (DataForSEO) for competitors with a separate `brand-competitors` cap. That duplicated find-competitors' `suggest` mode, so this version reuses it. Adding Google results as suggestion candidates belongs in find-competitors.
 - Two server gates are proposed across the specs: brand-audiences names an email list in `_shared/leoOnly.ts`, while find-competitors and this spec use the `NORTH_STAR_USERS` uid secret with `isAllowed`. The first of these items to ship picks one and the rest follow it; `NORTH_STAR_USERS` matches the existing `MARKET_USERS` pattern.
 
+## New evidence (20 Oct 2026)
+
+Brand > Profile's Website card with "Edit" and "Refresh brand profile", and the inline competitor add row: [settings notes](../videos/fastlane-2026-10-20-settings/notes.md).
+
 ## Related
 
 brand-products, find-competitors, brand-audiences, brand-voice-memory, brand-kit, remix-your-brand, business-onboarding, business-cost-preview

@@ -13,7 +13,9 @@ import {
   NS_SKIP,
   NS_SOURCES,
   NS_THESIS,
-  RECORDING,
+  NS_DOGFOOD,
+  RECORDINGS,
+  parseFrame,
   buildPrompt,
   frameLabel,
   rollup,
@@ -49,15 +51,34 @@ describe("north star", () => {
     for (const a of NS_ASKS) for (const id of a.items) expect(ids.has(id), `${a.id} -> ${id}`).toBe(true);
     const comps = new Set(NS_COMPETITORS.map((c) => c.id));
     for (const i of NS_ITEMS) for (const c of i.seenIn) expect(comps.has(c), `${i.id} -> ${c}`).toBe(true);
-    for (const i of NS_ITEMS) for (const f of i.frames ?? []) expect(RECORDING.frames, `${i.id} -> ${f}`).toContain(f);
+    const listed = (ref: string) => {
+      const p = parseFrame(ref);
+      return Boolean(p && p.rec.frames.includes(p.t));
+    };
+    for (const i of NS_ITEMS) for (const f of i.frames ?? []) expect(listed(f), `${i.id} -> ${f}`).toBe(true);
+    for (const p of [...NS_DOGFOOD.fastlane.posts, ...NS_DOGFOOD.ours]) if (p.frame) expect(listed(p.frame), `dogfood ${p.n} -> ${p.frame}`).toBe(true);
     for (const c of NS_COMPETITORS) for (const k of c.categories) expect(NS_COMPETITOR_CATEGORIES).toContain(k);
   });
 
-  it("ships every recording frame it lists, in order", () => {
-    for (const f of RECORDING.frames) expect(existsSync(new URL(`public/north-star/fastlane/${f}.webp`, root)), f).toBe(true);
-    expect([...RECORDING.frames].sort()).toEqual(RECORDING.frames);
+  it("ships every recording frame it lists, in order, with chapters inside the recording", () => {
+    expect(new Set(RECORDINGS.map((r) => r.id)).size).toBe(RECORDINGS.length);
+    for (const r of RECORDINGS) {
+      for (const f of r.frames) expect(existsSync(new URL(`public/north-star/${r.dir}/${f}.webp`, root)), `${r.id} ${f}`).toBe(true);
+      expect([...r.frames].sort()).toEqual(r.frames);
+      const last = Number(r.frames[r.frames.length - 1].slice(1));
+      for (const c of r.chapters) expect(c.at, `${r.id} chapter ${c.at}`).toBeLessThanOrEqual(last);
+    }
     expect(frameLabel("t125")).toBe("2:05");
-    expect(frameLabel("t000")).toBe("0:00");
+    expect(frameLabel("review:t013")).toBe("0:13");
+    expect(parseFrame("t176")?.rec.id).toBe("tour");
+    expect(parseFrame("review:t013")?.rec.id).toBe("review");
+    expect(parseFrame("nope:t001")).toBeNull();
+    expect(parseFrame("t1")).toBeNull();
+  });
+
+  it("holds Fastlane's 28 Activity Tracker posts as the dogfood benchmark", () => {
+    expect(NS_DOGFOOD.fastlane.posts.map((p) => p.n)).toEqual(Array.from({ length: 28 }, (_, i) => i + 1));
+    for (const p of NS_DOGFOOD.fastlane.posts) expect(p.hook.trim(), `post ${p.n}`).not.toBe("");
   });
 
   it("counts statuses", () => {
@@ -72,7 +93,7 @@ describe("north star", () => {
   });
 
   it("is plain ASCII, with no em dashes or smart quotes", () => {
-    const text = JSON.stringify([NS_THESIS, NS_PRINCIPLES, NS_AREAS, NS_PHASES, NS_ASKS, NS_ITEMS, NS_DECISIONS, NS_SKIP, NS_SOURCES, RECORDING, NS_COMPETITORS]);
+    const text = JSON.stringify([NS_THESIS, NS_PRINCIPLES, NS_AREAS, NS_PHASES, NS_ASKS, NS_ITEMS, NS_DECISIONS, NS_SKIP, NS_SOURCES, RECORDINGS, NS_DOGFOOD, NS_COMPETITORS]);
     expect(text).not.toMatch(/[^\x00-\x7f]/);
   });
 

@@ -207,6 +207,10 @@ All strings above are exact. The nav label is `Campaigns`, the H1s are `Campaign
 - A start date other than next Monday is left out. Leo decides whether he wants it.
 - Fastlane offers 2 and 3 posts a day; this spec stops at 1 a day because the plan engine keeps one posting time per weekday. More than one a day needs a second time per day. Leo decides whether he wants it.
 
+## New evidence (20 Oct 2026)
+
+Campaign settings after planning (name, pace per account from every 3 days to 3 a day plus Custom, length 2 to 6 weeks, accounts, angles with "Ask Senna to change them", ads, avatar, post choices): [settings notes](../videos/fastlane-2026-10-20-settings/notes.md). The posts it drafted: [review notes](../videos/fastlane-2026-10-20-review/notes.md).
+
 ## Related
 
 plan-angles, plan-goal, plan-campaign-page, plan-review-queue, plan-autopilot, plan-content-plan, brand-audiences, publish-accounts, publish-schedule, formats-gallery, agent-chat, agent-home

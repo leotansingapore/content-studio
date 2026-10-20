@@ -168,6 +168,10 @@ Not Leo: `NotFoundPage`.
 - Fastlane reuses the trending video itself. A source clip with no person in it (a screen, a street) might be fair to reuse, but the default here is never; Leo decides.
 - TikTok's trending sounds cannot be attached through the API as far as we know (unverified), so the sound is your own track or none.
 
+## New evidence (20 Oct 2026)
+
+Fastlane's 12 walls of text for Activity Tracker, verbatim, over UGC-style clips: [review notes](../videos/fastlane-2026-10-20-review/notes.md) sections 2.3 and 2.4. This format is part of the [dogfood run](../dogfood-activity-tracker.md).
+
 ## Related
 
 edit-text-video, formats-text-over-clip, find-trending-formats, remix-any-format, remix-closeness, remix-your-brand, formats-gallery, business-cost-preview, people-ai-labels

@@ -159,6 +159,10 @@ Step 2 (a schema change, so Leo approves it first, after an independent migratio
 - Whether Team review's one-team-per-person rule should turn into "a leader's team is a workspace's members". Folding the three member lists into one model would be a later change of its own.
 - Leo: whether the switcher's "Profile" label should read "Workspace" for everyone; this spec leaves the label as it is.
 
+## New evidence (20 Oct 2026)
+
+Settings > Workspaces: one workspace on Starter, Rename inline with Save and Cancel, Delete workspace: [settings notes](../videos/fastlane-2026-10-20-settings/notes.md).
+
 ## Related
 
 trust-approval, trust-comments-versions, trust-team-push, agent-activity, business-plans, business-credits, learn-team-analytics, publish-accounts, brand-from-website

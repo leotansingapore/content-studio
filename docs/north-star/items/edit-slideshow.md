@@ -190,6 +190,10 @@ The nav entry has `owners: LEO_EMAILS`, and the page renders `NotFoundPage` unle
 - Moving the photo inside the frame (Fastlane does not show it either). Add only if Leo finds centre crops cut off faces.
 - Hard stops checked: no schema change, no new npm package (the canvas, pointer events and the existing fonts cover it), no new paid provider and no auth change.
 
+## New evidence (20 Oct 2026)
+
+Slideshow results to edit against: [review notes](../videos/fastlane-2026-10-20-review/notes.md) section 2.3 (posts 6, 8, 10 and 13 read in full).
+
 ## Related
 
 formats-slideshow, edit-carousel, edit-by-chat, brand-media-sets, brand-media-library, remix-compare, remix-source-trail, publish-schedule, publish-tiktok, edit-design-canvas, business-credits

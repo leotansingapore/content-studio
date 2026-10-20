@@ -177,6 +177,10 @@ The repo's vitest runs in node with no component library, so the logic lives in 
 - Should AI video posts render on their own the night before their day (Fastlane's "made fresh for you at Make" waits for a press)? That is plan-autopilot's call, under Leo's spending rules.
 - Should Make on a free post also schedule it through Post it for me when accounts are picked? Leo decides. Until then Make only puts it on the calendar, and scheduling is one more press in My posts or on the calendar.
 
+## New evidence (20 Oct 2026)
+
+The 28-post reviewer, one at a time, with every button state: [review notes](../videos/fastlane-2026-10-20-review/notes.md) sections 1 and 2.1 to 2.2, and what a reviewer would catch in 2.4.
+
 ## Related
 
 plan-campaign, plan-campaign-page, plan-angles, plan-autopilot, people-my-face, people-my-voice, people-presenters, edit-video, edit-carousel, edit-text-post, trust-compliance-check, trust-approval, publish-schedule, agent-approvals

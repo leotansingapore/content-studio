@@ -128,6 +128,10 @@ Make   [Text post] [Carousel *] [Script to film]
 - Should "You speaking" stop after the script for a yes before the paid video, the way agent-approvals would? This spec runs it in one press with "Up to US$5.50" on the button, as Fastlane does with "Remix, 130 credits". Leo decides.
 - Should a video source default to a paid video format instead of "Script to film"? This spec never preselects a paid format.
 
+## New evidence (20 Oct 2026)
+
+The acceptance test for phase 1: [dogfood on activity-tracker.io](../dogfood-activity-tracker.md).
+
 ## Related
 
 remix-everywhere, remix-intent, remix-your-brand, remix-variations, formats-gallery, formats-slideshow, formats-wall-of-text, formats-static-ad, formats-talking-head, people-my-face, business-cost-preview

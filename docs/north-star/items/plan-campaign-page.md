@@ -162,6 +162,10 @@ Every string above is exact, and money is always written `US$<n.nn>` with two de
 - Should US$ show at all to advisers once this goes beyond Leo, or only a credit count? Leo decides with business-cost-preview.
 - Changing a running campaign's angles or pace is left out; Rename and Delete cover the first version.
 
+## New evidence (20 Oct 2026)
+
+The draft campaign page, its credits box ("You are short 803 credits", "Cover all posts | 803 credits") and the goal panel: [settings notes](../videos/fastlane-2026-10-20-settings/notes.md).
+
 ## Related
 
 plan-campaign, plan-review-queue, plan-angles, plan-goal, business-cost-preview, business-credits, agent-budget, publish-accounts, publish-calendar

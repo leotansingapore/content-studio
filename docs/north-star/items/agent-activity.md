@@ -168,6 +168,10 @@ None. No model call, no Jev question, no cap: the page reads local rows and one 
 - Should the page show every brand at once? It shows the active brand today (AI use is account-wide, since the counter is per account). Leo decides; one brand keeps it simple.
 - When business-credits ships, the AI use tab becomes the credit ledger (credits added, paid for, refunded). That item owns the wording and the balance.
 
+## New evidence (20 Oct 2026)
+
+Settings > Activity with the Strategy, Scheduled runs, Corrections, Autopilot, You and All filters, and the goal panel's "All 15 changes": [settings notes](../videos/fastlane-2026-10-20-settings/notes.md).
+
 ## Related
 
 agent-chat, agent-approvals, agent-memory, agent-budget, agent-autonomy, agent-skills, agent-mcp-api, publish-library, plan-autopilot, business-credits, business-cost-preview, trust-archive

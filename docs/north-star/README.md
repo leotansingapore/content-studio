@@ -10,6 +10,8 @@ Leo set the north star on 2026-10-19: "the idea is that one can remix any conten
 | --- | --- |
 | `items/<id>.md` | One spec per item in `NS_ITEMS`, same id as the card (`/north-star#<id>`). |
 | `videos/fastlane-2026-10-19/` | Leo's 5 min 49 s Fastlane recording, described in `notes-1.md` to `notes-4.md`: every screen, label, price and flow, verbatim, second by second. The frames are `public/north-star/fastlane/tSSS.webp` at the repo root (the screen at second SSS; t125 = 2:05), shared with the page's viewer. |
+| `videos/fastlane-2026-10-20-review/`, `videos/fastlane-2026-10-20-settings/` | Leo's two 20 Oct recordings on the same workspace: the 28 posts Fastlane drafted for Activity Tracker, slide by slide (the dogfood benchmark), and the campaign settings, calendar, activity log and workspaces. Frames in `public/north-star/fastlane-review/` and `public/north-star/fastlane-settings/`. |
+| `dogfood-activity-tracker.md` | The dogfood test Leo set on 20 Oct: our Activity Tracker posts against Fastlane's 28, what to beat and how we run and score ours. |
 | `research/fastlane-pdf/` | Leo's FireShot captures of Fastlane's Home (`013-Home-1.webp`) and Studio > Library (`lib-tile-00` to `05`, top to bottom). |
 | `research/competitors/` | 126 competitors and 1,374 sourced features in six categories (remix and AI UGC, video editing, social suites, personal brand, inspiration and ad intel, adviser marketing). Each category comes as JSON for code and Markdown to read, and every feature carries its source URL. |
 | `research/current-app.md` | What Content Studio already does, route by route, with files, edge functions and caps, read from origin/main 08537d1 on 2026-10-19. |

@@ -131,6 +131,10 @@ Add `youtube: "YouTube"` and `threads: "Threads"` to `PLATFORM_LABEL`; the platf
 - A best-time heat map (Hootsuite, Later) is left out: posting slots already start from the best time per weekday (`makeSlots` in CalendarPage). The `social` function's `best-time` action reads Zernio's best hours but is kept off screen on purpose (docs/zernio-connection.md: UTC, raw engagement, and it would disagree with ours).
 - Fastlane puts the calendar under Strategy beside campaigns. Whether /calendar moves under /campaigns is plan-campaign's call.
 
+## New evidence (20 Oct 2026)
+
+Strategy > Calendar: one post a day at 18:00, the day panel with the caption and "Edit caption", a "Locked" AI video day: [settings notes](../videos/fastlane-2026-10-20-settings/notes.md).
+
 ## Related
 
 publish-schedule, publish-queue, publish-tiktok, publish-recycle, publish-library, plan-campaign, plan-review-queue, trust-approval, agent-chat
