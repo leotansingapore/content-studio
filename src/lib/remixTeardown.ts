@@ -1,6 +1,7 @@
 // The teardown store (docs/north-star/items/remix-teardown.md): one breakdown per source key, kept per brand at
 // content-studio-remix-teardowns-<scoped uid> (synced by cloudSync), at most 40 (the oldest `at` goes first) and
-// reused for 30 days. A reel already cloned in /clone becomes a teardown here with no call.
+// reused for 30 days (10 minutes when the video wasn't read). A reel already cloned in /clone becomes a teardown here
+// with no call.
 
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { HOOK_FORMULAS } from "@/lib/hookFormulas";
@@ -14,6 +15,8 @@ export type { Teardown };
 const PREFIX = "content-studio-remix-teardowns-";
 export const MAX_TEARDOWNS = 40;
 export const TEARDOWN_DAYS = 30;
+/** A breakdown made without reading its video: the job's pre-step can reuse it, the next open reads the now-cached video. */
+export const UNREAD_MINUTES = 10;
 
 function storage(): Storage | null {
   try {
@@ -46,10 +49,11 @@ function loadAll(userId: string): Record<string, Teardown> {
   }
 }
 
-/** The stored teardown for this source, or null when there is none or it is older than 30 days. */
+/** The stored teardown for this source, or null when there is none or it is older than 30 days (unread: 10 minutes). */
 export function loadTeardown(userId: string, key: string, now = new Date()): Teardown | null {
   const t = loadAll(userId)[key];
-  return t && now.getTime() - Date.parse(t.at) < TEARDOWN_DAYS * 86_400_000 ? t : null;
+  const keepMs = t?.unread ? UNREAD_MINUTES * 60_000 : TEARDOWN_DAYS * 86_400_000;
+  return t && now.getTime() - Date.parse(t.at) < keepMs ? t : null;
 }
 
 export function saveTeardown(userId: string, t: Teardown): void {
@@ -139,10 +143,10 @@ export const TEARDOWN_COPY = {
 };
 
 /** The footer under a breakdown, or null when it was made from a transcript or a trend kit. */
-export function teardownFooter(t: Pick<Teardown, "basedOn" | "format">): string | null {
+export function teardownFooter(t: Pick<Teardown, "basedOn" | "format" | "unread">): string | null {
   if (t.basedOn === "ad") return "Based on the ad's copy.";
   if (t.basedOn !== "caption") return null;
-  return t.format === "video" ? "This video has no captions we can read, so this is from the caption." : "Based on the caption only.";
+  return t.format === "video" && !t.unread ? "This video has no captions we can read, so this is from the caption." : "Based on the caption only.";
 }
 
 /** What the row says when a teardown fails, and whether it offers Try again (never over the cap). */

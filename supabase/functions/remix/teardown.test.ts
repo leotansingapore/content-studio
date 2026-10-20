@@ -216,6 +216,15 @@ describe("runTeardown", () => {
     expect(calls.slice(0, 2)).toEqual(["consume", "read"]);
     expect(deps.readSource).toHaveBeenCalledWith(url);
     expect((r.body as { teardown: Record<string, unknown> }).teardown).toMatchObject({ basedOn: "transcript", pacing: "45 s, 6 beats" });
+    expect((r.body as { teardown: Record<string, unknown> }).teardown.unread).toBeUndefined();
+  });
+
+  it("tells a reel read with no transcript apart from one not read", async () => {
+    const { deps } = fakeDeps({ readSource: vi.fn(async () => ({ caption: "Stop paying this fee", durationSec: 30 })) });
+    const r = await runTeardown(req({ format: "video", url: "https://www.instagram.com/reel/ABCdef123/" }), deps);
+    const t = (r.body as { teardown: Record<string, unknown> }).teardown;
+    expect(t.basedOn).toBe("caption");
+    expect(t.unread).toBeUndefined();
   });
 
   it("never reads a trend, an ad, a carousel or a pasted YouTube link (it holds its captions)", async () => {
@@ -230,8 +239,9 @@ describe("runTeardown", () => {
     const { deps } = fakeDeps({ readSource: vi.fn(async () => Promise.reject(new Error("apify"))), ask: vi.fn(async () => null) });
     const r = await runTeardown(req({ format: "video", url: "https://www.instagram.com/reel/ABCdef123/" }), deps);
     expect(r.status).toBe(200);
-    const t = (r.body as { teardown: { basedOn: string; hook: { formula: unknown } } }).teardown;
+    const t = (r.body as { teardown: { basedOn: string; unread?: boolean; hook: { formula: unknown } } }).teardown;
     expect(t.basedOn).toBe("caption");
+    expect(t.unread).toBe(true);
     expect(t.hook.formula).toBeNull();
   });
 

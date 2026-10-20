@@ -36,6 +36,8 @@ export interface Teardown {
   /** Its numbers, claims, brands, products and handles, at most 12. */
   dontReuse: string[];
   basedOn: BasedOn;
+  /** A reel or TikTok the reader didn't reach this time (slow, failed or no key), so it is from the caption. */
+  unread?: true;
   /** ISO time made. */
   at: string;
 }
@@ -336,6 +338,8 @@ export async function runTeardown(req: TeardownRequest, deps: TeardownDeps): Pro
     const parts = validateTeardown(contentOf(await deps.openai(teardownBody(buildTeardownPrompt(s, read)), aiMs)));
     if (!parts) return await fail();
     const ids = req.formulas.map((f) => f.id);
+    const basedOn = basedOnFor(s, read ? Boolean(read.transcript) : null);
+    const unread = !read && readsVideo(s) && basedOn === "caption";
     const answers = ids.length ? await deps.ask({ hook: parts.hook.line }, formulaQuestion(req.formulas)).catch(() => null) : null;
     const teardown: Teardown = {
       v: 1,
@@ -344,7 +348,8 @@ export async function runTeardown(req: TeardownRequest, deps: TeardownDeps): Pro
       ...parts,
       hook: { ...parts.hook, formula: pickFormula(answers, ids) },
       pacing: pacingOf({ durationSec: read?.durationSec, beats: parts.beats.length }),
-      basedOn: basedOnFor(s, read ? Boolean(read.transcript) : null),
+      basedOn,
+      ...(unread ? { unread: true as const } : {}),
       at: new Date().toISOString(),
     };
     return { status: 200, body: { teardown, usage: { used: usage.used, limit: usage.limit } } };

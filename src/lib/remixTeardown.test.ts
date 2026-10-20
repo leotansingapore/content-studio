@@ -118,6 +118,14 @@ describe("the store", () => {
     expect(loadTeardown("u1", "recent", NOW)?.key).toBe("recent");
   });
 
+  it("keeps one made without reading its video for 10 minutes only", () => {
+    const minsAgo = (n: number) => new Date(NOW.getTime() - n * 60_000).toISOString();
+    saveTeardown("u1", { ...teardown("slow", minsAgo(11)), format: "video", unread: true });
+    saveTeardown("u1", { ...teardown("fresh", minsAgo(5)), format: "video", unread: true });
+    expect(loadTeardown("u1", "slow", NOW)).toBeNull();
+    expect(loadTeardown("u1", "fresh", NOW)?.unread).toBe(true);
+  });
+
   it("keeps each brand's own and skips rows that aren't teardowns", () => {
     saveTeardown("u1", teardown("k"));
     expect(loadTeardown("u2", "k", NOW)).toBeNull();
@@ -172,6 +180,7 @@ describe("teardownFooter", () => {
   it("says what the breakdown came from", () => {
     expect(teardownFooter({ basedOn: "caption", format: "carousel" })).toBe("Based on the caption only.");
     expect(teardownFooter({ basedOn: "caption", format: "video" })).toBe("This video has no captions we can read, so this is from the caption.");
+    expect(teardownFooter({ basedOn: "caption", format: "video", unread: true })).toBe("Based on the caption only.");
     expect(teardownFooter({ basedOn: "ad", format: "video" })).toBe("Based on the ad's copy.");
     expect(teardownFooter({ basedOn: "transcript", format: "video" })).toBeNull();
     expect(teardownFooter({ basedOn: "kit", format: "text" })).toBeNull();
