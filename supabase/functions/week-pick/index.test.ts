@@ -75,4 +75,13 @@ describe("week-pick: the week's move (unchanged)", () => {
     expect(r).toEqual({ status: 200, body: { pick: "numbers" } });
     expect(db.spent).toEqual(["week-pick"]);
   });
+
+  it("refuses one move, an unknown move or the same move twice before counting or asking Jev", async () => {
+    const other = "22222222-2222-4222-8222-222222222222";
+    for (const moves of [[{ id: "reuse", text: "Reuse it." }], [{ id: "reuse", text: "Reuse it." }, { id: "made-up", text: "Guess." }], [{ id: "reuse", text: "A." }, { id: "reuse", text: "B." }]]) {
+      expect(await call({ facts: "3 posts.", moves }, other)).toEqual({ status: 400, body: { error: "Nothing to pick from." } });
+    }
+    expect(db.spent).toEqual([]);
+    expect(db.jev).toEqual([]);
+  });
 });
