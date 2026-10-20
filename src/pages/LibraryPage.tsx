@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import LibraryCard from "@/components/library/LibraryCard";
 import MakingNow, { useLibraryJobs } from "@/components/library/MakingNow";
+import { useZernioRefresh } from "@/components/PostItForMe";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
@@ -87,6 +88,8 @@ function Library({ userId }: { userId: string }) {
   // a job that starts, ends or fails may have saved a draft, a picture or a slideshow; progress alone saves nothing
   const settled = jobs.map((j) => `${j.kind}:${j.state}`).join();
   useEffect(reload, [reload, settled]);
+  // as on My posts and Calendar: asks Zernio about up to 10 posts whose time has come, so a failed one shows under Failed
+  useZernioRefresh(userId, stores.drafts, reload);
   const fontsReady = useFontsReady(stores.slideshows.length > 0);
 
   const items = useMemo(() => buildLibrary({ ...stores, jobs, now: new Date() }), [stores, jobs]);
