@@ -30,6 +30,7 @@ import {
   fitSlide,
   freshPhotos,
   loadUsed,
+  makeBody,
   onSlideshowJob,
   resolvePicks,
   slideshowJob,
@@ -265,6 +266,12 @@ describe("the job", () => {
       throw new Error("boom");
     });
     expect(await run()).toMatchObject({ state: "failed", error: FINISH_FAILED });
+  });
+
+  it("sends a swipe carousel's own hook, format and why when this device has no breakdown of it", () => {
+    const s = { ...SOURCE, teardown: { hook: "I brought two new advisers along to Awards Night", structure: "Carousel milestone story", why: "The underdog arc." } };
+    expect(makeBody(UID, { ...ASK, source: s }).teardown).toEqual({ hookPattern: "I brought two new advisers along to Awards Night", beats: ["Format: Carousel milestone story", "Why it worked: The underdog arc."] });
+    expect(makeBody(UID, ASK).teardown).toBeUndefined();
   });
 
   it("writes from a topic with no source", async () => {

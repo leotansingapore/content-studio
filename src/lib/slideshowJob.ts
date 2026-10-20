@@ -103,7 +103,14 @@ export function failure(e: unknown): Pick<SlideshowJob, "error" | "refused"> {
 /** The make call: the source's words read on this device, or the topic, with this brand and voice. */
 export function makeBody(userId: string, a: SlideshowAsk): MakeRequest {
   const s = a.source;
-  const teardown = s ? localTeardown(userId, s) : null;
+  const t = s ? localTeardown(userId, s) : null;
+  // no breakdown on this device: the snapshot's own idea stands in (a swipe carousel's idea.hook, format and why)
+  const idea = s && !t ? s.teardown : undefined;
+  const teardown = t
+    ? { hookPattern: t.hook.pattern || undefined, beats: t.beats, dontReuse: t.dontReuse }
+    : idea?.hook || idea?.structure || idea?.why
+      ? { hookPattern: idea.hook || undefined, beats: [idea.structure && `Format: ${idea.structure}`, idea.why && `Why it worked: ${idea.why}`].filter((b): b is string => !!b) }
+      : undefined;
   return {
     mode: "make",
     as: "slideshow",
@@ -113,7 +120,7 @@ export function makeBody(userId: string, a: SlideshowAsk): MakeRequest {
     note: a.note.trim() || undefined,
     voice: voiceForClone(loadVoiceProfile(userId), winnersFor(userId)),
     brand: brandPack(userId, { platform: a.size === "9x16" ? "tiktok" : "instagram", mention: a.mention, offer: null, speaker: loadRemixPrefs(userId).speaker }),
-    teardown: teardown ? { hookPattern: teardown.hook.pattern || undefined, beats: teardown.beats, dontReuse: teardown.dontReuse } : undefined,
+    teardown,
   };
 }
 

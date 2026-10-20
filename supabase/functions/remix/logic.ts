@@ -320,7 +320,7 @@ function slideshowRules(req: MakeRequest): string[] {
     "Write a photo slideshow for Instagram and TikTok: short words in boxes over full-bleed stock photos.",
     "- slides: 3 to 10 slides in order. For each slide: title (at most 12 words), sub (at most 25 words in one or two complete sentences, or empty), search (2 to 4 plain English words a stock photo library would match: a scene or an object, with no text, logos, brands or close-up faces).",
     req.source
-      ? "- Slide 1 is the hook slide, in the same hook formula as the original's first line: a number of signs, ways or mistakes stays a number, a question stays a question."
+      ? `- Slide 1 is the hook slide, in the same hook formula as ${req.teardown?.hookPattern ? "the original's hook (quoted in the message)" : "the original's first line"}: a number of signs, ways or mistakes stays a number, a question stays a question.`
       : "- Slide 1 is the hook slide, in a proven shape: a number of signs, ways or mistakes, a question, POV, the mistake, or a quoted objection.",
     `- Then the numbered slides, one idea each. Start each numbered title with its number and a full stop, like '1. You only reach out when it's quiet'. When the hook names a number, write exactly that many numbered slides, numbered from 1. That number is at most ${maxNumbered(b.mention)} so every slide fits; when the original's number is bigger, use a smaller one.`,
     "- Then one reframe slide: what it all means for the reader.",
@@ -421,6 +421,8 @@ export function buildMakePrompt(req: MakeRequest): { system: string; user: strin
     "Its words:",
     quote(src.text),
     ...(keep === "hook" && !req.teardown?.hookPattern ? ["", "Its first line:", quote(firstLineOf(src.text))] : []),
+    // a swipe carousel's caption often opens on something else, so its hook goes in as given
+    ...(req.as === "slideshow" && req.teardown?.hookPattern ? ["", "Its hook:", quote(req.teardown.hookPattern)] : []),
     ...(req.teardown?.beats?.length ? ["", "Its beats, in order:", ...req.teardown.beats.map((b, i) => `${i + 1}. ${b}`)] : []),
     ...(dontReuse.length ? ["", `Do not reuse: ${dontReuse.join("; ")}`] : []),
     ...voiceLines(req.voice, req.brand.speaker),

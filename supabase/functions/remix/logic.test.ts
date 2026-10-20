@@ -499,9 +499,14 @@ describe("the slideshow (formats-slideshow)", () => {
     expect(buildMakePrompt(make({ as: "slideshow", brand: { ...BIZ, mention: false } })).system).toContain("No brand slide: end on the reframe.");
   });
 
-  it("says how many numbered slides fit", () => {
+  it("says how many numbered slides fit, and quotes a swipe carousel's own hook when one is sent", () => {
     expect(buildMakePrompt(make({ as: "slideshow" })).system).toContain("That number is at most 7 so every slide fits");
     expect(buildMakePrompt(make({ as: "slideshow", brand: { ...BIZ, mention: false } })).system).toContain("That number is at most 8 so every slide fits");
+    const hooked = buildMakePrompt(make({ as: "slideshow", teardown: { hookPattern: "I brought two new advisers along to Awards Night" } }));
+    expect(hooked.user).toContain('Its hook:\n"""\nI brought two new advisers along to Awards Night\n"""');
+    expect(hooked.system).toContain("in the same hook formula as the original's hook (quoted in the message)");
+    expect(buildMakePrompt(make({ as: "slideshow" })).user).not.toContain("Its hook:");
+    expect(buildMakePrompt(make({ as: "post", teardown: { hookPattern: "x" } })).user).not.toContain("Its hook:");
   });
 
   it("keeps 3 to 10 slides, cuts long titles and subs at a word, strips em dashes and cleans the search", () => {
