@@ -271,8 +271,13 @@ export function fromDraft(d: DraftEntry): RemixSource {
 
 // ---- words the screens use ------------------------------------------------------------------
 
-/** "12 Oct". */
-export const dayMonth = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "12 Oct". A fixed month list: en-GB's short September is "Sept". */
+export const dayMonth = (iso: string) => {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+};
 
 const article = (noun: string) => (/^[aeiou]/i.test(noun) ? "an" : "a");
 

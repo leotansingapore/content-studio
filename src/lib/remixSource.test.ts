@@ -153,6 +153,7 @@ describe("the words", () => {
     expect(sourceChip(src("top:a-1", NOW, { format: "video", platform: "instagram" }))).toBe("Remixing @mrbrown's reel");
     expect(sourceChip({ key: "ad:1", kind: "ad", author: "Singlife", remixedAt: "" })).toBe("Remixing Singlife's ad");
     expect(sourceChip({ key: "own:d", kind: "own", postedAt: "2026-10-12T02:00:00Z", remixedAt: "" })).toBe("Remixing your post from 12 Oct");
+    expect(sourceChip({ key: "own:d", kind: "own", postedAt: "2026-09-12T02:00:00Z", remixedAt: "" })).toBe("Remixing your post from 12 Sep");
     expect(sourceChip({ key: "trend:t", kind: "trend", remixedAt: "" })).toBe("Remixing a trend");
     expect(sourceChip({ key: "pattern:instagram:mrbrown:1", kind: "pattern", author: "@mrbrown", remixedAt: "" })).toBe("Remixing what worked for @mrbrown");
     expect(draftLine(src("follow:instagram:1", NOW, { format: "carousel" }))).toBe("From @mrbrown's carousel");
