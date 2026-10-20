@@ -41,6 +41,11 @@ describe("reading a brand's home page", () => {
     expect(s.text).not.toContain("do not read me");
   });
 
+  it("reads a lazy logo's data-src and never takes the page itself for a logo", () => {
+    const lazy = `<html><head><title>Lazy</title></head><body><img class="logo" src="" alt=""><img class="site-logo" data-src="/img/lazy-logo.png"></body></html>`;
+    expect(readSite(lazy, BASE).logos).toEqual(["https://www.acme.sg/img/lazy-logo.png"]);
+  });
+
   it("keeps profile links and skips share buttons and single posts", () => {
     expect(readSite(PAGE, BASE).handles).toEqual({ instagram: "acmewealth", facebook: "AcmeWealthSG", linkedin: "company/acme-wealth", tiktok: "acme.wealth" });
     expect(handleOf("instagram", "https://www.instagram.com/reel/abc/")).toBe("");

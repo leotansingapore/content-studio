@@ -44,6 +44,8 @@ function meta(html: string, ...keys: string[]): string {
   return "";
 }
 const absolute = (href: string, base: URL) => {
+  // an empty href or src resolves to the page itself, which is never a logo or a profile (SleekFlow's read did that)
+  if (!href.trim()) return "";
   try {
     const u = new URL(href, base);
     return u.protocol === "https:" || u.protocol === "http:" ? u.href : "";
@@ -126,9 +128,10 @@ export function readSite(html: string, base: URL): SiteFacts {
   // page's own icons and its share picture
   const links = tagsOf(head, "link").map((t) => ({ rel: attr(t, "rel").toLowerCase(), href: absolute(attr(t, "href"), base), size: parseInt(attr(t, "sizes"), 10) || 0 }));
   const touch = links.filter((l) => l.rel.includes("apple-touch-icon") && l.href).sort((a, b) => b.size - a.size).map((l) => l.href);
+  // a lazy-loaded logo keeps its address in data-src
   const named = tagsOf(body, "img")
     .filter((t) => /logo/i.test(`${attr(t, "class")} ${attr(t, "id")} ${attr(t, "alt")} ${attr(t, "src")}`))
-    .map((t) => absolute(attr(t, "src"), base));
+    .map((t) => absolute(attr(t, "src") || attr(t, "data-src"), base));
   const icons = links.filter((l) => /\bicon\b/.test(l.rel) && !l.rel.includes("apple") && l.href).sort((a, b) => b.size - a.size).map((l) => l.href);
   const share = absolute(meta(head, "og:image", "twitter:image"), base);
   const logos = [...new Set([...touch, ...named, ...icons, share].filter((h) => h && !/\.svg(\?|$)/i.test(h)))].slice(0, 6);
