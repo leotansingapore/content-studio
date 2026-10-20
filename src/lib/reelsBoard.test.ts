@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, setConnectedIg, stageForLink, teamNotes, type ReelCard, type ReelComment } from "./reelsBoard";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: vi.fn() }));
+import { callFn } from "@/lib/edgeFn";
+import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, setConnectedIg, sharedBoard, stageForLink, teamNotes, updateCard, type ReelCard, type ReelComment } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -130,5 +132,24 @@ describe("stageForLink", () => {
     expect(at("card=a2")).toBeNull();
     expect(at("card=gone")).toBeNull();
     expect(at("view=feed")).toBeNull();
+  });
+});
+
+describe("sharedBoard", () => {
+  it("shares one board call until a write or a failed call drops it", async () => {
+    const call = vi.mocked(callFn);
+    call.mockResolvedValue({ stages: [], brands: [], cards: [] });
+    const first = sharedBoard();
+    expect(sharedBoard()).toBe(first);
+    await first;
+    expect(call).toHaveBeenCalledTimes(1);
+    await updateCard("c1", { stage: "approved" });
+    expect(sharedBoard()).not.toBe(first);
+    expect(call).toHaveBeenCalledTimes(3);
+    await updateCard("c1", { stage: "review" });
+    call.mockRejectedValueOnce(new Error("down"));
+    await expect(sharedBoard()).rejects.toThrow("down");
+    await sharedBoard();
+    expect(call).toHaveBeenCalledTimes(6);
   });
 });

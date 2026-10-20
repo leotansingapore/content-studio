@@ -8,7 +8,7 @@ import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
 import { checkMarketEnabled, forgetMarketShown, marketShown } from "@/lib/market";
 import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
-import { checkMe, fetchBoard, forgetMe, reelsShown, seesBoard } from "@/lib/reelsBoard";
+import { checkMe, fetchBoard, forgetMe, reelsShown, seesBoard, sharedBoard } from "@/lib/reelsBoard";
 import { applyBrandLink, rememberUser } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -297,14 +297,15 @@ export default function StudioLayout() {
     };
   }, [uid, pathname]);
 
-  // One team-board call on load and on tab return (not on the timer), for board users only; the board page
-  // sends its own count after every change.
+  // One team-board call on load (shared with Home) and on tab return (not on the timer), for board users only;
+  // the board page sends its own count after every change.
   useEffect(() => {
     if (!board) return setBoardWaiting(0);
     let active = true;
-    const refresh = () => void fetchBoard().then((b) => active && setBoardWaiting(countBoardWaiting(b.cards)), () => {});
+    const refresh = (fresh = false) =>
+      void (fresh ? fetchBoard() : sharedBoard()).then((b) => active && setBoardWaiting(countBoardWaiting(b.cards)), () => {});
     refresh();
-    const onVisible = () => document.visibilityState === "visible" && refresh();
+    const onVisible = () => document.visibilityState === "visible" && refresh(true);
     document.addEventListener("visibilitychange", onVisible);
     const off = onBoardWaiting(setBoardWaiting);
     return () => {

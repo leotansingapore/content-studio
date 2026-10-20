@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, countBoardWaiting, countNeedsYou, waitingByBrand } from "./needsYou";
+import { badgeText, countBoardWaiting, countNeedsYou, countPostingToday, notesByBrand, waitingByBrand } from "./needsYou";
 import type { DraftEntry } from "./draftHistory";
-import type { ReelCard, StageId } from "./reelsBoard";
+import type { ReelCard, ReelComment, StageId } from "./reelsBoard";
 import type { TeamPost } from "./teamPosts";
 
 const TODAY = "2026-10-14";
@@ -58,6 +58,27 @@ describe("waitingByBrand", () => {
       { id: "radiant", name: "Radiant", n: 2, changes: true },
     ]);
     expect(waitingByBrand({ stages: [], brands, cards }, "")).toHaveLength(3);
+  });
+});
+
+describe("countPostingToday", () => {
+  it("counts today's approved or scheduled board posts and today's scheduled drafts", () => {
+    const card = (stage: StageId, schedule?: string) => ({ id: stage, title: stage, stage, schedule, version: "v1", versions: [], comments: [], history: [] }) as ReelCard;
+    const cards = [card("approved", "2026-10-14T19:30"), card("scheduled", "2026-10-14"), card("posted", "2026-10-14T08:00"), card("review", "2026-10-14"), card("scheduled", "2026-10-15"), card("approved")];
+    const drafts = [draft({ status: "scheduled", scheduledFor: "2026-10-14T08:00" }), draft({ status: "scheduled", scheduledFor: "2026-10-13" }), draft({ status: "draft" })];
+    expect(countPostingToday(cards, drafts, TODAY)).toBe(3);
+    expect(countPostingToday([], [], TODAY)).toBe(0);
+  });
+});
+
+describe("notesByBrand", () => {
+  it("lists brands with posts carrying open notes from the team, per brand", () => {
+    const note = (by: ReelComment["by"], resolved = false) => ({ id: "n", at: "", text: "x", t: null, version: "v1", resolved, by }) as ReelComment;
+    const card = (brand: string, comments: ReelComment[], stage: StageId = "review") => ({ id: brand, title: brand, stage, brand, version: "v1", versions: [], comments, history: [] }) as ReelCard;
+    const amy = { id: "u2", label: "Amy", role: "editor" };
+    const brands = [{ id: "moneybees", name: "MoneyBees" }, { id: "radiant", name: "Radiant" }, { id: "at", name: "ActivityTracker" }];
+    const cards = [card("moneybees", [note(amy)]), card("moneybees", [note(amy)]), card("radiant", [note(amy, true), note(undefined)]), card("at", [note(amy)], "archived")];
+    expect(notesByBrand({ stages: [], brands, cards }, { owner: true, member: false })).toEqual([{ id: "moneybees", name: "MoneyBees", n: 2 }]);
   });
 });
 

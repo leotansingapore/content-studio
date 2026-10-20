@@ -3,7 +3,7 @@
 // strip and Overdue block list them; this only counts, from what the device already holds (no network).
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { statusOf, type TeamPost, type TeamReviews } from "@/lib/teamPosts";
-import { brandOf, type Board, type ReelCard } from "@/lib/reelsBoard";
+import { brandOf, feedCards, type Board, type Me, type ReelCard } from "@/lib/reelsBoard";
 
 export function countNeedsYou(drafts: DraftEntry[], teamPosts: TeamPost[], reviews: TeamReviews, today: string): number {
   const overdue = drafts.filter((d) => draftStatus(d) === "scheduled" && (d.scheduledFor ?? "").slice(0, 10) < today && !!d.scheduledFor).length;
@@ -23,6 +23,16 @@ export const waitingByBrand = (board: Board, open: string) =>
       return { id: b.id, name: b.name, n: countBoardWaiting(cards), changes: cards.some((c) => c.stage === "changes") };
     })
     .filter((b) => b.n > 0);
+
+/** Board brands with posts carrying open notes from others, as the posts board's Notes chip lists them. */
+export const notesByBrand = (board: Board, me: Me | null) =>
+  board.brands.map((b) => ({ id: b.id, name: b.name, n: feedCards(board.cards, "notes", b.id, me).length })).filter((b) => b.n > 0);
+
+/** Posts going out today: board posts approved or scheduled for today, and scheduled drafts. */
+// shortcut: leaves out Telegram team posts and channel feeds, which only the Calendar loads; Home links to its week for those.
+export const countPostingToday = (cards: ReelCard[], drafts: DraftEntry[], today: string) =>
+  cards.filter((c) => (c.stage === "approved" || c.stage === "scheduled") && c.schedule?.slice(0, 10) === today).length +
+  drafts.filter((d) => draftStatus(d) === "scheduled" && d.scheduledFor?.slice(0, 10) === today).length;
 
 // The posts board hands the shell its new count after every change, so the badge drops without another board call.
 const BOARD_WAITING = "content-studio-board-waiting";

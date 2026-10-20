@@ -17,6 +17,7 @@ import {
   type DraftStats,
   type PostingActivity,
   onDraftsChanged,
+  draftsOfBrand,
 } from "@/lib/draftHistory";
 import { GOAL_PLATFORMS, MAX_WEEKLY_GOAL, loadGoals, saveGoals, weekProgress, type WeeklyGoals } from "@/lib/goals";
 import {
@@ -51,6 +52,10 @@ import {
   Plus,
 } from "lucide-react";
 import { loadBrand } from "@/lib/carousel";
+import { checkMe, reelsShown, seesBoard, sharedBoard, type Board, type Me } from "@/lib/reelsBoard";
+import { countPostingToday, notesByBrand, waitingByBrand } from "@/lib/needsYou";
+import { marketShown } from "@/lib/market";
+import { activeProfileId, loadProfiles } from "@/lib/profiles";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -122,6 +127,8 @@ export default function HomePage() {
   const [name, setName] = useState<string>("");
   const [nextAct, setNextAct] = useState<NextAction | null>(null);
   const [contentScore, setContentScore] = useState<number | null>(null);
+  // Posts board users: who they are on the team and the board (null when it didn't answer).
+  const [day, setDay] = useState<{ me: Me; board: Board | null } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -152,6 +159,12 @@ export default function HomePage() {
       const diag = loadResult(id);
       setContentScore(diag?.overall ?? null);
       setNextAct(nextAction(diag));
+      // After the first-run check; the board call is the one the shell already made for its count.
+      if (!reelsShown()) return;
+      const me = await checkMe().catch(() => null);
+      if (!me || !seesBoard(me)) return;
+      const board = await sharedBoard().catch(() => null);
+      if (active) setDay({ me, board });
     })();
     return () => {
       active = false;
@@ -226,6 +239,27 @@ export default function HomePage() {
     });
   };
 
+  // Board users' daily jobs, counts and links only; teammates get the To review rows for their own brands.
+  // Plain URLs, as links.reels and links.calendar build them: links.ts stays out of the main chunk.
+  const today = useMemo(() => {
+    if (!day || !userId) return [];
+    const { me, board } = day;
+    const rows: { label: string; n?: number; to: string }[] = (board ? waitingByBrand(board, "") : []).map((b) => ({
+      label: `To review: ${b.name}`,
+      n: b.n,
+      to: `/reels?brand=${encodeURIComponent(b.id)}${b.changes ? "&stage=all" : ""}`,
+    }));
+    if (!me.owner) return rows;
+    const open = activeProfileId(userId);
+    const allDrafts = [...drafts, ...loadProfiles(userId).filter((p) => p.id !== open).flatMap((p) => draftsOfBrand(userId, p.id))];
+    rows.push({ label: "Posting today", n: countPostingToday(board?.cards ?? [], allDrafts, localDateKey()), to: "/calendar?view=week" });
+    // per brand, since /reels shows Leo one brand at a time
+    for (const b of board ? notesByBrand(board, me) : [])
+      rows.push({ label: `Team notes: ${b.name}`, n: b.n, to: `/reels?brand=${encodeURIComponent(b.id)}&stage=notes` });
+    if (marketShown()) rows.push({ label: "Your market", to: "/market" });
+    return rows;
+  }, [day, userId, drafts]);
+
   const kit = loadBrand(userId);
   const checklist = [
     { done: voiceReady, label: "Set your voice", to: "/voice" },
@@ -240,6 +274,27 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
+      {today.length > 0 && (
+        <section aria-labelledby="home-today" className="space-y-2">
+          <h2 id="home-today" className="text-sm font-semibold text-foreground">
+            Today
+          </h2>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {today.map((r) => (
+              <Link
+                key={r.to}
+                to={r.to}
+                className="flex items-center gap-3 rounded-lg border border-border/70 bg-card px-3 py-2 text-sm shadow-card transition-colors hover:border-primary/40 [@media(pointer:coarse)]:min-h-11"
+              >
+                <span className="min-w-0 flex-1 truncate font-medium text-foreground">{r.label}</span>
+                {r.n !== undefined && <span className="shrink-0 font-semibold tabular-nums text-foreground">{r.n}</span>}
+                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-primary" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Due today / overdue reminder */}
       {dueNow.length > 0 && (
         <section className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-4">

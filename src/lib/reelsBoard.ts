@@ -208,8 +208,22 @@ export function cardsIn(cards: ReelCard[], stage: StageId, brand: string): ReelC
     .sort(byDate);
 }
 
-const board = <T>(body: Record<string, unknown>) => callFn<T>("team-board", body, "The board didn't answer. Try again.");
-export const fetchBoard = () => board<Board>({ action: "board" });
+// The last board fetch, so the shell's count and Home share one call per visit; any write drops it.
+let lastBoard: Promise<Board> | null = null;
+const board = <T>(body: Record<string, unknown>) => {
+  if (body.action !== "board") lastBoard = null;
+  return callFn<T>("team-board", body, "The board didn't answer. Try again.");
+};
+export function fetchBoard(): Promise<Board> {
+  const p = board<Board>({ action: "board" });
+  lastBoard = p;
+  p.catch(() => {
+    if (lastBoard === p) lastBoard = null;
+  });
+  return p;
+}
+/** The board this visit already asked for, else a new call. */
+export const sharedBoard = () => lastBoard ?? fetchBoard();
 export const updateCard = (id: string, patch: Partial<Pick<ReelCard, "stage" | "caption" | "schedule" | "version" | "brand">>) =>
   board<ReelCard>({ action: "card", id, patch });
 export const addNote = (id: string, note: { text: string; t?: number | null; slide?: number }) =>
