@@ -648,7 +648,7 @@ describe("the slideshow (formats-slideshow)", () => {
 describe("the wall of text (formats-wall-of-text)", () => {
   const BIZ = { ...body().brand, name: "ActivityTracker", oneLiner: "Tracks daily sales activity", facts: "", speaker: "business", offer: null };
   const POV = "POV: you finally check your CPF statement \u{1F631}\nand it's not what you thought";
-  const TEXT = "POV: it's month end and you open ActivityTracker \u{1F631}\nyour calls, follow-ups and meetings are all there, so you know what to do tomorrow";
+  const TEXT = "POV: it's month end and you can't remember who you called \u{1F631}\nwith ActivityTracker your calls, follow-ups and meetings are all there, so you know what to do tomorrow";
   const RAW = { refuse: false, reason: "", text: TEXT, scene: "A woman at a desk at night with a cup of tea", search: "Desk, night & tea!", caption: "Busy weeks hide the work that fills next month. Log it daily and the pattern shows.", cta: "Follow for more ways to stay on top of your week.", hashtags: ["sales"] };
   const wall = (over: Record<string, unknown> = {}) => validateMake("wall", { ...RAW, ...over });
   const req = (over: Record<string, unknown> = {}) => make({ as: "wall", source: { ...body().source, text: POV }, brand: BIZ, ...over });
@@ -671,8 +671,8 @@ describe("the wall of text (formats-wall-of-text)", () => {
     expect(system).toContain("Never its words, numbers, brand or claims.");
     expect(system).toContain('a "POV:" stays a "POV:"');
     expect(system).toContain("its emoji (1 of the same kind)");
-    expect(system).toContain("at most 60 words and 400 characters");
-    expect(system).toContain("Name ActivityTracker exactly once in the text, plainly.");
+    expect(system).toContain("25 to 60 words and at most 400 characters");
+    expect(system).toContain("Name ActivityTracker exactly once in the text, plainly, after the opening line and never in it.");
     expect(system).toContain("Never write I, me or my");
     expect(system).not.toContain(POV.split("\n")[1]);
     expect(user).toContain(POV);
@@ -743,7 +743,7 @@ describe("the wall of text (formats-wall-of-text)", () => {
     expect(saysI("that\u2019s when i\u2019ve had enough")).toBe(true);
     expect(saysI('"Do I really need to track every task?" if deals are all you see, you miss the work')).toBe(false);
     expect(saysI("it's Monday, ideas in, inbox open")).toBe(false);
-    const me = wall({ text: "i used to guess. now ActivityTracker shows my week \u{1F631}" })!;
+    const me = wall({ text: `i used to guess. now ActivityTracker shows my week \u{1F631} ${words(20)}` })!;
     expect(wallProblem(me, req())?.kind).toBe("voice");
     expect(wallProblem(me, req())?.error).toBe("The words spoke as I for ActivityTracker. Try again.");
     // a person speaks as themselves
@@ -763,6 +763,20 @@ describe("the wall of text (formats-wall-of-text)", () => {
     expect(wallProblem(wall({ text: TEXT.replace("ActivityTracker", "one app"), hashtags: ["activitytracker"] })!, req({ brand: { ...BIZ, mention: false } }))?.kind).toBe("mention");
     // the slideshow's checks never run on a wall, nor the wall's on a slideshow
     expect(makeProblem(wall()!, req())).toBeNull();
+  });
+
+  it("keeps a wall a block to read, opening on the reader and never on the product", () => {
+    // the dogfood's one-liners and product-first openings
+    const short = wall({ text: "Make your follow-ups visible with ActivityTracker: small steps add up." })!;
+    expect(wallProblem(short, req({ source: { ...body().source, text: "plain words" } }))?.kind).toBe("length");
+    expect(wallProblem(short, req({ source: { ...body().source, text: "plain words" } }))?.fix).toContain("25 to 60 words");
+    const ad = wall({ text: `ActivityTracker for reps \u{1F631}\n${words(30)}` })!;
+    expect(wallProblem(ad, req())?.error).toBe("The words opened on ActivityTracker instead of the reader. Try again.");
+    // no line breaks: the first sentence is the opening
+    expect(wallProblem(wall({ text: `Join ActivityTracker today \u{1F631}. ${words(30)}` })!, req())?.kind).toBe("mention");
+    expect(wallProblem(wall({ text: `You check your week \u{1F631}. ${words(25)} with ActivityTracker.` })!, req())).toBeNull();
+    // a person may open on their own name; mention off has nothing to place
+    expect(wallProblem(ad, req({ brand: { ...BIZ, speaker: "person" } }))).toBeNull();
   });
 
   it("counts the words on screen and the caption as what a reader sees, never the scene or search", () => {

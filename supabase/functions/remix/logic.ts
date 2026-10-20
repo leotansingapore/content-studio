@@ -42,6 +42,8 @@ export const VIDEO_AS = ["speaking", "explainer"] as const satisfies readonly Re
 export const MAX_SPEAKING_WORDS = 70;
 /** The spec's wall of text: 60 words and 400 characters, shrunk to fit 45% of a 9:16 frame over a clip of at most 15 s. */
 export const MAX_WALL_WORDS = 60;
+/** A wall is a block to read, not a title: the ActivityTracker dogfood (20 Oct 2026) came back at 8 to 15 words against Fastlane's 40 to 60. */
+export const MIN_WALL_WORDS = 25;
 export const MAX_WALL_CHARS = 400;
 /** video-assist's montage-pick keeps 90 characters of a beat's say; the wall's scene is that beat. */
 export const MAX_WALL_SCENE = 90;
@@ -353,10 +355,11 @@ function wallRules(req: MakeRequest): string[] {
     "",
     "Write a wall of text: words shown over a silent video clip, read in a few seconds, in the casual voice of a short video.",
     req.source
-      ? `- text: the words on screen. Keep the original's opening (a "POV:" stays a "POV:", a question stays a question), its length within 20 percent, its line breaks and its emoji (${n ? `${n} of the same kind` : "none"}). Never its words, numbers, brand or claims.`
+      ? `- text: the words on screen. Keep the original's opening (a "POV:" stays a "POV:", a question stays a question), its line breaks and its emoji (${n ? `${n} of the same kind` : "none"}). Never its words, numbers, brand or claims.`
       : "- text: the words on screen. Open in a proven shape: POV, a question, the mistake, or a quoted objection. At most 1 emoji.",
-    `- The text is at most ${MAX_WALL_WORDS} words and ${MAX_WALL_CHARS} characters, with no hashtags.`,
-    b.mention ? `- Name ${b.name} exactly once in the text, plainly.` : "",
+    `- The text is ${MIN_WALL_WORDS} to ${MAX_WALL_WORDS} words and at most ${MAX_WALL_CHARS} characters, with no hashtags: a block the reader reads, not a title.`,
+    "- The opening line is about the reader: a moment in their day, a question they ask, or a mistake they make. Never the product.",
+    b.mention ? `- Name ${b.name} exactly once in the text, plainly, after the opening line and never in it.` : "",
     b.speaker === "business" ? "- Never write I, me or my, even in a casual voice: talk to the reader as you, or as we." : "",
     `- scene: one plain sentence of at most ${MAX_WALL_SCENE} characters: the calm shot behind the words, something a camera can film, with no text or screens in it.`,
     "- search: 2 to 4 plain English words a stock video library would match for that scene: no text, logos, brands or close-up faces.",
@@ -704,7 +707,7 @@ export const slideNumbers = (slides: { title: string }[]) =>
   });
 
 export interface MakeProblem {
-  kind: "count" | "product" | "mention" | "emoji" | "voice";
+  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length";
   /** Sent back to the model for the one fixing pass. */
   fix: string;
   /** The refusal the adviser reads when the fix fails too. The use is kept: the model answered (only 502/503 refund). */
@@ -777,6 +780,7 @@ export function saysI(t: string): boolean {
 export function wallProblem(r: MakeResult, req: Pick<MakeRequest, "brand" | "source">): MakeProblem | null {
   if (r.as !== "wall") return null;
   const b = req.brand;
+  const words = wordsIn(r.text);
   if (req.source) {
     const want = wallEmoji(req.source.text);
     if (Math.abs(emojiCount(r.text) - want) > 1) {
@@ -792,6 +796,13 @@ export function wallProblem(r: MakeResult, req: Pick<MakeRequest, "brand" | "sou
       kind: "voice",
       fix: `The text or caption says I, but ${b.name} is a business. Return the whole JSON object again without I: talk to the reader as you, or as we.`,
       error: `The words spoke as I for ${b.name}. Try again.`,
+    };
+  }
+  if (words < MIN_WALL_WORDS) {
+    return {
+      kind: "length",
+      fix: `The text is ${words} words. Return the whole JSON object again with ${MIN_WALL_WORDS} to ${MAX_WALL_WORDS} words in the text: a block to read, not a title.`,
+      error: "The words came out too short for a wall of text. Try again.",
     };
   }
   const name = b.name === NO_NAME[b.speaker] ? null : nameMatcher(b.name);
@@ -811,8 +822,21 @@ export function wallProblem(r: MakeResult, req: Pick<MakeRequest, "brand" | "sou
       error: `The words didn't name ${b.name} once. Try again.`,
     };
   }
+  // the product in the first line reads as an ad: 7 of 11 dogfood walls opened on it
+  if (b.mention && b.speaker === "business" && count(openingLine(r.text))) {
+    return {
+      kind: "mention",
+      fix: `The opening line names ${b.name}. Return the whole JSON object again with an opening line about the reader and ${b.name} named once after it.`,
+      error: `The words opened on ${b.name} instead of the reader. Try again.`,
+    };
+  }
   return null;
 }
+
+/** Words a reader reads: tokens with a letter or a digit, so an emoji alone is not a word. */
+const wordsIn = (t: string) => t.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+/** The first line, or the first sentence when the wall has no line breaks. */
+const openingLine = (t: string) => t.trim().split(/\n|(?<=[.?!])\s/)[0];
 
 /** The format's own checks after writing (slideshow or wall); null for every other format. */
 export const makeProblem = (r: MakeResult, req: Pick<MakeRequest, "brand" | "source">) => slideshowProblem(r, req) ?? wallProblem(r, req);
