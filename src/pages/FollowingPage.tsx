@@ -21,7 +21,7 @@ import { useScrollToItem, useUrlItem } from "@/lib/urlState";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import { useUsesLeft } from "@/lib/aiUsage";
 import PriceChip from "@/components/PriceChip";
-import { priceOf, reasonText, sumPrices } from "@/lib/prices";
+import { chipText, priceOf, reasonText, sumPrices } from "@/lib/prices";
 
 const LIMIT = DAILY_LIMITS["track-accounts"];
 const fmt = (n: number) => (n >= 10_000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
@@ -134,16 +134,18 @@ export default function FollowingPage() {
         <p className="text-sm text-muted-foreground">Follow a competitor or a creator you like to see their growth, how often they post, and their new posts to remix.</p>
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
-          {list.map((a) => <AccountCard key={`${a.platform}:${a.handle}`} a={a} leo={leo} linked={linked} onCheck={() => userId && runCheck(userId, a)} onRemove={() => remove(a)} />)}
+          {list.map((a) => <AccountCard key={`${a.platform}:${a.handle}`} a={a} leo={leo} linked={linked} left={left} onCheck={() => userId && runCheck(userId, a)} onRemove={() => remove(a)} />)}
         </ul>
       )}
     </div>
   );
 }
 
-function AccountCard({ a, leo, linked, onCheck, onRemove }: { a: FollowedAccount; leo: boolean; linked: string | null; onCheck: () => void; onRemove: () => void }) {
+function AccountCard({ a, leo, linked, left, onCheck, onRemove }: { a: FollowedAccount; leo: boolean; linked: string | null; left: number | null; onCheck: () => void; onRemove: () => void }) {
   const s = followStats(a);
   const checking = isChecking(a);
+  // Leo only (left is null for everyone else): the check's price as the icon's title, and off at 0 (the header says why)
+  const price = leo ? chipText({ price: priceOf("track-accounts"), left, leo }).text : "";
   const failure = checkFailure(a);
   const fresh = a.posts.filter((p) => a.fresh.includes(p.id));
   const first = (fresh.length ? fresh : a.posts).slice(0, 3);
@@ -162,7 +164,7 @@ function AccountCard({ a, leo, linked, onCheck, onRemove }: { a: FollowedAccount
             @{a.handle} on {a.platform === "instagram" ? "Instagram" : "TikTok"}{a.checkedAt ? `, checked ${ago(a.checkedAt)}` : ""}
           </span>
         </div>
-        <Button size="icon" variant="ghost" className="h-10 w-10" aria-label={`Check @${a.handle} now`} onClick={onCheck} disabled={checking}>
+        <Button size="icon" variant="ghost" className="h-10 w-10" aria-label={`Check @${a.handle} now`} title={price || undefined} onClick={onCheck} disabled={checking || (leo && left === 0)}>
           {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         </Button>
         <Button size="icon" variant="ghost" className="h-10 w-10 text-muted-foreground hover:text-destructive" aria-label={`Stop following @${a.handle}`} onClick={onRemove}>
