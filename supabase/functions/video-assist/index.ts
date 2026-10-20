@@ -34,8 +34,9 @@
 //        the video is not in English (broll.ts, "broll-picks" cap).
 //   POST {mode:"montage", theme, seconds?} -> {beats:[{say,search,fallback,text,seconds}], grade}: 6-10 beats for a
 //        montage from a theme (LLM) and the one colour grade over all of them (Jev) (montage.ts, "montage-beats" cap).
-//   POST {mode:"montage-pick", theme, beats:[{say, candidates:[{desc}]}]} -> {picks:[index | -1 | null]}: the stock
-//        clip Jev says shows each beat, -1 when none does, null with no answer ("montage-pick" cap).
+//   POST {mode:"montage-pick", theme, beats:[{say, candidates:[{desc}]}], noun?: "photo"} -> {picks:[index | -1 | null]}:
+//        the stock clip (or, with noun "photo", the slideshow's stock photo) Jev says shows each beat, -1 when none
+//        does, null with no answer ("montage-pick" cap).
 //   POST {mode:"hooks", sentences:[{s,e,text}] on the edited timeline, duration, formulas:[{id,name,template,example,trap}] x2-3}
 //        -> {hooks:[{formula,text}], pick: index | null}: hook card lines the LLM writes, one per formula, and the
 //        one Jev would start with (Write's hook question; null on no answer, a tie or a video not in English)
@@ -399,7 +400,7 @@ Deno.serve(async (req) => {
         return json(r.body, r.status);
       }
       // Jev picks the clip for each beat, or says none fits; null per beat when it has no answer (the editor takes the first)
-      const q = pickQuestions(p.beats);
+      const q = pickQuestions(p.beats, p.noun);
       const answers = Object.keys(q).length && mostlyEnglish(p.beats.map((b) => b.say).join(" ")) ? await askJev({ theme: p.theme }, q, { who: "video-assist montage pick", timeoutMs: 10_000 }) : null;
       return json({ picks: readPicks(answers, p.beats) });
     }

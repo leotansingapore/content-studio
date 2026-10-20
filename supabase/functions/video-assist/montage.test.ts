@@ -83,4 +83,19 @@ describe("which clip fits a beat", () => {
     expect(parsePickRequest({ beats: [] }).ok).toBe(false);
     expect(parsePickRequest({ beats: [{ say: "x", candidates: [{ desc: "a" }] }] }).ok).toBe(true);
   });
+  it("asks about a stock photo only when the slideshow says photo; the montage's question is unchanged", () => {
+    const question = (q: ReturnType<typeof pickQuestions>) => (q.pick_0 as { instructions: { question: string } }).instructions.question;
+    expect(question(pickQuestions(asks))).toBe("Which stock clip, described by its page name, best shows `beat`?");
+    expect(question(pickQuestions(asks, "clip"))).toBe("Which stock clip, described by its page name, best shows `beat`?");
+    expect(question(pickQuestions(asks, "photo"))).toContain("stock photo");
+    // the montage sends no noun and anything else reads as a clip, so today's callers ask exactly what they asked before
+    const say = { beats: [{ say: "x", candidates: [{ desc: "" }] }] };
+    expect(parsePickRequest(say)).toMatchObject({ ok: true, noun: "clip" });
+    expect(parsePickRequest({ ...say, noun: "sticker" })).toMatchObject({ ok: true, noun: "clip" });
+    expect(parsePickRequest({ ...say, noun: "photo" })).toMatchObject({ ok: true, noun: "photo" });
+    const p = parsePickRequest({ ...say, noun: "photo" });
+    if (!p.ok) throw new Error("refused");
+    expect((pickQuestions(p.beats, p.noun).pick_0 as { criteria: Record<string, string> }).criteria.c0).toBe("an unlabelled photo");
+    expect((pickQuestions(p.beats).pick_0 as { criteria: Record<string, string> }).criteria.c0).toBe("an unlabelled clip");
+  });
 });

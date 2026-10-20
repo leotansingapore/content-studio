@@ -3,6 +3,7 @@
 //     seconds), and Jev picks the one colour grade over all of them (a decision, so not the LLM).
 //   montage-pick: for each beat the editor found stock candidates for, Jev picks the one that fits it,
 //     or says none does (the editor then tries the broader search, and tells the adviser what it used).
+//     A slideshow (/make/slideshow) sends noun "photo": its beats are slides and its candidates stock photos.
 // Pure, so vitest covers it (montage.test.ts). Candidates are described by their Pexels page name
 // (a slug like "woman-walking-on-street"), the only words a stock video carries; Jev reads text only.
 
@@ -123,7 +124,10 @@ export interface PickAsk {
   candidates: { desc: string }[];
 }
 
-export function parsePickRequest(body: unknown): { ok: true; theme: string; beats: PickAsk[] } | { ok: false; error: string } {
+/** What the candidates are: the montage's stock clips (the default) or a slideshow's stock photos. */
+export type PickNoun = "clip" | "photo";
+
+export function parsePickRequest(body: unknown): { ok: true; theme: string; beats: PickAsk[]; noun: PickNoun } | { ok: false; error: string } {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const list = Array.isArray(b.beats) ? b.beats.slice(0, MAX_BEATS) : [];
   const beats = list.map((x): PickAsk => {
@@ -132,17 +136,22 @@ export function parsePickRequest(body: unknown): { ok: true; theme: string; beat
     return { say: clean(o.say, 90), candidates: cands };
   });
   if (!beats.length || beats.some((x) => !x.say)) return { ok: false, error: "Nothing to pick from." };
-  return { ok: true, theme: clean(b.theme, MAX_THEME), beats };
+  return { ok: true, theme: clean(b.theme, MAX_THEME), beats, noun: b.noun === "photo" ? "photo" : "clip" };
 }
 
-/** One Choice per beat that has candidates: which one shows it, or none. */
-export function pickQuestions(beats: PickAsk[]): Record<string, JevQuestion> {
+const PICK_QUESTION: Record<PickNoun, string> = {
+  clip: "Which stock clip, described by its page name, best shows `beat`?",
+  photo: "Which stock photo, described in words, best shows `beat`?",
+};
+
+/** One Choice per beat that has candidates: which one shows it, or none. A photo (a slideshow's) is asked about as a photo. */
+export function pickQuestions(beats: PickAsk[], noun: PickNoun = "clip"): Record<string, JevQuestion> {
   return Object.fromEntries(beats.flatMap((b, i): [string, JevQuestion][] => b.candidates.length ? [[
     `pick_${i}`,
     {
       type: "choice",
-      instructions: { beat: b.say, question: "Which stock clip, described by its page name, best shows `beat`?" },
-      criteria: { ...Object.fromEntries(b.candidates.map((c, j) => [`c${j}`, c.desc || "an unlabelled clip"])), none: "None of these shows the beat; they are about something else." },
+      instructions: { beat: b.say, question: PICK_QUESTION[noun] },
+      criteria: { ...Object.fromEntries(b.candidates.map((c, j) => [`c${j}`, c.desc || `an unlabelled ${noun}`])), none: "None of these shows the beat; they are about something else." },
     },
   ]] : []));
 }
