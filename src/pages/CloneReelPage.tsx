@@ -285,16 +285,24 @@ const ERROR_TITLES: Partial<Record<ReelCloneErrorCode, string>> = {
 function ErrorCard({
   code,
   message,
+  url,
+  left,
   onRetry,
   onReset,
 }: {
   code: ReelCloneErrorCode;
   message: string;
+  url: string;
+  /** reel-clone uses left today. */
+  left: number | null;
   onRetry: () => void;
   onReset: () => void;
 }) {
   const canRetry = !["not_found", "daily_limit", "unauthorized", "bad_url", "not_configured"].includes(code);
   const soft = code === "timeout" || code === "daily_limit";
+  const leo = useLeoOnly();
+  const why = reasonText({ left, leo });
+  const parsed = parseReelUrl(url);
   return (
     <Card
       role="alert"
@@ -320,9 +328,15 @@ function ErrorCard({
           </div>
           <div className="flex flex-wrap gap-2">
             {canRetry && (
-              <Button size="sm" onClick={onRetry} className="gap-1.5">
+              <Button size="sm" onClick={onRetry} disabled={Boolean(why)} className="gap-1.5">
                 <RotateCcw className="h-3.5 w-3.5" /> Try again
               </Button>
+            )}
+            {canRetry && leo && (
+              <span className="self-center">
+                {/* an Instagram clone also reads its frames (reel-visuals), as on Clone it instead */}
+                <PriceChip price={sumPrices(priceOf("reel-clone"), parsed.ok && parsed.platform === "instagram" ? priceOf("reel-visuals") : null)} left={left} />
+              </span>
             )}
             {code === "unauthorized" ? (
               <Button asChild size="sm">
@@ -333,6 +347,7 @@ function ErrorCard({
                 Try another link
               </Button>
             )}
+            {canRetry && why && <p className="basis-full text-xs text-destructive">{why}</p>}
           </div>
         </div>
       </CardContent>
@@ -523,6 +538,10 @@ function VisualsCard({ clone, job, onRetry }: { clone: SavedClone; job: VisualsJ
   const mine = job?.cloneId === clone.id ? job : null;
   const running = mine && mine.phase !== "done" && mine.phase !== "error" ? mine : null;
   const failed = !v && mine?.phase === "error" ? mine : null;
+  // Leo's price chip on Try again: only his sessions read today's uses, read again when a frames read ends
+  const leo = useLeoOnly();
+  const left = useUsesLeft(Boolean(running) || !leo)("reel-visuals");
+  const why = reasonText({ left, leo });
   if (!v && !running && !failed) return null;
   const current = running ? VISUAL_STEPS.findIndex((st) => st.phase === running.phase) : -1;
 
@@ -571,9 +590,13 @@ function VisualsCard({ clone, job, onRetry }: { clone: SavedClone; job: VisualsJ
           >
             <p className="min-w-0 text-foreground/85">{failed.error}</p>
             {canReadVideo(clone) && (
-              <Button size="sm" variant="outline" onClick={onRetry} className="shrink-0 gap-1.5">
-                <RotateCcw className="h-3.5 w-3.5" /> Try again
-              </Button>
+              <div className="flex shrink-0 flex-col gap-1 sm:items-end">
+                <Button size="sm" variant="outline" onClick={onRetry} disabled={Boolean(why)} className="shrink-0 gap-1.5">
+                  <RotateCcw className="h-3.5 w-3.5" /> Try again
+                </Button>
+                <PriceChip feature="reel-visuals" left={left} />
+                {why && <p className="text-xs text-destructive">{why}</p>}
+              </div>
             )}
           </div>
         )}
@@ -1636,7 +1659,7 @@ export default function CloneReelPage() {
       {view.kind === "loading" && <LoadingSteps startedAt={view.startedAt} onCancel={cancel} />}
 
       {view.kind === "error" && (
-        <ErrorCard code={view.code} message={view.message} onRetry={() => void run(view.url)} onReset={reset} />
+        <ErrorCard code={view.code} message={view.message} url={view.url} left={clonesLeft} onRetry={() => void run(view.url)} onReset={reset} />
       )}
 
       {view.kind === "result" && (
