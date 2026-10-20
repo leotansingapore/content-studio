@@ -4,6 +4,10 @@
 // Leo only while MARKET_USERS lists him. Rules in logic.ts (tested); design in
 // docs/superpowers/specs/2026-10-15-market-watch-design.md.
 //
+// action "searches" (Searches on Trends, docs/north-star/items/find-search-topics.md) is gated by NORTH_STAR_USERS
+// alone, before MARKET_USERS (decision 11 of the phase-2 brief). One a week per brand ("search-topics:<profile>" row),
+// caps search-topics and search-topics-global; all three come back only when DataForSEO answered no seed at all.
+//
 // Secrets: MARKET_USERS (user ids separated by commas, or *), DATAFORSEO_LOGIN, DATAFORSEO_PASSWORD,
 // OPENAI_API_KEY, TYPESAFE_API_KEY. Deploy WITH JWT verification:
 //   supabase functions deploy market --project-ref hgdbflprrficdoyxmdxe --use-api
@@ -18,6 +22,8 @@ import { parseNews } from "../mentions/logic.ts";
 import {
   type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, accountGate, accountRefusal, answerGist, checkProblem, cleanInput,
   earlierWeekDays, overAccountWeek, profileFeature,
+  candidates, cleanSearches, keptByJev, MAX_TOPICS, recentVideos, relatedKeywords, relatedTask, searchAsk, searchesProblem, searchFeature, searchWeekRefusal,
+  toTopic, VIDEO_CHECKS, videosTask,
   foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsFailed, newsItems, newsTask, paidPartsFailed,
   parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, shortlistAct, shownNews, SUGGEST_FORMAT, suggestMessages, takeSlots,
   utcDay,
@@ -145,6 +151,91 @@ async function check(admin: Admin, uid: string, body: unknown): Promise<Response
   return json(digest);
 }
 
+const UNAVAILABLE = { code: "usage_unavailable", error: "This is unavailable for a moment. Try again shortly." };
+const SEARCHES_FAILED = "Couldn't read searches just now. Nothing was used up. Try again.";
+
+async function searches(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const input = cleanSearches(body);
+  const problem = searchesProblem(input);
+  if (problem) return json({ code: "bad_request", error: problem }, 400);
+  const auth = dfsAuth();
+  if (!auth) return json({ code: "not_configured", error: "Searches aren't switched on yet." }, 503);
+
+  const now = new Date();
+  const day = now.toISOString().slice(0, 10);
+  const feature = searchFeature(input.profile);
+  // the brand's week: a check on any of the 6 days before, then today's row taken atomically (one a day)
+  const week = await admin.from("cs_ai_usage").select("day,count").eq("user_id", uid).eq("feature", feature).in("day", earlierWeekDays(now));
+  if (week.error) return json(UNAVAILABLE, 503);
+  const gate = weekGate(week.data, now);
+  if (!gate.open) {
+    const r = searchWeekRefusal(gate.nextDay);
+    return json(r.body, r.status);
+  }
+  let slot: unknown;
+  try {
+    const { data, error } = await admin.rpc("cs_consume_ai_usage", { p_user: uid, p_feature: feature, p_limit: 1 });
+    if (error) return json(UNAVAILABLE, 503);
+    slot = data;
+  } catch {
+    return json(UNAVAILABLE, 503);
+  }
+  if (typeof slot !== "number") {
+    const r = searchWeekRefusal(utcDay(Date.parse(`${day}T00:00:00Z`) + 7 * 86_400_000));
+    return json(r.body, r.status);
+  }
+  // refundUsage only matches on the feature text, so the brand's free-text row is safe to pass through it
+  const giveBackBrand = () => refundUsage(admin, uid, feature as UsageFeature, day);
+  const mine = await consumeUsage(admin, uid, "search-topics");
+  if (!mine.allowed) {
+    await giveBackBrand();
+    const r = usageRefusal(mine);
+    return json(r.body, r.status);
+  }
+  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "search-topics-global");
+  if (!everyone.allowed) {
+    await giveBackBrand();
+    await refundUsage(admin, uid, "search-topics", day);
+    if (everyone.reason === "limit") return json({ code: "global_limit", error: "Search checks are paused for today. Try again after 8am Singapore time." }, 429);
+    const r = usageRefusal(everyone);
+    return json(r.body, r.status);
+  }
+
+  const reads = await Promise.all(input.seeds.map(async (seed) => {
+    try {
+      const res = await dfs("dataforseo_labs/google/related_keywords/live", relatedTask(seed), auth, 60_000);
+      if (newsFailed(res)) throw new Error(`labs task answered ${(res as { tasks?: { status_code?: number }[] })?.tasks?.[0]?.status_code}`);
+      return relatedKeywords(res, seed);
+    } catch (e) {
+      console.error("market searches: labs failed", msg(e));
+      return null;
+    }
+  }));
+  if (reads.every((r) => r === null)) {
+    await giveBackBrand();
+    await refundUsage(admin, uid, "search-topics", day);
+    await refundUsage(admin, GLOBAL_COUNTER_USER, "search-topics-global", day);
+    return json({ code: "failed", error: SEARCHES_FAILED }, 502);
+  }
+
+  const found = candidates(reads.map((r) => r ?? []));
+  const answers = await pool(found, 6, (k) => jev(searchAsk(input, k.keyword), "market searches"));
+  // the keep and safe lines are proposals: every keyword with its scores, for the integrator's read of the first checks
+  console.log("market searches: jev", JSON.stringify(found.map((k, n) => [k.keyword, k.volume, noulOf(answers[n], "keep"), noulOf(answers[n], "safe")])));
+  const kept = found.filter((_, n) => keptByJev(answers[n])).slice(0, MAX_TOPICS);
+  const supply = await pool(kept.slice(0, VIDEO_CHECKS), 5, async (k) => {
+    try {
+      const res = await dfs("serp/youtube/organic/live/advanced", videosTask(k.keyword), auth, 40_000);
+      if (newsFailed(res)) throw new Error(`youtube task answered ${(res as { tasks?: { status_code?: number }[] })?.tasks?.[0]?.status_code}`);
+      return recentVideos(res, now);
+    } catch (e) {
+      console.error("market searches: youtube failed", msg(e));
+      return null;
+    }
+  });
+  return json({ checkedAt: now.toISOString(), topics: kept.map((k, n) => toTopic(k, supply[n] ?? null)), filtered: answers.some((a) => a !== null) });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -155,6 +246,10 @@ Deno.serve(async (req) => {
     const { data: userData } = await admin.auth.getUser(jwt);
     const uid = userData?.user?.id;
     if (!uid) return json({ error: "Sign in to check your market." }, 401);
+    if (body?.action === "searches") {
+      if (!isAllowed(Deno.env.get("NORTH_STAR_USERS"), uid)) return json({ code: "not_enabled", error: "This isn't switched on for your account yet." }, 403);
+      return await searches(admin, uid, body);
+    }
     const enabled = isAllowed(Deno.env.get("MARKET_USERS"), uid);
     // off is a plain 200 for the status probe, so the browser logs no failed request
     if (body?.action === "status") return json({ enabled });
