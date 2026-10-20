@@ -22,7 +22,8 @@ export default function BreakdownRow(p: { userId: string; source: RemixSource; t
   const [phase, setPhase] = useState<"idle" | "loading" | "failed">("idle");
   const [error, setError] = useState<{ text: string; retry: boolean } | null>(null);
   const [slow, setSlow] = useState(false);
-  const left = useUsesLeft(phase === "loading");
+  // No usage read while a breakdown is shown: nothing can be spent, so one from a clone or the store makes no call.
+  const left = useUsesLeft(phase === "loading" || teardown !== null);
 
   // Another source (or brand) in the same sheet starts from what this device has for it, before it paints.
   const shownFor = `${scoped(userId)}|${source.key}`;
