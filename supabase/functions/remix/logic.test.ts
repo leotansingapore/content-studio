@@ -499,6 +499,11 @@ describe("the slideshow (formats-slideshow)", () => {
     expect(buildMakePrompt(make({ as: "slideshow", brand: { ...BIZ, mention: false } })).system).toContain("No brand slide: end on the reframe.");
   });
 
+  it("says how many numbered slides fit", () => {
+    expect(buildMakePrompt(make({ as: "slideshow" })).system).toContain("That number is at most 7 so every slide fits");
+    expect(buildMakePrompt(make({ as: "slideshow", brand: { ...BIZ, mention: false } })).system).toContain("That number is at most 8 so every slide fits");
+  });
+
   it("keeps 3 to 10 slides, cuts long titles and subs at a word, strips em dashes and cleans the search", () => {
     const r = result({ slides: [slide(`1. ${"word ".repeat(20)}`, "a ".repeat(40), "Coffee, LAPTOP & desk at dawn!"), slide("Two \u2014 dashes"), slide("Three")] });
     expect(r.as).toBe("slideshow");
@@ -536,6 +541,10 @@ describe("the slideshow (formats-slideshow)", () => {
     expect(result({ caption: "You might not see it yet." })).toBeNull();
     // a closing quote or bracket after the stop still ends a sentence
     expect(result({ caption: 'Track the work, not just "the wins."' })).not.toBeNull();
+    // so does an emoji, after a stop or in place of one, as IG captions end
+    expect(result({ caption: "Small habits add up. Your future self will thank you. \u{1F4AA}" })).not.toBeNull();
+    expect(result({ caption: "Small habits add up \u{1F4AA}\u{1F3FD}" })).not.toBeNull();
+    expect(result({ cta: "Follow for more tips \u2B07\uFE0F" })).not.toBeNull();
   });
 
   // dogfood bar (3): Fastlane's post 13 promised 3 daily activities and listed 4
@@ -544,7 +553,10 @@ describe("the slideshow (formats-slideshow)", () => {
     expect(hookCount("Five ways to stay consistent")).toBe(5);
     expect(hookCount("prospecting, follow-ups, outreach: 3 daily activities that are easier to improve")).toBe(3);
     expect(hookCount("You open your laptop at 9... and suddenly it's 4 things independent sales pros should track")).toBe(4);
-    for (const none of ["Save $12,000 by starting early", "Why 3 in 4 Singaporeans skip this", "The 5 am habit", "In 2024 I changed one thing", "Are you doing enough outreach?", "1 habit that changed my week"]) {
+    expect(hookCount("Top 10 SGX stocks")).toBe(10);
+    expect(hookCount("My top 5 picks this year")).toBe(5);
+    expect(hookCount("Turning 18 soon? 5 things to sort first")).toBe(5);
+    for (const none of ["Save $12,000 by starting early", "Why 3 in 4 Singaporeans skip this", "The 5 am habit", "In 2024 I changed one thing", "Are you doing enough outreach?", "1 habit that changed my week", "The 7 foot man", "My 2 cents", "I was 20 the first time", "Turning 18 soon?"]) {
       expect(hookCount(none), none).toBeNull();
     }
     expect(slideNumbers(SLIDES)).toEqual([1, 2, 3]);
@@ -564,6 +576,17 @@ describe("the slideshow (formats-slideshow)", () => {
     // a hook with no number asks nothing of the slides
     const question = result({ slides: [slide("Are you busy or building?"), ...SLIDES.slice(1)] });
     expect(slideshowProblem(question, make({ as: "slideshow", brand: BIZ }))).toBeNull();
+  });
+
+  it("asks for a smaller number when the hook's list can't fit in 10 slides", () => {
+    const numbered = (n: number) => Array.from({ length: n }, (_, i) => slide(`${i + 1}. Stock number ${i + 1}`));
+    const top = (n: number, k: number) => result({ slides: [slide(`Top ${n} SGX stocks`), ...numbered(k), slide("What it means for you")] });
+    const p = slideshowProblem(top(10, 8), make({ as: "slideshow", brand: { ...BIZ, mention: false } }));
+    expect(p?.kind).toBe("count");
+    expect(p?.fix).toContain("at most 8");
+    // 8 fit with mention off, 7 with it on
+    expect(slideshowProblem(top(8, 8), make({ as: "slideshow", brand: { ...BIZ, mention: false } }))).toBeNull();
+    expect(slideshowProblem(top(8, 7), make({ as: "slideshow", brand: BIZ }))?.fix).toContain("at most 7");
   });
 
   // dogfood bar (4): none of Fastlane's 28 posts showed the app or said what it does
@@ -589,6 +612,16 @@ describe("the slideshow (formats-slideshow)", () => {
     const tagged = result({ slides: SLIDES.slice(0, 5), hashtags: ["ActivityTracker"] });
     expect(slideshowProblem(tagged, off)?.kind).toBe("mention");
     expect(slideshowProblem(result({ slides: SLIDES.slice(0, 5) }), off)).toBeNull();
+  });
+
+  it("never reads 'the business' as a brand with no name, or a short name inside other words", () => {
+    const plain = [SLIDES[0], slide("Why running the business alone burns you out"), ...SLIDES.slice(1, 5)];
+    const nameless = make({ as: "slideshow", brand: { ...BIZ, name: "", mention: false } });
+    expect(nameless.brand.name).toBe("the business");
+    expect(slideshowProblem(result({ slides: plain }), nameless)).toBeNull();
+    const kai = make({ as: "slideshow", brand: { ...BIZ, name: "Kai", mention: false } });
+    expect(slideshowProblem(result({ slides: [...SLIDES.slice(0, 4), slide("Just ask AI to plan your week")] }), kai)).toBeNull();
+    expect(slideshowProblem(result({ slides: [...SLIDES.slice(0, 4), slide("Kai plans your week")] }), kai)?.kind).toBe("mention");
   });
 
   it("counts the slide words and caption as what a reader sees, never the searches", () => {

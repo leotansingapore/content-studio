@@ -27,6 +27,8 @@ export type RemixAs = "post" | "carousel" | "script" | "speaking" | "explainer" 
 export type FitReason = "serves" | "retell" | "masSafe" | "textHeavy";
 /** Who the post speaks as: the adviser in the first person, or a business that never claims a personal story. */
 export type Speaker = "person" | "business";
+/** What the prompt calls a brand with no name; never matched as a brand name in the slideshow's checks. */
+const NO_NAME: Record<Speaker, string> = { business: "the business", person: "the adviser" };
 
 export const KEEPS: readonly Keep[] = ["structure", "hook", "energy", "topic", "part2", "react"];
 export const CLOSES: readonly Close[] = ["loose", "balanced", "close"];
@@ -209,7 +211,7 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
       note: blockText(r.note, 300) || undefined,
       voice: sanitizeVoice(r.voice),
       brand: {
-        name: line(b.name, 80) || (speaker === "business" ? "the business" : "the adviser"),
+        name: line(b.name, 80) || NO_NAME[speaker],
         oneLiner: line(b.oneLiner, 300),
         audience: line(b.audience, 300),
         topics: list(b.topics, 12, 60),
@@ -320,7 +322,7 @@ function slideshowRules(req: MakeRequest): string[] {
     req.source
       ? "- Slide 1 is the hook slide, in the same hook formula as the original's first line: a number of signs, ways or mistakes stays a number, a question stays a question."
       : "- Slide 1 is the hook slide, in a proven shape: a number of signs, ways or mistakes, a question, POV, the mistake, or a quoted objection.",
-    "- Then the numbered slides, one idea each. Start each numbered title with its number and a full stop, like '1. You only reach out when it's quiet'. When the hook names a number, write exactly that many numbered slides, numbered from 1.",
+    `- Then the numbered slides, one idea each. Start each numbered title with its number and a full stop, like '1. You only reach out when it's quiet'. When the hook names a number, write exactly that many numbered slides, numbered from 1. That number is at most ${maxNumbered(b.mention)} so every slide fits; when the original's number is bigger, use a smaller one.`,
     "- Then one reframe slide: what it all means for the reader.",
     brandSlide,
     "- caption: 2 to 4 complete sentences for the post caption that add to the slides, never the slides' own words cut short. No hashtags.",
@@ -525,8 +527,8 @@ const STAGE_DIRECTION = /[[\]()*]/;
 /** At most n words, cut at a word with no trailing comma or colon. */
 const words = (t: string, n: number) =>
   t.split(/\s+/).filter(Boolean).slice(0, n).join(" ").replace(/[,;:]+$/, "");
-/** Ends a sentence, allowing a closing quote or bracket after the stop. */
-const ENDS_SENTENCE = /[.!?]["')\]]?$/;
+/** Ends a sentence, allowing a closing quote or bracket after the stop; an emoji ends one too, as IG captions do. */
+const ENDS_SENTENCE = /(?:[.!?]["')\]]?|\p{Extended_Pictographic})[\p{Emoji_Modifier}️‍\s]*$/u;
 const squash = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 /** The model's own refusal of a slideshow: its reason, or null when it wrote one. */
@@ -603,16 +605,34 @@ export function validateMake(as: RemixAs, raw: unknown): MakeResult | null {
 // ---- The slideshow's own checks (the dogfood bar, docs/north-star/dogfood-activity-tracker.md) -------------
 
 const NUMBER_WORDS: Record<string, number> = { two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
-// "6 ways", "five signs": a count followed by a word. Not "$12", "at 9...", "3 in 4", "5 am", "30 days" or "2024".
-const COUNT =
-  /(?<![$\d.,])(?<!\b(?:in|of|to|or)\s+)\b(\d{1,2}|two|three|four|five|six|seven|eight|nine|ten)\b(?!\s+(?:in|of|out|to|or|am|pm|a\.m|p\.m|percent|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?|seconds?|secs?)\b)(?=\s+[a-z])/i;
+const NUM = String.raw`(\d{1,2}|two|three|four|five|six|seven|eight|nine|ten)`;
+// the nouns a list counts; an age ("turning 18"), a height ("7 foot") or "my 2 cents" is not a list
+const LIST_NOUNS =
+  "signs|ways|mistakes|things|tips|habits|steps|reasons|rules|stocks|shares|funds|lessons|questions|myths|truths|lies|ideas|secrets|hacks|facts|flags|traps|tools|apps|books|activities|moves|types|kinds|places|plans|benefits|goals|words|phrases|skills|strategies|principles|examples|options|products|cards|costs|fees|investments|accounts|regrets|items|points|quotes|metrics|numbers";
+// "6 signs", "five ways", "3 daily activities": a count, up to two words, then a list noun. Not "$12", "at 9...",
+// "3 in 4", "5 am", "30 days" or "2024".
+const COUNT = new RegExp(
+  String.raw`(?<![$\d.,])(?<!\b(?:in|of|to|or)\s+)\b${NUM}\b(?!\s+(?:in|of|out|to|or|am|pm|a\.m|p\.m|percent|minutes?|mins?|hours?|hrs?|days?|weeks?|months?|years?|seconds?|secs?)\b)(?:\s+[a-z'-]+){0,2}?\s+(?:${LIST_NOUNS})\b`,
+  "i",
+);
+// "Top 10 SGX stocks", "my top 5 picks": a top list counts whatever follows
+const TOP = new RegExp(String.raw`\btop\s+${NUM}\b`, "i");
 
-/** The number of points a hook promises ("6 signs", "Five ways"), 2 to 20, or null when it names none. */
+/** The number of points a hook promises ("6 signs", "Five ways", "Top 10"), 2 to 20, or null when it names none. */
 export function hookCount(hook: string): number | null {
-  const m = COUNT.exec(hook);
+  const m = TOP.exec(hook) ?? COUNT.exec(hook);
   if (!m) return null;
   const n = NUMBER_WORDS[m[1].toLowerCase()] ?? Number(m[1]);
   return n >= 2 && n <= 20 ? n : null;
+}
+
+/** Numbered slides that fit in 10 beside the hook slide, the reframe and, with mention on, the brand slide. */
+export const maxNumbered = (mention: boolean) => 10 - 2 - (mention ? 1 : 0);
+
+/** The brand name in a text, spaces and punctuation inside it optional, never inside another word ("Kai" in "ask AI"). */
+function nameMatcher(name: string): RegExp | null {
+  const chars = squash(name);
+  return chars.length >= 3 ? new RegExp(String.raw`\b${chars.split("").join("[^a-z0-9]*")}\b`) : null;
 }
 
 /** The numbers the numbered slides open with ("1. ...", "2) ..."), in order, after the hook slide. */
@@ -639,6 +659,14 @@ export function slideshowProblem(r: MakeResult, req: Pick<MakeRequest, "brand">)
   if (r.as !== "slideshow") return null;
   const n = hookCount(r.slides[0]?.title ?? "");
   const nums = slideNumbers(r.slides);
+  const max = maxNumbered(req.brand.mention);
+  if (n !== null && n > max) {
+    return {
+      kind: "count",
+      fix: `The hook promises ${n}, but only ${max} numbered slides fit. Return the whole JSON object again with a smaller number in the hook, at most ${max}, and exactly that many numbered slides, numbered from 1.`,
+      error: "The slides didn't match the number in the hook. Nothing was used. Try again.",
+    };
+  }
   if (n !== null && (nums.length !== n || nums.some((x, i) => x !== i + 1))) {
     return {
       kind: "count",
@@ -647,10 +675,11 @@ export function slideshowProblem(r: MakeResult, req: Pick<MakeRequest, "brand">)
     };
   }
   const b = req.brand;
-  const names = [b.name, b.offer?.name ?? ""].map(squash).filter((x) => x.length >= 3);
+  // a brand with no name is sent as "the business" or "the adviser": nothing to keep off the slides
+  const names = [b.name === NO_NAME[b.speaker] ? "" : b.name, b.offer?.name ?? ""].map(nameMatcher).filter((x): x is RegExp => !!x);
   if (!names.length) return null;
   const slideText = (s: { title: string; sub: string }) => `${s.title} ${s.sub}`;
-  const named = (t: string) => names.some((x) => squash(t).includes(x));
+  const named = (t: string) => names.some((x) => x.test(t.toLowerCase()));
   if (!b.mention && (r.slides.some((s) => named(slideText(s))) || named(r.caption))) {
     return {
       kind: "mention",
