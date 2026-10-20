@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarClock, ChevronLeft, ChevronRight, Copy, Download, Loader2, Pencil, Save } from "lucide-react";
 import FormatShell from "@/components/make/FormatShell";
+import PickList, { metaOf } from "@/components/make/PickList";
 import FlagChips from "@/components/remix/FlagChips";
 import { OriginalPane } from "@/components/OriginalPane";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,7 @@ import {
   type SlideshowJob,
 } from "@/lib/slideshowJob";
 import { socialConnectShown } from "@/lib/socialConnect";
-import { compactNum, getAllTopPosts } from "@/lib/topPosts";
+import { getAllTopPosts } from "@/lib/topPosts";
 import { useUrlFlag, useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { cn } from "@/lib/utils";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
@@ -99,9 +100,6 @@ function useShow(userId: string, id: string | null | undefined): Show | null {
   useEffect(() => onSlideshowsChanged(() => setShows(loadSlideshows(userId))), [userId]);
   return (id && shows.find((s) => s.id === id)) || null;
 }
-
-/** "@handle | 1.2K likes" */
-const metaOf = (s: RemixSource) => [s.author, s.numbers?.likes ? `${compactNum(s.numbers.likes)} likes` : ""].filter(Boolean).join(" | ");
 
 /** The swipe file's carousels and any a followed account posted, most engaging first (engagementScore). */
 function trendingSlideshows(userId: string): RemixSource[] {
@@ -242,6 +240,9 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
               {picking && (
                 <PickList
                   userId={userId}
+                  load={trendingSlideshows}
+                  label="Slideshows that did well"
+                  fallback="A carousel"
                   current={source?.key}
                   onPick={(s) => {
                     rememberSource(s, userId);
@@ -360,30 +361,6 @@ function Placeholder({ size, children }: { size: Size; children: ReactNode }) {
     >
       {children}
     </div>
-  );
-}
-
-function PickList({ userId, current, onPick }: { userId: string; current?: string; onPick: (s: RemixSource) => void }) {
-  const list = useMemo(() => trendingSlideshows(userId), [userId]);
-  return (
-    <ul aria-label="Slideshows that did well" className="max-h-80 divide-y divide-border/60 overflow-y-auto rounded-lg border border-border/60">
-      {list.map((s) => (
-        <li key={s.key}>
-          <button
-            type="button"
-            onClick={() => onPick(s)}
-            aria-current={s.key === current}
-            className={cn("flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left hover:bg-muted/60", s.key === current && "bg-primary/5")}
-          >
-            {s.cover ? <img src={s.cover} alt="" loading="lazy" className="h-12 w-10 shrink-0 rounded object-cover" /> : <span className="h-12 w-10 shrink-0 rounded bg-muted" />}
-            <span className="min-w-0">
-              <span className="block truncate text-sm">{s.title || s.caption || "A carousel"}</span>
-              <span className="block truncate text-xs text-muted-foreground">{metaOf(s)}</span>
-            </span>
-          </button>
-        </li>
-      ))}
-    </ul>
   );
 }
 
