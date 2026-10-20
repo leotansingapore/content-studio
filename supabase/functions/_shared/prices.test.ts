@@ -21,6 +21,23 @@ describe("the price table", () => {
     expect(priceOf("remix-fit")).toBeNull();
   });
 
+  it("prices the phase-2 caps up front, with the chips the brief names", () => {
+    const chip = (f: UsageFeature) => priceText(priceOf(f) as { usd: number; kind: "about" });
+    expect(chip("competitor-read")).toBe("Under US$0.01");
+    expect(chip("competitor-suggest")).toBe("Up to US$0.02");
+    expect(chip("competitor-ads")).toBe("Up to US$0.17");
+    expect(chip("competitor-posts")).toBe("Up to US$0.12");
+    expect(chip("space-ads")).toBe("Up to US$0.52");
+    expect(chip("viral-search")).toBe("About US$0.08");
+    expect(chip("post-tags")).toBe("About US$0.01");
+    expect(chip("search-topics")).toBe("Up to US$0.10");
+    expect(chip("remix-patterns")).toBe("About US$0.01");
+    for (const f of ["competitor-ads-global", "competitor-posts-global", "space-ads-global", "ad-labels", "niche-match",
+      "viral-search-global", "brief-pick", "creator-fit", "search-topics-global"] as UsageFeature[]) {
+      expect(priceOf(f), f).toBeNull();
+    }
+  });
+
   it("prices AI video from the Higgsfield credits", () => {
     expect(priceOf("ai-video", { slices: [7.5, 7.5] })).toEqual({ usd: avatarCredits([7.5, 7.5]) * CREDIT_USD, kind: "about" });
     expect((priceOf("ai-video", { slices: [7.5, 7.5] }) as { usd: number }).usd).toBe(2.75);

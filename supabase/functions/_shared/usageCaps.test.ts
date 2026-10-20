@@ -87,6 +87,34 @@ describe("the north-star phase-1 caps", () => {
   });
 });
 
+describe("the north-star phase-2 caps", () => {
+  // Declared up front so no later phase-2 task edits this file (phase2-build-brief.md, usage caps and prices).
+  it("holds the 18 limits the build brief set", () => {
+    const phase2 = {
+      "competitor-read": 20,
+      "competitor-suggest": 5,
+      "competitor-ads": 15,
+      "competitor-ads-global": 60,
+      "competitor-posts": 30,
+      "competitor-posts-global": 60,
+      "space-ads": 2,
+      "space-ads-global": 10,
+      "ad-labels": 10,
+      "niche-match": 5,
+      "viral-search": 10,
+      "viral-search-global": 40,
+      "post-tags": 60,
+      "brief-pick": 10,
+      "creator-fit": 5,
+      "search-topics": 2,
+      "search-topics-global": 10,
+      "remix-patterns": 10,
+    };
+    expect(Object.keys(phase2)).toHaveLength(18);
+    expect(DAILY_LIMITS).toMatchObject(phase2);
+  });
+});
+
 describe("the edge functions that spend", () => {
   // A name missing from DAILY_LIMITS reaches the database as p_limit null, which refuses
   // every call: the feature would say "You've used all undefined for today" from its first use.

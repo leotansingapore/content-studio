@@ -90,6 +90,16 @@ export const PRICES: Partial<Record<UsageFeature, Price | ((o: PriceOpts) => Pri
   "remix-teardown": about(0.01), // unverified
   "remix-link": about(0.01), // unverified
   "remix-image": about(0.02), // unverified
+  // North star phase 2. Apify at the Free-plan rate (the highest), read 2026-10-20 (phase2-build-brief.md, vendors).
+  "competitor-read": about(0.002), // a bare name is one DataForSEO Google page; a site read is free
+  "competitor-suggest": upTo(0.02), // two OpenAI calls plus up to 88 Jev questions, unverified
+  "competitor-ads": upTo(0.174), // 30 ads x US$5.80 per 1,000
+  "competitor-posts": upTo(0.123), // TikTok 33 x US$3.70 per 1,000 + US$0.001; Instagram US$0.092
+  "space-ads": upTo(0.522), // 90 ads x US$5.80 per 1,000
+  "viral-search": about(0.077), // 20 TikTok results + one YouTube block + Jev
+  "post-tags": about(0.01), // teardown OpenAI + Jev, unverified
+  "search-topics": upTo(0.098), // 5 Labs tasks + 30 items each + 10 YouTube pages
+  "remix-patterns": about(0.01), // Jev on 12 posts + one OpenAI call, unverified
 };
 
 /** The dearest avatar the server takes (MAX_SLICES full slices): "Up to US$5.50" before a script exists. */
@@ -99,11 +109,12 @@ export const AVATAR_MAX: Price = upTo(creditsUsd(avatarCredits(Array<number>(MAX
 export const NO_PRICE: UsageFeature[] = [
   // Jev only
   "post-score", "writing-judge", "fact-check", "cold-open", "motion-picks", "montage-pick", "music-mood", "week-pick",
-  "engage-picks", "assistant-act", "remix-fit",
+  "engage-picks", "assistant-act", "remix-fit", "ad-labels", "niche-match", "brief-pick", "creator-fit",
   // free or a relay
   "stock-search", "reel-video",
   // across everyone
   "market-check-global", "ai-image-fix-global", "ai-broll-global", "ai-music-global", "ai-video-global", "ai-clip-global",
+  "competitor-ads-global", "competitor-posts-global", "space-ads-global", "viral-search-global", "search-topics-global",
   // social reads and writes, team comments
   "social-connect", "social-read", "social-automation-write", "social-schedule", "social-presign", "team-comment",
 ];

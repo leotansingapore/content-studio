@@ -124,6 +124,42 @@ export const DAILY_LIMITS = {
   "remix-link": 20,
   // A pasted picture or a video's frames read for Remix (remix-link image and frames, OpenAI vision).
   "remix-image": 10,
+  // North star phase 2, declared up front (Leo only, NORTH_STAR_USERS). A competitor added by site or name (competitors read).
+  "competitor-read": 20,
+  // Competitors suggested for the brand (competitors suggest): two OpenAI calls plus up to 88 Jev questions.
+  "competitor-suggest": 5,
+  // One competitor's Meta ads (competitors ads, apify~facebook-ads-scraper): up to 30 ads at US$5.80 per 1,000.
+  "competitor-ads": 15,
+  // Those ad checks across everyone on GLOBAL_COUNTER_USER, so one account can't spend the Apify plan's monthly limit.
+  "competitor-ads-global": 60,
+  // One competitor's Instagram or TikTok posts (competitors posts, Apify): 30 posts a read.
+  "competitor-posts": 30,
+  // Those post reads across everyone on GLOBAL_COUNTER_USER.
+  "competitor-posts-global": 60,
+  // Ads in your space (competitors space): 3 Meta Ad Library searches of 30 ads each.
+  "space-ads": 2,
+  // Those space runs across everyone on GLOBAL_COUNTER_USER.
+  "space-ads-global": 10,
+  // Hook, feeling and audience labels on up to 60 ads (competitors label): Jev only.
+  "ad-labels": 10,
+  // How well up to 80 feed items match the brand (competitors match): Jev only.
+  "niche-match": 5,
+  // A viral search (viral-search): 20 TikTok results through Apify and one DataForSEO YouTube block, then Jev.
+  "viral-search": 10,
+  // Those searches across everyone on GLOBAL_COUNTER_USER.
+  "viral-search-global": 40,
+  // A saved post broken down with its tags (remix teardown with tags): OpenAI plus Jev, charged in place of remix-teardown.
+  "post-tags": 60,
+  // What moved, picked for Monday's email (week-pick brief): Jev only, counted like week-pick.
+  "brief-pick": 10,
+  // Which hand-picked creators fit the brand (remix creator-fit): Jev 6 creators at a time, 70 at most.
+  "creator-fit": 5,
+  // What people search for (market searches): 5 DataForSEO Labs tasks plus 10 YouTube pages, one a week per brand.
+  "search-topics": 2,
+  // Those search checks across everyone on GLOBAL_COUNTER_USER.
+  "search-topics-global": 10,
+  // What worked for a followed account (remix-patterns): Jev on 12 posts plus one OpenAI call for the ideas.
+  "remix-patterns": 10,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
