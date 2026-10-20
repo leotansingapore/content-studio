@@ -2620,7 +2620,14 @@ export default function GeneratePage() {
           {repeat && (
             <p className="flex flex-wrap items-center gap-x-3 text-muted-foreground">
               You remixed this on {dayMonth(repeat.at)}.
-              <Link to={links.generate({ draft: repeat.draftId })} className="inline-flex items-center py-1 font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+              {/* A new tab keeps this unsaved remix and what was typed into it. shortcut: the installed app stays
+                  in its window (on iPhone a new tab opens the signed-out browser), so there the old draft still
+                  replaces the brief; stash the brief under a second key if Leo remixes from the home screen. */}
+              <Link
+                to={links.generate({ draft: repeat.draftId })}
+                target={window.matchMedia?.("(display-mode: standalone)").matches ? undefined : "_blank"}
+                className="inline-flex items-center py-1 font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11"
+              >
                 Open that draft
               </Link>
               <button
