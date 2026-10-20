@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { getBreakdown, getInsights, labelForDimension } from "./analytics";
+import { getBreakdown, getDayOfWeekBreakdown, getInsights, getTrend, labelForDimension } from "./analytics";
 import { saveDrafts, type DraftEntry } from "./draftHistory";
 
 const UID = "0c3e5b8a-5f43-4a3e-9d55-6f0c2b1d7e21";
@@ -50,5 +50,31 @@ describe("engagement by hook formula", () => {
     const titles = getInsights(UID).map((i) => i.title);
     expect(titles).toContain("Double down: Mistake confession");
     expect(titles).toContain("Underperforming: The list");
+  });
+});
+
+describe("engagement by day and over time", () => {
+  // noon on a recent Monday (local time), and days around it
+  const monday = new Date();
+  monday.setHours(12, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) - 7);
+  const day = (offset: number) => new Date(monday.getTime() + offset * 86_400_000).toISOString();
+  const on = (offset: number, impressions: number, reactions: number): DraftEntry => ({ ...posted("list", impressions, reactions), postedAt: day(offset) });
+
+  it("groups posts by the day they went out, Monday first, pooling engagement over impressions, and leaves out empty days", () => {
+    saveDrafts(UID, [on(6, 500, 5), on(0, 1000, 100), on(0, 3000, 60)]);
+    // Monday: 160 engagements over 4,000 impressions is 4%, not the 6% an average of 10% and 2% would claim
+    expect(getDayOfWeekBreakdown(UID)).toEqual([
+      { day: "Mon", count: 2, avgEngagementRate: 4 },
+      { day: "Sun", count: 1, avgEngagementRate: 1 },
+    ]);
+  });
+
+  it("charts the newest posts with impressions in the order they went out", () => {
+    saveDrafts(UID, [on(2, 1000, 30), on(-3, 1000, 10), on(1, 0, 50), on(0, 1000, 20)]);
+    expect(getTrend(UID, 2).map((p) => [p.date, p.engagementRate])).toEqual([
+      [day(0), 2],
+      [day(2), 3],
+    ]);
   });
 });
