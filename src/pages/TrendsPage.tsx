@@ -16,6 +16,8 @@ import {
   type TrendPlatform,
 } from "@/lib/trends";
 import { cloneLinkFor } from "@/lib/reelClone";
+import RemixButton from "@/components/remix/RemixButton";
+import { fromTrend } from "@/lib/remixSource";
 import VideoEmbed from "@/components/VideoEmbed";
 import YouTubeTrends from "@/components/YouTubeTrends";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
@@ -305,15 +307,17 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
           <CopyLinkButton path={links.trends({ trend: trend.id })} label="Copy link to this trend" className="order-last ml-auto" />
-          <Button
-            asChild
-            size="sm"
-            className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:h-11"
-          >
-            <Link to={buildTrendRemixUrl(trend)}>
-              <Wand2 className="h-3.5 w-3.5" /> Write this
-            </Link>
-          </Button>
+          <RemixButton source={fromTrend(trend)}>
+            <Button
+              asChild
+              size="sm"
+              className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:h-11"
+            >
+              <Link to={buildTrendRemixUrl(trend)}>
+                <Wand2 className="h-3.5 w-3.5" /> Write this
+              </Link>
+            </Button>
+          </RemixButton>
           {cloneLinkFor(trend.source_url) && (
             <Button asChild variant="outline" size="sm" className="gap-1.5 [@media(pointer:coarse)]:h-11" title="Clone this video">
               <Link to={cloneLinkFor(trend.source_url)!}>

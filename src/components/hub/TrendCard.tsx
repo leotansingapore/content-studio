@@ -4,7 +4,9 @@ import { ChevronDown, Play, Sparkles, Wand2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Markdown from "@/components/hub/Markdown";
+import RemixButton from "@/components/remix/RemixButton";
 import type { HubTrend } from "@/lib/hub";
+import { fromHubTrend } from "@/lib/remixSource";
 
 // Deep-link into Write with the trend pre-loaded, mirroring the swipe file's
 // remix flow (GeneratePage consumes pillar/detail/ctx/format/platform).
@@ -80,12 +82,14 @@ export default function TrendCard({ trend }: { trend: HubTrend }) {
         {open && (
           <div className="space-y-3 rounded-md border border-border/60 p-3">
             <Markdown>{trend.angles_md}</Markdown>
-            <Link
-              to={buildTrendRemixUrl(trend)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
-            >
-              <Wand2 className="h-3.5 w-3.5" /> Remix in Write
-            </Link>
+            <RemixButton source={fromHubTrend(trend)}>
+              <Link
+                to={buildTrendRemixUrl(trend)}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+              >
+                <Wand2 className="h-3.5 w-3.5" /> Remix in Write
+              </Link>
+            </RemixButton>
           </div>
         )}
       </CardContent>
