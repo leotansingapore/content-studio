@@ -1,5 +1,12 @@
-import { describe, expect, it } from "vitest";
-import { applyCheck, followStats, remixUrl, type FollowedAccount, type TrackedPost } from "@/lib/following";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// a follow's first check never reaches the network: it stays running for the whole test
+vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn(() => new Promise(() => {})) }));
+
+import { callFn } from "@/lib/edgeFn";
+import {
+  MAX_FOLLOWED, applyCheck, followAccount, followStats, isChecking, loadFollowing, remixUrl, type FollowedAccount, type TrackedPost,
+} from "@/lib/following";
 
 const post = (id: string, day: number, extra: Partial<TrackedPost> = {}): TrackedPost => ({
   id, url: `https://www.instagram.com/p/${id}/`, format: "video", caption: "Most people buy insurance backwards. Here's why.",
@@ -51,5 +58,46 @@ describe("following", () => {
     expect(p.get("source")).toBe("follow:instagram:b");
     // a video goes to Clone a reel, whose draft gets a clone: key
     expect(remixUrl(base, post("a", 1))).not.toContain("source=");
+  });
+});
+
+describe("followAccount", () => {
+  const store = new Map<string, string>();
+  beforeEach(() => {
+    store.clear();
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v), removeItem: (k: string) => void store.delete(k) });
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.mocked(callFn).mockClear();
+  });
+
+  it("adds a normalised handle and starts its first check", () => {
+    expect(followAccount("u1", "instagram", "https://www.instagram.com/SeanTalksSG/")).toBe("added");
+    expect(loadFollowing("u1").map((a) => `${a.platform}:${a.handle}`)).toEqual(["instagram:seantalkssg"]);
+    expect(isChecking({ platform: "instagram", handle: "seantalkssg" })).toBe(true);
+    expect(callFn).toHaveBeenCalledWith("track-accounts", { platform: "instagram", handle: "seantalkssg" }, expect.any(String));
+  });
+
+  it("adds nothing for an account already followed, in any spelling", () => {
+    followAccount("u1", "tiktok", "@moneyfox");
+    expect(followAccount("u1", "tiktok", "https://www.tiktok.com/@MoneyFox")).toBe("already");
+    expect(loadFollowing("u1")).toHaveLength(1);
+    expect(callFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops at five accounts and stores nothing more", () => {
+    for (let i = 0; i < MAX_FOLLOWED; i++) expect(followAccount("u1", "instagram", `acct${i}`)).toBe("added");
+    const before = store.get("content-studio-following-u1");
+    expect(followAccount("u1", "instagram", "one_more")).toBe("full");
+    expect(store.get("content-studio-following-u1")).toBe(before);
+    expect(loadFollowing("u1")).toHaveLength(MAX_FOLLOWED);
+  });
+
+  it("stores nothing for a name that is not an account", () => {
+    expect(followAccount("u1", "instagram", "not a handle!")).toBe("invalid");
+    expect(followAccount("u1", "instagram", "https://www.instagram.com/explore/")).toBe("invalid");
+    expect(store.size).toBe(0);
+    expect(callFn).not.toHaveBeenCalled();
   });
 });

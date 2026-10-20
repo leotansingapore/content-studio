@@ -7,6 +7,7 @@
 import { callFn } from "@/lib/edgeFn";
 import { scoped } from "@/lib/profiles";
 import { sourceKey } from "@/lib/remixSource";
+import { normalizeHandle } from "../../supabase/functions/_shared/socialAudit.ts";
 import type { TrackedPost, TrackResult } from "../../supabase/functions/track-accounts/logic.ts";
 
 export type { TrackedPost };
@@ -120,13 +121,15 @@ export async function checkAccount(a: Pick<FollowedAccount, "platform" | "handle
 
 // Checks run outside React, so one keeps going while the adviser uses another page.
 const running = new Set<string>();
-const failures = new Map<string, string>();
+const failures = new Map<string, { message: string; code: string }>();
 const listeners = new Set<() => void>();
 const keyOf = (a: Pick<FollowedAccount, "platform" | "handle">) => `${a.platform}:${a.handle}`;
 const emit = () => listeners.forEach((l) => l());
 
 export const isChecking = (a: Pick<FollowedAccount, "platform" | "handle">) => running.has(keyOf(a));
-export const checkFailure = (a: Pick<FollowedAccount, "platform" | "handle">) => failures.get(keyOf(a));
+export const checkFailure = (a: Pick<FollowedAccount, "platform" | "handle">) => failures.get(keyOf(a))?.message;
+/** The last check was refused by today's track-accounts cap, so it can run again after 8am. */
+export const checkCapped = (a: Pick<FollowedAccount, "platform" | "handle">) => failures.get(keyOf(a))?.code === "daily_limit";
 export function onFollowing(fn: () => void): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);
@@ -143,9 +146,28 @@ export async function runCheck(userId: string, a: Pick<FollowedAccount, "platfor
     // Read the list again: it may have changed while the check ran.
     saveFollowing(userId, loadFollowing(userId).map((x) => (sameAccount(x, a) ? applyCheck(x, r) : x)));
   } catch (e) {
-    failures.set(k, (e as Error).message);
+    failures.set(k, { message: (e as Error).message, code: (e as { code?: string }).code ?? "" });
   } finally {
     running.delete(k);
     emit();
   }
+}
+
+export type FollowResult = "added" | "already" | "full" | "invalid";
+
+/**
+ * Follow an account from any page (Following's form, a creator's card or page): the handle is normalised, a
+ * duplicate or a sixth account adds nothing, and an added one starts its first check outside React. Each caller
+ * says what happened in its own words.
+ */
+export function followAccount(userId: string, platform: FollowPlatform, handle: string): FollowResult {
+  const h = normalizeHandle(platform, handle);
+  if (!h) return "invalid";
+  const current = loadFollowing(userId);
+  if (current.some((a) => sameAccount(a, { platform, handle: h }))) return "already";
+  if (current.length >= MAX_FOLLOWED) return "full";
+  const a: FollowedAccount = { platform, handle: h, addedAt: new Date().toISOString(), history: [], posts: [], seen: [], fresh: [] };
+  saveFollowing(userId, [...current, a]);
+  void runCheck(userId, a);
+  return "added";
 }
