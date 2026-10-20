@@ -214,7 +214,8 @@ export default function CarouselPage() {
     };
   }, []);
 
-  const build = (source: Source) => {
+  // fromLink: a ?compare= link keeps its tab; any other new source opens on the slides
+  const build = (source: Source, fromLink = false) => {
     let text = "";
     let hook = "";
     let base = "";
@@ -239,7 +240,7 @@ export default function CarouselPage() {
       base = pasteText.split("\n").find((l) => l.trim()) ?? "";
     }
     // the address names the post the slides come from (replace: the editor is the page, not a panel over it)
-    updateUrl({ draft: source.kind === "paste" ? null : source.id, carousel: null });
+    updateUrl({ draft: source.kind === "paste" ? null : source.id, carousel: null, ...(fromLink ? {} : { compare: null }) });
     setCarouselId(source.kind === "paste" ? `p:${Date.now().toString(36)}` : `d:${source.id}`);
     const { slides: made, ...info } = splitDraftIntoSlides(text, { hook });
     setSlides(made);
@@ -267,7 +268,7 @@ export default function CarouselPage() {
     const savedId = searchParams.get("carousel");
     const kept = savedId ? saved.find((c) => c.id === savedId) : null;
     if (kept) {
-      openSaved(kept);
+      openSaved(kept, true);
       return;
     }
     const id = searchParams.get("draft");
@@ -297,7 +298,7 @@ export default function CarouselPage() {
       return;
     }
     if (drafts.some((d) => d.id === id)) {
-      build({ kind: "draft", id });
+      build({ kind: "draft", id }, true);
       return;
     }
     const exists = loadDrafts(userId).some((d) => d.id === id);
@@ -471,7 +472,7 @@ export default function CarouselPage() {
     if (ready && tab === "saved" && saved.length === 0) setMode("drafts");
   }, [ready, tab, saved.length, setMode]);
 
-  const openSaved = (c: SavedCarousel) => {
+  const openSaved = (c: SavedCarousel, fromLink = false) => {
     setSlides(c.slides);
     setSplit(null);
     setByHand(true);
@@ -487,7 +488,7 @@ export default function CarouselPage() {
     setScale(c.scale ?? 1);
     setLook({ font: c.font ?? "classic", paper: c.paper ?? "light" });
     setNotice(null);
-    updateUrl({ carousel: c.id, draft: null });
+    updateUrl({ carousel: c.id, draft: null, ...(fromLink ? {} : { compare: null }) });
   };
   const deleteSaved = (c: SavedCarousel) => {
     if (!userId) return;

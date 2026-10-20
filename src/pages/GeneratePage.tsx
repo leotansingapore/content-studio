@@ -868,7 +868,7 @@ export default function GeneratePage() {
   // ?panel=shortcuts (the keyboard shortcuts dialog) or post (Post it for me); opening pushes, so Back closes it.
   const [panel, openPanel, closePanel] = useUrlItem("panel");
   // ?compare=original|more: a remixed post's compare tab on phones (RemixCompare reads the same param)
-  const [compareTab] = useUrlState("compare", "version", { allowed: COMPARE_TABS });
+  const [compareTab, setCompareTab] = useUrlState("compare", "version", { allowed: COMPARE_TABS });
   const showShortcuts = panel === "shortcuts";
 
   // Guided wizard: which of the 4 brief steps is open, and whether the brief
@@ -1930,6 +1930,8 @@ export default function GeneratePage() {
     setSelectedVariantIndex(idx);
     clearDraftExtras();
     setDraft(v.text);
+    // a phone left on the Original or More tab would hide the post just picked
+    if (compareTab !== "version") setCompareTab("version");
     setTimeout(
       () => draftCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
       50,
