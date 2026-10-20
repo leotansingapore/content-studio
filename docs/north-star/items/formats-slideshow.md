@@ -157,7 +157,7 @@ Not Leo: `NotFoundPage`.
 
 - `/make/slideshow?source=top:<advisorId>-<shortCode>` opens a remix with that source (any `RemixSource` key works). `from` defaults to remix when there is a source and to topic when there is not.
 - `?from=topic`, `?mention=no` (default yes), `?size=9x16` (default 4x5), `?pictures=mine` (default stock), `?tab=original` (default result). All replace history.
-- `?show=<saved carousel id>` reopens a made slideshow and pushes history. `?go=1` starts making on arrival and is removed once read; remix-any-format's "Slideshow" chip links here with `source` and `go=1`.
+- `?show=<saved carousel id>` reopens a made slideshow and pushes history. Making on arrival comes only from navigation state `{ go: true }`, which remix-any-format's "Slideshow" link sets alongside `source`; a `?go=1` in the address does nothing (security review, 20 Oct 2026), and the state is cleared once read so a reload never makes again.
 - Add `links.makeFormat(slug, params)` to `src/lib/links.ts`, and a "/make/slideshow" row to `docs/deep-links.md` under Create pages.
 - Entry points for Leo only: "Remix as a slideshow" in the swipe file's post drawer (`src/components/PostDetailDrawer.tsx`) on carousel posts, and a "Photo slideshow" button on `/carousel`'s start, while everyone else keeps today's buttons.
 

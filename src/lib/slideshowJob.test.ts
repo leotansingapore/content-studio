@@ -288,7 +288,7 @@ describe("the job", () => {
 describe("links and params", () => {
   it("builds /make/<slug> with the shared params, defaults left out", () => {
     expect(links.makeFormat("slideshow")).toBe("/make/slideshow");
-    expect(links.makeFormat("slideshow", { source: "top:a-b", go: 1, mention: undefined })).toBe("/make/slideshow?source=top%3Aa-b&go=1");
+    expect(links.makeFormat("slideshow", { source: "top:a-b", mention: undefined })).toBe("/make/slideshow?source=top%3Aa-b");
     expect(links.makeFormat("slideshow", askParams({ ...ASK, mention: false, size: "9x16", pictures: "mine" }))).toBe(`/make/slideshow?source=${encodeURIComponent(SOURCE.key)}&mention=no&size=9x16&pictures=mine`);
     expect(links.makeFormat("slideshow", askParams({ ...ASK, source: null }))).toBe("/make/slideshow?from=topic");
   });

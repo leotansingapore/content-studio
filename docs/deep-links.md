@@ -278,7 +278,6 @@ Pre-fills read once on arrival, then removed from the address (except day, time,
   clone uses one of the day's. On Leo's sign-ins it fills the Remix a post box, which takes any link
   parseRemixLink accepts (supabase/functions/remix-link/logic.ts); reading stays a tap, since it is paid.
 - /coach#idea-dump (the board's empty column) scrolls to the idea dump.
-- /make/slideshow?go=1 (with source=<key> and any of the params above): starts making on arrival, then go is
-  removed. The Remix sheet's "Also make: Slideshow" link sends it (links.makeFormat), adding mention=no when the
+- /make/slideshow: the Remix sheet's Also make link starts making on arrival through navigation state { go: true } (a ?go=1 in the address does nothing, so an outside link can never start a paid make); the state is cleared once read. The Remix sheet's "Also make: Slideshow" link sends it (links.makeFormat), adding mention=no when the
   sheet's Mention is off. Each arrival is one make, so it uses one of the day's remixes.
 <!-- ==== end Create pages ==== -->

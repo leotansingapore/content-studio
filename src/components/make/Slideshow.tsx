@@ -3,11 +3,11 @@
 // keeps it going); the result is a Slideshow that /slideshow edits.
 //
 // URL (docs/deep-links.md): source=<RemixSource key> (MakeFormatPage resolves it), from=topic|remix, mention=no,
-// size=9x16, pictures=mine, tab=original, pick=open, slide=<n> and go=1 (read once, then removed) replace;
+// size=9x16, pictures=mine, tab=original, pick=open and slide=<n> replace; making on arrival comes only from navigation state { go: true } (the Remix sheet's link), never from a URL param;
 // show=<slideshow id> pushes.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarClock, ChevronLeft, ChevronRight, Copy, Download, Loader2, Pencil, Save } from "lucide-react";
 import FormatShell from "@/components/make/FormatShell";
 import FlagChips from "@/components/remix/FlagChips";
@@ -114,6 +114,9 @@ function trendingSlideshows(userId: string): RemixSource[] {
 export default function Slideshow({ userId, source }: { userId: string; source: RemixSource | null }) {
   const def = formatBySlug("slideshow")!;
   const [params] = useSearchParams();
+  const location = useLocation();
+  // Read once on arrival: only the Remix sheet's Also make link sets { go: true } (navigation state).
+  const arrivedToMake = useRef(Boolean((location.state as { go?: boolean } | null)?.go));
   const update = useUrlUpdate();
   const job = useJob();
   const busy = !!job && slideshowBusy();
@@ -169,7 +172,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
     if ((mine || live) && job.state === "done") scrollOnShow.current = true;
     if (job.state === "done" && job.showId) {
       if (mine) openShow(job.showId);
-      else if (!showId && params.get("go") !== "1") update({ show: job.showId });
+      else if (!showId && !arrivedToMake.current) update({ show: job.showId });
     }
     if (mine && (job.state === "done" || job.state === "failed")) started.current = null;
   }, [job, openShow, showId, params, update]);
@@ -179,11 +182,17 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
     toResult();
   }, [shown]);
 
-  // go=1 (the Remix sheet's Also make link) makes on arrival, once
+  // The Remix sheet's Also make link makes on arrival, once. It comes as navigation state, which a pasted or outside
+  // link cannot set (a ?go=1 in the address does nothing), and is cleared from history so a reload never makes again.
   const went = useRef(false);
   useEffect(() => {
-    if (went.current || params.get("go") !== "1") return;
+    if (went.current || !arrivedToMake.current) return;
     went.current = true;
+    try {
+      window.history.replaceState({ ...window.history.state, usr: null }, "");
+    } catch {
+      /* the ref already stops a second make on this mount */
+    }
     // the Remix sheet's own note for this post rides along; a steer typed here earlier for another post never does
     const note = source ? sheetNote(source.key) : words.note;
     if (note !== words.note) setWords({ ...words, note });

@@ -66,13 +66,15 @@ export default function MakeRow(p: {
       </p>
       <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
         Also make:
-        {/* a link that makes on arrival, so it reads as a link with its price, not as one of the toggle chips above */}
+        {/* a link that makes on arrival (navigation state, never a URL param), so it reads as a link with its price, not as one of the toggle chips above */}
         {FORMATS.map((f) => {
           const price = priceOf(f.cap);
           return (
             <Link
               key={f.slug}
-              to={links.makeFormat(f.slug, { source: p.source.key, go: 1, mention: p.mention === false ? "no" : undefined })}
+              to={links.makeFormat(f.slug, { source: p.source.key, mention: p.mention === false ? "no" : undefined })}
+              // Starting a paid make rides on navigation state, which a pasted or outside link cannot set.
+              state={{ go: true }}
               className="inline-flex items-center gap-1 font-semibold text-primary underline-offset-4 hover:underline [@media(pointer:coarse)]:min-h-11"
             >
               {f.name}
