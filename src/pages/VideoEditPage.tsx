@@ -2673,7 +2673,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                       <button type="button" onClick={() => { setSelected(o.id); seekOut(o.from + 0.2); }} aria-pressed={o.id === selected}
                         className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${o.id === selected ? "bg-primary/5" : ""}`}>
                         <span className="h-3 w-3 shrink-0 rounded-full border border-border" style={{ backgroundColor: o.color }} />
-                        <span className="min-w-0 flex-1 truncate font-medium">{o.kind === "text" ? o.text || "Text" : o.kind === "block" ? o.text || "Words" : o.kind[0].toUpperCase() + o.kind.slice(1)}</span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{o.kind === "text" ? o.text || "Text" : o.kind === "block" ? o.text.trim().split("\n")[0].slice(0, 40) || "Words" : o.kind[0].toUpperCase() + o.kind.slice(1)}</span>
                         <span className="font-mono text-[11px] text-muted-foreground">{fmtTime(o.from)}-{fmtTime(o.to)}</span>
                       </button>
                     </li>
