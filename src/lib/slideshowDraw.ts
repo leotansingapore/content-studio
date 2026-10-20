@@ -41,9 +41,14 @@ export function layoutBoxes(slide: ShowSlide, size: Slideshow["size"], measure: 
     const px = b.size;
     const w = b.w * FRAME_W;
     const lines = wrapText(b.text, Math.max(px, w - 2 * PAD_X * px), SPEC, (t) => measure(t, css));
+    // the words' own width with the sticker's padding: in a box narrower than the font it passes the box
+    const ink = lines.length ? Math.max(...lines.map((l) => measure(l, css))) + 2 * PAD_X * px : 0;
     const h = Math.max(1, lines.length) * px * LINE_HEIGHT + 2 * PAD_Y * px;
-    const rect = { x: b.x * FRAME_W - w / 2, y: b.y * H - h / 2, w, h };
-    if (rect.x < -0.5 || rect.y < -0.5 || rect.x + rect.w > FRAME_W + 0.5 || rect.y + rect.h > H + 0.5) overflow = true;
+    const cx = b.x * FRAME_W;
+    const rw = Math.max(w, ink);
+    const rect = { x: cx - rw / 2, y: b.y * H - h / 2, w: rw, h };
+    // sideways only the words count, so a short line in a wide box can sit near an edge
+    if (cx - ink / 2 < -0.5 || cx + ink / 2 > FRAME_W + 0.5 || rect.y < -0.5 || rect.y + rect.h > H + 0.5) overflow = true;
     return { id: b.id, lines, px, rect };
   });
   return { boxes, overflow };

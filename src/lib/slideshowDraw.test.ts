@@ -29,8 +29,20 @@ describe("layoutBoxes", () => {
     const long = "word ".repeat(120).trim();
     expect(layoutBoxes(slide(makeBox(long, { size: 80, y: 0.5 })), "1x1", measure).overflow).toBe(true);
     expect(layoutBoxes(slide(makeBox("Short", { y: 0.99 })), "4x5", measure).overflow).toBe(true);
-    expect(layoutBoxes(slide(makeBox("Short", { x: 0.1, w: 0.84 })), "4x5", measure).overflow).toBe(true);
+    expect(layoutBoxes(slide(makeBox("Short", { x: 0.02 })), "4x5", measure).overflow).toBe(true);
     expect(layoutBoxes(slide(makeBox("Short")), "4x5", measure).overflow).toBe(false);
+  });
+
+  it("counts the words, not the box, sideways", () => {
+    // a 3-word line in a wide box nudged 10% right: the box passes the edge, the words don't
+    const short = layoutBoxes(slide(makeBox("Your words here", { x: 0.6, w: 0.84 })), "4x5", measure);
+    expect(short.boxes[0].rect.x + short.boxes[0].rect.w).toBeGreaterThan(1080);
+    expect(short.overflow).toBe(false);
+    // 160 px words in a 216 px box: the rect grows to the sticker, and the sticker passing the left edge is overflow
+    const big = layoutBoxes(slide(makeBox("OK", { size: 160, w: 0.2, x: 0.1, font: "heavy" })), "4x5", measure).boxes[0];
+    expect(big.rect.w).toBeCloseTo(160 + 2 * 0.35 * 160);
+    expect(big.rect.x).toBeLessThan(0);
+    expect(layoutBoxes(slide(makeBox("OK", { size: 160, w: 0.2, x: 0.1, font: "heavy" })), "4x5", measure).overflow).toBe(true);
   });
 
   it("gives the same lines at every size for a box placed by shares", () => {
