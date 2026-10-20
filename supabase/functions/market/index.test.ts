@@ -82,6 +82,8 @@ beforeAll(async () => {
       if (youtube === "down") return Response.json({ status_code: 20000, tasks: [{ status_code: 40200, status_message: "Payment Required." }] });
       return new Response(YOUTUBE, { headers: { "content-type": "application/json" } });
     }
+    // Your market's paid reads (the news, ChatGPT's answers) are down whenever a check reaches them
+    if (url.includes("/serp/google/news/live/advanced") || url.includes("/ai_optimization/chat_gpt/llm_scraper/")) return new Response("no", { status: 500 });
     if (url.startsWith("https://api.typesafe.ai/")) {
       if (jev === "down") return new Response("busy", { status: 503 });
       // anything naming one insurer fails the fit question; the rest pass both
@@ -275,5 +277,32 @@ describe("market searches: the week, the caps and refunds", () => {
     // and the week is open again
     labs = "ok";
     expect((await call(ask)).status).toBe(200);
+  });
+});
+
+describe("Your market: a check", () => {
+  const check = { action: "check", profile: "me", audience: "Young families in Singapore", questions: ["How much life insurance do I need?"], keywords: ["cpf"] };
+  const checks = () => [count(LEO, "market-check:me"), count(LEO, "market-check"), count(OWNER, "market-check-global")];
+
+  it("gives the profile's week, the account's and everyone's check back when neither the news nor the AI answers came back", async () => {
+    const r = await call(check);
+    expect(r).toEqual({ status: 502, body: { error: "Couldn't reach the news or the AI answers. This check wasn't counted; try again in a few minutes." } });
+    expect(sent.some((s) => s.url.includes("/serp/google/news/"))).toBe(true);
+    expect(sent.some((s) => s.url.includes("/llm_scraper/"))).toBe(true);
+    expect(checks()).toEqual([0, 0, 0]);
+    // and the week is still open: a retry reaches the providers again instead of a weekly refusal
+    sent.length = 0;
+    expect((await call(check)).status).toBe(502);
+    expect(providers().length).toBeGreaterThan(0);
+  });
+
+  it("refuses a profile checked earlier this week before taking anything or paying for a read, with the day it opens", async () => {
+    db.rows.set(`${LEO}|market-check:me|${daysAgo(3)}`, 1);
+    const r = await call(check);
+    expect(r.status).toBe(429);
+    expect(r.body).toMatchObject({ code: "weekly_limit", nextDay: daysAgo(-4) });
+    expect(r.body.error).toMatch(/^This profile has had its check this week\. The next one opens \w{3} \d{1,2} \w{3} at 8am\.$/);
+    expect(checks()).toEqual([0, 0, 0]);
+    expect(sent).toEqual([]);
   });
 });
