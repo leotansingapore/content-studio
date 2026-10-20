@@ -31,6 +31,9 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { COMPARE_TABS } from "@/lib/links";
 import { useLeoUser } from "@/lib/useLeoOnly";
+import { useUsesLeft } from "@/lib/aiUsage";
+import PriceChip from "@/components/PriceChip";
+import { reasonText } from "@/lib/prices";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -661,6 +664,9 @@ export default function CarouselPage() {
   };
 
   const busy = ai.status === "loading";
+  // Leo's price chip on Tighten with AI: only his sessions read today's uses, so everyone else's stays null
+  const tightenLeft = useUsesLeft(busy || !leo)("carousel");
+  const tightenWhy = reasonText({ left: tightenLeft, leo: Boolean(leo) });
   const exportBusy = exporting !== null;
   const tooShort = split !== null && split.tooShort && !byHand;
   const showEditor = slides.length > 0 && !tooShort;
@@ -997,7 +1003,7 @@ export default function CarouselPage() {
             <Card className="border-border/60 shadow-card">
               <CardHeader className="gap-3 space-y-0 sm:flex-row sm:items-start sm:justify-between">
                 <CardTitle className="font-serif text-xl">Slides</CardTitle>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {beforeAi && !busy && (
                     <Button size="sm" variant="ghost" onClick={undoAi} className="gap-1.5 text-muted-foreground">
                       <Undo2 className="h-3.5 w-3.5" /> Undo AI changes
@@ -1006,7 +1012,7 @@ export default function CarouselPage() {
                   <Button
                     size="sm"
                     onClick={tighten}
-                    disabled={busy || ai.status === "limit"}
+                    disabled={busy || ai.status === "limit" || tightenLeft === 0}
                     className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 disabled:opacity-60"
                   >
                     {busy ? (
@@ -1019,9 +1025,11 @@ export default function CarouselPage() {
                       </>
                     )}
                   </Button>
+                  {!busy && <PriceChip feature="carousel" left={tightenLeft} />}
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
+                {tightenWhy && !busy && <p className="text-xs text-destructive">{tightenWhy}</p>}
                 {busy && (
                   <p role="status" className="text-xs text-muted-foreground">
                     Rewriting your slides to be shorter and MAS-safe{recapFits(slides.filter((s) => !s.recap)) ? ", with a recap" : ""}. This takes a few seconds.
