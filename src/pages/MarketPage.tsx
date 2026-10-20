@@ -29,6 +29,10 @@ import { supabase } from "@/lib/supabase";
 import { useScrollToItem, useUrlItem, useUrlState } from "@/lib/urlState";
 import { links } from "@/lib/links";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import { useUsesLeft } from "@/lib/aiUsage";
+import PriceChip from "@/components/PriceChip";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 
 const ago = (iso: string) => {
   const d = Math.floor((Date.now() - Date.parse(iso)) / 86_400_000);
@@ -67,6 +71,10 @@ function SetupForm({ uid, state, onSaved }: { uid: string; state: MarketState; o
   const [kwDraft, setKwDraft] = useState("");
   const [qDraft, setQDraft] = useState("");
   const [suggesting, setSuggesting] = useState(false);
+  // Leo's price chip: only his sessions read today's uses, so everyone else's stays null
+  const leo = useLeoOnly();
+  const suggestLeft = useUsesLeft(suggesting || !leo)("market-suggest");
+  const suggestWhy = reasonText({ left: suggestLeft, leo });
   const topics = state.topics.length ? state.topics : positioning?.topics ?? [];
 
   const suggest = async () => {
@@ -115,10 +123,14 @@ function SetupForm({ uid, state, onSaved }: { uid: string; state: MarketState; o
           <Label htmlFor="market-audience">Who you serve</Label>
           <Textarea id="market-audience" value={audience} maxLength={300} rows={2} onChange={(e) => setAudience(e.target.value)} placeholder="Young families in Singapore buying their first home" />
         </div>
-        <Button type="button" variant="outline" onClick={suggest} disabled={suggesting} className="gap-1.5">
-          {suggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {suggesting ? "Suggesting..." : "Suggest topics and questions"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" onClick={suggest} disabled={suggesting || suggestLeft === 0} className="gap-1.5">
+            {suggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {suggesting ? "Suggesting..." : "Suggest topics and questions"}
+          </Button>
+          {!suggesting && <PriceChip feature="market-suggest" left={suggestLeft} />}
+          {suggestWhy && <p className="basis-full text-xs text-destructive">{suggestWhy}</p>}
+        </div>
       </div>
 
       <ListField
@@ -150,6 +162,8 @@ function SetupForm({ uid, state, onSaved }: { uid: string; state: MarketState; o
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="button" onClick={save} disabled={!canSave}>{firstTime ? "Save and check my market" : "Save"}</Button>
+        {/* the first save runs the week's check: the price only, since its limit is one check a week */}
+        {firstTime && canSave && <PriceChip feature="market-check" left={null} />}
         {!canSave && <span className="text-sm text-muted-foreground">Add who you serve and at least one topic or question.</span>}
       </div>
     </div>
@@ -289,6 +303,8 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
           {running && <Loader2 className="h-4 w-4 animate-spin" />}
           {running ? `Checking... ${Math.round((Date.now() - job!.startedAt) / 1000)}s` : "Check my market"}
         </Button>
+        {/* the price only: the real limit is one check a week, which the note beside it says */}
+        {!running && !nextDay && <PriceChip feature="market-check" left={null} />}
         <span className="text-sm text-muted-foreground" aria-live="polite">
           {running ? "Reading the news and asking ChatGPT. About a minute; other pages are fine, but keep this tab open." : weekNote(state, job)}
         </span>
