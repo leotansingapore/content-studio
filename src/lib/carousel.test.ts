@@ -384,6 +384,17 @@ describe("saved carousels", () => {
     expect(loadCarousels("u1")).toHaveLength(MAX_SAVED_CAROUSELS);
   });
 
+  it("keeps a carousel's alignment, text size, font and paper through a reload, and opens an old one without them", () => {
+    saveCarousel("u1", { id: "d:1", title: "Styled", platform: "linkedin", slides, align: "center", scale: 1.1, font: "serif", paper: "dark" });
+    store.set("content-studio-carousels-u1", JSON.stringify([
+      ...JSON.parse(store.get("content-studio-carousels-u1")!),
+      { id: "p:2", title: "Odd", slides, align: "right", scale: 3, font: "comic", paper: "neon", updatedAt: "" },
+    ]));
+    const [styled, odd] = loadCarousels("u1");
+    expect(styled).toMatchObject({ platform: "linkedin", align: "center", scale: 1.1, font: "serif", paper: "dark" });
+    expect(odd).toEqual({ id: "p:2", title: "Odd", platform: "instagram", slides, draftId: undefined, updatedAt: "" });
+  });
+
   it("drops malformed entries and removes by id", async () => {
     store.set("content-studio-carousels-u1", JSON.stringify([{ id: "x", slides: "no" }, { id: "y", title: 5, slides: [null, { id: "s", title: "T" }, { id: "r", title: "R", body: "• a", recap: true }] }, { slides: [] }]));
     expect(loadCarousels("u1")).toEqual([{ id: "y", title: "Carousel", platform: "instagram", slides: [{ id: "s", title: "T", body: "" }, { id: "r", title: "R", body: "• a", recap: true }], draftId: undefined, updatedAt: "" }]);
