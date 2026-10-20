@@ -1,5 +1,5 @@
 import CopyLinkButton from "@/components/CopyLinkButton";
-import { useEffect, useRef } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import VideoEmbed from "@/components/VideoEmbed";
 import { Link } from "react-router-dom";
@@ -52,6 +52,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const EMPTY = <span className="text-muted-foreground">Not analysed yet</span>;
+
+// Leo's "What Remix does" box (find-ad-detail): lazy, since its words come from the Remix sheet's own helpers
+const WhatRemixBox = lazy(() => import("@/components/AdDetailDrawer").then((m) => ({ default: m.WhatRemixBox })));
 
 export default function PostDetailDrawer({
   item,
@@ -230,6 +233,12 @@ export default function PostDetailDrawer({
                 )}
               </div>
             </div>
+
+            {leo && (
+              <Suspense fallback={null}>
+                <WhatRemixBox source={source} />
+              </Suspense>
+            )}
 
             {/* Hook */}
             <Field label="Hook / core idea">
