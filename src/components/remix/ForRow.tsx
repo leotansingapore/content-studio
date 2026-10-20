@@ -29,7 +29,7 @@ export default function ForRow(p: {
       <div className="flex items-center gap-3">
         <span className="w-12 shrink-0 text-xs font-semibold text-muted-foreground">For</span>
         <span className="min-w-0 flex-1 text-sm leading-snug text-foreground">{summary}</span>
-        <Button type="button" variant="ghost" size="sm" onClick={() => p.setOpen(true)} className="h-8 shrink-0 text-xs font-semibold text-primary">
+        <Button type="button" variant="ghost" size="sm" onClick={() => p.setOpen(true)} className="h-8 shrink-0 text-xs font-semibold text-primary [@media(pointer:coarse)]:min-h-11">
           Change
         </Button>
       </div>
@@ -41,7 +41,7 @@ export default function ForRow(p: {
     <div className="space-y-3 rounded-xl border border-border/70 p-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-foreground">For {p.brand}</p>
-        <Button type="button" variant="ghost" size="sm" onClick={() => p.setOpen(false)} className="h-8 text-xs font-semibold text-primary">
+        <Button type="button" variant="ghost" size="sm" onClick={() => p.setOpen(false)} className="h-8 text-xs font-semibold text-primary [@media(pointer:coarse)]:min-h-11">
           Done
         </Button>
       </div>
@@ -75,7 +75,7 @@ export default function ForRow(p: {
         ) : (
           <p className="pt-1.5 text-xs text-muted-foreground">
             No offers yet.{" "}
-            <Link to={links.brand({ section: "offers" })} className="font-semibold text-primary hover:underline">
+            <Link to={links.brand({ section: "offers" })} className="inline-flex items-center font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
               Add an offer
             </Link>
           </p>
@@ -88,7 +88,7 @@ export default function ForRow(p: {
         ) : (
           <p className="pt-1.5 text-xs text-muted-foreground">
             No voice saved yet.{" "}
-            <Link to={links.voice()} className="font-semibold text-primary hover:underline">
+            <Link to={links.voice()} className="inline-flex items-center font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
               Add 3 posts
             </Link>
           </p>
@@ -99,7 +99,7 @@ export default function ForRow(p: {
         <p className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
           {p.color && <span aria-hidden className="h-5 w-5 rounded-full border border-border/70" style={{ background: p.color }} />}
           {p.logo && <img src={p.logo} alt="" className="h-5 w-auto max-w-12 object-contain" />}
-          <Link to={links.brand({ section: "colour" })} className="hover:underline">
+          <Link to={links.brand({ section: "colour" })} className="inline-flex items-center hover:underline [@media(pointer:coarse)]:min-h-11">
             From Brand kit
           </Link>
         </p>

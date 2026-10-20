@@ -27,7 +27,7 @@ export default function RemixButton({ source, children }: { source: RemixSource;
   };
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-      <Button type="button" variant="outline" size="sm" onClick={open} disabled={opening} className="h-8 gap-1.5 text-xs">
+      <Button type="button" variant="outline" size="sm" onClick={open} disabled={opening} className="h-8 gap-1.5 text-xs [@media(pointer:coarse)]:min-h-11">
         <Shuffle className="h-3.5 w-3.5" />
         {opening ? "Opening..." : "Remix"}
       </Button>

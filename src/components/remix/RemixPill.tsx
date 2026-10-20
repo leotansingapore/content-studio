@@ -25,28 +25,28 @@ export default function RemixPill() {
   return (
     <div
       role="status"
-      className="fixed bottom-32 left-4 z-40 flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs font-semibold shadow-elegant lg:bottom-16 lg:left-[calc(var(--nav-w)+1rem)]"
+      className="fixed bottom-32 left-4 z-40 flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs [@media(pointer:coarse)]:py-0 font-semibold shadow-elegant lg:bottom-16 lg:left-[calc(var(--nav-w)+1rem)]"
     >
       {job.state === "working" && (
-        <Link to={sheet} className="flex items-center gap-2 [@media(pointer:coarse)]:min-h-8">
+        <Link to={sheet} className="flex items-center gap-2 [@media(pointer:coarse)]:min-h-11">
           <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Remixing...
         </Link>
       )}
       {job.state === "done" && ready?.href && (
         <>
           <Shuffle className="h-3.5 w-3.5 text-primary" /> Your remix is ready
-          <Link to={ready.href} onClick={clearRemixJob} className="text-primary hover:underline [@media(pointer:coarse)]:min-h-8 [@media(pointer:coarse)]:py-1">
+          <Link to={ready.href} onClick={clearRemixJob} className="inline-flex items-center justify-center text-primary hover:underline [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11">
             Open
           </Link>
         </>
       )}
       {job.state === "failed" && (
-        <Link to={sheet} className="text-destructive [@media(pointer:coarse)]:min-h-8 [@media(pointer:coarse)]:py-1">
+        <Link to={sheet} className="inline-flex items-center text-destructive [@media(pointer:coarse)]:min-h-11">
           Your remix didn't go through
         </Link>
       )}
       {job.state !== "working" && (
-        <button type="button" onClick={clearRemixJob} aria-label="Dismiss" className="rounded-full p-0.5 text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:p-2.5">
+        <button type="button" onClick={clearRemixJob} aria-label="Dismiss" className="flex items-center justify-center rounded-full p-0.5 text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11">
           <X className="h-3.5 w-3.5" />
         </button>
       )}

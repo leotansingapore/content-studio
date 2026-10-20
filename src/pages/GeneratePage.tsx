@@ -605,7 +605,7 @@ function RemixFlags({
           <button
             type="button"
             onClick={() => onDismiss(f.id)}
-            className="-my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-background/40"
+            className="-my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-background/40 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
             aria-label="Dismiss flag"
           >
             <XIcon className="h-3.5 w-3.5" />
