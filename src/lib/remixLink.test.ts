@@ -140,15 +140,19 @@ describe("the read runner", () => {
     expect(savedLinks(UID)).toEqual([]);
   });
 
-  it("drops a cancelled read's answer", async () => {
+  it("keeps a cancelled read's answer in the saved list without opening it, and tells the page", async () => {
     let answer: (v: unknown) => void = () => {};
     callFn.mockReturnValue(new Promise((r) => (answer = r)));
     const run = startLinkRead(UID, { url: "https://youtu.be/dQw4w9WgXcQ" });
     clearLinkRead();
+    const heard: unknown[] = [];
+    const off = onLinkRead((r) => heard.push(r));
     answer({ source: linked("link:youtube:dQw4w9WgXcQ") });
     await run;
+    off();
     expect(linkRead()).toBeNull();
-    expect(savedLinks(UID)).toEqual([]);
+    expect(heard).toEqual([null]);
+    expect(savedLinks(UID).map((s) => s.key)).toEqual(["link:youtube:dQw4w9WgXcQ"]);
   });
 
   it("refuses a wrong file before any call", async () => {

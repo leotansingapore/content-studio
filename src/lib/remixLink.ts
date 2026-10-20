@@ -119,7 +119,7 @@ function emit(next: LinkRead | null) {
   listeners.forEach((fn) => fn(next));
 }
 
-/** Drops the read on screen; a read still running is cancelled and its answer ignored. */
+/** Drops the read on screen. A request already sent still lands in the saved list, because it was paid for. */
 export const clearLinkRead = () => emit(null);
 
 type Answer = { source: LinkedSource };
@@ -160,8 +160,10 @@ export async function startLinkRead(userId: string, input: LinkReadInput): Promi
   const live = () => read?.id === id;
   try {
     const source = await readOne(userId, input, live);
-    if (!live() || !source) return;
+    if (!source) return;
+    // Kept even when cancelled: the read was counted, so it waits in Recent reads instead of costing another.
     saveLinkedSource(userId, { ...source, remixedAt: "" });
+    if (!live()) return emit(read);
     emit({ ...base, state: "done", key: source.key });
   } catch (e) {
     if (!live()) return;

@@ -1122,8 +1122,9 @@ function RemixLinkBox({
   useEffect(() => {
     const show = (r: LinkRead | null) => {
       setRead(r);
-      if (r?.state !== "done" || !r.key) return;
+      // a cancelled read that still landed joins Recent reads
       setSaved(savedLinks(userId));
+      if (r?.state !== "done" || !r.key) return;
       clearLinkRead();
       updateUrl({ source: r.key, clone: null, url: null }, { push: true });
     };
