@@ -137,15 +137,33 @@ describe("a topic picking up", () => {
 });
 
 describe("competitors doing well", () => {
-  const post = (id: string, likes: number, comments = 0) => ({ id, url: `https://instagram.com/p/${id}/`, format: "image", caption: `post ${id}`, postedAt: null, views: null, likes, comments }) as FollowedAccount["posts"][number];
+  const NOW = Date.parse("2026-10-20T00:00:00Z");
+  const post = (id: string, views: number | null, hours = 100, caption = `post ${id}`, likes = 0) =>
+    ({ id, url: `https://instagram.com/p/${id}/`, format: "video", caption, postedAt: new Date(NOW - hours * 3_600_000).toISOString(), views, likes, comments: 0 }) as FollowedAccount["posts"][number];
   const acct = (handle: string, posts: FollowedAccount["posts"]): FollowedAccount => ({ platform: "instagram", handle, addedAt: "", history: [], posts, seen: [], fresh: [] });
+  /** Five settled posts at `usual`, then the given ones. */
+  const usual = (handle: string, views: number, ...rest: FollowedAccount["posts"]) =>
+    acct(handle, [...Array.from({ length: 5 }, (_, i) => post(`${handle}-${i}`, views, 200 + i)), ...rest]);
 
-  it("keeps posts at 1.5 times their account's average, best first, from accounts with 4 or more posts", () => {
-    const a = acct("rival", [post("1", 10), post("2", 10), post("3", 10), post("4", 50)]);
-    const small = acct("tiny", [post("9", 10), post("10", 10), post("11", 100)]);
-    const b = acct("other", [post("5", 1), post("6", 1), post("7", 1), post("8", 20, 5)]);
-    expect(m.outperformers([a, small, b]).map((x) => x.id)).toEqual(["instagram:8", "instagram:4"]);
-    expect(m.outperformers([acct("zero", [post("1", 0), post("2", 0), post("3", 0), post("4", 0)])])).toEqual([]);
+  it("ranks a 2x post on a big account above a 5x post on a tiny one", () => {
+    const tiny = usual("tiny", 20, post("tiny5", 100));
+    const big = usual("big", 50_000, post("big2", 100_000));
+    expect(m.outperformers([tiny, big], 10, NOW).map((x) => x.id)).toEqual(["instagram:big2", "instagram:tiny5"]);
+  });
+
+  it("keeps settled posts at 1.5x their usual or more with a caption, from accounts with 3 posts to compare", () => {
+    const a = usual("rival", 100, post("flat", 140), post("above", 150), post("blank", 400, 100, "  "), post("young", 5000, 47), post("photo", null, 100, "photo", 500));
+    const few = acct("few", [post("f1", 10), post("f2", 10), post("f3", 1000)]);
+    expect(m.outperformers([a, few], 10, NOW)).toEqual([{ id: "instagram:above", url: "https://instagram.com/p/above/", handle: "rival", caption: "post above" }]);
+    expect(m.outperformers([usual("zero", 0, post("z", 0))], 10, NOW)).toEqual([]);
+  });
+
+  it("returns the best 10, newer first on a tie", () => {
+    const many = Array.from({ length: 12 }, (_, i) => usual(`a${i}`, 100, post(`hot${i}`, 300 + i)));
+    expect(m.outperformers(many, 10, NOW).map((x) => x.id)).toEqual(Array.from({ length: 10 }, (_, i) => `instagram:hot${11 - i}`));
+    const older = usual("older", 100, post("old", 300, 80));
+    const newer = usual("newer", 100, post("new", 300, 60));
+    expect(m.outperformers([older, newer], 10, NOW).map((x) => x.id)).toEqual(["instagram:new", "instagram:old"]);
   });
 });
 

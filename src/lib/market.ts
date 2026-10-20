@@ -8,6 +8,7 @@ import { storyWriteUrl } from "@/lib/feeds";
 import { loadFollowing, type FollowedAccount } from "@/lib/following";
 import { loadWatch } from "@/lib/mentions";
 import { activeProfileId, scoped } from "@/lib/profiles";
+import { byOutlier, OUTLIER, scoreAccount } from "../../supabase/functions/_shared/outlier.ts";
 import { dayWords, type GeoRead, type JudgedNews, type JudgedPost, type MarketDigest, type MarketPost, type Position } from "../../supabase/functions/market/logic.ts";
 
 export type { GeoRead, JudgedNews, JudgedPost, MarketDigest, Position };
@@ -125,20 +126,20 @@ export function pickingUp(checks: MarketDigest[]): string[] {
   });
 }
 
-const engagement = (x: FollowedAccount["posts"][number]) => x.likes + x.comments;
-
-/** Posts that drew at least 1.5 times their account's average likes + comments, from accounts with 4 or more posts; best first. */
-export function outperformers(accounts: FollowedAccount[], max = 10): MarketPost[] {
+/**
+ * Followed accounts' posts at 1.5 times their own usual or more (the outlier score: views, else likes + comments, against
+ * the account's last 20 settled posts), with a caption; best first across account sizes, newer first on a tie.
+ */
+export function outperformers(accounts: FollowedAccount[], max = 10, now = Date.now()): MarketPost[] {
+  const time = (at: string | null) => Date.parse(at ?? "") || 0;
   return accounts
     .flatMap((a) => {
-      if (a.posts.length < 4) return [];
-      const avg = a.posts.reduce((s, x) => s + engagement(x), 0) / a.posts.length;
-      if (avg <= 0) return [];
+      const scores = scoreAccount(a.posts, now);
       return a.posts
-        .filter((x) => engagement(x) >= 1.5 * avg && x.caption.trim())
-        .map((x) => ({ ratio: engagement(x) / avg, post: { id: `${a.platform}:${x.id}`, url: x.url, handle: a.handle, caption: x.caption.slice(0, 400) } }));
+        .filter((x) => (scores[x.id].ratio ?? 0) >= OUTLIER.tiers.above && x.caption.trim())
+        .map((x) => ({ x, o: scores[x.id], post: { id: `${a.platform}:${x.id}`, url: x.url, handle: a.handle, caption: x.caption.slice(0, 400) } }));
     })
-    .sort((a, b) => b.ratio - a.ratio)
+    .sort((p, q) => byOutlier(p.o, q.o) || time(q.x.postedAt) - time(p.x.postedAt))
     .slice(0, max)
     .map((r) => r.post);
 }
