@@ -835,7 +835,8 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
  */
 export function layoutBlock(g: CanvasRenderingContext2D, o: Overlay, W: number, H: number): { lines: string[]; px: number; font: string; rect: BlockRect } {
   const px = 52 * o.size * (Math.min(W, H) / 1080);
-  const font = FONTS[o.font ?? "heavy"].css.replace("{px}", String(Math.round(px)));
+  // fractional px, so the words scale exactly with the frame and wrap the same in the preview and the export
+  const font = FONTS[o.font ?? "heavy"].css.replace("{px}", px.toFixed(2));
   const width = (o.w ?? BLOCK_W) * W;
   g.save();
   g.font = font;
