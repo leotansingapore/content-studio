@@ -9,6 +9,7 @@ import { InfoTip } from "@/components/ui/info-tip";
 import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { hookFormula } from "@/lib/hookFormulas";
+import { scoped } from "@/lib/profiles";
 import { ensureTeardown, localTeardown, teardownError, teardownFooter, type Teardown } from "@/lib/remixTeardown";
 import type { RemixSource } from "@/lib/remixSource";
 
@@ -22,34 +23,38 @@ export default function BreakdownRow(p: { userId: string; source: RemixSource; t
   const [error, setError] = useState<{ text: string; retry: boolean } | null>(null);
   const [slow, setSlow] = useState(false);
   const left = useUsesLeft(phase === "loading");
-  const current = useRef(source.key);
 
-  // Another source in the same sheet starts from what this device has for it.
-  useEffect(() => {
-    current.current = source.key;
+  // Another source (or brand) in the same sheet starts from what this device has for it, before it paints.
+  const shownFor = `${scoped(userId)}|${source.key}`;
+  const [forId, setForId] = useState(shownFor);
+  if (forId !== shownFor) {
+    setForId(shownFor);
     setTeardown(localTeardown(userId, source));
     setPhase("idle");
     setError(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, source.key]);
+  }
+  const current = useRef(shownFor);
+  useEffect(() => {
+    current.current = shownFor;
+  }, [shownFor]);
 
   const load = useCallback(() => {
-    const key = source.key;
+    const id = shownFor;
     setPhase("loading");
     setError(null);
     ensureTeardown(userId, source, text).then(
       (t) => {
-        if (current.current !== key) return;
+        if (current.current !== id) return;
         setTeardown(t);
         setPhase("idle");
       },
       (e) => {
-        if (current.current !== key) return;
+        if (current.current !== id) return;
         setError(teardownError(e));
         setPhase("failed");
       },
     );
-  }, [userId, source, text]);
+  }, [userId, source, text, shownFor]);
 
   useEffect(() => {
     if (open && !teardown && phase === "idle") load();
