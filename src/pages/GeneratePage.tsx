@@ -151,7 +151,7 @@ import {
   type DisclosureId,
 } from "@/lib/plainText";
 import { useLeoUser } from "@/lib/useLeoOnly";
-import { canCredit, dayMonth, draftLine, remixedOn, sourceChip, type RemixSource } from "@/lib/remixSource";
+import { canCredit, dayMonth, draftLine, earlierRemix, sourceChip, type RemixSource } from "@/lib/remixSource";
 import { loadBrand } from "@/lib/carousel";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
@@ -1137,12 +1137,11 @@ export default function GeneratePage() {
     const e = userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
     if (e && userId) upsertDraft(userId, { ...e, source: next ?? undefined });
   };
-  const sourceKeyNow = remixSource?.key;
-  // An earlier remix of the same source in the last 30 days, other than the post open now.
+  // An earlier remix of the same source in the last 30 days, while this one is not saved yet.
   const repeat = useMemo(() => {
-    const r = userId && sourceKeyNow ? remixedOn(userId, sourceKeyNow) : null;
-    return r && r.draftId !== currentDraftId && repeatHidden !== sourceKeyNow ? r : null;
-  }, [userId, sourceKeyNow, currentDraftId, repeatHidden]);
+    const r = userId ? earlierRemix(userId, remixSource) : null;
+    return r && r.draftId !== currentDraftId && repeatHidden !== remixSource?.key ? r : null;
+  }, [userId, remixSource, currentDraftId, repeatHidden]);
 
   const handleClearVibe = () => {
     setStyleReference(null);

@@ -350,6 +350,11 @@ export function remixedOn(userId: string, key: string, now = Date.now()): { at: 
   return best;
 }
 
+/** Write's repeat notice: an earlier remix of a source not saved yet. A saved source is that remix, and the
+ * drafts sharing its key and date are its own platform versions and copies. */
+export const earlierRemix = (userId: string, s: RemixSource | null, now = Date.now()) =>
+  s && !s.remixedAt ? remixedOn(userId, s.key, now) : null;
+
 let keysMemo: { userId: string; raw: string | null; map: Map<string, string> } | null = null;
 
 /** Every key this brand has remixed, to its newest date. Lists call it per card, so it reparses only on a change. */

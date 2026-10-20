@@ -5,6 +5,7 @@ import { addProfile, setActiveProfile } from "./profiles";
 import {
   canCredit,
   draftLine,
+  earlierRemix,
   fromAd,
   fromAuditPost,
   fromDraft,
@@ -179,6 +180,16 @@ describe("remix history", () => {
     saveDrafts(UID, [draft("old", { source: src("top:a-1", NOW - 31 * DAY) })]);
     expect(remixedOn(UID, "top:a-1", NOW)).toBeNull();
     expect(remixedOn(UID, "top:zzz", NOW)).toBeNull();
+  });
+
+  it("shows the repeat notice for a source not saved yet, never for a saved remix and its own versions", () => {
+    const at = NOW - 5 * DAY;
+    // upsertDraft puts the last save first: the LinkedIn version V sits before its main draft D
+    upsertDraft(UID, draft("D", { source: src("top:a-1", at) }));
+    upsertDraft(UID, draft("V", { platform: "linkedin", source: src("top:a-1", at) }));
+    expect(earlierRemix(UID, src("top:a-1", at), NOW)).toBeNull();
+    expect(earlierRemix(UID, { ...src("top:a-1", at), remixedAt: "" }, NOW)).toEqual({ at: new Date(at).toISOString(), draftId: "V" });
+    expect(earlierRemix(UID, null, NOW)).toBeNull();
   });
 
   it("lists every key this brand remixed, newest date per key, and rereads only on a change", () => {
