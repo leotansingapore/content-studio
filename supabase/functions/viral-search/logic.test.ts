@@ -31,7 +31,7 @@ describe("the request", () => {
 
   it("asks TikTok for 20 videos with no paid add-ons and YouTube for one Singapore block", () => {
     expect(tiktokInput("cpf")).toEqual({ searchQueries: ["cpf"], resultsPerPage: 20, searchSection: "/video" });
-    expect(youtubeTask("cpf")).toEqual({ keyword: "cpf", location_code: 2702, language_code: "en", depth: 20 });
+    expect(youtubeTask("cpf")).toEqual({ keyword: "cpf", location_code: 2702, language_code: "en", block_depth: 20 });
   });
 });
 

@@ -74,7 +74,8 @@ export function parseRequest(body: unknown): SearchRequest | string {
 
 /** No sorting, date or country add-ons: each is charged on top of the per-result price. */
 export const tiktokInput = (q: string) => ({ searchQueries: [q], resultsPerPage: PER_PLATFORM, searchSection: "/video" });
-export const youtubeTask = (q: string) => ({ keyword: q, location_code: 2702, language_code: "en", depth: PER_PLATFORM });
+// YouTube organic takes block_depth, never depth (DataForSEO answers 40501 "Invalid Field: 'depth'": the live check, 20 Oct)
+export const youtubeTask = (q: string) => ({ keyword: q, location_code: 2702, language_code: "en", block_depth: PER_PLATFORM });
 
 // ---- Provider items to Found ---------------------------------------------------------------------------------------
 

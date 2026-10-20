@@ -149,7 +149,7 @@ describe("viral-search: providers and refunds", () => {
     expect(tt.body).toEqual({ searchQueries: ["cpf"], resultsPerPage: 20, searchSection: "/video" });
     const yt = sent.find((s) => s.url.startsWith("https://api.dataforseo.com/"))!;
     expect(yt.url).toBe("https://api.dataforseo.com/v3/serp/youtube/organic/live/advanced");
-    expect(yt.body).toEqual([{ keyword: "cpf", location_code: 2702, language_code: "en", depth: 20 }]);
+    expect(yt.body).toEqual([{ keyword: "cpf", location_code: 2702, language_code: "en", block_depth: 20 }]);
   });
 
   it("keeps both uses when one platform fails, and says which and why", async () => {
