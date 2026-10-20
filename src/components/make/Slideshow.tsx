@@ -424,8 +424,10 @@ function Result({ userId, show, onAgain, canAgain }: { userId: string; show: Sho
   };
   const schedule = () => navigate(`${links.calendar({ post: toPosts() })}&view=month`);
   const save = () => {
+    const again = !!show.draftId;
     toPosts();
-    toast({ title: "Saved to My posts" });
+    // the first save shows the line under the buttons; saving again changes nothing on screen, so it gets a toast
+    if (again) toast({ title: "Saved. It's in My posts as a draft." });
   };
   const downloadAll = async () => {
     if (prep && typeof prep !== "string") return;
