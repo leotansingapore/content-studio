@@ -19,6 +19,8 @@ const HANDLES: { h: Handle; x: number; y: number }[] = [
 ];
 const SNAP_PX = 12;
 const DOUBLE_TAP_MS = 350;
+// a handle's centre kept half a 44 px touch target inside the slide, which clips whatever passes its edge
+const inside = (px: number) => `clamp(1.375rem, ${px}px, calc(100% - 1.375rem))`;
 
 /** Paints `slide` into `canvas` once its picture and logo are decoded; a newer paint wins over an older one. */
 function usePaint(canvas: RefObject<HTMLCanvasElement>, slide: ShowSlide, size: Slideshow["size"], look: SlideLook, picture: PictureState, ready: boolean, scale = 1) {
@@ -200,7 +202,7 @@ export default function SlideCanvas({
                 "absolute grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11",
                 hd.y === 0 ? "cursor-ew-resize" : hd.x === 0 ? "cursor-ns-resize" : hd.x === hd.y ? "cursor-nwse-resize" : "cursor-nesw-resize",
               )}
-              style={{ left: (picking.rect.x + ((hd.x + 1) / 2) * picking.rect.w) * scale, top: (picking.rect.y + ((hd.y + 1) / 2) * picking.rect.h) * scale }}
+              style={{ left: inside((picking.rect.x + ((hd.x + 1) / 2) * picking.rect.w) * scale), top: inside((picking.rect.y + ((hd.y + 1) / 2) * picking.rect.h) * scale) }}
               onPointerDown={(e) => start(e, picking.id, hd.h)}
               onPointerMove={move}
               onPointerUp={end}
@@ -213,7 +215,8 @@ export default function SlideCanvas({
             type="button"
             aria-label="Delete this text box"
             className="absolute grid h-8 w-8 -translate-y-full translate-x-1 place-items-center [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
-            style={{ left: (picking.rect.x + picking.rect.w) * scale, top: picking.rect.y * scale }}
+            // past the box's top right corner, pulled back inside the slide when that corner is near an edge
+            style={{ left: `min(${(picking.rect.x + picking.rect.w) * scale}px, calc(100% - 3rem))`, top: `max(${picking.rect.y * scale}px, 2.75rem)` }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onDelete(picking.id)}
           >
