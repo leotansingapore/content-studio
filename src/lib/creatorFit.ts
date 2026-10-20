@@ -161,6 +161,8 @@ export function onFitRun(fn: () => void): () => void {
 export async function runFit(userId: string, input: FitInput, entries: AdvisorEntry[]): Promise<void> {
   const hash = fitHash(input);
   if (fitRun(hash)?.state === "working") return;
+  // a Plan with no audience anywhere (general, no detail, no Your market audience) has nothing to judge by
+  if (!input.serves) return set({ hash, state: "done", fit: null });
   set({ hash, state: "working", fit: null });
   try {
     const creators = entries.slice(0, MAX_SENT).map((e) => ({ id: e.id, name: e.name, why: e.why_follow, niche: e.niche, audience: e.audience }));

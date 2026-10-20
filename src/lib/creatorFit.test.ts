@@ -96,6 +96,11 @@ describe("Best for you", () => {
     await runFit("u1", down, ENTRIES);
     expect(fitRun(fitHash(down))).toMatchObject({ state: "done", fit: null });
     expect(loadFit("u1", fitHash(down))).toBeNull();
+
+    const nobody = { ...input, serves: "" };
+    await runFit("u1", nobody, ENTRIES);
+    expect(fitRun(fitHash(nobody))).toMatchObject({ state: "done", fit: null });
+    expect(callFn).toHaveBeenCalledTimes(3);
   });
 });
 

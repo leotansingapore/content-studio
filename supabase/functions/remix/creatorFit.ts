@@ -82,7 +82,7 @@ export async function handleCreatorFit(
   deps: CreatorFitDeps,
 ): Promise<{ status: number; body: { fit: Record<string, number> | null } | { code: string; error: string } }> {
   const req = parseCreatorFitRequest(body);
-  if (!req) return { status: 400, body: { code: "bad_request", error: "There are no creators to sort." } };
+  if (!req) return { status: 400, body: { code: "bad_request", error: "Best for you needs the creators and who the brand serves." } };
   if (!deps.hasJev) return { status: 200, body: { fit: null } };
   // the counter's day (UTC), read before the count, so a refund near midnight finds the row
   const day = new Date().toISOString().slice(0, 10);
