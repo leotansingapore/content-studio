@@ -29,8 +29,7 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 | A trend | /trends?trend=<id> | every trend |
 | A trend drop (Hub) | /hub/trends?trend=<id> | every drop |
 | An inspiration example | /inspiration/<id> | the example page |
-
-Your own social posts in the account audit (Analytics) link to the post on Instagram or TikTok; they have no page here.
+| Your own social post in the account audit | /analytics?audit=<platform>:<post id> | each best post and each post that fell short |
 
 The first table covers the Pipeline pages; the Grow, Discover and settings pages and the Create pages have their
 own sections below. Older params that still work are listed under "Still read".
@@ -152,6 +151,7 @@ so one that is gone shows everything.
 | /analytics | period | 7d, 30d, 90d, all | 30d | replace | /analytics?period=90d |
 | /analytics | by | platform, pillar, format, hook-formula (engagement rate by) | platform | replace | /analytics?by=hook-formula |
 | /analytics | time | linkedin, instagram, facebook, tiktok (best time to post for) | all platforms | replace | /analytics?time=linkedin |
+| /analytics | audit | `<platform>:<post id>` of one of your own posts in the account audit: shown as "The linked post" at the top of that account's audit, scrolled to and marked; Copy link on each best post and each post that fell short | none | set by links | /analytics?audit=instagram%3A3456789012345678901 |
 | /analytics | rank | engagements, engagement-rate, impressions, reactions, comments, shares, reach, comment-ratio (top posts by) | engagements | replace | /analytics?period=7d&rank=engagement-rate |
 | /links | period | 7d, 30d (clicks shown for) | 30d | replace | /links?period=7d |
 | /recruit/engage | tool | replies, dms, comments, connect, snippets | replies | replace | /recruit/engage?tool=dms |

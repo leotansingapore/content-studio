@@ -141,8 +141,9 @@ export const links = {
   /** Your market (Leo only). post=<platform>:<post id> shows that competitor post under either chip, scrolled to. */
   market: (o: { show?: "act" | "all"; view?: "digest" | "setup"; post?: string } = {}) =>
     `/market${qs({ show: o.show !== "act" && o.show, view: o.view !== "digest" && o.view, post: o.post })}`,
-  analytics: (o: { period?: AnalyticsPeriod; by?: string; time?: string; rank?: string } = {}) =>
-    `/analytics${qs({ period: o.period !== "30d" && o.period, by: o.by !== "platform" && o.by, time: o.time !== "all" && o.time, rank: o.rank !== "engagements" && o.rank })}`,
+  /** audit=<platform>:<post id>: one of your own posts from the account audit, shown on top of that account's audit. */
+  analytics: (o: { period?: AnalyticsPeriod; by?: string; time?: string; rank?: string; audit?: string } = {}) =>
+    `/analytics${qs({ period: o.period !== "30d" && o.period, by: o.by !== "platform" && o.by, time: o.time !== "all" && o.time, rank: o.rank !== "engagements" && o.rank, audit: o.audit })}`,
   trackedLinks: (o: { period?: "7d" | "30d" } = {}) => `/links${qs({ period: o.period !== "30d" && o.period })}`,
   engage: (o: { tool?: string } = {}) => `/recruit/engage${qs({ tool: o.tool !== "replies" && o.tool })}`,
   autoDm: (o: { log?: string; status?: "all" | "sent" | "skipped" | "failed"; edit?: string; keyword?: string } = {}) =>

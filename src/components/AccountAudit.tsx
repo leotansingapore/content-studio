@@ -9,7 +9,10 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import RemixButton from "@/components/remix/RemixButton";
+import { links } from "@/lib/links";
+import { useScrollToItem, useUrlItem } from "@/lib/urlState";
 import { fromAuditPost } from "@/lib/remixSource";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -295,6 +298,9 @@ function AuditPanel({
 
   const posts = useMemo(() => audit?.posts ?? [], [audit]);
   const byId = useMemo(() => new Map(posts.map((p) => [p.id, p])), [posts]);
+  // ?audit=<platform>:<post id> (docs/deep-links.md): that post is shown first in this account's audit
+  const [auditParam] = useUrlItem("audit");
+  const linkedPost = posts.find((p) => auditKey(platform, p) === auditParam);
   const stats = audit?.stats ?? null;
   const profile = audit?.profile ?? null;
   const hasData = stats !== null && posts.length > 0;
@@ -410,6 +416,14 @@ function AuditPanel({
             {audit.status === "error" && audit.error && (
               <ErrorNote message={`The latest update didn't finish, so this is from ${shortDate(fetchedAt)}.`} />
             )}
+            {linkedPost && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-foreground">The linked post</h3>
+                <ul className="rounded-xl border border-border/60">
+                  <AuditPostRow p={linkedPost} platform={platform} handle={handle} linked />
+                </ul>
+              </div>
+            )}
             <Headline stats={stats} followers={profile?.followers ?? null} snapshots={snapshots} />
             <FollowerGrowth snapshots={snapshots} zernio={zernio} />
             <AdviceBlock advice={audit.advice} platform={platform} stats={stats} byId={byId} />
@@ -434,7 +448,7 @@ function AuditPanel({
               </summary>
               <div className="space-y-5 border-t border-border/60 p-3.5">
                 <RatioChart platform={platform} posts={posts} />
-                <WeakPosts stats={stats} byId={byId} />
+                <WeakPosts platform={platform} stats={stats} byId={byId} />
                 <p className="text-[11px] leading-relaxed text-muted-foreground">
                   Views are plays. Each post is compared with your own median across these posts.
                   {platform === "instagram"
@@ -766,55 +780,70 @@ function BestPosts({
     <div className="space-y-2">
       <h3 className="text-sm font-semibold text-foreground">Your best posts to remix</h3>
       <ul className="divide-y divide-border/60 rounded-xl border border-border/60">
-        {top.map((p) => {
-          const pick = picks.get(p.id);
-          const breakout = p.ratio !== null && p.ratio >= BREAKOUT_RATIO;
-          return (
-            <li key={p.id} className="space-y-2 p-3.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium leading-snug text-foreground">
-                    {firstLine(p.caption, 110) || "No caption"}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {capitalize(formatWord(platform, p.format))} · {shortDate(p.postedAt)}
-                  </p>
-                </div>
-                {p.ratio !== null && (
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${
-                      breakout ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {times(p.ratio)} your usual
-                  </span>
-                )}
-              </div>
-              {pick && (
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  <span className="font-medium text-foreground">Remix idea:</span> {pick.newAngle}
-                </p>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {/* Leo's Remix button remembers the post on press, so the sheet resolves its audit: key */}
-                <RemixButton source={fromAuditPost(p, platform, handle)} note={pick && `Angle for the new version: ${pick.newAngle}`}>
-                  <Button asChild size="sm" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5">
-                    <Link to={remixUrl(p, platform, handle, pick?.newAngle)}>
-                      <Wand2 className="h-3.5 w-3.5" /> Remix this
-                    </Link>
-                  </Button>
-                </RemixButton>
-                <Button asChild size="sm" variant="ghost" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5 text-muted-foreground">
-                  <a href={p.url} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-3.5 w-3.5" /> View post
-                  </a>
-                </Button>
-              </div>
-            </li>
-          );
-        })}
+        {top.map((p) => (
+          <AuditPostRow key={p.id} p={p} platform={platform} handle={handle} pick={picks.get(p.id)} />
+        ))}
       </ul>
     </div>
+  );
+}
+
+/** A post's id in links: <platform>:<post id>. */
+const auditKey = (platform: AuditPlatform, p: RatedPost) => `${platform}:${p.id}`;
+
+/** One of the account's own posts: caption, how it did against the usual, Remix, View post and its own link. */
+function AuditPostRow({ p, platform, handle, pick, linked = false }: {
+  p: RatedPost;
+  platform: AuditPlatform;
+  handle: string;
+  pick?: { postId: string; newAngle: string };
+  linked?: boolean;
+}) {
+  const box = useScrollToItem<HTMLLIElement>(linked);
+  const breakout = p.ratio !== null && p.ratio >= BREAKOUT_RATIO;
+  return (
+    <li ref={box} className={`space-y-2 p-3.5 ${linked ? "rounded-xl ring-2 ring-primary/30" : ""}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium leading-snug text-foreground">
+            {firstLine(p.caption, 110) || "No caption"}
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {capitalize(formatWord(platform, p.format))} · {shortDate(p.postedAt)}
+          </p>
+        </div>
+        {p.ratio !== null && (
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${
+              breakout ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {times(p.ratio)} your usual
+          </span>
+        )}
+      </div>
+      {pick && (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          <span className="font-medium text-foreground">Remix idea:</span> {pick.newAngle}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {/* Leo's Remix button remembers the post on press, so the sheet resolves its audit: key */}
+        <RemixButton source={fromAuditPost(p, platform, handle)} note={pick && `Angle for the new version: ${pick.newAngle}`}>
+          <Button asChild size="sm" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5">
+            <Link to={remixUrl(p, platform, handle, pick?.newAngle)}>
+              <Wand2 className="h-3.5 w-3.5" /> Remix this
+            </Link>
+          </Button>
+        </RemixButton>
+        <Button asChild size="sm" variant="ghost" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5 text-muted-foreground">
+          <a href={p.url} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="h-3.5 w-3.5" /> View post
+          </a>
+        </Button>
+        <CopyLinkButton path={links.analytics({ audit: auditKey(platform, p) })} label="Copy link to this post" className="ml-auto" />
+      </div>
+    </li>
   );
 }
 
@@ -1037,7 +1066,7 @@ function RatioChart({ platform, posts }: { platform: AuditPlatform; posts: Rated
   );
 }
 
-function WeakPosts({ stats, byId }: { stats: AuditStats; byId: Map<string, RatedPost> }) {
+function WeakPosts({ platform, stats, byId }: { platform: AuditPlatform; stats: AuditStats; byId: Map<string, RatedPost> }) {
   const weak = stats.weakIds
     .map((id) => byId.get(id))
     .filter((p): p is RatedPost => p !== undefined)
@@ -1062,6 +1091,7 @@ function WeakPosts({ stats, byId }: { stats: AuditStats; byId: Map<string, Rated
                 {times(p.ratio)} your usual
               </span>
             )}
+            <CopyLinkButton path={links.analytics({ audit: auditKey(platform, p) })} label="Copy link to this post" className="-my-2" />
           </li>
         ))}
       </ul>
