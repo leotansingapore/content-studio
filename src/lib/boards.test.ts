@@ -105,6 +105,10 @@ describe("the store", () => {
     expect(web.item.key).toMatch(/^link:web:[0-9a-f]{12}$/);
     expect(await b.saveLink("u1", "see https://example.com/a", "")).toMatchObject({ ok: false, reason: "duplicate" });
     expect(stored().items).toHaveLength(2);
+    // a top post already saved from /swipe, pasted again as its Instagram link: a different key, the same post
+    ok(b.addItem("u1", b.toBoardItem({ key: "top:mrbrown-ABCdef123", kind: "top-post", platform: "instagram", url: "https://www.instagram.com/p/ABCdef123/", remixedAt: "" })));
+    expect(await b.saveLink("u1", "https://instagram.com/p/ABCdef123", "")).toMatchObject({ ok: false, reason: "duplicate", existing: { key: "top:mrbrown-ABCdef123" } });
+    expect(stored().items).toHaveLength(3);
     expect(await b.saveLink("u1", "nothing here", "")).toEqual({ ok: false, reason: "bad" });
     expect(callFn).not.toHaveBeenCalled();
   });
