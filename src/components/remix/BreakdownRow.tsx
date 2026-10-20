@@ -10,7 +10,7 @@ import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { hookFormula } from "@/lib/hookFormulas";
 import { scoped } from "@/lib/profiles";
-import { ensureTeardown, localTeardown, readsVideo, teardownError, teardownFooter, type Teardown } from "@/lib/remixTeardown";
+import { TEARDOWN_COPY, ensureTeardown, localTeardown, readsVideo, teardownError, teardownFooter, type Teardown } from "@/lib/remixTeardown";
 import type { RemixSource } from "@/lib/remixSource";
 
 const LABEL = "pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
@@ -56,9 +56,14 @@ export default function BreakdownRow(p: { userId: string; source: RemixSource; t
     );
   }, [userId, source, text, shownFor]);
 
+  const noneLeft = left("remix-teardown") === 0;
   useEffect(() => {
-    if (open && !teardown && phase === "idle") load();
-  }, [open, teardown, phase, load]);
+    if (!open || teardown || phase !== "idle") return;
+    if (!noneLeft) return load();
+    // The chip already reads "None left today", so say so without a call the server would refuse.
+    setError({ text: TEARDOWN_COPY.capped, retry: false });
+    setPhase("failed");
+  }, [open, teardown, phase, load, noneLeft]);
 
   // A fresh reel read can take up to 55 s, so the loading line says so after 5 s.
   useEffect(() => {
