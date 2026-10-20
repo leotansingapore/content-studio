@@ -45,6 +45,8 @@ const HookBank = lazy(() => import("@/components/swipe/HookBank"));
 const ALL = getAllTopPosts();
 const AVERAGES = buildCreatorAverages(ALL);
 const ENRICHED: ScoredPost[] = ALL.map((post) => ({ post, insight: enrich(post, AVERAGES) }));
+// Leo's labels prefer Jev's tags from the drop (angle and topic cut measured at 0.5); everyone else keeps the keyword rules.
+const tagged = (): ScoredPost[] => ALL.map((post) => ({ post, insight: enrich(post, AVERAGES, { useTags: true }) }));
 const ADVISOR_COUNT = new Set(ALL.map((p) => p.handle)).size;
 
 const FORMAT_CHIPS = [
@@ -123,7 +125,8 @@ export default function SwipeFilePage() {
   const [tab] = useUrlState<Tab>("tab", "posts", {
     allowed: [...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["foryou", "search", "hooks"] as const) : [])],
   });
-  const enriched = ENRICHED;
+  const isLeo = Boolean(leo);
+  const enriched = useMemo(() => (isLeo ? tagged() : ENRICHED), [isLeo]);
   // Leo's six tabs scroll sideways on a phone: keep the open one in view (the bar only, never the page)
   const tabsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
