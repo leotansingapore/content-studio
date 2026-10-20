@@ -171,7 +171,7 @@ export const links = {
       formula: o.formula !== "all" && o.formula,
       ad: o.ad,
     })}`,
-  /** Leo's views (search, hashtags; kits is the default, left out): show filters search, topic and tag open a drawer (push). */
+  /** view: Leo's search and hashtags views (kits is the default, left out); show filters the search view; topic and tag open a drawer (push). */
   trends: (
     o: { platform?: string; type?: string; trend?: string; view?: "kits" | "search" | "hashtags"; show?: "rising" | "gap"; topic?: string; tag?: string } = {},
   ) =>
