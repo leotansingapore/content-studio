@@ -474,6 +474,8 @@ export default function CalendarPage() {
     for (const g of m.values()) g.items.sort((a, b) => Number(b.changes) - Number(a.changes));
     return [...m.values()];
   }, [visibleWaiting]);
+  // A brand's waiting posts on the board: All when one needs changes, since the default Review chip hides those.
+  const groupHref = (g: (typeof waitingGroups)[number]) => links.reels({ brand: g.brand, stage: g.items.some((w) => w.changes) ? "all" : undefined });
 
   // Coverage: everything dated under the current filters, reduced to business, day and posted or not.
   // Repeats count as planned; skipped team posts don't.
@@ -501,13 +503,6 @@ export default function CalendarPage() {
       business: shown.find((b) => b.key === r.business)?.label ?? r.business,
     }));
   }, [coverItems, bizFilter.businesses, bizOn, todayKey]);
-  // Reels waiting per business, and its board brand id, for "Review" links that open the board on that brand.
-  const waitingBy = useMemo(() => {
-    const m = new Map<string, { brand: string; count: number }>();
-    for (const w of waiting) m.set(businessKey(w.business), { brand: w.brand, count: (m.get(businessKey(w.business))?.count ?? 0) + 1 });
-    return m;
-  }, [waiting]);
-
   // Needs you: team posts waiting for approval and reels nobody posts unless Leo does.
   const teamToApprove = useMemo(
     () =>
@@ -1546,7 +1541,7 @@ export default function CalendarPage() {
           {waitingGroups.map((g) => (
             <Link
               key={g.business}
-              to={links.reels({ brand: g.brand, stage: g.items.some((w) => w.changes) ? "all" : undefined })}
+              to={groupHref(g)}
               className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
             >
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
@@ -1640,17 +1635,11 @@ export default function CalendarPage() {
           {runningOut.length > 0 && (
             <ul className="space-y-1" aria-label={`Running out in the next ${COVER_DAYS / 7} weeks`}>
               {runningOut.map((r) => {
-                const w = waitingBy.get(businessKey(r.business));
                 const mine = businessKey(r.business) === businessKey(profileName);
                 return (
                   <li key={r.business} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">{r.business}</span>
                     <span>{r.last ? `planned to ${dayLabel(r.last)}, then nothing` : `nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
-                    {w && (
-                      <Link to={links.reels({ brand: w.brand })} className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
-                        {w.count} post{w.count > 1 ? "s" : ""} waiting for review
-                      </Link>
-                    )}
                     {mine && (
                       <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
                         Write a post
@@ -1770,7 +1759,7 @@ export default function CalendarPage() {
                         {g.items.slice(0, 3).map((w) => (
                           <Link
                             key={w.id}
-                            to={links.reels({ card: w.id })}
+                            to={links.reels({ card: w.id, brand: w.brand })}
                             className="block rounded-md px-1.5 py-1.5 text-xs text-foreground hover:bg-muted/60 [@media(pointer:coarse)]:py-2.5"
                           >
                             <span className="line-clamp-2">{w.title}</span>
@@ -1785,7 +1774,7 @@ export default function CalendarPage() {
                         ))}
                         {g.items.length > 3 && (
                           <Link
-                            to={links.reels({ brand: g.brand })}
+                            to={groupHref(g)}
                             className="block px-1.5 py-1 text-[11px] font-semibold text-primary hover:underline [@media(pointer:coarse)]:py-2.5"
                           >
                             +{g.items.length - 3} more on the board

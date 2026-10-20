@@ -28,6 +28,9 @@ describe("links", () => {
     );
     expect(links.reels({ stage: "review" })).toBe("/reels");
     expect(links.reels({ stage: "notes" })).toBe("/reels?stage=notes");
+    // the Calendar's waiting-post links: All when one needs changes, and a post carries its own brand
+    expect(links.reels({ brand: "finternship", stage: "all" })).toBe("/reels?brand=finternship&stage=all");
+    expect(links.reels({ card: "c9", brand: "radiant" })).toBe("/reels?brand=radiant&card=c9");
     expect(links.board({ business: "moneybees", feed: "f1" })).toBe("/board?business=moneybees&feed=f1");
     expect(links.plan({ view: "setup", competitor: "@leo" })).toBe("/plan?view=setup&competitor=%40leo");
   });
