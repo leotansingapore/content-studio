@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { priceOf, reasonText, sumPrices } from "@/lib/prices";
+import { priceOf, reasonText, sumPrices, type Price } from "@/lib/prices";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import BrollSheet from "@/components/BrollSheet";
 import { aiBrollOn, brollJob, dismissBrollJob, onBrollJob, running as isRunning, startAutoBroll, stopBrollJob, type BrollJob, type Orientation } from "@/lib/autoBroll";
 import { MAX_BROLL, editedSentences, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
+import { DAILY_LIMITS } from "../../supabase/functions/_shared/usageCaps.ts";
 
 export default function AutoBroll({ userId, projectId, settings, words, segs, total, speed, apply, seek }: {
   userId: string;
@@ -39,9 +40,11 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
   const aiLeft = usesLeft("ai-broll");
   // with AI clips on (start() sends them only while some are left), a run spends from both caps
   const withAi = aiOffered && ai && aiLeft !== 0;
-  const least = withAi && left !== null && aiLeft !== null ? Math.min(left, aiLeft) : left;
-  const why = reasonText({ left: least, leo: useLeoOnly() });
+  const why = reasonText({ left, leo: useLeoOnly() });
   const existing = settings.broll ?? [];
+  // one AI clip for each line stock had nothing for, until the AI clips or the B-roll room run out (autoBroll.ts): a ceiling
+  const aiMost = Math.max(0, Math.min(aiLeft ?? DAILY_LIMITS["ai-broll"], MAX_BROLL - existing.length));
+  const runPrice = withAi ? sumPrices(priceOf("broll-picks"), { usd: (priceOf("ai-broll") as Price).usd * aiMost, kind: "upTo" }) : undefined;
   const orientation: Orientation = settings.aspect === "16:9" ? "landscape" : settings.aspect === "1:1" ? "square" : "portrait";
 
   const start = () =>
@@ -67,7 +70,7 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
         </Button>
         <InfoTip label="About B-roll for me">Puts a clip or a text card over each line a visual helps.</InfoTip>
         {!running && (
-          <PriceChip feature="broll-picks" price={withAi ? sumPrices(priceOf("broll-picks"), priceOf("ai-broll")) : undefined} left={least}
+          <PriceChip feature="broll-picks" price={runPrice} left={left}
             fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />
         )}
       </div>
