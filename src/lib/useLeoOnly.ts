@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { leoOnly } from "@/lib/leoOnly";
-import { supabase } from "@/lib/supabase";
+import { SUPABASE_URL, supabase } from "@/lib/supabase";
 
 export interface LeoUser {
   id: string;
@@ -28,9 +28,24 @@ function devAsLeo(): boolean {
   }
 }
 
+const asLeo = (u: { id?: string; email?: string } | undefined): LeoUser | null =>
+  u?.id && (leoOnly(u.email) || devAsLeo()) ? { id: u.id, email: u.email ?? "" } : null;
+
+// The session supabase-js keeps on this device (its default storage key), read without the auth lock. getSession
+// can take a second or more on load, and Leo's cards would show today's link until then and jump to Remix.
+function storedLeo(): LeoUser | null | undefined {
+  try {
+    const raw = globalThis.localStorage?.getItem(`sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`);
+    const user = raw ? JSON.parse(raw)?.user : undefined;
+    return user?.id ? asLeo(user) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 let pending: Promise<LeoUser | null | undefined> | null = null;
-// The last answer, so a hook mounted after the first read paints the right state on its first frame.
-let known: LeoUser | null | undefined;
+// The last answer, so a hook paints the right state on its first frame: the stored session's until getSession confirms.
+let known: LeoUser | null | undefined = storedLeo();
 let watching = false;
 
 function readLeo(): Promise<LeoUser | null | undefined> {
@@ -44,8 +59,7 @@ function readLeo(): Promise<LeoUser | null | undefined> {
   }
   const read = () =>
     supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user;
-      known = u && (leoOnly(u.email) || devAsLeo()) ? { id: u.id, email: u.email ?? "" } : null;
+      known = asLeo(data.session?.user);
       return known;
     });
   // A read that loses the auth lock to another call on page load is not an answer: answering null there drops
