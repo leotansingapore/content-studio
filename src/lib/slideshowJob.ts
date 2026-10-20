@@ -91,17 +91,18 @@ export function onSlideshowJob(fn: (j: SlideshowJob | null) => void): () => void
 /** Clears a finished or failed run; a running one stays. */
 export const clearSlideshowJob = () => void (job && !slideshowBusy() && set(null));
 
-export function failure(e: unknown): Pick<SlideshowJob, "error" | "refused"> {
+/** A failed make call in the adviser's words; `fallback` is the format's own "couldn't write" line. */
+export function failure(e: unknown, fallback = WRITE_FAILED): Pick<SlideshowJob, "error" | "refused"> {
   if (e instanceof EdgeError) {
     if (e.status === 422) return { error: e.message, refused: true };
     // the server's own words: the daily limit, not switched on, a topic too long
     if (e.code === "daily_limit" || e.code === "usage_unavailable" || e.status === 400 || e.status === 403) return { error: e.message };
   }
-  return { error: WRITE_FAILED };
+  return { error: fallback };
 }
 
-/** The make call: the source's words read on this device, or the topic, with this brand and voice. */
-export function makeBody(userId: string, a: SlideshowAsk): MakeRequest {
+/** The make call: the source's words read on this device, or the topic, with this brand and voice. The wall of text (wallJob.ts) sends the same body as "wall". */
+export function makeBody(userId: string, a: Pick<SlideshowAsk, "source" | "topic" | "mention" | "note" | "size">, as: "slideshow" | "wall" = "slideshow"): MakeRequest {
   const s = a.source;
   const t = s ? localTeardown(userId, s) : null;
   // no breakdown on this device: the snapshot's own idea stands in (a swipe carousel's idea.hook, format and why)
@@ -113,7 +114,7 @@ export function makeBody(userId: string, a: SlideshowAsk): MakeRequest {
       : undefined;
   return {
     mode: "make",
-    as: "slideshow",
+    as,
     ...(s
       ? { source: { key: s.key, kind: s.kind, format: s.format, platform: s.platform, title: s.title, author: s.author, url: s.url, text: fullText(s, userId) } }
       : { topic: a.topic.trim() }),
