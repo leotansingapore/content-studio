@@ -1,0 +1,2526 @@
+{
+  "category": "AI remix, format library and AI UGC/influencer tools",
+  "researched_at": "2026-10-19",
+  "competitors": [
+    {
+      "name": "Fastlane",
+      "url": "https://usefastlane.ai",
+      "pricing": "Two published tables conflict (USD). Homepage: Starter $20/mo (struck $29) 500 credits, Growth $55 (struck $79) 2,000 credits, Pro $139 (struck $199) 10,000 credits, Enterprise $699 (struck $999) 50,000 credits, yearly saves 30%; static = 5 credits, video = 60 credits; 7-day trial with 50 credits. /pricing page: Free $0 (10 AI Studio credits), Starter $29 (250), Growth $49 (500), Pro $149 (2,000). Add-on: warmed TikTok/IG accounts $100/mo each + $1.50 per upload.",
+      "positioning": "Autonomous AI marketing agent (Senna) that learns your brand from a URL, researches competitors, generates remixed ads and organic posts, publishes and learns from results.",
+      "audience": "Mobile apps, SaaS, Shopify/e-commerce, dropshipping, TikTok Shop, marketing agencies.",
+      "sources": [
+        "https://usefastlane.ai",
+        "https://usefastlane.ai/pricing",
+        "https://usefastlane.ai/tools",
+        "https://www.martech360.com/news/stack-platforms/fastlane-launches-ai-marketing-platform-that-researches-creates-and-runs-campaigns-end-to-end",
+        "https://kompozy.io/reviews/fastlane"
+      ]
+    },
+    {
+      "name": "Sandcastles",
+      "url": "https://www.sandcastles.ai/",
+      "pricing": "USD. Starter $5/mo (new accounts only, 10 credits), Pro $49/mo or $39/mo yearly (100 credits), Visionary $99 or $79 yearly (250), Titan $499 or $399 yearly (1,500). Credit boosts on Pro+ never expire.",
+      "positioning": "Research top channels, find viral outliers and remix them into your own short-form scripts.",
+      "audience": "Short-form creators, personal brands, agencies (Titan guest workspaces).",
+      "sources": [
+        "https://www.sandcastles.ai/",
+        "https://help.sandcastles.ai/plans",
+        "https://help.sandcastles.ai/credits-v3"
+      ]
+    },
+    {
+      "name": "Blotato",
+      "url": "https://www.blotato.com/",
+      "pricing": "USD. Starter $29/mo (1,250 AI credits, 20 social accounts), Creator $97/mo (5,000 credits, 40 accounts), Agency $499/mo (28,000 credits). Annual saves ~17%. 7-day trial (60 credits). Credit packs $6 per 1,000, roll over.",
+      "positioning": "Unified social media API + MCP plus a web app that remixes viral posts and sources into posts, visuals and AI video, then schedules to 9 platforms.",
+      "audience": "Solo creators, automation builders (n8n/Make/Claude), agencies running multiple brands.",
+      "sources": [
+        "https://www.blotato.com/",
+        "https://www.blotato.com/pricing",
+        "https://help.blotato.com/settings/billing-and-credits.md"
+      ]
+    },
+    {
+      "name": "Arcads",
+      "url": "https://www.arcads.ai/",
+      "pricing": "Prices only in-app. Credits/mo: Starter 8,000, Creator 16,000, Pro 48,000, Scale 96,000, Business 192,000, Enterprise custom; yearly 20% off; rollover only Pro+. 72-hour trial with 1,000 credits (card required). Third-party (Creatify blog, unverified): Starter $110, Creator $220, Pro $550 list.",
+      "positioning": "AI UGC video ads with 1,000+ AI actors, an ad agent (Mark), competitor ad cloning and workflows.",
+      "audience": "Performance marketers, e-commerce, apps, lead-gen, agencies; also insurance, real estate, law firm industry pages.",
+      "sources": [
+        "https://www.arcads.ai/",
+        "https://help.arcads.ai/en/articles/17595066-how-does-arcads-pricing-work",
+        "https://help.arcads.ai/en/articles/13725589-how-are-credits-counted",
+        "https://creatify.ai/blog/arcads-pricing-(2026)-plans-credits-and-what-you-ll-actually-pay"
+      ]
+    },
+    {
+      "name": "Creatify",
+      "url": "https://creatify.ai/",
+      "pricing": "USD monthly (annual -20%): Free 10 credits; Standard $15 ($12) 55 credits; Pro $55 ($44) 280; Max $95 ($76) 730; Business $195 ($156) 1,500+; Enterprise custom; API Starter $99 (500 API credits), API Pro $299 (2,000). Credits expire after 2 months.",
+      "positioning": "End-to-end AI ad platform: URL-to-video, Ad Clone, AI avatars, creative agent, competitor tracker, launch and performance agent.",
+      "audience": "E-commerce brands, apps, agencies running paid social.",
+      "sources": [
+        "https://creatify.ai/",
+        "https://creatify.ai/pricing"
+      ]
+    },
+    {
+      "name": "MakeUGC",
+      "url": "https://www.makeugc.ai/",
+      "pricing": "USD per month billed yearly: Starter $29 (500 credits), Growth $39 (1,000 + 200 promo), Pro $79 (2,000-5,000 + 500 promo); monthly/quarterly cost more (annual -51%). $1 trial. Credits do not roll over. Seedance 2.5 pass $99/24h or $199/3 days.",
+      "positioning": "AI UGC ads with 1,000+ actors, product-in-hand, Ad Remake of winning ads and a proven-ad Content Library.",
+      "audience": "DTC/e-commerce brands, app marketers, agencies.",
+      "sources": [
+        "https://www.makeugc.ai/",
+        "https://www.makeugc.ai/pricing"
+      ]
+    },
+    {
+      "name": "HeyGen",
+      "url": "https://www.heygen.com/",
+      "pricing": "USD: Free $0 (3 videos/mo, 1 min), Creator $29/mo ($24 annual, 600 credits), Pro $49/mo (1,000 credits, tiers up to 100,000 credits at $4,300/mo), Business $149/mo + $20/seat (1,500 credits), Enterprise custom.",
+      "positioning": "Avatar video leader: Avatar V digital twins, Video Agent, UGC presenters, product placement and 175+ language translation.",
+      "audience": "Marketers, educators, sales and L&D teams, creators.",
+      "sources": [
+        "https://www.heygen.com/",
+        "https://www.heygen.com/pricing"
+      ]
+    },
+    {
+      "name": "Captions (incl. Mirage)",
+      "url": "https://www.captions.ai/",
+      "pricing": "USD: Free (no AI credits), Max $24.99/mo (500 credits), Frontier $69.99 (1,400), $139.99 (2,800), $279.99 (5,600), Enterprise custom. Credits roll over up to 3x the monthly allowance.",
+      "positioning": "AI video editor and AI twin/avatar app; Mirage Studio merged into Captions.",
+      "audience": "Creators and talking-head marketers on mobile and web.",
+      "sources": [
+        "https://www.captions.ai/",
+        "https://www.captions.ai/pricing"
+      ]
+    },
+    {
+      "name": "Hedra",
+      "url": "https://www.hedra.com/",
+      "pricing": "Studio plan prices not readable on the public page (unverified). API is a prepaid USD wallet; Character-3 at 2.5 cents/s (540p), 5 cents/s (720p), 6.25 cents/s (1080p).",
+      "positioning": "Agentic studio and API for character video (Character-3), with reusable skills, saved Elements and a model gateway.",
+      "audience": "Creators, agencies and developers building character/UGC video.",
+      "sources": [
+        "https://www.hedra.com/",
+        "https://www.hedra.com/studio",
+        "https://www.hedra.com/models/video/hedra/character-3",
+        "https://www.hedra.com/llms.txt"
+      ]
+    },
+    {
+      "name": "Revid.ai",
+      "url": "https://revid.ai/",
+      "pricing": "USD: Hobby $39/mo; Growth $39/mo (struck $99) or $32 annual, 2,000 credits, 3 Auto-Mode workers, 5 watched channels; Ultra $199 ($166 annual) 12,000 credits (up to 200k at $2,799), 10 workers, 50 channels, voice cloning. Boost packs 1,000 for $49 up to 100,000 for $1,900. ai-instructions page also names an Elite tier (conflict).",
+      "positioning": "Viral library of ~3M videos with one-click remix options, Auto-Mode workers and publishing to TikTok/IG/YouTube.",
+      "audience": "Faceless and short-form creators, brands, agencies.",
+      "sources": [
+        "https://revid.ai/",
+        "https://revid.ai/pricing",
+        "https://revid.ai/ai-instructions"
+      ]
+    },
+    {
+      "name": "Crayo",
+      "url": "https://www.crayo.ai/",
+      "pricing": "USD billed yearly: Hobby $13/mo ($160/yr) 250 workflow credits, 2h export; Clipper $27 ($327/yr) 1,000 credits, 10h; Pro $55 ($664/yr) 3,000 credits, 30h. No refunds.",
+      "positioning": "Clipping and faceless-format generator (Reddit stories, fake texts, auto clips) with AI voice and subtitles.",
+      "audience": "Faceless channels, clippers, streamers, brainrot channels, agencies.",
+      "sources": [
+        "https://www.crayo.ai/",
+        "https://www.crayo.ai/pricing"
+      ]
+    },
+    {
+      "name": "ReelFarm",
+      "url": "https://reel.farm/",
+      "pricing": "USD: Growth $49/mo (100 slideshows, 10 formats), Scale $95/mo (250, 20 formats), Enterprise $195/mo (750, 200 formats, bring your own Anthropic key for unlimited generations). Unlimited TikTok accounts and team members.",
+      "positioning": "Automated TikTok slideshow factory that generates and auto-publishes daily.",
+      "audience": "App founders and faceless marketers driving TikTok traffic.",
+      "sources": [
+        "https://reel.farm/"
+      ]
+    },
+    {
+      "name": "Viral.app",
+      "url": "https://viral.app/",
+      "pricing": "USD: Pro $99/mo (1,000 tracked videos, 10 creators), Ultra $299 (5,000, 50 creators, API), Scale $499 (20,000, 500 creators), Enterprise custom, full-service from $20k/mo. 3% payout fee. 7-day trial.",
+      "positioning": "Organic creator-marketing OS: track any account, viral UGC library, campaigns and creator payouts.",
+      "audience": "Brands and apps running UGC creator programs.",
+      "sources": [
+        "https://viral.app/"
+      ]
+    },
+    {
+      "name": "Virlo",
+      "url": "https://virlo.ai/",
+      "pricing": "USD: Starter $49/mo (2,000 credits), Pro $199/mo (12,000 credits), Enterprise custom. 7-day trial.",
+      "positioning": "Social listening for TikTok, Shorts and Reels: research agents, outlier detection, Meta ads intel, content studio.",
+      "audience": "Agencies, brands, creators doing trend research.",
+      "sources": [
+        "https://virlo.ai/",
+        "https://virlo.ai/features"
+      ]
+    },
+    {
+      "name": "TopView.ai",
+      "url": "https://www.topview.ai/",
+      "pricing": "USD annual: Plus $36/mo (100 credits/mo), Business $44/mo (3,000 credits/yr upfront), Ultra $50/mo (500/mo), Team $56/seat (500/seat/mo), Enterprise custom; plus unlimited-model passes (e.g. Seedance 2.5 $3.6/30s).",
+      "positioning": "AI video agent for marketing: URL-to-video, reference video recreation, product avatars, UGC ads, canvas.",
+      "audience": "E-commerce sellers, marketers, small teams.",
+      "sources": [
+        "https://www.topview.ai/",
+        "https://www.topview.ai/pricing"
+      ]
+    },
+    {
+      "name": "Icon",
+      "url": "https://icon.com/",
+      "pricing": "6 Human UGC ads: $0 today, $1,000/mo after 3 days (2 creators x 3 ads). Creative Director custom; Agency whitelabel volume pricing.",
+      "positioning": "icon.me now redirects to icon.com: Admaker 2.0 for human UGC ads with a curated 18-format library, AdGPT briefs and Context Engine.",
+      "audience": "DTC brands buying UGC ads; agencies (whitelabel).",
+      "sources": [
+        "https://icon.com/",
+        "https://icon.com/formats"
+      ]
+    },
+    {
+      "name": "Genviral",
+      "url": "https://genviral.io",
+      "pricing": "USD: Creator $29/mo, Professional $49, Business $99, Scale $199; annual ~17% off. Credit amounts not stated. Hosted accounts add-on ($450/mo for five per Fastlane, unverified).",
+      "positioning": "AI social media manager with viral library, video cloner, slideshow factory, hosted real-device accounts and 10-platform publishing.",
+      "audience": "Apps, brands and agencies running organic TikTok/IG at volume.",
+      "sources": [
+        "https://genviral.io",
+        "https://github.com/fdarkaou/genviral-skill",
+        "https://usefastlane.ai/alternatives/reelfarm-alternatives"
+      ]
+    },
+    {
+      "name": "Bluma",
+      "url": "https://www.getbluma.com",
+      "pricing": "Per Fastlane comparison (unverified): Starter $36/mo or $29 annual (4,050 tokens), Pro $99 or $79 annual (11,880 tokens), Enterprise custom. No free plan.",
+      "positioning": "YC-backed AI ads editor that de-edits a TikTok/IG/Meta ad from a URL and rebuilds variants.",
+      "audience": "Agencies and brands making paid-ad variant matrices.",
+      "sources": [
+        "https://www.getbluma.com",
+        "https://usefastlane.ai/compare/fastlane-vs-bluma"
+      ]
+    },
+    {
+      "name": "Superscale",
+      "url": "https://superscale.ai/",
+      "pricing": "Not shown on site. Per Fastlane pricing page (unverified): Advanced $99/mo (8,000 credits), Pro $199 (16,000), Scale $399 (32,000), Enterprise from $799; 5-day trial.",
+      "positioning": "Agentic marketing OS for paid ads: research, creative strategy, static/video/AI UGC generation, compliance, analysis.",
+      "audience": "Marketing teams, freelancers and agencies on Meta and Google.",
+      "sources": [
+        "https://superscale.ai/",
+        "https://usefastlane.ai/pricing"
+      ]
+    }
+  ],
+  "features": [
+    {
+      "competitor": "Fastlane",
+      "feature": "Senna agent loop",
+      "area": "agent",
+      "detail": "Agent named Senna runs a 5-stage loop shown on the homepage: Learn your brand -> Research the market -> Create -> Launch -> Learn, then 'Lap again'. Results from Learn feed the next Create batch.",
+      "limits_or_cost": "",
+      "notable": "One named agent owns the whole pipeline; the loop framing ('Lap again') makes iteration the default.",
+      "sources": [
+        "https://usefastlane.ai",
+        "https://www.martech360.com/news/stack-platforms/fastlane-launches-ai-marketing-platform-that-researches-creates-and-runs-campaigns-end-to-end"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Brand learned from one URL",
+      "area": "brand",
+      "detail": "Input: one website URL. Output: brand profile (product, audience, tone). Homepage shows derived stats such as 'ads scanned', 'days, top ad', 'discount-led', 'no captions', 'organic posts'.",
+      "limits_or_cost": "",
+      "notable": "No brief needed; derived observations (e.g. 'discount-led', 'no captions') are shown back to the user as proof the agent understood the brand.",
+      "sources": [
+        "https://usefastlane.ai",
+        "https://usefastlane.ai/tools/ai-influencer-generator"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Market research: competitors and personas",
+      "area": "strategy",
+      "detail": "Studies competitors and customers. Shows audience personas (examples: Biohacker, Busy Professional, Fitness Lover), 'reviews read' and the rival's longest-running top ad ('day top rival ad').",
+      "limits_or_cost": "",
+      "notable": "Persona chips plus a 'top rival ad' card make research tangible before any content is made.",
+      "sources": [
+        "https://usefastlane.ai",
+        "https://kompozy.io/reviews/fastlane"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Named format library",
+      "area": "format-video",
+      "detail": "Formats named on the homepage: Chalkboard, Claymation, Baby podcast, Netflix doc, Competitor remix (example 'AG1 remix'), Car yapper, Breaking news, Meme, AI podcast, Papermation, Static, Trolley remix, Pills, Text on body, Winner variation.",
+      "limits_or_cost": "",
+      "notable": "Formats are named after recognisable viral genres, not technical types, so users pick by vibe.",
+      "sources": [
+        "https://usefastlane.ai"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Competitor ad remix",
+      "area": "remix",
+      "detail": "Homepage shows a competitor static ad (example AG1) remixed into the user's brand version. Mechanics (which elements are kept vs swapped) are not described publicly (unverified).",
+      "limits_or_cost": "",
+      "notable": "Competitor ad -> your brand version is shown as a first-class format, not a hidden tool.",
+      "sources": [
+        "https://usefastlane.ai"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Trending video remix library",
+      "area": "remix",
+      "detail": "Library of 25,000+ trending videos tagged by niche and performance. Flow: Paste your URL -> 'Pick trends to remix' (browse by niche and analytics) -> 'Generate and swipe' -> 'Schedule to TikTok'. Fastlane analyses structure, pacing, hook style and visual rhythm, then 'rebuilds the format around your product instead of copying the video'.",
+      "limits_or_cost": "",
+      "notable": "Explicitly rebuilds the structure rather than reposting, which avoids takedowns and puts the product in.",
+      "sources": [
+        "https://usefastlane.ai/tools/ai-tiktok-video-generator",
+        "https://usefastlane.ai/tools/ai-ugc-video-generator",
+        "https://usefastlane.ai/tools/ai-meme-generator"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Four URL-to-content formats",
+      "area": "format-video",
+      "detail": "From one URL Fastlane generates a batch across four formats: 'AI UGC videos' (talking creator), 'Slideshows' (photo carousel), 'Hook + demo videos' (text hook then product in use) and 'Memes'.",
+      "limits_or_cost": "Free plan: no card; paid from $29/mo (per tool pages)",
+      "notable": "One input fans out into several proven formats at once.",
+      "sources": [
+        "https://usefastlane.ai/tools/ai-tiktok-video-generator",
+        "https://usefastlane.ai/tools/ai-ugc-video-generator"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Blitz mode swipe approval",
+      "area": "compliance",
+      "detail": "Generated content is reviewed in 'Blitz mode' (also called 'Tinder mode'): swipe to approve or reject each video; 'Nothing publishes without your approval'. Included on the Free plan.",
+      "limits_or_cost": "Free plan includes Blitz",
+      "notable": "Swipe review is the approval gate; fast for batches and fits a compliance step for advisers.",
+      "sources": [
+        "https://usefastlane.ai/tools/ai-ugc-video-generator",
+        "https://usefastlane.ai/pricing",
+        "https://usefastlane.ai/tools/tiktok-scheduler"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "AI influencer generator",
+      "area": "ai-avatar",
+      "detail": "4 steps: 'Paste your website URL' -> 'Cast your AI influencer' (browse characters by look, age, vibe; 'the same face fronts every video') -> 'Generate a batch of videos' (hooks + scripts, talking-head UGC) -> 'Schedule and publish natively'.",
+      "limits_or_cost": "Starter 25 characters, Growth 500+, library 1,000+ (pages conflict); stock faces only, not your own face (Kompozy)",
+      "notable": "Consistent recurring face per brand builds recognition across posts.",
+      "sources": [
+        "https://usefastlane.ai/tools/ai-influencer-generator",
+        "https://usefastlane.ai/pricing",
+        "https://kompozy.io/reviews/fastlane"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Human UGC video library",
+      "area": "format-video",
+      "detail": "Library of 2,000+ real human UGC clips usable in generated videos alongside AI characters.",
+      "limits_or_cost": "Growth 100 human UGC videos, Pro 2,000+",
+      "notable": "Mixes real human clips with AI so output is not 100% synthetic.",
+      "sources": [
+        "https://usefastlane.ai/tools/ai-ugc-video-generator",
+        "https://usefastlane.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "TikTok slideshow maker",
+      "area": "format-carousel",
+      "detail": "Input URL -> each angle becomes a slideshow: hook slide, one idea per middle slide, closing product slide. Output in batches with a caption per platform and closing CTA (save on IG, follow on TikTok). Published natively as TikTok photo mode (played to a sound) and as an Instagram carousel from the same slides.",
+      "limits_or_cost": "Template names, slide counts and image sources not published",
+      "notable": "Same slides go to TikTok photo mode and IG carousel with platform-specific CTAs.",
+      "sources": [
+        "https://usefastlane.ai/tools/tiktok-slideshow-maker"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "AI meme generator",
+      "area": "format-image",
+      "detail": "Input URL -> memes about the product generated on formats pulled from the 25,000+ trending library -> Blitz approve -> schedule. Analytics show which memes drove profile visits, signups and sales.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://usefastlane.ai/tools/ai-meme-generator"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Hook generator (free tool + in-app)",
+      "area": "format-text",
+      "detail": "Free browser tool: 5 fields (Product, Audience, Pain, Outcome, Timeframe) -> '30 hook structures filled with your words', runs locally, Copy per line. 11 hook types: Story, Contrarian, Curiosity, Question, Number, Direct, Mistake, Result, Challenge, Secret, Reaction. In-app every hook becomes a hook + demo video, AI UGC clip, slideshow opener or meme; per-hook attribution of signups and sales.",
+      "limits_or_cost": "Free tool, no AI",
+      "notable": "Hooks are tested as real posts, not left as a list; a no-AI free tool doubles as an SEO lead magnet.",
+      "sources": [
+        "https://usefastlane.ai/tools/hook-generator"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Calendar scheduler",
+      "area": "calendar",
+      "detail": "One calendar for TikTok, Reels, Shorts and LinkedIn; schedule weeks ahead; same slot on every platform or staggered; 'Automations can fill an entire content calendar in one click'. UI labels: 'Connect your accounts', 'Fill the calendar', 'Set the times', 'Read the results'.",
+      "limits_or_cost": "Unlimited scheduling on Pro",
+      "notable": "One-click calendar fill from automations.",
+      "sources": [
+        "https://usefastlane.ai/tools/tiktok-scheduler",
+        "https://usefastlane.ai/compare/fastlane-vs-arcads"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Native organic + Meta paid publishing",
+      "area": "publishing",
+      "detail": "Organic: native publish to TikTok, Instagram Reels, YouTube Shorts, LinkedIn. Paid: Meta campaigns through the user's own Ads Manager; homepage status example 'Meta 30 ads live $5k/day'.",
+      "limits_or_cost": "Starter: 1 social account (homepage) or TikTok/IG/YT/LinkedIn (/pricing); Growth+ unlimited socials",
+      "notable": "Organic and paid in one calendar.",
+      "sources": [
+        "https://usefastlane.ai",
+        "https://usefastlane.ai/tools/tiktok-scheduler",
+        "https://kompozy.io/reviews/fastlane"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Learn: results vs account averages",
+      "area": "analytics",
+      "detail": "Reads thumbstop rate, ROAS, hold rate and CPA against account averages, saves winners to memory and auto-creates variations ('Winner found. 6 variations made.').",
+      "limits_or_cost": "",
+      "notable": "Winners automatically spawn variations: the remix loop closes on the user's own best posts.",
+      "sources": [
+        "https://usefastlane.ai",
+        "https://www.martech360.com/news/stack-platforms/fastlane-launches-ai-marketing-platform-that-researches-creates-and-runs-campaigns-end-to-end"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Per-post signup and sales attribution",
+      "area": "analytics",
+      "detail": "Unified analytics attribute signups and sales to each scheduled post, hook or meme, alongside engagement and the user's website analytics.",
+      "limits_or_cost": "Methodology not published (unverified)",
+      "notable": "Ties content to business outcomes, not just views.",
+      "sources": [
+        "https://usefastlane.ai/tools/tiktok-scheduler",
+        "https://usefastlane.ai/tools/hook-generator",
+        "https://usefastlane.ai/compare/fastlane-vs-arcads"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Warmed accounts marketplace",
+      "area": "publishing",
+      "detail": "Real US and EU TikTok and Instagram accounts created and warmed by humans in your niche, run inside Fastlane.",
+      "limits_or_cost": "$100/mo per account + $1.50 per post upload; needs active subscription",
+      "notable": "Raises platform-terms questions (Kompozy).",
+      "sources": [
+        "https://usefastlane.ai",
+        "https://usefastlane.ai/pricing",
+        "https://kompozy.io/reviews/fastlane"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Credits meter",
+      "area": "billing",
+      "detail": "Credits are the only meter: a static costs 5 credits, a video 60 (homepage). Plans also cap campaigns (1/5/20), social accounts (1/10/500) and workspaces (-/3/10).",
+      "limits_or_cost": "Homepage vs /pricing tables disagree on prices and credits",
+      "notable": "Simple 2-number cost model (static vs video) is easy to explain.",
+      "sources": [
+        "https://usefastlane.ai",
+        "https://usefastlane.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Workspaces and campaigns",
+      "area": "team",
+      "detail": "Workspaces per plan: Starter 1, Growth 3, Pro 10 (/pricing); campaigns per plan 1/5/20 (homepage).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://usefastlane.ai",
+        "https://usefastlane.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "API and MCP",
+      "area": "integrations",
+      "detail": "Developer docs at developers.usefastlane.ai with an API and an MCP section. Endpoint and tool names are not readable without JS (unverified).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://developers.usefastlane.ai/",
+        "https://usefastlane.ai"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Model catalog page",
+      "area": "editor",
+      "detail": "Public /models page lists 12 generation models: video (Vidu Q4, Gemini Omni, Sora 2 (discontinued), Veo 3.1, Kling 3.0, Kling 4.0, Wan 2.6, Grok Imagine, Seedance 2.5, MiniMax H3) and image (GPT Image 2.5, Seedream 5.0).",
+      "limits_or_cost": "No per-model credit costs published",
+      "notable": "",
+      "sources": [
+        "https://usefastlane.ai/models"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "AI labeling at publish",
+      "area": "compliance",
+      "detail": "Influencer page notes platform and regional AI-labeling rules vary and that Fastlane helps with labeling at publish time.",
+      "limits_or_cost": "Mechanism not described (unverified)",
+      "notable": "",
+      "sources": [
+        "https://usefastlane.ai/tools/ai-influencer-generator"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Free SEO tools",
+      "area": "onboarding",
+      "detail": "Free tools: engagement rate calculators (TikTok, Instagram), TikTok money calculator, TikTok profile template mockup, hook generator; each funnels to 'Try it free'.",
+      "limits_or_cost": "",
+      "notable": "Free tools act as top-of-funnel onboarding.",
+      "sources": [
+        "https://usefastlane.ai/tools"
+      ]
+    },
+    {
+      "competitor": "Fastlane",
+      "feature": "Managed service",
+      "area": "other",
+      "detail": "Done-for-you managed service offered through a 'Talk to us' form.",
+      "limits_or_cost": "Price not published",
+      "notable": "",
+      "sources": [
+        "https://usefastlane.ai",
+        "https://kompozy.io/reviews/fastlane"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Channel discovery, 4 search modes",
+      "area": "inspiration",
+      "detail": "Channels page modes: Suggested (similar to watchlist, 'More like this'), Describe (text description + Platform + Account size Nano..Mega), Search (handle/name, Exact vs Approximate matches), Add URL (paste many profile URLs, 'Parse', 'Add all', 'Failed to Parse').",
+      "limits_or_cost": "New channels count toward a monthly allowance (Pro 100, Visionary 150, Titan 250); Starter cannot add new channels",
+      "notable": "Describe-your-niche search finds competitors without knowing handles.",
+      "sources": [
+        "https://help.sandcastles.ai/channels-4-modes",
+        "https://help.sandcastles.ai/plans"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Watchlist feed across platforms",
+      "area": "inspiration",
+      "detail": "Track channels on Instagram, TikTok and YouTube Shorts in one watchlist dashboard; on-demand refresh interval by plan.",
+      "limits_or_cost": "Watchlist 50/150/250/250 channels per workspace; refresh 12h (Pro), 6h (Visionary), 1h (Titan)",
+      "notable": "",
+      "sources": [
+        "https://www.sandcastles.ai/",
+        "https://help.sandcastles.ai/plans"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Outlier score",
+      "area": "inspiration",
+      "detail": "Outlier score = video views vs the channel's median views over the 90 days before it was posted ('3x means three times the usual views'). Filters: Saved Filters, Channels, Keywords, Outlier score min/max, Views, Engagement % ((Likes+Comments)/Views), Posted in last N days/weeks/months/years, Platform. Sort: Saved recently, Newest (default), Oldest, Outlier score, Views, Engagement rate.",
+      "limits_or_cost": "",
+      "notable": "Normalising by the creator's own median makes small accounts' hits visible; this is the core of finding remixable content.",
+      "sources": [
+        "https://help.sandcastles.ai/videos"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Global vs watchlist browsing",
+      "area": "inspiration",
+      "detail": "'Browsing mode' toggles between your watchlist and 'Global Sandcastles' (database of millions of validated outliers). Global hides saved filters and channel filters.",
+      "limits_or_cost": "Global search on Pro+",
+      "notable": "",
+      "sources": [
+        "https://help.sandcastles.ai/videos",
+        "https://help.sandcastles.ai/plans",
+        "https://www.sandcastles.ai/"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Deep analyze to Ideas Inbox",
+      "area": "inspiration",
+      "detail": "Hover a video -> 'Analyze' (1 credit) -> idea lands in the Ideas Inbox, video gets a green 'Analyzed' label. 'Bulk Analyze' queues up to 100 videos, skipping already analyzed ones. 'Add video URL' analyzes any pasted video.",
+      "limits_or_cost": "1 credit per video; Bulk Analyze Pro+",
+      "notable": "Analysis is a paid unit, browsing is free.",
+      "sources": [
+        "https://help.sandcastles.ai/videos",
+        "https://help.sandcastles.ai/ideas"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Idea breakdown",
+      "area": "remix",
+      "detail": "Each idea shows: Your Notes, Content Positioning (distinct angle), Storytelling Format + 'Why it Works', Contrast Mechanism (common belief vs contrarian reality), Hook Alignment, and 'How to Personalize this Video for Your Content Niche' (3 adaptation ideas, needs Persona).",
+      "limits_or_cost": "",
+      "notable": "Structured teardown fields are exactly what a remix engine needs as input.",
+      "sources": [
+        "https://help.sandcastles.ai/ideas"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Ideas triage with shortcuts",
+      "area": "inspiration",
+      "detail": "Ideas Inbox actions: Shortlist, Discard, Go to Analysis, Turn into script. Keyboard: S, D, A, C, E, arrows. 'Discard all' has no confirmation and no undo. Export Inbox/Shortlist/All. Automation-created ideas carry a purple lightning icon.",
+      "limits_or_cost": "Exports Pro+",
+      "notable": "Inbox-zero triage of viral ideas.",
+      "sources": [
+        "https://help.sandcastles.ai/ideas"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Three script paths",
+      "area": "format-text",
+      "detail": "Scripts -> 'New Script': (1) Script from scratch (topic -> Continue), (2) Remix an existing idea (Ideas -> 'Create script'; topic, substance and writing style carried over), (3) 'Fix an existing script' (paste draft + requested changes).",
+      "limits_or_cost": "1 credit per new script incl. fix; edits free",
+      "notable": "",
+      "sources": [
+        "https://help.sandcastles.ai/scripts-3-paths",
+        "https://help.sandcastles.ai/credits-v3"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Remix script stages",
+      "area": "remix",
+      "detail": "Stages: Topic -> Research (editable or deletable, can use your own research) -> Hook (view example hooks, keep/edit/generate, select one) -> Script (changes highlighted yellow; choose 'Rewrite from scratch' or 'Edit script').",
+      "limits_or_cost": "",
+      "notable": "Staged flow with a hook-pick step before the body is written; diff highlighting shows what the AI changed.",
+      "sources": [
+        "https://help.sandcastles.ai/scripts-remix"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Persona (per workspace)",
+      "area": "brand",
+      "detail": "Fields autosave: Content description (5,000 chars, niche), Context (5,000 chars, business/expertise), Writing style (3,000 chars, paste a sample script only, no instructions). Shapes scripts, research and suggested channels.",
+      "limits_or_cost": "Pro+; guests view only",
+      "notable": "Voice is learned from a pasted sample, not adjectives.",
+      "sources": [
+        "https://help.sandcastles.ai/persona"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Hook templates",
+      "area": "format-text",
+      "detail": "Generate dozens of hooks in seconds from hook templates that have millions of views; MCP exposes working hook patterns as reusable templates.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.sandcastles.ai/",
+        "https://www.sandcastles.ai/mcp"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Content Strategy Audit reports",
+      "area": "analytics",
+      "detail": "Reports tab: 'Create report' -> type 'Content Strategy Audit' -> pick channels -> optional schedule (Just once / Every day / 7 / 30 days), analysis budget (min 15 videos), which videos (Most recent / Most views / Highest engagement / Biggest outliers), lookback, 'Exclude brand deals' (<2% engagement). Export JSON, Email, 'Continue with MCP'.",
+      "limits_or_cost": "Base report cost + 1 credit per newly analyzed video; Pro+",
+      "notable": "Recurring competitor audits delivered by email.",
+      "sources": [
+        "https://help.sandcastles.ai/reports"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Auto audit on verified account",
+      "area": "analytics",
+      "detail": "Verifying a social account auto-creates '@handle - Monthly Content Strategy Audit' (every 30 days, budget 15, starts paused). Personal Analytics Dashboard shows the latest audit.",
+      "limits_or_cost": "Verified accounts 1/3/5/20 by plan",
+      "notable": "",
+      "sources": [
+        "https://help.sandcastles.ai/reports",
+        "https://help.sandcastles.ai/plans"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Transcripts, projects, collections",
+      "area": "inspiration",
+      "detail": "Download the transcript of any video; organise winning ideas into Projects and Collections.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.sandcastles.ai/",
+        "https://help.sandcastles.ai"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "MCP connector",
+      "area": "integrations",
+      "detail": "Server https://mcp.sandcastles.ai/ for Claude, ChatGPT, Codex, Grok, Meta Muse, Hermes. Capability areas: Formats, Hooks, Competitors, Ideas, Topics, Breakdowns, Discovery, Watchlist, Scripts.",
+      "limits_or_cost": "Pro+; questions free, analysing a new video 1 credit; API on Titan only",
+      "notable": "",
+      "sources": [
+        "https://www.sandcastles.ai/mcp",
+        "https://help.sandcastles.ai/plans"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Credits and boosts",
+      "area": "billing",
+      "detail": "Plan credits 10/100/250/1,500 reset monthly (annual: every 30 days), no rollover. Boost credits bought in Settings > Subscription never expire and are spent after plan credits.",
+      "limits_or_cost": "Boosts not on Starter",
+      "notable": "",
+      "sources": [
+        "https://help.sandcastles.ai/credits-v3"
+      ]
+    },
+    {
+      "competitor": "Sandcastles",
+      "feature": "Workspaces and guests",
+      "area": "team",
+      "detail": "Workspaces 1/3/5/20 by plan, each with its own Persona and watchlist; guest access on Titan for agencies.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.sandcastles.ai/plans",
+        "https://help.sandcastles.ai/persona"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Inspiration remix",
+      "area": "remix",
+      "detail": "Tools > Inspiration -> click 'Remix' under a post -> Blotato generates an adapted version 'keeping the essence intact' -> add your own story/POV -> refine with Chat. Fallback: New Post, add the example as Text context, describe the adaptation.",
+      "limits_or_cost": "",
+      "notable": "One-click remix of a text post plus an explicit prompt to add personal experience.",
+      "sources": [
+        "https://help.blotato.com/web-app-features/inspiration/remix-posts.md"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Inspiration database controls",
+      "area": "inspiration",
+      "detail": "Inspiration section: Tutorial, Search Topics, Shuffle, Apply Filters, Find Influencers, Request Topics. Creator plan adds an 'unlimited database of viral posts'.",
+      "limits_or_cost": "Unlimited viral database on Creator ($97)",
+      "notable": "",
+      "sources": [
+        "https://help.blotato.com/web-app-features/inspiration.md",
+        "https://help.blotato.com/llms.txt",
+        "https://www.blotato.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Sources to content",
+      "area": "remix",
+      "detail": "Feed a YouTube link, TikTok, X post, article, PDF, audio file, raw text or a live Perplexity research query as Context; Blotato returns publish-ready content. YouTube extraction needs English captions.",
+      "limits_or_cost": "Unlimited sources and AI writing on all plans",
+      "notable": "Any URL becomes source material for a remix.",
+      "sources": [
+        "https://www.blotato.com/",
+        "https://help.blotato.com/web-app-getting-started/posts.md",
+        "https://www.blotato.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Multi-platform post generation",
+      "area": "format-text",
+      "detail": "Older Remix screen: platform checkboxes choose draft formats (not accounts), up to 5 posts per generation, 'Generate Post'. AI Agent: 'Write posts about...' box, Chat revisions, 'New draft'.",
+      "limits_or_cost": "Up to 5 posts per generation",
+      "notable": "",
+      "sources": [
+        "https://help.blotato.com/web-app-getting-started/posts.md"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Visual template catalog",
+      "area": "format-carousel",
+      "detail": "Templates: Product Scene Placement, Image Slideshow with Text Overlays, Instagram Carousel Slideshow, Quote Card (Monocolor / Paper Background and Highlight), Tweet Card (Minimal / Photo-Video Background), Tutorial Carousel (Minimalist Flat / Monocolor), Image Slideshow with Prominent Text, When X then Y Text Slideshow, Video of Images and Text, Combine Clips and Apply Basic Edits, Single Centered Text Quote.",
+      "limits_or_cost": "Image/video credits per generation",
+      "notable": "",
+      "sources": [
+        "https://help.blotato.com/llms.txt",
+        "https://help.blotato.com/web-app-features/videos.md"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Infographic art-style templates",
+      "area": "format-image",
+      "detail": "Art-style infographic templates: TV Wall, Newspaper, Breaking News, Movie Theater, Graffiti Mural, Bus Ad, Billboard, Classroom Chalkboard, Whiteboard, Chalkboard, Trail Marker, Constellation, Manga Panel, T-Shirt, Futuristic Flyer, Book Page, Steampunk, Top Secret, Egyptian Hieroglyph, Cave Painting.",
+      "limits_or_cost": "",
+      "notable": "Scene-based infographics (text placed on a billboard, newspaper, chalkboard) are cheap, distinctive formats.",
+      "sources": [
+        "https://help.blotato.com/llms.txt",
+        "https://www.blotato.com/"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "AI avatar and selfie video templates",
+      "area": "ai-avatar",
+      "detail": "Templates 'AI Avatar with AI Generated B-roll', 'AI Selfie Talking Video with Consistent Character' and 'AI Video with AI Voice'; also posts video made in HeyGen, Veo or Sora.",
+      "limits_or_cost": "Voice clone not mentioned",
+      "notable": "",
+      "sources": [
+        "https://help.blotato.com/llms.txt",
+        "https://help.blotato.com/web-app-features/videos.md",
+        "https://www.blotato.com/"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Brand Kit",
+      "area": "brand",
+      "detail": "Settings > My Brand: Language, Brand name, Website; 'What products or services do you offer?', 'Describe your ideal customers', 'Where are your customers located?'; 'What do you post about?'; Brand Visuals (images up to 10MB) and Brand Documents (PDF/decks up to 25MB). Multiple brands with a Primary. 'Use brand kit' toggle on visual generation, off by default.",
+      "limits_or_cost": "",
+      "notable": "Brand selector on the AI Agent sidebar switches brand context per draft.",
+      "sources": [
+        "https://help.blotato.com/settings/brand-kit.md"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Scheduling with recurring slots",
+      "area": "calendar",
+      "detail": "Post now, at a timestamp, or 'Next free slot time'; recurring weekly slots per platform and per account; calendar with timezone.",
+      "limits_or_cost": "",
+      "notable": "Slot-based queue so agents and humans just say 'next slot'.",
+      "sources": [
+        "https://www.blotato.com/",
+        "https://help.blotato.com/web-app-getting-started/posts.md",
+        "https://help.blotato.com/llms.txt"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Publishing to 9 platforms",
+      "area": "publishing",
+      "detail": "X, LinkedIn, Facebook, Instagram, TikTok, YouTube, Threads, Bluesky, Pinterest via one create_post call; First Comment support.",
+      "limits_or_cost": "Starter 20 accounts, Creator 40; up to 900 TikTok posts/mo on Starter",
+      "notable": "",
+      "sources": [
+        "https://www.blotato.com/",
+        "https://www.blotato.com/pricing",
+        "https://help.blotato.com/llms.txt"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Comments and DM inbox",
+      "area": "engagement",
+      "detail": "Read comment and conversation lists, open threads, post replies and send DMs from the app or API.",
+      "limits_or_cost": "Active contacts/mo: 1,000 / 6,000 / 15,000",
+      "notable": "",
+      "sources": [
+        "https://www.blotato.com/",
+        "https://www.blotato.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "DM automations",
+      "area": "engagement",
+      "detail": "Keyword triggers on comments or DMs, per post or account-wide, with triggered/completed/failed analytics.",
+      "limits_or_cost": "Instagram and Facebook only",
+      "notable": "Comment-keyword to DM is a lead capture path.",
+      "sources": [
+        "https://www.blotato.com/"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Analytics",
+      "area": "analytics",
+      "detail": "Top posts by views, likes or comments; per-post metrics with snapshot history; DM automation stats.",
+      "limits_or_cost": "8 platforms, not LinkedIn",
+      "notable": "",
+      "sources": [
+        "https://www.blotato.com/"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "API, MCP, n8n, Make",
+      "area": "integrations",
+      "detail": "Hosted MCP (Claude, ChatGPT, Cursor, Codex, Replit), REST at backend.blotato.com/v2 (POST /v2/posts with accountId, content, target, scheduledTime), official n8n and Make nodes.",
+      "limits_or_cost": "1,800 requests/hour; API not in trial",
+      "notable": "",
+      "sources": [
+        "https://www.blotato.com/",
+        "https://www.blotato.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Claude skills pack",
+      "area": "agent",
+      "detail": "Published Claude skills: content-coach, brand-brief, post-writer, post-grader, post-scheduler, repurpose, viral-hooks, generate.",
+      "limits_or_cost": "",
+      "notable": "Ships its workflow as agent skills so external agents run it.",
+      "sources": [
+        "https://help.blotato.com/llms.txt"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "AI credits and per-model costs",
+      "area": "billing",
+      "detail": "Credits cover AI images/video; writing unlimited; ElevenLabs voiceovers use no credits. Image-to-video per clip: framepack 55, kling 210, luma 170, runway gen3 85, minimax 170, veo2 835, veo3 1,250, veo3/fast 400; Gemini Omni Flash 35 credits/s (720p), 50/s (1080p). Cost shown above 'Regenerate'; charged only on success.",
+      "limits_or_cost": "Trial 60 credits; packs $6/1,000; credits roll over",
+      "notable": "Charge only on successful generation.",
+      "sources": [
+        "https://help.blotato.com/settings/billing-and-credits.md",
+        "https://help.blotato.com/web-app-features/videos/ai-video-credits.md"
+      ]
+    },
+    {
+      "competitor": "Blotato",
+      "feature": "Languages and voiceovers",
+      "area": "editor",
+      "detail": "58 languages, AI voices and captions, ElevenLabs voiceovers, multi-language video templates.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.blotato.com/pricing",
+        "https://help.blotato.com/llms.txt"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "AI actor library with written emotion",
+      "area": "ai-avatar",
+      "detail": "1,000+ AI actors; delivery controlled by writing it ('You have full emotion control. Just write how you want it', example 'Surprised'); Gestures feature for body language.",
+      "limits_or_cost": "Talking actors 800 credits per minute per actor, rounded up; Gesture preset 240",
+      "notable": "Emotion as free text instead of a dropdown.",
+      "sources": [
+        "https://www.arcads.ai/",
+        "https://help.arcads.ai/en/articles/13725589-how-are-credits-counted",
+        "https://help.arcads.ai/en/collections/7500987-how-to-use-arcads-platform"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Clone yourself into a talking actor",
+      "area": "ai-avatar",
+      "detail": "Record one continuous take of at least 2 min (2.5 min recommended), face fully visible, mouth never covered; send to Arcads; a custom model is trained on appearance and voice; then generate talking-head videos on demand.",
+      "limits_or_cost": "PRO plan only; 1,600 credits per video",
+      "notable": "Voice cloned from the same reference video, no separate step.",
+      "sources": [
+        "https://help.arcads.ai/en/articles/13239662-how-to-clone-yourself-into-a-talking-actor"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Custom actors holding your product",
+      "area": "format-video",
+      "detail": "Generate a face and 'make them hold your product, show your app, and wear your clothes'. Presets: Show Your App 200 credits, Unboxing POV 400, Product showcase 800, Fashion try-on 800, Camera movement 240.",
+      "limits_or_cost": "",
+      "notable": "Preset per ad trope with a fixed price.",
+      "sources": [
+        "https://www.arcads.ai/",
+        "https://help.arcads.ai/en/articles/13725589-how-are-credits-counted"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Competitor ad research and cloning",
+      "area": "remix",
+      "detail": "Add competitors to a brand -> ads synced from Meta Ad Library, stored and analysed; sort by spend, impressions, running time, advertiser. Save proven ads as 'Winning ads' (broken into a reusable structure). Ask Mark to recreate a winning/reference ad or analyse a Meta campaign and clone its top performer. Optional: 'Replace Actor', translate.",
+      "limits_or_cost": "Generations use credits; 'Misleading content is not allowed'",
+      "notable": "Winning ads are decomposed into a reusable structure before cloning.",
+      "sources": [
+        "https://help.arcads.ai/en/articles/17595003-competitor-ad-research-and-ad-cloning"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Clone skills for Claude",
+      "area": "remix",
+      "detail": "Claude skills: spy-competitor-ads (find competitor ads in Meta Ad Library), clone-hook (adapt a reference video's hook to your brand), clone-static-ad (adapt a static ad for your product), viral-clone (recreate a reference video ad with a different product).",
+      "limits_or_cost": "MCP on every plan",
+      "notable": "Clone types split by format: hook, static, full video.",
+      "sources": [
+        "https://help.arcads.ai/en/articles/17595003-competitor-ad-research-and-ad-cloning"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Mark, the AI ad agent",
+      "area": "agent",
+      "detail": "Plain-language brief (example '20-second UGC-style ad for our protein bar, 9:16, US audience') -> Mark picks models/tools, generates, edits on a timeline, can publish Meta ads, researches TikTok/IG/X, finds real UGC creators, runs routines 'daily, weekly or every few hours'. Works in Slack.",
+      "limits_or_cost": "All plans + trial; chat turns charged by tokens",
+      "notable": "Scheduled routines turn the agent into a recurring producer.",
+      "sources": [
+        "https://help.arcads.ai/en/articles/17594959-ai-ad-agent-mark"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Brand memory (Brain panel)",
+      "area": "brand",
+      "detail": "When a brand is added Mark reads the website, researches the brand and fills brand memory: overview, products, brand voice, target audience. Editable in the Brain panel. Custom Instructions up to 2,000 chars apply to every message; Presets set tone, default resolution and whether Mark asks before editing.",
+      "limits_or_cost": "Custom Instructions 2,000 chars",
+      "notable": "",
+      "sources": [
+        "https://help.arcads.ai/en/articles/17594959-ai-ad-agent-mark"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Hook variations",
+      "area": "remix",
+      "detail": "Generate several spoken hooks with the same actor and voice -> 'Stitch Videos' joins each hook to the main body -> 'Text Overlay' for headline hooks -> 'Replace Actor' keeps script, timing and scene -> optional translation with lip sync, workflow or Mark.",
+      "limits_or_cost": "Stitch 0, Text Overlay 0, Replace Actor 500 (800 on credits page), captions 8 (80 on credits page)",
+      "notable": "Keep the winning body, test only the first seconds.",
+      "sources": [
+        "https://help.arcads.ai/en/articles/17595001-hook-variations",
+        "https://help.arcads.ai/en/articles/13725589-how-are-credits-counted"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Workflows node canvas",
+      "area": "editor",
+      "detail": "Nodes (inputs, models, tools) connected and run as a pipeline; example: one UGC script across 10 characters and 2 markets in one run; '20 x 8-second clips, 10 English, 10 Spanish'. Shared 'Open workflow' links.",
+      "limits_or_cost": "Creator plan and above",
+      "notable": "Batch matrix (characters x languages) in one run.",
+      "sources": [
+        "https://help.arcads.ai/en/articles/15393713-what-is-the-workflow-feature",
+        "https://help.arcads.ai/en/articles/17595066-how-does-arcads-pricing-work"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Editing tools with fixed prices",
+      "area": "editor",
+      "detail": "Free: Extract frame, Change voice, Transcribe, Remove background, Camera angle. Paid: Prompt builder 8, Add captions 80, Upscale 80 per 10s, Skin enhancer 160, Translate video 240, Extend video 320, Kling o3 video editor 400, Hook repurposer 800, Animate actor 800, Replace actor 800.",
+      "limits_or_cost": "",
+      "notable": "Per-tool fixed credit prices are transparent.",
+      "sources": [
+        "https://help.arcads.ai/en/articles/13725589-how-are-credits-counted"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Translation in 30+ languages",
+      "area": "editor",
+      "detail": "Translate a video into 30+ languages with lip sync; pronunciation guide.",
+      "limits_or_cost": "Translate 240 credits",
+      "notable": "",
+      "sources": [
+        "https://www.arcads.ai/",
+        "https://help.arcads.ai/en/collections/7500987-how-to-use-arcads-platform",
+        "https://help.arcads.ai/en/articles/13725589-how-are-credits-counted"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Model access and video pricing",
+      "area": "format-video",
+      "detail": "Models: Seedream, Seedance, Kling, GPT Image, Nano Banana; per generation Grok 24-304, Kling 3.0 176-560, Veo 3.1 800, Seedance 2.0 96-1,620 by resolution. Nano Banana Pro and Seedream 40 give 100 free images/day.",
+      "limits_or_cost": "",
+      "notable": "Free daily image allowance lowers the trial barrier.",
+      "sources": [
+        "https://www.arcads.ai/",
+        "https://help.arcads.ai/en/articles/13725589-how-are-credits-counted"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Plans and rollover",
+      "area": "billing",
+      "detail": "Credits/mo: Starter 8,000, Creator 16,000, Pro 48,000, Scale 96,000, Business 192,000. Starter/Creator reset and stop at the limit; Pro+ roll over in full and bill overage. Pro+ adds public API, seats, custom actors, ElevenLabs voices, free voice cloning.",
+      "limits_or_cost": "72h trial 1,000 credits, card required; yearly -20%",
+      "notable": "",
+      "sources": [
+        "https://help.arcads.ai/en/articles/17595066-how-does-arcads-pricing-work"
+      ]
+    },
+    {
+      "competitor": "Arcads",
+      "feature": "Static ads from a product image",
+      "area": "format-image",
+      "detail": "Create static ads one at a time or in batches from a product image via Mark or Studio.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.arcads.ai/en/articles/17594959-ai-ad-agent-mark",
+        "https://help.arcads.ai/en/collections/19773783-features"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Ad Clone: three entry paths",
+      "area": "remix",
+      "detail": "'Browse AI ad library' (pick a top Meta ad, search by industry or brand), 'Start with your product' (add product URL first, tool suggests ads from similar products, clone comes pre-branded), 'Upload your own' (any video ad from TikTok, Meta, YouTube). Buttons: 'EXPLORE AD LIBRARY', 'ADD PRODUCT URL', 'UPLOAD VIDEO'.",
+      "limits_or_cost": "Pro plan and above (pricing table)",
+      "notable": "Product-first entry suggests which ads to clone for you.",
+      "sources": [
+        "https://creatify.ai/features/ad-clone",
+        "https://creatify.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Ad Clone: keep structure, rewrite content",
+      "area": "remix",
+      "detail": "Analyses hook patterns, pacing and CTA placement; rewrites the script for your product ('doesn't copy word-for-word'); auto scene generation, avatar selection and voiceover; outputs 9:16, 16:9 and 1:1 simultaneously; every clone opens in the editor (edit script, swap avatar, change visuals, adjust voiceover).",
+      "limits_or_cost": "2-20 credits per video by length and complexity",
+      "notable": "Kept: hook style, pacing, CTA flow. Changed: words, product, avatar, visuals.",
+      "sources": [
+        "https://creatify.ai/features/ad-clone"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "URL to Video",
+      "area": "format-video",
+      "detail": "Paste a product page URL ('Try sample link') -> AI reads features, benefits, selling points -> choose avatar -> customise backgrounds, music, messaging -> multiple variations. Supports Amazon, Etsy, eBay, App Store, Wix, WordPress, Google Play, Shopify.",
+      "limits_or_cost": "Link to video ~5 min; lip sync ~1:10 ratio",
+      "notable": "",
+      "sources": [
+        "https://creatify.ai/features/url-to-video",
+        "https://creatify.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "AI Ad Library and Competitor Tracker",
+      "area": "inspiration",
+      "detail": "Browse winning ads by industry and platform; Competitor Tracker gives brand-level creative insights over 10M+ Meta ads.",
+      "limits_or_cost": "Tracker on Pro+; unlimited tracked brands on Business",
+      "notable": "",
+      "sources": [
+        "https://creatify.ai/",
+        "https://creatify.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Creative Agent with format skills",
+      "area": "agent",
+      "detail": "Brief or just a URL (Shopify, Amazon, App Store imports assets, copy, pricing) -> brand + category research, script, persona lock, music, parallel shot generation, scene-level edits. Skills: /ugc, /street-interview, /podcast, /cinematic, /animated, /e-commerce, /product-video, chosen explicitly or automatically.",
+      "limits_or_cost": "Ad Agent and Automations on Pro+",
+      "notable": "Formats exposed as slash-command skills.",
+      "sources": [
+        "https://creatify.ai/features/agent",
+        "https://creatify.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Brand-safety critic",
+      "area": "compliance",
+      "detail": "A vision-based critic checks each scene against the brief and regenerates failing scenes; on by default in Pro mode.",
+      "limits_or_cost": "",
+      "notable": "Automated QA pass before a human sees it; relevant to adviser compliance.",
+      "sources": [
+        "https://creatify.ai/features/agent"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Agent memory",
+      "area": "brand",
+      "detail": "Readable memory of approvals, rejections, brand facts, product specs and team decisions; keeps product, persona, script and music across edits.",
+      "limits_or_cost": "",
+      "notable": "Learns from approvals and rejections.",
+      "sources": [
+        "https://creatify.ai/features/agent"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Ad Flow node editor and templates",
+      "area": "editor",
+      "detail": "Node-based editor for ready-to-ship ads; 200+ AdFlow templates on Standard, 500+ on Pro.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://creatify.ai/",
+        "https://creatify.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Avatars and custom avatars",
+      "area": "ai-avatar",
+      "detail": "300 AI actors on Standard/Free, 1,500 on Pro with 3 custom avatars; Aurora avatar model; 75+ languages.",
+      "limits_or_cost": "Custom avatars not billed in credits; extra slots bought separately",
+      "notable": "",
+      "sources": [
+        "https://creatify.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Performance Agent",
+      "area": "analytics",
+      "detail": "Connects Meta, Google Ads, TikTok, Snap, AppLovin, OpenAI Ads plus Shopify and GA4; finds wasted spend and scaling opportunities; 'Three-persona panel grades the cut and names the fix' before spend; Ad Headline Multiplier turns one static into variants.",
+      "limits_or_cost": "",
+      "notable": "Pre-spend scoring by simulated personas.",
+      "sources": [
+        "https://creatify.ai/features/performance-agent"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Ad Launcher and A/B tests",
+      "area": "publishing",
+      "detail": "Connect ad accounts once, auto-format per platform spec, run built-in A/B tests; track spend, ROAS, CTR per creative and hook/angle performance.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://creatify.ai/"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Brand spaces and seats",
+      "area": "team",
+      "detail": "Brand spaces 1/2/3/10/unlimited and seats 1/1/3/10/unlimited across Standard/Pro/Max/Business/Enterprise.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://creatify.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "Credits",
+      "area": "billing",
+      "detail": "Plan credits valid 2 months; examples: Aurora 15s avatar ~5 credits, GPT Image 2.5 1K ~0.25, Seedance 2.0 5s ~7.8; cost shown before confirming; manual edits free.",
+      "limits_or_cost": "Free: 10 credits, watermark",
+      "notable": "",
+      "sources": [
+        "https://creatify.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Creatify",
+      "feature": "API, MCP, Slack bot",
+      "area": "integrations",
+      "detail": "API, MCP, 'Max' Slack bot; API plans $99/$299 with URL to Video, Aurora Avatar, product video, scripts, TTS.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://creatify.ai/",
+        "https://creatify.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Ad Remake",
+      "area": "remix",
+      "detail": "Inputs: 'Reference video *' (an ad already performing, yours or licensed) + 'Product image *' + optional instructions. Options: Prompt (example 'High-energy UGC ad, strong hook in the first 2 seconds'), Model (Seedance 2.0), Ratio (9:16), Length (10s). Button 'Remake video'. Keeps hook, pacing and style; replaces the product.",
+      "limits_or_cost": "100 credits per video on Seedance 2.0",
+      "notable": "Two required inputs only: a reference and a product photo.",
+      "sources": [
+        "https://www.makeugc.ai/ad-remake-feature"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Content Library of proven ads",
+      "area": "inspiration",
+      "detail": "Ready-made ads by category chips (Trending, Fashion, Beauty, Food & Beverage, Health, Accessories, Apparel, Apps); presets such as 'Skincare Haul UGC', 'Selfie Street Vlog'. Flow: pick ad, preview -> upload product image -> short description + dialog (200 char limit) -> 'Generate Video (150 credits)'.",
+      "limits_or_cost": "150 credits per recreated ad",
+      "notable": "Pre-vetted remixable formats with a preview of what you will get.",
+      "sources": [
+        "https://www.makeugc.ai/content-library-feature"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Style templates",
+      "area": "format-video",
+      "detail": "Realistic, Day In The Life, Custom Review, How-to Tutorial, Unboxing, Gruns Style, Game Style Video, Pixar Style, Lego Style, Simpson Style; picker also has Anime, Before And After, FOOH Billboard. Inputs: product photo, description, dialog, creator (library or reference photo), volume x1/x5/x10/custom, model (Seedance 2.0 Fast/2.0/2.5), length 10s/15s.",
+      "limits_or_cost": "Seedance 2.0 at 15s = 150 credits per video",
+      "notable": "Volume selector produces distinct variants, not duplicates.",
+      "sources": [
+        "https://www.makeugc.ai/video-templates-feature"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Talking actors",
+      "area": "ai-avatar",
+      "detail": "Script -> actor-led video with 1,000+ AI actors (Starter 300+, Growth 500+, Pro 1,000+), 50+ languages with lip sync.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.makeugc.ai/",
+        "https://www.makeugc.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Product in Hand",
+      "area": "format-video",
+      "detail": "Actors hold your product in the shot from an uploaded product photo.",
+      "limits_or_cost": "All plans",
+      "notable": "",
+      "sources": [
+        "https://www.makeugc.ai/"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Custom AI avatar and voice",
+      "area": "ai-avatar",
+      "detail": "Clone yourself or create a new face; 'Custom Voice: Clone or pick a voice'.",
+      "limits_or_cost": "Custom avatars: Starter 0, Growth 1, Pro 3",
+      "notable": "",
+      "sources": [
+        "https://www.makeugc.ai/",
+        "https://www.makeugc.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Motion Control and Gestures",
+      "area": "editor",
+      "detail": "Motion Control transfers a performance from a reference to a character; Gestures directs body language.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.makeugc.ai/"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Batch mode",
+      "area": "format-video",
+      "detail": "Generate 10 variations at once.",
+      "limits_or_cost": "Parallel jobs: Starter 1 video + 1 image; Growth 10 + 10; Pro unlimited",
+      "notable": "",
+      "sources": [
+        "https://www.makeugc.ai/",
+        "https://www.makeugc.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "AI Flows canvas",
+      "area": "editor",
+      "detail": "Node-based canvas chaining image generation, product shots, video and editing into one flow.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.makeugc.ai/"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Editor and B-roll generator",
+      "area": "editor",
+      "detail": "Edit captions, music, B-roll and trims after a ~2 minute render; B-roll generated to fit the script; export 480p/720p (Starter) or HD/2K/4K (Growth+).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.makeugc.ai/",
+        "https://www.makeugc.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Three-step start",
+      "area": "onboarding",
+      "detail": "'Start from anything' (actor, clone yourself, model, prompt, product URL or reference ad) -> 'Describe the ad' (prompt, script, or AI writes it from the product page; upload audio, product photo) -> 'Generate, edit & launch'.",
+      "limits_or_cost": "",
+      "notable": "Every entry point (URL, reference, prompt) lands in the same flow.",
+      "sources": [
+        "https://www.makeugc.ai/"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Pricing and passes",
+      "area": "billing",
+      "detail": "Credits shared across studio and API, refresh monthly, no rollover; $1 trial; Seedance 2.5 unlimited pass $99/24h (+100 credits) or $199/3 days (+200).",
+      "limits_or_cost": "",
+      "notable": "Time-boxed unlimited passes for a hot model.",
+      "sources": [
+        "https://www.makeugc.ai/",
+        "https://www.makeugc.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "API and MCP on every plan",
+      "area": "integrations",
+      "detail": "API keys under Settings > API Integration; MCP server; draws from the same credits.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.makeugc.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "MakeUGC",
+      "feature": "Team seats",
+      "area": "team",
+      "detail": "Seats: Starter 0, Growth 3, Pro 5; Enterprise adds brand review workflows and a strategist.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.makeugc.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "Avatar V digital twin",
+      "area": "ai-avatar",
+      "detail": "Record a 15-second webcam clip speaking naturally -> Avatar V trains a twin with one consistent identity; wide, medium and close-up angles from one recording; lip sync in 175+ languages; stable beyond 30 minutes.",
+      "limits_or_cost": "Custom avatars: Free 1, Business 5+, Enterprise 10+",
+      "notable": "15 seconds of input is the lowest-friction twin capture found.",
+      "sources": [
+        "https://www.heygen.com/avatars/avatar-v",
+        "https://www.heygen.com/",
+        "https://www.heygen.com/pricing"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "Identity verification for custom avatars",
+      "area": "compliance",
+      "detail": "Custom avatars require on-camera identity verification from the person depicted.",
+      "limits_or_cost": "",
+      "notable": "Consent gate for likeness use.",
+      "sources": [
+        "https://www.heygen.com/"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "Video Agent",
+      "area": "agent",
+      "detail": "Prompt up to 500 chars + length (default 60s) + orientation -> agent writes the script, selects visuals, adds voiceover, motion graphics, B-roll and AI presenter; scene-by-scene preview before render; elements stay editable; refine by conversation.",
+      "limits_or_cost": "1080p or 4K",
+      "notable": "Preview before render saves credits.",
+      "sources": [
+        "https://www.heygen.com/video-agent"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "UGC video generator",
+      "area": "format-video",
+      "detail": "Step 1 'Choose your format' (UGC ad template or scratch; aspect, style, ad type) -> Step 2 'Write your script' (hook, benefits, CTA) -> Step 3 'Pick your presenter' (1,100+ creator-style presenters, voice, background) -> Step 4 'Generate and export'. 9:16, 1:1, 16:9.",
+      "limits_or_cost": "Paid from $24/mo",
+      "notable": "",
+      "sources": [
+        "https://www.heygen.com/apps/ugc-video-generator"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "Product Placement",
+      "area": "format-video",
+      "detail": "Apps > Product Placement -> upload product photos + choose avatar -> 'Generate Combined Images' (4 options, up to 60s) -> 'Next: Add a script' (Avatar IV, 5,000 chars or 'Surprise Me') -> voice (upload/record with 'Voice Mirroring', custom, library, ElevenLabs, LMNT) -> 'Custom Motion' prompt -> 720p/1080p -> 'Generate Video'.",
+      "limits_or_cost": "Best for handheld products",
+      "notable": "Image-first step lets the user pick the composite before paying for video.",
+      "sources": [
+        "https://help.heygen.com/en/articles/12704854-product-placement-combine-a-product-with-an-avatar-in-a-video"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "Photo avatars and talking photo",
+      "area": "ai-avatar",
+      "detail": "Photo avatars from a single image (Avatar IV used a single photo upload); image to video with lip sync and speech timing.",
+      "limits_or_cost": "Free up to 3 photo avatars; paid unlimited",
+      "notable": "",
+      "sources": [
+        "https://www.heygen.com/",
+        "https://www.heygen.com/pricing",
+        "https://www.heygen.com/avatars/avatar-v"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "Video translation",
+      "area": "editor",
+      "detail": "Upload a file or paste a YouTube link; voice cloning and lip sync in 175+ languages; brand glossary; multilingual player.",
+      "limits_or_cost": "Translation proofreading on Pro",
+      "notable": "",
+      "sources": [
+        "https://www.heygen.com/",
+        "https://www.heygen.com/pricing"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "AI Studio editor",
+      "area": "editor",
+      "detail": "Text-based editor with Voice Director, Voice Mirroring, Gesture Control, Realistic Previews; comments, tagging, multi-user editing, Brand Kit, auto captions.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.heygen.com/"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "Input-to-video tools",
+      "area": "format-video",
+      "detail": "Text to Video, Image to Video, Audio to Video (podcasts/voiceovers), PPT/PDF to Video (each slide becomes a scene with avatar and voiceover), AI Podcast Generator.",
+      "limits_or_cost": "",
+      "notable": "PDF-to-video suits advisers turning product decks into explainers.",
+      "sources": [
+        "https://www.heygen.com/"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "Credits and rollover",
+      "area": "billing",
+      "detail": "Monthly plans: unused credits roll over one more month; annual: accumulate to renewal. Cost varies by model, duration and complexity (not published).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.heygen.com/pricing"
+      ]
+    },
+    {
+      "competitor": "HeyGen",
+      "feature": "Integrations and API",
+      "area": "integrations",
+      "detail": "APIs for Video Agent, generation, translation, lipsync; Business plan integrates n8n, Make, HubSpot, Zapier; HyperFrames open-source HTML video framework; ChatGPT plugin.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.heygen.com/",
+        "https://www.heygen.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Captions (incl. Mirage)",
+      "feature": "AI twin from 10 seconds or a selfie",
+      "area": "ai-avatar",
+      "detail": "'Record yourself' reading a provided script (Mirage Avatar X needs 10 seconds) or upload a selfie -> twin with your voice tone -> 'Add a script' -> 'Create the video'; change backgrounds, outfits, add products.",
+      "limits_or_cost": "Twins on Max plan and above",
+      "notable": "",
+      "sources": [
+        "https://www.captions.ai/features/create-ai-twin",
+        "https://www.captions.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Captions (incl. Mirage)",
+      "feature": "Prompt-generated avatars",
+      "area": "ai-avatar",
+      "detail": "Generate custom avatars from prompts (example 'A young person with...'); 200+ / 225 pre-generated avatars; customise outfit, background, setting. Steps: 'Pick your talent', 'Customize the details', 'Generate and share'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.captions.ai/features/generate-ai-avatars"
+      ]
+    },
+    {
+      "competitor": "Captions (incl. Mirage)",
+      "feature": "AI Edit with named styles",
+      "area": "editor",
+      "detail": "Upload footage -> pick a style -> AI cuts scenes, overlays B-roll, adds captions. Styles: Prism Pro, Paper II, Prime, Elevate, Impact II, Sketch, Lens, Vista, Pop, Orbit, Y2K, Form, Bloom, Chalk, Linen, Evo, Focus, Lift, Stack, Align.",
+      "limits_or_cost": "",
+      "notable": "One-tap style presets for the whole edit.",
+      "sources": [
+        "https://www.captions.ai/"
+      ]
+    },
+    {
+      "competitor": "Captions (incl. Mirage)",
+      "feature": "Chat-based editing",
+      "area": "editor",
+      "detail": "'Use simple prompts to direct changes and updates' in a chat-based editor.",
+      "limits_or_cost": "Max and above",
+      "notable": "",
+      "sources": [
+        "https://www.captions.ai/",
+        "https://www.captions.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Captions (incl. Mirage)",
+      "feature": "Caption styles and cleanup",
+      "area": "editor",
+      "detail": "100+ caption styles, eye contact correction, background noise removal, trim pauses and filler words, music and SFX.",
+      "limits_or_cost": "Free: 1 caption template; paid 100+",
+      "notable": "",
+      "sources": [
+        "https://www.captions.ai/",
+        "https://www.captions.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Captions (incl. Mirage)",
+      "feature": "AI ad generator",
+      "area": "format-video",
+      "detail": "Turn a product URL straight into a video ad, or create net-new footage from links or prompts; adjust actor look, expressions, delivery; 'reshoot' scenes; many variations.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.captions.ai/tools/ai-ad-generator"
+      ]
+    },
+    {
+      "competitor": "Captions (incl. Mirage)",
+      "feature": "Clips from long videos",
+      "area": "format-video",
+      "detail": "Create short clips from long videos; YouTube Shorts maker.",
+      "limits_or_cost": "Max and above",
+      "notable": "",
+      "sources": [
+        "https://www.captions.ai/",
+        "https://www.captions.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Captions (incl. Mirage)",
+      "feature": "Translate and subtitle",
+      "area": "editor",
+      "detail": "Translate and subtitle in 100+ languages.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.captions.ai/"
+      ]
+    },
+    {
+      "competitor": "Captions (incl. Mirage)",
+      "feature": "Credits with capped rollover",
+      "area": "billing",
+      "detail": "Unused credits roll over, balance capped at 3x monthly allowance.",
+      "limits_or_cost": "",
+      "notable": "Capped rollover limits liability while rewarding loyalty.",
+      "sources": [
+        "https://www.captions.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Hedra",
+      "feature": "Character-3 talking character video",
+      "area": "ai-avatar",
+      "detail": "Input start frame + audio (required) -> talking character video up to 10 minutes; 540p/720p/1080p; ratios 1:1, 4:3, 3:4, 16:9, 9:16, 9:21, 21:9; multi-language audio; natural micro-expressions.",
+      "limits_or_cost": "2.5 cents/s 540p, 5 cents/s 720p, 6.25 cents/s 1080p",
+      "notable": "Per-second pricing is easy to estimate.",
+      "sources": [
+        "https://www.hedra.com/models/video/hedra/character-3"
+      ]
+    },
+    {
+      "competitor": "Hedra",
+      "feature": "Hedra Agent skills",
+      "area": "agent",
+      "detail": "Type '/' -> 'Create skill' -> Name (lowercase-hyphen), Description, Body -> invoke '/skill-name'. Examples: polish-shot, shot-list (up to 6 connected images), post-process (trim, compress, frames, stitch).",
+      "limits_or_cost": "",
+      "notable": "User-authored reusable playbooks shared across a workspace.",
+      "sources": [
+        "https://www.hedra.com/blog/skills-in-hedra",
+        "https://www.hedra.com/studio"
+      ]
+    },
+    {
+      "competitor": "Hedra",
+      "feature": "Elements: saved characters, products, brand",
+      "area": "brand",
+      "detail": "Saved characters, products and visual references keep generations consistent ('Characters - Products - Brand').",
+      "limits_or_cost": "",
+      "notable": "A single saved character/product reused across every remix.",
+      "sources": [
+        "https://www.hedra.com/studio"
+      ]
+    },
+    {
+      "competitor": "Hedra",
+      "feature": "Collaborative Spaces",
+      "area": "team",
+      "detail": "One shared canvas where teammates and their agents work together; MCP connectors to team tools.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.hedra.com/studio"
+      ]
+    },
+    {
+      "competitor": "Hedra",
+      "feature": "UGC: same product, new cast",
+      "area": "format-video",
+      "detail": "Drop in a product photo, paste the script, describe the person and room; product photo stays fixed while the cast changes ('A different person every time'); settings like 'a bathroom at 7am', parked car, kitchen; 9:16 output.",
+      "limits_or_cost": "Priced per second of output",
+      "notable": "Variant testing by swapping person and setting around a fixed product.",
+      "sources": [
+        "https://www.hedra.com/uses/ai-ugc-video-generator"
+      ]
+    },
+    {
+      "competitor": "Hedra",
+      "feature": "Voice: ElevenLabs and clone",
+      "area": "ai-avatar",
+      "detail": "Drive performance with a script, recorded audio or a cloned voice; ElevenLabs Multilingual V2, V3 and Voice Clone.",
+      "limits_or_cost": "Only voices you have rights to",
+      "notable": "",
+      "sources": [
+        "https://www.hedra.com/uses/ai-ugc-video-generator"
+      ]
+    },
+    {
+      "competitor": "Hedra",
+      "feature": "Model gateway",
+      "area": "editor",
+      "detail": "Kling V3 Pro, Veo 3.1, Seedance 2.0, Hailuo 2.3, GPT Image 2 High, Flux 1.1 Ultra, ElevenLabs; music coming soon.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.hedra.com/studio",
+        "https://www.hedra.com/llms.txt"
+      ]
+    },
+    {
+      "competitor": "Hedra",
+      "feature": "API v3, MCP, CLI",
+      "area": "integrations",
+      "detail": "Typed async jobs behind one key, cost estimates, prepaid USD wallet; MCP at mcp.hedra.com; npm @hedra/cli.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.hedra.com/llms.txt",
+        "https://www.hedra.com/"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Viral library",
+      "area": "inspiration",
+      "detail": "About 2.77M items (as of 2026-09-15) incl. 2,377,477 TikToks plus X, YouTube, Instagram, Threads, Reddit, LinkedIn. Stored per video: engagement counts, transcript, hashtags, date, duration, AI description of the visuals. Entry threshold e.g. 1,000 likes on Instagram or 25,000 views on YouTube. Search by topic, platform, engagement tier, length.",
+      "limits_or_cost": "Free accounts can search; pricing page says '3M+ viral videos to remix'",
+      "notable": "Stores transcript + visual description per video, which is what a remix needs.",
+      "sources": [
+        "https://revid.ai/ai-instructions",
+        "https://revid.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Seven remix options",
+      "area": "remix",
+      "detail": "Open a viral video and pick: 'Same energy, new script', 'Make it about your topic', 'Post the Part 2', 'Same footage, new look', 'React on camera', 'Your face in it', 'Reuse the script'.",
+      "limits_or_cost": "Typical 30s video ~40-80 credits",
+      "notable": "The clearest public taxonomy of remix intents found.",
+      "sources": [
+        "https://revid.ai/ai-instructions",
+        "https://revid.ai/features"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Reference-aware script writer",
+      "area": "remix",
+      "detail": "When a reference is used the writer analyses structure, shots, transcript and music; keeps spoken timing and tone; writes new words, visuals and original music direction.",
+      "limits_or_cost": "",
+      "notable": "Keeps timing and tone, changes words and visuals.",
+      "sources": [
+        "https://revid.ai/ai-instructions"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Create my Version / Create Similar Video",
+      "area": "remix",
+      "detail": "Buttons on a viral video open the generator with a prefilled, editable prompt.",
+      "limits_or_cost": "",
+      "notable": "Remix lands in the normal editor with the prompt pre-filled.",
+      "sources": [
+        "https://revid.ai/"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Deep analysis",
+      "area": "inspiration",
+      "detail": "Explains the hook, timed structure, scroll-stopping moment, three ways to adapt to another niche, and a replication checklist.",
+      "limits_or_cost": "Free up to 60 a day",
+      "notable": "",
+      "sources": [
+        "https://revid.ai/ai-instructions"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Search & Remix automation",
+      "area": "agent",
+      "detail": "Scheduled worker searches a topic, picks a high-engagement reference and generates an original video; never reuses the same reference twice.",
+      "limits_or_cost": "",
+      "notable": "Autopilot remixing with a no-repeat rule.",
+      "sources": [
+        "https://revid.ai/ai-instructions"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Auto-Mode workers",
+      "area": "calendar",
+      "detail": "Each worker creates a new video every day from a prompt or content source.",
+      "limits_or_cost": "Growth 3, Ultra 10 (Elite 5 per ai-instructions)",
+      "notable": "",
+      "sources": [
+        "https://revid.ai/ai-instructions",
+        "https://revid.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Channel watcher",
+      "area": "inspiration",
+      "detail": "Tracks TikTok and YouTube channels, synced daily, to find outlier videos to remix.",
+      "limits_or_cost": "Growth 5, Ultra 50 (Elite 20 per ai-instructions)",
+      "notable": "",
+      "sources": [
+        "https://revid.ai/ai-instructions",
+        "https://revid.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Publish with stats and remix-your-winners",
+      "area": "publishing",
+      "detail": "Direct publishing and scheduling to TikTok, Instagram and YouTube from one queue, plus webhooks; each post reports views, likes, comments; top posts remixable in one click.",
+      "limits_or_cost": "Growth+",
+      "notable": "Your own winners feed back into remix.",
+      "sources": [
+        "https://revid.ai/ai-instructions",
+        "https://revid.ai/pricing",
+        "https://revid.ai/features"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Tool and format catalog",
+      "area": "format-video",
+      "detail": "Repurpose, Avatar Reaction, Face Swap, Animate Photo, PDF to Video, AI Movie Maker, Music to Video, Prompt to Video, AI TikTok Video Generator, Audio to Video, Image to Video Effect, AI Music Video Generator, UGC Ad Generator, AI Cinematic Video, ASMR Video Generator, AI Ad Generator, Faceless Video, Zack D Style Video Generator, AI Influencer Generator.",
+      "limits_or_cost": "100+ tools on Growth",
+      "notable": "",
+      "sources": [
+        "https://revid.ai/"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Style presets",
+      "area": "format-video",
+      "detail": "ULTRA_REALISM, MOVIE, MINECRAFT, LEGO, CLAYMATION, NINTENDO, FANTASY, ZACK_D_3D, REALISM, ANIME_SR.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://revid.ai/"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Voices and cloning",
+      "area": "ai-avatar",
+      "detail": "1,000+ AI voices in 70+ languages; voice cloning and voice design on higher tiers.",
+      "limits_or_cost": "Clone on Ultra (pricing) / Elite+ (ai-instructions)",
+      "notable": "",
+      "sources": [
+        "https://revid.ai/ai-instructions",
+        "https://revid.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Editor, captions, export",
+      "area": "editor",
+      "detail": "Per-scene visuals (stock, AI image, AI video, motion graphics), per-scene model choice, 30 caption styles, captions in 100+ languages, timeline editor, export 720p/1080p/4K at 30/60fps.",
+      "limits_or_cost": "Premium models 100-500 credits per 5s",
+      "notable": "",
+      "sources": [
+        "https://revid.ai/ai-instructions"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Free TikTok research tools",
+      "area": "inspiration",
+      "detail": "TikTok Hooks Library, Viral TikTok Songs, TikTok Trends Today, Account Search, Video Finder, Viral Rankings (most viewed Shorts, most liked TikToks), TikTok audit.",
+      "limits_or_cost": "Free",
+      "notable": "",
+      "sources": [
+        "https://revid.ai/"
+      ]
+    },
+    {
+      "competitor": "Revid.ai",
+      "feature": "Credits and boosts",
+      "area": "billing",
+      "detail": "Plan credits reset each renewal, no stacking; boost packs never expire; editor shows estimated cost before every render.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://revid.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Crayo",
+      "feature": "Faceless workflows",
+      "area": "format-video",
+      "detail": "Workflows: AutoClip (clips from a file or YouTube/TikTok link), Reddit Story (pasted story -> narrated video with captions), Fake Texts (scripted phone conversation revealed message by message), Cut & Crop.",
+      "limits_or_cost": "1 workflow credit per video",
+      "notable": "",
+      "sources": [
+        "https://www.crayo.ai/",
+        "https://www.crayo.ai/pricing",
+        "https://crayo.ai/features/fake-texts",
+        "https://crayo.ai/features/reddit-story"
+      ]
+    },
+    {
+      "competitor": "Crayo",
+      "feature": "Brainrot split-screen",
+      "area": "format-video",
+      "detail": "Split-screen video from a story, gameplay footage, AI voiceover and automatic captions.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://crayo.ai/features/fake-texts"
+      ]
+    },
+    {
+      "competitor": "Crayo",
+      "feature": "Subtitle styles",
+      "area": "editor",
+      "detail": "Upload -> choose one of 15+ viral subtitle styles -> generate; web editor for manual control.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.crayo.ai/"
+      ]
+    },
+    {
+      "competitor": "Crayo",
+      "feature": "AI tools",
+      "area": "editor",
+      "detail": "AI voiceover (100+ voices), AI images, AI video, voice changer, face swap, icon generator, speech enhancer, background remover, subtitle remover, downloaders, AI brainstorm.",
+      "limits_or_cost": "All tools on every plan",
+      "notable": "",
+      "sources": [
+        "https://www.crayo.ai/",
+        "https://www.crayo.ai/pricing",
+        "https://crayo.ai/features/fake-texts"
+      ]
+    },
+    {
+      "competitor": "Crayo",
+      "feature": "Workflow credits and export minutes",
+      "area": "billing",
+      "detail": "Separate meters: workflow credits (videos), export minutes, AI voiceover minutes, AI images, storage; subscription credits reset, top-ups separate.",
+      "limits_or_cost": "Hobby 250 credits / 2h export; Pro 3,000 / 30h",
+      "notable": "",
+      "sources": [
+        "https://www.crayo.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Crayo",
+      "feature": "Account tracking and campaigns",
+      "area": "analytics",
+      "detail": "Social accounts tracked per plan and 'content library campaigns'.",
+      "limits_or_cost": "1 / 3 / 10 accounts tracked",
+      "notable": "",
+      "sources": [
+        "https://www.crayo.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "Slideshow automation",
+      "area": "calendar",
+      "detail": "Step 1 'Create automation' (quality-control formats, set posting schedule) -> Step 2 link TikTok -> Step 3 ReelFarm generates and publishes original slideshows every day. 'Set up once, and it runs forever.' Automations pause at 0 credits.",
+      "limits_or_cost": "Growth 100 slideshows/mo, Scale 250, Enterprise 750",
+      "notable": "Daily autopost from one setup.",
+      "sources": [
+        "https://reel.farm/",
+        "https://reel.farm/changes"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "Image collections from Pinterest",
+      "area": "format-carousel",
+      "detail": "Image Collections -> 'Add' searches Pinterest inside ReelFarm -> select 9-15 images -> 'Create Collection'. Automations use a hook collection and a content collection; CTA slide can be randomly chosen from a collection.",
+      "limits_or_cost": "",
+      "notable": "Image sourcing is built in, so slideshows need no uploads.",
+      "sources": [
+        "https://reel.farm/guides/automate-tiktok-slideshows-with-ai",
+        "https://reel.farm/",
+        "https://reel.farm/changes"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "Slide styling controls",
+      "area": "format-carousel",
+      "detail": "Per text item: colour, size (guide: 10px heading, 8px supporting), alignment, position 'flush', width ~80%; overlay opacity (30%); slide count (default 5); aspect ratio 9:16 or 4:5, custom, or keep original; tone & styling (e.g. 'Conversational and relatable'); hooks one per line; language selector.",
+      "limits_or_cost": "",
+      "notable": "Copy a competitor slideshow's look by matching text and overlay settings.",
+      "sources": [
+        "https://reel.farm/guides/automate-tiktok-slideshows-with-ai",
+        "https://reel.farm/changes"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "Free slideshow library",
+      "area": "inspiration",
+      "detail": "Library showing what real businesses post, filterable by most viewed; slideshow template library as a fast start.",
+      "limits_or_cost": "Free",
+      "notable": "",
+      "sources": [
+        "https://reel.farm/",
+        "https://reel.farm/guides/automate-tiktok-slideshows-with-ai"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "Formats per plan",
+      "area": "format-carousel",
+      "detail": "Usage counted in slideshow formats: 10 / 20 / 200 by plan; quick-start templates in the create-automation flow; 'hook demo' format.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://reel.farm/",
+        "https://reel.farm/changes"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "Quick publish and TikTok direct",
+      "area": "publishing",
+      "detail": "Quick publish from the automations page and for all slideshows; TikTok publish limit; post status in settings; autoMusic only on direct publish.",
+      "limits_or_cost": "Unlimited TikTok accounts",
+      "notable": "",
+      "sources": [
+        "https://reel.farm/changes",
+        "https://reel.farm/"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "Hook library",
+      "area": "format-text",
+      "detail": "100+ slideshow hook templates by category: listicles, 'things I learned', rules and guides, contrarian takes, niche hooks (fitness, finance, skincare, SaaS, food).",
+      "limits_or_cost": "",
+      "notable": "Finance niche hooks exist as a category.",
+      "sources": [
+        "https://reel.farm/guides"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "AI UGC selfies",
+      "area": "ai-avatar",
+      "detail": "Generates AI UGC selfie images and videos for TikTok content.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://reel.farm/"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "Analytics dashboard",
+      "area": "analytics",
+      "detail": "Track views, likes, shares; dashboard shows automation performance and TikTok analytics.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://reel.farm/",
+        "https://reel.farm/changes"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "Bring your own LLM key",
+      "area": "billing",
+      "detail": "Enterprise can add an Anthropic API key for unlimited generations.",
+      "limits_or_cost": "Enterprise $195/mo",
+      "notable": "",
+      "sources": [
+        "https://reel.farm/"
+      ]
+    },
+    {
+      "competitor": "ReelFarm",
+      "feature": "Account warm-up guide",
+      "area": "onboarding",
+      "detail": "Guide: scroll and engage 20-30 minutes a day for 5-7 days before posting on a new TikTok account.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://reel.farm/guides"
+      ]
+    },
+    {
+      "competitor": "Viral.app",
+      "feature": "Track any account without login",
+      "area": "analytics",
+      "detail": "Paste public TikTok, Instagram, YouTube, Facebook, Snapchat account or video URLs; cross-platform dashboards, daily refresh, competitor tracking, 'Assign tags with AI', hashtag tracking.",
+      "limits_or_cost": "Tracked videos 1,000 / 5,000 / 20,000; refresh 24h / 12h / custom",
+      "notable": "",
+      "sources": [
+        "https://viral.app/"
+      ]
+    },
+    {
+      "competitor": "Viral.app",
+      "feature": "Viral UGC library with outlier factor",
+      "area": "inspiration",
+      "detail": "Search by keyword, matched term, brand, region, date range, minimum views, outlier factor and AI-detected content attributes; use viral videos as references for hooks, scenes, product moments, captions, CTAs.",
+      "limits_or_cost": "Pro and above",
+      "notable": "",
+      "sources": [
+        "https://viral.app/ugc-trend-discovery"
+      ]
+    },
+    {
+      "competitor": "Viral.app",
+      "feature": "Research to creator briefs",
+      "area": "strategy",
+      "detail": "Turn library research into creator briefs; flow: library -> creator context -> discovery -> campaign setup -> performance review.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://viral.app/",
+        "https://viral.app/ugc-trend-discovery"
+      ]
+    },
+    {
+      "competitor": "Viral.app",
+      "feature": "Creator campaigns and payouts",
+      "area": "team",
+      "detail": "Creator rosters, custom payout rules (base fee + performance bonus), automated invoicing, KYC, payouts in 50+ currencies.",
+      "limits_or_cost": "3% payout fee",
+      "notable": "",
+      "sources": [
+        "https://viral.app/"
+      ]
+    },
+    {
+      "competitor": "Viral.app",
+      "feature": "Alerts and public dashboards",
+      "area": "integrations",
+      "detail": "Slack and Discord alerts, public dashboards, view-only roles, API, CSV, n8n, OpenClaw.",
+      "limits_or_cost": "API on Ultra+",
+      "notable": "",
+      "sources": [
+        "https://viral.app/"
+      ]
+    },
+    {
+      "competitor": "Virlo",
+      "feature": "Content Research Agents",
+      "area": "inspiration",
+      "detail": "One-shot report or always-on monitoring with 'self-healing keyword search' across outliers, creators, slideshows, sounds and duets/stitches on TikTok, Reels, Shorts.",
+      "limits_or_cost": "",
+      "notable": "Always-on research agent per keyword.",
+      "sources": [
+        "https://virlo.ai/",
+        "https://virlo.ai/features"
+      ]
+    },
+    {
+      "competitor": "Virlo",
+      "feature": "Outlier detection and Tracking Center",
+      "area": "inspiration",
+      "detail": "Flags creators/videos far above their baseline with daily alerts; dashboard with daily snapshots, growth badges and AI analysis.",
+      "limits_or_cost": "Outlier threshold not published",
+      "notable": "",
+      "sources": [
+        "https://virlo.ai/features"
+      ]
+    },
+    {
+      "competitor": "Virlo",
+      "feature": "Niche Analyzer and hashtags",
+      "area": "inspiration",
+      "detail": "Compares engagement, growth and competition across niches; hashtag rankings across 500K+ tags (schema claim, unverified).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://virlo.ai/features"
+      ]
+    },
+    {
+      "competitor": "Virlo",
+      "feature": "Meta ads beside organic outliers",
+      "area": "inspiration",
+      "detail": "Meta Ads Library results matched to your research keywords shown alongside organic outliers.",
+      "limits_or_cost": "Meta Ads Intelligence on Pro",
+      "notable": "Paid and organic winners in one view.",
+      "sources": [
+        "https://virlo.ai/features"
+      ]
+    },
+    {
+      "competitor": "Virlo",
+      "feature": "Content Studio",
+      "area": "strategy",
+      "detail": "AI workspace connected to Virlo data turning trends into ad copy, creative briefs and client reports; media generation of on-brand images and video concepts.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://virlo.ai/features"
+      ]
+    },
+    {
+      "competitor": "Virlo",
+      "feature": "Content Calendar",
+      "area": "calendar",
+      "detail": "Plan, schedule and publish to connected TikTok, Instagram and YouTube accounts.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://virlo.ai/features"
+      ]
+    },
+    {
+      "competitor": "Virlo",
+      "feature": "Exports and integrations",
+      "area": "integrations",
+      "detail": "Excel, CSV, JSON, branded PDF; Slack, Discord, Zapier, webhooks, n8n; MCP server.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://virlo.ai/features",
+        "https://virlo.ai/"
+      ]
+    },
+    {
+      "competitor": "TopView.ai",
+      "feature": "Video Agent",
+      "area": "agent",
+      "detail": "'Describe your idea or add a script, reference video, or product URL'; agent plans scenes, selects models, generates assets, keeps shots editable.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.topview.ai/"
+      ]
+    },
+    {
+      "competitor": "TopView.ai",
+      "feature": "Reference Video Recreation",
+      "area": "remix",
+      "detail": "Analyses a reference video's style, pacing and shots, then recreates it.",
+      "limits_or_cost": "Detailed steps not public (unverified)",
+      "notable": "",
+      "sources": [
+        "https://www.topview.ai/"
+      ]
+    },
+    {
+      "competitor": "TopView.ai",
+      "feature": "URL to Video with visual styles",
+      "area": "format-video",
+      "detail": "'Product page URL*' + optional 'Who's your audience?' and 'What's the key selling point?' + 'Visual style': Clean studio commercial, Cinematic luxury, Minimalist premium, Natural lifestyle, Bold and colorful, Futuristic tech, UGC style, Unboxing, Street style, Custom -> 'Generate in Canvas' opens Canvas Agent with prompt pre-filled and auto-submitted; batch angles with different hooks, offers, CTAs.",
+      "limits_or_cost": "Free credits to try",
+      "notable": "Optional cues are two short fields, not a long brief.",
+      "sources": [
+        "https://www.topview.ai/link-to-video"
+      ]
+    },
+    {
+      "competitor": "TopView.ai",
+      "feature": "Product Avatar",
+      "area": "format-video",
+      "detail": "'Upload Product' (photo or link) -> select avatar (templates, 'Upload Photo', 'Create with AI') -> auto product-holding shot -> add script, choose voice, export; Auto Mode / Manual Mode.",
+      "limits_or_cost": "Product avatars unlimited on all plans",
+      "notable": "",
+      "sources": [
+        "https://www.topview.ai/ai-avatar/product-avatar",
+        "https://www.topview.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "TopView.ai",
+      "feature": "Avatar library and limits",
+      "area": "ai-avatar",
+      "detail": "2,000+ realistic avatars (5,000+ public avatars per pricing); Avatar 4 up to 180s per video; saved video avatars 200 (Plus) / 1,000; lip sync up to 30 min.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.topview.ai/ai-avatar/product-avatar",
+        "https://www.topview.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "TopView.ai",
+      "feature": "Voice cloning allowance",
+      "area": "ai-avatar",
+      "detail": "Plus 5 free clones, Business 30, Ultra/Team 60, then 2 credits per clone.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.topview.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "TopView.ai",
+      "feature": "Canvas, Board, Drama Studio, 3D Composer",
+      "area": "editor",
+      "detail": "Canvas (agent-driven multi-shot with consistent voice/characters), Board (all models, outputs organised), Drama Studio (micro-dramas from a script), 3D Shot Composer; tools: character swap, face swap, motion control, inpaint, virtual try-on, product photography.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.topview.ai/"
+      ]
+    },
+    {
+      "competitor": "TopView.ai",
+      "feature": "Unlimited model passes",
+      "area": "billing",
+      "detail": "Plans bundle time-boxed unlimited access to specific models (e.g. 30 days Seedance 2.5 720P on Ultra, 365 days Wan 3.0) plus credits; top-ups valid 24 months.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.topview.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Icon",
+      "feature": "18-format ad library",
+      "area": "format-video",
+      "detail": "Listicle, Street Interview, TikTok Comment Response, GRWM, Skit, Product Demo, Testimonial, Storytelling, Myth Bust / 'Stop Doing X', Unboxing, B-Roll + Voiceover, Green Screen, Whiteboard Explainer, Yapping, App Walkthrough, Ultra Cinematic, Motion Graphic, AI Cartoon style; each with a one-line definition.",
+      "limits_or_cost": "",
+      "notable": "A clean, named format taxonomy with one-line definitions; ready to reuse as remix targets.",
+      "sources": [
+        "https://icon.com/formats"
+      ]
+    },
+    {
+      "competitor": "Icon",
+      "feature": "Human UGC production flow",
+      "area": "other",
+      "detail": "Build brief -> Creative Director call (0-24h) -> review 6 scripts (24h) -> reminder at 48h, billed at 72h -> creators film -> editors add graphics, captions, sound -> 6 ads in 12-16 days, unlimited revisions.",
+      "limits_or_cost": "$1,000/mo for 6 ads",
+      "notable": "",
+      "sources": [
+        "https://icon.com/"
+      ]
+    },
+    {
+      "competitor": "Icon",
+      "feature": "AdGPT brief builder",
+      "area": "strategy",
+      "detail": "Choose product, creator types and formats from the curated library to build a brief.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://icon.com/"
+      ]
+    },
+    {
+      "competitor": "Icon",
+      "feature": "Context Engine",
+      "area": "brand",
+      "detail": "Add guidelines, competitors, Meta and Shopify data to inform scripts.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://icon.com/"
+      ]
+    },
+    {
+      "competitor": "Icon",
+      "feature": "Admaker 2.0 modules",
+      "area": "inspiration",
+      "detail": "Screenshots name Creative Library, Creative Analytics, an 'Adspy' ad cloner, Admanage ad manager and IconAPI whitelabel; not described (unverified).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://icon.com/"
+      ]
+    },
+    {
+      "competitor": "Genviral",
+      "feature": "Video Cloner and viral library",
+      "area": "remix",
+      "detail": "'put my AI creator in this viral reel'; Viral Library answers 'what's working in my niche right now?'; tells you 'which hook to copy next'.",
+      "limits_or_cost": "Flow not public (unverified)",
+      "notable": "Clone a viral reel with your own recurring AI creator.",
+      "sources": [
+        "https://genviral.io",
+        "https://usefastlane.ai/alternatives/reelfarm-alternatives"
+      ]
+    },
+    {
+      "competitor": "Genviral",
+      "feature": "Format menu",
+      "area": "format-carousel",
+      "detail": "Slideshows ('make me two weeks of slideshows'), AI UGC, Product Photos & Videos, Video Cloner, Infographics, Train Your Own AI, App Store screenshots.",
+      "limits_or_cost": "",
+      "notable": "Formats phrased as requests the user would type.",
+      "sources": [
+        "https://genviral.io"
+      ]
+    },
+    {
+      "competitor": "Genviral",
+      "feature": "Copy a TikTok slideshow into a draft",
+      "area": "remix",
+      "detail": "Agent skill commands copy-tiktok-preview and copy-tiktok-import copy an existing TikTok slideshow into an editable draft; create-template-from-slideshow saves a slideshow as a reusable template; regenerate-slide per slide.",
+      "limits_or_cost": "",
+      "notable": "Paste-a-TikTok -> editable copy -> template is a concrete remix primitive.",
+      "sources": [
+        "https://github.com/fdarkaou/genviral-skill"
+      ]
+    },
+    {
+      "competitor": "Genviral",
+      "feature": "AI Studio templates and models",
+      "area": "editor",
+      "detail": "200+ proven templates starting from formats that already went viral; 30+ models (Nano Banana Pro, Veo 3, Kling, others).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://genviral.io"
+      ]
+    },
+    {
+      "competitor": "Genviral",
+      "feature": "Hosted accounts on real devices",
+      "area": "publishing",
+      "detail": "Accounts on provisioned real iPhone/Android with residential IP, warmed and posted daily; shadowbanned (last 10 posts under 100 views) accounts replaced free.",
+      "limits_or_cost": "Add-on",
+      "notable": "",
+      "sources": [
+        "https://genviral.io",
+        "https://usefastlane.ai/alternatives/reelfarm-alternatives"
+      ]
+    },
+    {
+      "competitor": "Genviral",
+      "feature": "10-platform publishing with approvals",
+      "area": "publishing",
+      "detail": "TikTok, Instagram, YouTube, LinkedIn, Pinterest, Facebook, X, Bluesky, Telegram, Mastodon via OAuth; single calendar, drafts and approvals, per-platform tailoring, workspace roles.",
+      "limits_or_cost": "Unlimited scheduling on Creator",
+      "notable": "",
+      "sources": [
+        "https://genviral.io"
+      ]
+    },
+    {
+      "competitor": "Genviral",
+      "feature": "Image packs and review gate",
+      "area": "format-carousel",
+      "detail": "Image packs (create-pack, add-pack-image) feed slideshows; every slide reviewed visually before posting; 48h and 7d analytics with weekly strategy review.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://github.com/fdarkaou/genviral-skill"
+      ]
+    },
+    {
+      "competitor": "Bluma",
+      "feature": "De-edit a video from URL",
+      "area": "remix",
+      "detail": "Drop in a TikTok, Instagram or Meta Ads URL; it deconstructs the video into scenes, on-screen text, overlays and captions so you rebuild it with your product (per Fastlane comparison, unverified). Own site: start from template, prompt or source video reference -> generate assets, voice, structure -> edit, export.",
+      "limits_or_cost": "Starter one clone at a time",
+      "notable": "Scene-level deconstruction is the most granular remix found.",
+      "sources": [
+        "https://usefastlane.ai/compare/fastlane-vs-bluma",
+        "https://www.getbluma.com"
+      ]
+    },
+    {
+      "competitor": "Bluma",
+      "feature": "Bulk variants and canvas",
+      "area": "editor",
+      "detail": "Timeline editor, node-based visual canvas for chaining generations, spreadsheet-style bulk editing turning one approved video into dozens of variants (per Fastlane, unverified).",
+      "limits_or_cost": "Export only, no publishing",
+      "notable": "",
+      "sources": [
+        "https://usefastlane.ai/compare/fastlane-vs-bluma"
+      ]
+    },
+    {
+      "competitor": "Bluma",
+      "feature": "Tokens pricing",
+      "area": "billing",
+      "detail": "Starter $36/mo (4,050 tokens, 25GB), Pro $99/mo (11,880 tokens, 200GB, 3GB max file), Enterprise custom (unverified, from Fastlane).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://usefastlane.ai/compare/fastlane-vs-bluma"
+      ]
+    },
+    {
+      "competitor": "Superscale",
+      "feature": "Six-module pipeline",
+      "area": "strategy",
+      "detail": "Context & Research (Meta Ad Library connection) -> Creative Strategy (strategy reports, automatic concepts) -> Statics & Video Ads (brand kit adherence, batch) -> Placements & Compliance -> Launch & Scheduling (coming soon) -> Analysis (creative analytics, auto iteration).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://superscale.ai/"
+      ]
+    },
+    {
+      "competitor": "Superscale",
+      "feature": "Named specialist agents",
+      "area": "agent",
+      "detail": "Static Ads Designer, Creative Strategist, Brand Researcher, Audience Researcher, Media Buyer, Concept Illustrator, Script Writer, Video Ad Editor, Ad Copywriter, Motion Designer, Campaign Planner, Performance Analyst, A/B Test Analyst, Trend Scout.",
+      "limits_or_cost": "",
+      "notable": "Agents framed as a team of job titles.",
+      "sources": [
+        "https://superscale.ai/"
+      ]
+    },
+    {
+      "competitor": "Superscale",
+      "feature": "Placements, safe zones, AI labels, approval",
+      "area": "compliance",
+      "detail": "Approve a creative, generate its placements with safe-zone adherence, add AI labels where required, creative approval process.",
+      "limits_or_cost": "",
+      "notable": "Built-in approval and AI-label step is the compliance pattern advisers need.",
+      "sources": [
+        "https://superscale.ai/"
+      ]
+    }
+  ]
+}

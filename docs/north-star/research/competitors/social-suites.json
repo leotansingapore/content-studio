@@ -1,0 +1,3001 @@
+{
+  "category": "Social media management suites and schedulers with AI",
+  "researched_at": "2026-10-19",
+  "competitors": [
+    {
+      "name": "Buffer",
+      "url": "https://buffer.com",
+      "pricing": "USD per channel. Free $0 (up to 3 channels, 10 scheduled posts per channel, 1 user). Essentials $5/mo or $60/yr per channel. Team $10/mo or $120/yr per channel (unlimited users, approvals). FAQ says channels above 10 cost less per channel; the page's annual-discount wording is inconsistent.",
+      "positioning": "Simple, cheap per-channel scheduler with a free AI Assistant, community inbox and Start Page.",
+      "audience": "Solo creators, small businesses, small teams.",
+      "sources": [
+        "https://buffer.com/pricing",
+        "https://buffer.com/publish",
+        "https://buffer.com/ai-assistant",
+        "https://buffer.com/community",
+        "https://buffer.com/analyze",
+        "https://buffer.com/start-page"
+      ]
+    },
+    {
+      "name": "Hootsuite",
+      "url": "https://www.hootsuite.com",
+      "pricing": "Per user, shown on annual basis; currency not printed, FAQ uses $. Standard $99 (10 social accounts, 5 competitors), Professional $199 (unlimited accounts, 20 competitors, 30-day Quick Search, trend forecast 90 days), Advanced up to $399 (approvals, routing), Enterprise custom (Lumen listening 13 months, Parliament advocacy, SSO). Wisdom AI included on every plan.",
+      "positioning": "Enterprise 'Social OS' (Perch publishing, Nest care, Parliament advocacy, Lumen listening) tied together by the Wisdom AI agent.",
+      "audience": "Mid-market and enterprise social, care and comms teams.",
+      "sources": [
+        "https://www.hootsuite.com/plans",
+        "https://www.hootsuite.com/",
+        "https://www.hootsuite.com/newsroom/press-releases/hootsuite-rebuilds-for-ai-era-introducing-wisdom",
+        "https://www.hootsuite.com/wisdom-ai"
+      ]
+    },
+    {
+      "name": "Later",
+      "url": "https://later.com",
+      "pricing": "USD, billed yearly: Starter $18.75/mo (1 social set = 8 profiles, 1 user, 30 posts per profile, 5 AI credits), Growth $37.50/mo (2 sets, 2 users, 180 posts per profile, 50 AI credits), Scale $82.50/mo (6 sets, 4 users, unlimited posts, 100 AI credits, 20 competitors). Add-ons on Growth/Scale: social set $11.25/mo, user $3.75/mo, 100 AI credits $3.75/mo (help center says $5/mo or $40/yr). Monthly-billing price not captured.",
+      "positioning": "Visual Instagram-first planner with Link in Bio, AI captions and creator tools.",
+      "audience": "Creators, small brands, social managers focused on Instagram/TikTok.",
+      "sources": [
+        "https://later.com/pricing/",
+        "https://later.com/social-media-scheduler/",
+        "https://help.later.com/hc/articles/14711113026327"
+      ]
+    },
+    {
+      "name": "Metricool",
+      "url": "https://metricool.com",
+      "pricing": "Free (1 brand, 20 posts/mo, 5 competitors, 5 AI credits per brand). Starter from $20/mo annual or $25 monthly (EUR 16/20) for 5 brands, $36/$45 for 10 brands, up to 100 competitors, 20 AI credits per brand. Advanced from $53/mo annual or $67 monthly (15 brands) up to $159/$210 (50 brands), approvals, team, API, 35 AI credits per brand. Custom: talk to sales. Add-ons: X $10/mo per account; Advanced Analytics from $12 (Starter) or $36 (Advanced) per month incl. Metricool Studio; Hashtag tracker $25/day. Prices exclude VAT.",
+      "positioning": "Analytics-first planner priced per brand, with cheap competitor tracking and an AI analyst (Metricool Studio).",
+      "audience": "Freelancers, agencies and SMBs managing several brands.",
+      "sources": [
+        "https://metricool.com/pricing/",
+        "https://pricingsaas.com/companies/metricool/diffs/2026W26"
+      ]
+    },
+    {
+      "name": "Sprout Social",
+      "url": "https://sproutsocial.com",
+      "pricing": "Per seat per month, '$' shown: Essentials $79 annual ($99 monthly, 5 profiles), Standard $199 (5 profiles, inbox, collaboration), Professional $299 (unlimited profiles, competitor insights, Enhance Post), Advanced $399 (Enhance Reply, sentiment, API), Enterprise custom. 100 Trellis AI agent credits per seat per month. Add-ons: Premium Analytics, Listening, Employee Advocacy (Standard and up).",
+      "positioning": "Premium all-in-one with Smart Inbox, deep reporting and the Trellis AI agent.",
+      "audience": "Mid-market and enterprise marketing and care teams.",
+      "sources": [
+        "https://sproutsocial.com/pricing/",
+        "https://pricingsaas.com/companies/sproutsocial/diffs/2026W35"
+      ]
+    },
+    {
+      "name": "Planable",
+      "url": "https://planable.io",
+      "pricing": "USD per workspace per month: Basic $33 (60 posts, 4 pages, approvals None/Optional), Pro $49 (150 posts, 10 pages, Required approvals, bulk approval, API), Enterprise custom (unlimited posts, Multi-level approvals, SSO). Unlimited users. Add-ons per workspace/month: Analytics $14 (cards say $12), Social inbox $9 ($7.50), Social listening $99 ($82.50; 1 brand, 3 topics). Yearly = 2 months free.",
+      "positioning": "Collaboration and approval-first content planner for agencies and teams.",
+      "audience": "Agencies, in-house teams with client or legal sign-off.",
+      "sources": [
+        "https://planable.io/pricing/",
+        "https://releasebot.io/updates/planable"
+      ]
+    },
+    {
+      "name": "SocialBee",
+      "url": "https://socialbee.com",
+      "pricing": "USD: Bootstrap $29/mo or $290/yr (5 accounts, 1 user, 1 workspace, 10 categories), Accelerate $49/mo or $490/yr (10 accounts, 50 categories, approvals), Pro $99/mo or $990/yr (25 accounts, 3 users, 5 workspaces). Agency Pro50/100/150: $179/$329/$449 monthly or $149/$274/$374 per month annual. Add-ons: user $10/mo, workspace $10/mo, 5 profiles $15/mo. 14-day trial, no card.",
+      "positioning": "Category-based evergreen scheduler with an AI Copilot that writes your strategy.",
+      "audience": "Small businesses, solopreneurs, small agencies.",
+      "sources": [
+        "https://socialbee.com/pricing/",
+        "https://socialbee.com/features/"
+      ]
+    },
+    {
+      "name": "Publer",
+      "url": "https://publer.com",
+      "pricing": "Business starts at $10/mo for 1 social account and 1 user, yearly saves 20%, every 10th account and 10th member free (Publer help). Professional reported at $5/mo monthly or $4/mo yearly for the first account, Business $8/mo yearly (third-party; publer.com pricing page could not be fetched, so unverified). Free plan exists.",
+      "positioning": "Low-cost per-account scheduler with strong automation (recycling, auto-delete, performance rules) and AI Assist.",
+      "audience": "Freelancers, SMBs, agencies on a budget.",
+      "sources": [
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md",
+        "https://www.blotato.com/blog/publer-pricing"
+      ]
+    },
+    {
+      "name": "Vista Social",
+      "url": "https://vistasocial.com",
+      "pricing": "'$' shown: Professional $99/mo or $950/yr (15 profiles, 2 users, 10,000 DM contacts, 1,000 AI credits), Advanced $199/mo or $1,910/yr (30 profiles, 3 users, 25,000 DM contacts, 2,000 AI credits), Scale $449/mo or $4,310/yr (70 profiles, 4 users, 100,000 DM contacts, 3,500 AI credits), Enterprise custom. Listening $75 to $250 per listener per month. Employee advocacy $199/mo for 25 employees.",
+      "positioning": "Feature-dense all-in-one with Ask Vista agent, DM automations, listening and reviews at mid-market prices.",
+      "audience": "Agencies, multi-location brands, SMB marketing teams.",
+      "sources": [
+        "https://vistasocial.com/pricing/",
+        "https://vistasocial.com/social-media-listening/"
+      ]
+    },
+    {
+      "name": "ContentStudio",
+      "url": "https://contentstudio.io",
+      "pricing": "'$' shown: Standard $29 monthly or $19/mo annual (5 accounts, 1 workspace, 25,000 AI words, 25 AI images, 100 AI video credits, 100 clipping credits), Advanced $69 or $49/mo annual (10 accounts, 2 workspaces, 2 users, inbox, approvals, competitor benchmark, 100 AI auto replies), Agency Unlimited $139 or $99/mo annual (25 accounts, unlimited workspaces and users), Enterprise custom, API plan $15/mo annual. Add-ons: listening $99/mo, extra account $5, user $10, workspace $10, white label $50/mo.",
+      "positioning": "Agency-oriented suite with content discovery, AI Studio (text, image, video) and clip maker.",
+      "audience": "Agencies and marketing teams handling several clients.",
+      "sources": [
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "name": "FeedHive",
+      "url": "https://feedhive.com",
+      "pricing": "EUR: Creator 15/mo (4 accounts, 30 scheduled posts, 2.5K AI credits), Brand 22/mo (10 accounts, 5 workspaces, 500 scheduled), Business 69/mo (100 accounts, unlimited), Agency 239/mo (500 accounts). Annual billed 180/264/828/2868; page says yearly saves up to 30%. Launch bonus doubles AI credits for 3 months. 7-day trial.",
+      "positioning": "AI-first creator scheduler with engagement prediction, conditional follow-ups, recycling suggestions and agent/CLI access.",
+      "audience": "Creators, solo marketers, technical marketers using AI agents.",
+      "sources": [
+        "https://feedhive.com/pricing",
+        "https://feedhive.com/"
+      ]
+    },
+    {
+      "name": "Postiz",
+      "url": "https://postiz.com",
+      "pricing": "'$' shown: Standard $29/mo ($23 annual, 5 channels, 3 AI videos, 60 clipping minutes), Team $39 ($31, 10 channels, team, 100 AI images), Pro $49 ($39, 30 channels), Ultimate $99 ($79, 100 channels). Unlimited posts. Open source (AGPL-3.0) and self-hostable.",
+      "positioning": "Open-source scheduler for 30+ networks with an AI agent, MCP, CLI and API on every plan.",
+      "audience": "Developers, agencies, technical creators, self-hosters.",
+      "sources": [
+        "https://postiz.com/pricing",
+        "https://postiz.com/"
+      ]
+    },
+    {
+      "name": "Predis.ai",
+      "url": "https://predis.ai",
+      "pricing": "'$' shown, annual pricing about 50% off list: Core $19/mo (list $32) or $230/yr, 1,300 credits, 1 brand, 10 channels, 60 competitor runs, no auto posting. Rise $40/mo (list $79) or $474/yr, 3,200 credits, 4 brands, 20 channels, 130 competitor runs, auto posting. Enterprise+ $212/mo (list $249) or $2,540/yr, 10,000 credits, unlimited brands, 60 channels, 600 competitor runs. 3-day trial, card required. Extra credits $29/mo.",
+      "positioning": "AI ad and post generator (video, UGC avatars, statics, carousels) with competitor and ad intelligence plus scheduling.",
+      "audience": "E-commerce brands, SMBs, agencies producing ads and posts at volume.",
+      "sources": [
+        "https://predis.ai/pricing/",
+        "https://predis.ai/"
+      ]
+    },
+    {
+      "name": "Ocoya",
+      "url": "https://www.ocoya.com",
+      "pricing": "'$' shown, billed monthly + VAT: Starter $29/mo (1 user, 5 profiles, 300 credits), Team $79/mo (5 users, 20 profiles, 1,500 credits), Agency $199/mo (20 users, 100 profiles, 5,000 credits), Enterprise custom. Yearly = 2 months free. 7-day trial, card required. 1 credit per campaign post or article.",
+      "positioning": "AI campaign generator plus Design Studio, workflows and publishing to social and CMS.",
+      "audience": "Small marketing teams, e-commerce, agencies.",
+      "sources": [
+        "https://www.ocoya.com/pricing",
+        "https://www.ocoya.com/"
+      ]
+    },
+    {
+      "name": "Blaze",
+      "url": "https://www.blaze.ai",
+      "pricing": "'$' shown: Starter $79/mo (3 posting accounts, 600 credits, 1 user, one campaign planned a week ahead), Growth $149/mo (10 accounts, 1,500 credits, unlimited users, yearly planning window), All-In-One $999/mo flat done-for-you (ads, GBP, AI receptionist, reviews). AI video 15 credits each.",
+      "positioning": "Autopilot marketing: scans your website, builds a brand kit and generates a weekly batch of posts to review.",
+      "audience": "Small business owners with no marketer.",
+      "sources": [
+        "https://www.blaze.ai/pricing",
+        "https://www.blaze.ai/"
+      ]
+    },
+    {
+      "name": "Simplified",
+      "url": "https://simplified.com",
+      "pricing": "USD: Starter $79/mo annual (page also lists $59 monthly, inconsistent), Pro $99/mo annual or $119 monthly, Business $199/mo annual or $239 monthly. Agent campaigns per month 5/15/40, $10 per extra campaign. Social accounts 7/15/30, brand kits 1/3/unlimited, seats -/3/7.",
+      "positioning": "AI marketing team: Riley agent runs campaigns from a brief across writing, design, video and scheduling.",
+      "audience": "SMBs, freelancers and agencies wanting campaign-level automation.",
+      "sources": [
+        "https://simplified.com/pricing",
+        "https://simplified.com/"
+      ]
+    },
+    {
+      "name": "Agorapulse",
+      "url": "https://www.agorapulse.com",
+      "pricing": "Per user (currency not printed): Standard 99 monthly / 79 annual, Professional 149 / 119, Advanced 199 / 149, Custom by sales; each plan includes 10 social profiles shared across users. Free 'Archie plan': Archie AI studio only, 10 credits/mo, up to 50 FB/IG/LinkedIn/YouTube profiles. 15-day trial (Advanced). agorapulse.com pages returned empty, figures are from the help center.",
+      "positioning": "Inbox-strong suite for agencies, now adding Archie, an AI studio that repurposes sources and top posts into drafts.",
+      "audience": "Agencies, community managers, SMB and mid-market teams.",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/8762696-pricing-per-user-explained",
+        "https://support.agorapulse.com/en/articles/8762514-archie-plan-explained"
+      ]
+    }
+  ],
+  "features": [
+    {
+      "competitor": "Buffer",
+      "feature": "AI Assistant in composer",
+      "area": "format-text",
+      "detail": "Opens inside the post composer and the Create (Ideas) space. Input: a text prompt or the existing post text. Actions: generate, rephrase, shorten, expand, refine; switch to 'more casual' or 'more formal' tone; repurpose one post into multiple formats; 'customize the post for each social media network'; summarize long content into short posts. Tailors for LinkedIn, Threads, X, Instagram, Bluesky.",
+      "limits_or_cost": "Free on every plan, no stated limits. Prompt text is sent to OpenAI (not account data or media).",
+      "notable": "AI is opt-in per post; one-click per-network tailoring of the same idea.",
+      "sources": [
+        "https://buffer.com/ai-assistant",
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Ideas board with AI idea generation",
+      "area": "strategy",
+      "detail": "An 'Ideas' library (board view, tags, drafts, templates) where users save content ideas; the AI Assistant in Ideas generates new post ideas when you are 'out of ideas'. Ideas can later be turned into scheduled posts.",
+      "limits_or_cost": "Free: 100 ideas, 3 tags. Paid: unlimited ideas, 250 tags.",
+      "notable": "Backlog of ideas separate from the queue keeps planning and publishing decoupled.",
+      "sources": [
+        "https://buffer.com/pricing",
+        "https://buffer.com/ai-assistant",
+        "https://buffer.com/publish"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Browser extension save-to-Buffer",
+      "area": "inspiration",
+      "detail": "Browser extension lets users save web content (articles, inspiration) into Ideas or directly into the queue.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/pricing",
+        "https://buffer.com/publish"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Queue with posting schedule",
+      "area": "calendar",
+      "detail": "Each channel gets recurring posting times in its own time zone. When scheduling, options are 'Next Available', 'Prioritize' (move to top of queue), 'Now', 'Set Date and Time'. Posts drop into the next open slot.",
+      "limits_or_cost": "Free: 10 scheduled posts per channel. Paid: unlimited with 5,000 per channel fair-use cap.",
+      "notable": "Slot-based queue means users never pick a time; 'Prioritize' handles urgent posts.",
+      "sources": [
+        "https://buffer.com/publish",
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Visual calendar",
+      "area": "calendar",
+      "detail": "All channels in one grid, week and month views, filter by channel, tag or post type, drag to reschedule, edit in place. Drafts on all plans.",
+      "limits_or_cost": "Approvals only on Team plan.",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/publish"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Per-network composer tabs",
+      "area": "publishing",
+      "detail": "Composer shows a separate text box per network; caption, hashtags, link and time can be customized per platform; each version becomes its own post in that channel's queue. Includes custom video covers (paid), link shortening, duplicate posts, channel groups (paid).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/publish",
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "First comment scheduling",
+      "area": "publishing",
+      "detail": "Schedule a first comment with the post, e.g. to hold hashtags so the caption stays clean.",
+      "limits_or_cost": "Essentials and Team only.",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/publish",
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Networks and auto-publish vs reminders",
+      "area": "publishing",
+      "detail": "Publishes to 12 channels: Facebook, Instagram, TikTok, LinkedIn, Threads, Bluesky, YouTube Shorts, Pinterest, Google Business Profile, Mastodon, Substack Notes, X, plus Start Page. The publish page says FB Pages, X, LinkedIn, Threads, Bluesky, Mastodon, Pinterest and GBP publish automatically; for Instagram, TikTok, YouTube and FB Groups formats it sends a reminder notification so the user finishes in the app (which IG/TikTok formats need this is not detailed: partly unverified).",
+      "limits_or_cost": "",
+      "notable": "Reminder mode as a fallback where APIs do not allow auto-publish.",
+      "sources": [
+        "https://buffer.com/publish"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Threaded posts",
+      "area": "format-text",
+      "detail": "Compose X threads (and Threads) as multiple posts in the composer, preview, schedule; Buffer publishes each in order.",
+      "limits_or_cost": "Free: 1 threaded post. Paid: unlimited.",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/publish",
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Hashtag manager",
+      "area": "format-text",
+      "detail": "Saved hashtag groups insertable into posts.",
+      "limits_or_cost": "Essentials and Team.",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Community inbox",
+      "area": "engagement",
+      "detail": "Comment management for Instagram, Facebook, LinkedIn, Threads, Bluesky, X, TikTok, GBP, YouTube, Mastodon. Reply in Buffer or jump to the native app; web and mobile. 'Filters & sorting': unanswered, newest, oldest, date ranges. Notifications on new comments. Saved replies. AI replies draft in your style with rephrase, shorten, expand.",
+      "limits_or_cost": "Included on all plans. AI replies: 5 suggestions per week free, unlimited paid. Saved replies: 1 free, unlimited paid.",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/community",
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Comment score",
+      "area": "engagement",
+      "detail": "Score that tracks response rate, response speed and consistency of replying, framed as 'consistency, speed, and engagement habits'.",
+      "limits_or_cost": "All plans.",
+      "notable": "Gamifies community management with one number.",
+      "sources": [
+        "https://buffer.com/community",
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Create post from reply",
+      "area": "remix",
+      "detail": "Button 'Create post from reply' turns a comment reply into its own new post. Comment insights (surfacing themes and ideas from replies) is marked 'Coming soon'.",
+      "limits_or_cost": "All plans ('Turn comments into posts').",
+      "notable": "Turns audience conversations into content; a cheap remix source that needs no competitor data.",
+      "sources": [
+        "https://buffer.com/community",
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Insights with Takeaways",
+      "area": "analytics",
+      "detail": "Analytics for 11 networks (likes, comments, impressions, new followers, reach, engagement, top posts, period change). 'Takeaways' turn results into one-click actions: 'Revise Posting Schedule' -> 'Adjust Your Schedule'; 'Boost Posting Frequency' (behind posting goal) -> 'Create a Post'; 'Repost Your Engaging Content' -> 'View Post Details'.",
+      "limits_or_cost": "Free: 30-day history. Performance overview, custom analytics, reports, UTM: Essentials+. Branded reports: Team.",
+      "notable": "Every insight ends in a button that starts the fix, including reposting a winner.",
+      "sources": [
+        "https://buffer.com/analyze",
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Reports and exports",
+      "area": "analytics",
+      "detail": "All Channels report with top posts, followers chart, export menu; single-channel views; PDF and CSV export; branded reports.",
+      "limits_or_cost": "PDF/CSV on paid plans; branded reports Team only.",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/analyze",
+        "https://buffer.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Start Page (link in bio)",
+      "area": "other",
+      "detail": "Link-in-bio page builder: embed videos, feature latest posts, showcase products, collect emails, add photos and forms; themes, colors, fonts, 14 layout templates. Built-in analytics: page views, custom link clicks, social link clicks. Can be published to like a channel.",
+      "limits_or_cost": "Free forever with some limits; custom domain not mentioned.",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/start-page",
+        "https://buffer.com/publish"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Approval workflows and permissions",
+      "area": "compliance",
+      "detail": "Approval workflows plus 'Custom access and permissions'; internal Notes on posts (Essentials+).",
+      "limits_or_cost": "Team plan ($10/channel/mo) only.",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/pricing",
+        "https://buffer.com/publish"
+      ]
+    },
+    {
+      "competitor": "Buffer",
+      "feature": "Integrations, API and MCP",
+      "area": "integrations",
+      "detail": "Integrations: Bitly, Canva, ChatGPT, Claude, Cursor, Dropbox, Google Drive and Photos, IFTTT, Make, n8n, OneDrive, Perplexity, Raycast, Unsplash, WordPress, Zapier. Public API and an MCP server so Claude or ChatGPT can query performance data.",
+      "limits_or_cost": "API keys 1/3/5; requests per 30 days 3,000 / 7,500 / 15,000 by plan.",
+      "notable": "",
+      "sources": [
+        "https://buffer.com/pricing",
+        "https://buffer.com/analyze"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Wisdom AI agent",
+      "area": "agent",
+      "detail": "Chat agent ('Hootsuite's social-first AI agent'; replaced Yeti and OwlyGPT). Drafts social posts, campaign ideas, content briefs, images and captions for review. Analyses trends, risks, competitor activity, performance and review feedback. Cards: 'Predict trends', 'Recommend next steps', 'Spot risks early'. Example actions: 'draft a post, flag a negative comment, share a report'. Connected to Lumen (listening) and Perch (planning); Nest and Parliament 'Coming Soon'. Launched 24 Jun 2026 with MCP connectors for Perch, Nest and Lumen.",
+      "limits_or_cost": "Included in every plan (plans page).",
+      "notable": "One conversation goes from signal (trend, risk) to drafted post to next step.",
+      "sources": [
+        "https://www.hootsuite.com/wisdom-ai",
+        "https://www.hootsuite.com/newsroom/press-releases/hootsuite-rebuilds-for-ai-era-introducing-wisdom",
+        "https://www.hootsuite.com/plans"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Repurpose top-performing posts (OwlyWriter)",
+      "area": "remix",
+      "detail": "AI identifies your best-performing organic posts and rewrites them into new versions 'without duplicating it'; launched in 2023 as OwlyWriter AI, now listed under analytics AI recommendations.",
+      "limits_or_cost": "Listed as a Pro (Professional) plan feature on the analytics page.",
+      "notable": "Your own winners as the remix source: proven and brand-safe.",
+      "sources": [
+        "https://www.hootsuite.com/platform/analytics",
+        "https://www.businesswire.com/news/home/20230419005114/en/Hootsuite-Makes-Social-Content-Creation-Seriously-Easy-with-OwlyWriter-AI"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Create: remix past posts and image-to-post",
+      "area": "remix",
+      "detail": "AI content creation in Composer: 'Create from scratch, remix past posts, or turn images into content'; generate posts and on-brand images for any network; Wisdom creates visuals that match a caption.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/publishing"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Automated captions and hashtag generator",
+      "area": "format-text",
+      "detail": "Generates captions and hashtags for every network, with an ideas engine for post suggestions. Hashtag generator tags content based on copy, images and videos.",
+      "limits_or_cost": "",
+      "notable": "Hashtags inferred from the media, not only the caption.",
+      "sources": [
+        "https://www.hootsuite.com/platform/publishing"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Trends to AI post",
+      "area": "inspiration",
+      "detail": "Trend discovery searches brand mentions and trending topics by industry, topic, company or hashtag; results can be turned into AI-generated posts. Wisdom shows a quick search panel with trending topics and search percentages; Professional plan forecasts social trends up to 90 days ahead.",
+      "limits_or_cost": "Forecasting on Professional and above.",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/publishing",
+        "https://www.hootsuite.com/platform/listening",
+        "https://www.hootsuite.com/wisdom-ai",
+        "https://www.hootsuite.com/plans"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Best time to post heat map",
+      "area": "calendar",
+      "detail": "Recommended publishing times shown in the calendar window and as a heat map (e.g. 'Tuesday 15:00 slot'); choose a goal: increase engagement, drive traffic, build awareness or extend reach; schedule to auto-publish at the recommended time.",
+      "limits_or_cost": "",
+      "notable": "Goal-specific best times rather than one generic slot.",
+      "sources": [
+        "https://www.hootsuite.com/platform/publishing",
+        "https://www.hootsuite.com/platform/analytics"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Bulk scheduler and crisis pause",
+      "area": "calendar",
+      "detail": "Schedule 'up to 350 posts at once'; suspend all scheduled posts in a crisis or for an unexpected opportunity.",
+      "limits_or_cost": "CSV import not described on the page.",
+      "notable": "Global pause button is a compliance safety valve.",
+      "sources": [
+        "https://www.hootsuite.com/platform/publishing"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Planner calendar",
+      "area": "calendar",
+      "detail": "Calendar or list view of organic and paid, published and scheduled content; map campaigns and fill content gaps.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/publishing"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Instagram, TikTok, Bluesky composer options",
+      "area": "publishing",
+      "detail": "Instagram feed, Reels, Stories, carousels up to 20 photos (Business account); TikTok toggles for comments, Duets, Stitches; Bluesky 300 chars, 4 images or 1 GIF or 1 video; X character-limit warnings; Threads on all plans.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/publishing"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Competitor benchmarking",
+      "area": "analytics",
+      "detail": "Watchlist built by searching competitor usernames. Metrics: number of posts, posting frequency, average engagement, audience growth, follower count, estimated engagement, average post length, average hashtags per post. Industry benchmarking by vertical and company size. Sentiment and share of voice (incl. LLM visibility in ChatGPT, Gemini, Claude) via listening.",
+      "limits_or_cost": "Standard: 5 competitors. Professional/Advanced: 20. Real-time alerts Enterprise only.",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/competitive-analysis",
+        "https://www.hootsuite.com/platform/analytics",
+        "https://www.hootsuite.com/plans"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Top competitor posts",
+      "area": "inspiration",
+      "detail": "View competitors' top-performing posts ranked by 'likes, comments, replies, engagement, and more'; track the hashtags used in those posts.",
+      "limits_or_cost": "Within competitor limits above.",
+      "notable": "Ranked competitor post feed is the raw material for remixing.",
+      "sources": [
+        "https://www.hootsuite.com/platform/competitive-analysis"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Social performance score and AI recommendations",
+      "area": "analytics",
+      "detail": "Weekly or monthly score across Facebook, Instagram, LinkedIn with a snapshot of the most and least engaging posts of the past week; 'AI recommendations and highlights' give tips to raise the score.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/analytics"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Reports",
+      "area": "analytics",
+      "detail": "Pre-defined templates; drill down to post, network or page; paid and organic side by side; export .csv, .xlsx, .pdf, .ppt; share with external emails. Custom and scheduled reports on Professional. Advanced Analytics (Enterprise add-on) adds ROI, custom metrics and rule-based tags.",
+      "limits_or_cost": "Instagram data can take up to 64 hours to appear.",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/analytics",
+        "https://www.hootsuite.com/plans"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Listening (Lumen by Talkwalker)",
+      "area": "inspiration",
+      "detail": "Track mentions, keywords, hashtags; sentiment over time; real-time alerts on sentiment shifts; 50+ saved Boolean searches; custom dashboards; AI summaries. Basic listening on all plans; advanced (13 months history) on Enterprise.",
+      "limits_or_cost": "Quick Search 30-day on Professional; Lumen advanced Enterprise only.",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/listening",
+        "https://www.hootsuite.com/plans"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Nest inbox",
+      "area": "engagement",
+      "detail": "Comments and DMs from Facebook, Instagram, X, WhatsApp, TikTok, LinkedIn, Threads. Saved replies, auto-responders, 'Reply with AI' suggestions to review, assignment, skill-based routing, AI classifiers that auto-route, agent status 'available'/'away', 'Boomerang messages', internal notes and agent chat, PII masking, SLA alerts, CSAT surveys.",
+      "limits_or_cost": "Unified inbox on every plan; Advanced Inbox add-on (Enterprise) adds sentiment, 60+ language detection.",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/social-media-inbox",
+        "https://www.hootsuite.com/plans"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Automated Instagram DMs from comments",
+      "area": "engagement",
+      "detail": "Comment trigger: when someone comments a keyword on your post they get a DM. Multiple comment-reply variations; delay replies by a few minutes so they feel personal.",
+      "limits_or_cost": "Inbox automation listed on Professional and above.",
+      "notable": "Keyword-comment-to-DM is the standard lead-capture loop.",
+      "sources": [
+        "https://www.hootsuite.com/platform/social-media-inbox",
+        "https://www.hootsuite.com/plans"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Generative AI chatbot",
+      "area": "engagement",
+      "detail": "Answers questions across social and website using FAQs you approve, hands off to humans with a conversation summary; claims up to 80% of replies automated.",
+      "limits_or_cost": "Enterprise.",
+      "notable": "Answers only from approved FAQs: useful pattern for regulated advisers.",
+      "sources": [
+        "https://www.hootsuite.com/platform/social-media-inbox"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Approval workflows",
+      "area": "compliance",
+      "detail": "Custom approval workflows tailored to teams; 'review and approve content with your team'.",
+      "limits_or_cost": "Advanced plan and above.",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/publishing",
+        "https://www.hootsuite.com/plans"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Canva, Adobe Express and integrations",
+      "area": "integrations",
+      "detail": "Canva and Adobe Express templates inside Composer; free stock images; 100+ integrations; MCP connectors so ChatGPT, Claude, Copilot, Gemini can reach Hootsuite data.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/publishing",
+        "https://www.hootsuite.com/",
+        "https://www.hootsuite.com/newsroom/press-releases/hootsuite-rebuilds-for-ai-era-introducing-wisdom"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Link in bio",
+      "area": "other",
+      "detail": "Customizable link page created and managed from the Hootsuite dashboard.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.hootsuite.com/platform/publishing"
+      ]
+    },
+    {
+      "competitor": "Hootsuite",
+      "feature": "Parliament employee advocacy",
+      "area": "team",
+      "detail": "Employee advocacy product (formerly Amplify) for sharing approved brand content through staff.",
+      "limits_or_cost": "Enterprise.",
+      "notable": "Pre-approved library staff can share: relevant to adviser networks.",
+      "sources": [
+        "https://www.hootsuite.com/newsroom/press-releases/hootsuite-rebuilds-for-ai-era-introducing-wisdom",
+        "https://www.hootsuite.com/plans"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Visual planner with Instagram feed preview",
+      "area": "calendar",
+      "detail": "Calendar plus grid preview: 'Preview your feed before it goes live'; 'Drag, drop, and rearrange posts until your feed looks exactly how you want it.'",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://later.com/social-media-scheduler/"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Multi-profile scheduling",
+      "area": "publishing",
+      "detail": "Schedule to 'up to 10 social profiles at once' with per-profile customization for each network's media rules. Networks: Instagram, Facebook, Pinterest, TikTok, LinkedIn, Threads, YouTube Shorts, Snapchat.",
+      "limits_or_cost": "Posts per profile: 30 Starter, 180 Growth, unlimited Scale.",
+      "notable": "",
+      "sources": [
+        "https://later.com/social-media-scheduler/",
+        "https://later.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Best Time to Post",
+      "area": "calendar",
+      "detail": "Recommends times from past posts, follower activity and industry trends, highlighted in the calendar; auto-enabled when the profile is eligible.",
+      "limits_or_cost": "Starter: IG, FB, TikTok. Growth+: 'Multi-Profile Best Times to Post'.",
+      "notable": "",
+      "sources": [
+        "https://later.com/social-media-scheduler/",
+        "https://later.com/pricing/",
+        "https://later.com/social-media-ai-tools/"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Caption Writer",
+      "area": "format-text",
+      "detail": "Input: a few keywords describing the post. Output: multiple caption options to edit; learns brand tone from past posts; regenerate with a different tone or phrasing (returns 3 new versions).",
+      "limits_or_cost": "1 credit per generation or regeneration.",
+      "notable": "",
+      "sources": [
+        "https://later.com/social-media-ai-tools/",
+        "https://help.later.com/hc/articles/14711113026327"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Ideas tab with content pillars",
+      "area": "strategy",
+      "detail": "Generates content pillars (free), then post ideas within each pillar for planning the calendar.",
+      "limits_or_cost": "Ideas cost 1 credit per batch of 3; first 3 ideas per pillar free. Beta, desktop only.",
+      "notable": "Pillar-first ideation keeps output on-strategy.",
+      "sources": [
+        "https://later.com/social-media-ai-tools/",
+        "https://help.later.com/hc/articles/14711113026327"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "AI credit pool",
+      "area": "billing",
+      "detail": "One shared monthly pool for all AI features: Starter 5, Growth 50, Scale 100; resets 1st of month 00:00 UTC.",
+      "limits_or_cost": "Add-on 100 credits: $3.75/mo on pricing page; help center says $5/mo or $40/yr.",
+      "notable": "",
+      "sources": [
+        "https://later.com/pricing/",
+        "https://help.later.com/hc/articles/14711113026327"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Link in Bio",
+      "area": "other",
+      "detail": "Mini web page for Instagram, TikTok and Snap: clickable feed posts (only posts tagged with a link appear), custom buttons, featured banner, Mailchimp signup, custom affiliate links, link analytics, custom SEO title/meta, personalized URL, Linktree import.",
+      "limits_or_cost": "Multiple links per IG post (up to 5) on Growth and above. TikTok links need Business account with 1,000+ followers.",
+      "notable": "Shoppable grid that mirrors the feed.",
+      "sources": [
+        "https://later.com/link-in-bio/"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Collect UGC by tags and mentions",
+      "area": "inspiration",
+      "detail": "'Collect by Tags' and 'Collect by Mentions' pull user-generated content into the media library (which also takes uploads, Canva, Dropbox).",
+      "limits_or_cost": "Growth and Scale.",
+      "notable": "",
+      "sources": [
+        "https://later.com/pricing/",
+        "https://later.com/social-media-scheduler/"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Competitive benchmarking and brand health",
+      "area": "analytics",
+      "detail": "Compare against competitors; plus 'Brand Health' and 'Brand Mentions' monitoring. Metrics and top-post display not described on the public page.",
+      "limits_or_cost": "Scale only, up to 20 competitors.",
+      "notable": "",
+      "sources": [
+        "https://later.com/pricing/",
+        "https://later.com/social-media-analytics/"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Analytics and Custom Analytics",
+      "area": "analytics",
+      "detail": "Reach, engagement rate, follower growth for IG, FB, TikTok, Pinterest, Threads. 'Custom Analytics' picks metrics, ranges, platforms, post type; 'Campaign Tagging' groups posts into a campaign total; Meta Ads Analytics.",
+      "limits_or_cost": "History: 3 months Starter, 1 year Growth, 2 years Scale. Custom Analytics and Meta Ads Scale only. Audience analytics needs 100+ followers.",
+      "notable": "",
+      "sources": [
+        "https://later.com/social-media-analytics/",
+        "https://later.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Social inbox",
+      "area": "engagement",
+      "detail": "Conversations from Instagram, Facebook, TikTok in one inbox.",
+      "limits_or_cost": "Growth and Scale.",
+      "notable": "",
+      "sources": [
+        "https://later.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Approval and external comment workflow",
+      "area": "compliance",
+      "detail": "'Content Approval Workflow' and 'External Comment Workflow' for outside reviewers; 'Share Calendar' and 'Calendar Notes'; Access Groups and custom roles.",
+      "limits_or_cost": "Growth and Scale.",
+      "notable": "",
+      "sources": [
+        "https://later.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Later",
+      "feature": "Instagram product tagging",
+      "area": "publishing",
+      "detail": "Tag products in scheduled Instagram posts.",
+      "limits_or_cost": "Growth and Scale.",
+      "notable": "",
+      "sources": [
+        "https://later.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Competitor analysis",
+      "area": "analytics",
+      "detail": "Add competitor profiles and see 'Followers and Likes', 'Posts' (browse recent content for style, frequency, topics), 'Interactions' (likes, comments, shares) and 'Extra Stats'. Networks: Facebook, Instagram, Bluesky, Twitch; YouTube and X with add-on.",
+      "limits_or_cost": "Free: 5 competitors. Starter and above: up to 100.",
+      "notable": "100 competitors on a $20 plan is far cheaper than enterprise tools.",
+      "sources": [
+        "https://metricool.com/competitor-analysis/",
+        "https://metricool.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Competitor recent posts feed",
+      "area": "inspiration",
+      "detail": "Within competitor analysis, browse a competitor's recent posts in one place to study style, frequency and topics. Sorting by engagement is not described (unverified).",
+      "limits_or_cost": "Same limits as competitor analysis.",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/competitor-analysis/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "AI social media assistant",
+      "area": "format-text",
+      "detail": "Generates captions, hashtags, emojis, brainstormed ideas; adapts a post per network; changes tone; translates; fixes spelling; adds CTAs; shortens or lengthens. Returns one post that you refine with shortcuts (not 5 options). AI Alt Text Generator also uses credits.",
+      "limits_or_cost": "Credits per brand per month: Free 5, Starter 20, Advanced 35, Custom configurable. Per-action cost not published.",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/ai-social-media-assistant/",
+        "https://metricool.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Brand AI configuration",
+      "area": "brand",
+      "detail": "Brand settings > AI configuration holds general instructions plus per-network instructions (shown only for connected networks; instructions for disconnected networks are kept hidden).",
+      "limits_or_cost": "",
+      "notable": "Per-network voice rules, e.g. LinkedIn formal and Instagram casual.",
+      "sources": [
+        "https://metricool.com/product-updates-august-2026/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Metricool Studio (AI analyst)",
+      "area": "agent",
+      "detail": "Built-in AI assistant (reported as Claude-powered) for analytics, reporting and planning. 'Explore insights' button above Analytics tables offers questions (best/worst content, recurring patterns, top format, change vs previous period) and opens the answer view. Top content cards show thumbnail, title, engagement, views, reach, saves. Expert mode has a prompt helper bar that turns each element (brand, networks, period, chart or text type) green as you type.",
+      "limits_or_cost": "Part of the Advanced Analytics add-on (from $12/mo Starter, $36/mo Advanced); was free for a limited time in May 2026.",
+      "notable": "Pre-written questions on top of every table remove the blank-prompt problem.",
+      "sources": [
+        "https://metricool.com/product-updates-august-2026/",
+        "https://metricool.com/de/metricool-studio-vs-metricool-mcp/",
+        "https://pricingsaas.com/companies/metricool/diffs/2026W26",
+        "https://metricool.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Planner with best times and feed preview",
+      "area": "calendar",
+      "detail": "Drag-and-drop calendar for Instagram, Facebook, X, TikTok, Pinterest, YouTube, Threads, GBP, Twitch, LinkedIn (paid). Best time to post for IG, FB, TikTok, X, YouTube. Instagram feed preview. Saved texts for common phrases. Schedule polls and PDFs on paid plans. Up to 35 images per Facebook post.",
+      "limits_or_cost": "Free plan posts per month: 20 on pricing page, 50 on planner article (inconsistent).",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/social-media-planner/",
+        "https://metricool.com/pricing/",
+        "https://metricool.com/product-updates-august-2026/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Autolists (evergreen recycling)",
+      "area": "calendar",
+      "detail": "Lists of evergreen posts that are recycled and republished automatically on a schedule.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/social-media-planner/",
+        "https://metricool.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Recurring scheduling with prompt tab",
+      "area": "calendar",
+      "detail": "Recurring scheduling redesigned with 'Step by step' and 'Prompt from scratch' tabs; settings carry over between tabs.",
+      "limits_or_cost": "Advanced and Custom.",
+      "notable": "Describe a recurrence in plain language instead of form fields.",
+      "sources": [
+        "https://metricool.com/product-updates-august-2026/",
+        "https://metricool.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Duplicate to other brands",
+      "area": "team",
+      "detail": "'Duplicate to other brands' copies a post across brands; when a target brand lacks the network you can skip it (default) or include it anyway. 'Repurpose posts between brands' listed on paid plans.",
+      "limits_or_cost": "Paid plans.",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/product-updates-august-2026/",
+        "https://metricool.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Post library Kanban board",
+      "area": "calendar",
+      "detail": "Library has a board view with one column per status; drag cards (Ctrl/Cmd to multi-move) to change status; changes logged in post history; assign posts to team members.",
+      "limits_or_cost": "Library holds 250 posts per brand on every plan (up from 50).",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/product-updates-august-2026/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Approval portal",
+      "area": "compliance",
+      "detail": "Post approval system; reviewers in the approval portal can comment on any post, approved or not, in real time ('Comments without rejecting').",
+      "limits_or_cost": "Advanced and Custom.",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/pricing/",
+        "https://metricool.com/product-updates-august-2026/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "AI-generated content label",
+      "area": "compliance",
+      "detail": "Selector to mark posts as AI-generated for Instagram (image, reel, carousel), TikTok Business and YouTube.",
+      "limits_or_cost": "",
+      "notable": "Disclosure toggle at post level.",
+      "sources": [
+        "https://metricool.com/product-updates-august-2026/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Flows (DM automation)",
+      "area": "engagement",
+      "detail": "'Planning' > 'Flows' > '+ New Flow'. Instagram templates: 'Turn comments into direct messages' (any comment or keyword -> DM with message or link, optional public reply and message sequence), 'Reply to direct messages with keywords' (text, button, link), 'Turn story replies into direct messages'. TikTok templates: 'Moderate your video comments' (hide banned words), 'Reply to comments right away', 'DM to DM'. Optional delays, mobile preview, draft or on.",
+      "limits_or_cost": "Up to 3 reply variants rotated at random; delays up to 24 hours. Starter and above (third-party tracker); IG needs professional account + linked FB page.",
+      "notable": "Random reply variants avoid spammy identical replies.",
+      "sources": [
+        "https://metricool.com/metricool-flows-dm-automation-tool/",
+        "https://metricool.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Social inbox",
+      "area": "engagement",
+      "detail": "Inbox for Instagram, Facebook, TikTok, YouTube, GBP on all plans; X with add-on; LinkedIn on paid. Rich text notes.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/pricing/",
+        "https://metricool.com/product-updates-august-2026/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "SmartLinks (link in bio)",
+      "area": "other",
+      "detail": "Customizable microsite: multiple links, buttons, images, videos, posts; colors and templates; custom URL; analytics for visits, clicks and CTR with reordering by performance. Multiple link-in-bio pages.",
+      "limits_or_cost": "Unlimited links and analytics on paid plans.",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/smartlinks/",
+        "https://metricool.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Reports and campaign dashboards",
+      "area": "analytics",
+      "detail": "Automated PDF/PPT reports, monthly auto-send, live URL sharing; customizable templates and Looker Studio connector on Advanced. Campaign dashboards combine organic and Google/Meta/TikTok Ads; 'View posts' opens every post, reel and story with per-network tabs, filters, sorting.",
+      "limits_or_cost": "3 dashboards included, unlimited with Advanced Analytics add-on.",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/pricing/",
+        "https://metricool.com/product-updates-august-2026/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "Hashtag tracker",
+      "area": "inspiration",
+      "detail": "Tracks a hashtag's reach and posts on Instagram (and X on paid plans).",
+      "limits_or_cost": "$25 per day per tracker.",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Metricool",
+      "feature": "MCP, API and integrations",
+      "area": "integrations",
+      "detail": "Metricool MCP on all plans (limits on Free/Starter); API, Zapier, Make on Advanced; Canva and Google Drive on Starter+; Adobe Express on all.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://metricool.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Trellis AI agent",
+      "area": "agent",
+      "detail": "Agent across Listening, Publishing, Smart Inbox and Reporting. Turns performance data into executive-ready summaries, flags unusual spikes in volume or sentiment, compares performance across networks, runs sentiment and theme analysis and routes it to teams; synthesizes 'viral trends and competitor themes'.",
+      "limits_or_cost": "Every plan since July 2026; 100 AI agent credits per seat per month. Overage terms unpublished.",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/insights/press/now-generally-available-sprout-socials-ai-agent-trellis-is-helping-reshape-how-social-teams-prove-their-value/",
+        "https://sproutsocial.com/ai/",
+        "https://sproutsocial.com/pricing/",
+        "https://pricingsaas.com/companies/sproutsocial/diffs/2026W35"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Trellis Studio skill templates",
+      "area": "agent",
+      "detail": "Teams build customizable AI skill templates; recurring tasks run automatically, e.g. track a viral trend or summarize a week of feedback.",
+      "limits_or_cost": "",
+      "notable": "User-defined recurring agent jobs.",
+      "sources": [
+        "https://sproutsocial.com/insights/press/now-generally-available-sprout-socials-ai-agent-trellis-is-helping-reshape-how-social-teams-prove-their-value/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "AI Assist: Enhance Post",
+      "area": "format-text",
+      "detail": "'Enhance Post by AI Assist' in the composer plus AI caption suggestions and alt text generation.",
+      "limits_or_cost": "Professional and above.",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/features/social-media-publishing/",
+        "https://sproutsocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "AI Assist: Enhance Reply",
+      "area": "engagement",
+      "detail": "AI improves drafted replies in the Smart Inbox.",
+      "limits_or_cost": "Advanced and above.",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Optimal Send Times",
+      "area": "calendar",
+      "detail": "Recommends posting times from about 16 weeks of audience data; Sprout cites up to 60% reach lift.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/features/social-media-publishing/",
+        "https://sproutsocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Calendar and Campaigns",
+      "area": "strategy",
+      "detail": "Plan and schedule across profiles in a shared calendar; send posts to outside stakeholders for approval. Sprout Campaigns plans, executes and measures campaigns; content can be pushed in from project tools.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/features/social-media-publishing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Message Approval Workflows",
+      "area": "compliance",
+      "detail": "Guide internal and external team members through approving messages; supports 'unanimous approval'.",
+      "limits_or_cost": "Collaboration tools from Standard.",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/features/social-media-publishing/",
+        "https://sproutsocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Asset Library",
+      "area": "brand",
+      "detail": "Create assets in Sprout or import from Canva, Bynder, Adobe Experience Manager, Dropbox, Google Drive; edit and publish from one place.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/features/social-media-publishing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Content Suggestions",
+      "area": "inspiration",
+      "detail": "Finds brand-relevant content to share with your audience.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/features/social-media-publishing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "SproutLink (link in bio)",
+      "area": "other",
+      "detail": "Visual landing page of clickable links for the Instagram bio.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/features/social-media-publishing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Smart Inbox",
+      "area": "engagement",
+      "detail": "Comments, DMs, mentions in one stream; 'Custom Inbox Views', 'Message Completion', sort by network/type/status; 'Contact Views' and 'Conversation History'; 'Collision Detection' when a teammate is replying. Message tagging (Professional), sentiment and Message Spike Alerts (Advanced). Review management from Standard.",
+      "limits_or_cost": "Consolidated inbox from Standard.",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/features/smart-inbox/",
+        "https://sproutsocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Competitor reports",
+      "area": "analytics",
+      "detail": "Network competitor reports for Facebook, Instagram, X: audience growth, engagement, post volume vs your profiles. Instagram Competitors Report shows stats, 'Competitor Average' and most popular posts and hashtags; Top Posts widget ranks by lifetime public engagement; a Competitor Posts Report lists all competitor posts. Add competitors by searching brand name.",
+      "limits_or_cost": "Professional: 'extensive competitor, tag and paid insights'. Number of competitors not published.",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/competitive-analysis/",
+        "https://sproutsocial.com/features/social-media-analytics/",
+        "https://sproutsocial.com/insights/release/march-9-2017",
+        "https://sproutsocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Competitive listening",
+      "area": "inspiration",
+      "detail": "Listening topics compare share of voice, engagement, sentiment, impressions side by side; surfaces top trends, topics and posts filterable by competitor, content type, message type and sentiment.",
+      "limits_or_cost": "Listening add-on (Standard and up).",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/competitive-analysis/",
+        "https://sproutsocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Reporting suite",
+      "area": "analytics",
+      "detail": "'Profile Performance Report', 'Post Performance Report', 'Competitor Reports', 'Network Reports' (Instagram, Facebook, X, Bluesky, Threads, TikTok, LinkedIn, YouTube, Pinterest), 'Tag Report', paid performance, hashtag tracking.",
+      "limits_or_cost": "Premium Analytics add-on for advanced reporting.",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/features/social-media-analytics/",
+        "https://sproutsocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Sprout Social",
+      "feature": "Employee Advocacy add-on",
+      "area": "team",
+      "detail": "Separate add-on so employees share approved brand content.",
+      "limits_or_cost": "Add-on, Standard and up.",
+      "notable": "",
+      "sources": [
+        "https://sproutsocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "Approval types including Multi-level",
+      "area": "compliance",
+      "detail": "Per workspace approval setting: 'None', 'Optional', 'Required', 'Multi-level'. 'Approval permissions' restrict who can approve; approved posts auto-schedule ('No extra steps'). 'Bulk approval' and 'Bulk request for approval' on Pro.",
+      "limits_or_cost": "Basic: None/Optional. Pro: adds Required. Enterprise: Multi-level.",
+      "notable": "Graded approval strictness maps cleanly to compliance tiers.",
+      "sources": [
+        "https://planable.io/pricing/",
+        "https://planable.io/features/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "Comments, annotations, suggest edits, version history",
+      "area": "compliance",
+      "detail": "Internal comments, paragraph annotations, text suggestions, 'Resolve comments'; 'Team-only draft posts' and 'Team-only notes' (Pro); version history shows who changed what with revert.",
+      "limits_or_cost": "Version history 1 week Basic, 30 days Pro, unlimited Enterprise.",
+      "notable": "Google-Docs-style review on social posts.",
+      "sources": [
+        "https://planable.io/features/",
+        "https://planable.io/pricing/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "Share post link for guests",
+      "area": "team",
+      "detail": "'Share post link' lets occasional approvers (clients) view and comment without an account; client roles.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://planable.io/features/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "Universal Content",
+      "area": "format-text",
+      "detail": "Long-form page type for any content (strategy docs, scripts) with rich text, embeds, comments and suggestions, reviewed in the same flow as posts.",
+      "limits_or_cost": "",
+      "notable": "Scripts and docs go through the same approval as posts.",
+      "sources": [
+        "https://planable.io/features/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "Views: Feed, Calendar, Grid, List",
+      "area": "calendar",
+      "detail": "Feed (preview as on network), Calendar, Grid (Instagram), List (bulk actions).",
+      "limits_or_cost": "Basic: Feed and Calendar. Pro: adds Grid. Enterprise: adds List.",
+      "notable": "",
+      "sources": [
+        "https://planable.io/pricing/",
+        "https://planable.io/features/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "AI post generate and rewrite",
+      "area": "format-text",
+      "detail": "AI generates captions, hashtags and post suggestions and rewrites drafts; 'Reply with AI' drafts comment replies.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://planable.io/pricing/",
+        "https://planable.io/features/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "First comment, recurring posts, media editor",
+      "area": "publishing",
+      "detail": "'Schedule first comment', recurring posts for evergreen content, built-in media editor, Instagram Trial Reels (switches: trial on, auto-share after 72 hours, show on profile feed), Facebook and Instagram Stories, TikTok and Reels music.",
+      "limits_or_cost": "Trial Reels need 200+ followers (business/creator).",
+      "notable": "",
+      "sources": [
+        "https://planable.io/pricing/",
+        "https://planable.io/features/",
+        "https://releasebot.io/updates/planable"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "Competitor Analytics",
+      "area": "analytics",
+      "detail": "Competitor tab in Analytics, synced daily: side-by-side comparison, trend charts, top competitor posts by engagement, CSV export. Extended to YouTube, TikTok, LinkedIn (Jul 2026). 'Format performance' shows average engagement per post by format (Aug 2026). 'Positioning matrix' plots accounts by posting volume vs payoff into 'Efficient', 'Leading', 'Quiet', 'Grinding' (Aug 2026). Competitor performance usable in custom reports.",
+      "limits_or_cost": "Analytics add-on ($14 or $12/workspace/mo; included in Enterprise).",
+      "notable": "Positioning matrix tells a user in one glance whether to post more or post better.",
+      "sources": [
+        "https://releasebot.io/updates/planable",
+        "https://planable.io/pricing/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "Social listening add-on with competitor alerts",
+      "area": "inspiration",
+      "detail": "Brand and topic listening; competitor tracking with alerts in-app, email or Slack; 'Competitors' tab with 'where you stand' matrix (net sentiment vs mention volume), share of voice by channel, competitor mentions feed, suggested competitors.",
+      "limits_or_cost": "$99/workspace/mo or $990/yr; 1 brand, 3 topics, up to 3 competitors per workspace; brand keywords re-sync every 24h, topics every 7 days.",
+      "notable": "",
+      "sources": [
+        "https://releasebot.io/updates/planable",
+        "https://planable.io/pricing/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "Social inbox add-on",
+      "area": "engagement",
+      "detail": "Comments and DMs with statuses open, reply-later, done; 'AI generated replies'; 'Sort comments by sentiment'.",
+      "limits_or_cost": "$9 (or $7.50)/workspace/mo; included in Enterprise.",
+      "notable": "",
+      "sources": [
+        "https://planable.io/pricing/",
+        "https://planable.io/features/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "MCP connector and API",
+      "area": "integrations",
+      "detail": "MCP with campaign tools, custom view tools and competitor analytics tools; AI-created content still goes through the normal approval flow: 'Nothing publishes without a human signing off.' Zapier, Canva, Slack.",
+      "limits_or_cost": "MCP on every plan; public API on Pro and Enterprise.",
+      "notable": "Agent writes are forced through human approval.",
+      "sources": [
+        "https://releasebot.io/updates/planable",
+        "https://planable.io/pricing/"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "AI content labels",
+      "area": "compliance",
+      "detail": "Optional per-post AI content label for Instagram posts, reels and stories.",
+      "limits_or_cost": "Instagram only.",
+      "notable": "",
+      "sources": [
+        "https://releasebot.io/updates/planable"
+      ]
+    },
+    {
+      "competitor": "Planable",
+      "feature": "Labels, campaigns and storage",
+      "area": "strategy",
+      "detail": "Color-coded labels for campaigns, content pillars or owners; campaigns; published posts stored 13 months (24 on Enterprise), archived posts 30 days (1 year Enterprise); media storage 10GB/50GB.",
+      "limits_or_cost": "Labels 5/10/unlimited; campaigns 3/10/unlimited.",
+      "notable": "Long post archive retention matters for audit.",
+      "sources": [
+        "https://planable.io/pricing/",
+        "https://planable.io/features/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "AI Copilot strategy builder",
+      "area": "strategy",
+      "detail": "Optional onboarding with Copilot: choose person or company, answer 8 questions (marketing says it can also learn from your website). Outputs in four steps: suggested social networks, content categories, a posting plan built from accounts and categories, and generated posts for those categories. Remove or regenerate posts; approval creates the plan. Results are added on top of the existing setup.",
+      "limits_or_cost": "All plans ('AI Copilot'); help docs marked beta.",
+      "notable": "Strategy -> categories -> schedule -> posts in one guided flow for users with no plan.",
+      "sources": [
+        "https://help.socialbee.com/article/359-social-media-copilot",
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "Content categories",
+      "area": "strategy",
+      "detail": "Posts live in topic categories; each category gets its own posting schedule so the feed mixes content types; bulk editor schedules, pauses or edits a whole category.",
+      "limits_or_cost": "10 / 50 / unlimited categories; 1,000 or 5,000 posts per category.",
+      "notable": "Category-level scheduling = content pillars that run themselves.",
+      "sources": [
+        "https://socialbee.com/features/",
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "Recycle and expire content",
+      "area": "calendar",
+      "detail": "'Recycle posts' re-shares evergreen posts from categories; 'Expire content' stops a post after a date or a number of shares.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://socialbee.com/features/",
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "Post variations",
+      "area": "remix",
+      "detail": "Unlimited variations of the same post (different text or formats: image, video, text-only) that rotate when the post is reshared.",
+      "limits_or_cost": "All plans.",
+      "notable": "Variants make recycled posts look fresh.",
+      "sources": [
+        "https://socialbee.com/features/",
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "AI content generation",
+      "area": "format-text",
+      "detail": "'AI content generation' for posts, unlimited; tailored posts for each profile.",
+      "limits_or_cost": "All plans, unlimited.",
+      "notable": "",
+      "sources": [
+        "https://socialbee.com/pricing/",
+        "https://socialbee.com/features/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "RSS content sources",
+      "area": "inspiration",
+      "detail": "Import blog RSS feeds into categories as post sources.",
+      "limits_or_cost": "10 / 30 / unlimited sources.",
+      "notable": "",
+      "sources": [
+        "https://socialbee.com/features/",
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "Scheduling extras",
+      "area": "publishing",
+      "detail": "'Publish at the best time', 'Post at a specific time', 'Schedule the first comment', 'Instagram grid preview', CSV uploads and hashtag organizer (Accelerate+), custom video thumbnails, alt text, location, mentions.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "Social inbox",
+      "area": "engagement",
+      "detail": "Mentions, comments and DMs for Facebook, X, Instagram, Threads, LinkedIn, YouTube with boards per business and team notes.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://socialbee.com/features/",
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "Post approval system",
+      "area": "compliance",
+      "detail": "'Content approval' view lists recently added posts needing approval, filterable by profile or content source.",
+      "limits_or_cost": "Accelerate and above.",
+      "notable": "",
+      "sources": [
+        "https://socialbee.com/features/",
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "Workspaces and roles",
+      "area": "team",
+      "detail": "Separate workspaces per brand; invite users with roles.",
+      "limits_or_cost": "1/1/5 workspaces; agency plans 10/20/30.",
+      "notable": "",
+      "sources": [
+        "https://socialbee.com/features/",
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "Analytics",
+      "area": "analytics",
+      "detail": "Audience growth, engagement rate, top-performing posts, UTM parameters, profile and post analytics; branded PDF report export on Pro.",
+      "limits_or_cost": "History 3 months Bootstrap, 2 years others.",
+      "notable": "",
+      "sources": [
+        "https://socialbee.com/features/",
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "ConciergeBee services",
+      "area": "other",
+      "detail": "In-house agency for content creation, video, community management, LinkedIn lead gen and ads.",
+      "limits_or_cost": "Priced separately (not on pricing page).",
+      "notable": "Human service upsell on top of software.",
+      "sources": [
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "SocialBee",
+      "feature": "Canva, Unsplash, GIPHY, automation integrations",
+      "area": "integrations",
+      "detail": "Design and stock sources inside the composer; Zapier, Pabbly, Make; URL shorteners.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://socialbee.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "AI Assist",
+      "area": "format-text",
+      "detail": "Generates hooks, captions and brand-aligned posts; translate; rephrase; 'Complete' continues a sentence; hashtag suggestions inserted with 'Insert'; alt text for images; 'Comment with AI' for replies; WordPress titles, meta and drafts. Text-to-image via DALL-E 3. Saved, renamable chat history.",
+      "limits_or_cost": "Business: unlimited AI Assist prompts. Professional reportedly needs your own OpenAI key (third-party, unverified).",
+      "notable": "",
+      "sources": [
+        "https://publer.com/blog/introducing-publer-ai-assist/",
+        "https://publer.com/blog/publer-ai-with-brand-voices-and-analytics/",
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md",
+        "https://www.blotato.com/blog/publer-pricing"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Brand Voices",
+      "area": "brand",
+      "detail": "Create a voice per client, workspace or social account from a name, prompts, brand guidelines and sample content in the preferred tone; view, edit, delete; set a default; switch voices while generating.",
+      "limits_or_cost": "",
+      "notable": "Voice scoped per account, not just per workspace.",
+      "sources": [
+        "https://publer.com/blog/publer-ai-with-brand-voices-and-analytics/"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Analytics-fuelled AI chat",
+      "area": "agent",
+      "detail": "When creating a Brand Voice you can connect accounts' analytics; the AI uses the past 30 days of performance (updated continuously) to answer e.g. 'Which post performed best this week?' or to draft a post based on a top-performing reel. Combine accounts or keep separate.",
+      "limits_or_cost": "",
+      "notable": "Draft-from-my-winner inside a chat.",
+      "sources": [
+        "https://publer.com/blog/publer-ai-with-brand-voices-and-analytics/"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Draft from top-performing post",
+      "area": "remix",
+      "detail": "Within AI chat, ask it to create a new post based on your top-performing reel or post using the connected 30-day analytics.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://publer.com/blog/publer-ai-with-brand-voices-and-analytics/"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Performance-based auto comment, share, delete",
+      "area": "publishing",
+      "detail": "Per-post icons: 'follow-up comments', 'auto-share', 'auto-delete' ('Edit conditions'). Conditions on post age, engagements and reach with AND/OR (e.g. reach > 1,000 and < 20 interactions). Auto-share to other accounts or repost on X, Threads, Bluesky, Mastodon (e.g. when a post goes viral), published at next best time. Auto-delete is time-based with optional performance conditions; FB Pages and YouTube can hide instead. Defaults saved as presets per account.",
+      "limits_or_cost": "Auto actions: Professional+. Performance conditions: Business+. Insights sync every 24h unless manual sync.",
+      "notable": "Rules turn analytics into automatic reposts of winners and clean-up of losers.",
+      "sources": [
+        "https://publer.com/blog/auto-comment-share-delete-posts-by-performance/",
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Recycling evergreen posts",
+      "area": "calendar",
+      "detail": "Fills open slots on a cadence: gap + unit (Day, Week, Month), start date, stop after N reposts or an end date. Least recently posted goes first, never-posted before posted. Spintax recommended; X, Pinterest and GBP need 10+ Spintax variations via 'Spintax Generator'. Not supported on YouTube, TikTok, WordPress.",
+      "limits_or_cost": "Business plan ('Automatic recycling of evergreen posts').",
+      "notable": "Fair rotation plus forced variation to avoid spam filters.",
+      "sources": [
+        "https://publer.com/docs/posting/create-posts/publishing-methods/recycling-posts.md",
+        "https://publer.com/help/en/article/how-to-recycle-posts-21oc1h.md",
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Competitor analysis",
+      "area": "analytics",
+      "detail": "'Competitor Analysis' > 'Add Competitor' > pick your account > search competitor page on the same network (Facebook, Instagram, X). Metrics: posts, follower growth, engagement, reach; 'Photos & Videos vs. Links & Text Updates' format split; competitors' best-performing posts. Default last 7 days, custom period. PDF or CSV export; feeds into best times; mobile app too.",
+      "limits_or_cost": "Up to 10 competitors per social account. Business plan.",
+      "notable": "",
+      "sources": [
+        "https://publer.com/blog/publer-competitor-analysis/",
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Best times and schedule builder",
+      "area": "calendar",
+      "detail": "Finds best times from your performance and can build a posting schedule from them.",
+      "limits_or_cost": "Business plan.",
+      "notable": "",
+      "sources": [
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md",
+        "https://publer.com/help/en/article/how-to-recycle-posts-21oc1h.md"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Bulk scheduling via CSV",
+      "area": "calendar",
+      "detail": "CSV bulk import supports alt text, scheduled comments, Pinterest boards, subtypes (Reel, Story, Short), CTAs and reminders.",
+      "limits_or_cost": "Professional and Business.",
+      "notable": "",
+      "sources": [
+        "https://publer.com/blog/de/2025-jahresrueckblick/",
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Workspaces, members, roles and approvals",
+      "area": "team",
+      "detail": "Unlimited workspaces and extra members on Professional; roles, permissions and approval workflows on Business.",
+      "limits_or_cost": "Each 10th member free.",
+      "notable": "",
+      "sources": [
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Automatic watermarks",
+      "area": "brand",
+      "detail": "Automatically apply a watermark to photos (Professional) and videos (Business).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Signatures",
+      "area": "format-text",
+      "detail": "Reusable signature blocks added to posts.",
+      "limits_or_cost": "Professional and Business.",
+      "notable": "",
+      "sources": [
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Multi-network thread composer",
+      "area": "format-text",
+      "detail": "Plan threads for X, Threads, Mastodon and Bluesky at once (Dec 2025). Polls on LinkedIn, X, Mastodon; Facebook text posts with backgrounds; collaborative posts.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://publer.com/blog/de/2025-jahresrueckblick/"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Photo and video editor",
+      "area": "editor",
+      "detail": "Improved photo editor and new video editor inside Publer (Sep 2025).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://publer.com/blog/de/2025-jahresrueckblick/"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Carousel and template partner integrations",
+      "area": "format-carousel",
+      "detail": "Publer x PostNitro schedules AI-generated carousels; Publer x Contentdrips creates viral-style posts from templates; Dub shortens links.",
+      "limits_or_cost": "",
+      "notable": "Partners fill format gaps instead of building them.",
+      "sources": [
+        "https://publer.com/blog/de/2025-jahresrueckblick/"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Linkie link in bio",
+      "area": "other",
+      "detail": "Link in bio moving to Linkie (standalone tool); custom domains and advanced analytics need Linkie Plus.",
+      "limits_or_cost": "Free basics; Linkie Plus paid.",
+      "notable": "",
+      "sources": [
+        "https://publer.com/blog/de/2025-jahresrueckblick/",
+        "https://publer.com/help/en/article/what-is-included-in-publer-business-1c57hsq.md"
+      ]
+    },
+    {
+      "competitor": "Publer",
+      "feature": "Kibo inbox (planned)",
+      "area": "engagement",
+      "detail": "Unified inbox for messages and comments planned via a separate product, Kibo, with a free basic integration for monitoring and replying.",
+      "limits_or_cost": "Planned for 2026, unverified as shipped.",
+      "notable": "",
+      "sources": [
+        "https://publer.com/blog/de/2025-jahresrueckblick/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Ask Vista agent",
+      "area": "agent",
+      "detail": "'AI-powered command center': chat to schedule, publish, report and engage; deploy background agents that keep working overnight; package expert workflows as 'Skills' run from one command; MCP.",
+      "limits_or_cost": "Listed on Professional, labelled New.",
+      "notable": "Background agents that run while the user sleeps.",
+      "sources": [
+        "https://vistasocial.com/ask-vista",
+        "https://vistasocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "AI Knowledge",
+      "area": "brand",
+      "detail": "Steps: 'Add your data', 'Set your rules' (tone, do's and don'ts, when a human should step in), 'Vista Social does the rest', 'Stays current'. 'Tell AI how to answer' and 'Tell AI when not to answer' (stop and notify a human). One knowledge base powers Ideas, Publishing, Inbox, Automations, Vista Page. 'See everything AI does' logs each response with question, answer and source.",
+      "limits_or_cost": "Advanced: 'AI Training & Knowledge'; Scale: premium with escalations and Zendesk.",
+      "notable": "Escalation rules and an answer log are what a compliance officer would ask for.",
+      "sources": [
+        "https://vistasocial.com/ai-knowledge/",
+        "https://vistasocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "AI Assistant",
+      "area": "format-text",
+      "detail": "Writes captions, taglines, posts and replies for an audience and brand voice; adds fact-checked statistics; translates; adds humor; keeps tone consistent across profiles.",
+      "limits_or_cost": "AI credits 1,000 / 2,000 / 3,500 per month by plan.",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/social-media-publishing/",
+        "https://vistasocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Extra comments and First like",
+      "area": "publishing",
+      "detail": "'Extra comments' adds up to 10 comments to a post (hashtags, X threads); 'First like' adds a first like.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/social-media-publishing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Queues, schedules and optimal time",
+      "area": "calendar",
+      "detail": "'Post queues' with predefined times per profile; 'Setup schedules' for multiple schedules per profile; 'Optimal time' and 'Optimal send times'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/social-media-publishing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Bulk scheduling",
+      "area": "calendar",
+      "detail": "Schedule many posts by uploading spreadsheets, images or videos, or by linking an RSS feed.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/social-media-publishing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Approval workflows",
+      "area": "compliance",
+      "detail": "'Approval', 'Approval workflow' (submission, review, approval), 'Permissions', phone/desktop 'Notifications'. Multi-stage and single-stage workflows; internal teams and clients.",
+      "limits_or_cost": "Professional: post workflow stages. Advanced: internal and client approvals.",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/social-media-publishing/",
+        "https://vistasocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Collect by Instagram hashtags",
+      "area": "inspiration",
+      "detail": "Search Instagram content by hashtag and add it to the media library (UGC); labels and folders per client.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/social-media-publishing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "DM Automations",
+      "area": "engagement",
+      "detail": "Keyword comments on posts or Reels trigger DMs with messages, links or offers; replies to comments, mentions and DMs; 'Quick Automations' wizard or 'Flow Builder'; AI can create flows; offers for follows; gather emails and leads.",
+      "limits_or_cost": "DM contacts 10,000 / 25,000 / 100,000 by plan.",
+      "notable": "AI builds the automation flow from a description.",
+      "sources": [
+        "https://vistasocial.com/dm-automations",
+        "https://vistasocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Listening listeners",
+      "area": "inspiration",
+      "detail": "Keyword listeners for brands, competitors and categories across X Trends, X News, YouTube, Google Search and Trends, news web. Each story gets a 'Convergence Score' 0-100 (sources confirming, recency, volume); 'Source chips'; single-source spikes treated as noise. Reports: KPI band, activity pulse, sentiment trajectory, top signals. Alerts: 'Sentiment dip', 'Influencer hit'.",
+      "limits_or_cost": "$75 / $150 / $250 per listener per month; own-profile listening free.",
+      "notable": "Cross-source confirmation score filters fake trends.",
+      "sources": [
+        "https://vistasocial.com/social-media-listening/",
+        "https://vistasocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Competitor report",
+      "area": "analytics",
+      "detail": "Benchmarks competitor performance against your own for Facebook, Instagram and X profiles.",
+      "limits_or_cost": "Metrics and competitor count not published.",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/social-media-analytics/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Reports",
+      "area": "analytics",
+      "detail": "Social profile performance, sentiment, review, post performance, team performance and competitor reports; custom report templates with cover pages; white label; PDF/CSV/Excel; 'Automate delivery' on a schedule to clients.",
+      "limits_or_cost": "Scheduled: Professional. Custom: Advanced. White-label: Scale.",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/social-media-analytics/",
+        "https://vistasocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Vista Page (link in bio)",
+      "area": "other",
+      "detail": "Mini website on yourname.vista.page or custom domain (SSL included): themes, links, videos, calendars, forms, payments, lead-gen tools; schedule content to the page like a profile; built-in analytics or Google Analytics; Google Tag Manager.",
+      "limits_or_cost": "Unlimited pages, each counts as a profile. Custom domains and GTM on Advanced.",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/vista-page/",
+        "https://vistasocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Review management",
+      "area": "engagement",
+      "detail": "Reply to reviews: Facebook and Google Business on Professional; Yelp, TripAdvisor, OpenTable, Trustpilot, App Store, Google Play on Advanced and up.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/pricing/",
+        "https://vistasocial.com/social-media-analytics/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Employee advocacy",
+      "area": "team",
+      "detail": "Optional add-on so employees share brand content.",
+      "limits_or_cost": "Free to try, then $199/mo for 25 employees.",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Vista Social",
+      "feature": "Network coverage and Canva",
+      "area": "publishing",
+      "detail": "Instagram, Facebook, X, Pinterest, TikTok, LinkedIn, Reddit, Snapchat, Threads, Tumblr, YouTube; boosting for FB, IG, LinkedIn, Pinterest, TikTok, X; built-in Canva AI integration.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://vistasocial.com/social-media-publishing/",
+        "https://vistasocial.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "AI Studio writing",
+      "area": "format-text",
+      "detail": "Chat that writes posts from one prompt with one-click rewrites; 'AI caption generator' (platform-optimized, brand tone, hashtags), 'AI hashtag generator', 'Tone and rephrase' (rewrite, shorten, expand), ready-made prompts and chat history, 'Scheduling via AI' to bulk or smart schedule from the chat. 35+ models.",
+      "limits_or_cost": "AI text credits (words): 25,000 / 50,000 / 125,000 per month.",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/ai-studio",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "AI image tools",
+      "area": "format-image",
+      "detail": "'Text to Image', 'Image to Image', 'Product Shot', 'Face Swap', 'Outfit Swap', 'Remove Background', 'Upscale', 'Headshot'; any aspect ratio; models GPT Image, Google Imagen, Flux, Qwen; compare outputs across models.",
+      "limits_or_cost": "AI image credits 25 / 50 / 125 per month.",
+      "notable": "Model switching and side-by-side comparison.",
+      "sources": [
+        "https://contentstudio.io/ai-studio",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "AI video generator",
+      "area": "format-video",
+      "detail": "'Text to Video', 'Image to Video', 'Motion Control' (camera motion, pacing, shot-by-shot), 'Lip Sync', 'Talking Avatar'; inputs image, video, audio, text; up to 30 seconds per take at up to 4K; models Veo, Kling, Hailuo, Wan, Seedance; output goes straight into the publishing queue.",
+      "limits_or_cost": "AI video credits 100 / 200 / 500 per month.",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/ai-studio",
+        "https://contentstudio.io/ai-video-generator",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "Talking Avatar and Lip Sync",
+      "area": "ai-avatar",
+      "detail": "Talking-head style clips: lip sync matches audio to on-screen lips; talking avatar tool in AI Studio.",
+      "limits_or_cost": "Uses AI video credits.",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/ai-studio",
+        "https://contentstudio.io/ai-video-generator"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "Clip Maker",
+      "area": "format-video",
+      "detail": "Steps: 'Upload your video' (URL, device, media library, Google Drive, Dropbox) -> 'Set your preferences' (orientation and aspect ratio, duration, number of clips, custom instructions on topics/speakers/moments, caption styles, backgrounds, placement) -> 'Generate your clips' (each with title and captions) -> 'Share, schedule, or download'.",
+      "limits_or_cost": "Clipping credits 100 / 200 / 500 per month.",
+      "notable": "Custom instructions steer which moments are clipped.",
+      "sources": [
+        "https://contentstudio.io/clip-maker",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "Discover (content curation)",
+      "area": "inspiration",
+      "detail": "'Feed topics' from RSS sources grouped in categories; OPML 'Bulk import'; 'Trending content' across feeds; 'Trending stories' by topic; 'Topic tags' sorted by engagement; star, tag, archive to folders; 'Instant social share' turns an article into a scheduled post.",
+      "limits_or_cost": "Feed search, OPML and topic following on Advanced and above.",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/discover",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "Competitor analytics",
+      "area": "analytics",
+      "detail": "Track several competitor profiles side by side: audience size, publishing activity, engagement (likes, comments, shares, reactions), engagement rate, content-type breakdown, rankings; competitors' highest-performing posts next to yours; export reports for clients. Networks listed: FB, IG, YouTube, LinkedIn, Pinterest, TikTok, Threads, Telegram, Bluesky, GBP.",
+      "limits_or_cost": "Advanced and above; limits depend on plan.",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/social-media-competitor-analysis",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "Evergreen recipe and recycling",
+      "area": "calendar",
+      "detail": "Top-performing posts become campaigns that republish at set intervals; the 'evergreen recipe' generates headline variations for each repost so they are not identical.",
+      "limits_or_cost": "Advanced and above.",
+      "notable": "AI variation on every recycle.",
+      "sources": [
+        "https://contentstudio.io/social-media-automation",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "RSS autoposting, CSV and categories",
+      "area": "calendar",
+      "detail": "RSS automation publishes new articles with chosen caption style and schedule; CSV bulk upload with times, captions, media, post types ('queue hundreds of posts'); color-coded categories with posting days/times per category.",
+      "limits_or_cost": "CSV and RSS on Advanced+.",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/social-media-automation",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "Approval workflow",
+      "area": "compliance",
+      "detail": "Assign one or several approvers per post; choose whether one reviewer or every reviewer must approve; external approvers review via secure magic link with no account; per-network preview, comments, approve or reject with a note; 'force publish' if a reviewer is unresponsive; in-app and email alerts; activity log of comments, edits, decisions for compliance; approved posts auto-schedule.",
+      "limits_or_cost": "Advanced and above.",
+      "notable": "No-login approval plus audit log.",
+      "sources": [
+        "https://contentstudio.io/social-media-approval-workflow",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "Client management and EasyConnect",
+      "area": "team",
+      "detail": "Dedicated workspace per client (accounts, schedule, media, members, time zone); keyless post review by email link; 'EasyConnect' lets clients connect their own accounts by invitation without sharing passwords; white-label (logo, domain, emails); shareable live calendar; branded client reports.",
+      "limits_or_cost": "Client dashboard Advanced+; complete client management Agency; white label $50/mo add-on.",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/client-management",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "Social inbox",
+      "area": "engagement",
+      "detail": "DMs, post and ad comments, mentions, reviews (FB, IG, X, LinkedIn, GBP); filters, universal search, bookmarks and tags, saved replies, rich replies, customer bio, assignment, collision detection, internal notes, role-based access.",
+      "limits_or_cost": "Advanced+; AI auto replies 100 (Advanced) / 250 (Agency) per month.",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/social-inbox",
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "Brand Voice in chat",
+      "area": "brand",
+      "detail": "Saved brand voice, tone and style applied to AI responses, selected in the chat.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/ai-studio"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "Composer formats",
+      "area": "publishing",
+      "detail": "Auto first comment, X threads, LinkedIn carousels, multi-view planner, smart scheduling, Meta and Google Ads analytics (Advanced).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/pricing"
+      ]
+    },
+    {
+      "competitor": "ContentStudio",
+      "feature": "MCP, API and n8n templates",
+      "area": "integrations",
+      "detail": "MCP integration and API access on all plans (1,500 / 3,000 / 7,500 requests); n8n templates; posts endpoint supports draft, scheduled, queued.",
+      "limits_or_cost": "API-only plan $15/mo annual.",
+      "notable": "",
+      "sources": [
+        "https://contentstudio.io/pricing",
+        "https://contentstudio.io/social-media-automation",
+        "https://contentstudio.io/features"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "Engagement (performance) prediction",
+      "area": "analytics",
+      "detail": "Before publishing, scores post text 0-100 with a histogram of similar training posts and bands 'low', 'mid-low', 'mid-high', 'high'. Model trained on 1.5M+ FeedHive posts ranked by engagement rate (engagements / views), so it works for small accounts.",
+      "limits_or_cost": "Text only: ignores time, images, threads; no improvement suggestions. Listed as 'AI performance prediction' on pricing.",
+      "notable": "Pre-publish score lets users compare remix variants before posting.",
+      "sources": [
+        "https://docs.feedhive.com/planning-and-scheduling/how-engagement-prediction-works",
+        "https://feedhive.com/pricing"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "Post Conditions",
+      "area": "publishing",
+      "detail": "Attach a conditional comment or thread follow-up to a post. Triggers: 'Above average' (vs your other posts on impressions and engagement rate), 'Delay' (minutes), 'Likes', 'Retweets' (X only), 'Comments', 'Impressions', 'Engagement rate' (min rate after min time, e.g. 3.5% after 45 min).",
+      "limits_or_cost": "X, Facebook, Instagram. Post conditions 10 / 100 / unlimited by plan.",
+      "notable": "Plug a CTA only when the post is already winning.",
+      "sources": [
+        "https://docs.feedhive.com/planning-and-scheduling/how-to-use-post-conditions",
+        "https://feedhive.com/pricing"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "Recycle Suggestions and recycle history",
+      "area": "remix",
+      "detail": "Assets > 'Recycle Suggestions' lists past posts worth recycling in 'Top Performers' and 'Underdogs' (recent posts that underperformed but resemble winners: 'unlucky'). Recycle any post in one click; advice: wait 2-3 weeks and change a few sentences (variants, not clones; no 'Evergreen' mode). 'Recycle history' tree shows the original ('Core' node) and every recycled variant with dates; click a node to open it.",
+      "limits_or_cost": "",
+      "notable": "'Underdogs' is a smart second-chance source; history tree tracks remix lineage.",
+      "sources": [
+        "https://docs.feedhive.com/planning-and-scheduling/recycling-content",
+        "https://feedhive.com/features/ai"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "AI assistant and Vibe Marketing agent",
+      "area": "agent",
+      "detail": "Built-in AI agent turns loose ideas into finished posts ('Vibe Marketing'); AI captions, hashtag generation, idea generation, UGC scripts (label only, details unverified).",
+      "limits_or_cost": "AI credits 2.5K / 10K / 50K / 100K per month (doubled 3 months at launch).",
+      "notable": "",
+      "sources": [
+        "https://feedhive.com/features/ai",
+        "https://feedhive.com/",
+        "https://feedhive.com/pricing"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "AI image generation",
+      "area": "format-image",
+      "detail": "Generate visuals inside FeedHive with Flux Pro and Nano Banana 2.",
+      "limits_or_cost": "Uses AI credits.",
+      "notable": "",
+      "sources": [
+        "https://feedhive.com/features/ai"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "Templates and Dynamic Variables",
+      "area": "format-text",
+      "detail": "'Post templates' and 'Brand Templates'; 'Dynamic Variables' insert reusable values into posts.",
+      "limits_or_cost": "Templates 15 / 50 / unlimited.",
+      "notable": "",
+      "sources": [
+        "https://feedhive.com/",
+        "https://docs.feedhive.com/",
+        "https://feedhive.com/pricing"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "Visual workflow builder",
+      "area": "integrations",
+      "detail": "Drag-and-drop workflows for drafting, reviewing, scheduling and recycling; triggers from Zapier, Make or a custom HTTP request; webhooks.",
+      "limits_or_cost": "Workflows and webhooks 10 / 100 / unlimited; automations 500 to 100K per month.",
+      "notable": "",
+      "sources": [
+        "https://feedhive.com/features/workflow-builder",
+        "https://feedhive.com/pricing"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "Posting plan and best time slots",
+      "area": "calendar",
+      "detail": "'Create a posting plan' of recurring slots; 'Best Time Slots'; 'Smart Scheduling'; bulk and CSV scheduling; schedule into the future limited by plan.",
+      "limits_or_cost": "Plans 10 / 100 / unlimited; schedule ahead 14 days Creator, 60 days Brand.",
+      "notable": "",
+      "sources": [
+        "https://feedhive.com/pricing",
+        "https://feedhive.com/",
+        "https://docs.feedhive.com/"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "Approval flows and client links",
+      "area": "compliance",
+      "detail": "'Approval Flows' for teams and 'Client Links' / 'Share posts with unique links'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://feedhive.com/",
+        "https://feedhive.com/pricing",
+        "https://docs.feedhive.com/"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "Social inbox, saved replies, comment triggers",
+      "area": "engagement",
+      "detail": "'Social Inbox', 'Saved Replies' and 'Comment Triggers' (details not published).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://feedhive.com/",
+        "https://feedhive.com/pricing"
+      ]
+    },
+    {
+      "competitor": "FeedHive",
+      "feature": "MCP, CLI, OpenClaw and Claude Code",
+      "area": "integrations",
+      "detail": "HTTP MCP server to create, schedule and publish from an AI client; 'FeedHive CLI'; OpenClaw skill; Claude Code setup; REST API with Posts, Labels, Media, Plan Slots, Socials, Analytics endpoints.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://feedhive.com/features/mcp-server",
+        "https://feedhive.com/pricing",
+        "https://docs.feedhive.com/"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "Built-in AI agent",
+      "area": "agent",
+      "detail": "One chat window that drafts posts, generates images and produces short videos ('Smart Agent', 'AI Copilot' on all plans).",
+      "limits_or_cost": "AI images 0 / 100 / 300 / 500 and AI videos 3 / 10 / 30 / 60 per month by plan.",
+      "notable": "",
+      "sources": [
+        "https://postiz.com/",
+        "https://postiz.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "AI video clipping",
+      "area": "format-video",
+      "detail": "Turns long videos into short clips for TikTok, Reels and Shorts.",
+      "limits_or_cost": "60 / 120 / 300 / 600 minutes per month.",
+      "notable": "",
+      "sources": [
+        "https://postiz.com/",
+        "https://postiz.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "Plugs: Auto Repost and Auto plug post",
+      "area": "publishing",
+      "detail": "Per channel: Plugs > pick channel > switch on > set 'Amount of likes'. 'Auto Repost Posts' reposts when the threshold is hit; 'Auto plug post' adds a follow-up post to the thread (keeps the promo link out of the original). Checks periodically after publishing, then stops.",
+      "limits_or_cost": "X, LinkedIn Page, Bluesky (both); Threads (plug only). Only posts up to a week old.",
+      "notable": "",
+      "sources": [
+        "https://docs.postiz.com/general/automations/plugs"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "Per-post engagement plugs",
+      "area": "engagement",
+      "detail": "In the composer: add comments from a different account or nominate accounts that will engage with the post, each with a delay of 5 minutes to 24 hours ('Internal Plugs', 'Global Plugs').",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://docs.postiz.com/general/automations/plugs",
+        "https://postiz.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "RSS auto-post with AI",
+      "area": "calendar",
+      "detail": "Settings > 'Auto Post': Title, RSS URL (validated 'RSS valid!'), 'Should we sync the current last post?', 'Post on the next available slot' or 'Post immediately', 'autogenerate content' (AI writes each post) or template, 'Generate picture', channels, Active toggle.",
+      "limits_or_cost": "Team plan and above on cloud; AI credits used.",
+      "notable": "",
+      "sources": [
+        "https://docs.postiz.com/general/automations/auto-post-rss"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "Customers (client groups) and invite link",
+      "area": "team",
+      "detail": "Group channels under a customer, filter the calendar per client, select all their channels at once; invite link lets a client connect their own account without a login.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://docs.postiz.com/general/concepts",
+        "https://postiz.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "Sets and Signatures",
+      "area": "publishing",
+      "detail": "'Posting sets' save a channel selection with settings to load when starting a post; 'Signatures' are reusable blocks, one can be auto-added to every new post.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://docs.postiz.com/general/concepts",
+        "https://postiz.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "Preview link for client review",
+      "area": "compliance",
+      "detail": "Calendar > hover > 'Preview': public page showing the post as it will appear, schedule date and a comment box; no account needed; feedback attaches to the post. No approve/reject state: approval is moving draft to scheduled manually.",
+      "limits_or_cost": "Link is not password protected.",
+      "notable": "",
+      "sources": [
+        "https://docs.postiz.com/general/approvals"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "Global vs per-channel composer",
+      "area": "publishing",
+      "detail": "'Global' tab text goes to every selected channel; unlock a channel tab to tailor; preview column per platform; per-channel required fields (YouTube title, subreddit, Pinterest board); validation blocks save; 'Save as Draft', 'Add to calendar', 'Post Now'. Time slots per channel feed 'next available slot'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://docs.postiz.com/general/quickstart",
+        "https://docs.postiz.com/general/concepts"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "34 platforms",
+      "area": "publishing",
+      "detail": "Schedule and publish to 34 social platforms from one calendar (X, LinkedIn, Instagram, TikTok, YouTube, Bluesky, Telegram, Reddit and more).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://docs.postiz.com/introduction",
+        "https://postiz.com/"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "Open source and self-hosting",
+      "area": "other",
+      "detail": "AGPL-3.0 on GitHub (gitroomhq/postiz-app); self-host guide; app approval for self-hosting offered as paid service.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://postiz.com/",
+        "https://postiz.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Postiz",
+      "feature": "MCP, CLI, API, webhooks",
+      "area": "integrations",
+      "detail": "Hosted MCP server with OAuth; Postiz CLI and installable agent skill; public REST API; webhooks; n8n node, Make, Zapier.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://postiz.com/",
+        "https://postiz.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Ad Intelligence (competitor ad library)",
+      "area": "inspiration",
+      "detail": "Paste a brand's Meta Ad Library page link; preview shows logo, verified badge, live ad count, website and credit cost before tracking. Cards lead with the hook (opening line); search ad copy. Filters: live status, run length, format (video, image, carousel, dynamic), placement. Longevity buckets '90 days and up', '30 to 89 days', 'under 30'. 'Workhorses' (longest-running live ads), format share with median lifespan, destinations ranked with a 'Top bet', side-by-side brand compare. 'Refresh all' re-syncs.",
+      "limits_or_cost": "4 credits per 100 live ads; tracked brands limited by plan. Public data only (no spend or ROAS).",
+      "notable": "Ad longevity as a proxy for performance when metrics are hidden.",
+      "sources": [
+        "https://predis.ai/ad-intelligence/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Break down and Recreate competitor ad",
+      "area": "remix",
+      "detail": "'Break down' pulls an ad apart into hook, structure and offer. 'Recreate' builds a new ad from a competitor's ad using your brand kit (logo, colors, fonts). 'Boards' save ads to a swipe file.",
+      "limits_or_cost": "Credits per generation.",
+      "notable": "Exactly the Remix flow: teardown first, then rebuild in your brand.",
+      "sources": [
+        "https://predis.ai/ad-intelligence/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Start from a reference ad",
+      "area": "remix",
+      "detail": "Static ad generator accepts an ad you like and keeps its structure with your product and copy; MCP preset '/reference-ad'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/features/",
+        "https://predis.ai/mcp/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Product URL to video ad",
+      "area": "format-video",
+      "detail": "Input a product page URL; output a video ad with a script written around the product ('Make a Video Ad'). Also image or one-line prompt to video, AI voiceover with chosen voice and language.",
+      "limits_or_cost": "Video Maker up to 30 sec or up to 5 min depending on plan (row labels; plan mapping not visible).",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/features/",
+        "https://predis.ai/pricing/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "UGC video with AI avatars",
+      "area": "ai-avatar",
+      "detail": "Pick an avatar, voice and accent plus your product; output a creator-style UGC video. Predis suggests avatars that fit your category.",
+      "limits_or_cost": "Credits vary by model and type.",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/features/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Static image ad generator",
+      "area": "format-image",
+      "detail": "Input product, copy, optional reference ad; output static ad with headline, copy and CTA; sized for Meta, TikTok, YouTube, LinkedIn, Pinterest, display with safe zones; seasonal and promo ads.",
+      "limits_or_cost": "About 325 images per 1,300 credits (Core).",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/features/",
+        "https://predis.ai/pricing/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Carousels, blog-to-carousel, blog-to-video",
+      "area": "format-carousel",
+      "detail": "'Carousel Generation', 'Blog to Carousel Maker', 'Blog to Video Maker', 'LinkedIn Carousel Posts Generator', 'Instagram Story Maker'.",
+      "limits_or_cost": "Plan mapping not visible on pricing page.",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/pricing/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "AI Meme Maker",
+      "area": "format-image",
+      "detail": "Generates memes from a prompt ('AI Meme Maker').",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/pricing/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Hook and headline variants, 19+ languages",
+      "area": "format-text",
+      "detail": "Generate variants of the hook, headline or visual to test; input in one language and output ads in another (19+ languages); captions and hashtags generator.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/features/",
+        "https://predis.ai/pricing/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Competitor analysis (organic)",
+      "area": "analytics",
+      "detail": "Shows best and worst performing content of competitors, competitor hashtag sets, content themes, hashtag and performance analysis for Facebook and Instagram competitors; reports for agencies.",
+      "limits_or_cost": "Competitor runs per month: 60 / 130 / 600 (each competitor added and viewed counts).",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/social-media-competitor-analysis/",
+        "https://predis.ai/pricing/",
+        "https://predis.ai/ai-social-media-manager/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Brand kit per brand",
+      "area": "brand",
+      "detail": "Each brand holds logo, colors, fonts, tone of voice and key messaging, applied to every ad, video and post; workspaces per brand or client; saved products.",
+      "limits_or_cost": "Brands 1 / 4 / unlimited.",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/pricing/",
+        "https://predis.ai/features/",
+        "https://predis.ai/mcp/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Email approval flow",
+      "area": "compliance",
+      "detail": "'Share' > 'Schedule' > 'Send for Review' > reviewer email; reviewer clicks 'View Posts', accepts or rejects with comment; accepted posts schedule automatically; review history and 'Track Changes'.",
+      "limits_or_cost": "",
+      "notable": "Approval that also schedules removes a step.",
+      "sources": [
+        "https://predis.ai/use-cases/approval-flow/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "Calendar and auto posting",
+      "area": "calendar",
+      "detail": "Content Calendar per account with drag to reschedule; auto-publish to Instagram, Facebook, LinkedIn, TikTok, YouTube, GBP; best time to post; e-commerce products auto-posted on a schedule.",
+      "limits_or_cost": "Auto posting on Rise and above.",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/ai-social-media-manager/",
+        "https://predis.ai/pricing/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "E-commerce product posts",
+      "area": "format-image",
+      "detail": "Link a Shopify, WooCommerce, Wix or Squarespace store or upload a product; generates posts and product videos from product details.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://predis.ai/ai-social-media-manager/",
+        "https://predis.ai/pricing/"
+      ]
+    },
+    {
+      "competitor": "Predis.ai",
+      "feature": "MCP with slash presets",
+      "area": "integrations",
+      "detail": "Server https://mcp.predis.ai/mcp for Claude, ChatGPT, Claude Code. Presets: /link-to-ads, /ugc-ad, /product-video, /reference-ad, /carousel, /hook-variants, /headline-variants, /fix-frame. Assistant reports credit cost and balance and waits for confirmation before charging.",
+      "limits_or_cost": "Uses plan credits.",
+      "notable": "Cost shown and confirmed before each generation.",
+      "sources": [
+        "https://predis.ai/mcp/"
+      ]
+    },
+    {
+      "competitor": "Ocoya",
+      "feature": "Social campaigns",
+      "area": "strategy",
+      "detail": "Input: a goal ('Awareness', 'Generate leads', 'Launch', 'Promote an offer', 'Educate audience', 'Event'), an audience and a date range. Output: up to 90 short posts sized per network following an arc (Awareness, Consideration, Decision), all as drafts; approve the run or edit single lines. Startable over MCP ('Runnable from your assistant').",
+      "limits_or_cost": "1 credit per post.",
+      "notable": "Campaign arc structure, not random posts.",
+      "sources": [
+        "https://www.ocoya.com/features/campaigns"
+      ]
+    },
+    {
+      "competitor": "Ocoya",
+      "feature": "Blog campaigns",
+      "area": "format-text",
+      "detail": "Input: subject and number of articles. Researches keywords by volume and difficulty, then writes 1-20 articles of 600-3,000 words with one keyword and angle each; publishes to WordPress, DEV.to, Notion, Webflow, Framer or custom endpoint; optional thumbnail via Design Studio.",
+      "limits_or_cost": "1 credit per article.",
+      "notable": "",
+      "sources": [
+        "https://www.ocoya.com/features/campaigns"
+      ]
+    },
+    {
+      "competitor": "Ocoya",
+      "feature": "On-brand AI copy in 37 languages",
+      "area": "format-text",
+      "detail": "'On-brand copy from a one-line idea', translated into 37 languages.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.ocoya.com/"
+      ]
+    },
+    {
+      "competitor": "Ocoya",
+      "feature": "Design Studio",
+      "area": "editor",
+      "detail": "Drag-and-drop canvas with layers (opacity, corners, borders, filters, order); templates and stock (over a million templates, photos, videos, tracks); AI 'Erase', 'Extend', 'Replace'; export 1:1, 4:5, 9:16, 16:9 from one design, custom up to 2000 px; export straight into a scheduled post; save designs as team templates.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.ocoya.com/features/design"
+      ]
+    },
+    {
+      "competitor": "Ocoya",
+      "feature": "Brand identity",
+      "area": "brand",
+      "detail": "Voice, colours, fonts, audience and logos saved on the brand and applied to every asset including AI images, carousels and video covers.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.ocoya.com/",
+        "https://www.ocoya.com/features/design"
+      ]
+    },
+    {
+      "competitor": "Ocoya",
+      "feature": "Workflows",
+      "area": "integrations",
+      "detail": "Triggers: 'New comment', 'New DM', 'New mention', 'New item in an RSS feed', 'On a schedule', 'Webhook is called', 'New WooCommerce product', new Notion/Airtable/CMS item. Steps 'Generate text' and 'Generate image' with variables like {{trigger.title}}. Destinations: social accounts, blogs/CMS, Slack, webhook. 'Reply to a comment or DM' publicly or privately. 25 prebuilt workflows; 'Run test' per step; run history.",
+      "limits_or_cost": "Limits not published.",
+      "notable": "",
+      "sources": [
+        "https://www.ocoya.com/features/workflows"
+      ]
+    },
+    {
+      "competitor": "Ocoya",
+      "feature": "Social inbox with AI drafts",
+      "area": "engagement",
+      "detail": "Every DM, comment and mention in one place with 'Reply drafted by AI'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.ocoya.com/"
+      ]
+    },
+    {
+      "competitor": "Ocoya",
+      "feature": "Publishing calendar and best times",
+      "area": "calendar",
+      "detail": "One calendar across networks with 'Auto-picked best times' and drag to reschedule; destinations include FB, IG, X, LinkedIn, Pinterest, Bluesky, Threads, YouTube Shorts, GBP, TikTok, Telegram, Discord, Mastodon and more.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.ocoya.com/"
+      ]
+    },
+    {
+      "competitor": "Ocoya",
+      "feature": "Bio pages",
+      "area": "other",
+      "detail": "Blocks 'Button link', 'Text', 'Sub heading', 'Image', 'YouTube video', 'Social links'; templates; drafts until 'Publish changes'; analytics views, clicks, click rate over 7/30/90 days; UTM tags on outgoing links; yourname.tool.bio address.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.ocoya.com/features/bio"
+      ]
+    },
+    {
+      "competitor": "Ocoya",
+      "feature": "MCP and API",
+      "area": "integrations",
+      "detail": "MCP to run Ocoya from Claude, ChatGPT; public API for publishing.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.ocoya.com/"
+      ]
+    },
+    {
+      "competitor": "Blaze",
+      "feature": "Autopilot weekly batch",
+      "area": "agent",
+      "detail": "Plans, writes, designs and schedules every week: produces 'a weekly batch of visual, text, and video content' and a content calendar to review; edit text, visuals, media anytime; 'Blaze Brain' learns from your edits and post performance; automatic generation can be switched on or off.",
+      "limits_or_cost": "Starter one campaign planned one week ahead; Growth multiple campaigns months ahead.",
+      "notable": "Default-on generation with a review window flips the user from creator to editor.",
+      "sources": [
+        "https://help.blaze.ai/en/articles/12313537-what-is-the-difference-between-blaze-autopilot-and-blaze-copilot",
+        "https://help.blaze.ai/en/articles/9535151-getting-started-with-blaze",
+        "https://help.blaze.ai/en/collections/15556488-creating-personalizing-and-reviewing-content",
+        "https://www.blaze.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Blaze",
+      "feature": "Website scan to Brand Kit",
+      "area": "onboarding",
+      "detail": "Onboarding asks for your website URL; Blaze scans it and creates a starting Brand Kit: 'Media Library', 'Brand Styles', 'Brand Voice', 'Brand Profile' (business, offerings, audience), 'Source Materials' (PDFs, brand guides, product sheets).",
+      "limits_or_cost": "One Brand Kit per workspace.",
+      "notable": "One input (URL) produces a usable brand profile.",
+      "sources": [
+        "https://help.blaze.ai/en/articles/9535151-getting-started-with-blaze",
+        "https://help.blaze.ai/en/articles/12313537-what-is-the-difference-between-blaze-autopilot-and-blaze-copilot"
+      ]
+    },
+    {
+      "competitor": "Blaze",
+      "feature": "Content Preferences",
+      "area": "brand",
+      "detail": "Market location, target audience, who appears in content, image and video use (e.g. 'Brand Kit Only'), logo frequency, default CTAs, hashtags, blog and email formatting, words or phrases to avoid.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.blaze.ai/en/articles/9535151-getting-started-with-blaze",
+        "https://help.blaze.ai/en/articles/13190718-ai-videos",
+        "https://help.blaze.ai/en/collections/15556488-creating-personalizing-and-reviewing-content"
+      ]
+    },
+    {
+      "competitor": "Blaze",
+      "feature": "Campaigns as blueprints",
+      "area": "strategy",
+      "detail": "Campaigns define goal, posting frequency, content volume and channels; 'Edit Schedule & Channels' adjusts one campaign (e.g. more posts for a launch).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.blaze.ai/en/articles/9535151-getting-started-with-blaze",
+        "https://help.blaze.ai/en/articles/12417963-how-do-i-change-the-volume-or-type-of-content-being-generated"
+      ]
+    },
+    {
+      "competitor": "Blaze",
+      "feature": "Adjust Defaults",
+      "area": "calendar",
+      "detail": "Content Plan > 'Adjust Defaults': 'Default Schedule' (when Blaze posts per channel and how many days before posting you want to review) and 'Default Channels' (platforms and volume per channel).",
+      "limits_or_cost": "",
+      "notable": "Explicit review lead time before auto-posting.",
+      "sources": [
+        "https://help.blaze.ai/en/articles/12417963-how-do-i-change-the-volume-or-type-of-content-being-generated"
+      ]
+    },
+    {
+      "competitor": "Blaze",
+      "feature": "AI Videos",
+      "area": "format-video",
+      "detail": "Animates a Brand Kit image into a short video with Google Veo 3; enabled in Content Preferences 'Video' tab; Blaze adds an equal share of each selected video type to each weekly batch; regenerate creates a new version.",
+      "limits_or_cost": "15 credits per video (and per regeneration). No style selection.",
+      "notable": "",
+      "sources": [
+        "https://help.blaze.ai/en/articles/13190718-ai-videos",
+        "https://www.blaze.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Blaze",
+      "feature": "Improve, regenerate and bulk edit",
+      "area": "editor",
+      "detail": "'Improve' feature to refine a post; regenerate or bulk edit posts; generate in other languages; add and edit audio.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.blaze.ai/en/collections/15556488-creating-personalizing-and-reviewing-content"
+      ]
+    },
+    {
+      "competitor": "Blaze",
+      "feature": "Crossposting and approvals",
+      "area": "publishing",
+      "detail": "'Crosspost' sends the same content to all accounts without resizing; calendar list, week, 5-day views; 'Review and approve before publishing'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.blaze.ai/en/articles/12313537-what-is-the-difference-between-blaze-autopilot-and-blaze-copilot",
+        "https://help.blaze.ai/en/articles/9535151-getting-started-with-blaze",
+        "https://www.blaze.ai/"
+      ]
+    },
+    {
+      "competitor": "Blaze",
+      "feature": "Insights learning loop",
+      "area": "analytics",
+      "detail": "Performance shows in 'Insights' after a few business days and feeds the next plan ('Blaze Learning Loop').",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.blaze.ai/en/articles/9535151-getting-started-with-blaze",
+        "https://www.blaze.ai/"
+      ]
+    },
+    {
+      "competitor": "Blaze",
+      "feature": "All-In-One done-for-you",
+      "area": "other",
+      "detail": "Flat-rate service: marketing funnel, GBP, Google and GMB search ads, AI visibility, AI receptionist, inbound lead qualification, automated reviews, reporting.",
+      "limits_or_cost": "$999/month.",
+      "notable": "",
+      "sources": [
+        "https://www.blaze.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Simplified",
+      "feature": "Riley campaign agent",
+      "area": "agent",
+      "detail": "'Start with Riley': brief with goal, audience, offer, channels and brand rules; Riley uses the Brand Kit and connected tools and returns creative, captions and scheduling queued for approval, then reports results and suggests next steps. Agency example: 'Client brief' -> 'Brand voice checked' -> 'Approval route sent to client' -> '42 posts queued by market'.",
+      "limits_or_cost": "Campaigns per month 5 / 15 / 40; $10 per extra campaign; no rollover.",
+      "notable": "",
+      "sources": [
+        "https://simplified.com/",
+        "https://simplified.com/agencies",
+        "https://simplified.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Simplified",
+      "feature": "Brand Kit and BrandVoice",
+      "area": "brand",
+      "detail": "Colors, fonts, voice, products, customers and approved examples; 'Brandbook' per client; BrandVoice matches a client's voice.",
+      "limits_or_cost": "Brand kits 1 / 3 / unlimited.",
+      "notable": "Approved examples as part of the brand kit.",
+      "sources": [
+        "https://simplified.com/",
+        "https://simplified.com/agencies",
+        "https://simplified.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Simplified",
+      "feature": "AI Writer, Design, Video",
+      "area": "format-video",
+      "detail": "Writing, design (e.g. 3 branded sizes) and video (e.g. UGC-style product video) available standalone and as campaign assets.",
+      "limits_or_cost": "Starter: 100K words, 100 designs, 50 videos; Pro/Business unlimited.",
+      "notable": "",
+      "sources": [
+        "https://simplified.com/",
+        "https://simplified.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Simplified",
+      "feature": "Client Review link",
+      "area": "compliance",
+      "detail": "'Client Review' bundles a campaign's drafts into one link and collects approve, reject and comment per post with no login; approved content moves into scheduling. Nothing publishes without approval unless auto-publish is on.",
+      "limits_or_cost": "External client approval on Business.",
+      "notable": "",
+      "sources": [
+        "https://simplified.com/agencies",
+        "https://simplified.com/",
+        "https://simplified.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Simplified",
+      "feature": "Client Portal and TeamSpaces",
+      "area": "team",
+      "detail": "'Private TeamSpaces' per client, 'User Roles', branded 'Client Portal' showing upcoming content, reviews and status; 'Shared Calendars'; 'Custom Reports'.",
+      "limits_or_cost": "Seats 3 Pro, 7 Business.",
+      "notable": "",
+      "sources": [
+        "https://simplified.com/agencies",
+        "https://simplified.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Simplified",
+      "feature": "Social calendar and scheduled tasks",
+      "area": "calendar",
+      "detail": "Approved posts go to each channel with schedule, format and campaign context; 'Scheduled tasks' repeat daily, weekly or monthly; bulk scheduling on Business.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://simplified.com/",
+        "https://simplified.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Simplified",
+      "feature": "MCP server and Claude plugin",
+      "area": "integrations",
+      "detail": "OAuth MCP at apikit.simplified.com/mcp with 105 tools: scheduling on 13 platforms with timed auto-comments, image and video generation, brand kits, projects with review gates, analytics, approval links, media editing. Claude Code plugin adds 14 skills.",
+      "limits_or_cost": "Connector free (MIT); free plan 3 accounts and 10 posts per month.",
+      "notable": "",
+      "sources": [
+        "https://simplified.com/mcp-server"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Archie: repurpose top-performing posts",
+      "area": "remix",
+      "detail": "Workflow route: Archie > 'New conversation' > 'Use top performing posts' > pick profile and Playbook > 'Show my 20 top posts' > filter 'Period' (default Last 3 months) and 'Sort' (Engagement, Views, Reach, Clicks, Engagement rate) > 'Repurpose' on a post > choose target profiles and versions per profile > 'Generate drafts'. Playbook route: 'Top performing posts' with periods Last month/3 months/6 months/Last year and 'Rank by' incl. Saves, then 'Reuse this post'. Output: original drafts sharing the source's theme and format.",
+      "limits_or_cost": "Max 5 generated posts per profile; video posts excluded.",
+      "notable": "The cleanest documented 'remix my winners' flow in the category.",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/15972276-how-to-repurpose-content-with-archie"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Archie: source asset to posts",
+      "area": "remix",
+      "detail": "No blank composer: every workflow starts from a source: 'PDF', 'URL', 'Video' (MP4/MOV/WebM, 2 GB), 'Audio' (MP3/WAV/M4A, 500 MB), 'Video Clips'. Archie extracts Ideas; click 'Draft' (or @Reference); it proposes four angles with +/- drafts per angle (max 5); 'Generate draft' for LinkedIn, Facebook, Instagram; each profile gets its own adapted post in 'Drafts'. Refine by typing feedback after '@'.",
+      "limits_or_cost": "Archie on all plans; free Archie plan has 10 credits/mo.",
+      "notable": "Source -> ideas -> angles -> per-network drafts gives structure to repurposing.",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/15385025-archie-explained",
+        "https://support.agorapulse.com/en/articles/15452272-how-to-generate-posts-with-archie"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Archie video clips",
+      "area": "format-video",
+      "detail": "Sources tab: 'Trim' a clip, select clips, 'Generate posts from clip', aspect ratio 16:9, 9:16, 1:1, 4:5, 4:3, 'Subtitle style' ('No subtitles', 'Karaoke', 'Simple'); 'Edit clip' for ratio, style presets, font, effects, transcript.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/15452272-how-to-generate-posts-with-archie"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Archie Image Studio",
+      "area": "format-image",
+      "detail": "'Generate an image' after a text post: 'References' (upload; 'Layout', 'Blend', 'Style only'), 'Type' ('Visual hook', 'Infographic', 'Illustration'), 'Text in image', 'Branding', 'Style' (e.g. 'Tech Minimal', 'Corporate', 'Photoreal'), 'Format', up to 4 outputs. Review prompt in 'Fields' or 'Full prompt'. Edit tab: 'Crop', 'Add text', 'Add image', describe-and-'Redraw'.",
+      "limits_or_cost": "",
+      "notable": "Reference image with Layout/Blend/Style-only modes = visual remix control.",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/15452272-how-to-generate-posts-with-archie"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Playbooks",
+      "area": "brand",
+      "detail": "Brand goal, target audience, tone, CTA links (used for auto first comments on Facebook and LinkedIn), logo and brand colors for images; edit 'Audience and Goals' or 'Call to Action'.",
+      "limits_or_cost": "",
+      "notable": "CTA link stored once, auto-placed as first comment.",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/15452272-how-to-generate-posts-with-archie"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Archie platforms and plan",
+      "area": "billing",
+      "detail": "Outputs for LinkedIn (text, image, short video), Facebook (text, image, Reels), Instagram (Reels, image), YouTube (video, Shorts), TikTok (video, photo); X and Threads planned. Free 'Archie plan': 1 owner + up to 100 Archie-only users, 50 FB/IG/LinkedIn/YouTube profiles, 10 credits/mo, Publishing Calendar and Drafts; new posts only via Archie.",
+      "limits_or_cost": "Credit usage not tracked during beta.",
+      "notable": "Free AI-only tier as a funnel into the paid suite.",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/15385025-archie-explained",
+        "https://support.agorapulse.com/en/articles/8762514-archie-plan-explained"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "AI Writing Assistant",
+      "area": "format-text",
+      "detail": "In Composer. 'Empty Mode' (prompt, 'Send Prompt') or 'Normal Mode' on a draft with quick actions 'Shorter', 'Longer', 'Rephrase', 'Translate in...', tones Promotional, Engaging, Catchy, Inspirational, Assertive, Funny, Shocking; 'Enter your own prompt'; results 'Send to Composer', 'Copy', 'Retry'.",
+      "limits_or_cost": "Not on free trial; plan-dependent.",
+      "notable": "",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/8769298-how-to-use-the-ai-writing-assistant"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Organization AI Context",
+      "area": "brand",
+      "detail": "Organization settings > AI Configuration > 'Configure your AI Context': company website, industry, brand type, competitors, tone of voice, advanced instructions -> 'Generate context' (editable). Suggested sections: Organization Profile, Tone & Style, Constraints & Policies (always/never rules), Glossary. Overrides custom prompts; 'Disable Context' per session. Used by Writing Assistant and AI report summaries.",
+      "limits_or_cost": "Owners, Co-owners, Managers only.",
+      "notable": "Org-wide always/never rules are a natural home for compliance constraints.",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/12400727-organization-ai-context-explained"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "AI Summary on reports",
+      "area": "analytics",
+      "detail": "Single report: 'AI insights' > 'Summarize' -> 'Profile performance summary', 'Content Analysis', 'Actionable Recommendations'. Report Studio: 'Key Findings', 'Trends & Correlations', 'Strategic Recommendations'. Per-metric breakdown via purple star. Optional inclusion in PDF export.",
+      "limits_or_cost": "Single reports all paid plans; Report Studio Advanced/Custom. Analyses 50 posts (25 newest, 25 oldest); not in scheduled exports.",
+      "notable": "",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/12041180-how-to-generate-an-ai-summary"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Competitors report",
+      "area": "analytics",
+      "detail": "'Manage competitors' > '+ Add competitor' (Facebook page URL or Instagram username). Sections: 'Competitors benchmark' (followers, posts, total and average engagement), 'Top content' (6 best posts across all profiles, sort by Likes, Comments, Shares, Engagement), 'Audience', 'Publishing' (Reels, Carousels, Videos, Photos, Links, Texts), 'Engagement per post type', 'Engagement'. PDF export emailed.",
+      "limits_or_cost": "Instagram (Professional/Business only) and Facebook. Included competitors: Standard 1, Professional 1, Advanced 6; more via add-on. Post data backfills 30 days; no Stories or FB Reels.",
+      "notable": "",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/9952765-competitors-report-explained"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Automated moderation rules",
+      "area": "engagement",
+      "detail": "Rules per profile. Conditions: 'Text includes keywords', 'Text contains only mentions', 'only emojis', 'a link', 'an email', 'Text word count', 'Language' (18), 'Inbox item type', 'Post is labeled'. Actions (up to 6): 'Review', 'Assign', 'Label', 'Hide', 'Delete', 'Ban sender', 'Apply sentiment'. Priority resolves conflicts.",
+      "limits_or_cost": "One rule on Standard/Professional/Advanced; unlimited rules and multi-condition on Custom.",
+      "notable": "Auto-hide comments with links or emails: a compliance guardrail.",
+      "sources": [
+        "https://support.agorapulse.com/en/articles/10419838-how-to-set-up-automated-moderation-in-the-inbox"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Inbox",
+      "area": "engagement",
+      "detail": "Reply, assign and review, labels, saved replies, sentiment tracking, hide/delete, search/filter/sort, bulk actions, export, filter presets, custom inboxes, 'Inbox Approval Workflows' for replies, ad comment management.",
+      "limits_or_cost": "",
+      "notable": "Approval on replies, not only posts.",
+      "sources": [
+        "https://support.agorapulse.com/en/collections/7426820-inbox"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "Report Studio and ROI",
+      "area": "analytics",
+      "detail": "Report Studio with widget library, folders and export; Social Media ROI dashboards tracking traffic from Pulse.ly links vs GA4 (details not captured: unverified); Meta and LinkedIn Ads reports.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://support.agorapulse.com/en/collections/7505387-analytics"
+      ]
+    },
+    {
+      "competitor": "Agorapulse",
+      "feature": "MCP integration",
+      "area": "integrations",
+      "detail": "MCP integration for external AI agents; Zapier.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://support.agorapulse.com/en/collections/16956928-ai-automations"
+      ]
+    }
+  ]
+}

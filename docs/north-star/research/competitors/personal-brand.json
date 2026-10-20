@@ -1,0 +1,2568 @@
+{
+  "category": "Personal brand, LinkedIn/X writing and carousel tools",
+  "researched_at": "2026-10-19",
+  "competitors": [
+    {
+      "name": "Taplio",
+      "url": "https://taplio.com",
+      "pricing": "Starter $39/mo, Growth $69/mo, Pro $199/mo billed monthly (shown as '$', USD assumed). The same page's comparison table shows $32 / $49 / $149, unlabeled; Taplio's own Sep 2026 blog gives Starter $32/mo and Growth $49/mo annual. 7-day free trial with full Pro access, 30-day money-back. Multi-seat discount 'Save up to 30%'. AI writing is not on Starter; 250 AI credits + 500 comment credits/mo on Starter/Growth (mapping inferred), unlimited on Pro.",
+      "positioning": "The 'full loop' LinkedIn growth tool: viral library, AI writing in your voice, scheduling, engagement feed and lead outreach in one app.",
+      "audience": "LinkedIn creators, founders, B2B sales and ghostwriters (12k+ creators and teams claimed).",
+      "sources": [
+        "https://taplio.com/pricing",
+        "https://taplio.com/",
+        "https://taplio.com/blog/taplio-alternatives",
+        "https://intercom.help/taplio/en/"
+      ]
+    },
+    {
+      "name": "Supergrow",
+      "url": "https://www.supergrow.ai",
+      "pricing": "Pro $39/mo monthly or $31/mo annual (1 account); Teams $199/mo monthly or $189/mo annual (5 accounts); Enterprise custom. 7-day free trial. Third-party pages (Taplio blog Sep 2026, Tooliverse Jun 2026) also list a Starter at $19/mo ($16 annual, 2 PostCast sessions/mo) and Teams at $139/mo for 4 accounts; not on the vendor page fetched 2026-10-19.",
+      "positioning": "'AI that writes like you, not for you': LinkedIn content from AI interviews and a voice profile, with team approvals for executive programs.",
+      "audience": "Founders, executives and B2B teams/agencies running several LinkedIn voices.",
+      "sources": [
+        "https://www.supergrow.ai/pricing",
+        "https://www.supergrow.ai/",
+        "https://www.supergrow.ai/compare/supergrow-vs-authoredup",
+        "https://tooliverse.ai/tools/supergrow"
+      ]
+    },
+    {
+      "name": "Kleo",
+      "url": "https://www.kleo.so",
+      "pricing": "$99/mo monthly, or $999/yr annual bundle ('Normally $1,188/yr'). '$' shown, USD assumed. No free trial; annual adds 1:1 onboarding call and 30-day risk-free guarantee.",
+      "positioning": "Chat-first LinkedIn ghostwriter (Kleo V3 web app) bundled with templates, coaching and a creator community.",
+      "audience": "Solo LinkedIn creators and consultants who want coaching plus an AI writer.",
+      "sources": [
+        "https://wf.kleo.so/",
+        "https://wf.kleo.so/pricing",
+        "https://authoredup.com/blog/kleo-review",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "name": "AuthoredUp",
+      "url": "https://authoredup.com",
+      "pricing": "Individual $19.95/mo monthly or $16.63/mo billed $199.5/yr; Business $14.95 per profile/mo (min 3 profiles) or $12.46/profile/mo annual; Custom Growth plan (min 10 profiles) on request. Free trial, no card (length not stated).",
+      "positioning": "LinkedIn editor, preview and analytics for people who write their own posts; deliberately no automation.",
+      "audience": "Hands-on LinkedIn writers, ghostwriters and agencies (pay per profile, not per seat).",
+      "sources": [
+        "https://authoredup.com/pricing",
+        "https://authoredup.com/"
+      ]
+    },
+    {
+      "name": "Typefully",
+      "url": "https://typefully.com",
+      "pricing": "Free plan (write in the editor, add images). Starter $12.50/mo per Typefully's own Dec 2025 blog. A Creator plan gates the Writing Assistant (Feb 2026 changelog); its price is unverified (third parties: $12.50/mo annual, $19/mo monthly). Team launched at a flat $49/mo in beta (2022); current Team price unverified. The pricing page did not render for fetching.",
+      "positioning": "Distraction-free writer and scheduler for X, LinkedIn, Threads, Bluesky, Mastodon and Substack Notes, now agent-ready (API, MCP, Claude connector).",
+      "audience": "Writers, founders and small teams posting across text-first networks.",
+      "sources": [
+        "https://typefully.com/",
+        "https://typefully.com/changelog",
+        "https://typefully.com/blog/hypefury-review-alternative",
+        "https://typefully.com/blog/typefully-vs-ordinal-review-alternative",
+        "https://typefully.com/changelog/collaboration-52"
+      ]
+    },
+    {
+      "name": "Hypefury",
+      "url": "https://hypefury.com",
+      "pricing": "Flexible $6/mo for 1 channel plus $6/mo per extra channel; Full $19/mo for all channels (Bluesky, Threads, LinkedIn, Instagram, TikTok). USD. 7-day free trial, no card. No free plan. X is no longer supported.",
+      "positioning": "Automation-heavy creator scheduler (autoplugs, evergreen, auto-DMs, cross-posting) that has dropped X.",
+      "audience": "Creators selling digital products who want growth automations across non-X networks.",
+      "sources": [
+        "https://hypefury.com/pricing/",
+        "https://hypefury.com/",
+        "https://eden.so/blog/hypefury-dropped-x-support/"
+      ]
+    },
+    {
+      "name": "Tweet Hunter",
+      "url": "https://tweethunter.io",
+      "pricing": "Discover $29/mo (1 X account), Grow $49/mo (5 accounts, AI writer, X CRM), Enterprise about $199-200/mo (unlimited accounts, custom-trained AI). Monthly prices; a yearly toggle advertises savings but shows no figures (third party: Discover $23/mo annual, unverified).",
+      "positioning": "X growth suite: viral tweet library, AI writer, automations, auto-DM and an X CRM.",
+      "audience": "X creators, founders and ghostwriters managing several X accounts.",
+      "sources": [
+        "https://tweethunter.io/pricing",
+        "https://tweethunter.io/"
+      ]
+    },
+    {
+      "name": "EasyGen",
+      "url": "https://www.easygen.io",
+      "pricing": "Not published. The site says EasyGen 'has been acquired and isn't taking new signups'; existing customers can still log in.",
+      "positioning": "LinkedIn writing tool built on creator analysis and trend intelligence; now closed to new users.",
+      "audience": "LinkedIn creators (legacy customers only).",
+      "sources": [
+        "https://www.easygen.io/"
+      ]
+    },
+    {
+      "name": "MagicPost",
+      "url": "https://magicpost.in",
+      "pricing": "Growth $29/mo (yearly, 40% off list $49; $353/yr); Creator $39/mo (yearly, list $69; $468/yr); Agency and Team $47/seat/mo yearly (list $59), 5 seats = $295/mo or $2,830/yr; admin-only seats free. Free trial, no card, length varies by country. '$' shown, USD assumed.",
+      "positioning": "LinkedIn AI writer plus engagement and lead detection on the official LinkedIn API, with agency approvals and white-label reports.",
+      "audience": "LinkedIn creators, B2B sellers and agencies.",
+      "sources": [
+        "https://magicpost.in/",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "name": "Postwise",
+      "url": "https://postwise.ai",
+      "pricing": "Basic $37/mo (400 AI credits, 6 months scheduling, 5 accounts); Unlimited $97/mo paid annually (unlimited credits, scheduling, accounts). 7-day free trial.",
+      "positioning": "AI ghostwriter and scheduler for X, LinkedIn and Threads.",
+      "audience": "Creators posting text across X, LinkedIn and Threads.",
+      "sources": [
+        "https://postwise.ai/"
+      ]
+    },
+    {
+      "name": "ContentIn",
+      "url": "https://contentin.io",
+      "pricing": "Growth $39/mo monthly or $31/mo annual; Pro $59/mo monthly or $48/mo annual; Ghostwriter/Agency custom. 7-day trial with card, 30-day refund on first payment. No free plan on the vendor page (Taplio blog mentions a free scheduler, unverified).",
+      "positioning": "Style-trained LinkedIn ghostwriter that plans your week every Sunday, with metered carousels and images.",
+      "audience": "Founders and solo creators on LinkedIn; ghostwriters and agencies on custom plans.",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "name": "Contentdrips",
+      "url": "https://contentdrips.com",
+      "pricing": "Free $0 (50 AI credits, 1 brand); Starter $15/mo (500 AI credits, 3 brands, 2 team members); Pro $26/mo (1,200 AI credits, unlimited brands and team). A second table on the same page lists Starter 1,500 credits, Pro 5,000 credits + API/MCP (6,000 calls) and Ultimate 8,000 credits + 25,000 API calls, without readable prices. Up to 20% off annual. 7-day free trial.",
+      "positioning": "Template-driven carousel, quote and tweet-graphic maker with AI writing, bulk generation, scheduling and an API/MCP.",
+      "audience": "LinkedIn and Instagram creators, agencies managing multiple brand kits, developers.",
+      "sources": [
+        "https://contentdrips.com/",
+        "https://contentdrips.com/pricing/"
+      ]
+    },
+    {
+      "name": "aiCarousels",
+      "url": "https://www.aicarousels.com",
+      "pricing": "Free $0 (basic use without sign-up); PRO $14.95/mo or $120/yr (third-party directory, verified 2026-03-22; the vendor pricing page returned 404). Another review lists $15/mo or $10/mo annual. Unverified on vendor site.",
+      "positioning": "Cheap, fast AI carousel generator for LinkedIn, Instagram and TikTok with bonus post tools.",
+      "audience": "Creators who need quick carousels without design skills.",
+      "sources": [
+        "https://www.aicarousels.com/",
+        "https://thegtmdirectory.com/tools/aicarousels"
+      ]
+    },
+    {
+      "name": "PostNitro",
+      "url": "https://postnitro.ai",
+      "pricing": "Free (up to 5 AI slides, 5 downloads/mo, watermark); Starter $15/mo; Creator+ $30/mo; Team+ $60/mo. Yearly = 2 months free (figures not shown). API add-on $10/mo for 250 credits; 1 credit per imported slide, 2 per AI slide.",
+      "positioning": "AI carousel and short-video post designer with brand kits, an in-canvas AI agent, scheduling to 6 networks and an MCP/CLI.",
+      "audience": "Creators, agencies and platforms embedding a carousel editor (200+ platforms claimed).",
+      "sources": [
+        "https://postnitro.ai/",
+        "https://postnitro.ai/pricing"
+      ]
+    },
+    {
+      "name": "Copy.ai",
+      "url": "https://www.copy.ai",
+      "pricing": "Chat $29/mo or $24/mo annual (5 seats, unlimited chat words); Growth $1,000/mo billed annually (75 seats, 20K workflow credits); Expansion $2,000/mo; Scale $3,000/mo; Enterprise custom.",
+      "positioning": "Pivoted to a GTM AI platform (workflows for sales and marketing); social posting is generic chat plus Brand Voice and Infobase.",
+      "audience": "Sales and marketing teams in mid-market and enterprise.",
+      "sources": [
+        "https://www.copy.ai/prices",
+        "https://support.fullcast.com/copy-ai/docs/chat-enterprise-safe-ai-that-speaks-in-your-brand-voice"
+      ]
+    },
+    {
+      "name": "Jasper",
+      "url": "https://www.jasper.ai",
+      "pricing": "Pro $69/seat/mo monthly or $59/seat/mo annual; Business custom (12-month minimum). 7-day free trial on Pro.",
+      "positioning": "Enterprise marketing AI with brand voice, knowledge, style guides and 100+ agents; Remix mode repurposes content into social posts.",
+      "audience": "Marketing teams that need on-brand content at scale.",
+      "sources": [
+        "https://www.jasper.ai/pricing",
+        "https://www.jasper.ai/"
+      ]
+    },
+    {
+      "name": "Eden (2026 entrant)",
+      "url": "https://eden.so",
+      "pricing": "Free $0; Starter $25/mo or $299/yr (200 AI credits, 10 tracked creators, 5 tracked brands); Pro $66/mo or $790/yr (750 credits, 40 creators, 25 brands); Max $167/mo or $1,999/yr (3,000 credits, 100 creators); Curator Personal $7.50/mo and Personal Plus $12.50/mo (page also says from $9). The homepage shows different figures ($9 Personal, $29 Starter). USD.",
+      "positioning": "Creator OS: cross-platform outlier research, ad library, swipe boards, reverse-engineer-and-replicate drafting, scheduling, store and email.",
+      "audience": "Creators and info-product sellers working across 7+ platforms.",
+      "sources": [
+        "https://eden.so/",
+        "https://eden.so/pricing"
+      ]
+    },
+    {
+      "name": "Reepl (2026 entrant)",
+      "url": "https://reepl.io",
+      "pricing": "Pro / Premium / Max priced per seat per month with 4,000 / 10,000 / 25,000 credits; dollar amounts did not render. Pro Annual $200/yr. Premium trial 3 days for $1; 'Get started free'. Unverified monthly prices.",
+      "positioning": "LinkedIn-first AI co-pilot with a voice profile, an agent (Andy), carousels, cross-posting to X and Threads and an in-feed reply extension.",
+      "audience": "LinkedIn creators, teams and agencies.",
+      "sources": [
+        "https://reepl.io/",
+        "https://reepl.io/product/content-library"
+      ]
+    },
+    {
+      "name": "ViralBrain (2026 entrant)",
+      "url": "https://www.viralbrain.ai",
+      "pricing": "Free (3 hero profiles, 3 posts/mo, no auto-posting); Pro EUR 39/mo (20 posts/mo, 10 heroes, 5 carousels/mo); Premium EUR 69/mo (90 posts/mo, 30-day calendar, LinkedIn auto-posting). 7-day trial for EUR 1 (card required). Yearly = 2 months free.",
+      "positioning": "Learn from 'hero' creators in your niche and apply their winning patterns in your voice, with a 30-day auto calendar.",
+      "audience": "LinkedIn creators, priced in EUR (Europe-first).",
+      "sources": [
+        "https://www.viralbrain.ai/",
+        "https://www.viralbrain.ai/pricing"
+      ]
+    },
+    {
+      "name": "Ordinal (2026 entrant)",
+      "url": "https://www.tryordinal.com",
+      "pricing": "Starter $95/mo ($85 annual), Pro $265/mo ($235 annual), Growth $695/mo ($625 annual), Enterprise custom. 4 social profiles per plan, extra $20/mo each; engagement-only profiles $10/mo; leads data add-on.",
+      "positioning": "B2B LinkedIn and X publishing for teams: approvals, team engagement (likes, comments, reposts) and campaign calendars.",
+      "audience": "B2B marketing teams, employee advocacy and agencies.",
+      "sources": [
+        "https://www.tryordinal.com/",
+        "https://www.tryordinal.com/pricing"
+      ]
+    },
+    {
+      "name": "SuperX (2026 entrant)",
+      "url": "https://superx.so",
+      "pricing": "Pro $49/mo; Advanced $49/mo launch price (normally $99/mo); Ultra $199/mo. No annual prices shown.",
+      "positioning": "X growth OS: daily viral inspiration, ready-to-post AI queue, automations, engagement feed, Chrome analytics overlay and lead 'Signal Agents'.",
+      "audience": "X creators, founders and ghostwriters.",
+      "sources": [
+        "https://superx.so/",
+        "https://superx.so/pricing"
+      ]
+    },
+    {
+      "name": "koomastudio (2026 entrant)",
+      "url": "https://koomastudio.com",
+      "pricing": "Pro $12/mo founder price (rises to $24/mo when early-access spots fill); 3-day full Pro trial, no card.",
+      "positioning": "Low-cost LinkedIn planner with a topic-by-format content matrix, compounding voice profile and branded carousels.",
+      "audience": "Solo LinkedIn creators on a budget.",
+      "sources": [
+        "https://koomastudio.com/"
+      ]
+    }
+  ],
+  "features": [
+    {
+      "competitor": "Taplio",
+      "feature": "Viral posts 'For You' daily feed",
+      "area": "inspiration",
+      "detail": "Viral posts > 'For You' tab shows 5 new high-performing LinkedIn posts per day matched to your AI settings. Each card has a 'Why is this viral?' explanation plus 'Save' and 'Remix' buttons. 'Adjust AI' (top right) edits the matching fields: 'You write in', 'You work in', 'You are a', 'You want to reach', 'You post about'.",
+      "limits_or_cost": "5 matches per day.",
+      "notable": "Explaining WHY a post worked on the card itself, before the user remixes it; matching driven by a short profile.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17173501-finding-post-inspiration-with-taplio",
+        "https://intercom.help/taplio/en/articles/17233357-using-taplio-s-ai-for-content-inspiration"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Viral library search ('Explore more')",
+      "area": "inspiration",
+      "detail": "Search bar over a library of 4M+ posts (help center) / '5M+ Inspiration & viral posts' (pricing page). Accepts a topic, idea or full sentence; suggested topic cards run a search in one click. After a search, filters appear: 'Published on', 'Content', 'Creator', 'Keywords', 'Clear all', 'Sort by'. A third tab, 'Saved posts', holds bookmarks.",
+      "limits_or_cost": "Library size differs by page (4M+ vs 5M+).",
+      "notable": "Sentence-level semantic search plus suggested topic cards lowers the blank-search problem.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17173501-finding-post-inspiration-with-taplio",
+        "https://taplio.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Saved posts and Collections",
+      "area": "inspiration",
+      "detail": "'Save' bookmarks any library post into 'Saved posts'; posts can be grouped into Collections. The free Chrome extension adds 'Save post' from inside LinkedIn.",
+      "limits_or_cost": "Extension is free and works without a plan.",
+      "notable": "",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17173501-finding-post-inspiration-with-taplio",
+        "https://taplio.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Remix a viral post",
+      "area": "remix",
+      "detail": "Flow: pick a post in 'For You' or 'Explore more' -> click 'Remix' -> a variation starts streaming on the 'Ask Taplio' page -> 'Open in composer' -> refine with 'AI options' or generate an image from the post content -> schedule or publish now.",
+      "limits_or_cost": "AI features on Growth and Pro only.",
+      "notable": "Remix lands in a chat surface first, then the composer, so the user can iterate before editing.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17173354-how-to-generate-an-ai-variation-of-a-post",
+        "https://intercom.help/taplio/en/articles/17173501-finding-post-inspiration-with-taplio"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "'Remix my posts that worked' and /repurpose",
+      "area": "remix",
+      "detail": "Ask Taplio starter suggestion 'Remix my posts that worked' and the composer slash command '/repurpose' rewrite the user's own past winners into fresh variations in their voice. The Remix button also works on the user's own posts.",
+      "limits_or_cost": "Growth/Pro.",
+      "notable": "Recycling your own proven posts is a low-risk remix source.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17233357-using-taplio-s-ai-for-content-inspiration"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "AI profile ('Adjust AI') as voice and strategy",
+      "area": "brand",
+      "detail": "Four-step setup: 'About you' (pulled from LinkedIn, editable), 'Tone of Voice', 'Content pillars', 'Audience'. These settings shape every idea, draft and the daily viral matches. Homepage says Taplio also learns voice from your posts and edits.",
+      "limits_or_cost": "",
+      "notable": "One short profile feeds inspiration matching, ideas and drafting at once.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17233357-using-taplio-s-ai-for-content-inspiration",
+        "https://taplio.com/"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Ask Taplio assistant",
+      "area": "agent",
+      "detail": "Chat assistant that 'has read every post you wrote' and 'knows what LinkedIn rewards this month'. Starter prompts: 'What's working in my niche', 'What worked this month', 'Remix my posts that worked'. Homepage shows a weekly brief of trends with percentage lifts (e.g. 'Founder-led sales past 1M ARR' +212%) and an action 'Draft a post on trend 2, in your voice'.",
+      "limits_or_cost": "Weekly trend brief is 'Request early access' (unverified availability).",
+      "notable": "Trend brief with one-tap 'draft on trend N in my voice' is a proactive next-up pattern.",
+      "sources": [
+        "https://taplio.com/",
+        "https://intercom.help/taplio/en/articles/17233357-using-taplio-s-ai-for-content-inspiration"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Post builder",
+      "area": "format-text",
+      "detail": "Write & Schedule > Post builder. Tab 'From an idea': enter a topic (or 'Suggest topic'), tick one or more variations (Actionable, Storytelling, Thought-provoking, Promotional), optional Format & tone panel ('Edit'), then 'Generate posts'. Tab 'From a URL': choose 'Article' or 'YouTube Video', paste link, 'Generate'.",
+      "limits_or_cost": "Each generated version uses '1 Expert Mode credit'.",
+      "notable": "Generating several angle variants at once (story vs actionable vs promo) lets the user pick rather than prompt.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17233357-using-taplio-s-ai-for-content-inspiration"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Composer AI edits and slash commands",
+      "area": "editor",
+      "detail": "Composer 'AI Edit' tab: 'Improve this post', 'Rewrite the hook', 'Fix grammar and spelling', or a custom instruction. 'Adjust results' fine-tunes output and 'History' restores earlier versions. Slash commands '/postIdeas' (ideas from profile, recent posts and inspiration) and '/repurpose'. Homepage mockup also shows 'Rewrite hook', 'Make it a story', 'My tone'.",
+      "limits_or_cost": "Growth/Pro; 250 AI credits/mo on Starter/Growth (inferred), unlimited on Pro.",
+      "notable": "Version history on AI rewrites protects the user's work.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17233357-using-taplio-s-ai-for-content-inspiration",
+        "https://taplio.com/",
+        "https://taplio.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Live reach prediction",
+      "area": "analytics",
+      "detail": "Homepage lists 'Live reach prediction before you publish' in the composer.",
+      "limits_or_cost": "Unverified beyond homepage copy.",
+      "notable": "Pre-publish score nudges edits before posting.",
+      "sources": [
+        "https://taplio.com/"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Carousel Generator",
+      "area": "format-carousel",
+      "detail": "Write & Schedule > Carousel Generator. Start 'From scratch/blank page', from AI input ('Generate Carousel'), or from a website or YouTube URL (slides filled with highlighted text from the source). Suggested structure: slide 1 hook, body slides, final CTA; 7-10 slides advised. Tabs: 'Content' (images), 'Settings' (text formatting), 'Color Palette' or 'Use custom colors' (hex), 'Preview', drag to reorder, 'Reset'. Finish with 'Save for later' (to 'My Carousels'), 'Create Post' (names it and attaches to composer) or 'Download' (PDF). Third-party: also imports tweets, Reddit posts and images, adds profile picture and handle.",
+      "limits_or_cost": "Growth/Pro (AI tools count against AI credits). Cannot import an existing PDF; upload PDFs in the post editor instead. PDF export only.",
+      "notable": "URL or YouTube -> carousel, then one click to attach to a scheduled post.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17173404-how-to-use-the-carousel-generator",
+        "https://taplio.com/pricing",
+        "https://postnitro.ai/compare/taplio"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Generate Image",
+      "area": "format-image",
+      "detail": "AI image generation from the post content, offered in the composer 'AI options' and listed as an AI tool on pricing.",
+      "limits_or_cost": "Counts against AI credits (250/mo Starter/Growth inferred; unlimited Pro).",
+      "notable": "",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17173354-how-to-generate-an-ai-variation-of-a-post",
+        "https://taplio.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Queue and posting schedule",
+      "area": "calendar",
+      "detail": "Actions > 'Edit Post schedule': pick a time and 'Add slot' (advice: at least one slot every day, vary times). Add posts to the next slot in one click. Queue controls: 'Re-queue' (pull scheduled posts up to fill gaps), 'Shuffle' (mix order), 'Edit queue'. Day view by default; icon switches to a monthly calendar where clicking a slot creates a post. Homepage also claims 'Best-time scheduling tuned to your followers'.",
+      "limits_or_cost": "",
+      "notable": "Shuffle and Re-queue keep a batch-written week evenly spread.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/8807234-setting-up-your-queue-posting-schedule",
+        "https://taplio.com/"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Drafts Kanban, snippets, polls, mentions",
+      "area": "calendar",
+      "detail": "Drafts can be viewed as a Kanban board; reusable 'Snippets'; LinkedIn polls; @mentions of people and companies; posting as a company page; text formatting and media assets library.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://taplio.com/pricing",
+        "https://intercom.help/taplio/en/collections/19726449-writing-publishing-posts"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Post Boosts (per-post automations)",
+      "area": "engagement",
+      "detail": "Composer 'Boosts' tab per post: 'Remove URL previews'; 'Scheduled comment' (e.g. link in first comment, optional delay, saved links); 'Auto Connect' (connection requests to likers/commenters, capped per post); 'Auto Reply' (reply to commenters, optional keyword trigger); 'Auto DM' (personalized DM with first name/company to likers or repliers, usually within an hour); 'Also Publish on X' via Tweet Hunter (next slot or same time, 280-char edit).",
+      "limits_or_cost": "Auto DM: 1st-degree connections only, stops 24h after publishing, only first 100 engagers. Auto-reply monitoring 2 days (Starter/Growth, inferred) vs 90 days (Pro). Auto-add likers/commenters 20 per post (inferred) vs unlimited (Pro).",
+      "notable": "Keyword comment -> auto DM a resource is the lead magnet loop, configured per post at scheduling time.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17173502-taplio-post-boosts",
+        "https://taplio.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Engage: Comments tab with Smart Replies",
+      "area": "engagement",
+      "detail": "Engage > Comments. 'My Posts Comments' loads comments on posts published via Taplio. 'Smart Replies' suggests replies in four tones: 'Add Value', 'Congratulate', 'Agree', 'Disagree'. Snippets and emojis; 'Like & Skip'; 'Auto-Like' when you reply; 'View on LinkedIn'. 'Search by URL' + 'Retrieve Comments' pulls the last 500 comments of any public post.",
+      "limits_or_cost": "Only posts published through Taplio; refresh every ~2 hours ('Refresh' to force). Search by URL is Pro only, 500 comments max. 500 comment credits/mo on Starter/Growth (inferred).",
+      "notable": "Four fixed reply intents make AI comments fast to choose and less generic.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17455795-engage-comments-tab",
+        "https://taplio.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Engage: Influencers and Custom lists feeds",
+      "area": "engagement",
+      "detail": "Engage > 'Influencers' shows recent posts from curated niche lists (e.g. 'Accounting', 'Artificial Intelligence', 'DACH Influencers'); 'Custom lists' shows posts from people in your own Contacts lists. Per post: type a reply, 'Smart Reply' (Add value / Congratulate / Agree / Disagree), Snippet, Emoji; quick actions 'Like', 'Open', 'Copy', 'Skip', 'Like & Skip'.",
+      "limits_or_cost": "Not real-time: most posts appear in 30-60 minutes, sometimes hours.",
+      "notable": "A focused feed of chosen people replaces doom-scrolling LinkedIn.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17456217-engage-influencers-tab",
+        "https://intercom.help/taplio/en/articles/17456526-engage-custom-lists-tab"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Auto lists of likers and commenters (CRM)",
+      "area": "engagement",
+      "detail": "Contacts lists 'Liked My Posts' and 'Commented My Posts' fill automatically; both exportable for outreach. Past interactions import gradually over the first week; new posts are fetched about 24h after publishing, then rechecked every few days.",
+      "limits_or_cost": "Pacing is deliberate to 'limit the risks for your account'.",
+      "notable": "Engagers become a reusable audience list without manual work.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/8808008-contacts-how-do-likers-and-commenters-lists-work"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Lead database (Prospect Hub)",
+      "area": "engagement",
+      "detail": "Prospect Hub > Lead database: 3M+ enriched LinkedIn profiles. Describe the audience in 'Describe what you're looking for' (AI sets filters) or 'Or search manually' with profile filters (location, job title, follower count, post topics, 30-day engagement, industry, seniority, department) and company filters (name, tags, headcount). Actions: 'Add to list', CSV export, 'Push to lemlist', DM or connection request from the side panel.",
+      "limits_or_cost": "Pro plan only.",
+      "notable": "Natural-language-to-filters search.",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/17479984-database-what-is-it-and-how-does-it-work",
+        "https://taplio.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Networking: bulk DMs and connection requests",
+      "area": "engagement",
+      "detail": "Networking > 'Get started'. 'Send personalized DMs in bulk': recipients from a contact list, a LinkedIn account, and/or people who engaged with a post; variables via '[' ([firstname], [company], [title], [city]); options 'Skip recipients with unfilled variables', 'Skip non-connected recipients'; 'Send Messages' or 'Schedule Messages'. Non-connections get a connection request first, DM after acceptance. 'Send bulk connection requests' skips existing/pending.",
+      "limits_or_cost": "100 DMs/day (overflow queued), 20 connection requests per working day. Auto-DM, bulk DMs and auto-connect listed under Pro outreach.",
+      "notable": "",
+      "sources": [
+        "https://intercom.help/taplio/en/articles/12311954-how-to-use-networking-in-taplio",
+        "https://taplio.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Analytics, monthly email and LinkedIn Benchmark",
+      "area": "analytics",
+      "detail": "Post and account analytics, a monthly stats email, and 'LinkedIn Benchmark' (60k+ posts analyzed monthly) on every plan. Chrome extension shows 'My analytics'.",
+      "limits_or_cost": "",
+      "notable": "Benchmark against a large monthly sample gives context to a user's own numbers.",
+      "sources": [
+        "https://taplio.com/pricing",
+        "https://taplio.com/blog/taplio-alternatives"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Taplio MCP V2 (Engage toolset)",
+      "area": "integrations",
+      "detail": "Lets Claude, ChatGPT, Cursor or another MCP client find posts, draft comments and replies and queue them; images and videos can be attached to drafts. Nothing posts until the user confirms. '27 tools'. Also a Taplio API and Zapier integration.",
+      "limits_or_cost": "",
+      "notable": "Human-confirm gate on every agent action.",
+      "sources": [
+        "https://taplio.com/",
+        "https://taplio.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Taplio",
+      "feature": "Free trial, credits and onboarding",
+      "area": "billing",
+      "detail": "7-day free trial with full Pro access, 30-day money-back, cancel in Settings > Billing. Taplio Academy masterclasses and live group demos. Credits: 250 AI credits and 500 comment credits per month on lower plans (mapping inferred), unlimited on Pro.",
+      "limits_or_cost": "",
+      "notable": "Trial on the TOP tier so users feel the full product, then downgrade.",
+      "sources": [
+        "https://taplio.com/pricing",
+        "https://taplio.com/"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Content DNA (voice profile)",
+      "area": "brand",
+      "detail": "Builds a voice profile from your existing LinkedIn posts, writing samples and profile: vocabulary, tone, opinions, known topics, hooks and pillars. Drafts are generated in that voice. Teams plan keeps a separate Content DNA per team member.",
+      "limits_or_cost": "Pro: 1 account; Teams: per member (5 accounts).",
+      "notable": "Capturing OPINIONS and known topics, not just tone, so drafts sound like the person's views.",
+      "sources": [
+        "https://www.supergrow.ai/pricing",
+        "https://www.supergrow.ai/",
+        "https://tooliverse.ai/tools/supergrow"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "PostCast AI interviews",
+      "area": "format-text",
+      "detail": "Voice or text conversation with an AI interviewer named 'Alex'. A 10-15 minute session (sources vary: 15-20) asks adaptive questions and turns the stories and takeaways into several LinkedIn drafts in your voice ('a week's worth of LinkedIn content'). Teams can 'Push Postcast interviews to team'.",
+      "limits_or_cost": "Unlimited on Pro. Third-party: Starter capped at 2 sessions/mo. Output 3-7 drafts per session (sources disagree).",
+      "notable": "Interview-to-posts removes the blank page for experts who will talk but not write; strong fit for financial advisers.",
+      "sources": [
+        "https://www.supergrow.ai/",
+        "https://www.supergrow.ai/pricing",
+        "https://tooliverse.ai/tools/supergrow",
+        "https://taplio.com/blog/taplio-alternatives"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Repurposing from YouTube, articles, PDF",
+      "area": "remix",
+      "detail": "Paste a YouTube video, blog/article or PDF and get 'multiple post formats from a single source' in your voice.",
+      "limits_or_cost": "Pro and up.",
+      "notable": "",
+      "sources": [
+        "https://www.supergrow.ai/",
+        "https://www.supergrow.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Voice to Post",
+      "area": "format-text",
+      "detail": "Speak an idea; AI turns the voice note into a post in your voice.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.supergrow.ai/",
+        "https://www.supergrow.ai/compare/supergrow-vs-authoredup"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Kanban content board",
+      "area": "calendar",
+      "detail": "Drag-and-drop Kanban with stages 'Draft', 'Review', 'Approved', 'Scheduled'.",
+      "limits_or_cost": "",
+      "notable": "Approval stage built into the board, not a separate tool.",
+      "sources": [
+        "https://www.supergrow.ai/",
+        "https://www.supergrow.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Scheduling, calendar and auto first comment",
+      "area": "calendar",
+      "detail": "Weekly calendar view with posts at peak times; 'Schedule First Comment' auto-publishes a follow-up comment (CTA, hashtags, context) when the post goes live; reusable snippets.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.supergrow.ai/",
+        "https://www.supergrow.ai/pricing",
+        "https://www.supergrow.ai/compare/supergrow-vs-authoredup"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Carousel maker",
+      "area": "format-carousel",
+      "detail": "Carousel maker included on Pro. Third-party descriptions: drag-and-drop editor, 50+ mobile-first templates, inline click-to-edit text, image library, per-workspace brand kit (logos, colors, fonts), direct publish to LinkedIn, conversion 'in under 30 seconds'; infographic generator also listed.",
+      "limits_or_cost": "Pro and up. Template count and brand kit unverified on vendor page.",
+      "notable": "",
+      "sources": [
+        "https://www.supergrow.ai/pricing",
+        "https://tooliverse.ai/tools/supergrow"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Engage with Focus Mode and AI comments",
+      "area": "engagement",
+      "detail": "'Engage' gives a curated engagement feed; 'Focus Mode' lets you comment without the LinkedIn feed; AI comment drafts in your voice. Third-party: scheduled auto-comments based on engagement.",
+      "limits_or_cost": "Pro and up.",
+      "notable": "",
+      "sources": [
+        "https://www.supergrow.ai/",
+        "https://www.supergrow.ai/compare/supergrow-vs-authoredup",
+        "https://tooliverse.ai/tools/supergrow"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Profile analytics and weekly report",
+      "area": "analytics",
+      "detail": "Dashboard of post performance, engagement and follower growth, AI analysis of what worked, and a weekly briefing that explains results ('Insights & Analytics'). Teams get per-member and team-wide weekly reports.",
+      "limits_or_cost": "",
+      "notable": "A written weekly explanation, not just charts.",
+      "sources": [
+        "https://www.supergrow.ai/pricing",
+        "https://www.supergrow.ai/compare/supergrow-vs-authoredup",
+        "https://tooliverse.ai/tools/supergrow"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Team approvals and org dashboard",
+      "area": "team",
+      "detail": "Teams plan: 'Feedback & approval workflows' (review chain), 'Organisation dashboard', 'Share inspiration across workspaces', 'Content calendar across all members', 'Push content to all team workspaces', 'Publish on behalf of team members', role-based permissions.",
+      "limits_or_cost": "Teams $199/mo (5 accounts); Enterprise for more.",
+      "notable": "Push one piece of content into every member's workspace to adapt in their own voice: an employee-advocacy remix.",
+      "sources": [
+        "https://www.supergrow.ai/pricing",
+        "https://www.supergrow.ai/"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Challenges, leaderboard, Slack",
+      "area": "team",
+      "detail": "'Challenges & leaderboard' with streaks and ranks to drive adoption; Slack notifications.",
+      "limits_or_cost": "Teams plan.",
+      "notable": "Gamified posting streaks for teams of advisers.",
+      "sources": [
+        "https://www.supergrow.ai/pricing",
+        "https://www.supergrow.ai/"
+      ]
+    },
+    {
+      "competitor": "Supergrow",
+      "feature": "Supergrow MCP",
+      "area": "integrations",
+      "detail": "Connects Claude or ChatGPT to draft posts, pull analytics and manage teams from one prompt; example tool 'get_team_analytics'.",
+      "limits_or_cost": "Pro and up.",
+      "notable": "",
+      "sources": [
+        "https://www.supergrow.ai/",
+        "https://www.supergrow.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Kleo",
+      "feature": "Chat-first drafting",
+      "area": "agent",
+      "detail": "Drafting starts in a chat ('What are we creating today?'). Kleo turns rough ideas into drafts and explains why a post is structured as it is (hook, angle, structure). 'Preview and edit' before publishing.",
+      "limits_or_cost": "Unlimited post generation.",
+      "notable": "Explaining the hook/angle/structure teaches the user while drafting.",
+      "sources": [
+        "https://wf.kleo.so/",
+        "https://authoredup.com/blog/kleo-review"
+      ]
+    },
+    {
+      "competitor": "Kleo",
+      "feature": "Train writing style + automatic memories",
+      "area": "brand",
+      "detail": "'Train writing style' from samples of your past posts or frameworks from popular creators (vocabulary, sentence rhythm, hook style). 'Automatic memories' learn from each post you create and persist across sessions.",
+      "limits_or_cost": "",
+      "notable": "Voice that keeps learning from every accepted post.",
+      "sources": [
+        "https://wf.kleo.so/",
+        "https://authoredup.com/blog/kleo-review"
+      ]
+    },
+    {
+      "competitor": "Kleo",
+      "feature": "Knowledge base and identity",
+      "area": "brand",
+      "detail": "'Store knowledge': reusable case studies, frameworks, client wins the AI draws on. 'Define identity': who you are, what you stand for and who you address; included in every prompt.",
+      "limits_or_cost": "",
+      "notable": "Separate 'facts I can cite' store from 'voice'.",
+      "sources": [
+        "https://wf.kleo.so/",
+        "https://authoredup.com/blog/kleo-review"
+      ]
+    },
+    {
+      "competitor": "Kleo",
+      "feature": "Swipe file + web clipper extension",
+      "area": "inspiration",
+      "detail": "'Browse swipe file' of curated high-performing content; 'Save inspiration' from across the web. The Chrome extension captures posts and ideas from social media, web pages and blogs into your swipe file, where you can turn them into ideas, drafts, remixes and posts. The extension no longer acts inside LinkedIn.",
+      "limits_or_cost": "Included in subscription.",
+      "notable": "",
+      "sources": [
+        "https://wf.kleo.so/",
+        "https://authoredup.com/blog/kleo-review",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "competitor": "Kleo",
+      "feature": "Template, hook and prompt libraries",
+      "area": "format-text",
+      "detail": "'Use templates': 160+ plug-and-play post templates, 200+ hook templates (grouped by style: curiosity, contrarian, story-opener, list-promise), 170+ top-performing post swipes, 20 viral post prompts, 20 lead-gen prompts, engagement and strategy playbooks.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://wf.kleo.so/pricing",
+        "https://authoredup.com/blog/kleo-review"
+      ]
+    },
+    {
+      "competitor": "Kleo",
+      "feature": "Create graphics",
+      "area": "format-image",
+      "detail": "One-click visuals generated to match the post.",
+      "limits_or_cost": "20 graphics per month, even on the top plan.",
+      "notable": "",
+      "sources": [
+        "https://wf.kleo.so/",
+        "https://authoredup.com/blog/kleo-review"
+      ]
+    },
+    {
+      "competitor": "Kleo",
+      "feature": "LinkedIn scheduling",
+      "area": "calendar",
+      "detail": "Calendar with drag-and-drop queuing; posts publish to LinkedIn at the scheduled time.",
+      "limits_or_cost": "LinkedIn only. Previews are approximations.",
+      "notable": "",
+      "sources": [
+        "https://wf.kleo.so/",
+        "https://authoredup.com/blog/kleo-review"
+      ]
+    },
+    {
+      "competitor": "Kleo",
+      "feature": "Multilingual generation",
+      "area": "format-text",
+      "detail": "Post generation in English (UK/US), German, French, Italian, Spanish, Portuguese, Dutch, Danish, Czech.",
+      "limits_or_cost": "10 languages; interface is English.",
+      "notable": "",
+      "sources": [
+        "https://wf.kleo.so/"
+      ]
+    },
+    {
+      "competitor": "Kleo",
+      "feature": "Coaching and community bundled",
+      "area": "onboarding",
+      "detail": "Fast start video training, weekly live group coaching, private creator community; annual adds 1:1 onboarding call and marketing team sessions.",
+      "limits_or_cost": "Included in $99/mo.",
+      "notable": "Selling outcomes (coaching) with the tool justifies a high price.",
+      "sources": [
+        "https://wf.kleo.so/pricing"
+      ]
+    },
+    {
+      "competitor": "Kleo",
+      "feature": "Extension shut down by LinkedIn (platform risk)",
+      "area": "other",
+      "detail": "Kleo 1.0 was a free Chrome extension inside LinkedIn with 70,000+ users; LinkedIn required its removal (June 2025 per MagicPost; cease-and-desist per AuthoredUp review) and the team rebuilt as a paid web app (Kleo V3). Multi-profile support is 'coming soon'.",
+      "limits_or_cost": "",
+      "notable": "Lesson: avoid features that automate inside LinkedIn's UI; use official APIs.",
+      "sources": [
+        "https://magicpost.in/comparison/kleo-versus-magicpost",
+        "https://authoredup.com/blog/kleo-review",
+        "https://wf.kleo.so/"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Formatting editor with multi-device preview",
+      "area": "editor",
+      "detail": "Write inside LinkedIn (extension) or on the web platform: bold, italic, bullet and list styles, emoji; mentions of people and companies; attachments (images, GIFs, video, docs, polls, events); 'Multi-device preview'.",
+      "limits_or_cost": "Video, polls and events publish through the extension.",
+      "notable": "",
+      "sources": [
+        "https://authoredup.com/pricing",
+        "https://authoredup.com/"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Readability grade and length insights",
+      "area": "editor",
+      "detail": "Shows a readability grade and character/length insights as you write; guidance suggests aiming for grade 8 or lower.",
+      "limits_or_cost": "",
+      "notable": "A simple, explainable quality score on the draft.",
+      "sources": [
+        "https://authoredup.com/pricing",
+        "https://authoredup.com/"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Hooks and post-ending libraries",
+      "area": "format-text",
+      "detail": "Pick a hook (opening line) or ending/CTA template to insert into the post. 'Hooks library (200+ opening lines)' (pricing cards say 300+) and 'CTA & post-ending templates (150+)'.",
+      "limits_or_cost": "Counts conflict on page.",
+      "notable": "Insert-from-library at the exact spot in the editor.",
+      "sources": [
+        "https://authoredup.com/pricing",
+        "https://authoredup.com/"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Snippets",
+      "area": "editor",
+      "detail": "Save and reuse signatures, hashtags or any text block.",
+      "limits_or_cost": "Unlimited.",
+      "notable": "",
+      "sources": [
+        "https://authoredup.com/pricing"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Saved posts manager",
+      "area": "inspiration",
+      "detail": "Collects LinkedIn posts you saved, including ones saved before installing the extension; filter by keyword or author; export to CSV for analysis in Excel, ChatGPT or Claude.",
+      "limits_or_cost": "",
+      "notable": "Imports the user's existing LinkedIn saves, so the swipe file starts full on day one.",
+      "sources": [
+        "https://authoredup.com/",
+        "https://authoredup.com/pricing"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Drafts with stages, tags and share-for-review",
+      "area": "compliance",
+      "detail": "Unlimited drafts; tag drafts and move them through stages 'Active', 'Ready', 'Submitted'; 'Share a draft for review' via read-only link; draft collaboration in Business.",
+      "limits_or_cost": "",
+      "notable": "Read-only review link works for a compliance reviewer without a seat.",
+      "sources": [
+        "https://authoredup.com/pricing"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Calendar, reminders and best time",
+      "area": "calendar",
+      "detail": "'Content calendar (profiles, pages & groups)', scheduling (through the extension), 'Reminders to post & engage', 'Best time to post (from your own posts)', activity chart for consistency, weekly goal tracker.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://authoredup.com/pricing",
+        "https://authoredup.com/"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Smart post reuse",
+      "area": "remix",
+      "detail": "Suggests three past posts worth reusing, chosen by engagement rate or impressions; 'One-click reuse' opens one as a new draft.",
+      "limits_or_cost": "",
+      "notable": "Evergreen recycling of the user's own winners.",
+      "sources": [
+        "https://authoredup.com/pricing",
+        "https://authoredup.com/"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Analytics dashboard",
+      "area": "analytics",
+      "detail": "'Performance dashboard', 'Profile growth timeline', 'Performance snapshot (this period vs last)', 'Breakdown: best post type, day, length & readability' (avg reactions by Text, Reshare, Image, Document, Link, Poll), 'Side-by-side post comparison', 'Advanced metrics: saves, sends, reach, profile views & followers gained', which posts bring followers, word cloud of themes.",
+      "limits_or_cost": "Advanced metrics for personal profile posts.",
+      "notable": "Breakdown by readability ties writing style to results.",
+      "sources": [
+        "https://authoredup.com/pricing",
+        "https://authoredup.com/"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "History import, CSV and analytics API",
+      "area": "integrations",
+      "detail": "'Collect all your LinkedIn posts historically', 'Import your LinkedIn archive', CSV export of analytics, personal-key 'Analytics API'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://authoredup.com/pricing"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Company pages and groups",
+      "area": "publishing",
+      "detail": "Unlimited company pages free on every plan (pay only for profiles); post and schedule as a page; page dashboard and analytics; post to LinkedIn groups with group-post analytics.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://authoredup.com/pricing"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Business: org roles, pay per profile",
+      "area": "team",
+      "detail": "'Organization & roles (Admin / Manager / Member)', separate drafts/analytics/settings per profile, team calendar, team analytics, invite unlimited members; managers and ghostwriters free, only extension users charged. 'Leaderboard' and 'Ad equivalent value' marked 'Soon'.",
+      "limits_or_cost": "Business min 3 profiles.",
+      "notable": "Ad equivalent value reframes organic reach as money saved.",
+      "sources": [
+        "https://authoredup.com/pricing"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "Coauthor (AI in your voice)",
+      "area": "format-text",
+      "detail": "'Coauthor: AI writing in your voice', marked Beta.",
+      "limits_or_cost": "Credits included on every plan; more as paid add-on; closed beta.",
+      "notable": "",
+      "sources": [
+        "https://authoredup.com/pricing"
+      ]
+    },
+    {
+      "competitor": "AuthoredUp",
+      "feature": "No automation, EU data",
+      "area": "compliance",
+      "detail": "States it collects no cookies, does no automation and hosts data in Germany.",
+      "limits_or_cost": "",
+      "notable": "Trust positioning for regulated users.",
+      "sources": [
+        "https://authoredup.com/"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Multi-platform distraction-free editor",
+      "area": "editor",
+      "detail": "One editor for X, LinkedIn, Threads, Bluesky, Mastodon and Substack Notes (plus X Articles drafting); thread splitting; drag-and-drop media reordering across thread posts; realistic per-platform previews in the sidebar with accurate mobile scaling.",
+      "limits_or_cost": "X Articles publishing requires X Premium.",
+      "notable": "",
+      "sources": [
+        "https://typefully.com/",
+        "https://typefully.com/changelog",
+        "https://typefully.com/blog/hypefury-review-alternative"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Writing Assistant",
+      "area": "format-text",
+      "detail": "In-editor assistant that learns from your writing samples and drafts (tone, vocabulary, structure); turns voice memos, scattered notes and half-formed ideas into posts; flags weak hooks and proposes stronger angles 'instead of blindly following instructions'; converts between X and LinkedIn; keeps rules you set once (e.g. banned punctuation); edits text directly in the draft.",
+      "limits_or_cost": "Creator plan and above, or free trial. Explicitly 'No auto-posting. No mass-reply automation. No one-click content generation.'",
+      "notable": "An assistant that pushes back on weak hooks and remembers house rules (e.g. no em dashes).",
+      "sources": [
+        "https://typefully.com/changelog/writing-assistant-133",
+        "https://typefully.com/changelog"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Prompts & Ideas generator",
+      "area": "inspiration",
+      "detail": "Fresh writing prompts with examples of popular posts, searchable by 'intent category'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://typefully.com/blog/hypefury-review-alternative"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Suggested-slot scheduling",
+      "area": "calendar",
+      "detail": "Pick a time or let Typefully choose a slot based on your engagement data; queue management (also via API).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://typefully.com/blog/hypefury-review-alternative",
+        "https://typefully.com/changelog"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Team calendar with planned drafts",
+      "area": "calendar",
+      "detail": "Calendar showing all social sets; 'planned' posts wait for confirmation before going live; Write, Plan and Analyze modes.",
+      "limits_or_cost": "",
+      "notable": "'Planned' state is a soft approval gate.",
+      "sources": [
+        "https://typefully.com/changelog"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Draft comments, mentions, activity log",
+      "area": "team",
+      "detail": "Comments on drafts with @mentions and formatting; Slack alerts for comments and published posts; 'Draft Activity' logs every change with who made it and where it came from; share drafts for teammates and clients to review; unlimited teammates with per-member permissions.",
+      "limits_or_cost": "",
+      "notable": "Full change log on drafts is an audit trail.",
+      "sources": [
+        "https://typefully.com/changelog",
+        "https://typefully.com/blog/typefully-vs-ordinal-review-alternative",
+        "https://typefully.com/changelog/collaboration-52"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Draft Comments API for agents (Agent Review)",
+      "area": "agent",
+      "detail": "AI agents can read, write and resolve draft comments through /v2/ endpoints; an agent can review new drafts and comment on weak hooks, factual claims, voice mismatches and repetition, triggered by a tag such as 'Agent Review'.",
+      "limits_or_cost": "",
+      "notable": "An AI reviewer that leaves comments, like a compliance or editor pass.",
+      "sources": [
+        "https://typefully.com/changelog"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Platform-native options",
+      "area": "publishing",
+      "detail": "Polls on LinkedIn, Threads, Mastodon; quote posts on Bluesky, Mastodon, Substack; LinkedIn reposts with commentary by pasting a post URL; choose who can reply on X; 1080p X video for Premium accounts; LinkedIn company and person mentions.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://typefully.com/changelog"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Content disclosure labels",
+      "area": "compliance",
+      "detail": "Adds 'Paid Partnership' and 'Made with AI' labels to X posts.",
+      "limits_or_cost": "",
+      "notable": "Built-in disclosure labels matter for regulated advisers.",
+      "sources": [
+        "https://typefully.com/changelog"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "API, Zapier, MCP, webhooks, Claude connector",
+      "area": "integrations",
+      "detail": "API v2 to create, schedule and publish to all platforms, upload media, manage tags and queue; Zapier with 6 instant triggers (draft created, published, scheduled, updated); MCP server; webhooks to Slack/n8n/Make; official Claude connector to draft, schedule, queue and handle draft comments; Raycast extension.",
+      "limits_or_cost": "Available to all users.",
+      "notable": "",
+      "sources": [
+        "https://typefully.com/changelog/all-new-api-zapier-integration-mcp-and-126",
+        "https://typefully.com/changelog",
+        "https://typefully.com/"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Analytics",
+      "area": "analytics",
+      "detail": "Impressions, engagement, follower growth, per-post performance and profile visits.",
+      "limits_or_cost": "Paid plans.",
+      "notable": "",
+      "sources": [
+        "https://typefully.com/blog/hypefury-review-alternative",
+        "https://typefully.com/blog/typefully-vs-ordinal-review-alternative"
+      ]
+    },
+    {
+      "competitor": "Typefully",
+      "feature": "Auto-RT and auto-plug",
+      "area": "engagement",
+      "detail": "Typefully's own comparison says it supports auto-retweet and auto-plugs (auto-replies that promote a link).",
+      "limits_or_cost": "Details unverified.",
+      "notable": "",
+      "sources": [
+        "https://typefully.com/blog/hypefury-review-alternative"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "X no longer supported",
+      "area": "other",
+      "detail": "Pricing FAQ: 'Does Hypefury still support X/Twitter?' -> 'Nope! Hypefury no longer supports X'. Per Eden (Aug 2026), X queues and X automations stopped; BlackMagic (X analytics acquired 2023) shut down July 1, 2026.",
+      "limits_or_cost": "",
+      "notable": "Platform-API risk can remove a core channel overnight.",
+      "sources": [
+        "https://hypefury.com/pricing/",
+        "https://eden.so/blog/hypefury-dropped-x-support/"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "Inspiration gallery",
+      "area": "inspiration",
+      "detail": "Gallery of best-performing posts you can customize and post ('Create dozens of posts within minutes'); third-party: proven formats across niches.",
+      "limits_or_cost": "Niche count unverified.",
+      "notable": "",
+      "sources": [
+        "https://hypefury.com/",
+        "https://creatoreconomytools.com/tool/hypefury"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "AI posts trained on you + Remix",
+      "area": "remix",
+      "detail": "'AI posts that sound like you': the AI learns from your posts to generate new ones; 'Remix' adds your own spin to AI-generated posts.",
+      "limits_or_cost": "Full plan ('AI trained on your posts').",
+      "notable": "",
+      "sources": [
+        "https://hypefury.com/",
+        "https://hypefury.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "Autoplugs",
+      "area": "engagement",
+      "detail": "Automatically comments your newsletter, course or website under posts that perform well; only fires after a post crosses an engagement threshold you set.",
+      "limits_or_cost": "Flexible and Full plans.",
+      "notable": "Promote only on winners so plugs never hurt reach.",
+      "sources": [
+        "https://hypefury.com/",
+        "https://creatoreconomytools.com/tool/hypefury",
+        "https://hypefury.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "Evergreen and auto reposts",
+      "area": "calendar",
+      "detail": "Set evergreen posts in the schedule and make them recurring; 'Auto Reposts' re-share posts for more impressions.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://hypefury.com/",
+        "https://creatoreconomytools.com/tool/hypefury"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "1-click cross-format conversion",
+      "area": "remix",
+      "detail": "'Write once, publish twice': turn posts into Instagram images, Reels, TikTok videos or LinkedIn carousels with 1 click; cross-post threads to LinkedIn as a post or carousel.",
+      "limits_or_cost": "",
+      "notable": "Text post -> image/carousel/video in one click is a format remix.",
+      "sources": [
+        "https://hypefury.com/"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "Tweetshots",
+      "area": "format-image",
+      "detail": "Image versions of your text posts for Instagram; without an Instagram business account they are emailed with a link to post.",
+      "limits_or_cost": "2 per day (Flexible), 5 per day (Full).",
+      "notable": "",
+      "sources": [
+        "https://hypefury.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "Instagram Auto DMs",
+      "area": "engagement",
+      "detail": "Followers who reply with your trigger keyword on Instagram reels and posts get an automatic DM with a link, freebie or discount.",
+      "limits_or_cost": "Listed on Flexible.",
+      "notable": "",
+      "sources": [
+        "https://hypefury.com/",
+        "https://hypefury.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "Engagement builder",
+      "area": "engagement",
+      "detail": "Reply quickly to the right accounts; watch users and keywords; import Bluesky lists.",
+      "limits_or_cost": "Unlimited watched users/keywords on Full.",
+      "notable": "",
+      "sources": [
+        "https://hypefury.com/",
+        "https://hypefury.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "Automated sales campaigns",
+      "area": "strategy",
+      "detail": "Automated sales posts for Gumroad or other products; plan a campaign, write once, schedule any time.",
+      "limits_or_cost": "Was X-focused; X now unsupported.",
+      "notable": "",
+      "sources": [
+        "https://hypefury.com/"
+      ]
+    },
+    {
+      "competitor": "Hypefury",
+      "feature": "Per-channel pricing",
+      "area": "billing",
+      "detail": "Flexible $6/mo per connected platform; Full $19/mo all channels with cross-posting, analytics (like/retweet counts, follower growth, profile clicks).",
+      "limits_or_cost": "",
+      "notable": "Cheap single-channel entry point.",
+      "sources": [
+        "https://hypefury.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "Viral tweet library and search",
+      "area": "inspiration",
+      "detail": "Searchable library ('2M+' / '3M+' on homepage, 'Over 12M viral tweets' on pricing). Search by topic, keyword or @handle; exclude keywords or accounts.",
+      "limits_or_cost": "Size claims vary by page.",
+      "notable": "",
+      "sources": [
+        "https://tweethunter.io/",
+        "https://tweethunter.io/pricing"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "Staff-picked collections",
+      "area": "inspiration",
+      "detail": "4K+ staff-picked tweets across 10 categories; save into your own collections.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://tweethunter.io/"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "Picked-for-you inspiration",
+      "area": "inspiration",
+      "detail": "'Picked-for-you tweet inspiration - powered by AI' analyzes your account and suggests tweets to draw from; daily personalized suggestions; goal '100 tweets in under an hour'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://tweethunter.io/",
+        "https://tweethunter.io/pricing"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "Tweet Rewriter",
+      "area": "remix",
+      "detail": "'Tweet Rewriter - powered by AI' rewrites tweets you like from the library; reviewers say the rewrite uses your account history for voice.",
+      "limits_or_cost": "Grow plan and up (AI Writer).",
+      "notable": "Library card -> rewrite in one step.",
+      "sources": [
+        "https://tweethunter.io/",
+        "https://tweethunter.io/pricing"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "AI writer suite",
+      "area": "format-text",
+      "detail": "'Daily AI-written tweets', 'Re-write tweets', 'Finish writing a tweet', 'Thread Ideas', 'Thread Hook Generator'; 'Press (lightning) to re-write your best tweets' from analytics.",
+      "limits_or_cost": "Grow plan and up; unlimited AI on Enterprise.",
+      "notable": "",
+      "sources": [
+        "https://tweethunter.io/",
+        "https://tweethunter.io/pricing"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "Queue scheduling and preview links",
+      "area": "calendar",
+      "detail": "Schedule tweets and threads with media; 1-click 'add to queue'; best time to tweet; drafts; shareable preview link that redirects to X once published.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://tweethunter.io/"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "Automations",
+      "area": "engagement",
+      "detail": "Evergreen Tweets (random RT of best tweets), Auto Plug (reply with a product link on best performers), Auto Retweet (schedule RTs of own tweets), Thread Delay, Hide URL previews, Clean Profile (undo RTs after hours).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://tweethunter.io/",
+        "https://tweethunter.io/pricing"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "Auto DM",
+      "area": "engagement",
+      "detail": "Interaction-based DMs to people who like or reply to a tweet, e.g. to deliver a free resource.",
+      "limits_or_cost": "3,000 / 7,500 / 15,000 Auto-DMs per month on Discover / Grow / Enterprise.",
+      "notable": "",
+      "sources": [
+        "https://tweethunter.io/",
+        "https://tweethunter.io/pricing"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "X CRM",
+      "area": "engagement",
+      "detail": "Build lists of X users by keywords, engagement or profile criteria; import from previous tweet and DM interactions; engage with tweets from specific lists; track conversations.",
+      "limits_or_cost": "Grow plan and up.",
+      "notable": "",
+      "sources": [
+        "https://tweethunter.io/",
+        "https://tweethunter.io/pricing"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "Analytics",
+      "area": "analytics",
+      "detail": "Top tweets by followers, engagement and reach; daily follower growth; per-tweet impressions, clicks, engagement, profile visits; optional public stats sharing.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://tweethunter.io/",
+        "https://tweethunter.io/pricing"
+      ]
+    },
+    {
+      "competitor": "Tweet Hunter",
+      "feature": "Ghostwriting mode and multi-account",
+      "area": "team",
+      "detail": "Ghostwrite for multiple clients from one account; 'Ghostwriting mode' and 'Custom trained AI', 'Smart AI reply generation' on Enterprise; paid partnership label on posts (Grow).",
+      "limits_or_cost": "1 / 5 / unlimited X accounts by plan.",
+      "notable": "",
+      "sources": [
+        "https://tweethunter.io/",
+        "https://tweethunter.io/pricing"
+      ]
+    },
+    {
+      "competitor": "EasyGen",
+      "feature": "Acquired, closed to new signups",
+      "area": "other",
+      "detail": "Site states EasyGen 'has been acquired and isn't taking new signups'; teams of 100+ are pointed to GPC (gpc.consulting).",
+      "limits_or_cost": "",
+      "notable": "Market consolidation signal.",
+      "sources": [
+        "https://www.easygen.io/"
+      ]
+    },
+    {
+      "competitor": "EasyGen",
+      "feature": "Creator search and content analysis",
+      "area": "inspiration",
+      "detail": "See which posts of a creator performed best and why, then adapt the strategy in your own voice.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.easygen.io/"
+      ]
+    },
+    {
+      "competitor": "EasyGen",
+      "feature": "EasyTrend",
+      "area": "inspiration",
+      "detail": "Trending topics, summaries and data gathered from Reddit, X, Google, Bing, Perplexity and others.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.easygen.io/"
+      ]
+    },
+    {
+      "competitor": "EasyGen",
+      "feature": "Format repurposing with your angle",
+      "area": "remix",
+      "detail": "Take a successful post format and apply your own angle to create more pieces; regenerate, tighten or edit copy.",
+      "limits_or_cost": "",
+      "notable": "Copies the FORMAT, not the words.",
+      "sources": [
+        "https://www.easygen.io/"
+      ]
+    },
+    {
+      "competitor": "EasyGen",
+      "feature": "Voice note dictation",
+      "area": "format-text",
+      "detail": "Turns voice notes into post ideas and polished drafts; tone and style customization to write 'like you'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.easygen.io/"
+      ]
+    },
+    {
+      "competitor": "EasyGen",
+      "feature": "Calendar without auto-posting",
+      "area": "calendar",
+      "detail": "Create, schedule and publish from one calendar, but EasyGen does not post automatically because posting directly is said to help reach.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.easygen.io/"
+      ]
+    },
+    {
+      "competitor": "MagicPost",
+      "feature": "AI Post Generator (Topic, URL, File)",
+      "area": "format-text",
+      "detail": "Drafts LinkedIn posts from inputs labelled 'Topic', 'URL' or 'File'; 'Improve' button; 'Humanizer mode' and an 'AI score' per draft (shown as 'Undetectable').",
+      "limits_or_cost": "Unlimited generation on Creator; small allowance during trial.",
+      "notable": "",
+      "sources": [
+        "https://magicpost.in/",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "competitor": "MagicPost",
+      "feature": "Import your or a creator's style",
+      "area": "brand",
+      "detail": "Import your own writing style or a favourite creator's; 'AI settings' for tone and style.",
+      "limits_or_cost": "",
+      "notable": "Borrowing a named creator's style as a starting voice.",
+      "sources": [
+        "https://magicpost.in/",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "competitor": "MagicPost",
+      "feature": "Generate Hooks",
+      "area": "format-text",
+      "detail": "Suggests opening lines; insights note that 'Number hooks win'.",
+      "limits_or_cost": "Creator plan.",
+      "notable": "",
+      "sources": [
+        "https://magicpost.in/"
+      ]
+    },
+    {
+      "competitor": "MagicPost",
+      "feature": "Inspiration: 2M+ posts and Analyze a Creator",
+      "area": "inspiration",
+      "detail": "'Browse 2M+ posts' library, 'Find Ideas', and 'Analyze a Creator' (a creator's profile metrics 'one search away').",
+      "limits_or_cost": "Creator plan.",
+      "notable": "",
+      "sources": [
+        "https://magicpost.in/",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "competitor": "MagicPost",
+      "feature": "Carousels, visuals and AI photos of yourself",
+      "area": "ai-avatar",
+      "detail": "'Generate Carousels' (editable slides; insights say carousels get '2x reach'), AI images for posts, 'AI photos of yourself', 'Brand kit on every visual'.",
+      "limits_or_cost": "Creator plan.",
+      "notable": "AI photos of the user for post visuals.",
+      "sources": [
+        "https://magicpost.in/",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "competitor": "MagicPost",
+      "feature": "Publish and schedule posts and comments",
+      "area": "publishing",
+      "detail": "Publish and schedule through the official LinkedIn API, including scheduled comments and @mentions; 'Best slot: Tue 9 am' style recommendations.",
+      "limits_or_cost": "",
+      "notable": "Official API positioning as account-safety selling point.",
+      "sources": [
+        "https://magicpost.in/",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "competitor": "MagicPost",
+      "feature": "Engagement lists and replies",
+      "area": "engagement",
+      "detail": "Build lists of creators to comment on with AI suggestions; reply to comments on your own posts in one place.",
+      "limits_or_cost": "Growth plan and up.",
+      "notable": "",
+      "sources": [
+        "https://magicpost.in/",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "competitor": "MagicPost",
+      "feature": "Detect Leads (ICP scoring)",
+      "area": "engagement",
+      "detail": "Identifies people who react to your posts and scores their fit against your ideal customer profile; export to CSV or your tools.",
+      "limits_or_cost": "Growth plan and up; small allowance in trial.",
+      "notable": "Turns post engagers into a ranked lead list.",
+      "sources": [
+        "https://magicpost.in/",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "competitor": "MagicPost",
+      "feature": "Agency: approvals without account, white-label reports",
+      "area": "team",
+      "detail": "'Manage Clients', 'Connect Clients' via secure login, 'Send for Approval' where clients approve without an account, 'White Label Reports' with your logo and colours.",
+      "limits_or_cost": "Agency $47/seat/mo yearly, 5 client seats; admin seats free.",
+      "notable": "Approver needs no login.",
+      "sources": [
+        "https://magicpost.in/",
+        "https://magicpost.in/comparison/kleo-versus-magicpost"
+      ]
+    },
+    {
+      "competitor": "MagicPost",
+      "feature": "MCP and API",
+      "area": "integrations",
+      "detail": "MCP server with '29 tools' plus API for AI assistants.",
+      "limits_or_cost": "Creator plan and up.",
+      "notable": "",
+      "sources": [
+        "https://magicpost.in/"
+      ]
+    },
+    {
+      "competitor": "Postwise",
+      "feature": "Idea to multiple posts",
+      "area": "format-text",
+      "detail": "'Input your idea' and the AI writes multiple post options; model 'trained on awesome posts, engineered for engagement'.",
+      "limits_or_cost": "400 AI credits/mo on Basic; unlimited on Unlimited.",
+      "notable": "",
+      "sources": [
+        "https://postwise.ai/"
+      ]
+    },
+    {
+      "competitor": "Postwise",
+      "feature": "Unified scheduling for X, LinkedIn, Threads",
+      "area": "calendar",
+      "detail": "Batch-create and schedule weeks of content across X, LinkedIn and Threads from one dashboard.",
+      "limits_or_cost": "Basic: 6 months scheduling, 5 accounts.",
+      "notable": "",
+      "sources": [
+        "https://postwise.ai/"
+      ]
+    },
+    {
+      "competitor": "Postwise",
+      "feature": "Growth tools",
+      "area": "remix",
+      "detail": "'Viral post repurposing and engagement tracking' listed under smart tools.",
+      "limits_or_cost": "Details unverified.",
+      "notable": "",
+      "sources": [
+        "https://postwise.ai/"
+      ]
+    },
+    {
+      "competitor": "Postwise",
+      "feature": "Free micro-tools",
+      "area": "onboarding",
+      "detail": "Free LinkedIn Headline Generator, AI Bio Generator, Emoji Translator, Twitter Username Generator, TikTok Hashtag Generator.",
+      "limits_or_cost": "Free.",
+      "notable": "Free tools as SEO acquisition.",
+      "sources": [
+        "https://postwise.ai/"
+      ]
+    },
+    {
+      "competitor": "ContentIn",
+      "feature": "Voice DNA ghostwriter",
+      "area": "brand",
+      "detail": "Personal model trained on your Voice DNA: sentence length, vocabulary and how you open a post. 'Style training - fine-tune the AI on your best posts'.",
+      "limits_or_cost": "Needs at least 20 of your posts.",
+      "notable": "A minimum sample size sets expectations for voice quality.",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "competitor": "ContentIn",
+      "feature": "Viral post library: rewrite in your voice",
+      "area": "remix",
+      "detail": "'Viral post library - rewrite what works, in your voice'.",
+      "limits_or_cost": "Growth plan.",
+      "notable": "",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "competitor": "ContentIn",
+      "feature": "Ideas from any URL and own sources",
+      "area": "inspiration",
+      "detail": "Turn a blog post or article URL into multiple angles; AI idea generation from your own sources; idea manager.",
+      "limits_or_cost": "Growth: 50 ideas/mo; Pro unlimited (fair use).",
+      "notable": "",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "competitor": "ContentIn",
+      "feature": "Repurpose your best posts",
+      "area": "remix",
+      "detail": "Growth: 'Repurpose your best posts into fresh angles'; Pro: 'the AI runs your best angles again'.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "competitor": "ContentIn",
+      "feature": "Weekly plan every Sunday",
+      "area": "strategy",
+      "detail": "Your week is planned every Sunday with planned posts.",
+      "limits_or_cost": "Growth: 2 planned posts/week; Pro: 3/week.",
+      "notable": "Proactive weekly plan delivered without asking.",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "competitor": "ContentIn",
+      "feature": "AI carousels, quote cards and images",
+      "area": "format-carousel",
+      "detail": "'AI carousel creation', 'Quote card & static carousel designer', quote image creator, AI image generation.",
+      "limits_or_cost": "Growth: 4 carousels and 20 images/mo; Pro: unlimited carousels (fair use), 100 images/mo.",
+      "notable": "",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "competitor": "ContentIn",
+      "feature": "Scheduling via official LinkedIn API",
+      "area": "publishing",
+      "detail": "Unlimited scheduling for one LinkedIn profile through the official LinkedIn API; Pro adds company pages; Telegram bot on Pro.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "competitor": "ContentIn",
+      "feature": "First comments and ICP-based AI comments",
+      "area": "engagement",
+      "detail": "Scheduled first comments on your posts; AI comment generation based on your ICP and content pillars.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "competitor": "ContentIn",
+      "feature": "Leads analytics",
+      "area": "analytics",
+      "detail": "Pro: 'Leads analytics: ICP fit, audience conversions & CSV export' on top of the profile analytics dashboard.",
+      "limits_or_cost": "Pro plan.",
+      "notable": "",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "competitor": "ContentIn",
+      "feature": "LinkedIn MCP server",
+      "area": "integrations",
+      "detail": "LinkedIn MCP server included in Pro.",
+      "limits_or_cost": "Pro plan.",
+      "notable": "",
+      "sources": [
+        "https://contentin.io/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "AI Carousel Generator from anything",
+      "area": "format-carousel",
+      "detail": "AI writes the slides and fills a template from a topic or idea, blog URL, YouTube video, TikTok or Reel, or raw text; images supported for style matching; 'Use my branding' toggle; format '1:1 Square' option.",
+      "limits_or_cost": "Credits per plan (50 free, 500 Starter, 1,200 Pro).",
+      "notable": "Short video (TikTok/Reel) -> carousel is a cross-format remix.",
+      "sources": [
+        "https://contentdrips.com/",
+        "https://contentdrips.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "Creation modes",
+      "area": "format-image",
+      "detail": "Widget modes 'Carousel', 'Quote', 'Tweet Style Graphic', 'Written Post' with a 'Create Post' button; 'Single Image', 'Carousel', 'Text Post' formats.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://contentdrips.com/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "Tweet to photos / carousel",
+      "area": "remix",
+      "detail": "'Tweet to Photos', 'Tweet to Instagram Posts', 'Tweet To Carousel Generator'; turn X threads into carousels.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://contentdrips.com/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "Templates (100+)",
+      "area": "format-carousel",
+      "detail": "100+ templates for carousels, quotes, reels and more, with Instagram, LinkedIn and Twitter categories; Pro/Exclusive templates on paid plans.",
+      "limits_or_cost": "Basic templates on Free.",
+      "notable": "",
+      "sources": [
+        "https://contentdrips.com/",
+        "https://contentdrips.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "Multiple brand kits",
+      "area": "brand",
+      "detail": "Fonts, colours and logos applied automatically; upload custom fonts and colours; save custom elements; multiple brand kits for different clients.",
+      "limits_or_cost": "1 brand Free, 3 Starter, unlimited Pro.",
+      "notable": "",
+      "sources": [
+        "https://contentdrips.com/",
+        "https://contentdrips.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "CSV bulk generation",
+      "area": "format-carousel",
+      "detail": "'CSV to Carousel' and 'Text To Carousel' for bulk creation.",
+      "limits_or_cost": "Free plan includes both.",
+      "notable": "",
+      "sources": [
+        "https://contentdrips.com/pricing/",
+        "https://contentdrips.com/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "Match My Style post writer",
+      "area": "format-text",
+      "detail": "'AI Post Writer' generates multiple drafts at once; 'Match My Style' learns from past posts.",
+      "limits_or_cost": "Starter and up ('Post Writer Tool').",
+      "notable": "",
+      "sources": [
+        "https://contentdrips.com/",
+        "https://contentdrips.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "Trending and daily ideas",
+      "area": "inspiration",
+      "detail": "'Trending Post Ideas Generator' and 'AI Ideas Generator' with daily ideas based on role, niche and audience; 'Trending Ideas Finder' on Pro.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://contentdrips.com/",
+        "https://contentdrips.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "Bulk Post Planner and publishing",
+      "area": "calendar",
+      "detail": "Date/time picker; direct publishing to LinkedIn and Instagram; 'Bulk Post Planner' to plan two weeks at once; 'Push to Zapier'.",
+      "limits_or_cost": "Social channels: 2 on Starter (second table), all on Pro.",
+      "notable": "",
+      "sources": [
+        "https://contentdrips.com/",
+        "https://contentdrips.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "Carousel to video",
+      "area": "format-video",
+      "detail": "'Carousel to Video' converts a carousel; 'Download MP4/GIF' listed in a plan table.",
+      "limits_or_cost": "Format details unverified.",
+      "notable": "",
+      "sources": [
+        "https://contentdrips.com/",
+        "https://contentdrips.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Contentdrips",
+      "feature": "API and MCP",
+      "area": "integrations",
+      "detail": "REST API for programmatic carousel and image generation; MCP server so agents like Claude and Cursor generate, schedule and publish.",
+      "limits_or_cost": "6,000 API calls/mo (Pro) or 25,000 (Ultimate) in the second plan table.",
+      "notable": "",
+      "sources": [
+        "https://contentdrips.com/",
+        "https://contentdrips.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "aiCarousels",
+      "feature": "X-to-Carousel generators",
+      "area": "format-carousel",
+      "detail": "'Choose a topic or enter existing content' and the AI writes the carousel; entry points Topic-To-Carousel, Text-To-Carousel, Website-To-Carousel, YouTube-To-Carousel, PDF-To-Carousel, 'AI Carousel Import'.",
+      "limits_or_cost": "Free basic use; PRO for bonus tools.",
+      "notable": "Separate landing page per input type (SEO).",
+      "sources": [
+        "https://www.aicarousels.com/"
+      ]
+    },
+    {
+      "competitor": "aiCarousels",
+      "feature": "Palette-based design",
+      "area": "editor",
+      "detail": "'Smart Auto-Resize' keeps fonts legible; 'Predefined Colors & Fonts' palettes and pairings; fully customizable template.",
+      "limits_or_cost": "No custom hex colours or individual fonts (third-party).",
+      "notable": "Constrained palettes keep beginners on-brand-ish.",
+      "sources": [
+        "https://www.aicarousels.com/",
+        "https://thegtmdirectory.com/tools/aicarousels"
+      ]
+    },
+    {
+      "competitor": "aiCarousels",
+      "feature": "Multi-platform formats and export",
+      "area": "format-carousel",
+      "detail": "LinkedIn (4:5), Instagram feed, Instagram Stories (9:16), TikTok (9:16); export high-resolution PDF for LinkedIn or JPG sequence for Instagram/TikTok. Free PDF-to-images, images-to-PDF and carousel-to-video converters.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://thegtmdirectory.com/tools/aicarousels",
+        "https://www.aicarousels.com/"
+      ]
+    },
+    {
+      "competitor": "aiCarousels",
+      "feature": "PRO bonus tools",
+      "area": "format-image",
+      "detail": "LinkedIn Post Generator (hundreds of viral templates), Post Formatter, Post Ideas Generator, Quote Card Generator, Infographic Generator (topics, texts, URLs, videos, PDFs), Headshot Generator (selfie to headshot), AI Caption Generator.",
+      "limits_or_cost": "PRO $14.95/mo (third-party).",
+      "notable": "Selfie-to-headshot for creators without a pro photo.",
+      "sources": [
+        "https://www.aicarousels.com/",
+        "https://thegtmdirectory.com/tools/aicarousels"
+      ]
+    },
+    {
+      "competitor": "aiCarousels",
+      "feature": "11 languages",
+      "area": "format-text",
+      "detail": "Language selector: English, Espanol, Francais, Portugues, Deutsch, Italiano, Dansk, Nederlands, Norsk, Svenska, Polski.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.aicarousels.com/"
+      ]
+    },
+    {
+      "competitor": "PostNitro",
+      "feature": "Inputs: topic, text, URL, X thread, CSV",
+      "area": "format-carousel",
+      "detail": "Generate from a topic, raw text (Nitro Chat maps onto slides keeping your wording), an article/blog URL, an X post or thread, or your own slide content pasted or imported from CSV ('Paste your own content').",
+      "limits_or_cost": "1 credit per imported slide, 2 per AI slide. AI slides per carousel: 5 Free, 8 Starter, 15 Creator+, 20 Team+.",
+      "notable": "",
+      "sources": [
+        "https://postnitro.ai/",
+        "https://postnitro.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "PostNitro",
+      "feature": "Formats: carousel, single image, animated video",
+      "area": "format-video",
+      "detail": "Carousels in 4:5, 1:1 or 16:9; single-image posts; animated video posts of 5-60 seconds with animated text and a music track (Audius library or your own).",
+      "limits_or_cost": "",
+      "notable": "Carousel and animated-video from the same content.",
+      "sources": [
+        "https://postnitro.ai/"
+      ]
+    },
+    {
+      "competitor": "PostNitro",
+      "feature": "Nitro Chat (in-canvas agent)",
+      "area": "agent",
+      "detail": "AI agent beside the canvas: drafts an outline and waits for approval, then edits slides, wording, layouts and colours on request.",
+      "limits_or_cost": "",
+      "notable": "Outline-approval step before generating slides avoids wasted credits.",
+      "sources": [
+        "https://postnitro.ai/"
+      ]
+    },
+    {
+      "competitor": "PostNitro",
+      "feature": "Brand kit with multiple headshots",
+      "area": "brand",
+      "detail": "Per brand: name, logo, handle; saved colour palettes (flat or gradient); font pairing from 100+ typefaces or upload licensed fonts; several headshots per kit so any team member can sign a post.",
+      "limits_or_cost": "Brands: 1 Free, 2 Starter, 5 Creator+, 15 Team+.",
+      "notable": "Multiple headshots per brand kit fits an agency with many advisers.",
+      "sources": [
+        "https://postnitro.ai/",
+        "https://postnitro.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "PostNitro",
+      "feature": "Templates and freeform canvas",
+      "area": "editor",
+      "detail": "100+ editable templates (4:5); save your own; freeform drag-and-drop canvas with 'Any canvas size' (4:5, 1:1, 9:16, 16:9), infographic layouts, backgrounds and elements; 'Save it as a template'.",
+      "limits_or_cost": "Custom templates: 1 / 5 / 15 by plan.",
+      "notable": "",
+      "sources": [
+        "https://postnitro.ai/",
+        "https://postnitro.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "PostNitro",
+      "feature": "AI images per slide with model choice",
+      "area": "format-image",
+      "detail": "Generates an image from each slide's content as background or inline; 'Choose your AI model' fast or frontier per generation; learns voice from a knowledge base; 'Write in their language'.",
+      "limits_or_cost": "AI images: 5 / 50 / 100 per month (Starter / Creator+ / Team+).",
+      "notable": "",
+      "sources": [
+        "https://postnitro.ai/",
+        "https://postnitro.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "PostNitro",
+      "feature": "Exports",
+      "area": "format-carousel",
+      "detail": "PNG (one file per slide), PDF (LinkedIn document), MP4 for video, and an editable DESIGN.",
+      "limits_or_cost": "Downloads: 5/mo Free (watermark), 30/mo Starter, unlimited above.",
+      "notable": "",
+      "sources": [
+        "https://postnitro.ai/",
+        "https://postnitro.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "PostNitro",
+      "feature": "Scheduling to 6 networks",
+      "area": "publishing",
+      "detail": "Native publishing to LinkedIn, Instagram, TikTok, Threads, Facebook, Pinterest (not X); month planner; per-network captions with auto-extracted hashtags; 'Instagram stories too', 'TikTok, slides or video', 'LinkedIn as a document'.",
+      "limits_or_cost": "Creator+ (10 accounts) and Team+ (30 accounts).",
+      "notable": "",
+      "sources": [
+        "https://postnitro.ai/",
+        "https://postnitro.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "PostNitro",
+      "feature": "Agency workspaces and approvals",
+      "area": "team",
+      "detail": "Client workspaces, member access and approval before publishing.",
+      "limits_or_cost": "Team+: 5 workspaces, 5 members.",
+      "notable": "",
+      "sources": [
+        "https://postnitro.ai/",
+        "https://postnitro.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "PostNitro",
+      "feature": "MCP, CLI, connectors, embed",
+      "area": "integrations",
+      "detail": "MCP server ('35 tools' at mcp.postnitro.ai); CLI 'npm install -g @postnitro/cli' (JSON in, designed post out); design-and-schedule in one call; calendar and brand kits over the API; one-click Claude and ChatGPT connectors; n8n, Zapier, Make; embeddable editor (Embed SDK/API, '200+ platforms').",
+      "limits_or_cost": "API add-on $10/mo (250 credits) or included from Creator+ (200/mo).",
+      "notable": "",
+      "sources": [
+        "https://postnitro.ai/",
+        "https://postnitro.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Copy.ai",
+      "feature": "Brand Voice from URL or sample",
+      "area": "brand",
+      "detail": "Configuration > Brand Voice > Create New Brand Voice: paste a webpage URL to scrape or a text sample, analyze, name (e.g. 'Executive Thought Leadership') and save; pick a voice per chat; unlimited voices.",
+      "limits_or_cost": "",
+      "notable": "Per-executive voices support ghostwriting.",
+      "sources": [
+        "https://support.fullcast.com/copy-ai/docs/chat-enterprise-safe-ai-that-speaks-in-your-brand-voice"
+      ]
+    },
+    {
+      "competitor": "Copy.ai",
+      "feature": "Infobase knowledge with # references",
+      "area": "brand",
+      "detail": "Configuration > Infobase > Create Infobase: upload TXT or PDF or paste text (style rules, ICP, product facts); type '#' in a prompt to inject an entry; shareable across the workspace; data not used for training.",
+      "limits_or_cost": "TXT and PDF only.",
+      "notable": "'#' to pull approved facts into a draft.",
+      "sources": [
+        "https://support.fullcast.com/copy-ai/docs/chat-enterprise-safe-ai-that-speaks-in-your-brand-voice"
+      ]
+    },
+    {
+      "competitor": "Copy.ai",
+      "feature": "GTM pivot and pricing",
+      "area": "billing",
+      "detail": "Plans now Chat ($29/mo, 5 seats) then workflow tiers from $1,000/mo (75 seats, 20K workflow credits); no social-specific features on the pricing page.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.copy.ai/prices"
+      ]
+    },
+    {
+      "competitor": "Jasper",
+      "feature": "Remix mode",
+      "area": "remix",
+      "detail": "Project types Create, Remix, Chat. Remix inputs: upload a file, share a link, search the Knowledge Base, or paste text; plain-language instruction (e.g. 'Create an attention-grabbing LinkedIn post based on the topic of the attached article') -> 'Generate' -> three LinkedIn post options. 'Remix Content' and 'Rephrase & Rewrite' on both plans.",
+      "limits_or_cost": "Included on Pro and Business.",
+      "notable": "Three options per remix to pick from.",
+      "sources": [
+        "https://www.awai.com/2024/07/repurpose-your-writing-for-social-media-posts/",
+        "https://www.jasper.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Jasper",
+      "feature": "Brand Voices",
+      "area": "brand",
+      "detail": "Multiple voices for audiences, sub-brands or regions, chosen from a dropdown; admins define rules once; voices built by crawling a website; applied to every generation unless changed.",
+      "limits_or_cost": "Pro: 2 voices; Business: unlimited.",
+      "notable": "",
+      "sources": [
+        "https://www.jasper.ai/",
+        "https://www.jasper.ai/pricing",
+        "https://help.jasper.ai/hc/en-us/articles/18618693085339-How-to-use-Voices"
+      ]
+    },
+    {
+      "competitor": "Jasper",
+      "feature": "Knowledge, Audiences, Style Guide, Visual Guidelines",
+      "area": "brand",
+      "detail": "Multi-modal knowledge assets (audio and video files usable as sources), audience definitions, style guide rules applied automatically, visual guidelines for image outputs.",
+      "limits_or_cost": "Pro: 5 knowledge assets, 3 audiences, no style guide; Business: unlimited + style guide.",
+      "notable": "",
+      "sources": [
+        "https://www.jasper.ai/pricing",
+        "https://www.jasper.ai/"
+      ]
+    },
+    {
+      "competitor": "Jasper",
+      "feature": "100+ marketing agents and Canvas",
+      "area": "agent",
+      "detail": "100+ purpose-built agents (SEO/GEO, campaigns, email, social, research, translation); custom agents via no-code AI Studio (Business); Canvas workspace with Marketing AI Editor and Jasper Chat; 'Social Media Campaign' template marked Enterprise only.",
+      "limits_or_cost": "Pro: core workflows only.",
+      "notable": "",
+      "sources": [
+        "https://www.jasper.ai/",
+        "https://www.jasper.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Jasper",
+      "feature": "Image suite",
+      "area": "format-image",
+      "detail": "Image generation and editing on paid plans; Image Pipelines for on-brand product imagery; Image APIs (background removal, cleanup, upscaling).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.jasper.ai/pricing",
+        "https://www.jasper.ai/"
+      ]
+    },
+    {
+      "competitor": "Eden (2026 entrant)",
+      "feature": "Outlier search across 7 platforms",
+      "area": "inspiration",
+      "detail": "Search any topic and see posts doing about 10x their creator's normal across 7 platforms; Discover cards carry badges like 'Top 1%' and '10x'.",
+      "limits_or_cost": "Starter and up.",
+      "notable": "Outlier = performance vs the creator's OWN baseline, not raw likes.",
+      "sources": [
+        "https://eden.so/",
+        "https://eden.so/pricing"
+      ]
+    },
+    {
+      "competitor": "Eden (2026 entrant)",
+      "feature": "Ad library ranked by longevity",
+      "area": "inspiration",
+      "detail": "Browse Meta and TikTok ads ranked by how long they have run ('Longest-running', 'Running 371d'); 'Study a brand' shows active ads and 'Compare variations'.",
+      "limits_or_cost": "Tracked brands: 5 / 25 / unlimited.",
+      "notable": "Run length as a proxy for a profitable ad.",
+      "sources": [
+        "https://eden.so/",
+        "https://eden.so/pricing"
+      ]
+    },
+    {
+      "competitor": "Eden (2026 entrant)",
+      "feature": "Study a creator / tracked creators",
+      "area": "inspiration",
+      "detail": "View a creator's top posts, reused hooks and formats ('Top liked', 'Top outlier').",
+      "limits_or_cost": "Tracked creators: 10 Starter, 40 Pro, 100 Max.",
+      "notable": "",
+      "sources": [
+        "https://eden.so/",
+        "https://eden.so/pricing"
+      ]
+    },
+    {
+      "competitor": "Eden (2026 entrant)",
+      "feature": "Save from anywhere, boards and canvas",
+      "area": "inspiration",
+      "detail": "Save posts from YouTube, Substack, X, Threads, LinkedIn, Instagram, TikTok; organize into boards; 'Freeform canvas' to place posts, links, drafts and chats side by side; transcribe saved videos and chat with them; Reader mode with highlights (Kindle, Snipd, Readwise).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://eden.so/"
+      ]
+    },
+    {
+      "competitor": "Eden (2026 entrant)",
+      "feature": "Reverse Engineer -> Replicate",
+      "area": "remix",
+      "detail": "Paste a post link; 'Reverse Engineer' extracts its hook, beats and payoff; 'Replicate' maps that structure onto your own idea, in your voice using your Eden identity.",
+      "limits_or_cost": "Uses AI credits (200 / 750 / 3,000 per month).",
+      "notable": "Separates STRUCTURE from words: the cleanest remix model for regulated users.",
+      "sources": [
+        "https://eden.so/",
+        "https://eden.so/pricing"
+      ]
+    },
+    {
+      "competitor": "Eden (2026 entrant)",
+      "feature": "Boost: variations across formats",
+      "area": "remix",
+      "detail": "'Boost' a saved swipe to get variations across formats, lengths and platforms; give each platform its own words, media or thread.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://eden.so/"
+      ]
+    },
+    {
+      "competitor": "Eden (2026 entrant)",
+      "feature": "Content strategy builder",
+      "area": "strategy",
+      "detail": "Answer questions to get content pillars, trending topics and post ideas ('Build your strategy', 'Add pillar'); ask the assistant 'Eve' for hooks and drafts from saved items; Deep Social and Deep Synthesis research agents cite exact lines.",
+      "limits_or_cost": "",
+      "notable": "Answers cite the exact saved lines used.",
+      "sources": [
+        "https://eden.so/"
+      ]
+    },
+    {
+      "competitor": "Eden (2026 entrant)",
+      "feature": "Scheduling, routines and comment-to-DM",
+      "area": "publishing",
+      "detail": "Schedule to X, Threads, YouTube Shorts, Instagram, TikTok, LinkedIn, Facebook, Substack at set or best-time slots; Calendar, Queue, Drafts views; first comment and X reposts; Routines like 'Morning content brief' or 'Analytics recap'; comment keyword triggers an auto DM, AI carries the chat, clicks counted.",
+      "limits_or_cost": "Custom schedules: 2 Starter, 3 per brand Pro, unlimited Max. AI DM automation on Pro.",
+      "notable": "Scheduled routines deliver a morning brief proactively.",
+      "sources": [
+        "https://eden.so/",
+        "https://eden.so/pricing"
+      ]
+    },
+    {
+      "competitor": "Reepl (2026 entrant)",
+      "feature": "Voice profile from 5-10 posts",
+      "area": "brand",
+      "detail": "Paste 5-10 of your posts; Reepl analyzes tone, structure, hook patterns and vocabulary; multi-language writing in your tone (+53 languages).",
+      "limits_or_cost": "Pro: 1 voice profile.",
+      "notable": "Low sample requirement for onboarding.",
+      "sources": [
+        "https://reepl.io/"
+      ]
+    },
+    {
+      "competitor": "Reepl (2026 entrant)",
+      "feature": "Andy agent",
+      "area": "agent",
+      "detail": "AI agent that turns a rough idea into a draft with 'Refine', 'Schedule', 'Copy' buttons.",
+      "limits_or_cost": "Premium and Max.",
+      "notable": "",
+      "sources": [
+        "https://reepl.io/"
+      ]
+    },
+    {
+      "competitor": "Reepl (2026 entrant)",
+      "feature": "Carousel Generator",
+      "area": "format-carousel",
+      "detail": "Inputs 'Topic', 'YouTube', 'Article', 'PDF'; slide count 5-20 with 'Auto' option.",
+      "limits_or_cost": "Credits per plan.",
+      "notable": "",
+      "sources": [
+        "https://reepl.io/"
+      ]
+    },
+    {
+      "competitor": "Reepl (2026 entrant)",
+      "feature": "Viral Template Library",
+      "area": "inspiration",
+      "detail": "Public library of templates from posts that took off, each with why it worked; format tabs 'Text templates', 'Carousel templates'; platform tabs LinkedIn, X, Instagram; tags like 'Contrarian take', 'Listicle', 'Thread hook', 'Framework', 'Mini-guide'.",
+      "limits_or_cost": "12 templates, 'Free to copy'.",
+      "notable": "Template = proven post + explanation + format tag.",
+      "sources": [
+        "https://reepl.io/product/content-library"
+      ]
+    },
+    {
+      "competitor": "Reepl (2026 entrant)",
+      "feature": "Queue states with approval, Plan mode",
+      "area": "calendar",
+      "detail": "Drag-and-drop calendar with custom slots; queue text, carousels and video; states 'Write', 'Queue', 'Published', 'Approval'; 'Plan mode' batches a month (Premium); one-click cross-posting to LinkedIn, X and Threads.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://reepl.io/"
+      ]
+    },
+    {
+      "competitor": "Reepl (2026 entrant)",
+      "feature": "In-feed reply extension and X Inbox",
+      "area": "engagement",
+      "detail": "Chrome extension drafts replies in your voice inside the LinkedIn feed; every reply is reviewed and sent by you; X Inbox for comments and DMs; engagement feed (Premium).",
+      "limits_or_cost": "",
+      "notable": "Human-sends-every-reply keeps it outside automation rules.",
+      "sources": [
+        "https://reepl.io/"
+      ]
+    },
+    {
+      "competitor": "Reepl (2026 entrant)",
+      "feature": "Virality checker and analytics",
+      "area": "analytics",
+      "detail": "Followers, profile views, engagement rate, 'Top posts', 'Post analytics + streaks'; post virality checker and viral content grader.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://reepl.io/"
+      ]
+    },
+    {
+      "competitor": "Reepl (2026 entrant)",
+      "feature": "MCP connector and integrations",
+      "area": "integrations",
+      "detail": "Claude/ChatGPT MCP connector to draft, schedule and analyze; integrations incl. Notion, Google Docs, Sheets, Airtable, Slack, Substack, Medium, Reddit, YouTube; Zapier, Make, n8n; developer API.",
+      "limits_or_cost": "MCP on Premium; Max adds higher caps and Claude Opus and Sonnet models.",
+      "notable": "",
+      "sources": [
+        "https://reepl.io/"
+      ]
+    },
+    {
+      "competitor": "ViralBrain (2026 entrant)",
+      "feature": "Discover Heroes",
+      "area": "inspiration",
+      "detail": "Finds top LinkedIn creators in your niche ('heroes') and analyzes their structure and tone.",
+      "limits_or_cost": "Free 3 heroes; Pro 10 heroes, 20 hero posts analyzed; 10 posts per hero free, 20 paid.",
+      "notable": "",
+      "sources": [
+        "https://www.viralbrain.ai/",
+        "https://www.viralbrain.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "ViralBrain (2026 entrant)",
+      "feature": "Steal-Worthy Posts: Apply Pattern",
+      "area": "remix",
+      "detail": "'Trending Posts' and 'Steal-Worthy Posts from This Week', each with an 'Apply Pattern' button that reuses the post's structure for your topic.",
+      "limits_or_cost": "",
+      "notable": "One-button structural remix from a weekly shortlist.",
+      "sources": [
+        "https://www.viralbrain.ai/"
+      ]
+    },
+    {
+      "competitor": "ViralBrain (2026 entrant)",
+      "feature": "Hook Generator",
+      "area": "format-text",
+      "detail": "'AI hooks that stop the scroll' built from 100K+ viral hooks.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.viralbrain.ai/"
+      ]
+    },
+    {
+      "competitor": "ViralBrain (2026 entrant)",
+      "feature": "Voice matching from your profile",
+      "area": "brand",
+      "detail": "'Writes in Your Exact Voice': analyzes your writing style, tone and perspective.",
+      "limits_or_cost": "Pro: 50 of your posts analyzed.",
+      "notable": "",
+      "sources": [
+        "https://www.viralbrain.ai/",
+        "https://www.viralbrain.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "ViralBrain (2026 entrant)",
+      "feature": "Repurpose from many sources",
+      "area": "remix",
+      "detail": "Generate from a hero post, YouTube video, blog/article, Reddit thread, document or voice note.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.viralbrain.ai/"
+      ]
+    },
+    {
+      "competitor": "ViralBrain (2026 entrant)",
+      "feature": "30-Day Auto Calendar",
+      "area": "strategy",
+      "detail": "Plans and auto-publishes a month of posts; 'Calendar regeneration and planning'.",
+      "limits_or_cost": "Premium (Pro gets 7-day preview). Auto-posting off during trial.",
+      "notable": "Whole month generated in one go, regenerable.",
+      "sources": [
+        "https://www.viralbrain.ai/",
+        "https://www.viralbrain.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "ViralBrain (2026 entrant)",
+      "feature": "Images in 12 styles, carousels",
+      "area": "format-image",
+      "detail": "Image generation in 12 styles; Carousel Generator for swipeable LinkedIn carousels.",
+      "limits_or_cost": "Unlimited images; 5 carousels/mo on Pro.",
+      "notable": "",
+      "sources": [
+        "https://www.viralbrain.ai/",
+        "https://www.viralbrain.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "ViralBrain (2026 entrant)",
+      "feature": "Engagement Calculator and free tools",
+      "area": "analytics",
+      "detail": "Engagement Calculator compares your engagement rate with top performers; Post Preview; 60-100+ free tools without an account.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.viralbrain.ai/"
+      ]
+    },
+    {
+      "competitor": "Ordinal (2026 entrant)",
+      "feature": "Team engagements",
+      "area": "engagement",
+      "detail": "'Team Likes' lets teammates like important posts in a timely manner; 'Team Comment & Repost' lets teammates comment or repost from their accounts up to 12 hours from post time (LinkedIn and X).",
+      "limits_or_cost": "Starter: first comments and reposts only; Pro: up to 30 likes/post; Growth: up to 50 likes/post. Engagement-only profiles $10/mo.",
+      "notable": "Coordinated colleague engagement right after posting: employee advocacy for an agency of advisers.",
+      "sources": [
+        "https://www.tryordinal.com/",
+        "https://www.tryordinal.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Ordinal (2026 entrant)",
+      "feature": "Approvals with Slack",
+      "area": "compliance",
+      "detail": "Collaborate with teammates or clients until posts are approved; approval requests and comments in Slack; 'Blocking Approvals by Default' row on pricing.",
+      "limits_or_cost": "Approvals on all plans; blocking-by-default tier mapping unclear.",
+      "notable": "Approval can block publishing by default.",
+      "sources": [
+        "https://www.tryordinal.com/",
+        "https://www.tryordinal.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Ordinal (2026 entrant)",
+      "feature": "Campaign calendar",
+      "area": "calendar",
+      "detail": "'Rich Content Calendar & Campaigns' across accounts; campaign overviews, post previews, recurring posts, ideas and drafts; schedule via CSV.",
+      "limits_or_cost": "Scheduled posts: 50/mo Starter, unlimited Pro+.",
+      "notable": "",
+      "sources": [
+        "https://www.tryordinal.com/",
+        "https://www.tryordinal.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Ordinal (2026 entrant)",
+      "feature": "Reporting by content bucket",
+      "area": "analytics",
+      "detail": "Daily content reporting (followers, engagement, impressions); filters by post type and label ('content bucket'); 'AI Reporting (Beta)' finds patterns.",
+      "limits_or_cost": "Analytics history 14 days Starter, all time Pro+.",
+      "notable": "",
+      "sources": [
+        "https://www.tryordinal.com/",
+        "https://www.tryordinal.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Ordinal (2026 entrant)",
+      "feature": "Slack boost channels",
+      "area": "team",
+      "detail": "Pings a Slack channel when a post goes live so the team can engage.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.tryordinal.com/"
+      ]
+    },
+    {
+      "competitor": "Ordinal (2026 entrant)",
+      "feature": "Ordinal AI and MCP",
+      "area": "agent",
+      "detail": "AI post drafting; MCP and API to draft posts and analyze performance from AI tools; amplification links and webhooks (Growth).",
+      "limits_or_cost": "Ordinal AI: 30/mo Starter, 500/mo Pro and Growth. API/MCP from Pro.",
+      "notable": "",
+      "sources": [
+        "https://www.tryordinal.com/",
+        "https://www.tryordinal.com/pricing"
+      ]
+    },
+    {
+      "competitor": "SuperX (2026 entrant)",
+      "feature": "Daily viral inspiration and 10M+ library",
+      "area": "inspiration",
+      "detail": "'Start Every Day With Proven Ideas' surfaces high-performing niche posts daily; trend signals and emerging formats; '10M+ viral posts library'.",
+      "limits_or_cost": "Library on Advanced.",
+      "notable": "",
+      "sources": [
+        "https://superx.so/",
+        "https://superx.so/pricing"
+      ]
+    },
+    {
+      "competitor": "SuperX (2026 entrant)",
+      "feature": "Ready To Post queue",
+      "area": "agent",
+      "detail": "Generates a queue of drafts combining your writing style with current trends, 'crafted to sound like you'.",
+      "limits_or_cost": "750 / 1,500 / 4,000 AI credits per month by plan.",
+      "notable": "Drafts waiting each morning instead of a blank editor.",
+      "sources": [
+        "https://superx.so/",
+        "https://superx.so/pricing"
+      ]
+    },
+    {
+      "competitor": "SuperX (2026 entrant)",
+      "feature": "Rewrite with AI",
+      "area": "remix",
+      "detail": "Tone-matched variations; optimizes clarity, hooks and flow.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://superx.so/"
+      ]
+    },
+    {
+      "competitor": "SuperX (2026 entrant)",
+      "feature": "Engagement Growth Engine and Mentions Hub",
+      "area": "engagement",
+      "detail": "'Strategic Engagement Feed', reply drafting for reach, engagement-to-follower tracking; Unified Mentions Hub; SuperX Engage replies.",
+      "limits_or_cost": "Engage replies 750/mo Advanced, 3,000/mo Ultra.",
+      "notable": "",
+      "sources": [
+        "https://superx.so/",
+        "https://superx.so/pricing"
+      ]
+    },
+    {
+      "competitor": "SuperX (2026 entrant)",
+      "feature": "Chrome extension analytics overlay",
+      "area": "analytics",
+      "detail": "Shows live profile and post analytics and audience intelligence directly on X; Performance Breakdown, Audience Behavior Insights, Double-Down Signals.",
+      "limits_or_cost": "",
+      "notable": "'Double-down signals' tell you what to post more of.",
+      "sources": [
+        "https://superx.so/"
+      ]
+    },
+    {
+      "competitor": "SuperX (2026 entrant)",
+      "feature": "Signal Agents (leads)",
+      "area": "engagement",
+      "detail": "Plans include '1 Signal Agent, 750 leads/day' up to 5 agents and 7,500 leads/day; meaning not described on the page (unverified: lead-finding agents).",
+      "limits_or_cost": "Pro 1 agent, Advanced 3, Ultra 5.",
+      "notable": "",
+      "sources": [
+        "https://superx.so/pricing"
+      ]
+    },
+    {
+      "competitor": "SuperX (2026 entrant)",
+      "feature": "Automations and smart scheduler",
+      "area": "calendar",
+      "detail": "Smart Scheduler learns when followers are active; Auto Retweet, Auto Plug & Auto DM, Auto Delete; cross-post to Bluesky; X Articles publishing with AI article covers.",
+      "limits_or_cost": "Posts 500/mo Pro, 3,000/mo Ultra; Auto DMs 1,000/mo Pro, 5,000/mo Ultra.",
+      "notable": "",
+      "sources": [
+        "https://superx.so/",
+        "https://superx.so/pricing"
+      ]
+    },
+    {
+      "competitor": "koomastudio (2026 entrant)",
+      "feature": "Content matrix (topic x format)",
+      "area": "strategy",
+      "detail": "Grid of topics (e.g. 'Career Growth', 'Founder Life') by formats (e.g. 'Hot Take', 'Contrarian'); each cell marked 'Published', 'Scheduled', 'Draft' or 'Empty'.",
+      "limits_or_cost": "",
+      "notable": "Visual gaps in a pillar-by-format grid show what to write next.",
+      "sources": [
+        "https://koomastudio.com/"
+      ]
+    },
+    {
+      "competitor": "koomastudio (2026 entrant)",
+      "feature": "Voice Compounding",
+      "area": "brand",
+      "detail": "Indexes tone, rhythm and point of view from published and saved posts; voice profile updates as your message evolves; 'LinkedIn Voice profile' text field (background, tone, audience) added to every draft.",
+      "limits_or_cost": "Voice profile 2,000 characters.",
+      "notable": "",
+      "sources": [
+        "https://koomastudio.com/"
+      ]
+    },
+    {
+      "competitor": "koomastudio (2026 entrant)",
+      "feature": "Branded carousels",
+      "area": "format-carousel",
+      "detail": "Multi-slide posts with your colours and headshot; 24 built-in themes; PDF export for LinkedIn.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://koomastudio.com/"
+      ]
+    },
+    {
+      "competitor": "koomastudio (2026 entrant)",
+      "feature": "Weekly slots and Discover search",
+      "area": "calendar",
+      "detail": "Repeating weekly posting slots, 'Add to next slot' queueing, direct publishing to LinkedIn; Discover tab keyword search and Chrome extension on Pro.",
+      "limits_or_cost": "Pro.",
+      "notable": "",
+      "sources": [
+        "https://koomastudio.com/"
+      ]
+    }
+  ]
+}

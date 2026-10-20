@@ -1,0 +1,1779 @@
+{
+  "category": "Marketing platforms for financial advisers and insurance agents",
+  "researched_at": "2026-10-19",
+  "competitors": [
+    {
+      "name": "FMG Suite",
+      "url": "https://fmgsuite.com/",
+      "pricing": "Prices shown in $ (assumed USD), per month plus one-time setup. Marketing Suite: Essential 99/mo + 199 setup (1,000 contacts); Premium 269/mo + 199 setup (2,000 contacts); Do It For Me 895/mo + 499 setup (2,000 contacts). Website Suite: Essential 79/mo + 795 setup; Premium 149/mo + 2,995 setup. Bundles: Essential 178/mo + 994; Premium 418/mo + 3,194; Do It For Me + Premium Website 1,044/mo + 3,494. Manage Testimonials (solo) 99/mo + 99 setup. Add-ons: Tailored Copywriting 699, Accessibility Lock 50. Enterprise: contact sales.",
+      "positioning": "All-in-one marketing platform (email, social, websites, cards, events) for US financial advisors with a pre-approved, FINRA-reviewed content library and one-click compliance routing.",
+      "audience": "US financial advisors, RIAs, broker-dealer reps, insurance professionals; enterprise BD/RIA/insurer home offices.",
+      "sources": [
+        "https://fmgsuite.com/pricing/",
+        "https://fmgsuite.com/",
+        "https://fmgsuite.com/features/one-click-compliance/",
+        "https://fmgsuite.com/features/ai-tools/",
+        "https://fmgsuite.com/features/content/",
+        "https://fmgsuite.com/features/marketing-automation/",
+        "https://fmgsuite.com/marketing/",
+        "https://fmgsuite.com/enterprise/",
+        "https://fmgsuite.com/features/marketing-assist/",
+        "https://fmgsuite.com/mobile-app/",
+        "https://fmgsuite.com/company/in-the-news/fmg-leads-the-way-in-ai-innovation-with-new-tools-to-help-advisors-market-more-efficiently-and-streamline-compliance/"
+      ]
+    },
+    {
+      "name": "Twenty Over Ten Lead Pilot",
+      "url": "https://www.twentyoverten.com/",
+      "pricing": "Not published. Pricing page now only shows product taglines and routes to an FMG demo; Twenty Over Ten was acquired by FMG in November 2020.",
+      "positioning": "\"Convert more leads and automate your marketing\": content library plus social, email and landing pages with automatic FINRA archiving.",
+      "audience": "US financial advisors (standalone product, no Twenty Over Ten website account needed).",
+      "sources": [
+        "https://www.twentyoverten.com/pricing",
+        "https://help.twentyoverten.com/en/lead-pilot",
+        "https://help.twentyoverten.com/en/twenty-over-tens-content-solutions",
+        "https://www.wealthbox.com/integrations/lead-pilot/"
+      ]
+    },
+    {
+      "name": "Vestorly",
+      "url": "https://www.vestorly.com/",
+      "pricing": "Third-party listing only (unverified): Free; Standard USD 59/mo; Professional USD 599/mo; custom quote. Acquired by FMG (reported 2022-07-27).",
+      "positioning": "AI content engine that curates third-party and original content per advisor and per client, filtered by \"Robo-Compliance\".",
+      "audience": "Financial advisors and wealth managers.",
+      "sources": [
+        "https://www.wealthmanagement.com/technology/fmg-acquires-content-marketing-platform-vestorly",
+        "https://softwarefinder.com/artificial-intelligence/vestorly",
+        "https://investmentnews.com/fintech/vestorly-raises-its-game-with-artificial-intelligence/66139"
+      ]
+    },
+    {
+      "name": "Snappy Kraken",
+      "url": "https://snappykraken.com/",
+      "pricing": "USD, annual term, per month plus setup. Campaigns: Foundations 199/mo + 199 setup; Grow 299/mo + 499 setup (extra advisor workspace 99/mo, admin seat 99/mo); Freedom360 899/mo + 499 setup (extra advisor workspace 699/mo, admin seat 99/mo). Websites: Foundations 99/mo + 499; Grow 199/mo + 2,499. Bundles: 298/mo + 698; 449/mo + 2,998; 999/mo + 2,998. A la carte: Convos texting 99/mo, Marketing Admin seat 99/mo. Enterprise: contact.",
+      "positioning": "Marketing automation for advisors: 150+ pre-built FINRA-reviewed multi-channel campaigns, lead scoring, compliant texting and an AI layer (Snappy AI).",
+      "audience": "Independent advisors, RIAs, broker-dealer networks (claims 7,000+ advisors across 200 financial networks).",
+      "sources": [
+        "https://snappykraken.com/pricing",
+        "https://snappykraken.com/",
+        "https://snappykraken.com/snappy-ai",
+        "https://snappykraken.com/campaigns",
+        "https://snappykraken.com/enterprise",
+        "https://snappykraken.com/convos",
+        "https://snappykraken.com/marketing-hub",
+        "https://snappykraken.com/websites"
+      ]
+    },
+    {
+      "name": "Hearsay Social (Yext)",
+      "url": "https://www.yext.com/platform/hearsay-social",
+      "pricing": "Enterprise only, not published. Yext agreed to buy Hearsay in June 2024 for USD 125M cash plus up to USD 95M earn-out.",
+      "positioning": "Enterprise social selling and supervision for financial services field forces, with AI content recommendations and compliance built in.",
+      "audience": "Large banks, wealth firms and insurers (life and P&C) with thousands of advisors or agents; 225,000+ professionals per 2022 datasheet.",
+      "sources": [
+        "https://www.yext.com/platform/hearsay-social",
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf",
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Compliance_Datasheet_2022.pdf",
+        "https://www.yext.com/about/news-media/hearsay-systems-offers-financial-industrys-first-ai-powered-video-compliance-pre-review-solution",
+        "https://www.yext.com/platform/relate",
+        "https://thinkadvisor.com/2024/06/11/hearsay-sold-to-yext-for-more-than-125m/?amp=1"
+      ]
+    },
+    {
+      "name": "Levitate",
+      "url": "https://levitate.ai/",
+      "pricing": "Plans Essential, Preferred, Prestige; no public prices (Book a Demo / Talk to Sales). GetApp lists a starting price of US$349 flat rate (period unverified).",
+      "positioning": "Relationship marketing (\"Authentic Intelligence\"): personal-feeling email, social, texting and handwritten cards with an AI assistant and a dedicated success specialist.",
+      "audience": "Financial advisors, insurance agents, real estate and other relationship businesses.",
+      "sources": [
+        "https://levitate.ai/pricing",
+        "https://levitate.ai/",
+        "https://www.levitate.ai/features",
+        "https://www.levitate.ai/industry/financial",
+        "https://help.levitate.ai/article/428-compliance-pre-review-pre-approve-and-reject-content",
+        "https://help.levitate.ai/article/118-compliance-flow",
+        "https://www.getapp.co.uk/software/2054994/levitate"
+      ]
+    },
+    {
+      "name": "Advisorpedia",
+      "url": "https://www.advisorpedia.com/",
+      "pricing": "Unverified. Site blocked automated fetch (HTTP 403); no price found.",
+      "positioning": "Advisor-focused publisher (asset management, practice advancement, inspiration) whose Content Engine gives advisors personalized content to use as their own.",
+      "audience": "Financial advisors.",
+      "sources": [
+        "https://www.advisorpedia.com/podcasts/unique-content-drives-advisor-conversions-with-teresa-leno/",
+        "https://www.prnewswire.com/news-releases/iris-media-works-announces-acquisition-of-advisorpedia-301219033.html"
+      ]
+    },
+    {
+      "name": "Seismic Social (formerly LiveSocial)",
+      "url": "https://www.seismic.com/products/livesocial/",
+      "pricing": "Not published (enterprise).",
+      "positioning": "Governed social publishing inside the Seismic enablement suite: firm research plus curated third-party content, Aura AI captions, approval workflows.",
+      "audience": "Enterprise financial services: advisors, wholesalers, bankers, relationship managers, agents.",
+      "sources": [
+        "https://www.seismic.com/products/livesocial/"
+      ]
+    },
+    {
+      "name": "Smarsh (incl. legacy Actiance Socialite)",
+      "url": "https://www.smarsh.com/social-media-compliance",
+      "pricing": "Not published (contact sales).",
+      "positioning": "Communications capture, archiving and supervision for regulated firms; Socialite was a pre-approved-library publishing tool for advisors.",
+      "audience": "SEC/FINRA-regulated broker-dealers, RIAs, banks, insurers.",
+      "sources": [
+        "https://www.smarsh.com/social-media-compliance",
+        "https://www.smarsh.com/channels/social/",
+        "https://networkcomputing.com/network-infrastructure/actiance-funnels-approved-social-posts-to-financial-advisors"
+      ]
+    },
+    {
+      "name": "Proofpoint Patrol",
+      "url": "https://www.proofpoint.com/uk/resources/data-sheets/patrol",
+      "pricing": "Not published.",
+      "positioning": "Real-time enforcement for social media communications: classifier-based pre and post review, auto-remediation and profile governance.",
+      "audience": "Regulated enterprises (financial services, insurers such as Guardian).",
+      "sources": [
+        "https://www.proofpoint.com/uk/resources/data-sheets/patrol",
+        "https://www.proofpoint.com/us/customer-stories/guardian"
+      ]
+    },
+    {
+      "name": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "url": "https://advisor.broadridge.com/",
+      "pricing": "$ per month (assumed USD). Digital Marketing (AdvisorStream): Essentials 175, Growth 235, Enterprise contact. Advisor Websites: Essentials 75, Growth 215. Bundles (15% off): Essentials 225, Growth 400. Partner pricing example (Osaic): Essentials 25/mo via commission deduction, Growth +75/mo, 1:1 onboarding 199 one-time.",
+      "positioning": "Licensed-publisher content library, done-for-you weekly newsletters, social and email, branded video, websites, from a large fintech vendor.",
+      "audience": "Advisors at broker-dealers and RIAs, usually bought through firm partner programs.",
+      "sources": [
+        "https://advisor.broadridge.com/",
+        "https://advisor.broadridge.com/pricing",
+        "https://www.broadridge.com/press-release/2025/broadridge-boosts-digital-marketing-suite",
+        "https://advisorstream.com/info/osaic",
+        "https://www.advisorstream.com/pareto"
+      ]
+    },
+    {
+      "name": "Apaya",
+      "url": "https://apaya.com/",
+      "pricing": "USD. Spark 69/mo (55/mo annual), 1 brand, 4 social accounts, 1 user; Blaze 129/mo (103 annual); Supernova 229/mo (183 annual); extra brand +59/mo (Supernova +89); Enterprise custom.",
+      "positioning": "AI social media management with a compliance-first draft-until-approved flow for financial services.",
+      "audience": "Financial services firms and multi-location brands.",
+      "sources": [
+        "https://apaya.com/enterprise/industry/financial-services-social-media-management",
+        "https://apaya.com/pricing"
+      ]
+    },
+    {
+      "name": "SageContent",
+      "url": "https://www.sagecontent.ai/",
+      "pricing": "USD. Sage Flex 250/mo monthly or 200/mo annual (2,400 upfront). Human editing credits about 45 each (5 per long-form, 1 per short-form). Studio day 2,000. Sage Teams 100 per paid seat (3+ seats). Concierge: not listed.",
+      "positioning": "AI video content system for advisors: ideation, scripts, recording, AI editing and a compliance-tracked video board.",
+      "audience": "Financial advisors building short-form and long-form video.",
+      "sources": [
+        "https://www.sagecontent.ai/",
+        "https://www.sagecontent.ai/pricing",
+        "https://www.sagecontent.ai/blog/best-ai-marketing-tools-financial-advisors"
+      ]
+    },
+    {
+      "name": "Lately AI",
+      "url": "https://www.lately.ai/",
+      "pricing": "Not published on the financial services page (demo).",
+      "positioning": "Turns long-form content into many social posts, with review controls and syndication to advisers and agents.",
+      "audience": "Financial services marketing teams with advisers, agents and brokers.",
+      "sources": [
+        "https://www.lately.ai/industries/compliant-social-media-content-for-financial-services-agents-advisers-brokers"
+      ]
+    },
+    {
+      "name": "Marky",
+      "url": "https://www.mymarky.ai/",
+      "pricing": "USD. Solo 39/mo (19/mo yearly), 3 channels; Growth 79/mo (39 yearly), 5 channels; Pro 229/mo (114 yearly), 8 channels; extra workspace 25/mo, extra channel 7/mo; reseller whitelabel 99/mo for up to 10 brands. First 30 posts free.",
+      "positioning": "Generic AI social post generator marketed to advisors; no built-in FINRA archiving.",
+      "audience": "Small businesses incl. financial advisors.",
+      "sources": [
+        "https://www.mymarky.ai/post/best-social-media-tool-for-financial-advisors",
+        "https://www.mymarky.ai/pricing"
+      ]
+    },
+    {
+      "name": "Cloud Campaign",
+      "url": "https://www.cloudcampaign.com/solutions/insurance-marketing-agencies",
+      "pricing": "USD. Freelancer 49/mo (1 workspace, 7 social accounts per client); Team 199/mo (5 workspaces, white label); Agency 299/mo (advanced white label, ads reporting, SSO). Unlimited users, 14-day trial.",
+      "positioning": "White-label social tool for agencies, with a workspace per insurance agent or office and one-link compliance approvals.",
+      "audience": "Marketing agencies serving insurance agents and agencies.",
+      "sources": [
+        "https://www.cloudcampaign.com/solutions/insurance-marketing-agencies"
+      ]
+    },
+    {
+      "name": "Social Jazz",
+      "url": "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/",
+      "pricing": "Per Pinney article (unverified on vendor site): Free (2 posts/week, 1 account); Plus from USD 19/mo; Pro USD 49/mo (4 accounts incl. LinkedIn and X); Premium USD 199/mo.",
+      "positioning": "Auto-scheduled branded insurance posts.",
+      "audience": "Insurance agents.",
+      "sources": [
+        "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/"
+      ]
+    },
+    {
+      "name": "BrightFire",
+      "url": "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/",
+      "pricing": "From USD 100/mo (per Pinney article, unverified on vendor site).",
+      "positioning": "Done-for-you social media management for insurance agents.",
+      "audience": "Insurance agents and agencies.",
+      "sources": [
+        "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/"
+      ]
+    },
+    {
+      "name": "SocialCoach",
+      "url": "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/",
+      "pricing": "Contact for pricing (per Pinney article). Vendor site not verified.",
+      "positioning": "Social platform with built-in video tools and compliance filters.",
+      "audience": "Insurance and financial agents (unverified).",
+      "sources": [
+        "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/"
+      ]
+    },
+    {
+      "name": "Insureio",
+      "url": "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/",
+      "pricing": "From USD 25/mo, 30-day trial (per Pinney article).",
+      "positioning": "Life insurance CRM with a content library and email/SMS automation.",
+      "audience": "US life insurance agents.",
+      "sources": [
+        "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/"
+      ]
+    },
+    {
+      "name": "Denim Social",
+      "url": "https://techcompare.independentagent.com/organization/denim-social",
+      "pricing": "Not listed.",
+      "positioning": "Compliant organic social publishing, paid social and content distribution for insurance agencies.",
+      "audience": "Insurance agencies and agents.",
+      "sources": [
+        "https://techcompare.independentagent.com/organization/denim-social"
+      ]
+    },
+    {
+      "name": "Vymo",
+      "url": "https://www.vymo.com/",
+      "pricing": "Not published.",
+      "positioning": "Sales engagement with AI nudges for insurer field forces; used by AIA in Indonesia and Thailand.",
+      "audience": "Asian and global insurers, banks; claims 350,000+ salespeople across 65+ enterprises.",
+      "sources": [
+        "https://campaigns.vymo.com/aia-indonesia",
+        "https://kyodonewsprwire.jp/release/202010095500"
+      ]
+    },
+    {
+      "name": "Turtlemint Pro",
+      "url": "https://www.turtlemintpro.com/",
+      "pricing": "Not published.",
+      "positioning": "India insurance advisor platform: quotes from 40+ insurers, product training, WhatsApp/SMS marketing tools.",
+      "audience": "Indian insurance advisors (POSP).",
+      "sources": [
+        "https://www.turtlemintpro.com/"
+      ]
+    }
+  ],
+  "features": [
+    {
+      "competitor": "FMG Suite",
+      "feature": "Pre-approved content library",
+      "area": "compliance",
+      "detail": "Library of emails, social posts, market commentaries, videos, blogs, e-books, lead generation and client engagement series, greeting cards. Browse categories: Email, Social, Video, Lead Generation, Greeting Cards. Compliance page states \"All content is FINRA-reviewed\". Use as-is or edit; editing sends it back through review.",
+      "limits_or_cost": "All Marketing Suite tiers; depth varies by tier. Total piece count not published (Trustpilot profile claims 400+ pieces and 200+ added monthly, unverified).",
+      "notable": "Library usage is the fast lane: pre-reviewed content skips the review queue. Vendor reports library email usage up 44% (2021-2022).",
+      "sources": [
+        "https://fmgsuite.com/features/content/",
+        "https://fmgsuite.com/features/one-click-compliance/",
+        "https://fmgsuite.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Breaking-news content within 48 hours",
+      "area": "inspiration",
+      "detail": "In-house team publishes ready-to-send content on breaking market or Fed news \"Within 48 hours\"; Do It For Me customers get breaking-news emails \"within hours of major market events\".",
+      "limits_or_cost": "",
+      "notable": "Pre-approved timely content is what advisors cannot produce themselves fast enough under review rules.",
+      "sources": [
+        "https://fmgsuite.com/features/content/",
+        "https://fmgsuite.com/features/marketing-assist/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "One-Click Compliance routing",
+      "area": "compliance",
+      "detail": "Updating a website page or creating a new email sends it automatically to the compliance department's inbox; \"When they hit 'approve' the content goes live.\" Compliance dashboard shows submission status, submission history and current activities; content can be created and approved weeks or months ahead of send date. Emails, social posts and website updates share one dashboard showing upcoming vs awaiting approval.",
+      "limits_or_cost": "Specific status labels and BD integrations not published.",
+      "notable": "Approval is the publish trigger, so nothing waits on the advisor after sign-off.",
+      "sources": [
+        "https://fmgsuite.com/features/one-click-compliance/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Social posts routed to broker-dealer, auto-posted on approval",
+      "area": "publishing",
+      "detail": "Where applicable the system routes social content to the broker-dealer, captures when the piece is approved, and posts it upon approval or at the time the user scheduled. Networks: LinkedIn, Facebook, Twitter/X.",
+      "limits_or_cost": "",
+      "notable": "Schedule time and approval time are decoupled: post goes out at the later of the two.",
+      "sources": [
+        "https://fmgsuite.com/company/in-the-news/fmg-suite-named-best-social-media-distribution-software-for-second-consecutive-year/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Overwatch (AI compliance coach)",
+      "area": "compliance",
+      "detail": "While the advisor drafts, flags \"potentially risky language before submission\" with guidance aligned to FINRA and SEC standards. Also checks Muse AI output (second compliance layer). Announced 2025-06-10; content comparison, policy risk scoring and one-click corrections announced as coming later in 2025 (shipping status unverified).",
+      "limits_or_cost": "Firm-by-firm opt-in; firm must approve it as part of its compliance program; \"may not be available at all firms\".",
+      "notable": "Pre-check before submission cuts reject cycles; planned risk score and one-click fix are the obvious next steps.",
+      "sources": [
+        "https://fmgsuite.com/features/ai-tools/",
+        "https://fmgsuite.com/features/one-click-compliance/",
+        "https://fmgsuite.com/company/in-the-news/fmg-leads-the-way-in-ai-innovation-with-new-tools-to-help-advisors-market-more-efficiently-and-streamline-compliance/",
+        "https://codelink.io/case-studies/fmg-suite-compliance-ready-ai-chatbots"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Muse (AI first drafts)",
+      "area": "format-text",
+      "detail": "\"A few inputs\" (tone, topic, goals) -> first drafts of emails, blog posts and social captions in the advisor's tone and voice, \"ready for compliance review\".",
+      "limits_or_cost": "Marketing Suite Premium (USD 269/mo + 199 setup). Length options and caps not published.",
+      "notable": "",
+      "sources": [
+        "https://fmgsuite.com/features/ai-tools/",
+        "https://fmgsuite.com/pricing/",
+        "https://fmgsuite.com/company/in-the-news/fmg-leads-the-way-in-ai-innovation-with-new-tools-to-help-advisors-market-more-efficiently-and-streamline-compliance/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Sidekick (in-app AI assistant)",
+      "area": "agent",
+      "detail": "Conversational assistant inside the platform answering product how-to and marketing questions, with \"a seamless connection to live help when needed\".",
+      "limits_or_cost": "Plan not stated.",
+      "notable": "Escalation from bot to human support in the same thread.",
+      "sources": [
+        "https://fmgsuite.com/features/ai-tools/",
+        "https://fmgsuite.com/company/in-the-news/fmg-leads-the-way-in-ai-innovation-with-new-tools-to-help-advisors-market-more-efficiently-and-streamline-compliance/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Curator (AI article picks + captions)",
+      "area": "inspiration",
+      "detail": "\"AI-powered Curator\" selects relevant articles from \"thousands of articles from trusted sources\" and generates custom captions for social. Learns the advisor's interests (hobbies, causes) to suggest more relevant content.",
+      "limits_or_cost": "",
+      "notable": "Personal-interest signals (not just finance topics) make curated feeds feel less generic.",
+      "sources": [
+        "https://fmgsuite.com/marketing/",
+        "https://fmgsuite.com/mobile-app/",
+        "https://www.wealthmanagement.com/technology/fmg-acquires-content-marketing-platform-vestorly"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Automated social media posting",
+      "area": "calendar",
+      "detail": "Pre-made posts on many topics post automatically: \"keeps your feed full and your profile active, week after week\". Collection \"Social Foundations\" under Client Nurturing.",
+      "limits_or_cost": "Included in Premium and Do It For Me; add-on for Essential.",
+      "notable": "Autopilot posting from a pre-approved pool avoids per-post review.",
+      "sources": [
+        "https://fmgsuite.com/features/content/",
+        "https://fmgsuite.com/features/marketing-automation/",
+        "https://fmgsuite.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Automation collections (life stage, occasions, newsletters)",
+      "area": "strategy",
+      "detail": "Pre-built collections: Market Insights (Weekly or Monthly newsletter, frequency customizable); Client Nurturing (Breaking Financial News, Seasonal Check-In & Referral, Social Foundations, Chart of the Month); Financial Know-How (Business Owner, College Planning, Cybersecurity & Scam Prevention, Life Insurance, Medicare, Social Security, Video of the Month); Life Stages (Ages 20-39, 40-54, 55-65, 66+); Celebrations (birthday and holiday eCards). Triggers: birthdays, holidays, age bracket, send frequency.",
+      "limits_or_cost": "All automations included in Premium; otherwise collections cost extra.",
+      "notable": "Segmenting by age bracket maps cleanly to insurance needs by life stage.",
+      "sources": [
+        "https://fmgsuite.com/features/marketing-automation/",
+        "https://fmgsuite.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Custom Email Builder",
+      "area": "other",
+      "detail": "Drag-and-drop wizard for emails and newsletters with sections, images, custom content and library articles; editable library gives a first draft to personalize. Contacts meter per plan (1,000 Essential, 2,000 Premium).",
+      "limits_or_cost": "All Marketing Suite tiers.",
+      "notable": "",
+      "sources": [
+        "https://fmgsuite.com/marketing/",
+        "https://fmgsuite.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Canva and Unsplash integration",
+      "area": "integrations",
+      "detail": "Customize social designs with Canva; pull stock images from Unsplash inside the builder.",
+      "limits_or_cost": "All Marketing Suite tiers.",
+      "notable": "",
+      "sources": [
+        "https://fmgsuite.com/pricing/",
+        "https://fmgsuite.com/features/content/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Bi-directional CRM sync",
+      "area": "integrations",
+      "detail": "Contacts sync bi-directionally with major CRMs daily.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://fmgsuite.com/marketing/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Greeting cards and handwritten notes",
+      "area": "engagement",
+      "detail": "eCards plus printed and handwritten-style notes and cards; Celebrations automation sends birthday and holiday cards.",
+      "limits_or_cost": "Greeting Cards in all tiers.",
+      "notable": "",
+      "sources": [
+        "https://fmgsuite.com/marketing/",
+        "https://fmgsuite.com/pricing/",
+        "https://fmgsuite.com/features/marketing-automation/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Event Promotions Toolkit",
+      "area": "other",
+      "detail": "\"Omni-channel event promotion\"; Do It For Me adds quarterly event ideas and a quarterly webinar promotion kit (slides, invitations, posts).",
+      "limits_or_cost": "Premium and Do It For Me.",
+      "notable": "",
+      "sources": [
+        "https://fmgsuite.com/marketing/",
+        "https://fmgsuite.com/pricing/",
+        "https://fmgsuite.com/features/marketing-assist/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Mobile app: share in one tap with compliance routing",
+      "area": "publishing",
+      "detail": "Pick content, choose audience, channels and tags, send. The app \"automatically route[s] your post to get the green light from compliance before distributing it\". Calendar shows scheduled, pending compliance and already sent; real-time analytics on opens and clicks.",
+      "limits_or_cost": "",
+      "notable": "Three-state calendar (scheduled / pending compliance / sent) is a simple, clear status model.",
+      "sources": [
+        "https://fmgsuite.com/mobile-app/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Do It For Me (marketing concierge)",
+      "area": "other",
+      "detail": "Dedicated Marketing Concierge runs the calendar. Monthly: 2-4 client/prospect emails, 5-8 social posts (LinkedIn, Instagram), 1 webinar or podcast outline, 1-2 SEO/AEO blogs, 1 video script, 1 marketing tip, breaking-news emails, 2 social assists per week (Mon, Wed), 2-4 COI emails. Quarterly referral email, webinar kit, niche campaigns, nurture sequences, welcome series. Advisor time: about 60 min onboarding (2 calls) then about 30 min/month to review and approve the calendar.",
+      "limits_or_cost": "USD 895/mo + 499 setup. Excludes fully custom content, hard-CTA posts, website strategy, purchased lists.",
+      "notable": "A fixed monthly quota per channel plus one 30-minute approval pass is a spec an AI agent could fill.",
+      "sources": [
+        "https://fmgsuite.com/features/marketing-assist/",
+        "https://fmgsuite.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Enterprise custom library pushed to advisors",
+      "area": "team",
+      "detail": "Firm publishes its own market commentaries, onboarding campaigns, emails, seminar kits, downloadables and ebooks into a firm library; advisors use it \"with the click of a mouse\". Compliance reviews content only when an advisor edits it; advisors need no separate compliance system.",
+      "limits_or_cost": "Enterprise pricing not published.",
+      "notable": "Edit-triggered review: untouched firm content skips review, edits go to review.",
+      "sources": [
+        "https://fmgsuite.com/enterprise/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Manage Testimonials (compliant reviews)",
+      "area": "compliance",
+      "detail": "Collect and display Google Reviews, testimonials, referrals, client feedback and surveys with compliance tools and CRM integrations.",
+      "limits_or_cost": "Solo USD 99/mo + 99 setup; enterprise quote.",
+      "notable": "",
+      "sources": [
+        "https://fmgsuite.com/pricing/",
+        "https://fmgsuite.com/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Text Compliantly (MyRepChat)",
+      "area": "engagement",
+      "detail": "Compliant texting product with scheduling, auto-responses, templates and integrations.",
+      "limits_or_cost": "Separate product; price not captured.",
+      "notable": "",
+      "sources": [
+        "https://fmgsuite.com/"
+      ]
+    },
+    {
+      "competitor": "FMG Suite",
+      "feature": "Video library and video of the month",
+      "area": "format-video",
+      "detail": "Library includes video category (about 14 sample embeds visible); \"Video of the Month\" automation; Do It For Me adds monthly marketing tip videos and a video script.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://fmgsuite.com/features/content/",
+        "https://fmgsuite.com/features/marketing-automation/",
+        "https://fmgsuite.com/pricing/"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "Monthly content drops filtered by persona",
+      "area": "inspiration",
+      "detail": "Library adds 10 personal finance and 10 lifestyle articles per month plus 3 infographics and 1 quiz; filter by topic and persona. Recent additions sit at the top of the Content tab. Advisor can hand-pick or create own content.",
+      "limits_or_cost": "Total library size not published.",
+      "notable": "Lifestyle articles alongside finance content broaden the feed beyond product talk.",
+      "sources": [
+        "https://help.twentyoverten.com/en/twenty-over-tens-content-solutions",
+        "https://help.twentyoverten.com/en/lead-pilot"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "Per-network share editor with preview control",
+      "area": "publishing",
+      "detail": "Share Content flow: add a message for the LinkedIn or Facebook post, tweet text, edit the preview title/image/description per network, select which Facebook Page to post to, preview, schedule \"down to the minute\" or post now, delete scheduled posts, drafts.",
+      "limits_or_cost": "Networks: Facebook, LinkedIn, Twitter.",
+      "notable": "",
+      "sources": [
+        "https://help.twentyoverten.com/en/lead-pilot",
+        "https://help.twentyoverten.com/en/twenty-over-tens-content-solutions"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "Every share wraps a branded landing page",
+      "area": "engagement",
+      "detail": "Shared library content opens on an advisor-branded landing page with a Subscribe Form, featured sidebar, default logo, scheduling link and content blocks. Visitors who subscribe become contacts.",
+      "limits_or_cost": "",
+      "notable": "Turns every social share into a lead-capture surface instead of sending traffic to a third-party site.",
+      "sources": [
+        "https://help.twentyoverten.com/en/lead-pilot",
+        "https://help.twentyoverten.com/en/twenty-over-tens-content-solutions"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "Gated content via subscribe form",
+      "area": "engagement",
+      "detail": "Template Design > Landing Page Template > Subscribe Form: edit Subscribe Details and Subscribe Success Message, toggle Subscribe Success Button, set Button Label and Button Link URL (hosted PDF, Calendly, webinar). Save, test as visitor.",
+      "limits_or_cost": "PDFs must be hosted elsewhere.",
+      "notable": "",
+      "sources": [
+        "https://help.twentyoverten.com/en/how-to-gate-content-using-the-subscribe-form"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "FINRA BrokerCheck button",
+      "area": "compliance",
+      "detail": "Template Design > Content > FINRA BrokerCheck: toggle \"Display BrokerCheck?\", enter CRD#, choose Type (Firm or Individual), Save / Undo Edits. Adds a button linking to the BrokerCheck profile on every landing page (FINRA Rule 2210). Falls back to the BrokerCheck search page if no profile.",
+      "limits_or_cost": "",
+      "notable": "A regulator-required disclosure baked into the template so advisors cannot forget it. MAS analogue: representative register / licence number.",
+      "sources": [
+        "https://help.twentyoverten.com/en/finra-brokercheck"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "WORM archive of social and landing pages",
+      "area": "compliance",
+      "detail": "\"All landing pages and social content deployed through Lead Pilot will be archived to meet FINRA requirements\", including form text and footer. Stored WORM (write once read many) for a minimum of 7 years. Emails and anything posted natively on the network are NOT archived; a BCC email archival option exists for email.",
+      "limits_or_cost": "",
+      "notable": "States plainly what is and is not archived.",
+      "sources": [
+        "https://help.twentyoverten.com/en/what-does-lead-pilot-archive",
+        "https://help.twentyoverten.com/en/lead-pilot"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "Compliance PDF export",
+      "area": "compliance",
+      "detail": "\"Compliance PDF\" icon in the Edit Draft, Scheduled Content or Shared Content side window downloads a PDF to send to the compliance officer.",
+      "limits_or_cost": "",
+      "notable": "One-click review artifact for firms whose compliance team works from email.",
+      "sources": [
+        "https://help.twentyoverten.com/en/downloading-a-pdf-for-compliance"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "LEAD score (1 to 100)",
+      "area": "analytics",
+      "detail": "Each contact gets a score from 1 to 100 based on engagement with content, actions and time; updates in real time; tuned per account using the advisor's manual star ratings of contacts. Shown on the Contacts page.",
+      "limits_or_cost": "",
+      "notable": "Advisor feedback (stars) trains the score.",
+      "sources": [
+        "https://help.twentyoverten.com/en/understanding-the-lead-score"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "Profile Insights",
+      "area": "engagement",
+      "detail": "\"Mini-biographies\" of contacts from third-party public data: job histories and links to social networks and website, under Manage Contacts.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.twentyoverten.com/en/what-are-profile-insights"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "Curated Campaigns",
+      "area": "strategy",
+      "detail": "Campaigns > Curated Campaigns: pick a template from the topic list (segment-targeted, content pre-selected), Edit Details (landing page), Share Settings (where it posts), choose Day and Time, Save Changes, Start Campaign. Drip campaigns live under the Campaigns tab.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.twentyoverten.com/en/curated-campaigns",
+        "https://help.twentyoverten.com/en/lead-pilot"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "Email templates and segments",
+      "area": "other",
+      "detail": "Templates: Simple Newsletter, Single Column Mostly Text, Modular, Modular Without Borders, Boxed-2-Column, plain text; customize look and footer; lists and segments; send to specific contacts; preview.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.twentyoverten.com/en/lead-pilot"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "Insights dashboard and activity feed",
+      "area": "analytics",
+      "detail": "Insights Dashboard, Activity Feed, email opens and clicks, content filter.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.twentyoverten.com/en/lead-pilot"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "Users, teams and seats",
+      "area": "team",
+      "detail": "Help articles: Creating and Managing Users/Teams; Inviting users for seats.",
+      "limits_or_cost": "Seat pricing not published.",
+      "notable": "",
+      "sources": [
+        "https://help.twentyoverten.com/en/lead-pilot"
+      ]
+    },
+    {
+      "competitor": "Twenty Over Ten Lead Pilot",
+      "feature": "CRM and pixel integrations",
+      "area": "integrations",
+      "detail": "Redtail, Wealthbox (one-click import of clients and prospects, contact details shown in Lead Pilot), Riskalyze; Facebook Pixel on landing pages.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://help.twentyoverten.com/en/lead-pilot",
+        "https://www.wealthbox.com/integrations/lead-pilot/"
+      ]
+    },
+    {
+      "competitor": "Vestorly",
+      "feature": "AI content engine with Robo-Compliance",
+      "area": "inspiration",
+      "detail": "Machine learning finds, filters and curates third-party and original content for each advisor; content passes a \"Robo-Compliance\" filter. CEO cited about six hours a week saved (2016).",
+      "limits_or_cost": "Pricing per third-party listing (unverified).",
+      "notable": "",
+      "sources": [
+        "https://softwarefinder.com/artificial-intelligence/vestorly",
+        "https://investmentnews.com/fintech/vestorly-raises-its-game-with-artificial-intelligence/66139",
+        "https://www.wealthmanagement.com/technology/fmg-acquires-content-marketing-platform-vestorly"
+      ]
+    },
+    {
+      "competitor": "Vestorly",
+      "feature": "Per-contact personalization",
+      "area": "engagement",
+      "detail": "Tailors content sent to each contact based on their engagement patterns and preferences; automates distribution across email and social.",
+      "limits_or_cost": "",
+      "notable": "Personalizes at the recipient level, not just the advisor level.",
+      "sources": [
+        "https://softwarefinder.com/artificial-intelligence/vestorly",
+        "https://www.wealthmanagement.com/technology/fmg-acquires-content-marketing-platform-vestorly"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "150+ pre-built multi-channel campaigns",
+      "area": "strategy",
+      "detail": "\"150+ Pre-Built Campaigns\" launch across website, email, text and social in one click (e.g. 90-Day New Client Campaign, Retirement Success); FINRA-reviewed; edit text, images, layout or build DIY (Custom Campaign Builder on Grow).",
+      "limits_or_cost": "Foundations: Birthday, Timely Update, Newsletter only; Grow adds lead gen, prospect engagement, events, video, market updates, partner content.",
+      "notable": "",
+      "sources": [
+        "https://snappykraken.com/campaigns",
+        "https://snappykraken.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "Built-in archiving and approval workflows",
+      "area": "compliance",
+      "detail": "\"Built-In Archiving & Approval Workflows\": route content for review, lock edits after approval, archive communications in-platform. SOC 2 Type 2.",
+      "limits_or_cost": "",
+      "notable": "Lock-after-approval prevents silent edits to approved content.",
+      "sources": [
+        "https://snappykraken.com/campaigns",
+        "https://snappykraken.com/websites"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "Opportunities Feed",
+      "area": "analytics",
+      "detail": "Live feed of engaged prospects \"ranked by behavior and intent\" with opportunity scoring and next-step prompts such as \"Call this contact\"; send a text or email directly from the recommendation.",
+      "limits_or_cost": "",
+      "notable": "Analytics turned into a to-do list.",
+      "sources": [
+        "https://snappykraken.com/campaigns",
+        "https://snappykraken.com/marketing-hub"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "Snappy AI (ask + embedded next steps)",
+      "area": "agent",
+      "detail": "\"Ask Snappy AI\" answers questions about setup, campaigns and activity. Suggested actions: \"Review account readiness\", \"Find the right campaign\", \"Prioritize the next opportunity\". Embedded mode interprets leads, sorts contacts into groups and campaigns within approved automations, drafts emails, landing pages and visuals. Initial read-only experience excludes contact PII; respects roles; \"People remain responsible\" for compliance decisions.",
+      "limits_or_cost": "Plan and price not stated (demo).",
+      "notable": "Readiness check + goal-to-campaign matcher is a strong onboarding agent pattern.",
+      "sources": [
+        "https://snappykraken.com/snappy-ai"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "AI content builders",
+      "area": "format-text",
+      "detail": "Drag-and-drop AI builders for emails, headlines and graphics (\"Create full campaigns in minutes\"); AI Email Builder in every plan.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://snappykraken.com/campaigns",
+        "https://snappykraken.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "Sub 5-minute speed-to-lead",
+      "area": "engagement",
+      "detail": "New leads from website, ads or third-party tools are added to campaigns automatically and get a personalized reply within 5 minutes (vs industry 24-48 hours).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://snappykraken.com/campaigns",
+        "https://snappykraken.com/"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "Convos compliant texting",
+      "area": "engagement",
+      "detail": "Two-way SMS with every inbound and outbound message archived; route messages for pre-approval and lock final versions; multi-step sequences (birthdays, appointments, reviews); triggers on downloads, clicks, form fills; syncs with Redtail, Wealthbox, Salesforce. Claims 97% open, 45% reply rates.",
+      "limits_or_cost": "Included in Grow and up; a la carte USD 99/mo.",
+      "notable": "",
+      "sources": [
+        "https://snappykraken.com/convos",
+        "https://snappykraken.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "Enterprise Hub (home office push)",
+      "area": "team",
+      "detail": "\"Mass create and publish for all your advisors\": deploy campaigns, research and commentary on advisors' behalf to any subset by hierarchy, cohort or office group; firm templates and custom uploads; branding rules and control over which elements advisors can customize; pre-approval, review, archiving, email journaling; every action logged; user impersonation; adoption pipeline; reports by individual, cohort, campaign, channel.",
+      "limits_or_cost": "Priced by advisor count, integrations, support; extra advisor workspace USD 99 (Grow) or 699 (Freedom360); admin seats USD 99/mo.",
+      "notable": "Field-level lock on what advisors may edit, plus adoption dashboards to spot who needs coaching.",
+      "sources": [
+        "https://snappykraken.com/enterprise",
+        "https://snappykraken.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "Marketing Hub calendar and lead scores",
+      "area": "calendar",
+      "detail": "Interactive cross-channel calendar of published and scheduled campaigns; hover for title, click to edit dates or contact lists; \"highly visual lead scores\"; Insights on growth, engagement and nurture across email, text, social, website.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://snappykraken.com/marketing-hub"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "Lead capture, auto-subscribe, popups, gated content",
+      "area": "engagement",
+      "detail": "Grow plans add Lead Capture + Auto-Subscribe (new opt-ins drop into nurture campaigns), website popups and gated content; Grow websites add an auto-publish blog scheduler and social posting for blogs.",
+      "limits_or_cost": "Grow (USD 299/mo) and up.",
+      "notable": "",
+      "sources": [
+        "https://snappykraken.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "Contacts and email volume meters",
+      "area": "billing",
+      "detail": "Plans meter contacts and monthly email volume: Foundations 10k contacts / 20k emails; Grow 50k / 80k; Freedom360 100k / unlimited. Extra advisor workspaces and admin seats billed separately.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://snappykraken.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Snappy Kraken",
+      "feature": "Freedom360 done-for-you",
+      "area": "other",
+      "detail": "Done-for-you strategy and implementation, Smart Growth Suite strategy, Quarterly Business Review, dedicated success manager; AEO comes standard on Freedom360 websites.",
+      "limits_or_cost": "USD 899/mo + 499 setup.",
+      "notable": "",
+      "sources": [
+        "https://snappykraken.com/pricing",
+        "https://snappykraken.com/websites"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "Post Library with audience recommendations",
+      "area": "inspiration",
+      "detail": "Mobile and web Post Library with a \"Recommended\" filter (\"Recommended for Your Audience\"); each card shows networks, engagements count and release date. AI-powered \"Netflix-style\" recommendations deliver user-specific curated content; AI Recommendations suggest what, when and where to post based on audience, location and performance.",
+      "limits_or_cost": "Enterprise.",
+      "notable": "",
+      "sources": [
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf",
+        "https://www.yext.com/platform/hearsay-social"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "Dynamic Campaigns (auto-post approved content)",
+      "area": "publishing",
+      "detail": "Home office campaigns let the field team automatically post approved content to their own social channels; notification \"Dynamic Campaigns: Your post was just successfully shared\".",
+      "limits_or_cost": "",
+      "notable": "Agents opt in once, then approved posts land on their profiles without per-post effort.",
+      "sources": [
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "Content+ AI curation screened by lexicon",
+      "area": "inspiration",
+      "detail": "AI curates top-performing content and adds it to the post library; content is screened against the firm's lexicon and automatically enters compliance workflows.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf",
+        "https://www.businesswire.com/news/home/20230418005475/en/Hearsay-Unveils-Content-the-Only-AI-Powered-Content-Solution-Tailored-to-the-Unique-Needs-of-Financial-Services-Organizations"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "AI Content Generation",
+      "area": "format-text",
+      "detail": "Creates on-brand posts; agents can also create compliant original and modified content with publishing tools.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.yext.com/platform/hearsay-social",
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "AI video compliance pre-review",
+      "area": "compliance",
+      "detail": "For videos posted by agents/advisors: pre-trained ML model scans frames for inappropriate imagery (nudity, violence, disturbing content, rude gestures); auto-generated audio transcript plus body text, titles and caption files are checked for lexicon violations; compliance staff make the final approve/deny call. 2021: 53% of customers published 360,000+ videos.",
+      "limits_or_cost": "",
+      "notable": "Video is the format compliance teams fear most; transcript-based lexicon checks make it reviewable.",
+      "sources": [
+        "https://www.yext.com/about/news-media/hearsay-systems-offers-financial-industrys-first-ai-powered-video-compliance-pre-review-solution",
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "Supervision: lexicon, Risk Meter, routing",
+      "area": "compliance",
+      "detail": "Pre-approval workflows, real-time alerts, supervision and approval trails, infraction resolution; Risk Meter and AI-powered alerts; automated workflow routing so supervisors see highest-risk items first; universal supervision and threaded archiving. Built for FINRA, SEC, IIROC, FCA, PRA, MiFID II. Claims up to 80% less time reviewing/pre-approving.",
+      "limits_or_cost": "Enterprise.",
+      "notable": "Risk-ranked queue rather than first-in-first-out.",
+      "sources": [
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Compliance_Datasheet_2022.pdf",
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf",
+        "https://www.yext.com/platform/hearsay-social"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "Central Profile Control",
+      "area": "compliance",
+      "detail": "Update advisor/agent profiles across all networks from one place, with suggested profiles and pre-review of profile changes.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.yext.com/platform/hearsay-social",
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "Comment reply nudges",
+      "area": "engagement",
+      "detail": "Push notifications such as \"Your LinkedIn post has 2 comments. Reply to them now.\"",
+      "limits_or_cost": "",
+      "notable": "Engagement prompt tied to a specific post.",
+      "sources": [
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "Social Selling Analytics",
+      "area": "analytics",
+      "detail": "Benchmark performance, audience insights with AI recommendations, program ROI reporting.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.yext.com/platform/hearsay-social",
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "Hearsay Relate (compliant SMS, voice, WhatsApp)",
+      "area": "engagement",
+      "detail": "Text, voice and WhatsApp conversations in one platform with keyword monitoring, pre-approvals, templates, triggered campaigns, AI-powered replies, supervision dashboard and built-in archiving.",
+      "limits_or_cost": "Enterprise.",
+      "notable": "WhatsApp supervision matters for Asian agents who sell on WhatsApp.",
+      "sources": [
+        "https://www.yext.com/platform/relate",
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Compliance_Datasheet_2022.pdf"
+      ]
+    },
+    {
+      "competitor": "Hearsay Social (Yext)",
+      "feature": "Integrations: CRM and archive",
+      "area": "integrations",
+      "detail": "Integrates with CRM, archive and other enterprise systems; adds sites and compliant texting as channels.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://info.yext.com/rs/906-IBA-353/images/Hearsay_Social_Datasheet_2022.pdf"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "Lev AI assistant",
+      "area": "format-text",
+      "detail": "Inputs: existing content to rewrite, content to translate, or a request for new content -> rewritten text, translation into 10 languages, or new emails/social posts \"in a matter of seconds\".",
+      "limits_or_cost": "All plans include the AI assistant.",
+      "notable": "Translation matters for multilingual markets (e.g. English, Chinese, Malay).",
+      "sources": [
+        "https://www.levitate.ai/features",
+        "https://levitate.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "Compliance flow via compliance officer email",
+      "area": "compliance",
+      "detail": "On by default for Financial customers. After scheduling, choose \"Send Campaign without Compliance\" or enter the compliance officer's email to receive a PDF (remembered; admin can pre-fill and lock it). Campaign sits in pending on its date. Approval paths: officer replies to the PDF with approval language and Levitate detects it and moves pending -> scheduled, or user clicks \"Approve Campaign\" / \"Mark as Approved\". Blog: \"Submit for Compliance\". \"Send me a copy\" regenerates the PDF. Substantive edits after approval require re-approval.",
+      "limits_or_cost": "Approval blocked after the send time passes: email 2-day grace, social posts none (red notice, click \"Change\" to re-date). Approval emails max 3 MB total.",
+      "notable": "Reply-to-approve uses the reviewer's existing inbox; no login needed.",
+      "sources": [
+        "https://help.levitate.ai/article/118-compliance-flow"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "BD / Super Admin library review statuses",
+      "area": "compliance",
+      "detail": "Broker-dealers (across many RIAs) and RIA Super Admins mark each library template Pre-Reviewed, Approved or Rejected. Standard users see only Approved or Pre-Reviewed items with a notation; Rejected items are hidden. \"Reject Campaign\" requires a reason (Citations, Content, Images, Other) plus a note; Levitate tracks rejection trends. Campaign owner gets an email with reviewer name and decision as the record. Fully approved campaigns can be rescheduled without resubmitting.",
+      "limits_or_cost": "Enabled via Success Specialist. CSV export lacks a compliance status column.",
+      "notable": "Rejected content disappears for agents; reason codes feed trend analysis.",
+      "sources": [
+        "https://help.levitate.ai/article/428-compliance-pre-review-pre-approve-and-reject-content"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "FINRA-reviewed library content",
+      "area": "compliance",
+      "detail": "Ready-to-send FINRA-reviewed content in the library lets advisors skip some approval steps. Cetera RIAs: social content is read-only and goes through Cetera review.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://martech360.com/news/levitate-now-offering-finra-reviewed-content-as-part/",
+        "https://help.levitate.ai/article/118-compliance-flow"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "Send from own Outlook or Gmail",
+      "area": "publishing",
+      "detail": "Emails send from the advisor's existing provider (Outlook, Gmail, Office 365) with unlimited automations; claims 60%+ open and 10% reply rates vs about 20% for mass blasts.",
+      "limits_or_cost": "",
+      "notable": "Personal-sender delivery feels 1:1, not newsletter.",
+      "sources": [
+        "https://www.levitate.ai/features",
+        "https://levitate.ai/"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "Content calendar approved months ahead",
+      "area": "calendar",
+      "detail": "Review and approve personalized email and social content months in advance; drag, drop and schedule templates; Prestige adds a \"Full custom content calendar\".",
+      "limits_or_cost": "Full custom calendar: Prestige.",
+      "notable": "",
+      "sources": [
+        "https://www.levitate.ai/industry/financial",
+        "https://levitate.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "Handwritten cards",
+      "area": "engagement",
+      "detail": "Your text printed in a handwritten-style card, sent at scale (e.g. birthdays).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.levitate.ai/features"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "Texting with dedicated number",
+      "area": "engagement",
+      "detail": "Send, receive and organize texts in-platform for reminders and appointment confirmations; dedicated phone number.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.levitate.ai/features"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "Surveys to review generation",
+      "area": "engagement",
+      "detail": "Client satisfaction surveys (Client Happiness Score); 5-star ratings turn into review requests in the same email; Google Review notifications and tailored responses from the dashboard.",
+      "limits_or_cost": "Custom surveys: Preferred and up.",
+      "notable": "Only happy respondents are asked for public reviews.",
+      "sources": [
+        "https://www.levitate.ai/features",
+        "https://levitate.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "Email read tracking and opportunity board",
+      "area": "analytics",
+      "detail": "Real-time email performance per send (read tracking, views, replies) and an \"opportunity board\" for relationship nurturing; keep-in-touch reminders on key facts and dates per contact.",
+      "limits_or_cost": "Reporting and analytics listed on Essential.",
+      "notable": "",
+      "sources": [
+        "https://www.levitate.ai/features",
+        "https://www.levitate.ai/industry/financial",
+        "https://levitate.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "Dedicated Success Specialist",
+      "area": "onboarding",
+      "detail": "Each account gets a Success Specialist for onboarding, strategy and quarterly planning sessions.",
+      "limits_or_cost": "All plans.",
+      "notable": "",
+      "sources": [
+        "https://www.levitate.ai/features",
+        "https://levitate.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Levitate",
+      "feature": "Plan tiers",
+      "area": "billing",
+      "detail": "Essential / Preferred / Prestige. Preferred adds API integrations, custom surveys, AI blog creation, industry blog library, SSO; Prestige adds full custom content calendar. Websites: 20 / 30 / 100 pages; compliance workflow on Preferred website plan. Add-ons: Google Local Service Ads, Meta Ads.",
+      "limits_or_cost": "No public prices; GetApp lists from US$349 (unverified).",
+      "notable": "",
+      "sources": [
+        "https://levitate.ai/pricing",
+        "https://www.getapp.co.uk/software/2054994/levitate"
+      ]
+    },
+    {
+      "competitor": "Advisorpedia",
+      "feature": "Advisorpedia Content Engine",
+      "area": "inspiration",
+      "detail": "Gives advisors access to personalized content they can use as their own and share with clients; co-developed with Fresh Finance (enterprise content publisher for advisors). Feature details, compliance handling and pricing unverified (site blocked fetch).",
+      "limits_or_cost": "unverified",
+      "notable": "",
+      "sources": [
+        "https://www.advisorpedia.com/podcasts/unique-content-drives-advisor-conversions-with-teresa-leno/",
+        "https://www.prnewswire.com/news-releases/iris-media-works-announces-acquisition-of-advisorpedia-301219033.html"
+      ]
+    },
+    {
+      "competitor": "Seismic Social (formerly LiveSocial)",
+      "feature": "Firm plus curated third-party library",
+      "area": "inspiration",
+      "detail": "Combines the organization's research, insights and thought leadership with curated third-party content tailored to each professional's market and interests; find, personalize and publish from one place.",
+      "limits_or_cost": "Enterprise.",
+      "notable": "",
+      "sources": [
+        "https://www.seismic.com/products/livesocial/"
+      ]
+    },
+    {
+      "competitor": "Seismic Social (formerly LiveSocial)",
+      "feature": "Aura AI captions in approved styles",
+      "area": "format-text",
+      "detail": "Aura AI drafts captions in approved styles that program owners define; professionals personalize them before posting.",
+      "limits_or_cost": "",
+      "notable": "Home office defines the allowed caption styles; AI writes only inside them.",
+      "sources": [
+        "https://www.seismic.com/products/livesocial/"
+      ]
+    },
+    {
+      "competitor": "Seismic Social (formerly LiveSocial)",
+      "feature": "Governed publishing",
+      "area": "compliance",
+      "detail": "Publishing is tied to approved content, administrative controls and review/approval workflows; centralized admin of users, content, programs and policies.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.seismic.com/products/livesocial/"
+      ]
+    },
+    {
+      "competitor": "Seismic Social (formerly LiveSocial)",
+      "feature": "Adoption and engagement analytics",
+      "area": "analytics",
+      "detail": "Tracks adoption, publishing activity, content performance and audience engagement (e.g. IBM 2x click-to-share ratio, Oracle 34,000+ shares).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.seismic.com/products/livesocial/"
+      ]
+    },
+    {
+      "competitor": "Smarsh (incl. legacy Actiance Socialite)",
+      "feature": "Social capture and archive",
+      "area": "compliance",
+      "detail": "Automatically captures posts, comments, direct messages, reactions, images, videos and metadata with conversation history and timestamps, in native format, to the Smarsh Platform or an existing archive. Listed platforms: LinkedIn, LinkedIn Sales Navigator, BombBomb, Facebook, TikTok, Vidyard, Vimeo, X, YouTube, Instagram (100+ channels overall). Built for SEC 17a-4, FINRA 3110/4511, FCA. 40+ million messages per day.",
+      "limits_or_cost": "Contact sales.",
+      "notable": "Captures the replies and DMs too, not just the outbound post.",
+      "sources": [
+        "https://www.smarsh.com/social-media-compliance",
+        "https://www.smarsh.com/channels/social/"
+      ]
+    },
+    {
+      "competitor": "Smarsh (incl. legacy Actiance Socialite)",
+      "feature": "Automated supervision",
+      "area": "compliance",
+      "detail": "Applies supervision policies and review workflows to flag potential compliance risks for review; multi-tier review queues and customizable policies (per search summary).",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.smarsh.com/channels/social/",
+        "https://www.smarsh.com/social-media-compliance"
+      ]
+    },
+    {
+      "competitor": "Smarsh (incl. legacy Actiance Socialite)",
+      "feature": "Socialite pre-approved library (legacy)",
+      "area": "publishing",
+      "detail": "Actiance Socialite Engage: marketing supplies a library of pre-approved posts advisors can publish immediately to one or more profiles (Facebook, Twitter, LinkedIn) without review; advisors cannot edit them, and any comment they add goes through review; advisor-written posts are routed to compliance before publishing. Raymond James used it with analytics. Current status under Smarsh unverified (Smarsh acquired Actiance in 2017, from memory, unverified).",
+      "limits_or_cost": "",
+      "notable": "Locked pre-approved posts publish instantly; anything added by the advisor is reviewed.",
+      "sources": [
+        "https://networkcomputing.com/network-infrastructure/actiance-funnels-approved-social-posts-to-financial-advisors",
+        "https://stg.advisor.ca/industry-news/industry/raymond-james-advisors-going-social"
+      ]
+    },
+    {
+      "competitor": "Proofpoint Patrol",
+      "feature": "200+ classifiers with auto-remediation",
+      "area": "compliance",
+      "detail": "Evaluates content against 200+ built-in classifier rules (security, compliance, acceptable use), combining AI contextual analysis, lexicons, regex and threat intelligence. Per-rule action: Delete, Notify, Delete and Review, None; severity High/Not set. Compliance classifiers include Financial Promotions, Financial Related Complaints, Financial Testimonials. Works in pre-review and post-review modes.",
+      "limits_or_cost": "Pricing not published.",
+      "notable": "Per-rule action settings (delete vs notify vs review) let firms tune strictness.",
+      "sources": [
+        "https://www.proofpoint.com/uk/resources/data-sheets/patrol"
+      ]
+    },
+    {
+      "competitor": "Proofpoint Patrol",
+      "feature": "Pre-publication API checks with user feedback",
+      "area": "compliance",
+      "detail": "Open APIs let any publishing tool call Patrol before posting; users get immediate feedback on policy violations with guidance to fix; block or escalate problematic content.",
+      "limits_or_cost": "",
+      "notable": "Compliance as a check any tool can call, not a separate system.",
+      "sources": [
+        "https://www.proofpoint.com/uk/resources/data-sheets/patrol"
+      ]
+    },
+    {
+      "competitor": "Proofpoint Patrol",
+      "feature": "Review Queue",
+      "area": "compliance",
+      "detail": "Queue of captured items (network, author, status Unreviewed) with actions: Approve, Mark Reviewed, Reject, Reject & Remove, Share, Forward, Permanently Mask Content, Flag; shows policy matches, informational classifications, applied actions, reviewer attachment (Attach PDF), source date, detected-at, assignee.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.proofpoint.com/uk/resources/data-sheets/patrol"
+      ]
+    },
+    {
+      "competitor": "Proofpoint Patrol",
+      "feature": "Closed-loop profile governance",
+      "area": "compliance",
+      "detail": "Profile onboarding with supervisory approval, snapshot-based version control of approved profiles, automatic rollback of unauthorised profile changes, scheduled recertification reviews, API onboarding/offboarding.",
+      "limits_or_cost": "",
+      "notable": "Auto-rollback of unapproved bio edits.",
+      "sources": [
+        "https://www.proofpoint.com/uk/resources/data-sheets/patrol"
+      ]
+    },
+    {
+      "competitor": "Proofpoint Patrol",
+      "feature": "Channel coverage and archive delivery",
+      "area": "integrations",
+      "detail": "Social: LinkedIn (member accounts, pages), X, Facebook Business Pages, Instagram Business, YouTube, Google Business Profiles. Other: marketing emails, text messaging, web publishing, custom tools. Delivers normalized content and supervisory actions to any archive; 17a-4 compliant environments. Guardian pairs Patrol with Grapevine6 curated content.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.proofpoint.com/uk/resources/data-sheets/patrol",
+        "https://www.proofpoint.com/us/customer-stories/guardian"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "Licensed publisher content",
+      "area": "inspiration",
+      "detail": "\"Legally licensed\" content from WSJ, Dow Jones, New York Times and more (20+ publications on Growth); \"the world's largest investor-focused content library\"; unlimited content.",
+      "limits_or_cost": "Licensed publisher content: Growth tier (USD 235/mo, or +75/mo partner pricing).",
+      "notable": "Licensed brand-name articles give advisors credibility without writing.",
+      "sources": [
+        "https://advisor.broadridge.com/",
+        "https://advisor.broadridge.com/pricing",
+        "https://advisorstream.com/info/osaic",
+        "https://www.advisorstream.com/pareto"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "Weekly newsletters done for you",
+      "area": "other",
+      "detail": "Weekly client newsletters produced and sent on the advisor's behalf (Growth); Essentials gets a monthly newsletter.",
+      "limits_or_cost": "Growth.",
+      "notable": "",
+      "sources": [
+        "https://advisor.broadridge.com/pricing",
+        "https://advisorstream.com/info/osaic",
+        "https://www.advisorstream.com/pareto"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "Video Studio (auto-branded video library)",
+      "area": "format-video",
+      "detail": "Library of 30+ FINRA-reviewed educational videos auto-personalized with the advisor's photo, brand colors, logo and contact info, with CTAs to the advisor's pages or webinar registration; publish to email, social, website. Built on BlueRush IndiVideo.",
+      "limits_or_cost": "Growth tier.",
+      "notable": "Template video + advisor identity = instant on-brand video without filming.",
+      "sources": [
+        "https://wealthprofessional.ca/investments/wealth-technology/broadridge-empowers-advisors-to-make-their-mark-with-video/361314",
+        "https://bluerush.com/?p=244294",
+        "https://advisor.broadridge.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "Video recording suite with scripts and teleprompter",
+      "area": "editor",
+      "detail": "Announced 2025-09-08: library of pre-written customizable scripts on timely investor topics; in-platform recording with teleprompter, retake/edit and real-time coaching; unified compliance approval workflows; analytics across an advisor's or firm's network.",
+      "limits_or_cost": "",
+      "notable": "Script library + teleprompter + approval in one flow.",
+      "sources": [
+        "https://www.broadridge.com/press-release/2025/broadridge-boosts-digital-marketing-suite"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "Wix-powered compliant websites",
+      "area": "other",
+      "detail": "Announced 2025-09-08: Wix-powered no-code websites with compliance automation in every publishing step, SEO and accessibility, enterprise scalability for large advisor networks.",
+      "limits_or_cost": "Websites USD 75 / 215 per month.",
+      "notable": "",
+      "sources": [
+        "https://www.broadridge.com/press-release/2025/broadridge-boosts-digital-marketing-suite",
+        "https://advisor.broadridge.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "FINRA-reviewed article library (Forefield)",
+      "area": "compliance",
+      "detail": "3,000+ original pieces (articles, client presentations, newsletters, videos, seminars, calculators, market summaries) written to meet FINRA requirements and filed with FINRA; Forefield acquired by Broadridge in 2010 for USD 19.5M.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://broadridge.com/advisor/emailsocialmarketing",
+        "https://www.sec.gov/Archives/edgar/data/1383312/000119312510272571/dex991.htm"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "SocialSpeaks social sharing",
+      "area": "publishing",
+      "detail": "Post and share content from the FINRA-reviewed library across Facebook, Twitter and LinkedIn; auto-post timely content to social.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.thewealthmosaic.com/vendors/broadridge-financial-solutions/socialspeaks",
+        "https://advisorstream.com/info/osaic"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "Lead-optimized pages and nurture",
+      "area": "engagement",
+      "detail": "Branded landing pages (\"Lead Optimized Pages\"), lead capture built into all marketing, lead nurturing emails, value-based nurture campaigns.",
+      "limits_or_cost": "Nurture: Growth.",
+      "notable": "",
+      "sources": [
+        "https://www.advisorstream.com/pareto",
+        "https://advisorstream.com/info/osaic",
+        "https://advisor.broadridge.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "AI insights on next-best communication",
+      "area": "agent",
+      "detail": "\"AI-Powered Insights\" uncover prospects' and clients' interests and goals; Essentials includes AI insights on next-best communication.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.advisorstream.com/pareto",
+        "https://advisorstream.com/info/osaic"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "Delegate access for assistants",
+      "area": "team",
+      "detail": "Both partner tiers include delegate access so assistants can run the account.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://advisorstream.com/info/osaic"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "Partner-program billing via commission deduction",
+      "area": "billing",
+      "detail": "Firm-partner pricing (e.g. Osaic): Essentials USD 25/mo paid by commission deduction; Growth +75/mo by card; 1:1 onboarding USD 199 (three 30-min sessions).",
+      "limits_or_cost": "",
+      "notable": "Billing through the distributor lowers the adoption barrier for agents.",
+      "sources": [
+        "https://advisorstream.com/info/osaic"
+      ]
+    },
+    {
+      "competitor": "Broadridge Advisor (AdvisorStream, Forefield heritage)",
+      "feature": "eCards, CE credits, integrations",
+      "area": "integrations",
+      "detail": "eCards, CE courses and credits (Growth), local business listings, branded and retargeting ads; 5,000+ integrations native and via Zapier incl. Salesforce, Redtail, Wealthbox, Wealthfeed, Intelliflo, LinkedIn Ads.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://advisor.broadridge.com/",
+        "https://advisor.broadridge.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Apaya",
+      "feature": "Brand Framework with disclaimers and banned phrases",
+      "area": "brand",
+      "detail": "AI Post Generator makes captions, images and carousels in brand voice, guided by a Brand Framework holding approved language, disclaimers and banned phrases.",
+      "limits_or_cost": "All plans include brand framework.",
+      "notable": "Disclaimers and banned phrases live in the brand kit, so every generation obeys them.",
+      "sources": [
+        "https://apaya.com/enterprise/industry/financial-services-social-media-management",
+        "https://apaya.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Apaya",
+      "feature": "Draft until approved, regenerate with feedback",
+      "area": "compliance",
+      "detail": "\"Posts remain in draft until approved\"; approval workflows with team roles and regenerate-with-feedback.",
+      "limits_or_cost": "",
+      "notable": "Reviewer feedback feeds straight into regeneration.",
+      "sources": [
+        "https://apaya.com/enterprise/industry/financial-services-social-media-management"
+      ]
+    },
+    {
+      "competitor": "Apaya",
+      "feature": "Honest non-archive positioning",
+      "area": "compliance",
+      "detail": "States it is \"not a FINRA, SEC, broker-dealer, or regulated communications archive\"; firms keep their own review and supervision tools.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://apaya.com/enterprise/industry/financial-services-social-media-management"
+      ]
+    },
+    {
+      "competitor": "Apaya",
+      "feature": "Scoped access and branch analytics",
+      "area": "team",
+      "detail": "Access scoped by brand, office, region or role; Google sign-in, SAML/Okta for enterprise; analytics by post, campaign, branch, brand and channel.",
+      "limits_or_cost": "Team collaboration from Blaze (USD 129/mo).",
+      "notable": "",
+      "sources": [
+        "https://apaya.com/enterprise/industry/financial-services-social-media-management",
+        "https://apaya.com/pricing"
+      ]
+    },
+    {
+      "competitor": "Apaya",
+      "feature": "Autopilots and plan ladder",
+      "area": "billing",
+      "detail": "Spark USD 69/mo: AI post creation, scheduling, Post Autopilot, Template Studio. Blaze 129: + team, Analytics Intelligence, Website Sentinel, Blog Autopilot. Supernova 229: + Workflow Engine, white label, Launch Concierge. Extra brand +59/mo.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://apaya.com/pricing"
+      ]
+    },
+    {
+      "competitor": "SageContent",
+      "feature": "Sage Profile",
+      "area": "brand",
+      "detail": "Onboarding questionnaire capturing expertise, audience, positioning and communication style; every generated idea and script is filtered through it.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.sagecontent.ai/blog/best-ai-marketing-tools-financial-advisors",
+        "https://www.sagecontent.ai/"
+      ]
+    },
+    {
+      "competitor": "SageContent",
+      "feature": "Evergreen and timely ideation",
+      "area": "inspiration",
+      "detail": "Evergreen Ideation suggests topics relevant 6+ months; Timely Ideation suggests topics from current financial news.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.sagecontent.ai/blog/best-ai-marketing-tools-financial-advisors"
+      ]
+    },
+    {
+      "competitor": "SageContent",
+      "feature": "Script Generator",
+      "area": "format-text",
+      "detail": "150-210 word scripts in Hook, Body, CTA structure at 6th-8th grade reading level, using Sage Profile; plus platform-specific SEO descriptions.",
+      "limits_or_cost": "Flex plan.",
+      "notable": "Fixed structure and reading level make scripts consistent.",
+      "sources": [
+        "https://www.sagecontent.ai/blog/best-ai-marketing-tools-financial-advisors",
+        "https://www.sagecontent.ai/"
+      ]
+    },
+    {
+      "competitor": "SageContent",
+      "feature": "Video Board with Compliance Review stage",
+      "area": "compliance",
+      "detail": "Guided 7-step flow: idea, thumbnail, script, descriptions, recording, editing, posting; Video Board tracks Ideas to Posted incl. a Compliance Review stage with approval dates and reviewing representative; export history to CSV or DOCX. Teams: one dashboard tracking every approval and edit, one-click export.",
+      "limits_or_cost": "Flex USD 250/mo.",
+      "notable": "Compliance as a pipeline column, not a separate tool.",
+      "sources": [
+        "https://www.sagecontent.ai/blog/best-ai-marketing-tools-financial-advisors",
+        "https://www.sagecontent.ai/"
+      ]
+    },
+    {
+      "competitor": "SageContent",
+      "feature": "Recording, AI editor, human editing credits",
+      "area": "editor",
+      "detail": "In-browser recording studio; AI video editor included; optional human editing billed in credits (5 per long-form, 1 per short-form, about USD 45/credit, rollover, 3-day turnaround); Denver studio days USD 2,000.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.sagecontent.ai/pricing",
+        "https://www.sagecontent.ai/blog/best-ai-marketing-tools-financial-advisors"
+      ]
+    },
+    {
+      "competitor": "SageContent",
+      "feature": "Performance coaching",
+      "area": "analytics",
+      "detail": "Pulls analytics from connected platforms and generates automated coaching on which videos drove conversions.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.sagecontent.ai/"
+      ]
+    },
+    {
+      "competitor": "SageContent",
+      "feature": "Teams seats",
+      "area": "team",
+      "detail": "Sage Teams USD 100 per paid seat for 3+ seats with pooled editing credits and dedicated support.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.sagecontent.ai/pricing",
+        "https://www.sagecontent.ai/"
+      ]
+    },
+    {
+      "competitor": "Lately AI",
+      "feature": "Long-form to hundreds of posts",
+      "area": "remix",
+      "detail": "A.I. Content Generator turns any written content, audio or video into hundreds of social posts for review, tuned per brand voice, region or individual employee; assembles copy, images, tracking links and clips (claims 8-12 minutes saved per post).",
+      "limits_or_cost": "",
+      "notable": "Firm webinar -> per-adviser clip posts.",
+      "sources": [
+        "https://www.lately.ai/industries/compliant-social-media-content-for-financial-services-agents-advisers-brokers"
+      ]
+    },
+    {
+      "competitor": "Lately AI",
+      "feature": "Advanced Controls (named reviewers)",
+      "area": "compliance",
+      "detail": "\"Lets you specify who must review each social media post prior to it being scheduled for publishing\"; generate and approve up front, publish controlled.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.lately.ai/industries/compliant-social-media-content-for-financial-services-agents-advisers-brokers"
+      ]
+    },
+    {
+      "competitor": "Lately AI",
+      "feature": "Content syndication to advisers",
+      "area": "team",
+      "detail": "Employees choose from pre-approved content and publish to their own channels; On-Behalf-Of publishing for executives and sales staff.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.lately.ai/industries/compliant-social-media-content-for-financial-services-agents-advisers-brokers"
+      ]
+    },
+    {
+      "competitor": "Lately AI",
+      "feature": "Parent-child dashboards and pre-tests",
+      "area": "analytics",
+      "detail": "Parent-Child Dashboards across regions, brands, products, employees; pre-tests posts for keywords likely to earn impressions; word cloud recommendations.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.lately.ai/industries/compliant-social-media-content-for-financial-services-agents-advisers-brokers"
+      ]
+    },
+    {
+      "competitor": "Marky",
+      "feature": "Month of posts generated at once",
+      "area": "format-text",
+      "detail": "Generates a month of on-brand posts; user picks, tweaks and schedules to up to 7 platforms (Facebook, Instagram, LinkedIn, X, TikTok, Pinterest, Google Business); designer-style templates; own photos. No FINRA archiving; vendor advises pairing with an archive tool.",
+      "limits_or_cost": "First 30 posts free.",
+      "notable": "",
+      "sources": [
+        "https://www.mymarky.ai/post/best-social-media-tool-for-financial-advisors",
+        "https://www.mymarky.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Marky",
+      "feature": "Approval workflow only on top tier",
+      "area": "compliance",
+      "detail": "Whitelabeled portal and approval workflow are Pro-only (USD 229/mo, 114/mo yearly).",
+      "limits_or_cost": "Pro.",
+      "notable": "",
+      "sources": [
+        "https://www.mymarky.ai/pricing"
+      ]
+    },
+    {
+      "competitor": "Cloud Campaign",
+      "feature": "Workspace per agent or office",
+      "area": "team",
+      "detail": "Each agent, office or carrier-affiliated agency gets its own workspace with its own accounts, calendar and reports; workspaces tagged by carrier or line of business; cross-workspace copying and bulk approval requests.",
+      "limits_or_cost": "Team USD 199/mo: 5 workspaces.",
+      "notable": "",
+      "sources": [
+        "https://www.cloudcampaign.com/solutions/insurance-marketing-agencies"
+      ]
+    },
+    {
+      "competitor": "Cloud Campaign",
+      "feature": "Calendar approval in one secure link",
+      "area": "compliance",
+      "detail": "\"Send a full calendar in one secure link\"; multi-level approvals add compliance or agency principal sign-off; \"Require Approval\" holds posts until sign-off.",
+      "limits_or_cost": "",
+      "notable": "Reviewer approves a whole month without an account.",
+      "sources": [
+        "https://www.cloudcampaign.com/solutions/insurance-marketing-agencies"
+      ]
+    },
+    {
+      "competitor": "Cloud Campaign",
+      "feature": "Evergreen queues",
+      "area": "calendar",
+      "detail": "Taggable library of posts, images, videos; evergreen queues recycle approved posts on a schedule.",
+      "limits_or_cost": "",
+      "notable": "Approved once, reused safely.",
+      "sources": [
+        "https://www.cloudcampaign.com/solutions/insurance-marketing-agencies"
+      ]
+    },
+    {
+      "competitor": "Cloud Campaign",
+      "feature": "CaptionAI, ImageAI, AI Social Inbox",
+      "area": "engagement",
+      "detail": "AI captions and images trained on each client's voice; unified social inbox for comments and messages across accounts.",
+      "limits_or_cost": "Every plan.",
+      "notable": "",
+      "sources": [
+        "https://www.cloudcampaign.com/solutions/insurance-marketing-agencies"
+      ]
+    },
+    {
+      "competitor": "Cloud Campaign",
+      "feature": "Per-workspace watermarks and white label",
+      "area": "brand",
+      "detail": "Logo, colors and domain on portals, reports and emails; per-workspace watermarks brand shared images.",
+      "limits_or_cost": "White label from Team.",
+      "notable": "",
+      "sources": [
+        "https://www.cloudcampaign.com/solutions/insurance-marketing-agencies"
+      ]
+    },
+    {
+      "competitor": "Cloud Campaign",
+      "feature": "One-click branded reports",
+      "area": "analytics",
+      "detail": "Branded performance reports in one click, scheduled delivery, category-level performance by office.",
+      "limits_or_cost": "",
+      "notable": "",
+      "sources": [
+        "https://www.cloudcampaign.com/solutions/insurance-marketing-agencies"
+      ]
+    },
+    {
+      "competitor": "Social Jazz",
+      "feature": "Auto-scheduled branded insurance posts",
+      "area": "calendar",
+      "detail": "Auto-schedules branded general-insurance posts to agent accounts; Pro covers 4 accounts incl. LinkedIn and X.",
+      "limits_or_cost": "Free 2 posts/week, 1 account; Plus from USD 19/mo; Pro 49; Premium 199 (per Pinney).",
+      "notable": "Freemium cadence cap (2 posts/week) as the upgrade lever.",
+      "sources": [
+        "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/"
+      ]
+    },
+    {
+      "competitor": "BrightFire",
+      "feature": "Done-for-you posting",
+      "area": "other",
+      "detail": "32 written posts/month, profile management, reporting dashboard; agent reviews and approves posts.",
+      "limits_or_cost": "From USD 100/mo (per Pinney).",
+      "notable": "",
+      "sources": [
+        "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/"
+      ]
+    },
+    {
+      "competitor": "SocialCoach",
+      "feature": "Agent video tools with compliance filters",
+      "area": "format-video",
+      "detail": "Teleprompter, auto-subtitles, branded overlays; content passes compliance filters before publishing.",
+      "limits_or_cost": "Contact for pricing (per Pinney).",
+      "notable": "",
+      "sources": [
+        "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/"
+      ]
+    },
+    {
+      "competitor": "Insureio",
+      "feature": "Life-agent CRM content library",
+      "area": "other",
+      "detail": "Life insurance CRM with social connectivity, content library, holiday and awareness content, pre-written campaigns, email/SMS automation.",
+      "limits_or_cost": "From USD 25/mo; 30-day trial (per Pinney).",
+      "notable": "",
+      "sources": [
+        "https://pinneyinsurance.com/best-social-media-tools-life-insurance-agents-2026/"
+      ]
+    },
+    {
+      "competitor": "Denim Social",
+      "feature": "Compliant publishing plus paid social for agencies",
+      "area": "publishing",
+      "detail": "Compliant organic social publishing, paid social advertising and content distribution; agencies build social selling programs for localized agent sales.",
+      "limits_or_cost": "Not listed.",
+      "notable": "",
+      "sources": [
+        "https://techcompare.independentagent.com/organization/denim-social"
+      ]
+    },
+    {
+      "competitor": "Vymo",
+      "feature": "AI activity nudges for insurer field forces",
+      "area": "agent",
+      "detail": "Contextual nudges and interventions across the sales lifecycle; AIA Thailand: managers allocate leads and send engagement nudges with daily visibility of required activities; AIA Indonesia case: 134% increase in leads, >92% daily active usage.",
+      "limits_or_cost": "Not published.",
+      "notable": "Manager-to-agent nudges at Asian insurers; content sharing not confirmed.",
+      "sources": [
+        "https://campaigns.vymo.com/aia-indonesia",
+        "https://kyodonewsprwire.jp/release/202010095500"
+      ]
+    },
+    {
+      "competitor": "Turtlemint Pro",
+      "feature": "WhatsApp and SMS marketing tools for advisors",
+      "area": "engagement",
+      "detail": "\"Generate more leads with marketing tools for whatsapp, sms, etc.\"; training for newly launched products; compare 40+ general and life insurers.",
+      "limits_or_cost": "Not published.",
+      "notable": "WhatsApp-first distribution is the Asian norm.",
+      "sources": [
+        "https://www.turtlemintpro.com/"
+      ]
+    }
+  ]
+}
