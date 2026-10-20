@@ -1327,11 +1327,17 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
   };
   const copyTitle = (t: string) => navigator.clipboard.writeText(t).then(() => toast({ title: "Title copied" }));
 
+  // a language with at least 80% of its lines translated is picked again for free
+  const subsReady = (lang: string, keys = [...new Set(plan.caps.map(captionKey))]) => {
+    const have = subs[lang] ?? {};
+    return keys.length > 0 && keys.filter((k) => have[k]).length / keys.length >= 0.8;
+  };
+  // Leo only: with no translations left today, the languages not translated yet can't be picked
+  const noTranslate = leo && left("video-translate") === 0;
   const pickSubLang = async (lang: EditSettings["subLang"]) => {
     if (!lang) return patch({ subLang: "" });
     const keys = [...new Set(plan.caps.map(captionKey))];
-    const have = subs[lang] ?? {};
-    if (keys.length && keys.filter((k) => have[k]).length / keys.length >= 0.8) return patch({ subLang: lang });
+    if (subsReady(lang, keys)) return patch({ subLang: lang });
     setTranslating(lang);
     try {
       const lines = await translateCaptions(lang, keys);
@@ -2263,13 +2269,17 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                 {STYLES[settings.style].mode === "words" && <input type="color" aria-label="Spoken word colour" value={settings.activeColor} onChange={(e) => patch({ activeColor: e.target.value.toUpperCase() })} className="h-8 w-10 rounded [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-12" />}
               </Row>
               <Row label="Second language">
-                {([["", "Off"], ["zh", "\u4e2d\u6587"], ["ms", "Melayu"], ["ta", "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"]] as const).map(([id, label]) => (
-                  <Chip key={id || "off"} on={(settings.subLang ?? "") === id} onClick={() => void pickSubLang(id)}>
-                    {translating === id ? "Translating..." : label}
-                  </Chip>
-                ))}
+                {([["", "Off"], ["zh", "\u4e2d\u6587"], ["ms", "Melayu"], ["ta", "\u0ba4\u0bae\u0bbf\u0bb4\u0bcd"]] as const).map(([id, label]) => {
+                  const off = noTranslate && !!id && !subsReady(id);
+                  return (
+                    <Chip key={id || "off"} on={(settings.subLang ?? "") === id} onClick={() => void pickSubLang(id)} disabled={off} className={off ? "opacity-60" : ""}>
+                      {translating === id ? "Translating..." : label}
+                    </Chip>
+                  );
+                })}
                 <Left n={left("video-translate")} feature="video-translate" quiet />
               </Row>
+              {noTranslate && <p className="text-right text-xs text-destructive">{reasonText({ left: 0, leo })}</p>}
               <Row label="ALL CAPS"><Toggle on={settings.uppercase} set={(v) => patch({ uppercase: v })} /></Row>
               <Row label="Numbers in the highlight colour"><Toggle on={settings.highlightNumbers} set={(v) => patch({ highlightNumbers: v })} /></Row>
             </div>
@@ -2922,9 +2932,9 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-function Chip({ on, onClick, children, className = "" }: { on: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
+function Chip({ on, onClick, children, className = "", disabled }: { on: boolean; onClick: () => void; children: React.ReactNode; className?: string; disabled?: boolean }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={on}
+    <button type="button" onClick={onClick} aria-pressed={on} disabled={disabled}
       className={`rounded-full border px-2.5 py-1 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11 ${on ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"} ${className}`}>{children}</button>
   );
 }
