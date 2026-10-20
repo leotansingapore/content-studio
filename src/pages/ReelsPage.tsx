@@ -85,7 +85,7 @@ export default function ReelsPage() {
   };
 
   useEffect(() => {
-    document.title = "Reels - Content Studio";
+    document.title = "Posts board - Content Studio";
     supabase.auth.getUser().then(async ({ data }) => {
       // the server says who this is on the team; the board checks it again on every request
       const who = await checkMe(true).catch((e) => (setError(errorText(e, "check your connection")), null));
@@ -220,7 +220,7 @@ export default function ReelsPage() {
     <div className="space-y-5">
       <SectionTabs tabs={PIPELINE_TABS} />
       <header className="flex flex-wrap items-center gap-3">
-        <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Reels</h1>
+        <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Posts board</h1>
         {me?.owner && (
           <Button asChild variant="outline" size="sm" className="h-9">
             <Link to="/reels/team"><Users className="mr-1.5 h-3.5 w-3.5" /> Team</Link>

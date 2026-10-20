@@ -83,7 +83,7 @@ export default function ReelsTeamPage() {
   const [confirming, setConfirming] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = "Team - Reels - Content Studio";
+    document.title = "Team - Posts board - Content Studio";
     checkMe(true)
       .then(async (me) => {
         setOwner(me.owner);
@@ -116,7 +116,7 @@ export default function ReelsTeamPage() {
   };
 
   if (owner === false) {
-    return <p className="text-sm text-muted-foreground">Only Leo manages who sees the posts board. <Link to="/reels" className="font-semibold text-primary">Back to Reels</Link></p>;
+    return <p className="text-sm text-muted-foreground">Only Leo manages who sees the posts board. <Link to="/reels" className="font-semibold text-primary">Back to the posts board</Link></p>;
   }
 
   const live = (members ?? []).filter((m) => m.status === "joined");
@@ -128,7 +128,7 @@ export default function ReelsTeamPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="space-y-1">
         <Link to="/reels" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:min-h-11">
-          <ArrowLeft className="h-3.5 w-3.5" /> Reels
+          <ArrowLeft className="h-3.5 w-3.5" /> Posts board
         </Link>
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Team</h1>
       </header>

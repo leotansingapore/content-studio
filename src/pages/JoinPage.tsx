@@ -128,7 +128,7 @@ export default function JoinPage() {
                 {ROLE_NAMES[done.role]}: {ROLE_HELP[done.role].toLowerCase()}, for {done.brands.join(", ")}.
               </p>
               <Button asChild size="lg" className="w-full">
-                <Link to="/reels">Open the posts</Link>
+                <Link to="/reels">Open the posts board</Link>
               </Button>
             </CardContent>
           </Card>

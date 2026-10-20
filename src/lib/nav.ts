@@ -101,7 +101,7 @@ export const SECTIONS: NavSection[] = [
       { to: "/drafts", label: "My posts" },
       { to: "/library", label: "Library", owners: LEO_EMAILS },
       { to: "/grid", label: "Grid", title: "Instagram grid" },
-      { to: "/reels", label: "Reels", show: reelsShown },
+      { to: "/reels", label: "Posts board", show: reelsShown },
     ],
   },
   {

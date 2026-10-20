@@ -1636,7 +1636,7 @@ export default function CalendarPage() {
                     <span>{r.last ? `planned to ${dayLabel(r.last)}, then nothing` : `nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
                     {w && (
                       <Link to={links.reels({ brand: w.brand })} className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
-                        {w.count} reel{w.count > 1 ? "s" : ""} waiting for review
+                        {w.count} post{w.count > 1 ? "s" : ""} waiting for review
                       </Link>
                     )}
                     {mine && (
@@ -1740,14 +1740,14 @@ export default function CalendarPage() {
                   aria-expanded={waitOpen}
                   className="flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-card px-4 text-sm font-semibold text-foreground shadow-card xl:hidden"
                 >
-                  Waiting on the board ({visibleWaiting.length})
+                  Waiting on the posts board ({visibleWaiting.length})
                   <ChevronDown className={`h-4 w-4 transition-transform ${waitOpen ? "rotate-180" : ""}`} />
                 </button>
                 <div className={`${waitOpen ? "mt-2" : "hidden"} space-y-3 rounded-xl border border-border/70 bg-card p-3 shadow-card xl:mt-0 xl:block`}>
                   <p className="hidden items-center gap-1 text-sm font-semibold text-foreground xl:flex">
                     <Clapperboard className="h-4 w-4 text-brand" aria-hidden />
-                    Waiting on the board ({visibleWaiting.length})
-                    <InfoTip label="About reels waiting on the board">Approve a reel on the board to give it a date.</InfoTip>
+                    Waiting on the posts board ({visibleWaiting.length})
+                    <InfoTip label="About posts waiting on the posts board">Approve a post on the posts board to give it a date.</InfoTip>
                   </p>
                   <div className="max-h-[50vh] space-y-3 overflow-y-auto">
                     {waitingGroups.map((g) => (

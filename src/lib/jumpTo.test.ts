@@ -25,12 +25,16 @@ describe("pageItems", () => {
     expect(new Set(items).size).toBe(items.length);
   });
 
-  it("shows Reels only once the server has said this sign-in sees the posts board", () => {
+  it("shows the posts board only once the server has said this sign-in sees it", () => {
     const store = new Map<string, string>();
     vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
     expect(pageItems("tanjunsing@gmail.com").some((i) => i.to === "/reels")).toBe(false);
     store.set("cs-team-me", JSON.stringify({ owner: false, member: true, modules: ["reels"], at: Date.now() }));
-    expect(pageItems("user@demo.com").some((i) => i.to === "/reels")).toBe(true);
+    const items = pageItems("user@demo.com");
+    expect(items.find((i) => i.to === "/reels")?.label).toBe("Posts board");
+    // found by its new name and by the old one people still type
+    expect(searchJump(items, "posts board")[0].to).toBe("/reels");
+    expect(searchJump(items, "reels")[0].to).toBe("/reels");
     store.set("cs-team-me", JSON.stringify({ owner: false, member: false, at: Date.now() }));
     expect(pageItems("user@demo.com").some((i) => i.to === "/reels")).toBe(false);
     vi.unstubAllGlobals();

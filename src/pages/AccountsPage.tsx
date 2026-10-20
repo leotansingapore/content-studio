@@ -133,7 +133,7 @@ export default function AccountsPage() {
           {igBack && profile.boardBrand && ZERNIO_IG_BRANDS.includes(profile.boardBrand) && (
             <>
               {" "}Approved posts for {profile.name} now go out to Instagram by themselves.{" "}
-              <Link to="/reels" className="font-semibold text-primary underline-offset-2 hover:underline">Back to your posts</Link>
+              <Link to="/reels" className="font-semibold text-primary underline-offset-2 hover:underline">Back to the posts board</Link>
             </>
           )}
         </p>
