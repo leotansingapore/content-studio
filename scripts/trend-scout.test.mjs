@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { COMPLIANCE_FLAGS } from "../src/lib/compliance.ts";
 import {
   COMPLIANCE_RULES,
+  GENERIC_TAGS,
   complianceIssues,
   IG_REEL_ACTOR,
   TIKTOK_ACTOR,
@@ -15,9 +19,16 @@ import {
   normalizeTiktokItem,
   pickOutlierReels,
   rankPosts,
+  runScout,
   tiktokSubtitleLink,
+  updateHashtagStats,
   vttToText,
 } from "./trend-scout.mjs";
+
+// The integrator's live clockworks~tiktok-scraper answer (5 items, trimmed); read only.
+const TIKTOK_FIXTURE = JSON.parse(
+  fs.readFileSync(new URL("../supabase/functions/viral-search/fixtures/tiktok-search.json", import.meta.url), "utf8"),
+);
 
 // Input fields each actor accepts, copied from the actors' published input
 // schemas (api.apify.com/v2/actor-builds/<latest build>). Apify rejects or
@@ -344,5 +355,181 @@ describe("finalizeTrends", () => {
       "2026-09-15",
     );
     expect(out).toEqual([]);
+  });
+});
+
+describe("hashtags", () => {
+  it("reads tags from the actor's hashtags field on the saved raw item", () => {
+    const [first, , mangled] = TIKTOK_FIXTURE;
+    expect(normalizeTiktokItem(first).tags).toEqual(["leasing", "propertymanagement", "leasingagent", "tipsandtricks", "sales"]);
+    // this caption's #words are run together ("#Sal#SalesPsychologyl#..."), the field is clean
+    expect(normalizeTiktokItem(mangled).tags).toEqual(["salespsychology", "salestraining", "closingdeals", "salestips"]);
+  });
+
+  it("falls back to the #words in the text when the field is missing or empty", () => {
+    const { hashtags, ...bare } = TIKTOK_FIXTURE[1];
+    expect(normalizeTiktokItem(bare).tags).toEqual(hashtags.map((h) => h.name));
+    expect(normalizeTiktokItem({ ...bare, hashtags: [], text: "Payday plan #MoneyTok #budgeting #moneytok" }).tags).toEqual([
+      "moneytok",
+      "budgeting",
+    ]);
+    expect(normalizeTiktokItem({ ...bare, text: "no tags here" }).tags).toEqual([]);
+  });
+
+  const TODAY = "2026-10-20";
+  const v = (n, tags, views = 0) => ({ url: `https://www.tiktok.com/@a/video/${n}`, tags, views });
+  // moneytok on 6 videos (views 100..500 and 6000, so the median 350 is not the mean), fyp on 5, budgeting on 3, savings on 1, and one repeat of video 1
+  const videos = [
+    v(1, ["moneytok", "fyp", "budgeting", "savings"], 100),
+    { ...v(1, ["moneytok", "fyp"], 100), url: "https://www.tiktok.com/@a/video/1?lang=en" },
+    v(2, ["moneytok", "fyp", "budgeting"], 200),
+    v(3, ["moneytok", "fyp", "budgeting"], 300),
+    v(4, ["moneytok", "fyp"], 400),
+    v(5, ["moneytok", "fyp"], 500),
+    v(6, ["moneytok"], 6000),
+  ];
+
+  it("counts tags on 5+ videos with their median views and the tags most often beside them", async () => {
+    const stats = await updateHashtagStats(null, videos, TODAY, null);
+    expect(stats.updated).toBe(TODAY);
+    expect(Object.keys(stats.tags)).toEqual(["moneytok"]);
+    expect(stats.tags.moneytok).toEqual({
+      history: [{ day: TODAY, videos: 6, medianViews: 350 }],
+      related: [
+        { tag: "budgeting", overlap: 0.5 },
+        { tag: "savings", overlap: 0.17 },
+      ],
+      finance: null,
+    });
+  });
+
+  it("drops the six generic tags before counting when Jev is not available", async () => {
+    expect(GENERIC_TAGS).toEqual(["fyp", "foryou", "foryoupage", "viral", "trending", "tiktok"]);
+    const stats = await updateHashtagStats(null, videos, TODAY, null);
+    expect(stats.tags.fyp).toBeUndefined();
+    expect(stats.tags.moneytok.related.map((r) => r.tag)).not.toContain("fyp");
+  });
+
+  it("asks Jev once per new tag and lets its answer decide instead of the list", async () => {
+    const ask = vi.fn(async (tag) => (tag === "moneytok" ? 0.9 : 0.1));
+    const first = await updateHashtagStats(null, videos, TODAY, ask);
+    expect(ask.mock.calls.map((c) => c[0]).sort()).toEqual(["fyp", "moneytok"]);
+    expect(first.tags.moneytok.finance).toBe(true);
+    expect(first.tags.fyp.finance).toBe(false);
+    expect(first.tags.moneytok.related.map((r) => r.tag)).toEqual(["budgeting", "savings"]);
+    ask.mockClear();
+    await updateHashtagStats(first, videos, "2026-10-21", ask);
+    expect(ask).not.toHaveBeenCalled();
+  });
+
+  it("asks again next run when Jev gave no answer, except for a generic tag", async () => {
+    const stats = await updateHashtagStats(null, videos, TODAY, async () => null);
+    expect(stats.tags.moneytok.finance).toBeNull();
+    expect(stats.tags.fyp.finance).toBe(false);
+  });
+
+  it("keeps 90 days of history, replaces a same-day rerun and drops tags with nothing left", async () => {
+    const prev = {
+      updated: "2026-10-19",
+      tags: {
+        moneytok: {
+          history: [
+            { day: "2026-07-22", videos: 9, medianViews: 1 }, // 90 days before today: goes
+            { day: "2026-07-23", videos: 8, medianViews: 2 }, // 89 days: stays
+            { day: TODAY, videos: 1, medianViews: 3 }, // an earlier run today: replaced
+          ],
+          related: [],
+          finance: true,
+        },
+        oldtag: { history: [{ day: "2026-07-01", videos: 5, medianViews: 10 }], related: [], finance: true },
+        broken: { history: "nope" },
+      },
+    };
+    const stats = await updateHashtagStats(prev, videos, TODAY, null);
+    expect(stats.tags.moneytok.history).toEqual([
+      { day: "2026-07-23", videos: 8, medianViews: 2 },
+      { day: TODAY, videos: 6, medianViews: 350 },
+    ]);
+    expect(stats.tags.moneytok.finance).toBe(true);
+    expect(Object.keys(stats.tags)).toEqual(["moneytok"]);
+  });
+});
+
+describe("runScout", () => {
+  const rawTiktok = (n) => ({
+    webVideoUrl: `https://www.tiktok.com/@creator${n}/video/${n}`,
+    authorMeta: { name: `creator${n}` },
+    text: `Budget tip ${n}`,
+    diggCount: 5000 + n,
+    commentCount: 10,
+    playCount: 1000 * n,
+    createTimeISO: "2026-10-18T00:00:00.000Z",
+    hashtags: [{ name: "moneytok" }, { name: "fyp" }],
+  });
+  const goodKit = (index) => ({
+    index,
+    pillar: "topic",
+    trend_type: "culture",
+    trend_source: "A budgeting video with 5k likes.",
+    title: `Payday plan number ${index}`,
+    hooks: ["I split my pay into three pots on payday.", "Here is the split."],
+    talking_points: ["Pay the bills first", "Pick one goal", "Automate it"],
+    cta: "Save this for your next payday.",
+    cta_type: "save-share",
+    why_it_works: "Rides a proven format with an honest money angle.",
+    how_to_film: "Talking head, first line on screen.",
+  });
+  const dirs = [];
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
+  });
+  function setup() {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "trend-scout-"));
+    dirs.push(dir);
+    const env = {
+      APIFY_TOKEN: "fake",
+      ANTHROPIC_API_KEY: "fake",
+      TREND_MIN: "2",
+      TREND_OUT: path.join(dir, "trends.json"),
+      HASHTAG_OUT: path.join(dir, "hashtagStats.json"),
+    };
+    // TikTok gets 6 videos; the Instagram and transcript runs come back empty, so nothing is fetched
+    const run = vi.fn(async (actor, input) => (input.hashtags ? [1, 2, 3, 4, 5, 6].map(rawTiktok) : []));
+    return { env, run, files: () => fs.readdirSync(dir).sort() };
+  }
+  const now = Date.parse("2026-10-20T02:00:00Z");
+
+  it("writes the trends and the day's hashtag stats on a good run", async () => {
+    const { env, run, files } = setup();
+    const ask = vi.fn(async (tag) => (tag === "moneytok" ? 0.95 : 0.05));
+    await runScout({ env, run, kits: async () => [goodKit(0), goodKit(1)], ask, now });
+    expect(files()).toEqual(["hashtagStats.json", "trends.json"]);
+    const stats = JSON.parse(fs.readFileSync(env.HASHTAG_OUT, "utf8"));
+    expect(stats.updated).toBe("2026-10-20");
+    expect(stats.tags.moneytok).toMatchObject({ finance: true, history: [{ day: "2026-10-20", videos: 6, medianViews: 3500 }] });
+    expect(stats.tags.fyp.finance).toBe(false);
+    expect(ask).toHaveBeenCalledTimes(2);
+  });
+
+  it("writes nothing when Claude's kits fall short", async () => {
+    const { env, run, files } = setup();
+    const ask = vi.fn(async () => 0.9);
+    await expect(runScout({ env, run, kits: async () => [goodKit(0)], ask, now })).rejects.toThrow(/refusing to overwrite/);
+    expect(files()).toEqual([]);
+    expect(ask).not.toHaveBeenCalled();
+  });
+
+  it("writes nothing when Apify fails", async () => {
+    const { env, files } = setup();
+    const run = async () => {
+      throw new Error("Apify 403 Monthly usage hard limit exceeded");
+    };
+    const kits = vi.fn(async () => [goodKit(0), goodKit(1)]);
+    await expect(runScout({ env, run, kits, ask: null, now })).rejects.toThrow(/Only 0 candidate videos/);
+    expect(kits).not.toHaveBeenCalled();
+    expect(files()).toEqual([]);
   });
 });

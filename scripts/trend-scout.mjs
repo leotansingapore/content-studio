@@ -5,6 +5,12 @@
 // financial consultant can post today (hooks, talking points, CTA). Writes
 // src/data/trends.json, which the /trends page renders.
 //
+// It also appends the day's hashtag numbers to src/data/hashtagStats.json (the
+// Hashtags view on /trends): for each tag on 5+ of the ~75 TikToks it read, the
+// video count, median views and the tags most often beside it, kept 90 days.
+// Jev (TypeSafe, jev-1.13.0) asks once per new tag whether it is about money or
+// work; without TYPESAFE_API_KEY the generic tags (fyp, viral, ...) are dropped.
+//
 // Sources, all via Apify:
 //   - TikTok: finance hashtags, ranked by real engagement.
 //   - Instagram: recent reels from known finance creators (the SG creators in
@@ -32,11 +38,14 @@
 //   TIKTOK_HASHTAGS      (optional) comma-separated hashtag override
 //   IG_CREATORS          (optional) extra comma-separated Instagram handles
 //   TREND_OUT            (optional) output path, default src/data/trends.json
+//   HASHTAG_OUT          (optional) hashtag stats path, default src/data/hashtagStats.json
+//   TYPESAFE_API_KEY     (optional) Jev's finance check on new hashtags
 //
 // The selection, parsing and validation helpers are pure and exported, so
 // scripts/trend-scout.test.mjs covers them without spending Apify or Anthropic
-// quota. A run that produces fewer than TREND_MIN valid trends exits non-zero
-// and does NOT write the file: a bad run must never wipe the last good drop.
+// quota; runScout takes Apify, Claude and Jev as functions for the same reason.
+// A run that produces fewer than TREND_MIN valid trends exits non-zero and
+// writes NEITHER file: a bad run must never wipe the last good drop.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -47,6 +56,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const DEFAULT_OUT = path.join(ROOT, "src/data/trends.json");
+const DEFAULT_HASHTAG_OUT = path.join(ROOT, "src/data/hashtagStats.json");
 
 // Mirrors src/lib/trends.ts. Kept here (not imported) so the scout has no build
 // dependency on the app's TypeScript.
@@ -114,8 +124,8 @@ const TIKTOK_SHORTLIST = 12;
 const IG_SHORTLIST = 6;
 const MAX_TRANSCRIPT_CHARS = 1500;
 
-function csvEnv(name, fallback) {
-  const raw = (process.env[name] || "").trim();
+function csvEnv(env, name, fallback) {
+  const raw = (env[name] || "").trim();
   if (!raw) return fallback;
   return raw
     .split(",")
@@ -200,6 +210,22 @@ export function normalizeIgItem(p) {
   };
 }
 
+/** A TikTok item's hashtags, lowercased: the actor's hashtags[].name, else the #words in its text. */
+export function tiktokTags(p) {
+  const named = Array.isArray(p?.hashtags) ? p.hashtags.map((h) => h?.name) : [];
+  const raw = named.some((t) => typeof t === "string" && t.trim())
+    ? named
+    : [...String(p?.text || p?.desc || "").matchAll(/#([\p{L}\p{N}_]+)/gu)].map((m) => m[1]);
+  return [
+    ...new Set(
+      raw
+        .filter((t) => typeof t === "string")
+        .map((t) => t.trim().replace(/^#/, "").toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
+}
+
 /** Map a TikTok scraper item to the common viral-post shape (or null). */
 export function normalizeTiktokItem(p) {
   if (!p) return null;
@@ -222,6 +248,7 @@ export function normalizeTiktokItem(p) {
     shares: Number(p.shareCount ?? p.shares) || 0,
     views: Number(p.playCount ?? p.views) || 0,
     timestamp: p.createTimeISO || p.createTime || null,
+    tags: tiktokTags(p),
   };
 }
 
@@ -276,6 +303,103 @@ function median(values) {
   if (sorted.length === 0) return 0;
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+// ---- Hashtag stats (find-search-topics' Hashtags view) ----------------------
+
+/** Dropped before counting when Jev is not available (no TYPESAFE_API_KEY). */
+export const GENERIC_TAGS = ["fyp", "foryou", "foryoupage", "viral", "trending", "tiktok"];
+export const TAG_MIN_VIDEOS = 5;
+export const HISTORY_DAYS = 90;
+/** Jev's finance probability at or above this is a finance tag (a proposal until the first real run is read). */
+export const FINANCE_YES = 0.6;
+export const FINANCE_RULE =
+  "Is `hashtag` about personal money, saving, investing, insurance, retirement or work and careers?";
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const daysBetween = (from, to) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
+
+/** The stored file, rebuilt field by field; anything malformed is dropped. */
+function cleanStats(prev) {
+  const tags = {};
+  for (const [tag, e] of Object.entries(prev?.tags ?? {})) {
+    const history = (Array.isArray(e?.history) ? e.history : []).filter(
+      (h) => DAY_RE.test(h?.day) && Number.isFinite(h.videos) && Number.isFinite(h.medianViews),
+    );
+    const related = (Array.isArray(e?.related) ? e.related : []).filter(
+      (r) => typeof r?.tag === "string" && Number.isFinite(r.overlap),
+    );
+    tags[tag] = { history, related, finance: typeof e?.finance === "boolean" ? e.finance : null };
+  }
+  return tags;
+}
+
+/**
+ * Today's numbers appended to the hashtag history. For every tag on TAG_MIN_VIDEOS or more of the day's
+ * videos: the video count, the median views and the 5 tags most often beside it (overlap = the share of this
+ * tag's videos that also carry the other tag). `finance` is Jev's answer, asked once per tag that has none
+ * (null = not asked yet, which the app shows); with no `ask`, the GENERIC_TAGS are dropped instead.
+ * History older than HISTORY_DAYS goes, and a tag with no history left goes with it.
+ */
+export async function updateHashtagStats(prev, videos, today, ask = null) {
+  const byTag = new Map();
+  const seen = new Set();
+  for (const v of videos) {
+    const key = urlKey(v?.url);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    for (const t of v.tags ?? []) {
+      if (!ask && GENERIC_TAGS.includes(t)) continue;
+      if (!byTag.has(t)) byTag.set(t, { urls: new Set(), views: [] });
+      byTag.get(t).urls.add(key);
+      byTag.get(t).views.push(v.views || 0);
+    }
+  }
+  const tags = cleanStats(prev);
+  const popular = [...byTag.keys()].filter((t) => byTag.get(t).urls.size >= TAG_MIN_VIDEOS);
+  for (const t of popular) tags[t] ??= { history: [], related: [], finance: null };
+
+  const fresh = ask ? popular.filter((t) => tags[t].finance === null) : [];
+  if (fresh.length) {
+    console.log(`  Jev: asking about ${fresh.length} new hashtags`);
+    // shortcut: a local 6-at-a-time loop like sg-feeds'; switch to a shared pool if scripts get one
+    let next = 0;
+    await Promise.all(
+      Array.from({ length: 6 }, async () => {
+        while (next < fresh.length) {
+          const t = fresh[next++];
+          const p = await ask(t);
+          // no answer: a generic tag gets the no-key rule, any other stays unasked and is asked next run
+          tags[t].finance = p == null ? (GENERIC_TAGS.includes(t) ? false : null) : p >= FINANCE_YES;
+          console.log(`    #${t}: ${p == null ? "no answer" : p.toFixed(2)}`);
+        }
+      }),
+    );
+  }
+
+  for (const t of popular) {
+    const { urls, views } = byTag.get(t);
+    const related = [...byTag]
+      .filter(([u]) => u !== t && tags[u]?.finance !== false)
+      .map(([u, o]) => ({ tag: u, shared: [...urls].filter((k) => o.urls.has(k)).length, total: o.urls.size }))
+      .filter((r) => r.shared > 0)
+      .sort((a, b) => b.shared - a.shared || b.total - a.total || a.tag.localeCompare(b.tag))
+      .slice(0, 5)
+      .map((r) => ({ tag: r.tag, overlap: Math.round((r.shared / urls.size) * 100) / 100 }));
+    tags[t].history = [
+      ...tags[t].history.filter((h) => h.day !== today),
+      { day: today, videos: urls.size, medianViews: Math.round(median(views)) },
+    ];
+    tags[t].related = related;
+  }
+
+  const out = {};
+  for (const t of Object.keys(tags).sort()) {
+    const history = tags[t].history
+      .filter((h) => daysBetween(h.day, today) < HISTORY_DAYS)
+      .sort((a, b) => a.day.localeCompare(b.day));
+    if (history.length) out[t] = { ...tags[t], history };
+  }
+  return { updated: today, tags: out };
 }
 
 /**
@@ -580,7 +704,7 @@ export function singaporeDate(now = new Date()) {
   return new Date(now.getTime() + 8 * 3_600_000).toISOString().slice(0, 10);
 }
 
-function instagramCreators() {
+function instagramCreators(env) {
   let local = [];
   try {
     const advisors = JSON.parse(
@@ -593,16 +717,16 @@ function instagramCreators() {
   } catch {
     // advisors file optional
   }
-  return [...new Set([...local.slice(0, 40), ...GLOBAL_IG_CREATORS, ...csvEnv("IG_CREATORS", [])])];
+  return [...new Set([...local.slice(0, 40), ...GLOBAL_IG_CREATORS, ...csvEnv(env, "IG_CREATORS", [])])];
 }
 
 /** Attach transcripts to the shortlisted posts; a missing transcript never fails the run. */
-async function withTranscripts(token, tiktokPosts, igPosts) {
+async function withTranscripts(run, token, tiktokPosts, igPosts) {
   const jobs = buildTranscriptJobs({
     tiktokUrls: tiktokPosts.map((p) => p.url),
     igUrls: igPosts.map((p) => p.url),
   });
-  const results = await Promise.allSettled(jobs.map((j) => runActor(j.actor, j.input, token)));
+  const results = await Promise.allSettled(jobs.map((j) => run(j.actor, j.input, token)));
   const byUrl = new Map();
 
   for (const [i, result] of results.entries()) {
@@ -668,34 +792,52 @@ async function writeKits({ apiKey, model, posts, count, today }) {
   return extractKitArray(text);
 }
 
-async function main() {
-  const apifyToken = process.env.APIFY_TOKEN;
-  if (!apifyToken) {
-    console.error("APIFY_TOKEN is not set — cannot scrape viral posts.");
-    process.exit(1);
+/** Jev's finance probability for a hashtag, or null without TYPESAFE_API_KEY (then the generic-tag rule runs). */
+async function financeAsker(env) {
+  if (!env.TYPESAFE_API_KEY) return null;
+  let jev;
+  try {
+    jev = await import("../supabase/functions/_shared/jev.ts"); // needs Node 22.18+ to load TypeScript
+  } catch (e) {
+    console.warn(`  Jev could not load (${e?.message ?? e}); dropping the generic tags instead`);
+    return null;
   }
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error("ANTHROPIC_API_KEY is not set — cannot write content kits.");
-    process.exit(1);
-  }
-  const count = Number(process.env.TREND_COUNT || 12);
-  const min = Number(process.env.TREND_MIN || 8);
-  const minEngagement = Number(process.env.TREND_MIN_ENGAGEMENT || 1000);
-  const maxAgeDays = Number(process.env.TREND_MAX_AGE_DAYS || 14);
-  const model = process.env.TREND_MODEL || "claude-opus-4-8";
-  const out = process.env.TREND_OUT || DEFAULT_OUT;
-  const today = singaporeDate();
-  const now = Date.now();
+  const { askJev, noulOf } = jev;
+  const jevEnv = { get: (name) => env[name] };
+  return async (tag) =>
+    noulOf(
+      await askJev({ hashtag: `#${tag}` }, { finance: { type: "noul", instructions: FINANCE_RULE } }, { who: "cs-trend-scout" }, { env: jevEnv }),
+      "finance",
+    );
+}
+
+/**
+ * One scout run. Apify, Claude and Jev come in as functions so the tests can fake them; a run that fails
+ * throws before it writes either file, so the last good drop stays up.
+ */
+export async function runScout({ env = process.env, run = runActor, kits = writeKits, ask, now = Date.now() } = {}) {
+  const apifyToken = env.APIFY_TOKEN;
+  if (!apifyToken) throw new Error("APIFY_TOKEN is not set, so there is nothing to scrape viral posts with.");
+  const apiKey = env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set, so the content kits cannot be written.");
+  const count = Number(env.TREND_COUNT || 12);
+  const min = Number(env.TREND_MIN || 8);
+  const minEngagement = Number(env.TREND_MIN_ENGAGEMENT || 1000);
+  const maxAgeDays = Number(env.TREND_MAX_AGE_DAYS || 14);
+  const model = env.TREND_MODEL || "claude-opus-4-8";
+  const out = env.TREND_OUT || DEFAULT_OUT;
+  const hashtagOut = env.HASHTAG_OUT || DEFAULT_HASHTAG_OUT;
+  const today = singaporeDate(new Date(now));
 
   console.log(`Trend scout: model=${model} target=${count} min=${min} date=${today}`);
   console.log("Finding finance videos doing well...");
   const jobs = buildDiscoveryJobs({
-    tiktokHashtags: csvEnv("TIKTOK_HASHTAGS", DEFAULT_TIKTOK_HASHTAGS),
-    igCreators: instagramCreators(),
+    tiktokHashtags: csvEnv(env, "TIKTOK_HASHTAGS", DEFAULT_TIKTOK_HASHTAGS),
+    igCreators: instagramCreators(env),
   });
-  const runs = await Promise.allSettled(jobs.map((j) => runActor(j.actor, j.input, apifyToken)));
+  const runs = await Promise.allSettled(jobs.map((j) => run(j.actor, j.input, apifyToken)));
 
+  let tiktokRead = [];
   let tiktok = [];
   let instagram = [];
   runs.forEach((result, i) => {
@@ -705,13 +847,11 @@ async function main() {
       return;
     }
     if (job.platform === "tiktok") {
-      const fresh = result.value
-        .map(normalizeTiktokItem)
-        .filter(Boolean)
-        .filter((p) => {
-          const age = ageInDays(p.timestamp, now);
-          return age === null || age <= maxAgeDays;
-        });
+      tiktokRead = result.value.map(normalizeTiktokItem).filter(Boolean);
+      const fresh = tiktokRead.filter((p) => {
+        const age = ageInDays(p.timestamp, now);
+        return age === null || age <= maxAgeDays;
+      });
       tiktok = rankPosts(fresh, { minEngagement }).slice(0, TIKTOK_SHORTLIST);
       console.log(`  TikTok: ${result.value.length} videos, ${fresh.length} recent -> ${tiktok.length} shortlisted`);
     } else {
@@ -721,24 +861,32 @@ async function main() {
   });
 
   if (tiktok.length + instagram.length < min) {
-    console.error(
+    throw new Error(
       `Only ${tiktok.length + instagram.length} candidate videos (< ${min}); refusing to overwrite the last good drop.`,
     );
-    process.exit(1);
   }
 
   console.log("Fetching transcripts...");
-  const candidates = await withTranscripts(apifyToken, tiktok, instagram);
+  const candidates = await withTranscripts(run, apifyToken, tiktok, instagram);
 
-  const kits = await writeKits({ apiKey, model, posts: candidates, count, today });
-  const trends = finalizeTrends(kits, candidates, today, count);
-  console.log(`Claude wrote ${kits.length} kits -> ${trends.length} valid trends.`);
+  const written = await kits({ apiKey, model, posts: candidates, count, today });
+  const trends = finalizeTrends(written, candidates, today, count);
+  console.log(`Claude wrote ${written.length} kits -> ${trends.length} valid trends.`);
 
   if (trends.length < min) {
-    console.error(
-      `Only ${trends.length} valid trends (< ${min}); refusing to overwrite the last good drop.`,
-    );
-    process.exit(1);
+    throw new Error(`Only ${trends.length} valid trends (< ${min}); refusing to overwrite the last good drop.`);
+  }
+
+  // Every TikTok the scout read today, not only the shortlist; nothing read keeps the file as it is.
+  let stats = null;
+  if (tiktokRead.length) {
+    let prev = null;
+    try {
+      prev = JSON.parse(fs.readFileSync(hashtagOut, "utf8"));
+    } catch {
+      // first run, or no file yet
+    }
+    stats = await updateHashtagStats(prev, tiktokRead, today, ask === undefined ? await financeAsker(env) : ask);
   }
 
   fs.writeFileSync(out, JSON.stringify(trends, null, 2) + "\n");
@@ -746,12 +894,16 @@ async function main() {
   for (const t of trends) {
     console.log(`- [${t.platform}] ${t.title}\n    ${t.author} ${t.source_url} (${fmtNum(t.views)} views, ${fmtNum(t.likes)} likes)\n    hook: ${t.hooks[0]}`);
   }
+  if (stats) {
+    fs.writeFileSync(hashtagOut, JSON.stringify(stats, null, 2) + "\n");
+    console.log(`Wrote ${Object.keys(stats.tags).length} hashtags to ${hashtagOut}`);
+  }
 }
 
 // Only run the API path when executed directly, so tests can import the pure
 // functions above without any token.
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  main().catch((err) => {
+  runScout().catch((err) => {
     console.error("Trend scout failed:", err?.message ?? err);
     process.exit(1);
   });
