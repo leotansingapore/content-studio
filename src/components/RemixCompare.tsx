@@ -150,7 +150,8 @@ export default function RemixCompare({
           side ? "lg:col-span-2 lg:row-start-2" : ""
         }`}
       >
-        <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">More like this</h3>
+        {/* on a phone the selected tab already says it */}
+        <h3 className="hidden text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground lg:block">More like this</h3>
         {more.length ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {more.map((s) => (
