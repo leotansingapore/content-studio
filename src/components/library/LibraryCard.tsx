@@ -135,7 +135,7 @@ function LibraryCard({ item, brand, carousel, show, userId, fontsReady }: { item
                 {item.waiting ? <Clock className="h-6 w-6" /> : making ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <AlertCircle className="h-6 w-6 text-destructive" />}
               </span>
             ) : item.format === "video" ? (
-              <span className="flex h-full w-full items-center justify-center bg-zinc-800 text-zinc-300">
+              <span className="flex h-full w-full items-center justify-center text-muted-foreground">
                 <Film className="h-6 w-6" />
               </span>
             ) : (
