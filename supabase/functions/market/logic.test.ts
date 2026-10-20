@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/chatgpt-answer.json";
+import related from "./fixtures/related-keywords.json";
+import relatedEmpty from "./fixtures/related-keywords-empty.json";
+import youtube from "./fixtures/youtube-organic.json";
 import {
   checkProblem, cleanInput, cleanPosts, cleanQuestions, cleanTerms, dayWords, earlierWeekDays, foldStories, geoJudged, suggestMessages,
   accountGate, answerGist, overAccountWeek, citesSite, isAllowed, judgeNews, newsAsk, newsTask, shownNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
   sameStoryAsk, sameStoryOf, shortlistAct, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
+  candidates, changeOf, cleanSearches, isGap, keptByJev, recentVideos, relatedKeywords, relatedTask, searchAsk, searchesProblem, searchWeekRefusal, seriesOf,
+  toTopic, topicSlug, trendOf, videosTask, type RelatedKeyword,
 } from "./logic";
 import type { UsageClient } from "../_shared/usageCaps";
 
@@ -398,5 +403,146 @@ describe("set-up suggestions", () => {
     const user = suggestMessages({ name: "Leo", audience: "young families", topics: [], site: "leotan.sg" })[1].content;
     expect(user).toContain("Their website: leotan.sg");
     expect(suggestMessages({ name: "Leo", audience: "young families", topics: [], site: "" })[1].content).not.toContain("website");
+  });
+});
+
+describe("searches on Trends: the request", () => {
+  it("keeps at most 5 seeds, trimmed and deduplicated, and asks for one", () => {
+    const i = cleanSearches({ seeds: ["  CPF   life ", "cpf life", "x", 7, "retirement", "hospital bills", "medishield", "wills", "estate"], serves: " young families ", sells: "advice" });
+    expect(i.seeds).toEqual(["CPF life", "retirement", "hospital bills", "medishield", "wills"]);
+    expect(i).toMatchObject({ profile: "me", serves: "young families", sells: "advice" });
+    expect(cleanSearches({ profile: "pmg2k1x9ab", seeds: "cpf" })).toMatchObject({ profile: "pmg2k1x9ab", seeds: [] });
+    expect(cleanSearches({ profile: "../x" }).profile).toBe("me");
+    expect(searchesProblem(cleanSearches({ seeds: [] }))).toBe("Add at least one topic you post about.");
+    expect(searchesProblem(cleanSearches({ seeds: ["cpf"] }))).toBeNull();
+  });
+
+  it("asks Labs for 30 related keywords in Singapore and YouTube for one block of 20", () => {
+    expect(relatedTask("cpf")).toEqual({ keyword: "cpf", location_code: 2702, language_code: "en", depth: 1, limit: 30 });
+    expect(videosTask("cpf")).toEqual({ keyword: "cpf", location_code: 2702, language_code: "en", block_depth: 20 });
+  });
+
+  it("refuses a second check in a week in the page's words", () => {
+    expect(searchWeekRefusal("2026-10-27")).toEqual({ status: 429, body: { code: "weekly_limit", nextDay: "2026-10-27", error: "Checked this week. Next check from Tue 27 Oct." } });
+  });
+});
+
+describe("searches on Trends: shaping DataForSEO's answers", () => {
+  const life = relatedKeywords(related, "life insurance");
+
+  it("reads every keyword of the real Labs answer with its volume and 12 months, oldest first", () => {
+    expect(life).toHaveLength(9);
+    expect(life[0]).toEqual({
+      keyword: "life insurance",
+      seed: "life insurance",
+      volume: 22200,
+      series: [18100, 14800, 40500, 60500, 60500, 49500, 1900, 880, 1600, 1000, 590, 720],
+    });
+    expect(life.map((k) => k.keyword)).toContain("life insurance singapore for foreigners");
+  });
+
+  it("reads the real empty answer as no keywords", () => {
+    expect(relatedKeywords(relatedEmpty, "sales follow up")).toEqual([]);
+    expect(relatedKeywords(null, "x")).toEqual([]);
+  });
+
+  it("pads a short history at the old end and reads a missing month as 0", () => {
+    expect(seriesOf([{ year: 2026, month: 9, search_volume: 30 }, { year: 2026, month: 8, search_volume: null }])).toEqual([...Array(10).fill(0), 0, 30]);
+    expect(seriesOf("junk")).toEqual(Array(12).fill(0));
+  });
+
+  it("drops keywords under 10 searches, keeps one per slug (the bigger) and sorts biggest first", () => {
+    const k = (keyword: string, volume: number, seed = "s"): RelatedKeyword => ({ keyword, seed, volume, series: [] });
+    expect(candidates([[k("CPF life", 50, "a"), k("tiny", 9)], [k("cpf-life", 80, "b"), k("medisave", 10)]]).map((x) => [x.keyword, x.seed])).toEqual([
+      ["cpf-life", "b"],
+      ["medisave", "s"],
+    ]);
+    expect(topicSlug("CPF LIFE payout 2026?")).toBe("cpf-life-payout-2026");
+  });
+});
+
+describe("searches on Trends: the figures", () => {
+  const months = (before: number, recent: number) => [0, 0, 0, 0, 0, 0, before, 0, 0, recent, 0, 0];
+
+  it("compares the last 3 months with the 3 before, and calls a zero base New", () => {
+    expect(changeOf(months(100, 140))).toBe(40);
+    expect(changeOf(months(0, 50))).toBeNull();
+    expect(trendOf(changeOf(months(0, 50)))).toBe("new");
+    expect(changeOf(seriesOf(related.tasks[0].result[0].items[0].keyword_data.keyword_info.monthly_searches))).toBe(-47);
+  });
+
+  it("draws the rising and falling lines at 20%", () => {
+    expect(trendOf(20)).toBe("rising");
+    expect(trendOf(19)).toBe("steady");
+    expect(trendOf(-19)).toBe("steady");
+    expect(trendOf(-20)).toBe("falling");
+  });
+
+  it("calls it a gap at 100 searches and fewer than 3 recent videos, never without a YouTube read", () => {
+    expect(isGap(100, 2)).toBe(true);
+    expect(isGap(99, 2)).toBe(false);
+    expect(isGap(100, 3)).toBe(false);
+    expect(isGap(5000, null)).toBe(false);
+  });
+
+  it("counts YouTube's results from the last 90 days and keeps the 3 newest, clean links", () => {
+    const at = (ago: number) => new Date(Date.parse("2026-10-20T00:00:00Z") - ago * 86_400_000).toISOString().replace("T", " ").replace(/\.\d+Z$/, " +00:00");
+    const serp = (agos: number[]) => ({
+      tasks: [{ status_code: 20000, result: [{ items: [
+        { type: "youtube_channel", title: "A channel", timestamp: at(1) },
+        ...agos.map((d, n) => ({ type: "youtube_video", title: `Video ${n}`, video_id: `vid00${n}`, url: `https://www.youtube.com/watch?v=vid00${n}&pp=x`, timestamp: at(d) })),
+      ] }] }],
+    });
+    const now = new Date("2026-10-20T00:00:00Z");
+    expect(recentVideos(serp([10, 89, 91, 400]), now)).toEqual({
+      recent: 2,
+      videos: [
+        { title: "Video 0", url: "https://www.youtube.com/watch?v=vid000" },
+        { title: "Video 1", url: "https://www.youtube.com/watch?v=vid001" },
+        { title: "Video 2", url: "https://www.youtube.com/watch?v=vid002" },
+      ],
+    });
+    expect(recentVideos(serp([1, 2, 3]), now)?.recent).toBe(3);
+    expect(recentVideos({ tasks: [{ result: null }] }, now)).toBeNull();
+  });
+
+  it("reads the real YouTube answer: none of its top 20 from the 90 days before 20 Oct, one from 1 May's", () => {
+    expect(recentVideos(youtube, new Date("2026-10-21T00:00:00Z"))?.recent).toBe(0);
+    const may = recentVideos(youtube, new Date("2026-05-01T00:00:00Z"))!;
+    expect(may.recent).toBe(1);
+    expect(may.videos[0].url).toBe("https://www.youtube.com/watch?v=w5AplqAvoXo");
+  });
+
+  it("makes a topic with its slug, change, trend and gap", () => {
+    const k: RelatedKeyword = { keyword: "CPF life payout", seed: "cpf", volume: 1300, series: months(100, 140) };
+    expect(toTopic(k, { recent: 1, videos: [] })).toEqual({
+      keyword: "CPF life payout", slug: "cpf-life-payout", seed: "cpf", volume: 1300, series: months(100, 140), change: 40, trend: "rising", recentVideos: 1, gap: true, videos: [],
+    });
+    expect(toTopic(k, null)).toMatchObject({ recentVideos: null, gap: false, videos: [] });
+  });
+});
+
+describe("searches on Trends: Jev", () => {
+  const noul = (keep: number | undefined, safe: number | undefined) => ({
+    ...(keep === undefined ? {} : { keep: { type: "noul" as const, noul: keep } }),
+    ...(safe === undefined ? {} : { safe: { type: "noul" as const, noul: safe } }),
+  });
+
+  it("keeps a keyword only when both fit and safe are 0.6 or more", () => {
+    expect(keptByJev(noul(0.6, 0.6))).toBe(true);
+    expect(keptByJev(noul(0.59, 0.9))).toBe(false);
+    expect(keptByJev(noul(0.9, 0.59))).toBe(false);
+  });
+
+  it("keeps every keyword (already 10 searches or more) when Jev is down", () => {
+    expect(keptByJev(null)).toBe(true);
+    expect(keptByJev(noul(undefined, 0.9))).toBe(true);
+  });
+
+  it("names the brand's own audience and offer, never a financial adviser", () => {
+    const a = searchAsk(cleanSearches({ seeds: ["cold calling"], serves: "Self-employed salespeople", sells: "A daily activity tracker" }), "cold calling tips");
+    expect(a.state).toEqual({ serves: "Self-employed salespeople", sells: "A daily activity tracker", country: "Singapore", keyword: "cold calling tips" });
+    expect(Object.keys(a.questions)).toEqual(["keep", "safe"]);
+    expect(JSON.stringify(a)).not.toMatch(/adviser|advisor/i);
   });
 });

@@ -541,3 +541,186 @@ export function keepTop(values: string[], scores: (number | null)[], max = 5): s
     .map((x) => x.v);
 }
 
+
+// ---- Searches on Trends (find-search-topics): what people in Singapore search for ----------------------------------
+// One check a week per brand: DataForSEO Labs' related keywords for up to 5 seeds, Jev keeps the ones that fit the
+// brand and are safe to post about, and YouTube's top 20 for the 10 biggest says how many recent videos answer them.
+
+export const MAX_SEEDS = 5;
+export const RELATED_PER_SEED = 30;
+/** Topics a check keeps, by searches a month. */
+export const MAX_TOPICS = 30;
+/** The biggest topics whose YouTube supply is read, one results page each. */
+export const VIDEO_CHECKS = 10;
+/** A keyword under this many searches a month is not a topic, and it is never sent to Jev. */
+export const MIN_VOLUME = 10;
+/** proposal (decision 7 of the phase-2 brief): Jev's keep and safe at or above this. */
+export const SEARCH_KEEP_AT = 0.6;
+/** Rising at +20% or more over the 3 months before, falling at -20% or less. */
+export const TREND_LINE = 20;
+/** "Few videos": this many searches a month or more, and fewer than GAP_VIDEOS of YouTube's top 20 from the last 90 days. */
+export const GAP_VOLUME = 100;
+export const GAP_VIDEOS = 3;
+export const RECENT_DAYS = 90;
+
+export type SearchTrend = "rising" | "falling" | "steady" | "new";
+export interface SearchVideo { title: string; url: string }
+export interface SearchTopic {
+  keyword: string;
+  slug: string;
+  /** The topic it was found from. */
+  seed: string;
+  /** Google searches a month in Singapore (DataForSEO's 12-month average). */
+  volume: number;
+  /** The last 12 months, oldest first. */
+  series: number[];
+  /** The last 3 months against the 3 before, in percent; null when the 3 before had none ("New"). */
+  change: number | null;
+  trend: SearchTrend;
+  /** Of YouTube's top 20, how many are from the last 90 days; null when YouTube wasn't read for it. */
+  recentVideos: number | null;
+  gap: boolean;
+  /** YouTube's 3 newest results for it. */
+  videos: SearchVideo[];
+}
+export interface SearchesInput { profile: string; seeds: string[]; serves: string; sells: string }
+export interface RelatedKeyword { keyword: string; seed: string; volume: number; series: number[] }
+
+export function cleanSearches(raw: unknown): SearchesInput {
+  const b = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return {
+    profile: typeof b.profile === "string" && /^[a-z0-9]{1,40}$/.test(b.profile) ? b.profile : "me",
+    seeds: distinct(b.seeds, MAX_SEEDS, (v) => text(v, 60), 2),
+    serves: text(b.serves, 300),
+    sells: text(b.sells, 300),
+  };
+}
+
+export const searchesProblem = (i: SearchesInput): string | null => (i.seeds.length ? null : "Add at least one topic you post about.");
+
+/** The brand's weekly row (cs_ai_usage.feature is free text). */
+export const searchFeature = (profile: string) => `search-topics:${profile}`;
+
+export const relatedTask = (seed: string) => ({ keyword: seed, location_code: 2702, language_code: "en", depth: 1, limit: RELATED_PER_SEED });
+/** YouTube organic takes block_depth, never depth (40501 "Invalid Field: 'depth'"). */
+export const videosTask = (keyword: string) => ({ keyword, location_code: 2702, language_code: "en", block_depth: 20 });
+
+/** "cpf life payout" -> "cpf-life-payout"; letters in any script stay. */
+export const topicSlug = (keyword: string) => keyword.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+
+/** The last 12 months, oldest first, from DataForSEO's monthly_searches (newest first, sometimes short or null). */
+export function seriesOf(monthly: unknown): number[] {
+  const months = (Array.isArray(monthly) ? monthly : [])
+    .filter((m): m is { year: number; month: number; search_volume?: unknown } => Number.isFinite(m?.year) && Number.isFinite(m?.month))
+    .sort((a, b) => a.year * 12 + a.month - (b.year * 12 + b.month))
+    .slice(-12)
+    .map((m) => (typeof m.search_volume === "number" && Number.isFinite(m.search_volume) ? m.search_volume : 0));
+  return [...Array(12 - months.length).fill(0), ...months];
+}
+
+/** The last 3 months against the 3 before, as a whole percent; null when the 3 before had no searches. */
+export function changeOf(series: number[]): number | null {
+  const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
+  const recent = sum(series.slice(-3));
+  const before = sum(series.slice(-6, -3));
+  return before === 0 ? null : Math.round(((recent - before) / before) * 100);
+}
+
+export const trendOf = (change: number | null): SearchTrend =>
+  change === null ? "new" : change >= TREND_LINE ? "rising" : change <= -TREND_LINE ? "falling" : "steady";
+
+/** One seed's related keywords (the seed itself comes back at depth 0); [] for an empty answer. */
+export function relatedKeywords(body: unknown, seed: string): RelatedKeyword[] {
+  const items = (body as { tasks?: { result?: { items?: unknown[] | null }[] | null }[] } | null)?.tasks?.[0]?.result?.[0]?.items;
+  return (Array.isArray(items) ? items : []).flatMap((it) => {
+    const kd = (it as { keyword_data?: { keyword?: unknown; keyword_info?: { search_volume?: unknown; monthly_searches?: unknown } } } | null)?.keyword_data;
+    const keyword = text(kd?.keyword, 80);
+    const volume = kd?.keyword_info?.search_volume;
+    if (!keyword || typeof volume !== "number" || !Number.isFinite(volume)) return [];
+    return [{ keyword, seed, volume, series: seriesOf(kd?.keyword_info?.monthly_searches) }];
+  });
+}
+
+/** Every seed's keywords, one per slug (the bigger wins), at MIN_VOLUME or more, biggest first. */
+export function candidates(lists: RelatedKeyword[][]): RelatedKeyword[] {
+  const best = new Map<string, RelatedKeyword>();
+  for (const k of lists.flat()) {
+    const slug = topicSlug(k.keyword);
+    const had = best.get(slug);
+    if (slug && k.volume >= MIN_VOLUME && (!had || k.volume > had.volume)) best.set(slug, k);
+  }
+  return [...best.values()].sort((a, b) => b.volume - a.volume);
+}
+
+/** Decision 6: the brand's own offer and audience, never "a financial adviser". */
+export function searchAsk(i: SearchesInput, keyword: string): Ask {
+  return {
+    state: { serves: i.serves || "its customers", sells: i.sells || "what it sells", country: COUNTRY, keyword },
+    questions: {
+      keep: {
+        type: "noul",
+        instructions: "Would someone `serves` in `country` search `keyword` when they need what `sells` offers, or with a question the brand could answer in a general post?",
+      },
+      safe: {
+        type: "noul",
+        instructions: "Can a business that sells `sells` to `serves` post about `keyword` in `country` in general terms, without naming another company's product, promising a return or giving personal advice?",
+      },
+    },
+  };
+}
+
+/** Kept when Jev says it fits and is safe; a missing answer (Jev down) keeps it, since MIN_VOLUME already applies. */
+export function keptByJev(answers: Record<string, JevAnswer> | null): boolean {
+  const keep = noulOf(answers, "keep");
+  const safe = noulOf(answers, "safe");
+  return (keep === null || keep >= SEARCH_KEEP_AT) && (safe === null || safe >= SEARCH_KEEP_AT);
+}
+
+/** Of YouTube's top 20 videos, how many came out in the last 90 days, and the 3 newest; null without a result list. */
+export function recentVideos(body: unknown, now: Date): { recent: number; videos: SearchVideo[] } | null {
+  const res = (body as { tasks?: { result?: { items?: unknown[] | null }[] | null }[] } | null)?.tasks?.[0]?.result?.[0];
+  if (!res || typeof res !== "object") return null;
+  const items = (Array.isArray(res.items) ? res.items : [])
+    .filter((it): it is Record<string, unknown> => (it as { type?: unknown } | null)?.type === "youtube_video")
+    .slice(0, 20)
+    .map((it) => ({
+      title: text(it.title, 140),
+      // the watch link without YouTube's tracking param
+      url: typeof it.video_id === "string" && /^[\w-]{6,20}$/.test(it.video_id) ? `https://www.youtube.com/watch?v=${it.video_id}` : "",
+      // "2024-10-20 11:11:57 +00:00", worked out by DataForSEO from "2 years ago"
+      at: typeof it.timestamp === "string" ? Date.parse(it.timestamp) : NaN,
+    }));
+  const oldest = now.getTime() - RECENT_DAYS * DAY_MS;
+  return {
+    recent: items.filter((v) => v.at >= oldest).length,
+    videos: items
+      .filter((v) => v.title && v.url && Number.isFinite(v.at))
+      .sort((a, b) => b.at - a.at)
+      .slice(0, 3)
+      .map(({ title, url }) => ({ title, url })),
+  };
+}
+
+export const isGap = (volume: number, recent: number | null) => recent !== null && volume >= GAP_VOLUME && recent < GAP_VIDEOS;
+
+export function toTopic(k: RelatedKeyword, supply: { recent: number; videos: SearchVideo[] } | null): SearchTopic {
+  const change = changeOf(k.series);
+  const recent = supply?.recent ?? null;
+  return {
+    keyword: k.keyword,
+    slug: topicSlug(k.keyword),
+    seed: k.seed,
+    volume: k.volume,
+    series: k.series,
+    change,
+    trend: trendOf(change),
+    recentVideos: recent,
+    gap: isGap(k.volume, recent),
+    videos: supply?.videos ?? [],
+  };
+}
+
+export const searchWeekRefusal = (nextDay: string) => ({
+  status: 429,
+  body: { code: "weekly_limit", nextDay, error: `Checked this week. Next check from ${dayWords(nextDay)}.` },
+});
