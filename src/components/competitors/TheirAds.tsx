@@ -1,15 +1,20 @@
 // Their ads (/competitors, the default view once a competitor exists; docs/north-star/items/find-competitor-ads.md):
 // every watched competitor's Meta ads as cards, the pills and count line, a reason for each competitor with none,
 // and the weekly check (opening the view checks whatever is 7+ days old). Checks run outside React in
-// src/lib/competitorAds.ts; this only draws their state. ?c= is the pill, ?running=only the filter, ?ad= marks one.
-import { useEffect, useState } from "react";
+// src/lib/competitorAds.ts; this only draws their state. ?c= is the pill, ?running=only the filter, ?ad= opens an
+// ad's drawer (find-ad-detail) and marks its card.
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, ExternalLink, ImageOff, Loader2, PenLine, Play, RefreshCw } from "lucide-react";
+import AdDetailDrawer, { LoadingAdDrawer, useLinkedAd } from "@/components/AdDetailDrawer";
 import PriceChip from "@/components/PriceChip";
+import SaveButton from "@/components/SaveButton";
 import RemixButton from "@/components/remix/RemixButton";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { titleOf, toDetailAd } from "@/lib/adDetail";
+import { competitorLibraryAd, loadAdLabels } from "@/lib/adLibrary";
 import { buildAdWriteUrl } from "@/lib/adsSwipe";
 import {
   type CompetitorAd, type CompetitorAdsState, adsCheckFailure, adsStopped, adsTally, canReadAds, checkingAnyAds, dueAds, isCheckingAds, libraryUrl,
@@ -19,7 +24,7 @@ import { type Competitor, updateCompetitor } from "@/lib/competitors";
 import { links } from "@/lib/links";
 import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { fromAd } from "@/lib/remixSource";
-import { useGoneItem, useScrollToItem, useUrlFlag, useUrlItem, useUrlState } from "@/lib/urlState";
+import { useScrollToItem, useUrlFlag, useUrlState } from "@/lib/urlState";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const PAGE = 20;
@@ -38,12 +43,20 @@ export default function TheirAds({ userId, list, store, openEdit }: {
   const [, tick] = useState(0);
   const [c, setC] = useUrlState<string>("c", "all");
   const [runningOnly, setRunningOnly] = useUrlFlag("running");
-  const [linked] = useUrlItem("ad");
   const [limit, setLimit] = useState(PAGE);
   const busy = checkingAnyAds();
   const left = useUsesLeft(busy)("competitor-ads");
-  // an empty store may still be syncing, so it decides nothing
-  useGoneItem("ad", Object.keys(store).length ? Object.values(store).some((e) => e.ads.some((a) => a.id === linked)) : undefined, "ad");
+  // every stored ad once, for the drawer and its rank among the advertiser's ads
+  const detail = useMemo(() => {
+    const labels = loadAdLabels(userId);
+    const seen = new Set<string>();
+    return list.flatMap((x) => ((canReadAds(x) && store[x.id]?.ads) || [])
+      .filter((ad) => !seen.has(ad.id) && seen.add(ad.id))
+      .map((ad) => toDetailAd(competitorLibraryAd(ad, x, labels[ad.id]))));
+  }, [userId, list, store]);
+  // an empty store may still be syncing, and a check may still bring the ad: the drawer waits for either
+  const linkedAd = useLinkedAd(detail, busy || !Object.keys(store).length);
+  const linked = linkedAd.id;
 
   useEffect(() => onCompetitorAds(() => tick((n) => n + 1)), []);
   // opening the view, and any change to the list while it is open (an add, a page found), checks what is 7+ days old
@@ -148,7 +161,7 @@ export default function TheirAds({ userId, list, store, openEdit }: {
         <div className="grid grid-cols-2 items-start gap-x-3 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {skeletons && Array.from({ length: 4 }, (_, k) => <SkeletonCard key={`s${k}`} />)}
           {/* two rows can watch one page, so an ad id alone isn't unique */}
-          {shown.map((x) => <AdCard key={`${x.c.id}:${x.ad.id}`} ad={x.ad} c={x.c} fresh={x.fresh} linked={x.ad.id === linked} />)}
+          {shown.map((x) => <AdCard key={`${x.c.id}:${x.ad.id}`} ad={x.ad} c={x.c} fresh={x.fresh} linked={x.ad.id === linked} onOpen={() => linkedAd.open(x.ad.id)} />)}
         </div>
       )}
       {cards.length > shown.length && (
@@ -180,6 +193,9 @@ export default function TheirAds({ userId, list, store, openEdit }: {
         </div>
         {why && !busy && <p className="text-xs text-muted-foreground">{why}</p>}
       </div>
+
+      {linkedAd.loading && <LoadingAdDrawer onClose={linkedAd.close} />}
+      {linkedAd.ad && <AdDetailDrawer key={linkedAd.ad.id} ad={linkedAd.ad} list={detail} onClose={linkedAd.close} />}
     </section>
   );
 }
@@ -207,46 +223,54 @@ function SkeletonCard() {
   );
 }
 
-function AdCard({ ad, c, fresh, linked }: { ad: CompetitorAd; c: Competitor; fresh: boolean; linked: boolean }) {
+function AdCard({ ad, c, fresh, linked, onOpen }: { ad: CompetitorAd; c: Competitor; fresh: boolean; linked: boolean; onOpen(): void }) {
   // Meta's picture links expire: a dead one shows "No preview" until the next weekly check brings a fresh link
   const [broken, setBroken] = useState(false);
   const ref = useScrollToItem<HTMLElement>(linked);
   const like = toAdLike(ad, c.name);
+  const source = fromAd(like);
   const pic = Boolean(ad.image) && !broken;
   const line = [runLabel(ad), platformNames(ad.platforms)].filter(Boolean).join(" | ");
+  const title = titleOf(ad);
   return (
     <article ref={ref} className={`flex min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-card ${linked ? "border-primary ring-2 ring-primary/30" : "border-border/60"}`}>
-      <div className="relative aspect-[4/5] bg-muted">
-        {pic ? (
-          <img src={ad.image!} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-xs text-muted-foreground">
-            <ImageOff className="h-5 w-5" aria-hidden /> No preview
-          </div>
-        )}
-        {pic && ad.format === "video" && (
-          <span aria-hidden className="absolute inset-0 m-auto flex h-10 w-10 items-center justify-center rounded-full bg-background/80 text-foreground">
-            <Play className="h-4 w-4" />
+      {/* the picture and the words open the ad's drawer (find-ad-detail); the buttons below keep their own jobs */}
+      <button type="button" onClick={onOpen} className="group flex flex-col text-left">
+        <span className="relative block aspect-[4/5] w-full bg-muted">
+          {pic ? (
+            <img src={ad.image!} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-xs text-muted-foreground">
+              <ImageOff className="h-5 w-5" aria-hidden /> No preview
+            </span>
+          )}
+          {pic && ad.format === "video" && (
+            <span aria-hidden className="absolute inset-0 m-auto flex h-10 w-10 items-center justify-center rounded-full bg-background/80 text-foreground">
+              <Play className="h-4 w-4" />
+            </span>
+          )}
+          <span className="absolute left-2 top-2 flex gap-1 text-[10px] font-semibold">
+            <span className="rounded-full bg-background/90 px-2 py-0.5 text-foreground">{FORMAT[ad.format]}</span>
+            {fresh && <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground">New</span>}
           </span>
-        )}
-        <span className="absolute left-2 top-2 flex gap-1 text-[10px] font-semibold">
-          <span className="rounded-full bg-background/90 px-2 py-0.5 text-foreground">{FORMAT[ad.format]}</span>
-          {fresh && <span className="rounded-full bg-primary px-2 py-0.5 text-primary-foreground">New</span>}
         </span>
-      </div>
-      <div className="flex flex-1 flex-col gap-1.5 p-3">
-        <p className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium">
-          <Avatar c={c} /> <span className="truncate">{c.name}</span>
-        </p>
-        {ad.headline && <p className="line-clamp-1 text-xs font-semibold">{ad.headline}</p>}
-        {ad.body && <p className="line-clamp-2 text-xs text-muted-foreground">{ad.body}</p>}
-        {line && <p className="text-[11px] text-muted-foreground">{line}</p>}
+        <span className="block space-y-1.5 px-3 pt-3">
+          <span className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium">
+            <Avatar c={c} /> <span className="truncate">{c.name}</span>
+          </span>
+          {title && <span className="line-clamp-1 text-xs font-semibold group-hover:underline">{title}</span>}
+          {ad.body && ad.headline && <span className="line-clamp-2 text-xs text-muted-foreground">{ad.body}</span>}
+          {line && <span className="block text-[11px] text-muted-foreground">{line}</span>}
+        </span>
+      </button>
+      <div className="flex flex-1 flex-col px-3 pb-3">
         <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1.5">
-          <RemixButton source={fromAd(like)} label={`${c.name}'s ad`}>
+          <RemixButton source={source} label={`${c.name}'s ad`}>
             <Button asChild size="sm" variant="outline" className="h-9 gap-1.5">
               <Link to={buildAdWriteUrl(like)}><PenLine className="h-3.5 w-3.5" /> Write a post like this</Link>
             </Button>
           </RemixButton>
+          <SaveButton source={source} />
           <Button asChild size="sm" variant="ghost" className={`h-9 gap-1.5 px-2 ${TOUCH}`}>
             <a href={libraryUrl(ad.id)} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Open on Meta</a>
           </Button>
