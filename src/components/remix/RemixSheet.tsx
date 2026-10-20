@@ -339,7 +339,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
       </div>
     ) : (
       <div className="space-y-1.5">
-        {failedRow && (
+        {/* out of uses: the button and the line under it already say so */}
+        {failedRow && !out && (
           <p role="alert" className="flex items-start gap-1.5 text-xs font-medium text-red-700 dark:text-red-300">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {failedRow.error}
           </p>
