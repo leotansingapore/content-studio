@@ -72,7 +72,7 @@ export default function ReelsPage() {
   // Posts (every post at its real shape, full caption, decide beside it) is the default; Board (kanban, drag between
   // stages) and Grid stay one tap away. Remembered per device under a new key so the Posts default reaches everyone once.
   const [view, pickView] = useUrlState<"feed" | "board" | "grid">("view", "feed", { allowed: ["feed", "board", "grid"], remember: "cs-reels-view-2" });
-  const [stage, pickStage] = useUrlState<StageId | "all">("stage", "review", { allowed: ["review", "changes", "approved", "scheduled", "posted", "archived", "all"] });
+  const [stage, pickStage] = useUrlState<StageId | "all" | "notes">("stage", "review", { allowed: ["review", "changes", "approved", "scheduled", "posted", "archived", "all", "notes"] });
   const [loading, setLoading] = useState(false);
   const [over, setOver] = useState<string | null>(null);
   const openId = params.get("card");
@@ -265,11 +265,12 @@ export default function ReelsPage() {
 
       {board && !needsLink && view === "feed" && (
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Show">
-          {[...stages.map((s) => [s.id, s.name] as const), ["all", "All"] as const].map(([id, name]) => {
-            const n = feedCards(board.cards, id as StageId | "all", brand ?? "").length;
+          {[...stages.map((s) => [s.id, s.name] as const), ["all", "All"] as const, ["notes", "Notes"] as const].map(([id, name]) => {
+            const n = feedCards(board.cards, id as StageId | "all" | "notes", brand ?? "", me).length;
+            if (id === "notes" && !n && stage !== "notes") return null;
             return (
-              <button key={id} type="button" onClick={() => pickStage(id as StageId | "all")} aria-pressed={stage === id}
-                className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold ${stage === id ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground hover:text-foreground"}`}>
+              <button key={id} type="button" onClick={() => pickStage(id as StageId | "all" | "notes")} aria-pressed={stage === id}
+                className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold [@media(pointer:coarse)]:h-11 ${stage === id ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground hover:text-foreground"}`}>
                 {name} <span className={stage === id ? "opacity-80" : "opacity-70"}>{n}</span>
               </button>
             );
@@ -320,7 +321,7 @@ export default function ReelsPage() {
       )}
 
       {board && !needsLink && view === "feed" && (
-        <ReelFeed cards={feedCards(board.cards, stage, brand ?? "")} board={board} me={me} onChange={replace} onMove={move} onOpen={open} focus={openCard?.id} />
+        <ReelFeed cards={feedCards(board.cards, stage, brand ?? "", me)} board={board} me={me} onChange={replace} onMove={move} onOpen={open} focus={openCard?.id} />
       )}
 
       {board && !needsLink && view === "board" && (

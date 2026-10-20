@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, setConnectedIg, stageForLink, type ReelCard } from "./reelsBoard";
+import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, setConnectedIg, stageForLink, teamNotes, type ReelCard, type ReelComment } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -79,6 +79,23 @@ describe("posts view", () => {
     expect(feedCards(cards, "all", "activitytracker").map((c) => c.id)).toEqual(["soon", "late", "undated"]);
     expect(feedCards(cards, "review", "").map((c) => c.id)).toEqual(["other", "late"]);
     expect(feedCards(cards, "archived", "activitytracker").map((c) => c.id)).toEqual(["gone"]);
+  });
+  it("'notes' lists posts with open notes someone else left, Leo's older unstamped notes counting as his own", () => {
+    const leo = { owner: true, member: false };
+    const ann = { owner: false, member: true, id: "ann", role: "editor" as const };
+    const note = (id: string, by?: ReelComment["by"], resolved = false): ReelComment => ({ id, at: "", text: id, t: null, version: "v", resolved, by });
+    const withNotes = (c: ReelCard, ...comments: ReelComment[]) => ({ ...c, comments });
+    const cards = [
+      withNotes(card("old", "approved"), note("n1")),
+      withNotes(card("own", "review"), note("n2", { id: "leo", label: "Leo", role: "owner" })),
+      withNotes(card("team", "scheduled"), note("n3", { id: "ann", label: "Ann", role: "editor" }), note("n4", { id: "bob", label: "Bob", role: "commenter" })),
+      withNotes(card("done", "review"), note("n5", { id: "bob", label: "Bob", role: "commenter" }, true)),
+      withNotes(card("gone", "archived"), note("n6", { id: "bob", label: "Bob", role: "commenter" })),
+    ];
+    expect(feedCards(cards, "notes", "", leo).map((c) => c.id)).toEqual(["team"]);
+    expect(teamNotes(cards[2], leo)).toBe(2);
+    expect(feedCards(cards, "notes", "", ann).map((c) => c.id)).toEqual(["old", "own", "team"]);
+    expect(teamNotes(cards[2], ann)).toBe(1);
   });
 });
 

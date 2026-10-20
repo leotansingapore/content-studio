@@ -147,6 +147,13 @@ export const FLOW: StageId[] = ["review", "approved", "scheduled", "posted"];
 export const brandOf = (c: ReelCard) => c.brand || "moneybees";
 export const isCarousel = (c: ReelCard) => c.kind === "carousel";
 export const openNotes = (c: ReelCard) => c.comments.filter((m) => !m.resolved).length;
+/** Open notes someone else left: for Leo, his team's (unstamped older notes are his own); for a member, everyone's but theirs. */
+export const teamNotes = (c: ReelCard, me: Me | null) =>
+  c.comments.filter((m) => {
+    if (m.resolved) return false;
+    const by = typeof m.by === "object" && m.by ? m.by : null;
+    return me?.owner ? !!by && by.role !== "owner" : by?.id !== me?.id;
+  }).length;
 export const currentVersion = (c: ReelCard): ReelVersion => c.versions.find((v) => v.file === c.version) ?? c.versions[0];
 
 export function mmss(t: number | null | undefined): string {
@@ -183,10 +190,14 @@ export function stageForLink(cards: ReelCard[], search: URLSearchParams): StageI
   return c && c.stage !== "review" ? c.stage : null;
 }
 
-/** Posts view: one stage, or every stage but Archived ("all"), soonest date first, undated last. */
-export function feedCards(cards: ReelCard[], stage: StageId | "all", brand: string): ReelCard[] {
+/** Posts view: one stage, every stage but Archived ("all"), or those with open notes from others ("notes"); soonest first, undated last. */
+export function feedCards(cards: ReelCard[], stage: StageId | "all" | "notes", brand: string, me: Me | null = null): ReelCard[] {
   return cards
-    .filter((c) => (stage === "all" ? c.stage !== "archived" : c.stage === stage) && (!brand || brandOf(c) === brand))
+    .filter(
+      (c) =>
+        (stage === "all" ? c.stage !== "archived" : stage === "notes" ? c.stage !== "archived" && teamNotes(c, me) > 0 : c.stage === stage) &&
+        (!brand || brandOf(c) === brand),
+    )
     .sort(byDate);
 }
 

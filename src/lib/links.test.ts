@@ -27,6 +27,7 @@ describe("links", () => {
       "/reels?brand=activitytracker&view=feed&stage=scheduled&card=at-1019-car1%7Ecarousel",
     );
     expect(links.reels({ stage: "review" })).toBe("/reels");
+    expect(links.reels({ stage: "notes" })).toBe("/reels?stage=notes");
     expect(links.board({ business: "moneybees", feed: "f1" })).toBe("/board?business=moneybees&feed=f1");
     expect(links.plan({ view: "setup", competitor: "@leo" })).toBe("/plan?view=setup&competitor=%40leo");
   });

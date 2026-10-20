@@ -14,8 +14,8 @@ import {
   currentVersion,
   igLine,
   isCarousel,
-  openNotes,
   perms,
+  teamNotes,
   type Board,
   type Me,
   type ReelCard,
@@ -54,7 +54,7 @@ function Post({ card, board, me, onChange, onMove, onOpen, focused }: {
   const p = perms(me, card);
   const next = NEXT[card.stage] && p.move(NEXT[card.stage]![0]) ? NEXT[card.stage] : undefined;
   const ig = igLine(card);
-  const notes = openNotes(card);
+  const notes = teamNotes(card, me);
 
   const go = (k: number) => {
     const s = strip.current;
@@ -136,7 +136,7 @@ function Post({ card, board, me, onChange, onMove, onOpen, focused }: {
             <span className="rounded-full bg-muted px-2 py-0.5">{board.brands.find((b) => b.id === brandOf(card))?.name}</span>
             <span className="rounded-full bg-muted px-2 py-0.5">{car ? (slides.length > 1 ? `Carousel, ${slides.length} slides` : "Picture post") : "Reel"}</span>
             <span className="rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">{when(card.schedule)}</span>
-            {notes > 0 && <span className="rounded-full bg-warning/20 px-2 py-0.5 font-semibold">{notes} open note{notes > 1 ? "s" : ""}</span>}
+            {notes > 0 && <span className="rounded-full bg-warning/20 px-2 py-0.5 font-semibold">{notes} team note{notes > 1 ? "s" : ""}</span>}
           </p>
           {ig && <p className={`text-xs font-semibold ${ig.href ? "text-primary" : "text-muted-foreground"}`}>{ig.text}</p>}
         </div>

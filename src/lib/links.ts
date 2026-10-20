@@ -81,7 +81,7 @@ export const links = {
       /** feed is the Posts view, the default (a job may still name it, to beat a remembered board or grid). */
       view?: "feed" | "board" | "grid";
       /** The Posts view's stage chip; a card link without it lands on the card's own stage. */
-      stage?: "review" | "changes" | "approved" | "scheduled" | "posted" | "archived" | "all";
+      stage?: "review" | "changes" | "approved" | "scheduled" | "posted" | "archived" | "all" | "notes";
       archived?: boolean;
       card?: string;
       t?: number;

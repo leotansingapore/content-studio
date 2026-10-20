@@ -111,6 +111,9 @@ export default function ReelDrawer({
       onChange(c);
       setNote("");
       localStorage.removeItem(`cs-reelnote-draft-${card.id}`);
+      // an editor's or approver's note goes to the fix pass, which reads Needs changes only (as the Posts view does)
+      const added = c.comments.find((m) => !card.comments.some((x) => x.id === m.id));
+      if (added && fixesOnItsOwn(added) && card.stage !== "changes" && p.move("changes")) onMove(card.id, "changes");
     } catch (e) {
       fail("the note", e);
     } finally {
@@ -291,7 +294,7 @@ export default function ReelDrawer({
                   className="text-sm"
                 />
                 <Button size="sm" disabled={!note.trim() || sending} onClick={sendNote}>
-                  {sending ? "Adding..." : car ? `Pin to slide ${slide}` : `Pin to ${mmss(now)}`}
+                  {sending ? "Adding..." : <>Add note <span className="ml-1.5 font-normal opacity-70">{car ? `slide ${slide}` : mmss(now)}</span></>}
                 </Button>
               </>
             )}
