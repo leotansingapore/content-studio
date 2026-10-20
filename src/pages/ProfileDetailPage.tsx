@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import {
   Card,
@@ -26,7 +26,8 @@ import {
 import advisorsData from "@/data/advisors.json";
 import { type AdvisorEntry, type AdvisorPlatform } from "@/components/AdvisorProfiles";
 import TopPostCard from "@/components/TopPostCard";
-import { getTopPostsForAdvisor } from "@/lib/topPosts";
+import { links } from "@/lib/links";
+import { getTopPostsForAdvisor, topAdvisorId } from "@/lib/topPosts";
 import { humanLabel } from "@/lib/utils";
 import { TrendingUp } from "lucide-react";
 
@@ -46,6 +47,7 @@ const PLATFORM_META: Record<
 export default function ProfileDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { state } = useLocation();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const entry = ENTRIES.find((e) => e.id === id);
 
@@ -258,6 +260,8 @@ export default function ProfileDetailPage() {
                 key={post.shortCode}
                 post={post}
                 advisor={{ id: entry.id, name: entry.name, handle: entry.handle }}
+                // the post's own link is its Top posts page, with Copy link there
+                onOpen={() => navigate(links.swipe({ post: `${topAdvisorId(entry.handle)}-${post.shortCode}` }))}
               />
             ))}
           </div>

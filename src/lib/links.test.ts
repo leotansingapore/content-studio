@@ -55,6 +55,17 @@ describe("links", () => {
     expect(links.hubAdmin({ tab: "members" })).toBe("/hub/admin?tab=members");
   });
 
+  it("builds every post's own link (docs/deep-links.md, Every post has a link)", () => {
+    expect(links.swipe({ tab: "news", story: "ddb48f3587f1" })).toBe("/swipe?tab=news&story=ddb48f3587f1");
+    expect(links.swipe({ tab: "ads", ad: "2095783381019179" })).toBe("/swipe?tab=ads&ad=2095783381019179");
+    expect(links.following({ post: "instagram:C8xYz12AbCd" })).toBe("/following?post=instagram%3AC8xYz12AbCd");
+    expect(links.market({ post: "tiktok:7300000000000000000" })).toBe("/market?post=tiktok%3A7300000000000000000");
+    expect(links.market({ show: "act", view: "digest" })).toBe("/market");
+    expect(links.team({ post: "6f1c2d3e" })).toBe("/team?post=6f1c2d3e");
+    expect(links.hubTrends({ trend: "6f1c2d3e" })).toBe("/hub/trends?trend=6f1c2d3e");
+    expect(links.reels({ card: "at-1016-car4~carousel" })).toBe("/reels?card=at-1016-car4%7Ecarousel");
+  });
+
   it("leaves the Grow pages' defaults out", () => {
     expect(links.swipe({ tab: "posts", format: "all", from: "all", topic: "all", angle: "all", audience: "all", saved: false })).toBe("/swipe");
     expect(links.analytics({ period: "30d", by: "platform", time: "all", rank: "engagements" })).toBe("/analytics");

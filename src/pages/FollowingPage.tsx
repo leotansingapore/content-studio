@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Clapperboard, ExternalLink, Loader2, RefreshCw, Shuffle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import EngageWeek from "@/components/EngageWeek";
 import RemixButton from "@/components/remix/RemixButton";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +15,9 @@ import {
   MAX_FOLLOWED, checkFailure, followStats, isChecking, loadFollowing, onFollowing, remixUrl, runCheck, sameAccount, saveFollowing,
   type FollowPlatform, type FollowedAccount, type TrackedPost,
 } from "@/lib/following";
+import { links } from "@/lib/links";
 import { fromFollowPost } from "@/lib/remixSource";
+import { useScrollToItem, useUrlItem } from "@/lib/urlState";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 
 const LIMIT = DAILY_LIMITS["track-accounts"];
@@ -34,6 +37,8 @@ export default function FollowingPage() {
   const [, tick] = useState(0);
   // read once for the page: Leo's video rows keep Clone beside the Remix button
   const leo = useLeoOnly();
+  // ?post=<platform>:<post id> (docs/deep-links.md): that post is shown, scrolled to and marked
+  const [linked] = useUrlItem("post");
 
   useEffect(() => {
     document.title = "Following - Content Studio";
@@ -117,19 +122,22 @@ export default function FollowingPage() {
         <p className="text-sm text-muted-foreground">Follow a competitor or a creator you like to see their growth, how often they post, and their new posts to remix.</p>
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
-          {list.map((a) => <AccountCard key={`${a.platform}:${a.handle}`} a={a} leo={leo} onCheck={() => userId && runCheck(userId, a)} onRemove={() => remove(a)} />)}
+          {list.map((a) => <AccountCard key={`${a.platform}:${a.handle}`} a={a} leo={leo} linked={linked} onCheck={() => userId && runCheck(userId, a)} onRemove={() => remove(a)} />)}
         </ul>
       )}
     </div>
   );
 }
 
-function AccountCard({ a, leo, onCheck, onRemove }: { a: FollowedAccount; leo: boolean; onCheck: () => void; onRemove: () => void }) {
+function AccountCard({ a, leo, linked, onCheck, onRemove }: { a: FollowedAccount; leo: boolean; linked: string | null; onCheck: () => void; onRemove: () => void }) {
   const s = followStats(a);
   const checking = isChecking(a);
   const failure = checkFailure(a);
   const fresh = a.posts.filter((p) => a.fresh.includes(p.id));
-  const shown = (fresh.length ? fresh : a.posts).slice(0, 3);
+  const first = (fresh.length ? fresh : a.posts).slice(0, 3);
+  // a linked post past the first three is shown too
+  const extra = a.posts.find((p) => postId(a, p) === linked && !first.includes(p));
+  const shown = extra ? [...first, extra] : first;
   return (
     <li className="space-y-3 rounded-2xl border border-border/60 p-4">
       <div className="flex items-start gap-2">
@@ -176,7 +184,7 @@ function AccountCard({ a, leo, onCheck, onRemove }: { a: FollowedAccount; leo: b
         <div className="space-y-2">
           <h3 className="text-xs font-semibold">{fresh.length ? `${fresh.length} new since the last check` : "Latest posts"}</h3>
           <ul className="space-y-2">
-            {shown.map((p) => <PostRow key={p.id} a={a} p={p} best={s.best?.id === p.id} leo={leo} />)}
+            {shown.map((p) => <PostRow key={p.id} a={a} p={p} best={s.best?.id === p.id} leo={leo} linked={postId(a, p) === linked} />)}
           </ul>
         </div>
       )}
@@ -184,11 +192,18 @@ function AccountCard({ a, leo, onCheck, onRemove }: { a: FollowedAccount; leo: b
   );
 }
 
-function PostRow({ a, p, best, leo }: { a: FollowedAccount; p: TrackedPost; best: boolean; leo: boolean }) {
+/** A followed post's id in links, the same <platform>:<post id> Your market uses. */
+const postId = (a: FollowedAccount, p: TrackedPost) => `${a.platform}:${p.id}`;
+
+function PostRow({ a, p, best, leo, linked }: { a: FollowedAccount; p: TrackedPost; best: boolean; leo: boolean; linked: boolean }) {
+  const row = useScrollToItem<HTMLLIElement>(linked);
   const numbers = [p.views !== null ? `${fmt(p.views)} views` : "", `${fmt(p.likes)} likes`, `${fmt(p.comments)} comments`].filter(Boolean).join(", ");
   return (
-    <li className="space-y-1.5 rounded-xl bg-secondary/40 p-3">
-      <p className="line-clamp-2 text-xs">{p.caption || "No caption"}</p>
+    <li ref={row} className={`space-y-1.5 rounded-xl bg-secondary/40 p-3 ${linked ? "ring-2 ring-primary/40" : ""}`}>
+      <div className="flex items-start gap-1">
+        <p className="mr-auto line-clamp-2 text-xs">{p.caption || "No caption"}</p>
+        <CopyLinkButton path={links.following({ post: postId(a, p) })} label={`Copy link to @${a.handle}'s post`} className="-my-2 -mr-2" />
+      </div>
       <p className="text-[11px] text-muted-foreground">
         {p.format === "video" ? "Video" : p.format === "carousel" ? "Carousel" : "Photo"}
         {p.postedAt ? `, ${new Date(p.postedAt).toLocaleDateString("en-SG", { day: "numeric", month: "short" })}` : ""}, {numbers}

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { links } from "@/lib/links";
 import {
   NEXT,
   addNote,
@@ -126,7 +128,10 @@ function Post({ card, board, me, onChange, onMove, onOpen, focused }: {
 
       <div className="flex min-w-0 flex-col gap-3">
         <div className="space-y-1">
-          <h3 className="font-serif text-lg font-semibold leading-snug">{card.title}</h3>
+          <div className="flex items-start gap-1">
+            <h3 className="mr-auto font-serif text-lg font-semibold leading-snug">{card.title}</h3>
+            <CopyLinkButton path={links.reels({ card: card.id })} label={`Copy link to ${card.title}`} className="-my-1.5 -mr-2" />
+          </div>
           <p className="flex flex-wrap gap-1.5 text-[11px]">
             <span className="rounded-full bg-muted px-2 py-0.5">{board.brands.find((b) => b.id === brandOf(card))?.name}</span>
             <span className="rounded-full bg-muted px-2 py-0.5">{car ? (slides.length > 1 ? `Carousel, ${slides.length} slides` : "Picture post") : "Reel"}</span>

@@ -92,7 +92,7 @@ export default function SwipeFilePage() {
   const update = useUrlUpdate();
   // Each tab has its own search and filters, so a tab switch starts them clean in one write.
   const setTab = (t: "posts" | "news" | "ads") =>
-    update({ tab: t === "posts" ? null : t, q: null, format: null, from: null, topic: null, angle: null, audience: null, sort: null, saved: null, post: null, industry: null });
+    update({ tab: t === "posts" ? null : t, q: null, format: null, from: null, topic: null, angle: null, audience: null, sort: null, saved: null, post: null, industry: null, story: null, ad: null });
   const [userId, setUserId] = useState<string | null>(null);
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
   const [hasPlaybook, setHasPlaybook] = useState(false);

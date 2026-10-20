@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Ban, CheckCircle2, ClipboardCheck, Loader2, MessageSquareWarning } from "lucide-react";
 
 import {
@@ -12,8 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { slug } from "@/lib/links";
-import { useUrlState } from "@/lib/urlState";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { links, slug } from "@/lib/links";
+import { useScrollToItem, useUrlItem, useUrlState } from "@/lib/urlState";
 import ReviewThread from "@/components/team/ReviewThread";
 import {
   EmptyBlock,
@@ -69,6 +70,9 @@ export default function ReviewQueue({
   const [error, setError] = useState("");
   const [roster, setRoster] = useState<TeamMember[]>([]);
   const [counts, setCounts] = useState<Map<string, number>>(new Map());
+  // ?post=<submission id> (docs/deep-links.md): on arrival the queue opens the list that holds it
+  const [linked] = useUrlItem("post");
+  const landed = useRef(false);
 
   const load = useCallback(async () => {
     setStatus("loading");
@@ -99,6 +103,13 @@ export default function ReviewQueue({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (landed.current || status !== "ready" || !linked) return;
+    landed.current = true;
+    const home = TABS.find((t) => lists[t.key].some((s) => s.id === linked));
+    if (home && home.key !== tab) setTab(home.key);
+  }, [status, linked, lists, tab, setTab]);
 
   const handleDecided = (row: ReviewSubmission) => {
     setLists((prev) => ({
@@ -173,6 +184,7 @@ export default function ReviewQueue({
                   roster={roster}
                   commentCount={counts.get(s.id)}
                   onDecided={handleDecided}
+                  linked={s.id === linked}
                 />
               </li>
             ))}
@@ -189,20 +201,23 @@ function SubmissionCard({
   roster,
   commentCount,
   onDecided,
+  linked,
 }: {
   sub: ReviewSubmission;
   userId: string;
   roster: TeamMember[];
   commentCount?: number;
   onDecided: (row: ReviewSubmission) => void;
+  linked: boolean;
 }) {
+  const box = useScrollToItem<HTMLElement>(linked);
   const { toast } = useToast();
   // Which decision the comment box is for: changes need a comment, a rejection a reason.
   const [asking, setAsking] = useState<"changes_requested" | "rejected" | null>(null);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState<ReviewDecision | null>(null);
   const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(linked);
 
   const own = sub.author_id === userId;
   const long = sub.content.length > 500 || sub.content.split("\n").length > 10;
@@ -230,7 +245,7 @@ function SubmissionCard({
   const commentId = `review-comment-${sub.id}`;
 
   return (
-    <article className="rounded-xl border border-border/70 bg-card p-3 shadow-card sm:p-4">
+    <article ref={box} className={`rounded-xl border bg-card p-3 shadow-card sm:p-4 ${linked ? "border-primary ring-2 ring-primary/30" : "border-border/70"}`}>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="mr-1 min-w-0 break-words text-sm font-semibold text-foreground">
           {sub.author_name}
@@ -239,6 +254,7 @@ function SubmissionCard({
         <span className="ml-auto text-[11px] text-muted-foreground">
           Submitted {formatWhen(sub.submitted_at)}
         </span>
+        <CopyLinkButton path={links.team({ post: sub.id })} label={`Copy link to ${sub.author_name}'s post`} className="-my-2 -mr-2" />
       </div>
 
       <div className="mt-3">

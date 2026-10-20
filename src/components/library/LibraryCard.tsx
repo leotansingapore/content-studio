@@ -4,6 +4,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertCircle, Clock, ExternalLink, Film, Loader2 } from "lucide-react";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { SlideThumb } from "@/components/slideshow/SlideCanvas";
 import { Button } from "@/components/ui/button";
 import type { CarouselBrand, SavedCarousel } from "@/lib/carousel";
@@ -186,6 +187,7 @@ function LibraryCard({ item, brand, carousel, show, userId, fontsReady }: { item
             <Link to={item.retryHref}>Try again</Link>
           </Button>
         )}
+        {!making && !failed && <CopyLinkButton path={item.href} label={`Copy link to ${item.title}`.slice(0, 120)} className="ml-auto h-8 w-8" />}
       </div>
     </article>
   );

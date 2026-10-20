@@ -6,7 +6,7 @@ import TrendCard from "@/components/hub/TrendCard";
 import type { HubTrend } from "@/lib/hub";
 import { supabase } from "@/lib/supabase";
 import { slug } from "@/lib/links";
-import { useUrlState } from "@/lib/urlState";
+import { useUrlItem, useUrlState } from "@/lib/urlState";
 
 function HowItWorks() {
   const [open, setOpen] = useState(false);
@@ -55,6 +55,8 @@ export default function HubTrendsPage() {
   const [loading, setLoading] = useState(true);
   // ?niche=<slug> (docs/deep-links.md). Niches come from the data: one that is not in it shows them all.
   const [nicheParam, setNicheParam] = useUrlState<string>("niche", "");
+  // ?trend=<id>: that drop is scrolled to, marked and its angles shown
+  const [linked] = useUrlItem("trend");
 
   useEffect(() => {
     supabase
@@ -120,7 +122,7 @@ export default function HubTrendsPage() {
       ) : (
         <div className="space-y-3">
           {shown.map((t) => (
-            <TrendCard key={t.id} trend={t} />
+            <TrendCard key={t.id} trend={t} linked={t.id === linked} />
           ))}
         </div>
       )}

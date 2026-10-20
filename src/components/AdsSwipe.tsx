@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
-import { slug } from "@/lib/links";
-import { useUrlSearch, useUrlState } from "@/lib/urlState";
+import { useEffect, useMemo, useState } from "react";
+import { links, slug } from "@/lib/links";
+import { useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { Link } from "react-router-dom";
 import { ExternalLink, PenLine, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -14,12 +15,13 @@ import { fromAd } from "@/lib/remixSource";
 
 const ASPECT: Record<string, string> = { video: "aspect-[4/5]", carousel: "aspect-square", image: "aspect-[4/5]" };
 
-function AdCard({ ad }: { ad: SwipeAd }) {
-  const [open, setOpen] = useState(false);
+function AdCard({ ad, linked }: { ad: SwipeAd; linked: boolean }) {
+  const [open, setOpen] = useState(linked);
+  const box = useScrollToItem<HTMLElement>(linked);
   const days = daysRunning(ad);
   const long = ad.body.length > 220;
   return (
-    <article className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
+    <article ref={box} className={`flex min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-card ${linked ? "border-primary ring-2 ring-primary/30" : "border-border/60"}`}>
       <a href={safeExternalUrl(ad.libraryUrl) ?? undefined} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true"
         className={`block overflow-hidden bg-muted ${ASPECT[ad.format] ?? "aspect-[4/5]"}`}>
         <img src={ad.image} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -30,6 +32,7 @@ function AdCard({ ad }: { ad: SwipeAd }) {
           <span aria-hidden className="h-1 w-1 rounded-full bg-current opacity-60" />
           <span>{ad.industry}</span>
           {days !== null && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">Running {days} days</span>}
+          <CopyLinkButton path={links.swipe({ tab: "ads", ad: ad.adId })} label={`Copy link to the ${ad.advertiser} ad`} className="-my-2 -mr-2 ml-auto" />
         </p>
         <p className="flex flex-wrap gap-1.5 text-[10px] font-semibold">
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">{ad.hookFamily} hook</span>
@@ -66,11 +69,18 @@ export default function AdsSwipe() {
   // On /swipe?tab=ads: ?q= and ?industry= (the industry's slug), per docs/deep-links.md.
   const [query, setQueryRaw] = useUrlSearch("q");
   const [industrySlug, setIndustrySlug] = useUrlState("industry", "all");
-  const [limit, setLimit] = useState(12);
+  const [more, setLimit] = useState(12);
+  const [adId, , dropAd] = useUrlItem("ad");
+  // Bundled data: an ad that is not in it any more opens the tab without it.
+  useEffect(() => {
+    if (adId && !ADS.some((a) => a.adId === adId)) dropAd();
+  }, [adId, dropAd]);
   const found = useMemo(() => searchAds(ADS, query), [query]);
   const industries = useMemo(() => facetCounts(found, "industry"), [found]);
   const industry = industries.find((i) => slug(i.value) === industrySlug)?.value ?? "all";
   const shown = industry === "all" ? found : found.filter((a) => a.industry === industry);
+  // a linked ad further down than the first 12 is shown too
+  const limit = Math.max(more, shown.findIndex((a) => a.adId === adId) + 1);
   const setIndustry = (v: string) => { setIndustrySlug(v === "all" ? "all" : slug(v)); setLimit(12); };
   const setQuery = (q: string) => { setQueryRaw(q); setLimit(12); };
 
@@ -104,11 +114,11 @@ export default function AdsSwipe() {
       ) : (
         <>
           <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {shown.slice(0, limit).map((a) => <AdCard key={a.adId} ad={a} />)}
+            {shown.slice(0, limit).map((a) => <AdCard key={a.adId} ad={a} linked={a.adId === adId} />)}
           </div>
           {shown.length > limit && (
             <div className="flex justify-center">
-              <button type="button" onClick={() => setLimit((n) => n + 12)}
+              <button type="button" onClick={() => setLimit(limit + 12)}
                 className="h-10 rounded-lg border border-border/70 px-4 text-sm font-semibold hover:border-primary/40">
                 Show {Math.min(12, shown.length - limit)} more of {shown.length - limit}
               </button>

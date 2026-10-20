@@ -26,7 +26,9 @@ import { MAX_WATCH, loadWatch, saveWatch } from "@/lib/mentions";
 import { browserPushSupport, enablePushHere, loadNotifyPrefs, pushOnHere, saveNotifyPrefs } from "@/lib/notify";
 import { loadPositioning } from "@/lib/positioning";
 import { supabase } from "@/lib/supabase";
-import { useUrlState } from "@/lib/urlState";
+import { useScrollToItem, useUrlItem, useUrlState } from "@/lib/urlState";
+import { links } from "@/lib/links";
+import CopyLinkButton from "@/components/CopyLinkButton";
 
 const ago = (iso: string) => {
   const d = Math.floor((Date.now() - Date.parse(iso)) / 86_400_000);
@@ -266,7 +268,11 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
 
   const news = latest ? visibleNews(latest, state, show) : [];
   const geo = latest ? visibleGeo(latest, state, show) : [];
+  // ?post=<platform>:<post id> (docs/deep-links.md): that competitor post is shown under either chip, scrolled to and marked
+  const [linkedPost] = useUrlItem("post");
   const posts = latest ? visiblePosts(latest, state, show) : [];
+  const linked = latest?.posts.find((x) => x.id === linkedPost);
+  if (linked && !posts.includes(linked)) posts.unshift(linked);
   const acts = latest ? actCount(latest, state) : 0;
 
   return (
@@ -377,7 +383,7 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
           {posts.length > 0 && (
             <Section title="Competitors doing well">
               {posts.map((x) => (
-                <Card key={x.id} label={`@${x.handle}'s post`} tag={x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"} written={state.written.includes(postKey(x))}
+                <Card key={x.id} link={links.market({ post: x.id })} linked={x === linked} label={`@${x.handle}'s post`} tag={x.tag === "act" ? "Act" : "Watch"} act={x.tag === "act"} written={state.written.includes(postKey(x))}
                   source={marketSource(followed, x)} writeUrl={postWriteUrl(x)} writeLabel="Write your take" onWrite={() => wrote(postKey(x))} onDismiss={() => dismiss(postKey(x))}>
                   <a href={x.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 py-1.5 font-medium hover:underline">@{x.handle}<ExternalLink className="h-3.5 w-3.5" /></a>
                   <p className="line-clamp-3 text-sm text-muted-foreground">{x.caption}</p>
@@ -416,14 +422,18 @@ function Card(props: {
   tag: string; act: boolean; written: boolean; writeUrl?: string; writeLabel: string; onWrite: () => void; onDismiss: () => void; children: ReactNode;
   /** Leo's sign-ins get the Remix button in place of the write link. */
   source?: RemixSource;
+  /** This card's own link (a competitor post), and whether the address names it. */
+  link?: string;
+  linked?: boolean;
 }) {
+  const box = useScrollToItem<HTMLLIElement>(!!props.linked);
   const write = props.writeUrl && (
     <Button asChild size="sm" className="gap-1.5">
       <Link to={props.writeUrl} onClick={props.onWrite} aria-label={`${props.written ? "Write another" : props.writeLabel}: ${props.label}`}><PenLine className="h-3.5 w-3.5" />{props.written ? "Write another" : props.writeLabel}</Link>
     </Button>
   );
   return (
-    <li className="space-y-3 rounded-lg border border-border bg-card p-4">
+    <li ref={box} className={`space-y-3 rounded-lg border bg-card p-4 ${props.linked ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
       {/* on phones the tag sits above, so a long one ("Not in the answer") never squeezes the text */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <span className={`self-start rounded-full border px-2 py-0.5 text-xs sm:order-last sm:shrink-0 ${props.act ? "border-primary text-primary" : "border-border text-muted-foreground"}`}>{props.tag}</span>
@@ -433,6 +443,7 @@ function Card(props: {
         {props.source ? <RemixButton source={props.source} label={props.label}>{write}</RemixButton> : write}
         <Button type="button" size="sm" variant="ghost" onClick={props.onDismiss} aria-label={`Dismiss: ${props.label}`}>Dismiss</Button>
         {props.written && <span className="text-xs text-muted-foreground">Written</span>}
+        {props.link && <CopyLinkButton path={props.link} label={`Copy link to ${props.label}`} className="ml-auto" />}
       </div>
     </li>
   );

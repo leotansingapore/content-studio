@@ -113,6 +113,10 @@ export const links = {
       /** A top post's key, <advisorId>-<shortCode>: opens it. */
       post?: string;
       industry?: string;
+      /** With tab "news": a story's id, scrolled to and marked. */
+      story?: string;
+      /** With tab "ads": an ad's id, scrolled to, marked and read in full. */
+      ad?: string;
     } = {},
   ) =>
     `/swipe${qs({
@@ -127,19 +131,27 @@ export const links = {
       saved: o.saved && "only",
       post: o.post,
       industry: o.industry !== "all" && o.industry,
+      story: o.story,
+      ad: o.ad,
     })}`,
   trends: (o: { platform?: string; type?: string; trend?: string } = {}) =>
     `/trends${qs({ platform: o.platform !== "all" && o.platform, type: o.type !== "all" && o.type, trend: o.trend })}`,
+  /** ?post=<platform>:<post id>: a followed account's post, scrolled to and marked. */
+  following: (o: { post?: string } = {}) => `/following${qs({ post: o.post })}`,
+  /** Your market (Leo only). post=<platform>:<post id> shows that competitor post under either chip, scrolled to. */
+  market: (o: { show?: "act" | "all"; view?: "digest" | "setup"; post?: string } = {}) =>
+    `/market${qs({ show: o.show !== "act" && o.show, view: o.view !== "digest" && o.view, post: o.post })}`,
   analytics: (o: { period?: AnalyticsPeriod; by?: string; time?: string; rank?: string } = {}) =>
     `/analytics${qs({ period: o.period !== "30d" && o.period, by: o.by !== "platform" && o.by, time: o.time !== "all" && o.time, rank: o.rank !== "engagements" && o.rank })}`,
   trackedLinks: (o: { period?: "7d" | "30d" } = {}) => `/links${qs({ period: o.period !== "30d" && o.period })}`,
   engage: (o: { tool?: string } = {}) => `/recruit/engage${qs({ tool: o.tool !== "replies" && o.tool })}`,
   autoDm: (o: { log?: string; status?: "all" | "sent" | "skipped" | "failed"; edit?: string; keyword?: string } = {}) =>
     `/recruit/auto-dm${qs({ log: o.log, status: o.status !== "all" && o.status, edit: o.edit, keyword: o.keyword })}`,
-  team: (o: { status?: string; from?: string; to?: string } = {}) =>
-    `/team${qs({ status: o.status !== "pending" && o.status, from: o.from, to: o.to })}`,
+  /** post=<submission id> opens the review list that holds it (leaders) or marks it in Your submissions. */
+  team: (o: { status?: string; from?: string; to?: string; post?: string } = {}) =>
+    `/team${qs({ status: o.status !== "pending" && o.status, from: o.from, to: o.to, post: o.post })}`,
   hubGuides: (o: { category?: string } = {}) => `/hub/guides${qs({ category: o.category })}`,
-  hubTrends: (o: { niche?: string } = {}) => `/hub/trends${qs({ niche: o.niche })}`,
+  hubTrends: (o: { niche?: string; trend?: string } = {}) => `/hub/trends${qs({ niche: o.niche, trend: o.trend })}`,
   hubAdmin: (o: { tab?: "clients" | "posts" | "members" } = {}) => `/hub/admin${qs({ tab: o.tab !== "clients" && o.tab })}`,
 
   // ---- Create pages (wave 2A) ----

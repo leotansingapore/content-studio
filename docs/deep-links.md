@@ -10,6 +10,28 @@ words or real ids. An unknown or stale value is ignored and the page shows its d
 periods replace the history entry; opening an item pushes one, so Back closes it. Param names never change
 once shipped; a renamed param keeps reading the old name.
 
+**Every post has a link** (Leo 2026-10-20: "every single post should have a deep link too"). Each post shown
+anywhere carries a Copy link button that copies the link below, and the link opens on that post:
+
+| Post | Its link | Where the Copy link sits |
+|---|---|---|
+| Your post (draft, scheduled, posted) | /generate?draft=<id> (the editor); /calendar?post=<id> for its calendar panel | the editor, each My posts row, the calendar panel, each finished Library card |
+| A carousel, slideshow or video project | the Library card's own page: /carousel?carousel=, /slideshow?s=, /edit?p= (video projects open on the device that made them) | each finished Library card, the carousel preview, the slideshow |
+| A posts board post (reel, carousel) | /reels?card=<id> | every post in the Posts view and the post's panel |
+| A team post (calendar review) | /calendar?business=team-posts&teampost=tp3 | the review panel |
+| A channel post (Telegram feed) | /calendar?feed=<id> or /board?feed=<id> | the post panel |
+| A team review submission | /team?post=<submission id> | every submission, for leaders and for its author |
+| A top post (Swipe file, a creator's page) | /swipe?post=<advisorId>-<shortCode> | the post panel; a creator page's top posts open it |
+| An industry news story | /swipe?tab=news&story=<id> | every story |
+| An ad in the Ads swipe | /swipe?tab=ads&ad=<ad id> | every ad |
+| A followed account's post | /following?post=<platform>:<post id> | every post |
+| A competitor post in Your market | /market?post=<platform>:<post id> | every competitor post |
+| A trend | /trends?trend=<id> | every trend |
+| A trend drop (Hub) | /hub/trends?trend=<id> | every drop |
+| An inspiration example | /inspiration/<id> | the example page |
+
+Your own social posts in the account audit (Analytics) link to the post on Instagram or TikTok; they have no page here.
+
 The first table covers the Pipeline pages; the Grow, Discover and settings pages and the Create pages have their
 own sections below. Older params that still work are listed under "Still read".
 
@@ -99,7 +121,7 @@ so one that is gone shows everything.
 | /profiles | audience | an audience in the data: parent, working-adult, young-adult, pre-retiree, professional... (comma list) | all | replace | /profiles?audience=young-adult |
 | /profiles | niche | insurance, investing, wealth-and-estate-planning, cpf-and-retirement, everyday-money, life-stages, career-and-business, growing-a-practice (comma list) | all | replace | /profiles?niche=cpf-and-retirement |
 | /profiles | saved | only | off | replace | /profiles?saved=only |
-| /profiles/:id | (path) | a creator's id; has Copy link | | push | /profiles/the-astute-parent-youtube |
+| /profiles/:id | (path) | a creator's id; has Copy link. Each top post opens /swipe?post=<advisorId>-<shortCode> | | push | /profiles/the-astute-parent-youtube |
 | /swipe | tab | posts, news, ads (ads only while there are ads) | posts | replace; switching tab clears the other params | /swipe?tab=news |
 | /swipe | q | search text; on each tab its own list | empty | replace | /swipe?q=objection |
 | /swipe | format | short-video, carousel, text-post | all | replace | /swipe?format=short-video |
@@ -111,6 +133,10 @@ so one that is gone shows everything.
 | /swipe | saved | only | off | replace | /swipe?saved=only |
 | /swipe | post | a top post's key, `<advisorId>-<shortCode>`; opens it, with Copy link | none | push (a similar post opened inside replaces) | /swipe?post=the-woke-salaryman-instagram-Ddkxv39j961 |
 | /swipe | industry | ads tab: an industry's slug (insurance, banking, healthcare...) | all | replace | /swipe?tab=ads&industry=banking |
+| /swipe | story | news tab: a story's id; shown even past the first 12, scrolled to and marked; Copy link on every story. A story no longer in the data is removed | none | set by links | /swipe?tab=news&story=ddb48f3587f1 |
+| /swipe | ad | ads tab: an ad's Ad Library id; shown even past the first 12, scrolled to, marked and read in full; Copy link on every ad. An ad no longer in the data is removed | none | set by links | /swipe?tab=ads&ad=2095783381019179 |
+| /following | post | `<platform>:<post id>` of a followed account's post; shown even past the account's first three, scrolled to and marked; Copy link on every post. Following lives per account, so the link opens for its owner | none | set by links | /following?post=instagram%3A3456789012345678901 |
+| /market | post | `<platform>:<post id>` of a competitor post in the latest check; shown under either chip, scrolled to and marked; Copy link on it | none | set by links | /market?post=instagram%3A3456789012345678901 |
 | /trends | platform | a platform in the drop (instagram, tiktok) | all | replace | /trends?platform=tiktok |
 | /trends | type | a trend type in the drop (news, culture, meme...) | all | replace | /trends?type=news |
 | /trends | trend | a trend id; opens its full kit and scrolls to it, Copy link on every card | none | push | /trends?trend=trend-2026-10-11-the-little-treat-trap-why-small-splurges-quietly |
@@ -134,13 +160,15 @@ so one that is gone shows everything.
 | /recruit/auto-dm | edit | an auto-DM id, or new; opens the editor | none; the form left open in this tab | push | /recruit/auto-dm?edit=new |
 | /team | status | pending, approved, changes-requested, rejected (review queue, leaders) | pending | replace | /team?status=changes-requested |
 | /team | from, to | YYYY-MM-DD, the audit trail's range (leaders) | the last 30 days | replace | /team?from=2026-09-01&to=2026-09-30 |
+| /team | post | a submission id: leaders land on the review list that holds it, with the post shown in full; its author sees it marked in Your submissions; Copy link on every submission | none | set by links | /team?post=6f1c2d3e-4b5a-4c6d-8e9f-0a1b2c3d4e5f |
 | /hub/guides | category | editing, videography, trends, tips | all | replace | /hub/guides?category=editing |
 | /hub/trends | niche | a niche's slug from the drops | all | replace | /hub/trends?niche=financial-advisors |
+| /hub/trends | trend | a drop's id: scrolled to and marked, its Fresh angles open; Copy link on every drop | none | set by links | /hub/trends?trend=6f1c2d3e-4b5a-4c6d-8e9f-0a1b2c3d4e5f |
 | /hub/admin | tab | clients, posts, members | clients | replace | /hub/admin?tab=members |
 | /fads/:tab | (path) | personality, purpose, experience, audience, solutions, messaging, output; anything else opens personality | personality | push (Next/Back steps) | /fads/audience |
 | /recruit/:tab | (path) | /recruit (Brand Brain), /recruit/conversations, /recruit/agent | | | /recruit/conversations |
 | /feedback | tab, post, status, category, entry | owned by the shared feedback board (components/feedback/FeedbackBoard.tsx, copied from leotansingapore/feedback-board, not edited here): tab=roadmap, feedback, changelog; post=<number>; with tab=feedback, status=under_review, planned, in_progress, complete, declined and category=<category>; entry=<changelog slug> | roadmap | replace | /feedback?tab=feedback&status=planned |
-| /home, /bio, /accounts, /connect, /following, /reels/team, /brands/new | (none) | nothing on these is a view or filter: forms, one editor per profile, settings, the board's invite links, the add-a-brand flow | | | /bio |
+| /home, /bio, /accounts, /connect, /reels/team, /brands/new | (none) | nothing on these is a view or filter: forms, one editor per profile, settings, the board's invite links, the add-a-brand flow | | | /bio |
 | /join, /review/:token, /l/:slug, /t/report/:slug, /roadmap | (path or #) | public pages that a link already fully names: /join#<invite token>, a preview, a bio page, a campaign report, the public roadmap | | | /join#abc123 |
 
 ## Still read
@@ -211,7 +239,8 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /generate | compare | original, more: on a remixed post (Leo's sign-ins only), phones open the compare strip's Original or More like this tab and large screens scroll to that part; a draft with no source ignores it | your version | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&compare=original |
 | /carousel | compare | original, more: the same strip above the slides of a remixed post, with draft or carousel=d:<post id> | your version | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&compare=more |
 
-Copy link: the open post in Write, the carousel preview, a clone result, each Academy lesson and the open slideshow.
+Copy link: the open post in Write, the carousel preview, a clone result, each Academy lesson and the open slideshow
+(and every post elsewhere, see "Every post has a link" at the top).
 
 ### Still read (Create pages)
 

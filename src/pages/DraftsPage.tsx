@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
 import { links } from "@/lib/links";
 import { draftLine } from "@/lib/remixSource";
@@ -586,6 +587,7 @@ export default function DraftsPage() {
                   <span className="ml-auto text-[10px] text-muted-foreground">
                     {ts.toLocaleString()}
                   </span>
+                  <CopyLinkButton path={links.generate({ draft: d.id })} label={`Copy link to ${d.hook || "this post"}`.slice(0, 120)} className="-my-2 -mr-2" />
                 </div>
                 {d.hook && (
                   <div className="mb-2 line-clamp-2 font-serif text-sm font-semibold leading-snug text-foreground">

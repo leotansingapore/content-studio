@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
-import { slug } from "@/lib/links";
-import { useUrlSearch, useUrlState } from "@/lib/urlState";
+import { useEffect, useMemo, useState } from "react";
+import { links, slug } from "@/lib/links";
+import { useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { safeExternalUrl } from "@/lib/embed";
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Copy, ExternalLink, PenLine, Search, Share2 } from "lucide-react";
@@ -14,9 +15,10 @@ import { NEWS, buildNewsWriteUrl, byMonth, clientMessageText, searchStories, top
 const when = (iso: string) =>
   new Date(iso).toLocaleDateString("en-SG", { day: "numeric", month: "short", timeZone: "Asia/Singapore" });
 
-function StoryCard({ s }: { s: NewsStory }) {
+function StoryCard({ s, linked }: { s: NewsStory; linked: boolean }) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const box = useScrollToItem<HTMLElement>(linked);
   const message = clientMessageText(s);
   // The share sheet only on phones; a desktop share sheet hides the copy everyone expects.
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function" && window.matchMedia("(pointer: coarse)").matches;
@@ -39,7 +41,7 @@ function StoryCard({ s }: { s: NewsStory }) {
   };
 
   return (
-    <article className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
+    <article ref={box} className={`flex min-w-0 flex-col overflow-hidden rounded-xl border bg-card shadow-card ${linked ? "border-primary ring-2 ring-primary/30" : "border-border/60"}`}>
       {s.clipping && (
         <a href={safeExternalUrl(s.url) ?? undefined} target="_blank" rel="noopener noreferrer" tabIndex={-1} aria-hidden="true" className="block aspect-[5/3] overflow-hidden bg-muted">
           <img src={s.clipping} alt="" loading="lazy" className="h-full w-full object-cover object-top" />
@@ -51,6 +53,7 @@ function StoryCard({ s }: { s: NewsStory }) {
           <span aria-hidden className="h-1 w-1 rounded-full bg-current opacity-60" />
           <span className="truncate">{s.source}</span>
           <span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">{s.topic}</span>
+          <CopyLinkButton path={links.swipe({ tab: "news", story: s.id })} label={`Copy link to ${s.title}`} className="-my-2 -mr-2 ml-auto" />
         </p>
         <a
           href={safeExternalUrl(s.url) ?? undefined}
@@ -113,7 +116,14 @@ export default function IndustryNews() {
   const topic = topics.find((t) => slug(t.topic) === topicSlug)?.topic ?? "all";
   const shown = topic === "all" ? found : found.filter((s) => s.topic === topic);
   // 39+ stories made a 33,000px page on a phone: start with the newest 12.
-  const [limit, setLimit] = useState(12);
+  const [more, setLimit] = useState(12);
+  const [storyId, , dropStory] = useUrlItem("story");
+  // Bundled data: a story that is not in it any more opens the tab without it.
+  useEffect(() => {
+    if (storyId && !NEWS.some((s) => s.id === storyId)) dropStory();
+  }, [storyId, dropStory]);
+  // a linked story further down than the first 12 is shown too
+  const limit = Math.max(more, shown.findIndex((s) => s.id === storyId) + 1);
   const setTopic = (t: string) => { setTopicSlug(t === "all" ? "all" : slug(t)); setLimit(12); };
   const setQuery = (q: string) => { setQueryRaw(q); setLimit(12); };
   const months = useMemo(() => byMonth(shown.slice(0, limit)), [shown, limit]);
@@ -155,13 +165,13 @@ export default function IndustryNews() {
             </h3>
             {/* items-start: opening one client message must not stretch the cards beside it. */}
             <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {m.stories.map((s) => <StoryCard key={s.id} s={s} />)}
+              {m.stories.map((s) => <StoryCard key={s.id} s={s} linked={s.id === storyId} />)}
             </div>
           </section>
         ))}
         {shown.length > limit && (
           <div className="flex justify-center">
-            <button type="button" onClick={() => setLimit((n) => n + 12)}
+            <button type="button" onClick={() => setLimit(limit + 12)}
               className="h-10 rounded-lg border border-border/70 px-4 text-sm font-semibold hover:border-primary/40">
               Show {Math.min(12, shown.length - limit)} more of {shown.length - limit}
             </button>

@@ -1,7 +1,7 @@
 // Screen state that lives in the address bar, so any view, filter, period or open item can be linked
 // (Leo 2026-10-13: "everything throughout the app should be deep-linked"). The params each page reads are
 // listed in docs/deep-links.md; links are built in src/lib/links.ts.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { slug } from "./links";
 
@@ -141,6 +141,15 @@ export function useUrlLabels<T extends string>(name: string, options: readonly T
 export function useUrlFlag(name: string, on = "only"): [boolean, (next: boolean) => void] {
   const [v, set] = useUrlState<string>(name, "", { allowed: [on] });
   return [v === on, useCallback((next: boolean) => set(next ? on : ""), [set, on])];
+}
+
+/** A post in a list that the address names (?story=, ?post=...): put the ref on it and it is scrolled to the middle. */
+export function useScrollToItem<T extends HTMLElement>(linked: boolean) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    if (linked) ref.current?.scrollIntoView({ block: "center" });
+  }, [linked]);
+  return ref;
 }
 
 /** A #section link scrolls to that section once the page has drawn it (`ready`), on every tap of the link. */

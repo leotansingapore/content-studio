@@ -1,4 +1,7 @@
 import { useState } from "react";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { links } from "@/lib/links";
+import { useScrollToItem } from "@/lib/urlState";
 import { Link } from "react-router-dom";
 import { ChevronDown, Play, Sparkles, Wand2 } from "lucide-react";
 
@@ -33,10 +36,11 @@ function timeAgo(iso: string) {
   return `${Math.round(hrs / 24)}d ago`;
 }
 
-export default function TrendCard({ trend }: { trend: HubTrend }) {
-  const [open, setOpen] = useState(false);
+export default function TrendCard({ trend, linked = false }: { trend: HubTrend; linked?: boolean }) {
+  const [open, setOpen] = useState(linked);
+  const box = useScrollToItem<HTMLDivElement>(linked);
   return (
-    <Card>
+    <Card ref={box} className={linked ? "border-primary ring-2 ring-primary/30" : undefined}>
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full border border-border bg-muted/40 px-2 py-0.5 text-muted-foreground">
@@ -48,6 +52,7 @@ export default function TrendCard({ trend }: { trend: HubTrend }) {
             </span>
           )}
           <span className="ml-auto text-muted-foreground">{timeAgo(trend.created_at)}</span>
+          <CopyLinkButton path={links.hubTrends({ trend: trend.id })} label={`Copy link to ${trend.title}`} className="-my-2 -mr-2" />
         </div>
         <CardTitle className="text-base leading-snug">{trend.title}</CardTitle>
       </CardHeader>

@@ -20,7 +20,10 @@ import {
   ReviewStateBadge,
   formatWhen,
 } from "@/components/team/shared";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import { loadDrafts } from "@/lib/draftHistory";
+import { links } from "@/lib/links";
+import { useScrollToItem, useUrlItem } from "@/lib/urlState";
 import {
   deriveReviewState,
   fetchApprovalRules,
@@ -48,6 +51,9 @@ export default function MemberView({
   const navigate = useNavigate();
   const { team, me } = myTeam;
   const [subs, setSubs] = useState<ReviewSubmission[]>([]);
+  // ?post=<submission id> (docs/deep-links.md): that submission is scrolled to and marked
+  const [linked] = useUrlItem("post");
+  const linkedRow = useScrollToItem<HTMLLIElement>(subs.some((s) => s.id === linked));
   const [leaders, setLeaders] = useState<string[]>([]);
   const [editedIds, setEditedIds] = useState<Set<string>>(new Set());
   const [ruleOn, setRuleOn] = useState(false);
@@ -163,8 +169,9 @@ export default function MemberView({
                 return (
                   <li
                     key={s.id}
-                    className={`rounded-xl border border-border/70 bg-card p-3 sm:p-4 ${
-                      isLatest ? "" : "opacity-70"
+                    ref={s.id === linked ? linkedRow : undefined}
+                    className={`rounded-xl border bg-card p-3 sm:p-4 ${isLatest ? "" : "opacity-70"} ${
+                      s.id === linked ? "border-primary ring-2 ring-primary/30" : "border-border/70"
                     }`}
                   >
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -178,6 +185,7 @@ export default function MemberView({
                       <span className="ml-auto text-[11px] text-muted-foreground">
                         {formatWhen(s.submitted_at)}
                       </span>
+                      <CopyLinkButton path={links.team({ post: s.id })} label="Copy link to this submission" className="-my-2 -mr-2" />
                     </div>
                     <p className="mt-2 line-clamp-3 whitespace-pre-line break-words text-sm leading-relaxed text-foreground">
                       {s.content}
