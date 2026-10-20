@@ -396,7 +396,7 @@ function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
             </span>
             <span className="text-base font-semibold">Upload a video of you talking</span>
             <span className="text-xs text-muted-foreground">A video, or a podcast or voice clip (MP3, M4A, WAV). Up to 4 GB and about 2 hours. It stays on this device.</span>
-            <Left n={captions} what="Captioning" price={UPLOAD_CAPTIONS} />
+            <Left n={captions} what="Captioning" price={UPLOAD_CAPTIONS} quiet />
           </>
         )}
         <input type="file" accept="video/*,audio/*" className="sr-only" disabled={!!busy}
@@ -2870,8 +2870,8 @@ const smaller = (a: number | null, b: number | null) => (a === null || b === nul
 
 /**
  * Uses left today beside an AI button; nothing until today's count has been read. Leo sees the price and what is left
- * after this run instead (PriceChip), with the reason on its own line when the button can't run (`quiet` leaves it out
- * where nothing is disabled). `least` is the smallest left when a button spends from several caps.
+ * after this run instead (PriceChip), after `what` when given, with the reason on its own line when the button can't run
+ * (`quiet` leaves it out where nothing is disabled). `least` is the smallest left when a button spends from several caps.
  */
 function Left({ n, what, least = n, quiet, ...chip }: {
   n: number | null;
@@ -2882,12 +2882,13 @@ function Left({ n, what, least = n, quiet, ...chip }: {
   opts?: PriceOpts;
   price?: Price | "pick" | null;
 }) {
-  const why = reasonText({ left: least, leo: useLeoOnly() });
+  const leo = useLeoOnly();
+  const why = reasonText({ left: least, leo });
   const text = n ? `${n} left today` : "None left today";
   const today = n === null ? null : <span className={`text-[11px] ${n ? "text-muted-foreground" : "font-medium text-destructive"}`}>{what ? `${what}: ${text.toLowerCase()}` : text}</span>;
   return (
     <>
-      <PriceChip {...chip} left={least} fallback={today} />
+      {leo && what ? <span className="text-[11px] text-muted-foreground">{what}: <PriceChip {...chip} left={least} /></span> : <PriceChip {...chip} left={least} fallback={today} />}
       {why && !quiet && <span className="order-last block basis-full text-xs text-destructive">{why}</span>}
     </>
   );
