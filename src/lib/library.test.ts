@@ -168,6 +168,8 @@ describe("buildLibrary", () => {
     ];
     const list = build({ jobs, drafts: [draft("t1")] });
     expect(byKey(list, "j:ai")).toMatchObject({ status: "making", note: "Making the voiceover", at: NOW.toISOString() });
+    expect(byKey(list, "j:ai").waiting).toBeUndefined();
+    expect(byKey(build({ jobs: aiJobs(null, {}) }), "j:ai")).toMatchObject({ status: "making", waiting: true });
     expect(byKey(list, "j:image")).toMatchObject({ status: "failed", note: "Out of credit", retryHref: "/generate" });
     expect(byKey(list, "j:join")).toMatchObject({ status: "ready", format: "video" });
     expect(list[list.length - 1].key).toBe("d:t1");
@@ -230,7 +232,8 @@ describe("job mappers", () => {
   });
 
   it("shows a paid avatar or template clip waiting after a reload, only when no job is in memory", () => {
-    expect(aiJobs(null, {})[0]).toMatchObject({ state: "working", label: "Avatar video", href: links.edit({ panel: ["ai"], kind: "avatar" }) });
+    expect(aiJobs(null, {})[0]).toMatchObject({ state: "working", waiting: true, label: "Avatar video", href: links.edit({ panel: ["ai"], kind: "avatar" }) });
+    expect(aiJobs(ai({}), {})[0].waiting).toBeUndefined();
     expect(aiJobs(null, { kind: "template" })[0]).toMatchObject({ label: "Template clip", href: links.edit({ panel: ["ai"], kind: "template" }) });
     expect(aiJobs(ai({ state: "failed", error: "Dropped" }), {})).toHaveLength(1);
     expect(aiJobs(null, null)).toEqual([]);

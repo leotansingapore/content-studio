@@ -48,6 +48,8 @@ export interface LibraryItem {
   note?: string;
   /** Zernio has it scheduled. */
   autoPost?: boolean;
+  /** Making, but nothing runs until its page opens. */
+  waiting?: boolean;
   /** A video's file key on this device (deviceFiles.ts), checked once its card is on screen. */
   file?: string;
 }
@@ -60,6 +62,8 @@ export interface LibraryJob {
   step?: string;
   error?: string;
   href: string;
+  /** Working, but nothing runs until `href` opens (a paid avatar after a reload). */
+  waiting?: boolean;
 }
 
 const TITLE_MAX = 80;
@@ -132,6 +136,7 @@ function jobItem(j: LibraryJob, now: Date): LibraryItem {
     href: j.href,
     ...(note ? { note } : {}),
     ...(j.state === "failed" ? { retryHref: j.href } : {}),
+    ...(j.waiting ? { waiting: true } : {}),
   };
 }
 
@@ -267,7 +272,8 @@ export function aiJobs(j: AiJob | null, pending: { kind?: "template" } | null): 
   }
   if (!pending) return [];
   const kind = pending.kind ?? "avatar";
-  return [{ kind: "ai", label: AI_LABELS[kind], format: "video", state: "working", step: "Open the editor to finish it", href: aiHref(kind) }];
+  // only AiVideo on /edit resumes it, so it waits for Leo rather than spinning
+  return [{ kind: "ai", label: AI_LABELS[kind], format: "video", state: "working", waiting: true, step: "Open the editor to finish it", href: aiHref(kind) }];
 }
 
 export function montageJobs(j: MontageJob | null): LibraryJob[] {

@@ -4,7 +4,7 @@
 
 import { useEffect, useId, useMemo, useReducer } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, Download, FileText, Film, GalleryHorizontal, Image as ImageIcon, Loader2, Shuffle } from "lucide-react";
+import { AlertCircle, Clock, Download, FileText, Film, GalleryHorizontal, Image as ImageIcon, Loader2, Shuffle } from "lucide-react";
 import { imageJob, onImageJob } from "@/lib/aiImage";
 import { aiJob, onAiJob, pendingAvatar } from "@/lib/aiVideo";
 import { aiJobs, exportJobs, FORMAT_LABELS, imageJobs, joinJobs, madeCount, montageJobs, remixJobs, type LibraryItem, type LibraryJob } from "@/lib/library";
@@ -65,7 +65,7 @@ export default function MakingNow({ items, jobs, className }: { items: LibraryIt
                   <span className="min-w-0">
                     <span className="block font-medium">{j.label}</span>
                     <span className={cn("flex items-start gap-1 text-xs", failed ? "text-destructive" : "text-muted-foreground")}>
-                      {!failed && <Loader2 className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />}
+                      {!failed && (j.waiting ? <Clock className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> : <Loader2 className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />)}
                       <span className="min-w-0">{failed ? j.error || "That didn't go through." : j.step}</span>
                     </span>
                   </span>

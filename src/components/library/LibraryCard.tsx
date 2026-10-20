@@ -3,7 +3,7 @@
 
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, ExternalLink, Film, Loader2 } from "lucide-react";
+import { AlertCircle, Clock, ExternalLink, Film, Loader2 } from "lucide-react";
 import { SlideThumb } from "@/components/slideshow/SlideCanvas";
 import { Button } from "@/components/ui/button";
 import type { CarouselBrand, SavedCarousel } from "@/lib/carousel";
@@ -132,7 +132,7 @@ function LibraryCard({ item, brand, carousel, show, userId, fontsReady }: { item
           {thumb ??
             (pending ? (
               <span className="flex h-full w-full items-center justify-center text-muted-foreground">
-                {making ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <AlertCircle className="h-6 w-6 text-destructive" />}
+                {item.waiting ? <Clock className="h-6 w-6" /> : making ? <Loader2 className="h-6 w-6 animate-spin text-primary" /> : <AlertCircle className="h-6 w-6 text-destructive" />}
               </span>
             ) : item.format === "video" ? (
               <span className="flex h-full w-full items-center justify-center bg-zinc-800 text-zinc-300">
@@ -151,7 +151,7 @@ function LibraryCard({ item, brand, carousel, show, userId, fontsReady }: { item
           {item.title}
         </p>
         <p className={cn("flex items-start gap-1 text-xs", failed ? "text-destructive" : "text-muted-foreground")}>
-          {making && <Loader2 className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />}
+          {making && (item.waiting ? <Clock className="mt-0.5 h-3 w-3 shrink-0" aria-hidden /> : <Loader2 className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />)}
           <span className="min-w-0 break-words">{statusLine(item)}</span>
         </p>
         {item.autoPost && <span className="inline-block rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Auto-post</span>}
