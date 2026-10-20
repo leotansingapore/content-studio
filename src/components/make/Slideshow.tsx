@@ -181,6 +181,14 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   }, []);
 
   const original = shown?.source ?? (remix ? source : null);
+
+  // a remixed slideshow opened by link brings its own source into the setup, so Make again repeats what is shown
+  const shownSource = shown?.source;
+  useEffect(() => {
+    if (!shownSource || slideshowBusy() || params.get("source")) return;
+    rememberSource(shownSource, userId);
+    update({ source: shownSource.key, from: null });
+  }, [shownSource, params, update, userId]);
   const set = (k: string, v: string | null) => update({ [k]: v });
 
   const options = (
@@ -274,7 +282,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
       {original && tab === "original" ? (
         <Card className="border-border/60 shadow-card">
           <CardContent className="pt-4 sm:pt-5">
-            <OriginalPane source={original} label="Slideshow to remix" linkText={original.platform === "instagram" ? "Open on Instagram" : "Open original"} />
+            <OriginalPane source={original} label={shown?.source ? "Remixed from" : "Slideshow to remix"} linkText={original.platform === "instagram" ? "Open on Instagram" : "Open original"} />
           </CardContent>
         </Card>
       ) : busy && job ? (
