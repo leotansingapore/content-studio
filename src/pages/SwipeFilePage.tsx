@@ -9,8 +9,6 @@ import IndustryNews from "@/components/IndustryNews";
 import AdsSwipe from "@/components/AdsSwipe";
 import ViralSearch from "@/components/ViralSearch";
 import { ADS, ADS_FETCHED } from "@/lib/adsSwipe";
-import { hasLibraryAds, loadLibrary, onSpaceAdsChanged } from "@/lib/adLibrary";
-import { onCompetitorAdsChanged } from "@/lib/competitorAds";
 import YourFeeds from "@/components/YourFeeds";
 import Mentions from "@/components/Mentions";
 import { NEWS } from "@/lib/industryNews";
@@ -101,15 +99,25 @@ function FilterSelect({
 export default function SwipeFilePage() {
   // Tab, search, filters, sort and the open post live in the URL (docs/deep-links.md).
   const leo = useLeoUser();
-  // Leo's ads tab reads his competitors' and space's ads too: drawn again when either store changes
-  const [libraryVersion, bumpLibrary] = useState(0);
+  // Leo's ads tab counts his whole library (competitors, your space, the drop), counted again when a store changes.
+  // Imported only for him, so nobody else downloads the library's code; null until it is read.
+  const [leoAds, setLeoAds] = useState<number | null>(null);
   useEffect(() => {
     if (!leo) return;
-    const offs = [onCompetitorAdsChanged(() => bumpLibrary((n) => n + 1)), onSpaceAdsChanged(() => bumpLibrary((n) => n + 1))];
-    return () => offs.forEach((off) => off());
+    let live = true;
+    let offs: (() => void)[] = [];
+    void Promise.all([import("@/lib/adLibrary"), import("@/lib/competitorAds")]).then(([lib, comp]) => {
+      if (!live) return;
+      const count = () => setLeoAds(lib.loadLibrary(leo.id).length);
+      count();
+      offs = [comp.onCompetitorAdsChanged(count), lib.onSpaceAdsChanged(count)];
+    });
+    return () => {
+      live = false;
+      offs.forEach((off) => off());
+    };
   }, [leo]);
-  const leoAds = useMemo(() => (leo && hasLibraryAds(leo.id) ? loadLibrary(leo.id).length : 0), [leo, libraryVersion]);
-  const adsTab = leo ? leoAds > 0 : ADS.length > 0;
+  const adsTab = ADS.length > 0 || Boolean(leo && leoAds);
   const [tab] = useUrlState<Tab>("tab", "posts", {
     allowed: [...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["search"] as const) : [])],
   });
@@ -147,8 +155,10 @@ export default function SwipeFilePage() {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [openKey, openPost, closePost] = useUrlItem("post");
   const { search: here } = useLocation();
-  // ads waits too: Leo's library replaces the Singapore picks, so they never flash first
-  const leoTabLoading = leo === undefined && [...LEO_TABS, "ads"].includes(new URLSearchParams(here).get("tab") ?? "");
+  // ads waits too: Leo's library replaces the Singapore picks, so they never flash first, and with no picks it
+  // waits for his library's count
+  const linkedTab = new URLSearchParams(here).get("tab") ?? "";
+  const leoTabLoading = (leo === undefined && [...LEO_TABS, "ads"].includes(linkedTab)) || (Boolean(leo) && leoAds === null && !ADS.length && linkedTab === "ads");
 
   const target = useMemo(
     () => (userId ? personalTargetFromPositioning(loadPositioning(userId)) : null),
@@ -238,7 +248,7 @@ export default function SwipeFilePage() {
           { id: "posts" as const, label: "Top posts", n: TOTAL_TOP_POSTS },
           { id: "news" as const, label: "Industry news", n: NEWS.length },
           // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing; Leo's counts his library.
-          ...(adsTab ? [{ id: "ads" as const, label: "Ads", n: leo ? leoAds : ADS.length }] : []),
+          ...(adsTab ? [{ id: "ads" as const, label: "Ads", n: leo ? (leoAds ?? ADS.length) : ADS.length }] : []),
           ...(leo ? [{ id: "search" as const, label: "Search", n: null }] : []),
         ].map((t) => (
           <button
