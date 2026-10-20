@@ -130,6 +130,7 @@ Topic  [Retirement *] [CPF] [Insurance basics]      (only with "Make it about my
 
 - "Same footage, new look" on the adviser's own videos needs the original file, so it fits better once brand-media-library keeps media in the cloud; when to add it is Leo's call.
 - Whether "React to it" should also make a stitch-style video that shows the original needs the original creator's permission and is left out with other people's footage.
+- 20 Oct 2026 (phase 1 build brief): "Your face in it" (`face`) is not a Keep chip. "You speaking" in remix-any-format's Make row does the same job, so `Keep` has six values and the server refuses `keep=face` with the 400.
 
 ## Related
 

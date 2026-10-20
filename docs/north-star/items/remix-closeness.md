@@ -122,6 +122,8 @@ More options                                  Balanced  v
 
 - Is 6 words the right floor? Fastlane's remix kept "You might not realise" from its source, a 4-word run that neither 6 nor 5 would catch. A floor of 4 would catch it and would also flag common phrases ("one of the most", "at the end of"). Proposed: start at 6 and read the first 50 flags before going lower.
 - Should "Close" be offered on ads at all, given ads are someone's paid creative? This spec allows it because the floor still holds; Leo decides.
+- 20 Oct 2026 (phase 1 build): the "Rewriting <n> lines that matched the original" step is dropped. The check and its one rewrite run inside the single remix call, so the sheet cannot see the second pass start; "Checking it" covers both. Showing it needs the function to stream its steps.
+- 20 Oct 2026 (phase 1 build): CLOSE_RULES were reworded to tightness only (how closely to follow what the Keep pick keeps), so a level never contradicts an intent. The explainers under "How close" follow the rules, not the strings above: "Uses what you keep as a light guide. The rest is yours.", "Follows what you keep, with a new angle. Every line is new.", "Follows what you keep closely, down to its length. Every line is new."
 
 ## Related
 
