@@ -16,10 +16,14 @@ import PriceChip from "@/components/PriceChip";
 import { humanLabel } from "@/lib/utils";
 import { NICHE_GROUPS, inNicheGroups, nicheGroup } from "@/lib/nicheGroups";
 import { links } from "@/lib/links";
-import { toggled, useUrlLabels, useUrlFlag, useUrlSearch, useUrlUpdate } from "@/lib/urlState";
+import { toggled, useUrlLabels, useUrlFlag, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { useUsesLeft } from "@/lib/aiUsage";
-import { CAP_LINE, FOLLOW_ONLY, followButton, followable } from "@/lib/creatorFit";
+import {
+  CAP_LINE, FIT_CHIP, FOLLOW_ONLY, fitHash, fitInput, fitRun, followButton, followable, loadFit, onFitRun, runFit, sortByAudience, sortByFit,
+} from "@/lib/creatorFit";
 import { MAX_FOLLOWED, checkCapped, checkFailure, followAccount, isChecking, loadFollowing, onFollowing, sameAccount } from "@/lib/following";
+import { loadPositioning } from "@/lib/positioning";
+import { personalTargetFromPositioning } from "@/lib/postInsights";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { normalizeHandle } from "../../supabase/functions/_shared/socialAudit.ts";
 import { useToast } from "@/hooks/use-toast";
@@ -248,12 +252,15 @@ function AdvisorCard({
   saved,
   onToggleSave,
   follow,
+  goodFit = false,
 }: {
   entry: AdvisorEntry;
   saved?: boolean;
   onToggleSave?: () => void;
   /** Leo only: Follow on an Instagram or TikTok card. */
   follow?: { userId: string; left: number | null };
+  /** Leo's Best for you: Jev rated this creator at FIT_CHIP or above. */
+  goodFit?: boolean;
 }) {
   const { toast } = useToast();
   const { search } = useLocation();
@@ -318,6 +325,11 @@ function AdvisorCard({
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">
                 <AlertTriangle className="h-3 w-3" /> Unverified - check activity
+              </span>
+            )}
+            {goodFit && (
+              <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                Good fit for you
               </span>
             )}
           </div>
@@ -438,10 +450,23 @@ export default function AdvisorProfiles() {
     };
   }, []);
 
-  // Leo only (find-creators): Follow on the Instagram and TikTok cards
+  // Leo only (find-creators): Follow on the cards, and Best for you with a Plan positioning (?sort=for-you)
   const leo = useLeoUser();
+  const plan = useMemo(() => (leo ? loadPositioning(leo.id) : null), [leo]);
+  const hasPlan = Boolean(personalTargetFromPositioning(plan));
+  const [sort, setSort] = useUrlState<string>("sort", "", { allowed: leo && hasPlan ? ["for-you"] : [] });
+  const forYou = Boolean(leo && plan && sort === "for-you");
+  const input = useMemo(() => (leo && forYou ? fitInput(leo.id, plan) : null), [leo, plan, forYou]);
+  const hash = input ? fitHash(input) : "";
   const [, tick] = useState(0);
+  useEffect(() => onFitRun(() => tick((n) => n + 1)), []);
   useEffect(() => onFollowing(() => tick((n) => n + 1)), []);
+  // cached for 7 days per brand input; a run already made in this tab (done, capped or failed) is not repeated
+  useEffect(() => {
+    if (leo && input && !loadFit(leo.id, hash) && !fitRun(hash)) void runFit(leo.id, input, ENTRIES);
+  }, [leo, input, hash]);
+  const run = forYou ? fitRun(hash) : null;
+  const fit = (leo && forYou ? loadFit(leo.id, hash) : null) ?? (run?.state === "done" ? run.fit : null);
   // Leo's price chips read today's uses once, and again when a follow's first check ends
   const anyChecking = leo ? loadFollowing(leo.id).some(isChecking) : false;
   const left = useUsesLeft(!leo || anyChecking)("track-accounts");
@@ -503,11 +528,14 @@ export default function AdvisorProfiles() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [search, platformList.join(), companyList.join(), audienceList.join(), nicheList.join()]);
+  }, [search, platformList.join(), companyList.join(), audienceList.join(), nicheList.join(), sort]);
 
-  const visible = filtered.slice(0, visibleCount);
-  const remaining = filtered.length - visible.length;
-  const cardProps = () => (leo ? { follow: { userId: leo.id, left } } : {});
+  // Best for you: Jev's order, data order while it runs, the Plan's audience first when there is no answer
+  const ordered = !forYou || !plan ? filtered : fit ? sortByFit(filtered, fit) : !run || run.state === "working" ? filtered : sortByAudience(filtered, plan.audience);
+  const visible = ordered.slice(0, visibleCount);
+  const remaining = ordered.length - visible.length;
+  const cardProps = (entry: AdvisorEntry) =>
+    leo ? { follow: { userId: leo.id, left }, goodFit: Boolean(fit && (fit[entry.id] ?? 0) >= FIT_CHIP) } : {};
 
   return (
     <div className="space-y-5">
@@ -621,6 +649,29 @@ export default function AdvisorProfiles() {
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-2">
+            {leo && hasPlan && (
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/60 bg-background px-2.5 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+                  <span className="font-semibold text-muted-foreground">Sort</span>
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                    className="h-full bg-transparent font-medium text-foreground outline-none"
+                    aria-label="Sort"
+                  >
+                    <option value="">By type</option>
+                    <option value="for-you">Best for you</option>
+                  </select>
+                </label>
+                {forYou && !fit && run?.state === "working" && <span className="text-xs text-muted-foreground" aria-live="polite">Sorting by fit...</span>}
+                {forYou && !fit && run?.state === "capped" && <span className="text-xs text-muted-foreground">Sorted by audience until 8am.</span>}
+                {forYou && !fit && run?.state === "failed" && leo && input && (
+                  <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => void runFit(leo.id, input, ENTRIES)}>
+                    Try again
+                  </Button>
+                )}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               {filtered.length} creator{filtered.length === 1 ? "" : "s"}
               {activeFilterCount > 0 ? " match your filters" : ""}
@@ -670,7 +721,20 @@ export default function AdvisorProfiles() {
         </Card>
       ) : (
         <>
-          {TIER_ORDER.map((tier) => {
+          {/* Best for you is one ranked list; otherwise the three tier sections */}
+          {forYou ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {visible.map((entry) => (
+                <AdvisorCard
+                  key={entry.id}
+                  entry={entry}
+                  saved={isSaved(saved, "creators", entry.id)}
+                  onToggleSave={() => handleToggleSave(entry.id)}
+                  {...cardProps(entry)}
+                />
+              ))}
+            </div>
+          ) : TIER_ORDER.map((tier) => {
             const group = visible.filter((e) => (e.tier ?? 2) === tier);
             if (group.length === 0) return null;
             const meta = TIER_META[tier];
@@ -688,7 +752,7 @@ export default function AdvisorProfiles() {
                   entry={entry}
                   saved={isSaved(saved, "creators", entry.id)}
                   onToggleSave={() => handleToggleSave(entry.id)}
-                  {...cardProps()}
+                  {...cardProps(entry)}
                 />
                   ))}
                 </div>
