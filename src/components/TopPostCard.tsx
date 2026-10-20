@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { safeExternalUrl } from "@/lib/embed";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,7 @@ export default function TopPostCard({
   insight: insightProp,
   saved = false,
   onToggleSave,
-  onOpen,
+  href,
 }: {
   post: TopPost;
   advisor: { id: string; name: string; handle: string };
@@ -81,7 +82,8 @@ export default function TopPostCard({
   insight?: PostInsight;
   saved?: boolean;
   onToggleSave?: () => void;
-  onOpen?: () => void;
+  /** The post's own link: the cover and hook open it, as real links (long press, new tab, cmd-click). */
+  href?: string;
 }) {
   const fmt = generatorFormat(post);
   const insight = displayInsight(post, insightProp);
@@ -92,12 +94,10 @@ export default function TopPostCard({
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card transition-all hover:border-primary/40 hover:shadow-elegant">
       {/* Cover — our committed copy of the post image (public/covers). Posts
           with no cover (deleted/private) fall back to a format placeholder. */}
-      <button
-        type="button"
-        onClick={onOpen}
-        disabled={!onOpen}
-        className="group relative flex aspect-[5/3] w-full items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 via-brand/10 to-primary/[0.04] disabled:cursor-default"
-        aria-label={onOpen ? "Open post details" : undefined}
+      <Opener
+        href={href}
+        className="group relative flex aspect-[5/3] w-full items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 via-brand/10 to-primary/[0.04]"
+        label="Open post details"
       >
         {post.cover ? (
           <>
@@ -121,12 +121,12 @@ export default function TopPostCard({
             <Flame className="h-3 w-3" /> {insight.ratio.toFixed(1)}× avg
           </span>
         )}
-        {onOpen && (
+        {href && (
           <span className="absolute bottom-2.5 right-2.5 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground backdrop-blur">
             Tap for details
           </span>
         )}
-      </button>
+      </Opener>
 
       <div className="flex flex-1 flex-col gap-2.5 p-4">
         {/* Performance */}
@@ -152,16 +152,11 @@ export default function TopPostCard({
         )}
 
         {/* Big bold hook — the dominant element */}
-        <button
-          type="button"
-          onClick={onOpen}
-          disabled={!onOpen}
-          className="text-left disabled:cursor-default"
-        >
+        <Opener href={href} className="block text-left">
           <p className="line-clamp-3 font-serif text-base font-semibold leading-snug text-foreground">
             {hook}
           </p>
-        </button>
+        </Opener>
 
         {/* Why it worked — kept to 1–2 lines */}
         {post.idea?.why && (
@@ -248,5 +243,16 @@ export default function TopPostCard({
         </div>
       </div>
     </div>
+  );
+}
+
+/** A real link when the card has one, else plain content (a card with nowhere to open). */
+function Opener({ href, className, label, children }: { href?: string; className: string; label?: string; children: ReactNode }) {
+  return href ? (
+    <Link to={href} className={className} aria-label={label}>
+      {children}
+    </Link>
+  ) : (
+    <div className={className}>{children}</div>
   );
 }

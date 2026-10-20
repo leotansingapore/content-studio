@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import {
   Card,
@@ -47,7 +47,6 @@ const PLATFORM_META: Record<
 export default function ProfileDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { state } = useLocation();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const entry = ENTRIES.find((e) => e.id === id);
 
@@ -261,7 +260,7 @@ export default function ProfileDetailPage() {
                 post={post}
                 advisor={{ id: entry.id, name: entry.name, handle: entry.handle }}
                 // the post's own link is its Top posts page, with Copy link there
-                onOpen={() => navigate(links.swipe({ post: `${topAdvisorId(entry.handle)}-${post.shortCode}` }))}
+                href={links.swipe({ post: `${topAdvisorId(entry.handle)}-${post.shortCode}` })}
               />
             ))}
           </div>

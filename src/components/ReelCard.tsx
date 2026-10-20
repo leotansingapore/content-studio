@@ -14,7 +14,8 @@ const FORMAT_ICON: Record<string, typeof Film> = {
 // A tall swipe-file card: the cover first, numbers on the cover, then two lines
 // of caption and who posted it. The whole card opens the post; "Remix this"
 // goes straight to Write (Leo's sign-ins get the Remix button instead).
-export default function ReelCard({ item, onOpen }: { item: ScoredPost; onOpen: () => void }) {
+/** `href` is the post's own link (?post=), so a long press, a new tab and cmd-click work on the cover. */
+export default function ReelCard({ item, href }: { item: ScoredPost; href: string }) {
   const { post, insight } = item;
   const fmt = generatorFormat(post);
   const Icon = FORMAT_ICON[fmt] ?? FileText;
@@ -23,12 +24,7 @@ export default function ReelCard({ item, onOpen }: { item: ScoredPost; onOpen: (
 
   return (
     <div className="relative min-w-0">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="group block w-full text-left"
-        aria-label={`Open post by ${post.handle}`}
-      >
+      <Link to={href} className="group block w-full text-left" aria-label={`Open post by ${post.handle}`}>
         <span className="relative block aspect-[9/16] w-full overflow-hidden rounded-xl bg-muted shadow-card ring-1 ring-border/60 transition-shadow group-hover:shadow-elegant">
           {post.cover ? (
             fmt === "short-video" ? (
@@ -78,7 +74,7 @@ export default function ReelCard({ item, onOpen }: { item: ScoredPost; onOpen: (
             )}
           </span>
         </span>
-      </button>
+      </Link>
       <RemixButton source={fromTopPost(post, { id: post.advisorId, name: post.advisorName, handle: post.handle })}>
         <Link
           to={buildRemixUrl(post, { name: post.advisorName, handle: post.handle }, { angle: insight.angle, structure: insight.structure })}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import Mentions from "@/components/Mentions";
 import { NEWS } from "@/lib/industryNews";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
 import { InfoTip } from "@/components/ui/info-tip";
-import { useUrlFlag, useUrlItem, useUrlLabel, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { withParam, useUrlFlag, useUrlItem, useUrlLabel, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { supabase } from "@/lib/supabase";
 import { loadSaved, toggleSaved } from "@/lib/savedItems";
@@ -118,6 +118,7 @@ export default function SwipeFilePage() {
   const [showFilters, setShowFilters] = useState(() => [kind, topic, angle, audience].some((v) => v !== "all"));
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [openKey, openPost, closePost] = useUrlItem("post");
+  const { search: here } = useLocation();
 
   const target = useMemo(
     () => (userId ? personalTargetFromPositioning(loadPositioning(userId)) : null),
@@ -411,7 +412,7 @@ export default function SwipeFilePage() {
               <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-4">
                 {shown.map((item) => {
                   const key = postKey(item);
-                  return <ReelCard key={key} item={item} onOpen={() => openPost(key)} />;
+                  return <ReelCard key={key} item={item} href={`?${withParam(new URLSearchParams(here), "post", key)}`} />;
                 })}
               </div>
               {remaining > 0 && (

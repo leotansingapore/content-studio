@@ -172,6 +172,8 @@ export default function ReelsPage() {
     [board, me, replace, setStage, toast],
   );
 
+  // a post card is a real link to its ?card=, so long-press Copy link, a new tab and cmd-click work on it
+  const cardHref = (id: string) => ({ search: `?${withParam(params, "card", id)}` });
   const open = (id: string | null) => {
     const next = new URLSearchParams(params);
     if (id) next.set("card", id);
@@ -398,11 +400,11 @@ export default function ReelsPage() {
                           onDragStart={(e) => { e.dataTransfer.setData("text/plain", c.id); e.dataTransfer.effectAllowed = "move"; }}
                           className={`grid grid-cols-[52px_1fr] gap-2 rounded-lg border border-border/60 bg-card p-2 shadow-sm ${p.edit ? "cursor-grab active:cursor-grabbing" : ""}`}
                         >
-                          <button type="button" onClick={() => open(c.id)} className="block self-start overflow-hidden rounded-md bg-muted" style={{ aspectRatio: aspectOf(c) }} aria-label={`Open ${c.title}`}>
-                            {v.thumbUrl && <img src={v.thumbUrl} alt="" loading="lazy" className="h-full w-full object-cover" />}
-                          </button>
+                          <Link to={cardHref(c.id)} draggable={false} className="block self-start overflow-hidden rounded-md bg-muted" style={{ aspectRatio: aspectOf(c) }} aria-label={`Open ${c.title}`}>
+                            {v.thumbUrl && <img src={v.thumbUrl} alt="" loading="lazy" draggable={false} className="h-full w-full object-cover" />}
+                          </Link>
                           <div className="min-w-0 space-y-1">
-                            <button type="button" onClick={() => open(c.id)} className="block text-left text-xs font-semibold leading-snug line-clamp-2 hover:text-primary">{c.title}</button>
+                            <Link to={cardHref(c.id)} draggable={false} className="block text-left text-xs font-semibold leading-snug line-clamp-2 hover:text-primary">{c.title}</Link>
                             <p className="flex flex-wrap gap-1 text-[10px]">
                               <span className="rounded-full bg-muted px-1.5 py-0.5">{board.brands.find((b) => b.id === brandOf(c))?.name}</span>
                               {isCarousel(c) && <span className="rounded-full bg-muted px-1.5 py-0.5">Carousel</span>}
@@ -443,7 +445,7 @@ export default function ReelsPage() {
                     const notes = openNotes(c);
                     return (
                       <li key={c.id} className="flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
-                        <button type="button" onClick={() => open(c.id)} className="group relative block text-left">
+                        <Link to={cardHref(c.id)} className="group relative block text-left">
                           <span className="relative block bg-muted" style={{ aspectRatio: aspectOf(c) }}>
                             {v.thumbUrl && <img src={v.thumbUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-opacity group-hover:opacity-90" />}
                             <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
@@ -465,7 +467,7 @@ export default function ReelsPage() {
                               {igLine(c)!.text}
                             </span>
                           )}
-                        </button>
+                        </Link>
                         {next && (
                           <div className="mt-auto p-2.5 pt-2">
                             <Button size="sm" variant="outline" className="h-8 w-full text-xs" onClick={() => move(c.id, next[0])}>

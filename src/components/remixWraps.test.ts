@@ -39,7 +39,7 @@ const insp = (inspiration as { id: string }[])[0];
 
 const html = (el: ReactElement, at = "/") => renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [at] }, el));
 const cases: { name: string; today: string; key: string; render: (at: string) => string }[] = [
-  { name: "ReelCard", today: "Remix this", key: topKey, render: (at) => html(createElement(ReelCard, { item, onOpen: () => {} }), at) },
+  { name: "ReelCard", today: "Remix this", key: topKey, render: (at) => html(createElement(ReelCard, { item, href: "?post=x" }), at) },
   { name: "TopPostCard", today: "Remix this", key: topKey, render: (at) => html(createElement(TopPostCard, { post, advisor }), at) },
   {
     name: "PostDetailDrawer",
