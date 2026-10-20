@@ -329,7 +329,8 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
   };
 
   const swapPicture = async () => {
-    const words = (slide.boxes.find((b) => b.text.trim())?.text ?? "").replace(/\s+/g, " ").trim().split(" ").slice(0, 6).join(" ");
+    // the placeholder words would search for pictures that have nothing to do with the post
+    const words = (slide.boxes.find((b) => b.text.trim() && b.text.trim() !== NEW_WORDS)?.text ?? "").replace(/\s+/g, " ").trim().split(" ").slice(0, 6).join(" ");
     const none = "No picture found for these words. Pick one from My pictures.";
     if (!words) return setSwap({ busy: false, note: none, slide: slide.id });
     setSwap({ busy: true, note: null, slide: slide.id });
