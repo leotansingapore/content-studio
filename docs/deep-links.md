@@ -31,6 +31,8 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 | An inspiration example | /inspiration/<id> | the example page |
 | A picture (an AI picture, an upload, a stock photo) | /media?item=<key> | every picture in Media; an AI picture's Library card opens it |
 | Your own social post in the account audit | /analytics?audit=<platform>:<post id> | each best post and each post that fell short |
+| A competitor's ad (Leo only) | /competitors?ad=<ad id> | the ad drawer |
+| A saved post (Leo only) | /saved?item=<item key> | the item's drawer |
 
 **Link previews.** A link pasted into Telegram, WhatsApp, Slack or LinkedIn shows a preview from api/page-og.ts
 (vercel.json sends only those fetchers there; src/lib/linkPreview.ts decides the words). Public posts show their
@@ -178,8 +180,34 @@ so one that is gone shows everything.
 | /fads/:tab | (path) | personality, purpose, experience, audience, solutions, messaging, output; anything else opens personality | personality | push (Next/Back steps) | /fads/audience |
 | /recruit/:tab | (path) | /recruit (Brand Brain), /recruit/conversations, /recruit/agent | | | /recruit/conversations |
 | /feedback | tab, post, status, category, entry | owned by the shared feedback board (components/feedback/FeedbackBoard.tsx, copied from leotansingapore/feedback-board, not edited here): tab=roadmap, feedback, changelog; post=<number>; with tab=feedback, status=under_review, planned, in_progress, complete, declined and category=<category>; entry=<changelog slug> | roadmap | replace | /feedback?tab=feedback&status=planned |
-| /home, /bio, /accounts, /connect, /reels/team, /brands/new | (none) | nothing on these is a view or filter: forms, one editor per profile, settings, the board's invite links, the add-a-brand flow | | | /bio |
+| /home, /bio, /accounts, /connect, /reels/team, /brands/new | (none) | nothing on these is a view or filter: forms, one editor per profile, settings, the board's invite links, the add-a-brand flow (/home's #what-moved is below) | | | /bio |
 | /join, /review/:token, /l/:slug, /t/report/:slug, /roadmap | (path or #) | public pages that a link already fully names: /join#<invite token>, a preview, a bio page, a campaign report, the public roadmap | | | /join#abc123 |
+| /swipe | tab | Leo only (src/lib/useLeoOnly.ts). foryou (For you), search (Search), hooks (Hooks); anyone else gets posts, and a Leo tab shows the page skeleton while the sign-in loads. Leo also gets ads whenever Competitors or Your space holds ads | posts | replace; switching tab clears every param below too | /swipe?tab=foryou |
+| /swipe | kind | Leo only. foryou tab: organic, ads | both | replace | /swipe?tab=foryou&kind=ads |
+| /swipe | hidden | Leo only. foryou tab: only (the cards you hid, each with Unhide) | off | replace | /swipe?tab=foryou&hidden=only |
+| /swipe | q | Leo only. search tab: the search, filled in, with its saved results if any (searching again is a tap, since it is paid); foryou and hooks tabs: search text | empty | replace | /swipe?tab=search&q=cpf |
+| /swipe | platform | Leo only. search tab: tiktok, youtube; ads tab (the library): facebook, instagram, messenger, threads | all | replace | /swipe?tab=search&q=cpf&platform=tiktok |
+| /swipe | sort | Leo only. search tab: reach, views, engagement, newest; ads tab (the library): relevant, longest, newest | reach on search, relevant on ads | replace | /swipe?tab=search&q=cpf&sort=views |
+| /swipe | posted | Leo only. search tab: 30d, 90d, any | 90d | replace | /swipe?tab=search&q=cpf&posted=30d |
+| /swipe | scope | Leo only. ads tab: a competitor id, space (Your space), sg (the Singapore drop) | all | replace | /swipe?tab=ads&scope=space |
+| /swipe | hook | Leo only. ads tab: problem, desire, curiosity, proof, audience, offer, instruction (HOOK_FAMILIES in supabase/functions/_shared/tags.ts) | all | replace | /swipe?tab=ads&hook=problem |
+| /swipe | running | Leo only. ads tab: only (running now) | off | replace | /swipe?tab=ads&running=only |
+| /swipe | run | Leo only. ads tab: 7, 30, 90 (running at least that many days) | any length | replace | /swipe?tab=ads&run=30 |
+| /swipe | format | Leo only. ads tab (the library): image, video, carousel | all | replace | /swipe?tab=ads&format=video |
+| /swipe | emotion | Leo only. ads tab: worry, hope, relief, pride, curiosity, urgency, trust, fun (FEELINGS in _shared/tags.ts) | all | replace | /swipe?tab=ads&emotion=worry |
+| /swipe | audience | Leo only. ads tab (the library): the audience slugs above plus general (AUDIENCE_TAGS in _shared/tags.ts) | all | replace | /swipe?tab=ads&audience=general |
+| /swipe | industry | Leo only. ads tab (the library): keeps working under scope=sg | all | replace | /swipe?tab=ads&scope=sg&industry=banking |
+| /swipe | ad | Leo only. ads tab: opens the ad's drawer over the library, with Copy link; everyone else keeps the scroll-and-mark above | none | push | /swipe?tab=ads&ad=2095783381019179 |
+| /swipe | why | Leo only. hooks tab: curiosity, fear-of-loss, social-proof, authority, contrast, identity, story (PSYCHOLOGY in _shared/tags.ts) | all | replace | /swipe?tab=hooks&why=curiosity |
+| /swipe | formula | Leo only. hooks tab: a hook formula id (src/lib/hookFormulas.ts) | all | replace | /swipe?tab=hooks&formula=myth-bust |
+| /trends | view | Leo only. search (what people search for), hashtags; anyone else keeps the kits | kits | replace | /trends?view=search |
+| /trends | show | Leo only. search view: rising, gap | all | replace | /trends?view=search&show=rising |
+| /trends | topic | Leo only. search view: a search topic's slug; opens its drawer, with Copy link | none | push | /trends?view=search&topic=cpf-life |
+| /trends | tag | Leo only. hashtags view: a hashtag without the #; opens its drawer, with Copy link | none | push | /trends?view=hashtags&tag=moneytok |
+| /profiles | sort | Leo only. for-you: ranked by fit with the brand's Plan positioning; ignored without one | the tier sections | replace | /profiles?sort=for-you |
+| /profiles/:id | #works | Leo only. scrolls to "What works for them" once it is drawn | top | (anchor) | /profiles/the-astute-parent-youtube#works |
+| /following | account, view | Leo only. account=<platform>:<handle> with view=patterns opens What worked for that followed account; a result already made opens with no call | none | push | /following?account=instagram%3Asleekflow&view=patterns |
+| /home | #what-moved | Leo only. scrolls to the What moved card (Monday's email and phone alerts link here) | top | (anchor) | /home#what-moved |
 
 ## Still read
 
@@ -287,9 +315,11 @@ Pre-fills read once on arrival, then removed from the address (except day, time,
   "Remixing ..." chip and saved with the draft. Leo's sign-ins only (north-star gate); every other sign-in
   ignores it. Read once with the other pre-fills, then removed. Keys: top:<advisor id>-<short code> (Swipe
   file, profiles, Creator lookup), follow:<platform>:<post id> (Following, and Your market, whose post ids are
-  already <platform>:<post id>), ad:<ad id> (Ads swipe), audit:<platform>:<post id> (Account audit; resolves
+  already <platform>:<post id>; on Leo's sign-ins also Competitors' posts), ad:<ad id> (Ads swipe; on Leo's
+  sign-ins also Competitors' ads and Your space), audit:<platform>:<post id> (Account audit; resolves
   only on the device that pressed Remix), trend:<trend id> (Trends), insp:<id>, hubtrend:<id>, clone:<platform>:<post id>,
-  own:<draft id>, link:<platform>:<id> and upload:<sha1>. A key that doesn't resolve opens Write without a source.
+  own:<draft id>, link:<platform>:<id>, upload:<sha1> and pattern:<platform>:<handle>:<n> (an idea from What worked,
+  Leo only; resolves only on the device that pressed Remix). A key that doesn't resolve opens Write without a source.
 - /clone?url=<reel link>: fills the link box (a Clone button elsewhere); cloning stays a tap, since each
   clone uses one of the day's. On Leo's sign-ins it fills the Remix a post box, which takes any link
   parseRemixLink accepts (supabase/functions/remix-link/logic.ts); reading stays a tap, since it is paid.
@@ -300,3 +330,28 @@ Pre-fills read once on arrival, then removed from the address (except day, time,
   words and the clip are ready the page opens /edit (push), which shows "Putting your wall of text together" and opens
   the new project (/edit?p=<id>) when the video is done.
 <!-- ==== end Create pages ==== -->
+
+## Competitors and Saved (Leo only)
+
+North star phase 2 (docs/north-star/items/find-competitors.md, find-competitor-ads.md, find-competitor-posts.md,
+find-ad-detail.md, find-save-anywhere.md, find-ai-tagging.md). Both pages are Leo's sign-ins only
+(src/lib/useLeoOnly.ts): the nav hides them and anyone else gets the not-found page. Same rules as above.
+
+| Page | Param | Values | Default | History | Example |
+|---|---|---|---|---|---|
+| /competitors | view | Leo only. ads (Their ads), posts (Their posts), list (Who you watch) | ads once a competitor exists, else list | replace | /competitors?view=posts |
+| /competitors | edit | Leo only. with view=list: a competitor id, its editor open, with Copy link | none | push | /competitors?view=list&edit=c-lq3k9z |
+| /competitors | c | Leo only. ads and posts views: a competitor id, its pill | all | replace | /competitors?c=c-lq3k9z |
+| /competitors | running | Leo only. ads view: only (running now) | off | replace | /competitors?running=only |
+| /competitors | platform | Leo only. posts view: instagram, tiktok | all | replace | /competitors?view=posts&platform=tiktok |
+| /competitors | sort | Leo only. posts view: views, newest | the outlier order | replace | /competitors?view=posts&sort=newest |
+| /competitors | ad | Leo only. ads view: an ad's Library id; opens its drawer, with Copy link (/competitors?view=ads&ad= opens the same) | none | push | /competitors?ad=2095783381019179 |
+| /saved | board | Leo only. a board id, or unsorted | all | replace | /saved?board=b-lq3k9z |
+| /saved | platform | Leo only. instagram, tiktok, youtube, ad, link | all | replace | /saved?platform=tiktok |
+| /saved | q | Leo only. search text | empty | replace | /saved?q=cpf |
+| /saved | hook, angle, topic, emotion, audience, format | Leo only. the items' tags: hook a hook formula id (src/lib/hookFormulas.ts); angle and topic the /swipe slugs; emotion and audience the FEELINGS and AUDIENCE_TAGS ids (_shared/tags.ts); format reel, carousel, picture, video, text, link. They combine with board, platform and q | all | replace | /saved?hook=myth-bust |
+| /saved | item | Leo only. an item's key (the remix source key shapes: link:<platform>:<id>, ad:<id>, top:..., follow:..., trend:...): opens it, with Copy link; an unknown key is dropped quietly | none | push | /saved?item=link%3Atiktok%3A7412345678901234567 |
+| /saved | #breakdown | Leo only. with item: scrolls to the item's Breakdown | top | (anchor) | /saved?item=link%3Atiktok%3A7412345678901234567#breakdown |
+
+Still read: /saved?url=<link> (with text= and title=, from a share sheet or a pasted link) saves that link once,
+then the params are removed (replace).
