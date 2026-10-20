@@ -832,7 +832,7 @@ export default function GeneratePage() {
   // Read once at mount: the prefill effects strip their params from the URL
   // before the async user lookup below resolves.
   const [arrivedWithBrief] = useState(() =>
-    ["draft", "platform", "format", "vibe", "pillar", "detail", "funnel", "idea", "ctx"].some(
+    ["draft", "platform", "format", "vibe", "pillar", "detail", "funnel", "idea", "ctx", "source"].some(
       (k) => new URLSearchParams(window.location.search).has(k),
     ),
   );
@@ -1047,14 +1047,13 @@ export default function GeneratePage() {
   // &platform=&cta=&funnel=&idea=&ctx=&ref=&formula=  (runs once, then strips params).
   useEffect(() => {
     if (prefillAppliedRef.current) return;
-    const has =
+    const filled =
       searchParams.has("pillar") ||
       searchParams.has("detail") ||
       searchParams.has("funnel") ||
       searchParams.has("idea") ||
-      searchParams.has("ctx") ||
-      searchParams.has("source");
-    if (!has) return;
+      searchParams.has("ctx");
+    if (!filled && !searchParams.has("source")) return;
     prefillAppliedRef.current = true;
 
     const pillarParam = searchParams.get("pillar");
@@ -1110,12 +1109,14 @@ export default function GeneratePage() {
     if (detailParam && !next.has("step")) next.set("step", WRITE_STEPS[LAST_STEP]);
     setSearchParams(next, { replace: true });
 
-    // links come from the plan, Mentions, Your market, feeds and remixes, so the toast names none of them
-    toast({
-      title: "Filled in for you",
-      // only a link with a topic opens on the last step; the rest open where the person carries on
-      description: detailParam ? "Every step is set. Check what it's about, then generate." : "Check what's filled in, then carry on.",
-    });
+    // links come from the plan, Mentions, Your market, feeds and remixes, so the toast names none of them; a
+    // link with only source= fills in nothing
+    if (filled)
+      toast({
+        title: "Filled in for you",
+        // only a link with a topic opens on the last step; the rest open where the person carries on
+        description: detailParam ? "Every step is set. Check what it's about, then generate." : "Check what's filled in, then carry on.",
+      });
     setTimeout(() => {
       formAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
