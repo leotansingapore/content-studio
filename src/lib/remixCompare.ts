@@ -32,7 +32,7 @@ export interface WhatChanged {
  * count: runs of 6+ words shared with the saved caption, plus the lines flagged when it was made (they may come from
  * past the 400-character excerpt) while the text still has them. No repeats, case ignored.
  */
-export function whatChanged(draft: DraftEntry, text: string, teardown: Teardown | null): WhatChanged {
+export function whatChanged(draft: Pick<DraftEntry, "source" | "remix">, text: string, teardown: Teardown | null): WhatChanged {
   const r = draft.remix;
   const madeWith = r ? [labelOf(KEEP_LABELS, r.keep), labelOf(CLOSE_LABELS, r.close)].filter(Boolean).join(", ") || null : null;
   const live = sharedRuns(draft.source?.caption ?? "", text);

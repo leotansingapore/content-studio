@@ -2438,7 +2438,17 @@ export default function GeneratePage() {
   const savedEntry =
     draft && userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
   // The original beside a remixed post (north-star gate); on phones a compare tab other than yours hides the draft.
-  const compareOn = Boolean(leo && savedEntry?.source);
+  // While variations are written there is no draft text yet, so the strip stays on the source being written from.
+  const compareDraft = !leo
+    ? null
+    : draft
+      ? savedEntry?.source
+        ? savedEntry
+        : null
+      : remixSource && (variants.length > 0 || hookOptions.length > 0)
+        ? { source: remixSource }
+        : null;
+  const compareOn = Boolean(compareDraft);
   const draftHidden = compareOn && compareTab !== "version";
   // The formula the draft's hook was written with: from its hook rows, else as saved.
   const draftFormula = (chosenHook ? formulaOfHook(chosenHook, hookOptions) : undefined) ?? hookFormula(savedEntry?.hookFormula);
@@ -3460,14 +3470,14 @@ export default function GeneratePage() {
         </Card>
       )}
 
-      {draft && (
+      {(draft || compareOn) && (
         <div
           ref={versionsTopRef}
           className={`scroll-mt-20 space-y-3${compareOn ? " lg:grid lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start lg:gap-4 lg:space-y-0" : ""}`}
         >
-          {compareOn && userId && savedEntry && (
+          {compareOn && userId && compareDraft && (
             <Suspense fallback={null}>
-              <RemixCompare userId={userId} draft={savedEntry} draftText={draft} />
+              <RemixCompare userId={userId} draft={compareDraft} draftText={draft} />
             </Suspense>
           )}
           {versions.length > 0 && !draftHidden && (
@@ -3503,6 +3513,7 @@ export default function GeneratePage() {
               ))}
             </div>
           )}
+          {draft && (
           <div
             className={
               compareOn
@@ -4447,6 +4458,7 @@ export default function GeneratePage() {
           </Card>
         )}
           </div>
+          )}
         </div>
       )}
 

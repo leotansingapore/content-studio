@@ -95,7 +95,8 @@ export default function RemixCompare({
   layout = "side",
 }: {
   userId: string;
-  draft: DraftEntry;
+  /** The open draft, or only the source while variations are still being written. */
+  draft: Pick<DraftEntry, "source" | "remix">;
   /** The live text, so edits count. */
   draftText: string;
   /** side: Write's grid places the original left of the draft and More under both; top: one block above the slides. */
