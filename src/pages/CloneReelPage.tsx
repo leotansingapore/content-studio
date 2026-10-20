@@ -1264,7 +1264,7 @@ function RemixLinkBox({
               {working ? "Reading..." : "Read it"}
             </Button>
             {!working && <PriceChip feature="remix-link" left={linkLeft} />}
-            {!working && linkReason && <p className="text-[11px] text-muted-foreground">{linkReason}</p>}
+            {!working && linkReason && <p className="text-xs text-destructive">{linkReason}</p>}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -1272,7 +1272,7 @@ function RemixLinkBox({
             <Upload className="h-4 w-4" /> Upload a screenshot or video
           </Button>
           {!working && <PriceChip feature="remix-image" left={fileLeft} />}
-          {!working && fileReason && <p className="text-[11px] text-muted-foreground">{fileReason}</p>}
+          {!working && fileReason && <p className="text-xs text-destructive">{fileReason}</p>}
           <input
             ref={fileRef}
             type="file"
