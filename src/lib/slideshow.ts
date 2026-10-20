@@ -322,6 +322,13 @@ export function sanitizeSlideshows(raw: unknown): Slideshow[] {
 
 const PREFIX = "content-studio-slideshows-";
 const STYLE_KEY = "cs-slideshow-style";
+const CHANGED = "content-studio-slideshows-changed";
+
+/** Calls `cb` whenever a slideshow is saved or removed on this device (the editor, or a job outside React). */
+export function onSlideshowsChanged(cb: () => void): () => void {
+  window.addEventListener(CHANGED, cb);
+  return () => window.removeEventListener(CHANGED, cb);
+}
 
 function storage(): Storage | null {
   try {
@@ -346,6 +353,7 @@ function write(userId: string, list: Slideshow[]): Slideshow[] {
   } catch {
     // storage full or blocked: the list still shows for this visit
   }
+  globalThis.dispatchEvent?.(new Event(CHANGED));
   return list;
 }
 

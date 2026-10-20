@@ -47,6 +47,7 @@ import {
   loadStyleHint,
   makeBox,
   moveSlide,
+  onSlideshowsChanged,
   pickStyle,
   redo,
   remember,
@@ -90,6 +91,8 @@ function useFontsReady() {
 
 function Slideshows({ userId }: { userId: string }) {
   const [shows, setShows] = useState(() => loadSlideshows(userId));
+  // a slideshow saved outside this page (a job finishing) shows in the list, and its ?s= link opens it
+  useEffect(() => onSlideshowsChanged(() => setShows(loadSlideshows(userId))), [userId]);
   const [sid, openShow] = useUrlItem("s");
   const update = useUrlUpdate();
   const ready = useFontsReady();
