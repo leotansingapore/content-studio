@@ -58,25 +58,30 @@ export function saveRemixPrefs(userId: string, p: RemixPrefs): void {
   }
 }
 
-/** The brand kit's name, else the brand's own name unless it is the default 'Me'. */
-export function brandName(userId: string): string {
+/** The brand kit's name, else the brand's own name unless it is the default 'Me'; '' when there is neither. */
+export function ownBrandName(userId: string): string {
   const kit = loadBrand(userId)?.name.trim();
   const profile = activeProfile(userId).name.trim();
-  return kit || (profile && profile !== "Me" ? profile : "your business");
+  return kit || (profile && profile !== "Me" ? profile : "");
 }
 
-/** The make call's brand block. The offer goes only by name, and only with mention on. */
+/** For the sheet's copy only; the prompt never gets "your business" as a name. */
+export const brandName = (userId: string) => ownBrandName(userId) || "your business";
+
+/** The make call's brand block. The offer goes only by name, and only with mention on and a real name to mention. */
 export function brandPack(userId: string, o: { platform: string; mention: boolean; offer: string | null }): BrandPack {
   const kit = loadBrand(userId);
   const p = loadPositioning(userId);
-  const offer = o.mention && o.offer && offerNames(userId).includes(o.offer) ? { name: o.offer } : null;
+  const name = ownBrandName(userId);
+  const mention = o.mention && name !== "";
+  const offer = mention && o.offer && offerNames(userId).includes(o.offer) ? { name: o.offer } : null;
   return {
-    name: brandName(userId),
+    name,
     oneLiner: p?.oneLiner.trim() ?? "",
     audience: [p && p.audience !== "general" ? p.audience.replace(/-/g, " ") : "", p?.audienceDetail.trim()].filter(Boolean).join(": "),
     topics: (p?.topics ?? []).map((t) => t.trim()).filter(Boolean),
     facts: coachContext(loadCoachProfile(userId)),
-    mention: o.mention,
+    mention,
     offer,
     rules: brandRulesLine(kit, o.platform),
   };

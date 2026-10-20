@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }));
 
 import { addProfile, setActiveProfile } from "./profiles";
-import { brandName, brandPack, forSummary, loadRemixPrefs, saveRemixPrefs } from "./remixBrand";
+import { brandName, brandPack, forSummary, loadRemixPrefs, ownBrandName, saveRemixPrefs } from "./remixBrand";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -54,6 +54,12 @@ describe("brandPack", () => {
     expect(other).toMatchObject({ name: "MoneyBees", oneLiner: "", topics: [], facts: "", offer: null });
   });
 
+  it("sends no name and no mention when the brand has no name, never 'your business'", () => {
+    const pack = brandPack(UID, { platform: "linkedin", mention: true, offer: null });
+    expect(pack).toMatchObject({ name: "", mention: false, offer: null });
+    expect(brandName(UID)).toBe("your business");
+  });
+
   it("leaves the offer out with mention off, and drops one the kit no longer has", () => {
     kit(UID, { name: "Leo", offers: [{ name: "Book a call", url: "https://cal.com/leo" }] });
     expect(brandPack(UID, { platform: "linkedin", mention: false, offer: "Book a call" }).offer).toBeNull();
@@ -64,6 +70,7 @@ describe("brandPack", () => {
 describe("brandName", () => {
   it("takes the kit's name, else the brand's own name, never the default 'Me'", () => {
     expect(brandName(UID)).toBe("your business");
+    expect(ownBrandName(UID)).toBe("");
     const p = addProfile(UID, "FINternship");
     setActiveProfile(UID, p.id);
     expect(brandName(UID)).toBe("FINternship");

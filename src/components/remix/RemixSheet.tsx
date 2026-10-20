@@ -28,7 +28,7 @@ import {
   type Flags,
   type Keep,
 } from "@/lib/remix";
-import { brandName, loadRemixPrefs, offerNames, saveRemixPrefs, type RemixPrefs } from "@/lib/remixBrand";
+import { brandName, loadRemixPrefs, offerNames, ownBrandName, saveRemixPrefs, type RemixPrefs } from "@/lib/remixBrand";
 import { clearRemixJob, hrefFor, onRemixJob, remixJob, startRemix, type RemixJobState } from "@/lib/remixJob";
 import { dayMonth, earlierRemix, seenSources, sourceNoun, type RemixSource } from "@/lib/remixSource";
 import { resolveSource } from "@/lib/resolveSource";
@@ -118,7 +118,9 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   // the URL wins (mention=no, offer=<slug>), then the remembered pick for this brand, then the default
   const [prefs, setPrefs] = useState<RemixPrefs>(() => loadRemixPrefs(userId));
   const offers = useMemo(() => offerNames(userId), [userId]);
-  const mention = params.get("mention") === "no" ? false : prefs.mention;
+  // with no brand name there is nothing to mention, so the post stays pure value content
+  const named = useMemo(() => ownBrandName(userId) !== "", [userId]);
+  const mention = named && (params.get("mention") === "no" ? false : prefs.mention);
   const offerParam = params.get("offer");
   const offer = mention ? (offerParam && offers.find((o) => slug(o) === offerParam)) || prefs.offer : null;
   const savePrefs = (next: RemixPrefs, url: Record<string, string | null>) => {
@@ -260,6 +262,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
 
         <ForRow
           brand={brand}
+          named={named}
           mention={mention}
           offer={offer}
           offers={offers}

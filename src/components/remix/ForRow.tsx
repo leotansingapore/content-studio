@@ -10,6 +10,8 @@ import { forSummary } from "@/lib/remixBrand";
  */
 export default function ForRow(p: {
   brand: string;
+  /** False with no brand kit or brand name: Mention gives way to a link to add one. */
+  named: boolean;
   mention: boolean;
   offer: string | null;
   offers: string[];
@@ -46,18 +48,27 @@ export default function ForRow(p: {
         </Button>
       </div>
       <div className={row}>
-        <span className={label}>Mention {p.brand}</span>
-        <div className="space-y-1">
-          <div className="flex flex-wrap gap-1.5">
-            <FilterChip active={p.mention} onClick={() => p.onMention(true)} disabled={p.disabled}>
-              Yes
-            </FilterChip>
-            <FilterChip active={!p.mention} onClick={() => p.onMention(false)} disabled={p.disabled}>
-              No
-            </FilterChip>
+        <span className={label}>Mention {p.named ? p.brand : "your brand"}</span>
+        {!p.named ? (
+          <p className="pt-1.5 text-xs text-muted-foreground">
+            No brand name yet.{" "}
+            <Link to={links.brand({ section: "you" })} className="inline-flex items-center font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+              Add your brand name
+            </Link>
+          </p>
+        ) : (
+          <div className="space-y-1">
+            <div className="flex flex-wrap gap-1.5">
+              <FilterChip active={p.mention} onClick={() => p.onMention(true)} disabled={p.disabled}>
+                Yes
+              </FilterChip>
+              <FilterChip active={!p.mention} onClick={() => p.onMention(false)} disabled={p.disabled}>
+                No
+              </FilterChip>
+            </div>
+            <p className="text-xs text-muted-foreground">Yes works {p.brand} into the post. No keeps it as pure value content.</p>
           </div>
-          <p className="text-xs text-muted-foreground">Yes works {p.brand} into the post. No keeps it as pure value content.</p>
-        </div>
+        )}
       </div>
       <div className={row}>
         <span className={label}>Offer</span>

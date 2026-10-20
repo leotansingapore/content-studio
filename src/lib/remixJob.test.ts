@@ -53,6 +53,7 @@ describe("startRemix", () => {
   it("saves exactly one draft with its source and how it was made", async () => {
     make.mockResolvedValue(answer({ as: "post", hook: "Three checks before you sign", body: "First, read it — slowly.", cta: "DM me CHECK", hashtags: ["money"] }, { copied: ["a line"], claim: true, invented: false }));
     local.setItem(`cs-remix-note-${source.key}`, "use my offer");
+    local.setItem(`content-studio-carousel-brand-${UID}`, JSON.stringify({ color: "#000", name: "Leo", handle: "" }));
     const done = finished();
     startRemix(UID, run(["post"], { note: "use my offer" }));
     expect(remixJob()?.state).toBe("working");
