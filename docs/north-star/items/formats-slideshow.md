@@ -1,6 +1,6 @@
 # Slideshow
 
-`formats-slideshow` | formats | phase 1 | status: partial | /north-star#formats-slideshow
+`formats-slideshow` | formats | phase 1 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#formats-slideshow
 
 ## Leo asked
 
