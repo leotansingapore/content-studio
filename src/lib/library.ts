@@ -16,6 +16,7 @@ import { slideWords, type Slideshow } from "@/lib/slideshow";
 import { askParams, stepText, type SlideshowJob } from "@/lib/slideshowJob";
 import type { ExportJob, JoinJob } from "@/lib/videoMedia";
 import { fileKey, type VideoProject } from "@/lib/videoProjects";
+import { stepText as wallStep, wallParams, type WallJob } from "@/lib/wallJob";
 
 export type LibraryFormat = "text" | "carousel" | "video" | "image";
 export type LibraryStatus = "ready" | "scheduled" | "posted" | "making" | "failed";
@@ -338,4 +339,15 @@ export function slideshowJobs(j: SlideshowJob | null): LibraryJob[] {
   const base = { kind: "slideshow", label: "Slideshow", format: "carousel" as const, href: links.makeFormat("slideshow", askParams(j.ask)) };
   if (j.state === "failed") return [{ ...base, state: "failed", error: j.error }];
   return [{ ...base, state: "working", step: stepText(j).replace(/\.\.\.$/, "") }];
+}
+
+/**
+ * A wall of text being made links back to its page with the run's choices; at its join it links the editor, which
+ * shows the progress and takes the video. A done one is the join's own ready row until the editor opens it.
+ */
+export function wallJobs(j: WallJob | null): LibraryJob[] {
+  if (!j || j.state === "done") return [];
+  const base = { kind: "wall", label: "Wall of text", format: "video" as const, href: links.makeFormat("wall-of-text", wallParams(j.ask)) };
+  if (j.state === "failed") return [{ ...base, state: "failed", error: j.error }];
+  return [{ ...base, ...(j.state === "joining" ? { href: links.edit() } : {}), state: "working", step: wallStep(j).replace(/\.\.\.$/, "") }];
 }

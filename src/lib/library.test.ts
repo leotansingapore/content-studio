@@ -9,6 +9,7 @@ import type { Slideshow } from "@/lib/slideshow";
 import type { SlideshowAsk } from "@/lib/slideshowJob";
 import type { JoinJob } from "@/lib/videoMedia";
 import type { VideoProject } from "@/lib/videoProjects";
+import type { WallAsk } from "@/lib/wallJob";
 import {
   aiJobs,
   buildLibrary,
@@ -22,6 +23,7 @@ import {
   remixJobs,
   slideshowJobs,
   statusLine,
+  wallJobs,
   type LibraryItem,
   type LibraryJob,
 } from "./library";
@@ -258,6 +260,17 @@ describe("job mappers", () => {
     expect(slideshowJobs({ id: 1, state: "failed", done: 0, of: 0, ask, error: "Couldn't write the slides. Try again in a minute." })[0]).toMatchObject({ state: "failed", error: "Couldn't write the slides. Try again in a minute." });
     expect(slideshowJobs({ id: 1, state: "done", done: 8, of: 8, ask, showId: "ss1" })).toEqual([]);
     expect(slideshowJobs(null)).toEqual([]);
+  });
+
+  it("follows a wall of text being made, linking its page with the run's choices, the editor at its join, and drops a done one", () => {
+    const ask: WallAsk = { source: { key: "trend:t1", kind: "trend", remixedAt: "" }, about: "", mention: false, bg: "mine" };
+    const href = links.makeFormat("wall-of-text", { source: "trend:t1", mention: "no", bg: "mine" });
+    expect(wallJobs({ id: 1, state: "writing", ask })).toEqual([{ kind: "wall", label: "Wall of text", format: "video", href, state: "working", step: "Writing the text" }]);
+    expect(wallJobs({ id: 1, state: "finding", ask })[0].step).toBe("Finding a clip");
+    expect(wallJobs({ id: 1, state: "joining", ask })[0]).toMatchObject({ step: "Putting it together", href: links.edit() });
+    expect(wallJobs({ id: 1, state: "failed", ask, error: "No stock clip fits these words. Pick your own video or change what it's about." })[0]).toMatchObject({ state: "failed", href });
+    expect(wallJobs({ id: 1, state: "done", ask })).toEqual([]);
+    expect(wallJobs(null)).toEqual([]);
   });
 
   it("counts an image that is saving as making", () => {
