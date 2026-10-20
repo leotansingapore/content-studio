@@ -579,11 +579,14 @@ function RemixFlags({
   text,
   dismissed,
   onDismiss,
+  besideStrip = false,
 }: {
   flags: NonNullable<DraftRemix["flags"]>;
   text: string;
   dismissed: Set<string>;
   onDismiss: (id: string) => void;
+  /** The compare strip sits beside the draft on large screens and lists the copied and claim lines there. */
+  besideStrip?: boolean;
 }) {
   const items = [
     ...flags.copied
@@ -593,10 +596,12 @@ function RemixFlags({
     ...(flags.invented ? [{ id: "remix-invented", title: "Says something about you that isn't in your profile. Check it.", match: "" }] : []),
   ].filter((f) => !dismissed.has(f.id));
   if (!items.length) return null;
+  // so each warning shows once on a large screen: the strip's copy, beside the draft, is the one counted live
+  const wide = (id: string) => (besideStrip && id !== "remix-invented" ? "lg:hidden " : "");
   return (
-    <div className="mb-3 flex flex-wrap gap-2">
+    <div className={`${items.every((f) => wide(f.id)) ? "lg:hidden " : ""}mb-3 flex flex-wrap gap-2`}>
       {items.map((f) => (
-        <div key={f.id} className="flex items-start gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
+        <div key={f.id} className={`${wide(f.id)}flex items-start gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200`}>
           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" />
           <div className="space-y-0.5">
             <div className="font-semibold">{f.title}</div>
@@ -3711,7 +3716,7 @@ export default function GeneratePage() {
             )}
             <ComplianceChips flags={visibleFlags} onDismiss={dismissFlag} />
             {leo && savedEntry?.remix?.flags && (
-              <RemixFlags flags={savedEntry.remix.flags} text={draft} dismissed={dismissedFlagIds} onDismiss={dismissFlag} />
+              <RemixFlags flags={savedEntry.remix.flags} text={draft} dismissed={dismissedFlagIds} onDismiss={dismissFlag} besideStrip={compareOn} />
             )}
 
             <div className={`grid gap-4 ${versions.length > 0 || compareOn ? "" : "lg:grid-cols-2"}`}>
