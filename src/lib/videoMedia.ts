@@ -46,6 +46,10 @@ import {
   type Broll,
   overlaysAt,
   type Overlay,
+  BLOCK_W,
+  FONTS,
+  wrapBlock,
+  type BlockRect,
   totalLength,
   zoomAt,
   type Caption,
@@ -825,6 +829,21 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
   }
 }
 
+/**
+ * A words block laid out for a W x H frame: its lines, font and size in px, and its box as shares of the frame
+ * (the wrap width by the lines' height). Drawing, the editor's hit test and its too-tall check all use this.
+ */
+export function layoutBlock(g: CanvasRenderingContext2D, o: Overlay, W: number, H: number): { lines: string[]; px: number; font: string; rect: BlockRect } {
+  const px = 52 * o.size * (Math.min(W, H) / 1080);
+  const font = FONTS[o.font ?? "heavy"].css.replace("{px}", String(Math.round(px)));
+  const width = (o.w ?? BLOCK_W) * W;
+  g.save();
+  g.font = font;
+  const lines = wrapBlock(o.text, width, px, (t) => g.measureText(t).width);
+  g.restore();
+  return { lines, px, font, rect: { x: o.x, y: o.y, w: width / W, h: (Math.max(1, lines.length) * px * 1.3) / H } };
+}
+
 /** One sticker, centred on its x/y, popping in over its first 150 ms. */
 export function drawOverlay(g: CanvasRenderingContext2D, o: Overlay, intro = 1) {
   const W = g.canvas.width;
@@ -842,7 +861,45 @@ export function drawOverlay(g: CanvasRenderingContext2D, o: Overlay, intro = 1) 
   g.fillStyle = o.color;
   g.lineCap = "round";
   g.lineJoin = "round";
-  if (o.kind === "text") {
+  if (o.kind === "block") {
+    const { lines, px, font } = layoutBlock(g, o, W, H);
+    const lh = px * 1.3;
+    const top = -((lines.length - 1) * lh) / 2;
+    g.font = font;
+    g.textAlign = "center";
+    g.textBaseline = "middle";
+    if (o.box === "bar") {
+      // one dark band across the frame behind the whole block
+      g.shadowColor = "transparent";
+      g.fillStyle = "rgba(0,0,0,0.55)";
+      g.fillRect(-W, top - lh * 0.75, W * 2, lines.length * lh + lh * 0.5);
+    }
+    lines.forEach((line, i) => {
+      if (!line) return;
+      const y = top + i * lh;
+      if (o.box === "white") {
+        // each line on its own white box, dark words (the slideshow sticker look)
+        const lw = g.measureText(line).width;
+        g.shadowColor = "rgba(0,0,0,0.25)";
+        g.fillStyle = "#FFFFFF";
+        roundRect(g, -lw / 2 - px * 0.3, y - px * 0.62, lw + px * 0.6, px * 1.24, px * 0.22);
+        g.shadowColor = "transparent";
+        g.fillStyle = "#0B0B0B";
+        g.fillText(line, 0, y);
+        return;
+      }
+      if (o.box !== "bar") {
+        // no box: the stickers' dark shadow plus a 3 px dark outline
+        g.shadowColor = "rgba(0,0,0,0.45)";
+        g.lineWidth = 6 * u;
+        g.strokeStyle = "rgba(0,0,0,0.85)";
+        g.strokeText(line, 0, y);
+      }
+      g.shadowColor = "transparent";
+      g.fillStyle = o.color;
+      g.fillText(line, 0, y);
+    });
+  } else if (o.kind === "text") {
     const text = o.text.trim() || " ";
     let px = 52 * u;
     g.font = `800 ${Math.round(px)}px "DM Sans", Inter, system-ui, sans-serif`;

@@ -182,10 +182,12 @@ export const links = {
       sticker?: string;
       broll?: string;
       guide?: "instagram" | "tiktok";
-      /** Start screen panels: join, ai, or both. */
-      panel?: ("join" | "ai")[];
+      /** Start screen panels: join, ai, wall (Words over a video, Leo only), or several. */
+      panel?: ("join" | "ai" | "wall")[];
       kind?: "template" | "montage" | "avatar" | "explainer";
       template?: string;
+      /** A words-over-video project with all the editing tools instead of its short panel. */
+      view?: "all";
     } = {},
   ) =>
     `/edit${qs({
@@ -198,6 +200,7 @@ export const links = {
       panel: o.panel?.join(","),
       kind: o.kind,
       template: o.template,
+      view: o.view,
     })}`,
   clone: (o: { url?: string; clone?: string } = {}) => `/clone${qs({ url: o.url, clone: o.clone })}`,
   coach: (o: { report?: string; view?: "quiz"; section?: "idea-dump" } = {}) =>

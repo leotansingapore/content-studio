@@ -301,7 +301,8 @@ export function withReelStyle(s: EditSettings, r: ReelRead, myWpm: number | null
     next.position = look.position;
     next.captionY = undefined;
   }
-  if (look?.captions !== null && look?.captions !== undefined) next.captions = look.captions;
+  // a words-over-video project keeps its captions off whatever the reel shows
+  if (look?.captions !== null && look?.captions !== undefined && !s.wall) next.captions = look.captions;
   return { next, facts: { cutsPerMin, zoomsPerMin, hookSeconds: hook?.seconds ?? null, wpm, overlays: distinct.size } };
 }
 

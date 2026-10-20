@@ -90,7 +90,12 @@ import {
   joinedLength,
   MAX_JOIN_SECONDS,
   makeupDb,
+  wrapBlock,
+  readSeconds,
+  wallSettings,
+  blockGrip,
 } from "./videoEdit";
+import { links } from "./links";
 
 const W = (w: string, s: number, e: number): Word => ({ w, s, e });
 const words = [
@@ -414,6 +419,75 @@ describe("stickers", () => {
     expect(overlayHit([a, b], 2.5, 0.31, 0.3, 9 / 16)?.id).toBe("b"); // topmost wins
     expect(overlayHit([a, b], 2.5, 0.9, 0.9, 9 / 16)).toBeNull();
     expect(overlayHit([a, b], 9, 0.3, 0.3, 9 / 16)).toBeNull(); // not showing
+  });
+});
+
+describe("words over a video", () => {
+  it("keeps a block's 400 characters, still cuts a text sticker at 60, clamps the width and drops an unknown box", () => {
+    const long = "word ".repeat(100);
+    const [block, text] = sanitizeOverlays([
+      { id: "b", kind: "block", text: long, w: 2, box: "neon", font: "comic", from: 0, to: 9 },
+      { id: "t", kind: "text", text: long, w: 0.6, box: "white" },
+    ]);
+    expect(block.text).toHaveLength(400);
+    expect(block.w).toBe(0.95);
+    expect(block).not.toHaveProperty("box");
+    expect(block).not.toHaveProperty("font");
+    expect(text.text).toHaveLength(60);
+    expect(text).not.toHaveProperty("w");
+    expect(sanitizeOverlays([{ id: "b", kind: "block", w: 0.1, box: "bar", font: "serif" }])[0]).toMatchObject({ w: 0.5, box: "bar", font: "serif" });
+  });
+
+  it("makes a block that spans the whole edit, centred, while other stickers keep 3 seconds", () => {
+    expect(newOverlay("block", 4, "#FFFFFF", 12.5)).toMatchObject({ kind: "block", from: 0, to: 12.5, x: 0.5, y: 0.5, w: 0.84, box: "none" });
+    expect(newOverlay("text", 4, "#FFFFFF", 12.5)).toMatchObject({ from: 4, to: 7 });
+  });
+
+  it("wraps at the width, keeps line breaks and never splits a word", () => {
+    const measure = (t: string) => t.length * 10;
+    // 100 px wide, 0.3 em clear each side at 10 px: 94 px for words
+    expect(wrapBlock("aaa bbb ccc dd", 100, 10, measure)).toEqual(["aaa bbb", "ccc dd"]);
+    expect(wrapBlock("one\n\ntwo three", 200, 10, measure)).toEqual(["one", "", "two three"]);
+    expect(wrapBlock("a supercalifragilistic b", 100, 10, measure)).toEqual(["a", "supercalifragilistic", "b"]);
+    expect(wrapBlock("  ", 100, 10, measure)).toEqual([]);
+  });
+
+  it("reads at 3.5 words a second, rounded up", () => {
+    expect(readSeconds(Array.from({ length: 47 }, (_, i) => `w${i}`).join(" "))).toBe(14);
+    expect(readSeconds("")).toBe(0);
+  });
+
+  it("makes a muted 9:16 project with no captions and one centred block", () => {
+    const s = wallSettings("POV: it's year-end", 9, { font: "clean", box: "white", size: 0.8 });
+    expect(s).toMatchObject({ wall: true, captions: false, volume: 0, aspect: "9:16" });
+    expect(s.overlays).toHaveLength(1);
+    expect(s.overlays![0]).toMatchObject({ kind: "block", text: "POV: it's year-end", from: 0, to: 9, x: 0.5, y: 0.5, font: "clean", box: "white", size: 0.8 });
+    expect(sanitizeOverlays(s.overlays)).toEqual(s.overlays);
+  });
+
+  it("never carries the wall switch in a look, and a look keeps a wall's captions off", () => {
+    const wall = { ...defaultSettings("bold"), ...wallSettings("Hi", 5) };
+    expect(lookOf(wall)).not.toHaveProperty("wall");
+    expect(withLook(wall, { captions: true, style: "minimal" })).toMatchObject({ captions: false, wall: true, style: "minimal" });
+    expect(withLook(defaultSettings("bold"), { captions: false }).captions).toBe(false);
+    expect(withLook({ ...defaultSettings("bold"), captions: false }, { captions: true }).captions).toBe(true);
+  });
+
+  it("hits a block anywhere on its box and finds its side and corner handles", () => {
+    const block = { ...newOverlay("block", 0, "#FFFFFF", 10), id: "b" };
+    const box = { x: 0.5, y: 0.5, w: 0.84, h: 0.3 };
+    // far from the centre but on the box: the plain sticker reach (0.09) would miss it
+    expect(overlayHit([block], 1, 0.15, 0.62, 9 / 16, () => box)?.id).toBe("b");
+    expect(overlayHit([block], 1, 0.5, 0.9, 9 / 16, () => box)).toBeNull();
+    expect(blockGrip(box, 0.92, 0.5, 0.05, 0.03)).toBe("side");
+    expect(blockGrip(box, 0.08, 0.65, 0.05, 0.03)).toBe("corner");
+    expect(blockGrip(box, 0.5, 0.5, 0.05, 0.03)).toBeNull();
+  });
+
+  it("links the start panel and the full set of tools", () => {
+    expect(links.edit({ panel: ["wall"] })).toBe("/edit?panel=wall");
+    expect(links.edit({ p: "v1", view: "all" })).toBe("/edit?p=v1&view=all");
+    expect(links.edit({ panel: ["wall"], view: "all" })).toBe("/edit?panel=wall&view=all");
   });
 });
 

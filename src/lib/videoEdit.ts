@@ -139,6 +139,8 @@ export interface EditSettings {
   musicDrop?: boolean;
   /** A one-line pop-up with an emoji on the top key lines. */
   popups?: boolean;
+  /** Words over a video: captions off, the words in one block sticker, the short panel in the editor. Never part of a look. */
+  wall?: boolean;
 }
 
 export const END_CARD_SECONDS = 2.5;
@@ -578,9 +580,11 @@ export function lookOf(s: EditSettings): Record<string, unknown> {
   return look;
 }
 
-/** Settings with a saved look laid over them, through applyPatch so a bad saved value can't break the editor. */
+/** Settings with a saved look laid over them, through applyPatch so a bad saved value can't break the editor. A words-over-video project keeps its captions off. */
 export function withLook(s: EditSettings, look: Record<string, unknown> | null | undefined): EditSettings {
-  return look && typeof look === "object" ? applyPatch(s, look).next : s;
+  if (!look || typeof look !== "object") return s;
+  const next = applyPatch(s, look).next;
+  return s.wall ? { ...next, captions: false } : next;
 }
 
 export function sameLook(s: EditSettings, look: Record<string, unknown> | null | undefined): boolean {
@@ -993,7 +997,9 @@ export function sanitizeFixes(raw: unknown): CaptionFix[] {
 
 // ---------- stickers ----------
 
-export type OverlayKind = "text" | "arrow" | "circle" | "underline";
+/** block = several lines of words, wrapped and centred, for the whole video (words over a video). */
+export type OverlayKind = "text" | "arrow" | "circle" | "underline" | "block";
+export type BlockBox = "none" | "white" | "bar";
 
 /** A sticker: centre x/y as shares of the frame, size 0.5-2.5, shown from/to on the edited timeline. */
 export interface Overlay {
@@ -1008,39 +1014,51 @@ export interface Overlay {
   color: string;
   from: number;
   to: number;
+  /** A block's width as a share of the frame, 0.5 to 0.95 (unset = 0.84). */
+  w?: number;
+  /** A block's typeface (unset = heavy). */
+  font?: FontId;
+  /** Behind a block's words: nothing (shadow and outline), a white box per line, or a dark bar (unset = none). */
+  box?: BlockBox;
 }
 
 export const MAX_OVERLAYS = 20;
+export const BLOCK_W = 0.84;
+const BLOCK_MAX_CHARS = 400;
 
-export function newOverlay(kind: OverlayKind, at: number, color: string): Overlay {
+/** A sticker at the playhead for 3 s; a block runs from 0 to `length`, the whole edit. */
+export function newOverlay(kind: OverlayKind, at: number, color: string, length?: number): Overlay {
+  // rounded down, so it shows on the frame at the playhead (4.9999 s must not start at 5.0)
+  const from = kind === "block" ? 0 : Math.max(0, Math.floor(at * 10) / 10);
   return {
     id: `o${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
     kind,
     text: kind === "text" ? "Your text" : "",
     x: 0.5,
-    y: kind === "text" ? 0.32 : 0.45,
+    y: kind === "text" ? 0.32 : kind === "block" ? 0.5 : 0.45,
     size: 1,
     turn: 0,
     color: HEX.test(color) ? color.toUpperCase() : "#FFD92B",
-    // rounded down, so it shows on the frame at the playhead (4.9999 s must not start at 5.0)
-    from: Math.max(0, Math.floor(at * 10) / 10),
-    to: Math.max(0, Math.floor(at * 10) / 10) + 3,
+    from,
+    to: kind === "block" && length && length > 0.3 ? length : from + 3,
+    ...(kind === "block" ? { w: BLOCK_W, font: "heavy" as const, box: "none" as const } : {}),
   };
 }
 
 /** Stickers from storage, kept only when well formed; positions and sizes are clamped. */
 export function sanitizeOverlays(raw: unknown): Overlay[] {
   if (!Array.isArray(raw)) return [];
-  const kinds: OverlayKind[] = ["text", "arrow", "circle", "underline"];
+  const kinds: OverlayKind[] = ["text", "arrow", "circle", "underline", "block"];
   return raw.slice(0, MAX_OVERLAYS).flatMap((o): Overlay[] => {
     if (!o || typeof o !== "object") return [];
     const r = o as Record<string, unknown>;
     if (!kinds.includes(r.kind as OverlayKind) || typeof r.id !== "string") return [];
     const from = clamp(r.from, 0, 36000, 0);
+    const block = r.kind === "block";
     return [{
       id: r.id.slice(0, 24),
       kind: r.kind as OverlayKind,
-      text: typeof r.text === "string" ? r.text.slice(0, 60) : "",
+      text: typeof r.text === "string" ? r.text.slice(0, block ? BLOCK_MAX_CHARS : 60) : "",
       x: clamp(r.x, 0, 1, 0.5),
       y: clamp(r.y, 0, 1, 0.5),
       size: clamp(r.size, 0.5, 2.5, 1),
@@ -1048,6 +1066,11 @@ export function sanitizeOverlays(raw: unknown): Overlay[] {
       color: typeof r.color === "string" && HEX.test(r.color) ? r.color.toUpperCase() : "#FFD92B",
       from,
       to: Math.max(from + 0.3, clamp(r.to, 0, 36000, from + 3)),
+      ...(block ? {
+        w: clamp(r.w, 0.5, 0.95, BLOCK_W),
+        ...(typeof r.font === "string" && r.font in FONTS ? { font: r.font as FontId } : {}),
+        ...(r.box === "none" || r.box === "white" || r.box === "bar" ? { box: r.box } : {}),
+      } : {}),
     }];
   });
 }
@@ -1056,16 +1079,79 @@ export function overlaysAt(list: Overlay[] | undefined, out: number): Overlay[] 
   return (list ?? []).filter((o) => out >= o.from && out < o.to);
 }
 
-/** The visible sticker under a point (shares of the frame), topmost first, within a reach that grows with its size. */
-export function overlayHit(list: Overlay[] | undefined, out: number, x: number, y: number, aspect: number): Overlay | null {
+/** A block's box on the frame, centre and size as shares (videoMedia's layoutBlock measures it). */
+export interface BlockRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * The visible sticker under a point (shares of the frame), topmost first, within a reach that grows with its
+ * size. A block is hit anywhere on its box, from boxOf (it needs measuring), since its words reach far from the centre.
+ */
+export function overlayHit(list: Overlay[] | undefined, out: number, x: number, y: number, aspect: number, boxOf?: (o: Overlay) => BlockRect | null): Overlay | null {
   const shown = overlaysAt(list, out);
   for (let i = shown.length - 1; i >= 0; i--) {
     const o = shown[i];
+    const r = o.kind === "block" ? boxOf?.(o) : null;
+    if (r) {
+      if (Math.abs(x - r.x) <= r.w / 2 && Math.abs(y - r.y) <= r.h / 2) return o;
+      continue;
+    }
     const reach = 0.09 * o.size;
     // distances in frame-height units, so a tall frame doesn't stretch the hit area sideways
     if (Math.hypot((x - o.x) * aspect, y - o.y) <= reach) return o;
   }
   return null;
+}
+
+/** Which handle of a picked block a point is on: a side (its width) or a corner (its size); reach is the handle's half-size in shares. */
+export function blockGrip(r: BlockRect, x: number, y: number, reachX: number, reachY: number): "side" | "corner" | null {
+  const nearX = Math.abs(Math.abs(x - r.x) - r.w / 2) <= reachX;
+  const nearY = Math.abs(Math.abs(y - r.y) - r.h / 2) <= reachY;
+  if (nearX && nearY) return "corner";
+  return nearX && Math.abs(y - r.y) <= Math.max(reachY, r.h / 4) ? "side" : null;
+}
+
+/**
+ * A block's words in lines that fit widthPx: line breaks kept, words never split (one longer than the width
+ * gets a line to itself). measure gives a string's width at sizePx; 0.3 em stays clear each side for the
+ * outline or the white box.
+ */
+export function wrapBlock(text: string, widthPx: number, sizePx: number, measure: (t: string) => number): string[] {
+  const max = widthPx - sizePx * 0.6;
+  const lines: string[] = [];
+  for (const para of text.split("\n")) {
+    let line = "";
+    for (const word of para.split(/\s+/).filter(Boolean)) {
+      const next = line ? `${line} ${word}` : word;
+      if (line && measure(next) > max) {
+        lines.push(line);
+        line = word;
+      } else line = next;
+    }
+    lines.push(line);
+  }
+  // blank lines between paragraphs stay; ones at either end go
+  while (lines.length && !lines[0]) lines.shift();
+  while (lines.length && !lines[lines.length - 1]) lines.pop();
+  return lines;
+}
+
+/** Seconds most people need to read the words: 3.5 words a second, rounded up. */
+export function readSeconds(text: string): number {
+  return Math.ceil(text.split(/\s+/).filter(Boolean).length / 3.5);
+}
+
+/**
+ * A words-over-video project's settings: muted, no captions, 9:16, and one centred block of the words from
+ * 0 to `seconds`. The /edit start panel and the wall-of-text format both create projects with it.
+ */
+export function wallSettings(text: string, seconds: number, o: { size?: number; font?: FontId; box?: BlockBox } = {}): Partial<EditSettings> {
+  const block: Overlay = { ...newOverlay("block", 0, "#FFFFFF", seconds), text: text.slice(0, BLOCK_MAX_CHARS), size: o.size ?? 1, font: o.font ?? "heavy", box: o.box ?? "none" };
+  return { wall: true, captions: false, volume: 0, aspect: "9:16", progressBar: false, overlays: [block] };
 }
 
 // ---------- cutting words from the transcript ----------
