@@ -127,6 +127,12 @@ function emit(next: LinkRead | null) {
 /** Drops the read on screen. A request already sent still lands in the saved list, because it was paid for. */
 export const clearLinkRead = () => emit(null);
 
+// A retry can't change these: the cap, the gate, the link or the file itself, or a device with no room.
+const FINAL = new Set(["daily_limit", "not_enabled", "bad_url", "not_switched_on", "no_captions", "not_found", "empty", "bad_request", "unavailable", "file", "not_kept"]);
+
+/** Whether a failed read offers Try again. */
+export const retryable = (code?: string) => !FINAL.has(code ?? "");
+
 type Answer = { source: LinkedSource };
 
 /** The source for one input, from the device list when it was read before (free), else from remix-link. */
@@ -173,6 +179,7 @@ export async function startLinkRead(userId: string, input: LinkReadInput): Promi
   } catch (e) {
     if (!live()) return;
     const message = e instanceof Error && e.message ? e.message : LINK_COPY.failed;
-    emit({ ...base, state: "failed", error: message, code: e instanceof EdgeError ? e.code : undefined });
+    // only remix-link answers with an EdgeError; anything else is the file refused on the device
+    emit({ ...base, state: "failed", error: message, code: e instanceof EdgeError ? e.code : "file" });
   }
 }

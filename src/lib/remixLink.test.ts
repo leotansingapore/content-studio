@@ -15,7 +15,7 @@ vi.mock("@/lib/videoMedia", () => ({ extractWav: vi.fn() }));
 
 import { EdgeError } from "@/lib/edgeFn";
 import { REMIX_LINKS_PREFIX, resolveSource, type LinkedSource } from "./resolveSource";
-import { NOT_KEPT, checkUpload, clearLinkRead, fitInside, linkRead, onLinkRead, saveLinkedSource, savedLinks, startLinkRead } from "./remixLink";
+import { NOT_KEPT, checkUpload, clearLinkRead, fitInside, linkRead, onLinkRead, retryable, saveLinkedSource, savedLinks, startLinkRead } from "./remixLink";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -170,8 +170,15 @@ describe("the read runner", () => {
     const done = settle();
     void startLinkRead(UID, { file: new File(["x"], "notes.pdf", { type: "application/pdf" }) });
     await done;
-    expect(linkRead()).toMatchObject({ state: "failed", error: "Upload a JPG, PNG, WebP, MP4 or MOV file." });
+    expect(linkRead()).toMatchObject({ state: "failed", code: "file", error: "Upload a JPG, PNG, WebP, MP4 or MOV file." });
     expect(callFn).not.toHaveBeenCalled();
+  });
+
+  it("offers Try again only when a retry can change the answer", () => {
+    for (const code of ["failed", "timeout", "scrape_failed", "usage_unavailable", "", undefined]) expect(retryable(code), String(code)).toBe(true);
+    for (const code of ["daily_limit", "not_enabled", "bad_url", "not_switched_on", "no_captions", "not_found", "empty", "file", "not_kept"]) {
+      expect(retryable(code), code).toBe(false);
+    }
   });
 });
 

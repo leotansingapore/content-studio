@@ -81,7 +81,7 @@ import { fromClone } from "@/lib/remixSource";
 import PriceChip from "@/components/PriceChip";
 import { links } from "@/lib/links";
 import type { LinkedSource } from "@/lib/resolveSource";
-import { checkUpload, clearLinkRead, linkRead, onLinkRead, savedLinks, startLinkRead, type LinkRead } from "@/lib/remixLink";
+import { checkUpload, clearLinkRead, linkRead, onLinkRead, retryable, savedLinks, startLinkRead, type LinkRead } from "@/lib/remixLink";
 import { LINK_COPY, notYet, parseRemixLink, siteName, type LinkKind } from "../../supabase/functions/remix-link/logic.ts";
 
 type View =
@@ -1254,7 +1254,7 @@ function RemixLinkBox({
             <div className="min-w-0 flex-1 space-y-3">
               <p className="text-sm text-foreground/85">{read.error}</p>
               <div className="flex flex-wrap gap-2">
-                {!["daily_limit", "not_enabled"].includes(read.code ?? "") && (
+                {retryable(read.code) && (
                   <Button size="sm" onClick={() => void startLinkRead(userId, read.input)} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
                     <RotateCcw className="h-3.5 w-3.5" /> Try again
                   </Button>
