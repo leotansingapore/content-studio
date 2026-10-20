@@ -10,10 +10,10 @@
 //   space    Singapore's running Meta ads for up to 3 search words (the ads actor, 30 each, in parallel), minus the
 //            tracked competitors' pages, judged by Jev against the brand; 60 kept.
 //   label    hook family, feeling and audience for up to 60 ads (Jev only, from _shared/tags.ts).
-// A later wave adds match.
+//   match    which of up to 80 pooled posts and ads fit the brand, for /swipe's For you (Jev only).
 //
 // Leo only while NORTH_STAR_USERS lists the caller. Caps "competitor-read", "competitor-suggest", "competitor-ads",
-// "competitor-posts", "space-ads" and "ad-labels" per user; ads, posts and space also across everyone on
+// "competitor-posts", "space-ads", "ad-labels" and "niche-match" per user; ads, posts and space also across everyone on
 // GLOBAL_COUNTER_USER. A use goes back only
 // when a provider never answered (502/503); "not found", "private" and an empty list keep it (phase2-build-brief.md).
 //
@@ -34,10 +34,10 @@ import { readSite, siteUrl, type SiteFacts } from "../brand-dna/logic.ts";
 import { isAllowed, newsFailed } from "../market/logic.ts";
 import { parseTrackRequest, shapeResult } from "../track-accounts/logic.ts";
 import {
-  ADS_ACTOR, adLibraryUrl, adsInput, type Ask, type Candidate, cleanAds, cleanLabel, cleanSpace, cleanSuggest, compareAsk, excluded, firstHttpsLogo,
-  hostOf, labelAsk, labelOf, mergeSpace, nameTask, organicResults, pageMissing, pageOf, parseInput, parseProposals, parseWhys, pickSite, POSTS_KEPT,
-  POSTS_READ, postsFailure, PROPOSE_FORMAT, proposeMessages, shapeAds, shapeSpaceAds, siteAsk, siteRetry, spaceAsk, spaceFilter, spaceUrl, suggestFilter,
-  WHY_FORMAT, whyMessages,
+  ADS_ACTOR, adLibraryUrl, adsInput, type Ask, type Candidate, cleanAds, cleanLabel, cleanMatch, cleanSpace, cleanSuggest, compareAsk, excluded,
+  firstHttpsLogo, hostOf, labelAsk, labelOf, matchAsk, matchScores, mergeSpace, nameTask, organicResults, pageMissing, pageOf, parseInput,
+  parseProposals, parseWhys, pickSite, POSTS_KEPT, POSTS_READ, postsFailure, PROPOSE_FORMAT, proposeMessages, shapeAds, shapeSpaceAds, siteAsk,
+  siteRetry, spaceAsk, spaceFilter, spaceUrl, suggestFilter, WHY_FORMAT, whyMessages,
 } from "./logic.ts";
 
 const headers = {
@@ -294,6 +294,21 @@ async function label(admin: Admin, uid: string, body: unknown): Promise<Response
   return json({ labels: Object.fromEntries(ads.flatMap((a, k) => (labels[k] ? [[a.id, labels[k]]] : []))) });
 }
 
+async function match(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const r = cleanMatch(body);
+  if (typeof r === "string") return fail(400, "bad_request", r);
+  // without Jev nothing can be judged: the feed shows everything by outlier score, and nothing is counted
+  if (!Deno.env.get("TYPESAFE_API_KEY")) return json({ scores: {} });
+
+  const day = new Date().toISOString().slice(0, 10);
+  const usage = await consumeUsage(admin, uid, "niche-match");
+  if (!usage.allowed) return refusal(usage);
+  const scores = await pool(r.items, 10, async (it) => noulOf(await jev(matchAsk(r.brand, it), "competitors match"), "match"));
+  // Jev never answered: nothing was judged, so the run goes back and the app asks again next time
+  if (scores.every((s) => s === null)) await refundUsage(admin, uid, "niche-match", day);
+  return json({ scores: matchScores(r.items, scores) });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -311,6 +326,7 @@ Deno.serve(async (req) => {
     if (body?.mode === "posts") return await posts(admin, uid, body);
     if (body?.mode === "space") return await space(admin, uid, body);
     if (body?.mode === "label") return await label(admin, uid, body);
+    if (body?.mode === "match") return await match(admin, uid, body);
     return fail(400, "bad_request", "Unknown mode.");
   } catch (e) {
     console.error("competitors failed", msg(e));

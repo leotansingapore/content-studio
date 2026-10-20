@@ -44,6 +44,8 @@ const apifyRuns: { actor: string; input: Record<string, unknown> }[] = [];
 let spaceDown: string[] = [];
 /** Jev's space answer per advertiser (0.7 for the rest); "down" answers nothing for that advertiser. */
 let spaceFit: Record<string, number | "down"> = {};
+/** Jev's match answer per post text (0.7 for the rest); "down" answers nothing for that post. */
+let matchFit: Record<string, number | "down"> = {};
 const IG_POSTS = Array.from({ length: 40 }, (_, k) => ({
   shortCode: `C${k}`, type: k % 3 ? "Image" : "Video", productType: k % 3 ? "feed" : "clips", caption: `Post ${k}`, ownerUsername: "acmewealth",
   timestamp: new Date(Date.UTC(2026, 9, 19) - k * 86_400_000).toISOString(), likesCount: 100 + k, commentsCount: 3, videoPlayCount: k % 3 ? null : 5000 + k,
@@ -71,6 +73,10 @@ beforeAll(async () => {
       if (req.questions.space) {
         const f = spaceFit[req.state.ad.advertiser] ?? 0.7;
         return f === "down" ? new Response("busy", { status: 503 }) : Response.json({ answers: { space: { type: "noul", noul: f } } });
+      }
+      if (req.questions.match) {
+        const f = matchFit[req.state.post.text] ?? 0.7;
+        return f === "down" ? new Response("busy", { status: 503 }) : Response.json({ answers: { match: { type: "noul", noul: f } } });
       }
       if (req.questions.hook) {
         return Response.json({ answers: {
@@ -121,6 +127,7 @@ beforeEach(() => {
   apifyRuns.length = 0;
   spaceDown = [];
   spaceFit = {};
+  matchFit = {};
   env = { NORTH_STAR_USERS: `someone-else,${LEO}`, DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p", OPENAI_API_KEY: "k", TYPESAFE_API_KEY: "t", APIFY_API_KEY: "a" };
   serp = "ok";
   jevMode = "up";
@@ -458,5 +465,52 @@ describe("competitors label", () => {
     delete env.TYPESAFE_API_KEY;
     expect((await call(labelBody)).status).toBe(503);
     expect(db.spent).toEqual([]);
+  });
+});
+
+describe("competitors match", () => {
+  const brandIn = { name: "ActivityTracker", sells: "A daily activity tracker", serves: "Self-employed salespeople" };
+  const items = (n: number) => Array.from({ length: n }, (_, k) => ({ id: `tp:a-${k}`, from: "@someone", kind: "organic", text: `Post ${k}` }));
+  const matchBody = (n = 3) => ({ mode: "match", brand: brandIn, items: items(n) });
+  const jevCalls = () => seen.filter((u) => u.includes("typesafe")).length;
+
+  it("answers 403 for anyone not listed and refuses a body it can't use, before any counter or Jev", async () => {
+    expect((await call(matchBody(), "not-listed")).body.code).toBe("not_enabled");
+    expect((await call({ mode: "match", brand: { name: "X" }, items: items(2) })).body).toEqual({ code: "bad_request", error: "Say what you sell or who you serve first." });
+    expect((await call({ mode: "match", brand: brandIn, items: [] })).status).toBe(400);
+    expect(db.spent).toEqual([]);
+    expect(seen).toEqual([]);
+  });
+
+  it("counts niche-match once a run, asks Jev about 80 items at most, and leaves null answers out", async () => {
+    matchFit = { "Post 1": 0.2, "Post 2": "down" };
+    const r = await call(matchBody(90));
+    expect(r.status).toBe(200);
+    expect(db.spent).toEqual(["niche-match"]);
+    expect(jevCalls()).toBe(80);
+    expect(Object.keys(r.body.scores)).toHaveLength(79);
+    expect(r.body.scores).toMatchObject({ "tp:a-0": 0.7, "tp:a-1": 0.2 });
+    expect("tp:a-2" in r.body.scores).toBe(false);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("answers 200 with no scores when Jev is down, giving the run back, and spends nothing without a key", async () => {
+    jevMode = "down";
+    expect(await call(matchBody())).toEqual({ status: 200, body: { scores: {} } });
+    expect(db.spent).toEqual(["niche-match"]);
+    expect(db.refunded).toEqual(["niche-match"]);
+    db.spent.length = 0;
+    db.refunded.length = 0;
+    delete env.TYPESAFE_API_KEY;
+    expect(await call(matchBody())).toEqual({ status: 200, body: { scores: {} } });
+    expect(db.spent).toEqual([]);
+  });
+
+  it("shows the server's message when the daily cap is used up, asking Jev nothing", async () => {
+    db.refuse = ["niche-match"];
+    const r = await call(matchBody());
+    expect(r.status).toBe(429);
+    expect(r.body.code).toBe("daily_limit");
+    expect(jevCalls()).toBe(0);
   });
 });

@@ -593,3 +593,44 @@ export function labelOf(answers: Record<string, JevAnswer> | null): AdLabel | nu
   if (!answers) return null;
   return { hook: pickTag(answers.hook, HOOK_IDS), emotion: pickTag(answers.emotion, FEELING_IDS), audience: pickTag(answers.audience, AUDIENCE_IDS) };
 }
+
+// ---- match: which pooled posts and ads fit the brand (find-niche-feed.md) ----------------------------------------
+
+export interface MatchItem { id: string; from: string; kind: "organic" | "ad"; text: string }
+export interface MatchRequest { brand: { name: string; sells: string; serves: string }; items: MatchItem[] }
+export const MATCH_MAX = 80;
+export const MATCH_TEXT = 400;
+
+/** The match body, cut to 80 items of 400 characters (repeats and empty ones dropped), or the reason it can't be used (400, before anything is counted). */
+export function cleanMatch(body: unknown): MatchRequest | string {
+  const b = rec(body);
+  const r = rec(b.brand);
+  const brand = { name: text(r.name, 80), sells: text(r.sells, 600), serves: text(r.serves, 400) };
+  if (!brand.sells && !brand.serves) return "Say what you sell or who you serve first.";
+  const items: MatchItem[] = [];
+  for (const raw of Array.isArray(b.items) ? b.items : []) {
+    const i = rec(raw);
+    const id = text(i.id, 120);
+    const t = text(i.text, MATCH_TEXT);
+    if (!id || !t || items.some((x) => x.id === id)) continue;
+    items.push({ id, from: text(i.from, 120), kind: i.kind === "ad" ? "ad" : "organic", text: t });
+    if (items.length === MATCH_MAX) break;
+  }
+  return items.length ? { brand, items } : "Send the posts to match.";
+}
+
+export function matchAsk(brand: MatchRequest["brand"], item: MatchItem): Ask {
+  return {
+    state: { brand: brand.name || "this business", sells: brand.sells, serves: brand.serves, country: COUNTRY, post: { from: item.from, kind: item.kind, text: item.text } },
+    questions: {
+      match: {
+        type: "noul",
+        instructions: "Is this post about something the people `brand` serves care about, close enough to what `brand` sells that its idea could be remade for them?",
+      },
+    },
+  };
+}
+
+/** Jev's answers by item id, to 2 places; a null answer is left out, so the app asks it again next time. */
+export const matchScores = (items: MatchItem[], scores: (number | null)[]): Record<string, number> =>
+  Object.fromEntries(items.flatMap((it, k) => (typeof scores[k] === "number" ? [[it.id, Math.round(scores[k]! * 100) / 100]] : [])));

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/facebook-ads.json";
 import drop from "../../../src/data/adsSwipe.json";
 import {
-  type Brand, adLibraryUrl, adsInput, cleanAds, cleanLabel, cleanSpace, cleanSuggest, excluded, firstHttpsLogo, labelAsk, labelOf, mergeSpace, organicResults,
-  pageMissing, pageOf, parseInput, parseProposals, parseWhys, pickSite, postsFailure, sgDay, shapeAds, shapeSpaceAds, siteAsk, siteRetry, spaceAsk, spaceFilter,
+  type Brand, adLibraryUrl, adsInput, cleanAds, cleanLabel, cleanMatch, cleanSpace, cleanSuggest, excluded, firstHttpsLogo, labelAsk, labelOf, mergeSpace, organicResults,
+  MATCH_MAX, matchAsk, matchScores, pageMissing, pageOf, parseInput, parseProposals, parseWhys, pickSite, postsFailure, sgDay, shapeAds, shapeSpaceAds, siteAsk, siteRetry, spaceAsk, spaceFilter,
   spaceUrl, suggestFilter, type SpaceAd,
 } from "./logic";
 
@@ -350,5 +350,38 @@ describe("label: hook, feeling and audience", () => {
       .toEqual([{ id: "123", headline: "Sell more", body: "Body" }]);
     expect(cleanLabel({ ads: [] })).toBe("Send the ads to sort.");
     expect(cleanLabel({ ads: Array.from({ length: 61 }, (_, k) => ({ id: String(1000 + k), body: "b" })) })).toBe("Send at most 60 ads.");
+  });
+});
+
+describe("match: which pooled posts fit the brand", () => {
+  const brand = { name: "ActivityTracker", sells: "A daily activity tracker for sales reps", serves: "Self-employed salespeople" };
+  const item = (k: number, text = `Post ${k} about cold calls`) => ({ id: `cp:instagram:${k}`, from: "@pipedrive", kind: "organic", text });
+
+  it("cuts the request to 80 items and 400 characters, dropping repeats and empty ones", () => {
+    const r = cleanMatch({ brand, items: [item(0), item(0), { id: "tp:x", text: "" }, ...Array.from({ length: 90 }, (_, k) => item(k + 1, "a".repeat(500)))] });
+    if (typeof r === "string") throw new Error(r);
+    expect(r.items).toHaveLength(MATCH_MAX);
+    expect(r.items[0]).toEqual({ id: "cp:instagram:0", from: "@pipedrive", kind: "organic", text: "Post 0 about cold calls" });
+    expect(r.items[1].text).toHaveLength(400);
+    expect(new Set(r.items.map((i) => i.id)).size).toBe(80);
+    expect(cleanMatch({ brand, items: [{ id: "ca:1", from: "Pipedrive", kind: "ad", text: "Close more deals" }] })).toMatchObject({ items: [{ kind: "ad" }] });
+  });
+
+  it("refuses a brand with neither what it sells nor who it serves, and a body with nothing to match", () => {
+    expect(cleanMatch({ brand: { name: "X" }, items: [item(1)] })).toBe("Say what you sell or who you serve first.");
+    expect(cleanMatch({ brand, items: [] })).toBe("Send the posts to match.");
+    expect(cleanMatch({ brand })).toBe("Send the posts to match.");
+  });
+
+  it("asks about the brand's own audience and offer, never an adviser", () => {
+    const a = matchAsk(brand, { id: "tp:1", from: "@x", kind: "organic", text: "CPF top-ups" });
+    expect(a.state).toMatchObject({ brand: "ActivityTracker", sells: brand.sells, serves: brand.serves, country: "Singapore", post: { from: "@x", kind: "organic", text: "CPF top-ups" } });
+    expect(a.questions.match).toMatchObject({ type: "noul" });
+    expect(JSON.stringify(a)).not.toMatch(/advis/i);
+  });
+
+  it("leaves null answers out of the scores, so they are asked again", () => {
+    const items = [0, 1, 2].map((k) => ({ ...item(k), kind: "organic" as const }));
+    expect(matchScores(items, [0.734, null, 0])).toEqual({ "cp:instagram:0": 0.73, "cp:instagram:2": 0 });
   });
 });
