@@ -117,8 +117,11 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   const [words, setWords] = useWords();
   const brand = useMemo(() => brandName(userId), [userId]);
   const hasMedia = useMemo(() => loadMedia(userId).length > 0, [userId]);
-  const shown = useShow(userId, showId ?? (job?.state === "done" ? job.showId : null));
+  // only show= opens a result, so Back from a fresh one returns to the empty setup
+  const shown = useShow(userId, showId);
   const started = useRef<number | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const seen = useRef<string | null>(null);
 
   const remix = from === "remix";
   const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", note: words.note, size, pictures };
@@ -136,13 +139,25 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
     started.current = slideshowJob()?.id ?? null;
   };
 
-  // the run this page started opens its result as its own link (show=), so Back and Copy link find it
+  // once per step: the run this page started opens its result as its own link (show=, push), so Back and Copy link
+  // find it; a run that finished while Leo was away opens in place (replace). On a phone the result sits under the
+  // options, so the start, the end or the failure of a run is scrolled into view while the page is open.
   useEffect(() => {
-    if (job?.state === "done" && job.showId && job.id === started.current) {
-      started.current = null;
-      openShow(job.showId);
+    if (!job) return;
+    const step = `${job.id}:${job.state}`;
+    if (seen.current === step) return;
+    const live = seen.current !== null;
+    seen.current = step;
+    const mine = job.id === started.current;
+    if ((mine || live) && (job.state === "writing" || job.state === "done" || job.state === "failed") && !window.matchMedia("(min-width: 1024px)").matches) {
+      resultRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
     }
-  }, [job, openShow]);
+    if (job.state === "done" && job.showId) {
+      if (mine) openShow(job.showId);
+      else if (!showId && params.get("go") !== "1") update({ show: job.showId });
+    }
+    if (mine && (job.state === "done" || job.state === "failed")) started.current = null;
+  }, [job, openShow, showId, params, update]);
 
   // go=1 (the Remix sheet's Also make link) makes on arrival, once
   const went = useRef(false);
@@ -237,7 +252,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   );
 
   const result = (
-    <div className="space-y-3">
+    <div ref={resultRef} className="scroll-mt-16 space-y-3 lg:scroll-mt-0">
       {original && (
         <div role="tablist" aria-label="Result" className="flex gap-1.5">
           <FilterChip active={tab === "result"} onClick={() => set("tab", null)}>Your result</FilterChip>
