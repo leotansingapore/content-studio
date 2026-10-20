@@ -144,6 +144,7 @@ Based on the caption only.
 
 - Precomputing teardowns for the weekly drops (136 top posts, 21 ads, 10 trends today) in the drop scripts with the free Claude CLI would make them instant and free. Worth doing once the runtime path is proven; Leo's call on the extra weekly job.
 - "Save hook format" (Sandcastles) belongs to remix-patterns, which can read `hook.pattern` from these teardowns.
+- 20 Oct 2026 (calibration): the 134 top posts with a first line went through the formula question once (21 formulas, jev-1.13.0, under US$0.01). Half came back "none"; of the 9 picks from 0.5 to 0.6, 2 were plainly wrong (an emoji-only caption and a matcha video read as side-by-side), and of the 6 from 0.6 to 0.7, 1 was wrong. FORMULA_MIN is 0.6, which keeps a formula for 36 of the 134.
 
 ## Related
 

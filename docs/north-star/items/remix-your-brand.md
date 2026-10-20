@@ -127,10 +127,11 @@ note?: string              // the sheet's note, at most 300 chars
 
 ## Done when
 
-- [ ] The collapsed row shows the right summary for a brand with and without a voice, offers and a saved face.
+- [ ] The collapsed row shows the right summary for a brand with and without a voice and offers, and as you or as the business.
 - [ ] With mention on, the brand's name appears once in the result; with mention off it appears nowhere (checked with a plain text search on 5 remixes).
 - [ ] Picking an offer ends the result on that offer, and its link appears only through the brand rules.
-- [ ] A "You speaking" remix uses the saved face, and "AI presenter" uses a saved presenter or makes one, labelled either way.
+- [ ] A "You speaking" remix makes an AI presenter, labelled "AI presenter" in the For row and its summary, and speaks in the Video voice picked.
+- [ ] A brand that isn't a person (ActivityTracker) writes as the business, with no "I" and no personal story, and the invented check asks about the business's claims.
 - [ ] Settings differ per brand and come back after a reload and on another device.
 - [ ] A result that claims "I've helped 300 families" with no such fact in the coach profile shows the warning chip.
 - [ ] Build, full vitest, 390 px and 1440 px; northStar.ts flipped.
@@ -145,6 +146,8 @@ note?: string              // the sheet's note, at most 300 chars
 
 - A product or offer catalogue richer than the kit's five named links belongs to brand-products, and the Offer line should read from it once it ships.
 - Whether the brand kit's colours should also drive caption styles on remixed videos is left to brand-kit.
+- 20 Oct 2026 (phase-1 build): the saved-face, saved-presenter and brand-products lines moved here from Done when, so this item can finish without them. "You speaking" uses the saved face once people-my-face ships ("My face" stays hidden until then), "AI presenter" picks a saved presenter once people-presenters ships (until then each video remix makes a new one), and the Offer line reads products once brand-products ships.
+- 20 Oct 2026 (dogfood finding): the first live make for ActivityTracker came back as an adviser saying "I". The brand block now carries `speaker: 'person' | 'business'`: the account's own brand, or an added brand whose kit has a role or a headshot, is the person; any other added brand is the business, which writes as "we", its name or "you" and never claims a personal story. The For row's "Speaks" line changes it, kept in the remix prefs per brand. Whether the kit should get an explicit "This brand is a business" switch is Leo's call.
 
 ## Related
 

@@ -32,8 +32,13 @@ remix= removed (replace). The sheet's choices replace the history entry and leav
 | for | open: the For row's switches shown | closed |
 | mention | no: leave the brand's name out of this remix | the brand's remembered pick, else yes |
 | offer | an offer's name as a slug (Brand kit offers) | the brand's remembered pick, else none |
+| as | a comma list of up to 3 formats: post, carousel, script, speaking, explainer (one video at most); repeats, a fourth or a second video are dropped | the source's own format: script for a video, carousel for a carousel, else post |
+| breakdown | open: the Breakdown row under the source card shown (a breakdown is made only when it is opened or Remix is pressed) | closed |
 
 Unknown values fall back silently. Example: /swipe?post=the-woke-salaryman-instagram-Ddkxv39j961&remix=top:the-woke-salaryman-instagram-Ddkxv39j961&keep=topic&about=cpf.
+A finished format opens at /generate?draft=<id>, /carousel?draft=<id>, or, for You speaking and Explainer video,
+/edit?panel=ai&kind=avatar and /edit?panel=ai&kind=explainer (the editor takes the finished video). The fit check
+and the ask-first step are moments inside the sheet and never land in the URL.
 
 | Page | Param | Values | Default | History | Example |
 |---|---|---|---|---|---|

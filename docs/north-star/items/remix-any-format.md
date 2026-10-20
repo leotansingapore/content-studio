@@ -126,6 +126,9 @@ Make   [Text post] [Carousel *] [Script to film]
 ## Open questions
 
 - Should "You speaking" stop after the script for a yes before the paid video, the way agent-approvals would? This spec runs it in one press with "Up to US$5.50" on the button, as Fastlane does with "Remix, 130 credits". Leo decides.
+  Decided for phase 1 (20 Oct 2026, the build brief's money rule): any press that makes a video asks first, under the button, before anything is spent: "This makes a video and uses up to US$5.56 of video credit. Make it?" with "Make it" and "Not now" (the explainer reads "about US$0.08"). It asks once per press, after the script is chosen, not between the script and the video.
+- 20 Oct 2026 (phase-1 build): the video prices come from the price table, so they read "Up to US$5.56" (the most an avatar costs plus its voiceover and the AI presenter picture) and "About US$0.08" (six explainer pictures plus the voiceover), not the spec's "Up to US$5.50" and "About US$0.05". "What Remix does" says "a video of an AI presenter saying it" until people-my-face saves a face.
+- 20 Oct 2026: a video row's failure after its script is saved keeps "Open the script" beside "Try again"; "Try again" puts that one format back in the sheet so its own press, and its ask-first, run it again.
 - Should a video source default to a paid video format instead of "Script to film"? This spec never preselects a paid format.
 
 ## New evidence (20 Oct 2026)

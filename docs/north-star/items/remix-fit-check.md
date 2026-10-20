@@ -132,6 +132,7 @@ The fit line has no view of its own. `?remix=<key>` reopens the sheet and the ch
 
 - Should the fit also rank cards on /swipe and the ads tab ("24 of these match what you sell, shown first")? That would run Jev over whole lists and fits find-niche-feed better than this item.
 - After a "Remix anyway" on a poor fit, should the adviser be able to say "stop asking for this kind"? That would be a learned preference for agent-memory.
+- 20 Oct 2026 (phase-1 build): the thresholds in `FIT_AT` (supabase/functions/remix/logic.ts) are this spec's proposal until the shadow run. `node scripts/fit-shadow.mjs brands.json --go` (or with SUPABASE_SERVICE_ROLE_KEY) runs it, read-only; it needs Leo's brand rows, which RLS keeps from the anon key, so it waits for an export or the service key. "What Remix does" keeps the short format words the phase-1 contract fixed ("writes a carousel"), not this spec's longer per-format steps. A press with a video format picked also asks first for the video's price (the build brief's money rule), in the same row as a weak-fit question, so it is one confirm per press.
 
 ## Related
 
