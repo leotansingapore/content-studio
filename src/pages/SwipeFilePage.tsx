@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,8 +36,9 @@ import {
   type SortKey,
 } from "@/lib/postInsights";
 
-// Leo's ads tab (the ad library and its drawer): a chunk of its own, so nobody else downloads it.
+// Leo's ads tab (the ad library and its drawer) and For you: chunks of their own, so nobody else downloads them.
 const AdLibrary = lazy(() => import("@/components/AdLibrary"));
+const ForYou = lazy(() => import("@/components/swipe/ForYou"));
 
 // Static data → enrich once at module load.
 const ALL = getAllTopPosts();
@@ -60,7 +61,7 @@ const KIND_OPTIONS = [
 
 const PAGE_SIZE = 12;
 
-type Tab = "posts" | "news" | "ads" | "search";
+type Tab = "posts" | "foryou" | "news" | "ads" | "search";
 // Leo's tabs (phase 2): a link naming one waits for the session rather than flashing Top posts first.
 const LEO_TABS = ["search", "foryou", "hooks"];
 
@@ -119,8 +120,22 @@ export default function SwipeFilePage() {
   }, [leo]);
   const adsTab = ADS.length > 0 || Boolean(leo && leoAds);
   const [tab] = useUrlState<Tab>("tab", "posts", {
-    allowed: [...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["search"] as const) : [])],
+    allowed: [...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["foryou", "search"] as const) : [])],
   });
+  const enriched = ENRICHED;
+  // Leo's five tabs scroll sideways on a phone: keep the open one in view (the bar only, never the page)
+  const tabsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const show = () => {
+      const bar = tabsRef.current;
+      const on = bar?.querySelector<HTMLElement>('[aria-selected="true"]');
+      if (!bar || !on || bar.scrollWidth <= bar.clientWidth) return;
+      if (on.offsetLeft < bar.scrollLeft || on.offsetLeft + on.offsetWidth > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = on.offsetLeft - 8;
+    };
+    show();
+    // the labels widen once the web font arrives
+    void document.fonts?.ready.then(show);
+  }, [tab, leo]);
   const update = useUrlUpdate();
   // Each tab has its own search and filters, so a tab switch starts them clean in one write.
   const setTab = (t: Tab) =>
@@ -189,7 +204,7 @@ export default function SwipeFilePage() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const items = ENRICHED.filter(({ post, insight }) => {
+    const items = enriched.filter(({ post, insight }) => {
       if (savedOnly && !savedSet.has(postKey({ post, insight }))) return false;
       if (kind !== "all" && creatorKind(post.tier) !== kind) return false;
       if (format !== "all" && generatorFormat(post) !== format) return false;
@@ -207,17 +222,17 @@ export default function SwipeFilePage() {
       now: Date.now(),
       target,
     });
-  }, [search, format, kind, topic, angle, audience, sort, savedOnly, savedSet, target]);
+  }, [enriched, search, format, kind, topic, angle, audience, sort, savedOnly, savedSet, target]);
 
   useEffect(() => setVisible(PAGE_SIZE), [search, format, kind, topic, angle, audience, sort, savedOnly]);
 
   const working = useMemo(
     () =>
       formatsWorkingNow(
-        kind === "all" ? ENRICHED : ENRICHED.filter((x) => creatorKind(x.post.tier) === kind),
+        kind === "all" ? enriched : enriched.filter((x) => creatorKind(x.post.tier) === kind),
         Date.now(),
       ),
-    [kind],
+    [enriched, kind],
   );
 
   const activeFilters = [kind, topic, angle, audience].filter((v) => v !== "all").length;
@@ -227,7 +242,7 @@ export default function SwipeFilePage() {
   };
   const shown = filtered.slice(0, visible);
   const remaining = filtered.length - shown.length;
-  const openItem = openKey ? ENRICHED.find((p) => postKey(p) === openKey) ?? null : null;
+  const openItem = openKey ? enriched.find((p) => postKey(p) === openKey) ?? null : null;
   // The posts are bundled, so an id that is not among them is gone: open the page without it, saying so.
   useGoneItem("post", !!openItem);
 
@@ -243,9 +258,15 @@ export default function SwipeFilePage() {
         </p>
       </header>
 
-      <div role="tablist" aria-label="Swipe file" className="flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto">
+      <div
+        ref={tabsRef}
+        role="tablist"
+        aria-label="Swipe file"
+        className={`flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto ${leo ? "scrollbar-none relative max-w-full overflow-x-auto" : ""}`}
+      >
         {[
           { id: "posts" as const, label: "Top posts", n: TOTAL_TOP_POSTS },
+          ...(leo ? [{ id: "foryou" as const, label: "For you", n: null }] : []),
           { id: "news" as const, label: "Industry news", n: NEWS.length },
           // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing; Leo's counts his library.
           ...(adsTab ? [{ id: "ads" as const, label: "Ads", n: leo ? (leoAds ?? ADS.length) : ADS.length }] : []),
@@ -257,9 +278,9 @@ export default function SwipeFilePage() {
             role="tab"
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
-            // Leo's fourth tab: on a phone each tab takes its own width and the counts wait for sm, so no label wraps
+            // Leo's five tabs: on a phone each takes its own width and the bar scrolls; the counts wait for sm, so no label wraps
             className={`rounded-md py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 [@media(pointer:coarse)]:min-h-11 ${
-              leo ? "flex-auto whitespace-nowrap px-2" : "flex-1 px-4"
+              leo ? "flex-auto shrink-0 whitespace-nowrap px-3" : "flex-1 px-4"
             } ${tab === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
           >
             {t.label} {t.n !== null && <span className={`text-xs text-muted-foreground ${leo ? "hidden sm:inline" : ""}`}>{t.n}</span>}
@@ -271,6 +292,10 @@ export default function SwipeFilePage() {
         <div className="min-h-[40vh]" aria-busy="true" />
       ) : tab === "search" && leo ? (
         <ViralSearch userId={leo.id} />
+      ) : tab === "foryou" && leo ? (
+        <Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}>
+          <ForYou userId={leo.id} />
+        </Suspense>
       ) : tab === "ads" && leo ? (
         <Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}>
           <AdLibrary userId={leo.id} />
@@ -490,7 +515,7 @@ export default function SwipeFilePage() {
 
           <PostDetailDrawer
             item={openItem}
-            all={ENRICHED}
+            all={enriched}
             saved={openKey ? savedSet.has(openKey) : false}
             onToggleSave={() => openKey && toggleSave(openKey)}
             // A similar post replaces the open one, so Back still closes the drawer in one step.
