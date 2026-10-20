@@ -1170,7 +1170,7 @@ function RemixLinkBox({
 
   const linkLeft = left("remix-link");
   const fileLeft = left("remix-image");
-  const hint = `${LINK_COPY.hint} Each link uses 1 of your ${DAILY_LIMITS["remix-link"]} a day${linkLeft === null ? "" : `, ${linkLeft} left today`}; a file 1 of your ${DAILY_LIMITS["remix-image"]}${fileLeft === null ? "" : `, ${fileLeft} left`}, and a video 1 transcription too. Posts read before are free.`;
+  const hint = `${LINK_COPY.hint} Each link uses 1 of your ${DAILY_LIMITS["remix-link"]} a day${linkLeft === null ? "" : `, ${linkLeft} left today`}; each file 1 of your ${DAILY_LIMITS["remix-image"]}${fileLeft === null ? "" : `, ${fileLeft} left`} (a video also uses 1 transcription). Posts read before are free.`;
 
   return (
     <>
@@ -1184,7 +1184,7 @@ function RemixLinkBox({
         <label htmlFor="remix-url" className="sr-only">
           Link to a post, reel, Short or ad
         </label>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
           <Input
             id="remix-url"
             ref={inputRef}
@@ -1203,25 +1203,23 @@ function RemixLinkBox({
             aria-describedby={linkError ? "remix-url-error" : "remix-url-hint"}
             className="h-11 min-w-0 flex-1"
           />
-          <Button
-            type="submit"
-            disabled={working}
-            className="h-11 gap-1.5 bg-gradient-primary px-5 text-primary-foreground shadow-sm hover:opacity-95"
-          >
-            {working ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {working ? "Reading..." : "Read it"}
-          </Button>
-        </div>
-        <div className="flex flex-col gap-x-4 gap-y-1 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={working} className="h-11 gap-1.5">
-              <Upload className="h-4 w-4" /> Upload a screenshot or video
+          <div className="flex flex-col gap-1 text-center sm:text-right">
+            <Button
+              type="submit"
+              disabled={working}
+              className="h-11 gap-1.5 bg-gradient-primary px-5 text-primary-foreground shadow-sm hover:opacity-95"
+            >
+              {working ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {working ? "Reading..." : "Read it"}
             </Button>
-            <PriceChip feature="remix-image" left={fileLeft} />
+            {!working && <PriceChip feature="remix-link" left={linkLeft} />}
           </div>
-          <span className="sm:text-right">
-            <PriceChip feature="remix-link" left={linkLeft} />
-          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={working} className="h-11 gap-1.5">
+            <Upload className="h-4 w-4" /> Upload a screenshot or video
+          </Button>
+          {!working && <PriceChip feature="remix-image" left={fileLeft} />}
           <input
             ref={fileRef}
             type="file"
