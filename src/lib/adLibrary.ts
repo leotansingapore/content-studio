@@ -289,6 +289,8 @@ export interface LibraryAd {
   fit?: number | null;
   /** New on the competitor's latest check. */
   fresh?: boolean;
+  /** That check read every ad Meta lists for the competitor there (competitor ads only). */
+  complete?: boolean;
 }
 
 /** Whole days from the start to the end, or to `now` while it runs; null without a readable start. */
@@ -362,7 +364,7 @@ export function buildLibrary(s: LibraryStores, now = Date.now()): LibraryAd[] {
     if (c.fbPageId) pages.add(c.fbPageId);
     if (e?.pageId) pages.add(e.pageId);
     if (!canReadAds(c) || !e) continue;
-    for (const ad of e.ads) add(competitorLibraryAd(ad, c, s.labels[ad.id], e.fresh.includes(ad.id), now));
+    for (const ad of e.ads) add({ ...competitorLibraryAd(ad, c, s.labels[ad.id], e.fresh.includes(ad.id), now), complete: e.complete === true });
   }
   for (const ad of s.space.ads) if (!ad.pageId || !pages.has(ad.pageId)) add(spaceLibraryAd(ad, s.labels[ad.id], now));
   for (const ad of s.drop) add(dropLibraryAd(ad, s.labels[ad.adId], now));

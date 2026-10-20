@@ -26,6 +26,8 @@ export interface DetailAd {
   cta: string | null;
   link: string | null;
   industry: string | null;
+  /** Every ad Meta lists for this advertiser there was read (a competitor check that came back short of its cap). */
+  complete: boolean;
 }
 
 const FORMATS: AdFormat[] = ["image", "video", "carousel", "text"];
@@ -36,12 +38,14 @@ export function toDetailAd(ad: SwipeAd | LibraryAd): DetailAd {
       id: ad.adId, advertiser: ad.advertiser, format: FORMATS.includes(ad.format as AdFormat) ? (ad.format as AdFormat) : "image", headline: ad.headline,
       body: ad.body, start: ad.start, end: null, active: true, platforms: ad.platforms.map((p) => p.toLowerCase()), image: ad.image || null, video: null, libraryUrl: ad.libraryUrl,
       hookFamily: ad.hookFamily || null, emotion: null, audience: null, cta: ad.cta, link: ad.link, industry: ad.industry || null,
+      // the drop keeps 3 ads an advertiser
+      complete: false,
     };
   }
   return {
     id: ad.id, advertiser: ad.advertiser, format: ad.format, headline: ad.headline, body: ad.body, start: ad.start, end: ad.end, active: ad.active,
     platforms: ad.platforms, image: ad.image, video: ad.video, libraryUrl: ad.libraryUrl, hookFamily: hookName(ad.hook), emotion: ad.emotion,
-    audience: ad.audience, cta: ad.cta, link: ad.link, industry: ad.industry,
+    audience: ad.audience, cta: ad.cta, link: ad.link, industry: ad.industry, complete: ad.complete === true,
   };
 }
 
@@ -62,15 +66,22 @@ export function runLength(ad: Pick<DetailAd, "start" | "end" | "active">, now = 
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
-/** Rank by days among the same advertiser's ads in the list the drawer was opened from; a tie shares the rank. */
+const theirAds = (ad: DetailAd, list: DetailAd[]) => [ad, ...list.filter((x) => x.id !== ad.id && same(x.advertiser, ad.advertiser))];
+/** Whether those ads are all the advertiser runs there; a capped check, the drop's 3 or a space search are not. */
+const wholeRead = (theirs: DetailAd[]) => theirs.every((x) => x.complete);
+
+/**
+ * Rank by days among the same advertiser's ads in the list the drawer was opened from; a tie shares the rank. "of
+ * their N ads" only when every ad they run there was read, else "of the N we read" (Sunsama, dogfood 21 Oct).
+ */
 export function rankAmong(ad: DetailAd, list: DetailAd[], now = Date.now()): Stat {
-  const theirs = [ad, ...list.filter((x) => x.id !== ad.id && same(x.advertiser, ad.advertiser))];
+  const theirs = theirAds(ad, list);
   if (theirs.length < 2) return { big: "Only ad", small: "of theirs here" };
   const days = (x: DetailAd) => adDays(x, now) ?? -1;
   const mine = days(ad);
   const rank = 1 + theirs.filter((x) => days(x) > mine).length;
   const joint = theirs.some((x) => x.id !== ad.id && days(x) === mine);
-  const small = `of their ${theirs.length} ads`;
+  const small = wholeRead(theirs) ? `of their ${theirs.length} ads` : `of the ${theirs.length} we read`;
   if (rank === 1) return { big: joint ? "Joint longest" : "Longest", small };
   return { big: rank === 2 ? "2nd longest" : `#${rank}`, small };
 }
@@ -85,13 +96,16 @@ export function placementLabel(platforms: string[]): string {
   return names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-/** The first fact that holds; it matches the library's "Proven ad" rule, so a stopped ad under 90 days never reads proven. */
+/**
+ * The first fact that holds; it matches the library's "Proven ad" rule, so a stopped ad under 90 days never reads
+ * proven. "Their longest running ad right now" only when every ad they run there was read.
+ */
 export function proofLine(ad: DetailAd, list: DetailAd[], now = Date.now()): string | null {
   const d = adDays(ad, now);
   if (d === null) return null;
   if (!ad.active) return d >= 90 ? "Ran for 3+ months before it stopped." : `Stopped after ${plural(d, "day")}.`;
   const r = rankAmong(ad, list, now);
-  if (d >= 30 && (r.big === "Longest" || r.big === "Joint longest")) return "Their longest running ad right now.";
+  if (d >= 30 && (r.big === "Longest" || r.big === "Joint longest") && wholeRead(theirAds(ad, list))) return "Their longest running ad right now.";
   if (d >= 90) return "Running for 3+ months. Advertisers switch off ads that lose money.";
   if (d >= 30) return "Running for a month or more.";
   if (d < 14) return "New. Too early to call it proven.";

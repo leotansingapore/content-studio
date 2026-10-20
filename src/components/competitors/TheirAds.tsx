@@ -52,7 +52,7 @@ export default function TheirAds({ userId, list, store, openEdit }: {
     const seen = new Set<string>();
     return list.flatMap((x) => ((canReadAds(x) && store[x.id]?.ads) || [])
       .filter((ad) => !seen.has(ad.id) && seen.add(ad.id))
-      .map((ad) => toDetailAd(competitorLibraryAd(ad, x, labels[ad.id]))));
+      .map((ad) => toDetailAd({ ...competitorLibraryAd(ad, x, labels[ad.id]), complete: store[x.id].complete === true })));
   }, [userId, list, store]);
   // an empty store may still be syncing, and a check may still bring the ad: the drawer waits for either
   const linkedAd = useLinkedAd(detail, busy || !Object.keys(store).length);

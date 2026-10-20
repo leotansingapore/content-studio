@@ -73,6 +73,12 @@ describe("buildLibrary", () => {
     expect(all.find((a) => a.id === "4001")).toMatchObject({ advertiser: "Singlife", active: true, end: null, industry: "Insurance", platforms: ["facebook", "instagram"], image: "/ads/4001.jpg" });
   });
 
+  it("marks a competitor's ads complete only when its check read every ad", () => {
+    const whole = { ...competitorAds, pipe: { ...competitorAds.pipe, complete: true } };
+    const all = lib.buildLibrary({ list, competitorAds: whole, space: lib.EMPTY_SPACE, drop: [drop("4001")], labels: {} }, NOW);
+    expect(all.map((a) => [a.id, a.complete])).toEqual([["1001", false], ["1002", false], ["2001", true], ["4001", undefined]]);
+  });
+
   it("applies the labels, and the drop's own hook family wins over one", () => {
     const labels = { "2001": { hook: "proof", emotion: "trust", audience: "business-owners" }, "4001": { hook: "offer", emotion: "worry", audience: null } };
     const all = lib.buildLibrary({ list, competitorAds, space: lib.EMPTY_SPACE, drop: [drop("4001")], labels }, NOW);

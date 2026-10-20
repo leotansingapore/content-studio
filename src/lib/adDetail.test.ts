@@ -7,7 +7,8 @@ const NOW = Date.parse("2026-10-20T04:00:00Z");
 const dayBefore = (n: number) => new Date(NOW - n * 86_400_000).toISOString().slice(0, 10);
 const D = (id: string, extra: Partial<DetailAd> = {}): DetailAd => ({
   id, advertiser: "Acme", format: "image", headline: "Hi", body: "Body", start: dayBefore(20), end: null, active: true, platforms: ["facebook"], image: null,
-  video: null, libraryUrl: `https://www.facebook.com/ads/library/?id=${id}`, hookFamily: null, emotion: null, audience: null, cta: null, link: null, industry: null, ...extra,
+  video: null, libraryUrl: `https://www.facebook.com/ads/library/?id=${id}`, hookFamily: null, emotion: null, audience: null, cta: null, link: null, industry: null,
+  complete: true, ...extra,
 });
 const DROP = ADS.map(toDetailAd);
 const of = (advertiser: string) => DROP.filter((a) => a.advertiser === advertiser);
@@ -33,14 +34,31 @@ describe("runLength", () => {
 });
 
 describe("rankAmong", () => {
-  it("gives Prudential's three drop ads Longest, 2nd longest and #3, and Singlife's three Joint longest", () => {
+  it("gives Prudential's three drop ads Longest, 2nd longest and #3, and Singlife's three Joint longest, of the 3 the drop keeps", () => {
     const pru = of("Prudential Singapore");
     expect(pru.map((a) => [a.start, rankAmong(a, DROP, NOW)])).toEqual([
-      ["2026-09-16", { big: "Longest", small: "of their 3 ads" }],
-      ["2026-10-04", { big: "2nd longest", small: "of their 3 ads" }],
-      ["2026-10-05", { big: "#3", small: "of their 3 ads" }],
+      ["2026-09-16", { big: "Longest", small: "of the 3 we read" }],
+      ["2026-10-04", { big: "2nd longest", small: "of the 3 we read" }],
+      ["2026-10-05", { big: "#3", small: "of the 3 we read" }],
     ]);
-    for (const a of of("Singlife")) expect(rankAmong(a, DROP, NOW)).toEqual({ big: "Joint longest", small: "of their 3 ads" });
+    for (const a of of("Singlife")) expect(rankAmong(a, DROP, NOW)).toEqual({ big: "Joint longest", small: "of the 3 we read" });
+    // the drop keeps 3 an advertiser, so it never claims their longest
+    expect(proofLine(pru[0], DROP, NOW)).toBe("Running for a month or more.");
+  });
+
+  it("says of the N we read, and never their longest right now, unless every ad they run there was read", () => {
+    // Sunsama 1723268295542969 (started 11 Jun) among 26 of a capped read: Meta had ads running since Oct 2025
+    const read = [D("1723268295542969", { advertiser: "Sunsama", start: "2026-06-11", complete: false }),
+      ...Array.from({ length: 25 }, (_, k) => D(String(k), { advertiser: "Sunsama", start: dayBefore(10 + k), complete: false }))];
+    expect(rankAmong(read[0], read, NOW)).toEqual({ big: "Longest", small: "of the 26 we read" });
+    expect(proofLine(read[0], read, NOW)).toBe("Running for 3+ months. Advertisers switch off ads that lose money.");
+    const whole = read.map((a) => ({ ...a, complete: true }));
+    expect(rankAmong(whole[0], whole, NOW)).toEqual({ big: "Longest", small: "of their 26 ads" });
+    expect(proofLine(whole[0], whole, NOW)).toBe("Their longest running ad right now.");
+    // one ad from a partial source (a drop ad by the same name) makes the set partial
+    const mixed = [...whole, D("drop", { advertiser: "Sunsama", start: dayBefore(5), complete: false })];
+    expect(rankAmong(mixed[0], mixed, NOW).small).toBe("of the 27 we read");
+    expect(proofLine(mixed[0], mixed, NOW)).not.toMatch(/longest/i);
   });
 
   it("says Only ad for one, counting only the same advertiser in the list it was opened from", () => {
@@ -103,6 +121,7 @@ describe("the drawer's Remix and labels", () => {
     );
     const d = toDetailAd(lib);
     expect(Object.keys(d).sort()).toEqual(Object.keys(toDetailAd(ADS[0])).sort());
+    expect([d.complete, toDetailAd(ADS[0]).complete, toDetailAd({ ...lib, complete: true }).complete]).toEqual([false, false, true]);
     expect(d).toMatchObject({ id: "977824304753041", advertiser: "SleekFlow", hookFamily: "Proof", emotion: "trust", video: "https://video.example/v.mp4", active: false, end: "2026-10-10" });
     expect(titleOf(d)).toBe("First line");
   });
