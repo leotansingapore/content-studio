@@ -131,6 +131,11 @@ describe("suggestion candidates", () => {
     expect(c.brandFacts("u1")).toEqual({ name: "ActivityTracker", site: "activity-tracker.io", sells: "Pro plan. We help reps hit their numbers.", serves: "Self-employed salespeople", topics: ["sales habits"] });
   });
 
+  it("joins a one-liner that ends in a full stop to the edge with one full stop", () => {
+    storage.setItem("content-studio-positioning-u1", JSON.stringify({ oneLiner: "One app for sales reps.", edge: "Built for WhatsApp", audience: "general", audienceDetail: "", topics: [] }));
+    expect(c.brandFacts("u1").sells).toBe("One app for sales reps. Built for WhatsApp");
+  });
+
   it("brings a hand-picked creator's handle along when their suggestion is added", () => {
     expect(c.fromSuggestion({ name: "Josh Tan (TheAstuteParent)", site: null, why: "Parents compare", score: 0.8 })).toMatchObject({ handles: { youtube: "joshconsultancy" }, source: "suggested", why: "Parents compare" });
     expect(c.fromSuggestion({ name: "Spotio", site: "spotio.com", why: "", score: 0.7 })).toMatchObject({ site: "spotio.com", handles: {} });

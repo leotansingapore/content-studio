@@ -327,7 +327,9 @@ export function brandFacts(userId: string): Brand {
   return {
     name: (kit?.name || market.name).trim(),
     site: market.site.trim(),
-    sells: [offers, pos?.oneLiner, pos?.edge].map((v) => (v ?? "").trim()).filter(Boolean).join(". ").slice(0, 600),
+    // a part that already ends a sentence gets a space, not ". " (a one-liner ending "app." gave "app.. Built")
+    sells: [offers, pos?.oneLiner, pos?.edge].map((v) => (v ?? "").trim()).filter(Boolean)
+      .reduce((all, v) => (all ? `${all}${/[.!?]$/.test(all) ? " " : ". "}${v}` : v), "").slice(0, 600),
     serves: (pos?.audienceDetail?.trim() || audience || market.audience.trim()).slice(0, 400),
     topics: (pos?.topics?.length ? pos.topics : market.topics).slice(0, 12),
   };
