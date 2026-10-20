@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/facebook-ads.json";
+import drop from "../../../src/data/adsSwipe.json";
 import {
-  type Brand, adLibraryUrl, adsInput, cleanAds, cleanSuggest, excluded, firstHttpsLogo, organicResults, pageMissing, pageOf, parseInput, parseProposals, parseWhys,
-  pickSite, postsFailure, sgDay, shapeAds, siteAsk, siteRetry, suggestFilter,
+  type Brand, adLibraryUrl, adsInput, cleanAds, cleanLabel, cleanSpace, cleanSuggest, excluded, firstHttpsLogo, labelAsk, labelOf, mergeSpace, organicResults,
+  pageMissing, pageOf, parseInput, parseProposals, parseWhys, pickSite, postsFailure, sgDay, shapeAds, shapeSpaceAds, siteAsk, siteRetry, spaceAsk, spaceFilter,
+  spaceUrl, suggestFilter, type SpaceAd,
 } from "./logic";
 
 describe("what the add bar reads", () => {
@@ -261,5 +263,92 @@ describe("posts: what a failed read answers", () => {
     for (const m of ["The platform took too long to answer. Try again in a few minutes.", "Account audits are paused while the scraping account is sorted out. Try again later.", "Couldn't read the account right now. Try again in a few minutes."]) {
       expect(postsFailure(m, "acme")).toEqual({ status: 502, code: "failed", error: "Couldn't read that account right now. Try again in a few minutes.", refund: true });
     }
+  });
+});
+
+describe("space: Singapore's ads for the brand's search words", () => {
+  const items = fixture as Record<string, unknown>[];
+  const NOW = Date.parse("2026-10-20T12:00:00Z");
+
+  it("searches running Singapore ads for each word, the word encoded", () => {
+    const url = spaceUrl("term life & health");
+    expect(url).toBe(
+      "https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=SG&q=term%20life%20%26%20health&search_type=keyword_unordered&media_type=all",
+    );
+    expect(new URL(url).searchParams.get("q")).toBe("term life & health");
+    expect(new URL(url).searchParams.get("country")).toBe("SG");
+  });
+
+  it("takes up to 3 distinct words and only page ids, and refuses no words or four", () => {
+    expect(cleanSpace({ brand: { name: "AT", sells: "A tracker", serves: "Reps" }, keywords: [" sales  crm ", "Sales CRM", "x", "pipeline"], excludePageIds: ["362293550309745", "nope", 5] }))
+      .toEqual({ brand: { name: "AT", sells: "A tracker", serves: "Reps" }, keywords: ["sales crm", "pipeline"], excludePageIds: ["362293550309745"] });
+    expect(cleanSpace({ keywords: [] })).toBe("Add a search word first.");
+    expect(cleanSpace({ keywords: "crm" })).toBe("Send up to 3 search words.");
+    expect(cleanSpace({ keywords: ["a1", "b1", "c1", "d1"] })).toBe("Send at most 3 search words.");
+  });
+
+  it("keeps each ad's page and advertiser from the saved run", () => {
+    const ads = shapeSpaceAds(items, NOW);
+    expect(ads).toHaveLength(10);
+    expect(ads.find((a) => a.id === "977824304753041")).toMatchObject({ advertiser: "Muncly", pageId: "362293550309745", fit: null, headline: "Get a free audit" });
+    expect(shapeSpaceAds([{ adArchiveID: "500", isActive: true }], NOW)[0]).toMatchObject({ advertiser: "An advertiser", pageId: null });
+  });
+
+  it("drops the tracked competitors' pages and an ad found by two words, taking the words in turn", () => {
+    const run = shapeSpaceAds(items, NOW);
+    const other = run.slice(0, 3).map((a, k) => ({ ...a, id: `9${k}00`, pageId: "777000777" }));
+    const merged = mergeSpace([run, other, run], ["362293550309745", "397893120067859"]);
+    expect(merged.some((a) => a.pageId === "362293550309745" || a.pageId === "397893120067859")).toBe(false);
+    expect(merged).toHaveLength(7 + 3);
+    expect(new Set(merged.map((a) => a.id)).size).toBe(merged.length);
+    // the second word's first ad comes second, not after all of the first word's
+    expect(merged.findIndex((a) => a.id === "9000")).toBeLessThanOrEqual(1);
+    expect(merged.findIndex((a) => a.id === "9100")).toBeLessThanOrEqual(3);
+  });
+
+  it("asks Jev about the brand's own buyers, with the ad's words cut to 400", () => {
+    const ad = { ...shapeSpaceAds(items, NOW)[0], body: "x".repeat(900) };
+    const ask = spaceAsk({ name: "ActivityTracker", sells: "A daily activity tracker", serves: "Self-employed salespeople" }, ad);
+    expect(ask.state).toMatchObject({ brand: "ActivityTracker", sells: "A daily activity tracker", serves: "Self-employed salespeople", country: "Singapore" });
+    expect((ask.state.ad as { body: string }).body).toHaveLength(400);
+    expect(ask.questions.space.type).toBe("noul");
+    expect(String(ask.questions.space.instructions)).not.toMatch(/advis|financ/i);
+  });
+
+  it("keeps 0.6 and up best first, then the ads Jev never judged, 60 at most", () => {
+    const ad = (id: string) => ({ id, advertiser: id, pageId: null, fit: null }) as SpaceAd;
+    const ads = ["a", "b", "c", "d", "e"].map(ad);
+    expect(spaceFilter(ads, [0.61, 0.95, 0.59, null, 0.6]).map((a) => [a.id, a.fit])).toEqual([["b", 0.95], ["a", 0.61], ["e", 0.6], ["d", null]]);
+    // Jev down: every ad stays, unjudged
+    expect(spaceFilter(ads, ads.map(() => null)).map((a) => a.fit)).toEqual([null, null, null, null, null]);
+    expect(spaceFilter(Array.from({ length: 90 }, (_, k) => ad(`x${k}`)), Array(90).fill(0.9))).toHaveLength(60);
+  });
+});
+
+describe("label: hook, feeling and audience", () => {
+  it("asks the drop's seven hook families word for word, under the ids the drop's names lowercase to", () => {
+    const hook = labelAsk({ id: "1", headline: "h", body: "b" }).questions.hook as { criteria: Record<string, string> };
+    expect(Object.keys(hook.criteria)).toEqual(["problem", "desire", "curiosity", "proof", "audience", "offer", "instruction"]);
+    expect(hook.criteria.problem).toBe("Opens on something wrong in the reader's life: regret, a gap never worked out, a number never checked, stuck or frustrated, the cost of doing nothing");
+    for (const a of (drop as { ads: { hookFamily: string }[] }).ads) expect(Object.keys(hook.criteria)).toContain(a.hookFamily.toLowerCase());
+    const q = labelAsk({ id: "1", headline: "h", body: "b" }).questions;
+    expect(Object.keys((q.emotion as { criteria: object }).criteria)).toEqual(["worry", "hope", "relief", "pride", "curiosity", "urgency", "trust", "fun"]);
+    expect((q.audience as { criteria: Record<string, string> }).criteria.general).toBe("Anyone, no clear group");
+  });
+
+  it("keeps a pick at 0.5 or more, and makes the rest null", () => {
+    expect(labelOf({
+      hook: { type: "choice", choice: "proof", probabilities: { proof: 0.5 } },
+      emotion: { type: "choice", choice: "worry", probabilities: { worry: 0.49 } },
+      audience: { type: "choice", choice: "martians", probabilities: { martians: 0.9 } },
+    })).toEqual({ hook: "proof", emotion: null, audience: null });
+    expect(labelOf(null)).toBeNull();
+  });
+
+  it("takes up to 60 ads with an id and some words, and refuses the rest before counting", () => {
+    expect(cleanLabel({ ads: [{ id: "123", headline: "  Sell  more ", body: "Body" }, { id: "123", body: "again" }, { id: "abc", body: "x" }, { id: "456" }] }))
+      .toEqual([{ id: "123", headline: "Sell more", body: "Body" }]);
+    expect(cleanLabel({ ads: [] })).toBe("Send the ads to sort.");
+    expect(cleanLabel({ ads: Array.from({ length: 61 }, (_, k) => ({ id: String(1000 + k), body: "b" })) })).toBe("Send at most 60 ads.");
   });
 });

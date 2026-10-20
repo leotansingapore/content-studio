@@ -40,6 +40,10 @@ let site: { choice: string; probabilities: Record<string, number> } = { choice: 
 let openai: "ok" | "down" | "why-down" = "ok";
 let apify: "ok" | "down" | "timeout" | "missing" | "empty" | "private" = "ok";
 const apifyRuns: { actor: string; input: Record<string, unknown> }[] = [];
+/** Search words whose space run fails on Apify. */
+let spaceDown: string[] = [];
+/** Jev's space answer per advertiser (0.7 for the rest); "down" answers nothing for that advertiser. */
+let spaceFit: Record<string, number | "down"> = {};
 const IG_POSTS = Array.from({ length: 40 }, (_, k) => ({
   shortCode: `C${k}`, type: k % 3 ? "Image" : "Video", productType: k % 3 ? "feed" : "clips", caption: `Post ${k}`, ownerUsername: "acmewealth",
   timestamp: new Date(Date.UTC(2026, 9, 19) - k * 86_400_000).toISOString(), likesCount: 100 + k, commentsCount: 3, videoPlayCount: k % 3 ? null : 5000 + k,
@@ -64,6 +68,17 @@ beforeAll(async () => {
       if (jevMode === "down") return new Response("busy", { status: 503 });
       const req = JSON.parse(String(init?.body));
       if (req.questions.site) return Response.json({ answers: { site: { type: "choice", ...site } } });
+      if (req.questions.space) {
+        const f = spaceFit[req.state.ad.advertiser] ?? 0.7;
+        return f === "down" ? new Response("busy", { status: 503 }) : Response.json({ answers: { space: { type: "noul", noul: f } } });
+      }
+      if (req.questions.hook) {
+        return Response.json({ answers: {
+          hook: { type: "choice", choice: "problem", probabilities: { problem: 0.8 } },
+          emotion: { type: "choice", choice: "worry", probabilities: { worry: 0.3 } },
+          audience: { type: "choice", choice: "general", probabilities: { general: 0.9 } },
+        } });
+      }
       return Response.json({ answers: { compare: { type: "noul", noul: compare[req.state.candidate.name] ?? 0.1 } } });
     }
     if (url.startsWith("https://api.openai.com/")) {
@@ -79,6 +94,8 @@ beforeAll(async () => {
       const input = JSON.parse(String(init?.body));
       apifyRuns.push({ actor: url.split("/acts/")[1].split("/")[0], input });
       if (apify === "down") return new Response("actor failed", { status: 500 });
+      const q = url.includes("facebook-ads-scraper") ? new URL(input.startUrls[0].url).searchParams.get("q") : null;
+      if (q && spaceDown.includes(q)) return new Response("actor failed", { status: 500 });
       if (apify === "timeout") throw new DOMException("The signal has been aborted", "TimeoutError");
       if (url.includes("facebook-ads-scraper")) return Response.json(apify === "missing" ? [{ url: input.startUrls[0].url, error: "Page not found" }] : apify === "empty" ? [] : FB_ADS);
       if (url.includes("instagram-profile-scraper")) {
@@ -102,6 +119,8 @@ beforeEach(() => {
   db.refuse = [];
   apify = "ok";
   apifyRuns.length = 0;
+  spaceDown = [];
+  spaceFit = {};
   env = { NORTH_STAR_USERS: `someone-else,${LEO}`, DATAFORSEO_LOGIN: "l", DATAFORSEO_PASSWORD: "p", OPENAI_API_KEY: "k", TYPESAFE_API_KEY: "t", APIFY_API_KEY: "a" };
   serp = "ok";
   jevMode = "up";
@@ -335,5 +354,109 @@ describe("competitors posts", () => {
     apify = "down";
     expect(await call(postsBody)).toEqual({ status: 502, body: { code: "failed", error: "Couldn't read that account right now. Try again in a few minutes." } });
     expect(db.refunded).toEqual(["competitor-posts", "competitor-posts-global"]);
+  });
+});
+
+const spaceBody = { mode: "space", brand: { name: "ActivityTracker", sells: "A daily activity tracker", serves: "Self-employed salespeople" }, keywords: ["sales crm", "lead follow up", "pipeline"], excludePageIds: ["397893120067859"] };
+const labelBody = { mode: "label", ads: [{ id: "977824304753041", headline: "Get a free audit", body: "A new CRM won't fix your sales." }, { id: "2098596340759533", headline: "", body: "Card spend beside closed deals" }] };
+
+describe("competitors space and label: the gate and the counters", () => {
+  it("answers 403 for anyone not listed, before any counter, Apify or Jev", async () => {
+    for (const body of [spaceBody, labelBody]) expect((await call(body, "not-listed")).body.code).toBe("not_enabled");
+    expect(db.spent).toEqual([]);
+    expect(seen).toEqual([]);
+  });
+
+  it("refuses a body it can't use before counting", async () => {
+    expect((await call({ ...spaceBody, keywords: [] })).body).toEqual({ code: "bad_request", error: "Add a search word first." });
+    expect((await call({ ...spaceBody, keywords: ["a1", "b1", "c1", "d1"] })).status).toBe(400);
+    expect((await call({ mode: "label", ads: [] })).status).toBe(400);
+    expect(db.spent).toEqual([]);
+  });
+
+  it("counts space for the user, then everyone, and answers global_limit with the paused line, giving the user's use back", async () => {
+    await call(spaceBody);
+    expect(db.spent).toEqual(["space-ads", "space-ads-global"]);
+    db.spent.length = 0;
+    db.refuse = ["space-ads-global"];
+    apifyRuns.length = 0;
+    expect(await call(spaceBody)).toEqual({ status: 429, body: { code: "global_limit", error: "Ad checks are paused for today. They resume at 8am Singapore time." } });
+    expect(db.refunded).toEqual(["space-ads"]);
+    expect(apifyRuns).toEqual([]);
+  });
+});
+
+describe("competitors space", () => {
+  it("runs each word in parallel with no add-ons, drops tracked pages and duplicates, and judges each ad", async () => {
+    spaceFit = { Flyweel: 0.2, Leadensity: 0.9 };
+    const r = await call(spaceBody);
+    expect(r.status).toBe(200);
+    expect(apifyRuns).toHaveLength(3);
+    expect(apifyRuns.map((a) => new URL((a.input.startUrls as { url: string }[])[0].url).searchParams.get("q"))).toEqual(spaceBody.keywords);
+    expect(apifyRuns[0].input).toMatchObject({ resultsLimit: 30, activeStatus: "", isDetailsPerAd: false, includeAboutPage: false, enrichWithEcommerceData: false });
+    // the same 10 ads from each word: 10 once, minus Systems And Teams' 2 and Flyweel under 0.6
+    expect(r.body.ads).toHaveLength(7);
+    expect(r.body.ads[0]).toMatchObject({ advertiser: "Leadensity", fit: 0.9 });
+    expect(r.body.ads.some((a: { pageId: string }) => a.pageId === "397893120067859")).toBe(false);
+    expect(r.body.ads.some((a: { advertiser: string }) => a.advertiser === "Flyweel")).toBe(false);
+    expect(r.body.failed).toEqual([]);
+    expect(seen.filter((u) => u.includes("typesafe"))).toHaveLength(8);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("returns the other words' ads when one run fails, keeping both uses", async () => {
+    spaceDown = ["lead follow up"];
+    const r = await call(spaceBody);
+    expect(r.status).toBe(200);
+    expect(r.body.failed).toEqual(["lead follow up"]);
+    expect(r.body.ads.length).toBeGreaterThan(0);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("gives both uses back only when every run fails", async () => {
+    spaceDown = [...spaceBody.keywords];
+    expect(await call(spaceBody)).toEqual({ status: 502, body: { code: "failed", error: ADS_FAILED } });
+    expect(db.refunded).toEqual(["space-ads", "space-ads-global"]);
+    apify = "timeout";
+    db.refunded.length = 0;
+    expect((await call({ ...spaceBody, keywords: ["crm"] })).status).toBe(502);
+    expect(db.refunded).toEqual(["space-ads", "space-ads-global"]);
+  });
+
+  it("keeps the ads with fit null when Jev is down, and the uses too", async () => {
+    jevMode = "down";
+    const r = await call(spaceBody);
+    expect(r.status).toBe(200);
+    expect(r.body.ads).toHaveLength(8);
+    expect(r.body.ads.every((a: { fit: number | null }) => a.fit === null)).toBe(true);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("asks Jev nothing when the brand says neither what it sells nor who it serves", async () => {
+    const r = await call({ ...spaceBody, brand: { name: "X" } });
+    expect(r.body.ads.every((a: { fit: number | null }) => a.fit === null)).toBe(true);
+    expect(seen.some((u) => u.includes("typesafe"))).toBe(false);
+  });
+});
+
+describe("competitors label", () => {
+  it("counts one use a run and keeps picks at 0.5 or more", async () => {
+    const r = await call(labelBody);
+    expect(r).toEqual({ status: 200, body: { labels: {
+      "977824304753041": { hook: "problem", emotion: null, audience: "general" },
+      "2098596340759533": { hook: "problem", emotion: null, audience: "general" },
+    } } });
+    expect(db.spent).toEqual(["ad-labels"]);
+    expect(seen.filter((u) => u.includes("typesafe"))).toHaveLength(2);
+  });
+
+  it("gives the run back when Jev answers none, and says it isn't on without a key", async () => {
+    jevMode = "down";
+    expect((await call(labelBody)).status).toBe(502);
+    expect(db.refunded).toEqual(["ad-labels"]);
+    db.spent.length = 0;
+    delete env.TYPESAFE_API_KEY;
+    expect((await call(labelBody)).status).toBe(503);
+    expect(db.spent).toEqual([]);
   });
 });

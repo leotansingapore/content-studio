@@ -7,10 +7,14 @@
 //            open), scored by Jev, then one LLM call for the why lines.
 //   ads      one competitor's Meta ads (apify~facebook-ads-scraper, up to 30 at US$5.80 per 1,000 on Free).
 //   posts    one competitor's Instagram or TikTok posts, 30 kept (the actors Following uses).
-// Later waves add space, label and match.
+//   space    Singapore's running Meta ads for up to 3 search words (the ads actor, 30 each, in parallel), minus the
+//            tracked competitors' pages, judged by Jev against the brand; 60 kept.
+//   label    hook family, feeling and audience for up to 60 ads (Jev only, from _shared/tags.ts).
+// A later wave adds match.
 //
-// Leo only while NORTH_STAR_USERS lists the caller. Caps "competitor-read", "competitor-suggest", "competitor-ads"
-// and "competitor-posts" per user, the last two also across everyone on GLOBAL_COUNTER_USER. A use goes back only
+// Leo only while NORTH_STAR_USERS lists the caller. Caps "competitor-read", "competitor-suggest", "competitor-ads",
+// "competitor-posts", "space-ads" and "ad-labels" per user; ads, posts and space also across everyone on
+// GLOBAL_COUNTER_USER. A use goes back only
 // when a provider never answered (502/503); "not found", "private" and an empty list keep it (phase2-build-brief.md).
 //
 // Secrets (all set already): NORTH_STAR_USERS, DATAFORSEO_LOGIN, DATAFORSEO_PASSWORD, OPENAI_API_KEY, TYPESAFE_API_KEY,
@@ -30,9 +34,10 @@ import { readSite, siteUrl, type SiteFacts } from "../brand-dna/logic.ts";
 import { isAllowed, newsFailed } from "../market/logic.ts";
 import { parseTrackRequest, shapeResult } from "../track-accounts/logic.ts";
 import {
-  ADS_ACTOR, adLibraryUrl, adsInput, type Ask, type Candidate, cleanAds, cleanSuggest, compareAsk, excluded, firstHttpsLogo, hostOf, nameTask,
-  organicResults, pageMissing, pageOf, parseInput, parseProposals, parseWhys, pickSite, POSTS_KEPT, POSTS_READ, postsFailure, PROPOSE_FORMAT,
-  proposeMessages, shapeAds, siteAsk, siteRetry, suggestFilter, WHY_FORMAT, whyMessages,
+  ADS_ACTOR, adLibraryUrl, adsInput, type Ask, type Candidate, cleanAds, cleanLabel, cleanSpace, cleanSuggest, compareAsk, excluded, firstHttpsLogo,
+  hostOf, labelAsk, labelOf, mergeSpace, nameTask, organicResults, pageMissing, pageOf, parseInput, parseProposals, parseWhys, pickSite, POSTS_KEPT,
+  POSTS_READ, postsFailure, PROPOSE_FORMAT, proposeMessages, shapeAds, shapeSpaceAds, siteAsk, siteRetry, spaceAsk, spaceFilter, spaceUrl, suggestFilter,
+  WHY_FORMAT, whyMessages,
 } from "./logic.ts";
 
 const headers = {
@@ -52,6 +57,9 @@ const SUGGEST_FAILED = "Couldn't suggest anything right now. Try again in a few 
 const ADS_FAILED = "Couldn't read Meta's ad library right now. Try again in a few minutes.";
 const ADS_PAUSED = "Ad checks are paused for today. They resume at 8am Singapore time.";
 const POSTS_PAUSED = "Account checks are paused for today. They resume at 8am Singapore time.";
+const LABELS_FAILED = "Couldn't sort these ads right now. Try again in a few minutes.";
+// The Apify runs take up to ~105 s of the function's ~150 s; Jev questions not asked by then come back as fit null.
+const SPACE_JEV_UNTIL_MS = 130_000;
 const jev = (a: Ask, who: string) => askJev(a.state, a.questions, { who });
 const refusal = (u: Extract<UsageResult, { allowed: false }>) => {
   const r = usageRefusal(u);
@@ -236,6 +244,56 @@ async function posts(admin: Admin, uid: string, body: unknown): Promise<Response
   }
 }
 
+async function space(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const r = cleanSpace(body);
+  if (typeof r === "string") return fail(400, "bad_request", r);
+  const token = Deno.env.get("APIFY_API_KEY");
+  if (!token) return fail(503, "failed", "Ad checks aren't switched on yet.");
+
+  const started = Date.now();
+  const day = new Date().toISOString().slice(0, 10);
+  const mine = await consumeUsage(admin, uid, "space-ads");
+  if (!mine.allowed) return refusal(mine);
+  const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "space-ads-global");
+  if (!everyone.allowed) {
+    await refundUsage(admin, uid, "space-ads", day);
+    return everyone.reason === "limit" ? fail(429, "global_limit", ADS_PAUSED) : refusal(everyone);
+  }
+
+  // in parallel: apifyItems waits up to ~105 s a run, and three in a row would pass the function's limit
+  const runs = await Promise.allSettled(r.keywords.map((k) => apifyItems(ADS_ACTOR, adsInput(spaceUrl(k)), token)));
+  const failed = r.keywords.filter((_, k) => runs[k].status === "rejected");
+  if (failed.length === r.keywords.length) {
+    console.error("competitors space: apify", runs.map((x) => (x.status === "rejected" ? msg(x.reason) : "")).join(" | "));
+    await Promise.all([refundUsage(admin, uid, "space-ads", day), refundUsage(admin, GLOBAL_COUNTER_USER, "space-ads-global", day)]);
+    return fail(502, "failed", ADS_FAILED);
+  }
+  // a run answered (and billed): from here the uses are kept, ads or none
+  const ads = mergeSpace(runs.map((x) => (x.status === "fulfilled" ? shapeSpaceAds(x.value) : [])), r.excludePageIds);
+  // with neither what the brand sells nor who it serves there is nothing to judge by: every ad stays, fit null
+  const judge = Boolean(r.brand.sells || r.brand.serves);
+  const scores = await pool(ads, 6, async (a) =>
+    judge && Date.now() - started < SPACE_JEV_UNTIL_MS ? noulOf(await jev(spaceAsk(r.brand, a), "competitors space"), "space") : null);
+  return json({ ads: spaceFilter(ads, scores), failed, checkedAt: new Date().toISOString() });
+}
+
+async function label(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const ads = cleanLabel(body);
+  if (typeof ads === "string") return fail(400, "bad_request", ads);
+  if (!Deno.env.get("TYPESAFE_API_KEY")) return fail(503, "failed", "Sorting ads isn't switched on yet.");
+
+  const day = new Date().toISOString().slice(0, 10);
+  const usage = await consumeUsage(admin, uid, "ad-labels");
+  if (!usage.allowed) return refusal(usage);
+  const labels = await pool(ads, 6, async (a) => labelOf(await jev(labelAsk(a), "competitors label")));
+  // Jev never answered: nothing was judged, so the run goes back and the ads are asked again later
+  if (labels.every((l) => l === null)) {
+    await refundUsage(admin, uid, "ad-labels", day);
+    return fail(502, "failed", LABELS_FAILED);
+  }
+  return json({ labels: Object.fromEntries(ads.flatMap((a, k) => (labels[k] ? [[a.id, labels[k]]] : []))) });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers });
   if (req.method !== "POST") return json({ error: "Use POST." }, 405);
@@ -251,6 +309,8 @@ Deno.serve(async (req) => {
     if (body?.mode === "suggest") return await suggest(admin, uid, body);
     if (body?.mode === "ads") return await ads(admin, uid, body);
     if (body?.mode === "posts") return await posts(admin, uid, body);
+    if (body?.mode === "space") return await space(admin, uid, body);
+    if (body?.mode === "label") return await label(admin, uid, body);
     return fail(400, "bad_request", "Unknown mode.");
   } catch (e) {
     console.error("competitors failed", msg(e));

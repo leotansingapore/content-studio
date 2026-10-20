@@ -3,6 +3,7 @@
 // a site (read by the server, free apart from the daily cap) and a bare name (one DataForSEO search).
 
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
+import { AUDIENCE_TAGS, FEELINGS, HOOK_FAMILIES, pickTag } from "../_shared/tags.ts";
 import { handleOf, PLATFORMS, siteUrl } from "../brand-dna/logic.ts";
 
 export type Handles = { facebook?: string; instagram?: string; tiktok?: string; linkedin?: string; youtube?: string };
@@ -463,4 +464,132 @@ export function postsFailure(message: string, handle: string): { status: 422 | 5
   if (message.includes(" is private")) return { status: 422, code: "private", error: `@${handle} is private, so we can't read its posts.`, refund: false };
   if (message.startsWith("We couldn't find")) return { status: 422, code: "not_found", error: message, refund: false };
   return { status: 502, code: "failed", error: "Couldn't read that account right now. Try again in a few minutes.", refund: true };
+}
+
+// ---- space: ads in the brand's space, by up to 3 search words (find-ad-library.md) ----------------------------
+
+/** A Meta ad found by a keyword search, with the page that runs it and Jev's fit to the brand (null: not judged). */
+export interface SpaceAd extends CompetitorAd { advertiser: string; pageId: string | null; fit: number | null }
+export interface SpaceRequest { brand: { name: string; sells: string; serves: string }; keywords: string[]; excludePageIds: string[] }
+
+export const SPACE_WORDS = 3;
+export const SPACE_MAX = 60;
+/** Proposed cut (build brief decision 7). */
+export const SPACE_FIT = 0.6;
+
+/** The space body, cleaned, or the reason it can't be used (400, before anything is counted). */
+export function cleanSpace(body: unknown): SpaceRequest | string {
+  const b = rec(body);
+  const r = rec(b.brand);
+  if (!Array.isArray(b.keywords)) return "Send up to 3 search words.";
+  const keywords: string[] = [];
+  for (const k of b.keywords) {
+    const t = text(k, 60);
+    if (t.length >= 2 && !keywords.some((x) => x.toLowerCase() === t.toLowerCase())) keywords.push(t);
+  }
+  if (!keywords.length) return "Add a search word first.";
+  if (keywords.length > SPACE_WORDS) return `Send at most ${SPACE_WORDS} search words.`;
+  const ids = Array.isArray(b.excludePageIds) ? b.excludePageIds : [];
+  return {
+    brand: { name: text(r.name, 80), sells: text(r.sells, 600), serves: text(r.serves, 400) },
+    keywords,
+    excludePageIds: ids.filter((x): x is string => typeof x === "string" && /^\d{3,25}$/.test(x)).slice(0, 100),
+  };
+}
+
+/** Singapore's running Meta ads for one search word. */
+export const spaceUrl = (keyword: string) =>
+  `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=SG&q=${encodeURIComponent(keyword)}&search_type=keyword_unordered&media_type=all`;
+
+/** One keyword run's items as ads, each with the page that runs it (shapeAds' rules: dedupe, no templates, 30 at most). */
+export function shapeSpaceAds(items: unknown[], now = Date.now()): SpaceAd[] {
+  const pages = new Map<string, { pageId: string | null; advertiser: string }>();
+  for (const raw of Array.isArray(items) ? items : []) {
+    const i = rec(raw);
+    const pid = String(i.pageID ?? i.pageId ?? rec(i.snapshot).pageId ?? "");
+    pages.set(String(i.adArchiveID ?? i.adArchiveId ?? "").trim(), {
+      pageId: /^\d{3,25}$/.test(pid) ? pid : null,
+      advertiser: text(i.pageName ?? rec(i.snapshot).pageName, 120),
+    });
+  }
+  return shapeAds(items, now).map((ad) => ({ ...ad, advertiser: pages.get(ad.id)?.advertiser || "An advertiser", pageId: pages.get(ad.id)?.pageId ?? null, fit: null }));
+}
+
+/** Every keyword's ads taken in turn (so a cut keeps all three words), once each, minus the tracked competitors' pages. */
+export function mergeSpace(lists: SpaceAd[][], excludePageIds: string[]): SpaceAd[] {
+  const skip = new Set(excludePageIds);
+  const seen = new Set<string>();
+  const out: SpaceAd[] = [];
+  for (let i = 0; lists.some((l) => i < l.length); i++) {
+    for (const l of lists) {
+      const ad = l[i];
+      if (!ad || seen.has(ad.id) || (ad.pageId !== null && skip.has(ad.pageId))) continue;
+      seen.add(ad.id);
+      out.push(ad);
+    }
+  }
+  return out;
+}
+
+export function spaceAsk(brand: SpaceRequest["brand"], ad: SpaceAd): Ask {
+  return {
+    state: { brand: brand.name || "this business", sells: brand.sells, serves: brand.serves, country: COUNTRY, ad: { advertiser: ad.advertiser, headline: ad.headline ?? "", body: ad.body.slice(0, 400) } },
+    questions: { space: { type: "noul", instructions: "Is this ad from a business that sells to the same people as `brand`, or sells something those people would weigh against what `brand` sells?" } },
+  };
+}
+
+/** SPACE_FIT and up, best first, then the ads Jev never judged (fit null, kept: Apify was paid for them); 60 at most. */
+export function spaceFilter(ads: SpaceAd[], scores: (number | null)[], max = SPACE_MAX): SpaceAd[] {
+  const judged = ads.map((a, k) => ({ ...a, fit: typeof scores[k] === "number" ? Math.round(scores[k]! * 100) / 100 : null }));
+  return [
+    ...judged.filter((a) => a.fit !== null && a.fit >= SPACE_FIT).sort((x, y) => y.fit! - x.fit!),
+    ...judged.filter((a) => a.fit === null),
+  ].slice(0, max);
+}
+
+// ---- label: hook, feeling and audience for each ad (find-ad-library.md) ----------------------------------------
+
+export interface AdLabel { hook: string | null; emotion: string | null; audience: string | null }
+export interface LabelItem { id: string; headline: string; body: string }
+export const LABEL_MAX = 60;
+
+const HOOK_IDS = HOOK_FAMILIES.map((h) => h.id);
+const FEELING_IDS = FEELINGS.map((f) => f.id);
+const AUDIENCE_IDS = AUDIENCE_TAGS.map((a) => a.id);
+
+/** The label body, cleaned, or the reason it can't be used (400, before anything is counted). */
+export function cleanLabel(body: unknown): LabelItem[] | string {
+  const ads = rec(body).ads;
+  if (!Array.isArray(ads) || !ads.length) return "Send the ads to sort.";
+  if (ads.length > LABEL_MAX) return `Send at most ${LABEL_MAX} ads.`;
+  const out: LabelItem[] = [];
+  for (const raw of ads) {
+    const a = rec(raw);
+    const id = String(a.id ?? "");
+    const item = { id, headline: text(a.headline, 200), body: typeof a.body === "string" ? a.body.trim().slice(0, 1200) : "" };
+    if (/^\d{3,30}$/.test(id) && (item.headline || item.body) && !out.some((x) => x.id === id)) out.push(item);
+  }
+  return out.length ? out : "Send the ads to sort.";
+}
+
+/** One Jev call per ad, three Choice questions; the hook criteria are the drop's seven families word for word. */
+export function labelAsk(ad: LabelItem): Ask {
+  return {
+    state: { headline: ad.headline, primary_text: ad.body },
+    questions: {
+      hook: { type: "choice", instructions: "Which kind of hook does this ad OPEN with, judging by its first lines?", criteria: Object.fromEntries(HOOK_FAMILIES.map((h) => [h.id, h.criteria])) },
+      emotion: { type: "choice", instructions: "Which feeling does this ad most try to stir in the reader?", criteria: Object.fromEntries(FEELINGS.map((f) => [f.id, `${f.label}: ${f.meaning}`])) },
+      audience: {
+        type: "choice",
+        instructions: "Who is this ad mainly speaking to?",
+        criteria: Object.fromEntries(AUDIENCE_TAGS.map((a) => [a.id, a.id === "general" ? "Anyone, no clear group" : a.label])),
+      },
+    },
+  };
+}
+
+/** Each pick kept at TAG_MIN (0.5) or more, else null; null when Jev gave no answer for this ad (asked again later). */
+export function labelOf(answers: Record<string, JevAnswer> | null): AdLabel | null {
+  if (!answers) return null;
+  return { hook: pickTag(answers.hook, HOOK_IDS), emotion: pickTag(answers.emotion, FEELING_IDS), audience: pickTag(answers.audience, AUDIENCE_IDS) };
 }
