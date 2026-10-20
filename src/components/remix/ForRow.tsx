@@ -130,11 +130,8 @@ export default function ForRow(p: {
       {p.presenter && (
         <div className={row}>
           <span className={label}>Face</span>
-          <div className="flex flex-wrap gap-1.5">
-            <FilterChip active onClick={() => {}} disabled={p.disabled}>
-              AI presenter
-            </FilterChip>
-          </div>
+          {/* the only face until people-my-face saves one, so it is a fact here, not a choice */}
+          <p className="pt-1.5 text-xs text-foreground">AI presenter</p>
         </div>
       )}
       {p.video && (
