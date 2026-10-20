@@ -79,6 +79,7 @@ import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { fromClone } from "@/lib/remixSource";
 import PriceChip from "@/components/PriceChip";
+import { reasonText } from "@/lib/prices";
 import { links } from "@/lib/links";
 import type { LinkedSource } from "@/lib/resolveSource";
 import { checkUpload, clearLinkRead, linkRead, onLinkRead, retryable, savedLinks, startLinkRead, type LinkRead } from "@/lib/remixLink";
@@ -1172,6 +1173,9 @@ function RemixLinkBox({
 
   const linkLeft = left("remix-link");
   const fileLeft = left("remix-image");
+  // At 0, Read it stays on (a post read before is free) but says why its chip is red; Upload stops.
+  const linkReason = reasonText({ left: linkLeft, leo: true });
+  const fileReason = reasonText({ left: fileLeft, leo: true });
   const hint = `${LINK_COPY.hint} Each link uses 1 of your ${DAILY_LIMITS["remix-link"]} a day${linkLeft === null ? "" : `, ${linkLeft} left today`}; each file 1 of your ${DAILY_LIMITS["remix-image"]}${fileLeft === null ? "" : `, ${fileLeft} left`} (a video also uses 1 transcription). Posts read before are free.`;
 
   return (
@@ -1215,13 +1219,15 @@ function RemixLinkBox({
               {working ? "Reading..." : "Read it"}
             </Button>
             {!working && <PriceChip feature="remix-link" left={linkLeft} />}
+            {!working && linkReason && <p className="text-[11px] text-muted-foreground">{linkReason}</p>}
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={working} className="h-11 gap-1.5">
+          <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={working || fileLeft === 0} className="h-11 gap-1.5">
             <Upload className="h-4 w-4" /> Upload a screenshot or video
           </Button>
           {!working && <PriceChip feature="remix-image" left={fileLeft} />}
+          {!working && fileReason && <p className="text-[11px] text-muted-foreground">{fileReason}</p>}
           <input
             ref={fileRef}
             type="file"
