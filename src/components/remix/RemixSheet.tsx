@@ -224,6 +224,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   }, []);
 
   const uses = as.length;
+  // the run breaks the post down first when this device has none, unless no breakdowns are left (remixJob's pre-step)
+  const breaksDown = !teardownCached && leftOf("remix-teardown") !== 0;
   const out = left === 0;
   const short = left !== null && uses > left;
   const videosLeft = leftOf("ai-video");
@@ -460,7 +462,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           </span>
           {!out && (
             <span className="min-w-0 text-right leading-tight [&>span]:text-primary-foreground/85">
-              <PriceChip price={makePrice(as)} left={left} uses={uses} fallback={left === null ? null : `${left} left today`} />
+              <PriceChip price={makePrice(as, breaksDown)} left={left} uses={uses} fallback={left === null ? null : `${left} left today`} />
               {/* its own line, so the chip never breaks inside "videos left" */}
               {picked && videosLeft !== null && (
                 <span className="block whitespace-nowrap text-[11px] tabular-nums">

@@ -220,9 +220,9 @@ export function videoPrice(as: RemixAs): Price | null {
   return p && p !== "pick" ? p : null;
 }
 
-/** One press: one remix-make per format plus the video. */
-export function makePrice(as: RemixAs[]): Price | "pick" | null {
-  return sumPrices(...as.map(() => priceOf("remix-make")), ...as.map(videoPrice));
+/** One press: one remix-make per format plus the video, and the breakdown first when `breakdown` (none on this device yet). */
+export function makePrice(as: RemixAs[], breakdown = false): Price | "pick" | null {
+  return sumPrices(...as.map(() => priceOf("remix-make")), ...as.map(videoPrice), breakdown ? priceOf("remix-teardown") : null);
 }
 
 /** Leo's rule: a press that makes a video asks first, with what the video uses. */

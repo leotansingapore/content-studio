@@ -163,6 +163,10 @@ describe("the Make row", () => {
     const both = makePrice(["post", "speaking"]) as { usd: number; kind: string };
     expect(both.kind).toBe("upTo");
     expect(both.usd).toBeCloseTo(make.usd * 2 + videoPrice("speaking")!.usd, 6);
+    // a source with no breakdown on the device is broken down first, once per press
+    const torn = makePrice(["post", "carousel"], true) as { usd: number; kind: string };
+    expect(torn.kind).toBe("about");
+    expect(torn.usd).toBeCloseTo(make.usd * 2 + (priceOf("remix-teardown") as { usd: number }).usd, 6);
   });
 
   it("asks first for a video, with what the video part uses", () => {
