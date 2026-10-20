@@ -141,11 +141,14 @@ describe("readsVideo and basedOnFor", () => {
   });
 
   it("names what the breakdown came from", () => {
-    expect(basedOnFor({ kind: "ad", format: "video" }, false)).toBe("ad");
-    expect(basedOnFor({ kind: "trend" }, false)).toBe("kit");
+    expect(basedOnFor({ kind: "ad", format: "video" }, null)).toBe("ad");
+    expect(basedOnFor({ kind: "trend" }, null)).toBe("kit");
     expect(basedOnFor({ kind: "top-post", format: "video" }, true)).toBe("transcript");
-    expect(basedOnFor({ kind: "link", format: "video" }, false)).toBe("transcript");
     expect(basedOnFor({ kind: "top-post", format: "video" }, false)).toBe("caption");
+    expect(basedOnFor({ kind: "top-post", format: "video" }, null)).toBe("caption");
+    // a pasted YouTube link holds its captions as text; a pasted reel the reader found without one is from the caption
+    expect(basedOnFor({ kind: "link", format: "video" }, null)).toBe("transcript");
+    expect(basedOnFor({ kind: "link", format: "video" }, false)).toBe("caption");
   });
 });
 
@@ -214,7 +217,7 @@ describe("runTeardown", () => {
     expect((r.body as { teardown: Record<string, unknown> }).teardown).toMatchObject({ basedOn: "transcript", pacing: "45 s, 6 beats" });
   });
 
-  it("never reads a trend, an ad, a carousel or a pasted link that already holds its transcript", async () => {
+  it("never reads a trend, an ad, a carousel or a pasted YouTube link (it holds its captions)", async () => {
     for (const source of [{ kind: "trend" }, { kind: "ad", format: "video" as const, platform: "meta-ad" }, { format: "carousel" as const }, { kind: "link", format: "video" as const, url: "https://www.youtube.com/shorts/abc" }]) {
       const { deps } = fakeDeps();
       await runTeardown(req({ url: "https://www.instagram.com/reel/ABCdef123/", ...source }), deps);

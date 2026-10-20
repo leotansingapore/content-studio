@@ -153,10 +153,11 @@ export function parseTeardownRequest(raw: unknown): TeardownRequest | null {
 const holdsTranscript = (s: Pick<TeardownSource, "kind" | "format">) =>
   s.format === "video" && (s.kind === "link" || s.kind === "upload" || s.kind === "clone");
 
-export function basedOnFor(s: Pick<TeardownSource, "kind" | "format">, readTranscript: boolean): BasedOn {
+/** readTranscript: whether the shared reader found a transcript, or null when the video wasn't read. */
+export function basedOnFor(s: Pick<TeardownSource, "kind" | "format">, readTranscript: boolean | null): BasedOn {
   if (s.kind === "ad") return "ad";
   if (s.kind === "trend") return "kit";
-  return readTranscript || holdsTranscript(s) ? "transcript" : "caption";
+  return (readTranscript ?? holdsTranscript(s)) ? "transcript" : "caption";
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -196,7 +197,7 @@ const quote = (s: string) => `"""\n${s.replace(/"""/g, '"')}\n"""`;
 function textLabel(s: TeardownSource): string {
   if (s.kind === "ad") return "Ad copy";
   if (s.kind === "trend") return "Trend notes";
-  return holdsTranscript(s) ? "Transcript" : "Caption";
+  return holdsTranscript(s) && !readsVideo(s) ? "Transcript" : "Caption";
 }
 
 export function buildTeardownPrompt(s: TeardownSource, read: SourceRead | null): { system: string; user: string } {
@@ -337,7 +338,7 @@ export async function runTeardown(req: TeardownRequest, deps: TeardownDeps): Pro
       ...parts,
       hook: { ...parts.hook, formula: pickFormula(answers, ids) },
       pacing: pacingOf({ durationSec: read?.durationSec, beats: parts.beats.length }),
-      basedOn: basedOnFor(s, Boolean(read?.transcript)),
+      basedOn: basedOnFor(s, read ? Boolean(read.transcript) : null),
       at: new Date().toISOString(),
     };
     return { status: 200, body: { teardown, usage: { used: usage.used, limit: usage.limit } } };
