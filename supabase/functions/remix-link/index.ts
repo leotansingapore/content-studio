@@ -3,7 +3,8 @@
 // the remix function on its own caps. Nothing is stored here beyond Clone a reel's own cs_reel_sources cache.
 //
 // - {mode: "link", url}: Instagram and TikTok through Clone a reel's reader (clone-reel/source.ts). A post already
-//   in cs_reel_sources is used as it is, free and not counted; otherwise one "remix-link" use, then Apify. YouTube:
+//   in cs_reel_sources is used as it is, free and not counted, and so is a retry that re-attaches to a run still
+//   going (cs_reel_fetches); otherwise one "remix-link" use, then Apify. YouTube:
 //   one "remix-link" use, then DataForSEO captions (about US$0.006). Sites this build doesn't read are refused
 //   before any count (logic.ts notYet).
 // - {mode: "image" | "frames", sha1}: one "remix-image" use, then OpenAI vision copies the words and says what is
@@ -19,7 +20,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, refundUsage, usageRefusal, type UsageResult } from "../_shared/usageCaps.ts";
 import { openaiChat } from "../_shared/openaiChat.ts";
 import { isAllowed } from "../market/logic.ts";
-import { BACKGROUND_LIMIT_MS, FETCH_BUDGET_MS, parseReelUrl } from "../clone-reel/logic.ts";
+import { BACKGROUND_LIMIT_MS, FETCH_BUDGET_MS, RUN_REATTACH_MS, parseReelUrl } from "../clone-reel/logic.ts";
 import { fetchSource, findSource, keepRunning, withinBudget } from "../clone-reel/source.ts";
 import { captionSentences } from "../youtube-captions/logic.ts";
 import {
@@ -123,17 +124,26 @@ Deno.serve(async (req) => {
         console.error("APIFY_API_KEY is not set");
         return fail("unavailable", LINK_COPY.keyMissing(siteName(link.kind)), 503);
       }
-      const usage = await consumeUsage(admin, uid, "remix-link");
-      if (!usage.allowed) return refused(usage);
-      charged = { uid, feature: "remix-link", day: utcDay() };
+      // A run already going for this post (a retry after the slow answer) is re-attached by fetchSource, so it
+      // costs nothing new: the first read's use covers it, and that read gives it back if the run fails.
+      const { data: pending } = await admin.from("cs_reel_fetches").select("started_at").eq("lookup_key", reel.lookupKey).maybeSingle();
+      const attaching = Boolean(pending && Date.now() - Date.parse(pending.started_at) < RUN_REATTACH_MS);
+      let usage: { used: number; limit: number } | null = null;
+      if (!attaching) {
+        const counted = await consumeUsage(admin, uid, "remix-link");
+        if (!counted.allowed) return refused(counted);
+        usage = { used: counted.used, limit: counted.limit };
+        charged = { uid, feature: "remix-link", day: utcDay() };
+      }
       const work = fetchSource({ admin, token, parsed: reel, existing: null, deadline: startedAt + BACKGROUND_LIMIT_MS });
       const outcome = await withinBudget(work, FETCH_BUDGET_MS - (Date.now() - startedAt));
       if (outcome.kind === "timeout") {
         // The run goes on and fills the cache, so trying again is free; the use comes back only if it fails.
         const c = charged;
         charged = null;
+        const giveBack = () => (c ? refundUsage(admin, c.uid, c.feature, c.day) : Promise.resolve());
         keepRunning(work.catch(async (e) => {
-          await refundUsage(admin, c.uid, c.feature, c.day);
+          await giveBack();
           throw e;
         }));
         return fail("timeout", LINK_COPY.slow, 504);
@@ -147,8 +157,8 @@ Deno.serve(async (req) => {
         await refund();
         return fail("empty", LINK_COPY.noWords, 422);
       }
-      console.log("remix-link ok", link.kind, apifyJobFor(link.kind, link.url)?.actor, `${Date.now() - startedAt}ms`);
-      return answer(source, { used: usage.used, limit: usage.limit });
+      console.log("remix-link ok", link.kind, apifyJobFor(link.kind, link.url)?.actor, attaching ? "re-attached" : "", `${Date.now() - startedAt}ms`);
+      return answer(source, usage);
     }
 
     // An uploaded picture, or a video's frames (its transcript comes from video-assist on the device).

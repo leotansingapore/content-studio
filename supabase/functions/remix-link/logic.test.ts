@@ -219,7 +219,18 @@ describe("the function", () => {
   });
 
   it("serves a cached Instagram or TikTok row before counting, and refunds on failure", () => {
-    expect(index.indexOf("findSource(admin, reel)")).toBeLessThan(index.indexOf('consumeUsage(admin, uid, "remix-link");\n      if (!usage.allowed) return refused(usage);\n      charged = { uid, feature: "remix-link", day: utcDay() };\n      const work'));
+    const count = index.indexOf('const counted = await consumeUsage(admin, uid, "remix-link");');
+    expect(count).toBeGreaterThan(index.indexOf("findSource(admin, reel)"));
+    expect(index.indexOf("fetchSource(", count)).toBeGreaterThan(count);
     expect(index.match(/await refund\(\)/g)?.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("doesn't count a retry that re-attaches to a run still going for the same post", () => {
+    const pending = index.indexOf('.from("cs_reel_fetches").select("started_at").eq("lookup_key", reel.lookupKey)');
+    expect(pending).toBeGreaterThan(index.indexOf("findSource(admin, reel)"));
+    expect(pending).toBeLessThan(index.indexOf('const counted = await consumeUsage(admin, uid, "remix-link");'));
+    expect(index).toMatch(/< RUN_REATTACH_MS\);\n\s+let usage[^\n]*\n\s+if \(!attaching\) \{\n\s+const counted = await consumeUsage\(admin, uid, "remix-link"\)/);
+    // nothing was counted on that path, so the slow answer has nothing to give back
+    expect(index).toContain("const giveBack = () => (c ? refundUsage(admin, c.uid, c.feature, c.day) : Promise.resolve());");
   });
 });
