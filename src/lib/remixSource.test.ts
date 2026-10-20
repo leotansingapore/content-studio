@@ -127,6 +127,11 @@ describe("snapshot builders", () => {
       key: "ad:1", kind: "ad", format: "video", platform: "meta-ad", author: "Singlife", title: "Travel cover",
       url: "https://www.facebook.com/ads/library/?id=1", numbers: { daysRunning: 10 }, remixedAt: "",
     });
+    // a competitor's ad: no industry or hook yet, Meta's picture link expired (empty), no start date
+    const theirs = fromAd({ ...ad, adId: "2", format: "text", image: "", start: null, industry: null, hookFamily: null }, NOW);
+    expect(theirs).toMatchObject({ key: "ad:2", kind: "ad", format: "image", platform: "meta-ad", author: "Singlife" });
+    expect(theirs).not.toHaveProperty("cover");
+    expect(theirs).not.toHaveProperty("numbers");
 
     const trend = { id: "t1", platform: "tiktok", format: "short-video", pillar: "identity", title: "The little treat trap", why_it_works: "Tension",
       how_to_film: "", source_label: "", source_url: "https://www.tiktok.com/@x/video/1", date_found: "2026-10-11", hooks: ["", "First hook"] } as TrendEntry;

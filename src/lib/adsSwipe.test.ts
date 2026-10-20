@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAdWriteUrl, daysRunning, facetCounts, searchAds, type SwipeAd } from "./adsSwipe";
+import { ADS, buildAdWriteUrl, daysRunning, facetCounts, searchAds, type AdLike, type SwipeAd } from "./adsSwipe";
 
 const ad = (o: Partial<SwipeAd>): SwipeAd => ({
   adId: "1", advertiser: "Singlife", industry: "Insurance", format: "image", headline: "Travel cover",
@@ -36,4 +36,36 @@ describe("adsSwipe", () => {
     expect(url.searchParams.get("pillar")).toBe("topic");
     expect(url.searchParams.get("source")).toBe("ad:1");
   });
+
+  it("leaves out an unknown industry and hook family, with no null or undefined anywhere", () => {
+    const competitor: AdLike = { ...ad({ headline: null }), industry: null, hookFamily: null };
+    const url = new URL(buildAdWriteUrl(competitor), "https://x");
+    const ctx = url.searchParams.get("ctx") ?? "";
+    const detail = url.searchParams.get("detail") ?? "";
+    expect(ctx).toContain("Borrow the structure of a paid ad by Singlife, running since 2026-09-01.");
+    expect(ctx).not.toContain("hook");
+    expect(ctx).toContain("Do not reuse its wording, brand or claims");
+    expect(detail).toBe("Like Singlife's ad");
+    expect(url.search).not.toMatch(/null|undefined/);
+    // a headline still comes through, and an ad with no copy has no empty quote
+    const bare = new URL(buildAdWriteUrl({ ...competitor, headline: "Sell more", body: "", start: null }), "https://x").searchParams.get("ctx") ?? "";
+    expect(bare).toContain('Its headline: "Sell more".');
+    expect(bare).toContain("running since recently");
+    expect(bare).not.toContain("opening lines");
+  });
+
+  it("keeps a drop ad's URL byte for byte", () => {
+    const old = (a: SwipeAd) => {
+      const ctx = [
+        `Borrow the structure of a paid ad by ${a.advertiser} (${a.industry}), running since ${a.start ?? "recently"}.`,
+        `It opens with a ${a.hookFamily} hook.${a.headline ? ` Its headline: "${a.headline}".` : ""}`,
+        `Its opening lines: "${a.body.split("\n").filter(Boolean).slice(0, 2).join(" ").slice(0, 280)}"`,
+        `Write an organic post for my audience that opens the same KIND of way. Do not reuse its wording, brand or claims, and do not recommend a product.`,
+      ].join("\n");
+      return `/generate?${new URLSearchParams({ pillar: "topic", detail: `${a.hookFamily} hook, like ${a.advertiser}'s ad`, ctx, source: `ad:${a.adId}` })}`;
+    };
+    expect(ADS.length).toBeGreaterThan(0);
+    for (const a of [...ADS, ad({ headline: null }), ad({ start: null })]) expect(buildAdWriteUrl(a)).toBe(old(a));
+  });
 });
+

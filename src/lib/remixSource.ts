@@ -7,7 +7,7 @@ import { draftsRaw, loadDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { scoped } from "@/lib/profiles";
 import type { TopPost } from "@/lib/topPosts";
 import type { FollowedAccount, TrackedPost } from "@/lib/following";
-import type { SwipeAd } from "@/lib/adsSwipe";
+import type { AdLike } from "@/lib/adsSwipe";
 import type { TrendEntry } from "@/lib/trends";
 import type { HubTrend } from "@/lib/hub";
 import type { InspirationEntry } from "@/components/Inspiration";
@@ -163,7 +163,7 @@ export function fromFollowPost(account: Pick<FollowedAccount, "handle" | "platfo
   });
 }
 
-export function fromAd(ad: SwipeAd, now = Date.now()): RemixSource {
+export function fromAd(ad: AdLike, now = Date.now()): RemixSource {
   const days = ad.start ? Math.floor((now - Date.parse(ad.start)) / 86_400_000) : NaN;
   return snap({
     key: sourceKey.ad(ad.adId),

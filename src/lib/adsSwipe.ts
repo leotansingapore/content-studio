@@ -25,6 +25,12 @@ export interface SwipeAd {
   hookFamily: string;
 }
 
+/** What a remix needs from an ad: a drop ad, or a competitor's (toAdLike in competitorAds.ts), whose industry and hook may be unknown. */
+export type AdLike = Pick<SwipeAd, "adId" | "advertiser" | "format" | "headline" | "body" | "cta" | "link" | "start" | "platforms" | "image" | "libraryUrl"> & {
+  industry: string | null;
+  hookFamily: string | null;
+};
+
 export const ADS_FETCHED: string | null = (adsData as { fetched?: string }).fetched ?? null;
 export const ADS: SwipeAd[] = ((adsData as { ads?: SwipeAd[] }).ads ?? []);
 
@@ -52,14 +58,20 @@ export function facetCounts(list: SwipeAd[], of: "industry" | "hookFamily"): { v
   return [...m].map(([value, n]) => ({ value, n })).sort((a, b) => b.n - a.n || a.value.localeCompare(b.value));
 }
 
-/** Open Write with the ad's STRUCTURE as the brief: its hook family and shape, never its words or claims. */
-export function buildAdWriteUrl(ad: SwipeAd): string {
+/**
+ * Open Write with the ad's STRUCTURE as the brief: its hook family and shape, never its words or claims. An unknown
+ * industry or hook family leaves its words out (a competitor's ad has neither until it is labelled).
+ */
+export function buildAdWriteUrl(ad: AdLike): string {
+  const headline = ad.headline ? `Its headline: "${ad.headline}".` : "";
+  const opening = ad.body.split("\n").filter(Boolean).slice(0, 2).join(" ").slice(0, 280);
   const ctx = [
-    `Borrow the structure of a paid ad by ${ad.advertiser} (${ad.industry}), running since ${ad.start ?? "recently"}.`,
-    `It opens with a ${ad.hookFamily} hook.${ad.headline ? ` Its headline: "${ad.headline}".` : ""}`,
-    `Its opening lines: "${ad.body.split("\n").filter(Boolean).slice(0, 2).join(" ").slice(0, 280)}"`,
+    `Borrow the structure of a paid ad by ${ad.advertiser}${ad.industry ? ` (${ad.industry})` : ""}, running since ${ad.start ?? "recently"}.`,
+    ad.hookFamily ? `It opens with a ${ad.hookFamily} hook.${headline ? ` ${headline}` : ""}` : headline,
+    opening ? `Its opening lines: "${opening}"` : "",
     `Write an organic post for my audience that opens the same KIND of way. Do not reuse its wording, brand or claims, and do not recommend a product.`,
-  ].join("\n");
-  const params = new URLSearchParams({ pillar: "topic", detail: `${ad.hookFamily} hook, like ${ad.advertiser}'s ad`, ctx, source: sourceKey.ad(ad.adId) });
+  ].filter(Boolean).join("\n");
+  const detail = ad.hookFamily ? `${ad.hookFamily} hook, like ${ad.advertiser}'s ad` : `Like ${ad.advertiser}'s ad`;
+  const params = new URLSearchParams({ pillar: "topic", detail, ctx, source: sourceKey.ad(ad.adId) });
   return `/generate?${params.toString()}`;
 }
