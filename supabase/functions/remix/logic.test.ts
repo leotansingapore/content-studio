@@ -574,7 +574,7 @@ describe("the slideshow (formats-slideshow)", () => {
     const p = slideshowProblem(four, make({ as: "slideshow", brand: BIZ }));
     expect(p?.kind).toBe("count");
     expect(p?.fix).toContain("exactly 4 numbered slides");
-    expect(p?.error).toBe("The slides didn't match the number in the hook. Nothing was used. Try again.");
+    expect(p?.error).toBe("The slides didn't match the number in the hook. Try again.");
     // numbered out of order, or a number skipped, is a mismatch too
     const skipped = result({ slides: [SLIDES[0], slide("1. One"), slide("3. Three"), slide("4. Four"), SLIDES[5]] });
     expect(slideshowProblem(skipped, make({ as: "slideshow", brand: BIZ }))?.kind).toBe("count");
@@ -599,7 +599,7 @@ describe("the slideshow (formats-slideshow)", () => {
     const noBrand = result({ slides: SLIDES.slice(0, 5) });
     const p = slideshowProblem(noBrand, make({ as: "slideshow", brand: BIZ }));
     expect(p?.kind).toBe("product");
-    expect(p?.error).toBe("The slides didn't say what ActivityTracker does. Nothing was used. Try again.");
+    expect(p?.error).toBe("The slides didn't say what ActivityTracker does. Try again.");
     // the name alone is not what it does
     const bare = result({ slides: [...SLIDES.slice(0, 5), slide("Activity Tracker", "")] });
     expect(slideshowProblem(bare, make({ as: "slideshow", brand: BIZ }))?.kind).toBe("product");

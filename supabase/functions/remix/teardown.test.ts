@@ -195,15 +195,24 @@ describe("runTeardown", () => {
     expect(deps.ask.mock.calls[0][0]).toEqual({ hook: "Most people check their CPF once a year." });
   });
 
-  it("gives the use back on a bad answer or a failed call, with the day it was counted", async () => {
+  it("gives the use back when the model never answered, with the day it was counted", async () => {
     const day = new Date().toISOString().slice(0, 10);
-    for (const openai of [vi.fn(async () => completion(answer({ beats: beats(1) }))), vi.fn(async () => Promise.reject(new Error("timeout")))]) {
+    // a thrown call (timeout) and a non-2xx call (the wiring answers null) are both unanswered
+    for (const openai of [vi.fn(async () => Promise.reject(new Error("timeout"))), vi.fn(async () => null)]) {
       const { deps } = fakeDeps({ openai });
       const r = await runTeardown(req(), deps);
       expect(r).toEqual({ status: 502, body: { code: "failed", error: "Couldn't break this one down. Remix still works from the caption." } });
       expect(deps.refund).toHaveBeenCalledWith(day);
       expect(deps.ask).not.toHaveBeenCalled();
     }
+  });
+
+  it("keeps the use when the model answered but the breakdown can't be used (it was billed)", async () => {
+    const { deps } = fakeDeps({ openai: vi.fn(async () => completion(answer({ beats: beats(1) }))) });
+    const r = await runTeardown(req(), deps);
+    expect(r.status).toBe(502);
+    expect(deps.refund).not.toHaveBeenCalled();
+    expect(deps.ask).not.toHaveBeenCalled();
   });
 
   it("refuses over the cap without a paid call or a refund", async () => {

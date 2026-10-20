@@ -3,7 +3,7 @@
 // and the caption; Pexels finds photos, or the brand's own media stands in; Jev picks one per slide (video-assist
 // montage-pick, noun "photo"); the words are sized to fit the frame and the result is saved as a Slideshow
 // (src/lib/slideshow.ts) that /slideshow edits. In memory only: a reload mid-make loses the run, and the server has
-// given back the use of any write that failed.
+// given back the use of any write the model never answered.
 //   synced: content-studio-slideshow-photos-${scoped(userId)}: the Pexels ids each of this brand's last 5 made
 //   slideshows used, so the next one never repeats them (Fastlane reused 11 photos across 12 slideshows).
 
@@ -46,7 +46,7 @@ export interface SlideshowJob {
   ask: SlideshowAsk;
   showId?: string;
   error?: string;
-  /** The writer said no (422): it can't be made safe, or its checks failed twice. Nothing was used. */
+  /** The writer said no (422): it can't be made safe, or its checks failed twice. The use is kept (the model answered). */
   refused?: boolean;
 }
 

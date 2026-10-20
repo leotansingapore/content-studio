@@ -5,8 +5,9 @@
 // rewrite when it repeats it, then one Jev call for claims and invented facts) and sends it back. The app saves it
 // as a draft; nothing is stored here.
 //
-// Order: JWT, NORTH_STAR_USERS, validate, consumeUsage "remix-make", OpenAI, validate, holdTheLine, respond. Any
-// failure after the count gives the use back.
+// Order: JWT, NORTH_STAR_USERS, validate, consumeUsage "remix-make", OpenAI, validate, holdTheLine, respond. A call
+// the model never answered (OpenAI down, a timeout) gives the use back; an answer that was refused, unusable or failed
+// the checks was billed and keeps it, so refusals can't be repeated past the daily cap (security review, 20 Oct).
 //
 // Two more modes after the same JWT and NORTH_STAR_USERS checks:
 //   teardown: a post broken down into its hook, beats and what not to reuse (./teardown.ts, cap remix-teardown).
@@ -108,6 +109,8 @@ Deno.serve(async (req) => {
   const startedAt = Date.now();
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   let charged: { uid: string; day: string } | null = null;
+  // true once OpenAI has answered (and billed): from then on a failure keeps the use
+  let answered = false;
   try {
     const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const { data: userData } = await admin.auth.getUser(jwt);
@@ -156,6 +159,7 @@ Deno.serve(async (req) => {
         console.error("openai failed", res.status, (await res.text().catch(() => "")).slice(0, 300));
         return null;
       }
+      answered = true;
       const data = await res.json().catch(() => null);
       tokens.push(`${data?.model ?? "?"} ${data?.usage?.prompt_tokens ?? "?"} in ${data?.usage?.completion_tokens ?? "?"} out`);
       const content = data?.choices?.[0]?.message?.content ?? null;
@@ -175,10 +179,10 @@ Deno.serve(async (req) => {
     // an answer the format can't use (a 90-word speaking script, an explainer picture of "chart") gets one more try
     if (!first && rejected) first = await write(messages);
     if (!first && said.refusal !== null) {
-      await refundUsage(admin, uid, "remix-make", charged.day);
       return fail("refused", make.source ? "That slideshow can't be turned into something safe to post. Pick another one." : "That topic can't be turned into something safe to post. Try another one.", 422);
     }
     if (!first) {
+      if (answered) return fail("unusable", "That remix came back in a shape that can't be used. Try again.", 422);
       await refundUsage(admin, uid, "remix-make", charged.day);
       return fail("failed", "That remix didn't go through. Nothing was used.", 502);
     }
@@ -188,7 +192,6 @@ Deno.serve(async (req) => {
       const fixed = await write([...messages, { role: "assistant", content: first.raw }, { role: "user", content: problem.fix }]);
       if (!fixed || slideshowProblem(fixed.result, make)) {
         console.log("remix slideshow refused", problem.kind);
-        await refundUsage(admin, uid, "remix-make", charged.day);
         return fail("refused", problem.error, 422);
       }
       first = fixed;
@@ -212,6 +215,8 @@ Deno.serve(async (req) => {
     return json({ as: make.as, result: held.result, flags: held.flags, usage: { used: usage.used, limit: usage.limit } });
   } catch (e) {
     console.error("remix failed", e);
+    // 500, not 502: the app reads 502 as "nothing was used", which is only true before the model answered
+    if (answered) return fail("failed", "That remix didn't go through. Try again.", 500);
     if (charged) await refundUsage(admin, charged.uid, "remix-make", charged.day);
     return fail("failed", "That remix didn't go through. Nothing was used.", 502);
   }

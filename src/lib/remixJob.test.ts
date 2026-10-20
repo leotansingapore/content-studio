@@ -493,3 +493,17 @@ describe("runParams", () => {
     await done;
   });
 });
+
+describe("failure", () => {
+  it("keeps the use and shows the server's reason when the model answered (422), and gives it back only before (502, 503)", async () => {
+    const { failure } = await import("./remixJob");
+    const { EdgeError } = await import("./edgeFn");
+    expect(failure(new EdgeError("That remix came back in a shape that can't be used. Try again.", 422, "unusable"))).toEqual({
+      error: "That remix came back in a shape that can't be used. Try again.",
+      refunded: false,
+    });
+    expect(failure(new EdgeError("x", 502, "failed")).refunded).toBe(true);
+    expect(failure(new EdgeError("x", 503, "failed")).refunded).toBe(true);
+    expect(failure(new EdgeError("x", 500, "failed")).refunded).toBe(false);
+  });
+});

@@ -655,7 +655,7 @@ export interface SlideshowProblem {
 /**
  * Checks in code, not by the model's word: a hook that names a number gets exactly that many slides numbered 1 to n;
  * with mention on, a business has a slide that names it and says what it does; with mention off, no slide or caption
- * names the brand. index.ts gives one fixing pass, then refuses with `error` and gives the use back.
+ * names the brand. index.ts gives one fixing pass, then refuses with `error` and keeps the use (the model answered, so it was billed).
  */
 export function slideshowProblem(r: MakeResult, req: Pick<MakeRequest, "brand">): SlideshowProblem | null {
   if (r.as !== "slideshow") return null;
@@ -666,14 +666,14 @@ export function slideshowProblem(r: MakeResult, req: Pick<MakeRequest, "brand">)
     return {
       kind: "count",
       fix: `The hook promises ${n}, but only ${max} numbered slides fit. Return the whole JSON object again with a smaller number in the hook, at most ${max}, and exactly that many numbered slides, numbered from 1.`,
-      error: "The slides didn't match the number in the hook. Nothing was used. Try again.",
+      error: "The slides didn't match the number in the hook. Try again.",
     };
   }
   if (n !== null && (nums.length !== n || nums.some((x, i) => x !== i + 1))) {
     return {
       kind: "count",
       fix: `The hook promises ${n}, but the slides are numbered ${nums.join(", ") || "nowhere"}. Return the whole JSON object again with exactly ${n} numbered slides, numbered 1 to ${n}, or change the hook's number to match.`,
-      error: "The slides didn't match the number in the hook. Nothing was used. Try again.",
+      error: "The slides didn't match the number in the hook. Try again.",
     };
   }
   const b = req.brand;
@@ -686,7 +686,7 @@ export function slideshowProblem(r: MakeResult, req: Pick<MakeRequest, "brand">)
     return {
       kind: "mention",
       fix: `The slides or caption name ${b.name}, but this one must not. Return the whole JSON object again without ${b.name}.`,
-      error: `The slides named ${b.name} after you picked No. Nothing was used. Try again.`,
+      error: `The slides named ${b.name} after you picked No. Try again.`,
     };
   }
   // the slide that names it says something about it too: at least 5 more words than the name
@@ -695,7 +695,7 @@ export function slideshowProblem(r: MakeResult, req: Pick<MakeRequest, "brand">)
     return {
       kind: "product",
       fix: `No slide names ${b.name} and says what it does. Return the whole JSON object again with the last slide naming ${b.name} and saying in one sentence what it does, from the facts given.`,
-      error: `The slides didn't say what ${b.name} does. Nothing was used. Try again.`,
+      error: `The slides didn't say what ${b.name} does. Try again.`,
     };
   }
   return null;

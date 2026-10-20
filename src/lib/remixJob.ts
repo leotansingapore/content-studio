@@ -1,7 +1,7 @@
 // A remix run outside React (docs/north-star/items/remix-everywhere.md), the same shape as runCheck in
 // following.ts: one module-level job, so leaving the page keeps it going and the pill can say when it is ready.
 // Each format is one make call and, when it comes back, exactly one saved draft carrying its source and how it
-// was made. In memory only: a reload mid-run loses the run, and the server has refunded any call that failed.
+// was made. In memory only: a reload mid-run loses the run, and the server has refunded any call the model never answered.
 // Before the first row, a source with no breakdown on this device is broken down once (remix-teardown) and the
 // breakdown goes into every make. The two video formats (remix-any-format) save their script draft first, then
 // hand it to the AI video job (aiVideo.ts), whose steps the row relays; the editor takes the finished video.
@@ -192,14 +192,16 @@ async function runRows(id: number, userId: string, run: RemixRun) {
   emit({ ...job, state: done ? "done" : "failed", step: "" });
 }
 
-function failure(e: unknown): Pick<RemixRow, "error" | "refunded"> {
+export function failure(e: unknown): Pick<RemixRow, "error" | "refunded"> {
   const status = e instanceof EdgeError ? e.status : 0;
   const code = e instanceof EdgeError ? e.code : "";
   if (code === "daily_limit") return { error: "No remixes left today. They reset at 8am Singapore time.", refunded: true };
   if (code === "usage_unavailable") return { error: "Can't check today's uses right now. Try again in a minute.", refunded: true };
   if (status === 400 || status === 403) return { error: (e as Error).message, refunded: true };
-  // these the server answered after giving the use back or before counting it; a timeout or a lost connection may have used it
-  const refunded = [422, 502, 503].includes(status);
+  // 422: the model answered (refused, unusable or failed a check), so the use was kept and the server says why
+  if (status === 422) return { error: (e as Error).message, refunded: false };
+  // 502 and 503 come back before the model answered, with the use given back; a timeout or a lost connection may have used it
+  const refunded = [502, 503].includes(status);
   return { error: refunded ? NOTHING_USED : NOT_THROUGH, refunded };
 }
 

@@ -321,7 +321,7 @@ const contentOf = (data: unknown) =>
 
 /**
  * One teardown: count the use before the first paid call, read the video when it is a reel or TikTok (a cached row
- * is free), write with OpenAI, ask Jev for the formula, and give the use back on any failure after the count.
+ * is free), write with OpenAI, ask Jev for the formula, and give the use back on any failure after the count except an unusable answer, which was billed.
  * The model gets what is left of clone-reel's 90 s budget (aiTimeoutMs), and none left means a refund, so a slow
  * read never runs the request past the edge limit with the use spent. A Jev outage only leaves formula null.
  */
@@ -334,8 +334,8 @@ export async function runTeardown(req: TeardownRequest, deps: TeardownDeps): Pro
     const r = usageRefusal(usage);
     return { status: r.status, body: r.body };
   }
-  const fail = async (): Promise<TeardownReply> => {
-    await Promise.resolve(deps.refund(day)).catch(() => null);
+  const fail = async (refund = true): Promise<TeardownReply> => {
+    if (refund) await Promise.resolve(deps.refund(day)).catch(() => null);
     return { status: 502, body: { code: "failed", error: TEARDOWN_ERRORS.failed } };
   };
   try {
@@ -343,8 +343,10 @@ export async function runTeardown(req: TeardownRequest, deps: TeardownDeps): Pro
     if (!s.text && !read?.caption && !read?.transcript) return await fail();
     const aiMs = aiTimeoutMs(Date.now() - startedAt);
     if (aiMs === 0) return await fail();
-    const parts = validateTeardown(contentOf(await deps.openai(teardownBody(buildTeardownPrompt(s, read)), aiMs)));
-    if (!parts) return await fail();
+    const content = contentOf(await deps.openai(teardownBody(buildTeardownPrompt(s, read)), aiMs));
+    const parts = validateTeardown(content);
+    // an answer that came back but can't be used was billed, so it keeps the use; only a call that never answered refunds
+    if (!parts) return await fail(content === null);
     const ids = req.formulas.map((f) => f.id);
     const basedOn = basedOnFor(s, read ? Boolean(read.transcript) : null);
     const unread = !read && readsVideo(s) && basedOn === "caption";
