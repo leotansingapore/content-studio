@@ -1554,14 +1554,19 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
   const wallFlags = short && block ? scanCompliance(block.text) : [];
   const pickBtn = "inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 [@media(pointer:coarse)]:min-h-11";
   const selBox = sel?.kind === "block" && !playing ? boxOf(sel) : null;
-  // a new video under the same edit: the old one stays on the device so the toast's Undo can put it back
-  const swapVideo = async (f: File) => {
-    if (swapping) return;
-    const before: VideoProject = { ...live.current, settings: settingsRef.current, words, thumb };
+  // a new video under the same edit: the old one stays on the device so the toast's Undo can put it back.
+  // It throws, so a stock pick shows the failure on its tile; Upload toasts it.
+  const swappingRef = useRef(false);
+  const swapVideo = async (load: () => Promise<File>) => {
+    // a ref, not state: a stock clip still downloading must block an Upload swap started meanwhile
+    if (swappingRef.current) throw new Error("Wait for the other video to finish swapping.");
+    swappingRef.current = true;
     video.current?.pause();
     setPlaying(false);
     setSwapping(true);
     try {
+      const f = await load();
+      const before: VideoProject = { ...live.current, settings: settingsRef.current, words, thumb };
       const next = await swapSource(userId, project.id, f);
       // edits made while it saved stay
       const fin = swapped({ ...before, settings: settingsRef.current }, { fileId: fileKey(next), duration: next.duration, size: next.size, thumb: next.thumb });
@@ -1582,11 +1587,13 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
       });
       if (fin.settings.captions) void recaption(f);
     } catch (e) {
-      toast({ title: (e as Error).message || WALL_ERROR, variant: "destructive" });
+      throw new Error((e as Error).message || WALL_ERROR);
     } finally {
+      swappingRef.current = false;
       setSwapping(false);
     }
   };
+  const uploadSwap = (f: File) => void swapVideo(async () => f).catch((e: Error) => toast({ title: e.message, variant: "destructive" }));
   // B-roll: a stock clip over the edit from the playhead, the speaker's sound carrying on under it
   const brolls = settings.broll ?? [];
   const selB = brolls.find((b) => b.id === selBroll) ?? null;
@@ -2156,7 +2163,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                   <span className="text-sm font-medium">Swap video</span>
                   <label className={`${pickBtn} ${swapping ? "pointer-events-none opacity-60" : ""}`}>
                     <Upload className="h-3.5 w-3.5" /> Upload
-                    <input type="file" accept="video/*" className="sr-only" disabled={swapping} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void swapVideo(f); }} />
+                    <input type="file" accept="video/*" className="sr-only" disabled={swapping} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) uploadSwap(f); }} />
                   </label>
                   <Button size="sm" variant="outline" className="h-9 gap-1.5 [@media(pointer:coarse)]:min-h-11" disabled={swapping} onClick={() => setSwapStock(true)} aria-expanded={swapStock}>
                     <Film className="h-3.5 w-3.5" /> Stock clip
@@ -2165,10 +2172,10 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                 {swapStock && (
                   <StockSearch kind="video" orientation={settings.aspect === "16:9" ? "landscape" : settings.aspect === "1:1" ? "square" : "portrait"}
                     placeholder="City at night, coffee on a desk, rain on a window"
-                    onPick={async (it, q) => {
+                    onPick={(it, q) => swapVideo(async () => {
                       const blob = await downloadStock(it.src);
-                      await swapVideo(new File([blob], `${q.trim().replace(/[^\w-]+/g, "-").slice(0, 40) || "stock-clip"}.mp4`, { type: blob.type || "video/mp4" }));
-                    }}
+                      return new File([blob], `${q.trim().replace(/[^\w-]+/g, "-").slice(0, 40) || "stock-clip"}.mp4`, { type: blob.type || "video/mp4" });
+                    })}
                     onClose={() => setSwapStock(false)} />
                 )}
               </section>
