@@ -75,7 +75,7 @@ type Left = ReturnType<typeof useUsesLeft>;
 const MONTAGE_STEP = { writing: "Planning the shots...", finding: "Finding clips", joining: "Putting your montage together...", done: "", failed: "" } as const;
 
 /** A montage from a theme: stock clips that fit it, one look over all, words on screen, your own track if you add one. */
-function Montage({ busy, left }: { busy: boolean; left: Left }) {
+function Montage({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
   const [job, setJob] = useState<MontageJob | null>(montageJob());
   useEffect(() => onMontageJob(setJob), []);
   const [theme, setTheme] = useState("");
@@ -84,7 +84,10 @@ function Montage({ busy, left }: { busy: boolean; left: Left }) {
   const [music, setMusic] = useState<File | null>(null);
   const running = montageBusy();
   const off = busy || running;
-  const uses = left("montage-beats");
+  const leo = useLeoOnly();
+  // Leo's chip says what is left after this run, so his count is read again after a montage too
+  const mine = useUsesLeft(off || !leo);
+  const uses = (leo ? mine : panelLeft)("montage-beats");
 
   return (
     <div className="space-y-3">
@@ -234,7 +237,7 @@ function Templates({ busy, left }: { busy: boolean; left: Left }) {
   );
 }
 
-function Avatar({ job, busy, left }: { job: AiJob | null; busy: boolean; left: Left }) {
+function Avatar({ job, busy, left: panelLeft }: { job: AiJob | null; busy: boolean; left: Left }) {
   const [face, setFace] = useState<"photo" | "presenter">("photo");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoUrl, setPhotoUrl] = useState("");
@@ -245,6 +248,10 @@ function Avatar({ job, busy, left }: { job: AiJob | null; busy: boolean; left: L
   const [vo, setVo] = useState<(Voiceover & { url: string }) | null>(null);
   const [voBusy, setVoBusy] = useState(false);
   const [voError, setVoError] = useState("");
+  const leo = useLeoOnly();
+  // Leo's chips say what is left after this run, so his counts are read again after a voiceover too
+  const mine = useUsesLeft(busy || voBusy || !leo);
+  const left = leo ? mine : panelLeft;
   const urls = useRef<string[]>([]);
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
   useEffect(() => {
@@ -271,7 +278,6 @@ function Avatar({ job, busy, left }: { job: AiJob | null; busy: boolean; left: L
   const tooLong = !!vo && vo.seconds > MAX_AVATAR_SECONDS + 0.5;
   const credits = vo ? avatarCredits(vo.slices.map((s) => s.end - s.start)) : 0;
   const videos = left("ai-video");
-  const leo = useLeoOnly();
 
   return (
     <div className="space-y-3">
@@ -359,10 +365,14 @@ function Avatar({ job, busy, left }: { job: AiJob | null; busy: boolean; left: L
   );
 }
 
-function Explainer({ busy, left }: { busy: boolean; left: Left }) {
+function Explainer({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
   const [topic, setTopic] = useState("");
   const [scenes, setScenes] = useState<Scene[] | null>(null);
   const [writing, setWriting] = useState(false);
+  const leo = useLeoOnly();
+  // Leo's chips say what is left after this run, so his counts are read again after a script too
+  const mine = useUsesLeft(busy || writing || !leo);
+  const left = leo ? mine : panelLeft;
   const [error, setError] = useState("");
   const [voice, setVoice] = useState<VoiceId>("eric");
 
@@ -380,7 +390,6 @@ function Explainer({ busy, left }: { busy: boolean; left: Left }) {
   const total = scenes ? scenes.reduce((n, s) => n + words(s.say), 0) : 0;
   const videos = left("ai-video");
   const voices = left("ai-voice");
-  const leo = useLeoOnly();
   const edit = (i: number, change: Partial<Scene>) => setScenes(scenes!.map((x, j) => (j === i ? { ...x, ...change } : x)));
   const iconBtn = "h-11 w-11 p-0 sm:h-8 [@media(pointer:coarse)]:h-11 sm:w-8 [@media(pointer:coarse)]:w-11";
 
