@@ -16,8 +16,8 @@ import type { RemixSource } from "@/lib/remixSource";
 const LABEL = "pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 const TEXT = "min-w-0 text-sm leading-relaxed text-foreground/85 [overflow-wrap:anywhere]";
 
-export default function BreakdownRow(p: { userId: string; source: RemixSource; text: string; open: boolean; onOpen(open: boolean): void }) {
-  const { userId, source, text, open, onOpen } = p;
+export default function BreakdownRow(p: { userId: string; source: RemixSource; text: string; open: boolean; onOpen(open: boolean): void; onTeardown?(t: Teardown): void }) {
+  const { userId, source, text, open, onOpen, onTeardown } = p;
   const [teardown, setTeardown] = useState<Teardown | null>(() => localTeardown(userId, source));
   const [phase, setPhase] = useState<"idle" | "loading" | "failed">("idle");
   const [error, setError] = useState<{ text: string; retry: boolean } | null>(null);
@@ -48,6 +48,7 @@ export default function BreakdownRow(p: { userId: string; source: RemixSource; t
         if (current.current !== id) return;
         setTeardown(t);
         setPhase("idle");
+        onTeardown?.(t);
       },
       (e) => {
         if (current.current !== id) return;
@@ -55,7 +56,7 @@ export default function BreakdownRow(p: { userId: string; source: RemixSource; t
         setPhase("failed");
       },
     );
-  }, [userId, source, text, shownFor]);
+  }, [userId, source, text, shownFor, onTeardown]);
 
   const noneLeft = left("remix-teardown") === 0;
   useEffect(() => {

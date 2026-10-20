@@ -48,7 +48,7 @@ import { brandName, loadRemixPrefs, offerNames, ownBrandName, saveRemixPrefs, sp
 import { FIT_WAIT_MS, UNKNOWN_FIT, fitAsk, fitVideo, loadFit, pressAction, requestFit, type FitResult } from "@/lib/remixFit";
 import { clearRemixJob, hrefFor, onRemixJob, remixJob, startRemix, type RemixJobState, type RemixRow } from "@/lib/remixJob";
 import { dayMonth, earlierRemix, seenSources, sourceNoun, type RemixSource } from "@/lib/remixSource";
-import { localTeardown } from "@/lib/remixTeardown";
+import { localTeardown, type Teardown } from "@/lib/remixTeardown";
 import { resolveSource } from "@/lib/resolveSource";
 import { useUrlFlag, useUrlItem, useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import type { LeoUser } from "@/lib/useLeoOnly";
@@ -155,7 +155,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const speaker = prefs.speaker ?? kitSpeaker;
   const text = useMemo(() => (source ? fullText(source, userId) : ""), [source, userId]);
   // a breakdown on this device means the job's "Breaking it down" step is skipped, so the box doesn't name it
-  const teardownCached = useMemo(() => !!source && !!localTeardown(userId, source), [source, userId, breakdownOpen, job?.state]);
+  const [tornDown, setTornDown] = useState<Teardown | null>(null);
+  const teardownCached = useMemo(() => !!tornDown || (!!source && !!localTeardown(userId, source)), [source, userId, tornDown, job?.state]);
 
   // The fit check runs on open, per source, brand and video-or-not; a kept answer shows at once.
   const fv = source ? fitVideo(source, !!picked) : false;
@@ -306,7 +307,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   } else {
     body = (
       <div className="space-y-5">
-        <BreakdownRow userId={userId} source={source} text={text} open={breakdownOpen} onOpen={setBreakdownOpen} />
+        <BreakdownRow userId={userId} source={source} text={text} open={breakdownOpen} onOpen={setBreakdownOpen} onTeardown={setTornDown} />
 
         <section className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-3">
           <h3 className="text-xs font-semibold text-foreground">What Remix does</h3>
