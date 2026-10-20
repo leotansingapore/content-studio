@@ -199,7 +199,8 @@ export function ideasPrompt(req: PatternsRequest, patterns: Pattern[], tags: Rec
     "- Use the pattern, never their words or topic. Every idea is on one of the brand's own topics, for the brand's own audience.",
     "- Each idea: a hook (its opening line, at most 20 words), a format (post, carousel or script), an angle (one sentence: what the post says and why the brand's audience cares) and the patterns it uses, copied from the list given.",
     "- Write the hook in the brand's voice described in the message.",
-    "- No invented numbers, results or client stories: a number the brand must supply goes in [brackets], like [N] clients.",
+    "- No invented numbers, results or client stories: a number the brand must supply goes in [brackets], like [N] clients. Brackets hold numbers only, never a date, time, place or link.",
+    "- Never invent an event, launch, webinar, offer or feature the message does not name. An announcement idea announces a tip, a lesson or a change the audience can use today.",
     ...ideasCompliance,
   ].join("\n");
   const best = req.posts.filter((p) => req.best.includes(p.id));

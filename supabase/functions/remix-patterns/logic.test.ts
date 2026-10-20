@@ -149,6 +149,8 @@ describe("the ideas prompt", () => {
     expect(system).toContain("Use the pattern, never their words or topic.");
     expect(system).toContain("No promised returns, no market timing, no specific stock, fund or ETF picks, no named insurer products, no fear-mongering.");
     expect(system).toContain("No invented numbers");
+    expect(system).toContain("Brackets hold numbers only, never a date, time, place or link.");
+    expect(system).toContain("Never invent an event, launch, webinar, offer or feature the message does not name.");
     expect(system).toContain("Compliance (the post is published in Singapore):");
     expect(user).toContain("Prospecting habits; Follow-ups");
     expect(user).toContain("It serves: Self-employed salespeople");
