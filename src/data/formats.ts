@@ -25,6 +25,14 @@ export const FORMATS: FormatDef[] = [
     cap: "remix-make",
     Component: lazy(() => import("@/components/make/Slideshow")),
   },
+  {
+    slug: "wall-of-text",
+    name: "Wall of text",
+    blurb: "Bold words over a video, the kind people stop to read.",
+    kind: "video",
+    cap: "remix-make",
+    Component: lazy(() => import("@/components/make/WallOfText")),
+  },
 ];
 
 export const formatBySlug = (slug: string | undefined) => FORMATS.find((f) => f.slug === slug) ?? null;

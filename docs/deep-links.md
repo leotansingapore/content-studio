@@ -259,6 +259,11 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /make/slideshow | pick | open: the list of slideshows that did well, to pick one to remix | closed | replace | /make/slideshow?from=remix&pick=open |
 | /make/slideshow | show | a made slideshow's id: shows it as the result (the page sets it when its run finishes) | the run in progress or just made | push | /make/slideshow?show=ssmh2k9x01ab |
 | /make/slideshow | slide | the result's slide, 1-based; out of range reads as 1 | 1 | replace | /make/slideshow?show=ssmh2k9x01ab&slide=3 |
+| /make/wall-of-text | source | a remix source key (the same keys as /generate?source= below): the post to remix. Leo's sign-ins only (src/lib/leoOnly.ts). A key that no longer resolves says so and asks for another | none | replace | /make/wall-of-text?source=trend%3Atrend-2026-10-20-trend-9 |
+| /make/wall-of-text | from | topic, remix (Start from) | remix with a source, else topic | replace | /make/wall-of-text?from=topic |
+| /make/wall-of-text | mention | no: the words leave the brand out | yes | replace | /make/wall-of-text?from=topic&mention=no |
+| /make/wall-of-text | bg | stock, mine (Background: Stock clip or My video; the video itself stays on the device and is picked again on each visit) | this device's last pick (cs-make-wall-bg), stock on a Remix sheet link | replace | /make/wall-of-text?bg=mine |
+| /make/wall-of-text | pick | open: the list of videos that did well (trend kits, swipe file videos, followed accounts' videos), to pick one to remix | closed | replace | /make/wall-of-text?from=remix&pick=open |
 
 Copy link: the open post in Write, the carousel preview, a clone result, each Academy lesson and the open slideshow
 (and every post elsewhere, see "Every post has a link" at the top).
@@ -291,4 +296,7 @@ Pre-fills read once on arrival, then removed from the address (except day, time,
 - /coach#idea-dump (the board's empty column) scrolls to the idea dump.
 - /make/slideshow: the Remix sheet's Also make link starts making on arrival through navigation state { go: true } (a ?go=1 in the address does nothing, so an outside link can never start a paid make); the state is cleared once read. The Remix sheet's "Also make: Slideshow" link sends it (links.makeFormat), adding mention=no when the
   sheet's Mention is off. Each arrival is one make, so it uses one of the day's remixes.
+- /make/wall-of-text: the same rule as /make/slideshow, from the Remix sheet's "Also make: Wall of text" link. Once the
+  words and the clip are ready the page opens /edit (push), which shows "Putting your wall of text together" and opens
+  the new project (/edit?p=<id>) when the video is done.
 <!-- ==== end Create pages ==== -->
