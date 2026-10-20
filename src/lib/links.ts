@@ -167,12 +167,14 @@ export const links = {
       formula?: string;
       /** A remix source key (remixSource.ts sourceKey): Leo's sessions show it as the "Remixing ..." chip. */
       source?: string;
+      /** A remixed post's compare strip (Leo only): the Original or More like this tab; your version is the default. */
+      compare?: CompareView;
     } = {},
   ) => `/generate${qs({ ...o, step: o.step !== "topic" && o.step })}`,
   batch: (o: { pillar?: string; audience?: string } = {}) =>
     `/generate/batch${qs({ pillar: o.pillar !== "topic" && o.pillar, audience: o.audience !== "general" && o.audience })}`,
-  carousel: (o: { tab?: "drafts" | "paste" | "topic" | "saved"; draft?: string; carousel?: string } = {}) =>
-    `/carousel${qs({ tab: o.tab !== "drafts" && o.tab, draft: o.draft, carousel: o.carousel })}`,
+  carousel: (o: { tab?: "drafts" | "paste" | "topic" | "saved"; draft?: string; carousel?: string; compare?: CompareView } = {}) =>
+    `/carousel${qs({ tab: o.tab !== "drafts" && o.tab, draft: o.draft, carousel: o.carousel, compare: o.compare })}`,
   edit: (
     o: {
       /** A video project id; projects live on one device. */
@@ -234,4 +236,7 @@ export type EditTab = (typeof EDIT_TABS)[number];
 export type BrandSection = "you" | "dm-links" | "offers" | "emoji-and-hashtags" | "avoid-words" | "colour" | "sign-off" | "posting-times" | "logo";
 export type GuideStep = "idea" | "draft" | "carousel" | "reel" | "reverse-engineer" | "compliance" | "schedule";
 export type TutorialSection = "why" | "voice" | "guided-flow" | "after" | "tabs" | "rules" | "rhythm" | "first-action";
+/** A remixed post's compare strip on Write and the carousel maker (?compare=); version is the default, left out. */
+export const COMPARE_TABS = ["version", "original", "more"] as const;
+export type CompareView = Exclude<(typeof COMPARE_TABS)[number], "version">;
 // ---- end Create pages ----

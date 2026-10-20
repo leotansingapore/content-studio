@@ -204,6 +204,8 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /slideshow | slide | the open slide, 1-based, with s; out of range reads as 1 | 1 | replace | /slideshow?s=ssmh2k9x01ab&slide=4 |
 | /slideshow | panel | text, overlay: the editor's Text or Overlay tab, with s | slide (the Slide tab) | replace | /slideshow?s=ssmh2k9x01ab&panel=text |
 | /slideshow | box | a text box id on the open slide: that box picked; one not on the slide is ignored | none | replace | /slideshow?s=ssmh2k9x01ab&slide=2&panel=text&box=bmh2k9x02cd |
+| /generate | compare | original, more: on a remixed post (Leo's sign-ins only), phones open the compare strip's Original or More like this tab and large screens scroll to that part; a draft with no source ignores it | your version | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&compare=original |
+| /carousel | compare | original, more: the same strip above the slides of a remixed post, with draft or carousel=d:<post id> | your version | replace | /carousel?carousel=d%3A3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&compare=more |
 
 Copy link: the open post in Write, the carousel preview, a clone result, each Academy lesson and the open slideshow.
 

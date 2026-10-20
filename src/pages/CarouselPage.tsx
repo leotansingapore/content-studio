@@ -3,7 +3,7 @@
 // src/lib/carousel.ts, drawing in carouselLayout.ts / carouselRender.ts, and
 // "Tighten with AI" calls the carousel-copy edge function (carouselCopy.ts).
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ThinkingOrb } from "thinking-orbs";
 import {
@@ -29,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { COMPARE_TABS } from "@/lib/links";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,6 +115,9 @@ const workKey = (userId: string) => `cs-carousel-work-${scoped(userId)}`;
 // Where the post comes from: ?tab= (docs/deep-links.md). The editor's own carousel is ?draft= or ?carousel=.
 const SOURCE_TABS = ["drafts", "paste", "topic", "saved"] as const;
 
+// A remixed post's original above its slides (Leo only). Lazy: it reads the top posts and ads drops.
+const RemixCompare = lazy(() => import("@/components/RemixCompare"));
+
 export default function CarouselPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -123,6 +128,9 @@ export default function CarouselPage() {
   /** Posts that are still just a hook (board ideas), which can't make slides. */
   const [ideaOnly, setIdeaOnly] = useState(0);
   const [tab, setMode] = useUrlState("tab", "drafts", { allowed: SOURCE_TABS });
+  const leo = useLeoUser();
+  // ?compare=original|more: the compare tab on phones (RemixCompare reads the same param)
+  const [compareTab] = useUrlState("compare", "version", { allowed: COMPARE_TABS });
   const [topic, setTopic] = useState("");
   const [topicPlatform, setTopicPlatform] = useState<"instagram" | "linkedin">("instagram");
   const [writing, setWriting] = useState<AbortController | null>(null);
@@ -643,6 +651,10 @@ export default function CarouselPage() {
   const tooShort = split !== null && split.tooShort && !byHand;
   const showEditor = slides.length > 0 && !tooShort;
   const aiMessage = ai.status === "error" || ai.status === "limit" || ai.status === "unavailable" ? ai : null;
+  // The strip follows the post these slides came from (draftId, which survives ?carousel=d:<id>); pasted slides keep
+  // the last post's id, so it also needs the carousel to be that post's own.
+  const compareDraft = leo && showEditor && draftId && carouselId === `d:${draftId}` ? (drafts.find((d) => d.id === draftId) ?? null) : null;
+  const compareOn = Boolean(compareDraft?.source);
   const presetActive = BRAND_PRESETS.some((p) => p.color === brand.color);
 
   return (
@@ -873,8 +885,13 @@ export default function CarouselPage() {
         </Card>
       )}
 
+      {compareOn && userId && compareDraft && (
+        <Suspense fallback={null}>
+          <RemixCompare userId={userId} draft={compareDraft} draftText={compareDraft.draft} layout="top" />
+        </Suspense>
+      )}
       {showEditor && (
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className={`${compareOn && compareTab !== "version" ? "hidden lg:grid" : "grid"} items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]`}>
           <div className="min-w-0 space-y-6">
             <Card className="border-border/60 shadow-card">
               <CardHeader>

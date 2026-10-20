@@ -599,7 +599,7 @@ export default function DraftsPage() {
                 {/* only Leo's drafts carry a source (north-star gate), so this needs no check of its own */}
                 {d.source && (
                   <Link
-                    to={links.generate({ draft: d.id })}
+                    to={links.generate({ draft: d.id, compare: "original" })}
                     className="mb-2 inline-flex w-fit items-center text-[11px] text-muted-foreground hover:text-foreground hover:underline [@media(pointer:coarse)]:min-h-11"
                   >
                     {draftLine(d.source)}

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RealQuestions from "@/components/RealQuestions";
 import { loadPositioning } from "@/lib/positioning";
 import { withQuestion } from "@/lib/sgFeeds";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
-import { links, WRITE_STEPS } from "@/lib/links";
+import { COMPARE_TABS, links, WRITE_STEPS } from "@/lib/links";
 import { useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import {
   Card,
@@ -695,6 +695,9 @@ interface BasePayload {
   singlish?: boolean;
 }
 
+// A remixed post's original beside it (Leo only). Lazy: it reads the top posts and ads drops.
+const RemixCompare = lazy(() => import("@/components/RemixCompare"));
+
 export default function GeneratePage() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -864,6 +867,8 @@ export default function GeneratePage() {
 
   // ?panel=shortcuts (the keyboard shortcuts dialog) or post (Post it for me); opening pushes, so Back closes it.
   const [panel, openPanel, closePanel] = useUrlItem("panel");
+  // ?compare=original|more: a remixed post's compare tab on phones (RemixCompare reads the same param)
+  const [compareTab] = useUrlState("compare", "version", { allowed: COMPARE_TABS });
   const showShortcuts = panel === "shortcuts";
 
   // Guided wizard: which of the 4 brief steps is open, and whether the brief
@@ -1058,12 +1063,14 @@ export default function GeneratePage() {
         ? "Your board idea is the topic. Pick a format and generate."
         : "Form repopulated. Edit and re-roll, or copy as-is.",
     });
-    setTimeout(() => {
-      formAnchorRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 50);
+    // a compare= link scrolls to the compare strip instead
+    if (!searchParams.has("compare"))
+      setTimeout(() => {
+        formAnchorRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 50);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, searchParams.get("draft")]);
 
@@ -2428,6 +2435,9 @@ export default function GeneratePage() {
 
   const savedEntry =
     draft && userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
+  // The original beside a remixed post (north-star gate); on phones a compare tab other than yours hides the draft.
+  const compareOn = Boolean(leo && savedEntry?.source);
+  const draftHidden = compareOn && compareTab !== "version";
   // The formula the draft's hook was written with: from its hook rows, else as saved.
   const draftFormula = (chosenHook ? formulaOfHook(chosenHook, hookOptions) : undefined) ?? hookFormula(savedEntry?.hookFormula);
 
@@ -3449,8 +3459,16 @@ export default function GeneratePage() {
       )}
 
       {draft && (
-        <div ref={versionsTopRef} className="scroll-mt-20 space-y-3">
-          {versions.length > 0 && (
+        <div
+          ref={versionsTopRef}
+          className={`scroll-mt-20 space-y-3${compareOn ? " lg:grid lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start lg:gap-4 lg:space-y-0" : ""}`}
+        >
+          {compareOn && userId && savedEntry && (
+            <Suspense fallback={null}>
+              <RemixCompare userId={userId} draft={savedEntry} draftText={draft} />
+            </Suspense>
+          )}
+          {versions.length > 0 && !draftHidden && (
             <div
               role="tablist"
               aria-label="Platform versions"
@@ -3483,7 +3501,15 @@ export default function GeneratePage() {
               ))}
             </div>
           )}
-          <div className={versions.length > 0 ? "grid items-start gap-4 lg:grid-cols-2" : ""}>
+          <div
+            className={
+              compareOn
+                ? `min-w-0 lg:col-start-2 lg:row-start-1 ${versions.length > 0 ? `${draftHidden ? "hidden lg:grid" : "grid"} items-start gap-4` : draftHidden ? "hidden lg:block" : ""}`
+                : versions.length > 0
+                  ? "grid items-start gap-4 lg:grid-cols-2"
+                  : ""
+            }
+          >
         <Card
           ref={draftCardRef}
           className={`scroll-mt-20 border-border/60 shadow-card ${
@@ -3588,7 +3614,17 @@ export default function GeneratePage() {
                 </button>
               </p>
             )}
-            {savedEntry?.source && <p className="mb-2 text-xs text-muted-foreground">{draftLine(savedEntry.source)}</p>}
+            {savedEntry?.source && (
+              <p className="mb-2 text-xs text-muted-foreground">
+                <Link
+                  to={links.generate({ draft: savedEntry.id, compare: "original" })}
+                  replace
+                  className="inline-flex items-center hover:text-foreground hover:underline [@media(pointer:coarse)]:min-h-11"
+                >
+                  {draftLine(savedEntry.source)}
+                </Link>
+              </p>
+            )}
             {savedEntry && (
               <p className="mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground">
                 <CopyLinkButton path={links.generate({ draft: savedEntry.id })} label="Copy link to this post" className="-my-2 -ml-2 order-last" />
@@ -3659,7 +3695,7 @@ export default function GeneratePage() {
               <RemixFlags flags={savedEntry.remix.flags} text={draft} dismissed={dismissedFlagIds} onDismiss={dismissFlag} />
             )}
 
-            <div className={`grid gap-4 ${versions.length > 0 ? "" : "lg:grid-cols-2"}`}>
+            <div className={`grid gap-4 ${versions.length > 0 || compareOn ? "" : "lg:grid-cols-2"}`}>
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   <Pencil className="h-3.5 w-3.5" /> Edit

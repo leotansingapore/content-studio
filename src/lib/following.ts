@@ -85,7 +85,8 @@ export interface FollowStats {
   best: TrackedPost | null;
 }
 
-const reach = (p: TrackedPost) => p.views ?? p.likes + p.comments;
+/** Views, or likes plus comments where views are hidden: how Following ranks an account's posts. */
+export const reach = (p: TrackedPost) => p.views ?? p.likes + p.comments;
 
 export function followStats(a: FollowedAccount, now = Date.now()): FollowStats {
   const last = a.history[a.history.length - 1];
