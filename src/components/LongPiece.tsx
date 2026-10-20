@@ -95,7 +95,7 @@ export default function LongPiece() {
   const unkept = run ? run.posts.filter((p) => !kept(p.draftId)) : [];
 
   const make = async () => {
-    if (!userId || loading || !text.trim()) return;
+    if (!userId || loading || !text.trim() || left === 0) return;
     if (unkept.length && !window.confirm(`Replace the ${plural(unkept.length, "post", "posts")} you haven't kept?`)) return;
     setNotice(null);
     setLoading(true);
@@ -183,7 +183,7 @@ export default function LongPiece() {
             <p className="flex min-w-0 flex-1 items-start gap-2 text-sm text-destructive">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {notice.message}
             </p>
-            <Button size="sm" variant="outline" onClick={() => void make()} className="h-11 gap-1.5 sm:h-9">
+            <Button size="sm" variant="outline" onClick={() => void make()} disabled={left === 0} className="h-11 gap-1.5 sm:h-9">
               <RotateCcw className="h-4 w-4" /> Try again
             </Button>
           </div>

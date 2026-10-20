@@ -117,7 +117,7 @@ export default function Comments({ userId }: { userId: string }) {
         </CardContent>
       </Card>
 
-      <RunStatus busy={busy} busyText={filled > 1 ? `Writing a comment for each of ${filled} posts...` : "Writing 2 comments..."} outcome={outcome} retry={go} />
+      <RunStatus busy={busy} busyText={filled > 1 ? `Writing a comment for each of ${filled} posts...` : "Writing 2 comments..."} outcome={outcome} retry={go} noRetry={left === 0} />
 
       {!busy && run.items.length > 0 && (
         <ul className="space-y-3" data-testid="comments-run">

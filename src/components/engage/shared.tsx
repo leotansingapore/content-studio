@@ -232,11 +232,14 @@ export function RunStatus({
   busyText,
   outcome,
   retry,
+  noRetry,
 }: {
   busy: boolean;
   busyText: string;
   outcome: EngageOutcome | null;
   retry: () => void;
+  /** None of today's uses left (Leo's chip knows): Try again would only be refused. */
+  noRetry?: boolean;
 }) {
   return (
     <div aria-live="polite" className="empty:hidden">
@@ -251,7 +254,7 @@ export function RunStatus({
           <p className="flex min-w-0 flex-1 items-start gap-2 text-sm text-destructive">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {outcome.message}
           </p>
-          <Button size="sm" variant="outline" onClick={retry} className="h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11">
+          <Button size="sm" variant="outline" onClick={retry} disabled={noRetry} className="h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11">
             <RotateCcw className="h-4 w-4" /> Try again
           </Button>
         </div>

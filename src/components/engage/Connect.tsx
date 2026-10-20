@@ -131,7 +131,7 @@ export default function Connect({ userId }: { userId: string }) {
         </CardContent>
       </Card>
 
-      <RunStatus busy={busy} busyText="Writing the note, the first message and two follow-ups..." outcome={outcome} retry={go} />
+      <RunStatus busy={busy} busyText="Writing the note, the first message and two follow-ups..." outcome={outcome} retry={go} noRetry={left === 0} />
 
       {!busy && d && (
         <Card className="border-border/60 shadow-card" data-testid="connect-run">

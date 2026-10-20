@@ -470,7 +470,7 @@ export default function IdeaDump() {
   };
 
   const handleDevelop = async () => {
-    if (!userId || loading) return;
+    if (!userId || loading || left === 0) return;
     recognitionRef.current?.stop();
     const { ideas, overflow, tooShort } = splitIdeas(text);
     if (ideas.length === 0) {
@@ -638,7 +638,7 @@ export default function IdeaDump() {
             <p className="flex min-w-0 flex-1 items-start gap-2 text-sm text-destructive">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {notice.message}
             </p>
-            <Button size="sm" variant="outline" onClick={() => void handleDevelop()} className="gap-1.5">
+            <Button size="sm" variant="outline" onClick={() => void handleDevelop()} disabled={left === 0} className="gap-1.5">
               <RotateCcw className="h-4 w-4" /> Try again
             </Button>
           </div>

@@ -201,7 +201,7 @@ export default function Dms({ userId }: { userId: string }) {
 
       {view === "batch" ? (
         <>
-          <RunStatus busy={batch.busy} busyText={`Sorting ${plural(count, "message")} and drafting replies...`} outcome={batch.outcome} retry={goBatch} />
+          <RunStatus busy={batch.busy} busyText={`Sorting ${plural(count, "message")} and drafting replies...`} outcome={batch.outcome} retry={goBatch} noRetry={left === 0} />
           {!batch.busy && (
             <Groups
               testId="dms-run"
@@ -221,7 +221,7 @@ export default function Dms({ userId }: { userId: string }) {
         </>
       ) : (
         <>
-          <RunStatus busy={thread.busy} busyText="Reading the conversation and drafting your reply..." outcome={thread.outcome} retry={goThread} />
+          <RunStatus busy={thread.busy} busyText="Reading the conversation and drafting your reply..." outcome={thread.outcome} retry={goThread} noRetry={left === 0} />
           {!thread.busy && reply && (
             <div className="space-y-2 rounded-xl border border-border/60 bg-card p-3" data-testid="thread-run">
               {reply.escalate && (

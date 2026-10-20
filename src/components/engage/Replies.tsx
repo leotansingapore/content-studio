@@ -72,7 +72,7 @@ export default function Replies({ userId }: { userId: string }) {
         </CardContent>
       </Card>
 
-      <RunStatus busy={busy} busyText={`Sorting ${plural(count, "comment")} and drafting replies...`} outcome={outcome} retry={go} />
+      <RunStatus busy={busy} busyText={`Sorting ${plural(count, "comment")} and drafting replies...`} outcome={outcome} retry={go} noRetry={left === 0} />
 
       {!busy && (
         <Groups

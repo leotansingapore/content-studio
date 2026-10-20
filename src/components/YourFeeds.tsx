@@ -87,7 +87,8 @@ export default function YourFeeds() {
     if (feeds.length >= MAX_FEEDS) return toast({ title: `Up to ${MAX_FEEDS} feeds`, variant: "destructive" });
     const next = saveFeeds(uid, [...feeds, feed]);
     setFeeds(next);
-    void load(next, true);
+    // a read spends one of today's feeds uses: with none left (Leo's count; null for everyone else) the feed is only saved
+    if (left !== 0) void load(next, true);
   };
   const addPasted = () => {
     const url = paste.trim();
