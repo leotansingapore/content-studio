@@ -6,7 +6,7 @@ import { brandOffers, brandRulesLine } from "@/lib/brandRules";
 import { loadBrand } from "@/lib/carousel";
 import { coachContext, loadCoachProfile } from "@/lib/coachProfile";
 import { loadPositioning } from "@/lib/positioning";
-import { activeProfile, scoped } from "@/lib/profiles";
+import { DEFAULT_PROFILE_ID, activeProfile, activeProfileId, scoped } from "@/lib/profiles";
 import { VOICE_IDS, type VoiceId } from "@/lib/textVoice";
 import type { BrandPack, Speaker } from "../../supabase/functions/remix/logic.ts";
 
@@ -53,8 +53,12 @@ export function loadRemixPrefs(userId: string): RemixPrefs {
   };
 }
 
-/** The brand kit's You fields (a role or a headshot) mean a person posts as themselves; a brand read from a website has neither. */
+/**
+ * The account's own brand is the person; an added brand (/brands/new reads it from a website) is a business, unless
+ * its kit's You fields hold a role or a headshot, which only a person has.
+ */
 export function speakerFor(userId: string): Speaker {
+  if (activeProfileId(userId) === DEFAULT_PROFILE_ID) return "person";
   const kit = loadBrand(userId);
   return kit?.role?.trim() || kit?.photo ? "person" : "business";
 }

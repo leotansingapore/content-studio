@@ -111,23 +111,31 @@ describe("forSummary", () => {
 });
 
 describe("the speaker", () => {
-  it("is the person when the kit's You fields hold a role or a headshot, else the business", () => {
-    expect(speakerFor(UID)).toBe("business");
-    kit(UID, { name: "ActivityTracker", logo: "data:image/png;base64,x" });
-    expect(speakerFor(UID)).toBe("business");
-    kit(UID, { name: "Leo Tan", role: "Financial adviser" });
+  it("is the person on the account's own brand, and on an added brand only with a role or a headshot", () => {
     expect(speakerFor(UID)).toBe("person");
-    kit(UID, { name: "Leo Tan", photo: "data:image/jpeg;base64,x" });
+    const p = addProfile(UID, "ActivityTracker");
+    setActiveProfile(UID, p.id);
+    const scope = `${UID}~${p.id}`;
+    expect(speakerFor(UID)).toBe("business");
+    kit(scope, { name: "ActivityTracker", logo: "data:image/png;base64,x" });
+    expect(speakerFor(UID)).toBe("business");
+    kit(scope, { name: "Leo Tan", role: "Financial adviser" });
+    expect(speakerFor(UID)).toBe("person");
+    kit(scope, { name: "Leo Tan", photo: "data:image/jpeg;base64,x" });
     expect(speakerFor(UID)).toBe("person");
   });
 
   it("goes in the brand block from the kit, unless the For row picked one, and is kept per brand", () => {
-    kit(UID, { name: "ActivityTracker" });
+    const p = addProfile(UID, "ActivityTracker");
+    setActiveProfile(UID, p.id);
+    kit(`${UID}~${p.id}`, { name: "ActivityTracker" });
     expect(brandPack(UID, { platform: "linkedin", mention: true, offer: null }).speaker).toBe("business");
     expect(brandPack(UID, { platform: "linkedin", mention: true, offer: null, speaker: "person" }).speaker).toBe("person");
     expect(loadRemixPrefs(UID).speaker).toBeUndefined();
     saveRemixPrefs(UID, { ...loadRemixPrefs(UID), speaker: "person" });
     expect(loadRemixPrefs(UID).speaker).toBe("person");
+    setActiveProfile(UID, "me");
+    expect(loadRemixPrefs(UID).speaker).toBeUndefined();
     set(`content-studio-remix-prefs-${UID}`, { speaker: "robot" });
     expect(loadRemixPrefs(UID).speaker).toBeUndefined();
   });
