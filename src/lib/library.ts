@@ -6,7 +6,7 @@ import { AI_FOLDER, type ImageJob } from "@/lib/aiImage";
 import type { AiJob } from "@/lib/aiVideo";
 import type { SavedCarousel } from "@/lib/carousel";
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
-import { keyToDate, postedDay, scheduleTime, timeLabel } from "@/lib/dueDates";
+import { daysOverdue, keyToDate, localDateKey, overdueLabel, postedDay, scheduleTime, timeLabel } from "@/lib/dueDates";
 import { links } from "@/lib/links";
 import type { MediaItem } from "@/lib/mediaLibrary";
 import type { MontageJob } from "@/lib/montage";
@@ -236,11 +236,14 @@ const dayLabel = (day: string) => {
   return `${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`;
 };
 
-/** The card's line under its title, by status. Making and failed say their note. */
-export function statusLine(it: Pick<LibraryItem, "status" | "when" | "note">): string {
+/** The card's line under its title, by status. Making and failed say their note. `today`: the local day key. */
+export function statusLine(it: Pick<LibraryItem, "status" | "when" | "note">, today = localDateKey()): string {
   if (it.status === "scheduled") {
     // Plan can mark a post scheduled with no day yet
     if (!it.when) return STATUS_LABELS.scheduled;
+    // a past day, the way the calendar says it (My posts calls it Overdue)
+    const late = daysOverdue(it.when, today);
+    if (late > 0) return overdueLabel(late);
     const time = scheduleTime(it.when);
     return `Goes out ${dayLabel(it.when.slice(0, 10))}${time ? `, ${timeLabel(time)}` : ""}`;
   }

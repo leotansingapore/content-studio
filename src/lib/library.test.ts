@@ -204,9 +204,11 @@ describe("filterLibrary, countBy and madeCount", () => {
 describe("statusLine", () => {
   it("says when it goes out, when it went out, or that it isn't scheduled", () => {
     expect(statusLine({ status: "ready" })).toBe("Not scheduled yet");
-    expect(statusLine({ status: "scheduled", when: "2026-10-23T20:00" })).toBe("Goes out Fri 23 Oct, 8pm");
-    expect(statusLine({ status: "scheduled", when: "2026-10-23" })).toBe("Goes out Fri 23 Oct");
+    expect(statusLine({ status: "scheduled", when: "2026-10-23T20:00" }, "2026-10-20")).toBe("Goes out Fri 23 Oct, 8pm");
+    expect(statusLine({ status: "scheduled", when: "2026-10-23" }, "2026-10-23")).toBe("Goes out Fri 23 Oct");
     expect(statusLine({ status: "scheduled" })).toBe("Scheduled");
+    expect(statusLine({ status: "scheduled", when: "2026-10-19T20:00" }, "2026-10-20")).toBe("1 day overdue");
+    expect(statusLine({ status: "scheduled", when: "2026-10-06" }, "2026-10-20")).toBe("2 weeks overdue");
     expect(statusLine({ status: "posted", when: "2026-10-15" })).toBe("Posted Thu 15 Oct");
     expect(statusLine({ status: "making", note: "Making the voiceover" })).toBe("Making the voiceover");
   });
