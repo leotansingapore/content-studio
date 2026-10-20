@@ -56,6 +56,7 @@ import { checkMe, sharedBoard, waitsOnMe, type Board, type Me } from "@/lib/reel
 import { homeToday } from "@/lib/needsYou";
 import { marketShown } from "@/lib/market";
 import { activeProfileId, loadProfiles } from "@/lib/profiles";
+import WhatMovedCard from "@/components/WhatMovedCard";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -523,6 +524,9 @@ export default function HomePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* What moved this week (Leo only; /home#what-moved) */}
+      {userId && <WhatMovedCard userId={userId} />}
 
       {/* Coming up (scheduled) */}
       {upcoming.length > 0 && (
