@@ -154,12 +154,14 @@ describe("filters, search, sorts and counts", () => {
     expect(lib.searchMatch(all[1], ["nope"])).toBeNull();
   });
 
-  it("sorts most relevant: proven, then running, then newest; with a search, words in the ad first", () => {
+  it("sorts most relevant: the brand's own before Singapore picks, then proven, running, newest; with a search, words in the ad first", () => {
     const sorted = (sort: (typeof lib.SORTS)[number], q = "") => lib.sortLibrary(lib.filterLibrary(all, f({ q })), sort, q).map((a) => a.id);
-    // 1 and 4 are proven and running (1 is newer), 3 proven but stopped, then the newest of the rest
-    expect(sorted("relevant")).toEqual(["1", "4", "3", "2", "5"]);
-    // "whatsapp" is in the words of 1, 2 and 5 once each: ties go to the longest running
-    expect(sorted("relevant", "whatsapp")).toEqual(["1", "5", "2"]);
+    // the competitor's and the space's ads (1, 2, 3) before the picks (4, 5), even though pick 4 is proven and
+    // running (Thomson Medical's MRI ad opened Leo's list for ActivityTracker, dogfood 21 Oct); within each,
+    // proven and running, proven but stopped, then the newest
+    expect(sorted("relevant")).toEqual(["1", "3", "2", "4", "5"]);
+    // "whatsapp" is in the words of 1, 2 and 5 once each: the brand's own first, then the longest running
+    expect(sorted("relevant", "whatsapp")).toEqual(["1", "2", "5"]);
     // words in the ad beat a match in the labels
     const inWords = L("w", { body: "worry less", days: 1 });
     const inLabel = L("l", { emotion: "worry", days: 300 });

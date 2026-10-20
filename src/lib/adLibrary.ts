@@ -451,11 +451,14 @@ export function filterLibrary(all: LibraryAd[], f: LibraryFilters): LibraryAd[] 
 
 const newer = (a: LibraryAd, b: LibraryAd) => (b.start ?? "").localeCompare(a.start ?? "");
 const longer = (a: LibraryAd, b: LibraryAd) => (b.days ?? -1) - (a.days ?? -1);
+/** The brand's own competitors and space before the shared Singapore picks, which carry no fit for it (as For you does). */
+const own = (a: LibraryAd) => Number(a.scope !== "sg");
 
 /**
- * Most relevant: with no search, proven ads first, then running, then newest; with a search, more words in the
- * headline or body first, then in the labels, then in the advertiser, ties by days running. Longest running by days;
- * Newest by start date. Ties keep the id order, so the list never shuffles.
+ * Most relevant: with no search, the brand's own ads before the Singapore picks, then proven ads first, then running,
+ * then newest; with a search, more words in the headline or body first, then in the labels, then in the advertiser,
+ * then the brand's own, ties by days running. Longest running by days; Newest by start date. Ties keep the id order,
+ * so the list never shuffles.
  */
 export function sortLibrary(list: LibraryAd[], sort: LibrarySort, q = ""): LibraryAd[] {
   const words = wordsOf(q);
@@ -465,9 +468,9 @@ export function sortLibrary(list: LibraryAd[], sort: LibrarySort, q = ""): Libra
     if (words.length) {
       const x = searchMatch(a, words) ?? [0, 0, 0];
       const y = searchMatch(b, words) ?? [0, 0, 0];
-      return y[0] - x[0] || y[1] - x[1] || y[2] - x[2] || longer(a, b);
+      return y[0] - x[0] || y[1] - x[1] || y[2] - x[2] || own(b) - own(a) || longer(a, b);
     }
-    return Number(b.proven) - Number(a.proven) || Number(b.active) - Number(a.active) || newer(a, b);
+    return own(b) - own(a) || Number(b.proven) - Number(a.proven) || Number(b.active) - Number(a.active) || newer(a, b);
   };
   return [...list].sort((a, b) => by(a, b) || a.id.localeCompare(b.id));
 }
