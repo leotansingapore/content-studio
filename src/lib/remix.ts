@@ -9,11 +9,13 @@ import { getDraftById } from "@/lib/draftHistory";
 import { callFn } from "@/lib/edgeFn";
 import { loadFollowing } from "@/lib/following";
 import type { Positioning } from "@/lib/positioning";
+import { AVATAR_MAX, priceOf, priceText, sumPrices, type Price } from "@/lib/prices";
 import { loadSavedClones } from "@/lib/reelClone";
 import { sourceKey, sourceNoun, type RemixSource } from "@/lib/remixSource";
 import { loadLinkedSources } from "@/lib/resolveSource";
 import { getAllTopPosts } from "@/lib/topPosts";
 import { TRENDS } from "@/lib/trends";
+import { MAX_SCENES, MAX_AVATAR_SECONDS } from "../../supabase/functions/ai-video/logic.ts";
 import type { Close, Keep, MakeRequest, MakeResponse, RemixAs } from "../../supabase/functions/remix/logic.ts";
 
 export { intentsFor } from "../../supabase/functions/remix/logic.ts";
@@ -84,7 +86,8 @@ const FORMAT_WORDS: Record<RemixAs, string> = {
   post: "a text post",
   carousel: "a carousel",
   script: "a script and shot list",
-  speaking: "a video of you saying it",
+  // "My face" waits for people-my-face, so today it is always an AI presenter
+  speaking: "a video of an AI presenter saying it",
   explainer: "an explainer video",
   slideshow: "a slideshow",
   wall: "a wall of text",
@@ -179,6 +182,77 @@ export function whatRemixDoes(
     `for ${ctx.brand} in ${ctx.hasVoice ? "your voice" : "a plain voice"}, ${CLOSE_PHRASE[c.close]}. You see it before anything posts.`
   );
 }
+
+// ---- the Make row (docs/north-star/items/remix-any-format.md) -----------------------------------
+
+/** The chips, in order. Slideshow and Wall of text come as links from formats-pages. */
+export const MAKE_CHIPS: RemixAs[] = ["post", "carousel", "script", "speaking", "explainer"];
+export const MAX_FORMATS = 3;
+export const isVideo = (a: RemixAs): a is "speaking" | "explainer" => a === "speaking" || a === "explainer";
+
+/** The picks after pressing `next`: a pick comes off unless it is the last one; a fourth or a second video is ignored. */
+export function formatsAllowed(picked: RemixAs[], next: RemixAs): RemixAs[] {
+  if (picked.includes(next)) return picked.length > 1 ? picked.filter((a) => a !== next) : picked;
+  if (picked.length >= MAX_FORMATS || (isVideo(next) && picked.some(isVideo))) return picked;
+  return [...picked, next];
+}
+
+/** The URL's as= list made safe: no repeats, at most 3, one video; the source's default when nothing is left. */
+export function cleanAs(list: readonly string[], fallback: RemixAs): RemixAs[] {
+  const out: RemixAs[] = [];
+  for (const v of list) {
+    const a = MAKE_CHIPS.find((c) => c === v);
+    if (a && !out.includes(a) && out.length < MAX_FORMATS && !(isVideo(a) && out.some(isVideo))) out.push(a);
+  }
+  return out.length ? out : [fallback];
+}
+
+/** What goes in as=: nothing when it is just the source's default. */
+export const asParam = (as: RemixAs[], fallback: RemixAs): string[] => (as.length === 1 && as[0] === fallback ? [] : as);
+
+export const remixLabel = (n: number) => (n > 1 ? `Remix into ${n} formats` : "Remix");
+
+/** The paid video after the script: the most an avatar can cost plus its voiceover and AI presenter, or six explainer pictures and a voiceover. */
+export function videoPrice(as: RemixAs): Price | null {
+  const p =
+    as === "speaking" ? sumPrices(AVATAR_MAX, priceOf("ai-voice"), priceOf("ai-image"))
+    : as === "explainer" ? sumPrices(priceOf("ai-video", { scenes: MAX_SCENES }), priceOf("ai-voice"))
+    : null;
+  return p && p !== "pick" ? p : null;
+}
+
+/** One press: one remix-make per format plus the video. */
+export function makePrice(as: RemixAs[]): Price | "pick" | null {
+  return sumPrices(...as.map(() => priceOf("remix-make")), ...as.map(videoPrice));
+}
+
+/** Leo's rule: a press that makes a video asks first, with what the video uses. */
+export function videoAsk(as: RemixAs[]): string | null {
+  const p = as.map(videoPrice).find(Boolean);
+  return p ? `This makes a video and uses ${priceText(p).replace(/^\w/, (c) => c.toLowerCase())} of video credit.` : null;
+}
+
+export const VIDEO_LIMITS = {
+  pickMore: "Pick up to 3.",
+  oneVideo: "One video at a time.",
+  busy: "Another video is being made. Try again when it's done.",
+  noVideos: "No videos left today.",
+  noVoices: "No voiceovers left today.",
+  noPresenter: "No AI presenters left today.",
+};
+
+/** Why a video chip can't be picked now, or null: another video running, then the caps it spends. */
+export function videoBlock(as: "speaking" | "explainer", a: { busy: boolean; left: (f: "ai-video" | "ai-voice" | "ai-image") => number | null }): string | null {
+  if (a.busy) return VIDEO_LIMITS.busy;
+  if (a.left("ai-video") === 0) return VIDEO_LIMITS.noVideos;
+  if (a.left("ai-voice") === 0) return VIDEO_LIMITS.noVoices;
+  if (as === "speaking" && a.left("ai-image") === 0) return VIDEO_LIMITS.noPresenter;
+  return null;
+}
+
+/** A "You speaking" voiceover over the avatar's limit stops before any video is paid for. */
+export const tooLongLine = (seconds: number) =>
+  `The script runs ${Math.round(seconds)} s, over the ${MAX_AVATAR_SECONDS}-second limit. Shorten it, then try again.`;
 
 export function requestMake(body: MakeRequest): Promise<MakeResponse> {
   return callFn<MakeResponse>("remix", body);

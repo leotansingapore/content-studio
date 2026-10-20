@@ -3,12 +3,53 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } }, SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }));
 const make = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/remix", async (orig) => ({ ...(await orig<typeof import("./remix")>()), requestMake: make }));
+const tear = vi.hoisted(() => ({ local: vi.fn(), ensure: vi.fn() }));
+vi.mock("@/lib/remixTeardown", () => ({ localTeardown: tear.local, ensureTeardown: tear.ensure }));
+// aiVideo's jobs never throw: they set the job's state, which the remix row reads after each await
+const ai = vi.hoisted(() => ({
+  job: null as null | { kind: string; state: string; step: string; url?: string; error?: string },
+  busy: false,
+  calls: [] as string[],
+  presenter: vi.fn(),
+  avatar: vi.fn(),
+  explainer: vi.fn(),
+  slice: vi.fn(),
+  speak: vi.fn(),
+}));
+vi.mock("@/lib/aiVideo", async (orig) => ({
+  ...(await orig<typeof import("./aiVideo")>()),
+  LOOKS: ["A Chinese Singaporean woman in her early 30s"],
+  aiJob: () => ai.job,
+  aiBusy: () => ai.busy,
+  onAiJob: () => () => {},
+  makePresenter: ai.presenter,
+  makeAvatar: ai.avatar,
+  makeExplainer: ai.explainer,
+  sliceVoiceover: ai.slice,
+}));
+vi.mock("@/lib/textVoice", async (orig) => ({ ...(await orig<typeof import("./textVoice")>()), speak: ai.speak }));
 
 import { splitDraftIntoSlides } from "./carousel";
 import { loadDrafts } from "./draftHistory";
 import { EdgeError } from "./edgeFn";
 import type { MakeResponse, MakeResult } from "./remix";
-import { CHECKING, READING, clearRemixJob, onRemixJob, remixJob, runParams, startRemix, writingStep, type RemixJobState, type RemixRun } from "./remixJob";
+import {
+  BREAKING,
+  CHECKING,
+  NOT_THROUGH,
+  NOTHING_USED,
+  READING,
+  VOICEOVER,
+  clearRemixJob,
+  onRemixJob,
+  remixJob,
+  runParams,
+  startRemix,
+  writingStep,
+  type RemixJobState,
+  type RemixRun,
+} from "./remixJob";
+import type { Teardown } from "./remixTeardown";
 import type { RemixSource } from "./remixSource";
 import { splitScriptCaption } from "./scriptCaption";
 
@@ -30,10 +71,28 @@ beforeEach(() => {
   vi.stubGlobal("window", { localStorage: local, dispatchEvent: () => true });
   vi.stubGlobal("localStorage", local);
   make.mockReset();
+  tear.local.mockReset().mockReturnValue(TEARDOWN);
+  tear.ensure.mockReset();
+  Object.assign(ai, { job: null, busy: false, calls: [] });
+  for (const f of [ai.presenter, ai.avatar, ai.explainer, ai.slice, ai.speak]) f.mockReset();
   clearRemixJob();
 });
 afterEach(() => vi.unstubAllGlobals());
 
+const TEARDOWN: Teardown = {
+  v: 1,
+  key: "ad:123",
+  format: "image",
+  hook: { line: "Save $12,000 a year with us.", pattern: "Save [amount] a [period] with [brand].", formula: null },
+  beats: ["Names the saving", "Says how", "Asks you to sign up"],
+  payoff: "A saving",
+  cta: "Sign up",
+  pacing: null,
+  whyItWorked: "A number.",
+  dontReuse: ["$12,000", "Singlife"],
+  basedOn: "ad",
+  at: new Date().toISOString(),
+};
 const source: RemixSource = { key: "ad:123", kind: "ad", format: "image", author: "Singlife", caption: "Save $12,000 a year with us.", remixedAt: "" };
 const run = (as: RemixRun["as"], extra: Partial<RemixRun> = {}): RemixRun => ({ source, keep: "structure", close: "balanced", as, mention: true, offer: null, ...extra });
 const answer = (result: MakeResult, flags = { copied: [], claim: false, invented: false }): MakeResponse => ({ as: result.as, result, flags, usage: { used: 1, limit: 30 } });
@@ -85,7 +144,8 @@ describe("startRemix", () => {
     const j = await done;
     expect(loadDrafts(UID)).toHaveLength(0);
     expect(j.state).toBe("failed");
-    expect(j.rows[0]).toMatchObject({ state: "failed", refunded: true, error: "That remix didn't go through. Nothing was used." });
+    expect(j.rows[0]).toMatchObject({ state: "failed", refunded: true, error: NOTHING_USED });
+    expect(NOTHING_USED).toBe("This one didn't go through. Nothing was used for it.");
     expect(local.getItem(`cs-remix-note-${source.key}`)).toBe("keep me");
   });
 
@@ -97,7 +157,8 @@ describe("startRemix", () => {
     make.mockRejectedValueOnce(new EdgeError("Couldn't reach the server.", 0));
     done = finished();
     startRemix(UID, run(["post"]));
-    expect((await done).rows[0]).toMatchObject({ error: "That remix didn't go through.", refunded: false });
+    expect((await done).rows[0]).toMatchObject({ error: NOT_THROUGH, refunded: false });
+    expect(NOT_THROUGH).toBe("This one didn't go through.");
   });
 
   it("ignores a second start while one is running", async () => {
@@ -185,6 +246,184 @@ describe("startRemix", () => {
   });
 });
 
+describe("the breakdown before the first row", () => {
+  it("breaks the source down once when this device has none, and sends it to every make", async () => {
+    vi.useFakeTimers();
+    tear.local.mockReturnValue(null);
+    let release!: (t: Teardown) => void;
+    tear.ensure.mockReturnValue(new Promise((r) => (release = r)));
+    let first!: (v: MakeResponse) => void;
+    make.mockReturnValueOnce(new Promise((r) => (first = r)));
+    make.mockResolvedValue(answer({ as: "carousel", hook: "H", slides: Array.from({ length: 4 }, () => ({ title: "T", body: "B" })), cta: "Save this" }));
+    const done = finished();
+    try {
+      startRemix(UID, run(["post", "carousel"]));
+      expect(remixJob()!.step).toBe(READING);
+      vi.advanceTimersByTime(600);
+      expect(remixJob()!.step).toBe(BREAKING);
+      expect(make).not.toHaveBeenCalled();
+      expect(tear.ensure).toHaveBeenCalledWith(UID, expect.objectContaining({ key: "ad:123" }), "Save $12,000 a year with us.");
+      release(TEARDOWN);
+      await vi.waitFor(() => expect(make).toHaveBeenCalledTimes(1));
+      // straight to writing: the read and the breakdown are already done
+      expect(remixJob()!.step).toBe(writingStep("post"));
+    } finally {
+      vi.useRealTimers();
+      first(answer({ as: "post", hook: "H", body: "B", cta: "", hashtags: [] }));
+    }
+    await done;
+    expect(tear.ensure).toHaveBeenCalledTimes(1);
+    for (const [body] of make.mock.calls) {
+      expect(body.teardown).toEqual({ hookPattern: "Save [amount] a [period] with [brand].", beats: TEARDOWN.beats, dontReuse: ["$12,000", "Singlife"] });
+    }
+  });
+
+  it("goes on without one when the breakdown fails or is over its cap", async () => {
+    tear.local.mockReturnValue(null);
+    tear.ensure.mockRejectedValue(new EdgeError("You've used all 40 for today.", 429, "daily_limit"));
+    make.mockResolvedValue(answer({ as: "post", hook: "H", body: "B", cta: "", hashtags: [] }));
+    const done = finished();
+    startRemix(UID, run(["post"]));
+    expect((await done).state).toBe("done");
+    expect(make.mock.calls[0][0].teardown).toBeUndefined();
+  });
+
+  it("makes no breakdown call when one is on this device", async () => {
+    make.mockResolvedValue(answer({ as: "post", hook: "H", body: "B", cta: "", hashtags: [] }));
+    const done = finished();
+    startRemix(UID, run(["post"]));
+    await done;
+    expect(tear.ensure).not.toHaveBeenCalled();
+  });
+});
+
+describe("several formats and the videos", () => {
+  const spoken = "Most people check CPF once a year. Here is a better habit. DM me CHECK.";
+  const speaking = answer({ as: "speaking", script: spoken, caption: "A better CPF habit. DM me CHECK." });
+  const vo = { pcm: new Float32Array(0), seconds: 24, slices: [{ start: 0, end: 9.4 }, { start: 9.4, end: 18.8 }, { start: 18.8, end: 24 }] };
+  const post = answer({ as: "post", hook: "H", body: "B", cta: "", hashtags: [] });
+
+  beforeEach(() => {
+    ai.speak.mockImplementation(async () => {
+      ai.calls.push(`speak:${loadDrafts(UID).length}`);
+      return new Blob(["mp3"]);
+    });
+    ai.slice.mockResolvedValue(vo);
+    ai.presenter.mockImplementation(async () => {
+      ai.calls.push("presenter");
+      ai.job = { kind: "presenter", state: "done", step: "", url: "https://cdn.higgsfield.ai/face.jpg" };
+    });
+    ai.avatar.mockImplementation(async (_name: string, photo: string) => {
+      ai.calls.push(`avatar:${photo}`);
+      ai.job = { kind: "avatar", state: "done", step: "" };
+    });
+    ai.explainer.mockImplementation(async () => {
+      ai.job = { kind: "explainer", state: "done", step: "" };
+    });
+  });
+
+  it("runs one make per format, text first, and a failed one never stops the others", async () => {
+    make.mockImplementation(async (b: { as: string }) => {
+      if (b.as === "carousel") throw new EdgeError("failed", 502, "failed");
+      return b.as === "speaking" ? speaking : post;
+    });
+    const done = finished();
+    startRemix(UID, run(["speaking", "carousel", "post"]));
+    expect(remixJob()!.rows.map((r) => r.as)).toEqual(["carousel", "post", "speaking"]);
+    const j = await done;
+    expect(make.mock.calls.map(([b]) => b.as)).toEqual(["carousel", "post", "speaking"]);
+    expect(j.state).toBe("done");
+    expect(j.rows.map((r) => r.state)).toEqual(["failed", "done", "done"]);
+    expect(j.rows[0]).toMatchObject({ error: NOTHING_USED, refunded: true });
+  });
+
+  it("saves the script before the voiceover and the video, then makes an AI presenter speak it", async () => {
+    make.mockResolvedValue(speaking);
+    const done = finished();
+    startRemix(UID, run(["speaking"], { voice: "george" }));
+    const j = await done;
+    const d = loadDrafts(UID)[0];
+    expect(ai.calls).toEqual(["speak:1", "presenter", "avatar:https://cdn.higgsfield.ai/face.jpg"]);
+    expect(ai.speak).toHaveBeenCalledWith(spoken, "george");
+    expect(d).toMatchObject({ format: "short-video", hook: "Most people check CPF once a year.", ctaType: "dm-keyword" });
+    expect(d.storyboard).toBeUndefined();
+    expect(splitScriptCaption(d.draft).script).toBe(spoken);
+    expect(d.remix).toMatchObject({ as: "speaking" });
+    // 9.4 s and 9.4 s are 10 s Speak slices (22 credits each), 5.2 s is one more
+    expect(j.rows[0]).toMatchObject({ state: "done", href: "/edit?panel=ai&kind=avatar", draftId: d.id, scriptHref: `/generate?draft=${d.id}`, credits: 66 });
+  });
+
+  it("keeps the script and fails the row when the voiceover fails, with nothing else paid for", async () => {
+    make.mockResolvedValue(speaking);
+    ai.speak.mockRejectedValue(new Error("ElevenLabs is down"));
+    const done = finished();
+    startRemix(UID, run(["speaking"]));
+    const j = await done;
+    expect(loadDrafts(UID)).toHaveLength(1);
+    expect(ai.presenter).not.toHaveBeenCalled();
+    expect(ai.avatar).not.toHaveBeenCalled();
+    expect(j).toMatchObject({ state: "failed" });
+    expect(j.rows[0]).toMatchObject({ state: "failed", error: NOT_THROUGH, refunded: false, scriptHref: `/generate?draft=${loadDrafts(UID)[0].id}` });
+  });
+
+  it("stops before any video when the voiceover runs over 30.5 s", async () => {
+    make.mockResolvedValue(speaking);
+    ai.slice.mockResolvedValue({ ...vo, seconds: 31.2 });
+    const done = finished();
+    startRemix(UID, run(["speaking"]));
+    const j = await done;
+    expect(ai.presenter).not.toHaveBeenCalled();
+    expect(j.rows[0]).toMatchObject({ state: "failed", tooLong: true, error: "The script runs 31 s, over the 30-second limit. Shorten it, then try again." });
+    expect(loadDrafts(UID)).toHaveLength(1);
+  });
+
+  it("waits for a retry when another video is being made, and fails a presenter that didn't come back", async () => {
+    make.mockResolvedValue(speaking);
+    ai.busy = true;
+    let done = finished();
+    startRemix(UID, run(["speaking"]));
+    expect((await done).rows[0]).toMatchObject({ state: "failed", error: "Another video is being made. Try again when it's done." });
+    expect(ai.speak).not.toHaveBeenCalled();
+
+    ai.busy = false;
+    ai.presenter.mockImplementation(async () => {
+      ai.job = { kind: "presenter", state: "failed", step: "", error: "Couldn't make the presenter." };
+    });
+    done = finished();
+    startRemix(UID, run(["speaking"]));
+    expect((await done).rows[0]).toMatchObject({ state: "failed", error: NOT_THROUGH });
+    expect(ai.avatar).not.toHaveBeenCalled();
+  });
+
+  it("hands an explainer's scenes and voice to the explainer job, and saves its lines first", async () => {
+    const scenes = [
+      { say: "Your CPF moves every month.", picture: "A Malay Singaporean man reading a letter at home" },
+      { say: "Check it once a quarter.", picture: "An Indian Singaporean woman at a desk with a mug" },
+      { say: "Message me for the checklist.", picture: "A Eurasian Singaporean man smiling at a cafe" },
+    ];
+    make.mockResolvedValue(answer({ as: "explainer", scenes, caption: "Check your CPF. Message me." }));
+    const done = finished();
+    startRemix(UID, run(["explainer"], { voice: "lily" }));
+    const j = await done;
+    const d = loadDrafts(UID)[0];
+    expect(ai.explainer).toHaveBeenCalledWith("Your CPF moves every month.", scenes, "lily");
+    expect(splitScriptCaption(d.draft).script).toBe(scenes.map((x) => x.say).join("\n"));
+    expect(j.rows[0]).toMatchObject({ state: "done", href: "/edit?panel=ai&kind=explainer" });
+  });
+
+  it("shows the video steps as the voiceover starts", async () => {
+    let release!: () => void;
+    make.mockResolvedValue(speaking);
+    ai.speak.mockReturnValue(new Promise<Blob>((r) => (release = () => r(new Blob(["mp3"])))));
+    const done = finished();
+    startRemix(UID, run(["speaking"]));
+    expect(writingStep("speaking")).toBe("Writing your video script");
+    await vi.waitFor(() => expect(remixJob()!.step).toBe(VOICEOVER));
+    release();
+    await done;
+  });
+});
+
 describe("runParams", () => {
   it("keeps the run's choices on the job, and the sheet link carries them with the defaults left out", async () => {
     let release!: (v: MakeResponse) => void;
@@ -193,10 +432,27 @@ describe("runParams", () => {
     startRemix(UID, run(["post"], { keep: "topic", about: "Insurance basics", close: "close", mention: true, offer: "Free money check" }));
     const j = remixJob()!;
     expect(j.run).toEqual({ keep: "topic", about: "Insurance basics", close: "close", mention: true, offer: "Free money check" });
-    expect(runParams(j.key, j.run)).toEqual({ remix: "ad:123", keep: "topic", about: "insurance-basics", close: "close", mention: null, offer: "free-money-check" });
+    expect(runParams(j.key, j.run)).toEqual({ remix: "ad:123", keep: "topic", about: "insurance-basics", close: "close", mention: null, offer: "free-money-check", as: null });
     release(answer({ as: "post", hook: "H", body: "B", cta: "", hashtags: [] }));
     await done;
-    expect(runParams("ad:1", { keep: "structure", close: "balanced", mention: true, offer: null })).toEqual({ remix: "ad:1", keep: null, about: null, close: null, mention: null, offer: null });
-    expect(runParams("ad:1", { keep: "hook", about: "CPF", close: "loose", mention: false, offer: "Free money check" })).toEqual({ remix: "ad:1", keep: "hook", about: null, close: "loose", mention: "no", offer: null });
+    expect(runParams("ad:1", { keep: "structure", close: "balanced", mention: true, offer: null })).toEqual({ remix: "ad:1", keep: null, about: null, close: null, mention: null, offer: null, as: null });
+    expect(runParams("ad:1", { keep: "hook", about: "CPF", close: "loose", mention: false, offer: "Free money check", as: "post,carousel" })).toEqual({
+      remix: "ad:1", keep: "hook", about: null, close: "loose", mention: "no", offer: null, as: "post,carousel",
+    });
+  });
+
+  it("carries the formats only when they aren't the source's default", async () => {
+    make.mockResolvedValue(answer({ as: "post", hook: "H", body: "B", cta: "", hashtags: [] }));
+    let done = finished();
+    startRemix(UID, run(["post"]));
+    expect(remixJob()!.run.as).toBeUndefined();
+    await done;
+    make.mockImplementation(async (b: { as: string }) =>
+      b.as === "post" ? answer({ as: "post", hook: "H", body: "B", cta: "", hashtags: [] }) : answer({ as: "carousel", hook: "H", slides: Array.from({ length: 4 }, () => ({ title: "T", body: "B" })), cta: "Save this" }),
+    );
+    done = finished();
+    startRemix(UID, run(["carousel", "post"]));
+    expect(remixJob()!.run.as).toBe("carousel,post");
+    await done;
   });
 });

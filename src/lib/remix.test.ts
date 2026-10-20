@@ -5,7 +5,25 @@ vi.mock("@/lib/supabase", () => ({ supabase: { functions: { invoke: vi.fn() } },
 import { ADS } from "./adsSwipe";
 import { splitDraftIntoSlides } from "./carousel";
 import { saveDrafts, type DraftEntry } from "./draftHistory";
-import { carouselDraftText, defaultOutput, fullText, intentsFor, platformFor, whatRemixDoes } from "./remix";
+import {
+  VIDEO_LIMITS,
+  asParam,
+  carouselDraftText,
+  cleanAs,
+  defaultOutput,
+  formatsAllowed,
+  fullText,
+  intentsFor,
+  makePrice,
+  platformFor,
+  remixLabel,
+  tooLongLine,
+  videoAsk,
+  videoBlock,
+  videoPrice,
+  whatRemixDoes,
+} from "./remix";
+import { AVATAR_MAX, priceOf, priceText } from "./prices";
 import { fromAd, fromDraft, fromFollowPost, fromTopPost, fromTrend, sourceKey, type RemixSource } from "./remixSource";
 import { REMIX_LINKS_PREFIX } from "./resolveSource";
 import { getAllTopPosts } from "./topPosts";
@@ -100,6 +118,72 @@ describe("platformFor", () => {
     expect(platformFor(src({}), "post", { platform: "facebook" })).toBe("facebook");
     expect(platformFor(src({}), "post", { platform: "tiktok" })).toBe("instagram");
   });
+
+  it("puts both videos where a script goes: the source's TikTok or the adviser's, else Instagram", () => {
+    for (const as of ["speaking", "explainer"] as const) {
+      expect(platformFor(src({ platform: "tiktok" }), as, { platform: "linkedin" })).toBe("tiktok");
+      expect(platformFor(src({ platform: "linkedin" }), as, { platform: "linkedin" })).toBe("instagram");
+      expect(platformFor(src({}), as, { platform: "tiktok" })).toBe("tiktok");
+    }
+  });
+});
+
+describe("the Make row", () => {
+  it("adds and removes picks, never the last one, never a fourth and never a second video", () => {
+    expect(formatsAllowed(["post"], "carousel")).toEqual(["post", "carousel"]);
+    expect(formatsAllowed(["post", "carousel"], "post")).toEqual(["carousel"]);
+    expect(formatsAllowed(["post"], "post")).toEqual(["post"]);
+    expect(formatsAllowed(["post", "carousel", "script"], "speaking")).toEqual(["post", "carousel", "script"]);
+    expect(formatsAllowed(["post", "speaking"], "explainer")).toEqual(["post", "speaking"]);
+    expect(formatsAllowed(["post", "speaking"], "speaking")).toEqual(["post"]);
+    expect(formatsAllowed(["post"], "explainer")).toEqual(["post", "explainer"]);
+  });
+
+  it("reads as= safely: no repeats, at most 3, one video, the default when empty, and leaves the default out", () => {
+    expect(cleanAs([], "script")).toEqual(["script"]);
+    expect(cleanAs(["post", "post", "carousel"], "script")).toEqual(["post", "carousel"]);
+    expect(cleanAs(["speaking", "explainer", "post"], "script")).toEqual(["speaking", "post"]);
+    expect(cleanAs(["post", "carousel", "script", "speaking"], "post")).toEqual(["post", "carousel", "script"]);
+    expect(cleanAs(["slideshow", "nonsense"], "carousel")).toEqual(["carousel"]);
+    expect(asParam(["script"], "script")).toEqual([]);
+    expect(asParam(["post"], "script")).toEqual(["post"]);
+    expect(asParam(["script", "post"], "script")).toEqual(["script", "post"]);
+  });
+
+  it("counts the picks on the button", () => {
+    expect([1, 2, 3].map(remixLabel)).toEqual(["Remix", "Remix into 2 formats", "Remix into 3 formats"]);
+  });
+
+  it("prices one remix per format plus the video, from the price table only", () => {
+    expect(videoPrice("post")).toBeNull();
+    expect(videoPrice("speaking")).toEqual({ usd: AVATAR_MAX.usd + 0.05 + 0.006, kind: "upTo" });
+    expect(videoPrice("explainer")?.kind).toBe("about");
+    const make = priceOf("remix-make") as { usd: number };
+    expect(makePrice(["post", "carousel"])).toEqual({ usd: make.usd * 2, kind: "about" });
+    const both = makePrice(["post", "speaking"]) as { usd: number; kind: string };
+    expect(both.kind).toBe("upTo");
+    expect(both.usd).toBeCloseTo(make.usd * 2 + videoPrice("speaking")!.usd, 6);
+  });
+
+  it("asks first for a video, with what the video part uses", () => {
+    expect(videoAsk(["post", "carousel"])).toBeNull();
+    expect(videoAsk(["post", "speaking"])).toBe(`This makes a video and uses ${priceText(videoPrice("speaking")!).replace("Up to", "up to")} of video credit.`);
+    expect(videoAsk(["explainer"])).toMatch(/^This makes a video and uses about US\$\d+\.\d\d of video credit\.$/);
+  });
+
+  it("says why a video chip is off: another video first, then each cap it spends", () => {
+    const left = (o: Partial<Record<"ai-video" | "ai-voice" | "ai-image", number | null>>) => (f: "ai-video" | "ai-voice" | "ai-image") => o[f] ?? 3;
+    expect(videoBlock("speaking", { busy: true, left: left({ "ai-video": 0 }) })).toBe(VIDEO_LIMITS.busy);
+    expect(videoBlock("speaking", { busy: false, left: left({ "ai-video": 0 }) })).toBe("No videos left today.");
+    expect(videoBlock("explainer", { busy: false, left: left({ "ai-voice": 0 }) })).toBe(VIDEO_LIMITS.noVoices);
+    expect(videoBlock("speaking", { busy: false, left: left({ "ai-image": 0 }) })).toBe(VIDEO_LIMITS.noPresenter);
+    expect(videoBlock("explainer", { busy: false, left: left({ "ai-image": 0 }) })).toBeNull();
+    expect(videoBlock("speaking", { busy: false, left: () => null })).toBeNull();
+  });
+
+  it("names a voiceover that runs too long", () => {
+    expect(tooLongLine(31.4)).toBe("The script runs 31 s, over the 30-second limit. Shorten it, then try again.");
+  });
 });
 
 describe("carouselDraftText", () => {
@@ -139,7 +223,17 @@ describe("whatRemixDoes", () => {
 
   it("names the breakdown only when it still has to run, and joins several formats", () => {
     expect(whatRemixDoes(reel, { keep: "hook", as: ["post", "carousel", "speaking"], close: "close" }, { ...ctx, teardownCached: false })).toBe(
-      "Reads this reel, breaks it down, keeps its hook and writes a text post, a carousel and a video of you saying it for MoneyBees in your voice, close to it, with every line new. You see it before anything posts.",
+      "Reads this reel, breaks it down, keeps its hook and writes a text post, a carousel and a video of an AI presenter saying it for MoneyBees in your voice, close to it, with every line new. You see it before anything posts.",
     );
+  });
+
+  it("names every format pair it can make, for every source format", () => {
+    const words = { post: "a text post", carousel: "a carousel", script: "a script and shot list", speaking: "a video of an AI presenter saying it", explainer: "an explainer video" };
+    for (const format of ["video", "carousel", "image", "text"] as const) {
+      for (const [a, b] of [["post", "carousel"], ["script", "speaking"], ["carousel", "explainer"]] as const) {
+        const line = whatRemixDoes(src({ format }), { keep: "structure", as: [a, b], close: "balanced" }, ctx);
+        expect(line, `${format} ${a} ${b}`).toContain(`writes ${words[a]} and ${words[b]} for MoneyBees`);
+      }
+    }
   });
 });
