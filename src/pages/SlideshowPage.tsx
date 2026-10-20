@@ -480,8 +480,9 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
     toPosts();
     toast({ title: "Saved to My posts", action: <ToastAction altText="Open My posts" onClick={() => navigate(links.drafts())}>Open My posts</ToastAction> });
   };
-  // the calendar dates the post; Post it for me shows there once it has a date
-  const schedule = () => navigate(links.calendar({ post: toPosts() }));
+  // the calendar dates the post; Post it for me shows there once it has a date. Month view, since a remembered
+  // week view on a phone or the upcoming list shows an undated post's editor nowhere (links.calendar leaves month out).
+  const schedule = () => navigate(`${links.calendar({ post: toPosts() })}&view=month`);
   const canSchedule = socialConnectShown();
   const busy = prep !== null && typeof prep !== "string";
 
