@@ -157,6 +157,16 @@ describe("buildMakePrompt", () => {
     expect(buildMakePrompt(make()).user).toContain("Do not reuse: $12,000");
     expect(dontReuseFor(make({ teardown: { dontReuse: ["Singlife", "$12,000"] } }))).toEqual(["Singlife", "$12,000"]);
   });
+
+  it("lets React to it credit the author, and an own post use its own brand", () => {
+    expect(dontReuseFor(make({ teardown: { dontReuse: ["@gracekoh", "Singlife"] } }))).toEqual(["@gracekoh", "Singlife", "$12,000"]);
+    expect(dontReuseFor(make({ keep: "react", teardown: { dontReuse: ["@gracekoh", "GraceKoh", "Singlife"] } }))).toEqual(["Singlife", "$12,000"]);
+    const react = buildMakePrompt(make({ keep: "react" })).system;
+    expect(react).toContain("handles (except the credit the rules below ask for)");
+    const own = buildMakePrompt(make({ keep: "part2", source: { key: "own:d1", kind: "own", text: "My first post" } })).system;
+    expect(own).toContain("- Never reuse the original's claims or figures");
+    expect(own).not.toContain("the original's brand, product names");
+  });
 });
 
 describe("validateMake", () => {
@@ -226,6 +236,14 @@ describe("holdTheLine", () => {
     // the rewrite failed: the first answer stays, with what it copied
     expect(out.flags.copied).toEqual(["$12,000"]);
     expect(out.result).toEqual(post("You could have 12000 more."));
+  });
+
+  it("never flags or rewrites the credit a reaction gives", async () => {
+    const rewrite = vi.fn(async () => null);
+    const req = make({ keep: "react", teardown: { dontReuse: ["@gracekoh"] } });
+    const out = await holdTheLine(post("As @gracekoh says, check yours each March."), SOURCE_TEXT, dontReuseFor(req), { rewrite, ask: ask(null, null) });
+    expect(rewrite).not.toHaveBeenCalled();
+    expect(out.flags.copied).toEqual([]);
   });
 
   it("keeps the flag when the second pass still copies", async () => {
