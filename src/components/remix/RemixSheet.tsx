@@ -272,8 +272,10 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   // a running or finished run shows its own choices, whatever the URL says
   const ran = mine && mine.state !== "failed" ? mine.run : { keep, about, close: closeness };
   const shownAs = mine && mine.state !== "failed" ? mine.rows.map((r) => r.as) : as;
-  const done = mine?.state === "done" ? mine.rows : [];
-  const failedRow = mine?.state === "failed" ? mine.rows.find((r) => r.state === "failed") : undefined;
+  const failedRun = mine?.state === "failed" ? mine.rows : [];
+  // a finished run, several formats or a saved script: each row with its own error and way on; one plain failure is a footer line
+  const resultRows = mine?.state === "done" || failedRun.length > 1 || failedRun.some((r) => r.scriptHref) ? (mine?.rows ?? []) : [];
+  const failedRow = resultRows.length ? undefined : failedRun.find((r) => r.state === "failed");
 
   let body: ReactNode;
   let footer: ReactNode;
@@ -284,12 +286,12 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
         Close
       </Button>
     );
-  } else if (done.length) {
-    const first = done.findIndex((r) => r.state === "done");
+  } else if (resultRows.length) {
+    const first = resultRows.findIndex((r) => r.state === "done");
     const madeWith = ran.keep === "topic" && ran.about ? `Moved to ${ran.about}` : KEEP_DONE[ran.keep];
     body = (
       <div className="space-y-5">
-        {done.map((row, n) => (
+        {resultRows.map((row, n) => (
           <ResultRow key={row.as} row={row} primary={n === first} madeWith={madeWith} onRetry={() => retry(row.as)} />
         ))}
       </div>
@@ -441,16 +443,9 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
       <div className="space-y-1.5">
         {/* out of uses: the button and the line under it already say so */}
         {failedRow && !out && (
-          <div role="alert" className="space-y-1">
-            <p className="flex items-start gap-1.5 text-xs font-medium text-red-700 dark:text-red-300">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {failedRow.error}
-            </p>
-            {failedRow.scriptHref && (
-              <Link to={failedRow.scriptHref} onClick={clearRemixJob} className="inline-flex items-center pl-5 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
-                Open the script
-              </Link>
-            )}
-          </div>
+          <p role="alert" className="flex items-start gap-1.5 text-xs font-medium text-red-700 dark:text-red-300">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {failedRow.error}
+          </p>
         )}
         {/* the price and uses wrap right-aligned beside the label on a phone */}
         <Button type="button" onClick={() => void press()} disabled={out || short || otherRunning || waiting || !!videoStop} className="h-auto min-h-10 w-full justify-between gap-3 whitespace-normal py-2">
@@ -567,7 +562,8 @@ function ResultRow({ row, primary, madeWith, onRetry }: { row: RemixRow; primary
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {row.scriptHref && (
-            <Button asChild variant="outline" size="sm">
+            // too long: shortening the script is the way on, and Try again would spend again
+            <Button asChild variant={row.tooLong ? "default" : "outline"} size="sm">
               <Link to={row.scriptHref} onClick={clearRemixJob}>
                 Open the script
               </Link>
