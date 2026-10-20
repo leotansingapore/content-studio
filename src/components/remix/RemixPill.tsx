@@ -40,7 +40,7 @@ export default function RemixPill() {
       {job.state === "done" && many && (
         <Link to={sheet} className="inline-flex items-center gap-2 [@media(pointer:coarse)]:min-h-11">
           <Shuffle className="h-3.5 w-3.5 text-primary" />
-          {made === job.rows.length ? `Your ${made} formats are ready` : `${made} of ${job.rows.length} formats are ready`}
+          {made === job.rows.length ? `Your ${made} formats are ready` : `${made} of ${job.rows.length} formats ready`}
           <span className="text-primary">Open</span>
         </Link>
       )}
