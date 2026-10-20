@@ -3631,7 +3631,13 @@ export default function GeneratePage() {
               <p className="mb-2 text-xs text-muted-foreground">
                 <Link
                   to={links.generate({ draft: savedEntry.id, compare: "original" })}
-                  replace
+                  onClick={(e) => {
+                    // a plain click opens the Original in place and keeps the rest of the address; the href is for a new tab
+                    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                    e.preventDefault();
+                    if (compareTab === "original") document.getElementById("compare-original")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    else setCompareTab("original");
+                  }}
                   className="inline-flex items-center hover:text-foreground hover:underline [@media(pointer:coarse)]:min-h-11"
                 >
                   {draftLine(savedEntry.source)}

@@ -148,6 +148,7 @@ export default function RemixCompare({
       <div className={`${tab === "original" ? "" : "hidden"} min-w-0 lg:block ${side ? "lg:col-start-1 lg:row-start-1 lg:self-stretch" : ""}`}>
         <section
           ref={originalRef}
+          id="compare-original"
           aria-label="Original"
           className={`scroll-mt-20 space-y-4 rounded-xl border border-border/60 bg-card p-4 shadow-card ${
             side ? "lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto" : ""
