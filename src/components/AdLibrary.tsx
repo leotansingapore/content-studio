@@ -2,7 +2,7 @@
 // In your space and the Singapore picks in one searchable list, with scope pills, filters, three sorts, the Proven
 // ad badge and the ad drawer. Every filter, the sort, the search and the open ad live in the URL. Checks and
 // labelling run outside React (src/lib/adLibrary.ts, src/lib/competitorAds.ts); this only draws their state.
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, Filter, ImageOff, Loader2, PenLine, Play, RefreshCw, Search } from "lucide-react";
 import AdDetailDrawer, { LoadingAdDrawer, useLinkedAd } from "@/components/AdDetailDrawer";
@@ -92,6 +92,13 @@ export default function AdLibrary({ userId }: { userId: string }) {
   const [limit, setLimit] = useState(PAGE);
   const [editing, setEditing] = useState(false);
   const [words, setWords] = useState<string[]>([]);
+  // the editor sits under the cards, so "Set your space" at the top brings it into view
+  const editor = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (!editing) return;
+    editor.current?.scrollIntoView({ block: "center" });
+    editor.current?.querySelector("input")?.focus({ preventScroll: true });
+  }, [editing]);
 
   // a competitor that is gone (or not synced yet) reads as All
   const scope = ["all", "space", "sg"].includes(scopeParam) || all.some((a) => a.scope === scopeParam) ? scopeParam : "all";
@@ -267,7 +274,7 @@ export default function AdLibrary({ userId }: { userId: string }) {
         {why && !busy && space.keywords.length > 0 && <p className="text-xs text-muted-foreground">{why}</p>}
 
         {editing && (
-          <form onSubmit={save} className="space-y-3 rounded-xl border border-border/60 bg-card p-4" aria-labelledby="space-words">
+          <form ref={editor} onSubmit={save} className="space-y-3 rounded-xl border border-border/60 bg-card p-4" aria-labelledby="space-words">
             <div className="space-y-0.5">
               <h3 id="space-words" className="text-sm font-semibold">Search words for your space</h3>
               <p className="text-xs text-muted-foreground">Up to 3. We search Singapore's Meta ads for each.</p>
