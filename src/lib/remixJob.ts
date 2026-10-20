@@ -181,7 +181,8 @@ async function runRows(id: number, userId: string, run: RemixRun) {
   for (let i = 0; i < run.as.length; i++) await makeRow(id, i, userId, run, text, teardown, i === 0 && !broke);
   if (job?.id !== id) return;
   const done = job.rows.some((r) => r.state === "done");
-  if (done) {
+  // a format that failed is tried again with the same note, so it stays until every format is done
+  if (job.rows.every((r) => r.state === "done")) {
     try {
       globalThis.window?.localStorage?.removeItem(noteKey(run.source.key));
     } catch {

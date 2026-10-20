@@ -327,14 +327,17 @@ describe("several formats and the videos", () => {
       if (b.as === "carousel") throw new EdgeError("failed", 502, "failed");
       return b.as === "speaking" ? speaking : post;
     });
+    local.setItem(`cs-remix-note-${source.key}`, "short please");
     const done = finished();
-    startRemix(UID, run(["speaking", "carousel", "post"]));
+    startRemix(UID, run(["speaking", "carousel", "post"], { note: "short please" }));
     expect(remixJob()!.rows.map((r) => r.as)).toEqual(["carousel", "post", "speaking"]);
     const j = await done;
     expect(make.mock.calls.map(([b]) => b.as)).toEqual(["carousel", "post", "speaking"]);
     expect(j.state).toBe("done");
     expect(j.rows.map((r) => r.state)).toEqual(["failed", "done", "done"]);
     expect(j.rows[0]).toMatchObject({ error: NOTHING_USED, refunded: true });
+    // the failed carousel's Try again gets the same note the others used
+    expect(local.getItem(`cs-remix-note-${source.key}`)).toBe("short please");
   });
 
   it("saves the script before the voiceover and the video, then makes an AI presenter speak it", async () => {
