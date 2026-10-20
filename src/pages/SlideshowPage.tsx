@@ -683,6 +683,12 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
 
         <Card className="h-fit border-border/60 shadow-card lg:sticky lg:top-4">
           <CardContent className="pt-6">
+            {/* the slide controls go with the slide: on the Original tab there is none on screen to change */}
+            {showOriginal ? (
+              <Button variant="outline" onClick={() => setView("slides")} className={`w-full ${TOUCH}`}>
+                Edit the slides
+              </Button>
+            ) : (
             <SlideInspector
               userId={userId}
               show={work}
@@ -696,6 +702,7 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
               brand={brand}
               act={act}
             />
+            )}
           </CardContent>
         </Card>
       </div>
