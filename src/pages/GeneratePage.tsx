@@ -1145,6 +1145,19 @@ export default function GeneratePage() {
       if (e) upsertDraft(userId, { ...e, source: next ?? undefined });
     }
   };
+  // The x, with Undo: a source that has rotated out of its drop can't be remixed again from its card.
+  const removeSource = () => {
+    const prev = remixSource;
+    changeSource(null);
+    toast({
+      title: "Source removed",
+      action: (
+        <ToastAction altText="Undo" onClick={() => changeSource(prev)}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
   // An earlier remix of the same source in the last 30 days, while this one is not saved yet.
   const repeat = useMemo(() => {
     const r = userId ? earlierRemix(userId, remixSource) : null;
@@ -2586,7 +2599,7 @@ export default function GeneratePage() {
             </p>
             <button
               type="button"
-              onClick={() => changeSource(null)}
+              onClick={removeSource}
               aria-label="Remove the source"
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-background hover:text-foreground [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
             >
