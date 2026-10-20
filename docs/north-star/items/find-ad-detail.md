@@ -67,7 +67,7 @@ Files:
 Helpers in `src/lib/adDetail.ts`, with copy matching `find-competitor-ads`:
 
 - `runLength(ad, now)`: `{ big: "45 days", small: "running" }`. Under 60 days it counts days; from 60 to 364 days it shows whole months, days divided by 30 and rounded down ("2 months" at 60, "10 months" for Thomson Medical's video from 23 Dec 2025); from 365 days whole years ("1 year", "2 years"). An ad that has stopped measures start to end and says `small: "ran"`. Null without a start date. The drop has no end date, so every drop ad reads "running".
-- `rankAmong(ad, list)`: rank by days running among the ads in `list` with the same advertiser, where `list` is the list the drawer was opened from. Rank 1 of 2 or more gives `{ big: "Longest", small: "of their 3 ads" }`, rank 2 gives "2nd longest", rank 3 or lower gives "#3", and a single ad gives `{ big: "Only ad", small: "of theirs here" }`. Ads that started the same day share a rank, and a shared first place reads "Joint longest" (Singlife's 3 drop ads all started on 10 Sep).
+- `rankAmong(ad, list)`: rank by days running among the ads in `list` with the same advertiser, where `list` is the list the drawer was opened from. Rank 1 of 2 or more gives `{ big: "Longest", small: "of their 3 ads" }` when the check read every ad the advertiser runs, and "of the 3 we read" when it was capped (the drop keeps 3 per advertiser, and a competitor check reads 30 items by impressions; dogfood 21 Oct found "their longest" wrong on 5 of 5 capped reads), rank 2 gives "2nd longest", rank 3 or lower gives "#3", and a single ad gives `{ big: "Only ad", small: "of theirs here" }`. Ads that started the same day share a rank, and a shared first place reads "Joint longest" (Singlife's 3 drop ads all started on 10 Sep).
 - `placementLabel(platforms)`, case-insensitive because the drop says FACEBOOK and the scraper says facebook: Facebook, Instagram, Threads, WhatsApp, Messenger, Audience Network, joined as "Facebook, Instagram and Threads". Unknown values are dropped.
 - `proofLine(ad, list, now)` returns the first line that holds:
   - running, rank 1 of 2 or more, 30+ days: "Their longest running ad right now."
@@ -147,7 +147,7 @@ Nothing new is stored. The drawer reads the drop (`src/data/adsSwipe.json`), the
 
 - [ ] On Leo's sign-in, clicking an ad's picture or headline on `/swipe?tab=ads` opens the drawer and the URL gains `&ad=<id>`; Back closes it.
 - [ ] The drawer shows the three stats, Started, Placement, Hook, Proof, the "What Remix does" box and both buttons, with the copy above.
-- [ ] Prudential Singapore's image ad from 16 Sep says "Longest" / "of their 3 ads" and its other two say "2nd longest" and "#3"; each of Singlife's 3 ads says "Joint longest".
+- [ ] Prudential Singapore's image ad from 16 Sep says "Longest" / "of the 3 we read" and its other two say "2nd longest" and "#3"; each of Singlife's 3 ads says "Joint longest".
 - [ ] A drop video ad shows "Video ad. Play it on Meta." and that link opens the Ad Library entry; a competitor video ad with a live `video` link plays in the drawer.
 - [ ] With `remix-teardown` live, the Breakdown row opens and shows the ad's hook, beats and why, built from the ad's copy.
 - [ ] The same drawer opens from `/competitors?view=ads` once `find-competitor-ads` is live.
