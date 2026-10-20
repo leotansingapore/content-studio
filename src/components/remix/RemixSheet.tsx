@@ -3,7 +3,10 @@ import { createPortal } from "react-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ChevronDown, ExternalLink, Loader2, Shuffle, X } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
+import BreakdownRow from "@/components/remix/BreakdownRow";
+import FitLine from "@/components/remix/FitLine";
 import ForRow from "@/components/remix/ForRow";
+import MakeRow, { useAiBusy } from "@/components/remix/MakeRow";
 import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { InfoTip } from "@/components/ui/info-tip";
@@ -13,26 +16,40 @@ import { loadBrand } from "@/lib/carousel";
 import { getDraftById } from "@/lib/draftHistory";
 import { links, slug } from "@/lib/links";
 import { loadPositioning } from "@/lib/positioning";
+import { creditsUsd } from "@/lib/aiVideo";
+import { reasonText } from "@/lib/prices";
 import {
-  AS_NOUN,
+  AS_LABELS,
   CLOSE_HINTS,
   CLOSE_LABELS,
   KEEP_DONE,
   KEEP_HINTS,
   KEEP_LABELS,
+  MAKE_CHIPS,
+  asParam,
+  cleanAs,
   defaultOutput,
+  fullText,
   intentsFor,
+  isVideo,
+  makePrice,
   noteKey,
+  remixLabel,
+  videoAsk,
+  videoBlock,
   whatRemixDoes,
   type Close,
   type Flags,
   type Keep,
+  type RemixAs,
 } from "@/lib/remix";
 import { brandName, loadRemixPrefs, offerNames, ownBrandName, saveRemixPrefs, speakerFor, type RemixPrefs } from "@/lib/remixBrand";
-import { clearRemixJob, hrefFor, onRemixJob, remixJob, startRemix, type RemixJobState } from "@/lib/remixJob";
+import { FIT_WAIT_MS, UNKNOWN_FIT, fitAsk, fitVideo, loadFit, pressAction, requestFit, type FitResult } from "@/lib/remixFit";
+import { clearRemixJob, hrefFor, onRemixJob, remixJob, startRemix, type RemixJobState, type RemixRow } from "@/lib/remixJob";
 import { dayMonth, earlierRemix, seenSources, sourceNoun, type RemixSource } from "@/lib/remixSource";
+import { localTeardown } from "@/lib/remixTeardown";
 import { resolveSource } from "@/lib/resolveSource";
-import { useUrlFlag, useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useUrlFlag, useUrlItem, useUrlList, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import type { LeoUser } from "@/lib/useLeoOnly";
 import { VOICE_MIN_CHARS, isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
 
@@ -42,7 +59,7 @@ import { VOICE_MIN_CHARS, isVoiceProfileUsable, loadVoiceProfile } from "@/lib/v
 
 const CLOSE_ORDER = Object.keys(CLOSE_LABELS) as Close[];
 /** Closing drops every sheet param with the key, so the next card's sheet starts from the defaults. */
-const SHEET_PARAMS = Object.fromEntries(["remix", "keep", "about", "close", "more", "for", "mention", "offer"].map((p) => [p, null]));
+const SHEET_PARAMS = Object.fromEntries(["remix", "keep", "about", "close", "more", "for", "mention", "offer", "as", "breakdown"].map((p) => [p, null]));
 
 export default function RemixSheet({ user }: { user: LeoUser }) {
   const [key] = useUrlItem("remix");
@@ -101,7 +118,9 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const mine = job?.key === remixKey ? job : null;
   const working = mine?.state === "working";
   const otherRunning = job?.state === "working" && !mine;
-  const left = useUsesLeft(job?.state === "working")("remix-make");
+  const leftOf = useUsesLeft(job?.state === "working");
+  const left = leftOf("remix-make");
+  const aiBusy = useAiBusy();
   const [params] = useSearchParams();
   const update = useUrlUpdate();
 
@@ -114,6 +133,14 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const [closeness] = useUrlState<Close>("close", "balanced", { allowed: CLOSE_ORDER });
   const [more, setMore] = useUrlFlag("more", "open");
   const [forOpen, setForOpen] = useUrlFlag("for", "open");
+  const [breakdownOpen, setBreakdownOpen] = useUrlFlag("breakdown", "open");
+  // as=post,carousel: up to 3 formats, one video; the source's own format is the default and stays out of the URL
+  const [asList, setAsList] = useUrlList("as", { allowed: MAKE_CHIPS });
+  const fallbackAs = source ? defaultOutput(source) : "post";
+  const asKey = asList.join(",");
+  const as = useMemo(() => cleanAs(asKey.split(","), fallbackAs), [asKey, fallbackAs]);
+  const setAs = (next: RemixAs[]) => setAsList(asParam(next, fallbackAs));
+  const picked = as.find(isVideo);
 
   // the URL wins (mention=no, offer=<slug>), then the remembered pick for this brand, then the default
   const [prefs, setPrefs] = useState<RemixPrefs>(() => loadRemixPrefs(userId));
@@ -125,6 +152,32 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const offer = mention ? (offerParam && offers.find((o) => slug(o) === offerParam)) || prefs.offer : null;
   const kitSpeaker = useMemo(() => speakerFor(userId), [userId]);
   const speaker = prefs.speaker ?? kitSpeaker;
+  const text = useMemo(() => (source ? fullText(source, userId) : ""), [source, userId]);
+  // a breakdown on this device means the job's "Breaking it down" step is skipped, so the box doesn't name it
+  const teardownCached = useMemo(() => !!source && !!localTeardown(userId, source), [source, userId, breakdownOpen, job?.state]);
+
+  // The fit check runs on open, per source, brand and video-or-not; a kept answer shows at once.
+  const fv = source ? fitVideo(source, !!picked) : false;
+  const fitId = `${remixKey}|${fv}`;
+  const keptFit = useMemo(() => (source ? loadFit(userId, source.key, fv) : null), [source, userId, fv]);
+  const [liveFit, setLiveFit] = useState<{ id: string; result: FitResult } | null>(null);
+  const fitRun = useRef<Promise<FitResult> | null>(null);
+  useEffect(() => {
+    if (!source || keptFit) {
+      fitRun.current = keptFit ? Promise.resolve(keptFit) : null;
+      return;
+    }
+    let live = true;
+    const run = requestFit(userId, source, fv);
+    fitRun.current = run;
+    void run.then((result) => {
+      if (live) setLiveFit({ id: fitId, result });
+    });
+    return () => {
+      live = false;
+    };
+  }, [source, userId, fv, keptFit, fitId]);
+  const fit: FitResult | "checking" = keptFit ?? (liveFit?.id === fitId ? liveFit.result : "checking");
   const savePrefs = (next: RemixPrefs, url: Record<string, string | null>) => {
     setPrefs(next);
     saveRemixPrefs(userId, next);
@@ -167,21 +220,58 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
     };
   }, []);
 
-  const as = source ? [defaultOutput(source)] : [];
+  const uses = as.length;
   const out = left === 0;
-  const start = () => {
+  const short = left !== null && uses > left;
+  const videoStop = picked ? videoBlock(picked, { busy: aiBusy, left: leftOf }) : null;
+  // The press: weak or poor fits and video formats ask first; nothing is spent until the run starts.
+  const [asking, setAsking] = useState<FitResult | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => setAsking(null), [asKey]);
+  const start = (f: FitResult) => {
     if (!source) return;
-    startRemix(userId, { source, keep, about: keep === "topic" ? about : undefined, close: closeness, as, note: note.trim() || undefined, mention, offer, speaker });
+    setAsking(null);
+    startRemix(userId, {
+      source,
+      keep,
+      about: keep === "topic" ? about : undefined,
+      close: closeness,
+      as,
+      note: note.trim() || undefined,
+      mention,
+      offer,
+      speaker,
+      voice: prefs.voice,
+      fit: f.verdict === "unknown" ? undefined : { verdict: f.verdict, reasons: f.reasons },
+    });
+  };
+  const press = async () => {
+    let f = fit === "checking" ? null : fit;
+    if (!f) {
+      // a press during the check waits for it, at most Jev's own 5 s
+      setWaiting(true);
+      f = await Promise.race([fitRun.current ?? Promise.resolve(UNKNOWN_FIT), new Promise<FitResult>((r) => setTimeout(() => r(UNKNOWN_FIT), FIT_WAIT_MS))]);
+      setWaiting(false);
+    }
+    if (pressAction(f.verdict, false) === "ask" || videoAsk(as)) setAsking(f);
+    else start(f);
   };
   const again = () => {
     clearRemixJob();
     setNote(readNote(remixKey));
     setRepeatHidden(false);
   };
+  /** A failed format back in the form on its own, so its own press (and ask-first) runs it again. */
+  const retry = (a: RemixAs) => {
+    again();
+    setAs([a]);
+  };
+  const toCarousel = () => setAs([...as.filter((a) => !isVideo(a) && a !== "carousel"), "carousel"]);
 
   // a running or finished run shows its own choices, whatever the URL says
   const ran = mine && mine.state !== "failed" ? mine.run : { keep, about, close: closeness };
-  const done = mine?.state === "done" ? mine.rows.filter((r) => r.state === "done") : [];
+  const shownAs = mine && mine.state !== "failed" ? mine.rows.map((r) => r.as) : as;
+  const done = mine?.state === "done" ? mine.rows : [];
   const failedRow = mine?.state === "failed" ? mine.rows.find((r) => r.state === "failed") : undefined;
 
   let body: ReactNode;
@@ -194,39 +284,31 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
       </Button>
     );
   } else if (done.length) {
-    const first = done[0];
+    const first = done.findIndex((r) => r.state === "done");
+    const madeWith = ran.keep === "topic" && ran.about ? `Moved to ${ran.about}` : KEEP_DONE[ran.keep];
     body = (
-      <div className="space-y-4">
-        {done.map((row) => (
-          <section key={row.as} className="space-y-2">
-            <h3 className="text-base font-semibold text-foreground">Your {AS_NOUN[row.as]} is ready</h3>
-            <p className="text-xs text-muted-foreground">{ran.keep === "topic" && ran.about ? `Moved to ${ran.about}` : KEEP_DONE[ran.keep]}</p>
-            {row.hook && <blockquote className="border-l-2 border-primary/50 pl-3 text-sm text-foreground">{row.hook}</blockquote>}
-            {row.flags && <FlagChips flags={row.flags} />}
-          </section>
+      <div className="space-y-5">
+        {done.map((row, n) => (
+          <ResultRow key={row.as} row={row} primary={n === first} madeWith={madeWith} onRetry={() => retry(row.as)} />
         ))}
       </div>
     );
     footer = (
-      <div className="flex items-center gap-2">
-        <Button asChild className="flex-1">
-          <Link to={first.href ?? links.generate({ draft: first.draftId })} onClick={clearRemixJob}>
-            Open it
-          </Link>
-        </Button>
-        <Button type="button" variant="ghost" onClick={again} className="text-muted-foreground">
-          Remix again
-        </Button>
-      </div>
+      <Button type="button" variant="ghost" onClick={again} className="w-full text-muted-foreground">
+        Remix again
+      </Button>
     );
   } else {
     body = (
       <div className="space-y-5">
-        <section className="rounded-xl border border-border/70 bg-muted/30 p-3">
-          <h3 className="mb-1 text-xs font-semibold text-foreground">What Remix does</h3>
+        <BreakdownRow userId={userId} source={source} text={text} open={breakdownOpen} onOpen={setBreakdownOpen} />
+
+        <section className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-3">
+          <h3 className="text-xs font-semibold text-foreground">What Remix does</h3>
           <p className="text-sm leading-snug text-muted-foreground">
-            {whatRemixDoes(source, { keep: ran.keep, about: ran.about, as, close: ran.close }, { brand, hasVoice: voicePosts > 0, teardownCached: true })}
+            {whatRemixDoes(source, { keep: ran.keep, about: ran.about, as: shownAs, close: ran.close }, { brand, hasVoice: voicePosts > 0, teardownCached })}
           </p>
+          {!mine && <FitLine fit={fit} brand={brand} video={!!picked} disabled={working} onCarousel={toCarousel} />}
         </section>
 
         <section className="space-y-2">
@@ -262,6 +344,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           )}
         </section>
 
+        <MakeRow source={source} as={shownAs} setAs={setAs} busy={working} left={leftOf} />
+
         <ForRow
           brand={brand}
           named={named}
@@ -269,6 +353,10 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           offer={offer}
           offers={offers}
           speaker={speaker}
+          presenter={shownAs.includes("speaking")}
+          video={shownAs.some(isVideo)}
+          voice={prefs.voice}
+          onVoice={(v) => savePrefs({ ...prefs, voice: v }, {})}
           voicePosts={voicePosts}
           color={kit?.color}
           logo={kit?.logo}
@@ -341,26 +429,43 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
         </p>
         <p className="text-center text-xs text-muted-foreground">You can leave this page. We'll tell you when it's ready.</p>
       </div>
+    ) : asking ? (
+      <AskFirst
+        fitQuestion={fitAsk(asking.verdict)}
+        videoLine={videoAsk(as)}
+        onGo={() => start(asking)}
+        onBack={fitAsk(asking.verdict) ? onClose : () => setAsking(null)}
+      />
     ) : (
       <div className="space-y-1.5">
         {/* out of uses: the button and the line under it already say so */}
         {failedRow && !out && (
-          <p role="alert" className="flex items-start gap-1.5 text-xs font-medium text-red-700 dark:text-red-300">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {failedRow.error}
-          </p>
+          <div role="alert" className="space-y-1">
+            <p className="flex items-start gap-1.5 text-xs font-medium text-red-700 dark:text-red-300">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {failedRow.error}
+            </p>
+            {failedRow.scriptHref && (
+              <Link to={failedRow.scriptHref} onClick={clearRemixJob} className="inline-flex items-center pl-5 text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+                Open the script
+              </Link>
+            )}
+          </div>
         )}
-        <Button type="button" onClick={start} disabled={out || otherRunning} className="w-full justify-between gap-3">
-          <span className="flex items-center gap-2">
-            <Shuffle className="h-4 w-4" />
-            {out ? "No remixes left today" : failedRow ? "Try again" : "Remix"}
+        {/* the price and uses wrap right-aligned beside the label on a phone */}
+        <Button type="button" onClick={() => void press()} disabled={out || short || otherRunning || waiting || !!videoStop} className="h-auto min-h-10 w-full justify-between gap-3 whitespace-normal py-2">
+          <span className="flex shrink-0 items-center gap-2">
+            {waiting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shuffle className="h-4 w-4" />}
+            {out ? "No remixes left today" : waiting ? "Checking the fit..." : failedRow ? "Try again" : remixLabel(uses)}
           </span>
           {!out && (
-            <span className="[&>span]:text-primary-foreground/85">
-              <PriceChip feature="remix-make" left={left} fallback={left === null ? null : `${left} left today`} />
+            <span className="min-w-0 text-right leading-tight [&>span]:text-primary-foreground/85">
+              <PriceChip price={makePrice(as)} left={left} uses={uses} fallback={left === null ? null : `${left} left today`} />
             </span>
           )}
         </Button>
         {out && <p className="text-center text-xs text-muted-foreground">They reset at 8am Singapore time.</p>}
+        {short && !out && <p className="text-center text-xs text-muted-foreground">{reasonText({ left, uses, leo: true })}</p>}
+        {videoStop && !out && <p className="text-center text-xs text-muted-foreground">{videoStop}</p>}
         {otherRunning && <p className="text-center text-xs text-muted-foreground">Your other remix is still going. This one can start once it's done.</p>}
       </div>
     );
@@ -441,6 +546,76 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
       </div>
     </div>,
     document.body,
+  );
+}
+
+/** One format's result: its hook, warnings and its own Open, or why it didn't go through. */
+function ResultRow({ row, primary, madeWith, onRetry }: { row: RemixRow; primary: boolean; madeWith: string; onRetry(): void }) {
+  const video = isVideo(row.as);
+  if (row.state !== "done") {
+    return (
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold text-foreground">{AS_LABELS[row.as]}</h3>
+        <p className="flex items-start gap-1.5 text-xs font-medium text-red-700 dark:text-red-300">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {row.error ?? "This one didn't go through."}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {row.scriptHref && (
+            <Button asChild variant="outline" size="sm">
+              <Link to={row.scriptHref} onClick={clearRemixJob}>
+                Open the script
+              </Link>
+            </Button>
+          )}
+          {!row.tooLong && (
+            <Button type="button" variant="ghost" size="sm" onClick={onRetry}>
+              Try again
+            </Button>
+          )}
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section className="space-y-2">
+      <h3 className="text-base font-semibold text-foreground">{AS_LABELS[row.as]} ready</h3>
+      <p className="text-xs text-muted-foreground">
+        {video ? "Opening in the video editor" : madeWith}
+        {row.credits ? ` | Used ${row.credits} Higgsfield credits (about US$${creditsUsd(row.credits).toFixed(2)}).` : ""}
+      </p>
+      {row.hook && <blockquote className="border-l-2 border-primary/50 pl-3 text-sm text-foreground">{row.hook}</blockquote>}
+      {row.flags && <FlagChips flags={row.flags} />}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button asChild size="sm" variant={primary ? "default" : "outline"}>
+          <Link to={row.href ?? links.generate({ draft: row.draftId })} onClick={clearRemixJob}>
+            Open
+          </Link>
+        </Button>
+        {video && row.scriptHref && (
+          <Link to={row.scriptHref} onClick={clearRemixJob} className="inline-flex items-center text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+            Open the script
+          </Link>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** The ask-first row: a weak or poor fit, a video's price, or both, before anything is spent. */
+function AskFirst(p: { fitQuestion: string | null; videoLine: string | null; onGo(): void; onBack(): void }) {
+  return (
+    <div className="space-y-2">
+      {p.fitQuestion && <p className="text-sm font-medium text-amber-700 dark:text-amber-300">{p.fitQuestion}</p>}
+      {p.videoLine && <p className="text-xs text-muted-foreground">{p.fitQuestion ? p.videoLine : `${p.videoLine} Make it?`}</p>}
+      <div className="flex items-center gap-2">
+        <Button type="button" onClick={p.onGo} className="flex-1">
+          {p.fitQuestion ? "Remix anyway" : "Make it"}
+        </Button>
+        <Button type="button" variant="ghost" onClick={p.onBack} className="text-muted-foreground">
+          {p.fitQuestion ? "Pick another" : "Not now"}
+        </Button>
+      </div>
+    </div>
   );
 }
 

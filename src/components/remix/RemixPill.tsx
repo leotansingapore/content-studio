@@ -3,8 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 import { Loader2, Shuffle, X } from "lucide-react";
 import { clearRemixJob, onRemixJob, remixJob, runParams } from "@/lib/remixJob";
 
-// A remix keeps running while you use other pages; this says so, and offers the draft when it is ready. It sits
-// one row above ExportPill so the two never overlap, and hides while the sheet for the same remix is open.
+// A remix keeps running while you use other pages; this says so, with the step it is on (a video format relays the
+// AI video's own steps, "Making the pictures, 2 of 5 ready..."), and offers the draft when it is ready. It sits one
+// row above ExportPill so the two never overlap, and hides while the sheet for the same remix is open.
 export default function RemixPill() {
   const { pathname, search } = useLocation();
   const [job, setJob] = useState(remixJob);
@@ -28,8 +29,9 @@ export default function RemixPill() {
       className="fixed bottom-32 left-4 z-40 flex items-center gap-2 rounded-full border border-border/70 bg-background px-3 py-2 text-xs [@media(pointer:coarse)]:py-0 font-semibold shadow-elegant lg:bottom-16 lg:left-[calc(var(--nav-w)+1rem)]"
     >
       {job.state === "working" && (
-        <Link to={sheet} className="flex items-center gap-2 [@media(pointer:coarse)]:min-h-11">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> Remixing...
+        <Link to={sheet} className="flex min-w-0 max-w-[calc(100vw-6rem)] items-center gap-2 sm:max-w-sm [@media(pointer:coarse)]:min-h-11">
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+          <span className="truncate">{job.step ? `Remixing: ${job.step}` : "Remixing..."}</span>
         </Link>
       )}
       {job.state === "done" && ready?.href && (

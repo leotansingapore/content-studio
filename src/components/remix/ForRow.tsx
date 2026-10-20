@@ -4,10 +4,12 @@ import { FilterChip } from "@/components/ui/filter-chip";
 import { links } from "@/lib/links";
 import { forSummary } from "@/lib/remixBrand";
 import type { Speaker } from "@/lib/remix";
+import { VOICES, VOICE_IDS, type VoiceId } from "@/lib/textVoice";
 
 /**
  * Who the remix is for (docs/north-star/items/remix-your-brand.md): one summary line that opens into the few
- * switches that change it. Each switch saves at once. Face and Video voice come with the video formats.
+ * switches that change it. Each switch saves at once. Face shows with "You speaking" and Video voice with either
+ * video format; "My face" and "My voice" stay hidden until people-my-face and people-my-voice ship.
  */
 export default function ForRow(p: {
   brand: string;
@@ -21,6 +23,12 @@ export default function ForRow(p: {
   voicePosts: number;
   color?: string;
   logo?: string;
+  /** "You speaking" is picked: an AI presenter says it. */
+  presenter: boolean;
+  /** Either video format is picked. */
+  video: boolean;
+  voice: VoiceId;
+  onVoice(v: VoiceId): void;
   open: boolean;
   setOpen(open: boolean): void;
   onMention(on: boolean): void;
@@ -28,7 +36,7 @@ export default function ForRow(p: {
   onSpeaker(s: Speaker): void;
   disabled: boolean;
 }) {
-  const summary = forSummary({ brand: p.brand, speaker: p.speaker, hasVoice: p.voicePosts > 0, mention: p.mention, offer: p.offer, video: false });
+  const summary = forSummary({ brand: p.brand, speaker: p.speaker, hasVoice: p.voicePosts > 0, mention: p.mention, offer: p.offer, video: p.presenter });
   if (!p.open) {
     return (
       <div className="flex items-center gap-3">
@@ -119,6 +127,28 @@ export default function ForRow(p: {
           </p>
         )}
       </div>
+      {p.presenter && (
+        <div className={row}>
+          <span className={label}>Face</span>
+          <div className="flex flex-wrap gap-1.5">
+            <FilterChip active onClick={() => {}} disabled={p.disabled}>
+              AI presenter
+            </FilterChip>
+          </div>
+        </div>
+      )}
+      {p.video && (
+        <div className={row}>
+          <span className={label}>Video voice</span>
+          <div className="flex flex-wrap gap-1.5">
+            {VOICE_IDS.map((v) => (
+              <FilterChip key={v} active={p.voice === v} onClick={() => p.onVoice(v)} disabled={p.disabled}>
+                {VOICES[v].label}
+              </FilterChip>
+            ))}
+          </div>
+        </div>
+      )}
       <div className={row}>
         <span className={label}>Look</span>
         <p className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
