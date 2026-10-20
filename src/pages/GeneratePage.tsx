@@ -4079,7 +4079,8 @@ export default function GeneratePage() {
                       size="sm"
                       onClick={handleStoryboard}
                       disabled={storyboardBusy || !shortScript || storyboardLeft === 0}
-                      className="h-11 gap-1.5 disabled:opacity-100 sm:h-9"
+                      // full strength only for the busy orb and today's no-script state; Leo's 0 left looks off
+                      className={`h-11 gap-1.5 sm:h-9 ${storyboardLeft === 0 && !storyboardBusy ? "" : "disabled:opacity-100"}`}
                     >
                       {storyboardBusy ? (
                         <ThinkingOrb state="working" size={20} theme="light" aria-hidden />
