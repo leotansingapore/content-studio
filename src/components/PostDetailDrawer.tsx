@@ -24,6 +24,8 @@ import { buildRemixUrl, compactNum, generatorFormat } from "@/lib/topPosts";
 import { embedUrlFor, safeExternalUrl } from "@/lib/embed";
 import { cloneLinkFor } from "@/lib/reelClone";
 import { similarPosts, type ScoredPost } from "@/lib/postInsights";
+import RemixButton from "@/components/remix/RemixButton";
+import { fromTopPost } from "@/lib/remixSource";
 
 const FORMAT_LABEL: Record<string, string> = {
   "short-video": "Reel",
@@ -181,11 +183,13 @@ export default function PostDetailDrawer({
             </div>
 
             <div className="space-y-2">
-              <Button asChild className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
-                <Link to={remixUrl}>
-                  <Wand2 className="h-4 w-4" /> Remix this for my business
-                </Link>
-              </Button>
+              <RemixButton source={fromTopPost(post, { id: post.advisorId, name: post.advisorName, handle: post.handle })}>
+                <Button asChild className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
+                  <Link to={remixUrl}>
+                    <Wand2 className="h-4 w-4" /> Remix this for my business
+                  </Link>
+                </Button>
+              </RemixButton>
               <div className="flex gap-2">
                 <Button asChild variant="outline" className="flex-1 gap-2">
                   <a href={safeExternalUrl(post.url) ?? undefined} target="_blank" rel="noopener noreferrer">

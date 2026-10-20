@@ -16,6 +16,8 @@ import {
 } from "@/lib/creatorAnalysis";
 import { parseInstagramInput } from "@/components/CompetitorReference";
 import { buildRemixUrl } from "@/lib/topPosts";
+import RemixButton from "@/components/remix/RemixButton";
+import { fromTopPost } from "@/lib/remixSource";
 import { links } from "@/lib/links";
 import {
   Search,
@@ -61,6 +63,26 @@ function AnalysisResult({
 }) {
   const { advisor, bestPost, avgLikes, avgComments, formatStats, insights, posts } =
     analysis;
+
+  const remixLink = bestPost && (
+    <Button
+      asChild
+      size="sm"
+      className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
+    >
+      <Link
+        to={
+          live
+            ? `/generate?ctx=${encodeURIComponent(
+                `Remix this angle from ${advisor.handle} (adapt to my niche and voice, never copy): "${bestPost.caption.slice(0, 220)}"`,
+              )}`
+            : buildRemixUrl(bestPost, advisor)
+        }
+      >
+        <Wand2 className="h-3.5 w-3.5" /> Remix their best post in Write
+      </Link>
+    </Button>
+  );
 
   const formatRows: RankBarRow[] = formatStats.map((f) => ({
     key: f.format,
@@ -147,25 +169,7 @@ function AnalysisResult({
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        {bestPost && (
-          <Button
-            asChild
-            size="sm"
-            className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
-          >
-            <Link
-              to={
-                live
-                  ? `/generate?ctx=${encodeURIComponent(
-                      `Remix this angle from ${advisor.handle} (adapt to my niche and voice, never copy): "${bestPost.caption.slice(0, 220)}"`,
-                    )}`
-                  : buildRemixUrl(bestPost, advisor)
-              }
-            >
-              <Wand2 className="h-3.5 w-3.5" /> Remix their best post in Write
-            </Link>
-          </Button>
-        )}
+        {bestPost && (live ? remixLink : <RemixButton source={fromTopPost(bestPost, advisor)}>{remixLink}</RemixButton>)}
         <Button asChild size="sm" variant="outline" className="flex-1 gap-1.5">
           <Link
             to={links.plan({ competitor: live ? advisor.handle : advisor.id })}

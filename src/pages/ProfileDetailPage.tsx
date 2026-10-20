@@ -257,7 +257,7 @@ export default function ProfileDetailPage() {
               <TopPostCard
                 key={post.shortCode}
                 post={post}
-                advisor={{ name: entry.name, handle: entry.handle }}
+                advisor={{ id: entry.id, name: entry.name, handle: entry.handle }}
               />
             ))}
           </div>

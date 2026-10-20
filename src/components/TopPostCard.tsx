@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { buildRemixUrl, generatorFormat, type TopPost, type TopPostWithAdvisor } from "@/lib/topPosts";
 import { cloneLinkFor } from "@/lib/reelClone";
+import RemixButton from "@/components/remix/RemixButton";
+import { fromTopPost } from "@/lib/remixSource";
 import {
   deriveTopic,
   deriveAngle,
@@ -74,7 +76,7 @@ export default function TopPostCard({
   onOpen,
 }: {
   post: TopPost;
-  advisor: { name: string; handle: string };
+  advisor: { id: string; name: string; handle: string };
   showAdvisor?: boolean;
   insight?: PostInsight;
   saved?: boolean;
@@ -192,20 +194,22 @@ export default function TopPostCard({
 
         {/* Actions */}
         <div className="mt-auto flex items-center gap-2 pt-1">
-          <Button
-            asChild
-            size="sm"
-            className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
-          >
-            <Link
-              to={buildRemixUrl(post, advisor, {
-                angle: insight.angle,
-                structure: insight.structure,
-              })}
+          <RemixButton source={fromTopPost(post, advisor)}>
+            <Button
+              asChild
+              size="sm"
+              className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95"
             >
-              <Wand2 className="h-3.5 w-3.5" /> Remix this
-            </Link>
-          </Button>
+              <Link
+                to={buildRemixUrl(post, advisor, {
+                  angle: insight.angle,
+                  structure: insight.structure,
+                })}
+              >
+                <Wand2 className="h-3.5 w-3.5" /> Remix this
+              </Link>
+            </Button>
+          </RemixButton>
           {fmt === "short-video" && cloneLinkFor(post.url) && (
             <Button asChild variant="outline" size="sm" className="shrink-0 px-2.5" title="Clone this reel">
               <Link to={cloneLinkFor(post.url)!} aria-label="Clone this reel">

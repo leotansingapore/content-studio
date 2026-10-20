@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { FileText, Film, Flame, Heart, Images, Instagram, Play, Wand2 } from "lucide-react";
 import { buildRemixUrl, compactNum, generatorFormat, postAge } from "@/lib/topPosts";
 import type { ScoredPost } from "@/lib/postInsights";
+import RemixButton from "@/components/remix/RemixButton";
+import { fromTopPost } from "@/lib/remixSource";
 
 const FORMAT_ICON: Record<string, typeof Film> = {
   "short-video": Film,
@@ -11,7 +13,7 @@ const FORMAT_ICON: Record<string, typeof Film> = {
 
 // A tall swipe-file card: the cover first, numbers on the cover, then two lines
 // of caption and who posted it. The whole card opens the post; "Remix this"
-// goes straight to Write.
+// goes straight to Write (Leo's sign-ins get the Remix button instead).
 export default function ReelCard({ item, onOpen }: { item: ScoredPost; onOpen: () => void }) {
   const { post, insight } = item;
   const fmt = generatorFormat(post);
@@ -77,14 +79,16 @@ export default function ReelCard({ item, onOpen }: { item: ScoredPost; onOpen: (
           </span>
         </span>
       </button>
-      <Link
-        to={buildRemixUrl(post, { name: post.advisorName, handle: post.handle }, { angle: insight.angle, structure: insight.structure })}
-        onClick={(e) => e.stopPropagation()}
-        title="Rewrite this post for your business"
-        className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1.5 text-[11px] font-semibold text-primary shadow-sm backdrop-blur [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-2 [@media(pointer:coarse)]:after:content-[''] transition-colors hover:bg-background"
-      >
-        <Wand2 className="h-3 w-3" /> Remix this
-      </Link>
+      <RemixButton source={fromTopPost(post, { id: post.advisorId, name: post.advisorName, handle: post.handle })}>
+        <Link
+          to={buildRemixUrl(post, { name: post.advisorName, handle: post.handle }, { angle: insight.angle, structure: insight.structure })}
+          onClick={(e) => e.stopPropagation()}
+          title="Rewrite this post for your business"
+          className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2.5 py-1.5 text-[11px] font-semibold text-primary shadow-sm backdrop-blur [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-2 [@media(pointer:coarse)]:after:content-[''] transition-colors hover:bg-background"
+        >
+          <Wand2 className="h-3 w-3" /> Remix this
+        </Link>
+      </RemixButton>
     </div>
   );
 }
