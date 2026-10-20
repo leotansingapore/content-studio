@@ -52,6 +52,7 @@ import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/
 import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { supabase } from "@/lib/supabase";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import {
   STYLES,
   STYLE_IDS,
@@ -97,6 +98,9 @@ import {
   newOverlay,
   overlayHit,
   sanitizeOverlays,
+  blockGrip,
+  readSeconds,
+  wallSettings,
   type Overlay,
   type OverlayKind,
   listCuts,
@@ -156,6 +160,7 @@ import {
   waveThumb,
   extractWav,
   getFile,
+  layoutBlock,
   loadVideo,
   onExportJob,
   planFor,
@@ -174,7 +179,7 @@ import { blackStretches, frameTimes, lookAtFrames, pictureAndClipIssues } from "
 import { FAST, isFast } from "@/lib/fastPauses";
 import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
 import { MAX_WATCH_SECONDS, WATCH_LABELS, onWatchJob, startWatch, watchJob, type WatchJob } from "@/lib/watchCut";
-import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
+import { fileKey, suggestCutaways, loadFixes, loadProjects, publishIdeas, removeProject, saveFixes, saveProject, swapSource, swapped, transcribe, translateCaptions, vibeEdit, type VideoProject } from "@/lib/videoProjects";
 import { findFaceTrack, loadEffects, paintEffects, sanitizeBackdrop } from "@/lib/faceVision";
 import { cutTimes, dropGain, motionOf, previewSfx } from "@/lib/videoMotion";
 import { cropShare, lookSpans, sanitizeTrack, trackCovers } from "@/lib/faceFollow";
@@ -188,9 +193,13 @@ import { RATE, mediaLength, openSound } from "@/lib/longAudio";
 import { peaksFrom } from "@/lib/videoEdit";
 
 // Linkable state (docs/deep-links.md): ?p= the open project (push; opening one starts the editor's params afresh),
-// then ?tab= ?mode= ?sticker= ?broll= ?guide= inside it, and ?panel= ?kind= ?template= on the start screen.
+// then ?tab= ?mode= ?sticker= ?broll= ?guide= ?view= inside it, and ?panel= ?kind= ?template= on the start screen.
 type Tab = EditTab;
 const START_PANELS = ["join", "ai"] as const;
+// Words over a video is north-star work: Leo's sign-ins only (docs/north-star/README.md, "The gate")
+const LEO_PANELS = [...START_PANELS, "wall"] as const;
+type StartPanel = (typeof LEO_PANELS)[number];
+const WALL_ERROR = "That video couldn't be opened. Try an MP4 or MOV.";
 
 export default function VideoEditPage() {
   const { toast } = useToast();
@@ -198,6 +207,7 @@ export default function VideoEditPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [projects, setProjects] = useState<VideoProject[]>([]);
   const [busy, setBusy] = useState<string>("");
+  const leo = useLeoOnly();
   const pid = params.get("p");
   const project = projects.find((p) => p.id === pid) ?? null;
 
@@ -226,6 +236,24 @@ export default function VideoEditPage() {
     try {
       setBusy("Reading your video...");
       const length = await mediaLength(file);
+      if (extra?.settings?.wall) {
+        // words over a video: a stock clip often has no sound track, so nothing is decoded and nothing captioned
+        const opened = !sound && Number.isFinite(length) && length > 0;
+        const thumb = opened ? await stills(file, [0.3], 240).then((t) => t[0], () => null) : null;
+        if (thumb === null) return toast({ title: WALL_ERROR, variant: "destructive" });
+        setBusy("Saving it on this device...");
+        await putFile(id, file);
+        // the words block spans the whole clip, however long the caller guessed
+        const overlays = extra.settings.overlays?.map((o) => (o.kind === "block" ? { ...o, to: length } : o));
+        const named = overlays?.find((o) => o.kind === "block")?.text.split("\n")[0].trim().slice(0, 40);
+        setProjects(saveProject(uid, {
+          id, name: named || file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration: length, size: file.size,
+          words: [], settings: { ...withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), ...extra.settings, overlays }, thumb,
+        }));
+        setParams({ p: id });
+        try { sessionStorage.removeItem(WALL_DRAFT); } catch { /* nothing kept */ }
+        return;
+      }
       if (isLong(length, file.size)) {
         // a long recording: saved first, then captioned in parts once the adviser has seen how many
         if (!Number.isFinite(length)) throw new Error("This browser can't open that video. Try an MP4 or MOV.");
@@ -293,6 +321,7 @@ export default function VideoEditPage() {
         <Editor
           key={project.id}
           userId={userId}
+          leo={leo}
           project={project}
           onSave={(p) => setProjects(saveProject(userId, p))}
           onClips={(ps) => { let list = projects; for (const p of [...ps].reverse()) list = saveProject(userId, p); setProjects(list); }}
@@ -300,31 +329,33 @@ export default function VideoEditPage() {
           onBack={() => setParams({}, { replace: true })}
         />
       ) : (
-        <Start userId={userId} busy={busy || joining} projects={projects} onUpload={upload} onOpen={(id) => setParams({ p: id })}
+        <Start userId={userId} leo={leo} busy={busy || joining} projects={projects} onUpload={upload} onOpen={(id) => setParams({ p: id })}
           onRemove={(id) => userId && setProjects(removeProject(userId, id))} />
       )}
     </div>
   );
 }
 
-function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
+function Start({ userId, leo, busy, projects, onUpload, onOpen, onRemove }: {
   userId: string | null;
+  leo: boolean;
   busy: string;
   projects: VideoProject[];
-  onUpload: (f: File) => void;
+  onUpload: (f: File, extra?: JoinExtra) => void;
   onOpen: (id: string) => void;
   onRemove: (id: string) => void;
 }) {
   const [over, setOver] = useState(false);
-  const [panels] = useUrlList("panel", { allowed: START_PANELS });
+  const [panels] = useUrlList("panel", { allowed: leo ? LEO_PANELS : START_PANELS });
   const updateUrl = useUrlUpdate();
   // reopened while a video is being made, or to show why the last one failed
   const [aiAuto, setAiAuto] = useState(() => aiBusy() || montageBusy() || !!pendingAvatar() || aiJob()?.state === "failed");
   const joinOpen = panels.includes("join");
   const aiOpen = aiAuto || panels.includes("ai");
+  const wallOpen = panels.includes("wall");
   // opening pushes, so Back closes it; closing the AI panel drops its kind and template too
-  const openPanel = (k: (typeof START_PANELS)[number]) => updateUrl({ panel: [...panels, k].join(",") }, { push: true });
-  const closePanel = (k: (typeof START_PANELS)[number]) => {
+  const openPanel = (k: StartPanel) => updateUrl({ panel: [...panels, k].join(",") }, { push: true });
+  const closePanel = (k: StartPanel) => {
     if (k === "ai") setAiAuto(false);
     updateUrl({ panel: panels.filter((x) => x !== k).join(","), ...(k === "ai" ? { kind: null, template: null } : {}) });
   };
@@ -366,10 +397,12 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
         <input type="file" accept="video/*,audio/*" className="sr-only" disabled={!!busy}
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) onUpload(f); }} />
       </label>
+      {wallOpen && <WallStart busy={busy} onMake={(f, text) => onUpload(f, { settings: wallSettings(text, readSeconds(text)) })} onClose={() => closePanel("wall")} />}
       {joinOpen && <JoinTakes onClose={() => closePanel("join")} />}
       {aiOpen && <AiVideo onClose={() => closePanel("ai")} />}
-      {!busy && (!joinOpen || !aiOpen) && (
+      {!busy && (!joinOpen || !aiOpen || (leo && !wallOpen)) && (
         <div className="flex flex-col gap-2 sm:flex-row">
+          {leo && !wallOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("wall")}>Words over a video</Button>}
           {!joinOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("join")}>Join several takes into one video</Button>}
           {!aiOpen && <Button variant="outline" className="h-11 w-full sm:h-10 sm:w-auto" onClick={() => openPanel("ai")}>Make a video without filming</Button>}
         </div>
@@ -402,8 +435,62 @@ function Start({ userId, busy, projects, onUpload, onOpen, onRemove }: {
   );
 }
 
-function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
+const WALL_DRAFT = "cs-edit-wall-words";
+
+/** The "Words over a video" start panel: a clip (yours or a stock one) and the words, made into a muted 9:16 project. */
+function WallStart({ busy, onMake, onClose }: { busy: string; onMake: (file: File, text: string) => void; onClose: () => void }) {
+  const [clip, setClip] = useState<File | null>(null);
+  const [stock, setStock] = useState(false);
+  // typed words survive a closed panel or a clip that won't open (this tab only)
+  const [text, setText] = useState(() => { try { return sessionStorage.getItem(WALL_DRAFT) ?? ""; } catch { return ""; } });
+  const write = (t: string) => {
+    setText(t);
+    try { sessionStorage.setItem(WALL_DRAFT, t); } catch { /* kept on screen */ }
+  };
+  const ready = !!clip && !!text.trim();
+  const pickBtn = "inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 [@media(pointer:coarse)]:min-h-11";
+  return (
+    <section className="space-y-3 rounded-xl border border-primary/25 bg-primary/5 p-3" aria-label="Words over a video">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold">Words over a video</h2>
+        <Button size="sm" variant="ghost" className="h-9 [@media(pointer:coarse)]:min-h-11" onClick={onClose}>Close</Button>
+      </div>
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold">Pick a clip</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className={pickBtn}>
+            <Upload className="h-3.5 w-3.5" /> Upload
+            <input type="file" accept="video/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setClip(f); setStock(false); } }} />
+          </label>
+          <Button size="sm" variant="outline" className="h-9 gap-1.5 [@media(pointer:coarse)]:min-h-11" onClick={() => setStock(true)} aria-expanded={stock}><Film className="h-3.5 w-3.5" /> Stock clip</Button>
+          {clip && <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground"><Check className="h-3.5 w-3.5 shrink-0 text-success" /><span className="truncate">{clip.name}</span></span>}
+        </div>
+        {stock && (
+          <StockSearch kind="video" orientation="portrait" placeholder="City at night, coffee on a desk, rain on a window"
+            onPick={async (it, q) => {
+              const blob = await downloadStock(it.src);
+              setClip(new File([blob], `${q.trim().replace(/[^\w-]+/g, "-").slice(0, 40) || "stock-clip"}.mp4`, { type: blob.type || "video/mp4" }));
+              setStock(false);
+            }}
+            onClose={() => setStock(false)} />
+        )}
+      </div>
+      <label className="block space-y-1 text-xs font-semibold">
+        Your words
+        <Textarea rows={4} maxLength={400} value={text} onChange={(e) => write(e.target.value)}
+          placeholder="POV: it's year-end and you finally check what your CPF is doing" className="text-sm font-normal" />
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button className="h-10 [@media(pointer:coarse)]:min-h-11" disabled={!ready || !!busy} onClick={() => clip && onMake(clip, text.trim())}>Make it</Button>
+        <span className="text-xs text-muted-foreground" aria-live="polite">{busy || (ready ? "" : "Add a clip and your words first.")}</span>
+      </div>
+    </section>
+  );
+}
+
+function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
   userId: string;
+  leo: boolean;
   project: VideoProject;
   onSave: (p: VideoProject) => void;
   onClips: (ps: VideoProject[]) => void;
@@ -454,6 +541,15 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const [translating, setTranslating] = useState<string | null>(null);
   const [history, setHistory] = useState<EditSettings[]>([]);
   const [tab, setTab] = useUrlState<Tab>("tab", "style", { allowed: EDIT_TABS });
+  // a words-over-video project shows its short panel; view=all brings back every tab (Leo only, like making one)
+  const [view, setView] = useUrlState<"all" | "">("view", "", { allowed: ["all"] });
+  const wallMode = leo && !!settings.wall;
+  const short = wallMode && view !== "all";
+  const [swapping, setSwapping] = useState(false);
+  const [swapStock, setSwapStock] = useState(false);
+  // measures a words block for its hit box, handles and the too-tall check (the same layout drawing uses)
+  const measure = useMemo(() => (typeof document === "undefined" ? null : document.createElement("canvas").getContext("2d")), []);
+  const [, setFontsReady] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [outT, setOutT] = useState(0);
   const [ask, setAsk] = useState("");
@@ -485,7 +581,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   // which models the edit needs: the person finder for the backdrop, the face finder for the touch-up
   const wantFx = `${settings.backdrop ? "b" : ""}${settings.touchUp ? "t" : ""}`;
   const segIdx = useRef(0);
-  const drag = useRef<{ startX: number; startY: number; moved: boolean; overlay?: string } | null>(null);
+  // grip: a picked words block's side (its width) or corner (its size), from size0 at d0 from its centre
+  const drag = useRef<{ startX: number; startY: number; moved: boolean; overlay?: string; grip?: "side" | "corner"; size0?: number; d0?: number } | null>(null);
   // the brand kit (logo, end card, name tag); endAt is the time into the end card while it shows
   const brandKit = useMemo(() => loadBrand(userId), [userId]);
   const [art, setArt] = useState<BrandArt | null>(null);
@@ -560,7 +657,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
 
   useEffect(() => { const off = onExportJob(setJob); return () => { off(); }; }, []);
   useEffect(() => {
-    void ensureCaptionFonts().then(() => paintRef.current?.());
+    void ensureCaptionFonts().then(() => { setFontsReady(true); paintRef.current?.(); });
   }, []);
   // load the file once per file: every save hands back a new project object, and
   // reloading on that sent the preview back to 0:00 after each edit
@@ -643,9 +740,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   }, [wantFx, loadFx]);
   const fx = useMemo<Frame["fx"]>(() => (settings.backdrop || settings.touchUp ? (g, r) => paintEffects(g, r, settings, backdropImg) : null), [settings, backdropImg]);
 
-  // save the edit a moment after the last change
+  // save the edit a moment after the last change; the newest project, so a save due as a video is swapped can't put the old file back
+  const live = useRef(project);
+  live.current = project;
   useEffect(() => {
-    const t = window.setTimeout(() => onSave({ ...project, pendingSkill: pendingSkill.current, settings, words, subs, caption, cutaways, publish, thumb }), 400);
+    const t = window.setTimeout(() => onSave({ ...live.current, pendingSkill: pendingSkill.current, settings, words, subs, caption, cutaways, publish, thumb }), 400);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings, words, subs, caption, cutaways, publish, thumb]);
@@ -788,7 +887,8 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     o.gain.gain.setTargetAtTime(musicGainAt(duck, out, settings.music!.level, total) * dropGain(motionOf(settings, plan.segs, plan.caps, plan.total).drop, out), o.ctx.currentTime, 0.03);
   };
 
-  const addMusic = async (f: File) => {
+  // `also` rides along in the same change (Swap sound turns the filmed sound off)
+  const addMusic = async (f: File, also?: Partial<EditSettings>) => {
     if (f.size > 20 * 1024 * 1024) return toast({ title: "That track is over 20 MB", variant: "destructive" });
     setMusicBusy(true);
     try {
@@ -796,7 +896,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
       const key = `mu-${project.id}-${Date.now().toString(36)}`;
       await putFile(key, f);
       // the previous track's file stays, so Undo can bring it back (ponytail: tracks accumulate per video, like voiceover takes)
-      change({ ...settings, music: { key, name: f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Music", level: settings.music?.level ?? MUSIC_LEVEL } });
+      change({ ...settings, ...also, music: { key, name: f.name.replace(/\.[^.]+$/, "").slice(0, 80) || "Music", level: settings.music?.level ?? MUSIC_LEVEL } });
     } catch (e) {
       toast({ title: "Couldn't keep the track", description: (e as Error).message, variant: "destructive" });
     } finally {
@@ -1139,11 +1239,11 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     }
   };
 
-  const recaption = async () => {
-    if (!file) return;
+  const recaption = async (src: Blob | null | undefined = file) => {
+    if (!src) return;
     setCaptioning(true);
     try {
-      const { wav } = await extractWav(file);
+      const { wav } = await extractWav(src);
       const t = await transcribe(wav);
       const fixed = applyFixes(t.words, fixes);
       setWords(fixed.words);
@@ -1277,11 +1377,13 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   const brandLinks = useMemo(() => allowedLinks(brandKit, loadSocialAccounts(userId)), [brandKit, userId]);
   const kitWarnings = useMemo(() => (caption ? checkLimits(postText, "instagram", brandLinks, avoidList(brandKit)).warnings : []), [caption, postText, brandLinks, brandKit]);
   const saveToPosts = () => {
+    // a words-over-video project with no caption written posts its words
+    const text = caption.trim() || !wallMode ? caption : (settings.overlays ?? []).find((o) => o.kind === "block")?.text ?? "";
     upsertDraft(userId, {
       id: `video-${project.id}`,
       createdAt: new Date().toISOString(),
-      hook: caption.trim().split("\n")[0].slice(0, 160),
-      draft: caption,
+      hook: text.trim().split("\n")[0].slice(0, 160),
+      draft: text,
       pillar: "topic",
       pillarDetail: project.name,
       audience: "general",
@@ -1441,6 +1543,50 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
     seekOut(o.from + 0.2);
   };
   const editOverlay = (id: string, p: Partial<Overlay>) => patch({ overlays: overlays.map((o) => (o.id === id ? { ...o, ...p } : o)) });
+  // words over a video: the one words block, laid out as it draws (its box for hits and handles, its height for the warning)
+  const block = overlays.find((o) => o.kind === "block") ?? null;
+  const boxOf = (o: Overlay) => (measure ? layoutBlock(measure, o, W, H).rect : null);
+  const editBlock = (p: Partial<Overlay>) =>
+    block ? editOverlay(block.id, p) : change({ ...settings, overlays: [...overlays, { ...newOverlay("block", 0, "#FFFFFF", plan.total), ...p }] });
+  const blockBox = block ? boxOf(block) : null;
+  const blockWords = block ? block.text.split(/\s+/).filter(Boolean).length : 0;
+  const readS = block ? readSeconds(block.text) : 0;
+  const wallFlags = short && block ? scanCompliance(block.text) : [];
+  const pickBtn = "inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border/70 bg-background px-3 text-xs font-semibold hover:border-primary/40 [@media(pointer:coarse)]:min-h-11";
+  const selBox = sel?.kind === "block" && !playing ? boxOf(sel) : null;
+  // a new video under the same edit: the old one stays on the device so the toast's Undo can put it back
+  const swapVideo = async (f: File) => {
+    if (swapping) return;
+    const before: VideoProject = { ...live.current, settings: settingsRef.current, words, thumb };
+    video.current?.pause();
+    setPlaying(false);
+    setSwapping(true);
+    try {
+      const next = await swapSource(userId, project.id, f);
+      // edits made while it saved stay
+      const fin = swapped({ ...before, settings: settingsRef.current }, { fileId: fileKey(next), duration: next.duration, size: next.size, thumb: next.thumb });
+      const put = (p: VideoProject) => {
+        live.current = p;
+        onSave(p);
+        segIdx.current = 0;
+        endAt.current = null;
+        setWords(p.words);
+        setSettings(p.settings);
+        setThumb(p.thumb);
+      };
+      put(fin);
+      setSwapStock(false);
+      toast({
+        title: "Video swapped",
+        action: <ToastAction altText="Undo the swap" onClick={() => put(before)}>Undo</ToastAction>,
+      });
+      if (fin.settings.captions) void recaption(f);
+    } catch (e) {
+      toast({ title: (e as Error).message || WALL_ERROR, variant: "destructive" });
+    } finally {
+      setSwapping(false);
+    }
+  };
   // B-roll: a stock clip over the edit from the playhead, the speaker's sound carrying on under it
   const brolls = settings.broll ?? [];
   const selB = brolls.find((b) => b.id === selBroll) ?? null;
@@ -1487,6 +1633,35 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
   };
 
   const stickerColours = [...new Set(["#FFFFFF", "#FFD92B", settings.activeColor, art?.color ?? "#2563EB", "#EF4444", "#111827"].map((c) => c.toUpperCase()))];
+  // the picked sticker's settings: in the Stickers tab, and under On top in a words-over-video project's short panel
+  const stickerEditor = (sel: Overlay) => (
+    <div className="space-y-3 rounded-lg border border-primary/25 p-3">
+      {sel.kind === "text" && (
+        <input value={sel.text} maxLength={60} onChange={(e) => editOverlay(sel.id, { text: e.target.value })} aria-label="Sticker text"
+          className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" />
+      )}
+      <Row label="Colour">
+        {stickerColours.map((c) => (
+          <button key={c} type="button" aria-label={`Colour ${c}`} aria-pressed={sel.color === c} onClick={() => editOverlay(sel.id, { color: c })}
+            className={`h-7 w-7 rounded-full border border-border ${sel.color === c ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`} style={{ backgroundColor: c }} />
+        ))}
+      </Row>
+      <Row label={`Size ${sel.size.toFixed(1)}x`}><input type="range" min={0.5} max={2.5} step={0.1} value={sel.size} onChange={(e) => editOverlay(sel.id, { size: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
+      {sel.kind !== "block" && <Row label={`Shows for ${(sel.to - sel.from).toFixed(1)}s from ${fmtTime(sel.from)}`}>
+        <input type="range" min={0.5} max={10} step={0.5} value={sel.to - sel.from} onChange={(e) => editOverlay(sel.id, { to: sel.from + Number(e.target.value) })} aria-label="How long it shows" className="w-32 accent-primary" />
+      </Row>}
+      <div className="flex flex-wrap gap-2">
+        {sel.kind !== "block" && <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => editOverlay(sel.id, { from: Math.floor(outT * 10) / 10, to: Math.floor(outT * 10) / 10 + (sel.to - sel.from) })}>Start at {fmtTime(outT)}</Button>}
+        {(sel.kind === "arrow" || sel.kind === "underline") && (
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => editOverlay(sel.id, { turn: (sel.turn + 1) % 4 })}><RotateCw className="h-3.5 w-3.5" /> Turn</Button>
+        )}
+        <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+          onClick={() => { change({ ...settings, overlays: overlays.filter((o) => o.id !== sel.id) }); setSelected(null); }}>
+          <Trash2 className="h-3.5 w-3.5" /> Delete
+        </Button>
+      </div>
+    </div>
+  );
 
   // a cold open heard again adds its length back, so it is not counted against the cuts
   const cutSeconds = Math.max(0, duration - totalLength(plan.segs) + (settings.coldOpen?.repeat ? coldLength(plan.segs, settings.coldOpen) : 0));
@@ -1619,11 +1794,16 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 const x = (e.clientX - r.left) / r.width;
                 const y = (e.clientY - r.top) / r.height;
                 // a press on a sticker or the captions starts a drag; anywhere else is a tap to play or pause
-                const hit = playing ? null : overlayHit(settings.overlays, outT, x, y, r.width / r.height);
-                if (hit) {
+                // (a picked words block's handles first: 44 px across, whatever the preview's size)
+                const grip = selBox && sel ? blockGrip(selBox, x, y, 22 / r.width, 22 / r.height) : null;
+                const hit = playing ? null : overlayHit(settings.overlays, outT, x, y, r.width / r.height, boxOf);
+                if (grip && sel) {
+                  drag.current = { startX: x, startY: y, moved: false, overlay: sel.id, grip, size0: sel.size, d0: Math.max(0.02, Math.hypot((x - sel.x) * (r.width / r.height), y - sel.y)) };
+                } else if (hit) {
                   drag.current = { startX: x, startY: y, moved: false, overlay: hit.id };
-                  // one write: two setters in a row would keep only the second
-                  if (hit.id !== selected || tab !== "stickers") updateUrl({ sticker: hit.id, tab: "stickers" });
+                  // one write: two setters in a row would keep only the second; the short panel has no tabs
+                  if (short) { if (hit.id !== selected) updateUrl({ sticker: hit.id }); }
+                  else if (hit.id !== selected || tab !== "stickers") updateUrl({ sticker: hit.id, tab: "stickers" });
                 } else {
                   drag.current = settings.captions && Math.abs(y - captionCenter(settings)) < 0.09 ? { startX: x, startY: y, moved: false } : null;
                 }
@@ -1639,7 +1819,12 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                 if (!d.moved) return;
                 if (d.overlay) {
                   const oy = Math.min(0.97, Math.max(0.03, y));
-                  setSettings((s) => ({ ...s, overlays: (s.overlays ?? []).map((o) => (o.id === d.overlay ? { ...o, x, y: oy } : o)) }));
+                  const aspect = r.width / r.height;
+                  const to = (o: Overlay): Overlay =>
+                    d.grip === "side" ? { ...o, w: Math.round(Math.min(0.95, Math.max(0.5, 2 * Math.abs(x - o.x))) * 100) / 100 }
+                    : d.grip === "corner" ? { ...o, size: Math.round(Math.min(2.5, Math.max(0.5, (d.size0! * Math.hypot((x - o.x) * aspect, y - o.y)) / d.d0!)) * 20) / 20 }
+                    : { ...o, x, y: oy };
+                  setSettings((s) => ({ ...s, overlays: (s.overlays ?? []).map((o) => (o.id === d.overlay ? to(o) : o)) }));
                 } else setSettings((s) => ({ ...s, captionY: Math.min(0.92, Math.max(0.08, y)) }));
               }}
               onPointerUp={() => {
@@ -1656,6 +1841,18 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               className="w-full cursor-pointer rounded-xl bg-black shadow-card"
               aria-label="Preview: tap to play or pause, drag the captions or a sticker to move it"
             />
+            {selBox && (
+              // the picked words block: drag inside to move it, a side to change its width, a corner to change its size
+              <div aria-hidden className="pointer-events-none absolute rounded-sm border-2 border-primary"
+                style={{ left: `${(selBox.x - selBox.w / 2) * 100}%`, top: `${(selBox.y - selBox.h / 2) * 100}%`, width: `${selBox.w * 100}%`, height: `${selBox.h * 100}%` }}>
+                {["left-0 top-1/2", "left-full top-1/2", "left-0 top-0", "left-full top-0", "left-0 top-full", "left-full top-full"].map((at) => (
+                  <span key={at} className={`absolute ${at} h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-sm border-2 border-primary bg-background`} />
+                ))}
+              </div>
+            )}
+            {swapping && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/60 text-sm font-semibold text-white" aria-live="polite">Swapping the video...</div>
+            )}
             {zone && (
               <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl text-[10px] font-semibold text-white">
                 <div className="absolute inset-x-0 top-0 bg-black/55" style={{ height: `${zone.top * 100}%` }} />
@@ -1697,7 +1894,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </Button>
             </div>
           )}
-          {canFollow && (
+          {canFollow && !short && (
             <div className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2">
               <Row label="Follow my face">
                 {finding !== null ? (
@@ -1709,9 +1906,9 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </Row>
             </div>
           )}
-          <BurnedTextOffer settings={settings} segs={plan.segs} file={file}
+          {!short && <BurnedTextOffer settings={settings} segs={plan.segs} file={file}
             apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }}
-            note={(p) => setSettings((cur) => ({ ...cur, ...p }))} />
+            note={(p) => setSettings((cur) => ({ ...cur, ...p }))} />}
           {settings.aspect === "9:16" && (
             <div className="space-y-1.5">
               <Row label="Show the app's buttons">
@@ -1812,7 +2009,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
             )}
           </section>
 
-          <section className="space-y-2 rounded-xl border border-border/60 p-3">
+          {!short && <section className="space-y-2 rounded-xl border border-border/60 p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-semibold">Post caption</p>
               <Button size="sm" variant="outline" onClick={writeCaption} disabled={writingCaption || !words.length} className={`gap-1.5 [@media(pointer:coarse)]:min-h-11 ${writingCaption ? "disabled:opacity-100" : ""}`}>
@@ -1885,8 +2082,119 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               )}
               {coverShot && <CoverShot shot={coverShot} grid={gridView} setGrid={setGridView} />}
             </div>
-          </section>
+          </section>}
 
+          {short ? (
+            <div className="space-y-4" aria-label="Words over a video">
+              <section className="space-y-2.5">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Words</h2>
+                <Textarea rows={5} maxLength={400} value={block?.text ?? ""} onChange={(e) => editBlock({ text: e.target.value })} aria-label="Your words" className="text-sm" />
+                <p className="text-[11px] text-muted-foreground" aria-live="polite">
+                  {blockWords} {blockWords === 1 ? "word" : "words"}, about {readS} s to read
+                </p>
+                {readS > plan.total && (
+                  <p className="rounded-md border border-warning/50 bg-warning/10 px-2 py-1.5 text-xs" role="status">
+                    People need about {readS} s to read this. The video is {Math.floor(plan.total)} s. Cut words or use a longer clip.
+                  </p>
+                )}
+                {!!blockBox && blockBox.h > 0.7 && (
+                  <p className="rounded-md border border-warning/50 bg-warning/10 px-2 py-1.5 text-xs" role="status">Too many words for the frame. Cut some or make the text smaller.</p>
+                )}
+                {wallFlags.length > 0 && (
+                  <ul className="space-y-1 text-[11px]">
+                    {wallFlags.map((f) => (
+                      <li key={f.id} className={`rounded-md border px-2 py-1 ${f.severity === "error" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/40 bg-warning/10"}`}>
+                        <span className="font-semibold">&ldquo;{f.match}&rdquo;</span> {f.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <Row label="Font">
+                  {(Object.keys(FONTS) as (keyof typeof FONTS)[]).map((id) => (
+                    <Chip key={id} on={(block?.font ?? "heavy") === id} onClick={() => editBlock({ font: id })}>
+                      <span style={{ fontFamily: FONTS[id].css.replace(/^\d+ \{px\}px /, "") }}>{FONTS[id].label}</span>
+                    </Chip>
+                  ))}
+                </Row>
+                <Row label={`Size ${(block?.size ?? 1).toFixed(1)}x`}>
+                  <input type="range" min={0.5} max={2.5} step={0.05} value={block?.size ?? 1} aria-label="Size of the words" onChange={(e) => editBlock({ size: Number(e.target.value) })} className="h-11 w-40 accent-primary sm:h-auto" />
+                </Row>
+                <Row label="Colour">
+                  <input type="color" aria-label="Colour of the words" value={block?.color ?? "#FFFFFF"} onChange={(e) => editBlock({ color: e.target.value.toUpperCase() })} className="h-8 w-10 rounded [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-12" />
+                </Row>
+                <Row label="Background">
+                  {([["none", "None"], ["white", "White"], ["bar", "Dark bar"]] as const).map(([id, label]) => (
+                    <Chip key={id} on={(block?.box ?? "none") === id} onClick={() => editBlock({ box: id })}>{label}</Chip>
+                  ))}
+                </Row>
+              </section>
+              <section className="space-y-2.5 border-t border-border/60 pt-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sound</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" role="group" aria-label="Filmed sound">
+                    {([[0, "Sound off"], [1, "Sound on"]] as const).map(([v, label]) => (
+                      <button key={v} type="button" aria-pressed={(volume > 0 ? 1 : 0) === v} onClick={() => patch({ volume: v ? undefined : 0 })}
+                        className={`rounded-md px-3 py-1.5 text-xs font-semibold [@media(pointer:coarse)]:min-h-11 ${(volume > 0 ? 1 : 0) === v ? "bg-background shadow-sm" : "text-muted-foreground"}`}>{label}</button>
+                    ))}
+                  </div>
+                  <label className={`${pickBtn} ${musicBusy ? "pointer-events-none opacity-60" : ""}`}>
+                    <MusicIcon className="h-3.5 w-3.5" /> {musicBusy ? "Reading..." : "Swap sound"}
+                    <input type="file" accept="audio/*" className="sr-only" disabled={musicBusy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void addMusic(f, { volume: 0 }); }} />
+                  </label>
+                </div>
+                {settings.music && (
+                  <Row label={`Music level ${Math.round(settings.music.level * 100)}%`}>
+                    <input type="range" min={0} max={1} step={0.05} value={settings.music.level} aria-label="Music volume"
+                      onChange={(e) => patch({ music: { ...settings.music!, level: Number(e.target.value) } })} className="h-11 w-32 accent-primary sm:h-auto" />
+                  </Row>
+                )}
+              </section>
+              <section className="space-y-2.5 border-t border-border/60 pt-3">
+                <h2 className="flex items-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Video
+                  <InfoTip label="About the video">Use your own clip, a stock clip or a made one, never someone else&apos;s.</InfoTip></h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium">Swap video</span>
+                  <label className={`${pickBtn} ${swapping ? "pointer-events-none opacity-60" : ""}`}>
+                    <Upload className="h-3.5 w-3.5" /> Upload
+                    <input type="file" accept="video/*" className="sr-only" disabled={swapping} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void swapVideo(f); }} />
+                  </label>
+                  <Button size="sm" variant="outline" className="h-9 gap-1.5 [@media(pointer:coarse)]:min-h-11" disabled={swapping} onClick={() => setSwapStock(true)} aria-expanded={swapStock}>
+                    <Film className="h-3.5 w-3.5" /> Stock clip
+                  </Button>
+                </div>
+                {swapStock && (
+                  <StockSearch kind="video" orientation={settings.aspect === "16:9" ? "landscape" : settings.aspect === "1:1" ? "square" : "portrait"}
+                    placeholder="City at night, coffee on a desk, rain on a window"
+                    onPick={async (it, q) => {
+                      const blob = await downloadStock(it.src);
+                      await swapVideo(new File([blob], `${q.trim().replace(/[^\w-]+/g, "-").slice(0, 40) || "stock-clip"}.mp4`, { type: blob.type || "video/mp4" }));
+                    }}
+                    onClose={() => setSwapStock(false)} />
+                )}
+              </section>
+              <section className="space-y-2.5 border-t border-border/60 pt-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">On top</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium">Add</span>
+                  {([["text", "Text sticker"], ["arrow", "Arrow"], ["circle", "Circle"], ["underline", "Underline"]] as const).map(([k, label]) => (
+                    <Button key={k} size="sm" variant="outline" className="h-9 [@media(pointer:coarse)]:min-h-11" onClick={() => addOverlay(k)}>{label}</Button>
+                  ))}
+                  {art?.logo ? (
+                    <Chip on={!!settings.logo} onClick={() => patch({ logo: !settings.logo })}>Your logo</Chip>
+                  ) : (
+                    <Link to={links.brand({ section: "logo" })} className="text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">Your logo</Link>
+                  )}
+                </div>
+                {sel && sel.kind !== "block" && stickerEditor(sel)}
+              </section>
+              <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
+                <Button size="sm" onClick={saveToPosts} disabled={savedDraft || !block?.text.trim()} className="[@media(pointer:coarse)]:min-h-11">{savedDraft ? "Saved to My posts" : "Save to My posts"}</Button>
+                {savedDraft && <Link to="/calendar" className="text-xs font-semibold text-primary hover:underline">Schedule it</Link>}
+                <Button size="sm" variant="ghost" className="ml-auto [@media(pointer:coarse)]:min-h-11" onClick={() => setView("all")}>All editing tools</Button>
+              </div>
+            </div>
+          ) : (<>
+          {wallMode && <Button size="sm" variant="ghost" className="[@media(pointer:coarse)]:min-h-11" onClick={() => setView("")}>Fewer tools</Button>}
           <nav className="flex w-fit flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1" aria-label="Edit">
             {([["style", "Captions"], ["cuts", "Cuts"], ["frame", "Hook and frame"], ["face", "Face and background"], ["stickers", "Stickers and charts"], ["broll", "B-roll"], ["words", "Words"]] as const).map(([id, label]) => (
               <button key={id} type="button" onClick={() => setTab(id)} aria-pressed={tab === id}
@@ -2130,7 +2438,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               )}
               {!words.length && !isLong(duration, project.size) && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={recaption} disabled={captioning || none("video-transcribe")} className="gap-1.5">
+                  <Button size="sm" variant="outline" onClick={() => void recaption()} disabled={captioning || none("video-transcribe")} className="gap-1.5">
                     {captioning ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : null} {captioning ? "Captioning..." : "Caption it"}
                   </Button>
                   <Left n={left("video-transcribe")} />
@@ -2353,41 +2661,14 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
                       <button type="button" onClick={() => { setSelected(o.id); seekOut(o.from + 0.2); }} aria-pressed={o.id === selected}
                         className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${o.id === selected ? "bg-primary/5" : ""}`}>
                         <span className="h-3 w-3 shrink-0 rounded-full border border-border" style={{ backgroundColor: o.color }} />
-                        <span className="min-w-0 flex-1 truncate font-medium">{o.kind === "text" ? o.text || "Text" : o.kind[0].toUpperCase() + o.kind.slice(1)}</span>
+                        <span className="min-w-0 flex-1 truncate font-medium">{o.kind === "text" ? o.text || "Text" : o.kind === "block" ? o.text || "Words" : o.kind[0].toUpperCase() + o.kind.slice(1)}</span>
                         <span className="font-mono text-[11px] text-muted-foreground">{fmtTime(o.from)}-{fmtTime(o.to)}</span>
                       </button>
                     </li>
                   ))}
                 </ul>
               )}
-              {sel && (
-                <div className="space-y-3 rounded-lg border border-primary/25 p-3">
-                  {sel.kind === "text" && (
-                    <input value={sel.text} maxLength={60} onChange={(e) => editOverlay(sel.id, { text: e.target.value })} aria-label="Sticker text"
-                      className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" />
-                  )}
-                  <Row label="Colour">
-                    {stickerColours.map((c) => (
-                      <button key={c} type="button" aria-label={`Colour ${c}`} aria-pressed={sel.color === c} onClick={() => editOverlay(sel.id, { color: c })}
-                        className={`h-7 w-7 rounded-full border border-border ${sel.color === c ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`} style={{ backgroundColor: c }} />
-                    ))}
-                  </Row>
-                  <Row label={`Size ${sel.size.toFixed(1)}x`}><input type="range" min={0.5} max={2.5} step={0.1} value={sel.size} onChange={(e) => editOverlay(sel.id, { size: Number(e.target.value) })} className="w-40 accent-primary" /></Row>
-                  <Row label={`Shows for ${(sel.to - sel.from).toFixed(1)}s from ${fmtTime(sel.from)}`}>
-                    <input type="range" min={0.5} max={10} step={0.5} value={sel.to - sel.from} onChange={(e) => editOverlay(sel.id, { to: sel.from + Number(e.target.value) })} aria-label="How long it shows" className="w-32 accent-primary" />
-                  </Row>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => editOverlay(sel.id, { from: Math.floor(outT * 10) / 10, to: Math.floor(outT * 10) / 10 + (sel.to - sel.from) })}>Start at {fmtTime(outT)}</Button>
-                    {(sel.kind === "arrow" || sel.kind === "underline") && (
-                      <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => editOverlay(sel.id, { turn: (sel.turn + 1) % 4 })}><RotateCw className="h-3.5 w-3.5" /> Turn</Button>
-                    )}
-                    <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
-                      onClick={() => { change({ ...settings, overlays: overlays.filter((o) => o.id !== sel.id) }); setSelected(null); }}>
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
-                    </Button>
-                  </div>
-                </div>
-              )}
+              {sel && stickerEditor(sel)}
               <ChartCards settings={settings} caps={plan.caps} segs={plan.segs} speed={speed} total={plan.total} outT={outT} file={file} seekOut={seekOut}
                 apply={(p) => { const cur = settingsRef.current; setHistory((h) => [...h.slice(-19), cur]); setSettings({ ...cur, ...p }); }}
                 note={(p) => setSettings((cur) => ({ ...cur, ...p }))} />
@@ -2455,7 +2736,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               {!words.length ? (
                 isLong(duration, project.size) ? null : (
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={recaption} disabled={captioning || none("video-transcribe")}>{captioning ? "Captioning..." : "Caption it"}</Button>
+                  <Button size="sm" variant="outline" onClick={() => void recaption()} disabled={captioning || none("video-transcribe")}>{captioning ? "Captioning..." : "Caption it"}</Button>
                   <Left n={left("video-transcribe")} />
                   {!captioning && <SubtitleImport userId={userId} duration={duration} onWords={setWords} />}
                 </div>
@@ -2550,6 +2831,7 @@ function Editor({ userId, project, onSave, onClips, onOpen, onBack }: {
               </div>
             </div>
           )}
+          </>)}
         </div>
       </div>
     </div>

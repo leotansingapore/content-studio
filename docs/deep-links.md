@@ -164,6 +164,8 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /edit | panel | join, ai, or both (join,ai): the start screen's Join takes and Make a video without filming | none; ai while a video is being made | push | /edit?panel=ai |
 | /edit | kind | template, montage, avatar, explainer, with panel=ai | the kind being made, else template | replace | /edit?panel=ai&kind=montage |
 | /edit | template | a video template id, with panel=ai: opens its form | none | push | /edit?panel=ai&template=handheld-ugc-vlog |
+| /edit | panel | wall: the start screen's Words over a video (Leo's sign-ins only; anyone else gets the plain start screen) | none | push | /edit?panel=wall |
+| /edit | view | all, with p on a words-over-video project: every editing tab instead of its short panel (Leo only) | the short panel | replace | /edit?p=vm1abc2&view=all |
 | /clone | clone | a saved clone id (instagram:<post id>, tiktok:<id>): shows that result | none; the result just made | push | /clone?clone=instagram%3AC8xYz12AbCd |
 | /coach | report | a report id from Your progress, or the run just made | none | push | /coach?report=6f1c2d3e-4b5a-4c6d-8e9f-0a1b2c3d4e5f |
 | /coach | view | quiz: retake the diagnosis | quiz when there is no diagnosis yet | push | /coach?view=quiz |
