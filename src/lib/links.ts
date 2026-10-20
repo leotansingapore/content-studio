@@ -210,6 +210,9 @@ export const links = {
   playbook: () => "/playbook",
   academy: (o: { lesson?: string } = {}) => `/academy${qs({ lesson: o.lesson })}`,
   // ---- end Create pages ----
+  /** The slideshow editor (Leo only): s opens one (push); slide is 1-based; slide 1 and the Slide tab are left out. */
+  slideshow: (o: { s?: string; slide?: number; panel?: "text" | "overlay"; box?: string; view?: "original" } = {}) =>
+    `/slideshow${qs({ s: o.s, slide: o.slide !== 1 && o.slide, panel: o.panel, box: o.box, view: o.view })}`,
 };
 
 /** Any page with the Remix sheet open over it on that source (remix=<key>, push). */
