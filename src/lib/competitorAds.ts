@@ -21,6 +21,10 @@ export interface CompetitorAdsEntry {
   seen: string[];
   /** Ids new on the latest check. */
   fresh: string[];
+  /** The country the latest check covered: "ALL" when a Singapore check found no ad in any country. Missing on old checks. */
+  country?: "SG" | "ALL";
+  /** The check read every ad Meta lists there (fewer came back than it asked for). Missing on old checks: not known. */
+  complete?: boolean;
 }
 /** Keyed by Competitor.id. */
 export type CompetitorAdsState = Record<string, CompetitorAdsEntry>;
@@ -73,7 +77,9 @@ export function onCompetitorAdsChanged(cb: () => void): () => void {
 /** A competitor whose ads can be read: an Ad Library page id or a Facebook page handle. */
 export const canReadAds = (c: Pick<Competitor, "fbPageId" | "handles">) => Boolean(c.fbPageId || c.handles.facebook);
 
-export interface AdsAnswer { competitorId: string; pageId: string | null; pageName: string | null; ads: CompetitorAd[]; checkedAt: string }
+export interface AdsAnswer {
+  competitorId: string; pageId: string | null; pageName: string | null; ads: CompetitorAd[]; checkedAt: string; country?: "SG" | "ALL"; complete?: boolean;
+}
 
 /** A check folded into the entry: the first check marks nothing new, later ones mark ids not seen before. */
 export function applyAdsCheck(prev: CompetitorAdsEntry | undefined, r: AdsAnswer): CompetitorAdsEntry {
@@ -84,8 +90,13 @@ export function applyAdsCheck(prev: CompetitorAdsEntry | undefined, r: AdsAnswer
     ads: r.ads,
     seen: [...new Set([...r.ads.map((a) => a.id), ...(prev?.seen ?? [])])].slice(0, 300),
     fresh: prev ? r.ads.filter((a) => !prev.seen.includes(a.id)).map((a) => a.id) : [],
+    ...(r.country === "SG" || r.country === "ALL" ? { country: r.country } : {}),
+    complete: r.complete === true,
   };
 }
+
+/** Where a competitor's stored ads come from: the check's own country, else (an old check) the row's setting. */
+export const adsCountryOf = (c: Pick<Competitor, "adsCountry">, e: CompetitorAdsEntry | undefined) => e?.country ?? c.adsCountry;
 
 /** Due: never checked, last checked 7+ days ago, or its Facebook page changed since. */
 export function adsDue(c: Pick<Competitor, "fbPageId">, e: CompetitorAdsEntry | undefined, now = Date.now()): boolean {

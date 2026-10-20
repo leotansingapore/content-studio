@@ -17,7 +17,7 @@ import { titleOf, toDetailAd } from "@/lib/adDetail";
 import { competitorLibraryAd, loadAdLabels } from "@/lib/adLibrary";
 import { buildAdWriteUrl } from "@/lib/adsSwipe";
 import {
-  type CompetitorAd, type CompetitorAdsState, adsCheckFailure, adsStopped, adsTally, canReadAds, checkingAnyAds, dueAds, isCheckingAds, libraryUrl,
+  type CompetitorAd, type CompetitorAdsState, adsCheckFailure, adsCountryOf, adsStopped, adsTally, canReadAds, checkingAnyAds, dueAds, isCheckingAds, libraryUrl,
   onCompetitorAds, platformNames, runAdsCheck, runDueAds, runLabel, runningLine, toAdLike,
 } from "@/lib/competitorAds";
 import { type Competitor, updateCompetitor } from "@/lib/competitors";
@@ -107,12 +107,12 @@ export default function TheirAds({ userId, list, store, openEdit }: {
         : [{ c: x, text: `${x.name}: ${f.message}`, action: "Try again", run: () => void runAdsCheck(userId, x) }];
     }
     const e = store[x.id];
-    if (e && !e.ads.length && x.adsCountry === "SG" && !isCheckingAds(x.id)) {
+    if (e && !e.ads.length && adsCountryOf(x, e) === "SG" && !isCheckingAds(x.id)) {
       return [{ c: x, text: `${x.name} has no Meta ads in Singapore right now.`, action: "Look anywhere", run: () => lookAnywhere(x) }];
     }
     return [];
   });
-  const none = scope.filter((x) => canReadAds(x) && store[x.id] && !store[x.id].ads.length && x.adsCountry === "ALL" && !adsCheckFailure(x.id));
+  const none = scope.filter((x) => canReadAds(x) && store[x.id] && !store[x.id].ads.length && adsCountryOf(x, store[x.id]) === "ALL" && !adsCheckFailure(x.id));
 
   // Check now: the picked competitor, or every due one under All
   const due = selected ? (canReadAds(selected) ? [selected] : []) : dueAds(userId);

@@ -100,6 +100,19 @@ describe("checks", () => {
     expect(third.seen.slice(0, 2)).toEqual(["new1", "new2"]);
   });
 
+  it("keeps the country the check covered and whether it read every ad; an old answer reads as not complete", () => {
+    const sg = a.applyAdsCheck(undefined, { ...answer("a", []), country: "SG", complete: true });
+    expect(sg).toMatchObject({ country: "SG", complete: true });
+    // a Singapore check that found no ad in any country
+    const nowhere = a.applyAdsCheck(undefined, { ...answer("a", [], undefined, null as unknown as string), country: "ALL", complete: true });
+    expect(a.adsCountryOf(comp("a"), nowhere)).toBe("ALL");
+    const old = a.applyAdsCheck(undefined, answer("a", [ad("1")]));
+    expect(old.complete).toBe(false);
+    expect("country" in old).toBe(false);
+    expect(a.adsCountryOf(comp("a", { adsCountry: "SG" }), old)).toBe("SG");
+    expect(a.adsCountryOf(comp("a", { adsCountry: "ALL" }), undefined)).toBe("ALL");
+  });
+
   it("checks outside React, stores the ads and writes the page id back onto a handle-only competitor", async () => {
     setList([comp("a", { fbPageId: null, handles: { facebook: "apage" } })]);
     callFn.mockResolvedValueOnce(answer("a", [ad("1")], "2026-10-20T00:00:00Z", "777777"));
