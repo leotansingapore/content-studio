@@ -57,6 +57,8 @@ export interface WallJob {
   error?: string;
   /** The writer said no (422): it can't be made safe, or its checks failed twice. The use is kept (the model answered). */
   refused?: boolean;
+  /** Today's uses are gone: see SlideshowJob.capped. */
+  capped?: boolean;
   /** No stock clip showed the words; they are kept for the adviser's own video. */
   noClip?: boolean;
 }

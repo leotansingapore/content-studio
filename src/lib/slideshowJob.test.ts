@@ -244,9 +244,12 @@ describe("the job", () => {
 
   it("ends in failed with the server's words, refused when the writer said no, and starts again", async () => {
     make.mockRejectedValueOnce(new EdgeError("You've used all 30 for today. It resets at 8am Singapore time.", 429, "daily_limit"));
-    expect(await run()).toMatchObject({ state: "failed", error: "You've used all 30 for today. It resets at 8am Singapore time." });
+    // capped, so no page offers a Try again that can only hit the cap again
+    expect(await run()).toMatchObject({ state: "failed", capped: true, error: "You've used all 30 for today. It resets at 8am Singapore time." });
     make.mockRejectedValueOnce(new EdgeError("That remix didn't go through. Nothing was used.", 502, "failed"));
-    expect(await run()).toMatchObject({ state: "failed", error: WRITE_FAILED });
+    const infra = await run();
+    expect(infra).toMatchObject({ state: "failed", error: WRITE_FAILED });
+    expect(infra.capped).toBeUndefined();
     make.mockRejectedValueOnce(new EdgeError("The slides didn't match the number in the hook. Nothing was used. Try again.", 422, "refused"));
     expect(await run()).toMatchObject({ state: "failed", refused: true, error: "The slides didn't match the number in the hook. Nothing was used. Try again." });
     answer(pages, [0, 0, 0]);

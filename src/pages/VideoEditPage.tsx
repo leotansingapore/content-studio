@@ -240,7 +240,9 @@ export default function VideoEditPage() {
     const id = `v${Date.now().toString(36)}`;
     try {
       setBusy("Reading your video...");
-      const length = await mediaLength(file);
+      const read = await mediaLength(file);
+      // a WebM recording (Firefox, Chrome before 126) reads as Infinity; a wall's block already spans the joined length
+      const length = Number.isFinite(read) && read > 0 ? read : (extra?.settings?.wall ? extra.settings.overlays?.find((o) => o.kind === "block")?.to : undefined) ?? read;
       if (extra?.settings?.wall) {
         // words over a video: a stock clip often has no sound track, so nothing is decoded and nothing captioned
         const opened = !sound && Number.isFinite(length) && length > 0;

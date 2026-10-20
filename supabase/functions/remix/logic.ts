@@ -707,7 +707,7 @@ export interface MakeProblem {
   kind: "count" | "product" | "mention" | "emoji" | "voice";
   /** Sent back to the model for the one fixing pass. */
   fix: string;
-  /** The refusal the adviser reads when the fix fails too. Nothing is used. */
+  /** The refusal the adviser reads when the fix fails too. The use is kept: the model answered (only 502/503 refund). */
   error: string;
 }
 

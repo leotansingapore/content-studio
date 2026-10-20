@@ -48,6 +48,8 @@ export interface SlideshowJob {
   error?: string;
   /** The writer said no (422): it can't be made safe, or its checks failed twice. The use is kept (the model answered). */
   refused?: boolean;
+  /** Today's uses are gone (429 daily_limit): Try again would only hit the cap again. */
+  capped?: boolean;
 }
 
 export const WRITE_FAILED = "Couldn't write the slides. Try again in a minute.";
@@ -92,9 +94,10 @@ export function onSlideshowJob(fn: (j: SlideshowJob | null) => void): () => void
 export const clearSlideshowJob = () => void (job && !slideshowBusy() && set(null));
 
 /** A failed make call in the adviser's words; `fallback` is the format's own "couldn't write" line. */
-export function failure(e: unknown, fallback = WRITE_FAILED): Pick<SlideshowJob, "error" | "refused"> {
+export function failure(e: unknown, fallback = WRITE_FAILED): Pick<SlideshowJob, "error" | "refused" | "capped"> {
   if (e instanceof EdgeError) {
     if (e.status === 422) return { error: e.message, refused: true };
+    if (e.code === "daily_limit") return { error: e.message, capped: true };
     // the server's own words: the daily limit, not switched on, a topic too long
     if (e.code === "daily_limit" || e.code === "usage_unavailable" || e.status === 400 || e.status === 403) return { error: e.message };
   }

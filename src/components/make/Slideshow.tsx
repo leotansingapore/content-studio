@@ -317,9 +317,12 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => makeIt()} disabled={!!reason}>Try again</Button>
+            {/* a refusal keeps its use and the cap only fails again, so neither offers Try again */}
+            {!job.refused && !job.capped && (
+              <Button size="sm" variant="outline" onClick={() => makeIt()} disabled={!!reason}>Try again</Button>
+            )}
             {job.refused && job.ask.source && (
-              <Button size="sm" variant="outline" onClick={() => update({ from: null, pick: "open" })}>Pick another</Button>
+              <Button size="sm" onClick={() => update({ from: null, pick: "open" })}>Pick another</Button>
             )}
           </div>
         </div>
@@ -337,7 +340,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
       blurb={def.blurb}
       options={options}
       result={result}
-      footer={{ cap: def.cap, label: "Make the slideshow", busyLabel: "Making...", busy, reason, disabled: !!reason, secondary: !!shown && !busy, onMake: () => makeIt() }}
+      footer={{ cap: def.cap, label: "Make the slideshow", busyLabel: "Making...", busy, reason, disabled: !!reason, secondary: !busy && (!!shown || (job?.state === "failed" && !!job.refused && !!job.ask.source)), onMake: () => makeIt() }}
     />
   );
 }

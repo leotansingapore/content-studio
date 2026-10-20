@@ -145,6 +145,10 @@ export default function WallOfText({ userId, source }: { userId: string; source:
     [job, waiting, userId],
   );
 
+  // a failed run whose own way forward writes nothing new (finish with the written words, or pick another post): it
+  // leads, and the paid Make it steps down
+  const freeWay = job?.state === "failed" && (!!job.noClip || !!job.written || (!!job.refused && !!job.ask.source));
+
   /** Starts a run on the setup as it is now; `changes` ride in the same URL write (two writes in a row keep only the last). */
   const makeIt = (changes: Record<string, string | null> = {}, over: Partial<WallAsk> = {}) => {
     if (Object.keys(changes).length) update(changes);
@@ -164,7 +168,8 @@ export default function WallOfText({ userId, source }: { userId: string; source:
     seen.current = step;
     if (!live) return;
     if (job.state === "writing" || job.state === "failed") toResult();
-    if (job.state === "joining") navigate(links.edit());
+    // "My video" hands over in a microtask, so joining and done can land in one render: done with bg mine opens it too
+    if (job.state === "joining" || (job.state === "done" && job.ask.bg === "mine")) navigate(links.edit());
   }, [job, navigate]);
 
   // The Remix sheet's Also make link makes on arrival, once. It comes as navigation state, which a pasted or outside
@@ -304,6 +309,8 @@ export default function WallOfText({ userId, source }: { userId: string; source:
         <Placeholder>
           <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
           <span role="status">{stepText(job)}</span>
+          {/* an Also make press that arrived while another wall was still being made starts nothing: say so */}
+          {(job.ask.source?.key ?? null) !== (source?.key ?? null) && <span>Still making your last wall of text.</span>}
           {job.state === "joining" && (
             <Button variant="link" onClick={() => navigate(links.edit())} className="[@media(pointer:coarse)]:min-h-11">
               Open the editor
@@ -316,16 +323,19 @@ export default function WallOfText({ userId, source }: { userId: string; source:
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {job.error}
           </p>
           <div className="flex flex-wrap gap-2">
+            {/* the ways forward that write nothing new lead; a refusal or the cap gets no Try again, which would spend or fail again */}
             {job.noClip || (job.written && job.ask.bg === "mine") ? (
-              <Button size="sm" variant="outline" onClick={() => chooseFile(true)} className="[@media(pointer:coarse)]:min-h-11">Pick my video</Button>
+              <Button size="sm" onClick={() => chooseFile(true)} className="[@media(pointer:coarse)]:min-h-11">Pick my video</Button>
             ) : job.written ? (
               // the words are written: finish again with them, no second write
-              <Button size="sm" variant="outline" onClick={() => finishAgain({ bg: job.ask.bg, file: job.ask.file })} className="[@media(pointer:coarse)]:min-h-11">Try again</Button>
+              <Button size="sm" onClick={() => finishAgain({ bg: job.ask.bg, file: job.ask.file })} className="[@media(pointer:coarse)]:min-h-11">Try again</Button>
             ) : (
-              <Button size="sm" variant="outline" onClick={() => makeIt()} disabled={!!reason} className="[@media(pointer:coarse)]:min-h-11">Try again</Button>
+              !job.refused && !job.capped && (
+                <Button size="sm" variant="outline" onClick={() => makeIt()} disabled={!!reason} className="[@media(pointer:coarse)]:min-h-11">Try again</Button>
+              )
             )}
             {job.refused && job.ask.source && (
-              <Button size="sm" variant="outline" onClick={() => update({ from: null, pick: "open" })} className="[@media(pointer:coarse)]:min-h-11">Pick another</Button>
+              <Button size="sm" onClick={() => update({ from: null, pick: "open" })} className="[@media(pointer:coarse)]:min-h-11">Pick another</Button>
             )}
           </div>
         </div>
@@ -348,7 +358,7 @@ export default function WallOfText({ userId, source }: { userId: string; source:
       blurb={def.blurb}
       options={options}
       result={result}
-      footer={{ cap: def.cap, label: "Make it", busyLabel: "Making...", busy, reason, disabled: !!reason, secondary: job?.state === "done" && !busy, onMake: () => makeIt() }}
+      footer={{ cap: def.cap, label: "Make it", busyLabel: "Making...", busy, reason, disabled: !!reason, secondary: !busy && (job?.state === "done" || freeWay), onMake: () => makeIt() }}
     />
   );
 }
