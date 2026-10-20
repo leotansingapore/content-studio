@@ -19,6 +19,7 @@ import {
 } from "@/lib/competitors";
 import { links } from "@/lib/links";
 import { reasonText } from "@/lib/prices";
+import { useScrollToItem } from "@/lib/urlState";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const initials = (name: string) => name.split(/[\s.@_-]+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";
@@ -85,8 +86,11 @@ export default function WhoYouWatch({ userId, state, edit, openEdit, closeEdit }
 function Row({ userId, c, open, onToggle, onClose, onRemove }: { userId: string; c: Competitor; open: boolean; onToggle: () => void; onClose: () => void; onRemove: () => void }) {
   const read = readState(userId, c.id);
   const where = whereOf(c);
+  // a ?edit= link to a row far down the list lands on it; opening one by hand doesn't move the page
+  const [linked] = useState(open);
+  const ref = useScrollToItem<HTMLLIElement>(linked);
   return (
-    <li className="p-3 sm:p-4">
+    <li ref={ref} className="p-3 sm:p-4">
       <div className="flex items-start gap-3">
         <Logo c={c} />
         <div className="min-w-0 flex-1 space-y-0.5">
@@ -216,7 +220,7 @@ function Suggested({ userId, state, primary }: { userId: string; state: Competit
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <h2 className="mr-auto font-serif text-lg font-semibold tracking-tight">Suggested for you</h2>
         <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
-          <Button variant={primary ? "default" : "outline"} className={`h-10 gap-2 ${TOUCH}`} onClick={() => runSuggest(userId)} disabled={busy || Boolean(why)}>
+          <Button variant={primary ? "default" : "outline"} className={`h-10 gap-2 ${TOUCH}`} onClick={() => runSuggest(userId)} disabled={busy || full || Boolean(why)}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {busy ? "Suggesting..." : "Suggest competitors"}
           </Button>
@@ -240,7 +244,7 @@ function Suggested({ userId, state, primary }: { userId: string; state: Competit
                 </p>
                 {s.why && <p className="text-xs text-muted-foreground">{s.why}</p>}
                 <div className="flex gap-2 pt-1">
-                  <Button size="sm" className={`h-9 ${TOUCH}`} onClick={() => add(s)} disabled={full}>Add</Button>
+                  <Button size="sm" variant="outline" className={`h-9 ${TOUCH}`} onClick={() => add(s)} disabled={full}>Add</Button>
                   <Button size="sm" variant="ghost" className={`h-9 ${TOUCH}`} onClick={() => dismissName(userId, s.name)}>Not them</Button>
                 </div>
               </div>
