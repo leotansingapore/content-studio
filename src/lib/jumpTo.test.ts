@@ -89,6 +89,27 @@ describe("searchJump", () => {
     expect(searchJump(leo, "teammate")[0].to).toBe("/reels/team");
   });
 
+  it("answers the words people use for the board, the calendar, ideas and accounts", () => {
+    const store = new Map<string, string>([
+      ["cs-team-me", JSON.stringify({ owner: false, member: true, modules: ["reels"], at: Date.now() })],
+      ["cs-social-connect", JSON.stringify({ on: true, at: Date.now() })],
+    ]);
+    vi.stubGlobal("localStorage", { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
+    const board = [...CREATE_ITEMS, ...pageItems("user@demo.com")];
+    vi.unstubAllGlobals();
+    for (const q of ["posts", "posts board", "review", "pending", "notes", "comments", "approve"]) expect(searchJump(board, q)[0].to, q).toBe("/reels");
+    expect(searchJump(board, "carousel").map((i) => i.to)).toContain("/reels");
+    expect(searchJump(board, "account")[0].to).toBe("/accounts");
+    expect(searchJump(board, "settings")[0].to).toBe("/accounts");
+    expect(searchJump(board, "connections")[0].to).toBe("/accounts");
+    expect(searchJump(items, "account").map((i) => i.to)).not.toContain("/profiles");
+    expect(searchJump(items, "today")[0].to).toBe("/calendar");
+    expect(searchJump(items, "this week")[0].to).toBe("/calendar");
+    expect(searchJump(items, "ideas")[0].to).toBe("/inspiration");
+    expect(searchJump(items, "reels")[0].to).toBe("/clone");
+    expect(searchJump(items, "comments")[0].to).toBe("/recruit/engage");
+  });
+
   it("finds a page by the word in its own address", () => {
     expect(searchJump(items, "tutorial")[0].to).toBe("/tutorial");
     expect(searchJump(items, "swipe")[0].to).toBe("/swipe");
