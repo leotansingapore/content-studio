@@ -57,7 +57,11 @@ export default function WhoYouWatch({ userId, state, edit, openEdit, closeEdit }
     if (!row) return;
     toast({
       title: `Stopped watching ${row.name}`,
-      action: <ToastAction altText="Undo" onClick={() => restoreCompetitor(userId, row)}>Undo</ToastAction>,
+      action: (
+        <ToastAction altText="Undo" onClick={() => restoreCompetitor(userId, row) || toast({ title: `Couldn't put ${row.name} back: the list is full or already has them.` })}>
+          Undo
+        </ToastAction>
+      ),
     });
   };
 
