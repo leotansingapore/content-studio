@@ -10,7 +10,7 @@ import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { hookFormula } from "@/lib/hookFormulas";
 import { scoped } from "@/lib/profiles";
-import { ensureTeardown, localTeardown, teardownError, teardownFooter, type Teardown } from "@/lib/remixTeardown";
+import { ensureTeardown, localTeardown, readsVideo, teardownError, teardownFooter, type Teardown } from "@/lib/remixTeardown";
 import type { RemixSource } from "@/lib/remixSource";
 
 const LABEL = "pt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
@@ -93,7 +93,7 @@ export default function BreakdownRow(p: { userId: string; source: RemixSource; t
             <div role="status" className="space-y-3">
               <p className="text-sm text-muted-foreground">
                 Breaking it down...
-                {slow && source.format === "video" && " Reading the video. This can take up to a minute."}
+                {slow && readsVideo(source) && " Reading the video. This can take up to a minute."}
               </p>
               {[0, 1, 2, 3, 4].map((i) => (
                 <div key={i} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3">

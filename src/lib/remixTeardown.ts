@@ -11,6 +11,7 @@ import { sourceKey, type RemixSource } from "@/lib/remixSource";
 import { pacingOf, type Teardown } from "../../supabase/functions/remix/teardown.ts";
 
 export type { Teardown };
+export { readsVideo } from "../../supabase/functions/remix/teardown.ts";
 
 const PREFIX = "content-studio-remix-teardowns-";
 export const MAX_TEARDOWNS = 40;
