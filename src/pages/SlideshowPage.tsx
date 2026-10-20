@@ -2,13 +2,16 @@
 // (docs/north-star/items/edit-slideshow.md). The model is src/lib/slideshow.ts and the drawing
 // src/lib/slideshowDraw.ts; this page holds the edits, Undo and the URL. Leo's sign-ins only for now.
 //
-// URL (docs/deep-links.md): ?s=<id> opens one (push); ?slide=<n> (1-based), ?panel=text|overlay and
-// ?box=<id> replace. Unknown values fall back to the start card, slide 1 or nothing picked.
+// URL (docs/deep-links.md): ?s=<id> opens one (push); ?slide=<n> (1-based), ?panel=text|overlay, ?box=<id> and
+// ?view=original (a remixed slideshow's Original tab) replace. Unknown values fall back to the start card, slide 1,
+// nothing picked or the slides.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, Download, FilePlus2, Images, Loader2, Redo2, Save, Trash2, TriangleAlert, Undo2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarClock, ChevronLeft, ChevronRight, Download, FilePlus2, Images, Loader2, Redo2, Save, Shuffle, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import CopyLinkButton from "@/components/CopyLinkButton";
+import { OriginalPane } from "@/components/OriginalPane";
+import { FilterChip } from "@/components/ui/filter-chip";
 import SectionTabs, { WRITE_TABS } from "@/components/SectionTabs";
 import SlideCanvas, { SlideThumb, type PictureState } from "@/components/slideshow/SlideCanvas";
 import SlideInspector, { PANELS, type InspectorActs, type Panel } from "@/components/slideshow/SlideInspector";
@@ -27,7 +30,7 @@ import { addMedia, storePicture } from "@/lib/mediaLibrary";
 import { socialConnectShown } from "@/lib/socialConnect";
 import { downloadStock, searchStock } from "@/lib/stockMedia";
 import { useLeoUser } from "@/lib/useLeoOnly";
-import { useUrlItem, useUrlUpdate } from "@/lib/urlState";
+import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { ensureCaptionFonts } from "@/lib/videoMedia";
 import NotFoundPage from "@/pages/NotFoundPage";
 import {
@@ -114,7 +117,7 @@ function Slideshows({ userId }: { userId: string }) {
   const update = useUrlUpdate();
   const ready = useFontsReady();
   const show = sid ? shows.find((x) => x.id === sid) : undefined;
-  const close = useCallback(() => update({ s: null, slide: null, panel: null, box: null }), [update]);
+  const close = useCallback(() => update({ s: null, slide: null, panel: null, box: null, view: null }), [update]);
 
   return (
     <div className="space-y-6">
@@ -166,9 +169,16 @@ function Start({ userId, shows, ready, onShows, onOpen }: { userId: string; show
           <CardTitle className="font-serif text-xl">Start from</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          <Button onClick={() => make(blankSlideshow(loadStyleHint()))} className={`gap-1.5 ${TOUCH}`}>
-            <FilePlus2 className="h-4 w-4" /> A blank slideshow
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => make(blankSlideshow(loadStyleHint()))} className={`gap-1.5 ${TOUCH}`}>
+              <FilePlus2 className="h-4 w-4" /> A blank slideshow
+            </Button>
+            <Button variant="outline" asChild className={`gap-1.5 ${TOUCH}`}>
+              <Link to={links.makeFormat("slideshow", { from: "remix" })}>
+                <Shuffle className="h-4 w-4" /> Remix a trending one
+              </Link>
+            </Button>
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="slideshow-post">One of my posts</Label>
             {drafts.length === 0 ? (
@@ -257,6 +267,9 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
   const slide = work.slides[index];
   const panelParam = params.get("panel");
   const panel: Panel = PANELS.includes(panelParam as Panel) ? (panelParam as Panel) : "slide";
+  // a remixed slideshow's Original tab, in place of the slide (formats-slideshow)
+  const [view, setView] = useUrlState<"slides" | "original">("view", "slides", { allowed: ["slides", "original"] });
+  const showOriginal = view === "original" && !!work.source;
   const box = slide.boxes.find((b) => b.id === params.get("box")) ?? null;
   const go = (i: number) => update({ slide: i > 0 ? String(i + 1) : null, box: null });
   const pick = (id: string | null) => update(id ? { box: id, panel: "text" } : { box: null });
@@ -561,6 +574,18 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-3">
+          {work.source && (
+            <div role="tablist" aria-label="View" className="flex gap-1.5">
+              <FilterChip active={!showOriginal} onClick={() => setView("slides")}>Slides</FilterChip>
+              <FilterChip active={showOriginal} onClick={() => setView("original")}>Original</FilterChip>
+            </div>
+          )}
+          {showOriginal && work.source ? (
+            <div className="rounded-lg border border-border/60 p-4">
+              <OriginalPane source={work.source} linkText={work.source.platform === "instagram" ? "Open on Instagram" : "Open original"} />
+            </div>
+          ) : (
+          <>
           {prep && (
             <div role="status" className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-sm">
               {typeof prep === "string" ? (
@@ -652,6 +677,8 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
+          </>
+          )}
         </div>
 
         <Card className="h-fit border-border/60 shadow-card lg:sticky lg:top-4">
