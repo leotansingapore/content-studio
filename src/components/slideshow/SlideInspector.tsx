@@ -158,7 +158,8 @@ export default function SlideInspector({
   const [media, setMedia] = useState<MediaItem[]>([]);
   const full = show.slides.length >= MAX_SLIDES;
   const least = show.slides.length <= MIN_SLIDES;
-  const flags = box ? scanCompliance(box.text) : [];
+  // every box on the slide, picked or not, so a flagged phrase never hides in a box nobody tapped
+  const flags = scanCompliance(slide.boxes.map((b) => b.text).join("\n\n"));
 
   const toggleMedia = () => {
     if (!mediaOpen) setMedia(loadMedia(userId));
@@ -170,6 +171,15 @@ export default function SlideInspector({
       <input type="checkbox" checked={allBoxes} onChange={(e) => onAllBoxes(e.target.checked)} className="h-4 w-4 accent-primary" />
       Apply to all text boxes
     </label>
+  );
+  const chips = flags.length > 0 && (
+    <ul className="space-y-1">
+      {flags.map((f) => (
+        <li key={f.id} className={cn("rounded-md border px-2 py-1 text-[11px]", f.severity === "error" ? "border-destructive/40 bg-destructive/5 text-destructive" : "border-amber-200 bg-amber-50 text-amber-900")}>
+          <span className="font-semibold">{f.match}</span>: {f.message}
+        </li>
+      ))}
+    </ul>
   );
   const addText = (
     <div className="space-y-1">
@@ -284,6 +294,7 @@ export default function SlideInspector({
           {!box ? (
             <>
               <p className="text-sm text-muted-foreground">Tap the words on a slide to change them.</p>
+              {chips}
               {addText}
               {allBox}
               <p className="text-xs text-muted-foreground">Pick a text box to change its style.</p>
@@ -295,15 +306,7 @@ export default function SlideInspector({
                 <Textarea value={box.text} maxLength={MAX_BOX_CHARS} rows={3} onChange={(e) => act.words(e.target.value)} className="text-sm" />
                 <span className="block text-[11px] text-muted-foreground">Or double-tap the words on the slide.</span>
               </label>
-              {flags.length > 0 && (
-                <ul className="space-y-1">
-                  {flags.map((f) => (
-                    <li key={f.id} className={cn("rounded-md border px-2 py-1 text-[11px]", f.severity === "error" ? "border-destructive/40 bg-destructive/5 text-destructive" : "border-amber-200 bg-amber-50 text-amber-900")}>
-                      <span className="font-semibold">{f.match}</span>: {f.message}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              {chips}
               {addText}
               {allBox}
               <Group label="Font">

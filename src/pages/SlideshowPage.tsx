@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { draftLabel, draftsWithText, loadBrand, slideFileName } from "@/lib/carousel";
+import { scanCompliance } from "@/lib/compliance";
 import { downloadBlob } from "@/lib/carouselRender";
 import { getDraftById, loadDrafts, upsertDraft } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
@@ -437,6 +438,7 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
   const layouts = useMemo(() => (ready ? work.slides.map((s) => layoutBoxes(s, work.size, screenMeasure())) : null), [ready, work.slides, work.size]);
   const layout = layouts?.[index] ?? { boxes: [], overflow: false };
   const overOthers = (layouts ?? []).flatMap((l, i) => (l.overflow && i !== index ? [i + 1] : []));
+  const flagged = useMemo(() => work.slides.flatMap((s, i) => (scanCompliance(s.boxes.map((b) => b.text).join("\n\n")).length ? [i + 1] : [])), [work.slides]);
   const brand = useMemo(() => {
     const b = loadBrand(userId);
     return { handle: !!b?.handle, logo: !!b?.logo };
@@ -581,6 +583,11 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
             <p className="flex items-start justify-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
               <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               {layout.overflow ? "Too many words for this slide." : `Too many words on ${slidesText(overOthers)}.`} Cut some or make the text smaller.
+            </p>
+          )}
+          {flagged.length > 0 && (
+            <p className="flex items-start justify-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> Check the words on {slidesText(flagged)} in the Text tab.
             </p>
           )}
           <div className="flex items-center justify-center gap-2">
