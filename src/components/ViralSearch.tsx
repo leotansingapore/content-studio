@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { ChevronDown, ExternalLink, Loader2, Search, Video, Youtube } from "lucide-react";
 import PriceChip from "@/components/PriceChip";
 import RemixButton from "@/components/remix/RemixButton";
+import SaveButton from "@/components/SaveButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
@@ -93,6 +94,7 @@ function ResultCard({ f }: { f: Found }) {
             <Link to={remixUrlFor(f)}>Remix</Link>
           </Button>
         </RemixButton>
+        <SaveButton source={sourceFor(f)} className="shrink-0" />
         <Button asChild variant="ghost" size="sm" className="shrink-0 px-2">
           <a href={f.url} target="_blank" rel="noopener noreferrer" aria-label={`Open on ${name}`}>
             <ExternalLink className="h-4 w-4" />
