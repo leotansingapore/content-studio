@@ -7,6 +7,7 @@ import { Search, TrendingUp, ChevronDown, Bookmark, Filter } from "lucide-react"
 import ReelCard from "@/components/ReelCard";
 import IndustryNews from "@/components/IndustryNews";
 import AdsSwipe from "@/components/AdsSwipe";
+import ViralSearch from "@/components/ViralSearch";
 import { ADS, ADS_FETCHED } from "@/lib/adsSwipe";
 import YourFeeds from "@/components/YourFeeds";
 import Mentions from "@/components/Mentions";
@@ -18,6 +19,7 @@ import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { supabase } from "@/lib/supabase";
 import { loadSaved, toggleSaved } from "@/lib/savedItems";
 import { loadPositioning } from "@/lib/positioning";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { getAllTopPosts, TOTAL_TOP_POSTS, generatorFormat, creatorKind } from "@/lib/topPosts";
 import {
   enrich,
@@ -54,6 +56,10 @@ const KIND_OPTIONS = [
 
 const PAGE_SIZE = 12;
 
+type Tab = "posts" | "news" | "ads" | "search";
+// Leo's tabs (phase 2): a link naming one waits for the session rather than flashing Top posts first.
+const LEO_TABS = ["search", "foryou", "hooks"];
+
 const postKey = (p: ScoredPost) => p.post.advisorId + "-" + p.post.shortCode;
 
 function FilterSelect({
@@ -88,11 +94,18 @@ function FilterSelect({
 
 export default function SwipeFilePage() {
   // Tab, search, filters, sort and the open post live in the URL (docs/deep-links.md).
-  const [tab] = useUrlState<"posts" | "news" | "ads">("tab", "posts", { allowed: ADS.length ? ["news", "ads"] : ["news"] });
+  const leo = useLeoUser();
+  const [tab] = useUrlState<Tab>("tab", "posts", {
+    allowed: [...(ADS.length ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["search"] as const) : [])],
+  });
   const update = useUrlUpdate();
   // Each tab has its own search and filters, so a tab switch starts them clean in one write.
-  const setTab = (t: "posts" | "news" | "ads") =>
-    update({ tab: t === "posts" ? null : t, q: null, format: null, from: null, topic: null, angle: null, audience: null, sort: null, saved: null, post: null, industry: null, story: null, ad: null });
+  const setTab = (t: Tab) =>
+    update({
+      tab: t === "posts" ? null : t, q: null, format: null, from: null, topic: null, angle: null, audience: null, sort: null, saved: null, post: null,
+      industry: null, story: null, ad: null, kind: null, hidden: null, scope: null, hook: null, running: null, run: null, platform: null, emotion: null,
+      posted: null, why: null, formula: null,
+    });
   const [userId, setUserId] = useState<string | null>(null);
   const [savedSet, setSavedSet] = useState<Set<string>>(new Set());
   const [hasPlaybook, setHasPlaybook] = useState(false);
@@ -119,6 +132,7 @@ export default function SwipeFilePage() {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [openKey, openPost, closePost] = useUrlItem("post");
   const { search: here } = useLocation();
+  const leoTabLoading = leo === undefined && LEO_TABS.includes(new URLSearchParams(here).get("tab") ?? "");
 
   const target = useMemo(
     () => (userId ? personalTargetFromPositioning(loadPositioning(userId)) : null),
@@ -209,6 +223,7 @@ export default function SwipeFilePage() {
           { id: "news" as const, label: "Industry news", n: NEWS.length },
           // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing.
           ...(ADS.length ? [{ id: "ads" as const, label: "Ads", n: ADS.length }] : []),
+          ...(leo ? [{ id: "search" as const, label: "Search", n: null }] : []),
         ].map((t) => (
           <button
             key={t.id}
@@ -216,16 +231,21 @@ export default function SwipeFilePage() {
             role="tab"
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
-            className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors sm:flex-none [@media(pointer:coarse)]:min-h-11 ${
-              tab === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
+            // Leo's fourth tab: on a phone each tab takes its own width and the counts wait for sm, so no label wraps
+            className={`rounded-md py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 [@media(pointer:coarse)]:min-h-11 ${
+              leo ? "flex-auto whitespace-nowrap px-2" : "flex-1 px-4"
+            } ${tab === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
           >
-            {t.label} <span className="text-xs text-muted-foreground">{t.n}</span>
+            {t.label} {t.n !== null && <span className={`text-xs text-muted-foreground ${leo ? "hidden sm:inline" : ""}`}>{t.n}</span>}
           </button>
         ))}
       </div>
 
-      {tab === "ads" ? (
+      {leoTabLoading ? (
+        <div className="min-h-[40vh]" aria-busy="true" />
+      ) : tab === "search" && leo ? (
+        <ViralSearch userId={leo.id} />
+      ) : tab === "ads" ? (
         <section className="space-y-3">
           <div className="flex items-center gap-1.5">
             <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">Paid ads running in Singapore</h2>
