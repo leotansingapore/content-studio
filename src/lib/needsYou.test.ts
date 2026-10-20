@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, countBoardWaiting, countNeedsYou } from "./needsYou";
+import { badgeText, countBoardWaiting, countNeedsYou, waitingByBrand } from "./needsYou";
 import type { DraftEntry } from "./draftHistory";
 import type { ReelCard, StageId } from "./reelsBoard";
 import type { TeamPost } from "./teamPosts";
@@ -45,6 +45,19 @@ describe("countBoardWaiting", () => {
     const stages: StageId[] = ["review", "review", "changes", "approved", "scheduled", "posted", "archived"];
     expect(countBoardWaiting(stages.map(card))).toBe(3);
     expect(countBoardWaiting([])).toBe(0);
+  });
+});
+
+describe("waitingByBrand", () => {
+  it("lists the other brands with posts in Review or Needs changes, unbranded posts under moneybees", () => {
+    const card = (stage: StageId, brand?: string) => ({ id: stage, title: stage, stage, brand, version: "v1", versions: [], comments: [], history: [] }) as ReelCard;
+    const brands = [{ id: "moneybees", name: "MoneyBees" }, { id: "radiant", name: "Radiant" }, { id: "at", name: "ActivityTracker" }, { id: "leo", name: "Leo" }];
+    const cards = [card("review"), card("review", "radiant"), card("changes", "radiant"), card("approved", "at"), card("archived", "at"), card("review", "leo")];
+    expect(waitingByBrand({ stages: [], brands, cards }, "leo")).toEqual([
+      { id: "moneybees", name: "MoneyBees", n: 1, changes: false },
+      { id: "radiant", name: "Radiant", n: 2, changes: true },
+    ]);
+    expect(waitingByBrand({ stages: [], brands, cards }, "")).toHaveLength(3);
   });
 });
 

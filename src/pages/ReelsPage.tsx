@@ -11,7 +11,8 @@ import { supabase } from "@/lib/supabase";
 import { useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setActiveProfile } from "@/lib/profiles";
 import { connectLink } from "@/lib/socialConnect";
-import { boardWaitingChanged, countBoardWaiting } from "@/lib/needsYou";
+import { links } from "@/lib/links";
+import { boardWaitingChanged, countBoardWaiting, waitingByBrand } from "@/lib/needsYou";
 import {
   NEXT,
   accessChanged,
@@ -196,6 +197,14 @@ export default function ReelsPage() {
   // Leo on a brand with no posts board linked yet: ask which one, instead of showing every brand's posts
   const needsLink = !!me?.owner && ownBrand === "" && !unlinked;
   const brandName = (id: string) => board?.brands.find((b) => b.id === id)?.name ?? id;
+  // Leo's other brands with posts waiting, from the board already loaded. Each is a full page load, since ?brand= is
+  // read on arrival only; the brand that owns it opens first, so it lands without the switcher's second reload.
+  const elsewhere = board && me?.owner ? waitingByBrand(board, brand ?? "") : [];
+  const hrefFor = (w: (typeof elsewhere)[number]) => links.reels({ brand: w.id, stage: w.changes ? "all" : undefined });
+  const openBrand = (boardBrand: string) => {
+    const p = profileForBoardBrand(uid, boardBrand);
+    if (p) setActiveProfile(uid, p.id);
+  };
   const link = (boardBrand: string) => {
     linkBoardBrand(uid, activeProfile(uid).id, boardBrand);
     setOwnBrand(boardBrand);
@@ -278,6 +287,19 @@ export default function ReelsPage() {
           <Button variant="ghost" size="sm" className="ml-auto h-9" onClick={reload} disabled={loading} aria-label="Refresh the board">
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
+          {brand && elsewhere.length > 0 && (
+            <p className="basis-full text-xs text-muted-foreground">
+              Also waiting:{" "}
+              {elsewhere.map((w, i) => (
+                <span key={w.id}>
+                  {i > 0 && ", "}
+                  <a href={hrefFor(w)} onClick={() => openBrand(w.id)} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">
+                    {w.name} {w.n}
+                  </a>
+                </span>
+              ))}
+            </p>
+          )}
         </div>
       )}
 
@@ -314,9 +336,18 @@ export default function ReelsPage() {
               <Button key={b.id} size="sm" variant="outline" onClick={() => link(b.id)}>{b.name} ({counts[b.id] ?? 0})</Button>
             ))}
           </div>
-          {board.brands.every((b) => profileForBoardBrand(uid, b.id)) && (
-            <p className="text-xs text-muted-foreground">Every posts board already belongs to another brand. Switch brand to see its posts.</p>
-          )}
+          {board.brands.every((b) => profileForBoardBrand(uid, b.id)) &&
+            (elsewhere.length > 0 ? (
+              <div className="flex flex-wrap justify-center gap-2">
+                {elsewhere.map((w) => (
+                  <Button key={w.id} asChild size="sm" variant="outline" className="[@media(pointer:coarse)]:h-11">
+                    <a href={hrefFor(w)} onClick={() => openBrand(w.id)}>{w.name} {w.n} to review</a>
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Every posts board already belongs to another brand. Switch brand to see its posts.</p>
+            ))}
         </div>
       )}
 
