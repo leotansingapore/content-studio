@@ -106,6 +106,22 @@ function fakeBackend(rows: SyncRow[] = []) {
   return { backend, table, fail, calls };
 }
 
+// Holds the first upsert until release() is called: a save still on its way.
+function holdFirstSave(backend: SyncBackend): () => void {
+  const upsert = backend.upsert;
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  let first = true;
+  backend.upsert = async (rows) => {
+    if (first) {
+      first = false;
+      await held;
+    }
+    return upsert(rows);
+  };
+  return release;
+}
+
 // Write a key the way the app does: to storage, then through the patch.
 function write(storage: SyncStorage, sync: CloudSync, key: string, value: string) {
   storage.setItem(key, value);
@@ -235,17 +251,7 @@ describe("createCloudSync", () => {
   it("sends an edit made while an earlier save was still on its way", async () => {
     const storage = new MemoryStorage();
     const { backend, table } = fakeBackend();
-    const upsert = backend.upsert;
-    let release!: () => void;
-    const slow = new Promise<void>((resolve) => (release = resolve));
-    let first = true;
-    backend.upsert = async (rows) => {
-      if (first) {
-        first = false;
-        await slow;
-      }
-      return upsert(rows);
-    };
+    const release = holdFirstSave(backend);
     const sync = createCloudSync(ME, storage, backend);
     await sync.start();
 
@@ -257,6 +263,23 @@ describe("createCloudSync", () => {
     expect(table.get(DRAFTS)?.data).toBe("v1");
     await vi.advanceTimersByTimeAsync(800);
     expect(table.get(DRAFTS)?.data).toBe("v2");
+  });
+
+  it("signing out mid-save still sends the edit made during it", async () => {
+    const storage = new MemoryStorage();
+    const { backend, table } = fakeBackend();
+    const release = holdFirstSave(backend);
+    const sync = createCloudSync(ME, storage, backend);
+    await sync.start();
+
+    write(storage, sync, DRAFTS, "v1");
+    await vi.advanceTimersByTimeAsync(800);
+    write(storage, sync, DRAFTS, "last edit");
+    const signingOut = sync.stop();
+    release();
+    await signingOut;
+    expect(table.get(DRAFTS)?.data).toBe("last edit");
+    expect(storage.getItem(`cs-sync-pending-${ME}`)).toBeNull();
   });
 
   it("keeps a removal the server rejected, so the post doesn't come back after a reload", async () => {
