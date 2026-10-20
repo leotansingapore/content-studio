@@ -1,0 +1,106 @@
+{
+ "status_code": 20000,
+ "tasks": [
+  {
+   "status_code": 20000,
+   "status_message": "Ok.",
+   "cost": 0.002,
+   "result": [
+    {
+     "keyword": "SleekFlow",
+     "items_count": 8,
+     "items": [
+      {
+       "type": "organic",
+       "rank_group": 1,
+       "rank_absolute": 2,
+       "page": 1,
+       "domain": "www.trustpilot.com",
+       "title": "Read Customer Service Reviews of sleekflow.io",
+       "description": "SleekFlow is an AI Suite for Revenue-Driving Conversations. we unify WhatsApp, Instagram, Messenger, SMS, Website Live Chat, Email, Call,",
+       "url": "https://www.trustpilot.com/review/sleekflow.io",
+       "breadcrumb": "https://www.trustpilot.com \u203a ... \u203a Software Company"
+      },
+      {
+       "type": "organic",
+       "rank_group": 2,
+       "rank_absolute": 3,
+       "page": 1,
+       "domain": "www.youtube.com",
+       "title": "SleekFlow",
+       "description": "With our omnichannel social commerce platform, SleekFlow empowers the future of social and commerce. We transform the way of business by merging chat and sales",
+       "url": "https://www.youtube.com/channel/UCy5Ez5ZteTxoFYVh8aQobRA/featured",
+       "breadcrumb": "2.8K+ followers"
+      },
+      {
+       "type": "organic",
+       "rank_group": 3,
+       "rank_absolute": 4,
+       "page": 1,
+       "domain": "sleekflow.io",
+       "title": "Auto Reply Chatbot Flow Builder (No coding)",
+       "description": "Discover how to auto-reply to messages, assign conversations, create marketing automation, and automate task between messaging apps using drag and drop.",
+       "url": "https://sleekflow.io/en-sg/flow-builder",
+       "breadcrumb": "https://sleekflow.io \u203a en-sg \u203a flow-builder"
+      },
+      {
+       "type": "organic",
+       "rank_group": 4,
+       "rank_absolute": 5,
+       "page": 1,
+       "domain": "apps.shopify.com",
+       "title": "SleekFlow \u2011 Conversational AI - Unlimited AI agents",
+       "description": "Connect and integrate your Shopify store with SleekFlow to engage customers through their favourite messaging channels 24/7, nurture at scale with AI,\u00a0...",
+       "url": "https://apps.shopify.com/sleekflow",
+       "breadcrumb": "https://apps.shopify.com \u203a sleekflow"
+      },
+      {
+       "type": "organic",
+       "rank_group": 5,
+       "rank_absolute": 7,
+       "page": 1,
+       "domain": "help.sleekflow.io",
+       "title": "SleekFlow AI",
+       "description": "Add, assign, review, and manage your AI. Review and improve AI agent responses. Build and manage AI agents to automate conversations using knowledge,\u00a0...",
+       "url": "https://help.sleekflow.io/en_US/sleekflow_ai",
+       "breadcrumb": "https://help.sleekflow.io \u203a en_US \u203a sleekflow_ai"
+      },
+      {
+       "type": "organic",
+       "rank_group": 6,
+       "rank_absolute": 8,
+       "page": 1,
+       "domain": "sleekflow.io",
+       "title": "5 best AI agent platforms for businesses",
+       "description": "6 May 2026 \u2014 SleekFlow's AI agent, AgentFlow, is a revenue-focused sales agent that works across messaging apps like WhatsApp, Instagram, and Facebook.",
+       "url": "https://sleekflow.io/en-sg/blog/best-ai-agent-for-businesses",
+       "breadcrumb": "https://sleekflow.io \u203a en-sg \u203a blog \u203a best-ai-agent-for-b..."
+      },
+      {
+       "type": "organic",
+       "rank_group": 7,
+       "rank_absolute": 9,
+       "page": 1,
+       "domain": "www.g2.com",
+       "title": "SleekFlow Reviews 2026: Details, Pricing, & Features",
+       "description": "SleekFlow is an AI suite for revenue-driving conversations. Trusted by over 7,000+ businesses across 70+ countries, we unify WhatsApp, Instagram, Messenger,\u00a0...",
+       "url": "https://www.g2.com/products/sleekflow/reviews",
+       "breadcrumb": "https://www.g2.com \u203a ... \u203a SleekFlow Reviews"
+      },
+      {
+       "type": "organic",
+       "rank_group": 8,
+       "rank_absolute": 11,
+       "page": 1,
+       "domain": "sleekflow.io",
+       "title": "Platform Omnichannel CRM AI untuk Bisnis Anda",
+       "description": "Platform omnichannel AI terpercaya untuk otomatisasi campaign, leads, dan layanan support lewat WhatsApp, Instagram, SMS, dan lainnya.",
+       "url": "https://sleekflow.io/id-id",
+       "breadcrumb": "https://sleekflow.io \u203a id-id"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

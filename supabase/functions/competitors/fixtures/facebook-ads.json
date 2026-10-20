@@ -1,0 +1,501 @@
+[
+ {
+  "adArchiveID": "977824304753041",
+  "collationCount": 1,
+  "collationId": "5555956544630271",
+  "isActive": true,
+  "startDate": 1792479600,
+  "endDate": 1792479600,
+  "startDateFormatted": "2026-10-20T07:00:00.000Z",
+  "endDateFormatted": "2026-10-20T07:00:00.000Z",
+  "pageID": "362293550309745",
+  "pageName": "Muncly",
+  "publisherPlatform": [
+   "FACEBOOK",
+   "INSTAGRAM",
+   "THREADS"
+  ],
+  "totalActiveTime": 15173,
+  "targetedOrReachedCountries": [],
+  "currency": "",
+  "spend": null,
+  "reachEstimate": null,
+  "snapshot": {
+   "body": {
+    "text": "A new CRM won\u2019t fix your sales.\nIf your process is unclear, you\u2019ll just automate confusion faster. \ud83d\udcc9\n\nWith a free Muncly CRM Audit, we'll map your processes, identify the gaps and give you a clear plan for what to fix first.\n\nYou'll receive:\n\u2714 A visual Customer Journey Map\n\u2714 A CRM recommendation specific to your business\n\u2714 What needs to change before implementation\n\u2714 An itemised implementation cost estimate\n\u2714 A full written report within 5\u20137 business days\n\nAnd the report is yours to keep \u2014 whether you work with us or not.\n\nNo pitch. No obligation. Just an honest assessment.\n\n\ud83d\udccb See if your business is a good fit for a free CRM Audit."
+   },
+   "title": "Get a free audit",
+   "caption": "muncly.com",
+   "ctaText": "See details",
+   "ctaType": "SEE_DETAILS",
+   "displayFormat": "IMAGE",
+   "linkUrl": "https://muncly.com/crm-audit-offer/",
+   "linkDescription": "We go through your business and tell you where software earns you the most. If you have a CRM, how to get more out of it. If you have none, which one fits and what it costs.",
+   "pageName": "Muncly",
+   "pageId": "362293550309745",
+   "pageProfilePictureUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/854568802_1423391736609770_7524287615805849294_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=110&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=W3Mxz4Ycf0YQ7kNvwGtRjes&_nc_oc=Adr0O2wB7QwLliP23-g5nwJ_OyMH6HLBCdfMclBzQgLBSkCFRgu408WXyaGRcQBdGg0&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQMq9ZvhSGyiXZJ-o_3McJVJd3oPcaNeRKrgIA_2nnr3eQ&oe=6ADD2780",
+   "pageProfileUri": "https://www.facebook.com/61565497914956/",
+   "pageLikeCount": 6,
+   "cards": [],
+   "images": [
+    {
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/857130208_1649344390311622_8256561055824772166_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=PErZ5fel_uQQ7kNvwFu-d3L&_nc_oc=AdqMx6tYaKSJFognqarm-1LYELkvbeTteX7bHc84v8gIL0tBYQ3dnPYFQ0qR5pClqII&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQOzRpQ7SdIAUx_fkCaoDY_LNI3eEN0hvddVN4Sd6m0bjw&oe=6ADD281F",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/859977517_2304514933676491_6280955936825947532_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=105&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=mjO07NuBR30Q7kNvwG_6zM1&_nc_oc=Ado_lPEOu4O5saXmxAmH-bRgZj7UHdaCMTAzyJ9-XY3eP4VjeiDPwpLYZtfl3k5DeXQ&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQPMJyNaEFtiwbHHRPgQiyPyhivuihhpSXtsZJ-W7gjweQ&oe=6ADD0B29"
+    }
+   ],
+   "videos": []
+  }
+ },
+ {
+  "adArchiveID": "2098596340759533",
+  "collationCount": null,
+  "collationId": null,
+  "isActive": true,
+  "startDate": 1792393200,
+  "endDate": 1792479600,
+  "startDateFormatted": "2026-10-19T07:00:00.000Z",
+  "endDateFormatted": "2026-10-20T07:00:00.000Z",
+  "pageID": "566927123174873",
+  "pageName": "Flyweel",
+  "publisherPlatform": [
+   "FACEBOOK",
+   "INSTAGRAM"
+  ],
+  "totalActiveTime": 25872,
+  "targetedOrReachedCountries": [],
+  "currency": "",
+  "spend": null,
+  "reachEstimate": null,
+  "snapshot": {
+   "body": {
+    "text": "When you are deploying $20k to $1M+/mo into paid ads, platform attribution numbers are mostly fiction.\n\nAd platforms report vanity conversions in their own walled gardens. Your bank account just shows a massive cash drain.\n\nNeither tells you if you actually made profit. Flyweel ties ad spend, dedicated cards, and your CRM pipeline into one live record. See exactly what each card spent right beside the closed deals and collected revenue that channel produced.\n\nWith Flyweel MCP, pull that record directly into Claude or ChatGPT. Just ask: \"Compare settled card spend against closed deal revenue in Pipedrive this month.\" Get verified truth in seconds without opening five different dashboards.\n\nStart free: signup.flyweel.co"
+   },
+   "title": "Card spend beside closed deals.",
+   "caption": "www.flyweel.co",
+   "ctaText": "See details",
+   "ctaType": "SEE_DETAILS",
+   "displayFormat": "DCO",
+   "linkUrl": "https://signup.flyweel.co/",
+   "linkDescription": "For $20k+/mo ad budgets.",
+   "pageName": "Flyweel",
+   "pageId": "566927123174873",
+   "pageProfilePictureUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855623915_2116101855658702_5928910826656222714_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=108&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=LA7G9kzHUKAQ7kNvwEP4g6c&_nc_oc=Adp2PF4AiyG7DRM3a-Z96zjT0rOvO4aOlFY74h4djg14vBccFPoxK7lKglrkrBhV-NY&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQN6ZXj3P8xgxUbrx-VACey_ktTkZF8zQM2o30gpYxe_6w&oe=6ADD1DCA",
+   "pageProfileUri": "https://www.facebook.com/61574074910818/",
+   "pageLikeCount": 78,
+   "cards": [
+    {
+     "title": "Card spend beside closed deals.",
+     "body": "When you are deploying $20k to $1M+/mo into paid ads, platform attribution numbers are mostly fiction.\n\nAd platforms report vanity conversions in their own walled gardens. Your bank account just shows a massive cash drain.\n\nNeither tells you if you actually made profit. Flyweel ties ad spend, dedicated cards, and your CRM pipeline into one live record. See exactly what each card spent right beside the closed deals and collected revenue that channel produced.\n\nWith Flyweel MCP, pull that record directly into Claude or ChatGPT. Just ask: \"Compare settled card spend against closed deal revenue in Pipedrive this month.\" Get verified truth in seconds without opening five different dashboards.\n\nStart free: signup.flyweel.co",
+     "caption": "www.flyweel.co",
+     "ctaText": "See Details",
+     "linkUrl": "https://signup.flyweel.co/",
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855623893_1625524435919282_2767661022866796365_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=pvqEB32S9noQ7kNvwElgjUL&_nc_oc=Adp9EOs1RxbLEOAkIHVOOrytUgbIFvevFeuSR6xT4Tm90bwWnHIfs9QAgZ_HUbhA9V0&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQP733hTuueOvCoEhylxVAA3b8QeVmnZw6UxqfpzB-mnEQ&oe=6ADD22FB",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/854470415_2601090463645083_4179109060957684097_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=104&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=6BlGE-3fb6QQ7kNvwFPNFfQ&_nc_oc=AdqlRR7ch7J9RfQWtCWnFKzhFi4duRRJaYSKuKZyegG65gzrmDax8Hri837BiZGH3QQ&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQMTy02yTFdKvGsHGalJVEcX5O7uXHqnhpsIZZDmF3sPtA&oe=6ADD1771",
+     "videoPreviewImageUrl": null,
+     "videoHdUrl": null
+    },
+    {
+     "title": "Card spend beside closed deals.",
+     "body": "When you are deploying $20k to $1M+/mo into paid ads, platform attribution numbers are mostly fiction.\n\nAd platforms report vanity conversions in their own walled gardens. Your bank account just shows a massive cash drain.\n\nNeither tells you if you actually made profit. Flyweel ties ad spend, dedicated cards, and your CRM pipeline into one live record. See exactly what each card spent right beside the closed deals and collected revenue that channel produced.\n\nWith Flyweel MCP, pull that record directly into Claude or ChatGPT. Just ask: \"Compare settled card spend against closed deal revenue in Pipedrive this month.\" Get verified truth in seconds without opening five different dashboards.\n\nStart free: signup.flyweel.co",
+     "caption": "www.flyweel.co",
+     "ctaText": "See Details",
+     "linkUrl": "https://signup.flyweel.co/",
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855584451_1119668463771832_6858211390740297438_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=OfTfkuvJUiQQ7kNvwFClm_8&_nc_oc=AdprPYADur87oiXPWyIk0FZFye9LoPeSiO-miB-FO3UJ61bORFaPCkAZQj6K1AZTX8o&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQMYsQRlwLeE2VkysojUpcLnvKDArNDpnT46RFsee8YXUQ&oe=6ADD15B7",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855623947_1420593756309417_7024105228605247512_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=105&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=Ib_oaEZSYlAQ7kNvwGEQ9Mo&_nc_oc=AdqjR8psNq16XOn8tsJoTQuTD0cTcUNLijm4Sicl9QmXVBD-TgkM1RQHI6JSQfxtKgA&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQM7flhEzeDjKxWmS7XCuPnKQjfPqN8vOd1k-tvsIOlJRw&oe=6ADD342A",
+     "videoPreviewImageUrl": null,
+     "videoHdUrl": null
+    },
+    {
+     "title": "Card spend beside closed deals.",
+     "body": "When you are deploying $20k to $1M+/mo into paid ads, platform attribution numbers are mostly fiction.\n\nAd platforms report vanity conversions in their own walled gardens. Your bank account just shows a massive cash drain.\n\nNeither tells you if you actually made profit. Flyweel ties ad spend, dedicated cards, and your CRM pipeline into one live record. See exactly what each card spent right beside the closed deals and collected revenue that channel produced.\n\nWith Flyweel MCP, pull that record directly into Claude or ChatGPT. Just ask: \"Compare settled card spend against closed deal revenue in Pipedrive this month.\" Get verified truth in seconds without opening five different dashboards.\n\nStart free: signup.flyweel.co",
+     "caption": "www.flyweel.co",
+     "ctaText": "See Details",
+     "linkUrl": "https://signup.flyweel.co/",
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855466816_1094904830185866_4742041846379796558_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=5Sf3CwPJwn8Q7kNvwFqx7ty&_nc_oc=Ado4K1ZbbO92heDbwjOwn5zF7iSxeo_kJvCybE-uzbJPf0oNWDuegcDpJZ-gWprtuaE&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQMR5LdlgoiIfdHRxYveDaFW0tr3SZbe7JGuI5ZeEe9WNA&oe=6ADD20C7",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855584400_4532678563621856_2688594172241825865_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=109&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=au_8qPvaulcQ7kNvwGEVpKp&_nc_oc=AdqSSfRN7UM_8AAvf5REU0bMXZrcCvYjXbCG8P587QVTY-c6bBU9ERPI6SEOlZ-RpgI&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQNNwn9rtSnSHMwKFS4x0YBeEuYMZKw553Q_Par_xg4qgA&oe=6ADD1E91",
+     "videoPreviewImageUrl": null,
+     "videoHdUrl": null
+    }
+   ],
+   "images": [],
+   "videos": []
+  }
+ },
+ {
+  "adArchiveID": "1135500952358956",
+  "collationCount": 1,
+  "collationId": "1666630768139586",
+  "isActive": true,
+  "startDate": 1792393200,
+  "endDate": 1792479600,
+  "startDateFormatted": "2026-10-19T07:00:00.000Z",
+  "endDateFormatted": "2026-10-20T07:00:00.000Z",
+  "pageID": "1602904383336536",
+  "pageName": "Franchise Growth Solutions",
+  "publisherPlatform": [
+   "FACEBOOK",
+   "INSTAGRAM",
+   "AUDIENCE_NETWORK",
+   "THREADS"
+  ],
+  "totalActiveTime": 31456,
+  "targetedOrReachedCountries": [],
+  "currency": "",
+  "spend": null,
+  "reachEstimate": null,
+  "snapshot": {
+   "body": {
+    "text": "Franchisors, if you\u2019re serious about growing your franchise brand, don\u2019t miss this room.\nJoin us for the Philadelphia Franchisor Forum on Wednesday, November 4, 2026, beginning at 8:00 AM at:\nConvene \u2013 Two Commerce Square\n2001 Market Street\nPhiladelphia, PA 19103\nAttendance is FREE, but advance registration is required, and seating is limited.\nComplimentary Breakfast & Lunch will be served.\nSpend the day with franchisors, franchise executives, and industry professionals discussing what is actually working in franchise development, lead generation, franchise sales, operations, legal compliance, and responsible growth.\nDo not wait until the last minute. Secure your seat now.\nTo request your complimentary registration, click LEARN MORE\nNovember 4th - 8:00 AM. Philadelphia. Be in the room."
+   },
+   "title": "Save your seat!",
+   "caption": "https://webforms.pipedrive.com/f/bYY5UeLQuU75SwkEN...",
+   "ctaText": "Learn more",
+   "ctaType": "LEARN_MORE",
+   "displayFormat": "IMAGE",
+   "linkUrl": "https://webforms.pipedrive.com/f/bYY5UeLQuU75SwkENsVuEGOtknxNcqb11zY7E1MP1LoAApFVyr5OnQynoPeVaojBkv",
+   "linkDescription": "Don't miss the opportunity to grow!",
+   "pageName": "Franchise Growth Solutions",
+   "pageId": "1602904383336536",
+   "pageProfilePictureUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855062510_1413772880391114_8436544814455783184_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=111&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=7H0E8pNUvcYQ7kNvwF8-dSx&_nc_oc=AdouVU-NaUTT0xI9UqHTrcSE5VU7xhG-Fr5DJsFCoWL60LXGePgOQlsGq4SMMmfZFOs&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQOZBvePyWFxFnkw31VutdEArcXXwj_bLRBI-qB2-YXvKQ&oe=6ADD2F4C",
+   "pageProfileUri": "https://www.facebook.com/franchisegrowthsolutions/",
+   "pageLikeCount": 179,
+   "cards": [],
+   "images": [
+    {
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/854930390_1114989047920932_3326459036103103452_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=9cRNWDfHE8IQ7kNvwEQJexp&_nc_oc=AdrZM2nwcObY0P5ij0UmvZEbSswopdc32FKYQ0bw3w5SdHMRPeUQcrDaOsQyuqkXngc&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQNgueSvZBF7cI1cHDRj2RnCK4tJ-XDnDpNIsQkSJLc1Mw&oe=6ADD1CA8",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/858381601_1120253927139623_952389202205969062_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=103&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=QWS3HbOjAbkQ7kNvwF62EgM&_nc_oc=Adp6InPVeB7rhpO_8yOwqrbpHVkhXh-VEw0BIBuJBG2YAsVq2Uv6b3LD--T3zeGomU4&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQMAgOidngfh4xILQXrxkBORKiOGflvVUn6-QcIJGXECiQ&oe=6ADD237C"
+    }
+   ],
+   "videos": []
+  }
+ },
+ {
+  "adArchiveID": "1496068682350336",
+  "collationCount": 1,
+  "collationId": "1342643194463455",
+  "isActive": true,
+  "startDate": 1792393200,
+  "endDate": 1792479600,
+  "startDateFormatted": "2026-10-19T07:00:00.000Z",
+  "endDateFormatted": "2026-10-20T07:00:00.000Z",
+  "pageID": "1655017781444471",
+  "pageName": "Yourator\u6578\u4f4d\u4eba\u624d\u5a92\u5408\u5e73\u53f0",
+  "publisherPlatform": [
+   "FACEBOOK",
+   "INSTAGRAM",
+   "THREADS"
+  ],
+  "totalActiveTime": 33566,
+  "targetedOrReachedCountries": [],
+  "currency": "",
+  "spend": null,
+  "reachEstimate": null,
+  "snapshot": {
+   "body": {
+    "text": "\u8d85\u524d\u90e8\u7f72 2027 \u4eba\u624d\u62db\u52df\uff01Yourator \u8077\u6daf\u535a\u89bd\u6703\u6700\u5f8c\u65e9\u9ce5\u9650\u5b9a\u512a\u60e0\u2728\n\u5982\u679c\u4f60\u4e5f\u60f3\u73fe\u5834\u63a5\u89f8\u8d85\u904e 20,000 \u65b0\u4e16\u4ee3\u4eba\u624d\uff0c\u7372\u5f97 1,200 \u842c\u4ee5\u4e0a\u793e\u7fa4\u66dd\u5149\uff0c\u5343\u842c\u4e0d\u8981\u932f\u904e\u660e\u5e74 1/9\uff08\u516d\uff09\u9069\u9022\u5e74\u5f8c\u8f49\u8077\u6f6e\u7684 Yourator \u8077\u6daf\u535a\u89bd\u6703\uff01\n*2026/10/23 \u524d\u586b\u55ae\u8aee\u8a62\u5373\u53ef\u4eab\u65e9\u9ce5\u512a\u60e0 \ud83d\udc26"
+   },
+   "title": "\u6436\u5148\u4f48\u5c40\u5e74\u5f8c\u8f49\u8077\u4eba\u624d",
+   "caption": "webforms.pipedrive.com",
+   "ctaText": "See details",
+   "ctaType": "SEE_DETAILS",
+   "displayFormat": "VIDEO",
+   "linkUrl": "https://webforms.pipedrive.com/f/1FPLRPjnEXvnsmaU3ppOU5gWJjuu47FpzxnwjFjHbU3NbJOG9TzB0Pr0vA5glmhSX",
+   "linkDescription": "\u65e9\u9ce5\u9650\u5b9a\u6700\u5f8c\u5012\u6578\uff01",
+   "pageName": "Yourator\u6578\u4f4d\u4eba\u624d\u5a92\u5408\u5e73\u53f0",
+   "pageId": "1655017781444471",
+   "pageProfilePictureUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855655028_1549772150250970_4834566764721839147_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=102&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=ECjz6GVO-cQQ7kNvwE43Doj&_nc_oc=AdoLXWczpIYX_u91eZTS1xF_pkwDyYyjzPulfiV16fzhuqe4hOYZQfpRvhsvwW-uvFg&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQOAjFDeXHvcpUixkwfFbuSgoSeke9EEthPrCOJx15td7g&oe=6ADD14A1",
+   "pageProfileUri": "https://www.facebook.com/yourator.co/",
+   "pageLikeCount": 49598,
+   "cards": [],
+   "images": [],
+   "videos": [
+    {
+     "videoPreviewImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/853780167_1356322466395691_5934903012097648504_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=rboqg5pVZ2sQ7kNvwGAlQ8O&_nc_oc=AdqP4IUd8R5CaSKoY2fyDA_VvWFzKLVEIM248zIESADgKEDnvn-cMk7MdIlsVsF7aMU&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQM9C9Mc44K6HFdjLYlyPUZn3-r-RRaMK9sI2tOR2uDxAA&oe=6ADD1588",
+     "videoHdUrl": "https://video-hou1-1.xx.fbcdn.net/o1/v/t2/f2/m366/AQPhJpMmL7FvE4ESRXpOjweSRQ8V9B6ddQeJO4YDfM1v40pWlBCGQNfGNhCSJQso9JyNsBIYMK7IWk6waxoLH3elelS4_yd4C4NcTd7cyuVMnw.mp4?_nc_cat=100&_nc_sid=b66105&_nc_ht=video-hou1-1.xx.fbcdn.net&_nc_ohc=CFqkDdus2dQQ7kNvwEzL3kl&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5WSV9VU0VDQVNFX1BST0RVQ1RfVFlQRS4uQzMuNzIwLmRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHAiLCJ4cHZfYXNzZXRfaWQiOjExMzMxNjQyMTU3NTUxODEsImFzc2V0X2FnZV9kYXlzIjowLCJ2aV91c2VjYXNlX2lkIjoxMDc5OSwiZHVyYXRpb25fcyI6NDQsInVybGdlbl9zb3VyY2UiOiJ3d3cifQ%3D%3D&ccb=17-1&vs=72b923959f97acf7&_nc_vs=HBksFQIYRWZiX2VwaGVtZXJhbC9CMjFEQkJCMUUxNzg0QkI4OTQ3RkQzQjRBMTA5OTBCQ19tdF8xX3ZpZGVvX2Rhc2hpbml0Lm1wNBUAAsgBEgAVAhhAZmJfcGVybWFuZW50LzI2RjJFMjdGRTY3QjRCRjFBNDQ2M0FCQkJGRjE0RkREX2F1ZGlvX2Rhc2hpbml0Lm1wNBUCAsgBEgAoABgAGwKIB3VzZV9vaWwBMRJwcm9ncmVzc2l2ZV9yZWNpcGUBMRUAACbahuuo66aDBBUCKAJDMywXQEZZmZmZmZoYGWRhc2hfaDI2NC1iYXNpYy1nZW4yXzcyMHARAHUAZd6oAQA&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&_nc_zt=28&oh=00_AQMzZfn832ZSn-8Y9WqgsgC2slra34NR_0HTatJsmkoJLw&oe=6ADD1FAC",
+     "videoSdUrl": "https://video-hou1-1.xx.fbcdn.net/o1/v/t2/f2/m412/AQPJKxEG1PiMLE1xkNrS9z4PTgfYzg3rRfCW1j4aE1atsaRwWyadO8TJWwhtNX9UuhCzSvhUp2DhluveOo8O7e2HQJcSw58qqKSS9K0ekQ.mp4?_nc_cat=106&_nc_sid=ef5aa3&_nc_ht=video-hou1-1.xx.fbcdn.net&_nc_ohc=Mt1ddMF5jccQ7kNvwGzBmJ7&efg=eyJ2ZW5jb2RlX3RhZyI6Inhwdl9wcm9ncmVzc2l2ZS5WSV9VU0VDQVNFX1BST0RVQ1RfVFlQRS4uQzMuMzYwLnN2ZV9zZCIsInhwdl9hc3NldF9pZCI6MTEzMzE2NDIxNTc1NTE4MSwiYXNzZXRfYWdlX2RheXMiOjAsInZpX3VzZWNhc2VfaWQiOjEwNzk5LCJkdXJhdGlvbl9zIjo0NCwidXJsZ2VuX3NvdXJjZSI6Ind3dyJ9&ccb=17-1&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&_nc_zt=28&oh=00_AQPp8ubjsHhwg74mJS575zXL8o6fRMUg6fk9WCY8vqmBHg&oe=6ADD1A08"
+    }
+   ]
+  }
+ },
+ {
+  "adArchiveID": "1413109077116870",
+  "collationCount": 1,
+  "collationId": "961319903240369",
+  "isActive": true,
+  "startDate": 1792393200,
+  "endDate": 1792479600,
+  "startDateFormatted": "2026-10-19T07:00:00.000Z",
+  "endDateFormatted": "2026-10-20T07:00:00.000Z",
+  "pageID": "1210295338843222",
+  "pageName": "Leadensity",
+  "publisherPlatform": [
+   "FACEBOOK",
+   "INSTAGRAM"
+  ],
+  "totalActiveTime": 38479,
+  "targetedOrReachedCountries": [],
+  "currency": "",
+  "spend": null,
+  "reachEstimate": null,
+  "snapshot": {
+   "body": {
+    "text": "Your next 100 prospects might be hiding in plain sight. \ud83d\udc40\n\nBut how many are actually worth contacting?\n\nBuilding a giant lead list is easy.\n\nFinding the RIGHT businesses to approach is the real challenge.\n\nWith Leadensity, you can:\n\n\u2713 Research business prospects before reaching out\n\u2713 Discover technology information from business websites\n\u2713 Validate email-related records\n\u2713 Prioritize leads with lead scoring\n\u2713 Find potential sales opportunities\n\u2713 Generate AI-assisted sales angles\n\nInstead of treating 100 companies like 100 identical opportunities\u2026\n\n\u2192 Research the details\n\u2192 Identify the strongest potential fits\n\u2192 Personalize your approach\n\u2192 Spend your time more strategically\n\nOne smarter prospecting workflow. Multiple ways to improve your research.\n\nGet started with Leadensity for $19 instead of $108.\n\nClick below to explore a smarter way to find your next prospects. \ud83d\udc47\n\nhttps://leadensity.com/launch-offer.html\nhttps://leadensity.com/launch-offer.html"
+   },
+   "title": "Stop Chasing the Wrong Leads",
+   "caption": "leadensity.com",
+   "ctaText": "See details",
+   "ctaType": "SEE_DETAILS",
+   "displayFormat": "IMAGE",
+   "linkUrl": "https://leadensity.com/launch-offer.html",
+   "linkDescription": "Research and prioritize B2B prospects with Leadensity.",
+   "pageName": "Leadensity",
+   "pageId": "1210295338843222",
+   "pageProfilePictureUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855074725_1638766244596319_4771516766170593529_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=103&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=mO7bB86kWcsQ7kNvwH4EKn2&_nc_oc=AdpakNKDIiK-4lQAVPw1TTZzXhPlSd1oVXzzRo5tqrounbOcc75uX3ZSuj42sS7bbuA&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQP56aG5lsTTzc6Cz2Vu6whdoL2MLLrxTBT-wC8xHtLsRg&oe=6ADD2B23",
+   "pageProfileUri": "https://www.facebook.com/leadensity/",
+   "pageLikeCount": 1,
+   "cards": [],
+   "images": [
+    {
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/859939943_1688958165930259_4204120895424962156_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=IeNlo563JuEQ7kNvwF1WDSS&_nc_oc=AdogtS5qiyhGNoiojrDOrGptlSk8cV9L0LK2cC6GFOlL-3bMTpeK7LwGwxwBJcToDN0&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQPecNKBXVs_tL0h489_5teWfVVyV7laXWr6F2-XqxCjIA&oe=6ADD04BB",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/854944083_2142435369956584_6891208009554741649_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=101&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=rlkF_8qeAjQQ7kNvwFGYLEe&_nc_oc=Adqh1-uy6qZ8tg2hMPeFLuN8SbdbDJOIjEuoKR2z6ipTZK-YnTbNzviU2k9q89GaP2M&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQPb28SP-k2WWOpgzOZ9Gkx5L-5IvV-40v3T3iL4yItdKg&oe=6ADD35AC"
+    }
+   ],
+   "videos": []
+  }
+ },
+ {
+  "adArchiveID": "1660427489119411",
+  "collationCount": 3,
+  "collationId": "30176139888667013",
+  "isActive": true,
+  "startDate": 1792393200,
+  "endDate": 1792393200,
+  "startDateFormatted": "2026-10-19T07:00:00.000Z",
+  "endDateFormatted": "2026-10-19T07:00:00.000Z",
+  "pageID": "397893120067859",
+  "pageName": "Systems And Teams",
+  "publisherPlatform": [
+   "FACEBOOK",
+   "INSTAGRAM",
+   "MESSENGER",
+   "THREADS"
+  ],
+  "totalActiveTime": 49702,
+  "targetedOrReachedCountries": [],
+  "currency": "",
+  "spend": null,
+  "reachEstimate": null,
+  "snapshot": {
+   "body": {
+    "text": "Are you stuck relying on one key person to keep your business going? \n\nWhether it\u2019s you or someone else, the thought of letting go can be daunting. \n\nBut what if you didn\u2019t have to worry about that anymore? \n\nImagine your business running like a well-oiled machine, without the constant need for you to jump into the day-to-day grind. \n\nWe\u2019ll help you systemize your business so it functions on its own\u2014even if you're too busy right now to figure out where to start.\n\nAnd here\u2019s our guarantee: if you\u2019re not satisfied with the results, you don\u2019t pay. Here\u2019s what we\u2019ll do for you:\n\n1\ufe0f\u20e3 Simple, Franchise-Like Systems. We\u2019ll build step-by-step documented processes for every aspect of your business. Think of it like creating your own franchise model: easy to follow, customized, and designed so anyone can step in and get the job done\u2014eliminating complexity, confusion, and room for error.\n\n2\ufe0f\u20e3 Decision-Making Framework. We\u2019ll create a customized decision-making structure for your team, enabling them to make smart choices even when you\u2019re not around. No more bottlenecks or waiting for your sign-off\u2014just smooth, consistent decision-making across the board.\n\n3\ufe0f\u20e3 Consistent Communication & Accountability. To ensure your team is using these systems effectively, we\u2019ll establish clear communication and accountability processes. Imagine knowing that every task is being done right, every time, without having to step in and micromanage.\n\nAnd we\u2019ll get this done with you. We know your time is valuable, which is why our approach is simple, effective, and doesn\u2019t require you to take your eye off the ball. \n\nWe guarantee these results because we\u2019ve done this for countless business owners across 100+ industries\u2014and it\u2019s been a game changer.\n\nLet\u2019s face it: systems aren\u2019t just about getting organized\u2014they\u2019re about freedom.\n\nWhen your business runs on systems, you\u2019re free to scale, free to grow, and free to step back without everything falling apart. \n\nImagine building your business to a place where your team handles everything smoothly, even when you're not there. And the best part? \n\nYou get to spend your time where it matters most\u2014whether that\u2019s with family, diving into a new project, or just enjoying life.\n\nIf this sounds like what you\u2019ve been looking for, we\u2019ve put together a free training that walks you through exactly how to break through the systems ceiling and build a predictable, scalable business machine. \n\nNo more feeling like the \u201cfirefighter\u201d of your business, constantly putting out fires. Let\u2019s show you how to build a business that works for you, not the other way around.\n\nReady to start your journey? Click here to access the training for free: https://start.systemsandteams.com/training\n\nYour business doesn\u2019t have to depend on a single person. Let us show you how to make that vision a reality\u2014guaranteed."
+   },
+   "title": "We'll Systemize Your Business",
+   "caption": "www.systemsandteams.com",
+   "ctaText": "Learn more",
+   "ctaType": "LEARN_MORE",
+   "displayFormat": "IMAGE",
+   "linkUrl": "https://go.systemsandteams.com/sops/",
+   "linkDescription": "Let us show you how to make that vision a reality\u2014guaranteed.",
+   "pageName": "Systems And Teams",
+   "pageId": "397893120067859",
+   "pageProfilePictureUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855662925_1124342590044384_7998544346398243711_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=102&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=-Hg80A2ZzW0Q7kNvwHfbXGH&_nc_oc=AdqaE6hIkHtUkqJEV_IV_t5RdoUnl4O0bhiKtjamux_qbtMbtp_4fX5PwXmnHccED3k&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQOSFTf3s6IUP5whoNSKkKGscK3S-4XicTTFYSpPctqqnQ&oe=6ADD0F71",
+   "pageProfileUri": "https://www.facebook.com/systemsandteams/",
+   "pageLikeCount": 2004,
+   "cards": [],
+   "images": [
+    {
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/857718412_1072555819100097_3398631372848356423_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=0aOWh5lFxmkQ7kNvwG9wkwE&_nc_oc=Adp2ISNB_bQJKZG9RS3N6T3gm6-a1s1B7otmEG6lhk5GvSKzcEdqhHn6l2aquJDwChM&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQOZ300bo4b0KRau0_uN5b0F63X8rJ5ej3lFWDayVXpgsQ&oe=6ADD1178",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855465269_1034302356337024_5897047337172527016_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=108&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=d-7R2PRG8BYQ7kNvwGvzjNF&_nc_oc=AdovDQlzTUsrug8DMk9T2___rMHqDeWu8WsG_yHmz_3wMGxTz4EkrVFhFQjJICeN4MI&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQNkIAeTC_I90E4CuVFcsVsCzkwfl_7uG6l42k5C8dbUyw&oe=6ADD1DC6"
+    }
+   ],
+   "videos": []
+  }
+ },
+ {
+  "adArchiveID": "1102076705758309",
+  "collationCount": 2,
+  "collationId": "2071030630244488",
+  "isActive": true,
+  "startDate": 1792393200,
+  "endDate": 1792393200,
+  "startDateFormatted": "2026-10-19T07:00:00.000Z",
+  "endDateFormatted": "2026-10-19T07:00:00.000Z",
+  "pageID": "397893120067859",
+  "pageName": "Systems And Teams",
+  "publisherPlatform": [
+   "FACEBOOK",
+   "INSTAGRAM",
+   "MESSENGER"
+  ],
+  "totalActiveTime": 49739,
+  "targetedOrReachedCountries": [],
+  "currency": "",
+  "spend": null,
+  "reachEstimate": null,
+  "snapshot": {
+   "body": {
+    "text": "Are you stuck relying on one key person to keep your business going? \n\nWhether it\u2019s you or someone else, the thought of letting go can be daunting. \n\nBut what if you didn\u2019t have to worry about that anymore? \n\nImagine your business running like a well-oiled machine, without the constant need for you to jump into the day-to-day grind. \n\nWe\u2019ll help you systemize your business so it functions on its own\u2014even if you're too busy right now to figure out where to start.\n\nAnd here\u2019s our guarantee: if you\u2019re not satisfied with the results, you don\u2019t pay. Here\u2019s what we\u2019ll do for you:\n\n1\ufe0f\u20e3 Simple, Franchise-Like Systems. We\u2019ll build step-by-step documented processes for every aspect of your business. Think of it like creating your own franchise model: easy to follow, customized, and designed so anyone can step in and get the job done\u2014eliminating complexity, confusion, and room for error.\n\n2\ufe0f\u20e3 Decision-Making Framework. We\u2019ll create a customized decision-making structure for your team, enabling them to make smart choices even when you\u2019re not around. No more bottlenecks or waiting for your sign-off\u2014just smooth, consistent decision-making across the board.\n\n3\ufe0f\u20e3 Consistent Communication & Accountability. To ensure your team is using these systems effectively, we\u2019ll establish clear communication and accountability processes. Imagine knowing that every task is being done right, every time, without having to step in and micromanage.\n\nAnd we\u2019ll get this done with you. We know your time is valuable, which is why our approach is simple, effective, and doesn\u2019t require you to take your eye off the ball. \n\nWe guarantee these results because we\u2019ve done this for countless business owners across 100+ industries\u2014and it\u2019s been a game changer.\n\nLet\u2019s face it: systems aren\u2019t just about getting organized\u2014they\u2019re about freedom.\n\nWhen your business runs on systems, you\u2019re free to scale, free to grow, and free to step back without everything falling apart. \n\nImagine building your business to a place where your team handles everything smoothly, even when you're not there. And the best part? \n\nYou get to spend your time where it matters most\u2014whether that\u2019s with family, diving into a new project, or just enjoying life.\n\nIf this sounds like what you\u2019ve been looking for, we\u2019ve put together a free training that walks you through exactly how to break through the systems ceiling and build a predictable, scalable business machine. \n\nNo more feeling like the \u201cfirefighter\u201d of your business, constantly putting out fires. Let\u2019s show you how to build a business that works for you, not the other way around.\n\nReady to start your journey? Click here to access the training for free: hhttps://go.systemsandteams.com/sops/\n\nYour business doesn\u2019t have to depend on a single person. Let us show you how to make that vision a reality\u2014guaranteed."
+   },
+   "title": "We'll Systemize Your Business",
+   "caption": "systemsandteams.com",
+   "ctaText": "Listen now",
+   "ctaType": "LISTEN_NOW",
+   "displayFormat": "IMAGE",
+   "linkUrl": "https://go.systemsandteams.com/sops/",
+   "linkDescription": "Let us show you how to make that vision a reality\u2014guaranteed.",
+   "pageName": "Systems And Teams",
+   "pageId": "397893120067859",
+   "pageProfilePictureUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855845656_1415435484103458_7190082752587266804_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=103&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=04Shsw7wMjwQ7kNvwEleqDF&_nc_oc=AdqmC7DjvMFwXvwITYDHeFpEXckCBsl5KWUcYJGmKpDsy_q5HiRHfh1XKwhT_Jr6MUo&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQNc_0lNmvTg1VbjYbKtlGewJ9zH9bKh-x0N79edKPBwBQ&oe=6ADD0D51",
+   "pageProfileUri": "https://www.facebook.com/systemsandteams/",
+   "pageLikeCount": 2004,
+   "cards": [],
+   "images": [
+    {
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/857665968_2325764518242698_5916469419035444832_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=-BqlHojYam4Q7kNvwGhsgsM&_nc_oc=AdqXs7-BNdb6ZDi6KM2-o7gP6V780SarGnRGI3UGkuL-SP-DZd0ubf-vUlfCH7env0U&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQPynBs2s0sNq6ZVNt09DGUCyZeiOc48OHvYaKHB5lJabw&oe=6ADD35AB",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/857546021_1761384485092834_5823287696071597819_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=101&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=FSpEFT9OnAoQ7kNvwGdlSlA&_nc_oc=AdpAtYjlVW04hdHFgiwuwvMUVosB-XoM0I-uXBDicYf6TC7MXS2xz-piaej0qXE4TCc&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQN7zx-_2e6oa9eqXYuuVyJiwV6Pf5qjfEffYctA0rSg3g&oe=6ADD1397"
+    }
+   ],
+   "videos": []
+  }
+ },
+ {
+  "adArchiveID": "964733842858227",
+  "collationCount": null,
+  "collationId": null,
+  "isActive": false,
+  "startDate": 1792393200,
+  "endDate": 1792393200,
+  "startDateFormatted": "2026-10-19T07:00:00.000Z",
+  "endDateFormatted": "2026-10-19T07:00:00.000Z",
+  "pageID": "102228356022625",
+  "pageName": "Brandmix.cz",
+  "publisherPlatform": [
+   "FACEBOOK",
+   "INSTAGRAM",
+   "AUDIENCE_NETWORK",
+   "THREADS"
+  ],
+  "totalActiveTime": 29214,
+  "targetedOrReachedCountries": [],
+  "currency": "",
+  "spend": null,
+  "reachEstimate": null,
+  "snapshot": {
+   "body": {
+    "text": "Cel\u00e9 z\u00edsk\u00e1v\u00e1n\u00ed popt\u00e1vek ud\u011bl\u00e1me my: strategii, reklamy na Facebooku a Instagramu, videa a bannery, landing pages, doru\u010den\u00ed do CRM i m\u011b\u0159en\u00ed a\u017e k zak\u00e1zce. Od v\u00e1s pot\u0159ebujeme hodinu m\u011bs\u00ed\u010dn\u011b.\n\n\u2705 Garance spokojenosti 14 dn\u00ed\n\ud83d\udc49 Hovor na 15 minut."
+   },
+   "title": "Cel\u00e9 z\u00edsk\u00e1v\u00e1n\u00ed popt\u00e1vek ud\u011bl\u00e1me my",
+   "caption": "brandmix.cz",
+   "ctaText": "Contact us",
+   "ctaType": "CONTACT_US",
+   "displayFormat": "IMAGE",
+   "linkUrl": "https://www.brandmix.cz/ziskavani-poptavek",
+   "linkDescription": "Hovor na 15 minut, bez z\u00e1vazku.",
+   "pageName": "Brandmix.cz",
+   "pageId": "102228356022625",
+   "pageProfilePictureUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855251799_1535269368359513_1171185814155267939_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=107&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=3sbFaj4OM2cQ7kNvwGRb5zB&_nc_oc=AdrJr398-t6uMOQH1dEHzazFPCSlr4P7kR3rUBT7x6i84u9Eupe3O35oideyd_XpkKE&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQOKEw2lpouNjkRU7-M4rRbc-7aZ-G9bFi24LKoUVRFiYA&oe=6ADD2484",
+   "pageProfileUri": "https://www.facebook.com/brandmix.cz/",
+   "pageLikeCount": 79,
+   "cards": [],
+   "images": [
+    {
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/858056126_1386237970253171_7980231422323274009_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=OovVgHCfrmoQ7kNvwFVNkxb&_nc_oc=AdploYyEbXRlPlY9Yz78tVOuc1GR2x5iMNBSRxfCkbT78sRefSievXGk4yB3qeN1PJA&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQNVIvlrEisiuHTwdMTX3GNbVgJjGUHbPTYojOoNntzq2w&oe=6ADD3913",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/854310089_1472496701414782_2235621385529269150_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=106&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=cfbK6jGWDDAQ7kNvwFYHpDm&_nc_oc=Ado_zWNUAF48exBXPiav0kkEIj6UEeI50ZvpPDS1zD7xPYl21DTcqiTwFAl3EgNViXo&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQMU-z815A4YUQzYzOjvBkenh0QuOcEAF0dgsckgo0sveg&oe=6ADD0F5A"
+    }
+   ],
+   "videos": []
+  }
+ },
+ {
+  "adArchiveID": "1472570461414258",
+  "collationCount": 1,
+  "collationId": "2285643825553556",
+  "isActive": true,
+  "startDate": 1792393200,
+  "endDate": 1792479600,
+  "startDateFormatted": "2026-10-19T07:00:00.000Z",
+  "endDateFormatted": "2026-10-20T07:00:00.000Z",
+  "pageID": "109641528024086",
+  "pageName": "Stealth - White Label Agency",
+  "publisherPlatform": [
+   "FACEBOOK",
+   "INSTAGRAM"
+  ],
+  "totalActiveTime": 55334,
+  "targetedOrReachedCountries": [],
+  "currency": "",
+  "spend": null,
+  "reachEstimate": null,
+  "snapshot": {
+   "body": {
+    "text": "You don't have a lead problem. You have a follow-up problem.\n\nIf you're an agency with 5,000+ leads in your CRM, here's our offer:\n\nGive us your old leads. We'll reactivate them. If you don't close a deal in 30 days, we refund you. Every dollar.\n\nWhy it works:\nThose leads already raised their hand. They talked to your sales team. They told you their goals, budget and timing. Then nobody followed up.\n\nStealth IQ reads every past conversation \u2014 from your CRM and your call recordings \u2014 and builds a custom re-engagement campaign for each lead. It picks up exactly where your sales team left off. The moment a lead replies, it goes straight to your closers.\n\nWe ran one campaign on 1,225 old leads. 68 replied. 10 booked calls. 5 became clients. No new ad spend.\n\nPlugs into: GoHighLevel, HubSpot, Salesforce, Pipedrive, Zoho CRM, Fireflies, Fathom, Read AI and Otter.\n\n$450/month. No setup fee. Backed by the 30-day guarantee.\n\nTap below to see if you qualify."
+   },
+   "title": "Close a Deal in 30 Days or It's Free",
+   "caption": "stealthmanager.com",
+   "ctaText": "Book now",
+   "ctaType": "BOOK_TRAVEL",
+   "displayFormat": "IMAGE",
+   "linkUrl": "https://go.stealthmanager.com/stealthiq_a-4141",
+   "linkDescription": "Stealth IQ automatically follows up with old leads using the context already in your CRM, turning stalled conversations into new clients.",
+   "pageName": "Stealth - White Label Agency",
+   "pageId": "109641528024086",
+   "pageProfilePictureUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/856480175_1658243402564893_7516478561206223074_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=104&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=0AzOpKl7sO0Q7kNvwElhaAj&_nc_oc=Adq2SuBPxhuNyR5Zjpbg6HsOfHP_CKua1HX9bf5sp7O5ELUeI5IEib38RIBdETK_3F4&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQOztHlXLMd5ix97nSOMyh--kCOt-CbRgbAmHLcly93oNQ&oe=6ADD0887",
+   "pageProfileUri": "https://www.facebook.com/StealthWhiteLabelAgency/",
+   "pageLikeCount": 755,
+   "cards": [],
+   "images": [
+    {
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/856117118_3645867715566400_1243906474249556040_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=P1jfPAKlHtsQ7kNvwHxIGKt&_nc_oc=AdprxaW2bcbgQXOut3yW_J1ylCE3abDQoJvAom5esjRRBCOM7UXWxou4EJJyhkTDY3o&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQNeajcQAWDEK1d55UeN3Rq1hDOKvMAMI-iuKA0D0rOpJw&oe=6ADD2D2C",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855760919_1627289772458069_3732872207345270250_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=109&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=3YasC95iXZoQ7kNvwFzYY4u&_nc_oc=AdpnFxpgX8g5oqYIxuodPylyZJhSg7bW0AT74WFeZhlEtIbRJunhpkjGIVfKghGw9Ag&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQM5wePGCdEfqaH0WRXeOI7Mciqla4NQ_wptDqd6OkM7pw&oe=6ADD0DED"
+    }
+   ],
+   "videos": []
+  }
+ },
+ {
+  "adArchiveID": "1416628053911946",
+  "collationCount": 1,
+  "collationId": "1418703669777025",
+  "isActive": true,
+  "startDate": 1792393200,
+  "endDate": 1792479600,
+  "startDateFormatted": "2026-10-19T07:00:00.000Z",
+  "endDateFormatted": "2026-10-20T07:00:00.000Z",
+  "pageID": "109641528024086",
+  "pageName": "Stealth - White Label Agency",
+  "publisherPlatform": [
+   "FACEBOOK",
+   "INSTAGRAM"
+  ],
+  "totalActiveTime": 55530,
+  "targetedOrReachedCountries": [],
+  "currency": "",
+  "spend": null,
+  "reachEstimate": null,
+  "snapshot": {
+   "body": {
+    "text": "You don't have a lead problem. You have a follow-up problem.\n\nIf you're an agency with 5,000+ leads in your CRM, here's our offer:\n\nGive us your old leads. We'll reactivate them. If you don't close a deal in 30 days, we refund you. Every dollar.\n\nWhy it works:\nThose leads already raised their hand. They talked to your sales team. They told you their goals, budget and timing. Then nobody followed up.\n\nStealth IQ reads every past conversation \u2014 from your CRM and your call recordings \u2014 and builds a custom re-engagement campaign for each lead. It picks up exactly where your sales team left off. The moment a lead replies, it goes straight to your closers.\n\nWe ran one campaign on 1,225 old leads. 68 replied. 10 booked calls. 5 became clients. No new ad spend.\n\nPlugs into: GoHighLevel, HubSpot, Salesforce, Pipedrive, Zoho CRM, Fireflies, Fathom, Read AI and Otter.\n\n$450/month. No setup fee. Backed by the 30-day guarantee.\n\nTap below to see if you qualify."
+   },
+   "title": "Close a Deal in 30 Days or It's Free",
+   "caption": "stealthmanager.com",
+   "ctaText": "Book now",
+   "ctaType": "BOOK_TRAVEL",
+   "displayFormat": "IMAGE",
+   "linkUrl": "https://go.stealthmanager.com/stealthiq_a-4141",
+   "linkDescription": "Stealth IQ automatically follows up with old leads using the context already in your CRM, turning stalled conversations into new clients.",
+   "pageName": "Stealth - White Label Agency",
+   "pageId": "109641528024086",
+   "pageProfilePictureUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/853936406_1809626513576601_4043014005072798129_n.jpg?stp=dst-jpg_s60x60_tt6&_nc_cat=103&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=AzOjXePYxYUQ7kNvwHayghA&_nc_oc=Adqk-0BLMbUIn8GG5fcR6OVm4s9ZPPzTAtFxuGBzNEVvP_6pQ7MbvszlluCBOpDKLlI&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQOFDcZK-1kbjOOGYIs7IVZyWDnf-jjyT8-eKVSb02SKOg&oe=6ADD394A",
+   "pageProfileUri": "https://www.facebook.com/StealthWhiteLabelAgency/",
+   "pageLikeCount": 755,
+   "cards": [],
+   "images": [
+    {
+     "originalImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/855646003_4458883981026038_2580330096633640106_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=SZYohkrnSLkQ7kNvwFCsHbE&_nc_oc=AdrcZebpR6aEaamL96_vWNKydYUz_UwRNEj2IrCk07IXylcil3Gp2613nuwIu0NMHS0&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQM__oaYVHhTbMNgIT-q7lgL3trUlwhhuXltbn73fnakTg&oe=6ADD1F06",
+     "resizedImageUrl": "https://scontent-hou1-1.xx.fbcdn.net/v/t39.35426-6/853758886_1434429305308648_3492487996025474105_n.jpg?stp=dst-jpg_s600x600_tt6&_nc_cat=102&ccb=1-7&_nc_sid=c53f8f&_nc_ohc=k2LbAS3t3b8Q7kNvwEkZ2R4&_nc_oc=AdoJXJAqfCi-I-J4F8q1oslXwnmHDbS3huIjQY5Qajv8C8XG7KWW_dT7ej3c9qQF2Po&_nc_zt=14&_nc_ht=scontent-hou1-1.xx&_nc_gid=bWGtB77fRFmgCB4Uxh1ioQ&_nc_ss=70289&oh=00_AQNYcLW7Y_nV7x16mPLgP3Tr78ljv4Brolqy6v5c47CqhQ&oe=6ADD0FAB"
+    }
+   ],
+   "videos": []
+  }
+ }
+]
