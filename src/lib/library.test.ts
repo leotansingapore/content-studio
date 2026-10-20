@@ -114,7 +114,7 @@ describe("buildLibrary", () => {
     expect(byKey(items, "c:p:1").href).toBe(links.carousel({ carousel: "p:1" }));
     expect(byKey(items, "s:sh2").href).toBe(links.slideshow({ s: "sh2" }));
     expect(byKey(items, "v:p2").href).toBe(links.edit({ p: "p2" }));
-    expect(byKey(items, "i:cimg-aaaaaa").href).toBe(links.media({ folder: "AI images", q: "Pic cimg-aaaaaa" }));
+    expect(byKey(items, "i:cimg-aaaaaa").href).toBe("/media?item=cimg-aaaaaa");
     expect(byKey(items, "d:t1").scheduleHref).toBe(`${links.calendar({ post: "t1" })}&view=month`);
   });
 

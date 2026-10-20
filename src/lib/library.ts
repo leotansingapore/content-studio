@@ -205,7 +205,7 @@ export function buildLibrary(i: {
         words: [m.name, m.alt].filter(Boolean).join("\n"),
         at: m.addedAt,
         thumb: { kind: "media", key: m.key },
-        href: links.media({ folder: AI_FOLDER, q: m.name }),
+        href: links.media({ item: m.key }),
       })),
     ...i.jobs.map((j) => jobItem(j, i.now)),
   ];

@@ -224,7 +224,8 @@ export const links = {
   coach: (o: { report?: string; view?: "quiz"; section?: "idea-dump" } = {}) =>
     `/coach${qs({ report: o.report, view: o.view })}${o.section ? `#${o.section}` : ""}`,
   voice: () => "/voice",
-  media: (o: { q?: string; folder?: string } = {}) => `/media${qs({ q: o.q?.trim(), folder: o.folder })}`,
+  /** item=<picture key> scrolls to and marks that picture. */
+  media: (o: { q?: string; folder?: string; item?: string } = {}) => `/media${qs({ q: o.q?.trim(), folder: o.folder, item: o.item })}`,
   brand: (o: { section?: BrandSection } = {}) => `/brand${o.section ? `#${o.section}` : ""}`,
   createGuide: (o: { step?: GuideStep } = {}) => `/create-guide${o.step ? `#${o.step}` : ""}`,
   tutorial: (o: { section?: TutorialSection } = {}) => `/tutorial${o.section ? `#${o.section}` : ""}`,

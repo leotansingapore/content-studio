@@ -29,6 +29,7 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 | A trend | /trends?trend=<id> | every trend |
 | A trend drop (Hub) | /hub/trends?trend=<id> | every drop |
 | An inspiration example | /inspiration/<id> | the example page |
+| A picture (an AI picture, an upload, a stock photo) | /media?item=<key> | every picture in Media; an AI picture's Library card opens it |
 | Your own social post in the account audit | /analytics?audit=<platform>:<post id> | each best post and each post that fell short |
 
 The first table covers the Pipeline pages; the Grow, Discover and settings pages and the Create pages have their
@@ -226,6 +227,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /coach | view | quiz: retake the diagnosis | quiz when there is no diagnosis yet | push | /coach?view=quiz |
 | /media | q | search text (names, folders, alt text) | empty | replace | /media?q=family |
 | /media | folder | a folder name, or none (photos with no folder) | all | replace | /media?folder=none |
+| /media | item | a picture's key: scrolled to and marked; Copy link on every picture. Pictures live on the device that made them (the name and folder sync, the file does not) | none | set by links | /media?item=cimg-mh2k9x01ab |
 | /academy | lesson | a lesson's YouTube id: opens and plays it | none | push | /academy?lesson=0Q1AQAxpdGg |
 | /brand | #section | you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
 | /create-guide | #step | idea, draft, carousel, reel, reverse-engineer, compliance, schedule | top | (anchor) | /create-guide#reel |

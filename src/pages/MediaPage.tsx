@@ -12,7 +12,9 @@ import { supabase } from "@/lib/supabase";
 import { getFile } from "@/lib/deviceFiles";
 import { addMedia, filterMedia, foldersOf, loadMedia, removeMedia, storePicture, updateMedia, type MediaItem } from "@/lib/mediaLibrary";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
-import { useUrlSearch, useUrlState } from "@/lib/urlState";
+import { useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
+import CopyLinkButton from "@/components/CopyLinkButton";
+import { links } from "@/lib/links";
 
 export default function MediaPage() {
   const { toast } = useToast();
@@ -104,6 +106,9 @@ export default function MediaPage() {
   const folder = folderParam === "none" ? "-" : folders.includes(folderParam) ? folderParam : "";
   const setFolder = (id: string) => setFolderParam(id === "-" ? "none" : id);
   const shown = useMemo(() => filterMedia(items, query, folder), [items, query, folder]);
+  // ?item=<picture key> (docs/deep-links.md): that picture is scrolled to and marked
+  const [itemKey] = useUrlItem("item");
+  const linkedTile = useScrollToItem<HTMLLIElement>(shown.some((m) => m.key === itemKey));
 
   return (
     <div className="space-y-5">
@@ -148,7 +153,8 @@ export default function MediaPage() {
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {shown.map((m) => (
-            <li key={m.key} className="space-y-2 rounded-xl border border-border/60 p-2">
+            <li key={m.key} ref={m.key === itemKey ? linkedTile : undefined}
+              className={`space-y-2 rounded-xl border p-2 ${m.key === itemKey ? "border-primary ring-2 ring-primary/30" : "border-border/60"}`}>
               <div className="aspect-[4/3] overflow-hidden rounded-lg bg-muted">
                 {urls[m.key] ? (
                   <img src={urls[m.key]} alt={m.alt || m.name} className="h-full w-full object-cover" />
@@ -168,9 +174,12 @@ export default function MediaPage() {
                 className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs" />
               <textarea value={m.alt} onChange={(e) => edit(m.key, { alt: e.target.value.slice(0, 250) })} rows={2} placeholder="Alt text: what the photo shows" aria-label="Alt text"
                 className="w-full resize-none rounded-md border border-input bg-background px-2 py-1 text-xs" />
-              <Button size="sm" variant="ghost" className="h-8 w-full gap-1.5 text-xs text-muted-foreground hover:text-destructive" onClick={() => remove(m)}>
-                <Trash2 className="h-3.5 w-3.5" /> Remove
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" className="h-8 flex-1 gap-1.5 text-xs text-muted-foreground hover:text-destructive" onClick={() => remove(m)}>
+                  <Trash2 className="h-3.5 w-3.5" /> Remove
+                </Button>
+                <CopyLinkButton path={links.media({ item: m.key })} label={`Copy link to ${m.name || "this picture"}`} className="h-8 w-8" />
+              </div>
             </li>
           ))}
         </ul>
