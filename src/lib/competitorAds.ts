@@ -81,15 +81,20 @@ export interface AdsAnswer {
   competitorId: string; pageId: string | null; pageName: string | null; ads: CompetitorAd[]; checkedAt: string; country?: "SG" | "ALL"; complete?: boolean;
 }
 
-/** A check folded into the entry: the first check marks nothing new, later ones mark ids not seen before. */
+/**
+ * A check folded into the entry: the first check marks nothing new, later ones mark ids not seen before that started
+ * since the last check (a day's slack for time zones). The read takes the most-shown 30, so an older ad read for the
+ * first time is not new.
+ */
 export function applyAdsCheck(prev: CompetitorAdsEntry | undefined, r: AdsAnswer): CompetitorAdsEntry {
+  const since = prev ? new Date((Date.parse(prev.checkedAt) || 0) - DAY).toISOString().slice(0, 10) : "";
   return {
     checkedAt: r.checkedAt,
     pageId: r.pageId,
     pageName: r.pageName,
     ads: r.ads,
     seen: [...new Set([...r.ads.map((a) => a.id), ...(prev?.seen ?? [])])].slice(0, 300),
-    fresh: prev ? r.ads.filter((a) => !prev.seen.includes(a.id)).map((a) => a.id) : [],
+    fresh: prev ? r.ads.filter((a) => !prev.seen.includes(a.id) && (!a.start || a.start >= since)).map((a) => a.id) : [],
     ...(r.country === "SG" || r.country === "ALL" ? { country: r.country } : {}),
     complete: r.complete === true,
   };

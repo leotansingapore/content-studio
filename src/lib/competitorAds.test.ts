@@ -87,15 +87,16 @@ describe("checks", () => {
     expect(a.adsDue(comp("a"), { ...e, checkedAt: "junk" })).toBe(true);
   });
 
-  it("marks nothing new on the first check, then only unseen ids; seen keeps 300", () => {
+  it("marks nothing new on the first check, then only unseen ids that started since; seen keeps 300", () => {
     const first = a.applyAdsCheck(undefined, answer("a", [ad("1"), ad("2")]));
     expect(first.fresh).toEqual([]);
     expect(first.seen).toEqual(["1", "2"]);
-    const second = a.applyAdsCheck(first, answer("a", [ad("2"), ad("3")], "2026-10-27T00:00:00Z"));
-    expect(second.fresh).toEqual(["3"]);
-    expect(second.ads.map((x) => x.id)).toEqual(["2", "3"]);
+    // 3 started after the last check (20 Oct); 4 is an older ad read for the first time (the most-shown 30 changed)
+    const second = a.applyAdsCheck(first, answer("a", [ad("2"), ad("3", { start: "2026-10-22" }), ad("4", { start: "2026-06-11" }), ad("5", { start: null })], "2026-10-27T00:00:00Z"));
+    expect(second.fresh).toEqual(["3", "5"]);
+    expect(second.ads.map((x) => x.id)).toEqual(["2", "3", "4", "5"]);
     const old = { ...first, seen: Array.from({ length: 300 }, (_, k) => `old${k}`) };
-    const third = a.applyAdsCheck(old, answer("a", [ad("new1"), ad("new2")]));
+    const third = a.applyAdsCheck(old, answer("a", [ad("new1", { start: "2026-10-20" }), ad("new2", { start: "2026-10-19" })]));
     expect(third.seen).toHaveLength(300);
     expect(third.seen.slice(0, 2)).toEqual(["new1", "new2"]);
   });
