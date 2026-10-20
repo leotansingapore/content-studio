@@ -10,6 +10,7 @@ import {
   countWords,
   draftLabel,
   draftsWithText,
+  draftToOpen,
   loadBrand,
   moveSlide,
   normalizeHandle,
@@ -293,6 +294,13 @@ describe("files and sources", () => {
     expect(draftsWithText(drafts).map((d) => d.id)).toEqual(["2"]);
     expect(draftLabel({ hook: "", draft: "A real post" })).toBe("A real post");
     expect(draftLabel({ hook: "x".repeat(100), draft: "" }, 20)).toBe(`${"x".repeat(19)}…`);
+  });
+
+  it("opens a post a changed ?draft= names, never the one already open", () => {
+    expect(draftToOpen("new", "old")).toBe("new");
+    expect(draftToOpen("new", "")).toBe("new");
+    expect(draftToOpen("old", "old")).toBeNull();
+    expect(draftToOpen(null, "old")).toBeNull();
   });
 });
 

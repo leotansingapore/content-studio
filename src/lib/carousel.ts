@@ -581,6 +581,10 @@ export function draftsWithText(drafts: DraftEntry[]): DraftEntry[] {
   return drafts.filter((d) => typeof d.draft === "string" && d.draft.trim().length > 0);
 }
 
+/** The post a ?draft= that changed while the page is open asks for: null when it names the slides already open. */
+export const draftToOpen = (urlDraft: string | null, openDraftId: string): string | null =>
+  urlDraft && urlDraft !== openDraftId ? urlDraft : null;
+
 export function draftLabel(d: Pick<DraftEntry, "hook" | "draft">, max = 70): string {
   const base = String(d.hook || d.draft || "")
     .replace(/\s+/g, " ")

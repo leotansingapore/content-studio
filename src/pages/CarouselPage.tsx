@@ -61,6 +61,7 @@ import {
   countWords,
   draftLabel,
   draftsWithText,
+  draftToOpen,
   loadBrand,
   moveSlide,
   newSlideId,
@@ -219,7 +220,8 @@ export default function CarouselPage() {
     let base = "";
     let nextPlatform: "instagram" | "linkedin" = "instagram";
     if (source.kind === "draft") {
-      const d = drafts.find((x) => x.id === source.id);
+      // a post made after the page loaded (the Remix sheet's "Open it") is not in the list yet
+      const d = drafts.find((x) => x.id === source.id) ?? draftsWithText(loadDrafts(userId)).find((x) => x.id === source.id);
       if (!d) return;
       text = d.draft;
       hook = d.hook;
@@ -307,6 +309,17 @@ export default function CarouselPage() {
     updateUrl({ draft: null, carousel: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
+  // A link to another post while the page is open (the Remix sheet's "Open it" here) opens its slides, asking first
+  // when these have edits, as picking it from the list does. Leo only: other sign-ins keep today's page.
+  const urlDraft = searchParams.get("draft");
+  useEffect(() => {
+    const id = draftToOpen(urlDraft, draftId);
+    if (!leo || !id || !deepLinkHandled.current) return;
+    setDrafts(draftsWithText(loadDrafts(userId)));
+    requestSource({ kind: "draft", id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlDraft]);
 
   useEffect(() => {
     if (!ready || !userId || !deepLinkHandled.current) return;
