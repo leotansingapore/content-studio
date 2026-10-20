@@ -694,7 +694,7 @@ const VERSION_RULES = [
   "- When their own best posts are listed, lean towards the topics and hook styles that worked for them. Don't copy those lines either.",
 ];
 
-const COMPLIANCE_RULES = [
+export const COMPLIANCE_RULES = [
   "",
   "Compliance (the consultant is licensed and regulated in Singapore):",
   '- Never write "guaranteed", "risk-free", "no risk", "100% safe", "act now", "best policy", "best plan", "best fund", "best insurance", or a specific % return or interest rate, even when the original does.',
@@ -920,7 +920,7 @@ export function oneLineText(v: unknown, max: number): string {
   return s.length > max ? `${s.slice(0, max - 1).replace(/\s+\S*$/, "")}…` : s;
 }
 
-function blockText(v: unknown, max: number): string {
+export function blockText(v: unknown, max: number): string {
   if (typeof v !== "string") return "";
   const s = noEmDash(v.replace(/\r\n?/g, "\n"))
     .split("\n")
