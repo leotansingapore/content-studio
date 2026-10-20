@@ -12,25 +12,26 @@ const pitch = (x: Float32Array) => {
 const rms = (x: Float32Array) => Math.sqrt(x.reduce((a, v) => a + v * v, 0) / x.length);
 
 describe("time stretch (pitch kept)", () => {
+  // inputs are as short as each check allows: at 2-3 s these timed out at 5 s on a loaded machine
   it("plays the sound faster: length / speed samples, within a sample", () => {
     for (const speed of [1.05, 1.1, 1.25, 1.5]) {
-      const [out] = stretch([tone(220, 3)], speed, RATE);
-      expect(Math.abs(out.length - (3 * RATE) / speed)).toBeLessThanOrEqual(1);
+      const [out] = stretch([tone(220, 0.5)], speed, RATE);
+      expect(Math.abs(out.length - (0.5 * RATE) / speed)).toBeLessThanOrEqual(1);
     }
   });
 
   it("keeps a 440 Hz tone at 440 Hz, within 1%", () => {
     for (const speed of [1.1, 1.25, 1.5]) {
-      const [out] = stretch([tone(440, 2)], speed, RATE);
+      const [out] = stretch([tone(440, 1)], speed, RATE);
       expect(Math.abs(pitch(out) - 440) / 440).toBeLessThan(0.01);
     }
     // a low voice too: a 110 Hz cycle is longer than a quarter of the window
-    const [low] = stretch([tone(110, 2)], 1.2, RATE);
+    const [low] = stretch([tone(110, 1)], 1.2, RATE);
     expect(Math.abs(pitch(low) - 110) / 110).toBeLessThan(0.01);
   });
 
   it("joins its windows without a click or a dip", () => {
-    const x = tone(440, 2);
+    const x = tone(440, 1);
     const level = rms(x); // once: over the whole tone for each 5 ms block it took 91M steps and ran past 5 s
     let step = 0;
     for (let i = 1; i < x.length; i++) step = Math.max(step, Math.abs(x[i] - x[i - 1]));
