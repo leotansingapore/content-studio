@@ -80,6 +80,11 @@ describe("link previews", () => {
     }
   });
 
+  it("gives a creator or inspiration link with a broken % code its page's card instead of failing", () => {
+    expect(previewFor("/profiles/100%", q()).title).toBe(PAGES["/profiles"]);
+    expect(previewFor("/inspiration/%E0%A4", q()).title).toBe(PAGES["/inspiration"]);
+  });
+
   it("names a private post's page, never the post, and never prints the query", () => {
     const evil = "<b>Buy now</b>";
     for (const [path, query] of [

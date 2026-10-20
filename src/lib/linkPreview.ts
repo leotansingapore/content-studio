@@ -142,6 +142,12 @@ export function previewFor(path: string, query: URLSearchParams, origin = ORIGIN
     ownCard: !picture,
   });
   const seg = path.replace(/\/+$/, "").split("/");
+  let id = "";
+  try {
+    id = decodeURIComponent(seg[2] ?? "");
+  } catch {
+    // a broken % code (a link cut short in a chat) names no post, so the page's card shows
+  }
 
   if (path === "/swipe") {
     const tab = query.get("tab");
@@ -157,11 +163,11 @@ export function previewFor(path: string, query: URLSearchParams, origin = ORIGIN
     if (trend) return post(trend.title, trend.why_it_works ?? "");
   }
   if (seg[1] === "inspiration" && seg.length === 3) {
-    const ex = examples.find((e) => e.id === decodeURIComponent(seg[2]));
+    const ex = examples.find((e) => e.id === id);
     if (ex) return post(ex.hook, ex.content);
   }
   if (seg[1] === "profiles" && seg.length === 3) {
-    const a = advisors.find((x) => x.id === decodeURIComponent(seg[2]));
+    const a = advisors.find((x) => x.id === id);
     if (a) return post(`${a.name} (${a.handle})`, a.why_follow ?? "");
   }
 
