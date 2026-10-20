@@ -461,7 +461,12 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           {!out && (
             <span className="min-w-0 text-right leading-tight [&>span]:text-primary-foreground/85">
               <PriceChip price={makePrice(as)} left={left} uses={uses} fallback={left === null ? null : `${left} left today`} />
-              {picked && videosLeft !== null && <span className="text-[11px] tabular-nums">{` | ${videosLeft} of ${DAILY_LIMITS["ai-video"]} videos left`}</span>}
+              {/* its own line, so the chip never breaks inside "videos left" */}
+              {picked && videosLeft !== null && (
+                <span className="block whitespace-nowrap text-[11px] tabular-nums">
+                  {videosLeft} of {DAILY_LIMITS["ai-video"]} videos left
+                </span>
+              )}
             </span>
           )}
         </Button>
