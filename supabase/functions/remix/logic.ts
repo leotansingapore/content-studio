@@ -22,7 +22,7 @@ import { numbersIn, reusedItems, sharedRuns } from "./overlap.ts";
 /** No 'face': "You speaking" in the Make row replaces it. */
 export type Keep = "structure" | "hook" | "energy" | "topic" | "part2" | "react";
 export type Close = "loose" | "balanced" | "close";
-/** post, carousel, script, speaking, explainer and slideshow are made here; formats-wall adds wall. */
+/** Every format is made here; slideshow and wall can also start from a typed topic. */
 export type RemixAs = "post" | "carousel" | "script" | "speaking" | "explainer" | "slideshow" | "wall";
 export type FitReason = "serves" | "retell" | "masSafe" | "textHeavy";
 /** Who the post speaks as: the adviser in the first person, or a business that never claims a personal story. */
@@ -32,14 +32,19 @@ const NO_NAME: Record<Speaker, string> = { business: "the business", person: "th
 
 export const KEEPS: readonly Keep[] = ["structure", "hook", "energy", "topic", "part2", "react"];
 export const CLOSES: readonly Close[] = ["loose", "balanced", "close"];
-export const MAKE_AS = ["post", "carousel", "script", "speaking", "explainer", "slideshow"] as const satisfies readonly RemixAs[];
+export const MAKE_AS = ["post", "carousel", "script", "speaking", "explainer", "slideshow", "wall"] as const satisfies readonly RemixAs[];
 /** The formats a make can write from a typed topic, with no original. */
-export const TOPIC_AS: readonly RemixAs[] = ["slideshow"];
+export const TOPIC_AS: readonly RemixAs[] = ["slideshow", "wall"];
 export const MAX_TOPIC = 200;
 /** The two formats that go on to a paid AI video after the script. */
 export const VIDEO_AS = ["speaking", "explainer"] as const satisfies readonly RemixAs[];
 /** A "You speaking" script stays under the avatar's 30 s (MAX_AVATAR_SECONDS) at a calm pace. */
 export const MAX_SPEAKING_WORDS = 70;
+/** The spec's wall of text: 60 words and 400 characters, shrunk to fit 45% of a 9:16 frame over a clip of at most 15 s. */
+export const MAX_WALL_WORDS = 60;
+export const MAX_WALL_CHARS = 400;
+/** video-assist's montage-pick keeps 90 characters of a beat's say; the wall's scene is that beat. */
+export const MAX_WALL_SCENE = 90;
 const FIT_REASONS: readonly FitReason[] = ["serves", "retell", "masSafe", "textHeavy"];
 const FORMATS = ["video", "carousel", "image", "text"] as const;
 
@@ -258,7 +263,7 @@ const introLines = (own: boolean, speaker: Speaker) => [
 export const BUSINESS_VOICE =
   "- Write as the business: 'we', its name, or 'you' to the reader, in the voice described in the message, with short plain sentences. Never write 'I', and never claim a personal experience, a personal story or a client story.";
 
-const FORMAT_RULES: Record<Exclude<(typeof MAKE_AS)[number], "slideshow">, string[]> = {
+const FORMAT_RULES: Record<Exclude<(typeof MAKE_AS)[number], "slideshow" | "wall">, string[]> = {
   post: [
     "",
     "Write a text post:",
@@ -332,7 +337,38 @@ function slideshowRules(req: MakeRequest): string[] {
   ];
 }
 
-const formatRules = (req: MakeRequest) => (req.as === "slideshow" ? slideshowRules(req) : FORMAT_RULES[req.as as keyof typeof FORMAT_RULES]);
+/** Emoji in a text; a joined sequence (a family, a profession) counts once. */
+export const emojiCount = (t: string) => (t.match(/(?<!\u200d)\p{Extended_Pictographic}/gu) ?? []).length;
+/** The emoji a wall keeps: the original's count, with a caption full of them read as 3 so the words never become an emoji string. */
+export const wallEmoji = (sourceText: string) => Math.min(emojiCount(sourceText), 3);
+
+/**
+ * Words over a silent clip (formats-wall-of-text): the original's opening, length, emoji and line breaks, never its
+ * words. The scene is the beat Jev picks a stock clip for, and the caption is its own sentences plus a call to action.
+ */
+function wallRules(req: MakeRequest): string[] {
+  const b = req.brand;
+  const n = req.source ? wallEmoji(req.source.text) : 0;
+  return [
+    "",
+    "Write a wall of text: words shown over a silent video clip, read in a few seconds, in the casual voice of a short video.",
+    req.source
+      ? `- text: the words on screen. Keep the original's opening (a "POV:" stays a "POV:", a question stays a question), its length within 20 percent, its line breaks and its emoji (${n ? `${n} of the same kind` : "none"}). Never its words, numbers, brand or claims.`
+      : "- text: the words on screen. Open in a proven shape: POV, a question, the mistake, or a quoted objection. At most 1 emoji.",
+    `- The text is at most ${MAX_WALL_WORDS} words and ${MAX_WALL_CHARS} characters, with no hashtags.`,
+    b.mention ? `- Name ${b.name} exactly once in the text, plainly.` : "",
+    b.speaker === "business" ? "- Never write I, me or my, even in a casual voice: talk to the reader as you, or as we." : "",
+    `- scene: one plain sentence of at most ${MAX_WALL_SCENE} characters: the calm shot behind the words, something a camera can film, with no text or screens in it.`,
+    "- search: 2 to 4 plain English words a stock video library would match for that scene: no text, logos, brands or close-up faces.",
+    "- caption: 2 to 4 complete sentences for the post caption that add to the words on screen, never the words cut short. No hashtags.",
+    "- cta: one complete sentence asking the reader to do one thing: save it, follow, or comment.",
+    "- hashtags: up to 3 relevant hashtags as words without the # sign, or none when the brand rules say none.",
+    `- refuse: true only when ${req.source ? "the original" : "the topic"} cannot be made into a wall of text that is safe to post, with reason saying why in one sentence (the rest may be empty). Otherwise false, with reason empty.`,
+  ].filter((l, i) => i === 0 || l);
+}
+
+const formatRules = (req: MakeRequest) =>
+  req.as === "slideshow" ? slideshowRules(req) : req.as === "wall" ? wallRules(req) : FORMAT_RULES[req.as as keyof typeof FORMAT_RULES];
 
 export const MAS_LINE =
   "The original's angle may not be safe for a licensed adviser in Singapore: keep its format and switch to a money, protection or planning topic that fits the adviser's audience.";
@@ -422,7 +458,7 @@ export function buildMakePrompt(req: MakeRequest): { system: string; user: strin
     quote(src.text),
     ...(keep === "hook" && !req.teardown?.hookPattern ? ["", "Its first line:", quote(firstLineOf(src.text))] : []),
     // a swipe carousel's caption often opens on something else, so its hook goes in as given
-    ...(req.as === "slideshow" && req.teardown?.hookPattern ? ["", "Its hook:", quote(req.teardown.hookPattern)] : []),
+    ...((req.as === "slideshow" || req.as === "wall") && req.teardown?.hookPattern ? ["", "Its hook:", quote(req.teardown.hookPattern)] : []),
     ...(req.teardown?.beats?.length ? ["", "Its beats, in order:", ...req.teardown.beats.map((b, i) => `${i + 1}. ${b}`)] : []),
     ...(dontReuse.length ? ["", `Do not reuse: ${dontReuse.join("; ")}`] : []),
     ...voiceLines(req.voice, req.brand.speaker),
@@ -521,6 +557,16 @@ export const MAKE_RESPONSE_FORMATS: Record<(typeof MAKE_AS)[number], unknown> = 
     cta: str("One complete sentence: the call to action"),
     hashtags: { type: "array", description: "Up to 3, words without #", items: { type: "string" } },
   }),
+  wall: schema("remix_wall", {
+    refuse: { type: "boolean", description: "True only when it can't be made safe to post" },
+    reason: str("Why it was refused, in one sentence, or empty"),
+    text: str(`The words on screen, at most ${MAX_WALL_WORDS} words`),
+    scene: str(`The shot behind the words, at most ${MAX_WALL_SCENE} characters`),
+    search: str("2 to 4 word stock video search"),
+    caption: str("2 to 4 complete sentences, no hashtags"),
+    cta: str("One complete sentence: the call to action"),
+    hashtags: { type: "array", description: "Up to 3, words without #", items: { type: "string" } },
+  }),
 };
 
 const wordCount = (t: string) => t.split(/\s+/).filter(Boolean).length;
@@ -529,13 +575,15 @@ const STAGE_DIRECTION = /[[\]()*]/;
 /** At most n words, cut at a word with no trailing comma or colon. */
 const words = (t: string, n: number) =>
   t.split(/\s+/).filter(Boolean).slice(0, n).join(" ").replace(/[,;:]+$/, "");
+/** At most n characters, cut at a word with no trailing comma or colon. */
+const chars = (t: string, n: number) => (t.length > n ? t.slice(0, n + 1).replace(/\s+\S*$/, "").replace(/[,;:]+$/, "").slice(0, n) : t);
 /** Ends a sentence, allowing a closing quote or bracket after the stop; an emoji ends one too, as IG captions do. */
 const ENDS_SENTENCE = /(?:[.!?]["')\]]?|\p{Extended_Pictographic})[\p{Emoji_Modifier}️‍\s]*$/u;
 const squash = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-/** The model's own refusal of a slideshow: its reason, or null when it wrote one. */
+/** The model's own refusal of a slideshow or a wall of text: its reason, or null when it wrote one. */
 export function refusalOf(as: RemixAs, raw: unknown): string | null {
-  const r = as === "slideshow" ? parseObject(raw) : null;
+  const r = as === "slideshow" || as === "wall" ? parseObject(raw) : null;
   return r?.refuse === true ? line(r.reason, 300) || "refused" : null;
 }
 
@@ -566,6 +614,17 @@ export function validateMake(as: RemixAs, raw: unknown): MakeResult | null {
     if (slides.length < 3 || slides.length > 10 || slides.length !== rows.length) return null;
     const caption = slideshowCaption(r, slides);
     return caption ? { as, slides, caption } : null;
+  }
+  if (as === "wall") {
+    if (r.refuse === true) return null;
+    // hashtags go in the caption, never on screen ("#1" is a rank, not a tag)
+    const text = blockText(typeof r.text === "string" ? r.text.replace(/#\p{L}[\p{L}\p{N}_]*/gu, "") : "", 2000);
+    if (!text || wordCount(text) > MAX_WALL_WORDS || text.length > MAX_WALL_CHARS) return null;
+    const scene = chars(line(r.scene, 300), MAX_WALL_SCENE);
+    const search = words(String(r.search ?? "").toLowerCase().replace(/[^a-z0-9\s]/g, " "), 4);
+    // the wall's words, whole or cut, are not a caption: checked as one slide holding the text
+    const caption = scene && search ? slideshowCaption(r, [{ title: text, sub: "" }]) : null;
+    return caption ? { as, text, scene, search, caption } : null;
   }
   if (as === "speaking") {
     const script = blockText(r.script, 1000);
@@ -644,8 +703,8 @@ export const slideNumbers = (slides: { title: string }[]) =>
     return m ? [Number(m[1])] : [];
   });
 
-export interface SlideshowProblem {
-  kind: "count" | "product" | "mention";
+export interface MakeProblem {
+  kind: "count" | "product" | "mention" | "emoji" | "voice";
   /** Sent back to the model for the one fixing pass. */
   fix: string;
   /** The refusal the adviser reads when the fix fails too. Nothing is used. */
@@ -657,7 +716,7 @@ export interface SlideshowProblem {
  * with mention on, a business has a slide that names it and says what it does; with mention off, no slide or caption
  * names the brand. index.ts gives one fixing pass, then refuses with `error` and keeps the use (the model answered, so it was billed).
  */
-export function slideshowProblem(r: MakeResult, req: Pick<MakeRequest, "brand">): SlideshowProblem | null {
+export function slideshowProblem(r: MakeResult, req: Pick<MakeRequest, "brand">): MakeProblem | null {
   if (r.as !== "slideshow") return null;
   const n = hookCount(r.slides[0]?.title ?? "");
   const nums = slideNumbers(r.slides);
@@ -700,6 +759,63 @@ export function slideshowProblem(r: MakeResult, req: Pick<MakeRequest, "brand">)
   }
   return null;
 }
+
+/** "I", "i'm", "I've" outside quotes: a quoted objection ("Do I really need this?") is the reader talking, not the business. */
+export function saysI(t: string): boolean {
+  return t
+    .replace(/"[^"]*"|\u201c[^\u201d]*\u201d/g, " ")
+    .toLowerCase()
+    .split(/[^a-z'\u2019]+/)
+    .some((w) => /^i(?:['\u2019](?:m|ve|ll|d))?$/.test(w));
+}
+
+/**
+ * The wall's checks in code: the original's emoji count within one (capped at 3), a business never says I, and the
+ * brand named exactly once in the words with mention on, nowhere with it off. One fixing pass, then a refusal that
+ * keeps the use, as for the slideshow.
+ */
+export function wallProblem(r: MakeResult, req: Pick<MakeRequest, "brand" | "source">): MakeProblem | null {
+  if (r.as !== "wall") return null;
+  const b = req.brand;
+  if (req.source) {
+    const want = wallEmoji(req.source.text);
+    if (Math.abs(emojiCount(r.text) - want) > 1) {
+      return {
+        kind: "emoji",
+        fix: `The original has ${want} emoji and the text has ${emojiCount(r.text)}. Return the whole JSON object again with ${Math.max(0, want - 1)} to ${want + 1} emoji in the text.`,
+        error: "The words didn't keep the original's emoji. Try again.",
+      };
+    }
+  }
+  if (b.speaker === "business" && (saysI(r.text) || saysI(r.caption))) {
+    return {
+      kind: "voice",
+      fix: `The text or caption says I, but ${b.name} is a business. Return the whole JSON object again without I: talk to the reader as you, or as we.`,
+      error: `The words spoke as I for ${b.name}. Try again.`,
+    };
+  }
+  const name = b.name === NO_NAME[b.speaker] ? null : nameMatcher(b.name);
+  if (!name) return null;
+  const count = (t: string) => (t.toLowerCase().match(new RegExp(name.source, "g")) ?? []).length;
+  if (!b.mention && (count(r.text) || count(r.caption))) {
+    return {
+      kind: "mention",
+      fix: `The text or caption names ${b.name}, but this one must not. Return the whole JSON object again without ${b.name}.`,
+      error: `The words named ${b.name} after you picked No. Try again.`,
+    };
+  }
+  if (b.mention && count(r.text) !== 1) {
+    return {
+      kind: "mention",
+      fix: `The text names ${b.name} ${count(r.text)} times. Return the whole JSON object again with ${b.name} named exactly once in the text, plainly.`,
+      error: `The words didn't name ${b.name} once. Try again.`,
+    };
+  }
+  return null;
+}
+
+/** The format's own checks after writing (slideshow or wall); null for every other format. */
+export const makeProblem = (r: MakeResult, req: Pick<MakeRequest, "brand" | "source">) => slideshowProblem(r, req) ?? wallProblem(r, req);
 
 /** The words a reader sees: not hashtags, search terms, picture prompts or filming notes. */
 export function textFields(r: MakeResult): string[] {

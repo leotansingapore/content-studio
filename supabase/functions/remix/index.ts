@@ -1,7 +1,7 @@
 // Remix (docs/north-star/items/remix-everywhere.md). A signed-in adviser on the north-star list sends one source
-// (a post, ad or trend, its words already read on the device; a slideshow may send a typed topic instead), what to
+// (a post, ad or trend, its words already read on the device; a slideshow or wall may send a typed topic instead), what to
 // keep, how close, the brand block and their voice; this writes one format (post, carousel, script, a speaking
-// script, explainer scenes or slideshow slides) in their brand, checks it against the original (one
+// script, explainer scenes, slideshow slides or a wall of text) in their brand, checks it against the original (one
 // rewrite when it repeats it, then one Jev call for claims and invented facts) and sends it back. The app saves it
 // as a draft; nothing is stored here.
 //
@@ -40,7 +40,7 @@ import {
   parseMakeRequest,
   refusalOf,
   rewriteMessage,
-  slideshowProblem,
+  makeProblem,
   validateMake,
   type MakeResult,
 } from "./logic.ts";
@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
     const tokens: string[] = [];
     let rewrote = false;
     let rejected = false;
-    // the slideshow's own "this can't be made safe" answer: a 422, never a retry
+    // the slideshow's or wall's own "this can't be made safe" answer: a 422, never a retry
     const said: { refusal: string | null } = { refusal: null };
     const write = async (msgs: typeof messages): Promise<{ result: MakeResult; raw: string } | null> => {
       const res = await openaiChat(
@@ -179,19 +179,21 @@ Deno.serve(async (req) => {
     // an answer the format can't use (a 90-word speaking script, an explainer picture of "chart") gets one more try
     if (!first && rejected) first = await write(messages);
     if (!first && said.refusal !== null) {
-      return fail("refused", make.source ? "That slideshow can't be turned into something safe to post. Pick another one." : "That topic can't be turned into something safe to post. Try another one.", 422);
+      const what = !make.source ? "That topic" : make.as === "slideshow" ? "That slideshow" : "That post";
+      return fail("refused", `${what} can't be turned into something safe to post. ${make.source ? "Pick another one." : "Try another one."}`, 422);
     }
     if (!first) {
       if (answered) return fail("unusable", "That remix came back in a shape that can't be used. Try again.", 422);
       await refundUsage(admin, uid, "remix-make", charged.day);
       return fail("failed", "That remix didn't go through. Nothing was used.", 502);
     }
-    // the slideshow's checks in code (the hook's number, the brand slide, mention off): one fixing pass, then a refusal
-    const problem = slideshowProblem(first.result, make);
+    // the format's checks in code (the slideshow's hook number and brand slide, the wall's emoji, voice and name; mention
+    // off for both): one fixing pass, then a refusal that keeps the use
+    const problem = makeProblem(first.result, make);
     if (problem) {
       const fixed = await write([...messages, { role: "assistant", content: first.raw }, { role: "user", content: problem.fix }]);
-      if (!fixed || slideshowProblem(fixed.result, make)) {
-        console.log("remix slideshow refused", problem.kind);
+      if (!fixed || makeProblem(fixed.result, make)) {
+        console.log("remix check refused", make.as, problem.kind);
         return fail("refused", problem.error, 422);
       }
       first = fixed;
@@ -203,8 +205,8 @@ Deno.serve(async (req) => {
       rewrite: async (lines) => {
         rewrote = true;
         const second = (await write([...messages, { role: "assistant", content: kept.raw }, { role: "user", content: rewriteMessage(lines) }]).catch(() => null))?.result ?? null;
-        // a rewrite that breaks the slideshow's checks is dropped, so the first answer stays
-        return second && slideshowProblem(second, make) ? null : second;
+        // a rewrite that breaks the format's checks is dropped, so the first answer stays
+        return second && makeProblem(second, make) ? null : second;
       },
       ask: async (state) => {
         const answers = await askJev({ ...(state as object), facts: make.brand.facts }, makeQuestions(make.brand.speaker), { who: "remix make" });

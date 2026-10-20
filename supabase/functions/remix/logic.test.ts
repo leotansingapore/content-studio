@@ -10,10 +10,12 @@ import {
   UNKNOWN_FIT,
   KEEP_RULES,
   MAKE_QUESTIONS,
+  MAX_WALL_CHARS,
   MAS_LINE,
   MAS_LINE_BUSINESS,
   buildMakePrompt,
   dontReuseFor,
+  emojiCount,
   fitQuestions,
   fitReasonLine,
   fitState,
@@ -21,15 +23,18 @@ import {
   holdTheLine,
   hookCount,
   intentsFor,
+  makeProblem,
   makeQuestions,
   parseFitRequest,
   parseMakeRequest,
   refusalOf,
   rewriteMessage,
+  saysI,
   slideNumbers,
   slideshowProblem,
   textFields,
   validateMake,
+  wallProblem,
   type Keep,
   type MakeRequest,
   type MakeResult,
@@ -83,8 +88,9 @@ describe("parseMakeRequest", () => {
     expect(parseMakeRequest(body({ keep: "face" }))).toEqual({ ok: false, error: BAD_KEEP });
   });
 
-  it("refuses a format not made yet, a note over 300, and a source with no words", () => {
-    expect(parseMakeRequest(body({ as: "wall" })).ok).toBe(false);
+  it("refuses an unknown format, a note over 300, and a source with no words", () => {
+    expect(parseMakeRequest(body({ as: "story" })).ok).toBe(false);
+    expect(parseMakeRequest(body({ as: "wall" })).ok).toBe(true);
     expect(parseMakeRequest(body({ as: "slideshow" })).ok).toBe(true);
     expect(parseMakeRequest(body({ as: "speaking" })).ok).toBe(true);
     expect(parseMakeRequest(body({ as: "explainer" })).ok).toBe(true);
@@ -311,8 +317,8 @@ describe("validateMake", () => {
     expect(validateMake("explainer", { scenes: scenes(4), caption: "" })).toBeNull();
   });
 
-  it("refuses formats this function doesn't make yet", () => {
-    expect(validateMake("wall", { text: "z", scene: "z", search: "z", caption: "z" })).toBeNull();
+  it("refuses a format it doesn't know", () => {
+    expect(validateMake("story" as never, { text: "z", scene: "z", search: "z", caption: "z." })).toBeNull();
   });
 });
 
@@ -636,5 +642,128 @@ describe("the slideshow (formats-slideshow)", () => {
     expect(fields).toContain("3 signs your prospecting has gone quiet");
     expect(fields).toContain("You might not see it yet.");
     expect(fields.join(" ")).not.toContain("coffee on a desk");
+  });
+});
+
+describe("the wall of text (formats-wall-of-text)", () => {
+  const BIZ = { ...body().brand, name: "ActivityTracker", oneLiner: "Tracks daily sales activity", facts: "", speaker: "business", offer: null };
+  const POV = "POV: you finally check your CPF statement \u{1F631}\nand it's not what you thought";
+  const TEXT = "POV: it's month end and you open ActivityTracker \u{1F631}\nyour calls, follow-ups and meetings are all there, so you know what to do tomorrow";
+  const RAW = { refuse: false, reason: "", text: TEXT, scene: "A woman at a desk at night with a cup of tea", search: "Desk, night & tea!", caption: "Busy weeks hide the work that fills next month. Log it daily and the pattern shows.", cta: "Follow for more ways to stay on top of your week.", hashtags: ["sales"] };
+  const wall = (over: Record<string, unknown> = {}) => validateMake("wall", { ...RAW, ...over });
+  const req = (over: Record<string, unknown> = {}) => make({ as: "wall", source: { ...body().source, text: POV }, brand: BIZ, ...over });
+  const words = (n: number) => Array.from({ length: n }, (_, i) => `w${i}`).join(" ");
+
+  it("takes a source, or a typed topic in its place", () => {
+    expect(req().as).toBe("wall");
+    const t = make({ as: "wall", source: undefined, topic: "Why busy weeks feel empty" });
+    expect(t.source).toBeUndefined();
+    expect(t.topic).toBe("Why busy weeks feel empty");
+    expect(parseMakeRequest(body({ as: "wall", source: undefined }))).toEqual({ ok: false, error: "Type a topic or pick a post to remix." });
+  });
+
+  it("keeps the compliance block, the MAS line and 'never its words', and asks for the original's opening and emoji", () => {
+    const { system, user } = buildMakePrompt(req({ fit: { verdict: "weak", reasons: ["masSafe"] } }));
+    // a business's compliance heading names the post, not a consultant; the rules under it are the same
+    expect(system).toContain(COMPLIANCE_RULES.slice(2).join("\n"));
+    expect(system).toContain(MAS_LINE_BUSINESS);
+    expect(buildMakePrompt(make({ as: "wall", fit: { verdict: "weak", reasons: ["masSafe"] } })).system).toContain(MAS_LINE);
+    expect(system).toContain("Never its words, numbers, brand or claims.");
+    expect(system).toContain('a "POV:" stays a "POV:"');
+    expect(system).toContain("its emoji (1 of the same kind)");
+    expect(system).toContain("at most 60 words and 400 characters");
+    expect(system).toContain("Name ActivityTracker exactly once in the text, plainly.");
+    expect(system).toContain("Never write I, me or my");
+    expect(system).not.toContain(POV.split("\n")[1]);
+    expect(user).toContain(POV);
+    // a person may say I; mention off names nothing
+    expect(buildMakePrompt(make({ as: "wall" })).system).not.toContain("Never write I, me or my");
+    expect(buildMakePrompt(req({ brand: { ...BIZ, mention: false } })).system).not.toContain("exactly once");
+  });
+
+  it("writes from a topic with the topic in the user message only", () => {
+    const { system, user } = buildMakePrompt(make({ as: "wall", source: undefined, topic: "Why busy weeks feel empty", brand: BIZ }));
+    expect(user).toContain('The topic:\n"""\nWhy busy weeks feel empty\n"""');
+    expect(system).not.toContain("busy weeks");
+    expect(system).toContain("Open in a proven shape");
+    expect(system).not.toContain("What to keep:");
+  });
+
+  it("allows 60 words and 400 characters, cuts the scene to 90 at a word, cleans the search and strips dashes and hashtags", () => {
+    const r = wall();
+    expect(r).toMatchObject({ as: "wall", text: TEXT, search: "desk night tea" });
+    expect(wall({ text: words(60) })).not.toBeNull();
+    expect(wall({ text: words(61) })).toBeNull();
+    expect(wall({ text: "a".repeat(MAX_WALL_CHARS) })).not.toBeNull();
+    expect(wall({ text: "a".repeat(MAX_WALL_CHARS + 1) })).toBeNull();
+    const long = wall({ scene: "A calm woman sits at a long wooden desk by a tall window at night, writing in a notebook beside a cup" });
+    expect(long?.as === "wall" && long.scene).toBe("A calm woman sits at a long wooden desk by a tall window at night, writing in a notebook");
+    expect(long?.as === "wall" && long.scene.length).toBeLessThanOrEqual(90);
+    const tagged = wall({ text: "the mistake \u2014 only tracking deals #sales #tips\nlog the #1 habit" });
+    expect(tagged?.as === "wall" && tagged.text).toBe("the mistake, only tracking deals\nlog the #1 habit");
+    expect(wall({ text: "#sales #growth" })).toBeNull();
+    expect(wall({ scene: "", search: "desk" })).toBeNull();
+    expect(wall({ search: "" })).toBeNull();
+  });
+
+  it("gives a caption of complete sentences ending with the call to action, never the words on screen", () => {
+    const r = wall();
+    expect(r?.as === "wall" && r.caption).toBe(`${RAW.caption}\n\n${RAW.cta}\n\n#sales`);
+    expect(wall({ caption: "Busy weeks hide the work that fills" })).toBeNull();
+    expect(wall({ cta: "" })).toBeNull();
+    expect(wall({ caption: "your calls, follow-ups and meetings are all there." })).toBeNull();
+  });
+
+  it("passes the model's refusal through as its reason, never as a wall", () => {
+    const refused = { ...RAW, refuse: true, reason: "It promises returns." };
+    expect(refusalOf("wall", JSON.stringify(refused))).toBe("It promises returns.");
+    expect(validateMake("wall", refused)).toBeNull();
+    expect(refusalOf("wall", RAW)).toBeNull();
+  });
+
+  it("keeps the emoji count within one of the original's, reading a caption full of them as 3", () => {
+    const r = wall()!;
+    expect(emojiCount("a \u{1F631} b \u{1F468}\u200d\u{1F469}\u200d\u{1F467} c")).toBe(2);
+    expect(wallProblem(r, req())).toBeNull();
+    expect(wallProblem(wall({ text: TEXT.replace("\u{1F631}", "") })!, req())).toBeNull();
+    const many = wall({ text: `${TEXT} \u{1F525}\u{1F525}\u{1F525}` })!;
+    const p = wallProblem(many, req());
+    expect(p?.kind).toBe("emoji");
+    expect(p?.fix).toContain("0 to 2 emoji");
+    const party = req({ source: { ...body().source, text: `${POV} ${"\u{1F389}".repeat(9)}` } });
+    expect(wallProblem(wall({ text: `${TEXT} \u{1F389}\u{1F389}` })!, party)).toBeNull();
+    expect(wallProblem(wall({ text: TEXT.replace("\u{1F631}", "") })!, party)?.kind).toBe("emoji");
+    // a topic has no original to match
+    expect(wallProblem(many, { ...req(), source: undefined })).toBeNull();
+  });
+
+  it("never lets a business say I, except inside a quoted objection", () => {
+    expect(saysI("i think my pipeline is more visible now")).toBe(true);
+    expect(saysI("I'm done guessing")).toBe(true);
+    expect(saysI("that\u2019s when i\u2019ve had enough")).toBe(true);
+    expect(saysI('"Do I really need to track every task?" if deals are all you see, you miss the work')).toBe(false);
+    expect(saysI("it's Monday, ideas in, inbox open")).toBe(false);
+    const me = wall({ text: "i used to guess. now ActivityTracker shows my week \u{1F631}" })!;
+    expect(wallProblem(me, req())?.kind).toBe("voice");
+    expect(wallProblem(me, req())?.error).toBe("The words spoke as I for ActivityTracker. Try again.");
+    // a person speaks as themselves
+    expect(wallProblem(me, req({ brand: { ...BIZ, name: "ActivityTracker", speaker: "person" } }))).toBeNull();
+  });
+
+  it("names the brand exactly once with mention on, and nowhere with it off", () => {
+    const twice = wall({ text: `${TEXT}. ActivityTracker again` })!;
+    expect(wallProblem(twice, req())?.error).toBe("The words didn't name ActivityTracker once. Try again.");
+    const none = wall({ text: TEXT.replace("ActivityTracker", "one app") })!;
+    expect(wallProblem(none, req())?.kind).toBe("mention");
+    expect(wallProblem(none, req({ brand: { ...BIZ, mention: false } }))).toBeNull();
+    expect(wallProblem(wall()!, req({ brand: { ...BIZ, mention: false } }))?.error).toBe("The words named ActivityTracker after you picked No. Try again.");
+    expect(wallProblem(wall({ text: TEXT.replace("ActivityTracker", "one app"), hashtags: ["activitytracker"] })!, req({ brand: { ...BIZ, mention: false } }))?.kind).toBe("mention");
+    // the slideshow's checks never run on a wall, nor the wall's on a slideshow
+    expect(makeProblem(wall()!, req())).toBeNull();
+  });
+
+  it("counts the words on screen and the caption as what a reader sees, never the scene or search", () => {
+    const fields = textFields(wall()!);
+    expect(fields).toEqual([TEXT, `${RAW.caption}\n\n${RAW.cta}\n\n#sales`]);
   });
 });
