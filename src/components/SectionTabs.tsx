@@ -32,14 +32,16 @@ export default function SectionTabs({ tabs, className = "" }: { tabs: SectionTab
     // getSession reads the stored session: no Auth round trip under the client lock on every Write tab mount.
     if (gated) supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? ""));
   }, [gated]);
-  if (rails) return null;
+  const shown = visiblePages(tabs, email);
+  // one tab or none (a teammate on the board, or a page this sign-in can't use) is not a choice
+  if (rails || shown.length < 2) return null;
   return (
     <nav
       aria-label="Section"
       data-nav
       className={`flex w-fit max-w-full flex-wrap gap-1 rounded-lg border border-border/60 bg-muted/30 p-1 ${className}`}
     >
-      {visiblePages(tabs, email).map((t) => (
+      {shown.map((t) => (
         <NavLink
           key={t.to}
           to={t.to}

@@ -8,7 +8,7 @@ import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
 import { checkMarketEnabled, forgetMarketShown, marketShown } from "@/lib/market";
 import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
-import { checkMe, fetchBoard, forgetMe, reelsShown, seesBoard, sharedBoard } from "@/lib/reelsBoard";
+import { checkMe, fetchBoard, forgetMe, reelsShown, seesBoard, sharedBoard, waitsOnMe } from "@/lib/reelsBoard";
 import { applyBrandLink, rememberUser } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
@@ -218,7 +218,7 @@ export default function StudioLayout() {
 
   const here = sectionFor(pathname);
   if (here) lastInSection.current[here.id] = pathname + search;
-  const open = here ?? section("home");
+  const open = here && visiblePages(here.pages, email).length > 0 ? here : section("home");
 
   useScrollMemory();
 
@@ -300,7 +300,7 @@ export default function StudioLayout() {
   // One team-board call on load (shared with Home) and on tab return (not on the timer), for board users only;
   // the board page sends its own count after every change.
   useEffect(() => {
-    if (!board) return setBoardWaiting(0);
+    if (!board || !waitsOnMe()) return setBoardWaiting(0);
     let active = true;
     const refresh = (fresh = false) =>
       void (fresh ? fetchBoard() : sharedBoard()).then((b) => active && setBoardWaiting(countBoardWaiting(b.cards)), () => {});

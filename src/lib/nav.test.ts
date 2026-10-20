@@ -71,7 +71,10 @@ describe("nav", () => {
     expect(tos).not.toContain("/reels/team");
     expect(sheet.singles.map((t) => t.label)).toEqual(["Getting started", "Recruit", "Playbook", "Learn", "Feedback"]);
     expect(visiblePages(section("board").pages, "someone@example.com").map((p) => p.to)).toEqual(["/reels"]);
-    expect(visiblePages(section("board").pages, "tanjunsing@gmail.com").map((p) => p.to)).toEqual(["/reels", "/reels/team"]);
+    // Team follows the server's owner answer, not an email
+    expect(visiblePages(section("board").pages, "tanjunsing@gmail.com").map((p) => p.to)).toEqual(["/reels"]);
+    store.set("cs-team-me", JSON.stringify({ owner: true, member: false, at: Date.now() }));
+    expect(visiblePages(section("board").pages, "someone@example.com").map((p) => p.to)).toEqual(["/reels", "/reels/team"]);
     vi.unstubAllGlobals();
   });
 

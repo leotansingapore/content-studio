@@ -83,7 +83,10 @@ describe("searchJump", () => {
     expect(items.find((i) => i.to === "/team")?.label).toBe("Leader approvals");
     expect(searchJump(items, "team")[0].to).toBe("/team");
     expect(searchJump(items, "team review")[0].to).toBe("/team");
+    // Team shows once the server has said this sign-in owns the board
+    vi.stubGlobal("localStorage", { getItem: (k: string) => (k === "cs-team-me" ? JSON.stringify({ owner: true, member: false, at: Date.now() }) : null), setItem: () => {} });
     const leo = pageItems("tanjunsing@gmail.com");
+    vi.unstubAllGlobals();
     expect(searchJump(leo, "team").map((i) => i.to).slice(0, 2)).toEqual(["/reels/team", "/team"]);
     expect(searchJump(leo, "invite")[0].to).toBe("/reels/team");
     expect(searchJump(leo, "teammate")[0].to).toBe("/reels/team");

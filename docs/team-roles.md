@@ -154,7 +154,7 @@ Order of work on every request:
   - Notes show their author. `by` may be missing, may be the string "claude", or may be `{id, label}` [18].
 - CalendarPage: board posts for `me.owner` or members with reels.
 - Channel feeds and the nav's owner-only items keep the `REELS_BOARD_OWNERS` email check, a UX gate over public data [14].
-- Nav "Reels" uses `show: reelsShown` (the remembered `me`), refreshed by StudioLayout on load.
+- The "Posts board" nav section uses `show: reelsShown` and its Team tab `show: ownerShown` (both the remembered `me`, refreshed by StudioLayout on load). Its count, on the rail icon and phone tab, uses `waitsOnMe`: a viewer gets none.
 - `/reels/team` (the app already has a `/team`), owner only, opened from a Team button on /reels:
   - members with their role, brands and status (invited, expired, joined, revoked);
   - invite (name, role, brands) shows the link once, with Copy and a WhatsApp share;

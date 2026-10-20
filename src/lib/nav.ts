@@ -29,7 +29,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { REELS_BOARD_OWNERS, reelsShown } from "@/lib/reelsBoard";
+import { ownerShown, reelsShown } from "@/lib/reelsBoard";
 import { LEO_EMAILS } from "@/lib/leoOnly";
 import { marketShown } from "@/lib/market";
 import { socialConnectShown } from "@/lib/socialConnect";
@@ -81,8 +81,8 @@ export const SECTIONS: NavSection[] = [
     to: "/reels",
     tabbed: true,
     pages: [
-      { to: "/reels", label: "Posts board", show: reelsShown },
-      { to: "/reels/team", label: "Team", owners: REELS_BOARD_OWNERS },
+      { to: "/reels", label: "Posts board", end: true, show: reelsShown },
+      { to: "/reels/team", label: "Team", show: ownerShown },
     ],
   },
   {
