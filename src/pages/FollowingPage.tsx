@@ -19,6 +19,9 @@ import { links } from "@/lib/links";
 import { fromFollowPost } from "@/lib/remixSource";
 import { useScrollToItem, useUrlItem } from "@/lib/urlState";
 import { useLeoOnly } from "@/lib/useLeoOnly";
+import { useUsesLeft } from "@/lib/aiUsage";
+import PriceChip from "@/components/PriceChip";
+import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 
 const LIMIT = DAILY_LIMITS["track-accounts"];
 const fmt = (n: number) => (n >= 10_000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
@@ -86,16 +89,22 @@ export default function FollowingPage() {
     if (userId) for (const a of list) void runCheck(userId, a);
   };
   const anyChecking = list.some(isChecking);
+  // Leo's price chips: only his sessions read today's uses, so everyone else's stays null
+  const left = useUsesLeft(anyChecking || !leo)("track-accounts");
+  // Check all spends one check per account
+  const allWhy = reasonText({ left, uses: list.length, leo });
 
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Following</h1>
         {list.length > 0 && (
-          <Button variant="outline" className="h-10 gap-2" onClick={checkAll} disabled={anyChecking}>
+          <Button variant="outline" className="h-10 gap-2" onClick={checkAll} disabled={anyChecking || Boolean(allWhy)}>
             {anyChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Check all
           </Button>
         )}
+        {list.length > 0 && !anyChecking && <PriceChip price={sumPrices(...list.map(() => priceOf("track-accounts")))} uses={list.length} left={left} />}
+        {list.length > 0 && allWhy && <p className="basis-full text-right text-xs text-destructive">{allWhy}</p>}
       </header>
 
       <EngageWeek userId={userId} />
@@ -114,7 +123,10 @@ export default function FollowingPage() {
             <Input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@name or profile link" aria-label="Account to follow" className="h-11 sm:h-10" />
             <Button type="submit" className="h-11 shrink-0 sm:h-10" disabled={!handle.trim()}>Follow</Button>
           </div>
-          <p className="text-xs text-muted-foreground">Public accounts only. Each check uses 1 of your {LIMIT} a day.</p>
+          <p className="text-xs text-muted-foreground">
+            Public accounts only. Each check uses 1 of your {LIMIT} a day.
+            {leo && !anyChecking && <> <PriceChip feature="track-accounts" left={left} /></>}
+          </p>
         </form>
       )}
 
