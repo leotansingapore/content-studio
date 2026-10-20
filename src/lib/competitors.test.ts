@@ -87,15 +87,19 @@ describe("the synced list", () => {
     expect(c.loadCompetitors("u1").list.map((x) => x.name)).toEqual(["Singlife"]);
   });
 
-  it("trims instead of failing when storage is full", () => {
-    added(c.addCompetitor("u1", row("Singlife", { logo: `https://a.sg/${"l".repeat(300)}.png` })));
+  it("trims instead of failing when storage is full: dismissed names first, then the logo links", () => {
+    const logo = `https://a.sg/${"l".repeat(300)}.png`;
+    added(c.addCompetitor("u1", row("Singlife", { logo })));
     for (let k = 0; k < 60; k++) c.dismissName("u1", `name ${k}`);
-    storage.full = 600;
+    const now = c.loadCompetitors("u1");
+    const trimmed = { ...now, dismissed: ["one more", ...now.dismissed].slice(0, 20) };
+    storage.full = JSON.stringify(trimmed).length;
     c.dismissName("u1", "One More");
-    const back = c.loadCompetitors("u1");
-    expect(back.dismissed).toHaveLength(20);
-    expect(back.dismissed[0]).toBe("one more");
-    expect(back.list[0].logo).toBeNull();
+    expect(c.loadCompetitors("u1")).toEqual(trimmed);
+    const bare = { list: trimmed.list.map((x) => ({ ...x, logo: null })), dismissed: ["two more", ...trimmed.dismissed].slice(0, 20) };
+    storage.full = JSON.stringify(bare).length;
+    c.dismissName("u1", "Two More");
+    expect(c.loadCompetitors("u1")).toEqual(bare);
   });
 });
 
@@ -103,18 +107,20 @@ describe("suggestion candidates", () => {
   const digest = (checkedAt: string, named: string[]): MarketDigest => ({ checkedAt, news: [], posts: [], geo: [{ question: "best crm", position: "named", sources: [], checkUrl: null, named }] });
 
   it("puts Your market's newest named brands first, drops the list and Not them, dedupes and stops at 80", () => {
-    storage.setItem("content-studio-market-u1", JSON.stringify({ name: "AT", checks: [digest("2026-10-01T00:00:00Z", ["Old One"]), digest("2026-10-08T00:00:00Z", ["Pipedrive", "SleekFlow", "pipedrive"])] }));
+    storage.setItem("content-studio-market-u1", JSON.stringify({ name: "AT", checks: [digest("2026-10-01T00:00:00Z", ["Old One"]), digest("2026-10-08T00:00:00Z", ["Pipedrive", "SleekFlow", "pipedrive", ...Array.from({ length: 20 }, (_, k) => `Named ${k}`)])] }));
     c.addCompetitor("u1", row("Spotio"));
     c.dismissName("u1", "SleekFlow");
     const cands = c.suggestCandidates("u1");
-    expect(cands.slice(0, 2).map((x) => x.name)).toEqual(["Pipedrive", "Old One"]);
+    expect(cands.slice(0, 2).map((x) => x.name)).toEqual(["Pipedrive", "Named 0"]);
+    expect(cands.findIndex((x) => x.name === "Old One")).toBe(21);
     expect(cands[0].about).toBe('Named when ChatGPT was asked "best crm"');
     const names = cands.map((x) => x.name.toLowerCase());
     expect(new Set(names).size).toBe(names.length);
     expect(names).not.toContain("sleekflow");
     expect(names).not.toContain("spotio");
-    expect(cands.length).toBeLessThanOrEqual(80);
-    expect(cands.length).toBe(Math.min(80, 2 + 66 + 7 - 1)); // SleekFlow is an Ads swipe advertiser too
+    // 22 named + 66 creators + 6 advertisers (SleekFlow is one) = 94, cut to 80 from the end
+    expect(cands).toHaveLength(80);
+    expect(cands.some((x) => x.key.startsWith("ad:"))).toBe(false);
     expect(cands.find((x) => x.key.startsWith("a:"))?.about).toMatch(/ on /);
   });
 
