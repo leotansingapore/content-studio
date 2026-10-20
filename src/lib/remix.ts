@@ -171,8 +171,8 @@ export function whatRemixDoes(
     hook: "keeps its hook",
     energy: "keeps its energy",
     topic: `moves it to ${c.about || "your topic"}`,
-    part2: "writes its part 2",
-    react: "writes your reaction to it",
+    part2: "follows it with a part 2",
+    react: "reacts to it",
   };
   return (
     `Reads this ${sourceNoun(s)}${ctx.teardownCached ? "" : ", breaks it down"}, ${verb[c.keep]} and writes ${andList(c.as.map((a) => FORMAT_WORDS[a]))} ` +

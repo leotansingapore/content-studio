@@ -128,6 +128,15 @@ describe("whatRemixDoes", () => {
     );
   });
 
+  it("never says 'writes' twice for React to it and Part 2", () => {
+    expect(whatRemixDoes(reel, { keep: "react", as: ["script"], close: "balanced" }, ctx)).toBe(
+      "Reads this reel, reacts to it and writes a script and shot list for MoneyBees in your voice, with new words. You see it before anything posts.",
+    );
+    expect(whatRemixDoes(src({ kind: "own", key: "own:d1", format: "text" }), { keep: "part2", as: ["post"], close: "balanced" }, ctx)).toBe(
+      "Reads this post, follows it with a part 2 and writes a text post for MoneyBees in your voice, with new words. You see it before anything posts.",
+    );
+  });
+
   it("names the breakdown only when it still has to run, and joins several formats", () => {
     expect(whatRemixDoes(reel, { keep: "hook", as: ["post", "carousel", "speaking"], close: "close" }, { ...ctx, teardownCached: false })).toBe(
       "Reads this reel, breaks it down, keeps its hook and writes a text post, a carousel and a video of you saying it for MoneyBees in your voice, close to it, with every line new. You see it before anything posts.",
