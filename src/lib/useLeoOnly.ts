@@ -29,6 +29,8 @@ function devAsLeo(): boolean {
 }
 
 let pending: Promise<LeoUser | null> | null = null;
+// The last answer, so a hook mounted after the first read paints the right state on its first frame.
+let known: LeoUser | null | undefined;
 let watching = false;
 
 function readLeo(): Promise<LeoUser | null> {
@@ -36,14 +38,15 @@ function readLeo(): Promise<LeoUser | null> {
     watching = true;
     // A sign-in or sign-out reads the session again on the next hook mount.
     supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") known = undefined;
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") pending = null;
     });
   }
   pending ??= supabase.auth.getSession().then(
     ({ data }) => {
       const u = data.session?.user;
-      if (!u) return null;
-      return leoOnly(u.email) || devAsLeo() ? { id: u.id, email: u.email ?? "" } : null;
+      known = u && (leoOnly(u.email) || devAsLeo()) ? { id: u.id, email: u.email ?? "" } : null;
+      return known;
     },
     () => null,
   );
@@ -52,7 +55,7 @@ function readLeo(): Promise<LeoUser | null> {
 
 /** Leo's user once the session is read; null for everyone else; undefined while it is still being read. */
 export function useLeoUser(): LeoUser | null | undefined {
-  const [user, setUser] = useState<LeoUser | null | undefined>(undefined);
+  const [user, setUser] = useState<LeoUser | null | undefined>(known);
   useEffect(() => {
     let live = true;
     readLeo().then((u) => live && setUser(u));
