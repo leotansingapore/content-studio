@@ -142,7 +142,7 @@ export function paintSlide(
   const W = FRAME_W;
   const H = frameHeight(size);
   ctx.save();
-  ctx.fillStyle = EMPTY_BG;
+  ctx.fillStyle = slide.fill ?? EMPTY_BG;
   ctx.fillRect(0, 0, W, H);
   if (picture) {
     // cover the frame, cropped to the centre

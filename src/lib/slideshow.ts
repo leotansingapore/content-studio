@@ -7,6 +7,7 @@
 import { scoped } from "@/lib/profiles";
 import { MAX_SLIDES, MIN_SLIDES, SLIDE_IMAGE_KEY, splitDraftIntoSlides } from "@/lib/carousel";
 import { newDraftId, type DraftEntry } from "@/lib/draftHistory";
+import type { RemixSource } from "@/lib/remixSource";
 
 export type BoxFont = "heavy" | "clean" | "serif";
 export type BoxBg = "white" | "none" | "bar";
@@ -35,6 +36,8 @@ export interface ShowSlide {
   image?: string;
   /** A Pexels pick, synced so another device can fetch it again. */
   photo?: { src: string; by: string; byUrl: string };
+  /** #rrggbb behind the words when the slide has no picture (a made slideshow's brand colour). */
+  fill?: string;
   /** At most 6. */
   boxes: TextBox[];
 }
@@ -47,6 +50,10 @@ export interface Slideshow {
   /** 2 to 10. */
   slides: ShowSlide[];
   draftId?: string;
+  /** The post caption a made slideshow came with (/make/slideshow); Save to My posts uses it as the post's words. */
+  caption?: string;
+  /** What it was remixed from (remixedAt set), shown on the Original tab and carried to its draft. */
+  source?: RemixSource;
   updatedAt: string;
 }
 
@@ -65,6 +72,7 @@ export const MAX_BOXES = 6;
 export const MAX_BOX_CHARS = 400;
 export const MAX_SHOWS = 20;
 export const MAX_HISTORY = 20;
+export const MAX_CAPTION = 2200;
 export const SIZE_MIN = 16;
 export const SIZE_MAX = 160;
 export const STROKE_MAX = 12;
@@ -231,13 +239,13 @@ export const slideWords = (s: Slideshow) =>
     .filter(Boolean)
     .join("\n\n");
 
-/** The draft Save to My posts writes: to every network a slideshow is a photo carousel. */
+/** The draft Save to My posts writes: to every network a slideshow is a photo carousel. A made one posts its caption. */
 export function slideshowToDraft(s: Slideshow, now: string): DraftEntry {
   return {
     id: s.draftId ?? newDraftId(),
     createdAt: now,
     hook: s.title,
-    draft: slideWords(s),
+    draft: s.caption?.trim() || slideWords(s),
     pillar: "topic",
     pillarDetail: s.title,
     audience: "general",
@@ -245,6 +253,7 @@ export function slideshowToDraft(s: Slideshow, now: string): DraftEntry {
     platform: s.size === "9x16" ? "tiktok" : "instagram",
     ctaType: "save-share",
     status: "draft",
+    ...(s.source ? { source: s.source } : {}),
   };
 }
 
@@ -308,8 +317,18 @@ function sanitizeSlide(raw: unknown): ShowSlide | null {
     id: typeof r.id === "string" && r.id ? r.id.slice(0, 40) : newId("s"),
     ...(typeof r.image === "string" && SLIDE_IMAGE_KEY.test(r.image) ? { image: r.image } : {}),
     ...(photo ? { photo } : {}),
+    ...(typeof r.fill === "string" && HEX.test(r.fill) ? { fill: r.fill } : {}),
     boxes: (Array.isArray(r.boxes) ? r.boxes : []).map(sanitizeBox).filter((b): b is TextBox => !!b).slice(0, MAX_BOXES),
   };
+}
+
+/** A synced source kept only with its key and kind; a link that isn't https is dropped, since the Original tab opens it. */
+function sanitizeSource(raw: unknown): { source?: RemixSource } {
+  if (!raw || typeof raw !== "object") return {};
+  const r = raw as RemixSource;
+  if (typeof r.key !== "string" || !r.key || typeof r.kind !== "string") return {};
+  const { url, ...rest } = r;
+  return { source: { ...rest, ...(typeof url === "string" && url.startsWith("https://") ? { url } : {}) } };
 }
 
 export function sanitizeSlideshow(raw: unknown): Slideshow | null {
@@ -327,6 +346,8 @@ export function sanitizeSlideshow(raw: unknown): Slideshow | null {
     overlay: { darken: clamp(num(o.darken, 0), 0, DARKEN_MAX), mark: o.mark === "handle" || o.mark === "logo" ? o.mark : "off" },
     slides,
     ...(typeof r.draftId === "string" && r.draftId ? { draftId: r.draftId } : {}),
+    ...(typeof r.caption === "string" && r.caption.trim() ? { caption: r.caption.slice(0, MAX_CAPTION) } : {}),
+    ...sanitizeSource(r.source),
     updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
   };
 }

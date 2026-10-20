@@ -244,6 +244,40 @@ describe("slideshowToDraft", () => {
     expect(d.draft.split("\n\n")).toHaveLength(s.slides.length);
     expect(slideshowToDraft({ ...s, size: "9x16" }, "").platform).toBe("tiktok");
     expect(slideshowToDraft(s, "").id).toBeTruthy();
+    expect(slideshowToDraft(s, "").source).toBeUndefined();
+  });
+
+  it("posts a made slideshow's caption and carries its source to the draft", () => {
+    const s = fromPost("Cover line here\n\nOne thing to know.\n\nAnother thing to know.");
+    const source = { key: "top:a-b", kind: "top-post" as const, format: "carousel" as const, author: "@ann", remixedAt: "2026-10-20T00:00:00.000Z" };
+    const d = slideshowToDraft({ ...s, caption: "Two sentences of caption. Save this.", source }, "");
+    expect(d.draft).toBe("Two sentences of caption. Save this.");
+    expect(d.source).toEqual(source);
+  });
+});
+
+describe("a made slideshow's caption, source and brand colour", () => {
+  it("survive a save and a load, while an old save with none of them still loads", () => {
+    const [s] = sanitizeSlideshows([
+      {
+        id: "ss1",
+        caption: "A caption. Save this.",
+        source: { key: "top:a-b", kind: "top-post", url: "https://www.instagram.com/p/x/", remixedAt: "2026-10-20T00:00:00.000Z" },
+        slides: [{ id: "s1", fill: "#1D4ED8", boxes: [] }, { id: "s2", fill: "blue", boxes: [] }],
+      },
+    ]);
+    expect(s.caption).toBe("A caption. Save this.");
+    expect(s.source?.url).toBe("https://www.instagram.com/p/x/");
+    expect(s.slides[0].fill).toBe("#1D4ED8");
+    expect(s.slides[1].fill).toBeUndefined();
+    const [, bad, keyless] = sanitizeSlideshows([s, { id: "ss2", source: { key: "top:a-b", kind: "top-post", url: "javascript:alert(1)" }, slides: [{ id: "s1", boxes: [] }] }, { id: "ss3", source: { kind: "top-post" }, slides: [{ id: "s1", boxes: [] }] }]);
+    expect(bad.source?.key).toBe("top:a-b");
+    expect(bad.source?.url).toBeUndefined();
+    expect(keyless.source).toBeUndefined();
+    const [old] = sanitizeSlideshows([{ id: "old", title: "Before", slides: [{ id: "s1", boxes: [box()] }] }]);
+    expect(old.caption).toBeUndefined();
+    expect(old.source).toBeUndefined();
+    expect(old.slides[0].boxes).toHaveLength(1);
   });
 });
 
