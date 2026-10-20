@@ -14,14 +14,14 @@ export function chipText(a: { price: Price | "pick" | null; left: number | null;
   const out = left !== null && (left === 0 || uses > left);
   if (!a.leo) return { text: left === null ? "" : left ? `${left} left today` : "None left today", out };
   if (left === 0) return { text: "None left today", out };
-  if (a.price === "pick") return { text: "Pick your options to see the price", out };
+  const head = a.price === "pick" ? "Pick your options to see the price" : a.price ? priceText(a.price) : null;
   const after =
     left === null ? null
     : uses > left ? `${left} left today`
     : uses > 1 ? `${uses} uses, ${left - uses} left after this`
     : left === 1 ? "Last one today"
     : `${left - 1} left after this`;
-  return { text: [a.price ? priceText(a.price) : null, after].filter(Boolean).join(" | "), out };
+  return { text: [head, after].filter(Boolean).join(" | "), out };
 }
 
 /** The line under a disabled button, for Leo only; null while the button can run. */

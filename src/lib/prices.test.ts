@@ -42,7 +42,10 @@ describe("chipText", () => {
   });
 
   it("asks for the options before it can price them", () => {
-    expect(chipText({ price: "pick", left: 2, leo: true })).toEqual({ text: "Pick your options to see the price", out: false });
+    expect(chipText({ price: "pick", left: 2, leo: true })).toEqual({ text: "Pick your options to see the price | 1 left after this", out: false });
+    expect(chipText({ price: "pick", left: null, leo: true })).toEqual({ text: "Pick your options to see the price", out: false });
+    // short of uses: the count says why the chip is red
+    expect(chipText({ price: "pick", left: 2, uses: 3, leo: true })).toEqual({ text: "Pick your options to see the price | 2 left today", out: true });
   });
 
   it("shows uses left only for a cap with no price", () => {
@@ -53,7 +56,7 @@ describe("chipText", () => {
 
 describe("reasonText", () => {
   it("explains a disabled button", () => {
-    expect(reasonText({ left: 0 })).toBe("Back at 8am Singapore time.");
+    expect(reasonText({ left: 0})).toBe("Back at 8am Singapore time.");
     expect(reasonText({ left: 2, uses: 3 })).toBe("This needs 3 uses and 2 are left today.");
     expect(reasonText({ left: 1, uses: 3 })).toBe("This needs 3 uses and 1 is left today.");
   });
