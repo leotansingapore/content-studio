@@ -78,12 +78,12 @@ export default function BreakdownRow(p: { userId: string; source: RemixSource; t
   const bodyId = `breakdown-${source.key}`;
   return (
     <section aria-label="Breakdown" className="rounded-lg border border-border/60 bg-card">
-      <div className="flex items-center justify-between gap-2 py-1.5 pl-3 pr-1.5">
+      {/* on a phone the chip and "See it" drop under the title as one right-aligned line, never a broken chip */}
+      <div className="flex flex-wrap items-center justify-between gap-x-2 py-1.5 pl-3 pr-1.5">
         <h3 className="text-sm font-semibold text-foreground">Breakdown</h3>
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           {!teardown && (
-            // wraps to two right-aligned lines beside "See it" on a phone
-            <span className="min-w-0 text-right leading-tight">
+            <span className="whitespace-nowrap">
               <PriceChip feature="remix-teardown" left={left("remix-teardown")} />
             </span>
           )}
