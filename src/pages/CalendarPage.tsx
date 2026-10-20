@@ -1523,7 +1523,7 @@ export default function CalendarPage() {
 
       <BusinessChips filter={bizFilter} />
 
-      {(teamToApprove.length > 0 || handDue.length > 0) && (
+      {(teamToApprove.length > 0 || handDue.length > 0 || waitingGroups.length > 0) && (
         <section aria-label="Needs you" className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-3">
           <p className="text-sm font-semibold text-foreground">Needs you</p>
           {teamToApprove.length > 0 && (
@@ -1543,6 +1543,18 @@ export default function CalendarPage() {
               <span className="shrink-0 text-xs font-semibold text-primary">Review</span>
             </button>
           )}
+          {waitingGroups.map((g) => (
+            <Link
+              key={g.business}
+              to={links.reels({ brand: g.brand, stage: g.items.some((w) => w.changes) ? "all" : undefined })}
+              className="flex min-h-11 w-full items-center gap-3 rounded-lg bg-card px-3 py-2 text-left shadow-card hover:bg-muted/40"
+            >
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                {g.business}: {g.items.length} post{g.items.length > 1 ? "s" : ""} to review
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-primary">Review</span>
+            </Link>
+          ))}
           {handDue.map((r) => (
             <button
               key={r.id}

@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setActiveProfile } from "@/lib/profiles";
 import { connectLink } from "@/lib/socialConnect";
+import { boardWaitingChanged, countBoardWaiting } from "@/lib/needsYou";
 import {
   NEXT,
   accessChanged,
@@ -127,6 +128,11 @@ export default function ReelsPage() {
         .catch((e) => setError(errorText(e, "check your connection")));
     });
   }, []);
+
+  // The nav badge follows every load, move and undo here at once.
+  useEffect(() => {
+    if (board) boardWaitingChanged(countBoardWaiting(board.cards));
+  }, [board]);
 
   const replace = useCallback((c: ReelCard) => setBoard((b) => b && { ...b, cards: b.cards.map((x) => (x.id === c.id ? c : x)) }), []);
 

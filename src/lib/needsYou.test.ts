@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { badgeText, countNeedsYou } from "./needsYou";
+import { badgeText, countBoardWaiting, countNeedsYou } from "./needsYou";
 import type { DraftEntry } from "./draftHistory";
+import type { ReelCard, StageId } from "./reelsBoard";
 import type { TeamPost } from "./teamPosts";
 
 const TODAY = "2026-10-14";
@@ -35,6 +36,15 @@ describe("countNeedsYou", () => {
 
   it("adds both", () => {
     expect(countNeedsYou([draft({ status: "scheduled", scheduledFor: "2026-10-01" })], [team({})], {}, TODAY)).toBe(2);
+  });
+});
+
+describe("countBoardWaiting", () => {
+  it("counts posts in Review or Needs changes only", () => {
+    const card = (stage: StageId) => ({ id: stage, title: stage, stage, version: "v1", versions: [], comments: [], history: [] }) as ReelCard;
+    const stages: StageId[] = ["review", "review", "changes", "approved", "scheduled", "posted", "archived"];
+    expect(countBoardWaiting(stages.map(card))).toBe(3);
+    expect(countBoardWaiting([])).toBe(0);
   });
 });
 

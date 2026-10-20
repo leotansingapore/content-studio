@@ -8,14 +8,14 @@ import { stopCloudSync } from "@/lib/cloudSync";
 import { disablePushHere, refreshPushHere } from "@/lib/notify";
 import { checkMarketEnabled, forgetMarketShown, marketShown } from "@/lib/market";
 import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/lib/socialConnect";
-import { checkMe, forgetMe, reelsShown, seesBoard } from "@/lib/reelsBoard";
+import { checkMe, fetchBoard, forgetMe, reelsShown, seesBoard } from "@/lib/reelsBoard";
 import { applyBrandLink, rememberUser } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import JumpTo, { jumpShortcut } from "@/components/JumpTo";
 import { pushRecent } from "@/lib/jumpTo";
-import { badgeText, countNeedsYou } from "@/lib/needsYou";
+import { badgeText, countBoardWaiting, countNeedsYou, onBoardWaiting } from "@/lib/needsYou";
 import { loadDrafts, onDraftsChanged } from "@/lib/draftHistory";
 import { readTeamPosts, readTeamReviews } from "@/lib/teamPosts";
 import { localDateKey } from "@/lib/dueDates";
@@ -202,6 +202,8 @@ export default function StudioLayout() {
   const [uid, setUid] = useState<string | null>(null);
   // Overdue posts and team posts waiting for approval: a count on Pipeline and the phone Calendar tab.
   const [needsYou, setNeedsYou] = useState(0);
+  // Posts in Review or Needs changes on the posts board: a count on its rail icon and phone tab.
+  const [boardWaiting, setBoardWaiting] = useState(0);
   // Social accounts sits in the nav only once the server has said it is on for this sign-in.
   const [, setSocialOn] = useState(socialConnectShown);
   const [, setReelsOn] = useState(reelsShown);
@@ -209,6 +211,8 @@ export default function StudioLayout() {
   const mainRef = useRef<HTMLElement>(null);
   const moreRef = useRef<HTMLDialogElement>(null);
   const prevPath = useRef(pathname);
+  // Read on every render: setReelsOn rerenders once checkMe has stored the answer.
+  const board = reelsShown();
   // Each section's rail icon reopens the page you last had open there.
   const lastInSection = useRef<Record<string, string>>({});
 
@@ -293,6 +297,23 @@ export default function StudioLayout() {
     };
   }, [uid, pathname]);
 
+  // One team-board call on load and on tab return (not on the timer), for board users only; the board page
+  // sends its own count after every change.
+  useEffect(() => {
+    if (!board) return setBoardWaiting(0);
+    let active = true;
+    const refresh = () => void fetchBoard().then((b) => active && setBoardWaiting(countBoardWaiting(b.cards)), () => {});
+    refresh();
+    const onVisible = () => document.visibilityState === "visible" && refresh();
+    document.addEventListener("visibilitychange", onVisible);
+    const off = onBoardWaiting(setBoardWaiting);
+    return () => {
+      active = false;
+      document.removeEventListener("visibilitychange", onVisible);
+      off();
+    };
+  }, [board]);
+
   // Jump to lists the pages opened lately on this device.
   useEffect(() => {
     pushRecent(pathname);
@@ -340,11 +361,10 @@ export default function StudioLayout() {
     window.location.replace("/auth");
   };
 
-  // Read on every render: setReelsOn rerenders once checkMe has stored the answer.
-  const board = reelsShown();
   const tabs = mobileTabs(board);
   const moreActive = !tabs.some((t) => t.active(pathname));
   const sheet = moreSheet(email, board);
+  const tabCount = (to: string) => (to === "/calendar" ? needsYou : to === "/reels" ? boardWaiting : 0);
   const tileActive = (t: MoreTile) => (t.whole ? here?.id === t.sectionId : pathMatches(pathname, t.to));
 
   return (
@@ -376,7 +396,7 @@ export default function StudioLayout() {
               s={s}
               to={lastInSection.current[s.id] ?? s.to}
               active={here?.id === s.id}
-              count={s.id === "pipeline" ? needsYou : 0}
+              count={s.id === "pipeline" ? needsYou : s.id === "board" ? boardWaiting : 0}
             />
           ))}
           <div className="mt-auto flex flex-col items-center gap-1 pt-3">
@@ -540,17 +560,17 @@ export default function StudioLayout() {
             >
               <span className="relative">
                 <Icon className="h-5 w-5" />
-                {to === "/calendar" && needsYou > 0 && (
+                {tabCount(to) > 0 && (
                   <span
                     aria-hidden
                     className="absolute -right-2.5 -top-1.5 grid h-[16px] min-w-[16px] place-items-center rounded-full bg-warning px-1 text-[9px] font-bold leading-none text-primary-foreground ring-2 ring-background"
                   >
-                    {badgeText(needsYou)}
+                    {badgeText(tabCount(to))}
                   </span>
                 )}
               </span>
               {label}
-              {to === "/calendar" && needsYou > 0 && <span className="sr-only">, {needsYou} need you</span>}
+              {tabCount(to) > 0 && <span className="sr-only">, {tabCount(to)} need you</span>}
             </Link>
           ))}
           <button
