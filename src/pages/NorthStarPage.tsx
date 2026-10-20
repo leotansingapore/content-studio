@@ -426,13 +426,23 @@ function DogfoodRow({ p, onFrame }: { p: NsDogfoodPost; onFrame: (f: string) => 
         <span className="sm:hidden">, </span>
         {p.format}
       </span>
-      <span className="col-start-2 sm:col-start-auto">
+      <span className="col-start-2 min-w-0 sm:col-start-auto">
         <span className={cn(p.kind === "ai" && "text-muted-foreground")}>{p.hook}</span>{" "}
         <span className="text-muted-foreground">{p.angle}.</span>
+        {p.note && <span className="block text-muted-foreground">{p.note}.</span>}
         {p.frame && (
           <button type="button" onClick={() => onFrame(p.frame!)} className={cn("ml-1 inline-flex items-center font-semibold text-primary hover:underline", TOUCH)}>
             See it
           </button>
+        )}
+        {p.slides && (
+          <span className="mt-1.5 flex gap-1 overflow-x-auto pb-1">
+            {p.slides.map((src, i) => (
+              <a key={src} href={src} target="_blank" rel="noreferrer" className="shrink-0" aria-label={`Open slide ${i + 1} of ${p.hook}`}>
+                <img src={src} alt="" loading="lazy" className="h-24 w-[3.375rem] rounded border object-cover" />
+              </a>
+            ))}
+          </span>
         )}
       </span>
     </li>
@@ -880,11 +890,18 @@ function NorthStar() {
           <div className="rounded-lg border border-dashed p-3 text-xs leading-relaxed">
             <p className="font-bold">Ours</p>
             {NS_DOGFOOD.ours.length ? (
-              <ol className="mt-1 divide-y">
-                {NS_DOGFOOD.ours.map((p) => (
-                  <DogfoodRow key={p.n} p={p} onFrame={openFrame} />
-                ))}
-              </ol>
+              <>
+                <ul className="mt-1 list-disc space-y-1 pl-5 text-muted-foreground">
+                  {NS_DOGFOOD.results.map((x) => (
+                    <li key={x.slice(0, 24)}>{x}</li>
+                  ))}
+                </ul>
+                <ol className="mt-2 divide-y">
+                  {NS_DOGFOOD.ours.map((p) => (
+                    <DogfoodRow key={p.n} p={p} onFrame={openFrame} />
+                  ))}
+                </ol>
+              </>
             ) : (
               <p className="mt-1 text-muted-foreground">{NS_DOGFOOD.plan}</p>
             )}

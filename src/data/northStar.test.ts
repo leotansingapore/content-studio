@@ -79,6 +79,9 @@ describe("north star", () => {
   it("holds Fastlane's 28 Activity Tracker posts as the dogfood benchmark", () => {
     expect(NS_DOGFOOD.fastlane.posts.map((p) => p.n)).toEqual(Array.from({ length: 28 }, (_, i) => i + 1));
     for (const p of NS_DOGFOOD.fastlane.posts) expect(p.hook.trim(), `post ${p.n}`).not.toBe("");
+    // every slide of ours is a file the page can show, and a run with posts says what it found
+    for (const p of NS_DOGFOOD.ours) for (const f of p.slides ?? []) expect(existsSync(new URL(`public${f}`, root)), f).toBe(true);
+    if (NS_DOGFOOD.ours.length) expect(NS_DOGFOOD.results.length).toBeGreaterThan(0);
   });
 
   it("counts statuses", () => {
