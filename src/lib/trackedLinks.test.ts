@@ -1,7 +1,28 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+// a brand's links in the database, and every delete call made on them
+const db = vi.hoisted(() => ({ links: [] as { id: string; profile_id: string }[], deleted: [] as string[], failOn: "" }));
+vi.mock("@/lib/supabase", () => ({
+  SUPABASE_URL: "https://hub.supabase.co",
+  supabase: {
+    from: () => ({
+      select: () => ({
+        eq: async (col: "profile_id", v: string) => ({ data: db.links.filter((l) => l[col] === v).map(({ id }) => ({ id })), error: null }),
+      }),
+    }),
+    rpc: async (_name: string, a: { p_id: string }) => {
+      if (a.p_id === db.failOn) return { data: null, error: { message: "Failed to fetch" } };
+      db.deleted.push(a.p_id);
+      return { data: true, error: null };
+    },
+  },
+}));
+
 import {
   countsByLink,
   dailyClicks,
+  deleteBrandLinks,
+  fetchPublicReport,
   isTrackedUrl,
   linkInputProblem,
   reportLostBy,
@@ -89,5 +110,47 @@ describe("reportLostBy", () => {
     expect(reportLostBy([link("b", "c2")], campaigns, "b")).toBeNull();
     expect(reportLostBy([link("c", null)], campaigns, "c")).toBeNull();
     expect(reportLostBy([], campaigns, "x")).toBeNull();
+  });
+});
+
+describe("removing a brand", () => {
+  afterEach(() => {
+    db.links = [];
+    db.deleted = [];
+    db.failOn = "";
+  });
+
+  it("deletes only that brand's tracked links, each one through the delete call", async () => {
+    db.links = [{ id: "a", profile_id: "brand-2" }, { id: "b", profile_id: "me" }, { id: "c", profile_id: "brand-2" }];
+    await deleteBrandLinks("brand-2");
+    expect(db.deleted).toEqual(["a", "c"]);
+  });
+
+  it("stops with a reason when a delete does not go through, so the brand is kept to try again", async () => {
+    db.links = [{ id: "a", profile_id: "brand-2" }, { id: "c", profile_id: "brand-2" }];
+    db.failOn = "a";
+    await expect(deleteBrandLinks("brand-2")).rejects.toThrow("Couldn't reach the server. Check your connection and try again.");
+    expect(db.deleted).toEqual([]);
+  });
+});
+
+describe("the public report page", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const SLUG = "abcdefghij2345678xyz";
+
+  it("shows the report, says gone for a bad or switched-off address, and try again only when the server is down", async () => {
+    const report = { campaign: "CNY 2027", clicks: 9, people: 4, days: [], links: [] };
+    const fetch = vi.fn(async (url: string) =>
+      url.endsWith(`/report/${SLUG}`) ? new Response(JSON.stringify(report)) : url.includes("/report/zzzzzzzzzzzzzzzzzzzz") ? new Response("", { status: 503 }) : new Response("", { status: 404 }));
+    vi.stubGlobal("fetch", fetch);
+    expect(await fetchPublicReport(SLUG.toUpperCase())).toEqual({ ok: true, data: report });
+    expect(await fetchPublicReport("abcdefghij2345678xy0")).toEqual({ ok: false, gone: true });
+    expect(await fetchPublicReport("zzzzzzzzzzzzzzzzzzzz")).toEqual({ ok: false, gone: false });
+    // a pasted address cut short is gone without asking the server
+    fetch.mockClear();
+    expect(await fetchPublicReport("abcdef")).toEqual({ ok: false, gone: true });
+    expect(fetch).not.toHaveBeenCalled();
+    vi.stubGlobal("fetch", async () => Promise.reject(new TypeError("Failed to fetch")));
+    expect(await fetchPublicReport(SLUG)).toEqual({ ok: false, gone: false });
   });
 });
