@@ -239,7 +239,7 @@ const introLines = (own: boolean, speaker: Speaker) => [
   own
     ? "- Never reuse the original's claims or figures, or anything listed under 'Do not reuse'."
     : "- Never reuse the original's brand, product names, handles (except the credit the rules below ask for), claims or figures, or anything listed under 'Do not reuse'.",
-  "- Make it Singapore-relevant (SGD, CPF, SRS, HDB, MediShield Life) where the link is honest.",
+  speaker === "business" ? "- Make it Singapore-relevant where the link is honest." : "- Make it Singapore-relevant (SGD, CPF, SRS, HDB, MediShield Life) where the link is honest.",
   speaker === "business" ? BUSINESS_VOICE : "- Write in the first person, in the adviser's voice described in the message, with short plain sentences.",
 ];
 
@@ -294,12 +294,26 @@ const FORMAT_RULES: Record<(typeof MAKE_AS)[number], string[]> = {
 
 export const MAS_LINE =
   "The original's angle may not be safe for a licensed adviser in Singapore: keep its format and switch to a money, protection or planning topic that fits the adviser's audience.";
+export const MAS_LINE_BUSINESS =
+  "The original's angle may not be safe to post in Singapore: keep its format and switch to a topic that fits the business's audience.";
+
+/** Our fixed lines name the adviser; a business gets the same rule about itself. Never run on the user's own words. */
+const asSpeaker = (t: string, s: Speaker) => (s === "business" ? t.replace(/\b([Tt])he adviser/g, "$1he business") : t);
+
+/** clone-reel's compliance block, whose heading names a licensed consultant, headed for a business instead. */
+const complianceFor = (s: Speaker) =>
+  s === "business" ? COMPLIANCE_RULES.map((l) => (l.startsWith("Compliance (") ? "Compliance (the post is published in Singapore):" : l)) : COMPLIANCE_RULES;
 
 /** The one intent block, filled in. The hook's own first line stays in the user message. */
 export function keepBlock(req: MakeRequest): string {
   const keep = req.keep ?? "structure";
-  const topic = req.about || (req.brand.topics[0] ? `one of the adviser's topics (${req.brand.topics.join(", ")})` : "a money, protection or planning topic for the adviser's audience");
-  return KEEP_RULES[keep]
+  const sp = req.brand.speaker;
+  const topic =
+    req.about ||
+    (req.brand.topics[0] ? `${asSpeaker("one of the adviser's topics", sp)} (${req.brand.topics.join(", ")})`
+    : sp === "business" ? "a topic for the business's audience"
+    : "a money, protection or planning topic for the adviser's audience");
+  return asSpeaker(KEEP_RULES[keep], sp)
     .replace("{pattern}", req.teardown?.hookPattern || "the first line quoted in the message")
     .replace("{topic}", topic)
     .replace("{author}", req.source?.author || "the original's author");
@@ -332,8 +346,8 @@ const quote = (s: string) => `"""\n${s.replace(/"""/g, '"')}\n"""`;
 const firstLineOf = (t: string) => t.split("\n").map((l) => l.trim()).find(Boolean) ?? "";
 
 function voiceLines(voice: VoiceInput | null | undefined, speaker: Speaker): string[] {
-  if (!voice) return ["", `The adviser's voice: none saved yet. Write in a warm, plain-spoken ${speaker === "business" ? "voice for the business" : "first person"}.`];
-  const out = ["", "The adviser's voice:"];
+  if (!voice) return ["", `${asSpeaker("The adviser's voice:", speaker)} none saved yet. Write in a warm, plain-spoken ${speaker === "business" ? "voice for the business" : "first person"}.`];
+  const out = ["", asSpeaker("The adviser's voice:", speaker)];
   if (voice.summary) out.push(`Summary: ${voice.summary}`);
   voice.samples.forEach((s, i) => out.push(`Post they wrote themselves ${i + 1}:`, quote(s)));
   if (voice.winners?.length) out.push("Their own posts that did best (lean towards these topics and hook styles, never copy them):", ...voice.winners.map((w) => `- ${quote(w.hook)} ${w.result}`));
@@ -344,16 +358,17 @@ function voiceLines(voice: VoiceInput | null | undefined, speaker: Speaker): str
 export function buildMakePrompt(req: MakeRequest): { system: string; user: string } {
   const src = req.source!;
   const keep = req.keep ?? "structure";
+  const sp = req.brand.speaker;
   const system = [
-    ...introLines(src.kind === "own", req.brand.speaker),
+    ...introLines(src.kind === "own", sp),
     ...FORMAT_RULES[req.as as (typeof MAKE_AS)[number]],
-    ...COMPLIANCE_RULES,
+    ...complianceFor(sp),
     "",
     `What to keep: ${keepBlock(req)}`,
-    `How close: ${CLOSE_RULES[req.close ?? "balanced"]}`,
+    `How close: ${asSpeaker(CLOSE_RULES[req.close ?? "balanced"], sp)}`,
     ...brandLines(req.brand),
-    ...(req.fit?.reasons.includes("masSafe") ? ["", MAS_LINE] : []),
-    ...(req.note ? ["", "The adviser's own note (it wins over the defaults above, never over the compliance rules):", quote(req.note)] : []),
+    ...(req.fit?.reasons.includes("masSafe") ? ["", sp === "business" ? MAS_LINE_BUSINESS : MAS_LINE] : []),
+    ...(req.note ? ["", asSpeaker("The adviser's own note (it wins over the defaults above, never over the compliance rules):", sp), quote(req.note)] : []),
   ].join("\n");
   const dontReuse = dontReuseFor(req);
   const user = [

@@ -11,6 +11,7 @@ import {
   KEEP_RULES,
   MAKE_QUESTIONS,
   MAS_LINE,
+  MAS_LINE_BUSINESS,
   buildMakePrompt,
   dontReuseFor,
   fitQuestions,
@@ -192,7 +193,8 @@ describe("buildMakePrompt", () => {
 });
 
 describe("the speaker", () => {
-  const business = (over: Record<string, unknown> = {}) => make({ brand: { ...body().brand, name: "ActivityTracker", speaker: "business", ...over } });
+  const business = (over: Record<string, unknown> = {}, req: Record<string, unknown> = {}) =>
+    make({ ...req, brand: { ...body().brand, name: "ActivityTracker", oneLiner: "A sales tracker", facts: "", speaker: "business", ...over } });
 
   it("defaults to the person, and only 'business' changes it", () => {
     expect(make().brand.speaker).toBe("person");
@@ -216,9 +218,33 @@ describe("the speaker", () => {
     expect(biz).toContain(FACTS_ONLY.business);
     expect(biz).not.toContain("first person");
     expect(biz).not.toContain(FACTS_ONLY.person);
-    expect(biz).toContain(COMPLIANCE_RULES.join("\n"));
+    expect(biz).toContain(COMPLIANCE_RULES.slice(2).join("\n"));
+    expect(biz).toContain("Compliance (the post is published in Singapore):");
     expect(buildMakePrompt(business()).user).toContain("Write in a warm, plain-spoken voice for the business.");
     expect(buildMakePrompt(make()).user).toContain("Write in a warm, plain-spoken first person.");
+  });
+
+  it("never names an adviser or a consultant in a business's prompt, whatever the keep, closeness, format or extras", () => {
+    const extras = { fit: { verdict: "weak", reasons: ["masSafe"] }, note: "Keep it short", voice: { summary: "Calm and plain.", samples: ["We keep our posts short, plain and useful for the people who use us."] } };
+    for (const keep of ["structure", "hook", "energy", "topic", "react"] as Keep[]) {
+      for (const close of ["loose", "balanced", "close"] as const) {
+        for (const as of ["post", "carousel", "script", "speaking", "explainer"]) {
+          const { system, user } = buildMakePrompt(business({ topics: [] }, { keep, close, as, ...extras }));
+          expect(`${system}\n${user}`, `${keep} ${close} ${as}`).not.toMatch(/adviser|consultant/i);
+        }
+      }
+    }
+    const part2 = buildMakePrompt(business({}, { keep: "part2", source: { key: "own:d1", kind: "own", text: "Our first post" } }));
+    expect(`${part2.system}\n${part2.user}`).not.toMatch(/adviser|consultant/i);
+    expect(part2.system).toContain("This is the business's own earlier post.");
+    const masSafe = buildMakePrompt(business({}, extras)).system;
+    expect(masSafe).toContain(MAS_LINE_BUSINESS);
+    expect(masSafe).toContain("The business's own note");
+    // the person's prompt is unchanged
+    const person = buildMakePrompt(make({ keep: "topic", ...extras })).system;
+    expect(person).toContain(MAS_LINE);
+    expect(person).toContain("one of the adviser's topics (CPF, Insurance basics)");
+    expect(person).toContain("(SGD, CPF, SRS, HDB, MediShield Life)");
   });
 
   it("asks Jev about the business's claims for a business, the adviser's for a person", () => {
