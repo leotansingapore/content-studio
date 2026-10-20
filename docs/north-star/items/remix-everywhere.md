@@ -1,6 +1,6 @@
 # One Remix button on every post, ad and trend
 
-`remix-everywhere` | remix | phase 1 | status: partial | /north-star#remix-everywhere
+`remix-everywhere` | remix | phase 1 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#remix-everywhere
 
 ## Leo asked
 

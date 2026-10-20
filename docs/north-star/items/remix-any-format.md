@@ -1,6 +1,6 @@
 # Remix into any format
 
-`remix-any-format` | remix | phase 1 | status: partial | /north-star#remix-any-format
+`remix-any-format` | remix | phase 1 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#remix-any-format
 
 ## Leo asked
 

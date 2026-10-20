@@ -1,6 +1,6 @@
 # Teardown before rebuild
 
-`remix-teardown` | remix | phase 1 | status: partial | /north-star#remix-teardown
+`remix-teardown` | remix | phase 1 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#remix-teardown
 
 ## Leo asked
 

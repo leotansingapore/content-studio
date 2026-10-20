@@ -1,6 +1,6 @@
 # Every remix keeps its source
 
-`remix-source-trail` | remix | phase 1 | status: partial | /north-star#remix-source-trail
+`remix-source-trail` | remix | phase 1 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#remix-source-trail
 
 ## Leo asked
 
