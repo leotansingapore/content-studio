@@ -107,6 +107,7 @@ import {
   setDraftAttached,
   upsertDraft,
   type DraftEntry,
+  type DraftRemix,
 } from "@/lib/draftHistory";
 import { useDraftReviews } from "@/hooks/useDraftReviews";
 import { getTrackedPosts, postingTimeOn, suggestPostingTime } from "@/lib/analytics";
@@ -151,7 +152,8 @@ import {
   type DisclosureId,
 } from "@/lib/plainText";
 import { useLeoUser } from "@/lib/useLeoOnly";
-import { canCredit, dayMonth, draftLine, earlierRemix, sourceChip, type RemixSource } from "@/lib/remixSource";
+import { canCredit, dayMonth, draftLine, earlierRemix, rememberSource, sourceChip, type RemixSource } from "@/lib/remixSource";
+import { reusedItems, sharedRuns } from "../../supabase/functions/remix/overlap.ts";
 import { loadBrand } from "@/lib/carousel";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
 import { capHashtags } from "../../supabase/functions/video-assist/captions.ts";
@@ -566,6 +568,50 @@ function ComplianceChips({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// What the copy check found when the Remix sheet made this post (remixJob.ts). A copied line drops off once it
+// is edited out; the claim and invented warnings stay until dismissed.
+function RemixFlags({
+  flags,
+  text,
+  dismissed,
+  onDismiss,
+}: {
+  flags: NonNullable<DraftRemix["flags"]>;
+  text: string;
+  dismissed: Set<string>;
+  onDismiss: (id: string) => void;
+}) {
+  const items = [
+    ...flags.copied
+      .filter((l) => reusedItems(text, [l]).length > 0 || sharedRuns(text, l).length > 0)
+      .map((l) => ({ id: `remix-copied:${l}`, title: "Shares words with the original", match: l })),
+    ...(flags.claim ? [{ id: "remix-claim", title: "Uses a figure or claim from the original. Check it or take it out.", match: "" }] : []),
+    ...(flags.invented ? [{ id: "remix-invented", title: "Says something about you that isn't in your profile. Check it.", match: "" }] : []),
+  ].filter((f) => !dismissed.has(f.id));
+  if (!items.length) return null;
+  return (
+    <div className="mb-3 flex flex-wrap gap-2">
+      {items.map((f) => (
+        <div key={f.id} className="flex items-start gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-900 dark:text-amber-200">
+          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-600" />
+          <div className="space-y-0.5">
+            <div className="font-semibold">{f.title}</div>
+            {f.match && <div className="font-mono text-[10px]">{f.match}</div>}
+          </div>
+          <button
+            type="button"
+            onClick={() => onDismiss(f.id)}
+            className="-my-1 -mr-1.5 ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded hover:bg-background/40"
+            aria-label="Dismiss flag"
+          >
+            <XIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
     </div>
   );
 }
@@ -2597,6 +2643,17 @@ export default function GeneratePage() {
               <Shuffle className="h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="truncate">{sourceChip(remixSource)}</span>
             </p>
+            {/* Opens the Remix sheet on this source (north star): the one way in until the browse cards carry the button */}
+            <button
+              type="button"
+              onClick={() => {
+                rememberSource(remixSource, leo.id);
+                setSearchParams((prev) => withParam(prev, "remix", remixSource.key));
+              }}
+              className="ml-auto inline-flex h-8 shrink-0 items-center rounded-lg px-2 font-semibold text-primary hover:bg-background [@media(pointer:coarse)]:h-11"
+            >
+              Remix this
+            </button>
             <button
               type="button"
               onClick={removeSource}
@@ -3598,6 +3655,9 @@ export default function GeneratePage() {
               </p>
             )}
             <ComplianceChips flags={visibleFlags} onDismiss={dismissFlag} />
+            {leo && savedEntry?.remix?.flags && (
+              <RemixFlags flags={savedEntry.remix.flags} text={draft} dismissed={dismissedFlagIds} onDismiss={dismissFlag} />
+            )}
 
             <div className={`grid gap-4 ${versions.length > 0 ? "" : "lg:grid-cols-2"}`}>
               <div className="flex flex-col gap-1.5">
