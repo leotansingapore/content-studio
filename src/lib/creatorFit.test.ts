@@ -141,7 +141,7 @@ describe("a creator's page", () => {
   });
 
   it("lists up to 4 others from the first niche's group, never the same person, by fit when cached", () => {
-    const list = [entry("me", [], ["cpf"], "@me"), entry("me-yt", [], ["retirement"], "@me"), entry("a", [], ["srs"]), entry("b", [], ["etfs"]), entry("c", [], ["insurance", "fire"]), entry("d", [], ["cpf"]), entry("e", [], ["cpf"]), entry("f", [], ["cpf"])];
+    const list = [entry("me", [], ["cpf"], "@me"), entry("me-yt", [], ["retirement"], "@me"), entry("a", [], ["srs"]), entry("b", [], ["etfs"]), entry("c", [], ["insurance", "fire"]), entry("c-yt", [], ["cpf"], "@c"), entry("d", [], ["cpf"]), entry("e", [], ["cpf"]), entry("f", [], ["cpf"])];
     const plain = similarCreators(list[0], list, null);
     expect(plain?.group).toBe("CPF and retirement");
     expect(plain?.list.map((e) => e.id)).toEqual(["a", "c", "d", "e"]);

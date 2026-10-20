@@ -90,8 +90,9 @@ export function similarCreators<T extends Pick<AdvisorEntry, "id" | "handle" | "
   const group = entry.niche[0] ? nicheGroup(entry.niche[0]) : undefined;
   if (!group) return null;
   const picked = new Set([group]);
-  // the same person on a second platform is not "another creator"
-  const same = entries.filter((e) => bareHandle(e.handle) !== bareHandle(entry.handle) && inNicheGroups(e.niche, picked));
+  // the same person on a second platform is not "another creator": one card per handle, never this one's
+  const handles = new Set([bareHandle(entry.handle)]);
+  const same = entries.filter((e) => inNicheGroups(e.niche, picked) && !handles.has(bareHandle(e.handle)) && handles.add(bareHandle(e.handle)));
   const list = (fit ? sortByFit(same, fit) : same).slice(0, n);
   return list.length ? { group, list } : null;
 }
