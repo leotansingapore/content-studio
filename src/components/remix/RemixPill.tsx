@@ -23,6 +23,9 @@ export default function RemixPill() {
   }
   const sheet = `${pathname}?${params}`;
   const ready = job.rows.find((r) => r.state === "done");
+  // several formats: the sheet holds every Open, so the pill goes there and stays until dismissed
+  const many = job.rows.length > 1;
+  const made = job.rows.filter((r) => r.state === "done").length;
   return (
     <div
       role="status"
@@ -34,7 +37,14 @@ export default function RemixPill() {
           <span className="truncate">{job.step ? `Remixing: ${job.step}` : "Remixing..."}</span>
         </Link>
       )}
-      {job.state === "done" && ready?.href && (
+      {job.state === "done" && many && (
+        <Link to={sheet} className="inline-flex items-center gap-2 [@media(pointer:coarse)]:min-h-11">
+          <Shuffle className="h-3.5 w-3.5 text-primary" />
+          {made === job.rows.length ? `Your ${made} formats are ready` : `${made} of ${job.rows.length} formats are ready`}
+          <span className="text-primary">Open</span>
+        </Link>
+      )}
+      {job.state === "done" && !many && ready?.href && (
         <>
           <Shuffle className="h-3.5 w-3.5 text-primary" /> Your remix is ready
           <Link to={ready.href} onClick={clearRemixJob} className="inline-flex items-center justify-center text-primary hover:underline [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11">

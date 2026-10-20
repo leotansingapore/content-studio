@@ -276,6 +276,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   // a finished run, several formats or a saved script: each row with its own error and way on; one plain failure is a footer line
   const resultRows = mine?.state === "done" || failedRun.length > 1 || failedRun.some((r) => r.scriptHref) ? (mine?.rows ?? []) : [];
   const failedRow = resultRows.length ? undefined : failedRun.find((r) => r.state === "failed");
+  // opening one of several results keeps the run, so every other Open stays here and on the pill
+  const onOpen = resultRows.length > 1 ? undefined : clearRemixJob;
 
   let body: ReactNode;
   let footer: ReactNode;
@@ -292,7 +294,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
     body = (
       <div className="space-y-5">
         {resultRows.map((row, n) => (
-          <ResultRow key={row.as} row={row} primary={n === first} madeWith={madeWith} onRetry={() => retry(row.as)} />
+          <ResultRow key={row.as} row={row} primary={n === first} madeWith={madeWith} onRetry={() => retry(row.as)} onOpen={onOpen} />
         ))}
       </div>
     );
@@ -551,7 +553,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
 }
 
 /** One format's result: its hook, warnings and its own Open, or why it didn't go through. */
-function ResultRow({ row, primary, madeWith, onRetry }: { row: RemixRow; primary: boolean; madeWith: string; onRetry(): void }) {
+function ResultRow({ row, primary, madeWith, onRetry, onOpen }: { row: RemixRow; primary: boolean; madeWith: string; onRetry(): void; onOpen?: () => void }) {
   const video = isVideo(row.as);
   if (row.state !== "done") {
     return (
@@ -564,7 +566,7 @@ function ResultRow({ row, primary, madeWith, onRetry }: { row: RemixRow; primary
           {row.scriptHref && (
             // too long: shortening the script is the way on, and Try again would spend again
             <Button asChild variant={row.tooLong ? "default" : "outline"} size="sm">
-              <Link to={row.scriptHref} onClick={clearRemixJob}>
+              <Link to={row.scriptHref} onClick={onOpen}>
                 Open the script
               </Link>
             </Button>
@@ -595,12 +597,12 @@ function ResultRow({ row, primary, madeWith, onRetry }: { row: RemixRow; primary
       {row.flags && <FlagChips flags={row.flags} />}
       <div className="flex flex-wrap items-center gap-2">
         <Button asChild size="sm" variant={primary ? "default" : "outline"}>
-          <Link to={row.href ?? links.generate({ draft: row.draftId })} onClick={clearRemixJob}>
+          <Link to={row.href ?? links.generate({ draft: row.draftId })} onClick={onOpen}>
             Open
           </Link>
         </Button>
         {video && row.scriptHref && (
-          <Link to={row.scriptHref} onClick={clearRemixJob} className="inline-flex items-center text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+          <Link to={row.scriptHref} onClick={onOpen} className="inline-flex items-center text-xs font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
             Open the script
           </Link>
         )}
