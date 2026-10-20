@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const rpc = vi.hoisted(() => vi.fn(async (_name: string, _args: Record<string, unknown>) => ({ data: { id: "page1" }, error: null as { message: string } | null })));
+vi.mock("@/lib/supabase", () => ({ SUPABASE_URL: "https://hub.supabase.co", supabase: { rpc } }));
+
 import {
   clickHref,
+  fetchPublicBio,
+  saveBioPage,
   dmFields,
   dmLinks,
   fbPageName,
@@ -127,5 +133,39 @@ describe("DM links", () => {
     expect(dmFields(null, accounts)).toEqual({ instagram: "ada.tan", facebook: "", whatsapp: "", whatsappText: "" });
     expect(dmFields({ instagram: "" }, accounts).instagram).toBe("");
     expect(dmFields({ instagram: "other", whatsapp: "91234567" }, {})).toMatchObject({ instagram: "other", whatsapp: "91234567" });
+  });
+});
+
+describe("saving and showing the page", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    rpc.mockClear();
+  });
+
+  it("keeps each saved link's id so its clicks stay with it, and sends bare addresses with https://", async () => {
+    await saveBioPage({
+      profileId: "me", slug: "ada-tan", displayName: "Ada", headline: "", photo: null, published: true,
+      links: [{ id: "l1", label: "Book a call", url: "calendly.com/ada" }, { label: "New one", url: "https://wa.me/6591234567" }],
+    });
+    expect(rpc).toHaveBeenCalledWith("cs_save_bio_page", expect.objectContaining({
+      p_profile_id: "me",
+      p_links: [{ id: "l1", label: "Book a call", url: "https://calendly.com/ada" }, { label: "New one", url: "https://wa.me/6591234567" }],
+    }));
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "That address is taken. Try another." } });
+    await expect(saveBioPage({ profileId: "me", slug: "ada-tan", displayName: "Ada", headline: "", photo: null, published: true, links: [] })).rejects.toThrow("That address is taken. Try another.");
+  });
+
+  it("shows a visitor the page, says gone for a bad address, a missing or unpublished page, and try again when the server is down", async () => {
+    const page = { slug: "ada-tan", display_name: "Ada", headline: "", photo: null, links: [{ id: "l1", label: "Book" }] };
+    const fetch = vi.fn(async (url: string) =>
+      url.endsWith("/ada-tan") ? new Response(JSON.stringify(page)) : url.endsWith("/hidden-page") ? new Response(JSON.stringify({ gone: true })) : url.endsWith("/busy-page") ? new Response("", { status: 500 }) : new Response("", { status: 404 }));
+    vi.stubGlobal("fetch", fetch);
+    expect(await fetchPublicBio("ada-tan")).toEqual({ ok: true, data: page });
+    expect(await fetchPublicBio("hidden-page")).toEqual({ ok: false, gone: true });
+    expect(await fetchPublicBio("no-such-page")).toEqual({ ok: false, gone: true });
+    expect(await fetchPublicBio("busy-page")).toEqual({ ok: false, gone: false });
+    fetch.mockClear();
+    expect(await fetchPublicBio("Ada Tan")).toEqual({ ok: false, gone: true });
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
