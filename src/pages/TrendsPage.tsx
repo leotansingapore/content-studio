@@ -21,10 +21,14 @@ import SaveButton from "@/components/SaveButton";
 import { fromTrend } from "@/lib/remixSource";
 import VideoEmbed from "@/components/VideoEmbed";
 import YouTubeTrends from "@/components/YouTubeTrends";
+import HashtagStats from "@/components/trends/HashtagStats";
+import SearchTopics from "@/components/trends/SearchTopics";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { links } from "@/lib/links";
 import { useGoneItem, useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { trendView, type TrendView } from "@/lib/searchTopics";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import {
   Flame,
   Wand2,
@@ -342,6 +346,10 @@ export default function TrendsPage() {
   // Filters and the open kit live in the URL (docs/deep-links.md). Values come from the data, so an unknown
   // one reads as all.
   const trends = useMemo(() => getTrends(), []);
+  // Leo's Searches and Hashtags views; everyone else keeps the kits, and a link to his views waits for the sign-in.
+  const leo = useLeoUser();
+  const [viewParam] = useUrlState<string>("view", "kits");
+  const view = trendView(viewParam, leo);
   const [platform, setPlatform] = useUrlState<TrendPlatform | "all">("platform", "all", { allowed: [...new Set(trends.map((t) => t.platform))] });
   const [type, setType] = useUrlState<string>("type", "all", { allowed: trends.map((t) => t.trend_type ?? "").filter(Boolean) });
   const [openId, openTrend, closeTrend] = useUrlItem("trend");
@@ -395,6 +403,8 @@ export default function TrendsPage() {
 
   const hasActiveFilter = platform !== "all" || type !== "all";
   const clearFilters = () => update({ platform: null, type: null });
+  // each view has its own filters and open item, so a switch starts them clean in one write
+  const setView = (v: TrendView) => update({ view: v === "kits" ? null : v, platform: null, type: null, trend: null, show: null, topic: null, tag: null });
 
   const latestDate = trends[0]?.date_found;
 
@@ -404,17 +414,50 @@ export default function TrendsPage() {
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <Flame className="h-6 w-6 text-primary" /> Trends
         </h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Refreshes every morning.
-          {latestDate
-            ? ` Last drop ${new Date(latestDate).toLocaleDateString(undefined, {
-                month: "long",
-                day: "numeric",
-              })}.`
-            : ""}
-        </p>
+        {view === "kits" && (
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Refreshes every morning.
+            {latestDate
+              ? ` Last drop ${new Date(latestDate).toLocaleDateString(undefined, {
+                  month: "long",
+                  day: "numeric",
+                })}.`
+              : ""}
+          </p>
+        )}
       </header>
 
+      {leo && (
+        <div role="tablist" aria-label="Trends" className="flex w-full gap-1 rounded-lg border border-border/60 bg-muted/40 p-1 sm:inline-flex sm:w-auto">
+          {([
+            { id: "kits", label: "Trend kits" },
+            { id: "search", label: "Searches" },
+            { id: "hashtags", label: "Hashtags" },
+          ] as const).map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={view === t.id}
+              onClick={() => setView(t.id)}
+              className={`flex-1 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 [@media(pointer:coarse)]:min-h-11 ${
+                view === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {view === "loading" ? (
+        <div className="min-h-[40vh]" aria-busy="true" />
+      ) : view === "search" && leo ? (
+        <SearchTopics userId={leo.id} />
+      ) : view === "hashtags" ? (
+        <HashtagStats />
+      ) : (
+      <>
       {(platforms.length > 1 || types.length > 1) && (
         <div className="space-y-2">
           {platforms.length > 1 && (
@@ -514,6 +557,8 @@ export default function TrendsPage() {
       )}
 
       <YouTubeTrends />
+      </>
+      )}
     </div>
   );
 }
