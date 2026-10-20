@@ -90,4 +90,22 @@ describe("Fix it", () => {
     expect([used(UID, "ai-image-fix"), used(GLOBAL_COUNTER_USER, "ai-image-fix-global")]).toEqual([0, 0]);
     expect(hf.submits).toEqual([]);
   });
+
+  it("gives the adviser's fix back, with no edit asked for, when the studio's fixes are used up", async () => {
+    db.rows.set(`${GLOBAL_COUNTER_USER}|ai-image-fix-global|${db.today()}`, 40);
+    const res = await call(await fixBody());
+    expect(res.status).toBe(429);
+    expect([used(UID, "ai-image-fix"), used(GLOBAL_COUNTER_USER, "ai-image-fix-global")]).toEqual([0, 40]);
+    expect(hf.submits).toEqual([]);
+  });
+});
+
+describe("an AI B-roll clip", () => {
+  it("gives the adviser's use back, with no picture asked for, when the studio's clips are used up", async () => {
+    db.rows.set(`${GLOBAL_COUNTER_USER}|ai-broll-global|${db.today()}`, 20);
+    const res = await call({ mode: "broll", search: "hawker centre", line: "Lunch costs add up", aspect: "9:16" });
+    expect(res.status).toBe(429);
+    expect([used(UID, "ai-broll"), used(GLOBAL_COUNTER_USER, "ai-broll-global")]).toEqual([0, 20]);
+    expect(hf.submits).toEqual([]);
+  });
 });

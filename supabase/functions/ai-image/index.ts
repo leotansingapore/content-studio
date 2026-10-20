@@ -19,7 +19,7 @@
 // Logic: ./logic.ts (tested). Caps: ../_shared/usageCaps.ts.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GLOBAL_COUNTER_USER, consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
+import { GLOBAL_COUNTER_USER, consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { MOTION_MODEL, PICTURE_MODEL, aiBrollEnabled, motionBody, parseAiBroll, scenePictureBody } from "./broll.ts";
 import { FIX_MODEL, HF_BASE, HF_MODEL, buildFixBody, buildImageBody, jobToken, openJobToken, parseImageRequest, pictureUrl, readStatus, tokenSecret } from "./logic.ts";
 
@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
     }
     const auth = { Authorization: `Key ${key}:${secret}` };
     const signing = await tokenSecret(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), as cs_consume_ai_usage keeps it
     // a request id, or the HTTP status that refused it
     const submit = async (model: string, payload: Record<string, unknown>): Promise<string | number> => {
       const res = await fetch(`${HF_BASE}/${model}`, {
@@ -84,7 +85,11 @@ Deno.serve(async (req) => {
         return json(r.body, r.status);
       }
       const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-broll-global");
-      if (!everyone.allowed) return json({ code: "daily_limit", error: "Today's AI clips for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+      // nothing is made, so the adviser's use comes back (as in ai-video)
+      if (!everyone.allowed) {
+        await refundUsage(admin, uid, "ai-broll", day);
+        return json({ code: "daily_limit", error: "Today's AI clips for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+      }
       const refuse = (status: number) => json({ error: status === 403 ? "AI clip credits have run out. Tell your studio admin." : "Couldn't make the clip right now. Try again in a minute." }, 502);
       // the picture first, waited for here (about 10 to 30 s), so one call makes one clip
       const pic = await submit(PICTURE_MODEL, scenePictureBody(broll.request));
@@ -131,7 +136,10 @@ Deno.serve(async (req) => {
         return json(r.body, r.status);
       }
       const everyone = await consumeUsage(admin, GLOBAL_COUNTER_USER, "ai-image-fix-global");
-      if (!everyone.allowed) return json({ code: "daily_limit", error: "Today's picture fixes for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+      if (!everyone.allowed) {
+        await refundUsage(admin, uid, "ai-image-fix", day);
+        return json({ code: "daily_limit", error: "Today's picture fixes for the whole studio are used up. Try again after 8am Singapore time." }, 429);
+      }
       const fixed = await submit(FIX_MODEL, buildFixBody(url, parsed.request.fix));
       if (typeof fixed !== "string") return json({ error: fixed === 403 ? "Image credits have run out. Tell your studio admin." : RETRY }, 502);
       return json({ token: await jobToken(signing, uid, fixed), usage: { used: mine.used, limit: mine.limit } });
