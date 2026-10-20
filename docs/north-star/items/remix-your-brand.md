@@ -148,6 +148,7 @@ note?: string              // the sheet's note, at most 300 chars
 - Whether the brand kit's colours should also drive caption styles on remixed videos is left to brand-kit.
 - 20 Oct 2026 (phase-1 build): the saved-face, saved-presenter and brand-products lines moved here from Done when, so this item can finish without them. "You speaking" uses the saved face once people-my-face ships ("My face" stays hidden until then), "AI presenter" picks a saved presenter once people-presenters ships (until then each video remix makes a new one), and the Offer line reads products once brand-products ships.
 - 20 Oct 2026 (dogfood finding): the first live make for ActivityTracker came back as an adviser saying "I". The brand block now carries `speaker: 'person' | 'business'`: the account's own brand, or an added brand whose kit has a role or a headshot, is the person; any other added brand is the business, which writes as "we", its name or "you" and never claims a personal story. The For row's "Speaks" line changes it, kept in the remix prefs per brand. Whether the kit should get an explicit "This brand is a business" switch is Leo's call.
+- 20 Oct 2026 (phase-1 build brief, correction d): this item stays partial in phase 1 even once every line above is met, because the saved-face and saved-presenter lines moved to this section rather than being built. Its `ours` line names people-my-face and people-presenters as what finishes it, and it is not flipped in this wave.
 
 ## Related
 
