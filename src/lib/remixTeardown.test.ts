@@ -15,6 +15,7 @@ import {
   teardownError,
   teardownFooter,
   teardownFromClone,
+  taggedTeardown,
   type Teardown,
 } from "@/lib/remixTeardown";
 
@@ -31,6 +32,7 @@ afterEach(() => {
 });
 
 const NOW = new Date("2026-10-20T00:00:00.000Z");
+const TEARDOWN_FAILED = "Couldn't break this one down. Remix still works from the caption.";
 const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86_400_000).toISOString();
 // Made now by default, so a stored teardown never ages out of these tests.
 const teardown = (key: string, at = new Date().toISOString()): Teardown => ({
@@ -182,6 +184,36 @@ describe("ensureTeardown", () => {
     const bad = await ensureTeardown("u1", topCarousel, "x").catch((err) => err);
     expect(teardownError(bad)).toEqual({ text: "Couldn't break this one down. Remix still works from the caption.", retry: true });
     expect(invoke).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("taggedTeardown", () => {
+  const saved: RemixSource = { key: "link:instagram:C8xYz12AbCd", kind: "link", format: "video", platform: "instagram", url: "https://www.instagram.com/reel/C8xYz12AbCd/", author: "@sam", remixedAt: "" };
+  const tags = { formula: "list", angle: "myth", topic: "cpf", emotion: null, audience: null, p: {}, by: "jev" as const };
+
+  it("reuses a stored breakdown that has tags with no paid call", async () => {
+    saveTeardown("u1", { ...teardown(saved.key), tags });
+    expect((await taggedTeardown("u1", saved, "caption")).tags).toEqual(tags);
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("asks for tags when the stored one has none, and on Break it down again, sending no link and saving the answer", async () => {
+    saveTeardown("u1", teardown(saved.key));
+    invoke.mockResolvedValue({ data: { teardown: { ...teardown(saved.key), tags } }, error: null });
+    expect((await taggedTeardown("u1", saved, "the caption")).tags).toEqual(tags);
+    const body = invoke.mock.calls[0][1].body;
+    expect(body).toMatchObject({ mode: "teardown", tags: true, source: { key: saved.key, text: "the caption" } });
+    expect(body.source).not.toHaveProperty("url");
+    expect(loadTeardown("u1", saved.key)?.tags).toEqual(tags);
+    await taggedTeardown("u1", saved, "the caption", true);
+    expect(invoke).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the stored breakdown when the answer is not one", async () => {
+    saveTeardown("u1", teardown(saved.key));
+    invoke.mockResolvedValue({ data: { teardown: { v: 1 } }, error: null });
+    await expect(taggedTeardown("u1", saved, "x")).rejects.toThrow(TEARDOWN_FAILED);
+    expect(loadTeardown("u1", saved.key)?.hook.line).toBe("5 signs your plan is stale");
   });
 });
 
