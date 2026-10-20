@@ -1,27 +1,38 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { sgDay } from "./bioPage";
 
-// a brand's links in the database, and every delete call made on them
-const db = vi.hoisted(() => ({ links: [] as { id: string; profile_id: string }[], deleted: [] as string[], failOn: "" }));
-vi.mock("@/lib/supabase", () => ({
-  SUPABASE_URL: "https://hub.supabase.co",
-  supabase: {
-    from: () => ({
-      select: () => ({
-        eq: async (col: "profile_id", v: string) => ({ data: db.links.filter((l) => l[col] === v).map(({ id }) => ({ id })), error: null }),
-      }),
-    }),
-    rpc: async (_name: string, a: { p_id: string }) => {
-      if (a.p_id === db.failOn) return { data: null, error: { message: "Failed to fetch" } };
-      db.deleted.push(a.p_id);
-      return { data: true, error: null };
+// the caller's links (every brand) and day counts in the database, and every delete call made on them
+const db = vi.hoisted(() => ({ links: [] as Record<string, string | null>[], days: [] as DayRow[], deleted: [] as string[], failOn: "" }));
+vi.mock("@/lib/supabase", () => {
+  const query = (table: string) => {
+    const filters: [string, string][] = [];
+    const rows = () => (table === "cs_tracked_links" ? db.links.filter((l) => filters.every(([c, v]) => l[c] === v)) : table === "cs_tracked_link_days" ? db.days : []);
+    const q = {
+      select: () => q, order: () => q, gte: () => q, limit: () => q,
+      eq: (c: string, v: string) => (filters.push([c, v]), q),
+      then: (ok: (r: unknown) => unknown, bad: (e: unknown) => unknown) => Promise.resolve({ data: rows(), error: null }).then(ok, bad),
+    };
+    return q;
+  };
+  return {
+    SUPABASE_URL: "https://hub.supabase.co",
+    supabase: {
+      auth: { getSession: async () => ({ data: { session: null } }) },
+      from: query,
+      rpc: async (_name: string, a: { p_id: string }) => {
+        if (a.p_id === db.failOn) return { data: null, error: { message: "Failed to fetch" } };
+        db.deleted.push(a.p_id);
+        return { data: true, error: null };
+      },
     },
-  },
-}));
+  };
+});
 
 import {
   countsByLink,
   dailyClicks,
   deleteBrandLinks,
+  fetchMine,
   fetchPublicReport,
   isTrackedUrl,
   linkInputProblem,
@@ -113,13 +124,25 @@ describe("reportLostBy", () => {
   });
 });
 
-describe("removing a brand", () => {
-  afterEach(() => {
-    db.links = [];
-    db.deleted = [];
-    db.failOn = "";
-  });
+afterEach(() => {
+  db.links = [];
+  db.days = [];
+  db.deleted = [];
+  db.failOn = "";
+});
 
+describe("the open brand's links", () => {
+  it("charts only the open brand's clicks, not another brand's links", async () => {
+    const now = new Date();
+    db.links = [{ id: "a", profile_id: "me" }, { id: "x", profile_id: "brand-2" }];
+    db.days = [{ link_id: "a", day: sgDay(now), clicks: 2, people: 1 }, { link_id: "x", day: sgDay(now), clicks: 9, people: 9 }];
+    const mine = await fetchMine(now);
+    expect(mine.links.map((l) => l.id)).toEqual(["a"]);
+    expect(dailyClicks(mine.days, 7, now).at(-1)).toEqual({ day: sgDay(now), clicks: 2 });
+  });
+});
+
+describe("removing a brand", () => {
   it("deletes only that brand's tracked links, each one through the delete call", async () => {
     db.links = [{ id: "a", profile_id: "brand-2" }, { id: "b", profile_id: "me" }, { id: "c", profile_id: "brand-2" }];
     await deleteBrandLinks("brand-2");

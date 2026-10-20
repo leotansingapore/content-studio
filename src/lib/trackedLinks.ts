@@ -175,7 +175,10 @@ export async function fetchMine(now = new Date()): Promise<Mine> {
     supabase.from("cs_tracked_link_days").select("link_id,day,clicks,people").gte("day", sgDay(now, 29)).limit(5000),
   ]);
   for (const r of [l, c, d]) if (r.error) fail(r.error);
-  return { links: (l.data ?? []) as TrackedLink[], campaigns: (c.data ?? []) as Campaign[], days: (d.data ?? []) as DayRow[] };
+  const links = (l.data ?? []) as TrackedLink[];
+  const ids = new Set(links.map((x) => x.id));
+  // the counts carry no brand: keep this brand's links' rows, or the all-links chart adds the other brands' clicks
+  return { links, campaigns: (c.data ?? []) as Campaign[], days: ((d.data ?? []) as DayRow[]).filter((r) => ids.has(r.link_id)) };
 }
 
 /** Creates (id null) or edits a link. A blank slug keeps the current one, or picks one for a new link. */
