@@ -17,6 +17,7 @@ import {
 } from "@/lib/trends";
 import { cloneLinkFor } from "@/lib/reelClone";
 import RemixButton from "@/components/remix/RemixButton";
+import SaveButton from "@/components/SaveButton";
 import { fromTrend } from "@/lib/remixSource";
 import VideoEmbed from "@/components/VideoEmbed";
 import YouTubeTrends from "@/components/YouTubeTrends";
@@ -330,6 +331,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
               <ExternalLink className="h-3.5 w-3.5" /> Source
             </a>
           </Button>
+          <SaveButton source={fromTrend(trend)} />
         </div>
       </CardContent>
     </Card>

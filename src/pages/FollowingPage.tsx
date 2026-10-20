@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import EngageWeek from "@/components/EngageWeek";
 import RemixButton from "@/components/remix/RemixButton";
+import SaveButton from "@/components/SaveButton";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
@@ -243,6 +244,7 @@ function PostRow({ a, p, best, leo, linked }: { a: FollowedAccount; p: TrackedPo
         <Button asChild size="sm" variant="ghost" className="h-9">
           <a href={p.url} target="_blank" rel="noreferrer"><ExternalLink className="h-3.5 w-3.5" /> Open</a>
         </Button>
+        <SaveButton source={fromFollowPost(a, p)} />
       </div>
     </li>
   );

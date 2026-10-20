@@ -25,7 +25,9 @@ import { embedUrlFor, safeExternalUrl } from "@/lib/embed";
 import { cloneLinkFor } from "@/lib/reelClone";
 import { similarPosts, type ScoredPost } from "@/lib/postInsights";
 import RemixButton from "@/components/remix/RemixButton";
+import SaveButton from "@/components/SaveButton";
 import { fromTopPost } from "@/lib/remixSource";
+import { useLeoUser } from "@/lib/useLeoOnly";
 
 const FORMAT_LABEL: Record<string, string> = {
   "short-video": "Reel",
@@ -72,6 +74,7 @@ export default function PostDetailDrawer({
   const closeRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const leo = useLeoUser();
   useEffect(() => {
     if (!open) return;
     const opener = document.activeElement as HTMLElement | null;
@@ -97,6 +100,15 @@ export default function PostDetailDrawer({
   const remixUrl = buildRemixUrl(post, advisor, { angle: insight.angle, structure: insight.structure });
   const canEmbed = embedUrlFor(post.url) !== null;
   const cloneUrl = fmt === "short-video" ? cloneLinkFor(post.url) : null;
+  const source = fromTopPost(post, { id: post.advisorId, name: post.advisorName, handle: post.handle });
+  // Leo's Save files the post into boards and keeps /swipe's own Saved list in step. This render's toggle and
+  // state, so the toast's Undo still flips this post after the drawer has moved on or closed.
+  let swipeSaved = saved;
+  const syncSwipe = (on: boolean) => {
+    if (on === swipeSaved) return;
+    swipeSaved = on;
+    onToggleSave();
+  };
 
   // Portalled to <body>: inside the page the sidebar's stacking context sits
   // above the backdrop, so a backdrop click landed on a nav link. z-[70] puts
@@ -183,7 +195,7 @@ export default function PostDetailDrawer({
             </div>
 
             <div className="space-y-2">
-              <RemixButton size="default" className="w-full" source={fromTopPost(post, { id: post.advisorId, name: post.advisorName, handle: post.handle })}>
+              <RemixButton size="default" className="w-full" source={source}>
                 <Button asChild className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
                   <Link to={remixUrl}>
                     <Wand2 className="h-4 w-4" /> Remix this for my business
@@ -203,15 +215,19 @@ export default function PostDetailDrawer({
                     </Link>
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  onClick={onToggleSave}
-                  aria-pressed={saved}
-                  className={`gap-1.5 ${saved ? "border-primary/50 text-primary" : ""}`}
-                >
-                  {saved ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                  {saved ? "Saved" : "Save"}
-                </Button>
+                {leo ? (
+                  <SaveButton size="default" source={source} onChange={syncSwipe} />
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={onToggleSave}
+                    aria-pressed={saved}
+                    className={`gap-1.5 ${saved ? "border-primary/50 text-primary" : ""}`}
+                  >
+                    {saved ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                    {saved ? "Saved" : "Save"}
+                  </Button>
+                )}
               </div>
             </div>
 
