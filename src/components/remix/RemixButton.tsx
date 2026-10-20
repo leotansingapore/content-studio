@@ -18,11 +18,14 @@ export default function RemixButton({
   children,
   className,
   size = "sm",
+  label,
 }: {
   source: RemixSource;
   children: ReactNode;
   className?: string;
   size?: ButtonProps["size"];
+  /** The card's item, so a screen reader can tell one card's Remix from the next ("Remix: @handle's post"). */
+  label?: string;
 }) {
   const leo = useLeoUser();
   const [params, setParams] = useSearchParams();
@@ -39,7 +42,7 @@ export default function RemixButton({
   };
   return (
     <span className={cn("inline-flex flex-wrap items-center gap-x-2 gap-y-1", className)}>
-      <Button type="button" variant="outline" size={size} onClick={open} disabled={opening} className={cn("gap-1.5", className)}>
+      <Button type="button" variant="outline" size={size} onClick={open} disabled={opening} aria-label={label && `Remix: ${label}`} className={cn("gap-1.5", className)}>
         <Shuffle className="h-3.5 w-3.5" />
         {opening ? "Opening..." : "Remix"}
       </Button>

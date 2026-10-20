@@ -430,7 +430,7 @@ function Card(props: {
         <div className="min-w-0 space-y-1 break-words">{props.children}</div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {props.source ? <RemixButton source={props.source}>{write}</RemixButton> : write}
+        {props.source ? <RemixButton source={props.source} label={props.label}>{write}</RemixButton> : write}
         <Button type="button" size="sm" variant="ghost" onClick={props.onDismiss} aria-label={`Dismiss: ${props.label}`}>Dismiss</Button>
         {props.written && <span className="text-xs text-muted-foreground">Written</span>}
       </div>
