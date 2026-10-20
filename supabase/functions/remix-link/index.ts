@@ -138,14 +138,19 @@ Deno.serve(async (req) => {
       const work = fetchSource({ admin, token, parsed: reel, existing: null, deadline: startedAt + BACKGROUND_LIMIT_MS });
       const outcome = await withinBudget(work, FETCH_BUDGET_MS - (Date.now() - startedAt));
       if (outcome.kind === "timeout") {
-        // The run goes on and fills the cache, so trying again is free; the use comes back only if it fails.
+        // The run goes on and fills the cache, so trying again is free; the use comes back if it fails or holds no words.
         const c = charged;
         charged = null;
         const giveBack = () => (c ? refundUsage(admin, c.uid, c.feature, c.day) : Promise.resolve());
-        keepRunning(work.catch(async (e) => {
-          await giveBack();
-          throw e;
-        }));
+        keepRunning(work.then(
+          async (v) => {
+            if (!toSource(link.kind, [v.row])) await giveBack();
+          },
+          async (e) => {
+            await giveBack();
+            throw e;
+          },
+        ));
         return fail("timeout", LINK_COPY.slow, 504);
       }
       if (outcome.kind === "failed") {

@@ -233,4 +233,10 @@ describe("the function", () => {
     // nothing was counted on that path, so the slow answer has nothing to give back
     expect(index).toContain("const giveBack = () => (c ? refundUsage(admin, c.uid, c.feature, c.day) : Promise.resolve());");
   });
+
+  it("gives a slow read's use back when the run in the background fails or finds no words", () => {
+    const slow = index.slice(index.indexOf('if (outcome.kind === "timeout")'), index.indexOf("LINK_COPY.slow"));
+    expect(slow).toMatch(/if \(!toSource\(link\.kind, \[v\.row\]\)\) await giveBack\(\);/);
+    expect(slow).toMatch(/async \(e\) => \{\n\s+await giveBack\(\);\n\s+throw e;/);
+  });
 });
