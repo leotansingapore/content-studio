@@ -28,7 +28,8 @@ export default function SectionTabs({ tabs, className = "" }: { tabs: SectionTab
   const rails = useSyncExternalStore(onRailsChange, railsShown);
   const gated = tabs.some((t) => t.owners);
   useEffect(() => {
-    if (gated) supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
+    // getSession reads the stored session: no Auth round trip under the client lock on every Write tab mount.
+    if (gated) supabase.auth.getSession().then(({ data }) => setEmail(data.session?.user.email ?? ""));
   }, [gated]);
   if (rails) return null;
   return (
