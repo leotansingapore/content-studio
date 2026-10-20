@@ -88,8 +88,14 @@ export const MAX_DONT_REUSE = 12;
 export const MAX_SOURCE_TEXT = 2000;
 const MAX_FORMULAS = 40;
 const PROMPT_TRANSCRIPT_CHARS = 6000;
-/** Jev's formula pick is kept only at or above this probability (assistant-act's PICK_MIN). Calibrate on the 136 top posts. */
-export const FORMULA_MIN = 0.5;
+/**
+ * Jev's formula pick is kept only at or above this probability (assistant-act's sure()). Set 2026-10-20 from the 134
+ * top posts with a first line, asked once over the 21 HOOK_FORMULAS (jev-1.13.0): half came back "none"; of the 9
+ * picks from 0.5 to 0.6, 2 were plainly wrong (an emoji-only caption as side-by-side, a matcha video as side-by-side)
+ * and 1 doubtful; of the 6 from 0.6 to 0.7, 1 was wrong (insurer rule news as before-after). A wrong chip misleads
+ * more than a missing one, so 0.6, which keeps a formula for 36 of the 134.
+ */
+export const FORMULA_MIN = 0.6;
 
 export const TEARDOWN_ERRORS = {
   empty: "There's nothing in this post to break down.",

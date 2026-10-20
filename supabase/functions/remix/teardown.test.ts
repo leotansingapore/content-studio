@@ -109,9 +109,9 @@ describe("formulas", () => {
 
   it("keeps a pick only at or above the threshold", () => {
     const at = (choice: string, p: number) => ({ formula: { type: "choice" as const, choice, probabilities: { [choice]: p } } });
-    expect(FORMULA_MIN).toBe(0.5);
-    expect(pickFormula(at("list", 0.5), ["list"])).toBe("list");
-    expect(pickFormula(at("list", 0.49), ["list"])).toBeNull();
+    expect(FORMULA_MIN).toBe(0.6);
+    expect(pickFormula(at("list", 0.6), ["list"])).toBe("list");
+    expect(pickFormula(at("list", 0.59), ["list"])).toBeNull();
     expect(pickFormula(at("none", 0.9), ["list"])).toBeNull();
     expect(pickFormula(at("other", 0.9), ["list"])).toBeNull();
     expect(pickFormula(null, ["list"])).toBeNull();
