@@ -16,7 +16,21 @@
         "why": "Universal, judgment-free personal finance advice with a clear headline spreads because almost anyone can relate to it, generating 31k views organically.",
         "adapt": "Pick one foundational money rule that applies to any income level, say it plainly on camera in under 60 seconds, and resist adding product mentions."
       },
-      "cover": "/covers/C931K2DSgnl.jpg"
+      "cover": "/covers/C931K2DSgnl.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Educational",
+        "topic": "Money Habits",
+        "emotion": "trust",
+        "audience": "general",
+        "p": {
+          "formula": 0.84,
+          "angle": 0.62,
+          "topic": 1,
+          "emotion": 0.43,
+          "audience": 0.99
+        }
+      }
     },
     {
       "shortCode": "DejDmT0or7S",
@@ -28,7 +42,19 @@
       "views": 1380,
       "timestamp": "2026-10-16T08:01:44.000Z",
       "caption": "Looking at Seantalks 🤩🔥🤝🏼✨🥳",
-      "cover": "/covers/DejDmT0or7S.jpg"
+      "cover": "/covers/DejDmT0or7S.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "general",
+        "p": {
+          "angle": 0.63,
+          "emotion": 0.99,
+          "audience": 0.81
+        }
+      }
     },
     {
       "shortCode": "Denyxj1pSkW",
@@ -40,7 +66,20 @@
       "views": 0,
       "timestamp": "2026-10-18T04:11:41.000Z",
       "caption": "Actually… i won’t la hahahahaha 😳😵‍💫",
-      "cover": "/covers/Denyxj1pSkW.jpg"
+      "cover": "/covers/Denyxj1pSkW.jpg",
+      "tags": {
+        "formula": "walk-away",
+        "angle": "Humour",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "general",
+        "p": {
+          "formula": 0.46,
+          "angle": 0.81,
+          "emotion": 0.94,
+          "audience": 0.73
+        }
+      }
     }
   ],
   "that_ang_moh_in_finance": [
@@ -60,7 +99,19 @@
         "why": "Behind-the-scenes process content is relatable for other creators but performed weakly here because the audience came for finance tips, not social media advice.",
         "adapt": "If you share your own process, tie it to a client benefit (how I prepare your annual review, what I check before recommending a product) so the transparency serves the audience's financial interest."
       },
-      "cover": "/covers/ClDUgW2PdOE.jpg"
+      "cover": "/covers/ClDUgW2PdOE.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Educational",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "business-owners",
+        "p": {
+          "angle": 0.5,
+          "emotion": 0.76,
+          "audience": 0.55
+        }
+      }
     },
     {
       "shortCode": "CirFpxxPTg0",
@@ -78,7 +129,19 @@
         "why": "Practical cost-saving business tip with a clear action step tends to save and share well among small business owners",
         "adapt": "A financial advisor can swap this for a tip on using referral partnerships or client testimonials instead of paid ads to grow their practice"
       },
-      "cover": "/covers/CirFpxxPTg0.jpg"
+      "cover": "/covers/CirFpxxPTg0.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Educational",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "business-owners",
+        "p": {
+          "angle": 0.86,
+          "emotion": 0.95,
+          "audience": 1
+        }
+      }
     },
     {
       "shortCode": "CkpGYNcvvHg",
@@ -96,7 +159,20 @@
         "why": "Relatable lifestyle topic with a direct question invites comments and keeps the post in circulation through replies",
         "adapt": "An FA can reframe this as how remote workers can redirect commute savings into an investment account, then ask followers what they do with that extra cash"
       },
-      "cover": "/covers/CkpGYNcvvHg.jpg"
+      "cover": "/covers/CkpGYNcvvHg.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": "Money Habits",
+        "emotion": "hope",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.97,
+          "topic": 0.47,
+          "emotion": 0.36,
+          "audience": 0.62
+        }
+      }
     }
   ],
   "june_way": [
@@ -116,7 +192,21 @@
         "why": "The underdog arc plus a specific doubter being proven wrong makes the achievement feel earned and invites vicarious satisfaction from followers.",
         "adapt": "Post your own career milestone with the exact timeline and one moment of doubt you overcame, so prospects see persistence as part of your identity."
       },
-      "cover": "/covers/DY7EhD-lBwb.jpg"
+      "cover": "/covers/DY7EhD-lBwb.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Authority",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "advisors-recruitment",
+        "p": {
+          "formula": 0.85,
+          "angle": 0.73,
+          "topic": 0.94,
+          "emotion": 0.85,
+          "audience": 0.93
+        }
+      }
     },
     {
       "shortCode": "Deopf3izyeE",
@@ -128,7 +218,19 @@
       "views": 546,
       "timestamp": "2026-10-18T12:13:09.000Z",
       "caption": "五生五世 🎥 When @yxlyx.l and I first saw this on 小红书, we thought it was a crazy idea. Then I told her, why not we just fly to China and do it? 😂 Back in January this year, I was in Guangzhou for a work trip and after I was done with my work agenda, she flew over just for this. We spent two full days filming this. Not gonna lie, there was definitely some risk involved working with a company overseas. But we decided to trust the process and the final video turned out way better than I expected. The funny thing is we were more worried about the overseas company, but turns out, they were more reliable than our local wedding photoshoot company which has since closed down T.T💀 And please, go ahead ",
-      "cover": "/covers/Deopf3izyeE.jpg"
+      "cover": "/covers/Deopf3izyeE.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Storytelling",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.99,
+          "emotion": 0.64,
+          "audience": 0.87
+        }
+      }
     },
     {
       "shortCode": "DWq4qxJlDnF",
@@ -146,7 +248,21 @@
         "why": "Career change plus a hint of exclusivity in the phrasing creates curiosity about what the room represents and who believed in him.",
         "adapt": "Share a photo from a professional setting you worked hard to reach, name the sacrifice it took, and tag the people who believed in you early."
       },
-      "cover": "/covers/DWq4qxJlDnF.jpg"
+      "cover": "/covers/DWq4qxJlDnF.jpg",
+      "tags": {
+        "formula": "walk-away",
+        "angle": "Authority",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "general",
+        "p": {
+          "formula": 0.29,
+          "angle": 0.84,
+          "topic": 0.87,
+          "emotion": 0.83,
+          "audience": 0.36
+        }
+      }
     }
   ],
   "drwealthsg": [
@@ -166,7 +282,20 @@
         "why": "Specific CPF rules affect most working Singaporeans and the post answers a question many have but few think to search, making it highly saveable",
         "adapt": "An FA can build a carousel covering three lesser-known CPF rules that most clients miss before retirement, positioning themselves as the go-to CPF expert"
       },
-      "cover": "/covers/pQA69lD4xP.jpg"
+      "cover": "/covers/pQA69lD4xP.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Educational",
+        "topic": "CPF",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 1,
+          "topic": 1,
+          "emotion": 0.88,
+          "audience": 0.58
+        }
+      }
     },
     {
       "shortCode": "pP7g0_j44Z",
@@ -184,7 +313,21 @@
         "why": "Side-by-side comparisons reduce the effort needed to understand a complex topic, which drives saves from people who want to revisit it later",
         "adapt": "An FA can turn this into a short carousel with a real cost scenario showing the out-of-pocket difference between plans for a typical hospitalisation"
       },
-      "cover": "/covers/pP7g0_j44Z.jpg"
+      "cover": "/covers/pP7g0_j44Z.jpg",
+      "tags": {
+        "formula": "side-by-side",
+        "angle": "Educational",
+        "topic": "Insurance",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "formula": 0.96,
+          "angle": 1,
+          "topic": 1,
+          "emotion": 0.99,
+          "audience": 0.82
+        }
+      }
     },
     {
       "shortCode": "pOjLCsj40e",
@@ -202,7 +345,20 @@
         "why": "Social proof milestones create a sense of momentum and belonging, and auspicious numbers resonate culturally with a Singapore audience",
         "adapt": "An FA can mark follower or client milestones with a short post thanking the community and sharing one key insight that drove the most questions that month"
       },
-      "cover": "/covers/pOjLCsj40e.jpg"
+      "cover": "/covers/pOjLCsj40e.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Authority",
+        "topic": null,
+        "emotion": "pride",
+        "audience": "general",
+        "p": {
+          "formula": 0.97,
+          "angle": 0.96,
+          "emotion": 0.93,
+          "audience": 0.92
+        }
+      }
     }
   ],
   "ferrisfrancis": [
@@ -222,7 +378,21 @@
         "why": "Withholding what happened triggers comments asking for context, which the algorithm treats as high engagement and pushes the video further",
         "adapt": "An FA can share a client milestone like clearing debt or hitting a savings goal and describe the emotional payoff without naming the client, letting curiosity drive comment volume"
       },
-      "cover": "/covers/DZPHZtHhtLL.jpg"
+      "cover": "/covers/DZPHZtHhtLL.jpg",
+      "tags": {
+        "formula": "side-by-side",
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "hnw",
+        "p": {
+          "formula": 0.51,
+          "angle": 0.46,
+          "topic": 0.42,
+          "emotion": 0.88,
+          "audience": 0.59
+        }
+      }
     },
     {
       "shortCode": "DXy-sNHB37n",
@@ -240,7 +410,21 @@
         "why": "The comment keyword triggers a DM automation that delivers a free checklist, turning 52 comments into 52 warm leads while comments boost reach",
         "adapt": "An FA can film a $4,000 or $6,000 salary breakdown and offer a free budget or insurance checklist via DM to the same keyword comment mechanic"
       },
-      "cover": "/covers/DXy-sNHB37n.jpg"
+      "cover": "/covers/DXy-sNHB37n.jpg",
+      "tags": {
+        "formula": "give-it-away",
+        "angle": "Educational",
+        "topic": "Money Habits",
+        "emotion": "curiosity",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.76,
+          "angle": 0.96,
+          "topic": 0.91,
+          "emotion": 0.85,
+          "audience": 0.79
+        }
+      }
     },
     {
       "shortCode": "DeHIiyThT04",
@@ -258,7 +442,20 @@
         "why": "A specific goal with a number and a visible history of failed ventures makes the person feel honest and easy to root for.",
         "adapt": "State your own client goal with a number and a deadline, mention what you tried before advising, and say how you want clients to feel working with you."
       },
-      "cover": "/covers/DeHIiyThT04.jpg"
+      "cover": "/covers/DeHIiyThT04.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Insurance",
+        "emotion": "trust",
+        "audience": "families",
+        "p": {
+          "angle": 0.77,
+          "topic": 0.77,
+          "emotion": 0.55,
+          "audience": 0.71
+        }
+      }
     }
   ],
   "reuuuben": [
@@ -278,7 +475,20 @@
         "why": "A numbered timeline of setbacks and wins lets followers see the whole journey, and the team tags and congratulations drove engagement.",
         "adapt": "Share your own numbered timeline of how you got from first client to your current practice, including one setback, and tag the people who helped."
       },
-      "cover": "/covers/C3uQw5fRpwl.jpg"
+      "cover": "/covers/C3uQw5fRpwl.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "business-owners",
+        "p": {
+          "angle": 1,
+          "topic": 0.82,
+          "emotion": 0.98,
+          "audience": 0.59
+        }
+      }
     },
     {
       "shortCode": "CeJXITsDPcE",
@@ -296,7 +506,20 @@
         "why": "Team culture content signals to prospects that the practice is stable and values-driven, which matters to clients choosing a long-term advisor relationship.",
         "adapt": "Post a short team moment or group win to show clients the people behind your practice and attract recruits who want that same environment."
       },
-      "cover": "/covers/CeJXITsDPcE.jpg"
+      "cover": "/covers/CeJXITsDPcE.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.69,
+          "topic": 0.66,
+          "emotion": 0.91,
+          "audience": 0.65
+        }
+      }
     },
     {
       "shortCode": "DejivnlNUh6",
@@ -308,7 +531,21 @@
       "views": 1910,
       "timestamp": "2026-10-16T12:34:40.000Z",
       "caption": "Ten years ago, I couldn’t go on my university exchange. It was a graduation requirement. Everyone went. I didn’t. I stayed in Singapore and worked, because of the financial situation. I watched my whole cohort post photos from overseas. And I sat with the fact that I couldn’t afford to go. These days I go where I want. Eat what I want. Play golf anywhere in the world. And here’s the thing, I’m not bitter about missing out at 22. Because missing out then is exactly what built the discipline that got me here now. Delayed isn’t denied. Sometimes it’s just the down payment.",
-      "cover": "/covers/DejivnlNUh6.jpg"
+      "cover": "/covers/DejivnlNUh6.jpg",
+      "tags": {
+        "formula": "before-after",
+        "angle": "Storytelling",
+        "topic": "Money Habits",
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.94,
+          "angle": 0.85,
+          "topic": 0.99,
+          "emotion": 0.96,
+          "audience": 0.69
+        }
+      }
     }
   ],
   "gracedotc0m": [
@@ -328,7 +565,20 @@
         "why": "A punchy mindset quote anchored to a pop culture reference makes the post shareable far beyond the advisor's existing followers and rewards saves.",
         "adapt": "Pair a financial mindset principle, such as managing return expectations in a volatile market, with a well-known film or TV quote your audience already loves."
       },
-      "cover": "/covers/CYBtJlEvf5l.jpg"
+      "cover": "/covers/CYBtJlEvf5l.jpg",
+      "tags": {
+        "formula": "cold-open",
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "relief",
+        "audience": "general",
+        "p": {
+          "formula": 0.54,
+          "angle": 0.39,
+          "emotion": 0.84,
+          "audience": 0.75
+        }
+      }
     },
     {
       "shortCode": "DdgZNzjlETP",
@@ -346,7 +596,19 @@
         "why": "A pop culture question is easy to answer and share, so it earned 1,207 likes from an audience that likes the advisor as a person.",
         "adapt": "Use a well-known show or character quiz to start a conversation, then link one trait back to a money style, such as saver, spender or risk-taker."
       },
-      "cover": "/covers/DdgZNzjlETP.jpg"
+      "cover": "/covers/DdgZNzjlETP.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.68,
+          "emotion": 0.69,
+          "audience": 0.92
+        }
+      }
     },
     {
       "shortCode": "C5h00EpvKil",
@@ -364,7 +626,20 @@
         "why": "Challenging a near-universal social expectation triggers strong identification and share impulse among viewers at that life stage.",
         "adapt": "Open a reel challenging a financial norm, such as 'society says you must own a home before 35', then give your honest take with actual numbers."
       },
-      "cover": "/covers/C5h00EpvKil.jpg"
+      "cover": "/covers/C5h00EpvKil.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Educational",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.55,
+          "angle": 0.49,
+          "emotion": 0.66,
+          "audience": 0.99
+        }
+      }
     }
   ],
   "wmisingapore": [
@@ -384,7 +659,20 @@
         "why": "It is a recap from a respected institution, and the named themes such as stewardship, AI and next-generation preparation speak to wealthy families, though 12 likes shows reach was small.",
         "adapt": "After a client seminar or webinar, post a photo carousel that lists three lessons from the day, such as how to prepare the next generation for inherited wealth, and ask followers which one matters most to them."
       },
-      "cover": "/covers/DeRWlD-F73l.jpg"
+      "cover": "/covers/DeRWlD-F73l.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Estate Planning",
+        "emotion": "pride",
+        "audience": "hnw",
+        "p": {
+          "angle": 0.68,
+          "topic": 0.71,
+          "emotion": 0.63,
+          "audience": 0.88
+        }
+      }
     },
     {
       "shortCode": "DeJO9WjF-q8",
@@ -402,7 +690,21 @@
         "why": "A famous name and a bold quote about advisers' jobs gets attention, though this account's small reach shows quotes alone do not spread far.",
         "adapt": "Take one quote from a talk you attended and add your own view on what it means for a client's portfolio or planning."
       },
-      "cover": "/covers/DeJO9WjF-q8.jpg"
+      "cover": "/covers/DeJO9WjF-q8.jpg",
+      "tags": {
+        "formula": "cold-open",
+        "angle": "Authority",
+        "topic": "Investment",
+        "emotion": "urgency",
+        "audience": "advisors-recruitment",
+        "p": {
+          "formula": 0.76,
+          "angle": 0.88,
+          "topic": 0.99,
+          "emotion": 0.83,
+          "audience": 0.66
+        }
+      }
     },
     {
       "shortCode": "DeJeb7ulzut",
@@ -414,7 +716,20 @@
       "views": 0,
       "timestamp": "2026-10-06T09:37:41.000Z",
       "caption": "As family offices evolve, the people who advise them must evolve too. More than 400 participants joined today’s Partners Forum, bringing the fifth WMI Global-Asia Family Office Summit to over 630 participants across two days. The Forum brought together family principals, private bankers, wealth and asset managers, lawyers, tax and trust advisers, and philanthropy professionals to examine the capabilities and partnerships families need in an increasingly complex environment. Across plenaries and masterclasses, discussions spanned investing in the age of AI, next-generation investing, evolving family office models and governance, philanthropy and legacy, long-term capital, and how emerging tec",
-      "cover": "/covers/DeJeb7ulzut.jpg"
+      "cover": "/covers/DeJeb7ulzut.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Investment",
+        "emotion": "curiosity",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.99,
+          "topic": 0.68,
+          "emotion": 0.4,
+          "audience": 0.67
+        }
+      }
     }
   ],
   "deonneocw": [
@@ -434,7 +749,20 @@
         "why": "A new role announcement combined with identity tags (dad, fitness) attracted comments from multiple audience segments at once, driving the comment count to 68.",
         "adapt": "Announce a professional milestone or personal transition on video and tag the life roles that make you relatable beyond your job title."
       },
-      "cover": "/covers/C_avYtTSbDI.jpg"
+      "cover": "/covers/C_avYtTSbDI.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "parents",
+        "p": {
+          "formula": 0.51,
+          "angle": 0.54,
+          "emotion": 0.98,
+          "audience": 0.85
+        }
+      }
     },
     {
       "shortCode": "DdTX5UvmkDz",
@@ -452,7 +780,21 @@
         "why": "A personal career milestone with a clear before and after invites congratulations from clients and peers.",
         "adapt": "Post your own anniversary in the business with one honest lesson from each stage, so prospects see you will still be around for their plan."
       },
-      "cover": "/covers/DdTX5UvmkDz.jpg"
+      "cover": "/covers/DdTX5UvmkDz.jpg",
+      "tags": {
+        "formula": "curiosity",
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "general",
+        "p": {
+          "formula": 0.35,
+          "angle": 0.73,
+          "topic": 0.9,
+          "emotion": 0.68,
+          "audience": 0.51
+        }
+      }
     },
     {
       "shortCode": "DdlbAlimkHU",
@@ -470,7 +812,19 @@
         "why": "A warm family moment around a festival makes the advisor feel like a real person, which earns easy likes.",
         "adapt": "Share a family tradition you keep each year and tie it to the values you bring to client conversations, without pitching anything."
       },
-      "cover": "/covers/DdlbAlimkHU.jpg"
+      "cover": "/covers/DdlbAlimkHU.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "parents",
+        "p": {
+          "angle": 0.63,
+          "emotion": 0.59,
+          "audience": 0.65
+        }
+      }
     }
   ],
   "yanjiaoo_": [
@@ -484,7 +838,20 @@
       "views": 0,
       "timestamp": "2025-08-02T06:36:39.000Z",
       "caption": "“yan jiao you still in school?”HAHAH yay marks a milestone 👩🏻‍🎓🥂finally OUT! so thankful for everyone that I have crossed paths with 🤝 made amazing connections and memories along the way and can’t be more than grateful for those that supported me throughout this journey🥺🫶🏻💌",
-      "cover": "/covers/DM18IrMTLvP.jpg"
+      "cover": "/covers/DM18IrMTLvP.jpg",
+      "tags": {
+        "formula": "cold-open",
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "pride",
+        "audience": "fresh-grads",
+        "p": {
+          "formula": 0.67,
+          "angle": 0.9,
+          "emotion": 0.75,
+          "audience": 0.84
+        }
+      }
     },
     {
       "shortCode": "DW25KflE4SF",
@@ -496,7 +863,19 @@
       "views": 0,
       "timestamp": "2026-04-08T04:43:52.000Z",
       "caption": "First open solos 🧍🏻‍♀️🫶🏻 definitely not easy but glad that i completed it hehe 🥳 thankful for all the friends that came down to support hehe really means a lot ❤️",
-      "cover": "/covers/DW25KflE4SF.jpg"
+      "cover": "/covers/DW25KflE4SF.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "pride",
+        "audience": "general",
+        "p": {
+          "angle": 0.56,
+          "emotion": 1,
+          "audience": 0.59
+        }
+      }
     },
     {
       "shortCode": "Dc8tmejTkAS",
@@ -514,7 +893,19 @@
         "why": "The caption is only an emoji, so people comment to ask what it means, which drove 27 comments.",
         "adapt": "Post a plain photo with a short question like 'Guess what I just signed off on?' and reply to every comment with the story."
       },
-      "cover": "/covers/Dc8tmejTkAS.jpg"
+      "cover": "/covers/Dc8tmejTkAS.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 0.58,
+          "emotion": 0.64,
+          "audience": 1
+        }
+      }
     }
   ],
   "yourlobangsis": [
@@ -534,7 +925,19 @@
         "why": "Grief combined with an aspirational travel moment created an emotionally charged video that people shared to express their own love for parents.",
         "adapt": "Share a personal money moment tied to a family member, such as the first time you paid for a parent's medical bill or a trip you saved up for, to show why financial planning is personal, not transactional."
       },
-      "cover": "/covers/DVLT9vJk809.jpg"
+      "cover": "/covers/DVLT9vJk809.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "pride",
+        "audience": "general",
+        "p": {
+          "angle": 0.96,
+          "emotion": 0.48,
+          "audience": 0.36
+        }
+      }
     },
     {
       "shortCode": "DeY4LfrzevT",
@@ -546,7 +949,20 @@
       "views": 49994,
       "timestamp": "2026-10-12T09:09:54.000Z",
       "caption": "Why roll a pineapple when you can be the pineapple? All jokes aside, Grateful to God for this home and this new chapter. Blessed and highly favoured 🤍 And thank YOU for being here - for the lobangs, the life updates and now this shenanigans. Pineapple suit courtesy of friend who used AI as a joke. Rolling courtesy of me.",
-      "cover": "/covers/DeY4LfrzevT.jpg"
+      "cover": "/covers/DeY4LfrzevT.jpg",
+      "tags": {
+        "formula": "side-by-side",
+        "angle": "Humour",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "general",
+        "p": {
+          "formula": 0.89,
+          "angle": 0.68,
+          "emotion": 0.98,
+          "audience": 0.53
+        }
+      }
     },
     {
       "shortCode": "DeYqmf1TNM0",
@@ -558,7 +974,19 @@
       "views": 5999,
       "timestamp": "2026-10-12T07:11:26.000Z",
       "caption": "I have an announcement to make.",
-      "cover": "/covers/DeYqmf1TNM0.jpg"
+      "cover": "/covers/DeYqmf1TNM0.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 0.51,
+          "emotion": 1,
+          "audience": 1
+        }
+      }
     }
   ],
   "glenn_ng": [
@@ -578,7 +1006,21 @@
         "why": "Crediting a spouse for an industry award reframes success as a family story, which is more emotionally compelling than a standard brag post.",
         "adapt": "When sharing an award or milestone, write the caption about the person behind the scenes who made it possible rather than about the achievement itself."
       },
-      "cover": "/covers/DYcnJNNE6Bk.jpg"
+      "cover": "/covers/DYcnJNNE6Bk.jpg",
+      "tags": {
+        "formula": "number-reveal",
+        "angle": "Emotional",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "families",
+        "p": {
+          "formula": 0.51,
+          "angle": 0.98,
+          "topic": 0.46,
+          "emotion": 0.98,
+          "audience": 0.73
+        }
+      }
     },
     {
       "shortCode": "DYPzPMTT879",
@@ -596,7 +1038,21 @@
         "why": "Specific percentages about unconventional career paths directly challenge the belief that finance is only for certain types of people, making it highly shareable among mid-career audiences.",
         "adapt": "Compile a breakdown of your team or clients by background and post it as a simple stat graphic to show that your work is for people who do not fit the typical mould."
       },
-      "cover": "/covers/DYPzPMTT879.jpg"
+      "cover": "/covers/DYPzPMTT879.jpg",
+      "tags": {
+        "formula": "myth-bust",
+        "angle": "Objection Handling",
+        "topic": "Career / FA Life",
+        "emotion": "hope",
+        "audience": "advisors-recruitment",
+        "p": {
+          "formula": 0.56,
+          "angle": 0.5,
+          "topic": 0.99,
+          "emotion": 1,
+          "audience": 1
+        }
+      }
     },
     {
       "shortCode": "DYUvWaTE38n",
@@ -614,7 +1070,20 @@
         "why": "Framing team building as a repeatable system rather than individual talent appeals to aspiring leaders who want a blueprint, not just inspiration.",
         "adapt": "Write a post about what specifically changed in your team environment that made success more consistent, using real numbers or time frames where possible."
       },
-      "cover": "/covers/DYUvWaTE38n.jpg"
+      "cover": "/covers/DYUvWaTE38n.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 1,
+          "topic": 0.99,
+          "emotion": 0.76,
+          "audience": 0.96
+        }
+      }
     }
   ],
   "storeberrryking": [
@@ -634,7 +1103,19 @@
         "why": "A new-baby post with honest details about sleep and chaos feels relatable and draws warm reactions.",
         "adapt": "Share a real new-parent moment and add one money step you took, like reviewing cover, so young families see the link to planning."
       },
-      "cover": "/covers/CpsA0kmyj9Z.jpg"
+      "cover": "/covers/CpsA0kmyj9Z.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "parents",
+        "p": {
+          "angle": 0.94,
+          "emotion": 1,
+          "audience": 0.96
+        }
+      }
     },
     {
       "shortCode": "DeP4088k3Er",
@@ -652,7 +1133,19 @@
         "why": "A relaxed travel moment makes the advisor feel like a real person, which builds familiarity with followers.",
         "adapt": "Post a casual trip or weekend moment and tie it in one line to the time freedom your work gives you."
       },
-      "cover": "/covers/DeP4088k3Er.jpg"
+      "cover": "/covers/DeP4088k3Er.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Storytelling",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.91,
+          "emotion": 0.99,
+          "audience": 0.54
+        }
+      }
     },
     {
       "shortCode": "DeQa5VoJnKY",
@@ -664,7 +1157,19 @@
       "views": 152,
       "timestamp": "2026-10-09T02:20:32.000Z",
       "caption": "Everyone has their role on a family trip. Some of us just have a much easier job than others",
-      "cover": "/covers/DeQa5VoJnKY.jpg"
+      "cover": "/covers/DeQa5VoJnKY.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Humour",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "families",
+        "p": {
+          "angle": 0.76,
+          "emotion": 0.89,
+          "audience": 0.87
+        }
+      }
     }
   ],
   "willislaubx": [
@@ -684,7 +1189,19 @@
         "why": "Visible vulnerability and deliberate discomfort on camera build faster trust than polished, confident content because viewers can see real effort.",
         "adapt": "Share a recent stretch goal you attempted in your career or personal life and frame what you learned from it, since clients choose advisors they believe will keep growing."
       },
-      "cover": "/covers/DaDM1skhWR8.jpg"
+      "cover": "/covers/DaDM1skhWR8.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.48,
+          "emotion": 0.96,
+          "audience": 0.85
+        }
+      }
     },
     {
       "shortCode": "DVAweO6D2Ma",
@@ -702,7 +1219,20 @@
         "why": "Learning a new skill in your mid 30s is a curiosity hook, and tying it to life and money lessons makes a personal hobby feel useful.",
         "adapt": "Pick a non-finance habit you have stuck with and turn 3 to 5 lessons from it into money lessons your clients can apply."
       },
-      "cover": "/covers/DVAweO6D2Ma.jpg"
+      "cover": "/covers/DVAweO6D2Ma.jpg",
+      "tags": {
+        "formula": "before-after",
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "formula": 0.41,
+          "angle": 0.35,
+          "emotion": 0.72,
+          "audience": 0.58
+        }
+      }
     },
     {
       "shortCode": "DdG5PWpD6XD",
@@ -720,7 +1250,20 @@
         "why": "It shows a real client relationship and the care behind it, which builds trust more than any product pitch.",
         "adapt": "Post a moment where you recognised a client's effort (with permission), and say what you learned about how they think about money."
       },
-      "cover": "/covers/DdG5PWpD6XD.jpg"
+      "cover": "/covers/DdG5PWpD6XD.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Storytelling",
+        "topic": "Personal Brand",
+        "emotion": "hope",
+        "audience": "hnw",
+        "p": {
+          "angle": 1,
+          "topic": 0.48,
+          "emotion": 0.52,
+          "audience": 0.79
+        }
+      }
     }
   ],
   "iamfabiansim": [
@@ -740,7 +1283,19 @@
         "why": "Sarcastic self-awareness about a high-stakes personal failure is universally relatable and highly shareable, which pushed this to nearly 370k views.",
         "adapt": "Film a short talking-head clip about a real moment in your work or life that went wrong and play it for laughs, ending with a line about what you learned or what happened next."
       },
-      "cover": "/covers/DYuFA1KPGzU.jpg"
+      "cover": "/covers/DYuFA1KPGzU.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Humour",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "general",
+        "p": {
+          "angle": 1,
+          "emotion": 1,
+          "audience": 0.57
+        }
+      }
     },
     {
       "shortCode": "C-YOAd_SZC9",
@@ -758,7 +1313,19 @@
         "why": "Named grief with specific shared memories pulls a high comment rate relative to views, signaling the kind of emotional resonance that signals trust to new audiences.",
         "adapt": "Record a short tribute to a mentor, client, or colleague whose loss showed you firsthand why financial protection matters, letting the story do the selling."
       },
-      "cover": "/covers/C-YOAd_SZC9.jpg"
+      "cover": "/covers/C-YOAd_SZC9.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "worry",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.93,
+          "emotion": 0.68,
+          "audience": 0.59
+        }
+      }
     },
     {
       "shortCode": "DN3W4k73n5W",
@@ -776,7 +1343,21 @@
         "why": "A then-versus-now comparison with specific, vivid milestones makes the reader measure their own five years against it.",
         "adapt": "Post a then-versus-now carousel of your first 5 years in the job, with real numbers like families helped and one honest early struggle."
       },
-      "cover": "/covers/DN3W4k73n5W.jpg"
+      "cover": "/covers/DN3W4k73n5W.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.29,
+          "angle": 0.73,
+          "topic": 0.97,
+          "emotion": 0.84,
+          "audience": 0.41
+        }
+      }
     }
   ],
   "honeymoneysg": [
@@ -796,7 +1377,20 @@
         "why": "One concrete number plus a limited sign-up prize gives viewers a reason to act now, and it is a new product to Singapore.",
         "adapt": "Pick one new card or account feature and explain in 30 seconds what it really pays, who it suits and one catch, without recommending a product you would not use."
       },
-      "cover": "/covers/DdxfTlpx5Zz.jpg"
+      "cover": "/covers/DdxfTlpx5Zz.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Investment",
+        "emotion": "urgency",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.92,
+          "topic": 0.99,
+          "emotion": 0.83,
+          "audience": 0.6
+        }
+      }
     },
     {
       "shortCode": "Dd8pjYdM4lD",
@@ -814,7 +1408,21 @@
         "why": "A headline rate with a hint of conditions makes viewers curious to see if they would qualify.",
         "adapt": "Take a savings or fixed deposit promo and walk through the two or three conditions, then say who it works for and who should skip it."
       },
-      "cover": "/covers/Dd8pjYdM4lD.jpg"
+      "cover": "/covers/Dd8pjYdM4lD.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Educational",
+        "topic": "Money Habits",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "formula": 0.79,
+          "angle": 0.98,
+          "topic": 0.56,
+          "emotion": 0.97,
+          "audience": 0.63
+        }
+      }
     },
     {
       "shortCode": "Dd5unljBYmq",
@@ -832,7 +1440,20 @@
         "why": "It teases a strong opinion on a topic many viewers have a view on, which invites agreement or pushback.",
         "adapt": "Give your own plain take on stock picking versus funds, with one example from a client situation, and ask followers which camp they are in."
       },
-      "cover": "/covers/Dd5unljBYmq.jpg"
+      "cover": "/covers/Dd5unljBYmq.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Contrarian",
+        "topic": "Investment",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 0.63,
+          "topic": 1,
+          "emotion": 0.98,
+          "audience": 0.89
+        }
+      }
     }
   ],
   "vantagewealthmanagement": [
@@ -846,7 +1467,21 @@
       "views": 0,
       "timestamp": "2026-10-14T07:10:14.000Z",
       "caption": "10 years in Luxury Hospitality. Then Wealth Advisory at a global bank. Two industries built on one thing. Trust. In hospitality, you learn to notice what people need before they say it. In wealth advisory, you learn that numbers only matter when they serve a real life. A family. A retirement. A plan that lets someone sleep well at night. Nina brings both. The eye for detail. The patience to listen. And the care to get things right for the people who rely on her. Now she’s starting her next chapter with us. Welcome to the VWM family, Nina!✨ We’re really glad to have you and we can’t wait to grow together. #VantageWealthManagement #VWM #FinancialAdvisory #WelcomeToTheTeam",
-      "cover": "/covers/Dedz8nXJEgo.jpg"
+      "cover": "/covers/Dedz8nXJEgo.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Authority",
+        "topic": "Career / FA Life",
+        "emotion": "trust",
+        "audience": "advisors-recruitment",
+        "p": {
+          "formula": 0.56,
+          "angle": 0.66,
+          "topic": 0.85,
+          "emotion": 1,
+          "audience": 0.49
+        }
+      }
     },
     {
       "shortCode": "DbLK3-_pw7E",
@@ -864,7 +1499,21 @@
         "why": "A specific, hard-to-believe number plus a named person makes the result feel real and worth asking about.",
         "adapt": "Share one client or personal milestone with a real number, then list the two or three habits behind it instead of just the trophy."
       },
-      "cover": "/covers/DbLK3-_pw7E.jpg"
+      "cover": "/covers/DbLK3-_pw7E.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Authority",
+        "topic": "Career / FA Life",
+        "emotion": "hope",
+        "audience": "advisors-recruitment",
+        "p": {
+          "formula": 0.95,
+          "angle": 0.58,
+          "topic": 0.98,
+          "emotion": 0.53,
+          "audience": 0.99
+        }
+      }
     },
     {
       "shortCode": "DelymLlppVK",
@@ -876,7 +1525,21 @@
       "views": 0,
       "timestamp": "2026-10-17T09:31:27.000Z",
       "caption": "Fast cars. Inline skates. And 15 years of building relationships that last. Jeremy Koh spent 13 years at a global payments company, leading teams and looking after clients. Then he moved into financial planning and has spent the last few years advising at two major insurers. Now he’s taking his next step with us, for the flexibility to look at each client’s whole picture. In his words: “I believe in putting my clients’ interests first and helping them make confident decisions towards their long-term financial goals.” He works with working professionals and young families who want to grow their wealth, protect the people they love, and plan for a comfortable retirement and a lasting legacy. A",
-      "cover": "/covers/DelymLlppVK.jpg"
+      "cover": "/covers/DelymLlppVK.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Authority",
+        "topic": "Career / FA Life",
+        "emotion": "trust",
+        "audience": "families",
+        "p": {
+          "formula": 0.93,
+          "angle": 0.96,
+          "topic": 0.51,
+          "emotion": 1,
+          "audience": 0.63
+        }
+      }
     }
   ],
   "kyith": [
@@ -896,7 +1559,21 @@
         "why": "Radical transparency about real spending is curiosity-driven and gives readers a benchmark to compare against.",
         "adapt": "Share a simplified monthly spending breakdown by category, and note one choice you would change, to invite comparison and comments."
       },
-      "cover": "/covers/DbzTyGcj7OU.jpg"
+      "cover": "/covers/DbzTyGcj7OU.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Authority",
+        "topic": "Money Habits",
+        "emotion": "curiosity",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.92,
+          "angle": 0.64,
+          "topic": 1,
+          "emotion": 0.89,
+          "audience": 0.59
+        }
+      }
     },
     {
       "shortCode": "DW-EP6GkxMz",
@@ -914,7 +1591,20 @@
         "why": "Same open-books format as the July log, with a small story (deep work month, one big buy) that makes the numbers easy to read.",
         "adapt": "Add a one-line story to your monthly numbers, such as the one big purchase and why you made it, so it reads as a story and not a ledger."
       },
-      "cover": "/covers/DW-EP6GkxMz.jpg"
+      "cover": "/covers/DW-EP6GkxMz.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Money Habits",
+        "emotion": "pride",
+        "audience": "parents",
+        "p": {
+          "angle": 0.73,
+          "topic": 1,
+          "emotion": 0.72,
+          "audience": 0.53
+        }
+      }
     },
     {
       "shortCode": "DZVmztDE6pz",
@@ -932,7 +1622,20 @@
         "why": "It links the spending to a real cause (no tax bill) and raises a question about future trends, which gives readers something to think about.",
         "adapt": "Show how one fixed event, like tax or insurance premiums, changes a month's cash flow, and explain how to plan for it."
       },
-      "cover": "/covers/DZVmztDE6pz.jpg"
+      "cover": "/covers/DZVmztDE6pz.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Money Habits",
+        "emotion": "relief",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.49,
+          "topic": 1,
+          "emotion": 0.5,
+          "audience": 0.63
+        }
+      }
     }
   ],
   "niccczz": [
@@ -952,7 +1655,21 @@
         "why": "A specific, vulnerable story about ambition and fear of judgement pulls people in and earned the most likes in the set.",
         "adapt": "Tell a concrete moment from your own start in the industry, including the doubt you hid, and tie it to one lesson about money or career."
       },
-      "cover": "/covers/DdJY_xsmq2-.jpg"
+      "cover": "/covers/DdJY_xsmq2-.jpg",
+      "tags": {
+        "formula": "before-after",
+        "angle": "Storytelling",
+        "topic": "Money Habits",
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.38,
+          "angle": 0.88,
+          "topic": 0.58,
+          "emotion": 0.68,
+          "audience": 0.62
+        }
+      }
     },
     {
       "shortCode": "DdETMLehIUB",
@@ -970,7 +1687,21 @@
         "why": "The wage-to-career contrast is easy to picture and it comes with a simple 'DM GROW' call to action.",
         "adapt": "State your starting income or first job, what changed, and offer one keyword for people to DM if they want to hear how you got into advising."
       },
-      "cover": "/covers/DdETMLehIUB.jpg"
+      "cover": "/covers/DdETMLehIUB.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.85,
+          "angle": 0.64,
+          "topic": 0.9,
+          "emotion": 1,
+          "audience": 0.97
+        }
+      }
     },
     {
       "shortCode": "DeY88VlmrWM",
@@ -982,7 +1713,20 @@
       "views": 0,
       "timestamp": "2026-10-12T09:50:49.000Z",
       "caption": "Self-respect isn’t something you earn after you achieve something It’s built in the choices you make every day Choosing growth over approval Starting from zero when necessary Keeping promises to yourself Becoming more valuable, not just more successful You don’t have to wait until graduation to start becoming the person you want to be DM “GROW” if you’re ready to start",
-      "cover": "/covers/DeY88VlmrWM.jpg"
+      "cover": "/covers/DeY88VlmrWM.jpg",
+      "tags": {
+        "formula": "myth-bust",
+        "angle": "Contrarian",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.6,
+          "angle": 0.6,
+          "emotion": 0.93,
+          "audience": 0.73
+        }
+      }
     }
   ],
   "winainsg": [
@@ -1002,7 +1746,20 @@
         "why": "It promises both the lifestyle and the big savings goal, in Chinese, which reaches an audience few advisors target directly.",
         "adapt": "Make a reel in the language your clients speak at home, showing how a monthly figure for travel and a monthly figure for saving can both fit."
       },
-      "cover": "/covers/Ddf2N6tT0mW.jpg"
+      "cover": "/covers/Ddf2N6tT0mW.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": "Money Habits",
+        "emotion": "curiosity",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.51,
+          "topic": 0.82,
+          "emotion": 0.68,
+          "audience": 0.81
+        }
+      }
     },
     {
       "shortCode": "DP7uG0VEhQU",
@@ -1020,7 +1777,21 @@
         "why": "Career origin stories with a gratitude angle make advisors feel human and trustworthy rather than transactional, which lowers defenses in cold audiences.",
         "adapt": "Record a short reflection on why you joined the industry and name one specific client moment that confirmed you made the right call."
       },
-      "cover": "/covers/DP7uG0VEhQU.jpg"
+      "cover": "/covers/DP7uG0VEhQU.jpg",
+      "tags": {
+        "formula": "before-after",
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "trust",
+        "audience": "families",
+        "p": {
+          "formula": 0.87,
+          "angle": 0.75,
+          "topic": 0.58,
+          "emotion": 1,
+          "audience": 0.94
+        }
+      }
     },
     {
       "shortCode": "DYwsLVLTNdW",
@@ -1038,7 +1809,20 @@
         "why": "First-year achievement posts attract potential recruits and reassure existing clients that their advisor is driven, without the post feeling like a hard sell.",
         "adapt": "Share a professional milestone and pair it with the specific daily habit or decision that drove it, since the process is more credible and useful to viewers than the trophy alone."
       },
-      "cover": "/covers/DYwsLVLTNdW.jpg"
+      "cover": "/covers/DYwsLVLTNdW.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "general",
+        "p": {
+          "angle": 0.36,
+          "topic": 0.93,
+          "emotion": 0.73,
+          "audience": 0.84
+        }
+      }
     }
   ],
   "sgbudgetbabe": [
@@ -1058,7 +1842,21 @@
         "why": "A relatable origin story attached to a big milestone proves the outcome is achievable for ordinary people, which inspires trust and shares.",
         "adapt": "Share a milestone from your own journey or anonymise a real client story, such as reaching $100k saved, clearing all debt, or hitting a first investment target, and walk through the exact habits that got them there."
       },
-      "cover": "/covers/DEFq_Zezmv4.jpg"
+      "cover": "/covers/DEFq_Zezmv4.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Authority",
+        "topic": "Investment",
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.93,
+          "angle": 0.95,
+          "topic": 1,
+          "emotion": 0.95,
+          "audience": 0.94
+        }
+      }
     },
     {
       "shortCode": "ChtxV_oOy0Q",
@@ -1076,7 +1874,20 @@
         "why": "A visible before-and-after result with a personal story and a clear 'how' pulls in people far outside the finance audience.",
         "adapt": "Share a real money transformation, such as clearing a debt or building an emergency fund, with before-and-after numbers and the steps you took."
       },
-      "cover": "/covers/ChtxV_oOy0Q.jpg"
+      "cover": "/covers/ChtxV_oOy0Q.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Storytelling",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "parents",
+        "p": {
+          "formula": 0.91,
+          "angle": 0.36,
+          "emotion": 0.43,
+          "audience": 0.99
+        }
+      }
     },
     {
       "shortCode": "DelWi2OE5aM",
@@ -1088,7 +1899,21 @@
       "views": 0,
       "timestamp": "2026-10-17T05:25:25.000Z",
       "caption": "More than $2 trillion has been wiped off the markets in the last few days alone. Why did AI and semiconductor stocks suddenly crash so hard this week? 📉 And the sell-off hasn't been limited to the US. 🔻 Asian markets were hit too, especially South Korea, where the KOSPI plunged 7.6% in a single trading session. As an investor, always remember this to guide you through bull and bear markets: 📌 A falling share price doesn't automatically mean a company has become a bad business. 📌 And a good business doesn't automatically make a good investment at any price. In times of volatility, opportunities emerge for long-term investors to scoop up great companies at a discount. That's where I'm focu",
-      "cover": "/covers/DelWi2OE5aM.jpg"
+      "cover": "/covers/DelWi2OE5aM.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Educational",
+        "topic": "Investment",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "formula": 0.99,
+          "angle": 0.77,
+          "topic": 1,
+          "emotion": 0.46,
+          "audience": 0.68
+        }
+      }
     }
   ],
   "ashleytyl": [
@@ -1102,7 +1927,19 @@
       "views": 9086,
       "timestamp": "2026-10-15T11:24:56.000Z",
       "caption": "Snippets from our Adulting, Explained seminar pt.1! 🎓💰 #assuredwithash #lifeinspiredteam #givefirstdomorebebetter",
-      "cover": "/covers/Deg1ugKPyap.jpg"
+      "cover": "/covers/Deg1ugKPyap.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Educational",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.91,
+          "emotion": 0.82,
+          "audience": 0.9
+        }
+      }
     },
     {
       "shortCode": "DagwakTEqtw",
@@ -1120,7 +1957,19 @@
         "why": "Followers respond to personal news from an advisor they already follow; the caption gives no information, so the engagement is relationship-based.",
         "adapt": "Share a real career or life update, then use the last slide to say what it means for the clients you serve."
       },
-      "cover": "/covers/DagwakTEqtw.jpg"
+      "cover": "/covers/DagwakTEqtw.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Storytelling",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 0.5,
+          "emotion": 0.95,
+          "audience": 0.99
+        }
+      }
     },
     {
       "shortCode": "DUC_RDpkk2o",
@@ -1138,7 +1987,21 @@
         "why": "It speaks directly to a niche (DINKs and couples without kids) that most financial content ignores, and reframes planning as a choice.",
         "adapt": "Pick a life-stage group that gets overlooked, such as singles, DINKs or single parents, and list 3 planning mistakes specific to them."
       },
-      "cover": "/covers/DUC_RDpkk2o.jpg"
+      "cover": "/covers/DUC_RDpkk2o.jpg",
+      "tags": {
+        "formula": "myth-bust",
+        "angle": "Objection Handling",
+        "topic": "Money Habits",
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.5,
+          "angle": 0.59,
+          "topic": 0.98,
+          "emotion": 0.54,
+          "audience": 0.79
+        }
+      }
     }
   ],
   "sherryhsy_": [
@@ -1178,7 +2041,19 @@
         "why": "A curiosity-led opening plus a plain disclaimer about organic content makes people swipe to find out what happens.",
         "adapt": "Tell a short client-style story with an open question on slide one, and reveal the money lesson on the last slide."
       },
-      "cover": "/covers/Ddkxv39j961.jpg"
+      "cover": "/covers/Ddkxv39j961.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 0.7,
+          "emotion": 0.99,
+          "audience": 0.89
+        }
+      }
     },
     {
       "shortCode": "DeGOAGNj7dM",
@@ -1196,7 +2071,19 @@
         "why": "It asks a bold 'what if' about a daily Singapore frustration and warns it may challenge beliefs, which invites strong opinions and comments.",
         "adapt": "Ask a 'what if' that challenges a common money belief, such as 'What if renting for life beat buying a flat?', and show the real numbers across a carousel."
       },
-      "cover": "/covers/DeGOAGNj7dM.jpg"
+      "cover": "/covers/DeGOAGNj7dM.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Contrarian",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 1,
+          "emotion": 0.77,
+          "audience": 0.95
+        }
+      }
     },
     {
       "shortCode": "Dd5WbYNEjvC",
@@ -1208,7 +2095,20 @@
       "views": 0,
       "timestamp": "2026-09-30T03:17:49.000Z",
       "caption": "On finding the courage to begin again. DISCLAIMER: THIS POST IS BROUGHT TO YOU BY @spfrecruitment DO NOT PROCEED IF YOU DON’T LIKE SPONSORED CONTENT.",
-      "cover": "/covers/Dd5WbYNEjvC.jpg"
+      "cover": "/covers/Dd5WbYNEjvC.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": "Career / FA Life",
+        "emotion": "hope",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.69,
+          "topic": 0.93,
+          "emotion": 0.91,
+          "audience": 0.51
+        }
+      }
     }
   ],
   "juliusyipp": [
@@ -1228,7 +2128,20 @@
         "why": "A family story about regret over small, deferred wishes is relatable and emotional, and it sits inside a money lesson viewers feel without being told.",
         "adapt": "Share a short story about a parent or client who delayed something they wanted, then end with a simple question on balancing saving and enjoying money now."
       },
-      "cover": "/covers/DZrmQ_1hDBs.jpg"
+      "cover": "/covers/DZrmQ_1hDBs.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Storytelling",
+        "topic": "Money Habits",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 0.91,
+          "topic": 0.97,
+          "emotion": 0.88,
+          "audience": 0.34
+        }
+      }
     },
     {
       "shortCode": "DdlTy1qB_st",
@@ -1246,7 +2159,21 @@
         "why": "A blunt one-line claim reframes a common money habit as a choice about pride, which makes people stop and react.",
         "adapt": "Pick one money habit your clients struggle with and name the real cause in one blunt sentence, then add two lines on a simple fix."
       },
-      "cover": "/covers/DdlTy1qB_st.jpg"
+      "cover": "/covers/DdlTy1qB_st.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Contrarian",
+        "topic": "Money Habits",
+        "emotion": "worry",
+        "audience": "general",
+        "p": {
+          "formula": 0.42,
+          "angle": 0.74,
+          "topic": 1,
+          "emotion": 0.7,
+          "audience": 0.43
+        }
+      }
     },
     {
       "shortCode": "DdvymbOiX0N",
@@ -1264,7 +2191,21 @@
         "why": "A personal before-and-after journey mixing health and money makes the advisor relatable and invites readers to see themselves in it.",
         "adapt": "Share your own honest starting point with money, then the specific habits that changed it, so clients see a real person and a path they could follow."
       },
-      "cover": "/covers/DdvymbOiX0N.jpg"
+      "cover": "/covers/DdvymbOiX0N.jpg",
+      "tags": {
+        "formula": "before-after",
+        "angle": "Storytelling",
+        "topic": "Money Habits",
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.78,
+          "angle": 0.96,
+          "topic": 0.59,
+          "emotion": 0.88,
+          "audience": 0.71
+        }
+      }
     }
   ],
   "growbeansprout": [
@@ -1284,7 +2225,21 @@
         "why": "Abandoning a high-income job is one of the strongest curiosity triggers on the platform because it violates the expected financial logic most people follow.",
         "adapt": "Share the real reason you became a financial advisor instead of staying in a corporate track, framing it as a values decision rather than a career one."
       },
-      "cover": "/covers/DXx8ClLz76-.jpg"
+      "cover": "/covers/DXx8ClLz76-.jpg",
+      "tags": {
+        "formula": "walk-away",
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.96,
+          "angle": 0.58,
+          "topic": 0.74,
+          "emotion": 0.93,
+          "audience": 0.52
+        }
+      }
     },
     {
       "shortCode": "DeTJQSfFDzD",
@@ -1302,7 +2257,21 @@
         "why": "A timely, familiar-name market move plus a 'comment Banks to get the article' prompt drove 189 comments.",
         "adapt": "When a major local market event happens, post a one-image summary of what moved and offer a short note to clients who comment a keyword."
       },
-      "cover": "/covers/DeTJQSfFDzD.jpg"
+      "cover": "/covers/DeTJQSfFDzD.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Authority",
+        "topic": "Investment",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "formula": 0.95,
+          "angle": 0.89,
+          "topic": 1,
+          "emotion": 0.68,
+          "audience": 0.67
+        }
+      }
     },
     {
       "shortCode": "DeY_WvNGUTM",
@@ -1314,7 +2283,20 @@
       "views": 0,
       "timestamp": "2026-10-12T10:11:55.000Z",
       "caption": "Looking for the best place to park your cash in Singapore in October 2026? With yields moving higher again, we compare Singapore T-bills, fixed deposits, Singapore Savings Bonds (SSBs), savings accounts and cash management options to see where your money could earn the best return right now. The latest 6-month T-bill cut-off yield is 1.90%, while some fixed deposits are offering above 2% p.a. and the latest SSB offers a 10-year average return of 2.45% p.a. If you’re deciding between T-bills vs fixed deposits vs SSBs, we break down the latest rates, liquidity and key considerations for each option. 👉🏼 Comment ‘𝙮𝙞𝙚𝙡𝙙’ and we’ll send you the full article! 🌱 Follow @growbeansprout for sm",
-      "cover": "/covers/DeY_WvNGUTM.jpg"
+      "cover": "/covers/DeY_WvNGUTM.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Investment",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 0.81,
+          "topic": 0.89,
+          "emotion": 1,
+          "audience": 0.81
+        }
+      }
     }
   ],
   "singlifefinancialadvisers": [
@@ -1328,7 +2310,20 @@
       "views": 146,
       "timestamp": "2026-10-12T09:01:34.000Z",
       "caption": "As we move towards a super-aged society, what are the biggest challenges of the \"120-year problem\" for financial planning and protection? Akhil, Group Head of Distribution, shares his view at the Singlife Symposium. #Singlife #SinglifeSymposium #FinancialPlanning",
-      "cover": "/covers/DeY3QCDDR3j.jpg"
+      "cover": "/covers/DeY3QCDDR3j.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Retirement",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 0.94,
+          "topic": 0.94,
+          "emotion": 0.88,
+          "audience": 0.78
+        }
+      }
     },
     {
       "shortCode": "DeOj-55BnV-",
@@ -1346,7 +2341,20 @@
         "why": "It raises a real shift (longer lives, more complex health and retirement needs) and puts a CEO's view behind it.",
         "adapt": "Record a 30-second take on how longevity changes the retirement conversation you have with clients in their 40s and 50s."
       },
-      "cover": "/covers/DeOj-55BnV-.jpg"
+      "cover": "/covers/DeOj-55BnV-.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Retirement",
+        "emotion": "curiosity",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.89,
+          "topic": 0.7,
+          "emotion": 1,
+          "audience": 0.91
+        }
+      }
     },
     {
       "shortCode": "DeeA1i_mJYC",
@@ -1358,7 +2366,20 @@
       "views": 65,
       "timestamp": "2026-10-14T09:01:29.000Z",
       "caption": "AI is changing almost every industry. But what will it never replace in financial advisory? Singlife Group Head of Distribution, Akhil, shares his take at the Singlife Symposium. #Singlife #SinglifeSymposium #FinancialAdvisers",
-      "cover": "/covers/DeeA1i_mJYC.jpg"
+      "cover": "/covers/DeeA1i_mJYC.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Career / FA Life",
+        "emotion": "curiosity",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.84,
+          "topic": 0.9,
+          "emotion": 1,
+          "audience": 0.98
+        }
+      }
     }
   ],
   "cherylahy": [
@@ -1378,7 +2399,20 @@
         "why": "Tying a celebration post to genuine referrals and teammate growth reframes an award night as a community story rather than self-promotion.",
         "adapt": "At your next award or team event, post a carousel of the night and dedicate the caption to specific teammates whose growth you witnessed firsthand."
       },
-      "cover": "/covers/DYoDQQGiUy6.jpg"
+      "cover": "/covers/DYoDQQGiUy6.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.49,
+          "topic": 0.97,
+          "emotion": 0.78,
+          "audience": 0.65
+        }
+      }
     },
     {
       "shortCode": "DX_OxR6CcJ5",
@@ -1396,7 +2430,19 @@
         "why": "An inside joke with a clear tone gets quick likes from people who recognise the reference.",
         "adapt": "Take a relatable money habit, like going from luxury spending to cashflow checking, and turn it into a light two-slide meme with your own twist."
       },
-      "cover": "/covers/DX_OxR6CcJ5.jpg"
+      "cover": "/covers/DX_OxR6CcJ5.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Humour",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.99,
+          "emotion": 0.87,
+          "audience": 0.78
+        }
+      }
     },
     {
       "shortCode": "DX00JG8Cf7i",
@@ -1414,7 +2460,20 @@
         "why": "A relatable personal moment with a tech twist drew comments even with zero likes, showing that human content sparks conversation more than polished promos.",
         "adapt": "Share a personal travel or life moment and link it back briefly to a financial theme, like how budgeting made the trip possible, without making it a sales post."
       },
-      "cover": "/covers/DX00JG8Cf7i.jpg"
+      "cover": "/covers/DX00JG8Cf7i.jpg",
+      "tags": {
+        "formula": "curiosity",
+        "angle": "Humour",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.41,
+          "angle": 0.85,
+          "emotion": 0.91,
+          "audience": 0.82
+        }
+      }
     }
   ],
   "sethisfy": [
@@ -1434,7 +2493,19 @@
         "why": "A topic with mass appeal outside finance, from a creator with a big audience, pulled in viewers who do not follow money content.",
         "adapt": "Pick a daily-life topic your clients also care about, like a gadget or a hawker stall, and give a quick opinion, then link it to a money habit in the last line."
       },
-      "cover": "/covers/DdJIVzwStiU.jpg"
+      "cover": "/covers/DdJIVzwStiU.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "angle": 0.5,
+          "emotion": 0.86,
+          "audience": 0.66
+        }
+      }
     },
     {
       "shortCode": "DUz-yKLkTuX",
@@ -1452,7 +2523,19 @@
         "why": "Genuine emotion around a universal occasion in two languages hit Singapore's bilingual audience and drove saves and shares before likes.",
         "adapt": "On Father's Day or Mother's Day, record a short personal tribute and connect it lightly to why you work in financial planning, without making it a sales pitch."
       },
-      "cover": "/covers/DUz-yKLkTuX.jpg"
+      "cover": "/covers/DUz-yKLkTuX.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "trust",
+        "audience": "parents",
+        "p": {
+          "angle": 1,
+          "emotion": 0.6,
+          "audience": 0.86
+        }
+      }
     },
     {
       "shortCode": "DdObR_3yzTS",
@@ -1470,7 +2553,20 @@
         "why": "A short, playful line with no explanation sparks curiosity, though reach stayed small, so it was mostly for existing followers.",
         "adapt": "Use a short, witty caption on a behind-the-scenes clip, but add one line of context so new viewers know why they should care."
       },
-      "cover": "/covers/DdObR_3yzTS.jpg"
+      "cover": "/covers/DdObR_3yzTS.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "general",
+        "p": {
+          "formula": 0.33,
+          "angle": 0.68,
+          "emotion": 0.83,
+          "audience": 0.79
+        }
+      }
     }
   ],
   "pandachu96": [
@@ -1490,7 +2586,20 @@
         "why": "A vivid image and a clear problem, advisers all look the same, made peers stop and comment.",
         "adapt": "Turn a talk or a lesson into a carousel with one striking image and three ways you stand out, written for clients choosing between advisors."
       },
-      "cover": "/covers/Dch-Ny2krUr.jpg"
+      "cover": "/covers/Dch-Ny2krUr.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Educational",
+        "topic": "Career / FA Life",
+        "emotion": "curiosity",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.46,
+          "topic": 0.6,
+          "emotion": 0.83,
+          "audience": 1
+        }
+      }
     }
   ],
   "_junxiannnnn": [
@@ -1510,7 +2619,20 @@
         "why": "Group identity and shared struggle framing drives comments from teammates and followers who follow fitness culture, not just finance content.",
         "adapt": "Document any team charity run, company fitness challenge, or group event with the prep story behind it, not just the finish line photo."
       },
-      "cover": "/covers/DWwTmPokmhO.jpg"
+      "cover": "/covers/DWwTmPokmhO.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Storytelling",
+        "topic": null,
+        "emotion": "pride",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.8,
+          "angle": 0.89,
+          "emotion": 1,
+          "audience": 0.91
+        }
+      }
     },
     {
       "shortCode": "Dajhc4Eygxq",
@@ -1528,7 +2650,20 @@
         "why": "The line 'money reveals discipline and magnifies habits' is quotable and easy to relate to, and the honest 'first attempt' tone feels real.",
         "adapt": "Film a 30-second take on one money habit you see in clients, such as how they act after a bonus, and end with one question for viewers."
       },
-      "cover": "/covers/Dajhc4Eygxq.jpg"
+      "cover": "/covers/Dajhc4Eygxq.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": "Money Habits",
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "angle": 0.74,
+          "topic": 1,
+          "emotion": 0.57,
+          "audience": 0.51
+        }
+      }
     },
     {
       "shortCode": "DXqviq1EZqb",
@@ -1546,7 +2681,19 @@
         "why": "Social cause content signals values and attracts followers aligned with purpose, though zero engagement here shows it needs a stronger personal angle to land.",
         "adapt": "Lead with why this cause is personal to you before naming the charity partner, so the post reads like conviction rather than a corporate announcement."
       },
-      "cover": "/covers/DXqviq1EZqb.jpg"
+      "cover": "/covers/DXqviq1EZqb.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.68,
+          "emotion": 0.84,
+          "audience": 0.57
+        }
+      }
     }
   ],
   "emmaneeww": [
@@ -1566,7 +2713,20 @@
         "why": "Naming a specific local project and a concrete income figure makes the content instantly searchable and shareable among flat hunters.",
         "adapt": "Create a reel titled 'How much you need to earn to afford [named estate or life goal]' using real CPF, loan, and cash numbers people can verify."
       },
-      "cover": "/covers/DResyXDj73c.jpg"
+      "cover": "/covers/DResyXDj73c.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Educational",
+        "topic": "CPF",
+        "emotion": "curiosity",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.45,
+          "topic": 0.44,
+          "emotion": 0.96,
+          "audience": 0.67
+        }
+      }
     },
     {
       "shortCode": "DUnifoNDwj8",
@@ -1584,7 +2744,19 @@
         "why": "Redemption-arc messaging speaks directly to viewers who feel behind financially and generates saves as a form of personal encouragement.",
         "adapt": "Share an anonymized client story where someone started planning late but still reached a meaningful goal, keeping the emotional arc intact."
       },
-      "cover": "/covers/DUnifoNDwj8.jpg"
+      "cover": "/covers/DUnifoNDwj8.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Objection Handling",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "angle": 0.67,
+          "emotion": 1,
+          "audience": 0.47
+        }
+      }
     },
     {
       "shortCode": "DeV-zeljwyD",
@@ -1596,7 +2768,19 @@
       "views": 0,
       "timestamp": "2026-10-11T06:09:22.000Z",
       "caption": "the singapore army changed my life… 2 years shaped alot of the core beliefs and values that i have today and i am grateful i got to learn them at a very early point in my life :”) - #army #nationalservice #singapore #ns #military",
-      "cover": "/covers/DeV-zeljwyD.jpg"
+      "cover": "/covers/DeV-zeljwyD.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "pride",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.81,
+          "emotion": 0.97,
+          "audience": 0.87
+        }
+      }
     }
   ],
   "gfcadvice": [
@@ -1610,7 +2794,20 @@
       "views": 20,
       "timestamp": "2026-10-14T02:22:58.000Z",
       "caption": "The investment decisions you make today could look very different a year from now. With interest rates shifting, AI reshaping industries and global uncertainty creating new risks and opportunities, how prepared are you for 2027? Join us on 27 October as Sagar Thanki, Portfolio Manager at Guinness Global Investors, explores the forces shaping global markets, emerging investment opportunities and key trends investors should watch in the coming year. 📅 27 October 2026, 7:00 PM – 9:00 PM 📍 Singapore Recreation Club, Esplanade 1 & 2, Level 3, Connaught Dr, B, Singapore 179682 2027 is approaching, are you ready? Secure your seat now 👉 https://bit.ly/3Ta4FnS #GlobalMarkets #MarketOutlook #Invest",
-      "cover": "/covers/DedTHIPhWTB.jpg"
+      "cover": "/covers/DedTHIPhWTB.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": "Investment",
+        "emotion": "urgency",
+        "audience": "hnw",
+        "p": {
+          "angle": 0.61,
+          "topic": 1,
+          "emotion": 0.61,
+          "audience": 0.74
+        }
+      }
     },
     {
       "shortCode": "DeYLIt9BUZA",
@@ -1622,7 +2819,21 @@
       "views": 14,
       "timestamp": "2026-10-12T02:40:31.000Z",
       "caption": "Borders shouldn’t complicate retirement. But they often complicate the planning. Hear from Daniel Dal Molin, our Financial Consultant, as he shares two common challenges he sees among clients approaching retirement: having significant wealth tied up in assets such as property, and planning to retire in a country with higher taxes. From reviewing which assets to retain or sell, to exploring investment structures that can help manage future tax obligations, Daniel explains why retirement planning often requires a case-by-case approach. Want to know more? Have a chat with Daniel 👉 https://lnkd.in/g6tyessT #WealthManagement #FinancialPlanning #RetirementPlanning #GFCAdvice #SingaporeExpats",
-      "cover": "/covers/DeYLIt9BUZA.jpg"
+      "cover": "/covers/DeYLIt9BUZA.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Authority",
+        "topic": "Retirement",
+        "emotion": "curiosity",
+        "audience": "hnw",
+        "p": {
+          "formula": 0.38,
+          "angle": 0.44,
+          "topic": 1,
+          "emotion": 0.53,
+          "audience": 1
+        }
+      }
     },
     {
       "shortCode": "DeigBzsEnrP",
@@ -1634,7 +2845,21 @@
       "views": 0,
       "timestamp": "2026-10-16T02:50:34.000Z",
       "caption": "Here’s an irony about retirement: we can spend weeks planning a two-week holiday, yet put off planning for what could be the longest chapter of our lives. For Australian expats in Singapore, that chapter can come with a few extra moving parts. Superannuation may no longer be building in the background, financial ties back home continue, and decisions around healthcare, estate planning and where to eventually settle can stretch across two countries. A little forward planning can go a long way. Here are five areas worth thinking about 👉 https://lnkd.in/gzhzy4kW #AustralianExpats #RetirementPlanning #FinancialPlanning #GFCAdvice",
-      "cover": "/covers/DeigBzsEnrP.jpg"
+      "cover": "/covers/DeigBzsEnrP.jpg",
+      "tags": {
+        "formula": "side-by-side",
+        "angle": "Relatable",
+        "topic": "Retirement",
+        "emotion": "worry",
+        "audience": "hnw",
+        "p": {
+          "formula": 0.41,
+          "angle": 0.77,
+          "topic": 1,
+          "emotion": 0.55,
+          "audience": 0.47
+        }
+      }
     }
   ],
   "sgfirecouple": [
@@ -1648,7 +2873,21 @@
       "views": 5589,
       "timestamp": "2026-10-15T11:44:52.000Z",
       "caption": "It’s my second time meeting him today. And this time, he brought his wife along. When we first met 8 months ago, he was in such a difficult place. Our conversation was a painful one. We spoke about quitting his job, and how he felt like a failure by doing so. But I saw a completely different person of him now. He was so much happier, and things were finally starting to fall into place again. ❤️ And before he could even ask, I told him: “Don’t feel like you need to catch up on the time you think you’ve lost.” After such an exhausting start to the year, the least you can do for yourself is to enjoy being happy again. And when I told him, “If you’re happier now, perhaps your wife can finally wo",
-      "cover": "/covers/Deg4SkHvm5a.jpg"
+      "cover": "/covers/Deg4SkHvm5a.jpg",
+      "tags": {
+        "formula": "number-reveal",
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "formula": 0.78,
+          "angle": 0.99,
+          "topic": 0.54,
+          "emotion": 0.96,
+          "audience": 0.78
+        }
+      }
     },
     {
       "shortCode": "Delru5Wvjmm",
@@ -1660,7 +2899,20 @@
       "views": 3766,
       "timestamp": "2026-10-17T08:31:52.000Z",
       "caption": "Making matcha itself is more fun than actually drinking it. 🍵 So here’s a little relaxing video for your Saturday afternoon hehe. Matcha powder from @nikonekomatcha #matcha #intentionalliving #weekend #bigbang",
-      "cover": "/covers/Delru5Wvjmm.jpg"
+      "cover": "/covers/Delru5Wvjmm.jpg",
+      "tags": {
+        "formula": "side-by-side",
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.81,
+          "angle": 0.68,
+          "emotion": 0.93,
+          "audience": 0.94
+        }
+      }
     },
     {
       "shortCode": "DVpTZZKDzJ3",
@@ -1678,7 +2930,19 @@
         "why": "Linking a national headline to a personal financial philosophy drives comments from people on both sides of the debate",
         "adapt": "Pick any trending Singapore news story, such as HDB prices or CPF changes, and write a carousel explaining how your financial approach gives you a different perspective on it"
       },
-      "cover": "/covers/DVpTZZKDzJ3.jpg"
+      "cover": "/covers/DVpTZZKDzJ3.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Authority",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "angle": 0.49,
+          "emotion": 0.58,
+          "audience": 0.32
+        }
+      }
     }
   ],
   "wilfredlauu": [
@@ -1698,7 +2962,20 @@
         "why": "Framing a car upgrade as a life phase shift lets the post signal success and maturity without reading as a flex.",
         "adapt": "Post a meaningful personal upgrade, such as a car, home, or tool, and caption it around what life stage you are moving into rather than the item itself."
       },
-      "cover": "/covers/DMUvZ6UxfXx.jpg"
+      "cover": "/covers/DMUvZ6UxfXx.jpg",
+      "tags": {
+        "formula": "before-after",
+        "angle": "Storytelling",
+        "topic": null,
+        "emotion": "pride",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.5,
+          "angle": 0.84,
+          "emotion": 0.83,
+          "audience": 0.88
+        }
+      }
     },
     {
       "shortCode": "Da-yrc4mp2n",
@@ -1716,7 +2993,19 @@
         "why": "Followers like and comment on personal posts because they feel close to the person, even with no teaching in it.",
         "adapt": "Post a birthday or milestone photo with one honest line on what you learned this year about money or clients."
       },
-      "cover": "/covers/Da-yrc4mp2n.jpg"
+      "cover": "/covers/Da-yrc4mp2n.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "general",
+        "p": {
+          "angle": 0.56,
+          "emotion": 0.99,
+          "audience": 0.99
+        }
+      }
     }
   ],
   "thefinancialcoconut": [
@@ -1736,7 +3025,21 @@
         "why": "The contrast frames the event as exclusive and non-salesy, which draws the curious, higher-capital crowd it targets.",
         "adapt": "Promote a small closed-door client or prospect session by saying what it is not (no product pitch) and what people will actually discuss."
       },
-      "cover": "/covers/DY4UCqIJVrd.jpg"
+      "cover": "/covers/DY4UCqIJVrd.jpg",
+      "tags": {
+        "formula": "side-by-side",
+        "angle": "Contrarian",
+        "topic": "Investment",
+        "emotion": "curiosity",
+        "audience": "hnw",
+        "p": {
+          "formula": 0.49,
+          "angle": 0.87,
+          "topic": 0.99,
+          "emotion": 0.98,
+          "audience": 1
+        }
+      }
     },
     {
       "shortCode": "DcLsMuTTejY",
@@ -1754,7 +3057,20 @@
         "why": "A fun quiz night with a surprising answer shows personality and makes finance feel social rather than heavy.",
         "adapt": "Run a casual money quiz with clients or friends, then post the funniest wrong answer and the real answer behind it."
       },
-      "cover": "/covers/DcLsMuTTejY.jpg"
+      "cover": "/covers/DcLsMuTTejY.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Storytelling",
+        "topic": "Investment",
+        "emotion": "fun",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.94,
+          "topic": 1,
+          "emotion": 1,
+          "audience": 0.87
+        }
+      }
     },
     {
       "shortCode": "Deno_gwDoA-",
@@ -1766,7 +3082,19 @@
       "views": 176,
       "timestamp": "2026-10-18T02:48:07.000Z",
       "caption": "Jeremy Ko has one question for business owners: can you do this 10 times?⁠ ⁠ If you have already spent the time learning the setup, fixing the problems and hiring the right people, the payoff should not stop at one outlet. The process should become repeatable.⁠ ⁠ That does not mean every business needs 10 locations. His point is about scalability: does the business become easier to replicate after all the hard work, or does every outlet still depend on you?⁠ ⁠ For anyone dreaming of opening a gym, café or physical retail business, this is the question worth asking before outlet number one.⁠ ⁠ Watch the full Chills with TFC episode on YouTube.⁠ ⁠ #ChillsWithTFC #TheFinancialCoconut #Entrepren",
-      "cover": "/covers/Deno_gwDoA-.jpg"
+      "cover": "/covers/Deno_gwDoA-.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Educational",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "business-owners",
+        "p": {
+          "angle": 0.79,
+          "emotion": 0.74,
+          "audience": 1
+        }
+      }
     }
   ],
   "thedomilicious": [
@@ -1786,7 +3114,20 @@
         "why": "Location-tagged travel content invites comments from people with the same memory, driving conversation without any ask.",
         "adapt": "Post a 3-slide carousel from your last trip and caption it with a single question that ties back to life priorities or work-life balance."
       },
-      "cover": "/covers/DTXSLQhkicK.jpg"
+      "cover": "/covers/DTXSLQhkicK.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "pride",
+        "audience": "general",
+        "p": {
+          "formula": 0.95,
+          "angle": 0.69,
+          "emotion": 0.98,
+          "audience": 0.98
+        }
+      }
     },
     {
       "shortCode": "DHkQyiIStaS",
@@ -1804,7 +3145,19 @@
         "why": "Appreciation content makes existing followers feel seen, encouraging comments and shares from the inner circle.",
         "adapt": "Create a carousel thanking clients or followers for a milestone and let them know what you are working on next for them."
       },
-      "cover": "/covers/DHkQyiIStaS.jpg"
+      "cover": "/covers/DHkQyiIStaS.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "trust",
+        "audience": "general",
+        "p": {
+          "angle": 1,
+          "emotion": 0.7,
+          "audience": 0.99
+        }
+      }
     },
     {
       "shortCode": "DejUmzzxx8U",
@@ -1816,7 +3169,20 @@
       "views": 3133,
       "timestamp": "2026-10-16T10:34:06.000Z",
       "caption": "don’t live a life filled with regrets",
-      "cover": "/covers/DejUmzzxx8U.jpg"
+      "cover": "/covers/DejUmzzxx8U.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "urgency",
+        "audience": "general",
+        "p": {
+          "formula": 0.48,
+          "angle": 1,
+          "emotion": 0.71,
+          "audience": 1
+        }
+      }
     }
   ],
   "_dommm": [
@@ -1836,7 +3202,20 @@
         "why": "The vague caption created curiosity that comments had to resolve, pushing the comments count above the like count.",
         "adapt": "Use a cryptic one-line caption before revealing a career change, team win, or client result, so the comments section becomes the payoff."
       },
-      "cover": "/covers/DWOjWolAT0H.jpg"
+      "cover": "/covers/DWOjWolAT0H.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "formula": 0.38,
+          "angle": 0.32,
+          "emotion": 0.99,
+          "audience": 1
+        }
+      }
     },
     {
       "shortCode": "DWp92MKgeMa",
@@ -1854,7 +3233,20 @@
         "why": "Views outpaced likes heavily, suggesting shares or the explore page moved it, likely because the emotional tone made it easy to send to someone.",
         "adapt": "Film a 15-second video marking a team or personal next chapter and keep the caption just four words, so it feels shareable rather than promotional."
       },
-      "cover": "/covers/DWp92MKgeMa.jpg"
+      "cover": "/covers/DWp92MKgeMa.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "formula": 0.74,
+          "angle": 0.5,
+          "emotion": 0.98,
+          "audience": 0.93
+        }
+      }
     },
     {
       "shortCode": "DYuJTeUgd1I",
@@ -1872,7 +3264,19 @@
         "why": "The short, personal caption makes people feel they are about to learn what they wish they had known earlier.",
         "adapt": "Make a carousel on one money lesson you wish you had learned at 25, and open with the line 'I wish I knew this 4 years ago'."
       },
-      "cover": "/covers/DYuJTeUgd1I.jpg"
+      "cover": "/covers/DYuJTeUgd1I.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "worry",
+        "audience": "general",
+        "p": {
+          "angle": 0.59,
+          "emotion": 0.46,
+          "audience": 0.9
+        }
+      }
     }
   ],
   "yun_qiiiiii": [
@@ -1892,7 +3296,19 @@
         "why": "Specific micro-stories within the caption made it feel genuine and gave readers multiple moments to laugh or relate to.",
         "adapt": "Recap a team retreat or client event with three or four specific funny moments instead of generic highlights, so it reads like a story rather than a report."
       },
-      "cover": "/covers/C8xNm6dSSR3.jpg"
+      "cover": "/covers/C8xNm6dSSR3.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.61,
+          "emotion": 1,
+          "audience": 0.94
+        }
+      }
     },
     {
       "shortCode": "DaU9jUhgAJE",
@@ -1910,7 +3326,21 @@
         "why": "Naming client firsts like keys, babies and retirement makes the work feel meaningful, so people trust the advisor behind it.",
         "adapt": "Write an anniversary post listing three client milestones you helped plan for, and say what stayed the same since your first year."
       },
-      "cover": "/covers/DaU9jUhgAJE.jpg"
+      "cover": "/covers/DaU9jUhgAJE.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "general",
+        "p": {
+          "formula": 0.56,
+          "angle": 0.86,
+          "topic": 0.98,
+          "emotion": 0.84,
+          "audience": 0.51
+        }
+      }
     },
     {
       "shortCode": "DHizbAey-jc",
@@ -1928,7 +3358,20 @@
         "why": "Showing the team growing and being supported signals a healthy culture to both prospects and potential recruits.",
         "adapt": "Share a carousel of a team event that credits each person by name and says what you want new advisers to learn from you."
       },
-      "cover": "/covers/DHizbAey-jc.jpg"
+      "cover": "/covers/DHizbAey-jc.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "pride",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.62,
+          "topic": 0.98,
+          "emotion": 0.7,
+          "audience": 0.96
+        }
+      }
     }
   ],
   "loochengchuan": [
@@ -1966,7 +3409,21 @@
         "why": "An unexpected setting creates curiosity and positions the advisor as someone who genuinely cares beyond typical clients",
         "adapt": "Write about a talk or conversation you had with an unusual or underserved group, such as migrant workers or elderly hawkers, and what you learned about money from them"
       },
-      "cover": "/covers/CrMobFQyh0X.jpg"
+      "cover": "/covers/CrMobFQyh0X.jpg",
+      "tags": {
+        "formula": "number-reveal",
+        "angle": "Storytelling",
+        "topic": "CPF",
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "formula": 0.66,
+          "angle": 0.95,
+          "topic": 0.99,
+          "emotion": 0.94,
+          "audience": 0.92
+        }
+      }
     },
     {
       "shortCode": "CjxBfApqcc3",
@@ -1984,7 +3441,20 @@
         "why": "Lighthearted personal content breaks the feed pattern and builds parasocial warmth with followers",
         "adapt": "Post one candid personal photo per month with a short self-deprecating caption to remind followers you are a real person, not a brand account"
       },
-      "cover": "/covers/CjxBfApqcc3.jpg"
+      "cover": "/covers/CjxBfApqcc3.jpg",
+      "tags": {
+        "formula": "blunt",
+        "angle": "Humour",
+        "topic": null,
+        "emotion": "fun",
+        "audience": "general",
+        "p": {
+          "formula": 0.65,
+          "angle": 0.85,
+          "emotion": 0.96,
+          "audience": 0.76
+        }
+      }
     }
   ],
   "poodelead": [
@@ -2004,7 +3474,20 @@
         "why": "A bold character claim tied to a shared Singaporean experience hits a cultural nerve and signals the work ethic clients are actually buying when they hire an advisor.",
         "adapt": "Open a carousel with one sentence about a non-negotiable personal standard from your past, military service, sport, or work, and let the slides show what that discipline looks like in your advisory practice today."
       },
-      "cover": "/covers/DI8lm-PhJcU.jpg"
+      "cover": "/covers/DI8lm-PhJcU.jpg",
+      "tags": {
+        "formula": "my-rule",
+        "angle": "Authority",
+        "topic": null,
+        "emotion": "pride",
+        "audience": "general",
+        "p": {
+          "formula": 0.88,
+          "angle": 0.59,
+          "emotion": 0.98,
+          "audience": 0.78
+        }
+      }
     },
     {
       "shortCode": "C7qXF8gBS1S",
@@ -2022,7 +3505,20 @@
         "why": "The vague, self-questioning caption paired with a visible reward created curiosity that drove comments asking what it was about.",
         "adapt": "Post a personal milestone like a car, trip, or qualification with a casual rhetorical question that makes followers ask what you sacrificed to get there."
       },
-      "cover": "/covers/C7qXF8gBS1S.jpg"
+      "cover": "/covers/C7qXF8gBS1S.jpg",
+      "tags": {
+        "formula": "dilemma",
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "formula": 0.53,
+          "angle": 0.51,
+          "emotion": 0.55,
+          "audience": 0.79
+        }
+      }
     },
     {
       "shortCode": "DEUQcQFhZ8L",
@@ -2040,7 +3536,19 @@
         "why": "A single-word caption about a child strips away all performance and signals authenticity, which triggers warm engagement from followers who are also parents.",
         "adapt": "Post a candid family photo with just a name or short phrase as the caption to show who you are outside of finance."
       },
-      "cover": "/covers/DEUQcQFhZ8L.jpg"
+      "cover": "/covers/DEUQcQFhZ8L.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 0.68,
+          "emotion": 0.92,
+          "audience": 0.97
+        }
+      }
     }
   ],
   "financialhorse": [
@@ -2060,7 +3568,21 @@
         "why": "A short list headline on a topic Singapore investors already search for is easy to save and share, even with little text.",
         "adapt": "Make your own list, such as 10 things to check before buying a stock or REIT, and explain each in one line without naming picks as advice."
       },
-      "cover": "/covers/DUKM2ToEtHj.jpg"
+      "cover": "/covers/DUKM2ToEtHj.jpg",
+      "tags": {
+        "formula": "list",
+        "angle": "Authority",
+        "topic": "Investment",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "formula": 0.89,
+          "angle": 0.91,
+          "topic": 1,
+          "emotion": 0.99,
+          "audience": 0.8
+        }
+      }
     },
     {
       "shortCode": "DWBGCIdAWxy",
@@ -2078,7 +3600,19 @@
         "why": "Wrapping familiar cultural belief in a finance angle lowers the barrier for readers who would skip a standard investing post.",
         "adapt": "Create a carousel titled 'What your CNY ang bao habits reveal about your money mindset' to tap the same cultural curiosity without copying the fengshui angle."
       },
-      "cover": "/covers/DWBGCIdAWxy.jpg"
+      "cover": "/covers/DWBGCIdAWxy.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Educational",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "angle": 1,
+          "emotion": 0.54,
+          "audience": 0.98
+        }
+      }
     },
     {
       "shortCode": "DWdbG0RAZJ3",
@@ -2096,7 +3630,20 @@
         "why": "A direct yes-or-no question tied to current market mood prompts self-assessment and comment replies.",
         "adapt": "Post 'Is your life insurance coverage still right for you?' with a checklist carousel covering common life events that trigger a coverage review."
       },
-      "cover": "/covers/DWdbG0RAZJ3.jpg"
+      "cover": "/covers/DWdbG0RAZJ3.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": "Investment",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "angle": 0.75,
+          "topic": 1,
+          "emotion": 0.94,
+          "audience": 0.97
+        }
+      }
     }
   ],
   "genfinancial": [
@@ -2116,7 +3663,20 @@
         "why": "Removing barriers to commitment (no exams, no obligation) lowers perceived risk and attracts people who are curious but hesitant.",
         "adapt": "Offer a no-pressure first meeting framed as a discovery session, and record a short reel explaining what clients can expect with zero obligation."
       },
-      "cover": "/covers/DZHMoErEUNx.jpg"
+      "cover": "/covers/DZHMoErEUNx.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Objection Handling",
+        "topic": "Career / FA Life",
+        "emotion": "urgency",
+        "audience": "fresh-grads",
+        "p": {
+          "angle": 0.9,
+          "topic": 1,
+          "emotion": 0.99,
+          "audience": 0.78
+        }
+      }
     },
     {
       "shortCode": "DeY-GNqDfQU",
@@ -2128,7 +3688,19 @@
       "views": 54,
       "timestamp": "2026-10-12T10:01:32.000Z",
       "caption": "Impacting Generations, Beyond Financial Planning 💙 At GEN Financial Advisory, our mission to impact generations goes beyond helping people plan for their financial future. It also means contributing to the community and making a positive difference in the lives of others. Our team recently visited Charis Manor Nursing Home to donate essential items for its residents and staff. Through this initiative, we hope to bring a little more comfort to the residents while showing our appreciation for those who dedicate their time to caring for others. We believe that every contribution, no matter the size, can be part of something bigger. Together, we can make a positive difference in our community, ",
-      "cover": "/covers/DeY-GNqDfQU.jpg"
+      "cover": "/covers/DeY-GNqDfQU.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Storytelling",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "angle": 0.82,
+          "emotion": 0.89,
+          "audience": 0.9
+        }
+      }
     },
     {
       "shortCode": "DedRv3Vk7Zh",
@@ -2140,7 +3712,20 @@
       "views": 0,
       "timestamp": "2026-10-14T02:09:35.000Z",
       "caption": "At GEN, building a strong team means more than working towards shared goals. It’s about making time to connect, support one another and enjoy the journey together. Yesterday, we stepped away from our usual work routines for a team bonding activity filled with badminton, exercise and quality time together. 💙 Here’s to building stronger team connections, fostering a positive workplace culture and growing together, on and off the court! #GENFinancialAdvisory #TeamBonding #TeamBuilding #WorkplaceCulture #EmployeeEngagement",
-      "cover": "/covers/DedRv3Vk7Zh.jpg"
+      "cover": "/covers/DedRv3Vk7Zh.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Storytelling",
+        "topic": "Career / FA Life",
+        "emotion": "fun",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.87,
+          "topic": 0.58,
+          "emotion": 0.73,
+          "audience": 0.78
+        }
+      }
     }
   ],
   "plannerbeeco": [
@@ -2160,7 +3745,21 @@
         "why": "A concrete price gap for identical cover makes people curious about what explains the difference.",
         "adapt": "Pick one product, show two real premium quotes side by side, and explain the factors that cause the gap, such as term, riders and insurer."
       },
-      "cover": "/covers/DeVlI-4h4pS.jpg"
+      "cover": "/covers/DeVlI-4h4pS.jpg",
+      "tags": {
+        "formula": "receipt",
+        "angle": "Educational",
+        "topic": "Insurance",
+        "emotion": "curiosity",
+        "audience": "general",
+        "p": {
+          "formula": 0.73,
+          "angle": 0.85,
+          "topic": 1,
+          "emotion": 0.99,
+          "audience": 0.77
+        }
+      }
     },
     {
       "shortCode": "Denqzq3uTud",
@@ -2172,7 +3771,20 @@
       "views": 24,
       "timestamp": "2026-10-18T03:00:05.000Z",
       "caption": "Pregnant and want a plan that covers your baby from birth too? 🤰 Several insurers in Singapore offer this, but each plan works a bit differently. Before you choose, compare: - Which congenital conditions are covered - How much critical illness cover your baby can get - Maternity benefits and long-term premiums - Whether medical cover is guaranteed after the three-year mark #maternityinsurance #pregnancysg #sgmums",
-      "cover": "/covers/Denqzq3uTud.jpg"
+      "cover": "/covers/Denqzq3uTud.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Educational",
+        "topic": "Insurance",
+        "emotion": "curiosity",
+        "audience": "parents",
+        "p": {
+          "angle": 1,
+          "topic": 1,
+          "emotion": 0.52,
+          "audience": 0.94
+        }
+      }
     },
     {
       "shortCode": "DWgPvyCk-C-",
@@ -2190,7 +3802,21 @@
         "why": "Timely news that affects everyone with a Shield plan, with a clear before and after and a worked $100,000 bill example.",
         "adapt": "When a policy or CPF rule changes, post a before-and-after carousel with one worked example in dollars for a typical age."
       },
-      "cover": "/covers/DWgPvyCk-C-.jpg"
+      "cover": "/covers/DWgPvyCk-C-.jpg",
+      "tags": {
+        "formula": "list",
+        "angle": "Educational",
+        "topic": "Insurance",
+        "emotion": "worry",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.24,
+          "angle": 0.85,
+          "topic": 1,
+          "emotion": 0.77,
+          "audience": 0.52
+        }
+      }
     }
   ],
   "dollarbureau": [
@@ -2210,7 +3836,20 @@
         "why": "Breaking down a news event that directly affects existing policyholders creates urgency and positions the advisor as the person to follow for timely alerts.",
         "adapt": "When any major insurer or MAS announcement lands, be the first to publish a clear swipe-through carousel explaining what changed and what clients should do next."
       },
-      "cover": "/covers/DLj6FIjRgvW.jpg"
+      "cover": "/covers/DLj6FIjRgvW.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": "Insurance",
+        "emotion": "worry",
+        "audience": "general",
+        "p": {
+          "angle": 0.68,
+          "topic": 1,
+          "emotion": 0.71,
+          "audience": 0.87
+        }
+      }
     },
     {
       "shortCode": "DHgKV7LRlkA",
@@ -2228,7 +3867,20 @@
         "why": "Numbered checklists are highly saveable and give followers a clear starting point, which drives both saves and shares.",
         "adapt": "Build a Singapore-specific milestone carousel using local touchpoints like CPF OA, HDB purchase, and SRS top-ups so it feels relevant rather than generic."
       },
-      "cover": "/covers/DHgKV7LRlkA.jpg"
+      "cover": "/covers/DHgKV7LRlkA.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Educational",
+        "topic": "Money Habits",
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "angle": 1,
+          "topic": 1,
+          "emotion": 1,
+          "audience": 0.86
+        }
+      }
     },
     {
       "shortCode": "DRv6GeZE1Nt",
@@ -2246,7 +3898,21 @@
         "why": "A specific dollar figure paired with loss-framing makes the risk feel immediate rather than abstract.",
         "adapt": "Find a real coverage gap in a product your clients commonly own, name the exact dollar shortfall, and use that number as your hook."
       },
-      "cover": "/covers/DRv6GeZE1Nt.jpg"
+      "cover": "/covers/DRv6GeZE1Nt.jpg",
+      "tags": {
+        "formula": "warning",
+        "angle": "Emotional",
+        "topic": "Insurance",
+        "emotion": "worry",
+        "audience": "parents",
+        "p": {
+          "formula": 0.9,
+          "angle": 0.86,
+          "topic": 1,
+          "emotion": 0.69,
+          "audience": 0.75
+        }
+      }
     }
   ],
   "izliew": [
@@ -2266,7 +3932,21 @@
         "why": "Opening with a misconception the audience likely holds and then correcting it creates an immediate sense of value and earns saves.",
         "adapt": "Start a carousel with 'I used to think [common money myth]' and walk through the mindset shift using a simple local example such as CPF OA interest versus leaving cash idle."
       },
-      "cover": "/covers/DQGVG9XjexE.jpg"
+      "cover": "/covers/DQGVG9XjexE.jpg",
+      "tags": {
+        "formula": "before-after",
+        "angle": "Objection Handling",
+        "topic": "Investment",
+        "emotion": "urgency",
+        "audience": "young-adults",
+        "p": {
+          "formula": 0.83,
+          "angle": 0.61,
+          "topic": 1,
+          "emotion": 0.97,
+          "audience": 0.93
+        }
+      }
     },
     {
       "shortCode": "DdF5p-Imbch",
@@ -2284,7 +3964,20 @@
         "why": "A personal, honest reflection with a memorable line (be a person first) builds trust and feels unlike typical sales content.",
         "adapt": "Share one real client moment that reminded you why you became an advisor, and end with a single principle you hold yourself to."
       },
-      "cover": "/covers/DdF5p-Imbch.jpg"
+      "cover": "/covers/DdF5p-Imbch.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": "Career / FA Life",
+        "emotion": "trust",
+        "audience": "advisors-recruitment",
+        "p": {
+          "angle": 0.69,
+          "topic": 0.88,
+          "emotion": 0.83,
+          "audience": 0.74
+        }
+      }
     },
     {
       "shortCode": "DekDH3FMujN",
@@ -2296,7 +3989,19 @@
       "views": 1618,
       "timestamp": "2026-10-16T17:20:18.000Z",
       "caption": "Morning Routines and zone 2 runs The art of showing up #morningroutines #aesthetic #gym",
-      "cover": "/covers/DekDH3FMujN.jpg"
+      "cover": "/covers/DekDH3FMujN.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "pride",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.99,
+          "emotion": 0.81,
+          "audience": 0.86
+        }
+      }
     }
   ],
   "edrickinspire": [
@@ -2316,7 +4021,19 @@
         "why": "High relatability for entrepreneurs plus a short motivational payoff drove 150k views from a simple, unpolished talking-head clip.",
         "adapt": "Record a 30-second reel on why having the right financial advisor, accountant, and lawyer on your side changes your financial trajectory, keeping the tone personal and direct."
       },
-      "cover": "/covers/DTkIUG2j3_N.jpg"
+      "cover": "/covers/DTkIUG2j3_N.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "business-owners",
+        "p": {
+          "angle": 0.73,
+          "emotion": 1,
+          "audience": 0.99
+        }
+      }
     },
     {
       "shortCode": "DCGwhCSyPwo",
@@ -2334,7 +4051,19 @@
         "why": "Belonging and social proof are strong motivators, and a soft CTA to join a community outperforms a hard sell at a similar follower count.",
         "adapt": "Invite followers into a free monthly WhatsApp or Telegram group where you share one actionable money tip, positioning it as a community rather than a sales funnel."
       },
-      "cover": "/covers/DCGwhCSyPwo.jpg"
+      "cover": "/covers/DCGwhCSyPwo.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Emotional",
+        "topic": null,
+        "emotion": "hope",
+        "audience": "general",
+        "p": {
+          "angle": 0.45,
+          "emotion": 0.98,
+          "audience": 0.56
+        }
+      }
     },
     {
       "shortCode": "Dea5p5tPq_k",
@@ -2346,7 +4075,19 @@
       "views": 1736,
       "timestamp": "2026-10-13T04:01:09.000Z",
       "caption": "How you play games will reflect how you react in real life Comment ‘GAME’ and i will personally send you the waitlist!",
-      "cover": "/covers/Dea5p5tPq_k.jpg"
+      "cover": "/covers/Dea5p5tPq_k.jpg",
+      "tags": {
+        "formula": null,
+        "angle": "Relatable",
+        "topic": null,
+        "emotion": "curiosity",
+        "audience": "young-adults",
+        "p": {
+          "angle": 0.81,
+          "emotion": 0.78,
+          "audience": 0.71
+        }
+      }
     }
   ]
 }

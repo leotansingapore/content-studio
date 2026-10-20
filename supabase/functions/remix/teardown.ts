@@ -368,7 +368,12 @@ export const TAG_TOPICS = [
 export const TAG_FIELDS = ["formula", "angle", "topic", "emotion", "audience"] as const;
 export type TagField = (typeof TAG_FIELDS)[number];
 
-/** A pick is sure at this probability or more: the formula keeps FORMULA_MIN, the rest TAG_MIN (decision 7, a proposal). */
+/**
+ * A pick is sure at this probability or more: the formula keeps FORMULA_MIN, the rest TAG_MIN. Angle and topic at 0.5
+ * were read on 20 Oct 2026 against the drop's 134 top posts (tag-top-posts --compare): in the 39 topic and 39 angle
+ * conflicts with the keyword rules, Jev was right at 0.5 and above (spending logs, award posts, Medishield) and shaky
+ * only below it. Emotion and audience stay the decision-7 proposal until a read of their own.
+ */
 export const TAG_CUT: Record<TagField, number> = { formula: FORMULA_MIN, angle: TAG_MIN, topic: TAG_MIN, emotion: TAG_MIN, audience: TAG_MIN };
 
 const ANGLE_IDS = TAG_ANGLES.map((a) => tagId(a.label));
