@@ -1,6 +1,7 @@
 // Remix (docs/north-star/items/remix-everywhere.md). A signed-in adviser on the north-star list sends one source
-// (a post, ad or trend, its words already read on the device), what to keep, how close, the brand block and their
-// voice; this writes one format (post, carousel, script, a speaking script or explainer scenes) in their brand, checks it against the original (one
+// (a post, ad or trend, its words already read on the device; a slideshow may send a typed topic instead), what to
+// keep, how close, the brand block and their voice; this writes one format (post, carousel, script, a speaking
+// script, explainer scenes or slideshow slides) in their brand, checks it against the original (one
 // rewrite when it repeats it, then one Jev call for claims and invented facts) and sends it back. The app saves it
 // as a draft; nothing is stored here.
 //
@@ -36,7 +37,9 @@ import {
   dontReuseFor,
   holdTheLine,
   parseMakeRequest,
+  refusalOf,
   rewriteMessage,
+  slideshowProblem,
   validateMake,
   type MakeResult,
 } from "./logic.ts";
@@ -142,6 +145,8 @@ Deno.serve(async (req) => {
     const tokens: string[] = [];
     let rewrote = false;
     let rejected = false;
+    // the slideshow's own "this can't be made safe" answer: a 422, never a retry
+    const said: { refusal: string | null } = { refusal: null };
     const write = async (msgs: typeof messages): Promise<{ result: MakeResult; raw: string } | null> => {
       const res = await openaiChat(
         { model: FALLBACK_MODEL, temperature: 0.7, max_tokens: 1800, response_format: MAKE_RESPONSE_FORMATS[make.as as keyof typeof MAKE_RESPONSE_FORMATS], messages: msgs },
@@ -154,6 +159,12 @@ Deno.serve(async (req) => {
       const data = await res.json().catch(() => null);
       tokens.push(`${data?.model ?? "?"} ${data?.usage?.prompt_tokens ?? "?"} in ${data?.usage?.completion_tokens ?? "?"} out`);
       const content = data?.choices?.[0]?.message?.content ?? null;
+      said.refusal = refusalOf(make.as, content);
+      if (said.refusal !== null) {
+        rejected = false;
+        console.log("remix refused", make.as, said.refusal.slice(0, 200));
+        return null;
+      }
       const result = validateMake(make.as, content);
       rejected = !result;
       if (!result) console.error("openai output rejected", String(content ?? "").slice(0, 300));
@@ -163,16 +174,34 @@ Deno.serve(async (req) => {
     let first = await write(messages);
     // an answer the format can't use (a 90-word speaking script, an explainer picture of "chart") gets one more try
     if (!first && rejected) first = await write(messages);
+    if (!first && said.refusal !== null) {
+      await refundUsage(admin, uid, "remix-make", charged.day);
+      return fail("refused", make.source ? "That slideshow can't be turned into something safe to post. Pick another one." : "That topic can't be turned into something safe to post. Try another one.", 422);
+    }
     if (!first) {
       await refundUsage(admin, uid, "remix-make", charged.day);
       return fail("failed", "That remix didn't go through. Nothing was used.", 502);
     }
+    // the slideshow's checks in code (the hook's number, the brand slide, mention off): one fixing pass, then a refusal
+    const problem = slideshowProblem(first.result, make);
+    if (problem) {
+      const fixed = await write([...messages, { role: "assistant", content: first.raw }, { role: "user", content: problem.fix }]);
+      if (!fixed || slideshowProblem(fixed.result, make)) {
+        console.log("remix slideshow refused", problem.kind);
+        await refundUsage(admin, uid, "remix-make", charged.day);
+        return fail("refused", problem.error, 422);
+      }
+      first = fixed;
+    }
 
-    const source = make.source!;
-    const held = await holdTheLine(first.result, source.text, dontReuseFor(make), {
+    const sourceText = make.source?.text ?? "";
+    const kept = first;
+    const held = await holdTheLine(kept.result, sourceText, dontReuseFor(make), {
       rewrite: async (lines) => {
         rewrote = true;
-        return (await write([...messages, { role: "assistant", content: first.raw }, { role: "user", content: rewriteMessage(lines) }]).catch(() => null))?.result ?? null;
+        const second = (await write([...messages, { role: "assistant", content: kept.raw }, { role: "user", content: rewriteMessage(lines) }]).catch(() => null))?.result ?? null;
+        // a rewrite that breaks the slideshow's checks is dropped, so the first answer stays
+        return second && slideshowProblem(second, make) ? null : second;
       },
       ask: async (state) => {
         const answers = await askJev({ ...(state as object), facts: make.brand.facts }, makeQuestions(make.brand.speaker), { who: "remix make" });
