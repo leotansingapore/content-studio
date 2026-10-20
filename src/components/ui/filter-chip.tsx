@@ -35,7 +35,7 @@ export function FilterChip({
     >
       {children}
       {typeof count === "number" && (
-        <span className={cn("tabular-nums", active ? "text-primary/70" : "text-muted-foreground")}>{count}</span>
+        <span className={cn("tabular-nums", active ? "text-primary" : "text-muted-foreground")}>{count}</span>
       )}
     </button>
   );
