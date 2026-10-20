@@ -1118,7 +1118,8 @@ function RemixLinkBox({
   const working = read?.state === "working";
   const left = useUsesLeft(working);
 
-  // A read that finishes opens here, now or the next time this page opens, and waits in Recent reads.
+  // A read that finishes opens here, now or the next time this page opens, and waits in Recent reads. With a
+  // clone on screen it only joins Recent reads, so the clone Leo opened meanwhile stays put.
   useEffect(() => {
     const show = (r: LinkRead | null) => {
       setRead(r);
@@ -1126,11 +1127,11 @@ function RemixLinkBox({
       setSaved(savedLinks(userId));
       if (r?.state !== "done" || !r.key) return;
       clearLinkRead();
-      updateUrl({ source: r.key, clone: null, url: null }, { push: true });
+      if (idle) updateUrl({ source: r.key, clone: null, url: null }, { push: true });
     };
     show(linkRead());
     return onLinkRead(show);
-  }, [userId, updateUrl]);
+  }, [userId, updateUrl, idle]);
 
   // A link to a source this device doesn't hold opens the empty box.
   useEffect(() => {
