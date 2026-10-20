@@ -1649,6 +1649,9 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
         <input value={sel.text} maxLength={60} onChange={(e) => editOverlay(sel.id, { text: e.target.value })} aria-label="Sticker text"
           className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm [@media(pointer:coarse)]:h-11" />
       )}
+      {sel.kind === "block" && (
+        <Textarea rows={4} maxLength={400} value={sel.text} onChange={(e) => { editOverlay(sel.id, { text: e.target.value }); setSavedDraft(false); }} aria-label="Your words" className="text-sm" />
+      )}
       <Row label="Colour">
         {stickerColours.map((c) => (
           <button key={c} type="button" aria-label={`Colour ${c}`} aria-pressed={sel.color === c} onClick={() => editOverlay(sel.id, { color: c })}
