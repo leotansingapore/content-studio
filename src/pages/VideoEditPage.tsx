@@ -2064,7 +2064,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
             <div className="space-y-2 border-t border-border/60 pt-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="mr-auto text-sm font-semibold">Title and cover</p>
-                <span className="flex flex-wrap items-center justify-end gap-2 text-right">
+                <span className={leo ? "flex flex-wrap items-center justify-end gap-2 text-right" : "flex items-center gap-2"}>
                   <Left n={left("video-publish")} feature="video-publish" busy={ideating} />
                   <Button size="sm" variant="outline" onClick={suggestPublish} disabled={ideating || !words.length || none("video-publish")} className={`h-11 gap-1.5 sm:h-9 ${ideating ? "disabled:opacity-100" : ""}`}>
                     {ideating ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -2653,7 +2653,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="mr-auto text-sm font-medium">Callouts and cutaways
                     <InfoTip label="About callouts">Read from what you say. Add the ones you want.</InfoTip></span>
-                  <span className="flex flex-wrap items-center justify-end gap-2 text-right">
+                  <span className={leo ? "flex flex-wrap items-center justify-end gap-2 text-right" : "flex items-center gap-2"}>
                     <Left n={left("video-cutaways")} feature="video-cutaways" busy={suggesting} />
                     <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 ${suggesting ? "disabled:opacity-100" : ""}`} onClick={suggest} disabled={suggesting || !words.length || none("video-cutaways")}>
                       {suggesting ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
