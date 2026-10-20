@@ -15,7 +15,7 @@ vi.mock("@/lib/videoMedia", () => ({ extractWav: vi.fn() }));
 
 import { EdgeError } from "@/lib/edgeFn";
 import { REMIX_LINKS_PREFIX, resolveSource, type LinkedSource } from "./resolveSource";
-import { checkUpload, clearLinkRead, fitInside, linkRead, onLinkRead, saveLinkedSource, savedLinks, startLinkRead } from "./remixLink";
+import { NOT_KEPT, checkUpload, clearLinkRead, fitInside, linkRead, onLinkRead, saveLinkedSource, savedLinks, startLinkRead } from "./remixLink";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -153,6 +153,17 @@ describe("the read runner", () => {
     expect(linkRead()).toBeNull();
     expect(heard).toEqual([null]);
     expect(savedLinks(UID).map((s) => s.key)).toEqual(["link:youtube:dQw4w9WgXcQ"]);
+  });
+
+  it("says so when the device has no room to keep the answer, instead of opening nothing", async () => {
+    storage.setItem = () => {
+      throw new DOMException("full", "QuotaExceededError");
+    };
+    callFn.mockResolvedValue({ source: linked("link:youtube:dQw4w9WgXcQ") });
+    const done = settle();
+    void startLinkRead(UID, { url: "https://youtu.be/dQw4w9WgXcQ" });
+    await done;
+    expect(linkRead()).toMatchObject({ state: "failed", code: "not_kept", error: NOT_KEPT });
   });
 
   it("refuses a wrong file before any call", async () => {

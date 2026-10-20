@@ -27,16 +27,21 @@ export function savedLinks(userId: string): LinkedSource[] {
   }
 }
 
-/** Keeps a read source, newest first, at most 20; reading the same key again moves it to the top. */
-export function saveLinkedSource(userId: string, s: LinkedSource): LinkedSource[] {
+/**
+ * Keeps a read source, newest first, at most 20; reading the same key again moves it to the top. False when the
+ * device can't hold it (full or blocked storage), since the page only shows what is saved.
+ */
+export function saveLinkedSource(userId: string, s: LinkedSource): boolean {
   const list = [s, ...savedLinks(userId).filter((x) => x.key !== s.key)].slice(0, MAX_SAVED);
   try {
     globalThis.window?.localStorage?.setItem(PREFIX + scoped(userId), JSON.stringify(list));
+    return true;
   } catch {
-    // full or blocked storage: the result still shows, it just isn't kept
+    return savedLinks(userId).some((x) => x.key === s.key);
   }
-  return list;
 }
+
+export const NOT_KEPT = "That was read, but this device has no room left to keep it. Delete some old drafts or clones, then read it again.";
 
 // ---- uploads ----------------------------------------------------------------------------------
 
@@ -162,9 +167,9 @@ export async function startLinkRead(userId: string, input: LinkReadInput): Promi
     const source = await readOne(userId, input, live);
     if (!source) return;
     // Kept even when cancelled: the read was counted, so it waits in Recent reads instead of costing another.
-    saveLinkedSource(userId, { ...source, remixedAt: "" });
+    const kept = saveLinkedSource(userId, { ...source, remixedAt: "" });
     if (!live()) return emit(read);
-    emit({ ...base, state: "done", key: source.key });
+    emit(kept ? { ...base, state: "done", key: source.key } : { ...base, state: "failed", error: NOT_KEPT, code: "not_kept" });
   } catch (e) {
     if (!live()) return;
     const message = e instanceof Error && e.message ? e.message : LINK_COPY.failed;
