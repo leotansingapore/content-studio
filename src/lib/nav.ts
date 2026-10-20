@@ -17,6 +17,7 @@ import {
   MessageSquarePlus,
   PenLine,
   CalendarClock,
+  ClipboardCheck,
   Radar,
   ShieldCheck,
   Sparkles,
@@ -28,7 +29,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { reelsShown } from "@/lib/reelsBoard";
+import { REELS_BOARD_OWNERS, reelsShown } from "@/lib/reelsBoard";
 import { LEO_EMAILS } from "@/lib/leoOnly";
 import { marketShown } from "@/lib/market";
 import { socialConnectShown } from "@/lib/socialConnect";
@@ -74,6 +75,17 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
+    id: "board",
+    label: "Posts board",
+    icon: ClipboardCheck,
+    to: "/reels",
+    tabbed: true,
+    pages: [
+      { to: "/reels", label: "Posts board", show: reelsShown },
+      { to: "/reels/team", label: "Team", owners: REELS_BOARD_OWNERS },
+    ],
+  },
+  {
     id: "write",
     label: "Write",
     icon: PenLine,
@@ -101,7 +113,6 @@ export const SECTIONS: NavSection[] = [
       { to: "/drafts", label: "My posts" },
       { to: "/library", label: "Library", owners: LEO_EMAILS },
       { to: "/grid", label: "Grid", title: "Instagram grid" },
-      { to: "/reels", label: "Posts board", show: reelsShown },
     ],
   },
   {
@@ -208,18 +219,20 @@ export const pageTitle = (pathname: string) => {
   return hit ? `${hit.page.title ?? hit.page.label} - Content Studio` : "Content Studio";
 };
 
-// Phone bottom bar: the four daily destinations. Calendar stands for the
-// whole Pipeline except My posts, which has its own tab.
-export const MOBILE_TABS: { to: string; label: string; icon: LucideIcon; active: (pathname: string) => boolean }[] = [
+// Phone bottom bar: the four daily destinations. Calendar stands for the whole
+// Pipeline; the fourth tab is the posts board for those who see it, else My posts.
+export const mobileTabs = (board: boolean): { to: string; label: string; icon: LucideIcon; active: (pathname: string) => boolean }[] => [
   { to: "/home", label: "Home", icon: Home, active: (p) => sectionFor(p)?.id === "home" },
   { to: "/generate", label: "Write", icon: PenLine, active: (p) => sectionFor(p)?.id === "write" },
   {
     to: "/calendar",
     label: "Calendar",
     icon: CalendarClock,
-    active: (p) => sectionFor(p)?.id === "pipeline" && !pathMatches(p, "/drafts"),
+    active: (p) => sectionFor(p)?.id === "pipeline" && (board || !pathMatches(p, "/drafts")),
   },
-  { to: "/drafts", label: "Posts", icon: History, active: (p) => pathMatches(p, "/drafts") },
+  board
+    ? { to: "/reels", label: "Posts board", icon: ClipboardCheck, active: (p) => sectionFor(p)?.id === "board" }
+    : { to: "/drafts", label: "Posts", icon: History, active: (p) => pathMatches(p, "/drafts") },
 ];
 
 /** `whole`: the tile stands for its entire section, not one page. */
@@ -230,9 +243,9 @@ export type MoreTile = { to: string; label: string; icon: LucideIcon; sectionId:
  * one-page section is one tile (page tabs do the rest); others list each page.
  * Sections left with one tile share a heading-less grid at the top.
  */
-export function moreSheet(email: string): { singles: MoreTile[]; groups: { label: string; tiles: MoreTile[] }[] } {
-  const barPaths = new Set(MOBILE_TABS.map((t) => t.to));
-  const all = SECTIONS.map((s) => ({
+export function moreSheet(email: string, board: boolean): { singles: MoreTile[]; groups: { label: string; tiles: MoreTile[] }[] } {
+  const barPaths = new Set(mobileTabs(board).map((t) => t.to));
+  const all = SECTIONS.filter((s) => visiblePages(s.pages, email).length > 0).map((s) => ({
     label: s.label,
     tiles: (s.tabbed || s.pages.length === 1
       ? [{ to: s.to, label: s.label, icon: s.icon, sectionId: s.id, whole: true }]

@@ -22,8 +22,8 @@ import { localDateKey } from "@/lib/dueDates";
 import { Sparkles, LogOut, Plus, LayoutGrid, Search, X } from "lucide-react";
 import { feedbackIsNew } from "@/components/feedback/config";
 import {
-  MOBILE_TABS,
   SECTIONS,
+  mobileTabs,
   moreSheet,
   pageTitle,
   pathMatches,
@@ -138,7 +138,7 @@ function RailLink({ s, to, active, count = 0 }: { s: NavSection; to: string; act
     <Link
       to={to}
       aria-current={active ? "true" : undefined}
-      className={`group relative flex w-16 flex-col items-center gap-1 rounded-xl py-1.5 text-[11px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+      className={`group relative flex w-16 flex-col items-center gap-1 rounded-xl py-1.5 text-center text-[11px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
         active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
       }`}
     >
@@ -340,8 +340,11 @@ export default function StudioLayout() {
     window.location.replace("/auth");
   };
 
-  const moreActive = !MOBILE_TABS.some((t) => t.active(pathname));
-  const sheet = moreSheet(email);
+  // Read on every render: setReelsOn rerenders once checkMe has stored the answer.
+  const board = reelsShown();
+  const tabs = mobileTabs(board);
+  const moreActive = !tabs.some((t) => t.active(pathname));
+  const sheet = moreSheet(email, board);
   const tileActive = (t: MoreTile) => (t.whole ? here?.id === t.sectionId : pathMatches(pathname, t.to));
 
   return (
@@ -367,7 +370,7 @@ export default function StudioLayout() {
           >
             <Logo />
           </Link>
-          {MAIN_SECTIONS.map((s) => (
+          {MAIN_SECTIONS.filter((s) => visiblePages(s.pages, email).length > 0).map((s) => (
             <RailLink
               key={s.id}
               s={s}
@@ -526,7 +529,7 @@ export default function StudioLayout() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border/70 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       >
         <div className="grid grid-cols-5">
-          {MOBILE_TABS.map(({ to, label, icon: Icon, active }) => (
+          {tabs.map(({ to, label, icon: Icon, active }) => (
             <Link
               key={to}
               to={to}

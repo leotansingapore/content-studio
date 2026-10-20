@@ -14,7 +14,6 @@ const EXCEPTIONS: Record<string, string> = {
   "/l/:slug": "public link-in-bio page",
   "/t/report/:slug": "public tracked-link report",
   "/join": "invite link to Leo's posts board, opened from the link he sends",
-  "/reels/team": "Leo's team for the posts board, opened from the Team button on /reels",
   "/brands/new": "add a brand, opened from Add a brand in the profile switcher",
   "/diagnosis": "redirects to /coach",
   "/hub": "paid hub, unlinked on purpose (e0da451)",

@@ -11,6 +11,7 @@ export type SectionTab = NavPage;
 export const WRITE_TABS = section("write").pages;
 export const PLAYBOOK_TABS = section("playbook").pages;
 export const PIPELINE_TABS = section("pipeline").pages;
+export const BOARD_TABS = section("board").pages;
 export const RECRUIT_TABS = section("recruit").pages;
 export const LEARN_TABS = section("learn").pages;
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Clapperboard, Columns3, Images, LayoutGrid, RefreshCw, Rows3, Users } from "lucide-react";
-import SectionTabs, { PIPELINE_TABS } from "@/components/SectionTabs";
+import SectionTabs, { BOARD_TABS } from "@/components/SectionTabs";
 import ReelDrawer from "@/components/reels/ReelDrawer";
 import ReelFeed from "@/components/reels/ReelFeed";
 import { Button } from "@/components/ui/button";
@@ -178,7 +178,7 @@ export default function ReelsPage() {
   if (allowed === false) {
     return (
       <div className="space-y-5">
-        <SectionTabs tabs={PIPELINE_TABS} />
+        <SectionTabs tabs={BOARD_TABS} />
         <p className="text-sm text-muted-foreground">
           No reels board is connected to this account. <Link to="/calendar" className="font-semibold text-primary">Back to your calendar</Link>
         </p>
@@ -218,7 +218,7 @@ export default function ReelsPage() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs tabs={PIPELINE_TABS} />
+      <SectionTabs tabs={BOARD_TABS} />
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Posts board</h1>
         {me?.owner && (
