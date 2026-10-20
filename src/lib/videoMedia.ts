@@ -68,6 +68,7 @@ import { FAST, isFast, segLength } from "@/lib/fastPauses";
 import { DENOISE_RATE, denoiseNode } from "@/lib/denoise";
 import { withColdOpen } from "@/lib/coldOpen";
 import { gridWindow, placeCoverText, type Band } from "@/lib/igGrid";
+import type { RemixSource } from "@/lib/remixSource";
 
 // ---------- sound for captions ----------
 
@@ -1447,6 +1448,12 @@ export interface JoinJob {
 export interface JoinExtra {
   settings?: Partial<EditSettings>;
   note?: string;
+  /** The editor's toast when the project opens (replaces "Your montage is ready"); the note is its line under it. */
+  toast?: string;
+  /** Written to project.caption. */
+  caption?: string;
+  /** Written to project.source; Save to My posts copies it to the draft. */
+  source?: RemixSource;
 }
 let joinJob: JoinJob | null = null;
 const joinListeners = new Set<(j: JoinJob | null) => void>();
@@ -1463,6 +1470,19 @@ export function endJoin(): JoinJob | null {
   joinJob = null;
   emitJoin();
   return j;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * A file that is ready as it is (the adviser's own clip under a wall of text) handed to the editor the way a join
+ * hands its result: a done join job that endJoin() gives to /edit once, with `extra`. It waits while another join
+ * is running or done and not yet picked up, so it never overwrites a paid video /edit hasn't claimed.
+ */
+export async function handToEditor(file: File, extra: JoinExtra, label?: string): Promise<void> {
+  while (joinJob) await sleep(1000);
+  joinJob = { progress: 1, state: "done", label, extra, file };
+  emitJoin();
 }
 
 /**

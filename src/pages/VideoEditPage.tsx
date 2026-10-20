@@ -254,9 +254,16 @@ export default function VideoEditPage() {
         setProjects(saveProject(uid, {
           id, name: named || file.name.replace(/\.[^.]+$/, ""), createdAt: new Date().toISOString(), updatedAt: "", duration: length, size: file.size,
           words: [], settings: { ...withLook(defaultSettings("bold"), defaultSkill(loadSkills(uid))?.look), ...extra.settings, overlays }, thumb,
+          // a wall of text made on /make/wall-of-text brings its caption and the post it remixed
+          ...(extra.caption ? { caption: extra.caption } : {}),
+          ...(extra.source ? { source: extra.source } : {}),
         }));
         setParams({ p: id });
-        try { sessionStorage.removeItem(WALL_DRAFT); } catch { /* nothing kept */ }
+        // a format's video says it is ready; only the start panel's own upload is done with the words typed there
+        if (extra.toast) toast({ title: extra.toast, description: extra.note });
+        else {
+          try { sessionStorage.removeItem(WALL_DRAFT); } catch { /* nothing kept */ }
+        }
         return;
       }
       if (isLong(length, file.size)) {
@@ -286,7 +293,7 @@ export default function VideoEditPage() {
       // a montage has no speech to caption; it opens with its look, words and music, and says what stood in for a clip
       if (extra?.settings?.captions === false) {
         setParams({ p: id });
-        if (extra.note) toast({ title: "Your montage is ready", description: extra.note });
+        if (extra.note || extra.toast) toast({ title: extra.toast ?? "Your montage is ready", description: extra.note });
         return;
       }
       setBusy(`Writing the captions (about ${Math.max(10, Math.round(duration / 4))} seconds)...`);
@@ -1402,6 +1409,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
       platform: "instagram",
       ctaType: "save-share",
       status: "draft",
+      ...(project.source ? { source: project.source } : {}),
     });
     setSavedDraft(true);
     toast({ title: "Saved to My posts", description: "Schedule it from Pipeline when the video is exported." });

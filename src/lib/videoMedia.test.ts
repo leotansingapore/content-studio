@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "./videoEdit";
-import { exportAll, exportQueue, startExport, stopExportQueue, type ExportJob } from "./videoMedia";
+import { currentJoin, endJoin, exportAll, exportQueue, handToEditor, startExport, stopExportQueue, type ExportJob, type JoinExtra } from "./videoMedia";
 
 vi.mock("@/lib/fastExport", () => ({ exportFast: async () => ({ blob: new Blob(["mp4"]), ext: "mp4", seconds: 3, cap: 0, label: "Instagram" }) }));
 
@@ -63,5 +63,37 @@ describe("export all", () => {
     await expect(exportAll([{ id: "b", run: async () => {} }])).rejects.toThrow("An export is already running.");
     release();
     await first;
+  });
+});
+
+describe("handToEditor", () => {
+  it("leaves a done join that endJoin gives to the editor once, with the same extra", async () => {
+    const file = new File(["clip"], "mine.mp4", { type: "video/mp4" });
+    const extra: JoinExtra = { settings: { wall: true, trimEnd: 12 }, toast: "Your wall of text is ready. Export it when it looks right.", caption: "Cap." };
+    await handToEditor(file, extra);
+    expect(currentJoin()).toMatchObject({ state: "done", progress: 1, file });
+    const j = endJoin();
+    expect(j?.file).toBe(file);
+    expect(j?.extra).toBe(extra);
+    expect(endJoin()).toBeNull();
+  });
+
+  it("waits while another video waits for the editor, so a paid one is never overwritten", async () => {
+    vi.useFakeTimers();
+    try {
+      const paid = new File(["avatar"], "avatar.mp4");
+      const mine = new File(["clip"], "mine.mp4");
+      await handToEditor(paid, { note: "paid" });
+      let handed = false;
+      const second = handToEditor(mine, { note: "mine" }).then(() => (handed = true));
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(handed).toBe(false);
+      expect(endJoin()?.file).toBe(paid);
+      await vi.advanceTimersByTimeAsync(1000);
+      await second;
+      expect(endJoin()?.extra?.note).toBe("mine");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

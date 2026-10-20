@@ -11,6 +11,7 @@ import { callFn } from "@/lib/edgeFn";
 import { removePlatformCaptions } from "@/lib/platformCaptions";
 import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSettings, type PublishIdea, type Sentence, type Word } from "@/lib/videoEdit";
 import type { WatchFinding } from "../../supabase/functions/video-assist/watch.ts";
+import type { RemixSource } from "@/lib/remixSource";
 
 export interface VideoProject {
   id: string;
@@ -34,6 +35,8 @@ export interface VideoProject {
   fileId?: string;
   /** A skill whose instructions run once the captions exist (the default skill, on upload). */
   pendingSkill?: string;
+  /** The post a format remixed (a wall of text); Save to My posts copies it to the draft. */
+  source?: RemixSource;
 }
 
 export const fileKey = (p: VideoProject) => p.fileId ?? p.id;
