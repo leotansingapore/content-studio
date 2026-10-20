@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/edgeFn", async (orig) => ({ ...(await orig<typeof import("@/lib/edgeFn")>()), callFn: vi.fn() }));
 import { callFn } from "@/lib/edgeFn";
-import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, setConnectedIg, sharedBoard, stageForLink, checkMe, forgetMe, waitsOnMe, teamNotes, updateCard, type ReelCard, type ReelComment } from "./reelsBoard";
+import { aspectOf, brandForProfile, cardsIn, feedCards, findCard, igLine, instagramHandle, mmss, perms, seesBoard, setConnectedIg, sharedBoard, stageForLink, checkMe, forgetMe, waitsOnMe, teamNotes, updateCard, type Me, type ReelCard, type ReelComment, type Role } from "./reelsBoard";
 
 const brands = [
   { id: "leo", name: "Leo" },
@@ -189,5 +189,56 @@ describe("checkMe and waitsOnMe", () => {
     expect(waitsOnMe({ owner: true, member: false })).toBe(true);
     expect(waitsOnMe({ owner: false, member: false })).toBe(false);
     expect(waitsOnMe(null)).toBe(false);
+  });
+});
+
+describe("what each person is offered on a post (docs/team-roles.md)", () => {
+  const member = (role: Role): Me => ({ owner: false, member: true, id: "ann", role, brands: ["moneybees"], modules: ["reels"] });
+  const leo: Me = { owner: true, member: false };
+  const note = (by?: ReelComment["by"]): ReelComment => ({ id: "n", at: "", text: "n", t: null, version: "v", resolved: false, by });
+
+  it("lets a viewer only look, and a commenter leave notes and clear only their own", () => {
+    const v = perms(member("viewer"), card("a", "review"));
+    expect([v.note, v.edit, v.move("changes"), v.brand, v.resolve(note({ id: "ann", label: "Ann" }))]).toEqual([false, false, false, false, false]);
+    const c = perms(member("commenter"), card("a", "review"));
+    expect([c.note, c.edit, c.move("changes")]).toEqual([true, false, false]);
+    expect(c.resolve(note({ id: "ann", label: "Ann", role: "commenter" }))).toBe(true);
+    expect(c.resolve(note({ id: "bob", label: "Bob", role: "editor" }))).toBe(false);
+    // Leo's older unstamped notes are his to clear
+    expect(c.resolve(note())).toBe(false);
+    expect(perms(leo, card("a", "review")).resolve(note({ id: "bob", label: "Bob" }))).toBe(true);
+  });
+
+  it("lets an editor change and send back a post only before it is approved", () => {
+    const open = perms(member("editor"), card("a", "review"));
+    expect([open.edit, open.move("changes"), open.move("approved"), open.move("archived")]).toEqual([true, true, false, false]);
+    expect(perms(member("editor"), card("a", "changes")).move("review")).toBe(true);
+    const approved = perms(member("editor"), card("a", "approved"));
+    expect([approved.edit, approved.move("changes"), approved.move("scheduled")]).toEqual([false, false, false]);
+  });
+
+  it("lets an approver move a post on and archive it, but never mark it posted or change its brand", () => {
+    const a = perms(member("approver"), card("a", "approved"));
+    expect([a.edit, a.move("scheduled"), a.move("archived"), a.move("review"), a.move("posted"), a.brand]).toEqual([true, true, true, true, false, false]);
+  });
+
+  it("keeps a posted or publishing post in Leo's hands only", () => {
+    for (const live of [card("a", "posted"), { ...card("a", "scheduled"), ig: { state: "publishing" as const } }]) {
+      const a = perms(member("approver"), live);
+      expect([a.edit, a.move("archived"), a.move("approved")], live.stage).toEqual([false, false, false]);
+      const o = perms(leo, live);
+      expect([o.edit, o.move("archived"), o.brand]).toEqual([true, true, true]);
+    }
+    // nobody signed in gets nothing
+    const none = perms(null, card("a", "review"));
+    expect([none.note, none.edit, none.move("changes")]).toEqual([false, false, false]);
+  });
+
+  it("shows the board to Leo and to members given the posts module, no one else", () => {
+    expect(seesBoard(leo)).toBe(true);
+    expect(seesBoard(member("viewer"))).toBe(true);
+    expect(seesBoard({ ...member("approver"), modules: ["calendar"] })).toBe(false);
+    expect(seesBoard({ ...member("approver"), member: false })).toBe(false);
+    expect(seesBoard(null)).toBe(false);
   });
 });
