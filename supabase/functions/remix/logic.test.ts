@@ -750,9 +750,12 @@ describe("the wall of text (formats-wall-of-text)", () => {
     expect(wallProblem(me, req({ brand: { ...BIZ, name: "ActivityTracker", speaker: "person" } }))).toBeNull();
   });
 
-  it("names the brand exactly once with mention on, and nowhere with it off", () => {
+  it("has a business name its product exactly once with mention on, and no brand named anywhere with it off", () => {
     const twice = wall({ text: `${TEXT}. ActivityTracker again` })!;
     expect(wallProblem(twice, req())?.error).toBe("The words didn't name ActivityTracker once. Try again.");
+    // a person's name is a prompt rule only
+    expect(wallProblem(twice, req({ brand: { ...BIZ, speaker: "person" } }))).toBeNull();
+    expect(wallProblem(wall()!, req({ brand: { ...BIZ, speaker: "person", mention: false } }))?.kind).toBe("mention");
     const none = wall({ text: TEXT.replace("ActivityTracker", "one app") })!;
     expect(wallProblem(none, req())?.kind).toBe("mention");
     expect(wallProblem(none, req({ brand: { ...BIZ, mention: false } }))).toBeNull();

@@ -770,9 +770,9 @@ export function saysI(t: string): boolean {
 }
 
 /**
- * The wall's checks in code: the original's emoji count within one (capped at 3), a business never says I, and the
- * brand named exactly once in the words with mention on, nowhere with it off. One fixing pass, then a refusal that
- * keeps the use, as for the slideshow.
+ * The wall's checks in code: the original's emoji count within one (capped at 3), a business never says I and names
+ * its product exactly once in the words with mention on, and no brand is named anywhere with mention off. A person's
+ * name stays a prompt rule only, as on the slideshow. One fixing pass, then a refusal that keeps the use.
  */
 export function wallProblem(r: MakeResult, req: Pick<MakeRequest, "brand" | "source">): MakeProblem | null {
   if (r.as !== "wall") return null;
@@ -804,7 +804,7 @@ export function wallProblem(r: MakeResult, req: Pick<MakeRequest, "brand" | "sou
       error: `The words named ${b.name} after you picked No. Try again.`,
     };
   }
-  if (b.mention && count(r.text) !== 1) {
+  if (b.mention && b.speaker === "business" && count(r.text) !== 1) {
     return {
       kind: "mention",
       fix: `The text names ${b.name} ${count(r.text)} times. Return the whole JSON object again with ${b.name} named exactly once in the text, plainly.`,

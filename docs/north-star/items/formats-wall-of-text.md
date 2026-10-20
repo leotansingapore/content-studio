@@ -173,7 +173,7 @@ Not Leo: `NotFoundPage`.
   - The editor opens a wall project on edit-text-video's short panel because `settings.wall` is true, so there is no `tab=stickers`. There is no example mp4: the panel is a dashed 9:16 frame. "Change clip" (the grid of 6 stock clips) is not built: Jev picks the clip, and the editor's short panel swaps the video.
   - The entry point is the Remix sheet's "Also make: Wall of text" link (making on arrival through navigation state, never `?go=1`), not separate buttons on /trends and the swipe drawer.
   - Over the cap, "Make it" turns off with the format shell's shared line, as on /make/slideshow.
-  - Checks in code after writing (one fixing pass, then a refusal that keeps the use): the emoji count within one of the original's (an original full of emoji counts as 3), a business never says I (a quoted objection may), and the brand named exactly once in the words with Mention on, nowhere with it off.
+  - Checks in code after writing (one fixing pass, then a refusal that keeps the use): the emoji count within one of the original's (an original full of emoji counts as 3), a business never says I (a quoted objection may) and names its product exactly once in the words with Mention on, and no brand is named with Mention off.
   - "Pick my video" after no clip fits, or Try again after a dropped download, finishes with the words already written: no second remix use.
 
 ## New evidence (20 Oct 2026)
