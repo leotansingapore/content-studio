@@ -4,7 +4,7 @@
 
 import { useEffect, useId, useMemo, useReducer } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Download, FileText, Film, GalleryHorizontal, Image as ImageIcon, Loader2, Shuffle } from "lucide-react";
 import { imageJob, onImageJob } from "@/lib/aiImage";
 import { aiJob, onAiJob, pendingAvatar } from "@/lib/aiVideo";
 import { aiJobs, exportJobs, FORMAT_LABELS, imageJobs, joinJobs, madeCount, montageJobs, remixJobs, type LibraryItem, type LibraryJob } from "@/lib/library";
@@ -15,6 +15,9 @@ import { currentJoin, exportJob, onExportJob, onJoinJob } from "@/lib/videoMedia
 import { cn } from "@/lib/utils";
 
 const TOUCH = "[@media(pointer:coarse)]:min-h-11";
+const FORMAT_ICON = { text: FileText, carousel: GalleryHorizontal, video: Film, image: ImageIcon };
+/** A row's icon by kind: an export and a montage have their own, the rest show what they make. */
+const iconOf = (j: LibraryJob) => (j.kind === "export" ? Download : j.kind === "montage" ? Shuffle : FORMAT_ICON[j.format]);
 
 /** Every job the library shows, current within a frame of its change. `base`: the page a Remix row reopens the sheet over. */
 export function useLibraryJobs(base: string): LibraryJob[] {
@@ -52,23 +55,24 @@ export default function MakingNow({ items, jobs, className }: { items: LibraryIt
       </div>
       {rows.length > 0 && (
         <ul className="space-y-1">
-          {rows.map((j) => (
-            <li key={j.kind}>
-              <Link to={j.href} className={cn("flex items-start gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted/60", TOUCH)}>
-                {j.state === "working" ? (
-                  <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
-                ) : (
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
-                )}
-                <span className="min-w-0">
-                  <span className="block font-medium">{j.label}</span>
-                  <span className={cn("block text-xs", j.state === "failed" ? "text-destructive" : "text-muted-foreground")}>
-                    {j.state === "failed" ? j.error || "That didn't go through." : j.step}
+          {rows.map((j) => {
+            const failed = j.state === "failed";
+            const Icon = failed ? AlertCircle : iconOf(j);
+            return (
+              <li key={j.kind}>
+                <Link to={j.href} className={cn("flex items-start gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted/60", TOUCH)}>
+                  <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", failed ? "text-destructive" : "text-primary")} aria-hidden />
+                  <span className="min-w-0">
+                    <span className="block font-medium">{j.label}</span>
+                    <span className={cn("flex items-start gap-1 text-xs", failed ? "text-destructive" : "text-muted-foreground")}>
+                      {!failed && <Loader2 className="mt-0.5 h-3 w-3 shrink-0 animate-spin" aria-hidden />}
+                      <span className="min-w-0">{failed ? j.error || "That didn't go through." : j.step}</span>
+                    </span>
                   </span>
-                </span>
-              </Link>
-            </li>
-          ))}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
       {recent.length > 0 && (
