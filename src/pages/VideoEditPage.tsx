@@ -2097,7 +2097,7 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
             <div className="space-y-4" aria-label="Words over a video">
               <section className="space-y-2.5">
                 <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Words</h2>
-                <Textarea rows={5} maxLength={400} value={block?.text ?? ""} onChange={(e) => editBlock({ text: e.target.value })} aria-label="Your words" className="text-sm" />
+                <Textarea rows={5} maxLength={400} value={block?.text ?? ""} onChange={(e) => { editBlock({ text: e.target.value }); setSavedDraft(false); }} aria-label="Your words" className="text-sm" />
                 <p className="text-[11px] text-muted-foreground" aria-live="polite">
                   {blockWords} {blockWords === 1 ? "word" : "words"}, about {readS} s to read
                 </p>
