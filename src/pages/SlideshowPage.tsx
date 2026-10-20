@@ -448,8 +448,9 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
       setPrep(null);
       toast({ title: "Slideshow downloaded" });
     } catch (e) {
+      if (ctrl.signal.aborted) return setPrep(null);
       console.error("slideshow export failed", e);
-      setPrep(ctrl.signal.aborted ? null : "failed");
+      setPrep("failed");
     }
   };
   const cancel = () => {
