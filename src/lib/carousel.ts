@@ -803,15 +803,20 @@ export function loadCarousels(userId: string | null | undefined): SavedCarousel[
   }
 }
 
-/** Saves (or replaces) one carousel, newest first, keeping the latest 20. */
-export function saveCarousel(userId: string, c: Omit<SavedCarousel, "updatedAt">, now = new Date()): SavedCarousel[] {
-  const next = [{ ...c, updatedAt: now.toISOString() }, ...loadCarousels(userId).filter((x) => x.id !== c.id)].slice(0, MAX_SAVED_CAROUSELS);
-  storage()?.setItem(SAVED_KEY_PREFIX + scoped(userId), JSON.stringify(next));
+function writeSaved(userId: string, next: SavedCarousel[]): SavedCarousel[] {
+  try {
+    storage()?.setItem(SAVED_KEY_PREFIX + scoped(userId), JSON.stringify(next));
+  } catch {
+    // storage full or blocked: the list still shows for this visit
+  }
   return next;
 }
 
+/** Saves (or replaces) one carousel, newest first, keeping the latest 20. */
+export function saveCarousel(userId: string, c: Omit<SavedCarousel, "updatedAt">, now = new Date()): SavedCarousel[] {
+  return writeSaved(userId, [{ ...c, updatedAt: now.toISOString() }, ...loadCarousels(userId).filter((x) => x.id !== c.id)].slice(0, MAX_SAVED_CAROUSELS));
+}
+
 export function removeCarousel(userId: string, id: string): SavedCarousel[] {
-  const next = loadCarousels(userId).filter((x) => x.id !== id);
-  storage()?.setItem(SAVED_KEY_PREFIX + scoped(userId), JSON.stringify(next));
-  return next;
+  return writeSaved(userId, loadCarousels(userId).filter((x) => x.id !== id));
 }

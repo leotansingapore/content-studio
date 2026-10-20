@@ -395,6 +395,13 @@ describe("saved carousels", () => {
     expect(odd).toEqual({ id: "p:2", title: "Odd", platform: "instagram", slides, draftId: undefined, updatedAt: "" });
   });
 
+  it("still lists a saved carousel for this visit when storage is full, instead of throwing", () => {
+    saveCarousel("u1", { id: "d:1", title: "Kept", platform: "instagram", slides });
+    vi.stubGlobal("window", { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: () => { throw new DOMException("full", "QuotaExceededError"); } } });
+    expect(saveCarousel("u1", { id: "p:2", title: "New", platform: "instagram", slides }).map((c) => c.title)).toEqual(["New", "Kept"]);
+    expect(removeCarousel("u1", "d:1")).toEqual([]);
+  });
+
   it("drops malformed entries and removes by id", async () => {
     store.set("content-studio-carousels-u1", JSON.stringify([{ id: "x", slides: "no" }, { id: "y", title: 5, slides: [null, { id: "s", title: "T" }, { id: "r", title: "R", body: "• a", recap: true }] }, { slides: [] }]));
     expect(loadCarousels("u1")).toEqual([{ id: "y", title: "Carousel", platform: "instagram", slides: [{ id: "s", title: "T", body: "" }, { id: "r", title: "R", body: "• a", recap: true }], draftId: undefined, updatedAt: "" }]);
