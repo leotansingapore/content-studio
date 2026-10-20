@@ -308,7 +308,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           <p className="text-sm leading-snug text-muted-foreground">
             {whatRemixDoes(source, { keep: ran.keep, about: ran.about, as: shownAs, close: ran.close }, { brand, hasVoice: voicePosts > 0, teardownCached })}
           </p>
-          {!mine && <FitLine fit={fit} brand={brand} video={!!picked} disabled={working} onCarousel={toCarousel} />}
+          {!working && <FitLine fit={fit} brand={brand} video={!!picked} disabled={working} onCarousel={toCarousel} />}
         </section>
 
         <section className="space-y-2">
