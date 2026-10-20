@@ -2,7 +2,7 @@
 // slideshow, video and AI picture in one grid, filtered by format, status and search, with what is still being made
 // beside it. Read-only apart from its links: each card opens the page that made it. Nothing is stored here.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import LibraryCard from "@/components/library/LibraryCard";
@@ -190,20 +190,32 @@ function Library({ userId }: { userId: string }) {
   );
 }
 
+// The shell's lg breakpoint (as SectionTabs reads it), where Making now is a column beside the grid.
+const WIDE = "(min-width: 1024px)";
+const onWideChange = (cb: () => void) => {
+  const m = window.matchMedia(WIDE);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
+const isWide = () => window.matchMedia(WIDE).matches;
+
 /** Making now on phones and tablets: a bottom sheet over the page (?panel=making, pushed, so Back closes it). */
 function MakingSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // from lg the sheet is display:none, and a hidden modal would still make the whole page inert
+  const wide = useSyncExternalStore(onWideChange, isWide);
+  const show = open && !wide;
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal?.();
-    if (!open && d.open) d.close();
-  }, [open]);
+    if (show && !d.open) d.showModal?.();
+    if (!show && d.open) d.close();
+  }, [show]);
   return (
     <dialog
       ref={ref}
       aria-label="Making now"
-      onClose={() => open && onClose()}
+      onClose={() => show && onClose()}
       onClick={(e) => e.target === e.currentTarget && onClose()}
       className="fixed inset-x-0 bottom-0 top-auto m-0 max-h-[80vh] w-full max-w-none rounded-t-2xl border-t border-border/70 bg-background p-0 shadow-xl backdrop:bg-foreground/40 lg:hidden"
     >
