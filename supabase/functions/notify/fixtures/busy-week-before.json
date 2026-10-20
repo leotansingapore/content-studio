@@ -1,0 +1,43 @@
+{
+  "note": "Captured from notify on a1f6fad, before What moved: a uid not on NORTH_STAR_USERS must get exactly this.",
+  "now": "2026-10-12T02:00:00.000Z",
+  "rows": {
+    "content-studio-goals-3f2b6c1e-8a4d-4c2b-9f1e-2a3b4c5d6e7f": "{\"linkedin\":3}",
+    "content-studio-positioning-3f2b6c1e-8a4d-4c2b-9f1e-2a3b4c5d6e7f": "{\"platform\":\"linkedin\",\"cadence\":3,\"oneLiner\":\"A sales app that tracks every call\",\"audience\":\"general\",\"audienceDetail\":\"Self-employed salespeople\",\"edge\":\"\"}",
+    "content-studio-drafts-3f2b6c1e-8a4d-4c2b-9f1e-2a3b4c5d6e7f": "[{\"id\":\"w1\",\"hook\":\"Why I stopped selling on the first call\",\"platform\":\"linkedin\",\"status\":\"posted\",\"postedAt\":\"2026-10-07T03:00:00.000Z\",\"format\":\"text-post\",\"metrics\":{\"impressions\":3000,\"reactions\":100}},{\"id\":\"w2\",\"hook\":\"Three habits\",\"platform\":\"linkedin\",\"status\":\"posted\",\"postedAt\":\"2026-10-09T03:00:00.000Z\",\"metrics\":{\"impressions\":500,\"reactions\":10}},{\"id\":\"b1\",\"hook\":\"Old one\",\"platform\":\"linkedin\",\"status\":\"posted\",\"postedAt\":\"2026-08-20T03:00:00.000Z\",\"metrics\":{\"reactions\":20}},{\"id\":\"b2\",\"hook\":\"Old two\",\"platform\":\"linkedin\",\"status\":\"posted\",\"postedAt\":\"2026-09-01T03:00:00.000Z\",\"metrics\":{\"reactions\":25}},{\"id\":\"b3\",\"hook\":\"Old three\",\"platform\":\"linkedin\",\"status\":\"posted\",\"postedAt\":\"2026-09-10T03:00:00.000Z\",\"metrics\":{\"reactions\":30}},{\"id\":\"b4\",\"hook\":\"Old four\",\"platform\":\"linkedin\",\"status\":\"posted\",\"postedAt\":\"2026-09-25T03:00:00.000Z\",\"metrics\":{\"reactions\":40}},{\"id\":\"d1\",\"hook\":\"Due this morning\",\"platform\":\"linkedin\",\"status\":\"scheduled\",\"scheduledFor\":\"2026-10-12T10:30\"}]",
+    "content-studio-following-3f2b6c1e-8a4d-4c2b-9f1e-2a3b4c5d6e7f": "[{\"platform\":\"instagram\",\"handle\":\"sgmoneybro\",\"addedAt\":\"2026-09-01T00:00:00Z\",\"history\":[{\"at\":\"2026-10-03T02:00:00Z\",\"followers\":10000},{\"at\":\"2026-10-10T02:00:00Z\",\"followers\":11240}],\"posts\":[{\"id\":\"hit\",\"url\":\"https://www.instagram.com/reel/hit/\",\"format\":\"video\",\"caption\":\"3 CPF mistakes at 25 that cost you later\",\"postedAt\":\"2026-10-08T02:00:00Z\",\"views\":4100,\"likes\":10,\"comments\":1},{\"id\":\"o1\",\"url\":\"https://www.instagram.com/reel/o1/\",\"format\":\"video\",\"caption\":\"Caption o1\",\"postedAt\":\"2026-09-20T02:00:00Z\",\"views\":1000,\"likes\":10,\"comments\":1},{\"id\":\"o2\",\"url\":\"https://www.instagram.com/reel/o2/\",\"format\":\"video\",\"caption\":\"Caption o2\",\"postedAt\":\"2026-09-22T02:00:00Z\",\"views\":1100,\"likes\":10,\"comments\":1},{\"id\":\"o3\",\"url\":\"https://www.instagram.com/reel/o3/\",\"format\":\"video\",\"caption\":\"Caption o3\",\"postedAt\":\"2026-09-25T02:00:00Z\",\"views\":900,\"likes\":10,\"comments\":1},{\"id\":\"o4\",\"url\":\"https://www.instagram.com/reel/o4/\",\"format\":\"video\",\"caption\":\"Caption o4\",\"postedAt\":\"2026-09-28T02:00:00Z\",\"views\":1200,\"likes\":10,\"comments\":1},{\"id\":\"o5\",\"url\":\"https://www.instagram.com/reel/o5/\",\"format\":\"video\",\"caption\":\"Caption o5\",\"postedAt\":\"2026-10-01T02:00:00Z\",\"views\":1000,\"likes\":10,\"comments\":1}],\"seen\":[\"o1\",\"o2\",\"o3\",\"o4\",\"o5\",\"hit\"],\"fresh\":[\"hit\"],\"checkedAt\":\"2026-10-10T02:00:00Z\"}]",
+    "content-studio-competitor-ads-3f2b6c1e-8a4d-4c2b-9f1e-2a3b4c5d6e7f": "{\"pipedrive-ab12\":{\"checkedAt\":\"2026-10-10T03:00:00Z\",\"pageId\":\"1\",\"pageName\":\"Pipedrive\",\"ads\":[{\"id\":\"a2\",\"start\":\"2026-10-08\"},{\"id\":\"a1\",\"start\":\"2026-10-09\"},{\"id\":\"a0\",\"start\":\"2026-06-01\"}],\"seen\":[\"a0\",\"a1\",\"a2\"],\"fresh\":[\"a2\",\"a1\"]}}",
+    "content-studio-competitor-posts-3f2b6c1e-8a4d-4c2b-9f1e-2a3b4c5d6e7f": "{\"pipedrive-ab12:instagram\":{\"platform\":\"instagram\",\"handle\":\"pipedrive\",\"addedAt\":\"2026-09-01T00:00:00Z\",\"history\":[{\"at\":\"2026-10-10T03:00:00Z\",\"followers\":29554}],\"posts\":[{\"id\":\"c-hit\",\"url\":\"https://www.instagram.com/p/c-hit/\",\"format\":\"image\",\"caption\":\"Picture c-hit\",\"postedAt\":\"2026-10-06T02:00:00Z\",\"views\":null,\"likes\":500,\"comments\":0},{\"id\":\"c1\",\"url\":\"https://www.instagram.com/p/c1/\",\"format\":\"image\",\"caption\":\"Picture c1\",\"postedAt\":\"2026-09-10T02:00:00Z\",\"views\":null,\"likes\":100,\"comments\":0},{\"id\":\"c2\",\"url\":\"https://www.instagram.com/p/c2/\",\"format\":\"image\",\"caption\":\"Picture c2\",\"postedAt\":\"2026-09-12T02:00:00Z\",\"views\":null,\"likes\":90,\"comments\":0},{\"id\":\"c3\",\"url\":\"https://www.instagram.com/p/c3/\",\"format\":\"image\",\"caption\":\"Picture c3\",\"postedAt\":\"2026-09-14T02:00:00Z\",\"views\":null,\"likes\":110,\"comments\":0},{\"id\":\"c4\",\"url\":\"https://www.instagram.com/p/c4/\",\"format\":\"image\",\"caption\":\"Picture c4\",\"postedAt\":\"2026-09-16T02:00:00Z\",\"views\":null,\"likes\":100,\"comments\":0},{\"id\":\"c5\",\"url\":\"https://www.instagram.com/p/c5/\",\"format\":\"image\",\"caption\":\"Picture c5\",\"postedAt\":\"2026-09-18T02:00:00Z\",\"views\":null,\"likes\":100,\"comments\":0}],\"seen\":[],\"fresh\":[],\"checkedAt\":\"2026-10-10T03:00:00Z\"}}"
+  },
+  "calls": [
+    "subs",
+    "claim due:me:d1:2026-10-12T10:30 null",
+    "push 1 Due at 10:30am | LinkedIn: Due this morning | /generate?draft=d1",
+    "markSent due:me:d1:2026-10-12T10:30",
+    "authUser",
+    "claim email:2026-10-12 30 minutes",
+    "pick move",
+    "email ada@example.test cs-email:2026-10-12-3f2b6c1e-8a4d-4c2b-9f1e-2a3b4c5d6e7f Last week: 2 of 3 posted",
+    "markSent email:2026-10-12"
+  ],
+  "report": {
+    "user": "3f2b6c1e",
+    "push": [
+      {
+        "title": "Due at 10:30am",
+        "body": "LinkedIn: Due this morning",
+        "url": "/generate?draft=d1",
+        "tag": "due:me:d1:2026-10-12T10:30",
+        "ttl": 3600,
+        "devices": 1,
+        "delivered": 1
+      }
+    ],
+    "email": {
+      "to": "a***@example.test",
+      "subject": "Last week: 2 of 3 posted",
+      "text": "Last week, 5 Oct to 11 Oct\n2 of 3 posted (+2 on the week before).\n3,500 impressions, 110 engagements.\nBest posts\n1. \"Why I stopped selling on the first call\" (LinkedIn): 3,000 impressions, 100 engagements\nWeakest\n1. \"Three habits\" (LinkedIn): 500 impressions, 10 engagements\nAccounts you follow: @sgmoneybro gained 1,240 followers (11,240 now), 1 new post.\n\nThis week\nMon 12 Oct, 10:30am, LinkedIn: \"Due this morning\"\n\nOpen Content Studio: https://consultant-content-studio.vercel.app/home\n\nYou get this every Monday because it is switched on in My Playbook. Switch it off there to stop.",
+      "sent": true
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BUDGET_MS, confirmedEmail, EMAIL_RETAKE, PAGE, runPage, runUser, type Deps, type Options, type Sub } from "./run";
 import type { JevAnswer } from "../_shared/jev";
+import before from "./fixtures/busy-week-before.json";
 
 const UID = "3f2b6c1e-8a4d-4c2b-9f1e-2a3b4c5d6e7f";
 const sg = (y: number, m: number, d: number, h = 0, min = 0) => Date.UTC(y, m - 1, d, h - 8, min);
@@ -276,5 +277,36 @@ describe("runUser: the Monday email mentions Your market", () => {
     const off = fake({ userRows: async () => marketRows, sendEmail: async (_to, e) => ((body = e.text), true) });
     await runUser(off.deps, UID, { email: true, push: false }, opts({ now: MON_8AM_SG, marketUsers: "someone-else" }));
     expect(body).not.toContain("Your market");
+  });
+});
+
+describe("runUser: a busy week, frozen before What moved", () => {
+  // fixtures/busy-week-before.json was captured from this function before What moved existed: a followed account's
+  // 4.1x reel, a competitor's fresh ads and posts, your own 3.6x post, a growing account and a post due within the hour.
+  const busy = () => {
+    const calls: string[] = [];
+    const log = (s: string) => calls.push(s);
+    const deps: Deps = {
+      listPrefs: async () => [],
+      userRows: async () => before.rows,
+      subs: async () => (log("subs"), [{ id: 1, endpoint: "https://fcm.googleapis.com/fcm/send/d1", p256dh: "B".repeat(87), auth: "k".repeat(22), updated_at: "2026-10-11T00:00:00Z" }]),
+      authUser: async () => (log("authUser"), { email: "ada@example.test", email_confirmed_at: "2026-01-01" }),
+      logged: async (_u, items) => (log(`logged ${items}`), new Set()),
+      claim: async (_u, items, retake) => (log(`claim ${items} ${retake}`), new Set(items)),
+      markSent: async (_u, items) => void log(`markSent ${items}`),
+      sendPush: async (subs, m) => (log(`push ${subs.map((s) => s.id)} ${m.title} | ${m.body} | ${m.url}`), 1),
+      sendEmail: async (to, e, key) => (log(`email ${to} ${key} ${e.subject}`), true),
+      pick: async (_u, ask) => (log(`pick ${Object.keys(ask.questions)}`), null),
+      next: async () => {},
+      clock: () => 0,
+    };
+    return { deps, calls };
+  };
+
+  it("sends the same alerts and the same email, byte for byte", async () => {
+    const { deps, calls } = busy();
+    const r = await runUser(deps, UID, { email: true, push: true }, opts({ now: Date.parse(before.now) }));
+    expect(calls).toEqual(before.calls);
+    expect(r).toEqual(before.report);
   });
 });
