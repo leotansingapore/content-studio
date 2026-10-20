@@ -145,6 +145,10 @@ None. Copied lines are counted by `sharedRuns`, a measurement, so there is no Je
 - What Fastlane's "Original" tab shows is unverified. This spec shows the saved snapshot. Leo decides if he wants the source's slides or video played inside the pane.
 - The live copy check only sees the 400-character excerpt saved on the draft, so a line copied from further down a long caption shows only through the stored `flags.copied` from the time it was made.
 - Whether a team leader can turn the chips into a block belongs to `trust-compliance-check`.
+- Built 2026-10-20: the stored `flags.copied` lines show only while the draft still has them (the same test as Write's remix chips), so taking a copied line out clears it, as Done when asks.
+- Built 2026-10-20: on large screens the carousel maker shows the strip as one block above the slides (the original, then More like this beside it), not as a 360 px column beside them. The editor is already two columns there, and a third would leave the slide preview under 300 px wide. Write keeps the column beside the draft.
+- Built 2026-10-20: the carousel maker shows the strip only while the slides are that post's own (carousel `d:<post id>`): pasted slides keep the last post's id in the page state.
+- The carousel maker reads the post's text only (`draft.draft`), so edits made on the slides don't count toward copied lines.
 
 ## Related
 
