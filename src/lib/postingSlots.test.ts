@@ -45,6 +45,11 @@ describe("openSlots", () => {
     expect(openSlots(SLOTS, ["2026-10-14T10:00"], morning, 1)).toHaveLength(2);
   });
 
+  it("a post the board scheduled with its older full timestamp takes that day's earliest open slot, like a day-only post", () => {
+    // the board once saved 9am Singapore as a UTC instant; the app reads it as the day alone (dueDates.ts scheduleTime)
+    expect(openSlots(SLOTS, ["2026-10-14T01:00:00.000Z"], morning, 1)).toEqual([{ date: "2026-10-14", time: "19:30" }]);
+  });
+
   it("returns nothing without slots", () => {
     expect(openSlots([], [], morning, 14)).toEqual([]);
   });

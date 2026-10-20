@@ -1,7 +1,7 @@
 // The adviser's weekly posting times (Brand kit slots, "<day 0 = Mon>T<HH:MM>") laid onto real days:
 // which slots are still open, and a starting set of slots from a posts-per-week goal. Pure, so the
 // calendar, Upcoming and the goal picker share one tested rule (postingSlots.test.ts).
-import { addDays, keyToDate, localDateKey } from "@/lib/dueDates";
+import { addDays, keyToDate, localDateKey, scheduleTime } from "@/lib/dueDates";
 
 const SLOT_RE = /^([0-6])T(([01]\d|2[0-3]):[0-5]\d)$/;
 
@@ -32,9 +32,10 @@ export function openSlots(slots: string[], scheduledFor: string[], now: Date, da
   if (!slots.length) return [];
   const today = localDateKey(now);
   const nowHm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  const exact = new Set(scheduledFor.filter((s) => s.length > 10));
+  const exact = new Set(scheduledFor.filter((s) => scheduleTime(s)));
   const dayOnly = new Map<string, number>();
-  for (const s of scheduledFor) if (s.length === 10) dayOnly.set(s, (dayOnly.get(s) ?? 0) + 1);
+  // the board's older full ISO timestamps count as the day alone, as everywhere else (scheduleTime)
+  for (const s of scheduledFor) if (!scheduleTime(s)) dayOnly.set(s.slice(0, 10), (dayOnly.get(s.slice(0, 10)) ?? 0) + 1);
   const out: OpenSlot[] = [];
   for (let i = 0; i < days; i++) {
     const date = addDays(today, i);
