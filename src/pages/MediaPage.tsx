@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { getFile } from "@/lib/deviceFiles";
 import { addMedia, filterMedia, foldersOf, loadMedia, removeMedia, storePicture, updateMedia, type MediaItem } from "@/lib/mediaLibrary";
 import { downloadStock, type StockItem } from "@/lib/stockMedia";
-import { useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { links } from "@/lib/links";
 
@@ -109,6 +109,8 @@ export default function MediaPage() {
   // ?item=<picture key> (docs/deep-links.md): that picture is scrolled to and marked
   const [itemKey] = useUrlItem("item");
   const linkedTile = useScrollToItem<HTMLLIElement>(shown.some((m) => m.key === itemKey));
+  // an empty list may still be syncing, so it decides nothing
+  useGoneItem("item", items.length ? items.some((m) => m.key === itemKey) : undefined, "picture");
 
   return (
     <div className="space-y-5">

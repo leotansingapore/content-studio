@@ -31,7 +31,7 @@ import { BusinessChips, useBusinessFilter } from "@/components/BusinessFilter";
 import ChannelPostDrawer from "@/components/ChannelPostDrawer";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { links, slug } from "@/lib/links";
-import { useUrlItem, useUrlState, withParam } from "@/lib/urlState";
+import { useGoneItem, useUrlItem, useUrlState, withParam } from "@/lib/urlState";
 import { STATUS_LABEL, businessKey, canSeeChannelFeeds, fetchChannelFeeds, type CalendarFeedItem } from "@/lib/channelFeeds";
 import {
   addDays,
@@ -195,6 +195,8 @@ export default function CalendarPage() {
   const [platform, setPlatform] = useUrlState("platform", "all", { allowed: PLATFORMS });
   const [status, setStatus] = useUrlState<StatusFilter>("status", "all", { allowed: STATUSES });
   const [selectedId, openPost, closePost] = useUrlItem("post");
+  // deleted since the link was made; an empty list may still be syncing, so it decides nothing
+  useGoneItem("post", drafts.length ? drafts.some((d) => d.id === selectedId) : undefined);
   // Set when the selected chip is a future occurrence of a recurring post (its day).
   const [selectedGhost, setSelectedGhost] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);

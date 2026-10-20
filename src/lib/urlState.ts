@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { slug } from "./links";
+import { useToast } from "@/hooks/use-toast";
 
 interface Opts<T extends string> {
   /** Values outside this list read as the fallback, so an old or hand-typed link never breaks the page. */
@@ -150,6 +151,24 @@ export function useScrollToItem<T extends HTMLElement>(linked: boolean) {
     if (linked) ref.current?.scrollIntoView({ block: "center" });
   }, [linked]);
   return ref;
+}
+
+/**
+ * A link to one post that is no longer there (deleted, unfollowed, gone from the data): once its list has loaded,
+ * say so in one line and drop the param, so nothing is left marked or waiting. `found` is undefined while the list
+ * is still loading or syncing, and nothing happens then.
+ */
+export function useGoneItem(name: string, found: boolean | undefined, what = "post") {
+  const [id, , drop] = useUrlItem(name);
+  const [params] = useSearchParams();
+  // a ?profile= link opens its brand first (StudioLayout reloads); the post belongs to that brand, not this one
+  const switching = params.has("profile");
+  const { toast } = useToast();
+  useEffect(() => {
+    if (!id || found !== false || switching) return;
+    toast({ title: `That ${what} is no longer here` });
+    drop();
+  }, [id, found, switching, what, drop, toast]);
 }
 
 /** A #section link scrolls to that section once the page has drawn it (`ready`), on every tap of the link. */

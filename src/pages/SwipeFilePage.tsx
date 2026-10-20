@@ -13,7 +13,7 @@ import Mentions from "@/components/Mentions";
 import { NEWS } from "@/lib/industryNews";
 import PostDetailDrawer from "@/components/PostDetailDrawer";
 import { InfoTip } from "@/components/ui/info-tip";
-import { withParam, useUrlFlag, useUrlItem, useUrlLabel, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { withParam, useGoneItem, useUrlFlag, useUrlItem, useUrlLabel, useUrlSearch, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { supabase } from "@/lib/supabase";
 import { loadSaved, toggleSaved } from "@/lib/savedItems";
@@ -188,10 +188,8 @@ export default function SwipeFilePage() {
   const shown = filtered.slice(0, visible);
   const remaining = filtered.length - shown.length;
   const openItem = openKey ? ENRICHED.find((p) => postKey(p) === openKey) ?? null : null;
-  // The posts are bundled, so an id that is not among them is gone: open the page without it.
-  useEffect(() => {
-    if (openKey && !openItem) closePost();
-  }, [openKey, openItem, closePost]);
+  // The posts are bundled, so an id that is not among them is gone: open the page without it, saying so.
+  useGoneItem("post", !!openItem);
 
   return (
     <div className="space-y-5">

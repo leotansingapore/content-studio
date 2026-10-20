@@ -17,7 +17,7 @@ import {
 } from "@/lib/following";
 import { links } from "@/lib/links";
 import { fromFollowPost } from "@/lib/remixSource";
-import { useScrollToItem, useUrlItem } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem } from "@/lib/urlState";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import { useUsesLeft } from "@/lib/aiUsage";
 import PriceChip from "@/components/PriceChip";
@@ -42,6 +42,8 @@ export default function FollowingPage() {
   const leo = useLeoOnly();
   // ?post=<platform>:<post id> (docs/deep-links.md): that post is shown, scrolled to and marked
   const [linked] = useUrlItem("post");
+  // unfollowed, or rotated out by a later check; an empty list may still be syncing, so it decides nothing
+  useGoneItem("post", list.length ? list.some((a) => a.posts.some((p) => postId(a, p) === linked)) : undefined);
 
   useEffect(() => {
     document.title = "Following - Content Studio";

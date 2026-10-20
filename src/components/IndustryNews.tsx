@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { links, slug } from "@/lib/links";
-import { useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { safeExternalUrl } from "@/lib/embed";
 import { Link } from "react-router-dom";
@@ -117,11 +117,9 @@ export default function IndustryNews() {
   const shown = topic === "all" ? found : found.filter((s) => s.topic === topic);
   // 39+ stories made a 33,000px page on a phone: start with the newest 12.
   const [more, setLimit] = useState(12);
-  const [storyId, , dropStory] = useUrlItem("story");
-  // Bundled data: a story that is not in it any more opens the tab without it.
-  useEffect(() => {
-    if (storyId && !NEWS.some((s) => s.id === storyId)) dropStory();
-  }, [storyId, dropStory]);
+  const [storyId] = useUrlItem("story");
+  // Bundled data: a story that is not in it any more opens the tab without it, saying so.
+  useGoneItem("story", NEWS.some((s) => s.id === storyId), "story");
   // a linked story further down than the first 12 is shown too
   const limit = Math.max(more, shown.findIndex((s) => s.id === storyId) + 1);
   const setTopic = (t: string) => { setTopicSlug(t === "all" ? "all" : slug(t)); setLimit(12); };

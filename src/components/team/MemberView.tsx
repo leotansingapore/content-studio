@@ -23,7 +23,7 @@ import {
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { loadDrafts } from "@/lib/draftHistory";
 import { links } from "@/lib/links";
-import { useScrollToItem, useUrlItem } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem } from "@/lib/urlState";
 import {
   deriveReviewState,
   fetchApprovalRules,
@@ -61,6 +61,8 @@ export default function MemberView({
   const [counts, setCounts] = useState<Map<string, number>>(new Map());
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
+  // the newest 200 only, so a full list may hold it further back
+  useGoneItem("post", status === "ready" && subs.length < 200 ? subs.some((s) => s.id === linked) : undefined, "submission");
 
   const load = useCallback(async () => {
     setStatus("loading");

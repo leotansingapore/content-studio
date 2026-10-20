@@ -103,7 +103,9 @@ and the ask-first step are moments inside the sheet and never land in the URL.
 | /library | panel | making: the Making now sheet below 1024 px (from 1024 px it is a column beside the grid) | closed | push | /library?panel=making |
 
 A link to an item that has not loaded yet keeps its param and opens when the data arrives; a link to an
-item that is gone opens the page without it. The calendar shows the month of an open item (a team post on
+item that is gone opens the page without it and says so in one line ("That post is no longer here",
+useGoneItem in src/lib/urlState.ts). An empty list that may still be syncing, a full list that may hold the item
+further back, and a link still switching brand (?profile=) decide nothing. The calendar shows the month of an open item (a team post on
 20 Nov opens November behind its panel) unless the link names a month or week.
 
 ## Grow, Discover and settings pages

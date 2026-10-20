@@ -6,7 +6,7 @@ import TrendCard from "@/components/hub/TrendCard";
 import type { HubTrend } from "@/lib/hub";
 import { supabase } from "@/lib/supabase";
 import { slug } from "@/lib/links";
-import { useUrlItem, useUrlState } from "@/lib/urlState";
+import { useGoneItem, useUrlItem, useUrlState } from "@/lib/urlState";
 
 function HowItWorks() {
   const [open, setOpen] = useState(false);
@@ -57,6 +57,7 @@ export default function HubTrendsPage() {
   const [nicheParam, setNicheParam] = useUrlState<string>("niche", "");
   // ?trend=<id>: that drop is scrolled to, marked and its angles shown
   const [linked] = useUrlItem("trend");
+  useGoneItem("trend", loading ? undefined : trends.some((t) => t.id === linked), "trend drop");
 
   useEffect(() => {
     supabase

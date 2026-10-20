@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { links, slug } from "@/lib/links";
-import { useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem, useUrlSearch, useUrlState } from "@/lib/urlState";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { Link } from "react-router-dom";
 import { ExternalLink, PenLine, Search } from "lucide-react";
@@ -70,11 +70,9 @@ export default function AdsSwipe() {
   const [query, setQueryRaw] = useUrlSearch("q");
   const [industrySlug, setIndustrySlug] = useUrlState("industry", "all");
   const [more, setLimit] = useState(12);
-  const [adId, , dropAd] = useUrlItem("ad");
-  // Bundled data: an ad that is not in it any more opens the tab without it.
-  useEffect(() => {
-    if (adId && !ADS.some((a) => a.adId === adId)) dropAd();
-  }, [adId, dropAd]);
+  const [adId] = useUrlItem("ad");
+  // Bundled data: an ad that is not in it any more opens the tab without it, saying so.
+  useGoneItem("ad", ADS.some((a) => a.adId === adId), "ad");
   const found = useMemo(() => searchAds(ADS, query), [query]);
   const industries = useMemo(() => facetCounts(found, "industry"), [found]);
   const industry = industries.find((i) => slug(i.value) === industrySlug)?.value ?? "all";

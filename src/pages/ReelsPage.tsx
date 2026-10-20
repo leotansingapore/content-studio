@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { useUrlState, withParam } from "@/lib/urlState";
+import { useGoneItem, useUrlState, withParam } from "@/lib/urlState";
 import { activeProfile, addProfile, linkBoardBrand, profileForBoardBrand, setActiveProfile } from "@/lib/profiles";
 import { connectLink } from "@/lib/socialConnect";
 import { links } from "@/lib/links";
@@ -78,6 +78,7 @@ export default function ReelsPage() {
   const [loading, setLoading] = useState(false);
   const [over, setOver] = useState<string | null>(null);
   const openId = params.get("card");
+  useGoneItem("card", board ? !!findCard(board.cards, openId) : undefined);
 
   const reload = () => {
     setLoading(true);

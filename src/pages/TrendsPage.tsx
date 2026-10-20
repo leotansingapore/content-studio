@@ -23,7 +23,7 @@ import YouTubeTrends from "@/components/YouTubeTrends";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { links } from "@/lib/links";
-import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
+import { useGoneItem, useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
 import {
   Flame,
   Wand2,
@@ -344,10 +344,8 @@ export default function TrendsPage() {
   const [type, setType] = useUrlState<string>("type", "all", { allowed: trends.map((t) => t.trend_type ?? "").filter(Boolean) });
   const [openId, openTrend, closeTrend] = useUrlItem("trend");
   const update = useUrlUpdate();
-  // Bundled data: a trend that is not in it any more opens the page without it.
-  useEffect(() => {
-    if (openId && !trends.some((t) => t.id === openId)) closeTrend();
-  }, [openId, trends, closeTrend]);
+  // Bundled data: a trend that is not in it any more opens the page without it, saying so.
+  useGoneItem("trend", trends.some((t) => t.id === openId), "trend");
 
   useEffect(() => {
     document.title = "Trends - Content Studio";

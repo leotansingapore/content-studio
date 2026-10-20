@@ -26,7 +26,7 @@ import { MAX_WATCH, loadWatch, saveWatch } from "@/lib/mentions";
 import { browserPushSupport, enablePushHere, loadNotifyPrefs, pushOnHere, saveNotifyPrefs } from "@/lib/notify";
 import { loadPositioning } from "@/lib/positioning";
 import { supabase } from "@/lib/supabase";
-import { useScrollToItem, useUrlItem, useUrlState } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem, useUrlState } from "@/lib/urlState";
 import { links } from "@/lib/links";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { useUsesLeft } from "@/lib/aiUsage";
@@ -287,6 +287,8 @@ function Digest({ uid, state, setState }: { uid: string; state: MarketState; set
   const posts = latest ? visiblePosts(latest, state, show) : [];
   const linked = latest?.posts.find((x) => x.id === linkedPost);
   if (linked && !posts.includes(linked)) posts.unshift(linked);
+  // a newer check no longer holds it
+  useGoneItem("post", latest ? !!linked : undefined);
   const acts = latest ? actCount(latest, state) : 0;
 
   return (

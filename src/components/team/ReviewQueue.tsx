@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { links, slug } from "@/lib/links";
-import { useScrollToItem, useUrlItem, useUrlState } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem, useUrlState } from "@/lib/urlState";
 import ReviewThread from "@/components/team/ReviewThread";
 import {
   EmptyBlock,
@@ -73,6 +73,11 @@ export default function ReviewQueue({
   // ?post=<submission id> (docs/deep-links.md): on arrival the queue opens the list that holds it
   const [linked] = useUrlItem("post");
   const landed = useRef(false);
+  // a full list (QUEUE_LIMIT) may hold it further back, so only a list with room can say it is gone
+  useGoneItem(
+    "post",
+    status !== "ready" || TABS.some((t) => lists[t.key].length >= QUEUE_LIMIT) ? undefined : TABS.some((t) => lists[t.key].some((s) => s.id === linked)),
+  );
 
   const load = useCallback(async () => {
     setStatus("loading");
