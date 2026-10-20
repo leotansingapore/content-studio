@@ -218,6 +218,7 @@ Cap: `"remix-make": 30` per user per day. Order in the function: JWT, then the R
 - One param per job: `remix=` opens the sheet over any page, while Write's `source=` from remix-source-trail stays the prefill for today's links that non-Leo sessions still use. Drafts made by the sheet set `source` directly and never pass through `source=`.
 - Turning the button on for everyone is Leo's call.
 - 20 Oct 2026 (phase 1 build): Write's source chip has a "Remix" button that opens the sheet on that source, the one way in until remix-wraps puts the button on the browse cards. remix-wraps decides whether it stays.
+- 20 Oct 2026 (remix-wraps): the source chip's "Remix" button stays. It is the only way into the sheet for clone:, link: and own: sources, which have no browse card.
 
 ## Related
 
