@@ -27,6 +27,10 @@ import {
   type ThreadItem,
 } from "@/lib/engageDrafts";
 import { Draft, Groups, HANDLE_YOURSELF, HandleYourselfTopics, Quote, RunStatus, useEngageRun } from "./shared";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 
 const KINDS: { kind: DmKind; label: string; tip?: string }[] = [
   { kind: "lead", label: "Leads", tip: "Reply today. Nothing personal is advised before you meet." },
@@ -77,6 +81,10 @@ export default function Dms({ userId }: { userId: string }) {
   const [goal, setGoal] = useState<DmGoal>(() => loadGoal(userId));
   const view: View = batch.run.form.view === "thread" ? "thread" : "batch";
   const busy = view === "batch" ? batch.busy : thread.busy;
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null. Both drafts spend engage-dms.
+  const left = useUsesLeft(batch.busy || thread.busy || !leo)("engage-dms");
+  const why = reasonText({ left, leo });
 
   const count = useMemo(() => splitPasted(batch.run.pasted).length, [batch.run.pasted]);
   const tooMany = count > MAX_ITEMS;
@@ -168,23 +176,26 @@ export default function Dms({ userId }: { userId: string }) {
 
           {view === "batch" ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={goBatch} disabled={batch.busy || !count || tooMany} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
+              <Button onClick={goBatch} disabled={batch.busy || !count || tooMany || left === 0} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
                 Sort and draft replies
               </Button>
+              <PriceChip feature="engage-dms" left={left} />
               <span className={`ml-auto text-[11px] tabular-nums ${tooMany ? "font-medium text-warning" : "text-muted-foreground"}`}>
                 {tooMany ? `${count} messages: up to ${MAX_ITEMS} at a time` : plural(count, "message")}
               </span>
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={goThread} disabled={thread.busy || !lines.length || lastIsMine} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
+              <Button onClick={goThread} disabled={thread.busy || !lines.length || lastIsMine || left === 0} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
                 Draft my reply
               </Button>
+              <PriceChip feature="engage-dms" left={left} />
               <span className={`ml-auto text-[11px] ${lastIsMine ? "font-medium text-warning" : "tabular-nums text-muted-foreground"}`}>
                 {lastIsMine ? "The last message is yours. Wait for their reply." : plural(lines.length, "message")}
               </span>
             </div>
           )}
+          {why && <p className="text-xs text-destructive">{why}</p>}
         </CardContent>
       </Card>
 

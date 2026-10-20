@@ -15,6 +15,10 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { scoped } from "@/lib/profiles";
 import { loadDrafts, type DraftEntry } from "@/lib/draftHistory";
 import { getFunnelStage } from "@/data/funnelFramework";
@@ -369,6 +373,10 @@ export default function IdeaDump() {
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");
   const [micError, setMicError] = useState("");
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
+  const left = useUsesLeft(loading || !leo)("idea-dump");
+  const why = reasonText({ left, leo });
 
   useEffect(() => {
     let active = true;
@@ -571,11 +579,12 @@ export default function IdeaDump() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => void handleDevelop()}
-              disabled={loading || !text.trim() || !userId}
+              disabled={loading || !text.trim() || !userId || left === 0}
               className="gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95"
             >
               <Sparkles className="h-4 w-4" /> Develop my ideas
             </Button>
+            <PriceChip feature="idea-dump" left={left} />
             {speechSupported && (
               <Button
                 type="button"
@@ -602,6 +611,7 @@ export default function IdeaDump() {
               </span>
             )}
           </div>
+          {why && <p className="text-xs text-destructive">{why}</p>}
           <p id="idea-dump-help" className="text-[11px] text-muted-foreground">
             One idea per line, up to {MAX_IDEAS} at a time. Your briefs are saved to your account.
           </p>

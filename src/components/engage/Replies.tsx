@@ -8,6 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { MAX_ITEMS, MAX_POST_CHARS, splitPasted, type CommentKind, type ReplyItem } from "@/lib/engageDrafts";
 import { Draft, Groups, HANDLE_YOURSELF, HandleYourselfTopics, Quote, RunStatus, useEngageRun } from "./shared";
 
@@ -27,6 +31,10 @@ export default function Replies({ userId }: { userId: string }) {
   const count = useMemo(() => splitPasted(run.pasted).length, [run.pasted]);
   const tooMany = count > MAX_ITEMS;
   const go = () => !busy && count && !tooMany && start();
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
+  const left = useUsesLeft(busy || !leo)("engage-replies");
+  const why = reasonText({ left, leo });
 
   return (
     <section className="space-y-4" aria-labelledby="replies-title">
@@ -52,13 +60,15 @@ export default function Replies({ userId }: { userId: string }) {
           </div>
           <HandleYourselfTopics userId={userId} />
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={go} disabled={busy || !count || tooMany} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
+            <Button onClick={go} disabled={busy || !count || tooMany || left === 0} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
               Sort and draft replies
             </Button>
+            <PriceChip feature="engage-replies" left={left} />
             <span className={`ml-auto text-[11px] tabular-nums ${tooMany ? "font-medium text-warning" : "text-muted-foreground"}`}>
               {tooMany ? `${count} comments: up to ${MAX_ITEMS} at a time` : plural(count, "comment")}
             </span>
           </div>
+          {why && <p className="text-xs text-destructive">{why}</p>}
         </CardContent>
       </Card>
 

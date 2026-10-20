@@ -14,6 +14,10 @@ import { addDays, keyToDate, localDateKey } from "@/lib/dueDates";
 import { loadNotes, newNoteId, saveNote, type CalNote } from "@/lib/calendarNotes";
 import { NOTE_MAX, followUpDates, followUpTitle, type ConnectDrafts, type ConnectGoal } from "@/lib/engageDrafts";
 import { Draft, RunStatus, useEngageRun } from "./shared";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 
 const GOALS: { id: ConnectGoal; label: string }[] = [
   { id: "know", label: "Get to know them" },
@@ -32,6 +36,10 @@ export default function Connect({ userId }: { userId: string }) {
   const setField = (k: string, v: string) => edit({ form: { ...f, [k]: v } });
   const ready = Boolean(f.name?.trim() && f.reason?.trim());
   const go = () => !busy && ready && start();
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
+  const left = useUsesLeft(busy || !leo)("engage-connect");
+  const why = reasonText({ left, leo });
   const d = run.items[0];
   const today = localDateKey();
   const accepted = f.accepted || today;
@@ -113,9 +121,13 @@ export default function Connect({ userId }: { userId: string }) {
               </button>
             ))}
           </div>
-          <Button onClick={go} disabled={busy || !ready} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
-            Write the note and follow-ups
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={go} disabled={busy || !ready || left === 0} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
+              Write the note and follow-ups
+            </Button>
+            <PriceChip feature="engage-connect" left={left} />
+          </div>
+          {why && <p className="text-xs text-destructive">{why}</p>}
         </CardContent>
       </Card>
 

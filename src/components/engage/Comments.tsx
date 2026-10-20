@@ -24,6 +24,10 @@ import {
   type Pasted,
 } from "@/lib/engageDrafts";
 import { Draft, Quote, RunStatus, useEngageRun } from "./shared";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 
 const TYPES: Record<CommentType, string> = {
   number: "Add a number",
@@ -42,6 +46,10 @@ export default function Comments({ userId }: { userId: string }) {
   const slots: Pasted[] = run.posts.length ? run.posts : [{ name: "", text: "" }];
   const filled = slots.filter((p) => p.text.trim()).length;
   const go = () => !busy && filled && start();
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
+  const left = useUsesLeft(busy || !leo)("engage-comments");
+  const why = reasonText({ left, leo });
 
   const setSlot = (i: number, patch: Partial<Pasted>) => edit({ posts: slots.map((p, j) => (j === i ? { ...p, ...patch } : p)) });
 
@@ -95,15 +103,17 @@ export default function Comments({ userId }: { userId: string }) {
             })}
           </ol>
           <div className="flex flex-wrap items-center gap-2">
-            <Button onClick={go} disabled={busy || !filled} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
+            <Button onClick={go} disabled={busy || !filled || left === 0} className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10">
               {slots.length > 1 ? "Write a comment for each" : "Write 2 comments"}
             </Button>
+            <PriceChip feature="engage-comments" left={left} />
             {slots.length < MAX_POSTS && (
               <Button variant="outline" onClick={() => edit({ posts: [...slots, { name: "", text: "" }] })} disabled={busy} className="h-11 gap-1.5 sm:h-10">
                 <Plus className="h-4 w-4" /> Add another post
               </Button>
             )}
           </div>
+          {why && <p className="text-xs text-destructive">{why}</p>}
         </CardContent>
       </Card>
 

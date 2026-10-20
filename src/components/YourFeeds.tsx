@@ -7,6 +7,10 @@ import { Link } from "react-router-dom";
 import { ExternalLink, PenLine, Plus, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { supabase } from "@/lib/supabase";
 import { safeExternalUrl } from "@/lib/embed";
 import { MAX_FEEDS, SUGGESTED_FEEDS, fetchFeeds, labelFor, loadFeeds, mergeStories, saveFeeds, storyWriteUrl, type Feed, type FeedStory } from "@/lib/feeds";
@@ -22,6 +26,10 @@ export default function YourFeeds() {
   const [problems, setProblems] = useState<{ url: string; error: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [paste, setPaste] = useState("");
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
+  const left = useUsesLeft(loading || !leo)("feeds");
+  const why = reasonText({ left, leo });
 
   const load = async (list: Feed[], force = false) => {
     if (!list.length) return setStories([]);
@@ -101,11 +109,15 @@ export default function YourFeeds() {
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="mr-auto font-serif text-lg font-semibold tracking-tight text-foreground">Your feeds</h2>
         {feeds.length > 0 && (
-          <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => void load(feeds, true)} disabled={loading}>
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> {loading ? "Reading..." : "Refresh"}
-          </Button>
+          <>
+            <PriceChip feature="feeds" left={left} />
+            <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => void load(feeds, true)} disabled={loading || left === 0}>
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> {loading ? "Reading..." : "Refresh"}
+            </Button>
+          </>
         )}
       </div>
+      {feeds.length > 0 && why && <p className="text-right text-xs text-destructive">{why}</p>}
 
       {feeds.length > 0 && (
         <ul className="flex flex-wrap gap-1.5" aria-label="Feeds you follow">

@@ -14,6 +14,10 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { scoped } from "@/lib/profiles";
 import { loadDrafts, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { HOOK_FORMULAS, hookFormula } from "@/lib/hookFormulas";
@@ -51,6 +55,10 @@ export default function LongPiece() {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<{ kind: "limit" | "error"; message: string } | null>(null);
   const [usage, setUsage] = useState<{ used: number; limit: number } | null>(null);
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
+  const left = useUsesLeft(loading || !leo)("repurpose-long");
+  const why = reasonText({ left, leo });
 
   useEffect(() => {
     let active = true;
@@ -146,15 +154,17 @@ export default function LongPiece() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               onClick={() => void make()}
-              disabled={loading || !text.trim() || !userId}
+              disabled={loading || !text.trim() || !userId || left === 0}
               className="h-11 gap-1.5 bg-gradient-primary text-primary-foreground hover:opacity-95 sm:h-10"
             >
               <Sparkles className="h-4 w-4" /> Make 5 posts
             </Button>
+            <PriceChip feature="repurpose-long" left={left} />
             <span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
               {text.length.toLocaleString()}/{MAX_LONG_CHARS.toLocaleString()}
             </span>
           </div>
+          {why && <p className="text-xs text-destructive">{why}</p>}
         </CardContent>
       </Card>
 

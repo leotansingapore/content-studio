@@ -8,6 +8,10 @@ import { ExternalLink, PenLine, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { supabase } from "@/lib/supabase";
 import { safeExternalUrl } from "@/lib/embed";
 import { storyWriteUrl } from "@/lib/feeds";
@@ -23,6 +27,10 @@ export default function Mentions() {
   const [results, setResults] = useState<MentionResult[]>([]);
   const [seen, setSeen] = useState<Set<string>>(new Set());
   const [checking, setChecking] = useState(false);
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
+  const left = useUsesLeft(checking || !leo)("mentions");
+  const why = reasonText({ left, leo });
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -88,11 +96,15 @@ export default function Mentions() {
           <InfoTip label="About mentions">Recent Singapore news naming what you watch.</InfoTip>
         </h2>
         {watch.length > 0 && (
-          <Button size="sm" className="h-9 gap-1.5" onClick={check} disabled={checking}>
-            <Search className="h-3.5 w-3.5" /> {checking ? "Checking..." : "Check now"}
-          </Button>
+          <>
+            <PriceChip feature="mentions" left={left} />
+            <Button size="sm" className="h-9 gap-1.5" onClick={check} disabled={checking || left === 0}>
+              <Search className="h-3.5 w-3.5" /> {checking ? "Checking..." : "Check now"}
+            </Button>
+          </>
         )}
       </div>
+      {watch.length > 0 && why && <p className="text-right text-xs text-destructive">{why}</p>}
 
       {watch.length > 0 && (
         <ul className="flex flex-wrap gap-1.5" aria-label="What you watch">

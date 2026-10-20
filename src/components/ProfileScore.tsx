@@ -10,6 +10,10 @@ import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { scoreProfile, type ProfileItemId, type ProfileScore as Score } from "@/lib/writingJudge";
 import { firstLine, type AuditPlatform, type RatedPost } from "@/lib/accountAudit";
 import { DAILY_LIMITS } from "../../supabase/functions/_shared/usageCaps.ts";
@@ -37,6 +41,10 @@ export default function ProfileScore({
   const [result, setResult] = useState<Score | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
+  const left = useUsesLeft(running || !leo)("profile-score");
+  const why = reasonText({ left, leo });
 
   const run = async () => {
     setRunning(true);
@@ -129,11 +137,13 @@ export default function ProfileScore({
       </div>
       {!result && (
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11 ${running ? "disabled:opacity-100" : ""}`} onClick={() => void run()} disabled={running}>
+          <Button size="sm" variant="outline" className={`h-11 gap-1.5 sm:h-9 [@media(pointer:coarse)]:h-11 ${running ? "disabled:opacity-100" : ""}`} onClick={() => void run()} disabled={running || left === 0}>
             {running ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <IdCard className="h-3.5 w-3.5" />}
             {running ? "Scoring..." : "Score my profile"}
           </Button>
           <span className="text-[11px] text-muted-foreground">Uses 1 of your {DAILY_LIMITS["profile-score"]} a day.</span>
+          <PriceChip feature="profile-score" left={left} />
+          {why && <p className="basis-full text-xs text-destructive">{why}</p>}
           {error && (
             <p role="alert" className="basis-full text-xs text-destructive">
               {error}

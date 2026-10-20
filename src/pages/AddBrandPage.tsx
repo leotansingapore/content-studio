@@ -4,6 +4,10 @@ import { ArrowLeft, Check, Globe, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { DEFAULT_BRAND, saveBrand } from "@/lib/carousel";
 import { callFn, EdgeError } from "@/lib/edgeFn";
 import { EMPTY_POSITIONING, savePositioning, type PlanAudience } from "@/lib/positioning";
@@ -46,6 +50,10 @@ export default function AddBrandPage() {
   const [name, setName] = useState("");
   const [created, setCreated] = useState("");
   const timer = useRef<number>();
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null
+  const left = useUsesLeft(phase === "reading" || !leo)("brand-dna");
+  const why = reasonText({ left, leo });
 
   useEffect(() => {
     document.title = "Add a brand - Content Studio";
@@ -203,9 +211,11 @@ export default function AddBrandPage() {
             The brand's website
             <div className="flex gap-2">
               <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="acme.sg" inputMode="url" autoFocus className="font-normal" />
-              <Button type="submit" disabled={!address.trim()}><Globe className="mr-1.5 h-4 w-4" /> Read it</Button>
+              <Button type="submit" disabled={!address.trim() || left === 0}><Globe className="mr-1.5 h-4 w-4" /> Read it</Button>
             </div>
           </label>
+          {leo && <p><PriceChip feature="brand-dna" left={left} /></p>}
+          {why && <p className="text-xs text-destructive">{why}</p>}
           <p className="text-xs text-muted-foreground">Takes under a minute. We read the home page only, and nothing is posted.</p>
           {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
           <button type="button" className="text-sm font-semibold text-primary [@media(pointer:coarse)]:min-h-11" onClick={() => setJustName(true)}>No website? Start with just a name</button>
