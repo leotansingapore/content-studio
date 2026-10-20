@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Clapperboard, ExternalLink, Loader2, RefreshCw, Shuffle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import CopyLinkButton from "@/components/CopyLinkButton";
 import EngageWeek from "@/components/EngageWeek";
 import RemixButton from "@/components/remix/RemixButton";
 import SaveButton from "@/components/SaveButton";
+import WhatWorked, { WhatWorkedButton, usePatterns } from "@/components/following/WhatWorked";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { supabase } from "@/lib/supabase";
@@ -17,8 +18,9 @@ import {
   type FollowPlatform, type FollowedAccount, type TrackedPost,
 } from "@/lib/following";
 import { links } from "@/lib/links";
+import { accountKey, patternRun, type PatternEntry } from "@/lib/patterns";
 import { fromFollowPost } from "@/lib/remixSource";
-import { useGoneItem, useScrollToItem, useUrlItem } from "@/lib/urlState";
+import { useGoneItem, useScrollToItem, useUrlItem, useUrlUpdate } from "@/lib/urlState";
 import { useLeoOnly } from "@/lib/useLeoOnly";
 import { useUsesLeft } from "@/lib/aiUsage";
 import PriceChip from "@/components/PriceChip";
@@ -45,6 +47,14 @@ export default function FollowingPage() {
   const [linked] = useUrlItem("post");
   // unfollowed, or rotated out by a later check; an empty list may still be syncing, so it decides nothing
   useGoneItem("post", list.length ? list.some((a) => a.posts.some((p) => postId(a, p) === linked)) : undefined);
+  // ?account=<platform>:<handle>&view=patterns (Leo only): that account's What worked panel is open
+  const [params] = useSearchParams();
+  const update = useUrlUpdate();
+  const openAccount = params.get("view") === "patterns" ? params.get("account") : null;
+  // the panel a link opened is scrolled to once; one opened by its button is already in view
+  const [linkedAccount] = useState(openAccount);
+  const patterns = usePatterns(leo ? userId : null);
+  useGoneItem("account", leo && openAccount && list.length ? list.some((a) => accountKey(a) === openAccount) : undefined, "account");
 
   useEffect(() => {
     document.title = "Following - Content Studio";
@@ -89,8 +99,11 @@ export default function FollowingPage() {
     if (userId) for (const a of list) void runCheck(userId, a);
   };
   const anyChecking = list.some(isChecking);
+  const anyPatterns = list.some((a) => patternRun(a));
   // Leo's price chips: only his sessions read today's uses, so everyone else's stays null
-  const left = useUsesLeft(anyChecking || !leo)("track-accounts");
+  const usesLeft = useUsesLeft(anyChecking || anyPatterns || !leo);
+  const left = usesLeft("track-accounts");
+  const patternsLeft = usesLeft("remix-patterns");
   // Check all spends one check per account
   const allWhy = reasonText({ left, uses: list.length, leo });
   const checkWhy = reasonText({ left, leo });
@@ -140,14 +153,34 @@ export default function FollowingPage() {
         <p className="text-sm text-muted-foreground">Follow a competitor or a creator you like to see their growth, how often they post, and their new posts to remix.</p>
       ) : (
         <ul className="grid gap-4 lg:grid-cols-2">
-          {list.map((a) => <AccountCard key={`${a.platform}:${a.handle}`} a={a} leo={leo} linked={linked} left={left} onCheck={() => userId && runCheck(userId, a)} onRemove={() => remove(a)} />)}
+          {list.map((a) => (
+            <AccountCard key={`${a.platform}:${a.handle}`} a={a} leo={leo} linked={linked} left={left} onCheck={() => userId && runCheck(userId, a)} onRemove={() => remove(a)}
+              patterns={leo && userId ? {
+                userId, entry: patterns[accountKey(a)], left: patternsLeft, open: openAccount === accountKey(a), linked: linkedAccount === accountKey(a),
+                onOpen: () => update({ account: accountKey(a), view: "patterns" }, { push: true }), onClose: () => update({ account: null, view: null }),
+              } : null} />
+          ))}
         </ul>
       )}
     </div>
   );
 }
 
-function AccountCard({ a, leo, linked, left, onCheck, onRemove }: { a: FollowedAccount; leo: boolean; linked: string | null; left: number | null; onCheck: () => void; onRemove: () => void }) {
+interface PatternsSlot {
+  userId: string;
+  entry?: PatternEntry;
+  left: number | null;
+  open: boolean;
+  linked: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+}
+
+function AccountCard({ a, leo, linked, left, onCheck, onRemove, patterns: w }: {
+  a: FollowedAccount; leo: boolean; linked: string | null; left: number | null; onCheck: () => void; onRemove: () => void;
+  /** Leo's What worked; null for everyone else. */
+  patterns: PatternsSlot | null;
+}) {
   const s = followStats(a);
   const checking = isChecking(a);
   // Leo only (left is null for everyone else): the check's price as the icon's title, and off at 0 (the header says why)
@@ -208,6 +241,10 @@ function AccountCard({ a, leo, linked, left, onCheck, onRemove }: { a: FollowedA
           </ul>
         </div>
       )}
+
+      {w && a.checkedAt && (w.open
+        ? <WhatWorked a={a} userId={w.userId} entry={w.entry} left={w.left} linked={w.linked} onClose={w.onClose} />
+        : <WhatWorkedButton a={a} userId={w.userId} entry={w.entry} left={w.left} onOpen={w.onOpen} />)}
     </li>
   );
 }
