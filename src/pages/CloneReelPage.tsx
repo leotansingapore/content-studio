@@ -76,10 +76,10 @@ import { HOOK_FORMULAS, hookFormula, hookFormulaSet } from "@/lib/hookFormulas";
 import { scoped } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
-import { useLeoUser } from "@/lib/useLeoOnly";
+import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
 import { fromClone } from "@/lib/remixSource";
 import PriceChip from "@/components/PriceChip";
-import { reasonText } from "@/lib/prices";
+import { priceOf, reasonText, sumPrices } from "@/lib/prices";
 import { links } from "@/lib/links";
 import type { LinkedSource } from "@/lib/resolveSource";
 import { checkUpload, clearLinkRead, linkRead, onLinkRead, retryable, savedLinks, startLinkRead, type LinkRead } from "@/lib/remixLink";
@@ -712,6 +712,8 @@ function ConceptPicker({
   onChoose: (index: number) => void;
 }) {
   const left = useUsesLeft(building !== null)("reel-concepts");
+  const leo = useLeoOnly();
+  const why = reasonText({ left, leo });
   return (
     <div className="space-y-2">
       <p id="concept-options" className={`${LABEL} text-primary`}>
@@ -759,9 +761,16 @@ function ConceptPicker({
         </p>
       ) : (
         <p role="status" aria-live="polite" className="text-[11px] text-muted-foreground">
-          {building !== null
-            ? "Writing that version, about 20 seconds..."
-            : `A new concept uses 1 of your ${DAILY_LIMITS["reel-concepts"]} a day${left === null ? "" : `, ${left} left today`}.`}
+          {building !== null ? (
+            "Writing that version, about 20 seconds..."
+          ) : leo ? (
+            <>
+              A new concept: <PriceChip feature="reel-concepts" left={left} />
+              {why && <span className="block text-xs text-destructive">{why}</span>}
+            </>
+          ) : (
+            `A new concept uses 1 of your ${DAILY_LIMITS["reel-concepts"]} a day${left === null ? "" : `, ${left} left today`}.`
+          )}
         </p>
       )}
     </div>
@@ -989,7 +998,7 @@ function ReadingCard({ read, onCancel }: { read: LinkRead; onCancel: () => void 
   );
 }
 
-function LinkResult({ source, onRemix, onClone, onReset }: { source: LinkedSource; onRemix: () => void; onClone: () => void; onReset: () => void }) {
+function LinkResult({ source, cloneLeft, onRemix, onClone, onReset }: { source: LinkedSource; cloneLeft: number | null; onRemix: () => void; onClone: () => void; onReset: () => void }) {
   const n = source.numbers ?? {};
   const numbers = [
     { icon: Play, label: "views", value: n.views },
@@ -997,6 +1006,7 @@ function LinkResult({ source, onRemix, onClone, onReset }: { source: LinkedSourc
     { icon: MessageCircle, label: "comments", value: n.comments },
   ].filter((i): i is typeof i & { value: number } => typeof i.value === "number");
   const canClone = source.kind === "link" && (source.platform === "instagram" || source.platform === "tiktok") && Boolean(source.url);
+  const cloneWhy = reasonText({ left: cloneLeft, leo: true });
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-end">
@@ -1042,9 +1052,14 @@ function LinkResult({ source, onRemix, onClone, onReset }: { source: LinkedSourc
               <Shuffle className="h-4 w-4" /> Remix
             </Button>
             {canClone && (
-              <Button variant="outline" onClick={onClone} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
-                <Sparkles className="h-4 w-4" /> Clone it instead
-              </Button>
+              <>
+                <Button variant="outline" onClick={onClone} disabled={cloneLeft === 0} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
+                  <Sparkles className="h-4 w-4" /> Clone it instead
+                </Button>
+                {/* an Instagram clone also reads its frames (reel-visuals) */}
+                <PriceChip price={sumPrices(priceOf("reel-clone"), source.platform === "instagram" ? priceOf("reel-visuals") : null)} left={cloneLeft} />
+                {cloneWhy && <p className="text-xs text-destructive sm:basis-full">{cloneWhy}</p>}
+              </>
             )}
             <CopyLinkButton path={links.clone({ source: source.key })} label="Copy link to this source" className="self-end sm:ml-auto sm:self-auto" />
           </div>
@@ -1115,7 +1130,8 @@ function RemixLinkBox({
   const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const working = read?.state === "working";
-  const left = useUsesLeft(working);
+  // read again once a clone ends too, so the Clone it chip counts it
+  const left = useUsesLeft(working || !idle);
 
   // A read that finishes opens here, now or the next time this page opens, and waits in Recent reads. With a
   // clone on screen it only joins Recent reads, so the clone Leo opened meanwhile stays put.
@@ -1273,7 +1289,7 @@ function RemixLinkBox({
         </Card>
       )}
       {!read && idle && shown && (
-        <LinkResult source={shown} onRemix={() => openRemix(shown.key)} onClone={() => onClone(shown.url!)} onReset={reset} />
+        <LinkResult source={shown} cloneLeft={left("reel-clone")} onRemix={() => openRemix(shown.key)} onClone={() => onClone(shown.url!)} onReset={reset} />
       )}
       {!working && idle && (
         <RecentReads
