@@ -44,6 +44,14 @@ const MAX_PROJECTS = 12;
 const MAX_CLIPS = 40;
 // a swapped video (fileId `${id}-s<n>`, swapSource) is still the upload it was, not a clip
 const isClip = (p: VideoProject) => !!p.fileId && p.fileId !== p.id && !p.fileId.startsWith(`${p.id}-s`);
+/** How many times a project's video has been swapped (its file is `${id}-s<n>`), 0 for none. */
+const swapNo = (p: VideoProject) => (p.fileId?.startsWith(`${p.id}-s`) ? Number(p.fileId.slice(p.id.length + 2)) || 0 : 0);
+// a gone project's files that no kept project uses: a clip's shared file, or an upload's own file plus every video swapped in
+// shortcut: a video swapped in and then undone (one past the current number) stays until the browser clears it
+function dropFiles(gone: VideoProject, kept: VideoProject[]) {
+  const keys = isClip(gone) ? [fileKey(gone)] : [gone.id, ...Array.from({ length: swapNo(gone) }, (_, i) => `${gone.id}-s${i + 1}`)];
+  for (const k of keys) if (!kept.some((x) => fileKey(x) === k)) void deleteFile(k).catch(() => {});
+}
 
 function store(): Storage | null {
   try {
@@ -74,7 +82,7 @@ export function saveProject(userId: string, p: VideoProject): VideoProject[] {
   for (const old of next) {
     if (kept.includes(old)) continue;
     removePlatformCaptions(userId, old.id);
-    if (!kept.some((x) => fileKey(x) === fileKey(old))) void deleteFile(fileKey(old)).catch(() => {});
+    dropFiles(old, kept);
   }
   return kept;
 }
@@ -84,7 +92,7 @@ export function removeProject(userId: string, id: string): VideoProject[] {
   const gone = all.find((x) => x.id === id);
   const kept = all.filter((x) => x.id !== id);
   // a file shared by clips goes only with the last project using it
-  if (gone && !kept.some((x) => fileKey(x) === fileKey(gone))) void deleteFile(fileKey(gone)).catch(() => {});
+  if (gone) dropFiles(gone, kept);
   store()?.setItem(KEY + scoped(userId), JSON.stringify(kept));
   removePlatformCaptions(userId, id);
   return kept;
@@ -120,10 +128,8 @@ export async function swapSource(userId: string, projectId: string, file: File):
   const duration = await mediaLength(file);
   if (!Number.isFinite(duration) || duration <= 0) throw new Error("That video couldn't be opened. Try an MP4 or MOV.");
   const thumb = (await stills(file, [0.3], 240))[0];
-  const n = p.fileId?.startsWith(`${projectId}-s`) ? Number(p.fileId.slice(projectId.length + 2)) + 1 || 1 : 1;
-  const fileId = `${projectId}-s${n}`;
+  const fileId = `${projectId}-s${swapNo(p) + 1}`;
   await putFile(fileId, file);
-  // shortcut: earlier swapped-out files stay on the device until the browser clears it; prune them if storage ever matters
   const next = swapped(p, { fileId, duration, size: file.size, thumb });
   saveProject(userId, next);
   return next;

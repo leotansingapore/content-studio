@@ -169,6 +169,18 @@ describe("swapping the video under a project", () => {
     expect(again.settings.overlays?.[0].to).toBe(30);
   });
 
+  it("deletes every video a removed project had, except one a clip still uses", async () => {
+    saveProject("u", wall);
+    saveProject("u", { ...wall, id: "c1", fileId: "v1" });
+    await swapSource("u", "v1", new File(["x"], "a.mp4"));
+    await swapSource("u", "v1", new File(["y"], "b.mp4"));
+    removeProject("u", "v1");
+    // the clip was cut from the first upload, so that file stays
+    expect(deleted).toEqual(["v1-s1", "v1-s2"]);
+    removeProject("u", "c1");
+    expect(deleted).toEqual(["v1-s1", "v1-s2", "v1"]);
+  });
+
   it("refuses a video it can't open and leaves the project as it was", async () => {
     saveProject("u", wall);
     clipLength = Number.NaN;
@@ -180,9 +192,9 @@ describe("swapping the video under a project", () => {
   it("counts a swapped video as an upload, while a clip of another upload is still a clip", () => {
     const p = (id: string, fileId?: string) => ({ ...wall, id, ...(fileId ? { fileId } : {}) });
     for (let i = 0; i < 13; i++) saveProject("u", p(`up${i}`, `up${i}-s1`));
-    // 13 uploads: the oldest goes, with its swapped file
+    // 13 uploads: the oldest goes, with its first upload and its swapped file
     expect(loadProjects("u")).toHaveLength(12);
-    expect(deleted).toEqual(["up0-s1"]);
+    expect(deleted).toEqual(["up0", "up0-s1"]);
     saveProject("u", p("clip", "up5-s1"));
     expect(loadProjects("u")).toHaveLength(13);
   });
