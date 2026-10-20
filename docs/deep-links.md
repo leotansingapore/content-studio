@@ -189,6 +189,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /edit | panel | wall: the start screen's Words over a video (Leo's sign-ins only; anyone else gets the plain start screen) | none | push | /edit?panel=wall |
 | /edit | view | all, with p on a words-over-video project: every editing tab instead of its short panel (Leo only) | the short panel | replace | /edit?p=vm1abc2&view=all |
 | /clone | clone | a saved clone id (instagram:<post id>, tiktok:<id>): shows that result | none; the result just made | push | /clone?clone=instagram%3AC8xYz12AbCd |
+| /clone | source | a source read on Remix a post (link:<platform>:<id> or upload:<sha1>): shows that result from this device's list. Leo's sign-ins only; anyone else's /clone ignores it | none; the read just made | push | /clone?source=link%3Ainstagram%3AC8xYz12AbCd |
 | /coach | report | a report id from Your progress, or the run just made | none | push | /coach?report=6f1c2d3e-4b5a-4c6d-8e9f-0a1b2c3d4e5f |
 | /coach | view | quiz: retake the diagnosis | quiz when there is no diagnosis yet | push | /coach?view=quiz |
 | /media | q | search text (names, folders, alt text) | empty | replace | /media?q=family |
@@ -229,6 +230,7 @@ Pre-fills read once on arrival, then removed from the address (except day, time,
   only on the device that pressed Remix), trend:<trend id> (Trends), insp:<id>, hubtrend:<id>, clone:<platform>:<post id>,
   own:<draft id>, link:<platform>:<id> and upload:<sha1>. A key that doesn't resolve opens Write without a source.
 - /clone?url=<reel link>: fills the link box (a Clone button elsewhere); cloning stays a tap, since each
-  clone uses one of the day's.
+  clone uses one of the day's. On Leo's sign-ins it fills the Remix a post box, which takes any link
+  parseRemixLink accepts (supabase/functions/remix-link/logic.ts); reading stays a tap, since it is paid.
 - /coach#idea-dump (the board's empty column) scrolls to the idea dump.
 <!-- ==== end Create pages ==== -->

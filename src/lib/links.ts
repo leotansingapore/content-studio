@@ -202,7 +202,8 @@ export const links = {
       template: o.template,
       view: o.view,
     })}`,
-  clone: (o: { url?: string; clone?: string } = {}) => `/clone${qs({ url: o.url, clone: o.clone })}`,
+  /** source=<link:|upload: key> reopens a source read on Leo's Remix a post (push). */
+  clone: (o: { url?: string; clone?: string; source?: string } = {}) => `/clone${qs({ url: o.url, clone: o.clone, source: o.source })}`,
   coach: (o: { report?: string; view?: "quiz"; section?: "idea-dump" } = {}) =>
     `/coach${qs({ report: o.report, view: o.view })}${o.section ? `#${o.section}` : ""}`,
   voice: () => "/voice",

@@ -14,7 +14,9 @@ import {
   Copy,
   ExternalLink,
   Eye,
+  Film,
   Heart,
+  Image as ImageIcon,
   Info,
   Instagram,
   Loader2,
@@ -24,8 +26,11 @@ import {
   RotateCcw,
   Share2,
   ShieldCheck,
+  Shuffle,
   Sparkles,
+  Upload,
   Video,
+  Youtube,
 } from "lucide-react";
 
 import ShotList, { CopyButton } from "@/components/ShotList";
@@ -71,8 +76,13 @@ import { HOOK_FORMULAS, hookFormula, hookFormulaSet } from "@/lib/hookFormulas";
 import { scoped } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
-import { useLeoOnly } from "@/lib/useLeoOnly";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { fromClone } from "@/lib/remixSource";
+import PriceChip from "@/components/PriceChip";
+import { links } from "@/lib/links";
+import type { LinkedSource } from "@/lib/resolveSource";
+import { checkUpload, clearLinkRead, linkRead, onLinkRead, savedLinks, startLinkRead, type LinkRead } from "@/lib/remixLink";
+import { LINK_COPY, notYet, parseRemixLink, siteName, type LinkKind } from "../../supabase/functions/remix-link/logic.ts";
 
 type View =
   | { kind: "idle" }
@@ -940,6 +950,340 @@ function RecentClones({ clones, onOpen }: { clones: SavedClone[]; onOpen: (clone
   );
 }
 
+// ---- Remix a post (Leo's sign-ins, north star remix-any-link) ----------------------------------------
+
+function LinkIcon({ source, className }: { source: LinkedSource; className?: string }) {
+  if (source.kind === "upload") return source.format === "video" ? <Film className={className} /> : <ImageIcon className={className} />;
+  if (source.platform === "instagram") return <Instagram className={className} />;
+  if (source.platform === "youtube") return <Youtube className={className} />;
+  return <Video className={className} />;
+}
+
+const linkLabel = (s: LinkedSource) =>
+  s.kind === "upload" ? (s.format === "video" ? "Your video" : "Your picture") : siteName(s.platform as LinkKind) ?? "Link";
+
+function ReadingCard({ read, onCancel }: { read: LinkRead; onCancel: () => void }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <Card className="border-border/60 shadow-card" aria-busy="true">
+      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-6">
+        <div className="min-w-0" role="status" aria-live="polite">
+          <p className="flex items-center gap-2 font-serif text-lg font-semibold text-foreground">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" /> {read.step}
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            <Clock className="mr-1 inline h-3 w-3" />
+            {Math.max(0, Math.floor((now - read.startedAt) / 1000))}s elapsed
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onCancel} className="[@media(pointer:coarse)]:min-h-11">
+          Cancel
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LinkResult({ source, onRemix, onClone, onReset }: { source: LinkedSource; onRemix: () => void; onClone: () => void; onReset: () => void }) {
+  const n = source.numbers ?? {};
+  const numbers = [
+    { icon: Play, label: "views", value: n.views },
+    { icon: Heart, label: "likes", value: n.likes },
+    { icon: MessageCircle, label: "comments", value: n.comments },
+  ].filter((i): i is typeof i & { value: number } => typeof i.value === "number");
+  const canClone = source.kind === "link" && (source.platform === "instagram" || source.platform === "tiktok") && Boolean(source.url);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-end">
+        <Button variant="ghost" size="sm" onClick={onReset} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
+          <RotateCcw className="h-3.5 w-3.5" /> Read another
+        </Button>
+      </div>
+      <Card className="border-border/60 shadow-card">
+        <CardContent className="space-y-4 p-4 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                <LinkIcon source={source} className="h-3 w-3" /> {linkLabel(source)}
+              </span>
+              {source.author && <span className="text-sm font-semibold text-foreground [overflow-wrap:anywhere]">{source.author}</span>}
+            </div>
+            {source.url && (
+              <Button asChild variant="outline" size="sm" className="h-8 gap-1.5 [@media(pointer:coarse)]:min-h-11">
+                <a href={source.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" /> Open original
+                </a>
+              </Button>
+            )}
+          </div>
+          {source.title && <p className="font-serif text-lg font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">{source.title}</p>}
+          {numbers.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              {numbers.map(({ icon: Icon, label, value }) => (
+                <span key={label} className="inline-flex items-center gap-1.5">
+                  <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-semibold tabular-nums text-foreground">{formatCount(value)}</span>
+                  <span className="text-xs text-muted-foreground">{label}</span>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="space-y-1">
+            <p className={LABEL}>What it says</p>
+            <ExpandableText text={source.text} />
+          </div>
+          <div className="flex flex-col gap-2 border-t border-border/60 pt-4 sm:flex-row sm:flex-wrap sm:items-center">
+            <Button onClick={onRemix} className="gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 [@media(pointer:coarse)]:min-h-11">
+              <Shuffle className="h-4 w-4" /> Remix
+            </Button>
+            {canClone && (
+              <Button variant="outline" onClick={onClone} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
+                <Sparkles className="h-4 w-4" /> Clone it instead
+              </Button>
+            )}
+            <CopyLinkButton path={links.clone({ source: source.key })} label="Copy link to this source" className="self-end sm:ml-auto sm:self-auto" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function RecentReads({ items, onOpen }: { items: LinkedSource[]; onOpen: (s: LinkedSource) => void }) {
+  if (items.length === 0) return null;
+  return (
+    <section className="space-y-2" aria-labelledby="recent-reads">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 id="recent-reads" className="font-serif text-lg font-semibold text-foreground">
+          Recent reads
+        </h2>
+        <p className="text-[11px] text-muted-foreground">Reopening is free.</p>
+      </div>
+      <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60 bg-card shadow-card">
+        {items.map((s) => (
+          <li key={s.key}>
+            <button
+              type="button"
+              onClick={() => onOpen(s)}
+              className="flex min-h-11 w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-accent/60"
+            >
+              <LinkIcon source={s} className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-foreground">{s.title || s.text.slice(0, 80)}</span>
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  {[linkLabel(s), s.author].filter(Boolean).join(" · ")}
+                </span>
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * Leo's /clone: one box for any link or file (docs/north-star/items/remix-any-link.md). The read runs outside the
+ * page (src/lib/remixLink.ts); a finished one opens as ?source=<key> (push), and Remix opens the sheet over it.
+ */
+function RemixLinkBox({
+  userId,
+  input,
+  setInput,
+  idle,
+  empty,
+  onClone,
+}: {
+  userId: string;
+  input: string;
+  setInput: (v: string) => void;
+  /** No clone is on screen. */
+  idle: boolean;
+  empty: JSX.Element;
+  onClone: (url: string) => void;
+}) {
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [read, setRead] = useState<LinkRead | null>(() => linkRead());
+  const [saved, setSaved] = useState<LinkedSource[]>(() => savedLinks(userId));
+  const [sourceKey, openSource] = useUrlItem("source");
+  const [, openRemix] = useUrlItem("remix");
+  const updateUrl = useUrlUpdate();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const working = read?.state === "working";
+  const left = useUsesLeft(working);
+
+  // A read that finishes opens here, now or the next time this page opens, and waits in Recent reads.
+  useEffect(() => {
+    const show = (r: LinkRead | null) => {
+      setRead(r);
+      if (r?.state !== "done" || !r.key) return;
+      setSaved(savedLinks(userId));
+      clearLinkRead();
+      updateUrl({ source: r.key, clone: null, url: null }, { push: true });
+    };
+    show(linkRead());
+    return onLinkRead(show);
+  }, [userId, updateUrl]);
+
+  // A link to a source this device doesn't hold opens the empty box.
+  useEffect(() => {
+    if (sourceKey && !savedLinks(userId).some((s) => s.key === sourceKey)) updateUrl({ source: null });
+  }, [sourceKey, userId, updateUrl]);
+
+  const shown = sourceKey ? saved.find((s) => s.key === sourceKey) ?? null : null;
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (working) return;
+    const link = parseRemixLink(input);
+    const why = link.ok === false ? link.message : notYet(link.kind);
+    if (why) {
+      setLinkError(why);
+      inputRef.current?.focus();
+      return;
+    }
+    setLinkError(null);
+    void startLinkRead(userId, { url: input });
+  };
+
+  const pick = (file: File | undefined) => {
+    if (!file || working) return;
+    const check = checkUpload(file);
+    if ("error" in check) return setLinkError(check.error);
+    setLinkError(null);
+    void startLinkRead(userId, { file });
+  };
+
+  const reset = () => {
+    clearLinkRead();
+    updateUrl({ source: null });
+    setInput("");
+    setLinkError(null);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const linkLeft = left("remix-link");
+  const fileLeft = left("remix-image");
+  const hint = `${LINK_COPY.hint} Each link uses 1 of your ${DAILY_LIMITS["remix-link"]} a day${linkLeft === null ? "" : `, ${linkLeft} left today`}; a file 1 of your ${DAILY_LIMITS["remix-image"]}${fileLeft === null ? "" : `, ${fileLeft} left`}, and a video 1 transcription too. Posts read before are free.`;
+
+  return (
+    <>
+      <header>
+        <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
+          <Shuffle className="h-6 w-6 shrink-0 text-primary" /> Remix a post
+        </h1>
+      </header>
+
+      <form onSubmit={submit} noValidate className="space-y-2">
+        <label htmlFor="remix-url" className="sr-only">
+          Link to a post, reel, Short or ad
+        </label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            id="remix-url"
+            ref={inputRef}
+            type="url"
+            inputMode="url"
+            autoComplete="off"
+            spellCheck={false}
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              if (linkError) setLinkError(null);
+            }}
+            placeholder="Paste a link to a post, reel, Short or ad"
+            disabled={working}
+            aria-invalid={Boolean(linkError)}
+            aria-describedby={linkError ? "remix-url-error" : "remix-url-hint"}
+            className="h-11 min-w-0 flex-1"
+          />
+          <Button
+            type="submit"
+            disabled={working}
+            className="h-11 gap-1.5 bg-gradient-primary px-5 text-primary-foreground shadow-sm hover:opacity-95"
+          >
+            {working ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {working ? "Reading..." : "Read it"}
+          </Button>
+        </div>
+        <div className="flex flex-col gap-x-4 gap-y-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={working} className="h-11 gap-1.5">
+              <Upload className="h-4 w-4" /> Upload a screenshot or video
+            </Button>
+            <PriceChip feature="remix-image" left={fileLeft} />
+          </div>
+          <span className="sm:text-right">
+            <PriceChip feature="remix-link" left={linkLeft} />
+          </span>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,.mov"
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+            onChange={(e) => {
+              pick(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+        </div>
+        {linkError ? (
+          <p id="remix-url-error" role="alert" className="text-xs font-medium text-destructive">
+            {linkError}
+          </p>
+        ) : (
+          <p id="remix-url-hint" className="text-[11px] text-muted-foreground">
+            {hint}
+          </p>
+        )}
+      </form>
+
+      {read?.state === "working" && <ReadingCard read={read} onCancel={clearLinkRead} />}
+      {read?.state === "failed" && (
+        <Card role="alert" className="border-destructive/30 bg-destructive/[0.03] shadow-card">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:p-6">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-destructive" />
+            <div className="min-w-0 flex-1 space-y-3">
+              <p className="text-sm text-foreground/85">{read.error}</p>
+              <div className="flex flex-wrap gap-2">
+                {!["daily_limit", "not_enabled"].includes(read.code ?? "") && (
+                  <Button size="sm" onClick={() => void startLinkRead(userId, read.input)} className="gap-1.5 [@media(pointer:coarse)]:min-h-11">
+                    <RotateCcw className="h-3.5 w-3.5" /> Try again
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={reset} className="[@media(pointer:coarse)]:min-h-11">
+                  Read another
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      {!read && idle && shown && (
+        <LinkResult source={shown} onRemix={() => openRemix(shown.key)} onClone={() => onClone(shown.url!)} onReset={reset} />
+      )}
+      {!read && idle && !shown && empty}
+      {!working && idle && (
+        <RecentReads
+          items={saved.filter((s) => s.key !== shown?.key)}
+          onOpen={(s) => {
+            setLinkError(null);
+            openSource(s.key);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 // ---- Page ---------------------------------------------------------------------------------------------
 
 // A link pasted but not cloned yet, kept for this tab. sessionStorage, outside
@@ -969,8 +1313,9 @@ export default function CloneReelPage() {
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
-  // north-star gate: only Leo's drafts from a clone carry their source
-  const leo = useLeoOnly();
+  // north-star gate: only Leo's drafts from a clone carry their source, and only Leo gets Remix a post
+  const leoUser = useLeoUser();
+  const leo = Boolean(leoUser);
 
   useEffect(() => {
     document.title = "Clone a reel - Content Studio";
@@ -1188,6 +1533,21 @@ export default function CloneReelPage() {
 
   return (
     <div className="space-y-5">
+      {leoUser ? (
+        <RemixLinkBox
+          userId={leoUser.id}
+          input={input}
+          setInput={setInput}
+          idle={view.kind === "idle"}
+          empty={<EmptyState hasVoice={hasVoice} />}
+          onClone={(url) => {
+            setInput(url);
+            updateUrl({ source: null });
+            void run(url);
+          }}
+        />
+      ) : (
+      <>
       <header>
         <h1 className="flex items-center gap-2 font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           <Clapperboard className="h-6 w-6 shrink-0 text-primary" /> Clone a reel
@@ -1241,8 +1601,10 @@ export default function CloneReelPage() {
           </p>
         )}
       </form>
+      </>
+      )}
 
-      {view.kind === "idle" && <EmptyState hasVoice={hasVoice} />}
+      {!leoUser && view.kind === "idle" && <EmptyState hasVoice={hasVoice} />}
 
       {view.kind === "loading" && <LoadingSteps startedAt={view.startedAt} onCancel={cancel} />}
 
