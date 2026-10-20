@@ -1,5 +1,5 @@
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from "react-router-dom";
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProfileSwitcher from "@/components/ProfileSwitcher";
@@ -11,6 +11,7 @@ import { checkSocialConnect, forgetSocialConnect, socialConnectShown } from "@/l
 import { checkMe, forgetMe, reelsShown, seesBoard } from "@/lib/reelsBoard";
 import { applyBrandLink, rememberUser } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { AssistantMount } from "@/components/feedback/AssistantMount";
 import JumpTo, { jumpShortcut } from "@/components/JumpTo";
 import { pushRecent } from "@/lib/jumpTo";
@@ -37,6 +38,13 @@ import {
 // rail 2 the open section's pages. Phones keep a bottom bar and a More sheet.
 // Every page is listed once, in src/lib/nav.ts.
 const MAIN_SECTIONS = SECTIONS.filter((s) => !s.foot);
+
+// The Remix sheet and its pill (north star, Leo only) read the data drops, so they load in their own chunk,
+// fetched as soon as the session says Leo so the sheet still opens within 400ms.
+const loadRemixSheet = () => import("@/components/remix/RemixSheet");
+const loadRemixPill = () => import("@/components/remix/RemixPill");
+const RemixSheet = lazy(loadRemixSheet);
+const RemixPill = lazy(loadRemixPill);
 const FOOT_SECTIONS = SECTIONS.filter((s) => s.foot);
 
 function Logo() {
@@ -209,6 +217,28 @@ export default function StudioLayout() {
   const open = here ?? section("home");
 
   useScrollMemory();
+
+  const leo = useLeoUser();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const remixKey = searchParams.get("remix");
+  // A typed ?remix= on anyone else's session is dropped; while the session is still being read (undefined) it
+  // stays, so Leo's sheet reopens after a reload. Plain params here: urlState and links stay out of the main chunk.
+  useEffect(() => {
+    if (leo !== null || !remixKey) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("remix");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [leo, remixKey, setSearchParams]);
+  useEffect(() => {
+    if (!leo) return;
+    void loadRemixSheet();
+    void loadRemixPill();
+  }, [leo]);
 
   useEffect(() => {
     let active = true;
@@ -555,6 +585,14 @@ export default function StudioLayout() {
       </div>
       <JumpTo open={jumpOpen} onClose={() => setJumpOpen(false)} email={email} />
       <ExportPill />
+      {leo && (
+        <ErrorBoundary resetKey={pathname}>
+          <Suspense fallback={null}>
+            <RemixSheet user={leo} />
+            <RemixPill />
+          </Suspense>
+        </ErrorBoundary>
+      )}
       <AssistantMount />
     </div>
   );

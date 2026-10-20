@@ -18,6 +18,23 @@ opens that brand first, then the page. The page reloads once to switch and the p
 open; a device that doesn't know the brand yet keeps the param until its list syncs. Copy link adds it to every
 link it copies (docs/brand-isolation.md). Example: /calendar?view=upcoming&profile=pmg2k1x9ab.
 
+**Remix, on every page (Leo's sign-ins only):** `?remix=<source key>` opens the Remix sheet over the page
+(push; Back or the X closes it). Keys are the /generate?source= shapes under "Still read" (src/lib/remixSource.ts);
+a key the device no longer holds opens the sheet's "no longer in the library" state. Every other sign-in has
+remix= removed (replace). The sheet's choices replace the history entry and leave their defaults out:
+
+| Param | Values | Default |
+|---|---|---|
+| keep | structure, hook, energy, topic, part2, react (only the ones that fit the source) | structure |
+| about | a positioning topic as a slug, with keep=topic only | the first topic |
+| close | loose, balanced, close | balanced |
+| more | open: "More options" (How close) shown | closed |
+| for | open: the For row's switches shown | closed |
+| mention | no: leave the brand's name out of this remix | the brand's remembered pick, else yes |
+| offer | an offer's name as a slug (Brand kit offers) | the brand's remembered pick, else none |
+
+Unknown values fall back silently. Example: /swipe?post=the-woke-salaryman-instagram-Ddkxv39j961&remix=top:the-woke-salaryman-instagram-Ddkxv39j961&keep=topic&about=cpf.
+
 | Page | Param | Values | Default | History | Example |
 |---|---|---|---|---|---|
 | /plan | view | plan, setup (the positioning form over a built plan) | plan; setup when there is no plan | replace | /plan?view=setup |
