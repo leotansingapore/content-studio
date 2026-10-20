@@ -1348,6 +1348,10 @@ export default function CloneReelPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (leoUser) document.title = "Remix a post - Content Studio";
+  }, [leoUser]);
+
   // Reading the video runs outside the page; show its progress, and the saved result when it lands.
   useEffect(
     () =>
