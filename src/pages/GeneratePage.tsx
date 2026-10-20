@@ -3293,15 +3293,19 @@ export default function GeneratePage() {
                   Next <ChevronRight className="h-4 w-4" />
                 </Button>
                 {canGenerateEarly && (
-                  <Button
-                    type="button"
-                    onClick={() => void handleGenerate()}
-                    disabled={checkingIdea}
-                    className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 [@media(pointer:coarse)]:h-11"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    {generateButtonLabel}
-                  </Button>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <Button
+                      type="button"
+                      onClick={() => void handleGenerate()}
+                      disabled={checkingIdea}
+                      className="gap-2 bg-gradient-primary text-primary-foreground shadow-elegant hover:opacity-95 [@media(pointer:coarse)]:h-11"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      {generateButtonLabel}
+                    </Button>
+                    {/* under the button, so the footer still fits at 390 px */}
+                    {!isStreaming && <PriceChip price={WRITE_PRICE} left={null} />}
+                  </div>
                 )}
               </div>
             ) : (
