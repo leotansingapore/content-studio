@@ -1,6 +1,6 @@
 # Their best organic posts
 
-`find-competitor-posts` | find | phase 2 | status: partial | /north-star#find-competitor-posts
+`find-competitor-posts` | find | phase 2 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#find-competitor-posts
 
 ## Leo asked
 

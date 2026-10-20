@@ -1,6 +1,6 @@
 # An ad library for your space
 
-`find-ad-library` | find | phase 2 | status: partial | /north-star#find-ad-library
+`find-ad-library` | find | phase 2 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#find-ad-library
 
 ## Leo asked
 

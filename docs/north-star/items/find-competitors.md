@@ -1,6 +1,6 @@
 # Key in your competitors
 
-`find-competitors` | find | phase 2 | status: partial | /north-star#find-competitors
+`find-competitors` | find | phase 2 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#find-competitors
 
 ## Leo asked
 
@@ -185,7 +185,7 @@ Add both caps to `DAILY_LIMITS` in `supabase/functions/_shared/usageCaps.ts` wit
 - [ ] `brand-dna` and `market` are redeployed after the `safeFetch.ts`, `pool.ts` and `dataforseo.ts` moves, `market` still answers its free `{ action: "status" }` probe, and one "Add a brand from its website" read works on Leo's sign-in. Do not run a paid market check to test the move.
 - [ ] `docs/deep-links.md`, `src/lib/links.ts`, `src/lib/nav.ts`, `src/lib/jumpTo.ts` (keywords "competitors rivals") updated.
 - [ ] Checked by eye at 390 px and 1440 px; `npm run build` and `npx vitest run` pass.
-- [ ] `src/data/northStar.ts` item flipped with its `ours` line.
+- [x] `src/data/northStar.ts` item flipped with its `ours` line.
 
 ## Tests
 

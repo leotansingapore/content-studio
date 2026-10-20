@@ -1,6 +1,6 @@
 # Creators to learn from
 
-`find-creators` | find | phase 2 | status: partial | /north-star#find-creators
+`find-creators` | find | phase 2 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#find-creators
 
 ## Leo asked
 

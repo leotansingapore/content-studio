@@ -1,6 +1,6 @@
 # Why this ad works
 
-`find-ad-detail` | find | phase 2 | status: partial | /north-star#find-ad-detail
+`find-ad-detail` | find | phase 2 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#find-ad-detail
 
 ## Leo asked
 

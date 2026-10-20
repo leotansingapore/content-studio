@@ -1,6 +1,6 @@
 # Every saved post broken down
 
-`find-ai-tagging` | find | phase 2 | status: partial | /north-star#find-ai-tagging
+`find-ai-tagging` | find | phase 2 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#find-ai-tagging
 
 ## Leo asked
 

@@ -1,6 +1,6 @@
 # Save from anywhere into boards
 
-`find-save-anywhere` | find | phase 2 | status: partial | /north-star#find-save-anywhere
+`find-save-anywhere` | find | phase 2 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#find-save-anywhere
 
 ## Leo asked
 

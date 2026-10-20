@@ -1,6 +1,6 @@
 # Patterns and hooks from what works
 
-`remix-patterns` | remix | phase 2 | status: partial | /north-star#remix-patterns
+`remix-patterns` | remix | phase 2 | status: live (Leo's sign-ins, 21 Oct 2026) | /north-star#remix-patterns
 
 ## Leo asked
 
@@ -157,7 +157,7 @@ Caps and cost:
 - [ ] "Use this hook" opens Write on that formula.
 - [ ] Cap 10 counts server side and refunds on failure; another sign-in gets 403 and sees no Hooks tab and no "What worked".
 - [ ] Checked by eye at 390 px and 1440 px.
-- [ ] `src/data/northStar.ts` item flipped (status and `ours`) in the same commit, and this spec's status line ticked.
+- [x] `src/data/northStar.ts` item flipped (status and `ours`) in the same commit, and this spec's status line ticked.
 
 ## Tests
 

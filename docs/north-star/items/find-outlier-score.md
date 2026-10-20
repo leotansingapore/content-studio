@@ -1,6 +1,6 @@
 # Outlier score: what beat its own normal
 
-`find-outlier-score` | find | phase 2 | status: partial | /north-star#find-outlier-score
+`find-outlier-score` | find | phase 2 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#find-outlier-score
 
 ## Leo asked
 

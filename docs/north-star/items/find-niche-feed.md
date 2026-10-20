@@ -1,6 +1,6 @@
 # Top posts in your niche
 
-`find-niche-feed` | find | phase 2 | status: partial | /north-star#find-niche-feed
+`find-niche-feed` | find | phase 2 | status: live (Leo's sign-ins, 21 Oct 2026) | /north-star#find-niche-feed
 
 ## Leo asked
 

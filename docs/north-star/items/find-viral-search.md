@@ -1,6 +1,6 @@
 # Search any public post
 
-`find-viral-search` | find | phase 2 | status: missing | /north-star#find-viral-search
+`find-viral-search` | find | phase 2 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#find-viral-search
 
 ## Leo asked
 

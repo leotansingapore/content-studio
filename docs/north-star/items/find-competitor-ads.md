@@ -1,6 +1,6 @@
 # Their ads, checked every week
 
-`find-competitor-ads` | find | phase 2 | status: partial | /north-star#find-competitor-ads
+`find-competitor-ads` | find | phase 2 | status: live (Leo's sign-ins, 20 Oct 2026) | /north-star#find-competitor-ads
 
 ## Leo asked
 

@@ -1,6 +1,6 @@
 # Topics and hashtags people search for
 
-`find-search-topics` | find | phase 2 | status: missing | /north-star#find-search-topics
+`find-search-topics` | find | phase 2 | status: live (Leo's sign-ins, 21 Oct 2026) | /north-star#find-search-topics
 
 ## Leo asked
 
