@@ -200,3 +200,19 @@ describe("the status chip", () => {
     expect(isDue(link({ status: "scheduled" }))).toBe(true);
   });
 });
+
+describe("tracked links in the post", () => {
+  const brand = { color: "#000", name: "", handle: "", signOff: "Book a call: https://acme.sg/call", tagLinks: true };
+  const d = { draft: "Read https://acme.sg/guide.", disclosure: [], platform: "linkedin", hook: "Three CPF checks before 55", pillarDetail: "Retirement" };
+
+  it("tags every link with the platform and the hook when the brand kit asks, the sign-off's too", () => {
+    const tag = "utm_source=linkedin&utm_medium=social&utm_campaign=three-cpf-checks-before-55";
+    expect(postText(d, brand)).toBe(`Read https://acme.sg/guide?${tag}.\n\nBook a call: https://acme.sg/call?${tag}`);
+  });
+
+  it("names the campaign after the topic when there is no hook, else post, and leaves links alone when the kit doesn't ask", () => {
+    expect(postText({ ...d, hook: "" }, brand)).toContain("https://acme.sg/guide?utm_source=linkedin&utm_medium=social&utm_campaign=retirement.");
+    expect(postText({ ...d, hook: "", pillarDetail: "" }, brand)).toContain("utm_campaign=post.");
+    expect(postText(d, { ...brand, tagLinks: false })).toBe("Read https://acme.sg/guide.\n\nBook a call: https://acme.sg/call");
+  });
+});
