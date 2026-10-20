@@ -462,7 +462,7 @@ function WallStart({ busy, onMake, onClose }: { busy: string; onMake: (file: Fil
             <Upload className="h-3.5 w-3.5" /> Upload
             <input type="file" accept="video/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setClip(f); setStock(false); } }} />
           </label>
-          <Button size="sm" variant="outline" className="h-9 gap-1.5 [@media(pointer:coarse)]:min-h-11" onClick={() => setStock(true)} aria-expanded={stock}><Film className="h-3.5 w-3.5" /> Stock clip</Button>
+          <button type="button" className={pickBtn} onClick={() => setStock(true)} aria-expanded={stock}><Film className="h-3.5 w-3.5" /> Stock clip</button>
           {clip && <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground"><Check className="h-3.5 w-3.5 shrink-0 text-success" /><span className="truncate">{clip.name}</span></span>}
         </div>
         {stock && (
@@ -476,7 +476,7 @@ function WallStart({ busy, onMake, onClose }: { busy: string; onMake: (file: Fil
         )}
       </div>
       <label className="block space-y-1 text-xs font-semibold">
-        Your words
+        <span className="block">Your words</span>
         <Textarea rows={4} maxLength={400} value={text} onChange={(e) => write(e.target.value)}
           placeholder="POV: it's year-end and you finally check what your CPF is doing" className="text-sm font-normal" />
       </label>
@@ -2170,9 +2170,9 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
                     <Upload className="h-3.5 w-3.5" /> Upload
                     <input type="file" accept="video/*" className="sr-only" disabled={swapping} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) uploadSwap(f); }} />
                   </label>
-                  <Button size="sm" variant="outline" className="h-9 gap-1.5 [@media(pointer:coarse)]:min-h-11" disabled={swapping} onClick={() => setSwapStock(true)} aria-expanded={swapStock}>
+                  <button type="button" className={`${pickBtn} disabled:pointer-events-none disabled:opacity-60`} disabled={swapping} onClick={() => setSwapStock(true)} aria-expanded={swapStock}>
                     <Film className="h-3.5 w-3.5" /> Stock clip
-                  </Button>
+                  </button>
                 </div>
                 {swapStock && (
                   <StockSearch kind="video" orientation={settings.aspect === "16:9" ? "landscape" : settings.aspect === "1:1" ? "square" : "portrait"}
