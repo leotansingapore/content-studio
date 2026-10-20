@@ -352,7 +352,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           )}
         </section>
 
-        <MakeRow source={source} as={shownAs} setAs={setAs} busy={working} left={leftOf} />
+        <MakeRow source={source} as={shownAs} setAs={setAs} busy={working} left={leftOf} mention={mention} />
 
         <ForRow
           brand={brand}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FilterChip } from "@/components/ui/filter-chip";
+import { FORMATS } from "@/data/formats";
 import { aiBusy as aiWorking, onAiJob, pendingAvatar } from "@/lib/aiVideo";
 import { links } from "@/lib/links";
 import { priceText } from "@/lib/prices";
@@ -10,9 +11,18 @@ import type { UsageFeature } from "../../../supabase/functions/_shared/usageCaps
 
 /**
  * The formats one press makes (docs/north-star/items/remix-any-format.md): up to 3, one video at a time. The video
- * chips carry their price, and go off while another video is being made or a cap they spend is used up.
+ * chips carry their price, and go off while another video is being made or a cap they spend is used up. Under them,
+ * "Also make" links each format page (src/data/formats.ts) on this source; they open the page, they don't toggle.
  */
-export default function MakeRow(p: { source: RemixSource; as: RemixAs[]; setAs(next: RemixAs[]): void; busy: boolean; left: (f: UsageFeature) => number | null }) {
+export default function MakeRow(p: {
+  source: RemixSource;
+  as: RemixAs[];
+  setAs(next: RemixAs[]): void;
+  busy: boolean;
+  left: (f: UsageFeature) => number | null;
+  /** The For row's Mention: off carries mention=no to the format page. */
+  mention?: boolean;
+}) {
   const [warn, setWarn] = useState(false);
   const aiBusy = useAiBusy();
   const picked = p.as.find(isVideo);
@@ -52,6 +62,18 @@ export default function MakeRow(p: { source: RemixSource; as: RemixAs[]; setAs(n
       <p role={warn ? "alert" : undefined} className={`text-xs ${warn || blocked ? "font-medium text-amber-700 dark:text-amber-300" : "text-muted-foreground"}`}>
         {warn ? VIDEO_LIMITS.pickMore : line}
         {!warn && line === VIDEO_LIMITS.waiting && <WaitingLink />}
+      </p>
+      <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+        Also make:
+        {FORMATS.map((f) => (
+          <Link
+            key={f.slug}
+            to={links.makeFormat(f.slug, { source: p.source.key, go: 1, mention: p.mention === false ? "no" : undefined })}
+            className="inline-flex h-9 items-center rounded-full border border-border/60 px-3 font-medium text-foreground hover:border-primary/40 sm:h-7 [@media(pointer:coarse)]:min-h-11"
+          >
+            {f.name}
+          </Link>
+        ))}
       </p>
     </section>
   );
