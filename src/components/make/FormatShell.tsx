@@ -19,6 +19,8 @@ export interface ShellFooter {
   disabled?: boolean;
   /** Why the button is off, shown under it; the cap's own line when it is used up. */
   reason?: string | null;
+  /** A result is on screen: its own Schedule or Download is the main action, so this button steps down to outline. */
+  secondary?: boolean;
   onMake(): void;
 }
 
@@ -47,7 +49,7 @@ export default function FormatShell(p: { title: string; blurb: string; options: 
               <span className="min-w-0 flex-1" aria-live="polite">
                 <PriceChip feature={f.cap} left={left} />
               </span>
-              <Button onClick={f.onMake} disabled={f.busy || f.disabled || left === 0} className="shrink-0 gap-1.5">
+              <Button onClick={f.onMake} disabled={f.busy || f.disabled || left === 0} variant={f.secondary ? "outline" : "default"} className="shrink-0 gap-1.5">
                 {f.busy && <Loader2 className="h-4 w-4 animate-spin" />}
                 {f.busy ? f.busyLabel : f.label}
               </Button>

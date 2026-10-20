@@ -308,7 +308,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
       blurb={def.blurb}
       options={options}
       result={result}
-      footer={{ cap: def.cap, label: "Make the slideshow", busyLabel: "Making...", busy, reason, disabled: !!reason, onMake: () => makeIt() }}
+      footer={{ cap: def.cap, label: "Make the slideshow", busyLabel: "Making...", busy, reason, disabled: !!reason, secondary: !!shown && !busy, onMake: () => makeIt() }}
     />
   );
 }
