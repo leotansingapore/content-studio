@@ -183,6 +183,7 @@ describe("runTeardown", () => {
     expect((body.teardown.hook as { formula: string }).formula).toBe("list");
     const sent = deps.openai.mock.calls[0][0] as { max_tokens: number; messages: { content: string }[] };
     expect(sent.max_tokens).toBe(900);
+    expect(deps.openai.mock.calls[0][1]).toBe(40_000);
     expect(sent.messages[1].content).toContain("5 signs your plan is stale");
     expect(deps.ask.mock.calls[0][0]).toEqual({ hook: "Most people check their CPF once a year." });
   });
@@ -232,6 +233,21 @@ describe("runTeardown", () => {
     const t = (r.body as { teardown: { basedOn: string; hook: { formula: unknown } } }).teardown;
     expect(t.basedOn).toBe("caption");
     expect(t.hook.formula).toBeNull();
+  });
+
+  it("gives the use back with no model call when the read leaves too little of the request's time", async () => {
+    let now = 1_000_000;
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => now);
+    try {
+      const readSource = vi.fn(async () => ((now += 80_000), { transcript: "Hi there", durationSec: 45 }));
+      const { deps } = fakeDeps({ readSource });
+      const r = await runTeardown(req({ format: "video", url: "https://www.instagram.com/reel/ABCdef123/" }), deps);
+      expect(r.status).toBe(502);
+      expect(deps.openai).not.toHaveBeenCalled();
+      expect(deps.refund).toHaveBeenCalledTimes(1);
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   it("refunds when a captionless reel can't be read", async () => {

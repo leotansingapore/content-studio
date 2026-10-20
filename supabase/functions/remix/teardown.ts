@@ -8,9 +8,10 @@
 //   refund: (day) => refundUsage(admin, uid, "remix-teardown", day),
 //   readSource: (url) => readPost(admin, url, Deno.env.get("APIFY_API_KEY"), FETCH_BUDGET_MS).then((r) => r &&
 //     { transcript: r.row.transcript ?? undefined, durationSec: r.row.duration_sec ?? undefined, caption: r.row.caption }),
-//   openai: (body) => openaiChat(body) then its JSON, and ask: (state, q) => askJev(state, q, { who: "remix-teardown" }).
+//   openai: (body, ms) => openaiChat(body, { signal: AbortSignal.timeout(ms) }) then its JSON,
+//   ask: (state, q) => askJev(state, q, { who: "remix-teardown" }).
 
-import { oneLineText, parseObject, parseReelUrl } from "../clone-reel/logic.ts";
+import { aiTimeoutMs, oneLineText, parseObject, parseReelUrl } from "../clone-reel/logic.ts";
 import { usageRefusal, type UsageResult } from "../_shared/usageCaps.ts";
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
 
@@ -69,8 +70,8 @@ export interface TeardownDeps {
   consume(): Promise<UsageResult>;
   refund(day: string): Promise<unknown>;
   readSource(url: string): Promise<SourceRead | null>;
-  /** One Chat Completions call; resolves to the response JSON. */
-  openai(body: unknown): Promise<unknown>;
+  /** One Chat Completions call, aborted after timeoutMs; resolves to the response JSON. */
+  openai(body: unknown, timeoutMs: number): Promise<unknown>;
   ask(state: unknown, q: Record<string, JevQuestion>): Promise<Record<string, JevAnswer> | null>;
 }
 
@@ -311,9 +312,11 @@ const contentOf = (data: unknown) =>
 /**
  * One teardown: count the use before the first paid call, read the video when it is a reel or TikTok (a cached row
  * is free), write with OpenAI, ask Jev for the formula, and give the use back on any failure after the count.
- * A Jev outage only leaves formula null.
+ * The model gets what is left of clone-reel's 90 s budget (aiTimeoutMs), and none left means a refund, so a slow
+ * read never runs the request past the edge limit with the use spent. A Jev outage only leaves formula null.
  */
 export async function runTeardown(req: TeardownRequest, deps: TeardownDeps): Promise<TeardownReply> {
+  const startedAt = Date.now();
   const s = req.source;
   const day = new Date().toISOString().slice(0, 10); // the counter's day (UTC), as cs_consume_ai_usage keeps it
   const usage = await deps.consume();
@@ -328,7 +331,9 @@ export async function runTeardown(req: TeardownRequest, deps: TeardownDeps): Pro
   try {
     const read = readsVideo(s) ? await deps.readSource(s.url!).catch(() => null) : null;
     if (!s.text && !read?.caption && !read?.transcript) return await fail();
-    const parts = validateTeardown(contentOf(await deps.openai(teardownBody(buildTeardownPrompt(s, read)))));
+    const aiMs = aiTimeoutMs(Date.now() - startedAt);
+    if (aiMs === 0) return await fail();
+    const parts = validateTeardown(contentOf(await deps.openai(teardownBody(buildTeardownPrompt(s, read)), aiMs)));
     if (!parts) return await fail();
     const ids = req.formulas.map((f) => f.id);
     const answers = ids.length ? await deps.ask({ hook: parts.hook.line }, formulaQuestion(req.formulas)).catch(() => null) : null;
