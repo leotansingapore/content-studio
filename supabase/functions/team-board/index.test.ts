@@ -195,6 +195,17 @@ describe("team-board", () => {
     expect(JSON.stringify(list.body)).not.toMatch(/token|[0-9a-f]{64}/);
   });
 
+  it("keeps a member whose access leaves out the posts board off it", async () => {
+    const now = new Date().toISOString();
+    db.tables.cs_board_members.push({ id: crypto.randomUUID(), owner_id: LEO, label: "Mei", member_id: MEI, role: "approver", brands: ["activitytracker"], modules: ["review"], claimed_at: now, revoked_at: null, created_at: now });
+    expect(await call(MEI, { action: "me" })).toMatchObject({ body: { member: true, modules: ["review"] } });
+    for (const body of [{ action: "board" }, { action: "card", id: "x", patch: { stage: "approved" } }, { action: "comment", id: "x", text: "hi" }]) {
+      expect(await call(MEI, body)).toEqual({ status: 403, body: { error: "You're not on this team." } });
+    }
+    expect(sent).toEqual([]);
+    expect(db.spent).toEqual([]);
+  });
+
   it("hides a board failure behind a plain message", async () => {
     boardStatus = 500;
     expect(await call(LEO, { action: "board" })).toEqual({ status: 502, body: { error: "The board didn't answer. Try again." } });
