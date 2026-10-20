@@ -692,6 +692,9 @@ export default function GeneratePage() {
   // read ?source= (north-star gate); a draft that already carries one keeps it on every save.
   const leo = useLeoUser();
   const [remixSource, setRemixSource] = useState<RemixSource | null>(null);
+  // An adapt that finishes after the x or the credit box saves the source as it is then
+  const remixSourceRef = useRef(remixSource);
+  remixSourceRef.current = remixSource;
   const [pendingSourceKey, setPendingSourceKey] = useState<string | null>(null);
   // "Remix it again" hides the repeat notice for that key
   const [repeatHidden, setRepeatHidden] = useState<string | null>(null);
@@ -1131,11 +1134,15 @@ export default function GeneratePage() {
       .catch(() => {});
   }, [pendingSourceKey, leo, userId]);
 
-  // The chip's x and the credit box change the saved post too, once there is one.
+  // The chip's x and the credit box change the saved post and its platform versions too, once there are any.
   const changeSource = (next: RemixSource | null) => {
     setRemixSource(next);
-    const e = userId && currentDraftId ? getDraftById(userId, currentDraftId) : null;
-    if (e && userId) upsertDraft(userId, { ...e, source: next ?? undefined });
+    remixSourceRef.current = next;
+    if (!userId) return;
+    for (const id of [currentDraftId, ...versions.map((v) => v.draftId)]) {
+      const e = id ? getDraftById(userId, id) : null;
+      if (e) upsertDraft(userId, { ...e, source: next ?? undefined });
+    }
   };
   // An earlier remix of the same source in the last 30 days, while this one is not saved yet.
   const repeat = useMemo(() => {
@@ -1942,7 +1949,9 @@ export default function GeneratePage() {
       platform: v.platform,
       ctaType,
       vibeSourceId: vibeSourceId ?? undefined,
-      source: remixSource ? { ...remixSource, remixedAt: remixSource.remixedAt || new Date().toISOString() } : undefined,
+      source: remixSourceRef.current
+        ? { ...remixSourceRef.current, remixedAt: remixSourceRef.current.remixedAt || new Date().toISOString() }
+        : undefined,
       status: existing?.status,
       scheduledFor: existing?.scheduledFor,
       postedAt: existing?.postedAt,
