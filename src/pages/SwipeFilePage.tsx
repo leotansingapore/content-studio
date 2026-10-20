@@ -19,6 +19,7 @@ import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { supabase } from "@/lib/supabase";
 import { loadSaved, toggleSaved } from "@/lib/savedItems";
 import { loadPositioning } from "@/lib/positioning";
+import { links } from "@/lib/links";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { getAllTopPosts, TOTAL_TOP_POSTS, generatorFormat, creatorKind } from "@/lib/topPosts";
 import {
@@ -447,6 +448,15 @@ export default function SwipeFilePage() {
                 </div>
               )}
             </>
+          )}
+
+          {/* Leo: a search the hand-picked posts barely answer goes to TikTok and YouTube (a link, so nothing is spent here) */}
+          {leo && search.trim() && filtered.length < 5 && (
+            <p className="text-center text-sm">
+              <Link to={links.swipe({ tab: "search", q: search })} className="font-semibold text-primary hover:underline [@media(pointer:coarse)]:inline-block [@media(pointer:coarse)]:py-3">
+                {filtered.length ? `Only ${filtered.length}` : "None"} in the hand-picked posts. Search TikTok and YouTube for "{search.trim()}"
+              </Link>
+            </p>
           )}
 
           <PostDetailDrawer
