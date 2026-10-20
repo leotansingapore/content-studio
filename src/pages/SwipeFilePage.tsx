@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import IndustryNews from "@/components/IndustryNews";
 import AdsSwipe from "@/components/AdsSwipe";
 import ViralSearch from "@/components/ViralSearch";
 import { ADS, ADS_FETCHED } from "@/lib/adsSwipe";
+import { hasLibraryAds, loadLibrary, onSpaceAdsChanged } from "@/lib/adLibrary";
+import { onCompetitorAdsChanged } from "@/lib/competitorAds";
 import YourFeeds from "@/components/YourFeeds";
 import Mentions from "@/components/Mentions";
 import { NEWS } from "@/lib/industryNews";
@@ -35,6 +37,9 @@ import {
   type ScoredPost,
   type SortKey,
 } from "@/lib/postInsights";
+
+// Leo's ads tab (the ad library and its drawer): a chunk of its own, so nobody else downloads it.
+const AdLibrary = lazy(() => import("@/components/AdLibrary"));
 
 // Static data → enrich once at module load.
 const ALL = getAllTopPosts();
@@ -96,8 +101,17 @@ function FilterSelect({
 export default function SwipeFilePage() {
   // Tab, search, filters, sort and the open post live in the URL (docs/deep-links.md).
   const leo = useLeoUser();
+  // Leo's ads tab reads his competitors' and space's ads too: drawn again when either store changes
+  const [libraryVersion, bumpLibrary] = useState(0);
+  useEffect(() => {
+    if (!leo) return;
+    const offs = [onCompetitorAdsChanged(() => bumpLibrary((n) => n + 1)), onSpaceAdsChanged(() => bumpLibrary((n) => n + 1))];
+    return () => offs.forEach((off) => off());
+  }, [leo]);
+  const leoAds = useMemo(() => (leo && hasLibraryAds(leo.id) ? loadLibrary(leo.id).length : 0), [leo, libraryVersion]);
+  const adsTab = leo ? leoAds > 0 : ADS.length > 0;
   const [tab] = useUrlState<Tab>("tab", "posts", {
-    allowed: [...(ADS.length ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["search"] as const) : [])],
+    allowed: [...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["search"] as const) : [])],
   });
   const update = useUrlUpdate();
   // Each tab has its own search and filters, so a tab switch starts them clean in one write.
@@ -133,7 +147,8 @@ export default function SwipeFilePage() {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [openKey, openPost, closePost] = useUrlItem("post");
   const { search: here } = useLocation();
-  const leoTabLoading = leo === undefined && LEO_TABS.includes(new URLSearchParams(here).get("tab") ?? "");
+  // ads waits too: Leo's library replaces the Singapore picks, so they never flash first
+  const leoTabLoading = leo === undefined && [...LEO_TABS, "ads"].includes(new URLSearchParams(here).get("tab") ?? "");
 
   const target = useMemo(
     () => (userId ? personalTargetFromPositioning(loadPositioning(userId)) : null),
@@ -222,8 +237,8 @@ export default function SwipeFilePage() {
         {[
           { id: "posts" as const, label: "Top posts", n: TOTAL_TOP_POSTS },
           { id: "news" as const, label: "Industry news", n: NEWS.length },
-          // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing.
-          ...(ADS.length ? [{ id: "ads" as const, label: "Ads", n: ADS.length }] : []),
+          // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing; Leo's counts his library.
+          ...(adsTab ? [{ id: "ads" as const, label: "Ads", n: leo ? leoAds : ADS.length }] : []),
           ...(leo ? [{ id: "search" as const, label: "Search", n: null }] : []),
         ].map((t) => (
           <button
@@ -246,6 +261,10 @@ export default function SwipeFilePage() {
         <div className="min-h-[40vh]" aria-busy="true" />
       ) : tab === "search" && leo ? (
         <ViralSearch userId={leo.id} />
+      ) : tab === "ads" && leo ? (
+        <Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}>
+          <AdLibrary userId={leo.id} />
+        </Suspense>
       ) : tab === "ads" ? (
         <section className="space-y-3">
           <div className="flex items-center gap-1.5">
