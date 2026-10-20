@@ -197,6 +197,7 @@ Nav: `src/lib/nav.test.ts` keeps its More sheet assertion for `someone@example.c
 - My posts keeps 50 posts per brand and drops the oldest, so the library forgets older work. Metricool holds 250. Raising `MAX_DRAFTS` grows the synced row in `cs_user_data`; measure the row at 200 posts before changing it. Leo decides.
 - Should `/library` replace `/drafts` when it is turned on for everyone, or sit beside it? Leo decides. Until then both exist and the library is read-only apart from its links.
 - Videos made on another device show a card with no file. Cloud copies of video files wait on brand-media-library step 2 (bucket and storage spend), which is Leo's call.
+- 20 Oct 2026, as built (phase-1 brief over this spec): slideshows are carousel cards (a slideshow tied to a post gives that post its slide-1 thumb and opens /slideshow?s=); a saved carousel tied to a post opens /carousel?carousel=<id>; a finished join /edit has not taken yet is a ready video, "Open it in the editor"; a paid avatar or template clip waiting after a reload is a making row, "Open the editor to finish it"; Remix rows come in as "Remix" (a format still queued says "Up next") and reopen the sheet over /library.
 
 ## Related
 

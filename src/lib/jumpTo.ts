@@ -26,6 +26,7 @@ const KEYWORDS: Record<string, string> = {
   "/calendar": "schedule scheduled posts upcoming queue dates planner content",
   "/plan": "weekly plan ideas",
   "/drafts": "posts history saved mark posted",
+  "/library": "made everything videos ready",
   "/board": "kanban pipeline",
   "/grid": "instagram feed preview",
   "/reels": "reels board approve",

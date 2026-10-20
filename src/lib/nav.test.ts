@@ -3,7 +3,7 @@ import { MOBILE_TABS, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionF
 
 const routes = [
   "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/slideshow", "/edit", "/plan", "/calendar", "/board",
-  "/drafts", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
+  "/drafts", "/library", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/playbook", "/voice", "/brand", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star",
 ];
@@ -55,6 +55,14 @@ describe("nav", () => {
     const write = (email: string) => visiblePages(section("write").pages, email).map((p) => p.to);
     expect(write("someone@example.com")).not.toContain("/slideshow");
     expect(write("tanjunsing@gmail.com")).toContain("/slideshow");
+  });
+
+  it("shows Library only to Leo's sign-ins, after My posts", () => {
+    const pipeline = (email: string) => visiblePages(section("pipeline").pages, email).map((p) => p.to);
+    expect(pipeline("someone@example.com")).not.toContain("/library");
+    expect(pipeline("leotanjs95@gmail.com")).toEqual(expect.arrayContaining(["/drafts", "/library"]));
+    expect(pipeline("leotanjs95@gmail.com").indexOf("/library")).toBe(pipeline("leotanjs95@gmail.com").indexOf("/drafts") + 1);
+    expect(pageFor("/library")?.page.label).toBe("Library");
   });
 
   it("shows Social accounts and Auto-DM only once the server has said it is switched on", () => {
