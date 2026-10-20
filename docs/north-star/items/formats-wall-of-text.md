@@ -167,6 +167,14 @@ Not Leo: `NotFoundPage`.
 
 - Fastlane reuses the trending video itself. A source clip with no person in it (a screen, a street) might be fair to reuse, but the default here is never; Leo decides.
 - TikTok's trending sounds cannot be attached through the API as far as we know (unverified), so the sound is your own track or none.
+- Built 2026-10-20 (formats-wall), where the build differs from the text above (the phase-1 brief and edit-text-video settle these):
+  - The words are edit-text-video's `block` overlay through `wallSettings`, `wrapBlock` and `readSeconds`; there is no `"wall"` kind or `wrapWall`. The video runs `clamp(readSeconds(text), 6, 15)` seconds (3.5 words a second: 9 words 6 s, 30 words 9 s, 50 or more 15 s), not `words / 3 + 1.5`. The block is white "Clean" (DM Sans 600) with the block's dark outline and shadow, no plate, centred, its size stepped down from 1 until it fits 45% of a 9:16 frame. The text allows 60 words and 400 characters, as above.
+  - "Start from" reads "A topic" | "Remix a trending one" (`from=topic`), as on /make/slideshow: "A video I pick" clashed with Background's "Stock clip". Your own video is Background > "My video" (`bg=mine`). "What it's about" is the topic with no post, else the optional steer.
+  - The editor opens a wall project on edit-text-video's short panel because `settings.wall` is true, so there is no `tab=stickers`. There is no example mp4: the panel is a dashed 9:16 frame. "Change clip" (the grid of 6 stock clips) is not built: Jev picks the clip, and the editor's short panel swaps the video.
+  - The entry point is the Remix sheet's "Also make: Wall of text" link (making on arrival through navigation state, never `?go=1`), not separate buttons on /trends and the swipe drawer.
+  - Over the cap, "Make it" turns off with the format shell's shared line, as on /make/slideshow.
+  - Checks in code after writing (one fixing pass, then a refusal that keeps the use): the emoji count within one of the original's (an original full of emoji counts as 3), a business never says I (a quoted objection may), and the brand named exactly once in the words with Mention on, nowhere with it off.
+  - "Pick my video" after no clip fits, or Try again after a dropped download, finishes with the words already written: no second remix use.
 
 ## New evidence (20 Oct 2026)
 
