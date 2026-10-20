@@ -99,11 +99,14 @@ export default function FollowingPage() {
       <header className="flex flex-wrap items-center gap-3">
         <h1 className="mr-auto font-serif text-2xl font-semibold tracking-tight sm:text-3xl">Following</h1>
         {list.length > 0 && (
-          <Button variant="outline" className="h-10 gap-2" onClick={checkAll} disabled={anyChecking || Boolean(allWhy)}>
-            {anyChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Check all
-          </Button>
+          // the chip sits under Check all on phones, beside it from sm
+          <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+            <Button variant="outline" className="h-10 gap-2" onClick={checkAll} disabled={anyChecking || Boolean(allWhy)}>
+              {anyChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Check all
+            </Button>
+            {!anyChecking && <PriceChip price={sumPrices(...list.map(() => priceOf("track-accounts")))} uses={list.length} left={left} />}
+          </div>
         )}
-        {list.length > 0 && !anyChecking && <PriceChip price={sumPrices(...list.map(() => priceOf("track-accounts")))} uses={list.length} left={left} />}
         {list.length > 0 && allWhy && <p className="basis-full text-right text-xs text-destructive">{allWhy}</p>}
       </header>
 
