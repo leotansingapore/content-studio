@@ -123,6 +123,24 @@ describe("the store", () => {
     expect(b.addBoard("u1", "   ")).toEqual({ ok: false, reason: "empty" });
   });
 
+  it("keeps every saved post when storage is nearly full, shortening captions instead, and says so when even that won't fit", () => {
+    const caption = "x".repeat(300);
+    storage.setItem(KEY, JSON.stringify({ boards: [], items: [item(1, { caption }), item(2, { caption })] }));
+    let room = 1200;
+    const write = storage.setItem.bind(storage);
+    storage.setItem = (k: string, v: string) => {
+      if (k === KEY && v.length > room) throw new DOMException("full", "QuotaExceededError");
+      write(k, v);
+    };
+    ok(b.addItem("u1", item(3)));
+    expect(stored().items.map((i) => i.key)).toEqual([item(3).key, item(1).key, item(2).key]);
+    expect(stored().items.map((i) => i.caption.length)).toEqual([0, 100, 100]);
+
+    room = 100;
+    expect(b.addItem("u1", item(4))).toEqual({ ok: false, reason: "storage" });
+    expect(stored().items).toHaveLength(3);
+  });
+
   it("deletes a board but keeps its items, clearing the id", () => {
     const hooks = ok(b.addBoard("u1", "Hooks to try")).board;
     const stories = ok(b.addBoard("u1", "Client stories")).board;
