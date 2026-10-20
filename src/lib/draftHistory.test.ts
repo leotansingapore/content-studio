@@ -150,6 +150,25 @@ describe("upsertDraft", () => {
   });
 });
 
+describe("upsertDraft and the remix source", () => {
+  const source = { key: "top:grace-koh-instagram-C931K2DSgnl", kind: "top-post" as const, author: "@gracedotc0m", remixedAt: "2026-10-08T02:00:00.000Z" };
+  const remix = { keep: "structure", as: "post", close: "balanced" };
+
+  it("keeps the source through a save and a reload", () => {
+    upsertDraft(UID, post({ source, remix }));
+    expect(JSON.parse(JSON.stringify(loadDrafts(UID)))[0]).toMatchObject({ source, remix });
+  });
+
+  it("keeps it when a writer leaves the key out, and clears it when Write sets it to undefined", () => {
+    upsertDraft(UID, post({ source, remix }));
+    upsertDraft(UID, post({ draft: "Edited on the board" }));
+    expect(loadDrafts(UID)[0]).toMatchObject({ draft: "Edited on the board", source, remix });
+    upsertDraft(UID, post({ draft: "Chip removed", source: undefined }));
+    expect(loadDrafts(UID)[0].source).toBeUndefined();
+    expect(loadDrafts(UID)[0].remix).toEqual(remix);
+  });
+});
+
 describe("upsertDraft and the hook formula", () => {
   it("keeps the formula while the hook is the same, and drops it with a new hook", () => {
     saveDrafts(UID, [post({ hook: "I reviewed 40 families.", hookFormula: "number-reveal" })]);

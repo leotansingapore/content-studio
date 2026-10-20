@@ -165,6 +165,8 @@ export const links = {
       ctx?: string;
       ref?: string;
       formula?: string;
+      /** A remix source key (remixSource.ts sourceKey): Leo's sessions show it as the "Remixing ..." chip. */
+      source?: string;
     } = {},
   ) => `/generate${qs({ ...o, step: o.step !== "topic" && o.step })}`,
   batch: (o: { pillar?: string; audience?: string } = {}) =>
@@ -209,6 +211,9 @@ export const links = {
   academy: (o: { lesson?: string } = {}) => `/academy${qs({ lesson: o.lesson })}`,
   // ---- end Create pages ----
 };
+
+/** Any page with the Remix sheet open over it on that source (remix=<key>, push). */
+export const withRemix = (path: string, key: string) => path + (path.includes("?") ? "&" : "?") + "remix=" + encodeURIComponent(key);
 
 /** An app path as a full URL: this host in the browser, production elsewhere (a job, a test). */
 export const absolute = (path: string) =>

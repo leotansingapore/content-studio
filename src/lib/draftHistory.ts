@@ -11,6 +11,7 @@ import { scoped, DEFAULT_PROFILE_ID } from "@/lib/profiles";
 import { addDays, localDateKey, scheduleAt, scheduleTime } from "@/lib/dueDates";
 import type { ShotBeat } from "../../supabase/functions/clone-reel/logic.ts";
 import type { Numbers } from "../../supabase/functions/social/metrics.ts";
+import type { RemixSource } from "@/lib/remixSource";
 export const MAX_DRAFTS = 50;
 
 // Lifecycle of a post. Older entries without a status are treated as "draft".
@@ -55,6 +56,21 @@ export interface DraftEntry {
   // Post it for me: the post Zernio is publishing for it (autoPost.ts). Not security state: the
   // server checks the post is the adviser's on every call.
   zernio?: ZernioLink;
+  // The post, ad or trend it was remixed from: a snapshot, so it still shows once the original rotates out.
+  source?: RemixSource;
+  // How the Remix sheet made it (remixJob.ts).
+  remix?: DraftRemix;
+}
+
+export interface DraftRemix {
+  keep: string;
+  as: string;
+  close: string;
+  /** The topic name, for keep=topic. */
+  about?: string;
+  /** good | weak | poor | unknown */
+  fit?: string;
+  flags?: { copied: string[]; claim: boolean; invented: boolean };
 }
 
 export interface ZernioLink {
@@ -170,6 +186,11 @@ export function draftsOfBrand(userId: string, profileId: string): DraftEntry[] {
   }
 }
 
+/** The drafts list exactly as stored for the open brand, so a reader can skip parsing when it hasn't changed. */
+export function draftsRaw(userId: string): string | null {
+  return safeStorage()?.getItem(`${KEY_PREFIX}${scoped(userId)}`) ?? null;
+}
+
 export function loadDrafts(userId: string | null | undefined): DraftEntry[] {
   if (!userId) return [];
   const storage = safeStorage();
@@ -271,6 +292,9 @@ export function upsertDraft(
   if (prev?.zernio && !entry.zernio) entry = { ...entry, zernio: prev.zernio };
   if (prev?.media && !entry.media) entry = { ...entry, media: prev.media };
   if (prev?.attached && !entry.attached) entry = { ...entry, attached: prev.attached };
+  // A writer that never heard of the source leaves the key out; Write always sets it (undefined clears it).
+  if (prev?.source && !("source" in entry)) entry = { ...entry, source: prev.source };
+  if (prev?.remix && !entry.remix) entry = { ...entry, remix: prev.remix };
   // ...or the formula its hook was written with, while the hook is unchanged
   if (prev?.hookFormula && !entry.hookFormula && prev.hook === entry.hook) entry = { ...entry, hookFormula: prev.hookFormula };
   const without = current.filter((d) => d.id !== entry.id);
