@@ -1,7 +1,7 @@
 // The Apify reader Clone a reel uses, shared with remix (teardown) and remix-link: reads a public Instagram reel
 // or TikTok video through Apify and keeps it in cs_reel_sources (supabase/hub/010). Moved out of index.ts with no
-// behaviour change. Clone a reel keeps its own refresh rule (cacheDecision in logic.ts); remix and remix-link read
-// through readPost below, which uses any cached row as it is.
+// behaviour change. Clone a reel keeps its own refresh rule (cacheDecision in logic.ts). remix (teardown) reads
+// through readPost below; remix-link calls findSource and fetchSource itself (see readPost for why).
 
 import {
   BACKGROUND_LIMIT_MS,
@@ -220,10 +220,13 @@ export function keepRunning(work: Promise<unknown>) {
 }
 
 /**
- * How remix (teardown) and remix-link read a post: any cached cs_reel_sources row is used as it is, for free,
- * whatever its age or transcript, and Apify runs only when no row exists. Never cacheDecision's forced Instagram
- * refresh, which stays on clone-reel. Null when the link isn't an Instagram or TikTok post, when there is no row
- * and no Apify key, or when the read failed or ran past `budgetMs` (it then keeps going and fills the cache).
+ * How remix (teardown) reads a post: any cached cs_reel_sources row is used as it is, whatever its age or
+ * transcript, and Apify runs only when no row exists. Never cacheDecision's forced Instagram refresh, which stays on
+ * clone-reel. Null when the link isn't an Instagram or TikTok post, when there is no row and no Apify key, or when
+ * the read failed or ran past `budgetMs` (it then keeps going and fills the cache).
+ * It counts nothing and drops the CloneFailure code, which suits teardown (it counts every request first).
+ * remix-link must not use it: a cached read there is free and only an Apify read is counted, so it calls findSource,
+ * then consumeUsage when no row came back, then fetchSource under withinBudget, keeping the code for its copy.
  */
 export async function readPost(
   admin: Admin,
