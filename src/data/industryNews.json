@@ -1,5 +1,28 @@
 [
   {
+    "id": "ddb48f3587f1",
+    "title": "S'pore PHV driver, 37, suffers stroke after working 14 hour-days, hospitalised for a week",
+    "gist": "In September 2026, 37-year-old private-hire vehicle driver Wu Jin Xiong suffered a stroke after working over 14 hours a day and was hospitalised for a week. Tan Tock Seng Hospital doctors found the stroke was linked to high blood pressure, alongside risk factors like high cholesterol, being overweight, and smoking. He later received inpatient acupuncture treatment at the Integrated Care Hub to aid his rehabilitation.",
+    "talkingPoint": "Clients who work long hours may be concerned about the physical and financial impact of a sudden medical emergency. You can ask if they would like to review their current hospitalisation and rehabilitation coverage to see how prolonged treatment is addressed.",
+    "clientMessage": "Hi [Client name], I came across a report about a 37-year-old driver who suffered a stroke after working 14-hour days. He looked healthy, but doctors found high blood pressure, and he was hospitalised for a week before starting rehabilitation. Sudden medical issues can happen even at a younger age and require ongoing care. If you would like, we can review your existing plan together to see how your medical coverage handles hospital stays and recovery. [Your name]",
+    "source": "Mothership",
+    "url": "https://mothership.sg/2026/10/phv-driver-14-hours-daily-stroke",
+    "publishedAt": "2026-10-18T03:41:19+00:00",
+    "topic": "Healthcare costs"
+  },
+  {
+    "id": "933896bd3119",
+    "title": "Beware of scammers impersonating investment personalities, financial gurus: Police",
+    "gist": "On Oct 18, the police warned the public about scammers impersonating financial personalities on Facebook advertisements. Scammers lure victims into fake platforms and chats, convincing them to invest growing sums of money before blocking withdrawals. The police advised checking official registers from the Monetary Authority of Singapore to confirm if people offering investment services are real.",
+    "talkingPoint": "Clients may encounter online advertisements offering high returns with low risk from people pretending to be experts. You can ask if they have seen these advertisements and offer to review their current investment plan with them.",
+    "clientMessage": "Hi [Client name], the police recently warned of scammers pretending to be financial gurus in online advertisements. These scammers lure people into fake apps and chat groups, offering high returns with low risk before taking their money. It is easy to see such ads today. If you want, we can look at your existing investment plan together so you can review where your money is placed. [Your name]",
+    "source": "The Straits Times",
+    "url": "https://straitstimes.com/singapore/beware-of-scammers-impersonating-investment-personalities-financial-gurus-police",
+    "publishedAt": "2026-10-18T08:05:00+00:00",
+    "topic": "Scams",
+    "clipping": "/news/933896bd3119.jpg"
+  },
+  {
     "id": "c4a182d1e82b",
     "title": "MoneyOwl launches planning tool to gauge income sufficiency in retirement",
     "gist": "Financial advisory firm MoneyOwl rolled out a free retirement income planning tool called the OwlRetirement Planner. It combines Central Provident Fund accounts, cash savings and investments to show how long assets can produce retirement income. This helps Singaporeans plan for long life spans, with 2025 average life expectancy at birth reaching 81.8 for males and 86 for females.",
@@ -321,18 +344,6 @@
     "clipping": "/news/f365b79deba6.jpg"
   },
   {
-    "id": "146ce01a9327",
-    "title": "Budget 2026 Highlights",
-    "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
-    "talkingPoint": "Ask a client over 50 whether they know a top-up is landing in December, then ask what the balance it lands on is doing for the other eleven months. Careful: The top-up is tiered and not everyone gets $1,500. Check the client's retirement savings and their home's annual value against the table before naming a figure. These figures are from 12 Feb 2026. Check the source before you quote one.",
-    "clientMessage": null,
-    "source": "CPF Board",
-    "url": "https://cpf.gov.sg/member/infohub/news/cpf-related-announcements/budget-highlights-2026",
-    "publishedAt": "2026-02-11T16:00:00+00:00",
-    "topic": "CPF and retirement",
-    "clipping": "/news/146ce01a9327.jpg"
-  },
-  {
     "id": "6d46dc1c57d8",
     "title": "AIA Singapore surpasses S$40 Billion in payouts over the last decade",
     "gist": "In the last decade AIA Singapore paid out more than S$40 billion in death, critical illness, accident, hospitalisation and maturity proceeds. The announcement marked the company's 95th anniversary in Singapore. AIA says it covers the health and wellness of over one third of the nation's workforce, and was the first insurer here to give policyholders mental health coverage.",
@@ -343,6 +354,18 @@
     "publishedAt": "2026-02-11T16:00:00+00:00",
     "topic": "Insurance",
     "clipping": "/news/6d46dc1c57d8.jpg"
+  },
+  {
+    "id": "146ce01a9327",
+    "title": "Budget 2026 Highlights",
+    "gist": "Singaporeans aged 50 and above in 2026, born in 1976 or earlier, get a CPF top-up of up to $1,500 in their Retirement Account or Special Account in December 2026. The amount is tiered by retirement savings and by the annual value of their home. The full $1,500 goes to those with less than $60,000 in retirement savings and a home with an annual value of $21,000 or less. Between $60,000 and 2026's Basic Retirement Sum of $110,200, it is $1,000. From January 2027, CPF contribution rates rise 1.5 percentage points for employees aged above 55 to 60, and 1.0 point for those above 60 to 65, fully allocated to the Retirement Account up to the Full Retirement Sum. A new CPF investment scheme with a small number of simplified, low-cost, life-cycle products arrives in the first half of 2028.",
+    "talkingPoint": "Ask a client over 50 whether they know a top-up is landing in December, then ask what the balance it lands on is doing for the other eleven months. Careful: The top-up is tiered and not everyone gets $1,500. Check the client's retirement savings and their home's annual value against the table before naming a figure. These figures are from 12 Feb 2026. Check the source before you quote one.",
+    "clientMessage": null,
+    "source": "CPF Board",
+    "url": "https://cpf.gov.sg/member/infohub/news/cpf-related-announcements/budget-highlights-2026",
+    "publishedAt": "2026-02-11T16:00:00+00:00",
+    "topic": "CPF and retirement",
+    "clipping": "/news/146ce01a9327.jpg"
   },
   {
     "id": "38d77cf6f8ef",
