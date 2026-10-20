@@ -36,9 +36,10 @@ import {
   type SortKey,
 } from "@/lib/postInsights";
 
-// Leo's ads tab (the ad library and its drawer) and For you: chunks of their own, so nobody else downloads them.
+// Leo's ads tab (the ad library and its drawer), For you and Hooks: chunks of their own, so nobody else downloads them.
 const AdLibrary = lazy(() => import("@/components/AdLibrary"));
 const ForYou = lazy(() => import("@/components/swipe/ForYou"));
+const HookBank = lazy(() => import("@/components/swipe/HookBank"));
 
 // Static data → enrich once at module load.
 const ALL = getAllTopPosts();
@@ -61,7 +62,7 @@ const KIND_OPTIONS = [
 
 const PAGE_SIZE = 12;
 
-type Tab = "posts" | "foryou" | "news" | "ads" | "search";
+type Tab = "posts" | "foryou" | "news" | "ads" | "search" | "hooks";
 // Leo's tabs (phase 2): a link naming one waits for the session rather than flashing Top posts first.
 const LEO_TABS = ["search", "foryou", "hooks"];
 
@@ -120,10 +121,10 @@ export default function SwipeFilePage() {
   }, [leo]);
   const adsTab = ADS.length > 0 || Boolean(leo && leoAds);
   const [tab] = useUrlState<Tab>("tab", "posts", {
-    allowed: [...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["foryou", "search"] as const) : [])],
+    allowed: [...(adsTab ? (["news", "ads"] as const) : (["news"] as const)), ...(leo ? (["foryou", "search", "hooks"] as const) : [])],
   });
   const enriched = ENRICHED;
-  // Leo's five tabs scroll sideways on a phone: keep the open one in view (the bar only, never the page)
+  // Leo's six tabs scroll sideways on a phone: keep the open one in view (the bar only, never the page)
   const tabsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const show = () => {
@@ -270,7 +271,7 @@ export default function SwipeFilePage() {
           { id: "news" as const, label: "Industry news", n: NEWS.length },
           // Hidden until the first weekly ads drop lands, rather than a tab that opens on nothing; Leo's counts his library.
           ...(adsTab ? [{ id: "ads" as const, label: "Ads", n: leo ? (leoAds ?? ADS.length) : ADS.length }] : []),
-          ...(leo ? [{ id: "search" as const, label: "Search", n: null }] : []),
+          ...(leo ? [{ id: "search" as const, label: "Search", n: null }, { id: "hooks" as const, label: "Hooks", n: null }] : []),
         ].map((t) => (
           <button
             key={t.id}
@@ -278,7 +279,7 @@ export default function SwipeFilePage() {
             role="tab"
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
-            // Leo's five tabs: on a phone each takes its own width and the bar scrolls; the counts wait for sm, so no label wraps
+            // Leo's six tabs: on a phone each takes its own width and the bar scrolls; the counts wait for sm, so no label wraps
             className={`rounded-md py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 [@media(pointer:coarse)]:min-h-11 ${
               leo ? "flex-auto shrink-0 whitespace-nowrap px-3" : "flex-1 px-4"
             } ${tab === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
@@ -292,9 +293,9 @@ export default function SwipeFilePage() {
         <div className="min-h-[40vh]" aria-busy="true" />
       ) : tab === "search" && leo ? (
         <ViralSearch userId={leo.id} />
-      ) : tab === "foryou" && leo ? (
+      ) : (tab === "foryou" || tab === "hooks") && leo ? (
         <Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}>
-          <ForYou userId={leo.id} />
+          {tab === "foryou" ? <ForYou userId={leo.id} /> : <HookBank userId={leo.id} />}
         </Suspense>
       ) : tab === "ads" && leo ? (
         <Suspense fallback={<div className="min-h-[40vh]" aria-busy="true" />}>
