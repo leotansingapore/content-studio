@@ -10,6 +10,9 @@ name: Trend scout
 #   APIFY_TOKEN        - the scrape and transcripts (about US$1 a run)
 #   ANTHROPIC_API_KEY  - writes the content kits
 # Missing either one makes the job fail fast and write nothing.
+# Optional: TYPESAFE_API_KEY - Jev asks once per new hashtag whether it is about
+# money or work (under US$0.01 a month); without it the generic tags are dropped.
+# The same run appends the day's hashtag numbers to src/data/hashtagStats.json.
 
 on:
   # Leo wants this to publish on its own every morning (confirmed 2026-09-15).
@@ -63,6 +66,8 @@ jobs:
         env:
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Empty when the secret is not set, which the scout treats as no key.
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           TREND_COUNT: ${{ github.event.inputs.count || '12' }}
           # A dry run writes the drop outside the repo, so nothing is committed.
           TREND_OUT: ${{ github.event.inputs.dry_run == 'true' && format('{0}/trends-preview.json', runner.temp) || '' }}
@@ -71,16 +76,16 @@ jobs:
       - name: Commit if the drop changed
         if: ${{ github.event.inputs.dry_run != 'true' }}
         run: |
-          if git diff --quiet -- src/data/trends.json; then
-            echo "No change to trends.json — nothing to commit."
+          if git diff --quiet -- src/data/trends.json src/data/hashtagStats.json; then
+            echo "No change to trends.json or hashtagStats.json, nothing to commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Commit BEFORE pulling: git refuses to rebase over uncommitted changes.
-          git add src/data/trends.json
+          git add src/data/trends.json src/data/hashtagStats.json
           git commit -m "trends: viral drop for $(TZ=Asia/Singapore date +%Y-%m-%d)"
-          # Other sessions push to main often. If one touched trends.json since
+          # Other sessions push to main often. If one touched these files since
           # checkout, keep this run's fresh drop (-X theirs = the commit being
           # replayed during a rebase, i.e. ours).
           git pull --rebase -X theirs origin "${GITHUB_REF_NAME}"
