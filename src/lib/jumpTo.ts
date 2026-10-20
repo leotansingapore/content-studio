@@ -55,6 +55,7 @@ const KEYWORDS: Record<string, string> = {
   "/feedback": "ideas requests bugs roadmap",
   "/media": "library pictures images photos",
   "/edit": "reel clip captions subtitles",
+  "/slideshow": "slideshow photo carousel tiktok photos",
 };
 
 /** Every page this sign-in sees, labelled with its section. */

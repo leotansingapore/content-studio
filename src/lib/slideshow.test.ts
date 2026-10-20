@@ -138,7 +138,7 @@ describe("fromPost", () => {
       "5. Review your nominations. They don't update themselves.",
       "Follow for more CPF tips.",
     ].join("\n\n");
-    const s = fromPost(post, { font: "heavy", size: 90 });
+    const s = fromPost(post, { style: { font: "heavy", size: 90 } });
     expect(s.slides).toHaveLength(7);
     expect(s.title).toBe("5 CPF moves for your 30s");
     expect(s.slides[0].boxes[0].text).toBe("5 CPF moves for your 30s");
@@ -152,6 +152,11 @@ describe("fromPost", () => {
 
   it("gives a blank slideshow for empty text", () => {
     expect(fromPost("   ").slides).toHaveLength(2);
+  });
+
+  it("uses the hook as the cover when the text is only a call to action", () => {
+    const s = fromPost("Save this for your next CPF review. Comment INFO below.", { hook: "Three CPF moves" });
+    expect(s.slides[0].boxes[0].text).toBe("Three CPF moves");
   });
 });
 

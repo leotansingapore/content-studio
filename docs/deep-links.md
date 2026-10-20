@@ -175,8 +175,12 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /tutorial | #section | why, voice, guided-flow, after, tabs, rules, rhythm, first-action | top | (anchor) | /tutorial#tabs |
 | /voice | (none) | the past posts are typed text, kept for this tab until Save | | | /voice |
 | /playbook | (none) | a summary page with no state of its own | | | /playbook |
+| /slideshow | s | a slideshow id: that slideshow in the editor; an unknown id shows the start card. Leo's sign-ins only (src/lib/leoOnly.ts) | none (the start card) | push | /slideshow?s=ssmh2k9x01ab |
+| /slideshow | slide | the open slide, 1-based, with s; out of range reads as 1 | 1 | replace | /slideshow?s=ssmh2k9x01ab&slide=4 |
+| /slideshow | panel | text, overlay: the editor's Text or Overlay tab, with s | slide (the Slide tab) | replace | /slideshow?s=ssmh2k9x01ab&panel=text |
+| /slideshow | box | a text box id on the open slide: that box picked; one not on the slide is ignored | none | replace | /slideshow?s=ssmh2k9x01ab&slide=2&panel=text&box=bmh2k9x02cd |
 
-Copy link: the open post in Write, the carousel preview, a clone result and each Academy lesson.
+Copy link: the open post in Write, the carousel preview, a clone result, each Academy lesson and the open slideshow.
 
 ### Still read (Create pages)
 

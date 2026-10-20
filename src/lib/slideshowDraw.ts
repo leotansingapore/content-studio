@@ -72,7 +72,8 @@ export function bitmapOf(blob: Blob): Promise<ImageBitmap | null> {
 }
 
 const logos = new Map<string, Promise<HTMLImageElement | null>>();
-function logoOf(src: string): Promise<HTMLImageElement | null> {
+/** The brand kit logo (a data URL), loaded once. */
+export function logoOf(src: string): Promise<HTMLImageElement | null> {
   if (!logos.has(src))
     logos.set(
       src,
@@ -101,6 +102,13 @@ export function lookOf(userId: string, s: Pick<Slideshow, "overlay">): SlideLook
     ...(s.overlay.mark === "handle" && brand?.handle ? { handle: brand.handle } : {}),
     ...(s.overlay.mark === "logo" && brand?.logo ? { logo: brand.logo } : {}),
   };
+}
+
+let screen: CanvasRenderingContext2D | null = null;
+/** A measure for layouts made outside a paint (the editor's handles and overflow line). */
+export function screenMeasure(): Measure {
+  screen ??= document.createElement("canvas").getContext("2d")!;
+  return canvasMeasure(screen);
 }
 
 function canvasMeasure(ctx: CanvasRenderingContext2D): Measure {

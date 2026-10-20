@@ -135,9 +135,13 @@ export function blankSlideshow(style: Partial<BoxStyle> = {}, now = new Date()):
   };
 }
 
-/** A post split the way /carousel splits it: a cover, one slide per point and the call to action, no pictures. */
-export function fromPost(text: string, style: Partial<BoxStyle> = {}, now = new Date()): Slideshow {
-  const { slides } = splitDraftIntoSlides(text);
+/**
+ * A post split the way /carousel splits it (the hook stands in as the cover when the text has none): a cover,
+ * one slide per point and the call to action, no pictures. `style` is the last style used.
+ */
+export function fromPost(text: string, o: { hook?: string; style?: Partial<BoxStyle>; now?: Date } = {}): Slideshow {
+  const { style = {}, now = new Date() } = o;
+  const { slides } = splitDraftIntoSlides(text, { hook: o.hook });
   if (slides.length < MIN_SLIDES) return blankSlideshow(style, now);
   const { size: _size, ...look } = style;
   const made = slides.map((s, i) =>

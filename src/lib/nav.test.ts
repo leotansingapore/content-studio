@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { MOBILE_TABS, moreSheet, pageFor, pageTitle, section, SECTIONS, sectionFor, visiblePages } from "./nav";
 
 const routes = [
-  "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/edit", "/plan", "/calendar", "/board",
+  "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/slideshow", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/playbook", "/voice", "/brand", "/bio", "/links", "/accounts", "/fads", "/connect",
   "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star",
@@ -49,6 +49,12 @@ describe("nav", () => {
     expect(tos).not.toContain("/reels");
     expect(sheet.singles.map((t) => t.label)).toEqual(["Getting started", "Recruit", "Playbook", "Learn", "Feedback"]);
     expect(sheet.groups.map((g) => g.label)).toEqual(["Improve", "Discover"]);
+  });
+
+  it("shows Slideshow only to Leo's sign-ins", () => {
+    const write = (email: string) => visiblePages(section("write").pages, email).map((p) => p.to);
+    expect(write("someone@example.com")).not.toContain("/slideshow");
+    expect(write("tanjunsing@gmail.com")).toContain("/slideshow");
   });
 
   it("shows Social accounts and Auto-DM only once the server has said it is switched on", () => {
