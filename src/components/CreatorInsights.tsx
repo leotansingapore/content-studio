@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { InfoTip } from "@/components/ui/info-tip";
 import { RankBars, type RankBarRow } from "@/components/charts/RankBars";
 import RemixButton from "@/components/remix/RemixButton";
 import type { CreatorAnalysis, CreatorInsight, CreatorInsightTone } from "@/lib/creatorAnalysis";
+import { usedMost } from "@/lib/creatorFit";
 import { links } from "@/lib/links";
 import { fromTopPost } from "@/lib/remixSource";
 import { buildRemixUrl, topAdvisorId } from "@/lib/topPosts";
@@ -178,3 +180,70 @@ function InsightCards({ insights }: { insights: CreatorInsight[] }) {
   );
 }
 
+/**
+ * "What works for them" on a creator's page (Leo only, #works): the numbers Creator lookup shows for the same
+ * creator, the angles and builds their read posts use most, the insight lines, and Remix on their best post.
+ */
+export function WhatWorks({ analysis }: { analysis: CreatorAnalysis | null }) {
+  return (
+    <section id="works" aria-labelledby="works-title" className="scroll-mt-20 space-y-3">
+      <div className="flex items-center gap-1.5 border-b border-border/60 pb-1.5">
+        <h2 id="works-title" className="font-serif text-lg font-semibold tracking-tight text-foreground">
+          What works for them
+        </h2>
+        <InfoTip label="About What works for them">From their top posts we keep, not every post they made.</InfoTip>
+      </div>
+      {analysis ? <Works analysis={analysis} /> : <p className="text-sm text-muted-foreground">No posts read for this creator yet.</p>}
+    </section>
+  );
+}
+
+function Works({ analysis }: { analysis: CreatorAnalysis }) {
+  const { advisor, bestPost, avgLikes, avgComments, formatStats, insights, posts } = analysis;
+  const { angles, structures } = usedMost(analysis);
+  const stats: [string, string][] = [
+    ["Average likes", avgLikes.toLocaleString()],
+    ["Average comments", String(avgComments)],
+    ["Best format", formatStats[0]?.label ?? "-"],
+    ["Posts read", String(posts.length)],
+  ];
+  return (
+    <div className="space-y-4">
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {stats.map(([label, value]) => (
+          <div key={label} className="rounded-xl bg-secondary/50 p-2.5">
+            <dt className="text-[11px] text-muted-foreground">{label}</dt>
+            <dd className="text-sm font-semibold tabular-nums">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {(angles.length > 0 || structures.length > 0) && (
+        <div className="space-y-1 text-sm">
+          {angles.length > 0 && (
+            <p>
+              <span className="font-semibold">Angles they use most:</span> {angles.map(([a, n]) => `${a} (${n})`).join(", ")}
+            </p>
+          )}
+          {structures.length > 0 && (
+            <p>
+              <span className="font-semibold">How their posts are built:</span> {structures.map(([s]) => s).join(", ")}
+            </p>
+          )}
+        </div>
+      )}
+      <InsightCards insights={insights} />
+      {bestPost && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">Their best post</span>
+          <RemixButton source={fromTopPost(bestPost, { ...advisor, id: topAdvisorId(advisor.handle) ?? advisor.id })} label={`${advisor.name}'s best post`}>
+            <Button asChild size="sm" variant="outline" className="gap-1.5 [@media(pointer:coarse)]:h-11">
+              <Link to={buildRemixUrl(bestPost, advisor)}>
+                <Wand2 className="h-3.5 w-3.5" /> Remix their best post
+              </Link>
+            </Button>
+          </RemixButton>
+        </div>
+      )}
+    </div>
+  );
+}

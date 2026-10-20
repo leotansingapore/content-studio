@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import {
@@ -24,9 +24,17 @@ import {
   Copy,
 } from "lucide-react";
 import advisorsData from "@/data/advisors.json";
-import { type AdvisorEntry, type AdvisorPlatform } from "@/components/AdvisorProfiles";
+import { FollowButton, type AdvisorEntry, type AdvisorPlatform } from "@/components/AdvisorProfiles";
+import { WhatWorks } from "@/components/CreatorInsights";
 import TopPostCard from "@/components/TopPostCard";
-import { links } from "@/lib/links";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { analyzeCreator } from "@/lib/creatorAnalysis";
+import { fitHash, fitInput, followable, loadFit, showsInsights, similarCreators } from "@/lib/creatorFit";
+import { followStats, isChecking, loadFollowing, onFollowing, type FollowedAccount } from "@/lib/following";
+import { links, slug } from "@/lib/links";
+import { useScrollToHash } from "@/lib/urlState";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { normalizeHandle } from "../../supabase/functions/_shared/socialAudit.ts";
 import { getTopPostsForAdvisor, topAdvisorId } from "@/lib/topPosts";
 import { humanLabel } from "@/lib/utils";
 import { TrendingUp } from "lucide-react";
@@ -49,6 +57,15 @@ export default function ProfileDetailPage() {
   const { state } = useLocation();
   const { toast } = useToast();
   const entry = ENTRIES.find((e) => e.id === id);
+  // Leo only (find-creators): Follow, What works for them, the last check and more creators like this one
+  const leo = useLeoUser();
+  const [, tick] = useState(0);
+  useEffect(() => onFollowing(() => tick((n) => n + 1)), []);
+  const followed = leo && entry ? followedAccount(leo.id, entry) : null;
+  const left = useUsesLeft(!leo || Boolean(followed && isChecking(followed)))("track-accounts");
+  const analysis = useMemo(() => (entry ? analyzeCreator(entry) : null), [entry]);
+  const works = showsInsights(Boolean(leo), analysis);
+  useScrollToHash(works !== null);
 
   useEffect(() => {
     if (entry) {
@@ -226,24 +243,46 @@ export default function ProfileDetailPage() {
               {entry.verification_note}
             </p>
           )}
-          <div className="pt-2">
-            <Button
-              asChild
-              size="lg"
-              className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto"
-            >
-              <a
-                href={entry.platform_url}
-                target="_blank"
-                rel="noopener noreferrer"
+          {leo ? (
+            // Leo: Follow is the main button where Following can read the account, with Open profile outlined beside
+            // it; elsewhere Open profile stays the main button and Follow sits beside it, off, with the reason
+            <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-start">
+              {followable(entry.platform) ? (
+                <>
+                  <FollowButton entry={entry} userId={leo.id} left={left} where="page" main />
+                  <OpenProfile url={entry.platform_url} main={false} />
+                </>
+              ) : (
+                <>
+                  <OpenProfile url={entry.platform_url} main />
+                  <FollowButton entry={entry} userId={leo.id} left={left} where="page" />
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="pt-2">
+              <Button
+                asChild
+                size="lg"
+                className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto"
               >
-                <ExternalLink className="h-4 w-4" />
-                Open profile
-              </a>
-            </Button>
-          </div>
+                <a
+                  href={entry.platform_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open profile
+                </a>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {works && <WhatWorks analysis={works === "insights" ? analysis : null} />}
+      {followed?.checkedAt && <LastCheck a={followed} />}
+      {leo && <MoreCreators entry={entry} userId={leo.id} />}
 
       {getTopPostsForAdvisor(entry).length > 0 && (
         <section className="space-y-3">
@@ -267,5 +306,82 @@ export default function ProfileDetailPage() {
         </section>
       )}
     </div>
+  );
+}
+
+/** The followed account that is this creator, when Leo follows them. */
+function followedAccount(userId: string, entry: AdvisorEntry): FollowedAccount | null {
+  if (!followable(entry.platform)) return null;
+  const handle = normalizeHandle(entry.platform, entry.handle);
+  return loadFollowing(userId).find((a) => a.platform === entry.platform && a.handle === handle) ?? null;
+}
+
+const fmt = (n: number) => (n >= 10_000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
+
+/** Following's numbers for this creator, from the last check. */
+function LastCheck({ a }: { a: FollowedAccount }) {
+  const s = followStats(a);
+  const parts = [
+    s.followers !== null && `Followers ${fmt(s.followers)}`,
+    s.growth !== null && `${s.growth < 0 ? "-" : "+"}${fmt(Math.abs(s.growth))} in ${Math.max(1, s.growthDays)} days`,
+    s.perWeek !== null && `${s.perWeek} posts a week`,
+  ].filter(Boolean);
+  return (
+    <section className="space-y-2">
+      <div className="flex items-baseline justify-between gap-2 border-b border-border/60 pb-1.5">
+        <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">From your last check</h2>
+        <Link to={links.following()} className="-my-2 py-2 text-xs font-semibold text-primary hover:underline">
+          Open in Following
+        </Link>
+      </div>
+      <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums">
+        {parts.length ? parts.map((p) => <span key={String(p)}>{p}</span>) : <span className="text-muted-foreground">No numbers read yet.</span>}
+      </p>
+    </section>
+  );
+}
+
+/** Up to 4 other creators in this one's niche group, best fit first when Best for you has run. */
+function MoreCreators({ entry, userId }: { entry: AdvisorEntry; userId: string }) {
+  const similar = similarCreators(entry, ENTRIES, loadFit(userId, fitHash(fitInput(userId))));
+  if (!similar) return null;
+  return (
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between gap-2 border-b border-border/60 pb-1.5">
+        <h2 className="font-serif text-lg font-semibold tracking-tight text-foreground">More creators in {similar.group}</h2>
+        <Link to={links.profiles({ niche: [slug(similar.group)] })} className="-my-2 shrink-0 py-2 text-xs font-semibold text-primary hover:underline">
+          See all
+        </Link>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {similar.list.map((e) => {
+          const Icon = PLATFORM_META[e.platform].Icon;
+          return (
+            <Link key={e.id} to={links.profile(e.id)} className="rounded-xl border border-border/60 p-3 transition-colors hover:border-primary/40">
+              <p className="truncate text-sm font-semibold text-foreground">{e.name}</p>
+              <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                <Icon className="h-3 w-3 shrink-0" /> {e.handle}
+              </p>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function OpenProfile({ url, main }: { url: string; main: boolean }) {
+  return (
+    <Button
+      asChild
+      size="lg"
+      variant={main ? "default" : "outline"}
+      className={`w-full gap-2 sm:w-auto ${main ? "bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95" : ""}`}
+    >
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        <ExternalLink className="h-4 w-4" />
+        Open profile
+      </a>
+    </Button>
   );
 }
