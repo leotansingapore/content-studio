@@ -332,6 +332,19 @@ export function rememberSource(s: RemixSource, userId: string): void {
   }
 }
 
+/** The sheet's typed note, kept on this device until the remix is done. */
+export const noteKey = (key: string) => `cs-remix-note-${key}`;
+
+/** Puts a card's own suggestion (the audit's remix idea) in the sheet's note box when it is empty, so the make call sees it. */
+export function seedNote(key: string, text: string): void {
+  try {
+    const store = globalThis.window?.localStorage;
+    if (store && !store.getItem(noteKey(key))) store.setItem(noteKey(key), text.slice(0, 300));
+  } catch {
+    // blocked storage: the sheet opens with an empty note
+  }
+}
+
 // ---- remix history ----------------------------------------------------------------------------
 
 const DAY = 86_400_000;

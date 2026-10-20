@@ -17,6 +17,7 @@ import {
   rememberSource,
   remixedKeys,
   remixedOn,
+  seedNote,
   seenSources,
   sourceChip,
   sourceKey,
@@ -226,6 +227,16 @@ describe("the seen registry", () => {
     expect(window.localStorage.length).toBe(0);
     setActiveProfile(UID, addProfile(UID, "MoneyBees").id);
     expect(seenSources(UID)).toEqual([]);
+  });
+});
+
+describe("seedNote", () => {
+  it("fills an empty note with the card's suggestion and never overwrites a typed one", () => {
+    seedNote("audit:instagram:1", "Angle for the new version: the receipts");
+    expect(window.localStorage.getItem("cs-remix-note-audit:instagram:1")).toBe("Angle for the new version: the receipts");
+    window.localStorage.setItem("cs-remix-note-audit:instagram:2", "my own note");
+    seedNote("audit:instagram:2", "Angle for the new version: the receipts");
+    expect(window.localStorage.getItem("cs-remix-note-audit:instagram:2")).toBe("my own note");
   });
 });
 

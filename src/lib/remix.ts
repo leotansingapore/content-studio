@@ -95,8 +95,7 @@ const FORMAT_WORDS: Record<RemixAs, string> = {
 
 const CLOSE_PHRASE: Record<Close, string> = { loose: "loosely based on it", balanced: "with new words", close: "close to it, with every line new" };
 
-/** The typed note, kept on this device until the remix is done. */
-export const noteKey = (key: string) => `cs-remix-note-${key}`;
+export { noteKey } from "@/lib/remixSource";
 
 // ---- the source ---------------------------------------------------------------------------
 

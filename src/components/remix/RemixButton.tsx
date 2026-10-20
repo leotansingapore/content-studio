@@ -2,7 +2,7 @@ import type { MouseEvent, ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Shuffle } from "lucide-react";
 import { Button, type ButtonProps } from "@/components/ui/button";
-import { dayMonth, rememberSource, remixedKeys, type RemixSource } from "@/lib/remixSource";
+import { dayMonth, rememberSource, remixedKeys, seedNote, type RemixSource } from "@/lib/remixSource";
 import { withParam } from "@/lib/urlState";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ export default function RemixButton({
   className,
   size = "sm",
   label,
+  note,
 }: {
   source: RemixSource;
   children: ReactNode;
@@ -26,6 +27,8 @@ export default function RemixButton({
   size?: ButtonProps["size"];
   /** The card's item, so a screen reader can tell one card's Remix from the next ("Remix: @handle's post"). */
   label?: string;
+  /** A suggestion the card shows beside the button, put in the sheet's note when that is empty. */
+  note?: string;
 }) {
   const leo = useLeoUser();
   const [params, setParams] = useSearchParams();
@@ -38,6 +41,7 @@ export default function RemixButton({
     e.stopPropagation();
     // audit: and hubtrend: keys have no data drop: the sheet finds them in this tab's registry
     rememberSource(source, leo.id);
+    if (note) seedNote(source.key, note);
     setParams((prev) => withParam(prev, "remix", source.key));
   };
   return (

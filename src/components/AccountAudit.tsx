@@ -797,7 +797,7 @@ function BestPosts({
               )}
               <div className="flex flex-wrap gap-2">
                 {/* Leo's Remix button remembers the post on press, so the sheet resolves its audit: key */}
-                <RemixButton source={fromAuditPost(p, platform, handle)}>
+                <RemixButton source={fromAuditPost(p, platform, handle)} note={pick && `Angle for the new version: ${pick.newAngle}`}>
                   <Button asChild size="sm" className="h-8 [@media(pointer:coarse)]:h-11 gap-1.5">
                     <Link to={remixUrl(p, platform, handle, pick?.newAngle)}>
                       <Wand2 className="h-3.5 w-3.5" /> Remix this
