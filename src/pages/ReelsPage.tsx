@@ -190,7 +190,7 @@ export default function ReelsPage() {
       <div className="space-y-5">
         <SectionTabs tabs={BOARD_TABS} />
         <p className="text-sm text-muted-foreground">
-          No reels board is connected to this account. <Link to="/calendar" className="font-semibold text-primary">Back to your calendar</Link>
+          No posts board is connected to this account. <Link to="/calendar" className="font-semibold text-primary">Back to your calendar</Link>
         </p>
       </div>
     );
@@ -309,7 +309,7 @@ export default function ReelsPage() {
 
       {error && (
         <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm">
-          The reels board didn't load ({error}).{" "}
+          The posts board didn't load ({error}).{" "}
           <Button variant="link" className="h-auto p-0" onClick={() => window.location.reload()}>Try again</Button>
         </div>
       )}
