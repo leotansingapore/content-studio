@@ -100,11 +100,13 @@ describe("addresses a host resolves to", () => {
 
 describe("a hostile page", () => {
   it("is read quickly even when it never closes its tags", () => {
-    const started = Date.now();
+    // this process's CPU time, not the wall clock: on a loaded machine the wall clock also counts the time spent waiting for a core
+    const started = process.cpuUsage();
     readSite("<a ".repeat(70_000) + "<script " .repeat(20_000) + "<meta ".repeat(20_000), BASE);
     readSite("<script>".repeat(37_000), BASE);
     decode("<![CDATA[".repeat(33_000));
-    expect(Date.now() - started).toBeLessThan(1500);
+    const used = process.cpuUsage(started);
+    expect((used.user + used.system) / 1000).toBeLessThan(1500);
   });
   it("drops script and style blocks, and stops at one that never closes", () => {
     expect(stripBlocks("a<script>x</script>b<STYLE type=x>y</style>c")).toBe("a b c");
