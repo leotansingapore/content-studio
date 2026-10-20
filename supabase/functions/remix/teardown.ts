@@ -6,7 +6,8 @@
 // remix/index.ts routes mode 'teardown' to handleTeardown after the JWT and NORTH_STAR_USERS checks, with
 //   consume: () => consumeUsage(admin, uid, "remix-teardown"),
 //   refund: (day) => refundUsage(admin, uid, "remix-teardown", day),
-//   readSource: (url) => readPost(admin, url, Deno.env.get("APIFY_API_KEY"), FETCH_BUDGET_MS) mapped to SourceRead,
+//   readSource: (url) => readPost(admin, url, Deno.env.get("APIFY_API_KEY"), FETCH_BUDGET_MS).then((r) => r &&
+//     { transcript: r.row.transcript ?? undefined, durationSec: r.row.duration_sec ?? undefined, caption: r.row.caption }),
 //   openai: (body) => openaiChat(body) then its JSON, and ask: (state, q) => askJev(state, q, { who: "remix-teardown" }).
 
 import { oneLineText, parseObject, parseReelUrl } from "../clone-reel/logic.ts";
