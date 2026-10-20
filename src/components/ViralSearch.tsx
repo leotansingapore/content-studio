@@ -190,6 +190,7 @@ export default function ViralSearch({ userId }: { userId: string }) {
             {!searching && <PriceChip feature="viral-search" left={left} />}
             {why && <span className="text-xs text-destructive">{why}</span>}
             {words.length === 1 && <span className="text-xs text-muted-foreground">Type at least {Q_MIN} characters.</span>}
+            {words.length > Q_MAX && <span className="text-xs text-muted-foreground">Keep it to {Q_MAX} characters or fewer.</span>}
           </div>
 
           {failure && (
