@@ -15,7 +15,7 @@ import {
   type CreatorInsightTone,
 } from "@/lib/creatorAnalysis";
 import { parseInstagramInput } from "@/components/CompetitorReference";
-import { buildRemixUrl } from "@/lib/topPosts";
+import { buildRemixUrl, topAdvisorId } from "@/lib/topPosts";
 import RemixButton from "@/components/remix/RemixButton";
 import { fromTopPost } from "@/lib/remixSource";
 import { links } from "@/lib/links";
@@ -169,7 +169,7 @@ function AnalysisResult({
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        {bestPost && (live ? remixLink : <RemixButton source={fromTopPost(bestPost, advisor)}>{remixLink}</RemixButton>)}
+        {bestPost && (live ? remixLink : <RemixButton source={fromTopPost(bestPost, { ...advisor, id: topAdvisorId(advisor.handle) ?? advisor.id })}>{remixLink}</RemixButton>)}
         <Button asChild size="sm" variant="outline" className="flex-1 gap-1.5">
           <Link
             to={links.plan({ competitor: live ? advisor.handle : advisor.id })}

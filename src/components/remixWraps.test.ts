@@ -20,7 +20,10 @@ const { default: AdsSwipe } = await import("./AdsSwipe");
 const { default: Inspiration } = await import("./Inspiration");
 const { default: InspirationDetailPage } = await import("@/pages/InspirationDetailPage");
 const { ADS } = await import("@/lib/adsSwipe");
-const { getAllTopPosts } = await import("@/lib/topPosts");
+const { getAllTopPosts, getTopPostsForAdvisor, topAdvisorId } = await import("@/lib/topPosts");
+const { fromTopPost } = await import("@/lib/remixSource");
+const { resolveSource } = await import("@/lib/resolveSource");
+const { default: advisors } = await import("@/data/advisors.json");
 const { default: inspiration } = await import("@/data/inspiration.json");
 
 const LEO = { id: "u1", email: "leo@example.com" };
@@ -91,4 +94,29 @@ it("an inspiration card inside Write keeps Use as vibe for Leo, since it picks a
   const out = html(createElement(Inspiration, { onUseAsVibe: () => {} }));
   expect(out).toContain("Use as vibe");
   expect(out).not.toContain("Remix</button>");
+});
+
+describe("top post keys", () => {
+  type Entry = { id: string; name: string; handle: string };
+  const withPosts = (advisors as Entry[]).filter((a) => getTopPostsForAdvisor(a as never).length);
+
+  it("key every advisor's top posts on the Instagram profile, so the sheet resolves them from any entry", () => {
+    expect(withPosts.some((a) => a.id.endsWith("-youtube"))).toBe(true);
+    for (const a of withPosts) {
+      for (const p of getTopPostsForAdvisor(a as never)) {
+        const key = fromTopPost(p, { ...a, id: topAdvisorId(a.handle) ?? a.id }).key;
+        expect(resolveSource(key, LEO.id), `${a.id} ${key}`).not.toBeNull();
+      }
+    }
+  });
+
+  it("TopPostCard on a YouTube entry's profile carries the Instagram key", () => {
+    gate.leo = LEO;
+    const yt = withPosts.find((a) => a.id === "honey-money-sg-youtube")!;
+    const p = getTopPostsForAdvisor(yt as never)[0];
+    const key = `top:${topAdvisorId(yt.handle)}-${p.shortCode}`;
+    expect(key).not.toContain("youtube");
+    const out = html(createElement(TopPostCard, { post: p, advisor: { id: yt.id, name: yt.name, handle: yt.handle } }), `/?remix=${encodeURIComponent(key)}`);
+    expect(out).toContain("Opening...");
+  });
 });

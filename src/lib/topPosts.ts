@@ -58,6 +58,10 @@ for (const a of ADVISORS) {
   }
 }
 
+/** The Instagram profile's id for a handle. Top posts, their source keys and resolveSource all key on it, while a
+ * YouTube or TikTok entry with the same handle (e.g. honey-money-sg-youtube) shows the same Instagram posts. */
+export const topAdvisorId = (handle: string): string | undefined => byHandle[handle.replace("@", "").toLowerCase()]?.id;
+
 /** Engagement score used for ranking: comments weighted higher than likes. */
 export function engagementScore(p: TopPost): number {
   return (p.likes || 0) + (p.comments || 0) * 3;
@@ -152,7 +156,7 @@ export function buildRemixUrl(
     format: generatorFormat(post),
     platform: "instagram",
   });
-  const advisorId = byHandle[advisor.handle.replace("@", "").toLowerCase()]?.id;
+  const advisorId = topAdvisorId(advisor.handle);
   if (advisorId) params.set("source", sourceKey.top(advisorId, post.shortCode));
   return `/generate?${params.toString()}`;
 }
