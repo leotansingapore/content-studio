@@ -2,6 +2,8 @@
 // pasted link, filed into boards. One synced key per brand, written whole on every change (like Following), so a
 // removal stays removed on every device without a tombstone. A pasted Instagram or TikTok link is read by clone-reel's
 // style mode (the reel-style cap, no OpenAI) in a job outside React; its transcript stays on this device.
+// Then, without a press, the same job breaks the post down (find-ai-tagging, runTags): remix's teardown with tags: true
+// on the post-tags cap, sent the words the read got, and the tags and beats land on the item.
 
 import { callFn, type EdgeError } from "@/lib/edgeFn";
 import { links } from "@/lib/links";
@@ -9,6 +11,8 @@ import { scoped } from "@/lib/profiles";
 import { sourceKey, type RemixSource, type RemixSourceKind, type SourceFormat } from "@/lib/remixSource";
 import { parseReelUrl, type CloneSource } from "../../supabase/functions/clone-reel/logic.ts";
 import { parseRemixLink } from "../../supabase/functions/remix-link/logic.ts";
+import { autoTags, cleanTags, tagText, tagsFromTeardown, type ItemTags, type TagState } from "@/lib/postTags";
+import { taggedTeardown } from "@/lib/remixTeardown";
 
 export type SavePlatform = "instagram" | "tiktok" | "youtube" | "meta-ad" | "linkedin" | "x" | "facebook" | "web";
 export type ReadState = "pending" | "done" | "failed" | "capped" | "none";
@@ -41,6 +45,9 @@ export interface BoardItem {
   boards: string[];
   note: string;
   read: ReadState;
+  /** The breakdown's tags and beats (find-ai-tagging); none until it lands. */
+  tags?: ItemTags;
+  tagState?: TagState;
 }
 
 export interface BoardsState {
@@ -134,6 +141,8 @@ function cleanItem(raw: unknown, boardIds: Set<string>): BoardItem | null {
     boards: (Array.isArray(r.boards) ? r.boards : []).filter((b): b is string => typeof b === "string" && boardIds.has(b)),
     note: str(r.note, MAX_NOTE),
     read: READS.includes(r.read as ReadState) ? (r.read as ReadState) : "none",
+    ...(cleanTags(r.tags) ? { tags: cleanTags(r.tags) } : {}),
+    ...(READS.includes(r.tagState as ReadState) ? { tagState: r.tagState as TagState } : {}),
   };
 }
 
@@ -172,9 +181,12 @@ function loadAt(k: string): BoardsState {
   return memo.v;
 }
 
-/** Writes the whole store; when storage is full, cuts captions to 100 characters, then drops them. Never drops items. */
+/** Writes the whole store; when storage is full, cuts captions to 100 characters, then drops them and the beats. Never drops items. */
 function saveAt(k: string, s: BoardsState): boolean {
-  const cut = (n: number): BoardsState => ({ ...s, items: s.items.map((i) => ({ ...i, caption: i.caption.slice(0, n) })) });
+  const cut = (n: number): BoardsState => ({
+    ...s,
+    items: s.items.map((i) => ({ ...i, caption: i.caption.slice(0, n), ...(i.tags && !n ? { tags: { ...i.tags, beats: [] } } : {}) })),
+  });
   let ok = false;
   for (const t of [s, cut(100), cut(0)]) {
     try {
@@ -211,8 +223,17 @@ export function addItem(userId: string, item: BoardItem, boards: string[] = [], 
   const existing = s.items.find((i) => i.key === item.key || (item.url && i.url === item.url));
   if (existing) return { ok: false, reason: "duplicate", existing };
   if (s.items.length >= MAX_ITEMS) return { ok: false, reason: "full" };
-  const next: BoardItem = { ...item, boards: boards.filter((b) => s.boards.some((x) => x.id === b)), savedAt: now.toISOString() };
-  return saveAt(k, { ...s, items: [next, ...s.items] }) ? { ok: true, item: next } : { ok: false, reason: "storage" };
+  // a read in flight starts the breakdown when it lands; anything else with words to read starts it now
+  const tagNow = item.read !== "pending" && autoTags(item);
+  const next: BoardItem = {
+    ...item,
+    boards: boards.filter((b) => s.boards.some((x) => x.id === b)),
+    savedAt: now.toISOString(),
+    ...(item.read !== "pending" && !tagNow ? { tagState: "none" as const } : {}),
+  };
+  if (!saveAt(k, { ...s, items: [next, ...s.items] })) return { ok: false, reason: "storage" };
+  if (tagNow) void runTags(userId, next.key);
+  return { ok: true, item: next };
 }
 
 export interface Removed {
@@ -449,12 +470,17 @@ export function fromSavedItem(i: BoardItem): RemixSource {
 
 const WRITE_LINE = "Write my own take on this. Do not copy its wording. No promised returns, no named insurer products, no invented numbers.";
 
+/** Write with the saved item as its brief; `extra` adds a param Write reads, such as formula (a HOOK_FORMULAS id). */
+export function writeUrlFor(i: BoardItem, extra: Record<string, string> = {}): string {
+  const ctx = [`Saved from ${i.author || PLATFORM_NAME[i.platform]}: ${i.url}`, `What it is: ${titleOf(i)}`, i.note && `My note: ${i.note}`, WRITE_LINE];
+  return `/generate?${new URLSearchParams({ pillar: "topic", detail: titleOf(i).slice(0, 80), ctx: ctx.filter(Boolean).join("\n"), source: i.key, ...extra })}`;
+}
+
 /** The link behind Remix before the session is read: an Instagram or TikTok video to Clone a reel, anything else to Write. */
 export function remixUrlFor(i: BoardItem): string {
   const reel = i.platform === "instagram" || i.platform === "tiktok" ? parseReelUrl(i.url) : null;
   if (reel?.ok && i.format !== "image" && i.format !== "carousel") return links.clone({ url: reel.url });
-  const ctx = [`Saved from ${i.author || PLATFORM_NAME[i.platform]}: ${i.url}`, `What it is: ${titleOf(i)}`, i.note && `My note: ${i.note}`, WRITE_LINE];
-  return `/generate?${new URLSearchParams({ pillar: "topic", detail: titleOf(i).slice(0, 80), ctx: ctx.filter(Boolean).join("\n"), source: i.key })}`;
+  return writeUrlFor(i);
 }
 
 // ---- reading a post (outside React) ------------------------------------------------------------------------------
@@ -469,14 +495,16 @@ export function onReads(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
-export function loadTranscripts(userId: string): Record<string, string> {
+function transcriptsAt(tk: string): Record<string, string> {
   try {
-    const v = JSON.parse(localStorage.getItem(transcriptsKey(userId)) ?? "{}");
+    const v = JSON.parse(localStorage.getItem(tk) ?? "{}");
     return v && typeof v === "object" && !Array.isArray(v) ? v : {};
   } catch {
     return {};
   }
 }
+
+export const loadTranscripts = (userId: string) => transcriptsAt(transcriptsKey(userId));
 
 /** Device only, newest 60 (find-ai-tagging reads it); 20 when storage is full. Never in the synced key. */
 function keepTranscript(k: string, key: string, text: string): void {
@@ -523,10 +551,60 @@ export async function runRead(userId: string, key: string): Promise<void> {
       format: s.isVideo ? "video" : "image",
     });
     if (done && s.transcript) keepTranscript(tk, key, s.transcript);
+    // the same job breaks it down now, from the words it just read
+    if (done && autoTags(done, s.transcript ?? "")) void tagAt(userId, k, tk, key, s.durationSec, false);
+    else if (done) patchAt(k, key, { tagState: "none" });
   } catch (e) {
     patchAt(k, key, { read: (e as EdgeError).status === 429 ? "capped" : "failed" });
   } finally {
     reading.delete(key);
+    emit();
+  }
+}
+
+/** "Load transcript" on another device: the post read again by clone-reel's style mode (a reel-style use unless cached). */
+export async function fetchTranscript(userId: string, key: string): Promise<string> {
+  const item = findItem(loadBoards(userId), key);
+  if (!item || !parseReelUrl(item.url).ok) return "";
+  const tk = transcriptsKey(userId);
+  const { source } = await callFn<{ source: CloneSource }>("clone-reel", { url: item.url, style: true }, "Couldn't load the transcript right now.");
+  if (source.transcript) keepTranscript(tk, key, source.transcript);
+  return source.transcript ?? "";
+}
+
+// ---- breaking a post down (outside React) ------------------------------------------------------------------------
+
+const tagging = new Set<string>();
+export const isTagging = (key: string) => tagging.has(key);
+
+/** The breakdown state to show: a pending one this tab isn't running, saved a while ago, died with its tab. */
+export const tagShown = (i: BoardItem, now = Date.now()): TagState | undefined =>
+  i.tagState === "pending" && !isTagging(i.key) && now - Date.parse(i.savedAt || "0") > READ_STALE_MS ? "failed" : i.tagState;
+
+/** Breaks a saved item down (Try again, Break it down, Break it down again); `again` skips a stored breakdown. */
+export const runTags = (userId: string, key: string, again = false) => tagAt(userId, boardsKey(userId), transcriptsKey(userId), key, null, again);
+
+async function tagAt(userId: string, k: string, tk: string, key: string, seconds: number | null, again: boolean): Promise<void> {
+  const item = findItem(loadAt(k), key);
+  // a read still running starts this when it lands
+  if (!item || tagging.has(key) || item.read === "pending") return;
+  const transcript = transcriptsAt(tk)[key] ?? "";
+  const text = tagText(item, transcript);
+  if (!text) {
+    patchAt(k, key, { tagState: "none" });
+    return;
+  }
+  tagging.add(key);
+  patchAt(k, key, { tagState: "pending" });
+  emit();
+  try {
+    const t = await taggedTeardown(userId, fromSavedItem(item), text, again);
+    const now = findItem(loadAt(k), key);
+    if (now) patchAt(k, key, { tagState: "done", tags: tagsFromTeardown(t, now, transcript, seconds ?? now.tags?.seconds ?? null) });
+  } catch (e) {
+    patchAt(k, key, { tagState: (e as EdgeError).status === 429 ? "capped" : "failed" });
+  } finally {
+    tagging.delete(key);
     emit();
   }
 }

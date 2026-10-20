@@ -137,6 +137,26 @@ export async function ensureTeardown(userId: string, s: RemixSource, text: strin
   return run;
 }
 
+/**
+ * A saved post's breakdown with its tags (find-ai-tagging, cap post-tags): the stored one when it has tags, else one
+ * remix call with tags: true. The text is what the device already read, and no url goes, so the server never reads
+ * the post a second time. `again` skips the stored one (Break it down again). Throws EdgeError.
+ */
+export async function taggedTeardown(userId: string, s: Pick<RemixSource, "key" | "kind" | "format" | "platform" | "author" | "title">, text: string, again = false): Promise<Teardown> {
+  const stored = again ? null : loadTeardown(userId, s.key);
+  if (stored?.tags) return stored;
+  const { key, kind, format, platform, author, title } = s;
+  const r = await callFn<{ teardown?: unknown }>("remix", {
+    mode: "teardown",
+    source: { key, kind, format, platform, author, title, text },
+    formulas: HOOK_FORMULAS.map((f) => ({ id: f.id, template: f.template })),
+    tags: true,
+  });
+  if (!isTeardown(r?.teardown)) throw new EdgeError(TEARDOWN_COPY.failed, 0);
+  saveTeardown(userId, r.teardown);
+  return r.teardown;
+}
+
 // ---- words the row uses ---------------------------------------------------------------------------
 
 export const TEARDOWN_COPY = {
