@@ -554,6 +554,11 @@ export const MAX_TOPICS = 30;
 export const VIDEO_CHECKS = 10;
 /** A keyword under this many searches a month is not a topic, and it is never sent to Jev. */
 export const MIN_VOLUME = 10;
+/**
+ * The biggest keywords Jev judges: twice the topics kept. shortcut: bounds a slow Jev (5 s each, 6 at a time) to about
+ * 50 s inside the function's time limit; raise it if the first checks show fewer than 30 kept with more left unjudged.
+ */
+export const MAX_JUDGED = 60;
 /** proposal (decision 7 of the phase-2 brief): Jev's keep and safe at or above this. */
 export const SEARCH_KEEP_AT = 0.6;
 /** Rising at +20% or more over the 3 months before, falling at -20% or less. */

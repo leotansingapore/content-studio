@@ -22,7 +22,7 @@ import { parseNews } from "../mentions/logic.ts";
 import {
   type Ask, type CheckInput, type GeoRead, type JudgedNews, type MarketDigest, MAX_SOURCES, accountGate, accountRefusal, answerGist, checkProblem, cleanInput,
   earlierWeekDays, overAccountWeek, profileFeature,
-  candidates, cleanSearches, keptByJev, MAX_TOPICS, recentVideos, relatedKeywords, relatedTask, searchAsk, searchesProblem, searchFeature, searchWeekRefusal,
+  candidates, cleanSearches, keptByJev, MAX_JUDGED, MAX_TOPICS, recentVideos, relatedKeywords, relatedTask, searchAsk, searchesProblem, searchFeature, searchWeekRefusal,
   toTopic, VIDEO_CHECKS, videosTask,
   foldStories, geoAsk, geoJudged, isAllowed, judgeNews, judgePost, keepAsk, keepTop, newsAsk, newsFailed, newsItems, newsTask, paidPartsFailed,
   parseAnswer, parseSuggest, pickNews, position, postAsk, sameStoryAsk, sameStoryOf, shortlistAct, shownNews, SUGGEST_FORMAT, suggestMessages, takeSlots,
@@ -218,7 +218,7 @@ async function searches(admin: Admin, uid: string, body: unknown): Promise<Respo
     return json({ code: "failed", error: SEARCHES_FAILED }, 502);
   }
 
-  const found = candidates(reads.map((r) => r ?? []));
+  const found = candidates(reads.map((r) => r ?? [])).slice(0, MAX_JUDGED);
   const answers = await pool(found, 6, (k) => jev(searchAsk(input, k.keyword), "market searches"));
   // the keep and safe lines are proposals: every keyword with its scores, for the integrator's read of the first checks
   console.log("market searches: jev", JSON.stringify(found.map((k, n) => [k.keyword, k.volume, noulOf(answers[n], "keep"), noulOf(answers[n], "safe")])));

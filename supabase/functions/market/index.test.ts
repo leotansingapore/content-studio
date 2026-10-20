@@ -190,6 +190,25 @@ describe("market searches: a check", () => {
     }
   });
 
+  it("asks Jev about the 60 biggest keywords at most and keeps 30", async () => {
+    const many = JSON.parse(RELATED);
+    const item = many.tasks[0].result[0].items[1];
+    many.tasks[0].result[0].items = Array.from({ length: 70 }, (_, n) => ({
+      ...item,
+      keyword_data: { ...item.keyword_data, keyword: `cpf topic ${n}`, keyword_info: { ...item.keyword_data.keyword_info, search_volume: 1000 - n } },
+    }));
+    const stub = globalThis.fetch;
+    vi.stubGlobal("fetch", async (u: URL | string, init?: RequestInit) =>
+      String(u).includes("related_keywords") ? (sent.push({ url: String(u), body: null }), Response.json(many)) : stub(u, init));
+    try {
+      const r = await call(ask);
+      expect(sent.filter((s) => s.url.startsWith("https://api.typesafe.ai/"))).toHaveLength(60);
+      expect(r.body.topics.map((t: { keyword: string }) => t.keyword)).toEqual(Array.from({ length: 30 }, (_, n) => `cpf topic ${n}`));
+    } finally {
+      vi.stubGlobal("fetch", stub);
+    }
+  });
+
   it("keeps every keyword and says it wasn't filtered when Jev is down", async () => {
     jev = "down";
     const r = await call(ask);
