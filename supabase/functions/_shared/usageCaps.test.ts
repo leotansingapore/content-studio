@@ -80,6 +80,13 @@ describe("giving a use back", () => {
   });
 });
 
+describe("the north-star phase-1 caps", () => {
+  // Declared up front so no later phase-1 task edits this file; the functions that consume them ship later.
+  it("holds the limits the build brief set", () => {
+    expect(DAILY_LIMITS).toMatchObject({ "remix-make": 30, "remix-teardown": 40, "remix-fit": 100, "remix-link": 20, "remix-image": 10 });
+  });
+});
+
 describe("the edge functions that spend", () => {
   // A name missing from DAILY_LIMITS reaches the database as p_limit null, which refuses
   // every call: the feature would say "You've used all undefined for today" from its first use.

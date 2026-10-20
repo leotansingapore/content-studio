@@ -114,6 +114,16 @@ export const DAILY_LIMITS = {
   "team-comment": 60,
   // Adding a brand from its website (brand-dna): one home page read plus one short LLM call and one Jev pick.
   "brand-dna": 10,
+  // North star phase 1, declared up front (Leo only, NORTH_STAR_USERS). One remix written in one format (remix make).
+  "remix-make": 30,
+  // A post broken down into its hook, beats and what not to reuse, before a remix (remix teardown, OpenAI + Jev).
+  "remix-teardown": 40,
+  // Whether a post fits the adviser's brand before a remix (remix fit): one Jev call, refunded when Jev has no answer.
+  "remix-fit": 100,
+  // A pasted link read for Remix (remix-link): Apify or YouTube captions; a cached Instagram or TikTok read is free.
+  "remix-link": 20,
+  // A pasted picture or a video's frames read for Remix (remix-link image and frames, OpenAI vision).
+  "remix-image": 10,
 } as const;
 
 export type UsageFeature = keyof typeof DAILY_LIMITS;
