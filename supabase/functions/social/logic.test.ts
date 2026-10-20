@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { NotYours, ZernioError, type ProfileRow, type ZAccount, type Zernio, type ZernioRequest } from "../_shared/zernio";
-import { connect, disconnect, errorReply, isAllowed, offReply, overCapTeam, parseRequest, recount, redirectUrl, removalNotes, status, teamCapOf, withRemovalNotes, type Caller } from "./logic";
+import { connect, disconnect, errorReply, isAllowed, offReply, overCapTeam, parseRequest, recount, redirectUrl, removalNotes, status, teamCapOf, userCapOf, withRemovalNotes, type Caller } from "./logic";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const UID_B = "0f8fad5b-d9cb-469f-a165-70867728950e";
@@ -145,6 +145,17 @@ describe("the team-wide recount (M5)", () => {
     expect(overCapTeam(team.slice(1), ownerOf, 8)).toEqual([]);
     // Zernio lists by platform, newest first: the age comes from the id, not the order
     expect(overCapTeam([...team].reverse(), ownerOf, 6).map((a) => a._id)).toEqual(["65000000000000000000c001", VICTIM, "6500000000000000000000a6"]);
+  });
+
+  it("lets one adviser hold more when ZERNIO_MAX_PER_USER raises their cap (Leo runs every brand from one login)", () => {
+    const PID2 = "0123456789abcdef01234562";
+    const ownerOf = new Map([[MINE, UID], [PID2, UID]]);
+    const mine = Array.from({ length: 7 }, (_, i) => acct(`6500000000000000000000a${i}`, i % 2 ? PID2 : MINE));
+    expect(overCapTeam(mine, ownerOf, 10, 10)).toEqual([]);
+    expect(overCapTeam(mine, ownerOf, 10, 6).map((a) => a._id)).toEqual(["6500000000000000000000a6"]);
+    expect(userCapOf("10")).toBe(10);
+    expect(userCapOf(undefined)).toBe(6);
+    expect(userCapOf("ten")).toBe(6);
   });
 
   it("notes a removal once: an account already gone answers 404 and is not noted again", async () => {

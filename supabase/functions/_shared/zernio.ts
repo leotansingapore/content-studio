@@ -10,7 +10,7 @@ export const ZERNIO_TIMEOUT_MS = 15_000;
 export const SOCIAL_PLATFORMS = ["instagram", "facebook", "tiktok", "linkedin", "youtube", "threads"] as const;
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
 
-/** One adviser may hold this many accounts across all their brand profiles (M5). */
+/** One adviser may hold this many accounts across all their brand profiles (M5), unless ZERNIO_MAX_PER_USER says otherwise. */
 export const USER_ACCOUNT_CAP = 6;
 
 /** A refusal from Zernio, or no answer: {status, code, message}. */
@@ -303,12 +303,12 @@ export async function disconnectAccount(z: Zernio, accountId: string): Promise<b
 export const billed = (a: ZAccount) => a?.enabled !== false && isZernioId(a?._id);
 
 /** M5 counts: the team against its cap, and this adviser across all their brand profiles. */
-export function capCounts(team: ZAccount[], userProfileIds: Set<string>, teamCap: number) {
+export function capCounts(team: ZAccount[], userProfileIds: Set<string>, teamCap: number, userCap = USER_ACCOUNT_CAP) {
   const list = team.filter(billed);
   return {
     team: list.length,
     teamCap,
     user: list.filter((a) => userProfileIds.has(refId(a.profileId))).length,
-    userCap: USER_ACCOUNT_CAP,
+    userCap,
   };
 }

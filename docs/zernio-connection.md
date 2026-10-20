@@ -32,7 +32,8 @@ Zernio accepts any account, post or automation id on the team, whichever profile
 
 - Off by default. Unless `ZERNIO_API_KEY` is set and the caller is in `SOCIAL_CONNECT_USERS`, the function makes no Zernio call: the bare `status` probe answers 200 `{enabled:false}` (so no browser logs a failed request for it) and every other action answers 404 `{enabled:false}`. The app hides Social accounts until `status` says enabled (`src/lib/socialConnect.ts`).
 - Zernio billing. Two connected accounts are free with no card. With no card, Zernio answers 402 `free_tier_exceeded` at the third. Once a card is added, our caps are the only guard (M5):
-  - Before handing out a connect link the function counts the team's accounts (`includeOverLimit=true`) and refuses at `ZERNIO_MAX_ACCOUNTS` (default 2). One adviser may hold 6 across all their brand profiles.
+  - Before handing out a connect link the function counts the team's accounts (`includeOverLimit=true`) and refuses at `ZERNIO_MAX_ACCOUNTS` (default 2). One adviser may hold `ZERNIO_MAX_PER_USER` (default 6) across all their brand profiles.
+  - 2026-10-20, Leo picked both caps at 10 (Zernio needs a card on file before the 3rd account, then bills $6 a month per account from the 3rd, only for accounts connected). Leo runs every brand from his one login, so his per-adviser cap equals the team cap; set `ZERNIO_MAX_PER_USER` back down before opening Social accounts to other advisers.
   - A reconnect needs a checked `reconnectAccountId`; anything else is a new connect and is cap-checked.
   - Every `status` and `connect` call starts with a team-wide recount, because a cap checked only when a link is handed out can be beaten: several links collected while under it, a link reused, or a reconnect that Zernio turns into a new account. The recount lists every account on the team (`includeOverLimit=true`), holds each adviser to 6 across their brand profiles (owners mapped through `cs_social_profiles`), then the team to `ZERNIO_MAX_ACCOUNTS`, and disconnects the newest over either cap, whoever owns them. A Zernio id starts with its creation second, so a larger id is a newer account. The owner's Zernio profile gets a note in its description, and their own `status` then says which account went and why.
   - The same recount runs daily from the `social-sweep` function (below), so an account over a cap stops billing within a day even when nobody opens Social accounts or connects. It must be scheduled (021) before `SOCIAL_CONNECT_USERS` opens beyond Leo.
@@ -48,6 +49,7 @@ Zernio accepts any account, post or automation id on the team, whichever profile
 | `ZERNIO_API_KEY` | The Zernio team key. Set by Leo's session only. |
 | `SOCIAL_CONNECT_USERS` | Comma list of user ids allowed to connect, or `*`. Entries are trimmed; empties ignored. |
 | `ZERNIO_MAX_ACCOUNTS` | Team cap on connected accounts, 2 when unset. |
+| `ZERNIO_MAX_PER_USER` | One adviser's cap across their brand profiles, 6 when unset. |
 | `SOCIAL_SWEEP_SECRET` | The `x-social-sweep-secret` header pg_cron sends to `social-sweep`; the same value is in Vault as `cs_social_sweep_secret`. |
 
 ## The `social` edge function

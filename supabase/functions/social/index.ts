@@ -15,7 +15,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { consumeUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { zernioClient, type ProfileRow } from "../_shared/zernio.ts";
 import { automationErrorReply, isAutomationWrite, parseAutomationRequest, runAutomation } from "./automations.ts";
-import { connect, disconnect, errorReply, isAllowed, offReply, parseRequest, removalOf, status, teamCapOf, type Caller } from "./logic.ts";
+import { connect, disconnect, errorReply, isAllowed, offReply, parseRequest, removalOf, status, teamCapOf, userCapOf, type Caller } from "./logic.ts";
 import { metricsErrorReply, parseMetricsRequest, runMetrics } from "./metrics.ts";
 import { parsePostRequest, postErrorReply, runPost } from "./posts.ts";
 
@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
       userProfiles: new Set(rows.map((x) => x.zernio_profile_id)),
       ownerOf: new Map(all.map((x) => [x.zernio_profile_id, x.owner_id])),
       teamCap: teamCapOf(Deno.env.get("ZERNIO_MAX_ACCOUNTS")),
+      userCap: userCapOf(Deno.env.get("ZERNIO_MAX_PER_USER")),
     };
     const row: ProfileRow = {
       get: async () => {

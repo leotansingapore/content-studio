@@ -13,7 +13,7 @@
 // pinned: this runs with the service key
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.3";
 import { ZernioError, zernioClient } from "../_shared/zernio.ts";
-import { teamCapOf } from "../social/logic.ts";
+import { teamCapOf, userCapOf } from "../social/logic.ts";
 import { doneCounts, parseSweep, readAllRows, runSweep, secretMatches, sweepZernio, type MappingRow } from "./logic.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
       return !data?.user && error?.status === 404;
     },
     teamCap: teamCapOf(Deno.env.get("ZERNIO_MAX_ACCOUNTS")),
+    userCap: userCapOf(Deno.env.get("ZERNIO_MAX_PER_USER")),
     allowlist: Deno.env.get("SOCIAL_CONNECT_USERS"),
   });
   // a dry run (by hand) answers its report

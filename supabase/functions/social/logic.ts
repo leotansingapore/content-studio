@@ -42,6 +42,12 @@ export function teamCapOf(raw: string | undefined): number {
   return Number.isInteger(n) && n >= 0 ? n : 2;
 }
 
+/** ZERNIO_MAX_PER_USER: one adviser's cap across their brands, USER_ACCOUNT_CAP (6) when unset or not a whole number. */
+export function userCapOf(raw: string | undefined): number {
+  const n = Number(raw?.trim() || NaN);
+  return Number.isInteger(n) && n >= 0 ? n : USER_ACCOUNT_CAP;
+}
+
 export type SocialRequest =
   | { action: "status"; profileId: string | null }
   | { action: "connect"; profileId: string; platform: SocialPlatform; reconnectAccountId: string | null }
@@ -95,6 +101,8 @@ export interface Caller {
   /** Every mapped Zernio profile -> its owner (all of cs_social_profiles), for the team-wide recount. */
   ownerOf: Map<string, string>;
   teamCap: number;
+  /** One adviser's cap across their brands; USER_ACCOUNT_CAP when left out. */
+  userCap?: number;
 }
 
 export type Reply = { status: number; body: Record<string, unknown> };
@@ -172,7 +180,7 @@ const byAge = (a: ZAccount, b: ZAccount) => (a._id < b._id ? -1 : a._id > b._id 
  * either cap needs. A Zernio id is a MongoDB ObjectId, which starts with its creation second, so a larger
  * id is a newer account.
  */
-export function overCapTeam(team: ZAccount[], ownerOf: Map<string, string>, teamCap: number): ZAccount[] {
+export function overCapTeam(team: ZAccount[], ownerOf: Map<string, string>, teamCap: number, userCap = USER_ACCOUNT_CAP): ZAccount[] {
   const list = team.filter(billed).sort(byAge);
   const over = new Set<string>();
   const perOwner = new Map<string, ZAccount[]>();
@@ -180,7 +188,7 @@ export function overCapTeam(team: ZAccount[], ownerOf: Map<string, string>, team
     const owner = ownerOf.get(refId(a.profileId));
     if (owner) perOwner.set(owner, [...(perOwner.get(owner) ?? []), a]);
   }
-  for (const mine of perOwner.values()) for (const a of mine.slice(USER_ACCOUNT_CAP)) over.add(a._id);
+  for (const mine of perOwner.values()) for (const a of mine.slice(userCap)) over.add(a._id);
   for (const a of list.filter((x) => !over.has(x._id)).slice(Math.max(0, teamCap))) over.add(a._id);
   return list.filter((a) => over.has(a._id)).reverse();
 }
@@ -190,9 +198,9 @@ export function overCapTeam(team: ZAccount[], ownerOf: Map<string, string>, team
  * reconnect that came back as a new account, never keep billing past the next call by anyone. Each
  * affected adviser's Zernio profile gets a note. Returns the team as it stands after.
  */
-export async function recount(z: Zernio, c: Pick<Caller, "ownerOf" | "teamCap">, now = Date.now()): Promise<ZAccount[]> {
+export async function recount(z: Zernio, c: Pick<Caller, "ownerOf" | "teamCap" | "userCap">, now = Date.now()): Promise<ZAccount[]> {
   const team = await teamAccounts(z);
-  const over = overCapTeam(team, c.ownerOf, c.teamCap);
+  const over = overCapTeam(team, c.ownerOf, c.teamCap, c.userCap);
   if (!over.length) return team;
   const at = new Date(now).toISOString();
   const byProfile = new Map<string, RemovedNote[]>();
@@ -220,7 +228,7 @@ export async function recount(z: Zernio, c: Pick<Caller, "ownerOf" | "teamCap">,
 
 /** The brand's accounts with health, what a recount removed from it, and the counts against the caps. */
 export async function status(z: Zernio, c: Caller, now = Date.now()): Promise<Reply> {
-  const counts = capCounts(await recount(z, c, now), c.userProfiles, c.teamCap);
+  const counts = capCounts(await recount(z, c, now), c.userProfiles, c.teamCap, c.userCap);
   if (!c.mapped) return ok({ enabled: true, accounts: [], removed: [], ...counts });
   const own = await callerAccounts(z, c.mapped);
   const profile = await z("GET", `/profiles/${pathId(c.mapped)}`).catch(() => null);
@@ -253,7 +261,7 @@ export async function connect(z: Zernio, c: Caller, row: ProfileRow, platform: S
     if (!account || account.platform !== platform) throw new NotYours("account not yours");
     return ok({ authUrl: await authUrl(z, c.mapped, platform, reconnectAccountId) });
   }
-  const counts = capCounts(team, c.userProfiles, c.teamCap);
+  const counts = capCounts(team, c.userProfiles, c.teamCap, c.userCap);
   if (counts.user >= counts.userCap) {
     return { status: 409, body: { code: "account_cap", error: `You have ${counts.user} accounts connected, the most one adviser can have.`, ...counts } };
   }
