@@ -166,6 +166,8 @@ New edge function `supabase/functions/remix-link/` (`index.ts`, `logic.ts`, `log
 - A server cache for the new platforms needs a migration that widens the `cs_reel_sources.platform` check (`supabase/hub/010_reel_clones.sql` allows only `instagram` and `tiktok`). Use the next free number at build time; several specs already plan a `025`. Schema change: Leo decides.
 - LinkedIn and Facebook scrapers often need a signed-in cookie. If no actor reads public posts without one, that platform stays refused until Leo says otherwise.
 - Renaming the nav entry "Clone a reel" to "Remix a post" for everyone is part of turning this on for everyone, which is Leo's call.
+- 20 Oct (build): no new Apify actors in phase 1 (money stop). LinkedIn, X, Facebook and Meta Ad Library links parse (parseRemixLink) but get "Pasting {site} links isn't switched on yet." in the browser and from remix-link; READ_KINDS in remix-link/logic.ts switches each on, and apifyJobFor's comment names the candidate actors read off the Apify store (not run): supreme_coder~linkedin-post, apidojo~tweet-scraper or apidojo~twitter-scraper-lite, apify~facebook-posts-scraper, apify~facebook-ads-scraper. Leo decides each. Until then the hint and the unknown-site line name only Instagram, TikTok and YouTube, and grow back to the copy above as kinds switch on.
+- 20 Oct (build): an Instagram or TikTok read still running after about 55 s answers "still reading, try again in a minute; that read is free" and keeps its remix-link use, because the run goes on and fills cs_reel_sources; the use comes back only if that background run fails.
 
 ## Related
 
