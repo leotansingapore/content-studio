@@ -53,6 +53,8 @@ const SIZES = ["4x5", "9x16"] as const;
 type Size = (typeof SIZES)[number];
 const SIZE_LABELS: Record<Size, string> = { "4x5": "4:5", "9x16": "9:16" };
 const WORDS_KEY = "cs-make-slideshow";
+/** One heading style for every option on the setup cards. */
+const FIELD_LABEL = "text-xs font-semibold text-muted-foreground";
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function useJob(): SlideshowJob | null {
@@ -233,7 +235,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
             </div>
           ) : (
             <div className="space-y-1.5">
-              <Label htmlFor="make-topic">Topic</Label>
+              <Label htmlFor="make-topic" className={FIELD_LABEL}>Topic</Label>
               <Input id="make-topic" value={words.topic} maxLength={200} placeholder="Like 5 things to check before you buy a hospital plan" onChange={(e) => setWords({ ...words, topic: e.target.value })} />
               <p className="text-xs text-muted-foreground">Writes slides on your topic over stock photos.</p>
             </div>
@@ -247,7 +249,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
             <FilterChip active={mention === "no"} onClick={() => set("mention", "no")}>No</FilterChip>
           </Field>
           <div className="space-y-1.5">
-            <Label htmlFor="make-steer">Steer it (optional)</Label>
+            <Label htmlFor="make-steer" className={FIELD_LABEL}>Steer it (optional)</Label>
             <Textarea id="make-steer" rows={2} value={words.note} maxLength={300} placeholder="What should this slideshow be about?" onChange={(e) => setWords({ ...words, note: e.target.value })} />
           </div>
           <Field label="Size">
@@ -324,7 +326,7 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
 function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+      <p className={FIELD_LABEL}>{label}</p>
       <div className="flex flex-wrap gap-1.5">{children}</div>
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
