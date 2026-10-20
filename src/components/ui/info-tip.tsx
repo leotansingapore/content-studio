@@ -141,6 +141,7 @@ export function InfoTip({
       {/* z-[90]: above every drawer and sheet (z-[70], z-[80]), under the z-[100] toasts */}
       {open &&
         createPortal(
+          // z-[90]: above the z-[70] drawers and the z-[80] Remix sheet a tip can sit in, below toasts (z-[100]).
           <div
             ref={bubble}
             id={contentId}
