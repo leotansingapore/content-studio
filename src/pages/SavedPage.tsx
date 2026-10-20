@@ -29,7 +29,6 @@ import {
   filterItems,
   findItem,
   fromSavedItem,
-  isTagging,
   lastBoard,
   loadBoards,
   loadTranscripts,
@@ -424,7 +423,8 @@ const TEXT = "min-w-0 text-sm leading-relaxed text-foreground/85 [overflow-wrap:
 function Breakdown({ userId, item, note }: { userId: string; item: BoardItem; note: string }) {
   const { toast } = useToast();
   const state = tagShown(item);
-  const running = state === "pending" && isTagging(item.key);
+  // pending here or on another device (tagShown turns one that died with its tab into failed)
+  const running = state === "pending";
   const left = useUsesLeft(running);
   const [shown, setShown] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -474,8 +474,8 @@ function Breakdown({ userId, item, note }: { userId: string; item: BoardItem; no
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">Breakdown</h3>
         {t && !running && (
-          <span className="ml-auto flex items-center gap-2">
-            {chip}
+          <span className="ml-auto flex flex-wrap-reverse items-center justify-end gap-x-2">
+            <span className="whitespace-nowrap">{chip}</span>
             <Button type="button" variant="ghost" size="sm" onClick={() => press(true)}>
               Break it down again
             </Button>
@@ -579,7 +579,7 @@ function Breakdown({ userId, item, note }: { userId: string; item: BoardItem; no
           {t.by === "llm" && <p className="text-[11px] text-muted-foreground">{TAG_COPY.noJev}</p>}
           {formula && (
             <Button asChild variant="outline" size="sm" className="w-full gap-1.5">
-              <Link to={writeUrlFor(item, { formula })}>
+              <Link to={writeUrlFor(item, { formula, ...(item.caption && !item.title ? { detail: item.caption.split("\n")[0].slice(0, 80) } : {}) })}>
                 <Shuffle className="h-3.5 w-3.5" /> Remix with this hook
               </Link>
             </Button>
