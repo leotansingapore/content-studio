@@ -574,6 +574,8 @@ export interface SearchTopic {
   volume: number;
   /** The last 12 months, oldest first. */
   series: number[];
+  /** "2026-09": the month series ends on, so the chart can name its months; null when DataForSEO gave none. */
+  lastMonth: string | null;
   /** The last 3 months against the 3 before, in percent; null when the 3 before had none ("New"). */
   change: number | null;
   trend: SearchTrend;
@@ -584,7 +586,7 @@ export interface SearchTopic {
   videos: SearchVideo[];
 }
 export interface SearchesInput { profile: string; seeds: string[]; serves: string; sells: string }
-export interface RelatedKeyword { keyword: string; seed: string; volume: number; series: number[] }
+export interface RelatedKeyword { keyword: string; seed: string; volume: number; series: number[]; lastMonth: string | null }
 
 export function cleanSearches(raw: unknown): SearchesInput {
   const b = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
@@ -608,14 +610,22 @@ export const videosTask = (keyword: string) => ({ keyword, location_code: 2702, 
 /** "cpf life payout" -> "cpf-life-payout"; letters in any script stay. */
 export const topicSlug = (keyword: string) => keyword.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 80);
 
+const monthsOf = (monthly: unknown) =>
+  (Array.isArray(monthly) ? monthly : [])
+    .filter((m): m is { year: number; month: number; search_volume?: unknown } => Number.isInteger(m?.year) && Number.isInteger(m?.month) && m.month >= 1 && m.month <= 12)
+    .sort((a, b) => a.year * 12 + a.month - (b.year * 12 + b.month))
+    .slice(-12);
+
 /** The last 12 months, oldest first, from DataForSEO's monthly_searches (newest first, sometimes short or null). */
 export function seriesOf(monthly: unknown): number[] {
-  const months = (Array.isArray(monthly) ? monthly : [])
-    .filter((m): m is { year: number; month: number; search_volume?: unknown } => Number.isFinite(m?.year) && Number.isFinite(m?.month))
-    .sort((a, b) => a.year * 12 + a.month - (b.year * 12 + b.month))
-    .slice(-12)
-    .map((m) => (typeof m.search_volume === "number" && Number.isFinite(m.search_volume) ? m.search_volume : 0));
+  const months = monthsOf(monthly).map((m) => (typeof m.search_volume === "number" && Number.isFinite(m.search_volume) ? m.search_volume : 0));
   return [...Array(12 - months.length).fill(0), ...months];
+}
+
+/** The newest month in monthly_searches as "YYYY-MM", or null. */
+export function lastMonthOf(monthly: unknown): string | null {
+  const m = monthsOf(monthly).pop();
+  return m ? `${m.year}-${String(m.month).padStart(2, "0")}` : null;
 }
 
 /** The last 3 months against the 3 before, as a whole percent; null when the 3 before had no searches. */
@@ -637,7 +647,8 @@ export function relatedKeywords(body: unknown, seed: string): RelatedKeyword[] {
     const keyword = text(kd?.keyword, 80);
     const volume = kd?.keyword_info?.search_volume;
     if (!keyword || typeof volume !== "number" || !Number.isFinite(volume)) return [];
-    return [{ keyword, seed, volume, series: seriesOf(kd?.keyword_info?.monthly_searches) }];
+    const monthly = kd?.keyword_info?.monthly_searches;
+    return [{ keyword, seed, volume, series: seriesOf(monthly), lastMonth: lastMonthOf(monthly) }];
   });
 }
 
@@ -712,6 +723,7 @@ export function toTopic(k: RelatedKeyword, supply: { recent: number; videos: Sea
     seed: k.seed,
     volume: k.volume,
     series: k.series,
+    lastMonth: k.lastMonth,
     change,
     trend: trendOf(change),
     recentVideos: recent,

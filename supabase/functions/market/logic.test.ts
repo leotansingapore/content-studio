@@ -8,7 +8,7 @@ import {
   accountGate, answerGist, overAccountWeek, citesSite, isAllowed, judgeNews, newsAsk, newsTask, shownNews, judgePost, keepTop, namedIn, newsFailed, newsItems, paidPartsFailed, parseAnswer, parseSuggest, pickNews, position,
   sameStoryAsk, sameStoryOf, shortlistAct, siteScope, takeSlots, uniqueByUrl, weekGate, type JudgedNews, type NewsItem, type Source,
   candidates, changeOf, cleanSearches, isGap, keptByJev, recentVideos, relatedKeywords, relatedTask, searchAsk, searchesProblem, searchWeekRefusal, seriesOf,
-  toTopic, topicSlug, trendOf, videosTask, type RelatedKeyword,
+  lastMonthOf, toTopic, topicSlug, trendOf, videosTask, type RelatedKeyword,
 } from "./logic";
 import type { UsageClient } from "../_shared/usageCaps";
 
@@ -437,6 +437,7 @@ describe("searches on Trends: shaping DataForSEO's answers", () => {
       seed: "life insurance",
       volume: 22200,
       series: [18100, 14800, 40500, 60500, 60500, 49500, 1900, 880, 1600, 1000, 590, 720],
+      lastMonth: "2026-09",
     });
     expect(life.map((k) => k.keyword)).toContain("life insurance singapore for foreigners");
   });
@@ -449,10 +450,12 @@ describe("searches on Trends: shaping DataForSEO's answers", () => {
   it("pads a short history at the old end and reads a missing month as 0", () => {
     expect(seriesOf([{ year: 2026, month: 9, search_volume: 30 }, { year: 2026, month: 8, search_volume: null }])).toEqual([...Array(10).fill(0), 0, 30]);
     expect(seriesOf("junk")).toEqual(Array(12).fill(0));
+    expect(lastMonthOf([{ year: 2025, month: 12 }, { year: 2026, month: 1 }, { year: 2026, month: 13 }])).toBe("2026-01");
+    expect(lastMonthOf([])).toBeNull();
   });
 
   it("drops keywords under 10 searches, keeps one per slug (the bigger) and sorts biggest first", () => {
-    const k = (keyword: string, volume: number, seed = "s"): RelatedKeyword => ({ keyword, seed, volume, series: [] });
+    const k = (keyword: string, volume: number, seed = "s"): RelatedKeyword => ({ keyword, seed, volume, series: [], lastMonth: null });
     expect(candidates([[k("CPF life", 50, "a"), k("tiny", 9)], [k("cpf-life", 80, "b"), k("medisave", 10)]]).map((x) => [x.keyword, x.seed])).toEqual([
       ["cpf-life", "b"],
       ["medisave", "s"],
@@ -514,9 +517,9 @@ describe("searches on Trends: the figures", () => {
   });
 
   it("makes a topic with its slug, change, trend and gap", () => {
-    const k: RelatedKeyword = { keyword: "CPF life payout", seed: "cpf", volume: 1300, series: months(100, 140) };
+    const k: RelatedKeyword = { keyword: "CPF life payout", seed: "cpf", volume: 1300, series: months(100, 140), lastMonth: "2026-09" };
     expect(toTopic(k, { recent: 1, videos: [] })).toEqual({
-      keyword: "CPF life payout", slug: "cpf-life-payout", seed: "cpf", volume: 1300, series: months(100, 140), change: 40, trend: "rising", recentVideos: 1, gap: true, videos: [],
+      keyword: "CPF life payout", slug: "cpf-life-payout", seed: "cpf", volume: 1300, series: months(100, 140), lastMonth: "2026-09", change: 40, trend: "rising", recentVideos: 1, gap: true, videos: [],
     });
     expect(toTopic(k, null)).toMatchObject({ recentVideos: null, gap: false, videos: [] });
   });

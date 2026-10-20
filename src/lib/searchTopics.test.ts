@@ -31,7 +31,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 const topic = (keyword: string, o: Partial<SearchTopic> = {}): SearchTopic => ({
-  keyword, slug: keyword.replace(/ /g, "-"), seed: "cpf", volume: 1300, series: Array(12).fill(100), change: 40, trend: "rising", recentVideos: 2, gap: true,
+  keyword, slug: keyword.replace(/ /g, "-"), seed: "cpf", volume: 1300, series: Array(12).fill(100), lastMonth: "2026-09", change: 40, trend: "rising", recentVideos: 2, gap: true,
   videos: [{ title: "A video", url: "https://www.youtube.com/watch?v=abc123" }], ...o,
 });
 const check = (checkedAt: string, topics = [topic("cpf life payout")], filtered = true) => ({ checkedAt, topics, filtered });
@@ -62,14 +62,14 @@ describe("the stored searches", () => {
             { ...good, slug: "../x" },
             { ...good, trend: "up" },
             { ...good, volume: "1300" },
-            { ...good, keyword: "medisave", slug: "medisave", videos: [{ title: "x", url: "javascript:alert(1)" }, null], gap: "yes", change: null },
+            { ...good, keyword: "medisave", slug: "medisave", videos: [{ title: "x", url: "javascript:alert(1)" }, null], gap: "yes", change: null, lastMonth: "2026-13" },
           ],
         },
       ],
     }));
     expect(s.loadSearches("u1")).toEqual({
       seeds: [],
-      checks: [{ checkedAt: "2026-10-20T01:00:00Z", filtered: true, topics: [good, { ...good, keyword: "medisave", slug: "medisave", videos: [], gap: false, change: null }] }],
+      checks: [{ checkedAt: "2026-10-20T01:00:00Z", filtered: true, topics: [good, { ...good, keyword: "medisave", slug: "medisave", videos: [], gap: false, change: null, lastMonth: null }] }],
     });
   });
 
@@ -99,7 +99,8 @@ describe("the week", () => {
     expect(s.nextCheckDay(state("2026-10-20T01:00:00Z"), new Date("2026-10-26T23:59:00Z"))).toBe("2026-10-27");
     expect(s.nextCheckDay(state("2026-10-20T01:00:00Z"), new Date("2026-10-27T00:00:00Z"))).toBeNull();
     expect(s.nextCheckDay({ seeds: [], checks: [] })).toBeNull();
-    expect(s.checkedLine(state("2026-10-20T01:00:00Z"))).toBe("Checked Tue 20 Oct. Next check from Tue 27 Oct.");
+    expect(s.checkedLine(state("2026-10-20T01:00:00Z"), new Date("2026-10-21T00:00:00Z"))).toBe("Checked Tue 20 Oct. Next check from Tue 27 Oct.");
+    expect(s.checkedLine(state("2026-10-20T01:00:00Z"), new Date("2026-10-27T00:00:00Z"))).toBe("Checked Tue 20 Oct.");
     expect(s.checkedLine({ seeds: [], checks: [] })).toBe("");
   });
 });

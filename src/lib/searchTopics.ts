@@ -62,6 +62,7 @@ function cleanTopic(raw: unknown): SearchTopic | null {
     seed: seed.slice(0, 60),
     volume,
     series,
+    lastMonth: typeof raw.lastMonth === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(raw.lastMonth) ? raw.lastMonth : null,
     change: num(raw.change),
     trend,
     recentVideos: num(raw.recentVideos),
@@ -145,11 +146,12 @@ export function nextCheckDay(s: SearchesState, now = new Date()): string | null 
   return now.getTime() >= opens ? null : new Date(opens).toISOString().slice(0, 10);
 }
 
-/** "Checked Mon 20 Oct. Next check from Mon 27 Oct." under the list; "" before the first check. */
-export function checkedLine(s: SearchesState): string {
+/** Under the list: "Checked Mon 20 Oct. Next check from Mon 27 Oct.", just "Checked ..." once that day has come; "" before any. */
+export function checkedLine(s: SearchesState, now = new Date()): string {
   const day = latestCheck(s)?.checkedAt.slice(0, 10);
   if (!day) return "";
-  return `Checked ${dayWords(day)}. Next check from ${dayWords(new Date(Date.parse(`${day}T00:00:00Z`) + 7 * DAY).toISOString().slice(0, 10))}.`;
+  const next = nextCheckDay(s, now);
+  return `Checked ${dayWords(day)}.${next ? ` Next check from ${dayWords(next)}.` : ""}`;
 }
 
 /** The rows a filter shows, most searched first. Rising takes New too: searches from nothing is the steepest rise. */
