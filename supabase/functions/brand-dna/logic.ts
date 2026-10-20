@@ -36,7 +36,7 @@ function attr(tag: string, name: string): string {
   const m = tag.match(new RegExp(`\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'>]+))`, "i"));
   return decode((m?.[1] ?? m?.[2] ?? m?.[3] ?? "").trim());
 }
-function meta(html: string, ...keys: string[]): string {
+export function meta(html: string, ...keys: string[]): string {
   for (const t of tagsOf(html, "meta")) {
     const k = (attr(t, "property") || attr(t, "name")).toLowerCase();
     if (keys.includes(k)) return attr(t, "content");

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import FB_ADS from "./fixtures/facebook-ads.json";
 
@@ -115,6 +116,17 @@ beforeAll(async () => {
       if (url.includes("instagram-post-scraper")) return Response.json(IG_POSTS.slice(0, input.resultsLimit));
       return Response.json([]); // TikTok with no videos
     }
+    // respond.io's saved home page (its footer links at 845 KB); a page whose only link sits past the 1 MB cap
+    if (url === "https://respond.io/") {
+      const html = readFileSync(new URL("./fixtures/site-respond.io.html", import.meta.url), "utf8").replace(/\n?<!-- cut (\d+) -->\n?/g, (_, n) => " ".repeat(Number(n)));
+      return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+    if (url === "https://huge.sg/") {
+      // in 64 KB pieces, as a network sends it (fetchCapped drops the piece that crosses its cap)
+      const bytes = new TextEncoder().encode(`<title>Huge | Home</title>${" ".repeat(1_100_000)}<a href="https://facebook.com/HugeSG">fb</a>`);
+      const body = new ReadableStream({ start(c) { for (let i = 0; i < bytes.length; i += 65_536) c.enqueue(bytes.subarray(i, i + 65_536)); c.close(); } });
+      return new Response(body, { headers: { "content-type": "text/html" } });
+    }
     if (url === "https://down.sg/") throw new TypeError("error sending request");
     if (url === "https://gone.sg/") return new Response("missing", { status: 404 });
     const host = new URL(url).hostname.replace(/^www\./, "").split(".")[0];
@@ -185,6 +197,12 @@ describe("competitors read", () => {
     expect(db.spent).toEqual(["competitor-read"]);
     expect(db.refunded).toEqual([]);
     expect(seen.some((u) => u.includes("dataforseo"))).toBe(false);
+  });
+
+  it("reads a home page to its footer (1 MB at most) and its JSON-LD sameAs", async () => {
+    const r = await call({ mode: "read", input: "respond.io" });
+    expect(r.body.found).toMatchObject({ name: "respond.io", site: "respond.io", handles: { facebook: "getrespondio", instagram: "respond.io", linkedin: "company/respondio", youtube: "respondio" } });
+    expect((await call({ mode: "read", input: "huge.sg" })).body.found).toMatchObject({ name: "Huge", handles: {} });
   });
 
   it("gives the use back when the site never answered, and keeps it when it isn't there", async () => {

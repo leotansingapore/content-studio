@@ -4,7 +4,7 @@
 
 import type { JevAnswer, JevQuestion } from "../_shared/jev.ts";
 import { AUDIENCE_TAGS, FEELINGS, HOOK_FAMILIES, pickTag } from "../_shared/tags.ts";
-import { handleOf, PLATFORMS, siteUrl } from "../brand-dna/logic.ts";
+import { handleOf, meta, PLATFORMS, readSite, type SiteFacts, siteUrl } from "../brand-dna/logic.ts";
 
 export type Handles = { facebook?: string; instagram?: string; tiktok?: string; linkedin?: string; youtube?: string };
 export type Parsed =
@@ -112,6 +112,64 @@ export function pickSite(answers: Record<string, JevAnswer> | null, results: Sea
   if (a.choice === best.key && p(best.key) >= SITE_ACCEPT) return { pick: best };
   if (p(best.key) >= SITE_ASK) return { choices: ranked.slice(0, 3) };
   return { notFound: true };
+}
+
+// ---- read: a site, past what brand-dna's reader takes ----------------------------------------------------------
+
+/** How much of a home page a site read takes: enough for a footer (respond.io's social links sit at 845 KB). */
+export const SITE_BYTES = 1_000_000;
+const ORG = /(Organization|Corporation|LocalBusiness|OnlineBusiness)$/;
+const LD = /<script\b[^<>]{0,500}application\/ld\+json[^<>]{0,500}>([\s\S]*?)<\/script>/gi;
+const SOCIAL_HREF = /href\s*=\s*["']?(https?:\/\/(?:www\.|m\.|web\.)?(?:facebook|fb|instagram|tiktok|linkedin|youtube)\.com\/[^\s"'<>]{1,300})/gi;
+
+/**
+ * The site's own Organization in its JSON-LD: its name and sameAs links. Only a top-level thing (or one in @graph)
+ * counts, so a founder's LinkedIn (a Person inside Apollo's Organization) or a publisher inside a SoftwareApplication
+ * (Sunsama's "Summay, Inc.") never names the business.
+ */
+export function ldOrganization(html: string): { name: string; sameAs: string[] } {
+  const out = { name: "", sameAs: [] as string[] };
+  for (const m of html.matchAll(LD)) {
+    let data: unknown;
+    try {
+      data = JSON.parse(m[1]);
+    } catch {
+      continue;
+    }
+    const top = (Array.isArray(data) ? data : [data]).flatMap((x) => (Array.isArray(rec(x)["@graph"]) ? (rec(x)["@graph"] as unknown[]) : [x]));
+    for (const raw of top) {
+      const e = rec(raw);
+      if (![e["@type"]].flat().some((t) => typeof t === "string" && ORG.test(t))) continue;
+      if (!out.name) out.name = text(e.name, 80);
+      for (const u of [e.sameAs].flat()) if (typeof u === "string" && out.sameAs.length < 30) out.sameAs.push(u);
+    }
+  }
+  return out;
+}
+
+/** The first profile per platform among these links (shares, posts and other pages are left out, as parseInput does). */
+function handlesIn(urls: Iterable<string>): Handles {
+  const out: Handles = {};
+  for (const u of urls) {
+    const p = parseInput(u);
+    if (p?.kind !== "link") continue;
+    for (const [k, v] of Object.entries(p.handles) as [keyof Handles, string][]) out[k] ??= v;
+  }
+  return out;
+}
+
+/**
+ * A competitor's home page: brand-dna's readSite (which reads the first 300 KB, unchanged for brand-dna), then the
+ * name from og:site_name or the JSON-LD Organization before a page title (Apollo's title named it "The AI GTM System
+ * for Go-to-Market Teams"), and handles readSite found first, then JSON-LD sameAs (SleekFlow's Facebook, Apollo's
+ * TikTok), then profile links anywhere in the page (SPOTIO's footer at 390 KB). YouTube @ links count here too.
+ */
+export function readCompetitorSite(html: string, base: URL): SiteFacts & { handles: Handles } {
+  const facts = readSite(html, base);
+  const org = ldOrganization(html);
+  const name = (meta(html.slice(0, 100_000), "og:site_name") || org.name || facts.name).slice(0, 60);
+  const links = [...html.matchAll(SOCIAL_HREF)].map((m) => m[1]);
+  return { ...facts, name, handles: { ...handlesIn(links), ...handlesIn(org.sameAs), ...facts.handles } };
 }
 
 /** The first https logo readSite found (a link, never a downloaded picture: 12 rows live in one synced key). */

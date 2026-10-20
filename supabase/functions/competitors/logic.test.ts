@@ -1,8 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/facebook-ads.json";
 import drop from "../../../src/data/adsSwipe.json";
+import { readSite } from "../brand-dna/logic.ts";
 import {
-  type Brand, adLibraryUrl, adsInput, cleanAds, cleanLabel, cleanMatch, cleanSpace, cleanSuggest, excluded, firstHttpsLogo, labelAsk, labelOf, mergeSpace, organicResults,
+  type Brand, adLibraryUrl, adsInput, cleanAds, cleanLabel, cleanMatch, cleanSpace, cleanSuggest, excluded, firstHttpsLogo, labelAsk, labelOf, ldOrganization, mergeSpace, organicResults, readCompetitorSite,
   MATCH_MAX, matchAsk, matchScores, pageMissing, pageOf, parseInput, parseProposals, parseWhys, pickSite, postsFailure, sgDay, shapeAds, shapeSpaceAds, siteAsk, siteRetry, spaceAsk, spaceFilter,
   spaceUrl, suggestFilter, type SpaceAd,
 } from "./logic";
@@ -142,6 +144,53 @@ describe("suggesting competitors", () => {
     expect(whys.c1).toHaveLength(160);
     expect(whys.c1).not.toMatch(/—/);
     expect(parseWhys("nope", ["c1"])).toEqual({});
+  });
+});
+
+/** A saved home page (21 Oct 2026), its tags at their real offsets: each "<!-- cut N -->" was N characters of other markup. */
+const sitePage = (host: string) =>
+  readFileSync(new URL(`./fixtures/site-${host}.html`, import.meta.url), "utf8").replace(/\n?<!-- cut (\d+) -->\n?/g, (_, n) => " ".repeat(Number(n)));
+
+describe("read: a competitor's home page", () => {
+  const read = (host: string) => readCompetitorSite(sitePage(host), new URL(`https://${host}/`));
+
+  it("finds the social pages the dogfood had to type: JSON-LD sameAs and footers past 300 KB", () => {
+    // brand-dna's reader, unchanged, found none of these (dogfood 21 Oct)
+    for (const host of ["sleekflow.io", "respond.io", "spotio.com"]) expect(readSite(sitePage(host), new URL(`https://${host}/`)).handles).toEqual({});
+    // sameAs at 7.7 KB names the Facebook page; Instagram is only in the footer at 797 KB
+    expect(read("sleekflow.io")).toMatchObject({ name: "SleekFlow", handles: { facebook: "sleekflow.io", instagram: "sleekflow", linkedin: "company/sleekflow" } });
+    // the footer at 845 KB
+    expect(read("respond.io")).toMatchObject({ name: "respond.io", handles: { facebook: "getrespondio", instagram: "respond.io", linkedin: "company/respondio", youtube: "respondio" } });
+    // no JSON-LD sameAs: the footer at 390 KB
+    expect(read("spotio.com")).toMatchObject({ name: "SPOTIO", handles: { facebook: "SPOTIO", instagram: "spotio", linkedin: "company/spotio", youtube: "SpotioApp" } });
+  });
+
+  it("names Apollo.io from its JSON-LD Organization, not its title, and adds its TikTok", () => {
+    const old = readSite(sitePage("apollo.io"), new URL("https://apollo.io/"));
+    expect(old.name).toBe("The AI GTM System for Go-to-Market Teams");
+    const r = read("apollo.io");
+    expect(r.name).toBe("Apollo.io");
+    // what brand-dna's reader found stays as it was; sameAs adds TikTok
+    expect(r.handles).toEqual({ ...old.handles, tiktok: "useapollo.io" });
+    expect(old.handles).toEqual({ instagram: "useapollo.io", facebook: "UseApolloIo", linkedin: "company/apolloio" });
+    expect(r.logos).toEqual(old.logos);
+  });
+
+  it("keeps what the first 300 KB found, and changes nothing for a page that already had a name and handles", () => {
+    const html = `<title>Acme | Home</title><meta property="og:site_name" content="Acme Wealth"><a href="https://facebook.com/AcmeSG">fb</a>
+<script type="application/ld+json">{"@type":"Organization","name":"Acme Holdings Pte Ltd","sameAs":["https://www.facebook.com/acme.other","https://www.tiktok.com/@acme"]}</script>`;
+    const base = new URL("https://acme.sg/");
+    expect(readCompetitorSite(html, base)).toMatchObject({ name: "Acme Wealth", handles: { facebook: "AcmeSG", tiktok: "acme" } });
+    const plain = `<title>Acme | Home</title><a href="https://instagram.com/acme">ig</a><a href="https://facebook.com/AcmeSG">fb</a>`;
+    expect(readCompetitorSite(plain, base)).toEqual(readSite(plain, base));
+  });
+
+  it("takes the site's own Organization only: never a founder inside it or a publisher inside an app", () => {
+    const ld = (o: unknown) => `<script type="application/ld+json">${JSON.stringify(o)}</script>`;
+    expect(ldOrganization(ld({ "@type": "SoftwareApplication", name: "Sunsama", publisher: { "@type": "Organization", name: "Summay, Inc.", sameAs: ["https://www.linkedin.com/company/sunsama/"] } }))).toEqual({ name: "", sameAs: [] });
+    expect(ldOrganization(ld({ "@type": "Organization", name: "Apollo.io", founder: { "@type": "Person", sameAs: ["https://www.linkedin.com/in/tim-zheng"] } }))).toEqual({ name: "Apollo.io", sameAs: [] });
+    expect(ldOrganization(ld({ "@graph": [{ "@type": "WebSite", name: "x" }, { "@type": ["Corporation"], name: "Yoast Co", sameAs: "https://www.instagram.com/yoast" }] }))).toEqual({ name: "Yoast Co", sameAs: ["https://www.instagram.com/yoast"] });
+    expect(ldOrganization(`<script type="application/ld+json">{nope</script>${ld([{ "@type": "LocalBusiness", name: "Shop" }])}`).name).toBe("Shop");
   });
 });
 

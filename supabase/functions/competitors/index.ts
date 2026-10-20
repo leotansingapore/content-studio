@@ -1,8 +1,8 @@
 // competitors (Discover > Competitors, docs/north-star/items/find-competitors.md): the list of businesses a brand
 // watches. Modes, routed on body.mode:
-//   read     a site (its home page: name, logo link, handles; free apart from the cap) or a bare name (one DataForSEO
-//            Google search, about US$0.002, then Jev picks the official result). Links and handles never come here:
-//            the app adds them itself with parseInput.
+//   read     a site (its home page up to 1 MB: name, logo link, handles from links and JSON-LD sameAs; free apart
+//            from the cap) or a bare name (one DataForSEO Google search, about US$0.002, then Jev picks the official
+//            result). Links and handles never come here: the app adds them itself with parseInput.
 //   suggest  up to 6 competitors with a why line: the app's candidates plus up to 8 the LLM proposes (each site must
 //            open), scored by Jev, then one LLM call for the why lines.
 //   ads      one competitor's Meta ads (apify~facebook-ads-scraper, up to 30 at US$5.80 per 1,000 on Free), in the
@@ -31,13 +31,13 @@ import { OPENAI_MODEL, openaiChat } from "../_shared/openaiChat.ts";
 import { pool } from "../_shared/pool.ts";
 import { fetchCapped } from "../_shared/safeFetch.ts";
 import { consumeUsage, GLOBAL_COUNTER_USER, refundUsage, type UsageResult, usageRefusal } from "../_shared/usageCaps.ts";
-import { readSite, siteUrl, type SiteFacts } from "../brand-dna/logic.ts";
+import { siteUrl, type SiteFacts } from "../brand-dna/logic.ts";
 import { isAllowed, newsFailed } from "../market/logic.ts";
 import { parseTrackRequest, shapeResult } from "../track-accounts/logic.ts";
 import {
   ADS_ACTOR, ADS_MAX, adLibraryUrl, adsInput, type Ask, type Candidate, cleanAds, cleanLabel, cleanMatch, cleanSpace, cleanSuggest, compareAsk, excluded,
-  firstHttpsLogo, hostOf, labelAsk, labelOf, matchAsk, matchScores, mergeSpace, nameTask, organicResults, pageMissing, pageOf, parseInput,
-  parseProposals, parseWhys, pickSite, POSTS_KEPT, POSTS_READ, postsFailure, PROPOSE_FORMAT, proposeMessages, shapeAds, shapeSpaceAds, siteAsk,
+  firstHttpsLogo, type Handles, hostOf, labelAsk, labelOf, matchAsk, matchScores, mergeSpace, nameTask, organicResults, pageMissing, pageOf, parseInput,
+  parseProposals, parseWhys, pickSite, POSTS_KEPT, POSTS_READ, postsFailure, PROPOSE_FORMAT, proposeMessages, readCompetitorSite, shapeAds, shapeSpaceAds, siteAsk, SITE_BYTES,
   siteRetry, spaceAsk, spaceFilter, spaceUrl, suggestFilter, WHY_FORMAT, whyMessages,
 } from "./logic.ts";
 
@@ -51,7 +51,6 @@ const msg = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0
 // deno-lint-ignore no-explicit-any
 type Admin = any; // as market: ReturnType<typeof createClient> resolves to a schema the usage helpers reject
 
-const PAGE_BYTES = 300_000;
 const HTML = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5";
 const SITE_FAILED = "Couldn't read their site. Try again in a few minutes.";
 const SUGGEST_FAILED = "Couldn't suggest anything right now. Try again in a few minutes.";
@@ -71,24 +70,24 @@ const refusal = (u: Extract<UsageResult, { allowed: false }>) => {
 };
 
 /** A home page's facts, or whether the failure is worth another try (the site never answered). */
-async function readHome(url: URL, deadline = AbortSignal.timeout(20_000)): Promise<{ ok: true; host: string; facts: SiteFacts } | { ok: false; retry: boolean }> {
+async function readHome(url: URL, deadline = AbortSignal.timeout(20_000)): Promise<{ ok: true; host: string; facts: SiteFacts & { handles: Handles } } | { ok: false; retry: boolean }> {
   let page: { bytes: Uint8Array; type: string; url: URL };
   try {
-    page = await fetchCapped(url, PAGE_BYTES, HTML, deadline);
+    page = await fetchCapped(url, SITE_BYTES, HTML, deadline);
   } catch (e) {
     console.warn("competitors: site", url.host, msg(e));
     return { ok: false, retry: siteRetry(e) };
   }
   if (!/html|xml|text/.test(page.type)) return { ok: false, retry: false };
   try {
-    return { ok: true, host: hostOf(page.url), facts: readSite(new TextDecoder().decode(page.bytes), page.url) };
+    return { ok: true, host: hostOf(page.url), facts: readCompetitorSite(new TextDecoder().decode(page.bytes), page.url) };
   } catch (e) {
     console.warn("competitors: read", url.host, msg(e));
     return { ok: false, retry: false };
   }
 }
 
-const found = (name: string, site: string | null, facts: SiteFacts | null, handles = facts?.handles ?? {}) =>
+const found = (name: string, site: string | null, facts: SiteFacts | null, handles: Handles = facts?.handles ?? {}) =>
   json({ found: { name: name.slice(0, 80), site, logo: facts ? firstHttpsLogo(facts.logos) : null, handles } });
 
 async function read(admin: Admin, uid: string, body: { input?: unknown }): Promise<Response> {
