@@ -11,7 +11,7 @@ const KEY = "cs-calendar-business";
 /**
  * Leo 2026-10-13: "sort the posts based on business, since I manage multiple businesses". Names are the businesses
  * on the page (the open profile, reels brands, channel feeds); a pick that is no longer there falls back to all.
- * The pick lives in ?business= (`all` or the chip's label as a slug, "team-posts"), then the remembered pick.
+ * The pick lives in ?business= (`all` or the business name as a slug, "team-posts"), then the remembered pick.
  * `linked`: the business a link implies when it names none (a team post link shows the team posts).
  */
 export function useBusinessFilter(names: string[], linked?: string) {
@@ -37,8 +37,14 @@ export function useBusinessFilter(names: string[], linked?: string) {
   return { businesses, bizOn, bizSlug, pick, shows };
 }
 
-/** The chip row; hidden when the page has only one business. */
-export function BusinessChips({ filter }: { filter: ReturnType<typeof useBusinessFilter> }) {
+/** The chip row; hidden when the page has only one business. `label`: a chip's text, when it differs from the name its link and memory use. */
+export function BusinessChips({
+  filter,
+  label = (name) => name,
+}: {
+  filter: ReturnType<typeof useBusinessFilter>;
+  label?: (name: string) => string;
+}) {
   if (filter.businesses.length < 2) return null;
   return (
     <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Business">
@@ -47,7 +53,7 @@ export function BusinessChips({ filter }: { filter: ReturnType<typeof useBusines
       </FilterChip>
       {filter.businesses.map((b) => (
         <FilterChip key={b.key} active={filter.bizOn === b.key} onClick={() => filter.pick(b.key)}>
-          {b.label}
+          {label(b.label)}
         </FilterChip>
       ))}
     </div>

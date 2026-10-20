@@ -12,7 +12,7 @@ vi.mock("react-router-dom", () => ({
   ],
 }));
 
-const { useBusinessFilter } = await import("./BusinessFilter");
+const { BusinessChips, useBusinessFilter } = await import("./BusinessFilter");
 
 const store = new Map<string, string>();
 globalThis.localStorage = {
@@ -58,5 +58,14 @@ describe("useBusinessFilter", () => {
     expect(store.get("cs-calendar-business")).toBe("team-posts");
     run(url.toString()).pick("all");
     expect(url.toString()).toBe("view=week");
+  });
+
+  it("a chip can say other words than the name its link and memory use", () => {
+    const filter = run("");
+    const html = renderToStaticMarkup(createElement(BusinessChips, { filter, label: (n: string) => (n === "Team posts" ? "Telegram posts" : n) }));
+    expect(html).toContain("Telegram posts");
+    expect(html).not.toContain("Team posts");
+    filter.pick("teamposts");
+    expect(url.get("business")).toBe("team-posts");
   });
 });

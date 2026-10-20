@@ -137,7 +137,10 @@ const REPEAT_LABEL: Record<RepeatEvery, string> = {
   "2weeks": "every 2 weeks",
   month: "monthly",
 };
-const TEAM_BUSINESS = "Team posts"; // its own entry in the business filter
+// Team posts' own entry in the business filter. Its slug "team-posts" is the ?business= value and the remembered pick,
+// so it stays; the chip says where they go instead.
+const TEAM_BUSINESS = "Team posts";
+const bizName = (name: string) => (businessKey(name) === businessKey(TEAM_BUSINESS) ? "Telegram posts" : name);
 const KEY_DATE_DAYS = 60; // how far ahead Upcoming lists holidays and money dates
 const STATUSES = ["all", "scheduled", "posted"] as const;
 type StatusFilter = (typeof STATUSES)[number];
@@ -1516,7 +1519,7 @@ export default function CalendarPage() {
         )}
       </div>
 
-      <BusinessChips filter={bizFilter} />
+      <BusinessChips filter={bizFilter} label={bizName} />
 
       {(teamToApprove.length > 0 || handDue.length > 0 || waitingGroups.length > 0) && (
         <section aria-label="Needs you" className="space-y-2 rounded-xl border border-warning/40 bg-warning/5 p-3">
@@ -1638,7 +1641,7 @@ export default function CalendarPage() {
                 const mine = businessKey(r.business) === businessKey(profileName);
                 return (
                   <li key={r.business} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">{r.business}</span>
+                    <span className="font-medium text-foreground">{bizName(r.business)}</span>
                     <span>{r.last ? `planned to ${dayLabel(r.last)}, then nothing` : `nothing planned in the next ${COVER_DAYS / 7} weeks`}</span>
                     {mine && (
                       <Link to="/generate" className="-my-2 py-2 font-semibold text-primary hover:underline [@media(pointer:coarse)]:my-0 [@media(pointer:coarse)]:inline-flex [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:items-center">

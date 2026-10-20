@@ -137,7 +137,7 @@ export const SECTIONS: NavSection[] = [
     pages: [
       { to: "/coach", label: "Coach", icon: Target },
       { to: "/analytics", label: "Analytics", icon: BarChart3 },
-      { to: "/team", label: "Team review", icon: ShieldCheck },
+      { to: "/team", label: "Leader approvals", icon: ShieldCheck },
     ],
   },
   {

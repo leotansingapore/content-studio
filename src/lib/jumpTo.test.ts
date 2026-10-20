@@ -79,6 +79,16 @@ describe("searchJump", () => {
     expect(searchJump(items, "alerts")[0].to).toBe("/playbook");
   });
 
+  it("tells the three team places apart", () => {
+    expect(items.find((i) => i.to === "/team")?.label).toBe("Leader approvals");
+    expect(searchJump(items, "team")[0].to).toBe("/team");
+    expect(searchJump(items, "team review")[0].to).toBe("/team");
+    const leo = pageItems("tanjunsing@gmail.com");
+    expect(searchJump(leo, "team").map((i) => i.to).slice(0, 2)).toEqual(["/reels/team", "/team"]);
+    expect(searchJump(leo, "invite")[0].to).toBe("/reels/team");
+    expect(searchJump(leo, "teammate")[0].to).toBe("/reels/team");
+  });
+
   it("finds a page by the word in its own address", () => {
     expect(searchJump(items, "tutorial")[0].to).toBe("/tutorial");
     expect(searchJump(items, "swipe")[0].to).toBe("/swipe");
