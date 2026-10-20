@@ -112,15 +112,18 @@ export default function HashtagStats() {
             <span className="text-muted-foreground">Median {compactNum(shown.latest.medianViews)} views</span>
             {weekLabel(shown) && <span className="text-muted-foreground">{weekLabel(shown)}</span>}
           </div>
-          <TrendChart
-            points={shown.history.map((h) => ({ id: h.day, label: dayWords(h.day), value: h.medianViews, detail: `${h.videos} videos` }))}
-            format={(v) => compactNum(v)}
-            measure="median views"
-            title={`Median views of #${shown.tag} videos, by day`}
-            fit
-            width={460}
-            height={150}
-          />
+          {/* one day is one number, already above; a line needs two */}
+          {shown.history.length > 1 && (
+            <TrendChart
+              points={shown.history.map((h) => ({ id: h.day, label: dayWords(h.day), value: h.medianViews, detail: `${h.videos} videos` }))}
+              format={(v) => compactNum(v)}
+              measure="median views"
+              title={`Median views of #${shown.tag} videos, by day`}
+              fit
+              width={460}
+              height={150}
+            />
+          )}
           <OftenWith r={shown} onOpen={open} known={known} />
         </TrendsDrawer>
       )}
