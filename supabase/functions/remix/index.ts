@@ -16,7 +16,7 @@ import { openaiChat } from "../_shared/openaiChat.ts";
 import { askJev, noulOf } from "../_shared/jev.ts";
 import { isAllowed } from "../market/logic.ts";
 import {
-  MAKE_QUESTIONS,
+  makeQuestions,
   MAKE_RESPONSE_FORMATS,
   buildMakePrompt,
   dontReuseFor,
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
         return (await write([...messages, { role: "assistant", content: first.raw }, { role: "user", content: rewriteMessage(lines) }]).catch(() => null))?.result ?? null;
       },
       ask: async (state) => {
-        const answers = await askJev({ ...(state as object), facts: make.brand.facts }, MAKE_QUESTIONS, { who: "remix make" });
+        const answers = await askJev({ ...(state as object), facts: make.brand.facts }, makeQuestions(make.brand.speaker), { who: "remix make" });
         return answers ? { claim: noulOf(answers, "copied_claim"), invented: noulOf(answers, "invented_self") } : null;
       },
     });

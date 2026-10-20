@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_URL: "", SUPABASE_ANON_KEY: "" }));
 
 import { addProfile, setActiveProfile } from "./profiles";
-import { brandName, brandPack, forSummary, loadRemixPrefs, ownBrandName, saveRemixPrefs } from "./remixBrand";
+import { brandName, brandPack, forSummary, loadRemixPrefs, ownBrandName, saveRemixPrefs, speakerFor } from "./remixBrand";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 
@@ -101,10 +101,34 @@ describe("loadRemixPrefs", () => {
 
 describe("forSummary", () => {
   it("builds the collapsed line from the settings", () => {
-    const base = { brand: "MoneyBees", hasVoice: true, mention: true, offer: null, video: false };
-    expect(forSummary(base)).toBe("MoneyBees | your voice | mentions MoneyBees | no offer");
-    expect(forSummary({ ...base, hasVoice: false, offer: "Free money check" })).toBe("MoneyBees | plain voice | mentions MoneyBees | Free money check");
-    expect(forSummary({ ...base, mention: false, offer: "Free money check" })).toBe("MoneyBees | your voice | no brand mention | no offer");
-    expect(forSummary({ ...base, video: true })).toBe("MoneyBees | your voice | mentions MoneyBees | no offer | AI presenter");
+    const base = { brand: "MoneyBees", speaker: "person" as const, hasVoice: true, mention: true, offer: null, video: false };
+    expect(forSummary(base)).toBe("MoneyBees | as you | your voice | mentions MoneyBees | no offer");
+    expect(forSummary({ ...base, hasVoice: false, offer: "Free money check" })).toBe("MoneyBees | as you | plain voice | mentions MoneyBees | Free money check");
+    expect(forSummary({ ...base, mention: false, offer: "Free money check" })).toBe("MoneyBees | as you | your voice | no brand mention | no offer");
+    expect(forSummary({ ...base, video: true })).toBe("MoneyBees | as you | your voice | mentions MoneyBees | no offer | AI presenter");
+    expect(forSummary({ ...base, speaker: "business" })).toBe("MoneyBees | as the business | your voice | mentions MoneyBees | no offer");
+  });
+});
+
+describe("the speaker", () => {
+  it("is the person when the kit's You fields hold a role or a headshot, else the business", () => {
+    expect(speakerFor(UID)).toBe("business");
+    kit(UID, { name: "ActivityTracker", logo: "data:image/png;base64,x" });
+    expect(speakerFor(UID)).toBe("business");
+    kit(UID, { name: "Leo Tan", role: "Financial adviser" });
+    expect(speakerFor(UID)).toBe("person");
+    kit(UID, { name: "Leo Tan", photo: "data:image/jpeg;base64,x" });
+    expect(speakerFor(UID)).toBe("person");
+  });
+
+  it("goes in the brand block from the kit, unless the For row picked one, and is kept per brand", () => {
+    kit(UID, { name: "ActivityTracker" });
+    expect(brandPack(UID, { platform: "linkedin", mention: true, offer: null }).speaker).toBe("business");
+    expect(brandPack(UID, { platform: "linkedin", mention: true, offer: null, speaker: "person" }).speaker).toBe("person");
+    expect(loadRemixPrefs(UID).speaker).toBeUndefined();
+    saveRemixPrefs(UID, { ...loadRemixPrefs(UID), speaker: "person" });
+    expect(loadRemixPrefs(UID).speaker).toBe("person");
+    set(`content-studio-remix-prefs-${UID}`, { speaker: "robot" });
+    expect(loadRemixPrefs(UID).speaker).toBeUndefined();
   });
 });

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { links } from "@/lib/links";
 import { forSummary } from "@/lib/remixBrand";
+import type { Speaker } from "@/lib/remix";
 
 /**
  * Who the remix is for (docs/north-star/items/remix-your-brand.md): one summary line that opens into the few
@@ -15,6 +16,7 @@ export default function ForRow(p: {
   mention: boolean;
   offer: string | null;
   offers: string[];
+  speaker: Speaker;
   /** Posts in a usable voice profile, or 0 with none saved. */
   voicePosts: number;
   color?: string;
@@ -23,9 +25,10 @@ export default function ForRow(p: {
   setOpen(open: boolean): void;
   onMention(on: boolean): void;
   onOffer(name: string | null): void;
+  onSpeaker(s: Speaker): void;
   disabled: boolean;
 }) {
-  const summary = forSummary({ brand: p.brand, hasVoice: p.voicePosts > 0, mention: p.mention, offer: p.offer, video: false });
+  const summary = forSummary({ brand: p.brand, speaker: p.speaker, hasVoice: p.voicePosts > 0, mention: p.mention, offer: p.offer, video: false });
   if (!p.open) {
     return (
       <div className="flex items-center gap-3">
@@ -46,6 +49,17 @@ export default function ForRow(p: {
         <Button type="button" variant="ghost" size="sm" onClick={() => p.setOpen(false)} className="h-8 text-xs font-semibold text-primary [@media(pointer:coarse)]:min-h-11">
           Done
         </Button>
+      </div>
+      <div className={row}>
+        <span className={label}>Speaks</span>
+        <div className="flex flex-wrap gap-1.5">
+          <FilterChip active={p.speaker === "person"} onClick={() => p.onSpeaker("person")} disabled={p.disabled}>
+            As you
+          </FilterChip>
+          <FilterChip active={p.speaker === "business"} onClick={() => p.onSpeaker("business")} disabled={p.disabled}>
+            As the business
+          </FilterChip>
+        </div>
       </div>
       <div className={row}>
         <span className={label}>Mention {p.named ? p.brand : "your brand"}</span>

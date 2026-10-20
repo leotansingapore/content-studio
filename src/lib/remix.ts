@@ -17,7 +17,7 @@ import { TRENDS } from "@/lib/trends";
 import type { Close, Keep, MakeRequest, MakeResponse, RemixAs } from "../../supabase/functions/remix/logic.ts";
 
 export { intentsFor } from "../../supabase/functions/remix/logic.ts";
-export type { Close, FitReason, Flags, Keep, MakeRequest, MakeResponse, MakeResult, RemixAs } from "../../supabase/functions/remix/logic.ts";
+export type { Close, FitReason, Flags, Keep, MakeRequest, MakeResponse, MakeResult, RemixAs, Speaker } from "../../supabase/functions/remix/logic.ts";
 
 // ---- labels -------------------------------------------------------------------------------
 

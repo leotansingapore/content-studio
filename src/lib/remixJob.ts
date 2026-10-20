@@ -25,6 +25,7 @@ import {
   type MakeRequest,
   type MakeResult,
   type RemixAs,
+  type Speaker,
 } from "@/lib/remix";
 import { brandPack } from "@/lib/remixBrand";
 import type { RemixSource } from "@/lib/remixSource";
@@ -41,6 +42,8 @@ export interface RemixRun {
   note?: string;
   mention: boolean;
   offer: string | null;
+  /** The For row's pick; the brand kit's default when missing. */
+  speaker?: Speaker;
   fit?: { verdict: string; reasons: FitReason[] };
 }
 
@@ -161,7 +164,7 @@ async function makeRow(id: number, i: number, userId: string, run: RemixRun) {
     close: run.close,
     note: run.note?.trim() || undefined,
     voice: voiceForClone(loadVoiceProfile(userId), winnersFor(userId)),
-    brand: brandPack(userId, { platform, mention: run.mention, offer: run.offer }),
+    brand: brandPack(userId, { platform, mention: run.mention, offer: run.offer, speaker: run.speaker }),
     fit: run.fit as MakeRequest["fit"],
   };
   const writing = setTimeout(() => patch(id, i, { step: writingStep(as) }), READ_MS);

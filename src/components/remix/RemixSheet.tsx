@@ -28,7 +28,7 @@ import {
   type Flags,
   type Keep,
 } from "@/lib/remix";
-import { brandName, loadRemixPrefs, offerNames, ownBrandName, saveRemixPrefs, type RemixPrefs } from "@/lib/remixBrand";
+import { brandName, loadRemixPrefs, offerNames, ownBrandName, saveRemixPrefs, speakerFor, type RemixPrefs } from "@/lib/remixBrand";
 import { clearRemixJob, hrefFor, onRemixJob, remixJob, startRemix, type RemixJobState } from "@/lib/remixJob";
 import { dayMonth, earlierRemix, seenSources, sourceNoun, type RemixSource } from "@/lib/remixSource";
 import { resolveSource } from "@/lib/resolveSource";
@@ -123,6 +123,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const mention = named && (params.get("mention") === "no" ? false : prefs.mention);
   const offerParam = params.get("offer");
   const offer = mention ? (offerParam && offers.find((o) => slug(o) === offerParam)) || prefs.offer : null;
+  const kitSpeaker = useMemo(() => speakerFor(userId), [userId]);
+  const speaker = prefs.speaker ?? kitSpeaker;
   const savePrefs = (next: RemixPrefs, url: Record<string, string | null>) => {
     setPrefs(next);
     saveRemixPrefs(userId, next);
@@ -169,7 +171,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   const out = left === 0;
   const start = () => {
     if (!source) return;
-    startRemix(userId, { source, keep, about: keep === "topic" ? about : undefined, close: closeness, as, note: note.trim() || undefined, mention, offer });
+    startRemix(userId, { source, keep, about: keep === "topic" ? about : undefined, close: closeness, as, note: note.trim() || undefined, mention, offer, speaker });
   };
   const again = () => {
     clearRemixJob();
@@ -266,6 +268,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           mention={mention}
           offer={offer}
           offers={offers}
+          speaker={speaker}
           voicePosts={voicePosts}
           color={kit?.color}
           logo={kit?.logo}
@@ -274,6 +277,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
           disabled={working}
           onMention={(on) => savePrefs({ ...prefs, mention: on }, { mention: on ? null : "no" })}
           onOffer={(name) => savePrefs({ ...prefs, offer: name }, { offer: name ? slug(name) : null })}
+          onSpeaker={(next) => savePrefs({ ...prefs, speaker: next }, {})}
         />
 
         <section>

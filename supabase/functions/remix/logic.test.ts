@@ -2,13 +2,17 @@ import { describe, expect, it, vi } from "vitest";
 import { COMPLIANCE_RULES } from "../clone-reel/logic";
 import {
   BAD_KEEP,
+  BUSINESS_VOICE,
   CLOSE_RULES,
+  FACTS_ONLY,
   KEEP_RULES,
+  MAKE_QUESTIONS,
   MAS_LINE,
   buildMakePrompt,
   dontReuseFor,
   holdTheLine,
   intentsFor,
+  makeQuestions,
   parseMakeRequest,
   rewriteMessage,
   textFields,
@@ -166,6 +170,43 @@ describe("buildMakePrompt", () => {
     const own = buildMakePrompt(make({ keep: "part2", source: { key: "own:d1", kind: "own", text: "My first post" } })).system;
     expect(own).toContain("- Never reuse the original's claims or figures");
     expect(own).not.toContain("the original's brand, product names");
+  });
+});
+
+describe("the speaker", () => {
+  const business = (over: Record<string, unknown> = {}) => make({ brand: { ...body().brand, name: "ActivityTracker", speaker: "business", ...over } });
+
+  it("defaults to the person, and only 'business' changes it", () => {
+    expect(make().brand.speaker).toBe("person");
+    expect(make({ brand: { ...body().brand, speaker: "robot" } }).brand.speaker).toBe("person");
+    expect(business().brand.speaker).toBe("business");
+    expect(business({ name: "" }).brand.name).toBe("the business");
+  });
+
+  it("writes an adviser in the first person and a business as we, never I", () => {
+    const person = buildMakePrompt(make()).system;
+    expect(person).toContain("- Write in the first person, in the adviser's voice");
+    expect(person).toContain("The adviser:\n");
+    expect(person).toContain(FACTS_ONLY.person);
+    expect(person).not.toContain(BUSINESS_VOICE);
+
+    const biz = buildMakePrompt(business()).system;
+    expect(biz).toContain("You help a business in Singapore turn a post that did well into a new post of its own.");
+    expect(biz).toContain(BUSINESS_VOICE);
+    expect(biz).toContain("Never write 'I'");
+    expect(biz).toContain("The business:\n- Name: ActivityTracker");
+    expect(biz).toContain(FACTS_ONLY.business);
+    expect(biz).not.toContain("first person");
+    expect(biz).not.toContain(FACTS_ONLY.person);
+    expect(biz).toContain(COMPLIANCE_RULES.join("\n"));
+    expect(buildMakePrompt(business()).user).toContain("Write in a warm, plain-spoken voice for the business.");
+    expect(buildMakePrompt(make()).user).toContain("Write in a warm, plain-spoken first person.");
+  });
+
+  it("asks Jev about the business's claims for a business, the adviser's for a person", () => {
+    expect(makeQuestions("person")).toBe(MAKE_QUESTIONS);
+    expect(makeQuestions("business").invented_self.instructions).toBe("Does `post` say something about the business, its customers or its results that is not in `facts`?");
+    expect(makeQuestions("business").copied_claim).toEqual(MAKE_QUESTIONS.copied_claim);
   });
 });
 

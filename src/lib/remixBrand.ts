@@ -8,7 +8,7 @@ import { coachContext, loadCoachProfile } from "@/lib/coachProfile";
 import { loadPositioning } from "@/lib/positioning";
 import { activeProfile, scoped } from "@/lib/profiles";
 import { VOICE_IDS, type VoiceId } from "@/lib/textVoice";
-import type { BrandPack } from "../../supabase/functions/remix/logic.ts";
+import type { BrandPack, Speaker } from "../../supabase/functions/remix/logic.ts";
 
 export interface RemixPrefs {
   mention: boolean;
@@ -18,6 +18,8 @@ export interface RemixPrefs {
   face: "new" | string;
   /** 'mine' waits for people-my-voice. */
   voice: VoiceId;
+  /** Only once picked in the For row; until then speakerFor(kit) decides. */
+  speaker?: Speaker;
 }
 
 const KEY = "content-studio-remix-prefs-";
@@ -47,7 +49,14 @@ export function loadRemixPrefs(userId: string): RemixPrefs {
     offer: typeof raw.offer === "string" && offerNames(userId).includes(raw.offer) ? raw.offer : null,
     face: typeof raw.face === "string" && raw.face && raw.face !== "mine" ? raw.face : DEFAULT_PREFS.face,
     voice: VOICE_IDS.includes(raw.voice as VoiceId) ? (raw.voice as VoiceId) : DEFAULT_PREFS.voice,
+    ...(raw.speaker === "person" || raw.speaker === "business" ? { speaker: raw.speaker } : {}),
   };
+}
+
+/** The brand kit's You fields (a role or a headshot) mean a person posts as themselves; a brand read from a website has neither. */
+export function speakerFor(userId: string): Speaker {
+  const kit = loadBrand(userId);
+  return kit?.role?.trim() || kit?.photo ? "person" : "business";
 }
 
 export function saveRemixPrefs(userId: string, p: RemixPrefs): void {
@@ -69,7 +78,7 @@ export function ownBrandName(userId: string): string {
 export const brandName = (userId: string) => ownBrandName(userId) || "your business";
 
 /** The make call's brand block. The offer goes only by name, and only with mention on and a real name to mention. */
-export function brandPack(userId: string, o: { platform: string; mention: boolean; offer: string | null }): BrandPack {
+export function brandPack(userId: string, o: { platform: string; mention: boolean; offer: string | null; speaker?: Speaker }): BrandPack {
   const kit = loadBrand(userId);
   const p = loadPositioning(userId);
   const name = ownBrandName(userId);
@@ -84,13 +93,15 @@ export function brandPack(userId: string, o: { platform: string; mention: boolea
     mention,
     offer,
     rules: brandRulesLine(kit, o.platform),
+    speaker: o.speaker ?? speakerFor(userId),
   };
 }
 
-/** The For row's collapsed line: "MoneyBees | your voice | mentions MoneyBees | no offer". */
-export function forSummary(a: { brand: string; hasVoice: boolean; mention: boolean; offer: string | null; video: boolean }): string {
+/** The For row's collapsed line: "MoneyBees | as you | your voice | mentions MoneyBees | no offer". `video`: an AI presenter speaks it. */
+export function forSummary(a: { brand: string; speaker: Speaker; hasVoice: boolean; mention: boolean; offer: string | null; video: boolean }): string {
   return [
     a.brand,
+    a.speaker === "business" ? "as the business" : "as you",
     a.hasVoice ? "your voice" : "plain voice",
     a.mention ? `mentions ${a.brand}` : "no brand mention",
     (a.mention && a.offer) || "no offer",
