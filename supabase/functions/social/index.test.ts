@@ -91,6 +91,28 @@ describe("the social function", () => {
     expect(db.spent).toEqual(["social-read", "social-read"]);
     expect(zernio.every((c) => c.includes(`profileId=${MINE}`))).toBe(true);
   });
+
+  it("counts a post and its retry against the posting cap, each upload link and each auto-DM change against their own, and a cancel as a read", async () => {
+    const ID = "0123456789abcdef0123456b";
+    await call(UID, { action: "presign", profileId: "me", filename: "slide-1.png", contentType: "image/png", size: 100 });
+    await call(UID, { action: "schedule", profileId: "me", accountIds: [ID], clientKey: UID, content: "Hi", mediaUrls: [], now: true });
+    await call(UID, { action: "retry", profileId: "me", postId: ID });
+    await call(UID, { action: "automation-update", profileId: "me", automationId: ID, active: false });
+    await call(UID, { action: "automation-delete", profileId: "me", automationId: ID });
+    await call(UID, { action: "cancel", profileId: "me", postId: ID });
+    await call(UID, { action: "post", profileId: "me", postId: ID });
+    expect(db.spent).toEqual(["social-presign", "social-schedule", "social-schedule", "social-automation-write", "social-automation-write", "social-read", "social-read"]);
+  });
+
+  it("spends none of the day's posts on one it refuses: a time that has passed or a file it can't take", async () => {
+    const past = new Date(Date.now() - 3600_000).toISOString();
+    const r = await call(UID, { action: "schedule", profileId: "me", accountIds: [MINE], clientKey: UID, content: "Hi", mediaUrls: [], scheduledFor: past });
+    expect(r.status).toBe(400);
+    expect(await r.json()).toEqual({ error: "That time has passed. Pick a later time, or post now." });
+    expect((await call(UID, { action: "presign", profileId: "me", filename: "a.gif", contentType: "image/gif", size: 100 })).status).toBe(400);
+    expect(db.spent).toEqual([]);
+    expect(zernio).toEqual([]);
+  });
 });
 
 describe("removing a brand", () => {
