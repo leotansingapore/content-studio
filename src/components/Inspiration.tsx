@@ -12,6 +12,9 @@ import { InfoTip } from "@/components/ui/info-tip";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
 import { humanLabel } from "@/lib/utils";
 import { links } from "@/lib/links";
+import RemixButton from "@/components/remix/RemixButton";
+import { fromInspiration } from "@/lib/remixSource";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { toggled, useUrlLabels, useUrlFlag, useUrlSearch, useUrlUpdate } from "@/lib/urlState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -155,6 +158,18 @@ function InspirationCard({
     }
   };
 
+  const useAsVibe = (
+    <Button
+      size="sm"
+      onClick={handleUseAsVibe}
+      className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
+    >
+      <Sparkles className="h-3.5 w-3.5" />
+      Use as vibe
+      <ArrowRight className="h-3.5 w-3.5" />
+    </Button>
+  );
+
   return (
     <Card className="flex h-full flex-col border-border/60 shadow-card transition-all hover:border-primary/40 hover:shadow-elegant">
       <CardHeader className="space-y-3">
@@ -227,15 +242,8 @@ function InspirationCard({
               View
             </Link>
           </Button>
-          <Button
-            size="sm"
-            onClick={handleUseAsVibe}
-            className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Use as vibe
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
+          {/* Inside Write (onUseAsVibe set) it picks a vibe for the open draft, so it never becomes Remix there */}
+          {onUseAsVibe ? useAsVibe : <RemixButton source={fromInspiration(entry)}>{useAsVibe}</RemixButton>}
         </div>
       </CardContent>
     </Card>
@@ -252,6 +260,8 @@ export default function Inspiration({ onUseAsVibe }: Props) {
   const [audienceList, setAudiences] = useUrlLabels("audience", AUDIENCE_OPTIONS);
   const [formatList, setFormats] = useUrlLabels("format", FORMAT_VALUES);
   const [savedOnly, setSavedOnly] = useUrlFlag("saved");
+  // Leo's cards outside Write carry Remix in place of Use as vibe, so the tip about it goes too
+  const leo = useLeoOnly();
   const update = useUrlUpdate();
   const platforms = new Set(platformList);
   const pillars = new Set(pillarList);
@@ -339,9 +349,11 @@ export default function Inspiration({ onUseAsVibe }: Props) {
         <h1 className="font-serif text-2xl font-semibold leading-tight tracking-tight text-foreground sm:text-3xl">
           Inspiration
         </h1>
-        <InfoTip label="About Use as vibe">
-          Use as vibe starts a draft that borrows the post&apos;s pattern.
-        </InfoTip>
+        {(onUseAsVibe || !leo) && (
+          <InfoTip label="About Use as vibe">
+            Use as vibe starts a draft that borrows the post&apos;s pattern.
+          </InfoTip>
+        )}
       </header>
 
       {/* Compact toolbar: search + a single row of pillar quick-filters, with

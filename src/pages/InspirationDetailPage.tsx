@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import inspirationData from "@/data/inspiration.json";
 import { FORMAT_OPTIONS, type InspirationEntry } from "@/components/Inspiration";
+import RemixButton from "@/components/remix/RemixButton";
+import { fromInspiration } from "@/lib/remixSource";
 import { humanLabel } from "@/lib/utils";
 
 const ENTRIES = inspirationData as InspirationEntry[];
@@ -147,15 +149,17 @@ export default function InspirationDetailPage() {
             </div>
           )}
           <div className="pt-2">
-            <Button
-              size="lg"
-              onClick={handleUseAsVibe}
-              className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto"
-            >
-              <Sparkles className="h-4 w-4" />
-              Use as vibe
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+            <RemixButton source={fromInspiration(entry)}>
+              <Button
+                size="lg"
+                onClick={handleUseAsVibe}
+                className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto"
+              >
+                <Sparkles className="h-4 w-4" />
+                Use as vibe
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </RemixButton>
           </div>
         </CardContent>
       </Card>
