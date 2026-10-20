@@ -20,6 +20,7 @@ import {
   Radar,
   ShieldCheck,
   Sparkles,
+  Star,
   Target,
   TrendingUp,
   UserCheck,
@@ -28,6 +29,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { reelsShown } from "@/lib/reelsBoard";
+import { LEO_EMAILS } from "@/lib/leoOnly";
 import { marketShown } from "@/lib/market";
 import { socialConnectShown } from "@/lib/socialConnect";
 
@@ -68,6 +70,7 @@ export const SECTIONS: NavSection[] = [
     pages: [
       { to: "/home", label: "Overview", title: "Home" },
       { to: "/welcome", label: "Getting started", icon: Sparkles },
+      { to: "/north-star", label: "North star", icon: Star, owners: LEO_EMAILS },
     ],
   },
   {

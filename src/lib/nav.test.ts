@@ -5,7 +5,7 @@ const routes = [
   "/home", "/welcome", "/generate", "/generate/batch", "/carousel", "/edit", "/plan", "/calendar", "/board",
   "/drafts", "/grid", "/reels", "/recruit", "/recruit/conversations", "/recruit/agent", "/recruit/engage", "/recruit/auto-dm", "/coach", "/analytics", "/team",
   "/swipe", "/trends", "/clone", "/inspiration", "/profiles", "/following", "/playbook", "/voice", "/brand", "/bio", "/links", "/accounts", "/fads", "/connect",
-  "/academy", "/create-guide", "/tutorial", "/feedback",
+  "/academy", "/create-guide", "/tutorial", "/feedback", "/north-star",
 ];
 
 describe("nav", () => {

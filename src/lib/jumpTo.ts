@@ -22,6 +22,7 @@ export const CREATE_ITEMS: JumpItem[] = [
 /** Words a page is looked for by that its label doesn't say. */
 const KEYWORDS: Record<string, string> = {
   "/home": "dashboard start",
+  "/north-star": "roadmap competitors fastlane spec",
   "/calendar": "schedule scheduled posts upcoming queue dates planner content",
   "/plan": "weekly plan ideas",
   "/drafts": "posts history saved mark posted",

@@ -90,6 +90,12 @@ so one that is gone shows everything.
 | /trends | trend | a trend id; opens its full kit and scrolls to it, Copy link on every card | none | push | /trends?trend=trend-2026-10-11-the-little-treat-trap-why-small-splurges-quietly |
 | /market | show | act, all | act | replace | /market?show=all |
 | /market | view | digest, setup (the set-up form over a finished set-up) | digest; setup when nothing is set up | replace | /market?view=setup |
+| /north-star | q | search text over items (title, the three texts, Leo's call, id, and the names of the competitors they cite); Leo's sign-ins only (src/lib/leoOnly.ts) | empty | replace | /north-star?q=slideshow |
+| /north-star | status, area, phase, ask, seen | status: live, partial, missing; area: an NS_AREA_ORDER id; phase: 1-8; ask: an NS_ASKS id; seen: a competitor id (src/data/northStarCompetitors.ts) | all | replace | /north-star?ask=remix-any-format&status=missing |
+| /north-star | open | comma list of NS_AREA_ORDER ids whose cards show; any filter or a #card link opens its part too | none (parts closed) | replace | /north-star?open=remix,formats#spec |
+| /north-star | cat, competitors | cat: a competitor category's slug (remix-and-ai-ugc, video-editing, social-suites, personal-brand-and-writing, inspiration-and-ad-intel, adviser-marketing); competitors: all shows every row, not the first 12 | all, first 12 | replace | /north-star?cat=adviser-marketing#competitors |
+| /north-star | frame, at | frame: a recording second, open full size; at: the scrubber's second. Both snap to the next listed second (a few near-duplicate seconds are not frames), past the end to the last | none; t000 | frame push, at replace (written 300 ms after the last move) | /north-star?frame=t176 |
+| /north-star | #id | an item id opens its part and scrolls to its card; also #asks, #areas, #build-order, #phase-1 to #phase-8, #spec, #recording, #competitors, #competitor-<id>, #decisions and each decision id, #how-we-build, #leave-out | top | | /north-star#remix-everywhere |
 | /analytics | period | 7d, 30d, 90d, all | 30d | replace | /analytics?period=90d |
 | /analytics | by | platform, pillar, format, hook-formula (engagement rate by) | platform | replace | /analytics?by=hook-formula |
 | /analytics | time | linkedin, instagram, facebook, tiktok (best time to post for) | all platforms | replace | /analytics?time=linkedin |
