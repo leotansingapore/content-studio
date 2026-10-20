@@ -6,7 +6,10 @@ import { useEffect, useState } from "react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import SubtitleImport from "@/components/SubtitleImport";
+import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { captionJob, onCaptionJob, partsDone, startCaptions, type CaptionJob } from "@/lib/captionJob";
 import { captionPlan, hoursMinutes } from "@/lib/longCaptions";
 import type { Word } from "@/lib/videoEdit";
@@ -45,6 +48,9 @@ export default function LongCaptions({ userId, project, file, onWords }: {
   }, [ours, j?.state]);
   const left = useUsesLeft(running)("video-transcribe");
   const rest = of - done;
+  // today's uses caption as many parts as they cover and the rest waits for tomorrow, so the price is for those parts
+  const today = left === null ? rest : Math.max(1, Math.min(rest, left));
+  const why = reasonText({ left, uses: today, leo: useLeoOnly() });
 
   if (ours && running) {
     return (
@@ -66,9 +72,11 @@ export default function LongCaptions({ userId, project, file, onWords }: {
         <Button size="sm" variant="outline" className="h-11 sm:h-9" onClick={start} disabled={!file || running || left === 0}>
           {of === 1 ? "Caption it" : done ? `Caption the rest, ${rest} ${rest === 1 ? "part" : "parts"}` : `Caption it in ${of} parts`}
         </Button>
-        {left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} captioning uses left today` : "None left today"}</span>}
+        <PriceChip feature="video-transcribe" opts={{ minutes: (project.duration / 60) * (today / of) }} uses={today} left={left}
+          fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} captioning uses left today` : "None left today"}</span>} />
         {!running && <SubtitleImport userId={userId} duration={project.duration} onWords={onWords} />}
       </div>
+      {why && <p className="text-xs text-destructive">{why}</p>}
       <p className="text-[11px] text-muted-foreground">
         {hoursMinutes(project.duration)}{of > 1 ? `, captioned in ${of} parts of about 10 minutes, each one use` : ""}{done ? `. ${done} of ${of} done` : ""}.
         {left !== null && left > 0 && left < rest ? ` Today's ${left} do ${left === 1 ? "one part" : `${left} parts`}; the rest tomorrow.` : ""}

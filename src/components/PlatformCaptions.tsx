@@ -12,7 +12,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { scanCompliance } from "@/lib/compliance";
 import { checkLimits, countHashtags, findWords, readout, strayLinks } from "@/lib/platformCounters";
 import { allowedLinks, applyBrandRules, avoidList, brandRulesLine } from "@/lib/brandRules";
@@ -56,6 +59,7 @@ export default function PlatformCaptions({
   const [tab, setTab] = useState<CaptionPlatform>("tiktok");
   const [busy, setBusy] = useState(false);
   const left = useUsesLeft(busy)("video-captions");
+  const why = reasonText({ left, leo: useLeoOnly() });
   useEffect(() => setSet(loadPlatformCaptions(userId, projectId)), [userId, projectId]);
   const keep = (next: PlatformCaptionSet) => {
     setSet(next);
@@ -120,14 +124,15 @@ export default function PlatformCaptions({
     <div className="space-y-2 border-t border-border/60 pt-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="mr-auto text-sm font-semibold">Other platforms</p>
-        <span className="flex items-center gap-2">
-          {left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>}
+        <span className="flex flex-wrap items-center justify-end gap-2">
+          <PriceChip feature="video-captions" left={left} fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />
           <Button size="sm" variant="outline" onClick={() => void write()} disabled={busy || !transcript.trim() || left === 0} className={`h-11 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
             {busy ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Wand2 className="h-3.5 w-3.5" />}
             {busy ? "Writing..." : has ? "Write them again" : "Write for each platform"}
           </Button>
         </span>
       </div>
+      {why && <p className="text-right text-xs text-destructive">{why}</p>}
       {set.firstLine !== undefined && (
         <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-2.5" data-testid="keyword-line">
           <Label htmlFor={`first-line-${projectId}`} className="text-xs font-semibold">

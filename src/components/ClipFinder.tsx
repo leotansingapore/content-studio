@@ -12,7 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
+import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { loadBrand } from "@/lib/carousel";
 import { loadEffects, paintEffects } from "@/lib/faceVision";
 import { clipSettings, fmtTime, sentencesOf, type Clip, type EditSettings, type Word } from "@/lib/videoEdit";
@@ -81,6 +84,7 @@ export default function ClipFinder({ userId, project, words, settings, duration,
   // a long recording is read in passes, each one use
   const passes = clipPasses(duration);
   const short = usesLeft !== null && usesLeft < passes;
+  const why = reasonText({ left: usesLeft, uses: passes, leo: useLeoOnly() });
   // the export store lives outside React: re-read it whenever it changes
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -136,9 +140,11 @@ export default function ClipFinder({ userId, project, words, settings, duration,
           placeholder="What should the clip be about? (optional)" aria-label="What should the clip be about?" className="h-11 sm:h-9 sm:max-w-sm" />
         <Button type="submit" variant="outline" size="sm" disabled={busy || short} className={`h-11 shrink-0 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
           {busy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Scissors className="h-3.5 w-3.5" />}
-          {busy ? "Finding clips..." : <>Find clips{usesLeft !== null && <span className={`font-normal ${short ? "text-destructive" : "opacity-80"}`}>{usesLeft === 0 ? "none left today" : passes > 1 ? `${passes} uses, ${usesLeft} left` : `${usesLeft} left`}</span>}</>}
+          {busy ? "Finding clips..." : <>Find clips<PriceChip feature="video-clips" opts={{ passes }} uses={passes} left={usesLeft}
+            fallback={usesLeft !== null && <span className={`font-normal ${short ? "text-destructive" : "opacity-80"}`}>{usesLeft === 0 ? "none left today" : passes > 1 ? `${passes} uses, ${usesLeft} left` : `${usesLeft} left`}</span>} /></>}
         </Button>
       </form>
+      {why && <p className="text-xs text-destructive">{why}</p>}
       {list.length > 0 && (
         <div className="rounded-xl border border-success/40 bg-success/5 p-3">
           <p className="mb-2 flex items-center gap-1 text-sm font-semibold">

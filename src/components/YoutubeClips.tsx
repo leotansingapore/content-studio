@@ -3,6 +3,10 @@ import { Link } from "react-router-dom";
 import { ExternalLink, Loader2, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import PriceChip from "@/components/PriceChip";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { priceOf, reasonText, sumPrices, type Price } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { fmtTime } from "@/lib/videoEdit";
 import {
   clipWriteUrl, findYoutubeClips, loadYoutubeClips, onYoutubeJob, watchUrl, youtubeJob,
@@ -10,6 +14,8 @@ import {
 } from "@/lib/youtubeClips";
 
 const STEP = { captions: "Reading the captions...", clips: "Finding the best moments..." };
+// the captions plus one clip pass; a video over about 40 minutes takes a pass per 40, so this is a floor
+const RUN_PRICE: Price = { ...(sumPrices(priceOf("yt-captions"), priceOf("video-clips")) as Price), kind: "from" };
 
 /** Edit a video's start screen: paste a YouTube link, get its best clips from the captions. */
 export default function YoutubeClips({ userId }: { userId: string | null }) {
@@ -22,6 +28,13 @@ export default function YoutubeClips({ userId }: { userId: string | null }) {
 
   const busy = job?.state === "captions" || job?.state === "clips";
   const result = job?.state === "done" ? job.result : saved;
+  const leo = useLeoOnly();
+  // the chip is Leo's only, so only his sessions read today's uses: everyone else's left stays null.
+  // A run reads the captions (yt-captions) and then finds the clips (video-clips, one pass priced), so the smaller left counts.
+  const uses = useUsesLeft(busy || !leo);
+  const [captions, clips] = [uses("yt-captions"), uses("video-clips")];
+  const left = captions === null || clips === null ? null : Math.min(captions, clips);
+  const why = reasonText({ left, leo });
 
   return (
     <section className="space-y-3 rounded-2xl border border-border/60 p-4">
@@ -35,10 +48,12 @@ export default function YoutubeClips({ userId }: { userId: string | null }) {
       >
         <Input type="url" inputMode="url" placeholder="Paste a YouTube link" aria-label="YouTube link" value={url}
           onChange={(e) => setUrl(e.target.value)} disabled={busy} className="h-11 sm:h-10" />
-        <Button type="submit" variant="outline" disabled={busy || !userId || !url.trim()} className="h-11 shrink-0 sm:h-10">
+        <Button type="submit" variant="outline" disabled={busy || !userId || !url.trim() || left === 0} className="h-11 shrink-0 sm:h-10">
           {busy ? <><Loader2 className="h-4 w-4 animate-spin" /> {STEP[job.state]}</> : "Find clips"}
         </Button>
       </form>
+      {leo && <p><PriceChip price={RUN_PRICE} left={left} /></p>}
+      {why && <p className="text-xs text-destructive">{why}</p>}
       {job?.state === "failed" && <p role="alert" className="text-xs text-destructive">{job.error}</p>}
       {result && !busy && (
         <div className="space-y-2" aria-live="polite">

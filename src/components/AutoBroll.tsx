@@ -7,7 +7,10 @@ import { Sparkles } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
+import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { priceOf, reasonText, sumPrices } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import BrollSheet from "@/components/BrollSheet";
 import { aiBrollOn, brollJob, dismissBrollJob, onBrollJob, running as isRunning, startAutoBroll, stopBrollJob, type BrollJob, type Orientation } from "@/lib/autoBroll";
 import { MAX_BROLL, editedSentences, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
@@ -34,6 +37,10 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
   const aiOffered = aiBrollOn();
   const [ai, setAi] = useState(false);
   const aiLeft = usesLeft("ai-broll");
+  // with AI clips on (start() sends them only while some are left), a run spends from both caps
+  const withAi = aiOffered && ai && aiLeft !== 0;
+  const least = withAi && left !== null && aiLeft !== null ? Math.min(left, aiLeft) : left;
+  const why = reasonText({ left: least, leo: useLeoOnly() });
   const existing = settings.broll ?? [];
   const orientation: Orientation = settings.aspect === "16:9" ? "landscape" : settings.aspect === "1:1" ? "square" : "portrait";
 
@@ -59,8 +66,12 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
           {running && mine ? "Finding B-roll..." : "Add B-roll for me"}
         </Button>
         <InfoTip label="About B-roll for me">Puts a clip or a text card over each line a visual helps.</InfoTip>
-        {left !== null && !running && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>}
+        {!running && (
+          <PriceChip feature="broll-picks" price={withAi ? sumPrices(priceOf("broll-picks"), priceOf("ai-broll")) : undefined} left={least}
+            fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />
+        )}
       </div>
+      {why && <p className="text-xs text-destructive">{why}</p>}
       {mine && running && (
         <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" aria-live="polite">
           {mine.state === "reading" ? "Reading your lines..." : mine.state === "making" ? `Making AI clips: ${mine.done} of ${mine.of}, about a minute each` : `Finding clips: ${mine.done} of ${mine.of}`}
@@ -71,7 +82,8 @@ export default function AutoBroll({ userId, projectId, settings, words, segs, to
         <label className="flex min-h-11 flex-wrap items-center gap-2 text-xs sm:min-h-0 [@media(pointer:coarse)]:min-h-11">
           <input type="checkbox" checked={ai} onChange={(e) => setAi(e.target.checked)} disabled={running || aiLeft === 0} className="h-4 w-4 accent-primary" />
           <span className="font-medium">Make an AI clip when stock has none</span>
-          {aiLeft !== null && <span className={aiLeft ? "text-muted-foreground" : "font-medium text-destructive"}>{aiLeft ? `${aiLeft} left today` : "None left today"}</span>}
+          <PriceChip feature="ai-broll" left={aiLeft}
+            fallback={aiLeft !== null && <span className={aiLeft ? "text-muted-foreground" : "font-medium text-destructive"}>{aiLeft ? `${aiLeft} left today` : "None left today"}</span>} />
         </label>
       )}
       {mine?.state === "failed" && <p className="text-xs text-destructive" role="alert">{mine.error}</p>}

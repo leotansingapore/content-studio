@@ -6,7 +6,10 @@
 import { useEffect, useState } from "react";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
+import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { editedSentences, type Caption, type EditSettings, type Segment, type Word } from "@/lib/videoEdit";
 import { findFaceBox } from "@/lib/faceVision";
 import { loadVideo } from "@/lib/videoMedia";
@@ -29,6 +32,7 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
   const { toast } = useToast();
   const [picking, setPicking] = useState(false);
   const left = useUsesLeft(picking)("motion-picks");
+  const why = reasonText({ left, leo: useLeoOnly() });
   const kept = sanitizeMotion(settings.motion)?.lines ?? [];
   const picked = kept.length > 0;
   // picks made before pop-ups existed have no pop-up text: switching pop-ups on picks again
@@ -67,10 +71,11 @@ export default function MotionControls({ settings, words, segs, caps, total, spe
           <InfoTip label="About motion">The key lines are picked from what you say, once per video.</InfoTip></p>
         {picking ? (
           <span className="text-xs text-muted-foreground" aria-live="polite">Picking key lines...</span>
-        ) : !written && left !== null ? (
-          <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>
+        ) : !written ? (
+          <PriceChip feature="motion-picks" left={left} fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />
         ) : null}
       </div>
+      {why && !written && <p className="text-right text-xs text-destructive">{why}</p>}
       <Row label={settings.keyZooms && picked ? `Zoom on key lines (${zooms})` : "Zoom on key lines"}>
         <Toggle label="Zoom on key lines" on={!!settings.keyZooms && picked} disabled={picking || !words.length || (!picked && left === 0)} set={setZooms} />
       </Row>

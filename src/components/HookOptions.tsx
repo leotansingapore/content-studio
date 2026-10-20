@@ -7,7 +7,10 @@ import { Check, Sparkles } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { reasonText } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { hookFormula } from "@/lib/hookFormulas";
 import { writeHooks, type HookIdeas } from "@/lib/hookCard";
 import { editedSentences, type Segment, type Word } from "@/lib/videoEdit";
@@ -30,6 +33,7 @@ export default function HookOptions({ projectId, words, segs, total, speed, hook
   const [state, setState] = useState(() => kept.get(projectId) ?? null);
   const [busy, setBusy] = useState(false);
   const left = useUsesLeft(busy)("vibe-edit");
+  const why = reasonText({ left, leo: useLeoOnly() });
 
   const write = async () => {
     const set = state ? state.set + 1 : 0;
@@ -55,8 +59,9 @@ export default function HookOptions({ projectId, words, segs, total, speed, hook
           {busy ? <ThinkingOrb state="composing" size={20} theme="light" aria-hidden /> : <Sparkles className="h-3.5 w-3.5" />}
           {busy ? "Writing..." : state ? "Write 3 more" : "Write 3 hooks from what I say"}
         </Button>
-        {left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>}
+        <PriceChip feature="vibe-edit" left={left} fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />
       </div>
+      {why && <p className="text-xs text-destructive">{why}</p>}
       {state && (
         <ul className="divide-y divide-border/60 rounded-lg border border-border/60" aria-label="Hook ideas">
           {state.ideas.hooks.map((h, i) => {

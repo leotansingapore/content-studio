@@ -8,7 +8,10 @@ import { ThinkingOrb } from "thinking-orbs";
 import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import { useToast } from "@/hooks/use-toast";
+import PriceChip from "@/components/PriceChip";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { priceOf, reasonText, sumPrices } from "@/lib/prices";
+import { useLeoOnly } from "@/lib/useLeoOnly";
 import { parseReelUrl } from "@/lib/reelClone";
 import { needsKeyLines, pickLinesFor } from "@/lib/stylePresets";
 import { markReelStyleApplied, onReelStyleJob, reelStyleJob, startReelStyle, withReelStyle, type ReelFacts, type ReelStyleJob } from "@/lib/reelStyle";
@@ -38,6 +41,11 @@ export default function ReelStyleCopy({ projectId, settings, words, segs, total,
   const [picking, setPicking] = useState(false);
   const uses = useUsesLeft(busy || picking);
   const left = uses("reel-style");
+  // a copy spends a post read, the look read and the key line picks: the smallest of the three is what's left
+  const all = [left, uses("reel-visuals"), uses("motion-picks")];
+  const least = all.includes(null) ? null : Math.min(...(all as number[]));
+  const leo = useLeoOnly();
+  const why = reasonText({ left: least, leo });
   const latest = useRef({ settings, words, segs, total, speed, apply, picks: uses("motion-picks") });
   latest.current = { settings, words, segs, total, speed, apply, picks: uses("motion-picks") };
 
@@ -99,12 +107,16 @@ export default function ReelStyleCopy({ projectId, settings, words, segs, total,
         <label className="sr-only" htmlFor="reel-style-link">Reel link</label>
         <input id="reel-style-link" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste an Instagram or TikTok link" inputMode="url" autoComplete="off"
           className="h-11 min-w-0 flex-1 basis-full rounded-md border border-input bg-background px-2 text-sm sm:h-9 [@media(pointer:coarse)]:h-11 sm:basis-0" disabled={busy} />
-        <Button type="submit" size="sm" variant="outline" disabled={disabled || busy || !url.trim() || left === 0} className={`h-11 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
+        <Button type="submit" size="sm" variant="outline" disabled={disabled || busy || !url.trim() || left === 0 || (leo && least === 0)} className={`h-11 gap-1.5 sm:h-9 ${busy ? "disabled:opacity-100" : ""}`}>
           {busy ? <ThinkingOrb state="working" size={20} theme="light" aria-hidden /> : <Link2 className="h-3.5 w-3.5" />}
           {busy ? "Copying..." : "Copy style"}
         </Button>
-        {!busy && left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>}
+        {!busy && (
+          <PriceChip price={sumPrices(priceOf("reel-style"), priceOf("reel-visuals"), priceOf("motion-picks"))} left={least}
+            fallback={left !== null && <span className={`text-[11px] ${left ? "text-muted-foreground" : "font-medium text-destructive"}`}>{left ? `${left} left today` : "None left today"}</span>} />
+        )}
       </form>
+      {why && <p className="text-xs text-destructive">{why}</p>}
       {picking && <p className="text-xs text-muted-foreground" aria-live="polite">Picking key lines...</p>}
       {busy && job && (
         <p className="text-xs text-muted-foreground" aria-live="polite">
