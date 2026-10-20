@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -11,10 +11,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FilterChip as Chip } from "@/components/ui/filter-chip";
+import { ToastAction } from "@/components/ui/toast";
+import PriceChip from "@/components/PriceChip";
 import { humanLabel } from "@/lib/utils";
 import { NICHE_GROUPS, inNicheGroups, nicheGroup } from "@/lib/nicheGroups";
 import { links } from "@/lib/links";
 import { toggled, useUrlLabels, useUrlFlag, useUrlSearch, useUrlUpdate } from "@/lib/urlState";
+import { useUsesLeft } from "@/lib/aiUsage";
+import { CAP_LINE, FOLLOW_ONLY, followButton, followable } from "@/lib/creatorFit";
+import { MAX_FOLLOWED, checkCapped, checkFailure, followAccount, isChecking, loadFollowing, onFollowing, sameAccount } from "@/lib/following";
+import { useLeoUser } from "@/lib/useLeoOnly";
+import { normalizeHandle } from "../../supabase/functions/_shared/socialAudit.ts";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search,
@@ -33,6 +40,8 @@ import {
   Eye,
   ChevronDown,
   Bookmark,
+  Check,
+  UserPlus,
 } from "lucide-react";
 import advisorsData from "@/data/advisors.json";
 import { supabase } from "@/lib/supabase";
@@ -158,14 +167,93 @@ function TagBadge({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Leo's Follow on a creator's card or page (find-creators): the account joins Following and its first check starts
+ * outside React, so the button reads "Following" at once. Followed, it links to Following; the line under it says
+ * when the check was refused by today's cap or failed (private, missing).
+ */
+export function FollowButton({
+  entry,
+  userId,
+  left,
+  where,
+  main = false,
+}: {
+  entry: AdvisorEntry;
+  userId: string;
+  left: number | null;
+  where: "card" | "page";
+  main?: boolean;
+}) {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [, tick] = useState(0);
+  useEffect(() => onFollowing(() => tick((n) => n + 1)), []);
+  const handle = followable(entry.platform) ? normalizeHandle(entry.platform, entry.handle) : null;
+  const account = handle && followable(entry.platform) ? { platform: entry.platform, handle } : null;
+  const followed = Boolean(account && loadFollowing(userId).some((a) => sameAccount(a, account)));
+  const b = followButton(entry.platform, {
+    leo: true,
+    where,
+    followed,
+    capped: account ? checkCapped(account) : false,
+    failure: account ? checkFailure(account) : null,
+  });
+  if (!b) return null;
+  const openFollowing = (
+    <ToastAction altText="Open Following" onClick={() => navigate(links.following())}>
+      Open Following
+    </ToastAction>
+  );
+  const follow = () => {
+    if (!account) return;
+    const r = followAccount(userId, account.platform, account.handle);
+    if (r === "added") toast({ title: `Following @${account.handle}. Their newest posts load in a minute.`, action: openFollowing });
+    if (r === "full") toast({ title: `You can follow up to ${MAX_FOLLOWED} accounts`, description: "Remove one first.", variant: "destructive", action: openFollowing });
+    tick((n) => n + 1);
+  };
+  const size = where === "page" ? "lg" : "sm";
+  const wide = where === "page" ? "w-full sm:w-auto" : "";
+  const failed = b.reason !== null && b.reason !== FOLLOW_ONLY && b.reason !== CAP_LINE;
+  return (
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        {b.label === "Following" ? (
+          <Button asChild variant="outline" size={size} className={`gap-1.5 ${wide}`}>
+            <Link to={links.following()}>
+              <Check className="h-3.5 w-3.5" /> Following
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant={main ? "default" : "outline"}
+            size={size}
+            disabled={b.disabled}
+            onClick={follow}
+            className={`gap-1.5 ${wide} ${main ? "bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95" : ""}`}
+          >
+            <UserPlus className="h-3.5 w-3.5" /> Follow
+          </Button>
+        )}
+        {b.label === "Follow" && !b.disabled && <PriceChip feature="track-accounts" left={left} />}
+      </div>
+      {b.reason && <p className={`text-xs ${failed ? "text-destructive" : "text-muted-foreground"}`}>{b.reason}</p>}
+    </div>
+  );
+}
+
 function AdvisorCard({
   entry,
   saved,
   onToggleSave,
+  follow,
 }: {
   entry: AdvisorEntry;
   saved?: boolean;
   onToggleSave?: () => void;
+  /** Leo only: Follow on an Instagram or TikTok card. */
+  follow?: { userId: string; left: number | null };
 }) {
   const { toast } = useToast();
   const { search } = useLocation();
@@ -185,6 +273,36 @@ function AdvisorCard({
       });
     }
   };
+
+  const buttons = (
+    <div className="flex flex-col gap-2 sm:flex-row">
+      <Button
+        asChild
+        variant="outline"
+        size="sm"
+        className="w-full gap-1.5 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
+      >
+        <Link to={links.profile(entry.id)} state={{ back: `/profiles${search}` }}>
+          <Eye className="h-3.5 w-3.5" />
+          Details
+        </Link>
+      </Button>
+      <Button
+        asChild
+        size="sm"
+        className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
+      >
+        <a
+          href={entry.platform_url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          View profile
+        </a>
+      </Button>
+    </div>
+  );
 
   return (
     <Card className="flex h-full flex-col border-border/60 shadow-card transition-all hover:border-primary/40 hover:shadow-elegant">
@@ -268,33 +386,15 @@ function AdvisorCard({
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="w-full gap-1.5 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
-          >
-            <Link to={links.profile(entry.id)} state={{ back: `/profiles${search}` }}>
-              <Eye className="h-3.5 w-3.5" />
-              Details
-            </Link>
-          </Button>
-          <Button
-            asChild
-            size="sm"
-            className="w-full gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 sm:w-auto sm:flex-1 [@media(pointer:coarse)]:h-11"
-          >
-            <a
-              href={entry.platform_url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              View profile
-            </a>
-          </Button>
-        </div>
+        {follow ? (
+          // Leo's Follow sits above the card's two buttons, in one block so the card keeps them at its foot
+          <div className="space-y-2">
+            <FollowButton entry={entry} userId={follow.userId} left={follow.left} where="card" />
+            {buttons}
+          </div>
+        ) : (
+          buttons
+        )}
       </CardContent>
     </Card>
   );
@@ -337,6 +437,14 @@ export default function AdvisorProfiles() {
       active = false;
     };
   }, []);
+
+  // Leo only (find-creators): Follow on the Instagram and TikTok cards
+  const leo = useLeoUser();
+  const [, tick] = useState(0);
+  useEffect(() => onFollowing(() => tick((n) => n + 1)), []);
+  // Leo's price chips read today's uses once, and again when a follow's first check ends
+  const anyChecking = leo ? loadFollowing(leo.id).some(isChecking) : false;
+  const left = useUsesLeft(!leo || anyChecking)("track-accounts");
 
   const handleToggleSave = (id: string) => {
     if (!userId) return;
@@ -399,6 +507,7 @@ export default function AdvisorProfiles() {
 
   const visible = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visible.length;
+  const cardProps = () => (leo ? { follow: { userId: leo.id, left } } : {});
 
   return (
     <div className="space-y-5">
@@ -579,6 +688,7 @@ export default function AdvisorProfiles() {
                   entry={entry}
                   saved={isSaved(saved, "creators", entry.id)}
                   onToggleSave={() => handleToggleSave(entry.id)}
+                  {...cardProps()}
                 />
                   ))}
                 </div>
