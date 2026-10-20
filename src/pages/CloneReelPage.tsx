@@ -71,6 +71,8 @@ import { HOOK_FORMULAS, hookFormula, hookFormulaSet } from "@/lib/hookFormulas";
 import { scoped } from "@/lib/profiles";
 import { supabase } from "@/lib/supabase";
 import { isVoiceProfileUsable, loadVoiceProfile } from "@/lib/voiceProfile";
+import { useLeoOnly } from "@/lib/useLeoOnly";
+import { fromClone } from "@/lib/remixSource";
 
 type View =
   | { kind: "idle" }
@@ -967,6 +969,8 @@ export default function CloneReelPage() {
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  // north-star gate: only Leo's drafts from a clone carry their source
+  const leo = useLeoOnly();
 
   useEffect(() => {
     document.title = "Clone a reel - Content Studio";
@@ -1167,14 +1171,14 @@ export default function CloneReelPage() {
 
   const openInWrite = (clone: SavedClone) => {
     if (!userId) return;
-    const updated = saveCloneDraft(userId, clone);
+    const updated = saveCloneDraft(userId, clone, undefined, leo ? fromClone(clone) : undefined);
     updateClone(updated);
     navigate(`/generate?draft=${encodeURIComponent(updated.draftId!)}`);
   };
 
   const addToBoard = (clone: SavedClone) => {
     if (!userId) return;
-    updateClone(saveCloneDraft(userId, clone, "scripted"));
+    updateClone(saveCloneDraft(userId, clone, "scripted", leo ? fromClone(clone) : undefined));
     toast({ title: "Added to your board", description: "It's in Scripted, ready to film." });
   };
 

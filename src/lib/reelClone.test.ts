@@ -7,6 +7,7 @@ import { loadStages } from "./board";
 import { getDraftById, loadDrafts, saveDrafts } from "./draftHistory";
 import { splitScriptCaption } from "./scriptCaption";
 import { hookFormulaSet } from "./hookFormulas";
+import { fromClone } from "./remixSource";
 import {
   CLONE_STEPS,
   MAX_SAVED_CLONES,
@@ -129,6 +130,22 @@ describe("buildCloneDraft", () => {
     expect(buildCloneDraft("d2", { ...r, myVersion: v }).hookFormula).toBe("myth-bust");
     expect(buildCloneDraft("d3", r).hookFormula).toBeUndefined();
   });
+
+  it("carries its source, with the breakdown as the teardown, dated when made", () => {
+    const saved: SavedClone = { id: "tiktok:7682935406396001567", savedAt: "x", result: result() };
+    const d = buildCloneDraft("d4", result(), new Date("2026-09-15T00:00:00Z"), fromClone(saved));
+    expect(d.source).toMatchObject({
+      key: "clone:tiktok:7682935406396001567",
+      kind: "clone",
+      format: "video",
+      url: "https://www.tiktok.com/@leila_tuck/video/7682935406396001567",
+      author: "@leila_tuck",
+      caption: "Stop paying this fee",
+      teardown: { hook: "h", structure: "a / b", why: "w" },
+      remixedAt: "2026-09-15T00:00:00.000Z",
+    });
+    expect(buildCloneDraft("d5", result()).source).toBeUndefined();
+  });
 });
 
 describe("saveCloneDraft", () => {
@@ -153,6 +170,14 @@ describe("saveCloneDraft", () => {
     saveDrafts("u1", edited);
     saveCloneDraft("u1", opened, "scripted");
     expect(getDraftById("u1", opened.draftId!)?.draft).toBe("My edited script");
+  });
+
+  it("saves the source passed in, and none without one", () => {
+    const withSource = saveCloneDraft("u1", clone(), undefined, fromClone(clone()));
+    expect(getDraftById("u1", withSource.draftId!)?.source?.key).toBe("clone:tiktok:7682935406396001567");
+    saveDrafts("u1", []);
+    const without = saveCloneDraft("u1", clone());
+    expect(getDraftById("u1", without.draftId!)?.source).toBeUndefined();
   });
 
   it("makes a new draft if the old one was deleted", () => {

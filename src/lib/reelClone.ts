@@ -22,6 +22,7 @@ import type { Pacing, Visuals } from "../../supabase/functions/reel-visuals/logi
 import { scoped } from "@/lib/profiles";
 import { getTrackedPosts } from "@/lib/analytics";
 import { sampleReelFrames } from "@/lib/reelFrames";
+import type { RemixSource } from "@/lib/remixSource";
 
 export { LINK_MESSAGES, parseReelUrl } from "../../supabase/functions/clone-reel/logic.ts";
 export type {
@@ -370,7 +371,8 @@ export function cloneDraftText(version: MyVersion): string {
   return `${version.script.trim()}\n\n---\n\nCAPTION:\n${version.caption.trim()}`;
 }
 
-export function buildCloneDraft(id: string, result: CloneResponse, now = new Date()): DraftEntry {
+/** `source` (Leo's sessions, remixSource.ts fromClone) is saved on the draft, dated now. */
+export function buildCloneDraft(id: string, result: CloneResponse, now = new Date(), source?: RemixSource): DraftEntry {
   const v = result.myVersion;
   const formula = formulaOfHook(v.hook, (v.hookOptions ?? []).map((text, i) => ({ text, formula: v.hookFormulas?.[i] })));
   return {
@@ -385,6 +387,7 @@ export function buildCloneDraft(id: string, result: CloneResponse, now = new Dat
     platform: result.source.platform,
     ctaType: ctaTypeFor(v.cta),
     ...(formula ? { hookFormula: formula.id } : {}),
+    ...(source ? { source: { ...source, remixedAt: source.remixedAt || now.toISOString() } } : {}),
   };
 }
 
@@ -393,10 +396,10 @@ export function buildCloneDraft(id: string, result: CloneResponse, now = new Dat
  * returns the updated clone. A draft that already exists is never overwritten,
  * so edits made in Write survive a later "Add to board".
  */
-export function saveCloneDraft(userId: string, clone: SavedClone, stage?: ProductionStage): SavedClone {
+export function saveCloneDraft(userId: string, clone: SavedClone, stage?: ProductionStage, source?: RemixSource): SavedClone {
   const existing = clone.draftId ? getDraftById(userId, clone.draftId) : null;
   const draftId = existing?.id ?? newDraftId();
-  if (!existing) upsertDraft(userId, buildCloneDraft(draftId, clone.result));
+  if (!existing) upsertDraft(userId, buildCloneDraft(draftId, clone.result, new Date(), source));
   if (stage) setStage(userId, draftId, stage);
   const updated: SavedClone = { ...clone, draftId, onBoard: clone.onBoard || Boolean(stage) };
   rememberClone(userId, updated);
