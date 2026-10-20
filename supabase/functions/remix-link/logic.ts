@@ -80,8 +80,9 @@ const SHORT = /^[A-Za-z0-9_-]{5,30}$/;
  */
 export function parseRemixLink(input: unknown): ParsedLink {
   if (typeof input !== "string" || !input.trim()) return no(LINK_COPY.empty);
-  let raw = input.trim();
-  if (raw.length > MAX_URL_LENGTH) return no(LINK_COPY.invalid);
+  // Share sheets paste "Look at this https://... via @someone": read the first link in the text.
+  let raw = input.match(/https?:\/\/\S+/i)?.[0] ?? input.trim();
+  if (raw.length > MAX_URL_LENGTH || /\s/.test(raw)) return no(LINK_COPY.invalid);
   // People paste "instagram.com/reel/..." without the scheme.
   if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) raw = `https://${raw}`;
   let u: URL;
@@ -93,6 +94,8 @@ export function parseRemixLink(input: unknown): ParsedLink {
   if (u.protocol !== "https:" && u.protocol !== "http:") return no(LINK_COPY.invalid);
   if (u.username || u.password || u.port) return no(LINK_COPY.invalid);
   const host = u.hostname.toLowerCase().replace(/\.$/, "");
+  // A host with no dot is a word or a post id, not a site; Chrome keeps odd characters in a host as %xx.
+  if (!host.includes(".") || host.includes("%")) return no(LINK_COPY.invalid);
   const parts = u.pathname.split("/").filter(Boolean);
 
   if (THREADS_HOSTS.has(host)) return no(LINK_COPY.threads);

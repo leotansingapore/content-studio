@@ -64,6 +64,15 @@ describe("parseRemixLink", () => {
     expect(refusal("ftp://www.instagram.com/reel/C8xYz12AbCd/")).toBe(LINK_COPY.invalid);
   });
 
+  it("reads the link out of pasted share text, and calls anything else not a link", () => {
+    expect(ok("Check this out https://www.instagram.com/reel/C8xYz12AbCd/")).toMatchObject({ kind: "instagram", id: "C8xYz12AbCd" });
+    expect(ok("https://www.instagram.com/reel/C8xYz12AbCd/ via @mrbrown")).toMatchObject({ kind: "instagram", id: "C8xYz12AbCd" });
+    expect(ok("Watch this!\nhttps://youtu.be/dQw4w9WgXcQ?si=abc")).toMatchObject({ kind: "youtube", id: "dQw4w9WgXcQ" });
+    for (const text of ["hello there", "check this out instagram.com/reel/C8xYz12AbCd", "C8xYz12AbCd", "localhost/reel/C8xYz12AbCd/", "https://hello%20there/"]) {
+      expect(refusal(text), text).toBe(LINK_COPY.invalid);
+    }
+  });
+
   it("refuses profile, search and hashtag pages as not a single post", () => {
     expect(refusal("https://www.instagram.com/natgeo/")).toBe(LINK_COPY.notSingle("instagram"));
     expect(refusal("https://www.instagram.com/explore/tags/cpf/")).toBe(LINK_COPY.notSingle("instagram"));
