@@ -199,6 +199,8 @@ export const links = {
       platform?: "instagram" | "tiktok";
       /** Posts: the outlier order is the default, left out. */
       sort?: "views" | "newest";
+      /** With view=posts: <platform>:<post id>, scrolled to and marked (push). */
+      post?: string;
       /** An ad's Library id: its drawer open. */
       ad?: string;
     } = {},
@@ -210,6 +212,7 @@ export const links = {
       running: o.running && "only",
       platform: o.platform,
       sort: o.sort,
+      post: o.post,
       ad: o.ad,
     })}`,
   /** Saved (Leo only). Filters replace; item opens one (push), breakdown scrolls to its Breakdown (#breakdown). */

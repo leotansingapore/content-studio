@@ -32,6 +32,7 @@ anywhere carries a Copy link button that copies the link below, and the link ope
 | A picture (an AI picture, an upload, a stock photo) | /media?item=<key> | every picture in Media; an AI picture's Library card opens it |
 | Your own social post in the account audit | /analytics?audit=<platform>:<post id> | each best post and each post that fell short |
 | A competitor's ad (Leo only) | /competitors?ad=<ad id> | the ad drawer |
+| A competitor's post (Leo only) | /competitors?view=posts&post=<platform>:<post id> | every post in Their posts |
 | A saved post (Leo only) | /saved?item=<item key> | the item's drawer |
 
 **Link previews.** A link pasted into Telegram, WhatsApp, Slack or LinkedIn shows a preview from api/page-og.ts
@@ -345,6 +346,7 @@ find-ad-detail.md, find-save-anywhere.md, find-ai-tagging.md). Both pages are Le
 | /competitors | running | Leo only. ads view: only (running now) | off | replace | /competitors?running=only |
 | /competitors | platform | Leo only. posts view: instagram, tiktok | all | replace | /competitors?view=posts&platform=tiktok |
 | /competitors | sort | Leo only. posts view: views, newest | the outlier order | replace | /competitors?view=posts&sort=newest |
+| /competitors | post | Leo only. posts view: <platform>:<post id>, shown even past the first page, scrolled to and marked, with Copy link on each card; an unknown id is dropped with a line | none | push | /competitors?view=posts&post=instagram%3AC9xYz |
 | /competitors | ad | Leo only. ads view: an ad's Library id; opens its drawer, with Copy link (/competitors?view=ads&ad= opens the same) | none | push | /competitors?ad=2095783381019179 |
 | /saved | board | Leo only. a board id, or unsorted | all | replace | /saved?board=b-lq3k9z |
 | /saved | platform | Leo only. instagram, tiktok, youtube, ad, link | all | replace | /saved?platform=tiktok |

@@ -92,6 +92,7 @@ describe("links", () => {
     );
     expect(links.competitors({ view: "posts", sort: "views" })).toBe("/competitors?view=posts&sort=views");
     expect(links.competitors({ ad: "2095783381019179" })).toBe("/competitors?ad=2095783381019179");
+    expect(links.competitors({ view: "posts", post: "instagram:C9xYz" })).toBe("/competitors?view=posts&post=instagram%3AC9xYz");
   });
 
   it("builds the phase-2 swipe tabs with each tab's default left out", () => {
