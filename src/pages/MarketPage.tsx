@@ -21,7 +21,7 @@ import {
 } from "@/lib/market";
 import RemixButton from "@/components/remix/RemixButton";
 import { loadFollowing, type FollowedAccount } from "@/lib/following";
-import { fromFollowPost, type RemixSource } from "@/lib/remixSource";
+import { fromFollowPost, safeUrl, type RemixSource } from "@/lib/remixSource";
 import { MAX_WATCH, loadWatch, saveWatch } from "@/lib/mentions";
 import { browserPushSupport, enablePushHere, loadNotifyPrefs, pushOnHere, saveNotifyPrefs } from "@/lib/notify";
 import { loadPositioning } from "@/lib/positioning";
@@ -401,13 +401,13 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /** A competitor post as a remix source, read from the followed post it came from (x.id is <platform>:<postId>). */
-function marketSource(followed: FollowedAccount[], x: JudgedPost): RemixSource | null {
+function marketSource(followed: FollowedAccount[], x: JudgedPost): RemixSource {
   for (const a of followed) {
     const post = a.posts.find((p) => `${a.platform}:${p.id}` === x.id);
     if (post) return fromFollowPost(a, post);
   }
-  // shortcut: a post no longer on this device keeps today's link, build a snapshot from MarketPost if Leo wants Remix there too
-  return null;
+  // rotated out or unfollowed: the market post itself (caption already <=400); the sheet opens it from this tab's registry
+  return { key: `follow:${x.id}`, kind: "follow", platform: x.id.split(":")[0], url: safeUrl(x.url), author: `@${x.handle}`, caption: x.caption, remixedAt: "" };
 }
 
 function Card(props: {
@@ -415,7 +415,7 @@ function Card(props: {
   label: string;
   tag: string; act: boolean; written: boolean; writeUrl?: string; writeLabel: string; onWrite: () => void; onDismiss: () => void; children: ReactNode;
   /** Leo's sign-ins get the Remix button in place of the write link. */
-  source?: RemixSource | null;
+  source?: RemixSource;
 }) {
   const write = props.writeUrl && (
     <Button asChild size="sm" className="gap-1.5">
