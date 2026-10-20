@@ -355,9 +355,14 @@ export function adLibraryUrl(r: Pick<AdsRequest, "fbPageId" | "facebook" | "coun
   return `https://www.facebook.com/${r.facebook}`;
 }
 
-/** The actor's input with none of its charged add-ons (phase2-build-brief.md, Contracts). */
-export const adsInput = (url: string) => ({
-  startUrls: [{ url }], resultsLimit: ADS_MAX, activeStatus: "", sorting: "relevancy_monthly_grouped",
+/**
+ * The actor's input with none of its charged add-ons (phase2-build-brief.md, Contracts; sorting is free). A
+ * competitor's read sorts by impressions, high to low: the newest 30 (Meta's "Most recent") left out the long runners
+ * the drawer ranks (Sunsama's ads from Oct 2025, dogfood 21 Oct), while Meta's impressions order put them in its top 5.
+ * The space search keeps Most recent. The URL has no sort_data, so this field applies (the actor's input schema).
+ */
+export const adsInput = (url: string, limit = ADS_MAX, sorting: "total_impressions" | "relevancy_monthly_grouped" = "total_impressions") => ({
+  startUrls: [{ url }], resultsLimit: limit, activeStatus: "", sorting,
   isDetailsPerAd: false, includeAboutPage: false, enrichWithEcommerceData: false,
 });
 

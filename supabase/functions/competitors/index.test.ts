@@ -38,7 +38,9 @@ let serp: "ok" | "down" = "ok";
 let jevMode: "up" | "down" = "up";
 let site: { choice: string; probabilities: Record<string, number> } = { choice: "r1", probabilities: { r1: 0.9 } };
 let openai: "ok" | "down" | "why-down" = "ok";
-let apify: "ok" | "down" | "timeout" | "missing" | "empty" | "private" = "ok";
+let apify: "ok" | "down" | "timeout" | "missing" | "empty" | "private" | "full" = "ok";
+/** 40 distinct ads, for a read that comes back as full as it asked. */
+const MANY_ADS = Array.from({ length: 40 }, (_, k) => ({ ...FB_ADS[k % FB_ADS.length], adArchiveID: String(5_000_000_000 + k), collationId: String(7_000_000 + k) }));
 const apifyRuns: { actor: string; input: Record<string, unknown> }[] = [];
 /** Search words whose space run fails on Apify. */
 let spaceDown: string[] = [];
@@ -103,7 +105,10 @@ beforeAll(async () => {
       const q = url.includes("facebook-ads-scraper") ? new URL(input.startUrls[0].url).searchParams.get("q") : null;
       if (q && spaceDown.includes(q)) return new Response("actor failed", { status: 500 });
       if (apify === "timeout") throw new DOMException("The signal has been aborted", "TimeoutError");
-      if (url.includes("facebook-ads-scraper")) return Response.json(apify === "missing" ? [{ url: input.startUrls[0].url, error: "Page not found" }] : apify === "empty" ? [] : FB_ADS);
+      if (url.includes("facebook-ads-scraper")) {
+        if (apify === "missing") return Response.json([{ url: input.startUrls[0].url, error: "Page not found" }]);
+        return Response.json((apify === "empty" ? [] : apify === "full" ? MANY_ADS : FB_ADS).slice(0, input.resultsLimit));
+      }
       if (url.includes("instagram-profile-scraper")) {
         return Response.json(apify === "missing" ? [] : [{ username: input.usernames[0], fullName: "Acme Wealth", followersCount: 4200, postsCount: 90, private: apify === "private" }]);
       }
@@ -311,14 +316,58 @@ describe("competitors ads", () => {
     expect(r.body).toMatchObject({ competitorId: "sleekflow-ab12", pageId: "362293550309745", pageName: "Muncly" });
     expect(r.body.ads).toHaveLength(10);
     expect(Date.parse(r.body.checkedAt)).toBeGreaterThan(0);
-    expect(apifyRuns).toEqual([{ actor: "apify~facebook-ads-scraper", input: expect.objectContaining({ resultsLimit: 30, activeStatus: "", sorting: "relevancy_monthly_grouped" }) }]);
+    // most impressions first, so the long runners are among the 30 read
+    expect(apifyRuns).toEqual([{ actor: "apify~facebook-ads-scraper", input: expect.objectContaining({ resultsLimit: 30, activeStatus: "", sorting: "total_impressions" }) }]);
     expect((apifyRuns[0].input.startUrls as { url: string }[])[0].url).toContain("country=SG&view_all_page_id=362293550309745");
+    // 10 back of the 30 asked for: every ad Meta lists there was read
+    expect(r.body).toMatchObject({ country: "SG", complete: true });
     expect(db.refunded).toEqual([]);
   });
 
-  it("starts from the Facebook page when there is no page id", async () => {
-    await call({ ...adsBody, fbPageId: null, country: "ALL" });
+  it("says the read was capped when it came back as full as it asked", async () => {
+    apify = "full";
+    const r = await call(adsBody);
+    expect(r.body).toMatchObject({ country: "SG", complete: false });
+    expect(r.body.ads).toHaveLength(30);
+  });
+
+  it("looks anywhere with the page id and no country, so it differs from the Singapore read", async () => {
+    await call(adsBody);
+    await call({ ...adsBody, country: "ALL" });
+    const urls = apifyRuns.map((x) => (x.input.startUrls as { url: string }[])[0].url);
+    expect(urls[0]).toContain("&country=SG&");
+    expect(urls[1]).toContain("&country=ALL&");
+  });
+
+  it("starts from the Facebook page anywhere when there is no page id", async () => {
+    const r = await call({ ...adsBody, fbPageId: null, country: "ALL" });
+    expect(apifyRuns).toHaveLength(1);
     expect((apifyRuns[0].input.startUrls as { url: string }[])[0].url).toBe("https://www.facebook.com/sleekflow.io");
+    expect(r.body).toMatchObject({ pageId: "362293550309745", country: "ALL" });
+  });
+
+  it("reads one ad for the page id first in Singapore, then 29 there: 30 at most, the same price", async () => {
+    const r = await call({ ...adsBody, fbPageId: null });
+    expect(apifyRuns.map((x) => [(x.input.startUrls as { url: string }[])[0].url, x.input.resultsLimit])).toEqual([
+      ["https://www.facebook.com/sleekflow.io", 1],
+      ["https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=SG&view_all_page_id=362293550309745&search_type=page&media_type=all", 29],
+    ]);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ pageId: "362293550309745", pageName: "Muncly", country: "SG", complete: true });
+    expect(db.spent).toEqual(["competitor-ads", "competitor-ads-global"]);
+    expect(db.refunded).toEqual([]);
+  });
+
+  it("says no ads anywhere when the probe finds none, and not found for a missing page, keeping the uses", async () => {
+    apify = "empty";
+    const r = await call({ ...adsBody, fbPageId: null });
+    expect(apifyRuns).toHaveLength(1);
+    expect(r.body).toMatchObject({ pageId: null, ads: [], country: "ALL", complete: true });
+    apify = "missing";
+    expect((await call({ ...adsBody, fbPageId: null })).body.code).toBe("not_found");
+    apify = "down";
+    expect((await call({ ...adsBody, fbPageId: null })).status).toBe(502);
+    expect(db.refunded).toEqual(["competitor-ads", "competitor-ads-global"]);
   });
 
   it("gives both uses back when Apify fails or times out, and keeps them for no ads or a missing page", async () => {
@@ -400,7 +449,7 @@ describe("competitors space", () => {
     expect(r.status).toBe(200);
     expect(apifyRuns).toHaveLength(3);
     expect(apifyRuns.map((a) => new URL((a.input.startUrls as { url: string }[])[0].url).searchParams.get("q"))).toEqual(spaceBody.keywords);
-    expect(apifyRuns[0].input).toMatchObject({ resultsLimit: 30, activeStatus: "", isDetailsPerAd: false, includeAboutPage: false, enrichWithEcommerceData: false });
+    expect(apifyRuns[0].input).toMatchObject({ resultsLimit: 30, activeStatus: "", sorting: "relevancy_monthly_grouped", isDetailsPerAd: false, includeAboutPage: false, enrichWithEcommerceData: false });
     // the same 10 ads from each word: 10 once, minus Systems And Teams' 2 and Flyweel under 0.6
     expect(r.body.ads).toHaveLength(7);
     expect(r.body.ads[0]).toMatchObject({ advertiser: "Leadensity", fit: 0.9 });

@@ -5,7 +5,8 @@
 //            the app adds them itself with parseInput.
 //   suggest  up to 6 competitors with a why line: the app's candidates plus up to 8 the LLM proposes (each site must
 //            open), scored by Jev, then one LLM call for the why lines.
-//   ads      one competitor's Meta ads (apify~facebook-ads-scraper, up to 30 at US$5.80 per 1,000 on Free).
+//   ads      one competitor's Meta ads (apify~facebook-ads-scraper, up to 30 at US$5.80 per 1,000 on Free), in the
+//            competitor's country, most impressions first; a handle with no page id first reads one ad for the id.
 //   posts    one competitor's Instagram or TikTok posts, 30 kept (the actors Following uses).
 //   space    Singapore's running Meta ads for up to 3 search words (the ads actor, 30 each, in parallel), minus the
 //            tracked competitors' pages, judged by Jev against the brand; 60 kept.
@@ -34,7 +35,7 @@ import { readSite, siteUrl, type SiteFacts } from "../brand-dna/logic.ts";
 import { isAllowed, newsFailed } from "../market/logic.ts";
 import { parseTrackRequest, shapeResult } from "../track-accounts/logic.ts";
 import {
-  ADS_ACTOR, adLibraryUrl, adsInput, type Ask, type Candidate, cleanAds, cleanLabel, cleanMatch, cleanSpace, cleanSuggest, compareAsk, excluded,
+  ADS_ACTOR, ADS_MAX, adLibraryUrl, adsInput, type Ask, type Candidate, cleanAds, cleanLabel, cleanMatch, cleanSpace, cleanSuggest, compareAsk, excluded,
   firstHttpsLogo, hostOf, labelAsk, labelOf, matchAsk, matchScores, mergeSpace, nameTask, organicResults, pageMissing, pageOf, parseInput,
   parseProposals, parseWhys, pickSite, POSTS_KEPT, POSTS_READ, postsFailure, PROPOSE_FORMAT, proposeMessages, shapeAds, shapeSpaceAds, siteAsk,
   siteRetry, spaceAsk, spaceFilter, spaceUrl, suggestFilter, WHY_FORMAT, whyMessages,
@@ -60,6 +61,9 @@ const POSTS_PAUSED = "Account checks are paused for today. They resume at 8am Si
 const LABELS_FAILED = "Couldn't sort these ads right now. Try again in a few minutes.";
 // The Apify runs take up to ~105 s of the function's ~150 s; Jev questions not asked by then come back as fit null.
 const SPACE_JEV_UNTIL_MS = 130_000;
+// An ads read from a handle alone: the page-id probe's run limit, then the time both runs share.
+const PROBE_SECS = 40;
+const ADS_BUDGET_MS = 135_000;
 const jev = (a: Ask, who: string) => askJev(a.state, a.questions, { who });
 const refusal = (u: Extract<UsageResult, { allowed: false }>) => {
   const r = usageRefusal(u);
@@ -193,6 +197,7 @@ async function ads(admin: Admin, uid: string, body: unknown): Promise<Response> 
   const token = Deno.env.get("APIFY_API_KEY");
   if (!token) return fail(503, "failed", "Ad checks aren't switched on yet.");
 
+  const started = Date.now();
   const day = new Date().toISOString().slice(0, 10);
   const mine = await consumeUsage(admin, uid, "competitor-ads");
   if (!mine.allowed) return refusal(mine);
@@ -202,19 +207,40 @@ async function ads(admin: Admin, uid: string, body: unknown): Promise<Response> 
     return everyone.reason === "limit" ? fail(429, "global_limit", ADS_PAUSED) : refusal(everyone);
   }
 
+  // A handle alone opens the page's ads in every country, so a Singapore read first takes one ad (any country, any
+  // status) for the page id the country filter needs; the main read then takes 29, so a check still bills 30 at most.
+  let pageId = r.fbPageId;
+  let probe: unknown[] = [];
+  let limit = ADS_MAX;
   let items: unknown[];
   try {
-    items = await apifyItems(ADS_ACTOR, adsInput(adLibraryUrl(r)), token);
+    if (!pageId && r.country === "SG") {
+      probe = await apifyItems(ADS_ACTOR, adsInput(adLibraryUrl(r), 1), token, PROBE_SECS);
+      pageId = pageOf(probe).pageId;
+      limit = Math.max(1, ADS_MAX - probe.length);
+    }
+    // both runs inside the function's ~150 s: the main one gets what the probe left, up to the usual 90 s
+    const secs = probe.length ? Math.min(90, Math.floor((ADS_BUDGET_MS - (Date.now() - started)) / 1000) - 15) : undefined;
+    items = !pageId && r.country === "SG" ? [] : await apifyItems(ADS_ACTOR, adsInput(adLibraryUrl({ ...r, fbPageId: pageId }), limit), token, secs);
   } catch (e) {
     console.error("competitors ads: apify", r.competitorId, msg(e));
     await Promise.all([refundUsage(admin, uid, "competitor-ads", day), refundUsage(admin, GLOBAL_COUNTER_USER, "competitor-ads-global", day)]);
     return fail(502, "failed", ADS_FAILED);
   }
   // Apify answered (and billed): from here the uses are kept, ads or none
+  if (!pageId && r.country === "SG") {
+    if (pageMissing(probe)) return fail(422, "not_found", "That page wasn't found on Meta. Check the link.");
+    // the probe looked in every country and found no ad at all: say so, rather than "none in Singapore"
+    return json({ competitorId: r.competitorId, pageId: null, pageName: null, ads: [], checkedAt: new Date().toISOString(), country: "ALL", complete: true });
+  }
   const list = shapeAds(items);
   if (!list.length && pageMissing(items)) return fail(422, "not_found", "That page wasn't found on Meta. Check the link.");
   const page = pageOf(items);
-  return json({ competitorId: r.competitorId, pageId: page.pageId ?? r.fbPageId, pageName: page.pageName, ads: list, checkedAt: new Date().toISOString() });
+  return json({
+    competitorId: r.competitorId, pageId: page.pageId ?? pageId, pageName: page.pageName ?? pageOf(probe).pageName, ads: list, checkedAt: new Date().toISOString(),
+    // the country the ads came from, and whether that was every ad Meta lists there (fewer than asked for came back)
+    country: r.country, complete: items.length < limit,
+  });
 }
 
 async function posts(admin: Admin, uid: string, body: unknown): Promise<Response> {
@@ -261,7 +287,7 @@ async function space(admin: Admin, uid: string, body: unknown): Promise<Response
   }
 
   // in parallel: apifyItems waits up to ~105 s a run, and three in a row would pass the function's limit
-  const runs = await Promise.allSettled(r.keywords.map((k) => apifyItems(ADS_ACTOR, adsInput(spaceUrl(k)), token)));
+  const runs = await Promise.allSettled(r.keywords.map((k) => apifyItems(ADS_ACTOR, adsInput(spaceUrl(k), ADS_MAX, "relevancy_monthly_grouped"), token)));
   const failed = r.keywords.filter((_, k) => runs[k].status === "rejected");
   if (failed.length === r.keywords.length) {
     console.error("competitors space: apify", runs.map((x) => (x.status === "rejected" ? msg(x.reason) : "")).join(" | "));

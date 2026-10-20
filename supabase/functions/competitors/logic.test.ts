@@ -154,11 +154,12 @@ describe("ads: where the actor starts", () => {
     expect(adLibraryUrl({ fbPageId: null, facebook: "sleekflow.io", country: "SG" })).toBe("https://www.facebook.com/sleekflow.io");
   });
 
-  it("sends the contract's input with no charged add-ons", () => {
+  it("sends the contract's input with no charged add-ons, most impressions first unless asked for the newest", () => {
     expect(adsInput("https://www.facebook.com/x")).toEqual({
-      startUrls: [{ url: "https://www.facebook.com/x" }], resultsLimit: 30, activeStatus: "", sorting: "relevancy_monthly_grouped",
+      startUrls: [{ url: "https://www.facebook.com/x" }], resultsLimit: 30, activeStatus: "", sorting: "total_impressions",
       isDetailsPerAd: false, includeAboutPage: false, enrichWithEcommerceData: false,
     });
+    expect(adsInput("https://www.facebook.com/x", 1, "relevancy_monthly_grouped")).toMatchObject({ resultsLimit: 1, sorting: "relevancy_monthly_grouped" });
   });
 
   it("refuses a body with no page, and anything that could reshape the URL", () => {
