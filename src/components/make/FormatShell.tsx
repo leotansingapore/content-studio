@@ -43,8 +43,9 @@ export default function FormatShell(p: { title: string; blurb: string; options: 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-start">
         <div className="min-w-0">
           <div className="space-y-5">{p.options}</div>
-          {/* on a phone the right edge stays clear for the Ask button that floats there */}
-          <div className="sticky bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-20 -mx-4 mt-5 border-t border-border/70 bg-background/95 py-3 pl-4 pr-[4.5rem] backdrop-blur-md sm:-mx-6 sm:pl-6 lg:bottom-0 lg:mx-0 lg:rounded-lg lg:border lg:px-4">
+          {/* on a phone it sits flush on the tab bar (about 53 px, tucked under it rather than leaving a gap) with its
+              right edge clear for the Ask button that floats there */}
+          <div className="sticky bottom-[calc(3.25rem+env(safe-area-inset-bottom))] z-20 -mx-4 mt-5 border-t border-border/70 bg-background py-3 pl-4 pr-[4.5rem] lg:bg-background/95 lg:backdrop-blur-md sm:-mx-6 sm:pl-6 lg:bottom-0 lg:mx-0 lg:rounded-lg lg:border lg:px-4">
             <div className="flex items-center gap-3">
               <span className="min-w-0 flex-1" aria-live="polite">
                 <PriceChip feature={f.cap} left={left} />
