@@ -3492,7 +3492,8 @@ export default function GeneratePage() {
               className="scrollbar-none flex gap-1 overflow-x-auto rounded-xl border border-border/60 bg-muted/20 p-1 lg:hidden"
             >
               {[
-                { key: "original" as const, label: `${platformLabel(platform)} (original)`, over: overLimit(draft, platform) },
+                // beside the compare tabs "Original" is the remixed post, so the draft's own tab is just its platform
+                { key: "original" as const, label: compareOn ? platformLabel(platform) : `${platformLabel(platform)} (original)`, over: overLimit(draft, platform) },
                 ...versions.map((v) => ({ key: v.platform, label: platformLabel(v.platform), over: overLimit(v.text, v.platform) })),
               ].map(({ over, ...t }) => (
                 <button
