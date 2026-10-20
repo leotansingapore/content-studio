@@ -16,10 +16,12 @@ const local = (url: string) => `public${new URL(url).pathname}`;
 
 describe("link previews", () => {
   it("names every nav page the way the nav does", () => {
-    for (const s of SECTIONS) for (const p of s.pages) expect(pageName(p.to), p.to).toBe(p.title ?? p.label);
+    const pages = SECTIONS.flatMap((s) => s.pages);
+    // every mismatch at once, as "<path>: <nav name>", so one run lists every row to fix
+    expect(pages.filter((p) => pageName(p.to) !== (p.title ?? p.label)).map((p) => `${p.to}: ${p.title ?? p.label}`)).toEqual([]);
     // and every row is a page the nav still has
-    const nav = new Set(SECTIONS.flatMap((s) => s.pages.map((p) => p.to)));
-    for (const path of Object.keys(PAGES)) expect(nav.has(path), path).toBe(true);
+    const nav = new Set(pages.map((p) => p.to));
+    expect(Object.keys(PAGES).filter((path) => !nav.has(path))).toEqual([]);
   });
 
   it("gives an unlisted path its nearest listed page, and the site past that", () => {
