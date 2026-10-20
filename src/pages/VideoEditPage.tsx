@@ -1577,6 +1577,8 @@ function Editor({ userId, leo, project, onSave, onClips, onOpen, onBack }: {
         endAt.current = null;
         setWords(p.words);
         setSettings(p.settings);
+        // older Undo steps hold the other clip's lengths; the toast's Undo is the way back across a swap
+        setHistory([]);
         setThumb(p.thumb);
       };
       put(fin);
