@@ -322,7 +322,7 @@ export interface CompetitorAd {
   start: string | null;
   end: string | null;
   active: boolean;
-  /** facebook, instagram, messenger, threads, audience_network */
+  /** facebook, instagram, messenger, threads, whatsapp, audience_network */
   platforms: string[];
   /** collationCount: how many versions Meta groups under this ad. */
   versions: number;
@@ -365,7 +365,7 @@ type Rec = Record<string, unknown>;
 const rec = (v: unknown): Rec => (v && typeof v === "object" ? (v as Rec) : {});
 const https = (v: unknown) => (typeof v === "string" && v.startsWith("https://") && v.length <= 2000 ? v : null);
 const firstOf = (v: unknown): Rec => rec(Array.isArray(v) ? v[0] : null);
-const PLATFORM_IDS = ["facebook", "instagram", "messenger", "threads", "audience_network"];
+const PLATFORM_IDS = ["facebook", "instagram", "messenger", "threads", "whatsapp", "audience_network"];
 const DAY_MS = 86_400_000;
 const SG_MS = 8 * 3_600_000;
 

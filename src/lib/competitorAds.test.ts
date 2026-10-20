@@ -183,6 +183,7 @@ describe("what the cards and pills say", () => {
     expect(a.runningLine(["B", "A", "C", "D"])).toBe("What B, A and 2 more are running");
     expect(a.runningLine(["B"])).toBe("What B is running");
     expect(a.platformNames(["facebook", "instagram", "audience_network"])).toBe("Facebook, Instagram, Audience Network");
+    expect(a.platformNames(["facebook", "whatsapp"])).toBe("Facebook, WhatsApp");
   });
 
   it("remixes a competitor ad by its structure, with the Library link and no null in the brief", () => {

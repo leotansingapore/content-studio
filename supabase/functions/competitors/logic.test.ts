@@ -199,6 +199,9 @@ describe("ads: shaping the actor's answer (the saved run)", () => {
     expect(dco).toMatchObject({ format: "image", headline: "Card spend beside closed deals.", versions: 1 });
     expect(dco.image).toMatch(/^https:\/\//);
     expect(ads.find((a) => a.id === "1135500952358956")!.platforms).toEqual(["facebook", "instagram", "audience_network", "threads"]);
+    // Meta lists WhatsApp for Pipedrive's 1092039757056593 (dogfood, 21 Oct); unknown values still go
+    const wa = shapeAds([{ ...items[0], publisherPlatform: ["FACEBOOK", "WHATSAPP", "ORACLE"] }], NOW)[0];
+    expect(wa.platforms).toEqual(["facebook", "whatsapp"]);
   });
 
   it("turns a numeric startDate into the day in Singapore", () => {

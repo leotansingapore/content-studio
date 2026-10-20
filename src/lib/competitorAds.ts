@@ -108,7 +108,7 @@ export function runLabel(ad: Pick<CompetitorAd, "start" | "end" | "active">, now
   return `${plural(days, "day")} running`;
 }
 
-const PLATFORM_NAMES: Record<string, string> = { facebook: "Facebook", instagram: "Instagram", messenger: "Messenger", threads: "Threads", audience_network: "Audience Network" };
+const PLATFORM_NAMES: Record<string, string> = { facebook: "Facebook", instagram: "Instagram", messenger: "Messenger", threads: "Threads", whatsapp: "WhatsApp", audience_network: "Audience Network" };
 export const platformNames = (ids: string[]) => ids.map((p) => PLATFORM_NAMES[p] ?? p).join(", ");
 
 export const libraryUrl = (id: string) => `https://www.facebook.com/ads/library/?id=${id}`;
