@@ -98,6 +98,11 @@ function Montage({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
           {running ? "Making..." : "Make the montage"}
         </Button>
       </form>
+      {leo && (
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end sm:text-right">
+          <Left n={uses} what="Montages" feature="montage-beats" />
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-1.5">
         <div className="flex gap-1.5" role="group" aria-label="Length">
           {[LEN_MIN, 30, LEN_MAX].map((n) => <Pill key={n} on={seconds === n} disabled={off} onClick={() => setSeconds(n)}>{n} seconds</Pill>)}
@@ -116,7 +121,7 @@ function Montage({ busy, left: panelLeft }: { busy: boolean; left: Left }) {
             <Button size="sm" variant="ghost" className="h-11 text-xs sm:h-9" disabled={off} onClick={() => setMusic(null)}>Remove</Button>
           </>
         )}
-        <Left n={uses} what="Montages" feature="montage-beats" />
+        {!leo && <Left n={uses} what="Montages" feature="montage-beats" />}
       </div>
       {running && job && (
         <p className="flex items-center gap-2 text-sm font-medium" aria-live="polite">
