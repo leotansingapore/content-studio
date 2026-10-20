@@ -221,7 +221,8 @@ export function FollowButton({
   const failed = b.reason !== null && b.reason !== FOLLOW_ONLY && b.reason !== CAP_LINE;
   return (
     <div className="space-y-1">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      {/* on a creator's page the chip goes under Follow, so Open profile sits right beside it */}
+      <div className={where === "page" ? "flex flex-col gap-1 sm:items-start" : "flex flex-wrap items-center gap-x-2 gap-y-1"}>
         {b.label === "Following" ? (
           <Button asChild variant="outline" size={size} className={`gap-1.5 ${wide}`}>
             <Link to={links.following()}>
