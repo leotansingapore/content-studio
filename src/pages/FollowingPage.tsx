@@ -93,6 +93,7 @@ export default function FollowingPage() {
   const left = useUsesLeft(anyChecking || !leo)("track-accounts");
   // Check all spends one check per account
   const allWhy = reasonText({ left, uses: list.length, leo });
+  const checkWhy = reasonText({ left, leo });
 
   return (
     <div className="space-y-5">
@@ -130,6 +131,8 @@ export default function FollowingPage() {
             Public accounts only. Each check uses 1 of your {LIMIT} a day.
             {leo && !anyChecking && <> <PriceChip feature="track-accounts" left={left} /></>}
           </p>
+          {/* Follow stays on at 0 (following is free; only its first check is refused), so say when checks are back */}
+          {checkWhy && <p className="text-xs text-destructive">{checkWhy}</p>}
         </form>
       )}
 
