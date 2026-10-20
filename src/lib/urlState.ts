@@ -158,7 +158,7 @@ export function useScrollToItem<T extends HTMLElement>(linked: boolean) {
  * say so in one line and drop the param, so nothing is left marked or waiting. `found` is undefined while the list
  * is still loading or syncing, and nothing happens then.
  */
-export function useGoneItem(name: string, found: boolean | undefined, what = "post") {
+export function useGoneItem(name: string, found: boolean | undefined, what = "post", line = `That ${what} is no longer here`) {
   const [id, , drop] = useUrlItem(name);
   const [params] = useSearchParams();
   // a ?profile= link opens its brand first (StudioLayout reloads); the post belongs to that brand, not this one
@@ -166,9 +166,9 @@ export function useGoneItem(name: string, found: boolean | undefined, what = "po
   const { toast } = useToast();
   useEffect(() => {
     if (!id || found !== false || switching) return;
-    toast({ title: `That ${what} is no longer here` });
+    toast({ title: line });
     drop();
-  }, [id, found, switching, what, drop, toast]);
+  }, [id, found, switching, line, drop, toast]);
 }
 
 /** A #section link scrolls to that section once the page has drawn it (`ready`), on every tap of the link. */

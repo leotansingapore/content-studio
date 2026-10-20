@@ -109,8 +109,8 @@ export default function MediaPage() {
   // ?item=<picture key> (docs/deep-links.md): that picture is scrolled to and marked
   const [itemKey] = useUrlItem("item");
   const linkedTile = useScrollToItem<HTMLLIElement>(shown.some((m) => m.key === itemKey));
-  // an empty list may still be syncing, so it decides nothing
-  useGoneItem("item", items.length ? items.some((m) => m.key === itemKey) : undefined, "picture");
+  // the list is this device's own (mediaLibrary.ts), so a picture from elsewhere is "not on this device"
+  useGoneItem("item", userId ? items.some((m) => m.key === itemKey) : undefined, "picture", "That picture is not on this device");
 
   return (
     <div className="space-y-5">

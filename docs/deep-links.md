@@ -236,7 +236,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /coach | view | quiz: retake the diagnosis | quiz when there is no diagnosis yet | push | /coach?view=quiz |
 | /media | q | search text (names, folders, alt text) | empty | replace | /media?q=family |
 | /media | folder | a folder name, or none (photos with no folder) | all | replace | /media?folder=none |
-| /media | item | a picture's key: scrolled to and marked; Copy link on every picture. Pictures live on the device that made them (the name and folder sync, the file does not) | none | set by links | /media?item=cimg-mh2k9x01ab |
+| /media | item | a picture's key: scrolled to and marked; Copy link on every picture. the picture list lives on the device that added it, so the link opens there; anywhere else it says "That picture is not on this device" | none | set by links | /media?item=cimg-mh2k9x01ab |
 | /academy | lesson | a lesson's YouTube id: opens and plays it | none | push | /academy?lesson=0Q1AQAxpdGg |
 | /brand | #section | you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
 | /create-guide | #step | idea, draft, carousel, reel, reverse-engineer, compliance, schedule | top | (anchor) | /create-guide#reel |
