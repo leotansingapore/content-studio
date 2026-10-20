@@ -8,7 +8,7 @@ import { splitDraftIntoSlides } from "./carousel";
 import { loadDrafts } from "./draftHistory";
 import { EdgeError } from "./edgeFn";
 import type { MakeResponse, MakeResult } from "./remix";
-import { clearRemixJob, onRemixJob, remixJob, startRemix, type RemixJobState, type RemixRun } from "./remixJob";
+import { clearRemixJob, onRemixJob, remixJob, runParams, startRemix, type RemixJobState, type RemixRun } from "./remixJob";
 import type { RemixSource } from "./remixSource";
 import { splitScriptCaption } from "./scriptCaption";
 
@@ -160,5 +160,21 @@ describe("startRemix", () => {
     await done;
     expect(loadDrafts(UID)[0].draft).not.toMatch(/\p{Extended_Pictographic}/u);
     expect(make.mock.calls[0][0].brand).toMatchObject({ name: "Leo", mention: false });
+  });
+});
+
+describe("runParams", () => {
+  it("keeps the run's choices on the job, and the sheet link carries them with the defaults left out", async () => {
+    let release!: (v: MakeResponse) => void;
+    make.mockReturnValue(new Promise((r) => (release = r)));
+    const done = finished();
+    startRemix(UID, run(["post"], { keep: "topic", about: "Insurance basics", close: "close", mention: true, offer: "Free money check" }));
+    const j = remixJob()!;
+    expect(j.run).toEqual({ keep: "topic", about: "Insurance basics", close: "close", mention: true, offer: "Free money check" });
+    expect(runParams(j.key, j.run)).toEqual({ remix: "ad:123", keep: "topic", about: "insurance-basics", close: "close", mention: null, offer: "free-money-check" });
+    release(answer({ as: "post", hook: "H", body: "B", cta: "", hashtags: [] }));
+    await done;
+    expect(runParams("ad:1", { keep: "structure", close: "balanced", mention: true, offer: null })).toEqual({ remix: "ad:1", keep: null, about: null, close: null, mention: null, offer: null });
+    expect(runParams("ad:1", { keep: "hook", about: "CPF", close: "loose", mention: false, offer: "Free money check" })).toEqual({ remix: "ad:1", keep: "hook", about: null, close: "loose", mention: "no", offer: null });
   });
 });

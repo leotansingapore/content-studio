@@ -7,7 +7,7 @@ import { applyBrandRules } from "@/lib/brandRules";
 import { loadBrand, splitDraftIntoSlides } from "@/lib/carousel";
 import { draftsChanged, newDraftId, upsertDraft, type DraftEntry } from "@/lib/draftHistory";
 import { EdgeError } from "@/lib/edgeFn";
-import { links } from "@/lib/links";
+import { links, slug } from "@/lib/links";
 import { stripDashes } from "@/lib/plainText";
 import { EMPTY_POSITIONING, loadPositioning } from "@/lib/positioning";
 import { ctaTypeFor, voiceForClone, winnersFor } from "@/lib/reelClone";
@@ -62,6 +62,8 @@ export interface RemixJobState {
   state: "working" | "done" | "failed";
   step: string;
   rows: RemixRow[];
+  /** The run's own choices: the pill reopens the sheet on them and the done line reads them. */
+  run: Pick<RemixRun, "keep" | "about" | "close" | "mention" | "offer">;
 }
 
 export const READING = "Reading the post";
@@ -81,6 +83,18 @@ const emit = (next: RemixJobState | null) => {
 
 export const remixJob = () => job;
 
+/** The sheet's params for a run, defaults left out: reopening it shows what is running, and "Try again" repeats it. */
+export function runParams(key: string, r: RemixJobState["run"]): Record<string, string | null> {
+  return {
+    remix: key,
+    keep: r.keep === "structure" ? null : r.keep,
+    about: r.keep === "topic" && r.about ? slug(r.about) : null,
+    close: r.close === "balanced" ? null : r.close,
+    mention: r.mention ? null : "no",
+    offer: r.mention && r.offer ? slug(r.offer) : null,
+  };
+}
+
 export function onRemixJob(fn: (j: RemixJobState | null) => void): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);
@@ -94,7 +108,8 @@ export function clearRemixJob(): void {
 export function startRemix(userId: string, run: RemixRun): void {
   if (job?.state === "working") return;
   const id = ++seq;
-  emit({ id, key: run.source.key, state: "working", step: READING, rows: run.as.map((as) => ({ as, state: "waiting" })) });
+  const { keep, about, close, mention, offer } = run;
+  emit({ id, key: run.source.key, state: "working", step: READING, rows: run.as.map((as) => ({ as, state: "waiting" })), run: { keep, about, close, mention, offer } });
   void runRows(id, userId, run);
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Loader2, Shuffle, X } from "lucide-react";
-import { clearRemixJob, onRemixJob, remixJob } from "@/lib/remixJob";
+import { clearRemixJob, onRemixJob, remixJob, runParams } from "@/lib/remixJob";
 
 // A remix keeps running while you use other pages; this says so, and offers the draft when it is ready. It sits
 // one row above ExportPill so the two never overlap, and hides while the sheet for the same remix is open.
@@ -16,7 +16,10 @@ export default function RemixPill() {
   }, []);
   const params = new URLSearchParams(search);
   if (!job || params.get("remix") === job.key) return null;
-  params.set("remix", job.key);
+  for (const [k, v] of Object.entries(runParams(job.key, job.run))) {
+    if (v) params.set(k, v);
+    else params.delete(k);
+  }
   const sheet = `${pathname}?${params}`;
   const ready = job.rows.find((r) => r.state === "done");
   return (

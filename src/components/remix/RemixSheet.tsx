@@ -169,6 +169,8 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
     setRepeatHidden(false);
   };
 
+  // a running or finished run shows its own choices, whatever the URL says
+  const ran = mine && mine.state !== "failed" ? mine.run : { keep, about, close: closeness };
   const done = mine?.state === "done" ? mine.rows.filter((r) => r.state === "done") : [];
   const failedRow = mine?.state === "failed" ? mine.rows.find((r) => r.state === "failed") : undefined;
 
@@ -188,7 +190,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
         {done.map((row) => (
           <section key={row.as} className="space-y-2">
             <h3 className="text-base font-semibold text-foreground">Your {AS_NOUN[row.as]} is ready</h3>
-            <p className="text-xs text-muted-foreground">{keep === "topic" && about ? `Moved to ${about}` : KEEP_DONE[keep]}</p>
+            <p className="text-xs text-muted-foreground">{ran.keep === "topic" && ran.about ? `Moved to ${ran.about}` : KEEP_DONE[ran.keep]}</p>
             {row.hook && <blockquote className="border-l-2 border-primary/50 pl-3 text-sm text-foreground">{row.hook}</blockquote>}
             {row.flags && <FlagChips flags={row.flags} />}
           </section>
@@ -213,7 +215,7 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
         <section className="rounded-xl border border-border/70 bg-muted/30 p-3">
           <h3 className="mb-1 text-xs font-semibold text-foreground">What Remix does</h3>
           <p className="text-sm leading-snug text-muted-foreground">
-            {whatRemixDoes(source, { keep, about, as, close: closeness }, { brand, hasVoice: voicePosts > 0, teardownCached: true })}
+            {whatRemixDoes(source, { keep: ran.keep, about: ran.about, as, close: ran.close }, { brand, hasVoice: voicePosts > 0, teardownCached: true })}
           </p>
         </section>
 
