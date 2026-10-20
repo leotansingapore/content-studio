@@ -138,13 +138,14 @@ export function InfoTip({
       >
         <Info className="h-3.5 w-3.5" aria-hidden />
       </button>
+      {/* z-[90]: above every drawer and sheet (z-[70], z-[80]), under the z-[100] toasts */}
       {open &&
         createPortal(
           <div
             ref={bubble}
             id={contentId}
             role="tooltip"
-            className="fixed z-50 w-max max-w-[260px] rounded-md border border-border bg-popover px-3 py-2 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-popover-foreground shadow-md"
+            className="fixed z-[90] w-max max-w-[260px] rounded-md border border-border bg-popover px-3 py-2 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-popover-foreground shadow-md"
             style={{
               top: pos?.top ?? 0,
               left: pos?.left ?? 0,
