@@ -2641,7 +2641,7 @@ export default function GeneratePage() {
           <div className="flex items-center justify-between gap-2">
             <p className="flex min-w-0 items-center gap-2 font-semibold text-foreground">
               <Shuffle className="h-3.5 w-3.5 shrink-0 text-primary" />
-              <span className="truncate">{sourceChip(remixSource)}</span>
+              <span className="min-w-0 break-words">{sourceChip(remixSource)}</span>
             </p>
             {/* Opens the Remix sheet on this source (north star): the one way in until the browse cards carry the button */}
             <button
@@ -2652,7 +2652,7 @@ export default function GeneratePage() {
               }}
               className="ml-auto inline-flex h-8 shrink-0 items-center rounded-lg px-2 font-semibold text-primary hover:bg-background [@media(pointer:coarse)]:h-11"
             >
-              Remix this
+              Remix
             </button>
             <button
               type="button"
