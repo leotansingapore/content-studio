@@ -183,7 +183,7 @@ export default function PostDetailDrawer({
             </div>
 
             <div className="space-y-2">
-              <RemixButton source={fromTopPost(post, { id: post.advisorId, name: post.advisorName, handle: post.handle })}>
+              <RemixButton size="default" className="w-full" source={fromTopPost(post, { id: post.advisorId, name: post.advisorName, handle: post.handle })}>
                 <Button asChild className="w-full gap-2 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
                   <Link to={remixUrl}>
                     <Wand2 className="h-4 w-4" /> Remix this for my business

@@ -169,7 +169,7 @@ function AnalysisResult({
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        {bestPost && (live ? remixLink : <RemixButton source={fromTopPost(bestPost, { ...advisor, id: topAdvisorId(advisor.handle) ?? advisor.id })}>{remixLink}</RemixButton>)}
+        {bestPost && (live ? remixLink : <RemixButton className="flex-1" source={fromTopPost(bestPost, { ...advisor, id: topAdvisorId(advisor.handle) ?? advisor.id })}>{remixLink}</RemixButton>)}
         <Button asChild size="sm" variant="outline" className="flex-1 gap-1.5">
           <Link
             to={links.plan({ competitor: live ? advisor.handle : advisor.id })}

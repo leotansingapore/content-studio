@@ -307,7 +307,7 @@ function TrendCard({ trend, open, onToggle }: { trend: TrendEntry; open: boolean
 
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
           <CopyLinkButton path={links.trends({ trend: trend.id })} label="Copy link to this trend" className="order-last ml-auto" />
-          <RemixButton source={fromTrend(trend)}>
+          <RemixButton className="flex-1" source={fromTrend(trend)}>
             <Button
               asChild
               size="sm"

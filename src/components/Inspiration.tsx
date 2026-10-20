@@ -243,7 +243,7 @@ function InspirationCard({
             </Link>
           </Button>
           {/* Inside Write (onUseAsVibe set) it picks a vibe for the open draft, so it never becomes Remix there */}
-          {onUseAsVibe ? useAsVibe : <RemixButton source={fromInspiration(entry)}>{useAsVibe}</RemixButton>}
+          {onUseAsVibe ? useAsVibe : <RemixButton className="w-full sm:w-auto sm:flex-1" source={fromInspiration(entry)}>{useAsVibe}</RemixButton>}
         </div>
       </CardContent>
     </Card>

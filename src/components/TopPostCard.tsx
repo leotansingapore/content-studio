@@ -194,7 +194,7 @@ export default function TopPostCard({
 
         {/* Actions */}
         <div className="mt-auto flex items-center gap-2 pt-1">
-          <RemixButton source={fromTopPost(post, { ...advisor, id: topAdvisorId(advisor.handle) ?? advisor.id })}>
+          <RemixButton className="flex-1" source={fromTopPost(post, { ...advisor, id: topAdvisorId(advisor.handle) ?? advisor.id })}>
             <Button
               asChild
               size="sm"

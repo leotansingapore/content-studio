@@ -44,7 +44,7 @@ function AdCard({ ad }: { ad: SwipeAd }) {
           </button>
         )}
         <div className="mt-auto flex flex-wrap items-center gap-2 pt-1">
-          <RemixButton source={fromAd(ad)}>
+          <RemixButton className="flex-1" source={fromAd(ad)}>
             <Button asChild size="sm" className="flex-1 gap-1.5 bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95">
               <Link to={buildAdWriteUrl(ad)}>
                 <PenLine className="h-3.5 w-3.5" /> Write a post like this

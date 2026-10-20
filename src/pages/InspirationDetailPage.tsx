@@ -149,7 +149,7 @@ export default function InspirationDetailPage() {
             </div>
           )}
           <div className="pt-2">
-            <RemixButton source={fromInspiration(entry)}>
+            <RemixButton size="lg" className="w-full sm:w-auto" source={fromInspiration(entry)}>
               <Button
                 size="lg"
                 onClick={handleUseAsVibe}
