@@ -7,6 +7,9 @@ import inspirationData from "@/data/inspiration.json";
 import type { AdvisorEntry } from "@/components/AdvisorProfiles";
 import type { InspirationEntry } from "@/components/Inspiration";
 import { ADS } from "@/lib/adsSwipe";
+import { loadCompetitorAds, toAdLike } from "@/lib/competitorAds";
+import { loadCompetitorPosts } from "@/lib/competitorPosts";
+import { loadCompetitors } from "@/lib/competitors";
 import { getDraftById } from "@/lib/draftHistory";
 import { loadFollowing } from "@/lib/following";
 import { scoped } from "@/lib/profiles";
@@ -52,12 +55,19 @@ export function resolveSource(key: string, userId: string): RemixSource | null {
     }
     case "ad": {
       const ad = ADS.find((a) => a.adId === rest);
-      return ad ? fromAd(ad) : null;
+      if (ad) return fromAd(ad);
+      // a competitor's ad (Their ads), named after the competitor as the list knows it
+      for (const [id, e] of Object.entries(loadCompetitorAds(userId))) {
+        const found = e.ads.find((a) => a.id === rest);
+        if (found) return fromAd(toAdLike(found, loadCompetitors(userId).list.find((c) => c.id === id)?.name ?? e.pageName ?? "a competitor"));
+      }
+      return null;
     }
     case "follow": {
       const [platform, ...id] = rest.split(":");
       const postId = id.join(":");
-      for (const a of loadFollowing(userId)) {
+      // Following first, then a competitor's posts (Their posts): the same follow:<platform>:<post id> keys
+      for (const a of [...loadFollowing(userId), ...Object.values(loadCompetitorPosts(userId))]) {
         if (a.platform !== platform) continue;
         const post = a.posts.find((p) => p.id === postId);
         if (post) return fromFollowPost(a, post);

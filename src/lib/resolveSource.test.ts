@@ -71,6 +71,32 @@ describe("resolveSource", () => {
     expect(resolveSource("own:d1", UID)).toMatchObject({ kind: "own", title: "My best post" });
   });
 
+  it("reads Leo's competitor ads and posts after the drops and Following", () => {
+    const list = [{ id: "sleekflow-ab12", name: "SleekFlow", site: null, logo: null, why: "", fbPageId: "362293550309745", handles: { instagram: "sleekflow" },
+      adsCountry: "SG", source: "typed", addedAt: "2026-10-01T00:00:00Z" }];
+    window.localStorage.setItem(`content-studio-competitors-${UID}`, JSON.stringify({ list, dismissed: [] }));
+    const theirAd = { id: "977824304753041", format: "image", headline: "Get a free audit", body: "A new CRM won't fix your sales.", cta: null, link: null,
+      image: null, video: null, start: "2026-10-20", end: null, active: true, platforms: ["facebook"], versions: 1 };
+    window.localStorage.setItem(`content-studio-competitor-ads-${UID}`, JSON.stringify({
+      "sleekflow-ab12": { checkedAt: "2026-10-20T00:00:00Z", pageId: "362293550309745", pageName: "Muncly", ads: [theirAd], seen: [], fresh: [] },
+      "gone-0000": { checkedAt: "2026-10-20T00:00:00Z", pageId: null, pageName: "Old page", ads: [{ ...theirAd, id: "555" }], seen: [], fresh: [] },
+    }));
+    expect(resolveSource("ad:977824304753041", UID)).toMatchObject({
+      key: "ad:977824304753041", kind: "ad", author: "SleekFlow", title: "Get a free audit", url: "https://www.facebook.com/ads/library/?id=977824304753041", remixedAt: "",
+    });
+    // a competitor no longer on the list still names the page its ad came from
+    expect(resolveSource("ad:555", UID)).toMatchObject({ author: "Old page" });
+
+    const post = { id: "C9comp", url: "https://www.instagram.com/p/C9comp/", format: "video", caption: "Three habits", postedAt: null, views: 900, likes: 40, comments: 2 };
+    window.localStorage.setItem(`content-studio-competitor-posts-${UID}`, JSON.stringify({
+      "sleekflow-ab12:instagram": { platform: "instagram", handle: "sleekflow", addedAt: "", history: [], posts: [post], seen: [], fresh: [] },
+    }));
+    expect(resolveSource("follow:instagram:C9comp", UID)).toMatchObject({ key: "follow:instagram:C9comp", kind: "follow", author: "@sleekflow", format: "video" });
+    // Following wins when it holds the same post
+    saveFollowing(UID, [{ platform: "instagram", handle: "fan.account", addedAt: "", history: [], seen: [], fresh: [], posts: [post as FollowedAccount["posts"][number]] }]);
+    expect(resolveSource("follow:instagram:C9comp", UID)).toMatchObject({ author: "@fan.account" });
+  });
+
   it("reads pasted links from their store without the read text, and audit keys from the seen registry", () => {
     const linked: LinkedSource = { key: "link:youtube:abc", kind: "link", platform: "youtube", format: "video", remixedAt: "", text: "t".repeat(2000) };
     window.localStorage.setItem(REMIX_LINKS_PREFIX + UID, JSON.stringify([linked]));
