@@ -133,6 +133,10 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
   const started = useRef<number | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const seen = useRef<string | null>(null);
+  const scrollOnShow = useRef(false);
+  const toResult = () => {
+    if (!window.matchMedia("(min-width: 1024px)").matches) resultRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
 
   const remix = from === "remix";
   const ask: SlideshowAsk = { source: remix ? source : null, topic: words.topic, mention: mention !== "no", note: words.note, size, pictures };
@@ -152,7 +156,8 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
 
   // once per step: the run this page started opens its result as its own link (show=, push), so Back and Copy link
   // find it; a run that finished while Leo was away opens in place (replace). On a phone the result sits under the
-  // options, so the start, the end or the failure of a run is scrolled into view while the page is open.
+  // options, so the start, the end or the failure of a run is scrolled into view while the page is open (the end
+  // once the result has drawn, or the shorter placeholder caps how far the page can scroll).
   useEffect(() => {
     if (!job) return;
     const step = `${job.id}:${job.state}`;
@@ -160,15 +165,19 @@ export default function Slideshow({ userId, source }: { userId: string; source: 
     const live = seen.current !== null;
     seen.current = step;
     const mine = job.id === started.current;
-    if ((mine || live) && (job.state === "writing" || job.state === "done" || job.state === "failed") && !window.matchMedia("(min-width: 1024px)").matches) {
-      resultRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-    }
+    if ((mine || live) && (job.state === "writing" || job.state === "failed")) toResult();
+    if ((mine || live) && job.state === "done") scrollOnShow.current = true;
     if (job.state === "done" && job.showId) {
       if (mine) openShow(job.showId);
       else if (!showId && params.get("go") !== "1") update({ show: job.showId });
     }
     if (mine && (job.state === "done" || job.state === "failed")) started.current = null;
   }, [job, openShow, showId, params, update]);
+  useEffect(() => {
+    if (!shown || !scrollOnShow.current) return;
+    scrollOnShow.current = false;
+    toResult();
+  }, [shown]);
 
   // go=1 (the Remix sheet's Also make link) makes on arrival, once
   const went = useRef(false);
