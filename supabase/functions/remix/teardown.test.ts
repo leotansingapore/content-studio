@@ -1,8 +1,19 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { HOOK_FORMULAS } from "../../../src/lib/hookFormulas.ts";
+import { slug } from "../../../src/lib/links.ts";
+import { ANGLES, TOPICS } from "../../../src/lib/postLabels.ts";
 import { readPost } from "../clone-reel/source.ts";
+import { AUDIENCE_TAGS, FEELINGS } from "../_shared/tags.ts";
 import {
   FORMULA_MIN,
+  TAG_ANGLES,
+  TAG_TOPICS,
+  llmTags,
+  needsFallback,
+  readTags,
+  sureTag,
+  tagId,
+  tagQuestions,
   TEARDOWN_RULES,
   basedOnFor,
   buildTeardownPrompt,
@@ -317,5 +328,199 @@ describe("readPost (clone-reel/source.ts)", () => {
     expect(await readPost(admin, "https://example.com/x", "token", 1000)).toBeNull();
     expect(admin.from).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("tags (find-ai-tagging)", () => {
+  const formulas = [{ id: "myth-bust", template: "Everyone believes X. Here is why it is wrong." }, { id: "list", template: "N things" }];
+  const choice = (pick: string, p: number) => ({ type: "choice" as const, choice: pick, probabilities: { [pick]: p } });
+
+  it("keeps the angle and topic lists in step with /swipe's labels and slugs", () => {
+    expect(TAG_ANGLES.map((a) => a.label)).toEqual([...ANGLES]);
+    expect(TAG_TOPICS.map((t) => t.label)).toEqual([...TOPICS]);
+    for (const label of [...ANGLES, ...TOPICS]) expect(tagId(label)).toBe(slug(label));
+  });
+
+  it("asks the formula plus four questions, each over its fixed list", () => {
+    const q = tagQuestions(formulas) as Record<string, { type: string; instructions: string; criteria: Record<string, string> }>;
+    expect(Object.keys(q)).toEqual(["formula", "angle", "topic", "emotion", "audience"]);
+    expect(Object.values(q).every((x) => x.type === "choice")).toBe(true);
+    expect(Object.keys(q.formula.criteria)).toEqual(["myth-bust", "list", "none"]);
+    expect(Object.keys(q.angle.criteria)).toEqual(ANGLES.map(slug));
+    expect(Object.keys(q.topic.criteria)).toEqual([...TOPICS.map(slug), "other"]);
+    expect(q.emotion.instructions).toBe("Which feeling does this post most try to stir in the viewer?");
+    expect(q.emotion.criteria).toEqual(Object.fromEntries(FEELINGS.map((f) => [f.id, f.meaning])));
+    expect(q.emotion.criteria.worry).toBe("concern about a risk, a loss or a gap");
+    expect(Object.keys(q.audience.criteria).sort()).toEqual(AUDIENCE_TAGS.map((a) => a.id).sort());
+    expect(q.audience.criteria.general).toBe("Anyone, no clear group");
+    // no formulas sent: the four tag questions only
+    expect(Object.keys(tagQuestions([]))).toEqual(["angle", "topic", "emotion", "audience"]);
+  });
+
+  it("keeps Jev's picks with their probability, and only sure ones count", () => {
+    const tags = readTags(
+      { formula: choice("myth-bust", 0.71), angle: choice("contrarian", 0.64), topic: choice("cpf", 0.88), emotion: choice("worry", 0.49), audience: choice("young-adults", 0.5) },
+      ["myth-bust", "list"],
+    );
+    expect(tags).toEqual({
+      formula: "myth-bust",
+      angle: "Contrarian",
+      topic: "CPF",
+      emotion: "worry",
+      audience: "young-adults",
+      p: { formula: 0.71, angle: 0.64, topic: 0.88, emotion: 0.49, audience: 0.5 },
+      by: "jev",
+    });
+    expect(sureTag(tags, "emotion")).toBeNull();
+    expect(sureTag(tags, "audience")).toBe("young-adults");
+    expect(sureTag(tags, "topic")).toBe("CPF");
+    // the formula keeps the teardown's own cut (0.6), so a chip never names a formula the Hook row doesn't
+    expect(sureTag({ ...tags, p: { ...tags.p, formula: 0.55 } }, "formula")).toBeNull();
+    // no probability is unsure; the fallback's picks carry none and count
+    expect(sureTag({ ...tags, p: {} }, "angle")).toBeNull();
+    expect(sureTag({ ...tags, p: {}, by: "llm" }, "angle")).toBe("Contrarian");
+  });
+
+  it("drops an option that isn't on the list, none and other", () => {
+    const tags = readTags({ formula: choice("none", 0.9), angle: choice("sarcasm", 0.9), topic: choice("other", 0.9), emotion: choice("worry", 0.8) }, ["myth-bust"]);
+    expect(tags).toMatchObject({ formula: null, angle: null, topic: null, emotion: "worry", audience: null, p: { emotion: 0.8 } });
+    expect(readTags(null, ["myth-bust"])).toEqual({ formula: null, angle: null, topic: null, emotion: null, audience: null, p: {}, by: "jev" });
+  });
+
+  it("sends Chinese and Tamil to the fallback and keeps English and Malay with Jev", () => {
+    expect(needsFallback("很多人以为提早还清房贷最好，其实不一定")).toBe(true);
+    expect(needsFallback("உங்கள் CPF கணக்கை இன்று சரிபாருங்கள்")).toBe(true);
+    expect(needsFallback("Everyone says clear your home loan early. I'm not so sure.")).toBe(false);
+    expect(needsFallback("Ramai orang fikir CPF cukup untuk bersara. Sebenarnya tidak.")).toBe(false);
+    // a few Chinese words in an English caption stay with Jev
+    expect(needsFallback("My CPF tip of the week for every young family in Singapore 加油")).toBe(false);
+    expect(needsFallback("123 !!")).toBe(false);
+    // the line is 30% of letters: 6 of 19 goes to the fallback, 4 of 17 doesn't
+    expect(needsFallback("Home loan 提早还清房贷 early")).toBe(true);
+    expect(needsFallback("Home loan 提早还清 early")).toBe(false);
+  });
+
+  it("reads the fallback's tags from its answer, on the lists only", () => {
+    const raw = JSON.stringify({ tags: { formula: "myth-bust", angle: "contrarian", topic: "other", emotion: "worry", audience: "parents" } });
+    expect(llmTags(raw, ["myth-bust"])).toEqual({ formula: "myth-bust", angle: "Contrarian", topic: null, emotion: "worry", audience: "parents", p: {}, by: "llm" });
+    expect(llmTags(JSON.stringify({ tags: { formula: "none", angle: "Contrarian" } }), ["myth-bust"])).toMatchObject({ formula: null, angle: null });
+  });
+
+  describe("a run with tags: true", () => {
+    const req = (text: string): TeardownRequest => ({ mode: "teardown", source: { key: "link:tiktok:7412345678901234567", kind: "link", format: "video", platform: "tiktok", text }, formulas, tags: true });
+    const deps = (content: unknown = answer()) => ({
+      consume: vi.fn(async () => ({ allowed: true as const, used: 1, limit: 60 })),
+      refund: vi.fn(async () => true),
+      readSource: vi.fn(async () => null),
+      openai: vi.fn(async (_body: unknown) => completion(content)),
+      ask: vi.fn(async () => ({ formula: choice("myth-bust", 0.71), angle: choice("contrarian", 0.64), topic: choice("cpf", 0.88), emotion: choice("worry", 0.52), audience: choice("young-adults", 0.58) })),
+    });
+
+    it("asks Jev the five questions about the hook and the post, once, and returns the tags", async () => {
+      const d = deps();
+      const r = await runTeardown(req("Everyone says clear your home loan early.\n\nTranscript: here is why I disagree"), d);
+      expect(r.status).toBe(200);
+      expect(d.ask).toHaveBeenCalledTimes(1);
+      const [state, questions] = d.ask.mock.calls[0] as unknown as [Record<string, string>, Record<string, unknown>];
+      expect(state).toEqual({ hook: "Most people check their CPF once a year.", post: "Everyone says clear your home loan early.\n\nTranscript: here is why I disagree" });
+      expect(Object.keys(questions)).toEqual(["formula", "angle", "topic", "emotion", "audience"]);
+      const t = (r.body as { teardown: { hook: { formula: string }; tags: unknown; basedOn: string } }).teardown;
+      expect(t.hook.formula).toBe("myth-bust");
+      expect(t.tags).toMatchObject({ formula: "myth-bust", angle: "Contrarian", topic: "CPF", emotion: "worry", audience: "young-adults", by: "jev" });
+      // the chain's text came from the read on the device: nothing here reads the post again
+      expect(d.readSource).not.toHaveBeenCalled();
+      expect(t.basedOn).toBe("transcript");
+    });
+
+    it("leaves the tags empty without Jev, and the beats still come back", async () => {
+      const d = { ...deps(), ask: vi.fn(async () => null) };
+      const t = ((await runTeardown(req("Everyone says clear your home loan early."), d)).body as { teardown: { tags: unknown; beats: string[] } }).teardown;
+      expect(t.tags).toEqual({ formula: null, angle: null, topic: null, emotion: null, audience: null, p: {}, by: "jev" });
+      expect(t.beats).toHaveLength(6);
+    });
+
+    it("has OpenAI pick the tags for Chinese text, with no Jev call", async () => {
+      const d = deps(answer({ tags: { formula: "myth-bust", angle: "contrarian", topic: "cpf", emotion: "worry", audience: "young-adults" } }));
+      const r = await runTeardown(req("很多人以为提早还清房贷最好，其实不一定。"), d);
+      expect(d.ask).not.toHaveBeenCalled();
+      const body = d.openai.mock.calls[0][0] as { response_format: { json_schema: { name: string; schema: { required: string[]; properties: { tags: { properties: { topic: { enum: string[] } } } } } } }; messages: { content: string }[] };
+      expect(body.response_format.json_schema.name).toBe("remix_teardown_tags");
+      expect(body.response_format.json_schema.schema.required).toContain("tags");
+      expect(body.response_format.json_schema.schema.properties.tags.properties.topic.enum).toEqual([...TOPICS.map(slug), "other"]);
+      expect(body.messages[1].content).toContain("- worry: concern about a risk, a loss or a gap");
+      const t = (r.body as { teardown: { hook: { formula: string }; tags: { by: string; topic: string } } }).teardown;
+      expect(t.tags).toMatchObject({ by: "llm", topic: "CPF", emotion: "worry" });
+      expect(t.hook.formula).toBe("myth-bust");
+    });
+
+    it("keeps a plain teardown as it was: the formula question alone, on the hook alone", async () => {
+      const d = deps();
+      const plain = { ...req("Everyone says clear your home loan early."), tags: undefined };
+      const t = ((await runTeardown(plain, d)).body as { teardown: { tags?: unknown } }).teardown;
+      expect(t.tags).toBeUndefined();
+      const [state, questions] = d.ask.mock.calls[0] as unknown as [Record<string, string>, Record<string, unknown>];
+      expect(state).toEqual({ hook: "Most people check their CPF once a year." });
+      expect(Object.keys(questions)).toEqual(["formula"]);
+      expect((d.openai.mock.calls[0][0] as { response_format: { json_schema: { name: string } } }).response_format.json_schema.name).toBe("remix_teardown");
+    });
+
+    it("reads tags: true off the request and nothing else", () => {
+      expect(parseTeardownRequest({ mode: "teardown", source: { key: "k", kind: "own", text: "x" }, tags: true })?.tags).toBe(true);
+      expect(parseTeardownRequest({ mode: "teardown", source: { key: "k", kind: "own", text: "x" }, tags: "yes" })?.tags).toBeUndefined();
+    });
+  });
+});
+
+// The live handler, with the database, OpenAI and Jev faked: a save's breakdown is charged to post-tags.
+const db = vi.hoisted(() => ({
+  spent: [] as string[],
+  admin: {
+    auth: { getUser: async (jwt: string) => ({ data: { user: jwt ? { id: jwt } : null } }) },
+    rpc: async (_fn: string, a: Record<string, unknown>) => (db.spent.push(String(a.p_feature)), { data: 1, error: null }),
+  },
+  handler: null as null | ((r: Request) => Promise<Response>),
+}));
+vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({ createClient: () => db.admin }));
+
+describe("remix's teardown mode, charged", () => {
+  beforeAll(async () => {
+    const env: Record<string, string> = { SUPABASE_URL: "http://db", SUPABASE_SERVICE_ROLE_KEY: "k", NORTH_STAR_USERS: "leo-uid", TYPESAFE_API_KEY: "k", OPENAI_API_KEY: "k" };
+    vi.stubGlobal("Deno", { serve: (fn: (r: Request) => Promise<Response>) => (db.handler = fn), env: { get: (k: string) => env[k] } });
+    vi.stubGlobal("fetch", async (u: URL | string) => {
+      if (String(u).includes("openai")) return Response.json({ model: "gpt-4.1", ...completion(answer()) });
+      if (String(u).includes("typesafe")) return Response.json({ answers: { angle: { type: "choice", choice: "contrarian", probabilities: { contrarian: 0.7 } } } });
+      throw new Error(`unexpected fetch ${u}`);
+    });
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    await import("./index.ts");
+  }, 30_000);
+  afterAll(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+  beforeEach(() => {
+    db.spent.length = 0;
+  });
+
+  const call = async (uid: string, body: unknown) => {
+    const r = await db.handler!(new Request("http://x/remix", { method: "POST", headers: { Authorization: `Bearer ${uid}` }, body: JSON.stringify(body) }));
+    return { status: r.status, body: await r.json() };
+  };
+  const body = (tags?: true) => ({ mode: "teardown", source: { key: "top:a-1", kind: "top", format: "carousel", text: "5 signs your plan is stale" }, formulas: [], ...(tags ? { tags } : {}) });
+
+  it("charges post-tags with tags: true, so saving never touches the remix-teardown allowance", async () => {
+    const r = await call("leo-uid", body(true));
+    expect(r.status).toBe(200);
+    expect(r.body.teardown.tags).toMatchObject({ angle: "Contrarian", by: "jev" });
+    expect(db.spent).toEqual(["post-tags"]);
+  });
+
+  it("charges remix-teardown without it, and nothing for a uid not on the list", async () => {
+    expect((await call("leo-uid", body())).status).toBe(200);
+    expect(db.spent).toEqual(["remix-teardown"]);
+    db.spent.length = 0;
+    expect((await call("someone-else", body(true))).status).toBe(403);
+    expect(db.spent).toEqual([]);
   });
 });

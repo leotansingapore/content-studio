@@ -10,7 +10,8 @@
 // the checks was billed and keeps it, so refusals can't be repeated past the daily cap (security review, 20 Oct).
 //
 // Two more modes after the same JWT and NORTH_STAR_USERS checks:
-//   teardown: a post broken down into its hook, beats and what not to reuse (./teardown.ts, cap remix-teardown).
+//   teardown: a post broken down into its hook, beats and what not to reuse (./teardown.ts, cap remix-teardown);
+//     with tags: true, a saved post broken down with its tags (cap post-tags, so saving never eats the remix allowance).
 //   fit: Jev only, is this source a good fit for the brand (cap remix-fit); always 200, "unknown" when it can't tell.
 //   creator-fit: Jev only, which hand-picked creators fit the brand (./creatorFit.ts, cap creator-fit); { fit: null }
 //   when it can't tell.
@@ -84,11 +85,12 @@ async function fit(admin: Admin, uid: string, body: unknown): Promise<Response> 
   return json(result);
 }
 
-/** teardown.ts holds the flow; this gives it the reader, the counter, OpenAI and Jev. */
+/** teardown.ts holds the flow; this gives it the reader, the counter, OpenAI and Jev. A save's breakdown (tags: true) has its own cap. */
 async function teardown(admin: Admin, uid: string, body: unknown): Promise<Response> {
+  const tags = (body as { tags?: unknown } | null)?.tags === true;
   const reply = await handleTeardown(body, {
-    consume: () => consumeUsage(admin, uid, "remix-teardown"),
-    refund: (day) => refundUsage(admin, uid, "remix-teardown", day),
+    consume: () => (tags ? consumeUsage(admin, uid, "post-tags") : consumeUsage(admin, uid, "remix-teardown")),
+    refund: (day) => (tags ? refundUsage(admin, uid, "post-tags", day) : refundUsage(admin, uid, "remix-teardown", day)),
     readSource: (url) =>
       readPost(admin, url, Deno.env.get("APIFY_API_KEY"), FETCH_BUDGET_MS).then(
         (r) => r && { transcript: r.row.transcript ?? undefined, durationSec: r.row.duration_sec ?? undefined, caption: r.row.caption },
