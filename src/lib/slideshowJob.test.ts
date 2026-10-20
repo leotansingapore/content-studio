@@ -190,6 +190,8 @@ describe("the job", () => {
     // the photo question goes to Jev once, about photos
     expect(fn).toHaveBeenCalledTimes(1);
     expect(fn.mock.calls[0][1]).toMatchObject({ mode: "montage-pick", noun: "photo", beats: [{ say: SLIDES[0].title, candidates: [{ desc: "photo 10" }, { desc: "photo 11" }] }, expect.anything(), expect.anything()] });
+    // the make's copy and claim flags stay on the saved slideshow
+    expect(madeShow(j).flags).toEqual({ copied: [], claim: false, invented: false });
     // the make asked for a slideshow from the source's words
     expect(make.mock.calls[0][0]).toMatchObject({ mode: "make", as: "slideshow", source: { key: SOURCE.key, text: expect.stringContaining("") } });
   });

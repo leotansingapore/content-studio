@@ -148,6 +148,7 @@ export async function startSlideshow(userId: string, ask: SlideshowAsk): Promise
       ask,
       pictures,
       fill: kit?.color,
+      flags: res.flags,
       measure: screenMeasure(),
       now: new Date(),
     });
@@ -283,8 +284,8 @@ export function fitSlide(text: { title: string; sub: string }, hook: boolean, si
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
-/** The made slideshow: one slide per written slide, its picture or the brand colour, the caption and the source. */
-export function buildShow(a: { slides: { title: string; sub: string }[]; caption: string; ask: SlideshowAsk; pictures: (Picture | null)[]; fill?: string; measure: Measure; now: Date }): Slideshow {
+/** The made slideshow: one slide per written slide, its picture or the brand colour, the caption, source and flags. */
+export function buildShow(a: { slides: { title: string; sub: string }[]; caption: string; ask: SlideshowAsk; pictures: (Picture | null)[]; fill?: string; flags?: Slideshow["flags"]; measure: Measure; now: Date }): Slideshow {
   const fill = a.fill && HEX.test(a.fill) ? a.fill : undefined;
   return {
     ...blankSlideshow({}, a.now),
@@ -302,6 +303,7 @@ export function buildShow(a: { slides: { title: string; sub: string }[]; caption
     }),
     caption: a.caption,
     ...(a.ask.source ? { source: { ...a.ask.source, remixedAt: a.now.toISOString() } } : {}),
+    ...(a.flags ? { flags: a.flags } : {}),
   };
 }
 

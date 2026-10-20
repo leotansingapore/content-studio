@@ -54,6 +54,8 @@ export interface Slideshow {
   caption?: string;
   /** What it was remixed from (remixedAt set), shown on the Original tab and carried to its draft. */
   source?: RemixSource;
+  /** The make's copy and claim checks (remix flags), shown on the result and carried to its draft's remix. */
+  flags?: { copied: string[]; claim: boolean; invented: boolean };
   updatedAt: string;
 }
 
@@ -254,6 +256,8 @@ export function slideshowToDraft(s: Slideshow, now: string): DraftEntry {
     ctaType: "save-share",
     status: "draft",
     ...(s.source ? { source: s.source } : {}),
+    // the make ran with remix's defaults (structure, balanced); the compare strip reads the flags
+    ...(s.source && s.flags ? { remix: { keep: "structure", as: "slideshow", close: "balanced", flags: s.flags } } : {}),
   };
 }
 
@@ -331,6 +335,13 @@ function sanitizeSource(raw: unknown): { source?: RemixSource } {
   return { source: { ...rest, ...(typeof url === "string" && url.startsWith("https://") ? { url } : {}) } };
 }
 
+function sanitizeFlags(raw: unknown): { flags?: Slideshow["flags"] } {
+  if (!raw || typeof raw !== "object") return {};
+  const r = raw as Record<string, unknown>;
+  const copied = (Array.isArray(r.copied) ? r.copied : []).filter((x): x is string => typeof x === "string").map((x) => x.slice(0, 300)).slice(0, 12);
+  return { flags: { copied, claim: r.claim === true, invented: r.invented === true } };
+}
+
 export function sanitizeSlideshow(raw: unknown): Slideshow | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -348,6 +359,7 @@ export function sanitizeSlideshow(raw: unknown): Slideshow | null {
     ...(typeof r.draftId === "string" && r.draftId ? { draftId: r.draftId } : {}),
     ...(typeof r.caption === "string" && r.caption.trim() ? { caption: r.caption.slice(0, MAX_CAPTION) } : {}),
     ...sanitizeSource(r.source),
+    ...sanitizeFlags(r.flags),
     updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
   };
 }

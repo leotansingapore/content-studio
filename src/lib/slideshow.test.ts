@@ -253,6 +253,10 @@ describe("slideshowToDraft", () => {
     const d = slideshowToDraft({ ...s, caption: "Two sentences of caption. Save this.", source }, "");
     expect(d.draft).toBe("Two sentences of caption. Save this.");
     expect(d.source).toEqual(source);
+    expect(d.remix).toBeUndefined();
+    // the make's copy and claim flags go with it, so the compare strip can show them
+    const flags = { copied: ["you only reach out when it is slow"], claim: true, invented: false };
+    expect(slideshowToDraft({ ...s, source, flags }, "").remix).toEqual({ keep: "structure", as: "slideshow", close: "balanced", flags });
   });
 });
 
@@ -274,9 +278,12 @@ describe("a made slideshow's caption, source and brand colour", () => {
     expect(bad.source?.key).toBe("top:a-b");
     expect(bad.source?.url).toBeUndefined();
     expect(keyless.source).toBeUndefined();
+    const [flagged] = sanitizeSlideshows([{ id: "ss4", flags: { copied: ["a run", 7], claim: true, invented: "yes" }, slides: [{ id: "s1", boxes: [] }] }]);
+    expect(flagged.flags).toEqual({ copied: ["a run"], claim: true, invented: false });
     const [old] = sanitizeSlideshows([{ id: "old", title: "Before", slides: [{ id: "s1", boxes: [box()] }] }]);
     expect(old.caption).toBeUndefined();
     expect(old.source).toBeUndefined();
+    expect(old.flags).toBeUndefined();
     expect(old.slides[0].boxes).toHaveLength(1);
   });
 });

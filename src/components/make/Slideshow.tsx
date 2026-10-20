@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, CalendarClock, ChevronLeft, ChevronRight, Copy, Download, Loader2, Pencil, Save } from "lucide-react";
 import FormatShell from "@/components/make/FormatShell";
+import FlagChips from "@/components/remix/FlagChips";
 import { OriginalPane } from "@/components/OriginalPane";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -458,6 +459,8 @@ function Result({ userId, show, onAgain, canAgain }: { userId: string; show: Sho
           ))}
         </ul>
       )}
+
+      {show.flags && <FlagChips flags={show.flags} />}
 
       {show.caption && (
         <div className="space-y-1.5 rounded-lg border border-border/60 p-3">
