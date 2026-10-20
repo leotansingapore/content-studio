@@ -244,8 +244,11 @@ export async function slideshowPngs(
   await ensureCaptionFonts();
   const look = lookOf(userId, s);
   const out: MediaFile[] = [];
-  for (const [i, slide] of s.slides.entries()) {
+  const stop = () => {
     if (o.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
+  };
+  for (const [i, slide] of s.slides.entries()) {
+    stop();
     const pictures = new Map<string, Blob>();
     const key = pictureKey(slide);
     if (key) {
@@ -258,13 +261,17 @@ export async function slideshowPngs(
     c.height = frameHeight(s.size);
     const ctx = c.getContext("2d");
     if (!ctx) throw new Error("This browser can't draw images.");
+    let file: Blob;
     try {
       await drawSlide(ctx, slide, s.size, pictures, look);
-      out.push({ file: await pngOf(c), name: `slide-${i + 1}.png`, type: "image/png" });
+      file = await pngOf(c);
     } finally {
       c.width = 0;
       c.height = 0;
     }
+    // a cancel during the draw: no progress after it, so the line it cleared stays gone
+    stop();
+    out.push({ file, name: `slide-${i + 1}.png`, type: "image/png" });
     o.onProgress?.(i + 1, s.slides.length);
   }
   return out;

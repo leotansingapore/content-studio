@@ -265,6 +265,8 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
       window.removeEventListener("pagehide", flush);
       window.clearInterval(t);
       flush();
+      // leaving mid-prepare: no downloads start later
+      abort.current?.abort();
     };
   }, [saveNow]);
 
@@ -438,22 +440,24 @@ function Editor({ userId, show, ready, onSaved, onBack }: { userId: string; show
     saveNow();
     const ctrl = new AbortController();
     abort.current = ctrl;
-    setPrep({ done: 0, total: n });
+    // only the newest run writes the line: an older, cancelled one finishing late leaves it alone
+    const mine = (p: Prep) => abort.current === ctrl && setPrep(p);
+    mine({ done: 0, total: n });
     try {
-      const files = await slideshowPngs(userId, work, { signal: ctrl.signal, onProgress: (done, total) => setPrep({ done, total }) });
+      const files = await slideshowPngs(userId, work, { signal: ctrl.signal, onProgress: (done, total) => mine({ done, total }) });
       for (const [i, f] of files.entries()) {
         if (ctrl.signal.aborted) return;
         downloadBlob(f.file, slideFileName(work.title, i));
         // browsers drop downloads that all start at the same moment
         if (i < files.length - 1) await pause(400);
       }
-      setPrep(null);
+      mine(null);
       toast({ title: "Slideshow downloaded" });
     } catch (e) {
-      if (ctrl.signal.aborted) return setPrep(null);
-      if (e instanceof MissingPictureError) return setPrep(e.message);
+      if (ctrl.signal.aborted) return void mine(null);
+      if (e instanceof MissingPictureError) return void mine(e.message);
       console.error("slideshow export failed", e);
-      setPrep(EXPORT_FAILED);
+      mine(EXPORT_FAILED);
     }
   };
   const cancel = () => {
