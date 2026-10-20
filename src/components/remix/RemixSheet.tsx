@@ -145,13 +145,19 @@ function Sheet({ remixKey, userId, onClose }: { remixKey: string; userId: string
   onCloseRef.current = onClose;
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
-    window.addEventListener("keydown", onKey);
+    // capture, and stop it: one Escape closes only the sheet, never the drawer or Write's vibe under it
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      onCloseRef.current();
+    };
+    window.addEventListener("keydown", onKey, true);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     closeRef.current?.focus();
     return () => {
-      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onKey, true);
       document.body.style.overflow = prev;
       opener?.focus?.();
     };
