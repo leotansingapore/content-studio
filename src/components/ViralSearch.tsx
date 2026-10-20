@@ -88,18 +88,19 @@ function ResultCard({ f }: { f: Found }) {
           )}
         </span>
       </span>
-      <span className="mt-auto flex items-center gap-1.5 pt-2">
+      {/* Save drops to its own line on a phone, and wherever "Saved" with its board chevron doesn't fit */}
+      <span className="mt-auto flex flex-wrap items-center gap-1.5 pt-2">
         <RemixButton source={sourceFor(f)} label={`${f.author ?? name}'s video`} className="flex-1">
           <Button asChild variant="outline" size="sm" className="flex-1">
             <Link to={remixUrlFor(f)}>Remix</Link>
           </Button>
         </RemixButton>
-        <SaveButton source={sourceFor(f)} className="shrink-0" />
         <Button asChild variant="ghost" size="sm" className="shrink-0 px-2">
           <a href={f.url} target="_blank" rel="noopener noreferrer" aria-label={`Open on ${name}`}>
             <ExternalLink className="h-4 w-4" />
           </a>
         </Button>
+        <SaveButton source={sourceFor(f)} className="basis-full sm:basis-auto" />
       </span>
     </div>
   );
