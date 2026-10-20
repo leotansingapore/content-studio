@@ -5,7 +5,8 @@
 
 import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase";
 import { scoped } from "@/lib/profiles";
-import { deleteFile } from "@/lib/videoMedia";
+import { deleteFile, putFile, stills } from "@/lib/videoMedia";
+import { mediaLength } from "@/lib/longAudio";
 import { callFn } from "@/lib/edgeFn";
 import { removePlatformCaptions } from "@/lib/platformCaptions";
 import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSettings, type PublishIdea, type Sentence, type Word } from "@/lib/videoEdit";
@@ -41,7 +42,8 @@ const KEY = "content-studio-videoprojects-";
 const MAX_PROJECTS = 12;
 /** Clips cut from an upload are kept apart from the uploads: a 2-hour podcast gives up to 32, each small (its own words only). */
 const MAX_CLIPS = 40;
-const isClip = (p: VideoProject) => !!p.fileId && p.fileId !== p.id;
+// a swapped video (fileId `${id}-s<n>`, swapSource) is still the upload it was, not a clip
+const isClip = (p: VideoProject) => !!p.fileId && p.fileId !== p.id && !p.fileId.startsWith(`${p.id}-s`);
 
 function store(): Storage | null {
   try {
@@ -86,6 +88,45 @@ export function removeProject(userId: string, id: string): VideoProject[] {
   store()?.setItem(KEY + scoped(userId), JSON.stringify(kept));
   removePlatformCaptions(userId, id);
   return kept;
+}
+
+/**
+ * The project on another file of `duration` seconds: words cleared (they were the old clip's), the look kept,
+ * trims kept under the new length, stickers ended by it (a block that ran to the old end runs to the new one),
+ * and what was measured from the old picture and sound dropped.
+ */
+export function swapped(p: VideoProject, f: { fileId: string; duration: number; size: number; thumb: string }): VideoProject {
+  const d = f.duration;
+  const s = p.settings;
+  const trimStart = Math.min(s.trimStart, Math.max(0, d - 1));
+  const trimEnd = Math.min(s.trimEnd, Math.max(0, d - trimStart - 1));
+  const overlays = s.overlays?.map((o) => {
+    const to = o.kind === "block" && o.to >= p.duration - 0.05 ? d : Math.min(o.to, d);
+    return { ...o, to, from: Math.min(o.from, Math.max(0, to - 0.3)) };
+  });
+  return {
+    ...p, ...f, words: [],
+    settings: { ...s, trimStart, trimEnd, overlays, faceTrack: undefined, followFace: undefined, textBand: undefined, cropBottom: undefined, faceBox: undefined, level: undefined, motion: undefined, removed: undefined, keepCuts: undefined, coldOpen: undefined },
+  };
+}
+
+/**
+ * Puts another video under a project: the file is kept on this device as `${projectId}-s<n>` and the project
+ * saved on it (swapped). The old file stays, so Undo can put it back. Throws when the video can't be opened.
+ */
+export async function swapSource(userId: string, projectId: string, file: File): Promise<VideoProject> {
+  const p = loadProjects(userId).find((x) => x.id === projectId);
+  if (!p) throw new Error("That video isn't on this device any more.");
+  const duration = await mediaLength(file);
+  if (!Number.isFinite(duration) || duration <= 0) throw new Error("That video couldn't be opened. Try an MP4 or MOV.");
+  const thumb = (await stills(file, [0.3], 240))[0];
+  const n = p.fileId?.startsWith(`${projectId}-s`) ? Number(p.fileId.slice(projectId.length + 2)) + 1 || 1 : 1;
+  const fileId = `${projectId}-s${n}`;
+  await putFile(fileId, file);
+  // shortcut: earlier swapped-out files stay on the device until the browser clears it; prune them if storage ever matters
+  const next = swapped(p, { fileId, duration, size: file.size, thumb });
+  saveProject(userId, next);
+  return next;
 }
 
 // The single saved video look from before skills (videoSkills.ts reads it once as "My look"):

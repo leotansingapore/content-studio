@@ -1,11 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadFixes, loadProjects, removeProject, saveFixes, saveProject } from "./videoProjects";
+import { loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource } from "./videoProjects";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
 
 const deleted: string[] = [];
 vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_ANON_KEY: "", SUPABASE_URL: "" }));
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
-vi.mock("@/lib/videoMedia", () => ({ deleteFile: (k: string) => (deleted.push(k), Promise.resolve()) }));
+const put: string[] = [];
+vi.mock("@/lib/videoMedia", () => ({
+  deleteFile: (k: string) => (deleted.push(k), Promise.resolve()),
+  putFile: (k: string) => (put.push(k), Promise.resolve()),
+  stills: async () => ["data:new-thumb"],
+}));
+let clipLength = 8;
+vi.mock("@/lib/longAudio", () => ({ mediaLength: async () => clipLength }));
 
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
@@ -127,5 +134,56 @@ describe("caption fixes", () => {
     };
     expect(saveFixes("u", [{ from: "cpf", to: "CPF" }])).toEqual([{ from: "cpf", to: "CPF" }]);
     expect(loadFixes("u")).toEqual(clean);
+  });
+});
+
+describe("swapping the video under a project", () => {
+  beforeEach(() => {
+    vi.stubGlobal("window", { localStorage: memoryStorage() });
+    deleted.length = 0;
+    put.length = 0;
+    clipLength = 8;
+  });
+  const block = { id: "b", kind: "block" as const, text: "My words", x: 0.5, y: 0.5, size: 1, turn: 0, color: "#FFFFFF", from: 0, to: 20 };
+  const sticker = { id: "s", kind: "arrow" as const, text: "", x: 0.5, y: 0.5, size: 1, turn: 0, color: "#FFFFFF", from: 10, to: 14 };
+  const wall = { id: "v1", name: "v1", createdAt: "", updatedAt: "", duration: 20, size: 1, thumb: "data:old", words: [{ w: "hi", s: 0, e: 1 }],
+    settings: { wall: true, captions: false, volume: 0, aspect: "9:16", trimStart: 2, trimEnd: 9, overlays: [block, sticker], faceTrack: { step: 1, x: [0.5] } } as never };
+
+  it("keeps the look, clears the words, ends trims and stickers inside a shorter clip, and saves it on a new file", async () => {
+    saveProject("u", wall);
+    const next = await swapSource("u", "v1", new File(["x"], "clip.mp4", { type: "video/mp4" }));
+    expect(next.fileId).toBe("v1-s1");
+    expect(put).toEqual(["v1-s1"]);
+    expect(next).toMatchObject({ duration: 8, size: 1, thumb: "data:new-thumb", words: [] });
+    expect(next.settings).toMatchObject({ wall: true, captions: false, volume: 0, aspect: "9:16" });
+    expect(next.settings.trimStart + next.settings.trimEnd).toBeLessThan(8);
+    expect(next.settings.overlays?.map((o) => [o.from, o.to])).toEqual([[0, 8], [7.7, 8]]);
+    expect(next.settings.faceTrack).toBeUndefined();
+    expect(loadProjects("u")[0].fileId).toBe("v1-s1");
+    // the old file stays for Undo
+    expect(deleted).toEqual([]);
+    clipLength = 30;
+    const again = await swapSource("u", "v1", new File(["y"], "longer.mp4", { type: "video/mp4" }));
+    expect(again.fileId).toBe("v1-s2");
+    // the block ran to the end, so it still does
+    expect(again.settings.overlays?.[0].to).toBe(30);
+  });
+
+  it("refuses a video it can't open and leaves the project as it was", async () => {
+    saveProject("u", wall);
+    clipLength = Number.NaN;
+    await expect(swapSource("u", "v1", new File(["x"], "bad.mov"))).rejects.toThrow("That video couldn't be opened. Try an MP4 or MOV.");
+    expect(put).toEqual([]);
+    expect(loadProjects("u")[0].fileId).toBeUndefined();
+  });
+
+  it("counts a swapped video as an upload, while a clip of another upload is still a clip", () => {
+    const p = (id: string, fileId?: string) => ({ ...wall, id, ...(fileId ? { fileId } : {}) });
+    for (let i = 0; i < 13; i++) saveProject("u", p(`up${i}`, `up${i}-s1`));
+    // 13 uploads: the oldest goes, with its swapped file
+    expect(loadProjects("u")).toHaveLength(12);
+    expect(deleted).toEqual(["up0-s1"]);
+    saveProject("u", p("clip", "up5-s1"));
+    expect(loadProjects("u")).toHaveLength(13);
   });
 });
