@@ -2,6 +2,8 @@
 // in-app navigation that carries state and the tests build URLs here. The contract for jobs outside the app
 // (Telegram, Lark, email) is docs/deep-links.md: change both together, and never rename a shipped param.
 
+import type { LibraryFormat, LibraryStatus } from "@/lib/library";
+
 /** Production host, for links sent outside the app. */
 export const APP_ORIGIN = "https://consultant-content-studio.vercel.app";
 
@@ -219,6 +221,9 @@ export const links = {
   /** The slideshow editor (Leo only): s opens one (push); slide is 1-based; slide 1 and the Slide tab are left out. */
   slideshow: (o: { s?: string; slide?: number; panel?: "text" | "overlay"; box?: string; view?: "original" } = {}) =>
     `/slideshow${qs({ s: o.s, slide: o.slide !== 1 && o.slide, panel: o.panel, box: o.box, view: o.view })}`,
+  /** Everything made (Leo only): format, status and q replace; panel=making opens the Making now sheet on phones (push). */
+  library: (o: { format?: LibraryFormat; status?: LibraryStatus; q?: string; panel?: "making" } = {}) =>
+    `/library${qs({ format: o.format, status: o.status, q: o.q?.trim(), panel: o.panel })}`,
 };
 
 /** Any page with the Remix sheet open over it on that source (remix=<key>, push). */
