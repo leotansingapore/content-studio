@@ -236,6 +236,8 @@ export const links = {
   /** Everything made (Leo only): format, status and q replace; panel=making opens the Making now sheet on phones (push). */
   library: (o: { format?: LibraryFormat; status?: LibraryStatus; q?: string; panel?: "making" } = {}) =>
     `/library${qs({ format: o.format, status: o.status, q: o.q?.trim(), panel: o.panel })}`,
+  /** A format's create page (Leo only, src/data/formats.ts): source, from, mention=no, go=1 and the format's own params. */
+  makeFormat: (slug: string, p: Record<string, string | number | undefined> = {}) => `/make/${encodeURIComponent(slug)}${qs(p)}`,
 };
 
 /** Any page with the Remix sheet open over it on that source (remix=<key>, push). */
