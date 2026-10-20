@@ -17,8 +17,14 @@ export default function MakeRow(p: { source: RemixSource; as: RemixAs[]; setAs(n
   const aiBusy = useAiBusy();
   const picked = p.as.find(isVideo);
   const block = (a: "speaking" | "explainer") => videoBlock(a, { busy: aiBusy, waiting: !!pendingAvatar(), left: p.left });
-  const blocked = block("speaking") ?? block("explainer");
+  // a picked video that can't run says why under the button, so this line stays the plain hint then
+  const blocked = picked && block(picked) ? null : (block("speaking") ?? block("explainer"));
   const line = blocked ?? (picked ? VIDEO_LIMITS.oneVideo : VIDEO_LIMITS.pickMore);
+  useEffect(() => {
+    if (!warn) return;
+    const t = setTimeout(() => setWarn(false), 4000);
+    return () => clearTimeout(t);
+  }, [warn]);
   const pick = (a: RemixAs) => {
     const next = formatsAllowed(p.as, a);
     // a fourth pick is ignored, and the line under the row says why
