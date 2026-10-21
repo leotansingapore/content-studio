@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
       }
       try {
         const uploaded = photo ? { role: photo.role, url: await upload(photo.jpeg, "image/jpeg") } : null;
-        const { model, body } = seedanceRequest(prompt, r.seconds, r.quality, uploaded, t.silent);
+        const { model, body } = seedanceRequest(prompt, r.seconds, r.quality, uploaded);
         const id = await submit(model, body);
         const credits = clipCredits(r.seconds, r.quality);
         console.log("ai-video template", t.id, model, r.seconds, r.quality, credits, "credits");

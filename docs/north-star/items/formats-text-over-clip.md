@@ -105,7 +105,7 @@ The other strings are the wall-of-text ones.
 ### AI and cost
 
 - Words: `remix` mode `make` with `as: "wall"` (from `formats-wall-of-text`) and two more inputs, `scene` and `maxWords: 30`, so the text fits the scene and can be read in 8 seconds. Cap `remix-make`, 1 to 2 US cents.
-- Scene: `ai-video` mode `template` with the scene's template id, `seconds: 8`, and `quality` 480p by default. Seedance 2.5 bills by the second: 8 x US$0.2056 = US$1.64 (26.3 Higgsfield credits) at 480p, and 8 x US$0.4622 = US$3.70 (59.2 credits) at 720p. Caps `ai-clip` and `ai-clip-global`, refunded on failure as today. A silent template sends `generate_audio: false` (changed after the wave 1 live check, 21 Oct), so the scene comes with no sound track; the `silent` rule in the written prompt still keeps anyone from speaking on screen. The shot prompt itself is one more OpenAI call inside the same request, under a cent.
+- Scene: `ai-video` mode `template` with the scene's template id, `seconds: 8`, and `quality` 480p by default. Seedance 2.5 bills by the second: 8 x US$0.2056 = US$1.64 (26.3 Higgsfield credits) at 480p, and 8 x US$0.4622 = US$3.70 (59.2 credits) at 720p. Caps `ai-clip` and `ai-clip-global`, refunded on failure as today. `seedanceRequest` keeps `generate_audio: true`; the `silent` rule in the written prompt is what keeps the scene to ambient sound. The shot prompt itself is one more OpenAI call inside the same request, under a cent.
 - The price chip comes from `clipCredits(8, quality) * CREDIT_USD`, never a typed number.
 - No Jev question: the user picks the scene, and nothing else is decided.
 
