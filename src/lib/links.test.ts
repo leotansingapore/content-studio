@@ -246,6 +246,80 @@ describe("links", () => {
     expect(CAROUSEL_DESIGNS).toEqual(["clean", "bold", "numbered", "checklist", "post-card", "photo-cover", "quote", "notebook"]);
   });
 
+  it("builds the phase-4 /people links with defaults left out (docs/deep-links.md, Faces, voices and brand)", () => {
+    expect(links.people()).toBe("/people");
+    expect(links.people({ tab: "face" })).toBe("/people");
+    expect(links.people({ record: true })).toBe("/people?record=1");
+    expect(links.people({ tab: "face", record: true })).toBe("/people?record=1");
+    expect(links.people({ tab: "presenters" })).toBe("/people?tab=presenters");
+    expect(links.people({ tab: "presenters", presenter: "pr-lq3k9z" })).toBe("/people?tab=presenters&presenter=pr-lq3k9z");
+    expect(links.people({ tab: "presenters", make: true })).toBe("/people?tab=presenters&make=1");
+  });
+
+  it("builds the editor's phase-4 params after today's, in the contract's order", () => {
+    expect(links.edit({ panel: ["ai"], kind: "avatar", face: "mine" })).toBe("/edit?panel=ai&kind=avatar&face=mine");
+    expect(links.edit({ panel: ["ai"], kind: "avatar", face: "pr-lq3k9z", voice: "george" })).toBe("/edit?panel=ai&kind=avatar&face=pr-lq3k9z&voice=george");
+    expect(links.edit({ panel: ["ai"], kind: "avatar", voice: "mine" })).toBe("/edit?panel=ai&kind=avatar&voice=mine");
+    expect(links.edit({ panel: ["ai"], kind: "template", template: "ugc-creator-review", product: "pd-lq3k9z" })).toBe(
+      "/edit?panel=ai&kind=template&template=ugc-creator-review&product=pd-lq3k9z",
+    );
+    expect(links.edit({ panel: ["ai"], kind: "explainer", set: "Work and career" })).toBe("/edit?panel=ai&kind=explainer&set=Work+and+career");
+    expect(links.edit({ panel: ["ai"], kind: "montage", set: "City clips" })).toBe("/edit?panel=ai&kind=montage&set=City+clips");
+    expect(links.edit({ p: "vm1abc2", script: true })).toBe("/edit?p=vm1abc2&script=1");
+    expect(links.edit({ p: "vm1abc2", script: true, lang: "zh" })).toBe("/edit?p=vm1abc2&script=1&lang=zh");
+    // all six after today's last param, whatever order the caller names them in
+    expect(links.edit({ lang: "ta", script: true, set: "s", product: "p1", voice: "mine", face: "mine", view: "all", p: "v1" })).toBe(
+      "/edit?p=v1&view=all&face=mine&voice=mine&product=p1&set=s&script=1&lang=ta",
+    );
+  });
+
+  it("builds the phase-4 /media views and filters with defaults left out, the open item last", () => {
+    expect(links.media({ view: "sets" })).toBe("/media?view=sets");
+    expect(links.media({ kind: "videos" })).toBe("/media?kind=videos");
+    expect(links.media({ kind: "photos", type: "logo" })).toBe("/media?kind=photos&type=logo");
+    expect(links.media({ type: "past-post", q: " cpf ", folder: "Products" })).toBe("/media?q=cpf&folder=Products&type=past-post");
+    expect(links.media({ item: "cvid-mh2k9x01ab", kind: "videos" })).toBe("/media?kind=videos&item=cvid-mh2k9x01ab");
+    expect(links.media()).toBe("/media");
+  });
+
+  it("builds the phase-4 /brand sections, reviews and open items", () => {
+    expect(links.brand({ review: "products" })).toBe("/brand?products=review#products");
+    expect(links.brand({ review: "website" })).toBe("/brand?website=review#website");
+    expect(links.brand({ product: "new" })).toBe("/brand?product=new#products");
+    expect(links.brand({ product: "pd-lq3k9z" })).toBe("/brand?product=pd-lq3k9z#products");
+    expect(links.brand({ demo: "cvid-mh2k9x01ab" })).toBe("/brand?demo=cvid-mh2k9x01ab#demo-videos");
+    for (const section of ["website", "products", "demo-videos", "people", "font", "on-every-post", "language"] as const) {
+      expect(links.brand({ section })).toBe(`/brand#${section}`);
+    }
+    // a named section wins over the one an item implies
+    expect(links.brand({ section: "website", product: "new" })).toBe("/brand?product=new#website");
+    expect(links.brand()).toBe("/brand");
+  });
+
+  it("builds the phase-4 /voice sections and learning", () => {
+    expect(links.voice()).toBe("/voice");
+    expect(links.voice({ section: "how-you-sound" })).toBe("/voice#how-you-sound");
+    expect(links.voice({ section: "facts" })).toBe("/voice#facts");
+    expect(links.voice({ section: "learned", learning: "l-lq3k9z" })).toBe("/voice?learning=l-lq3k9z#learned");
+    expect(links.voice({ learning: "l-lq3k9z" })).toBe("/voice?learning=l-lq3k9z");
+  });
+
+  it("builds Write's phase-4 Insert panel and language with defaults left out", () => {
+    expect(links.generate({ draft: "d1", panel: "insert" })).toBe("/generate?draft=d1&panel=insert");
+    expect(links.generate({ draft: "d1", panel: "insert", kind: "line" })).toBe("/generate?draft=d1&panel=insert");
+    for (const kind of ["hashtags", "ending", "hook", "post"] as const) {
+      expect(links.generate({ draft: "d1", panel: "insert", kind })).toBe(`/generate?draft=d1&panel=insert&kind=${kind}`);
+    }
+    expect(links.generate({ lang: "zh" })).toBe("/generate?lang=zh");
+    expect(links.generate({ pillar: "topic", detail: "CPF at 35", lang: "ms" })).toBe("/generate?pillar=topic&detail=CPF+at+35&lang=ms");
+    expect(links.generate({ lang: undefined })).toBe("/generate");
+  });
+
+  it("keeps /make/talking-head generic for phase 4's who values", () => {
+    expect(links.makeFormat("talking-head", { who: "mine" })).toBe("/make/talking-head?who=mine");
+    expect(links.makeFormat("talking-head", { who: "pr-lq3k9z", length: 15 })).toBe("/make/talking-head?who=pr-lq3k9z&length=15");
+  });
+
   it("builds the Trends formats view with defaults left out", () => {
     expect(links.trends({ view: "formats", kind: "all" })).toBe("/trends?view=formats");
     expect(links.trends({ view: "formats", kind: "slideshow" })).toBe("/trends?view=formats&kind=slideshow");

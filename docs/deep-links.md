@@ -270,7 +270,7 @@ not fill Back. Sections of a reading page are `#anchors`, scrolled to once the p
 | /brand | #section | you, dm-links, offers, emoji-and-hashtags, colour, sign-off, posting-times, logo | top | (anchor) | /brand#logo |
 | /create-guide | #step | idea, draft, carousel, reel, reverse-engineer, compliance, schedule | top | (anchor) | /create-guide#reel |
 | /tutorial | #section | why, voice, guided-flow, after, tabs, rules, rhythm, first-action | top | (anchor) | /tutorial#tabs |
-| /voice | (none) | the past posts are typed text, kept for this tab until Save | | | /voice |
+| /voice | (none) | the past posts are typed text, kept for this tab until Save; Leo's sections and learnings are under "Faces, voices and brand" below | | | /voice |
 | /playbook | (none) | a summary page with no state of its own | | | /playbook |
 | /slideshow | s | a slideshow id: that slideshow in the editor; an unknown id shows the start card. Leo's sign-ins only (src/lib/leoOnly.ts) | none (the start card) | push | /slideshow?s=ssmh2k9x01ab |
 | /slideshow | slide | the open slide, 1-based, with s; out of range reads as 1 | 1 | replace | /slideshow?s=ssmh2k9x01ab&slide=4 |
@@ -377,7 +377,7 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 | /make | needs | Leo only. none: only the formats that need nothing extra | off | replace | /make?kind=video&needs=none |
 | /make/text-over-clip | scene | Leo only. kitchen, walk, interview | kitchen | replace | /make/text-over-clip?scene=walk |
 | /make/text-over-clip | quality | Leo only. 480p, 720p | 480p | replace | /make/text-over-clip?quality=720p |
-| /make/talking-head | who | Leo only. photo (your photo), presenter (an AI presenter) | photo | replace | /make/talking-head?who=presenter |
+| /make/talking-head | who | Leo only. photo (your photo), presenter (a new AI presenter), mine (your saved face, phase 4), or a saved presenter's id (phase 4) | photo | replace | /make/talking-head?who=presenter |
 | /make/talking-head | setting | Leo only. office, car, kitchen, couch, cafe | office | replace | /make/talking-head?who=presenter&setting=car |
 | /make/talking-head | length | Leo only. 8, 15, 20, 30 (seconds) | 15 | replace | /make/talking-head?length=30 |
 | /make/talking-head | voice | Leo only. alice, lily, george, eric, matilda, sarah, liam (the voices in supabase/functions/text-voice/logic.ts) | alice (as You speaking) | replace | /make/talking-head?voice=george |
@@ -422,3 +422,42 @@ format under US$1 (src/data/formats.ts alsoMakeList); a dearer one opens its pag
 
 Closing /edit's AI panel drops talk, offer, look, from, topic, link, draft, secs and visuals with kind and template.
 The made video opens at /edit?p=<project id> as today.
+
+## Faces, voices and brand (Leo only)
+
+North star phase 4 (docs/north-star/items/people-my-face.md, people-presenters.md, people-dub-lipsync.md,
+brand-from-website.md, brand-products.md, brand-demo-videos.md, brand-media-library.md, brand-media-sets.md,
+brand-voice-memory.md, brand-kit.md, edit-snippets.md, edit-translate.md). Every row below is Leo's sign-ins only
+(src/lib/useLeoOnly.ts): the nav hides /people and anyone else gets the not-found page there, and the new params,
+sections and anchors on /edit, /media, /brand, /voice and /generate are ignored for anyone else, who keeps today's
+page. Same rules as above: built in src/lib/links.ts, defaults left out of links.
+
+| Page | Param | Values | Default | History | Example |
+|---|---|---|---|---|---|
+| /people | tab | Leo only. face (your face), presenters (your AI presenters) | face | replace | /people?tab=presenters |
+| /people | record | Leo only. 1: the face recorder open | closed | push | /people?record=1 |
+| /people | presenter | Leo only. with tab=presenters: a saved presenter's id, its card open | none | push | /people?tab=presenters&presenter=pr-lq3k9z |
+| /people | make | Leo only. 1 with tab=presenters: the New presenter sheet open | closed | push | /people?tab=presenters&make=1 |
+| /edit | face | Leo only. with panel=ai: mine (your saved face) or a saved presenter's id; preselects who speaks | the brand's "Who appears", else none | replace | /edit?panel=ai&kind=avatar&face=mine |
+| /edit | voice | Leo only. with kind=avatar: mine (your own recording) or a premade voice (alice, lily, george, eric, matilda, sarah, liam) | alice | replace | /edit?panel=ai&kind=avatar&voice=mine |
+| /edit | product | Leo only. with kind=template: a saved product's id; its first picture fills the template's product slot once, then the param is removed | none | replace | /edit?panel=ai&kind=template&template=ugc-creator-review&product=pd-lq3k9z |
+| /edit | set | Leo only. with kind=explainer or montage: a media set's name, preselected for the pictures or clips | stock | replace | /edit?panel=ai&kind=explainer&set=Work+and+career |
+| /edit | script | Leo only. 1 with p on an AI video of your face or a presenter: its Script card open | closed | push | /edit?p=vm1abc2&script=1 |
+| /edit | lang | Leo only. with script=1: zh, ms, ta, that language's version open for review | none | replace | /edit?p=vm1abc2&script=1&lang=zh |
+| /media | view | Leo only. sets: the sets view; ?folder=<set name> opens one set, as today | the library | replace | /media?view=sets |
+| /media | kind | Leo only. photos, videos | all | replace | /media?kind=videos |
+| /media | type | Leo only. person, logo, product, past-post, screen, footage, other | any | replace | /media?kind=photos&type=logo |
+| /brand | #section | Leo only, beside today's sections: website, products, demo-videos, people, font, on-every-post, language | top | (anchor) | /brand#products |
+| /brand | website | Leo only. review: this device's waiting website read; with nothing waiting the section shows and the param is dropped (replace) | none | push | /brand?website=review#website |
+| /brand | products | Leo only. review: this device's waiting products scan; with nothing waiting the section shows and the param is dropped (replace) | none | push | /brand?products=review#products |
+| /brand | product | Leo only. a saved product's id, its editor open; new opens a blank one | none | push | /brand?product=new#products |
+| /brand | demo | Leo only. a saved demo's key, that demo open; closing replaces | none | push | /brand?demo=cvid-mh2k9x01ab#demo-videos |
+| /voice | #section | Leo only. how-you-sound, facts, learned | top | (anchor) | /voice#facts |
+| /voice | learning | Leo only. a learning's id, that learning open | none | push | /voice?learning=l-lq3k9z#learned |
+| /generate | panel | Leo only. insert: the Insert panel over that post (with draft) | none | push | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=insert |
+| /generate | kind | Leo only. with panel=insert: hashtags, ending, hook, post (the panel's tab) | line | replace | /generate?draft=3f2a9c1e-5b7d-4e8a-9c0f-1a2b3c4d5e6f&panel=insert&kind=hashtags |
+| /generate | lang | Leo only. zh, ms, ta: this make's language, read once like the other pre-fills, then removed | the brand's post language, else English | replace | /generate?lang=zh |
+| /make/talking-head | who | Leo only. mine (your saved face) or a saved presenter's id, beside photo and presenter above | photo | replace | /make/talking-head?who=mine |
+
+Closing /edit's AI panel drops face, voice, product and set with the other AI panel params. A version made in
+another language is a draft or a carousel like any other: /generate?draft=<version id>, /carousel?carousel=<version id>.

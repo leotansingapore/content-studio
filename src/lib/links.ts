@@ -4,6 +4,7 @@
 
 import type { FormatKind } from "@/data/formats";
 import type { LibraryFormat, LibraryStatus } from "@/lib/library";
+import type { VoiceId } from "@/lib/textVoice";
 
 /** Production host, for links sent outside the app. */
 export const APP_ORIGIN = "https://consultant-content-studio.vercel.app";
@@ -281,14 +282,17 @@ export const links = {
 
   // ---- Create pages (wave 2A) ----
   /**
-   * Write. draft/step/panel/network/view/hooks are live state; the rest pre-fill the brief once and leave the URL (docs
-   * "Still read"). panel=thread and view=prompter push; network (threads left out) and hooks (formulas left out) replace.
+   * Write. draft/step/panel/network/view/hooks/kind are live state; the rest pre-fill the brief once and leave the URL (docs
+   * "Still read"). panel=thread, panel=insert and view=prompter push; network (threads left out), hooks (formulas left
+   * out) and kind (line left out) replace.
    */
   generate: (
     o: {
       draft?: string;
       step?: WriteStep;
-      panel?: "shortcuts" | "post" | "thread";
+      panel?: "shortcuts" | "post" | "thread" | "insert";
+      /** With panel=insert (Leo only): the Insert panel's tab. */
+      kind?: "line" | "hashtags" | "ending" | "hook" | "post";
       /** With panel=thread: the thread's network. */
       network?: "threads" | "x";
       /** The teleprompter over a short-video draft. */
@@ -317,8 +321,11 @@ export const links = {
       source?: string;
       /** A remixed post's compare strip (Leo only): the Original or More like this tab; your version is the default. */
       compare?: CompareView;
+      /** Leo only: this make's language, read once like the other pre-fills (English left out). */
+      lang?: PostLang;
     } = {},
-  ) => `/generate${qs({ ...o, step: o.step !== "topic" && o.step, network: o.network !== "threads" && o.network, hooks: o.hooks !== "formulas" && o.hooks })}`,
+  ) =>
+    `/generate${qs({ ...o, step: o.step !== "topic" && o.step, network: o.network !== "threads" && o.network, hooks: o.hooks !== "formulas" && o.hooks, kind: o.kind !== "line" && o.kind })}`,
   batch: (o: { pillar?: string; audience?: string } = {}) =>
     `/generate/batch${qs({ pillar: o.pillar !== "topic" && o.pillar, audience: o.audience !== "general" && o.audience })}`,
   /** design (clean left out), size (4x5 left out), view and slide (1 left out) replace. */
@@ -387,6 +394,19 @@ export const links = {
       section?: "clips";
       /** A words-over-video project with all the editing tools instead of its short panel. */
       view?: "all";
+      // North star phase 4, Leo only.
+      /** Who speaks: your saved face, or a saved presenter's id. */
+      face?: "mine" | string;
+      /** Your own recording, or a premade voice. */
+      voice?: "mine" | VoiceId;
+      /** A saved product's id: fills the template's product slot once, then leaves the address. */
+      product?: string;
+      /** A media set's name for the narrated video's pictures or the montage's clips. */
+      set?: string;
+      /** With p on an AI video of your face or a presenter: its Script card open (push). */
+      script?: true;
+      /** With script: that language's version to review. */
+      lang?: PostLang;
     } = {},
   ) =>
     `/edit${qs({
@@ -412,15 +432,47 @@ export const links = {
       len: o.len !== "auto" && o.len,
       yt: o.yt,
       view: o.view,
+      face: o.face,
+      voice: o.voice,
+      product: o.product,
+      set: o.set,
+      script: o.script && 1,
+      lang: o.lang,
     })}${o.section ? `#${o.section}` : ""}`,
   /** source=<link:|upload: key> reopens a source read on Leo's Remix a post (push). */
   clone: (o: { url?: string; clone?: string; source?: string } = {}) => `/clone${qs({ url: o.url, clone: o.clone, source: o.source })}`,
   coach: (o: { report?: string; view?: "quiz"; section?: "idea-dump" } = {}) =>
     `/coach${qs({ report: o.report, view: o.view })}${o.section ? `#${o.section}` : ""}`,
-  voice: () => "/voice",
-  /** item=<picture key> scrolls to and marks that picture. */
-  media: (o: { q?: string; folder?: string; item?: string } = {}) => `/media${qs({ q: o.q?.trim(), folder: o.folder, item: o.item })}`,
-  brand: (o: { section?: BrandSection } = {}) => `/brand${o.section ? `#${o.section}` : ""}`,
+  /** Leo only: a section of /voice, and learning opens one learning (push). */
+  voice: (o: { section?: "how-you-sound" | "facts" | "learned"; learning?: string } = {}) =>
+    `/voice${qs({ learning: o.learning })}${o.section ? `#${o.section}` : ""}`,
+  /** item=<picture key> scrolls to and marks that picture. view, kind and type (Leo only) replace; the defaults are left out. */
+  media: (
+    o: {
+      q?: string;
+      folder?: string;
+      item?: string;
+      view?: "sets";
+      kind?: "photos" | "videos";
+      type?: "person" | "logo" | "product" | "past-post" | "screen" | "footage" | "other";
+    } = {},
+  ) => `/media${qs({ q: o.q?.trim(), folder: o.folder, view: o.view, kind: o.kind, type: o.type, item: o.item })}`,
+  /**
+   * A section of the brand kit. Leo only: review opens this device's waiting website read or products scan, product a
+   * product's editor (new for a blank one) and demo one demo (push); each lands on its own section unless one is named.
+   */
+  brand: (o: { section?: BrandSection; review?: "website" | "products"; product?: string; demo?: string } = {}) => {
+    const section = o.section ?? o.review ?? (o.product ? "products" : o.demo ? "demo-videos" : undefined);
+    return `/brand${qs({
+      website: o.review === "website" && "review",
+      products: o.review === "products" && "review",
+      product: o.product,
+      demo: o.demo,
+    })}${section ? `#${section}` : ""}`;
+  },
+  /** Faces and voices (Leo only): tab (face left out) replaces; record, presenter and make open something (push). */
+  people: (o: { tab?: "face" | "presenters"; record?: true; presenter?: string; make?: true } = {}) =>
+    `/people${qs({ tab: o.tab !== "face" && o.tab, record: o.record && 1, presenter: o.presenter, make: o.make && 1 })}`,
   createGuide: (o: { step?: GuideStep } = {}) => `/create-guide${o.step ? `#${o.step}` : ""}`,
   tutorial: (o: { section?: TutorialSection } = {}) => `/tutorial${o.section ? `#${o.section}` : ""}`,
   playbook: () => "/playbook",
@@ -453,7 +505,10 @@ export const WRITE_STEPS = ["topic", "funnel", "idea", "format"] as const;
 export type WriteStep = (typeof WRITE_STEPS)[number];
 export const EDIT_TABS = ["style", "cuts", "frame", "face", "stickers", "broll", "words"] as const;
 export type EditTab = (typeof EDIT_TABS)[number];
-export type BrandSection = "you" | "dm-links" | "offers" | "emoji-and-hashtags" | "avoid-words" | "colour" | "sign-off" | "posting-times" | "logo";
+export type BrandSection =
+  | "you" | "dm-links" | "offers" | "emoji-and-hashtags" | "avoid-words" | "colour" | "sign-off" | "posting-times" | "logo"
+  // north star phase 4, Leo only
+  | "website" | "products" | "demo-videos" | "people" | "font" | "on-every-post" | "language";
 export type GuideStep = "idea" | "draft" | "carousel" | "reel" | "reverse-engineer" | "compliance" | "schedule";
 export type TutorialSection = "why" | "voice" | "guided-flow" | "after" | "tabs" | "rules" | "rhythm" | "first-action";
 /** A remixed post's compare strip on Write and the carousel maker (?compare=); version is the default, left out. */
@@ -471,3 +526,7 @@ export type ExplainerLook = (typeof EXPLAINER_LOOK_IDS)[number];
 /** /carousel?design=. */
 export const CAROUSEL_DESIGNS = ["clean", "bold", "numbered", "checklist", "post-card", "photo-cover", "quote", "notebook"] as const;
 export type CarouselDesign = (typeof CAROUSEL_DESIGNS)[number];
+
+// ---- North star phase 4 (Leo only).
+/** ?lang= on /generate and /edit: a post or video's language; English is the default and is left out. */
+export type PostLang = "zh" | "ms" | "ta";
