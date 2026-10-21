@@ -101,9 +101,13 @@ const isClip = (p: VideoProject) => !!p.fileId && p.fileId !== p.id && !p.fileId
 const swapNo = (p: VideoProject) => (p.fileId?.startsWith(`${p.id}-s`) ? Number(p.fileId.slice(p.id.length + 2)) || 0 : 0);
 // a gone project's files that no kept project uses: a clip's shared file, or an upload's own file plus every video swapped in
 // shortcut: a video swapped in and then undone (one past the current number) stays until the browser clears it
+// an AI video's Speak parts (ai-slice-<job>-<i>-<v>) go too, unless a kept project still uses them
+// shortcut: a part's earlier versions, left by a fixed line, stay until the browser clears them
 function dropFiles(gone: VideoProject, kept: VideoProject[]) {
   const keys = isClip(gone) ? [fileKey(gone)] : [gone.id, ...Array.from({ length: swapNo(gone) }, (_, i) => `${gone.id}-s${i + 1}`)];
-  for (const k of keys) if (!kept.some((x) => fileKey(x) === k)) void deleteFile(k).catch(() => {});
+  const parts = (gone.ai?.slices ?? []).map((x) => x.clip);
+  const used = (k: string) => kept.some((x) => fileKey(x) === k || !!x.ai?.slices?.some((y) => y.clip === k));
+  for (const k of [...keys, ...parts]) if (!used(k)) void deleteFile(k).catch(() => {});
 }
 
 function store(): Storage | null {

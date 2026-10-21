@@ -51,6 +51,15 @@ describe("saveProject", () => {
     expect(deleted).toEqual(["up0"]);
   });
 
+  it("deletes an AI video's Speak parts with its project, unless a kept project still uses them", () => {
+    const parts = (ids: string[]) => ({ kind: "avatar", madeAt: "2026-10-22T00:00:00.000Z", slices: ids.map((clip, i) => ({ text: "Hi.", start: i, end: i + 1, clip })) });
+    saveProject("u", { ...project("ai1"), ai: parts(["ai-slice-j1-0-0", "ai-slice-j1-1-0"]) } as never);
+    saveProject("u", { ...project("ai2"), ai: parts(["ai-slice-j1-1-0"]) } as never);
+    deleted.length = 0;
+    removeProject("u", "ai1");
+    expect(deleted).toEqual(["ai1", "ai-slice-j1-0-0"]);
+  });
+
   it("deletes no video file when the save fails because storage is full", () => {
     for (let i = 0; i < 12; i++) saveProject("u", project(`up${i}`));
     window.localStorage.setItem = () => {
