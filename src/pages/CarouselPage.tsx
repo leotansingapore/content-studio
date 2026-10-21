@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { InfoTip } from "@/components/ui/info-tip";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import { useUrlState, useUrlUpdate } from "@/lib/urlState";
-import { COMPARE_TABS } from "@/lib/links";
+import { CAROUSEL_DESIGNS, COMPARE_TABS, links, type CarouselDesign } from "@/lib/links";
 import { useLeoUser } from "@/lib/useLeoOnly";
 import { useUsesLeft } from "@/lib/aiUsage";
 import PriceChip from "@/components/PriceChip";
@@ -85,8 +85,12 @@ import {
   type CarouselBrand,
   type Slide,
   type SplitResult,
+  CAROUSEL_SIZES,
+  type CarouselSize,
 } from "@/lib/carousel";
-import { SLIDE_FONTS, SLIDE_HEIGHT, SLIDE_WIDTH, layoutSlide, renderSvg, type SlideFont, type SlidePaper } from "@/lib/carouselLayout";
+import { DESIGNS, SLIDE_SIZES, designLook, isDesign, isSize, slideImage } from "@/lib/carouselDesigns";
+import { callFn } from "@/lib/edgeFn";
+import { SLIDE_FONTS, layoutSlide, renderSvg, type SlideFont, type SlidePaper } from "@/lib/carouselLayout";
 import { createCanvasMeasure, downloadBlob, svgDataUrl, svgToJpeg, svgToPng } from "@/lib/carouselRender";
 import { buildPdf } from "@/lib/pdf";
 import { getFile } from "@/lib/deviceFiles";
@@ -122,6 +126,61 @@ const SOURCE_TABS = ["drafts", "paste", "topic", "saved"] as const;
 // A remixed post's original above its slides (Leo only). Lazy: it reads the top posts and ads drops.
 const RemixCompare = lazy(() => import("@/components/RemixCompare"));
 
+// The device hint cs-carousel-look: the font, paper, design and size last picked here, which a new carousel starts on.
+const LOOK_HINT = "cs-carousel-look";
+function readHint(): Record<string, unknown> {
+  try {
+    const v = JSON.parse(localStorage.getItem(LOOK_HINT) ?? "{}");
+    return v && typeof v === "object" ? v : {};
+  } catch {
+    return {};
+  }
+}
+function saveHint(patch: Record<string, string>) {
+  try {
+    localStorage.setItem(LOOK_HINT, JSON.stringify({ ...readHint(), ...patch }));
+  } catch {
+    // storage blocked: the pick still applies to this carousel
+  }
+}
+// URL values for a design and size: the defaults (clean, 4x5) are left out
+const designParam = (d: CarouselDesign) => (d === "clean" ? null : d);
+const sizeParam = (z: CarouselSize) => (z === "4x5" ? null : z);
+
+// Jev's recommended design per carousel (Leo only): asked once per carousel in this tab, outside the page, and its
+// answer kept for the tab (sessionStorage) so leaving and coming back or a reload costs nothing
+const PICKS_KEY = "cs-carousel-design-picks";
+const designPicks = new Map<string, Promise<CarouselDesign | null>>();
+function keptPicks(): Record<string, string | null> {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(PICKS_KEY) ?? "{}");
+    return v && typeof v === "object" ? v : {};
+  } catch {
+    return {};
+  }
+}
+function recommendDesign(id: string, slides: Slide[]): Promise<CarouselDesign | null> {
+  const kept = keptPicks();
+  if (id in kept) return Promise.resolve(isDesign(kept[id]) ? kept[id] : null);
+  let pick = designPicks.get(id);
+  if (!pick) {
+    pick = callFn<{ pick: string | null }>("writing-judge", { mode: "design", slides: slides.map((s) => ({ title: s.title, body: s.body })) })
+      .then((r) => {
+        const got = isDesign(r?.pick) ? r.pick : null;
+        try {
+          sessionStorage.setItem(PICKS_KEY, JSON.stringify({ ...keptPicks(), [id]: got }));
+        } catch {
+          // storage blocked: asked again on the next visit
+        }
+        return got;
+      })
+      // Jev down: no tag, and a later visit may ask again
+      .catch(() => (designPicks.delete(id), null));
+    designPicks.set(id, pick);
+  }
+  return pick;
+}
+
 export default function CarouselPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -135,6 +194,13 @@ export default function CarouselPage() {
   const leo = useLeoUser();
   // ?compare=original|more: the compare tab on phones (RemixCompare reads the same param)
   const [compareTab] = useUrlState("compare", "version", { allowed: COMPARE_TABS });
+  // ?design= and ?size= (Leo only): the open carousel's design and size; everyone else keeps clean at 4:5
+  const [designUrl] = useUrlState("design", "clean", { allowed: CAROUSEL_DESIGNS });
+  const [sizeUrl] = useUrlState("size", "4x5", { allowed: CAROUSEL_SIZES });
+  const design: CarouselDesign = leo ? designUrl : "clean";
+  const size: CarouselSize = leo ? sizeUrl : "4x5";
+  const frame = SLIDE_SIZES[size];
+  const [recommended, setRecommended] = useState<{ id: string; pick: CarouselDesign | null } | null>(null);
   const [topic, setTopic] = useState("");
   const [topicPlatform, setTopicPlatform] = useState<"instagram" | "linkedin">("instagram");
   const [writing, setWriting] = useState<AbortController | null>(null);
@@ -162,11 +228,21 @@ export default function CarouselPage() {
     const next = { ...look, ...p };
     setLook(next);
     setEdited(true);
-    try {
-      localStorage.setItem("cs-carousel-look", JSON.stringify(next));
-    } catch {
-      // storage blocked: the look still applies to this carousel
-    }
+    // merged, so the design and size picked on this device stay in the hint
+    saveHint(next);
+  };
+  // a design redraws every slide at once and moves the font and paper to its own; both stay changeable
+  const pickDesign = (d: CarouselDesign) => {
+    const next = designLook(d, look);
+    setLook(next);
+    setEdited(true);
+    saveHint({ ...next, design: d });
+    updateUrl({ design: designParam(d) });
+  };
+  const pickSize = (z: CarouselSize) => {
+    setEdited(true);
+    saveHint({ size: z });
+    updateUrl({ size: sizeParam(z) });
   };
   // slide pictures live on this device; this maps their keys to data URLs for drawing
   const [pictures, setPictures] = useState<Record<string, string>>({});
@@ -242,8 +318,18 @@ export default function CarouselPage() {
       text = pasteText;
       base = pasteText.split("\n").find((l) => l.trim()) ?? "";
     }
-    // the address names the post the slides come from (replace: the editor is the page, not a panel over it)
-    updateUrl({ draft: source.kind === "paste" ? null : source.id, carousel: null, ...(fromLink ? {} : { compare: null }) });
+    // the address names the post the slides come from (replace: the editor is the page, not a panel over it).
+    // Leo's new carousel starts on the design and size last picked here, or the link's own.
+    const hint = readHint();
+    const linkDesign = fromLink && isDesign(searchParams.get("design"));
+    const linkSize = fromLink && isSize(searchParams.get("size"));
+    const startOn = leo
+      ? {
+          ...(linkDesign ? {} : { design: designParam(isDesign(hint.design) ? hint.design : "clean") }),
+          ...(linkSize ? {} : { size: sizeParam(isSize(hint.size) ? hint.size : "4x5") }),
+        }
+      : {};
+    updateUrl({ draft: source.kind === "paste" ? null : source.id, carousel: null, ...(fromLink ? {} : { compare: null }), ...startOn });
     setCarouselId(source.kind === "paste" ? `p:${Date.now().toString(36)}` : `d:${source.id}`);
     const { slides: made, ...info } = splitDraftIntoSlides(text, { hook });
     setSlides(made);
@@ -276,11 +362,15 @@ export default function CarouselPage() {
     }
     const id = searchParams.get("draft");
     if (!id) {
-      if (savedId) updateUrl({ carousel: null });
+      // one address write: two in one pass would keep only the last (urlState.ts)
+      const fix: Record<string, string | null> = savedId ? { carousel: null } : {};
       try {
         const work = userId ? JSON.parse(sessionStorage.getItem(workKey(userId)) ?? "null") : null;
         if (work && Array.isArray(work.slides) && typeof work.pasteText === "string") {
-          if (!savedId && !searchParams.has("tab")) setMode(work.mode === "paste" ? "paste" : "drafts");
+          if (!savedId && !searchParams.has("tab")) fix.tab = work.mode === "paste" ? "paste" : null;
+          // Leo's unfinished carousel comes back in its design and size, unless the link names its own
+          if (isDesign(work.design) && !searchParams.has("design")) fix.design = designParam(work.design);
+          if (isSize(work.size) && !searchParams.has("size")) fix.size = sizeParam(work.size);
           setPasteText(work.pasteText);
           setDraftId(typeof work.draftId === "string" ? work.draftId : "");
           setSlides(work.slides);
@@ -298,6 +388,7 @@ export default function CarouselPage() {
       } catch {
         // corrupt or blocked storage: start fresh
       }
+      if (Object.keys(fix).length) updateUrl(fix);
       return;
     }
     if (drafts.some((d) => d.id === id)) {
@@ -333,13 +424,13 @@ export default function CarouselPage() {
       } else {
         sessionStorage.setItem(
           workKey(userId),
-          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look }),
+          JSON.stringify({ mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look, ...(leo ? { design, size } : {}) }),
         );
       }
     } catch {
       // storage blocked: the work just won't survive a page change
     }
-  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look]);
+  }, [ready, userId, mode, pasteText, draftId, slides, split, byHand, edited, fileBase, platform, carouselId, align, scale, look, leo, design, size]);
 
   useEffect(() => {
     const want = slides.map((x) => x.image).filter((k): k is string => !!k && SLIDE_IMAGE_KEY.test(k) && !pictures[k] && !missing.has(k));
@@ -459,7 +550,11 @@ export default function CarouselPage() {
     if (!userId || list.length < MIN_SLIDES) return;
     const id = carouselId || `p:${Date.now().toString(36)}`;
     if (!carouselId) setCarouselId(id);
-    setSaved(saveCarousel(userId, { id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined, align, scale, font: look.font, paper: look.paper }));
+    setSaved(saveCarousel(userId, {
+      id, title: fileBase || "Carousel", platform, slides: list, draftId: draftId || undefined, align, scale, font: look.font, paper: look.paper,
+      ...(leo && design !== "clean" ? { design } : {}),
+      ...(leo && size !== "4x5" ? { size } : {}),
+    }));
     // once kept, the address reopens it with its edits
     if (searchParams.get("carousel") !== id) updateUrl({ carousel: id, draft: null });
   };
@@ -468,7 +563,7 @@ export default function CarouselPage() {
     const t = window.setTimeout(() => keep(), 800);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slides, edited, platform, align, scale, look]);
+  }, [slides, edited, platform, align, scale, look, design, size]);
 
   // the Saved tab goes with the last saved carousel, so don't leave the picker on it
   useEffect(() => {
@@ -491,7 +586,14 @@ export default function CarouselPage() {
     setScale(c.scale ?? 1);
     setLook({ font: c.font ?? "classic", paper: c.paper ?? "light" });
     setNotice(null);
-    updateUrl({ carousel: c.id, draft: null, ...(fromLink ? {} : { compare: null }) });
+    // a saved carousel opens in its own design and size, unless the link names others
+    const keepDesign = fromLink && isDesign(searchParams.get("design"));
+    const keepSize = fromLink && isSize(searchParams.get("size"));
+    updateUrl({
+      carousel: c.id, draft: null, ...(fromLink ? {} : { compare: null }),
+      ...(keepDesign ? {} : { design: c.design ? designParam(c.design) : null }),
+      ...(keepSize ? {} : { size: c.size ? sizeParam(c.size) : null }),
+    });
   };
   const deleteSaved = (c: SavedCarousel) => {
     if (!userId) return;
@@ -550,11 +652,11 @@ export default function CarouselPage() {
     () =>
       slides.map((s, i) =>
         layoutSlide(
-          { title: s.title, body: s.body, index: i, total: slides.length, brand, image: s.image ? pictures[s.image] : undefined, align, scale, font: look.font, paper: look.paper },
+          { title: s.title, body: s.body, index: i, total: slides.length, brand, image: s.image ? pictures[s.image] : undefined, align, scale, font: look.font, paper: look.paper, design, size },
           measure,
         ),
       ),
-    [slides, brand, measure, pictures, align, scale, look],
+    [slides, brand, measure, pictures, align, scale, look, design, size],
   );
   const images = useMemo(
     () =>
@@ -574,7 +676,7 @@ export default function CarouselPage() {
     setExporting({ done: 0, total: jobs.length });
     try {
       for (let k = 0; k < jobs.length; k++) {
-        const blob = await svgToPng(jobs[k].svg);
+        const blob = size === "4x5" ? await svgToPng(jobs[k].svg) : await slideImage(jobs[k].svg, size, "image/png");
         downloadBlob(blob, jobs[k].name);
         setExporting({ done: k + 1, total: jobs.length });
         // Browsers drop downloads that all start at the same moment.
@@ -604,7 +706,8 @@ export default function CarouselPage() {
     try {
       const pages = [];
       for (let k = 0; k < images.length; k++) {
-        pages.push({ jpeg: await svgToJpeg(images[k].svg), width: SLIDE_WIDTH, height: SLIDE_HEIGHT });
+        const jpeg = size === "4x5" ? await svgToJpeg(images[k].svg) : new Uint8Array(await (await slideImage(images[k].svg, size, "image/jpeg", 0.92)).arrayBuffer());
+        pages.push({ jpeg, width: frame.width, height: frame.height });
         setExporting({ done: k + 1, total: images.length });
       }
       downloadBlob(new Blob([buildPdf(pages)], { type: "application/pdf" }), `${slideFileName(fileBase, 0).replace(/-01\.png$/, "")}.pdf`);
@@ -676,6 +779,39 @@ export default function CarouselPage() {
   const compareDraft = leo && showEditor && draftId && carouselId === `d:${draftId}` ? (drafts.find((d) => d.id === draftId) ?? null) : null;
   const compareOn = Boolean(compareDraft?.source);
   const presetActive = BRAND_PRESETS.some((p) => p.color === brand.color);
+
+  // Leo's Design row: each design drawn small from this carousel's own cover and first point, in its starting look
+  const designPreviews = useMemo(() => {
+    if (!leo || slides.length < MIN_SLIDES) return [];
+    return CAROUSEL_DESIGNS.map((d) => {
+      const own = designLook(d, look);
+      const urls = [0, 1].map((i) => {
+        const s = slides[i];
+        const layout = layoutSlide(
+          { title: s.title, body: s.body, index: i, total: slides.length, brand, image: s.image ? pictures[s.image] : undefined, align, scale, font: own.font, paper: own.paper, design: d, size },
+          measure,
+        );
+        return svgDataUrl(renderSvg(layout));
+      });
+      return { d, urls };
+    });
+    // only the cover and first point draw here, so edits further down don't redraw the row
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leo, slides[0], slides[1], slides.length, brand, pictures, align, scale, look, size, measure]);
+  // Jev's pick, once a carousel is made or opened; no tag when Jev is unsure or down
+  useEffect(() => {
+    if (!leo || !showEditor || !carouselId || slides.length < MIN_SLIDES) return;
+    let live = true;
+    const id = carouselId;
+    void recommendDesign(id, slides).then((pick) => live && setRecommended({ id, pick }));
+    return () => {
+      live = false;
+    };
+    // asked for the slides as made: later edits don't ask again
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leo, showEditor, carouselId]);
+  const recommendedPick = recommended && recommended.id === carouselId ? recommended.pick : null;
+  const thumbAspect = size === "1x1" ? "aspect-square" : size === "9x16" ? "aspect-[9/16]" : "aspect-[4/5]";
 
   return (
     <div className="space-y-6">
@@ -755,6 +891,14 @@ export default function CarouselPage() {
                 </Button>
                 {writing && <Button variant="outline" onClick={() => writing.abort()}>Stop</Button>}
               </div>
+              {leo && (
+                <p className="text-xs text-muted-foreground">
+                  Got a link?{" "}
+                  <Link to={links.clone()} className="inline-flex items-center font-semibold text-primary hover:underline [@media(pointer:coarse)]:min-h-11">
+                    Paste it in Remix a post.
+                  </Link>
+                </p>
+              )}
               {onePoint !== null && onePoint === topic.trim() && !writing && (
                 <div role="status" className="space-y-2 rounded-lg border border-warning/50 bg-warning/5 p-3">
                   <p className="flex items-start gap-1.5 text-sm font-medium">
@@ -1076,6 +1220,51 @@ export default function CarouselPage() {
                   </span>
                 </div>
 
+                {leo && designPreviews.length > 0 && (
+                  <div className="space-y-2 text-xs">
+                    <div role="group" aria-labelledby="carousel-design-label" className="space-y-1.5">
+                      <span id="carousel-design-label" className="font-medium text-muted-foreground">Design</span>
+                      <div className="grid grid-cols-4 gap-2">
+                        {designPreviews.map(({ d, urls }) => (
+                          <button
+                            key={d}
+                            type="button"
+                            aria-pressed={design === d}
+                            onClick={() => pickDesign(d)}
+                            className={`min-w-0 space-y-1 rounded-lg border p-1.5 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                              design === d ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground hover:border-primary/40"
+                            }`}
+                          >
+                            <span className="flex items-start gap-0.5">
+                              {urls.map((u, k) => (
+                                <img key={k} src={u} alt="" className={`block w-1/2 min-w-0 rounded-sm border border-border/40 ${thumbAspect}`} />
+                              ))}
+                            </span>
+                            <span className="block font-semibold leading-tight">{DESIGNS[d].label}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {recommendedPick && (
+                        <p className="text-muted-foreground">
+                          <span className="font-semibold text-primary">Recommended:</span> {DESIGNS[recommendedPick].label}
+                        </p>
+                      )}
+                      {design === "photo-cover" && !slides[0]?.image && (
+                        <p className="text-amber-800">Add a picture to slide 1 for the photo cover.</p>
+                      )}
+                    </div>
+                    <span role="group" aria-label="Slide size" className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-medium text-muted-foreground">Size</span>
+                      {CAROUSEL_SIZES.map((z) => (
+                        <button key={z} type="button" aria-pressed={size === z} onClick={() => pickSize(z)}
+                          className={`rounded-full border px-2.5 py-1 font-semibold [@media(pointer:coarse)]:min-h-11 ${size === z ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
+                          {SLIDE_SIZES[z].label}
+                        </button>
+                      ))}
+                      <InfoTip label="About slide sizes">PDF is for LinkedIn, at 4:5 or 1:1.</InfoTip>
+                    </span>
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
                   <span className="flex flex-wrap items-center gap-1.5">
                     <span className="font-medium text-muted-foreground">Font</span>
@@ -1106,7 +1295,7 @@ export default function CarouselPage() {
                     ))}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="font-medium text-muted-foreground">Size</span>
+                    <span className="font-medium text-muted-foreground">{leo ? "Text size" : "Size"}</span>
                     {([[0.85, "Smaller"], [1, "Usual"], [1.15, "Larger"]] as const).map(([v, label]) => (
                       <button key={v} type="button" aria-pressed={scale === v} onClick={() => { setScale(v); setEdited(true); }}
                         className={`rounded-full border px-2.5 py-1 font-semibold [@media(pointer:coarse)]:min-h-11 ${scale === v ? "border-primary bg-primary/10 text-primary" : "border-border/70 text-muted-foreground"}`}>
@@ -1322,7 +1511,7 @@ export default function CarouselPage() {
                     {(searchParams.has("carousel") || searchParams.has("draft")) && <CopyLinkButton label="Copy link to this carousel" className="-my-2" />}
                   </div>
                   <CardDescription>
-                    {slides.length} slides, 1080 × 1350 PNG each.
+                    {slides.length} slides, {frame.width} × {frame.height} PNG each.
                   </CardDescription>
                 </div>
                 <div className={`flex flex-wrap gap-2 ${platform === "linkedin" ? "flex-row-reverse justify-end" : ""}`}>
@@ -1338,15 +1527,17 @@ export default function CarouselPage() {
                       ? `Exporting ${Math.min(exporting.done + 1, exporting.total)} of ${exporting.total}…`
                       : platform === "linkedin" ? "PNGs" : "Download all"}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant={platform === "linkedin" ? "default" : "outline"}
-                    onClick={exportPdf}
-                    disabled={exportBusy || busy}
-                    className="gap-1.5"
-                  >
-                    <FileText className="h-3.5 w-3.5" /> {platform === "linkedin" ? "Download PDF" : "PDF"}
-                  </Button>
+                  {frame.pdf && (
+                    <Button
+                      size="sm"
+                      variant={platform === "linkedin" ? "default" : "outline"}
+                      onClick={exportPdf}
+                      disabled={exportBusy || busy}
+                      className="gap-1.5"
+                    >
+                      <FileText className="h-3.5 w-3.5" /> {platform === "linkedin" ? "Download PDF" : "PDF"}
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -1368,9 +1559,9 @@ export default function CarouselPage() {
                         <img
                           src={img.url}
                           alt={`Slide ${i + 1}: ${slides[i].title || slides[i].body}`.slice(0, 140)}
-                          width={1080}
-                          height={1350}
-                          className="block aspect-[4/5] h-auto w-full"
+                          width={frame.width}
+                          height={frame.height}
+                          className={`block h-auto w-full ${thumbAspect}`}
                         />
                       </button>
                       <div className="flex items-center justify-between gap-1">
