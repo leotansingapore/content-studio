@@ -1,9 +1,10 @@
 // One slide on the carousel maker: its header (number, role, flags), the hook or title and the text with their word
 // counters, the picture buttons and From media picker, the overflow line and the compliance flags. The list of every
 // slide and Leo's one-at-a-time view both draw a slide with this, so they never drift apart. Leo's Rewrite this slide
-// (carousel-copy mode ask) lives here too, its runs outside React so leaving the page keeps them.
+// (carousel-copy mode ask) lives here too, its runs outside React so leaving the page keeps them. Leo's From media
+// picker shows his photo sets as chips over its grid (brand-media-sets); everyone else's picker is today's.
 
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ThinkingOrb } from "thinking-orbs";
 import { ChevronDown, ImagePlus, Sparkles, TriangleAlert } from "lucide-react";
@@ -12,10 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import PriceChip from "@/components/PriceChip";
+import { FilterChip } from "@/components/ui/filter-chip";
 import { COVER_HOOK_WORDS, WORDS_PER_SLIDE, countWords, type Slide } from "@/lib/carousel";
 import { getFile } from "@/lib/deviceFiles";
 import { scanCompliance, type ComplianceFlag } from "@/lib/compliance";
 import type { MediaItem } from "@/lib/mediaLibrary";
+import { loadSets } from "@/lib/mediaSets";
+import { useLeoUser } from "@/lib/useLeoOnly";
 import { callFn } from "@/lib/edgeFn";
 import { reasonText } from "@/lib/prices";
 import { ASKS, ASK_FAILED, ASK_MAX_CHARS } from "../../../supabase/functions/carousel-copy/logic.ts";
@@ -162,21 +166,7 @@ export default function SlideFields(p: {
           </Button>
         )}
       </div>
-      {p.media !== null && (
-        <div className="rounded-lg border border-border/60 p-2">
-          {p.media.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No photos in Media yet. <Link to="/media" className="font-semibold text-primary hover:underline">Add some</Link></p>
-          ) : (
-            <ul className="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto sm:grid-cols-6">
-              {p.media.map((m) => (
-                <li key={m.key}>
-                  <MediaThumb item={m} onPick={() => p.onPickMedia(m.key)} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      {p.media !== null && <MediaPicker media={p.media} onPick={p.onPickMedia} />}
       {p.overflow && (
         <p className="flex items-start gap-1.5 text-xs text-amber-800">
           <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -185,6 +175,40 @@ export default function SlideFields(p: {
       )}
       <FlagList flags={p.flags} />
     </>
+  );
+}
+
+/** The From media picker: the library's photos, and for Leo a chip per photo set that has some, filtering by its folder. */
+function MediaPicker({ media, onPick }: { media: MediaItem[]; onPick: (key: string) => void }) {
+  const leo = useLeoUser();
+  const [only, setOnly] = useState("");
+  const sets = useMemo(() => (leo ? loadSets(leo.id).filter((s) => s.kind === "photos" && media.some((m) => m.folder === s.name)).map((s) => s.name) : []), [leo, media]);
+  const shown = sets.includes(only) ? media.filter((m) => m.folder === only) : media;
+  return (
+    <div className="rounded-lg border border-border/60 p-2">
+      {media.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No photos in Media yet. <Link to="/media" className="font-semibold text-primary hover:underline">Add some</Link></p>
+      ) : (
+        <>
+          {sets.length > 0 && (
+            <div role="group" aria-label="Sets" className="mb-2 flex flex-wrap gap-1.5">
+              {["", ...sets].map((id) => (
+                <FilterChip key={id || "all"} active={(sets.includes(only) ? only : "") === id} onClick={() => setOnly(id)}>
+                  {id || "All"}
+                </FilterChip>
+              ))}
+            </div>
+          )}
+          <ul className="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto sm:grid-cols-6">
+            {shown.map((m) => (
+              <li key={m.key}>
+                <MediaThumb item={m} onPick={() => onPick(m.key)} />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
 
