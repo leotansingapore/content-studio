@@ -1,18 +1,24 @@
 // One slide on the carousel maker: its header (number, role, flags), the hook or title and the text with their word
 // counters, the picture buttons and From media picker, the overflow line and the compliance flags. The list of every
-// slide and Leo's one-at-a-time view both draw a slide with this, so they never drift apart.
+// slide and Leo's one-at-a-time view both draw a slide with this, so they never drift apart. Leo's Rewrite this slide
+// (carousel-copy mode ask) lives here too, its runs outside React so leaving the page keeps them.
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ImagePlus, TriangleAlert } from "lucide-react";
+import { ThinkingOrb } from "thinking-orbs";
+import { ChevronDown, ImagePlus, Sparkles, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import PriceChip from "@/components/PriceChip";
 import { COVER_HOOK_WORDS, WORDS_PER_SLIDE, countWords, type Slide } from "@/lib/carousel";
 import { getFile } from "@/lib/deviceFiles";
-import type { ComplianceFlag } from "@/lib/compliance";
+import { scanCompliance, type ComplianceFlag } from "@/lib/compliance";
 import type { MediaItem } from "@/lib/mediaLibrary";
+import { callFn } from "@/lib/edgeFn";
+import { reasonText } from "@/lib/prices";
+import { ASKS, ASK_FAILED, ASK_MAX_CHARS } from "../../../supabase/functions/carousel-copy/logic.ts";
 
 export const WARN_BOX = "border-amber-200 bg-amber-50 text-amber-900";
 
@@ -200,5 +206,125 @@ function MediaThumb({ item, onPick }: { item: MediaItem; onPick: () => void }) {
       className="block aspect-square w-full overflow-hidden rounded-md border border-border/70 bg-muted hover:border-primary disabled:opacity-40">
       {url ? <img src={url} alt={item.alt || item.name} className="h-full w-full object-cover" /> : null}
     </button>
+  );
+}
+
+// ---- Rewrite this slide (Leo only) ----
+// One run per slide id, outside React. A suggestion that came back and a typed ask are kept for the tab
+// (sessionStorage), so a reload never loses words that were paid for or typed.
+
+type Rewrite = { state: "working" } | { state: "ready"; texts: string[]; reply: string } | { state: "failed"; error: string };
+const REWRITES_KEY = "cs-carousel-rewrites";
+const rewrites = new Map<string, Rewrite>();
+const typedAsks = new Map<string, string>();
+try {
+  const kept = JSON.parse(sessionStorage.getItem(REWRITES_KEY) ?? "{}");
+  for (const [id, r] of Object.entries(kept?.ready ?? {})) {
+    const t = (r as { texts?: unknown })?.texts;
+    if (Array.isArray(t) && t.every((x) => typeof x === "string")) rewrites.set(id, { state: "ready", texts: t, reply: String((r as { reply?: unknown }).reply ?? "") });
+  }
+  for (const [id, a] of Object.entries(kept?.asks ?? {})) if (typeof a === "string") typedAsks.set(id, a.slice(0, ASK_MAX_CHARS));
+} catch {
+  // nothing kept, or storage blocked
+}
+const subs = new Set<() => void>();
+const subscribe = (f: () => void) => (subs.add(f), () => void subs.delete(f));
+function changed() {
+  try {
+    const ready = Object.fromEntries([...rewrites].filter(([, r]) => r.state === "ready"));
+    sessionStorage.setItem(REWRITES_KEY, JSON.stringify({ ready, asks: Object.fromEntries(typedAsks) }));
+  } catch {
+    // storage blocked: kept while the tab stays on the app
+  }
+  subs.forEach((f) => f());
+}
+const put = (id: string, r: Rewrite | null) => (r ? rewrites.set(id, r) : rewrites.delete(id), changed());
+
+/** True while any slide is being rewritten, so the page reads the uses left again once it is done. */
+export const useRewriting = () => useSyncExternalStore(subscribe, () => [...rewrites.values()].some((r) => r.state === "working"));
+
+function startRewrite(id: string, body: { mode: "ask"; ask: string; index: number; platform: string; slides: { texts: string[] }[] }) {
+  if (rewrites.get(id)?.state === "working") return;
+  put(id, { state: "working" });
+  callFn<{ slides?: { texts?: unknown }[]; reply?: unknown }>("carousel-copy", body, ASK_FAILED)
+    .then((r) => {
+      const texts = r?.slides?.[0]?.texts;
+      put(id, Array.isArray(texts) && texts.every((t) => typeof t === "string") ? { state: "ready", texts, reply: typeof r.reply === "string" ? r.reply : "" } : { state: "failed", error: ASK_FAILED });
+    })
+    // the server's own words: the daily cap, not switched on, try again
+    .catch((e) => put(id, { state: "failed", error: e instanceof Error && e.message ? e.message : ASK_FAILED }));
+}
+
+const CHIP = "rounded-full border border-border/70 px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:border-primary/40 hover:text-foreground [@media(pointer:coarse)]:min-h-11";
+
+/** "Rewrite this slide": Shorter, Plainer words, Stronger hook (cover only) or your own ask, shown as a suggestion to use or keep. */
+export function SlideRewrite(p: {
+  slides: Slide[];
+  index: number;
+  platform: "instagram" | "linkedin";
+  /** edit-ask uses left today, null until read. */
+  left: number | null;
+  /** Tighten with AI is running. */
+  busy: boolean;
+  onUse: (texts: string[]) => void;
+}) {
+  const s = p.slides[p.index];
+  const id = s.id;
+  const r = useSyncExternalStore(subscribe, () => rewrites.get(id));
+  const ask = useSyncExternalStore(subscribe, () => typedAsks.get(id) ?? "");
+  const [menu, setMenu] = useState(false);
+  const [own, setOwn] = useState(() => ask !== "");
+  const working = r?.state === "working";
+  const empty = !s.title.trim() && !s.body.trim();
+  const why = empty ? "Add words first." : reasonText({ left: p.left, leo: true });
+  const send = (text: string) => {
+    setMenu(false);
+    startRewrite(id, { mode: "ask", ask: text, index: p.index, platform: p.platform, slides: p.slides.map((x) => ({ texts: [x.title, x.body] })) });
+  };
+  const options: [string, string][] = [["Shorter", ASKS.shorter], ["Plainer words", ASKS.plainer], ...(p.index === 0 ? [["Stronger hook", ASKS.hook] as [string, string]] : [])];
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" size="sm" variant="outline" aria-expanded={menu} onClick={() => setMenu(!menu)}
+          disabled={p.busy || working || empty || p.left === 0} className="h-8 gap-1.5 text-xs [@media(pointer:coarse)]:h-11">
+          <Sparkles className="h-3.5 w-3.5" /> Rewrite this slide <ChevronDown className="h-3.5 w-3.5" />
+        </Button>
+        {!working && <PriceChip feature="edit-ask" left={p.left} />}
+        {why && <span className="text-[11px] text-muted-foreground">{why}</span>}
+      </div>
+      {menu && !empty && (
+        <div role="group" aria-label="How to rewrite it" className="flex flex-wrap gap-1.5">
+          {options.map(([label, text]) => (
+            <button key={label} type="button" className={CHIP} onClick={() => send(text)}>{label}</button>
+          ))}
+          <button type="button" className={CHIP} aria-expanded={own} onClick={() => (setOwn(true), setMenu(false))}>Your own ask...</button>
+        </div>
+      )}
+      {own && (
+        <form className="flex gap-2" onSubmit={(e) => (e.preventDefault(), ask.trim() && !working && !empty && send(ask.trim()))}>
+          <Input value={ask} maxLength={ASK_MAX_CHARS} aria-label="Your own ask" placeholder="Say what to change, like: end on a question"
+            onChange={(e) => (typedAsks.set(id, e.target.value), changed())} className="h-9 min-w-0 flex-1 text-sm [@media(pointer:coarse)]:h-11" />
+          <Button type="submit" size="sm" variant="outline" disabled={!ask.trim() || working || empty || p.busy || p.left === 0} className="h-9 [@media(pointer:coarse)]:h-11">Rewrite</Button>
+        </form>
+      )}
+      {working && (
+        <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
+          <ThinkingOrb state="composing" size={20} aria-hidden /> Rewriting slide {p.index + 1}...
+        </p>
+      )}
+      {r?.state === "failed" && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">{r.error}</p>}
+      {r?.state === "ready" && (
+        <div role="status" className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+          {r.reply && <p className="text-[11px] text-muted-foreground">{r.reply}</p>}
+          {r.texts[0] && <p className="text-sm font-semibold text-foreground">{r.texts[0]}</p>}
+          {r.texts.slice(1).filter(Boolean).map((t, k) => <p key={k} className="whitespace-pre-line text-sm text-foreground">{t}</p>)}
+          <FlagList flags={scanCompliance(r.texts.join("\n"))} />
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" className="[@media(pointer:coarse)]:h-11" onClick={() => (p.onUse(r.texts), put(id, null))}>Use this</Button>
+            <Button type="button" size="sm" variant="ghost" className="[@media(pointer:coarse)]:h-11" onClick={() => put(id, null)}>Keep mine</Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
