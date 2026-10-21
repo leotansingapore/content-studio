@@ -128,6 +128,7 @@ import {
   REEL_LENGTHS,
   reelLengthRule,
   reelTooLong,
+  reelTooShort,
   spokenSeconds,
   spokenWords,
   type CounterReadout,
@@ -2419,7 +2420,8 @@ export default function GeneratePage() {
   // Storyboard: the spoken script of a short video (the whole draft when it has no caption heading).
   const shortScript = format === "short-video" ? (svSplit?.script ?? draft).trim() : "";
   const scriptWords = shortScript ? spokenWords(shortScript) : 0;
-  const scriptLong = shortScript ? reelTooLong(scriptWords, reelSeconds) : null;
+  // too long for everyone; too short for Leo (formats-hooks-scripts), once the script is written
+  const scriptWarn = shortScript ? reelTooLong(scriptWords, reelSeconds) ?? (leo && !isStreaming ? reelTooShort(scriptWords, reelSeconds) : null) : null;
   const storyboardStale = Boolean(storyboard && storyboard.script !== shortScript);
   const storyboardBusy = Boolean(currentDraftId && storyboardFor === currentDraftId);
   // Leo's price chips (business-cost-preview): only his sessions read today's uses, so everyone else's stay null
@@ -3854,18 +3856,18 @@ export default function GeneratePage() {
               <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                 <span
                   className={`flex items-center gap-1 rounded-full border px-2 py-0.5 ${
-                    scriptLong
+                    scriptWarn
                       ? "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
                       : "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                   }`}
                 >
-                  {scriptLong ? <AlertTriangle className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                  {scriptWarn ? <AlertTriangle className="h-3 w-3" /> : <Check className="h-3 w-3" />}
                   Script: {scriptWords} words, about {spokenSeconds(scriptWords)}s
                 </span>
                 <ReelLengthPicker value={reelSeconds} onChange={setReelSeconds} />
-                {scriptLong && (
+                {scriptWarn && (
                   <span role="alert" className="flex basis-full items-start gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-300">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {scriptLong}
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {scriptWarn}
                   </span>
                 )}
               </div>

@@ -283,13 +283,17 @@ const SPOKEN_LABEL = /^(?:hook|body|cta|call[\s-]to[\s-]action|intro|outro|close
 const NOT_SPOKEN =
   /^(?:\[[^\]]*\]|\([^)]*\)|(?:on[\s-]screen|text on screen|visuals?|b[\s-]?roll|burned[\s-]in|shot|scene|camera)\b[^:]*:.*)$/i;
 
-/** Words said on camera in a short-video script. */
-export function spokenWords(script: string): number {
-  return script.split("\n").reduce((n, raw) => {
+/** The lines said on camera in a short-video script, without section labels, stage directions or markdown. */
+export function spokenLines(script: string): string[] {
+  return script.split("\n").flatMap((raw) => {
     const line = raw.replace(/[*_#>]/g, "").trim();
-    return !line || NOT_SPOKEN.test(line) ? n : n + countWords(line.replace(SPOKEN_LABEL, ""));
-  }, 0);
+    const said = !line || NOT_SPOKEN.test(line) ? "" : line.replace(SPOKEN_LABEL, "").trim();
+    return said ? [said] : [];
+  });
 }
+
+/** Words said on camera in a short-video script. */
+export const spokenWords = (script: string): number => spokenLines(script).reduce((n, line) => n + countWords(line), 0);
 
 /** Seconds a script takes to say at a natural pace (about 2.5 words a second). */
 export const spokenSeconds = (words: number) => Math.round(words / 2.5);
@@ -298,6 +302,12 @@ export const spokenSeconds = (words: number) => Math.round(words / 2.5);
 export function reelTooLong(words: number, seconds: number): string | null {
   const { min, max } = reelWordRange(seconds);
   return words > max ? `Long for ${seconds}s. Aim for ${min}-${max} words.` : null;
+}
+
+/** A plain warning when a script has fewer words than its length needs, else null (Fastlane's short side). */
+export function reelTooShort(words: number, seconds: number): string | null {
+  const { min, max } = reelWordRange(seconds);
+  return words < min ? `Short for ${seconds}s. Aim for ${min}-${max} words.` : null;
 }
 
 /** The writer's instruction for a short video of this length. */

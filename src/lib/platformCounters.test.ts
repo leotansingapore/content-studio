@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BLANKS_RULE, blankRanges, checkLimits, findBlanks, findWords, findLinks, foldAt, moveLinksToComment, reelLengthRule, reelTooLong, reelWordRange, spokenWords } from "@/lib/platformCounters";
+import { BLANKS_RULE, blankRanges, checkLimits, findBlanks, findWords, findLinks, foldAt, moveLinksToComment, reelLengthRule, reelTooLong, reelTooShort, reelWordRange, spokenLines, spokenWords } from "@/lib/platformCounters";
 
 describe("foldAt", () => {
   it("shows a short post whole", () => {
@@ -133,6 +133,7 @@ describe("reel script length", () => {
       "CTA: Comment CPF.",
     ].join("\n");
     expect(spokenWords(script)).toBe(7 + 7 + 2);
+    expect(spokenLines(script)).toEqual(["Your CPF is not a savings account.", "It pays you [your number] a year.", "Comment CPF."]);
   });
 
   it("flags a script that runs long for its length and passes one that fits", () => {
@@ -140,6 +141,20 @@ describe("reel script length", () => {
     expect(reelTooLong(81, 30)).toBe("Long for 30s. Aim for 70-80 words.");
     expect(reelTooLong(96, 37)).toBeNull();
     expect(reelTooLong(97, 37)).toBe("Long for 37s. Aim for 83-96 words.");
+  });
+
+  it("flags a script too short for its length and passes one inside the range", () => {
+    expect(reelTooShort(20, 15)).toBe("Short for 15s. Aim for 35-40 words.");
+    expect(reelTooShort(34, 15)).toBe("Short for 15s. Aim for 35-40 words.");
+    expect(reelTooShort(35, 15)).toBeNull();
+    expect(reelTooShort(38, 15)).toBeNull();
+    expect(reelTooLong(38, 15)).toBeNull();
+    expect(reelTooShort(69, 30)).toBe("Short for 30s. Aim for 70-80 words.");
+    expect(reelTooShort(70, 30)).toBeNull();
+    expect(reelTooShort(124, 60)).toBe("Short for 60s. Aim for 125-150 words.");
+    expect(reelTooShort(150, 60)).toBeNull();
+    // past the range is the long warning's job
+    expect(reelTooShort(200, 60)).toBeNull();
   });
 
   it("tells the writer the length and the word range", () => {
