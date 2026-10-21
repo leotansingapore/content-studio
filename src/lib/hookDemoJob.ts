@@ -1,7 +1,8 @@
 // Make a hook plus demo (/make/hook-demo, docs/north-star/items/formats-hook-demo.md) outside React, so leaving the
 // page keeps it going. One remix make (as "hooks", three formulas from hookFormulas.ts) writes three hooks and Jev
 // marks one (writing-judge hooks); then the hook plays one of three ways before the demo:
-//   stock:  Pexels finds a portrait clip and Jev picks the one that fits the hook (wallJob's findClip), cut to 3 s
+//   stock:  Pexels finds a portrait clip with the hook's own search (the writer's 2 to 4 filmable words; a typed hook
+//           has none and searches the topic's first words) and Jev picks the one that fits (wallJob's findClip), cut to 3 s
 //   mine:   the adviser's own upright clip, 2 to 5 s
 //   spoken: ai-video's hidden spoken-hook template, a 4 s AI person saying it; the demo rides in the paid clip's
 //           Pending.after, so a reload joins it at no cost
@@ -51,7 +52,8 @@ export interface HookDemoAsk {
 }
 
 export interface HookSet {
-  hooks: { text: string; formula: string }[];
+  /** search: the writer's stock clip search for that hook, when it wrote a usable one. */
+  hooks: { text: string; formula: string; search?: string }[];
   /** Jev's recommended hook, or null when it had no clear answer. */
   pick: number | null;
   /** hookFormulaSet's index: Write 3 more asks for the next one. */
@@ -218,7 +220,7 @@ async function write(userId: string, a: WriteAsk): Promise<HookSet> {
   });
   const res = await requestMake(body);
   if (res?.result?.as !== "hooks" || !res.result.hooks.length) throw new Error(HOOKS_FAILED);
-  const list = res.result.hooks.map((h) => ({ text: stripDashes(h.text).trim(), formula: h.formula })).filter((h) => h.text);
+  const list = res.result.hooks.map((h) => ({ text: stripDashes(h.text).trim(), formula: h.formula, ...(h.search ? { search: h.search } : {}) })).filter((h) => h.text);
   const pick = await pickHook(list.map((h) => h.text), body.brand.audience, about || a.source?.title || "", "tiktok");
   return { hooks: list, pick, set, flags: res.flags, for: key };
 }
@@ -300,7 +302,8 @@ export async function makeHookDemo(userId: string, ask: HookDemoAsk): Promise<vo
       length = ask.mine.seconds;
     } else {
       mine({ state: "finding" });
-      const clip = await findClip({ scene: hook, search: simpleQuery(ask.topic || ask.source?.title || hook) }, hook);
+      const search = hooks?.for === hooksFor(ask) ? hooks.hooks.find((h) => h.text === hook)?.search : undefined;
+      const clip = await findClip({ scene: hook, search: search || simpleQuery(ask.topic || ask.source?.title || hook) }, hook);
       if (!clip) return mine({ state: "failed", error: NO_HOOK_CLIP, noClip: true });
       first = await downloadStock(clip.src);
       length = (await mediaLength(first)) || clip.duration || STOCK_HOOK_SECONDS;

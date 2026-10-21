@@ -46,6 +46,7 @@ import type { MakeResponse } from "./remix";
 import { VIDEO_LIMITS } from "./remix";
 import type { RemixSource } from "./remixSource";
 import type { StockItem } from "./stockMedia";
+import W2 from "../../supabase/functions/remix/fixtures/phase3-w2-live.json";
 
 const UID = "6d80f027-3395-480c-86a1-8827d3d6cce3";
 const DEMO = { key: "hd-demo1", name: "screen-recording.mp4", seconds: 24 };
@@ -212,6 +213,46 @@ describe("words on a stock clip", () => {
     expect(rows[0]).toMatchObject({ slug: "hook-demo", label: "Hook plus demo", state: "working", step: "Writing the hooks", href: "/make/hook-demo?source=trend%3At1" });
     expect(rows.find((r) => r.step === "Putting it together")?.href).toBe("/edit");
     expect(formatJobs()).toEqual([]);
+  });
+});
+
+describe("the stock search (wave 2 live check, 21 Oct)", () => {
+  // the live request and its three hooks; that day the page searched "how i see every", then "most people say keep",
+  // and Jev took none of the 12 clips
+  const d = W2.find((x) => x.call === "hook-demo-hooks")!;
+  const LIVE_ASK: HookDemoAsk = { ...ASK, topic: d.request.topic };
+  const TERMS = ["two people talking", "person checking phone", "messy desk with notes"];
+  const withTerms = (): MakeResponse => ({ ...(d.response as MakeResponse), result: { as: "hooks", hooks: d.response.result.hooks.map((h, i) => ({ ...h, search: TERMS[i] })) } });
+  const queries = () => stock.search.mock.calls.map((c) => c[1]);
+
+  it("searches the picked hook's own words, and Jev's pick's when the make writes them", async () => {
+    make.mockResolvedValue(withTerms());
+    await writeHooks(UID, LIVE_ASK);
+    expect(hookSet()?.hooks.map((h) => h.search)).toEqual(TERMS);
+    // the live check's first press: the first hook
+    expect(await run({ ...LIVE_ASK, hook: hookSet()!.hooks[0].text })).toMatchObject({ state: "done" });
+    expect(queries()).toEqual(["two people talking"]);
+
+    clearHookDemo();
+    stock.search.mockClear();
+    // no hook picked: written, then Jev's pick (the second) is searched by its own words
+    expect(await run({ ...LIVE_ASK, hook: "" })).toMatchObject({ state: "done", ask: { hook: d.response.result.hooks[1].text } });
+    expect(queries()).toEqual(["person checking phone"]);
+  });
+
+  it("searches the topic's first words, as before, for a typed hook or a hook written with no search", async () => {
+    make.mockResolvedValue(withTerms());
+    await writeHooks(UID, LIVE_ASK);
+    await run({ ...LIVE_ASK, hook: "Every chat in one place" });
+    expect(queries()).toEqual(["how i see every"]);
+
+    clearHookDemo();
+    stock.search.mockClear();
+    make.mockResolvedValue(d.response as MakeResponse);
+    await writeHooks(UID, LIVE_ASK);
+    serve({ montage: () => -1 });
+    expect(await run({ ...LIVE_ASK, hook: d.response.result.hooks[0].text })).toMatchObject({ state: "failed", error: NO_HOOK_CLIP });
+    expect(queries()).toEqual(["how i see every", "most people say keep"]);
   });
 });
 
