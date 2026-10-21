@@ -14,7 +14,6 @@ import {
   Download,
   FileText,
   GalleryHorizontalEnd,
-  ImagePlus,
   Pencil,
   Plus,
   RotateCcw,
@@ -51,17 +50,14 @@ import { loadSocialAccounts } from "@/lib/socialAccounts";
 import { scanCompliance } from "@/lib/compliance";
 import {
   BRAND_PRESETS,
-  COVER_HOOK_WORDS,
   DEFAULT_BRAND,
   DEFAULT_CTA,
   MAX_HANDLE_CHARS,
   MAX_NAME_CHARS,
   MAX_SLIDES,
   MIN_SLIDES,
-  WORDS_PER_SLIDE,
   addSlide,
   applyCopy,
-  countWords,
   draftLabel,
   draftsWithText,
   draftToOpen,
@@ -96,6 +92,7 @@ import { buildPdf } from "@/lib/pdf";
 import { getFile } from "@/lib/deviceFiles";
 import { addMedia, loadMedia, storePicture, type MediaItem } from "@/lib/mediaLibrary";
 import { CarouselCopyError, tightenSlides } from "@/lib/carouselCopy";
+import SlideFields, { WARN_BOX } from "@/components/carousel/SlideFields";
 
 const PLATFORM_LABEL: Record<string, string> = {
   linkedin: "LinkedIn",
@@ -104,8 +101,6 @@ const PLATFORM_LABEL: Record<string, string> = {
   tiktok: "TikTok",
 };
 
-const ROLE_LABEL = { cover: "Cover", point: "Point", cta: "Call to action", recap: "Recap" } as const;
-
 type Source = { kind: "draft"; id: string } | { kind: "paste" } | { kind: "ai"; id: string; text: string; title: string; platform: "instagram" | "linkedin" };
 type AiState =
   | { status: "idle" | "loading" }
@@ -113,8 +108,6 @@ type AiState =
 type SplitInfo = Omit<SplitResult, "slides">;
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-const WARN_BOX = "border-amber-200 bg-amber-50 text-amber-900";
 
 // The carousel in progress (pasted text, slide edits), kept for this tab so
 // leaving the page doesn't lose it. sessionStorage, outside the synced prefix.
@@ -483,6 +476,8 @@ export default function CarouselPage() {
     change((prev) => prev.map((x) => (x.id === slideId ? { ...x, image: key } : x)));
     setMediaFor(null);
   };
+  const removePicture = (slideId: string) =>
+    change((prev) => prev.map((x) => (x.id === slideId ? { id: x.id, title: x.title, body: x.body, ...(x.recap ? { recap: true as const } : {}) } : x)));
 
   // a carousel from a topic or a pasted article: one AI call writes the post, it is
   // saved to My posts (so it has a caption and can be scheduled), then split into slides
@@ -1307,175 +1302,65 @@ export default function CarouselPage() {
                 <ol className="space-y-3">
                   {slides.map((s, i) => {
                     const position = slideRole(i, slides.length);
-                    const role = s.recap && position === "point" ? "recap" : position;
-                    const words = countWords(s.body);
-                    const coverWords = role === "cover" ? countWords(s.title) : 0;
-                    const slideFlags = flags[i] ?? [];
                     return (
                       <li
                         key={s.id}
                         id={`slide-editor-${s.id}`}
                         className="space-y-2 rounded-xl border border-border/70 bg-card p-3 sm:p-4"
                       >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs font-semibold text-foreground">Slide {i + 1}</span>
-                          <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                            {ROLE_LABEL[role]}
-                          </span>
-                          {slideFlags.length > 0 && (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900">
-                              {slideFlags.length} {slideFlags.length === 1 ? "flag" : "flags"}
-                            </span>
-                          )}
-                          <div className="ml-auto flex items-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => change((prev) => moveSlide(prev, i, -1))}
-                              disabled={i === 0 || busy}
-                              aria-label={`Move slide ${i + 1} up`}
-                            >
-                              <ArrowUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => change((prev) => moveSlide(prev, i, 1))}
-                              disabled={i === slides.length - 1 || busy}
-                              aria-label={`Move slide ${i + 1} down`}
-                            >
-                              <ArrowDown className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                              onClick={() => change((prev) => removeSlide(prev, i))}
-                              disabled={slides.length <= MIN_SLIDES || busy}
-                              aria-label={`Delete slide ${i + 1}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <Label htmlFor={`slide-title-${s.id}`} className="text-xs text-muted-foreground">
-                              {role === "cover" ? "Hook" : "Title"}
-                            </Label>
-                            {role === "cover" && (
-                              <span
-                                className={`text-[11px] tabular-nums ${
-                                  coverWords > COVER_HOOK_WORDS ? "font-semibold text-amber-800" : "text-muted-foreground"
-                                }`}
+                        <SlideFields
+                          slide={s}
+                          label={`Slide ${i + 1}`}
+                          role={s.recap && position === "point" ? "recap" : position}
+                          flags={flags[i] ?? []}
+                          busy={busy}
+                          overflow={Boolean(layouts[i]?.overflow)}
+                          picture={s.image ? pictures[s.image] : undefined}
+                          pictureMissing={Boolean(s.image && missing.has(s.image))}
+                          media={mediaFor === s.id ? media : null}
+                          onEdit={(patch) => editSlide(s.id, patch)}
+                          onPicture={(f) => void addPicture(s.id, f)}
+                          onMedia={() => openMedia(s.id)}
+                          onPickMedia={(key) => pickMedia(s.id, key)}
+                          onRemovePicture={() => removePicture(s.id)}
+                          actions={
+                            <div className="ml-auto flex items-center">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => change((prev) => moveSlide(prev, i, -1))}
+                                disabled={i === 0 || busy}
+                                aria-label={`Move slide ${i + 1} up`}
                               >
-                                {coverWords}/{COVER_HOOK_WORDS} words
-                              </span>
-                            )}
-                          </div>
-                          <Input
-                            id={`slide-title-${s.id}`}
-                            value={s.title}
-                            onChange={(e) => editSlide(s.id, { title: e.target.value })}
-                            disabled={busy}
-                            placeholder={role === "cover" ? "The hook that makes people swipe" : "A short title"}
-                            aria-describedby={coverWords > COVER_HOOK_WORDS ? `slide-cover-warn-${s.id}` : undefined}
-                          />
-                          {coverWords > COVER_HOOK_WORDS && (
-                            <p id={`slide-cover-warn-${s.id}`} className="text-[11px] font-medium text-amber-800">
-                              Over {COVER_HOOK_WORDS} words. Cut it so it reads at thumbnail size.
-                            </p>
-                          )}
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <Label htmlFor={`slide-body-${s.id}`} className="text-xs text-muted-foreground">
-                              Text
-                            </Label>
-                            <span
-                              className={`text-[11px] tabular-nums ${
-                                words > WORDS_PER_SLIDE ? "font-semibold text-amber-800" : "text-muted-foreground"
-                              }`}
-                            >
-                              {words}/{WORDS_PER_SLIDE} words
-                            </span>
-                          </div>
-                          <Textarea
-                            id={`slide-body-${s.id}`}
-                            autoResize
-                            rows={2}
-                            value={s.body}
-                            onChange={(e) => editSlide(s.id, { body: e.target.value })}
-                            disabled={busy}
-                            placeholder={
-                              role === "cover" ? "Optional line under the hook" : "One point, in a sentence or two"
-                            }
-                            className="min-h-[64px]"
-                          />
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {s.image && pictures[s.image] && (
-                            <img src={pictures[s.image]} alt="" className="h-12 w-20 rounded-md border border-border/70 object-cover" />
-                          )}
-                          {s.image && missing.has(s.image) && (
-                            <span className="text-[11px] text-muted-foreground">The picture is on the device you added it from.</span>
-                          )}
-                          <label className={`inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-semibold hover:border-primary/40 ${busy ? "pointer-events-none opacity-60" : ""}`}>
-                            <ImagePlus className="h-3.5 w-3.5" /> {s.image ? "Change picture" : "Add a picture"}
-                            <input type="file" accept="image/*" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; void addPicture(s.id, f); }} />
-                          </label>
-                          <Button type="button" size="sm" variant="outline" className="h-8 text-xs" aria-expanded={mediaFor === s.id} onClick={() => openMedia(s.id)} disabled={busy}>
-                            From media
-                          </Button>
-                          {s.image && (
-                            <Button type="button" size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground"
-                              onClick={() => change((prev) => prev.map((x) => (x.id === s.id ? { id: x.id, title: x.title, body: x.body, ...(x.recap ? { recap: true as const } : {}) } : x)))}>
-                              Remove picture
-                            </Button>
-                          )}
-                        </div>
-                        {mediaFor === s.id && (
-                          <div className="rounded-lg border border-border/60 p-2">
-                            {media.length === 0 ? (
-                              <p className="text-xs text-muted-foreground">No photos in Media yet. <Link to="/media" className="font-semibold text-primary hover:underline">Add some</Link></p>
-                            ) : (
-                              <ul className="grid max-h-48 grid-cols-4 gap-1.5 overflow-y-auto sm:grid-cols-6">
-                                {media.map((m) => (
-                                  <li key={m.key}>
-                                    <MediaThumb item={m} onPick={() => pickMedia(s.id, m.key)} />
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        )}
-                        {layouts[i]?.overflow && (
-                          <p className="flex items-start gap-1.5 text-xs text-amber-800">
-                            <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                            Too much text to fit, so the slide cuts it off. Shorten it.
-                          </p>
-                        )}
-                        {slideFlags.length > 0 && (
-                          <ul className="space-y-1">
-                            {slideFlags.map((f) => (
-                              <li
-                                key={f.id}
-                                className={`rounded-md border px-2 py-1 text-[11px] ${
-                                  f.severity === "error"
-                                    ? "border-destructive/40 bg-destructive/5 text-destructive"
-                                    : WARN_BOX
-                                }`}
+                                <ArrowUp className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => change((prev) => moveSlide(prev, i, 1))}
+                                disabled={i === slides.length - 1 || busy}
+                                aria-label={`Move slide ${i + 1} down`}
                               >
-                                <span className="font-semibold">"{f.match}"</span>: {f.message}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                                <ArrowDown className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={() => change((prev) => removeSlide(prev, i))}
+                                disabled={slides.length <= MIN_SLIDES || busy}
+                                aria-label={`Delete slide ${i + 1}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          }
+                        />
                       </li>
                     );
                   })}
@@ -1589,26 +1474,5 @@ export default function CarouselPage() {
         </div>
       )}
     </div>
-  );
-}
-
-/** A library photo in the From media picker, loaded from this device. */
-function MediaThumb({ item, onPick }: { item: MediaItem; onPick: () => void }) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let made = "";
-    void getFile(item.key).then((b) => {
-      if (b) setUrl((made = URL.createObjectURL(b)));
-      else setUrl("");
-    });
-    return () => {
-      if (made) URL.revokeObjectURL(made);
-    };
-  }, [item.key]);
-  return (
-    <button type="button" onClick={onPick} disabled={url === ""} title={item.name} aria-label={`Use ${item.name}`}
-      className="block aspect-square w-full overflow-hidden rounded-md border border-border/70 bg-muted hover:border-primary disabled:opacity-40">
-      {url ? <img src={url} alt={item.alt || item.name} className="h-full w-full object-cover" /> : null}
-    </button>
   );
 }
