@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { clipCredits, creditsUsd, parseVideoRequest, seedanceRequest } from "./logic";
 import { TEMPLATES, clipPrompt, referenceLock, templateById, templateDetails, templateSystem } from "./templates";
@@ -125,5 +126,18 @@ describe("the prompt writer", () => {
     expect(clipPrompt(JSON.stringify({ prompt: written }), null)).not.toContain("@image1 is the");
     expect(clipPrompt(JSON.stringify({ prompt: "too short" }), null)).toBeNull();
     expect(clipPrompt("not json", null)).toBeNull();
+  });
+});
+
+describe("today's eight templates", () => {
+  it("write exactly today's prompt-writer system and details, so phase 3's flags change nothing for them", () => {
+    const today = TEMPLATES.filter((t) => !t.hidden && !t.leoOnly);
+    const out = today.flatMap((t) =>
+      ([null, "person", "product"] as const).flatMap((photo) =>
+        ([4, 8] as const).map((s) => [templateSystem(t, s, photo), templateDetails(t, { product: "Bottle", person: "A man", scene: "A kitchen", line: "Cold all day" })]),
+      ),
+    );
+    expect(out).toHaveLength(48);
+    expect(createHash("sha256").update(JSON.stringify(out)).digest("hex")).toBe("6ca5742fc5f69065fc1c34ef1f99edf336046f91eee1c54b43955dde1adbc5c8");
   });
 });

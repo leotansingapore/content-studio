@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { COMPLIANCE_RULES } from "../clone-reel/logic";
 import {
@@ -10,6 +11,7 @@ import {
   UNKNOWN_FIT,
   KEEP_RULES,
   MAKE_QUESTIONS,
+  MAKE_RESPONSE_FORMATS,
   MAX_WALL_CHARS,
   MAS_LINE,
   MAS_LINE_BUSINESS,
@@ -891,5 +893,26 @@ describe("Keep the structure at each level (dogfood 21 Oct: Loose, Balanced and 
     };
     expect(await runs(RUN_FLOOR.loose)).toEqual({ rewrites: 1, copied: ["You've sent that message more"] });
     expect(await runs(RUN_FLOOR.balanced)).toEqual({ rewrites: 0, copied: [] });
+  });
+});
+
+describe("today's formats write exactly today's prompts (phase 3 adds shapes, never changes these)", () => {
+  it("builds the same system, user and schema for every request a remix could send before phase 3", () => {
+    const BIZ = { ...body().brand, name: "ActivityTracker", oneLiner: "Tracks daily sales activity", facts: "- Logs calls", speaker: "business", offer: null };
+    const reqs: Record<string, unknown>[] = [];
+    for (const as of ["post", "carousel", "script", "speaking", "explainer", "slideshow", "wall"]) {
+      for (const brand of [body().brand, BIZ, { ...body().brand, mention: false }]) {
+        for (const close of ["loose", "balanced", "close"]) reqs.push({ as, brand, close });
+        reqs.push({ as, brand, keep: "hook", teardown: { hookPattern: "6 signs your plan is off", beats: ["one", "two"], dontReuse: ["Grace"] } });
+        reqs.push({ as, brand, fit: { verdict: "weak", reasons: ["masSafe"] }, note: "Keep it short" });
+      }
+    }
+    for (const as of ["slideshow", "wall"]) for (const brand of [body().brand, BIZ]) reqs.push({ as, brand, source: undefined, topic: "Why busy weeks feel empty" });
+    const out = reqs.map((r) => {
+      const m = make(r);
+      return [buildMakePrompt(m), MAKE_RESPONSE_FORMATS[m.as as keyof typeof MAKE_RESPONSE_FORMATS]];
+    });
+    expect(out).toHaveLength(109);
+    expect(createHash("sha256").update(JSON.stringify(out)).digest("hex")).toBe("ff9c83240017ac211de59299c9828885a3ec31be5eb645f6a5a84f8e277f36c5");
   });
 });

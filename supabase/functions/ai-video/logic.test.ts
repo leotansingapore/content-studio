@@ -222,3 +222,16 @@ describe("sceneReady", () => {
     expect(sceneReady({ say: "Most plans have a co-pay.", picture: fits })).toBe(true);
   });
 });
+
+describe("today's presenter", () => {
+  it("keeps today's exact picture prompt when no setting is sent", () => {
+    expect(presenterBody("A Malay Singaporean woman in her 30s")).toEqual({
+      prompt:
+        "A Malay Singaporean woman in her 30s\n\nA head-and-shoulders portrait of this one person facing the camera and looking into the lens, mouth closed, relaxed, about to speak to camera. Softly blurred office or home background, soft even light, sharp focus on the face, a vertical phone video frame. Set in Singapore; the person is Singaporean unless described otherwise. No text, no words, no logos, no watermarks, no other people.",
+      aspect_ratio: "9:16",
+      resolution: "1080p",
+      batch_size: 1,
+    });
+    expect(parseVideoRequest({ mode: "presenter", look: "A Malay Singaporean woman in her 30s" })).toEqual({ ok: true, request: { mode: "presenter", look: "A Malay Singaporean woman in her 30s" } });
+  });
+});
