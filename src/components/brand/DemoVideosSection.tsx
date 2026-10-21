@@ -110,7 +110,10 @@ export default function DemoVideosSection({ userId }: { userId: string; brand: C
   const full = list.length >= MAX_DEMOS;
   // an upload that ends after this section has gone (another page) opens nothing
   const mounted = useRef(true);
-  useEffect(() => () => void (mounted.current = false), []);
+  useEffect(() => {
+    mounted.current = true;
+    return () => void (mounted.current = false);
+  }, []);
 
   const pick = async (f: File | undefined) => {
     if (!f) return;
@@ -363,10 +366,13 @@ function DemoEditor({ userId, demoKey, left, picking, onClose }: { userId: strin
             {d.flags.length > 0 && <FlagChip />}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/60 px-4 py-3">
-          <Button type="submit" className={TOUCH}>Save</Button>
+        <div className="space-y-2 border-t border-border/60 px-4 py-3">
+          {/* Save reads the window when the line is empty or the window was never read: its price shows first */}
           {reads && <ReadChip left={left} />}
-          <Button type="button" variant="ghost" className={`ml-auto text-muted-foreground ${TOUCH}`} onClick={remove}>Delete</Button>
+          <div className="flex items-center gap-2">
+            <Button type="submit" className={TOUCH}>Save</Button>
+            <Button type="button" variant="ghost" className={`ml-auto text-muted-foreground ${TOUCH}`} onClick={remove}>Delete</Button>
+          </div>
         </div>
       </form>
     </div>,
