@@ -1,5 +1,14 @@
-import { describe as suite, expect, it } from "vitest";
-import { SHORTEST, SNAP, beatTimes, chooseFor, describe, noteOf, snapCuts } from "./montage";
+import { describe as suite, expect, it, vi } from "vitest";
+
+vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
+vi.mock("@/lib/stockMedia", () => ({ searchStock: vi.fn(), downloadStock: vi.fn() }));
+vi.mock("@/lib/deviceFiles", () => ({ putFile: vi.fn(async () => {}), getFile: vi.fn(async () => undefined) }));
+vi.mock("@/lib/videoMedia", () => ({ currentJoin: vi.fn(() => null), monoPcm: vi.fn(), startJoin: vi.fn(async () => {}) }));
+
+import { callFn } from "@/lib/edgeFn";
+import { downloadStock, searchStock } from "@/lib/stockMedia";
+import { startJoin } from "@/lib/videoMedia";
+import { SHORTEST, SNAP, beatTimes, chooseFor, describe, montageJob, noteOf, snapCuts, startMontage } from "./montage";
 import type { StockItem } from "./stockMedia";
 
 const item = (id: string, slug = "x"): StockItem => ({ id, w: 720, h: 1280, alt: "", thumb: "", src: "", by: "", byUrl: "", url: `https://www.pexels.com/video/${slug}-${id}/`, duration: 10 });
@@ -94,5 +103,55 @@ suite("what the adviser is told", () => {
     const n = noteOf({ swapped: [{ beat: "A hawker stall at dawn", used: "city skyline" }], missed: ["Rain on a window"] });
     expect(n).toContain('No good clip for "A hawker stall at dawn", used "city skyline" instead.');
     expect(n).toContain('Left out for lack of a clip: "Rain on a window".');
+  });
+});
+
+suite("everyone's montage", () => {
+  // pinned on today's code (7cd872f4): a montage with no set searches stock per beat, asks Jev twice and joins
+  it("asks for the plan, searches and picks stock as before, the broader search only where nothing fit", async () => {
+    const beats = [
+      { say: "Kopi at dawn", search: "coffee morning", fallback: "coffee", text: "Start slow", seconds: 4 },
+      { say: "The MRT fills up", search: "train commute", fallback: "city crowd", text: "", seconds: 4 },
+      { say: "Rain on the window", search: "rain window", fallback: "rain window", text: "Then rain", seconds: 4 },
+      { say: "Hawker lunch", search: "hawker food", fallback: "street food", text: "", seconds: 6 },
+    ];
+    let picks = 0;
+    vi.mocked(callFn).mockImplementation(async (_fn, body) => ((body as { mode: string }).mode === "montage" ? { beats, grade: "warm" } : { picks: ++picks === 1 ? [0, -1, null, null] : [null, 1, null, null] }));
+    const queries = ["coffee morning", "train commute", "rain window", "hawker food", "city crowd"];
+    vi.mocked(searchStock).mockImplementation(async (_k, q) => {
+      const n = queries.indexOf(q) + 1;
+      const it = (id: string) => ({ ...item(id, q.replace(/ /g, "-")), src: `https://p/${id}.mp4` });
+      return { items: q === "rain window" ? [] : [it(`${n}1`), it(`${n}2`)], more: false };
+    });
+    vi.mocked(downloadStock).mockImplementation(async (src: string) => new Blob([src]));
+    await startMontage({ theme: "Singapore mornings", seconds: 20, words: true, music: null });
+    expect(vi.mocked(callFn).mock.calls).toEqual([
+      ["video-assist", { mode: "montage", theme: "Singapore mornings", seconds: 20 }, "Couldn't plan the montage right now. Try again in a minute."],
+      ["video-assist", { mode: "montage-pick", theme: "Singapore mornings", beats: [
+        { say: "Kopi at dawn", candidates: [{ desc: "coffee morning" }, { desc: "coffee morning" }] },
+        { say: "The MRT fills up", candidates: [{ desc: "train commute" }, { desc: "train commute" }] },
+        { say: "Rain on the window", candidates: [] },
+        { say: "Hawker lunch", candidates: [{ desc: "hawker food" }, { desc: "hawker food" }] },
+      ] }],
+      ["video-assist", { mode: "montage-pick", theme: "Singapore mornings", beats: [
+        { say: "Kopi at dawn", candidates: [] },
+        { say: "The MRT fills up", candidates: [{ desc: "city crowd" }, { desc: "city crowd" }] },
+        { say: "Rain on the window", candidates: [] },
+        { say: "Hawker lunch", candidates: [] },
+      ] }],
+    ]);
+    expect(vi.mocked(searchStock).mock.calls.map(([k, q, page, o]) => [k, q, page, o])).toEqual([
+      ["video", "coffee morning", 1, "portrait"], ["video", "train commute", 1, "portrait"], ["video", "rain window", 1, "portrait"], ["video", "hawker food", 1, "portrait"],
+      ["video", "city crowd", 1, "portrait"],
+    ]);
+    expect(montageJob()).toMatchObject({ state: "done" });
+    const [name, takes, label, opts] = vi.mocked(startJoin).mock.calls[0];
+    expect([name, label]).toEqual(["Singapore mornings", "Putting your montage together"]);
+    expect(await Promise.all(takes.map(async (t) => [await (t.file as Blob).text(), t.start, t.end]))).toEqual([
+      ["https://p/11.mp4", 0, 4], ["https://p/52.mp4", 0, 4], ["https://p/41.mp4", 0, 6],
+    ]);
+    expect(opts).toMatchObject({ mute: true, extra: { note: 'Left out for lack of a clip: "Rain on the window".', settings: { filter: "warm", captions: false } } });
+    expect(opts?.extra?.settings?.overlays?.map((o) => [o.text, o.from, o.to])).toEqual([["Start slow", 0.1, 3.9]]);
+    expect(opts?.extra && "draftId" in opts.extra).toBe(false);
   });
 });
