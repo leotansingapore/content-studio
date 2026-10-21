@@ -1,0 +1,996 @@
+[
+ {
+  "call": "011-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "ad:1723268295542969",
+    "kind": "ad",
+    "format": "image",
+    "platform": "meta-ad",
+    "title": "Get clear before 9am",
+    "author": "Sunsama",
+    "url": "https://www.facebook.com/ads/library/?id=1723268295542969",
+    "text": "Rise and shine, entrepreneur! \ud83c\udf1e\nBefore the day runs away from you, take control. Gather your work, prioritize it, and build a plan that actually gets done today.\n Own your daily goals - crush them with confidence!"
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "[Upbeat greeting], [audience]! [sun emoji]",
+    "beats": [
+     "Opens with a cheerful greeting to address entrepreneurs directly and set an upbeat tone.",
+     "Warns that the day can get away from the viewer, creating urgency to take charge.",
+     "Introduces gathering and prioritizing work as steps toward a workable daily plan.",
+     "Closes with an encouraging promise of confidence in pursuing daily goals."
+    ],
+    "dontReuse": [
+     "Sunsama",
+     "Rise and shine, entrepreneur! \ud83c\udf1e",
+     "take control",
+     "Gather your work, prioritize it, and build a plan that actually gets done today.",
+     "Own your daily goals - crush them with confidence!"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "Morning, sales pros!",
+    "body": "When chats pile up, the day can slip away. Sort client follow-ups, choose priorities, and plan today's work. Keep moving towards your targets.",
+    "cta": "Use ActivityTracker to track client work in one app.",
+    "hashtags": []
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 1,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "014-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "ad:2972139646506607",
+    "kind": "ad",
+    "format": "image",
+    "platform": "meta-ad",
+    "title": "Stop saying \"just following up\" \ud83d\udcf2",
+    "author": "Sales Mentoring by Aaron",
+    "url": "https://www.facebook.com/ads/library/?id=2972139646506607",
+    "text": "\"Just following up!\" \ud83d\udcf2\n\nYou've sent that message more times than you'd like to count.\nBe honest about the reply rate.\n\nHere's why it does nothing.\n\n\"Just following up\" carries no new information.\nIt doesn't help the customer. It doesn't move anything.\nIt is a request \u2014 for them to do the work of remembering, re-deciding, and replying.\n\nTo them it reads as: have you decided yet?\nWhich means replyi"
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "\"[Common phrase]\" [emoji]",
+    "beats": [
+     "It says the sender has sent this message repeatedly, inviting the viewer to recognise a familiar habit.",
+     "It asks the viewer to be honest about the reply rate, creating tension around whether the habit works.",
+     "It promises an explanation, then says the phrase offers no new information or help and does not move anything forward.",
+     "It reframes the message as making the customer do the work of remembering, re-deciding, and replying.",
+     "It translates the phrase into the customer's perspective as a question about whether they have decided yet, then the copy cuts off mid-thought."
+    ],
+    "dontReuse": [
+     "Sales Mentoring by Aaron",
+     "\"Just following up\"",
+     "\"Just following up!\"",
+     "no new information",
+     "It doesn't help the customer.",
+     "It doesn't move anything.",
+     "It is a request, for them to do the work of remembering, re-deciding, and replying.",
+     "have you decided yet?"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "A follow-up should move the conversation forward.",
+    "body": "If you sell for a living, you may have sent the same nudge more times than you can count.\n\nTake an honest look at how often it gets a reply.\n\nHere\u2019s the snag: a bare reminder adds little to the chat. It gives the person no useful next step.\n\nNow they have to recall the conversation, weigh the choice again, then decide whether to answer.\n\nFrom their side, it might sound like: so, where are you at with this? And that can leave them...",
+    "cta": "Use ActivityTracker to manage client chats and follow-ups in one app.",
+    "hashtags": [
+     "SalesFollowUp",
+     "WhatsAppWorkflows",
+     "ClientManagement"
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": false
+   },
+   "usage": {
+    "used": 2,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "017-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "ad:1075280991926367",
+    "kind": "ad",
+    "format": "video",
+    "platform": "meta-ad",
+    "title": "Discover why 4M+ teams use Apollo.",
+    "author": "Apollo.io",
+    "url": "https://www.facebook.com/ads/library/?id=1075280991926367",
+    "text": "Still waiting for the logo to hit the corner? Don\u2019t keep your GTM strategy waiting too.\n\nApollo brings data, intelligence, and execution into one end-to-end agentic system, so you spend less time managing tools and more time selling.\n\n1995 sales tactics don\u2019t close 2026 deals."
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "Still waiting for [thing] to [happen]? Don\u2019t keep your [strategy] waiting too.",
+    "beats": [
+     "Opens with a familiar moment of waiting, then links it to a business priority to make the delay feel consequential.",
+     "Introduces the product as a system that combines several functions, presenting consolidation as the solution.",
+     "Names the practical benefit: less time managing tools and more time selling.",
+     "Contrasts outdated tactics with the demands of the current year to add urgency."
+    ],
+    "dontReuse": [
+     "Apollo.io",
+     "4M+ teams",
+     "Apollo",
+     "GTM strategy",
+     "data, intelligence, and execution into one end-to-end agentic system",
+     "less time managing tools and more time selling",
+     "1995 sales tactics",
+     "2026 deals"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "Still waiting to send that follow-up? Your sales momentum shouldn\u2019t have to wait.",
+    "body": "ActivityTracker brings client details, chats, follow-ups and targets together in one app, so you can keep your sales work organised.\n\nSpend less time switching between places to track conversations and more time moving client chats forward.\n\nScattered notes belong to an older way of working. Today, a clear follow-up workflow matters.",
+    "cta": "Explore how ActivityTracker fits your workflow.",
+    "hashtags": [
+     "SalesFollowUp",
+     "ClientManagement",
+     "WhatsAppWorkflows"
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 3,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "020-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "follow:tiktok:7685781265122938126",
+    "kind": "follow",
+    "format": "video",
+    "platform": "tiktok",
+    "title": "Moving this one to commit \ud83d\udcaf\ud83e\udd40",
+    "author": "@useapollo.io",
+    "url": "https://www.tiktok.com/@useapollo.io/video/7685781265122938126",
+    "text": "Moving this one to commit \ud83d\udcaf\ud83e\udd40\n\n#salestok #sales #b2bsales #saleshumor"
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "[Wait, you booked a meeting with [specific account]?",
+    "beats": [
+     "A coworker reacts with surprise and says the account is one of their top accounts, creating stakes around the apparent win.",
+     "The person who booked it takes credit, prompting the coworker to ask how they got the hard-to-reach prospect on the phone.",
+     "The explanation stalls, building suspense as the coworker asks for a strategy they could use too.",
+     "The person admits they did not speak with the prospect, but says they sent a calendar invite, revealing the comic mismatch between the claimed meeting and the actual outreach.",
+     "The coworker questions whether the invite was random, and the person cites a TikTok idea about people not declining invites as often as expected.",
+     "The person asks the coworker to record the meeting in the CRM so it counts toward their number, ending on an awkward question that makes the sham meeting explicit."
+    ],
+    "dontReuse": [
+     "Meridian",
+     "top 5",
+     "months",
+     "TikTok",
+     "CRM",
+     "count this towards my number",
+     "@useapollo.io"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "A calendar invite is not the same as a sales conversation.",
+    "body": "Skit: \u201cThat prospect is a big opportunity. You booked a meeting?\u201d\n\n\u201cYep.\u201d\n\n\u201cHow did you get them on the phone?\u201d\n\n\u201cWell, I\u2026\u201d\n\n\u201cTell me your approach. I could use it too.\u201d\n\n\u201cActually, we haven\u2019t spoken. I sent a calendar invite.\u201d\n\n\u201cOut of the blue? I saw a tip online that people might accept one.\u201d\n\n\u201cSo, can you log it as a meeting toward my target?\u201d\n\n\u201cWas there even a reply?\u201d\n\nTrack the outreach clearly. ActivityTracker helps sales reps manage clients, chats, follow-ups and targets in one app.",
+    "cta": "Keep your follow-ups and activity organised with ActivityTracker.",
+    "hashtags": [
+     "SalesFollowUp",
+     "ClientManagement",
+     "SalesWorkflow"
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": false
+   },
+   "usage": {
+    "used": 4,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "023-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "follow:instagram:DdWQIxpRQb7",
+    "kind": "follow",
+    "format": "video",
+    "platform": "instagram",
+    "title": "\ud83c\udf89\ud83d\udeeb\ud83c\udfa2\ud83c\udfc1 Nova is live for everybody!!!",
+    "author": "@pipedrive",
+    "url": "https://www.instagram.com/p/DdWQIxpRQb7/",
+    "text": "\ud83c\udf89\ud83d\udeeb\ud83c\udfa2\ud83c\udfc1 Nova is live for everybody!!!\n\nMeeting intelligence, built into Pipedrive. Before the call, during it, and after it\u2019s over.\n\nNova preps you before the call, pulling your past emails, conversations and deal history into one brief so"
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "Whether or not you've already got a [tool], you're still [painful task] before a [event], and [painful task] after.",
+    "beats": [
+     "It names the work people still do before and after calls, making the problem feel familiar.",
+     "It introduces Nova and says it is included in all plans at no additional cost, framing the product as accessible.",
+     "It explains how Nova prepares a brief before the call, showing how it helps the viewer arrive informed.",
+     "It describes recording the call and capturing details, decisions, and next steps, presenting the benefit of staying present.",
+     "It offers two ways for Nova to join, addressing different preferences about call participation.",
+     "It shows how Nova creates a recap and drafts CRM updates, then emphasizes that the user reviews and approves them before anything reaches the pipeline.",
+     "It closes with a direct invitation to try the product."
+    ],
+    "dontReuse": [
+     "@pipedrive",
+     "Nova",
+     "Pipedrive",
+     "PipeDrive",
+     "included in all plans at no additional cost",
+     "Everything lands directly in PipeDrive.",
+     "Nothing touches your pipeline until you say so."
+    ]
+   },
+   "fit": {
+    "verdict": "weak",
+    "reasons": [
+     "retell"
+    ]
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "The call ends, but the follow-up work is just getting started.",
+    "body": "Before a client call, you may be checking old chats. After it, there are notes to sort and next steps to remember.\n\nActivityTracker helps sales reps keep clients, chats, follow-ups and targets in one app.\n\nBefore you speak, review the client conversation and previous follow-up notes you have saved.\n\nDuring the call, stay focused and jot down key details, decisions and agreed next steps in your own notes.\n\nPrefer to follow up by WhatsApp or another channel? Choose what suits the client and your workflow.\n\nAfter the call, recap the discussion and update your client records. Review your notes before adding anything to your pipeline.\n\nKeep the next step clear, so the conversation can keep moving.",
+    "cta": "Explore how ActivityTracker can support your sales workflow.",
+    "hashtags": [
+     "SalesFollowUp",
+     "ClientManagement",
+     "WhatsAppWorkflow",
+     "SalesGoals"
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 5,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "026-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "follow:instagram:DdsjSosgWYL",
+    "kind": "follow",
+    "format": "video",
+    "platform": "instagram",
+    "title": "comment \"agent\" and I'll send you the walkthrough and link to AgentFlow.\u2060",
+    "author": "@sleekflow",
+    "url": "https://www.instagram.com/p/DdsjSosgWYL/",
+    "text": "comment \"agent\" and I'll send you the walkthrough and link to AgentFlow.\u2060\n\u2060\nyou can now bring your connected channels into one shared inbox and give your AI agent context about your business, so you can spend less time jumping between conve"
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "If you're a [specific audience] getting bombarded with [problem] across [channels], here's a hack to [desired outcome].",
+    "beats": [
+     "Names the audience and the pain of messages spread across several channels to make the problem feel familiar.",
+     "Contrasts the promise of AI tools with their limits to create tension around disjointed conversations and missing business context.",
+     "Walks through setting up the named service and connecting channels, making the solution feel actionable.",
+     "Shows the result of bringing messages into one shared inbox, delivering the core convenience benefit.",
+     "Explains how adding business materials gives the AI agent context about responses, questions, and when to hand off to a person.",
+     "Adds a cross-channel client memory claim to strengthen the value, then asks viewers to comment for a guide and link."
+    ],
+    "dontReuse": [
+     "@sleekflow",
+     "Sleekflow",
+     "AgentFlow",
+     "Agentflow",
+     "start free trial",
+     "Most chatbots and AI automations treat conversations separately on each platform and barely understand your business.",
+     "all your messages are going to appear inside one shared inbox",
+     "it will know exactly how to respond, what questions to ask and when a human should step in.",
+     "It even remembers the same client across different channels"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "Sales chats get messy when they live in different places.",
+    "body": "For self-employed sales pros and coaches, client messages can be spread across channels.\n\nAI may help with tasks, but scattered chats still make follow-ups and client context harder to track.\n\nBring your client details, chats, follow-ups and targets together with ActivityTracker.\n\nSee your sales work in one app instead of jumping between tools.\n\nKeep track of client needs, questions to answer and when a conversation needs your attention.\n\nWith client details and follow-ups together, it\u2019s easier to pick up the thread.",
+    "cta": "Explore ActivityTracker for your sales workflow.",
+    "hashtags": [
+     "SalesFollowUp",
+     "ClientManagement",
+     "SalesWorkflow"
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 6,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "027-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "ad:2972139646506607",
+    "kind": "ad",
+    "format": "image",
+    "platform": "meta-ad",
+    "title": "Stop saying \"just following up\" \ud83d\udcf2",
+    "author": "Sales Mentoring by Aaron",
+    "url": "https://www.facebook.com/ads/library/?id=2972139646506607",
+    "text": "\"Just following up!\" \ud83d\udcf2\n\nYou've sent that message more times than you'd like to count.\nBe honest about the reply rate.\n\nHere's why it does nothing.\n\n\"Just following up\" carries no new information.\nIt doesn't help the customer. It doesn't move anything.\nIt is a request \u2014 for them to do the work of remembering, re-deciding, and replying.\n\nTo them it reads as: have you decided yet?\nWhich means replyi"
+   },
+   "keep": "hook",
+   "close": "balanced",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "\"[Common phrase]\" [emoji]",
+    "beats": [
+     "It says the sender has sent this message repeatedly, inviting the viewer to recognise a familiar habit.",
+     "It asks the viewer to be honest about the reply rate, creating tension around whether the habit works.",
+     "It promises an explanation, then says the phrase offers no new information or help and does not move anything forward.",
+     "It reframes the message as making the customer do the work of remembering, re-deciding, and replying.",
+     "It translates the phrase into the customer's perspective as a question about whether they have decided yet, then the copy cuts off mid-thought."
+    ],
+    "dontReuse": [
+     "Sales Mentoring by Aaron",
+     "\"Just following up\"",
+     "\"Just following up!\"",
+     "no new information",
+     "It doesn't help the customer.",
+     "It doesn't move anything.",
+     "It is a request, for them to do the work of remembering, re-deciding, and replying.",
+     "have you decided yet?"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "\"Any thoughts?\" \ud83d\udcf2",
+    "body": "If this message keeps landing in your WhatsApp drafts, pause before sending it again.\n\nA useful follow-up gives the client a reason to re-open the conversation. Mention what you discussed, share a relevant detail, or offer a clear next step.\n\nKeep it easy to answer. For example: \u201cWould a short call this week help you compare the options?\u201d\n\nActivityTracker helps sales reps manage clients, chats, follow-ups and targets in one app.",
+    "cta": "Review your next follow-up before you send it.",
+    "hashtags": [
+     "SalesFollowUp",
+     "WhatsAppWorkflow",
+     "ClientManagement"
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 7,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "028-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "ad:2972139646506607",
+    "kind": "ad",
+    "format": "image",
+    "platform": "meta-ad",
+    "title": "Stop saying \"just following up\" \ud83d\udcf2",
+    "author": "Sales Mentoring by Aaron",
+    "url": "https://www.facebook.com/ads/library/?id=2972139646506607",
+    "text": "\"Just following up!\" \ud83d\udcf2\n\nYou've sent that message more times than you'd like to count.\nBe honest about the reply rate.\n\nHere's why it does nothing.\n\n\"Just following up\" carries no new information.\nIt doesn't help the customer. It doesn't move anything.\nIt is a request \u2014 for them to do the work of remembering, re-deciding, and replying.\n\nTo them it reads as: have you decided yet?\nWhich means replyi"
+   },
+   "keep": "topic",
+   "about": "Activity tracking",
+   "close": "balanced",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "\"[Common phrase]\" [emoji]",
+    "beats": [
+     "It says the sender has sent this message repeatedly, inviting the viewer to recognise a familiar habit.",
+     "It asks the viewer to be honest about the reply rate, creating tension around whether the habit works.",
+     "It promises an explanation, then says the phrase offers no new information or help and does not move anything forward.",
+     "It reframes the message as making the customer do the work of remembering, re-deciding, and replying.",
+     "It translates the phrase into the customer's perspective as a question about whether they have decided yet, then the copy cuts off mid-thought."
+    ],
+    "dontReuse": [
+     "Sales Mentoring by Aaron",
+     "\"Just following up\"",
+     "\"Just following up!\"",
+     "no new information",
+     "It doesn't help the customer.",
+     "It doesn't move anything.",
+     "It is a request, for them to do the work of remembering, re-deciding, and replying.",
+     "have you decided yet?"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "Stop letting follow-ups vanish into your chat list \ud83d\udcf2",
+    "body": "You\u2019ve probably sent a message, then lost track of what needed to happen next.\n\nBe honest: can you quickly tell which conversations need attention today?\n\nHere\u2019s what activity tracking can bring into view.\n\nA note on the last chat and a clear next step give you useful context when you return to a conversation. You can see who needs a reply, when to check in, and what you already discussed.\n\nWithout that record, you may have to piece things together from old messages. For sales reps and coaches juggling client chats, a simple activity log can make follow-ups easier to manage.",
+    "cta": "Track client activity with ActivityTracker and keep your next steps in view.",
+    "hashtags": [
+     "ActivityTracking",
+     "SalesFollowUp",
+     "ClientManagement",
+     "WhatsAppWorkflows"
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 8,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "029-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "ad:2972139646506607",
+    "kind": "ad",
+    "format": "image",
+    "platform": "meta-ad",
+    "title": "Stop saying \"just following up\" \ud83d\udcf2",
+    "author": "Sales Mentoring by Aaron",
+    "url": "https://www.facebook.com/ads/library/?id=2972139646506607",
+    "text": "\"Just following up!\" \ud83d\udcf2\n\nYou've sent that message more times than you'd like to count.\nBe honest about the reply rate.\n\nHere's why it does nothing.\n\n\"Just following up\" carries no new information.\nIt doesn't help the customer. It doesn't move anything.\nIt is a request \u2014 for them to do the work of remembering, re-deciding, and replying.\n\nTo them it reads as: have you decided yet?\nWhich means replyi"
+   },
+   "keep": "structure",
+   "close": "loose",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "\"[Common phrase]\" [emoji]",
+    "beats": [
+     "It says the sender has sent this message repeatedly, inviting the viewer to recognise a familiar habit.",
+     "It asks the viewer to be honest about the reply rate, creating tension around whether the habit works.",
+     "It promises an explanation, then says the phrase offers no new information or help and does not move anything forward.",
+     "It reframes the message as making the customer do the work of remembering, re-deciding, and replying.",
+     "It translates the phrase into the customer's perspective as a question about whether they have decided yet, then the copy cuts off mid-thought."
+    ],
+    "dontReuse": [
+     "Sales Mentoring by Aaron",
+     "\"Just following up\"",
+     "\"Just following up!\"",
+     "no new information",
+     "It doesn't help the customer.",
+     "It doesn't move anything.",
+     "It is a request, for them to do the work of remembering, re-deciding, and replying.",
+     "have you decided yet?"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "A sales follow-up needs a reason to be read.",
+    "body": "You may have sent the same kind of nudge again and again.\n\nTake an honest look at how often it gets a reply.\n\nHere\u2019s the snag: a bare reminder adds no context, offers no useful next step, and leaves the conversation where it was.\n\nIt asks the other person to recall your chat, consider the choice again, and write back.\n\nFrom their side, it may sound like: are you ready to choose? That can make replying feel like another task.",
+    "cta": "Use ActivityTracker to keep client chats and follow-ups organised.",
+    "hashtags": [
+     "SalesFollowUp",
+     "ClientManagement",
+     "WhatsAppWorkflow"
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": false
+   },
+   "usage": {
+    "used": 9,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "030-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "ad:2972139646506607",
+    "kind": "ad",
+    "format": "image",
+    "platform": "meta-ad",
+    "title": "Stop saying \"just following up\" \ud83d\udcf2",
+    "author": "Sales Mentoring by Aaron",
+    "url": "https://www.facebook.com/ads/library/?id=2972139646506607",
+    "text": "\"Just following up!\" \ud83d\udcf2\n\nYou've sent that message more times than you'd like to count.\nBe honest about the reply rate.\n\nHere's why it does nothing.\n\n\"Just following up\" carries no new information.\nIt doesn't help the customer. It doesn't move anything.\nIt is a request \u2014 for them to do the work of remembering, re-deciding, and replying.\n\nTo them it reads as: have you decided yet?\nWhich means replyi"
+   },
+   "keep": "structure",
+   "close": "close",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "\"[Common phrase]\" [emoji]",
+    "beats": [
+     "It says the sender has sent this message repeatedly, inviting the viewer to recognise a familiar habit.",
+     "It asks the viewer to be honest about the reply rate, creating tension around whether the habit works.",
+     "It promises an explanation, then says the phrase offers no new information or help and does not move anything forward.",
+     "It reframes the message as making the customer do the work of remembering, re-deciding, and replying.",
+     "It translates the phrase into the customer's perspective as a question about whether they have decided yet, then the copy cuts off mid-thought."
+    ],
+    "dontReuse": [
+     "Sales Mentoring by Aaron",
+     "\"Just following up\"",
+     "\"Just following up!\"",
+     "no new information",
+     "It doesn't help the customer.",
+     "It doesn't move anything.",
+     "It is a request, for them to do the work of remembering, re-deciding, and replying.",
+     "have you decided yet?"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "A follow-up should give the conversation a next step.",
+    "body": "You may have sent the same check-in to a prospect more times than you meant to.\n\nBe honest: how often does it get a reply?\n\nHere\u2019s the snag with a vague nudge. It adds nothing useful, gives the prospect little to work with, and leaves the chat standing still.\n\nNow they have to recall your earlier conversation, think the choice over again, and decide whether to respond.\n\nFrom their side, it can sound like: have you made up your mind? Which may leave them wondering what to say next\u2026",
+    "cta": "Use ActivityTracker to manage client chats and follow-ups in one app.",
+    "hashtags": [
+     "SalesFollowUp",
+     "ClientManagement",
+     "WhatsAppWorkflows"
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": false
+   },
+   "usage": {
+    "used": 10,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "031-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "ad:1723268295542969",
+    "kind": "ad",
+    "format": "image",
+    "platform": "meta-ad",
+    "title": "Get clear before 9am",
+    "author": "Sunsama",
+    "url": "https://www.facebook.com/ads/library/?id=1723268295542969",
+    "text": "Rise and shine, entrepreneur! \ud83c\udf1e\nBefore the day runs away from you, take control. Gather your work, prioritize it, and build a plan that actually gets done today.\n Own your daily goals - crush them with confidence!"
+   },
+   "keep": "structure",
+   "close": "balanced",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": false,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "[Upbeat greeting], [audience]! [sun emoji]",
+    "beats": [
+     "Opens with a cheerful greeting to address entrepreneurs directly and set an upbeat tone.",
+     "Warns that the day can get away from the viewer, creating urgency to take charge.",
+     "Introduces gathering and prioritizing work as steps toward a workable daily plan.",
+     "Closes with an encouraging promise of confidence in pursuing daily goals."
+    ],
+    "dontReuse": [
+     "Sunsama",
+     "Rise and shine, entrepreneur! \ud83c\udf1e",
+     "take control",
+     "Gather your work, prioritize it, and build a plan that actually gets done today.",
+     "Own your daily goals - crush them with confidence!"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "Morning, sales pros. Start with a clear head.",
+    "body": "Messages and follow-ups can crowd the day. Bring client chats and tasks together, then choose what deserves attention first.",
+    "cta": "Take one steady step towards your targets.",
+    "hashtags": []
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": false
+   },
+   "usage": {
+    "used": 11,
+    "limit": 30
+   }
+  }
+ },
+ {
+  "call": "036-remix.json",
+  "request": {
+   "mode": "make",
+   "as": "post",
+   "source": {
+    "key": "link:tiktok:7693224702424206606",
+    "kind": "link",
+    "format": "video",
+    "platform": "tiktok",
+    "title": "Build great habits that lead you to success!",
+    "author": "@riadmourssali",
+    "url": "https://www.tiktok.com/@riadmourssali/video/7693224702424206606",
+    "text": "These five habits took me from closing one in 10 calls to closing one in three. Listen up, they took me years to get right and I'm giving them to you in 60 seconds. The first one is almost an insult. Before every single call, write the prospects name on a sticky note and put it on your monitor. It forces you to remember that you're talking to a person and not a lead. Numbers, stop researching clients for 20 minutes. That's just procrastination. Spend two minutes looking for one single problem that you can actually solve. Read your script out loud every single morning. You have to get the words out of your head and into the air so that they sound natural when it counts. There's a reason actors do table reads before they perform. Your call is a performance on Fridays. Schedule all of next week's follow UPS in calendar blocks. It sounds boring, but it frees up all of your mental energy for the week for selling and not organizing. Decision fatigue is a margin killer. After your last call of the day, turn everything off and walk around for 10 minutes. That means no phone, no podcasts. Doesn't have to be a Marathon, but you have to create a clean break. That way you don't bring the stress of every lost deal home with you. Look, none of these are complicated. They're simple. And that's exactly why most people will never do them. And if You want to continue killing it in sales, follow me for more.\n\nBuild great habits that lead you to success!\n\n#sales #solar #d2d #lifeinsurance #salestips"
+   },
+   "keep": "react",
+   "close": "balanced",
+   "brand": {
+    "name": "ActivityTracker",
+    "oneLiner": "We help sales reps manage clients, chats, follow-ups and targets in one app so they can keep their work moving.",
+    "audience": "working adult: Sales-oriented self-employed professionals and coaches",
+    "topics": [
+     "Sales follow-ups",
+     "WhatsApp workflows",
+     "Client management",
+     "Activity tracking",
+     "Sales goals"
+    ],
+    "facts": "",
+    "mention": true,
+    "offer": null,
+    "rules": "",
+    "speaker": "business"
+   },
+   "teardown": {
+    "hookPattern": "[Build [positive outcome] through [specific method]!]",
+    "beats": [
+     "The speaker opens with a personal sales result and a promise to share five habits quickly, establishing credibility and giving viewers a reason to listen.",
+     "The first habit is to write the prospect\u2019s name on a sticky note, making the call feel more personal.",
+     "The second habit is to limit client research and focus on one solvable problem, nudging viewers away from procrastination.",
+     "The third habit is to practise the script out loud, using an actor comparison to explain how rehearsal can make delivery feel natural.",
+     "The fourth habit is to schedule follow-ups in advance, framing organization as a way to preserve attention for selling.",
+     "The fifth habit is to take a phone-free walk after the final call, offering a simple way to separate work stress from home life.",
+     "The speaker says the habits are simple but often overlooked, then asks viewers to follow for more sales advice."
+    ],
+    "dontReuse": [
+     "@riadmourssali",
+     "one in 10 calls",
+     "one in three",
+     "five habits",
+     "60 seconds",
+     "20 minutes",
+     "two minutes",
+     "every single morning",
+     "on Fridays",
+     "all of next week's follow UPS",
+     "10 minutes",
+     "Build great habits that lead you to success!"
+    ]
+   },
+   "fit": {
+    "verdict": "good",
+    "reasons": []
+   }
+  },
+  "answer": {
+   "as": "post",
+   "result": {
+    "as": "post",
+    "hook": "Good sales habits make follow-through easier.",
+    "body": "@riadmourssali makes a useful point: steady routines can support better sales work. We agree, especially when the routine keeps each client conversation thoughtful and each next step visible.\n\nFor self-employed professionals and coaches, try noting what the person needs, choosing one clear next step, and recording when to reconnect. A simple process can help keep chats and follow-ups from slipping through a busy week.\n\nAt ActivityTracker, we help sales reps manage clients, chats, follow-ups and targets in one app.",
+    "cta": "Choose one follow-up habit to put in place this week.",
+    "hashtags": [
+     "SalesFollowUp",
+     "ClientManagement",
+     "WhatsAppWorkflows",
+     "SalesHabits"
+    ]
+   },
+   "flags": {
+    "copied": [],
+    "claim": false,
+    "invented": true
+   },
+   "usage": {
+    "used": 12,
+    "limit": 30
+   }
+  }
+ }
+]

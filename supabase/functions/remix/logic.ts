@@ -273,6 +273,7 @@ const FORMAT_RULES: Record<Exclude<(typeof MAKE_AS)[number], "slideshow" | "wall
     "- body: the rest of the post after the hook, in short paragraphs, under 220 words.",
     "- cta: the call to action as one line.",
     "- hashtags: up to 5 relevant hashtags as words without the # sign, or none when the brand rules say none.",
+    "- The brand's name, when it goes in, appears once in the hook, body and cta together: if the cta names it, the body does not.",
   ],
   carousel: [
     "",
@@ -280,6 +281,7 @@ const FORMAT_RULES: Record<Exclude<(typeof MAKE_AS)[number], "slideshow" | "wall
     "- hook: the cover line, under 12 words.",
     "- slides: 4 to 8 slides after the cover, each with a title under 8 words and a body under 30 words.",
     "- cta: the last slide as one line that starts with Save this, Share this, Comment, DM me, Follow or Book a call.",
+    "- The brand's name, when it goes in, appears on one slide only, counting the cover and the cta.",
   ],
   script: [
     "",
@@ -707,7 +709,7 @@ export const slideNumbers = (slides: { title: string }[]) =>
   });
 
 export interface MakeProblem {
-  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length";
+  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length" | "cut";
   /** Sent back to the model for the one fixing pass. */
   fix: string;
   /** The refusal the adviser reads when the fix fails too. The use is kept: the model answered (only 502/503 refund). */
@@ -838,8 +840,56 @@ const wordsIn = (t: string) => t.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test
 /** The first line, or the first sentence when the wall has no line breaks. */
 const openingLine = (t: string) => t.trim().split(/\n|(?<=[.?!])\s/)[0];
 
-/** The format's own checks after writing (slideshow or wall); null for every other format. */
-export const makeProblem = (r: MakeResult, req: Pick<MakeRequest, "brand" | "source">) => slideshowProblem(r, req) ?? wallProblem(r, req);
+/** "And that can leave them...": a part that stops mid-thought, on an ellipsis or a dangling comma or dash. */
+export const endsMidSentence = (t: string) => /(?:\.\.\.|\u2026|[,;\u2013\u2014-])["'\u201d\u2019)\]]?\s*$/.test(t);
+
+/** Where each format finishes a thought; the slideshow's and the wall's captions are checked as whole sentences already. */
+const endings = (r: MakeResult): string[] =>
+  r.as === "post" ? [r.body, r.cta]
+  : r.as === "carousel" ? [r.slides[r.slides.length - 1]?.body ?? "", r.cta]
+  : r.as === "script" ? [r.beats[r.beats.length - 1]?.say ?? ""]
+  : r.as === "speaking" ? [r.script]
+  : r.as === "explainer" ? [r.scenes[r.scenes.length - 1]?.say ?? ""]
+  : [];
+
+/**
+ * A text post's or a carousel's checks in code (dogfood 21 Oct): no part ends mid-sentence (every format), the brand is
+ * named nowhere with mention off, and a business is named exactly once with mention on (4 of 6 posts named it in the
+ * body and the cta). A person's name stays a prompt rule only, as on the slideshow and the wall.
+ */
+export function textProblem(r: MakeResult, req: Pick<MakeRequest, "brand">): MakeProblem | null {
+  const cut = endings(r).find(endsMidSentence);
+  if (cut) {
+    return {
+      kind: "cut",
+      fix: `This part stops mid-sentence: "${cut.slice(-80)}". Return the whole JSON object again with every part ending on a complete sentence.`,
+      error: "That remix stopped mid-sentence. Try again.",
+    };
+  }
+  if (r.as !== "post" && r.as !== "carousel") return null;
+  const b = req.brand;
+  const name = b.name === NO_NAME[b.speaker] ? null : nameMatcher(b.name);
+  if (!name) return null;
+  const count = (textFields(r).join("\n").toLowerCase().match(new RegExp(name.source, "g")) ?? []).length;
+  if (!b.mention && count) {
+    return {
+      kind: "mention",
+      fix: `The post names ${b.name}, but this one must not. Return the whole JSON object again without ${b.name}.`,
+      error: `The post named ${b.name} after you picked No. Try again.`,
+    };
+  }
+  if (b.mention && b.speaker === "business" && count !== 1) {
+    return {
+      kind: "mention",
+      fix: `The post names ${b.name} ${count} times. Return the whole JSON object again with ${b.name} named exactly once in the hook, body and call to action together.`,
+      error: `The post didn't name ${b.name} once. Try again.`,
+    };
+  }
+  return null;
+}
+
+/** The format's own checks after writing: the slideshow's, the wall's, or the other formats' (textProblem). */
+export const makeProblem = (r: MakeResult, req: Pick<MakeRequest, "brand" | "source">) => slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req);
 
 /** The words a reader sees: not hashtags, search terms, picture prompts or filming notes. */
 export function textFields(r: MakeResult): string[] {

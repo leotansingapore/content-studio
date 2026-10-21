@@ -39,6 +39,7 @@ import {
   type MakeRequest,
   type MakeResult,
 } from "./logic";
+import DOGFOOD from "./fixtures/dogfood-makes-21oct.json";
 
 const SOURCE_TEXT = "6 signs your CPF plan is off track. Most people never check their CPF statement until it is too late. Save $12,000 by starting early.";
 
@@ -782,5 +783,62 @@ describe("the wall of text (formats-wall-of-text)", () => {
   it("counts the words on screen and the caption as what a reader sees, never the scene or search", () => {
     const fields = textFields(wall()!);
     expect(fields).toEqual([TEXT, `${RAW.caption}\n\n${RAW.cta}\n\n#sales`]);
+  });
+});
+
+// The 21 Oct dogfood's 12 makes for ActivityTracker, as sent and answered (docs/north-star/dogfood-activity-tracker.md)
+const dogfood = (call: string) => {
+  const d = DOGFOOD.find((x) => x.call === call)!;
+  const req = parseMakeRequest(d.request);
+  if (!req.ok) throw new Error(req.error);
+  return { req: req.value, result: validateMake("post", d.answer.result)! };
+};
+
+describe("textProblem: a post that stops mid-sentence or names the brand twice", () => {
+  it("sends back draft 2, which ends 'And that can leave them...', and Close's '...what to say next' with a unicode ellipsis", () => {
+    for (const call of ["014-remix.json", "030-remix.json"]) {
+      const { req, result } = dogfood(call);
+      const p = makeProblem(result, req);
+      expect(p?.kind, call).toBe("cut");
+      expect(p?.fix).toContain("stops mid-sentence");
+    }
+  });
+
+  it("sends back drafts 3 to 6, which name ActivityTracker in the body and the call to action", () => {
+    for (const call of ["017-remix.json", "020-remix.json", "023-remix.json", "026-remix.json"]) {
+      const { req, result } = dogfood(call);
+      expect(makeProblem(result, req), call).toMatchObject({ kind: "mention", fix: expect.stringContaining("names ActivityTracker 2 times") });
+    }
+  });
+
+  it("lets through a post that names it once, and the mention-off post that names it nowhere", () => {
+    for (const call of ["011-remix.json", "031-remix.json", "036-remix.json"]) {
+      const { req, result } = dogfood(call);
+      expect(makeProblem(result, req), call).toBeNull();
+    }
+  });
+
+  it("refuses the name with mention off and a business post that leaves it out, but never counts a person's name", () => {
+    const { req, result } = dogfood("011-remix.json");
+    expect(makeProblem(result, { brand: { ...req.brand, mention: false } })?.kind).toBe("mention");
+    const none = { ...result, cta: "Plan today's follow-ups." } as MakeResult;
+    expect(makeProblem(none, req)?.fix).toContain("names ActivityTracker 0 times");
+    expect(makeProblem(none, { brand: { ...req.brand, speaker: "person" } })).toBeNull();
+  });
+
+  it("reads an ellipsis, a dangling comma or a dash as a cut, and a question, an emoji or a quote as a finish", () => {
+    const post = (body: string): MakeResult => ({ as: "post", hook: "H", body, cta: "Try it.", hashtags: [] });
+    const brand = { ...make().brand, mention: false, name: "the adviser" };
+    for (const body of ["And that can leave them...", "And that can leave them…", "So they wait,", "Then you send it —", 'It reads as "have you decided..."'])
+      expect(makeProblem(post(body), { brand })?.kind, body).toBe("cut");
+    for (const body of ["Where are you at with this?", "Keep it moving \u{1F680}", 'They said "not now."', "Here is the fix:", "Done."])
+      expect(makeProblem(post(body), { brand }), body).toBeNull();
+    const script = validateMake("script", { hook: "Hi", beats: [1, 2, 3, 4].map((i) => ({ say: i === 4 ? "And then..." : `Line ${i}.`, onScreen: "", visual: "Desk", seconds: 5 })), caption: "Cap.", cta: "Go." })!;
+    expect(makeProblem(script, { brand })?.kind).toBe("cut");
+  });
+
+  it("tells the post's model to name the brand once across hook, body and cta", () => {
+    const { system } = buildMakePrompt(dogfood("017-remix.json").req);
+    expect(system).toContain("appears once in the hook, body and cta together: if the cta names it, the body does not.");
   });
 });

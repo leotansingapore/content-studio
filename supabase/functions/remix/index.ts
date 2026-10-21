@@ -204,8 +204,8 @@ Deno.serve(async (req) => {
       await refundUsage(admin, uid, "remix-make", charged.day);
       return fail("failed", "That remix didn't go through. Nothing was used.", 502);
     }
-    // the format's checks in code (the slideshow's hook number and brand slide, the wall's emoji, voice and name; mention
-    // off for both): one fixing pass, then a refusal that keeps the use
+    // the format's checks in code (the slideshow's hook number and brand slide, the wall's emoji, voice and name, a post's
+    // or carousel's one brand mention, any format's mid-sentence ending): one fixing pass, then a refusal that keeps the use
     const problem = makeProblem(first.result, make);
     if (problem) {
       const fixed = await write([...messages, { role: "assistant", content: first.raw }, { role: "user", content: problem.fix }]);
