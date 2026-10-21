@@ -6,11 +6,14 @@
 //
 // URL (docs/deep-links.md): play=mine|spoken (stock left out) and mention=no replace; topic=<words> fills what it
 // shows once, then leaves the address. Device hints: cs-make-hook-play (the last way picked) and cs-make-hook-demo
-// (the typed words); the demo's key and name ride in sessionStorage for this tab (hookDemoJob.ts).
+// (the typed words); the demo's key and name ride in sessionStorage for this tab (hookDemoJob.ts). The brand's saved
+// demos (/brand#demo-videos) are listed first and the first is picked when this tab has none, so a saved demo makes
+// a video with no file picked again; it plays its window and is never cleared from this device here.
 
 import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Loader2 } from "lucide-react";
+import { DemoThumb, SavedDemos } from "@/components/brand/DemoVideosSection";
 import FormatShell from "@/components/make/FormatShell";
 import { metaOf } from "@/components/make/PickList";
 import PriceChip from "@/components/PriceChip";
@@ -24,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatBySlug } from "@/data/formats";
 import { onAiJob } from "@/lib/aiVideo";
 import { useUsesLeft } from "@/lib/aiUsage";
+import { demoVideos, type DemoVideo } from "@/lib/demoVideos";
 import {
   HOOK_PLAYS, MAX_HOOK_CHARS, PLAY_LABELS, SPOKEN_TOO_LONG, clock, demoIssue, hookClipIssue, hookIssue, pressSpend, type HookPlay,
 } from "@/lib/hookDemo";
@@ -46,6 +50,9 @@ const TOUCH = "[@media(pointer:coarse)]:min-h-11";
 const DEMO_LIMITS = "MP4 or MOV, up to 100 MB and 30 seconds. Stays on this device.";
 const UNREADABLE = "Couldn't read that video. Try an MP4 or MOV.";
 const HOOK_WAITING = "Your last spoken hook is paid for and waiting. Finish it at no cost first.";
+
+/** A saved demo as this page plays it: its window's start and length. */
+const savedRef = (d: DemoVideo): DemoRef => ({ key: d.key, name: d.name, seconds: Math.round((d.end - d.start) * 100) / 100, ...(d.start > 0 ? { start: d.start } : {}) });
 
 /** Redraws on every change to the run, the hooks, and any AI video (one running or waiting stops a spoken hook). */
 function useHookDemo(): void {
@@ -92,7 +99,9 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
   const [play, setPlay] = useUrlState<HookPlay>("play", "stock", { allowed: HOOK_PLAYS, remember: PLAY_KEY });
   const [mention] = useUrlState("mention", "yes", { allowed: ["yes", "no"] });
   const [typed, setTyped] = useTyped();
-  const [demo, setDemo] = useState<DemoRef | null>(loadDemo);
+  const [saved] = useState(() => demoVideos(userId));
+  // this tab's demo, else the one a waiting spoken hook joins, else the brand's newest saved demo
+  const [demo, setDemo] = useState<DemoRef | null>(() => loadDemo() ?? pendingDemo() ?? (saved[0] ? savedRef(saved[0]) : null));
   const [demoError, setDemoError] = useState<string | null>(null);
   const [readingDemo, setReadingDemo] = useState(false);
   const [mine, setMine] = useState<{ file: File; name: string; seconds: number } | null>(null);
@@ -200,6 +209,17 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
     }
   };
 
+  const pickSaved = (d: DemoVideo) => {
+    const ref = savedRef(d);
+    setDemoError(null);
+    // a demo picked here earlier leaves this device; the saved one never does (keepOnlyDemo skips cvid- keys)
+    void keepOnlyDemo(ref.key);
+    saveDemo(ref);
+    setDemo(ref);
+    if (!set && !writing && !typed.own.trim() && (source || topic.trim().length >= 3)) void writeHooks(userId, { source, topic, mention: mention !== "no", demo: ref });
+  };
+  const isSaved = !!demo && saved.some((d) => d.key === demo.key);
+
   const onMine = async (f: File | undefined) => {
     if (!f) return;
     setMineError(null);
@@ -224,9 +244,12 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
       <Card className={cn("border-border/60 shadow-card", !demo && "ring-2 ring-primary/50")}>
         <CardContent className="space-y-2 pt-4 sm:pt-5">
           <p className={FIELD_LABEL}>Your demo</p>
-          {demo ? (
+          {saved.length > 0 && <SavedDemos list={saved} selected={demo?.key} onPick={pickSaved} disabled={readingDemo || busy} />}
+          {demo && !isSaved ? (
             <div className="flex items-center gap-3 rounded-lg border border-border/60 p-2">
-              {demo.thumb ? <img src={demo.thumb} alt="" className="h-14 w-14 shrink-0 rounded object-cover" /> : <span className="h-14 w-14 shrink-0 rounded bg-muted" />}
+              {demo.thumb ? <img src={demo.thumb} alt="" className="h-14 w-14 shrink-0 rounded object-cover" />
+              : demo.key.startsWith("cvid-") ? <DemoThumb demoKey={demo.key} />
+              : <span className="h-14 w-14 shrink-0 rounded bg-muted" />}
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{demo.name}</span>
                 <span className="block text-xs text-muted-foreground tabular-nums">{clock(demo.seconds)}</span>
@@ -236,9 +259,9 @@ export default function HookDemo({ userId, source }: { userId: string; source: R
               </Button>
             </div>
           ) : (
-            <Button size="sm" variant="outline" onClick={() => demoInput.current?.click()} disabled={readingDemo} className={cn("gap-1.5", TOUCH)}>
+            <Button size="sm" variant="outline" onClick={() => demoInput.current?.click()} disabled={readingDemo || (isSaved && busy)} className={cn("gap-1.5", TOUCH)}>
               {readingDemo && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Pick a video
+              {saved.length ? "Use another video" : "Pick a video"}
             </Button>
           )}
           <p className="text-xs text-muted-foreground">{DEMO_LIMITS}</p>

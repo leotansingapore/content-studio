@@ -7,11 +7,13 @@
 // behind=demo|picture, stand=corner, and for a presenter the talking head page's setting, length and voice, all
 // replace. Nothing makes on arrival: the presenter costs more than US$1, and the green screen has no Also make link.
 // Device: cs-make-green-screen-<scoped uid> keeps the typed note and the demo or picture picked; the presenter's script
-// and look are the talking head page's (cs-make-talking-head-<scoped uid>).
+// and look are the talking head page's (cs-make-talking-head-<scoped uid>). Behind them, the brand's saved demos that
+// play whole (/brand#demo-videos) are listed first; one picked is copied to its own bd-gs- key (greenScreen.ts).
 
 import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AlertTriangle, Loader2, Plus, X } from "lucide-react";
+import { SavedDemos } from "@/components/brand/DemoVideosSection";
 import FormatShell from "@/components/make/FormatShell";
 import { metaOf } from "@/components/make/PickList";
 import PriceChip from "@/components/PriceChip";
@@ -25,9 +27,10 @@ import { formatBySlug } from "@/data/formats";
 import { useUsesLeft } from "@/lib/aiUsage";
 import { LOOKS, MAX_LOOK, aiBusy, onAiJob, pendingAvatar } from "@/lib/aiVideo";
 import { createCanvasMeasure, svgDataUrl } from "@/lib/carouselRender";
+import { demoVideos, type DemoVideo } from "@/lib/demoVideos";
 import { cutoutReady, findsPerson } from "@/lib/faceVision";
 import {
-  CUTOUT_LOADING, GREEN_BEHIND, GREEN_TOAST, GREEN_WHO, NO_PERSON, OTHER_VIDEO, STANDS, bdKey, canWriteList, greenBusy, greenCaps, greenJob, greenPrice,
+  CUTOUT_LOADING, GREEN_BEHIND, GREEN_TOAST, GREEN_WHO, NO_PERSON, OTHER_VIDEO, STANDS, backdropDemos, bdKey, behindFromDemo, canWriteList, greenBusy, greenCaps, greenJob, greenPrice,
   greenReason, goOn, listPlan, loadTyped, noteItems, onGreenJob, resumeGreen, saveTyped, startGreen, writeList,
   type BehindPick, type GreenBehind, type GreenJob, type GreenWho, type Typed,
 } from "@/lib/greenScreen";
@@ -95,6 +98,7 @@ export default function GreenScreen({ userId, source }: { userId: string; source
   const [behindUrl, setBehindUrl] = useState<string | null | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [pickError, setPickError] = useState("");
+  const [savedDemos] = useState(() => backdropDemos(demoVideos(userId)));
   const left = useUsesLeft(greenBusy());
   const measure = useMemo(() => (typeof document === "undefined" ? null : createCanvasMeasure()), []);
   const resultRef = useRef<HTMLDivElement>(null);
@@ -210,6 +214,18 @@ export default function GreenScreen({ userId, source }: { userId: string; source
       setTyped((t) => ({ ...t, behind: { kind, key, name: f.name } }));
     } catch {
       setPickError(`Couldn't keep the ${noun} on this device.`);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const pickSaved = async (d: DemoVideo) => {
+    setPickError("");
+    setSaving(true);
+    try {
+      const p = await behindFromDemo(d);
+      setTyped((t) => ({ ...t, behind: p }));
+    } catch (e) {
+      setPickError((e as Error)?.name === "QuotaExceededError" ? "Couldn't keep the video on this device." : (e as Error)?.message || "Couldn't keep the video on this device.");
     } finally {
       setSaving(false);
     }
@@ -371,13 +387,14 @@ export default function GreenScreen({ userId, source }: { userId: string; source
             </div>
           ) : (
             <div className="space-y-1.5">
+              {behind === "demo" && savedDemos.length > 0 && <SavedDemos list={savedDemos} selected={pick?.from} onPick={(d) => void pickSaved(d)} disabled={saving} />}
               <div className="flex min-w-0 items-center gap-2">
                 <label className={PICK}>
-                  {saving ? "Keeping it on this device..." : pick ? (behind === "demo" ? "Change video" : "Change picture") : behind === "demo" ? "Pick a video" : "Pick a picture"}
+                  {saving ? "Keeping it on this device..." : pick && !pick.from ? (behind === "demo" ? "Change video" : "Change picture") : behind === "demo" ? "Pick a video" : "Pick a picture"}
                   <input type="file" accept={behind === "demo" ? "video/*" : "image/*"} className="sr-only" disabled={saving}
                     onChange={(e) => { void pickBehind(e.target.files?.[0], behind); e.target.value = ""; }} />
                 </label>
-                {pick && <span className="min-w-0 truncate text-xs text-muted-foreground">{pick.name}</span>}
+                {pick && !pick.from && <span className="min-w-0 truncate text-xs text-muted-foreground">{pick.name}</span>}
               </div>
               {pickError || (typed.behind?.kind === behind && behindUrl === null) ? (
                 <p className="text-xs text-destructive" role="alert">{pickError || "That file isn't on this device any more. Pick it again."}</p>
