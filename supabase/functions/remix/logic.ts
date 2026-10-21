@@ -1,7 +1,7 @@
 // The remix function's rules (docs/north-star/items/remix-everywhere.md, remix-intent, remix-closeness and
 // remix-your-brand): what the request may hold, the prompt, the output each format must have, and the copy check
-// after writing. Pure: no Deno globals and no runtime import of openaiChat or jev, because the app imports
-// intentsFor and the types from here.
+// after writing. Pure: no Deno globals and no runtime import of openaiChat or askJev, because the app imports
+// intentsFor and the types from here (jev.ts's pure answer readers are fine; the app bundles them through market/logic.ts).
 
 import {
   BEAT_SCHEMA,
@@ -16,14 +16,14 @@ import {
   type VoiceInput,
 } from "../clone-reel/logic.ts";
 import { MAX_SCENES, MIN_SCENES, validateScript } from "../ai-video/logic.ts";
-import type { JevQuestion } from "../_shared/jev.ts";
+import { choiceOf, noulOf, scoreOf, type JevAnswer, type JevQuestion } from "../_shared/jev.ts";
 import { numbersIn, reusedItems, sharedRuns } from "./overlap.ts";
 
 /** No 'face': "You speaking" in the Make row replaces it. */
 export type Keep = "structure" | "hook" | "energy" | "topic" | "part2" | "react";
 export type Close = "loose" | "balanced" | "close";
-/** Every format is made here; slideshow and wall can also start from a typed topic. */
-export type RemixAs = "post" | "carousel" | "script" | "speaking" | "explainer" | "slideshow" | "wall";
+/** Every format is made here; the TOPIC_AS ones can also start from a typed topic. notes to meme are phase 3's format pages. */
+export type RemixAs = "post" | "carousel" | "script" | "speaking" | "explainer" | "slideshow" | "wall" | "notes" | "hooks" | "image" | "meme";
 export type FitReason = "serves" | "retell" | "masSafe" | "textHeavy";
 /** Who the post speaks as: the adviser in the first person, or a business that never claims a personal story. */
 export type Speaker = "person" | "business";
@@ -32,9 +32,9 @@ const NO_NAME: Record<Speaker, string> = { business: "the business", person: "th
 
 export const KEEPS: readonly Keep[] = ["structure", "hook", "energy", "topic", "part2", "react"];
 export const CLOSES: readonly Close[] = ["loose", "balanced", "close"];
-export const MAKE_AS = ["post", "carousel", "script", "speaking", "explainer", "slideshow", "wall"] as const satisfies readonly RemixAs[];
+export const MAKE_AS = ["post", "carousel", "script", "speaking", "explainer", "slideshow", "wall", "notes", "hooks", "image", "meme"] as const satisfies readonly RemixAs[];
 /** The formats a make can write from a typed topic, with no original. */
-export const TOPIC_AS: readonly RemixAs[] = ["slideshow", "wall"];
+export const TOPIC_AS: readonly RemixAs[] = ["slideshow", "wall", "speaking", "notes", "hooks", "image", "meme"];
 export const MAX_TOPIC = 200;
 /** The two formats that go on to a paid AI video after the script. */
 export const VIDEO_AS = ["speaking", "explainer"] as const satisfies readonly RemixAs[];
@@ -47,6 +47,59 @@ export const MIN_WALL_WORDS = 25;
 export const MAX_WALL_CHARS = 400;
 /** video-assist's montage-pick keeps 90 characters of a beat's say; the wall's scene is that beat. */
 export const MAX_WALL_SCENE = 90;
+
+// ---- phase 3's shapes (format pages: talking head, text over a made scene, green screen, hook plus demo, static
+// ad and meme). Each keeps the compliance block, the brand pack and speaker rule, and the copy check.
+
+/** formats-talking-head's lengths; each takes round(2.4 x s) to round(3.2 x s) spoken words (Fastlane's 36 to 48 at 15 s). */
+export const SPEAKING_SECONDS = [8, 15, 20, 30] as const;
+export type SpeakingSeconds = (typeof SPEAKING_SECONDS)[number];
+export const speakingWords = (s: number) => ({ low: Math.round(2.4 * s), high: Math.round(3.2 * s) });
+/** The made clips behind Words over a made scene (ai-video templates scene-kitchen, scene-walk, scene-interview). */
+export const WALL_SCENES = {
+  kitchen: "someone at a home kitchen counter slicing fruit",
+  walk: "someone walking along a park connector, filming themselves",
+  interview: "someone seated for a documentary interview, looking just off camera",
+} as const;
+export type WallScene = keyof typeof WALL_SCENES;
+/** Words over a made 8 s clip are read in the clip: 25 to 30. */
+export const MADE_SCENE_WORDS = 30;
+/** formats-green-screen's note list. */
+export const NOTES = { titleWords: 8, itemWords: 12, min: 3, max: 6 } as const;
+/** formats-hook-demo's hooks: three, one per formula sent. */
+export const MAKE_HOOK_WORDS = 12;
+/** A hook formula as the app sends it (src/lib/hookFormulas.ts through writeHooks' shape). */
+export interface HookFormula {
+  id: string;
+  name: string;
+  template: string;
+  example: string;
+  trap: string;
+}
+/** formats-static-ad's layouts and the words each one takes, with their word limits. */
+export const AD_LAYOUTS = ["headline", "quote", "stat", "testimonial"] as const;
+export type AdLayout = (typeof AD_LAYOUTS)[number];
+export type AdWord = "headline" | "line" | "button" | "quote" | "statLabel";
+export const AD_WORDS: Record<AdLayout, Partial<Record<AdWord, number>>> = {
+  headline: { headline: 8, line: 16, button: 3 },
+  quote: { quote: 25 },
+  stat: { statLabel: 12 },
+  testimonial: { quote: 25 },
+};
+/** proposal (decision 11): Jev's layout pick is taken at this or more, else Headline ad. */
+export const AD_LAYOUT_AT = 0.5;
+/** formats-memes' layouts and the words each one takes, with their word limits. */
+export const MEME_LAYOUTS = ["top-bottom", "nobody-me", "expectation", "pov", "post-reaction"] as const;
+export type MemeLayout = (typeof MEME_LAYOUTS)[number];
+export const MEME_FIELDS: Record<MemeLayout, Record<string, number>> = {
+  "top-bottom": { top: 10, bottom: 10 },
+  "nobody-me": { setup: 12, punch: 12 },
+  expectation: { expectation: 6, reality: 6 },
+  pov: { line: 15 },
+  "post-reaction": { post: 30 },
+};
+/** proposal (decision 11): an option Jev reads as unsafe at this or more is dropped. */
+export const MEME_UNSAFE_AT = 0.4;
 const FIT_REASONS: readonly FitReason[] = ["serves", "retell", "masSafe", "textHeavy"];
 const FORMATS = ["video", "carousel", "image", "text"] as const;
 
@@ -90,6 +143,20 @@ export interface MakeRequest {
   teardown?: { hookPattern?: string; beats?: string[]; dontReuse?: string[] };
   /** Ids only, never client text. */
   fit?: { verdict: "good" | "weak" | "poor" | "unknown"; reasons: FitReason[] };
+  /** speaking only: the length, which sets the words (speakingWords). */
+  seconds?: SpeakingSeconds;
+  /** wall only: the made clip the words go over (Words over a made scene). */
+  scene?: WallScene;
+  /** wall only: 25 to 30 words, read in an 8 s clip. */
+  maxWords?: typeof MADE_SCENE_WORDS;
+  /** hooks only: exactly 3, one hook each. */
+  formulas?: HookFormula[];
+  /** hooks only: the demo the hook opens, the only thing known about it. */
+  demo?: { name: string; seconds: number };
+  /** image: an ad layout, picked by Jev when none is sent; meme: its layout, always sent. */
+  layout?: AdLayout | MemeLayout;
+  /** image only: the source ad's picture in one sentence (remix-link image mode), at most 300. */
+  shows?: string;
 }
 
 export type MakeResult =
@@ -99,12 +166,19 @@ export type MakeResult =
   | { as: "speaking"; script: string; caption: string }
   | { as: "explainer"; scenes: { say: string; picture: string }[]; caption: string }
   | { as: "slideshow"; slides: { title: string; sub: string; search: string }[]; caption: string }
-  | { as: "wall"; text: string; scene: string; search: string; caption: string };
+  | { as: "wall"; text: string; scene: string; search: string; caption: string }
+  | { as: "notes"; title: string; items: string[]; caption: string }
+  | { as: "hooks"; hooks: { text: string; formula: string }[] }
+  | { as: "image"; layout: AdLayout; layoutBy: "jev" | "default"; words: Partial<Record<AdWord, string>>; caption: string }
+  /** best and dropped come from Jev after writing (memeVerdict); dropped options stay in the list. */
+  | { as: "meme"; options: Record<string, string>[]; best: number | null; dropped: number[]; caption: string };
 
 export interface Flags {
   copied: string[];
   claim: boolean;
   invented: boolean;
+  /** image and meme only: Jev's MAS question on the words (masWarn), null when not asked or no answer (scanCompliance then). */
+  mas?: boolean | null;
 }
 
 export interface MakeResponse {
@@ -238,6 +312,8 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
   const t = obj(r.teardown);
   const f = obj(r.fit);
   const verdict = ["good", "weak", "poor", "unknown"].find((v) => v === f.verdict) as NonNullable<MakeRequest["fit"]>["verdict"] | undefined;
+  const shape = parseShape(as, r, speaker);
+  if (typeof shape === "string") return { ok: false, error: shape };
   return {
     ok: true,
     value: {
@@ -262,8 +338,50 @@ export function parseMakeRequest(raw: unknown): { ok: true; value: MakeRequest }
       },
       teardown: { hookPattern: line(t.hookPattern, 200) || undefined, beats: list(t.beats, 8, 200), dontReuse: list(t.dontReuse, 12, 80) },
       fit: verdict ? { verdict, reasons: (Array.isArray(f.reasons) ? f.reasons : []).filter((x): x is FitReason => FIT_REASONS.includes(x as FitReason)) } : undefined,
+      ...shape,
     },
   };
+}
+
+/** Phase 3's options, each read only on its own shape: the cleaned fields, or the 400 message. */
+function parseShape(as: RemixAs, r: Item, speaker: Speaker): Partial<MakeRequest> | string {
+  if (as === "speaking" && r.seconds != null) {
+    const seconds = SPEAKING_SECONDS.find((x) => x === r.seconds);
+    return seconds ? { seconds } : "Pick 8, 15, 20 or 30 seconds.";
+  }
+  if (as === "wall") {
+    const scene = (Object.keys(WALL_SCENES) as WallScene[]).find((x) => x === r.scene);
+    if (r.scene != null && !scene) return "Pick a scene: kitchen, walk or interview.";
+    if (r.maxWords != null && r.maxWords !== MADE_SCENE_WORDS) return `Words over a made scene take at most ${MADE_SCENE_WORDS} words.`;
+    return { ...(scene ? { scene } : {}), ...(r.maxWords != null ? { maxWords: MADE_SCENE_WORDS } : {}) };
+  }
+  if (as === "hooks") {
+    const formulas = (Array.isArray(r.formulas) ? r.formulas : []).map((x) => {
+      const o = obj(x);
+      return { id: line(o.id, 30), name: line(o.name, 40), template: line(o.template, 200), example: line(o.example, 240), trap: line(o.trap, 160) };
+    });
+    const ids = new Set(formulas.map((x) => x.id));
+    if (formulas.length !== 3 || ids.size !== 3 || formulas.some((x) => !/^[a-z-]+$/.test(x.id) || !x.name || !x.template)) return "Send three hook formulas.";
+    const d = obj(r.demo);
+    const name = line(d.name, 120);
+    const seconds = Math.round(Number(d.seconds) * 10) / 10;
+    // the demo is context only: a bad one is left out, never a refusal
+    return { formulas, ...(name && seconds > 0 && seconds <= 30 ? { demo: { name, seconds } } : {}) };
+  }
+  if (as === "image") {
+    const layout = AD_LAYOUTS.find((x) => x === r.layout);
+    if (r.layout != null && !layout) return "Pick a layout: headline, quote, stat or testimonial.";
+    // decision 12: an adviser's ads never carry a client's words (MAS and insurers' own rules)
+    if (layout === "testimonial" && speaker !== "business") return "Testimonials are for business brands only.";
+    if (typeof r.shows === "string" && r.shows.length > 300) return "Keep what the picture shows under 300 characters.";
+    const shows = line(r.shows, 300);
+    return { ...(layout ? { layout } : {}), ...(shows ? { shows } : {}) };
+  }
+  if (as === "meme") {
+    const layout = MEME_LAYOUTS.find((x) => x === r.layout);
+    return layout ? { layout } : "Pick a meme layout.";
+  }
+  return {};
 }
 
 /** What the copy check looks for besides shared runs: the teardown's list plus every figure in the original. */
@@ -297,7 +415,7 @@ const introLines = (own: boolean, speaker: Speaker, floor: number) => [
 export const BUSINESS_VOICE =
   "- Write as the business: 'we', its name, or 'you' to the reader, in the voice described in the message, with short plain sentences. Never write 'I', and never claim a personal experience, a personal story or a client story.";
 
-const FORMAT_RULES: Record<Exclude<(typeof MAKE_AS)[number], "slideshow" | "wall">, string[]> = {
+const FORMAT_RULES: Record<"post" | "carousel" | "script" | "speaking" | "explainer", string[]> = {
   post: [
     "",
     "Write a text post:",
@@ -391,7 +509,8 @@ function wallRules(req: MakeRequest): string[] {
     req.source
       ? `- text: the words on screen. Keep the original's opening (a "POV:" stays a "POV:", a question stays a question), its line breaks and its emoji (${n ? `${n} of the same kind` : "none"}). Never its words, numbers, brand or claims.`
       : "- text: the words on screen. Open in a proven shape: POV, a question, the mistake, or a quoted objection. At most 1 emoji.",
-    `- The text is ${MIN_WALL_WORDS} to ${MAX_WALL_WORDS} words and at most ${MAX_WALL_CHARS} characters, with no hashtags: a block the reader reads, not a title.`,
+    `- The text is ${MIN_WALL_WORDS} to ${req.maxWords ?? MAX_WALL_WORDS} words and at most ${MAX_WALL_CHARS} characters, with no hashtags: a block the reader reads, not a title.`,
+    req.scene ? `- The words go over a short made clip of ${WALL_SCENES[req.scene]}. Write them so the clip quietly backs them up, and never describe the clip.` : "",
     "- The opening line is about the reader: a moment in their day, a question they ask, or a mistake they make. Never the product.",
     b.mention ? `- Name ${b.name} exactly once in the text, plainly, after the opening line and never in it.` : "",
     b.speaker === "business" ? "- Never write I, me or my, even in a casual voice: talk to the reader as you, or as we." : "",
@@ -404,8 +523,138 @@ function wallRules(req: MakeRequest): string[] {
   ].filter((l, i) => i === 0 || l);
 }
 
-const formatRules = (req: MakeRequest) =>
-  req.as === "slideshow" ? slideshowRules(req) : req.as === "wall" ? wallRules(req) : FORMAT_RULES[req.as as keyof typeof FORMAT_RULES];
+/** The caption, call to action and hashtags every phase 3 shape with a caption ends on, as the slideshow's. */
+const CAPTION_RULES = [
+  "- caption: 2 to 4 complete sentences for the post caption that add to the words above, never those words cut short. No hashtags.",
+  "- cta: one complete sentence asking the reader to do one thing: save it, follow, or comment.",
+  "- hashtags: up to 3 relevant hashtags as words without the # sign, or none when the brand rules say none.",
+];
+const refuseRule = (req: MakeRequest, what: string) =>
+  `- refuse: true only when ${req.source ? "the original" : "the topic"} cannot be made into ${what} that is safe to post, with reason saying why in one sentence (the rest may be empty). Otherwise false, with reason empty.`;
+
+/** formats-talking-head: spoken English for a still picture that Speak animates, so it can't act anything out. */
+function speakingRules(req: MakeRequest): string[] {
+  const s = req.seconds!;
+  const { low, high } = speakingWords(s);
+  return [
+    "",
+    `Write a script someone says to the phone camera, about ${s} seconds:`,
+    `- script: only the spoken words, ${low} to ${high} words, in spoken English: short sentences, contractions, and at most one filler word like "honestly" or "so". Open with a line that stops the scroll and end with a soft call to action.`,
+    "- No stage directions, actions, brackets, asterisks, labels, emoji or hashtags: a still picture is animated to say it, so it cannot act anything out.",
+    "- caption: the post caption, under 120 words, ending with the call to action and at most 3 hashtags.",
+    refuseRule(req, "a script"),
+  ];
+}
+
+/** formats-green-screen: a plain note list a presenter stands in front of. */
+function notesRules(req: MakeRequest): string[] {
+  return [
+    "",
+    "Write a note list: a short video shows a person standing in front of it, like a plain note on a phone.",
+    `- title: the note's title, at most ${NOTES.titleWords} words, about the reader's problem or goal.`,
+    `- items: ${NOTES.min} to ${NOTES.max} items, each one plain thing the reader can do or check, at most ${NOTES.itemWords} words, with no number in front and no emoji.`,
+    "- Never state a figure, rate or result as a fact.",
+    ...CAPTION_RULES,
+    refuseRule(req, "a note list"),
+  ];
+}
+
+/** formats-hook-demo: three hooks, one per formula sent, to open a demo. The formulas and the demo are in the message. */
+function hooksRules(req: MakeRequest): string[] {
+  return [
+    "",
+    `Write 3 hooks: the line a short video opens on${req.demo ? ", before a demo of the product (described in the message)" : ""}, read or heard before the viewer decides to stay.`,
+    "- hooks: exactly 3, one for each formula listed in the message, in that formula's shape, each with that formula's id.",
+    `- text: at most ${MAKE_HOOK_WORDS} words, sentence case, plain words, no hashtags, emoji or quote marks.`,
+    "- Never invent a number, a client or a result. When a formula needs a number you were not given, keep its shape without one.",
+    refuseRule(req, "a set of hooks"),
+  ];
+}
+
+const AD_RULES: Record<AdLayout, string[]> = {
+  headline: [
+    "a picture with a headline, one line under it and a button.",
+    "- words.headline: at most 8 words.",
+    "- words.line: one sentence under the headline, at most 16 words.",
+    "- words.button: the action, at most 3 words, like Message me.",
+  ],
+  quote: ["a quotation in large type with the speaker's name under it.", "- words.quote: one line worth quoting, at most 25 words, in the brand's own voice."],
+  stat: [
+    "one big number with a short line under it saying what it means. The brand types the number and its source itself.",
+    "- words.statLabel: what the number means, at most 12 words, with no number in it.",
+  ],
+  testimonial: [
+    "a customer's words about the business, with their first name.",
+    "- words.quote: a customer's own words, copied exactly from the facts given, at most 25 words. When the facts hold none, leave it empty: never write a customer's words yourself.",
+  ],
+};
+
+/** formats-static-ad: the words for one designed picture, in the source ad's structure and none of its words. */
+function imageRules(req: MakeRequest): string[] {
+  const layout = (req.layout as AdLayout | undefined) ?? "headline";
+  const [shape, ...fields] = AD_RULES[layout];
+  return [
+    "",
+    `Write the words for one static ad picture. Its layout is ${shape}`,
+    ...fields,
+    "- Leave every other words field empty.",
+    "- Never put a number in the words: no figures, prices, percentages or counts.",
+    ...(req.source ? ["- Keep the original ad's structure and none of its words: no run of 4 or more words from it, and none of its brand, claims or numbers."] : []),
+    ...CAPTION_RULES,
+    refuseRule(req, "an ad"),
+  ];
+}
+
+const MEME_RULES: Record<MemeLayout, string> = {
+  "top-bottom": "- top: the setup, at most 10 words. bottom: the punchline, at most 10 words. Both are shown in capitals over a picture.",
+  "nobody-me": "- setup: who and when, shown after 'Nobody:', starting with Me, like 'Me at 2am', at most 12 words. punch: what they are doing, at most 12 words.",
+  expectation: "- expectation: the label over the first picture, at most 6 words. reality: the label over the second picture, at most 6 words.",
+  pov: "- line: what follows 'POV:', at most 15 words.",
+  "post-reaction": "- post: a short post in the brand's voice that a reaction picture answers, at most 30 words.",
+};
+
+/** formats-memes: three jokes in one layout about a moment the brand's audience lives through. */
+function memeRules(req: MakeRequest): string[] {
+  return [
+    "",
+    "Write 3 memes: short, dry jokes about a moment the audience lives through (paying the bills, saving for a flat, a parent asking about insurance), in the Singapore English they use, from what the brand does and who it serves.",
+    "- options: exactly 3, each a different joke, each with these fields:",
+    MEME_RULES[req.layout as MemeLayout],
+    "- Never mock a group of people, a race, a religion, a company or a competitor, and never name or picture a real person.",
+    "- No promised returns or results, and never name an insurer or anyone else's product.",
+    ...CAPTION_RULES,
+    refuseRule(req, "a meme"),
+  ];
+}
+
+const formatRules = (req: MakeRequest): string[] => {
+  switch (req.as) {
+    case "slideshow": return slideshowRules(req);
+    case "wall": return wallRules(req);
+    case "speaking": return req.seconds ? speakingRules(req) : FORMAT_RULES.speaking;
+    case "notes": return notesRules(req);
+    case "hooks": return hooksRules(req);
+    case "image": return imageRules(req);
+    case "meme": return memeRules(req);
+    default: return FORMAT_RULES[req.as];
+  }
+};
+
+/** The copy floor for a make: an ad image keeps no 4-word run (formats-static-ad), the rest the level's own. */
+export const floorOf = (req: Pick<MakeRequest, "as" | "close">) => (req.as === "image" ? 4 : RUN_FLOOR[req.close ?? "balanced"]);
+
+/** What a shape adds to the user message, after the original or the topic: the hook formulas and the demo, or the ad's picture. */
+function shapeLines(req: MakeRequest): string[] {
+  if (req.as === "hooks") {
+    return [
+      "",
+      "Formulas:",
+      ...(req.formulas ?? []).map((f) => `- ${f.id} (${f.name}). Shape: ${f.template} Example of the shape only, never its facts: ${f.example} Avoid: ${f.trap}`),
+      ...(req.demo ? ["", `The demo: a ${req.demo.seconds}-second video. Its file name:`, quote(req.demo.name)] : []),
+    ];
+  }
+  return req.as === "image" && req.shows ? ["", "What the original ad's picture shows:", quote(req.shows)] : [];
+}
 
 export const MAS_LINE =
   "The original's angle may not be safe for a licensed adviser in Singapore: keep its format and switch to a money, protection or planning topic that fits the adviser's audience.";
@@ -476,7 +725,7 @@ export function buildMakePrompt(req: MakeRequest): { system: string; user: strin
   const keep = req.keep ?? "structure";
   const sp = req.brand.speaker;
   const system = [
-    ...introLines(src.kind === "own", sp, RUN_FLOOR[req.close ?? "balanced"]),
+    ...introLines(src.kind === "own", sp, floorOf(req)),
     ...formatRules(req),
     ...complianceFor(sp),
     "",
@@ -502,6 +751,7 @@ export function buildMakePrompt(req: MakeRequest): { system: string; user: strin
         : ["", "Its beats, in order:", ...req.teardown.beats.map((b, i) => `${i + 1}. ${b}`)]
       : []),
     ...(dontReuse.length ? ["", `Do not reuse: ${dontReuse.join("; ")}`] : []),
+    ...shapeLines(req),
     ...voiceLines(req.voice, req.brand.speaker),
   ].join("\n");
   return { system, user: user.replace(/\n{3,}/g, "\n\n") };
@@ -525,7 +775,7 @@ function buildTopicPrompt(req: MakeRequest): { system: string; user: string } {
     ...brandLines(req.brand),
     ...(req.note ? ["", asSpeaker("The adviser's own note (it wins over the defaults above, never over the compliance rules):", sp), quote(req.note)] : []),
   ].join("\n");
-  const user = ["The topic:", quote(req.topic ?? ""), ...voiceLines(req.voice, sp)].join("\n");
+  const user = ["The topic:", quote(req.topic ?? ""), ...shapeLines(req), ...voiceLines(req.voice, sp)].join("\n");
   return { system, user };
 }
 
@@ -546,8 +796,8 @@ const schema = (name: string, properties: Record<string, unknown>) => ({
   json_schema: { name, strict: true, schema: { type: "object", additionalProperties: false, required: Object.keys(properties), properties } },
 });
 
-/** OpenAI structured output, one per format. */
-export const MAKE_RESPONSE_FORMATS: Record<(typeof MAKE_AS)[number], unknown> = {
+/** OpenAI structured output, one per format a remix made before phase 3; responseFormat adds the phase 3 shapes. */
+export const MAKE_RESPONSE_FORMATS: Record<"post" | "carousel" | "script" | "speaking" | "explainer" | "slideshow" | "wall", unknown> = {
   post: schema("remix_post", {
     hook: str("First line"),
     body: str("The rest of the post"),
@@ -610,6 +860,73 @@ export const MAKE_RESPONSE_FORMATS: Record<(typeof MAKE_AS)[number], unknown> = 
   }),
 };
 
+const REFUSE = {
+  refuse: { type: "boolean", description: "True only when it can't be made safe to post" },
+  reason: str("Why it was refused, in one sentence, or empty"),
+};
+const CAPTION = {
+  caption: str("2 to 4 complete sentences, no hashtags"),
+  cta: str("One complete sentence: the call to action"),
+  hashtags: { type: "array", description: "Up to 3, words without #", items: { type: "string" } },
+};
+const fieldsObject = (fields: Record<string, number>) => ({
+  type: "object",
+  additionalProperties: false,
+  required: Object.keys(fields),
+  properties: Object.fromEntries(Object.entries(fields).map(([k, n]) => [k, str(`At most ${n} words`)])),
+});
+
+/** The structured output for this request: today's formats exactly as before, the phase 3 shapes built from their options. */
+export function responseFormat(req: MakeRequest): unknown {
+  switch (req.as) {
+    case "speaking": {
+      if (!req.seconds) return MAKE_RESPONSE_FORMATS.speaking;
+      const { low, high } = speakingWords(req.seconds);
+      return schema("remix_speaking", { ...REFUSE, script: str(`Only the spoken words, ${low} to ${high} words`), caption: str("Post caption ending with the call to action") });
+    }
+    case "wall": {
+      if (!req.maxWords) return MAKE_RESPONSE_FORMATS.wall;
+      const wall = (MAKE_RESPONSE_FORMATS.wall as { json_schema: { schema: { properties: Record<string, unknown> } } }).json_schema.schema.properties;
+      return schema("remix_wall", { ...wall, text: str(`The words on screen, ${MIN_WALL_WORDS} to ${req.maxWords} words`) });
+    }
+    case "notes":
+      return schema("remix_notes", {
+        ...REFUSE,
+        title: str(`At most ${NOTES.titleWords} words`),
+        items: { type: "array", description: `${NOTES.min} to ${NOTES.max} items, each at most ${NOTES.itemWords} words`, items: { type: "string" } },
+        ...CAPTION,
+      });
+    case "hooks":
+      return schema("remix_hooks", {
+        ...REFUSE,
+        hooks: {
+          type: "array",
+          description: "Exactly 3, one per formula",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["formula", "text"],
+            properties: { formula: { type: "string", enum: (req.formulas ?? []).map((f) => f.id) }, text: str(`At most ${MAKE_HOOK_WORDS} words`) },
+          },
+        },
+      });
+    case "image":
+      return schema("remix_image", {
+        ...REFUSE,
+        words: fieldsObject({ headline: 8, line: 16, button: 3, quote: 25, statLabel: 12 }),
+        ...CAPTION,
+      });
+    case "meme":
+      return schema("remix_meme", {
+        ...REFUSE,
+        options: { type: "array", description: "Exactly 3 memes", items: fieldsObject(MEME_FIELDS[req.layout as MemeLayout]) },
+        ...CAPTION,
+      });
+    default:
+      return MAKE_RESPONSE_FORMATS[req.as];
+  }
+}
+
 const wordCount = (t: string) => t.split(/\s+/).filter(Boolean).length;
 /** "[smiles]", "(pause)" or "*beat*": the voice would read them out. */
 const STAGE_DIRECTION = /[[\]()*]/;
@@ -622,9 +939,12 @@ const chars = (t: string, n: number) => (t.length > n ? t.slice(0, n + 1).replac
 const ENDS_SENTENCE = /(?:[.!?]["')\]]?|\p{Extended_Pictographic})[\p{Emoji_Modifier}️‍\s]*$/u;
 const squash = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-/** The model's own refusal of a slideshow or a wall of text: its reason, or null when it wrote one. */
+/** The formats whose schema lets the model refuse (a speaking script only with seconds). */
+const REFUSES: readonly RemixAs[] = ["slideshow", "wall", "speaking", "notes", "hooks", "image", "meme"];
+
+/** The model's own refusal: its reason, or null when it wrote the format. */
 export function refusalOf(as: RemixAs, raw: unknown): string | null {
-  const r = as === "slideshow" || as === "wall" ? parseObject(raw) : null;
+  const r = REFUSES.includes(as) ? parseObject(raw) : null;
   return r?.refuse === true ? line(r.reason, 300) || "refused" : null;
 }
 
@@ -642,10 +962,26 @@ export function slideshowCaption(r: Record<string, unknown>, slides: { title: st
   return [caption, cta, tags.join(" ")].filter(Boolean).join("\n\n");
 }
 
+/** What validateMake reads from the request: the phase 3 options, and whether Jev picked an image's layout. */
+export type MakeOpts = Partial<Pick<MakeRequest, "seconds" | "maxWords" | "formulas" | "layout">> & { layoutBy?: "jev" | "default" };
+
+/** Each field as one clean line, kept only when it has words and fits its limit; null when any field fails. */
+function fieldsWithin(raw: unknown, limits: Record<string, number>, optional: string[] = []): Record<string, string> | null {
+  const o = obj(raw);
+  const out: Record<string, string> = {};
+  for (const [k, n] of Object.entries(limits)) {
+    const v = line(o[k], 400);
+    if (wordCount(v) > n || (!v && !optional.includes(k))) return null;
+    if (v) out[k] = v;
+  }
+  return out;
+}
+
 /** The result cleaned and capped, or null when it can't be used as is. */
-export function validateMake(as: RemixAs, raw: unknown): MakeResult | null {
+export function validateMake(as: RemixAs, raw: unknown, req: MakeOpts = {}): MakeResult | null {
   const r = parseObject(raw);
   if (!r) return null;
+  if (as === "notes" || as === "hooks" || as === "image" || as === "meme") return r.refuse === true ? null : validateShape(as, r, req);
   if (as === "slideshow") {
     if (r.refuse === true) return null;
     const rows = Array.isArray(r.slides) ? r.slides : [];
@@ -660,7 +996,7 @@ export function validateMake(as: RemixAs, raw: unknown): MakeResult | null {
     if (r.refuse === true) return null;
     // hashtags go in the caption, never on screen ("#1" is a rank, not a tag)
     const text = blockText(typeof r.text === "string" ? r.text.replace(/#\p{L}[\p{L}\p{N}_]*/gu, "") : "", 2000);
-    if (!text || wordCount(text) > MAX_WALL_WORDS || text.length > MAX_WALL_CHARS) return null;
+    if (!text || wordCount(text) > (req.maxWords ?? MAX_WALL_WORDS) || text.length > MAX_WALL_CHARS) return null;
     const scene = chars(line(r.scene, 300), MAX_WALL_SCENE);
     const search = words(String(r.search ?? "").toLowerCase().replace(/[^a-z0-9\s]/g, " "), 4);
     // the wall's words, whole or cut, are not a caption: checked as one slide holding the text
@@ -668,9 +1004,12 @@ export function validateMake(as: RemixAs, raw: unknown): MakeResult | null {
     return caption ? { as, text, scene, search, caption } : null;
   }
   if (as === "speaking") {
+    if (r.refuse === true) return null;
     const script = blockText(r.script, 1000);
     const caption = blockText(r.caption, 2200);
-    const ok = script && caption && wordCount(script) <= MAX_SPEAKING_WORDS && !STAGE_DIRECTION.test(script);
+    // with seconds the length's ceiling replaces the 70 (too few words is a problem with one fixing pass, lengthProblem)
+    const max = req.seconds ? speakingWords(req.seconds).high : MAX_SPEAKING_WORDS;
+    const ok = script && caption && wordCount(script) <= max && !STAGE_DIRECTION.test(script);
     return ok ? { as, script, caption } : null;
   }
   if (as === "explainer") {
@@ -702,6 +1041,41 @@ export function validateMake(as: RemixAs, raw: unknown): MakeResult | null {
     return { as, hook, beats, caption, cta };
   }
   return null;
+}
+
+/** Phase 3's shapes, each held to its limits; a caption is its own complete sentences, as the slideshow's. */
+function validateShape(as: "notes" | "hooks" | "image" | "meme", r: Item, req: MakeOpts): MakeResult | null {
+  if (as === "hooks") {
+    const ids = (req.formulas ?? []).map((f) => f.id);
+    const hooks = (Array.isArray(r.hooks) ? r.hooks : []).map((x) => ({ text: line(obj(x).text, 200), formula: String(obj(x).formula ?? "") }));
+    const ok =
+      hooks.length === 3 &&
+      new Set(hooks.map((h) => h.formula)).size === 3 &&
+      hooks.every((h) => h.text && wordCount(h.text) <= MAKE_HOOK_WORDS && ids.includes(h.formula));
+    return ok ? { as, hooks } : null;
+  }
+  if (as === "notes") {
+    const title = line(r.title, 200);
+    const rows = Array.isArray(r.items) ? r.items : [];
+    const items = rows.map((x) => line(x, 300)).filter(Boolean);
+    const fits = title && wordCount(title) <= NOTES.titleWords && items.length === rows.length && items.length >= NOTES.min && items.length <= NOTES.max && items.every((i) => wordCount(i) <= NOTES.itemWords);
+    const caption = fits ? slideshowCaption(r, [{ title, sub: items.join(" ") }]) : null;
+    return caption ? { as, title, items, caption } : null;
+  }
+  if (as === "image") {
+    const layout = AD_LAYOUTS.find((x) => x === req.layout) ?? "headline";
+    // a testimonial's words come only from the facts, so the writer may leave them for the brand to type
+    const words = fieldsWithin(r.words, AD_WORDS[layout], layout === "testimonial" ? ["quote"] : []);
+    const caption = words ? slideshowCaption(r, [{ title: Object.values(words).join(" "), sub: "" }]) : null;
+    return words && caption ? { as, layout, layoutBy: req.layoutBy ?? "default", words, caption } : null;
+  }
+  const fields = MEME_FIELDS[req.layout as MemeLayout];
+  const rows = Array.isArray(r.options) ? r.options : [];
+  const options = fields ? rows.map((x) => fieldsWithin(x, fields)) : [];
+  if (options.length !== 3 || options.some((o) => !o)) return null;
+  const kept = options as Record<string, string>[];
+  const caption = slideshowCaption(r, [{ title: kept.flatMap((o) => Object.values(o)).join(" "), sub: "" }]);
+  return caption ? { as, options: kept, best: null, dropped: [], caption } : null;
 }
 
 // ---- The slideshow's own checks (the dogfood bar, docs/north-star/dogfood-activity-tracker.md) -------------
@@ -745,7 +1119,7 @@ export const slideNumbers = (slides: { title: string }[]) =>
   });
 
 export interface MakeProblem {
-  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length" | "cut";
+  kind: "count" | "product" | "mention" | "emoji" | "voice" | "length" | "cut" | "number" | "copy";
   /** Sent back to the model for the one fixing pass. */
   fix: string;
   /** The refusal the adviser reads when the fix fails too. The use is kept: the model answered (only 502/503 refund). */
@@ -924,8 +1298,43 @@ export function textProblem(r: MakeResult, req: Pick<MakeRequest, "brand">): Mak
   return null;
 }
 
-/** The format's own checks after writing: the slideshow's, the wall's, or the other formats' (textProblem). */
-export const makeProblem = (r: MakeResult, req: Pick<MakeRequest, "brand" | "source">) => slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req);
+/** A timed speaking script that came out short of its length's words (formats-talking-head). */
+export function lengthProblem(r: MakeResult, req: Pick<MakeRequest, "seconds">): MakeProblem | null {
+  if (r.as !== "speaking" || !req.seconds) return null;
+  const { low, high } = speakingWords(req.seconds);
+  const n = wordCount(r.script);
+  return n >= low
+    ? null
+    : {
+        kind: "length",
+        fix: `The script is ${n} words. Return the whole JSON object again with ${low} to ${high} words in the script, for about ${req.seconds} seconds.`,
+        error: `The script came out too short for ${req.seconds} seconds. Try again.`,
+      };
+}
+
+/**
+ * An ad image's words in code (formats-static-ad): never a number, since a figure the brand didn't type is an invented
+ * one (MAS), and no run of 4 words from the original ad. One fixing pass, then a refusal that keeps the use.
+ */
+export function imageProblem(r: MakeResult, req: Pick<MakeRequest, "source">): MakeProblem | null {
+  if (r.as !== "image") return null;
+  const words = Object.values(r.words);
+  if (words.some((w) => /\d/.test(w))) {
+    return {
+      kind: "number",
+      fix: "The words hold a number. Return the whole JSON object again with no figures, prices, percentages or counts in the words.",
+      error: "The words put in a number of their own. Try again.",
+    };
+  }
+  const runs = req.source ? [...new Set(words.flatMap((w) => sharedRuns(w, req.source!.text, 4)))] : [];
+  return runs.length
+    ? { kind: "copy", fix: rewriteMessage(runs), error: "The words kept too much of the original ad. Try again." }
+    : null;
+}
+
+/** The format's own checks after writing: the slideshow's, the wall's, the other formats' (textProblem), then phase 3's. */
+export const makeProblem = (r: MakeResult, req: Pick<MakeRequest, "brand" | "source" | "seconds">) =>
+  slideshowProblem(r, req) ?? wallProblem(r, req) ?? textProblem(r, req) ?? lengthProblem(r, req) ?? imageProblem(r, req);
 
 /** The words a reader sees: not hashtags, search terms, picture prompts or filming notes. */
 export function textFields(r: MakeResult): string[] {
@@ -936,7 +1345,11 @@ export function textFields(r: MakeResult): string[] {
     : r.as === "speaking" ? [r.script, r.caption]
     : r.as === "explainer" ? [...r.scenes.map((s) => s.say), r.caption]
     : r.as === "slideshow" ? [...r.slides.flatMap((s) => [s.title, s.sub]), r.caption]
-    : [r.text, r.caption];
+    : r.as === "wall" ? [r.text, r.caption]
+    : r.as === "notes" ? [r.title, ...r.items, r.caption]
+    : r.as === "hooks" ? r.hooks.map((h) => h.text)
+    : r.as === "image" ? [...Object.values(r.words), r.caption]
+    : [...r.options.flatMap((o) => Object.values(o)), r.caption];
   return out.filter(Boolean);
 }
 
@@ -973,6 +1386,85 @@ export function makeQuestions(speaker: Speaker) {
 
 /** proposal: from the spec; set from the first 50 remixes by reading every answer between 0.3 and 0.7. */
 export const FLAG_AT = 0.5;
+
+// ---- Phase 3's decisions (Jev picks, the LLM only writes) ---------------------------------------------
+
+/** formats-static-ad's layout question; a person's brand is never offered a testimonial (decision 12). */
+export function adLayoutQuestion(speaker: Speaker): Record<string, JevQuestion> {
+  return {
+    layout: {
+      type: "choice",
+      instructions: "`ad` describes a static social media ad's layout, or gives its words. Which of these layouts is the closest match?",
+      criteria: {
+        headline: "a picture with a headline and a button",
+        quote: "a quotation in large type with the person's name",
+        stat: "one big number with a short line explaining it",
+        ...(speaker === "business" ? { testimonial: "a customer's words about the product" } : {}),
+      },
+    },
+  };
+}
+
+/** Jev's layout when its pick is at AD_LAYOUT_AT or more and one the brand may use; null means Headline ad. */
+export function pickAdLayout(answers: Record<string, JevAnswer> | null, speaker: Speaker): AdLayout | null {
+  const allowed = AD_LAYOUTS.filter((l) => l !== "testimonial" || speaker === "business");
+  const pick = choiceOf(answers, "layout", allowed);
+  return pick && (answers?.layout?.probabilities?.[pick] ?? 0) >= AD_LAYOUT_AT ? pick : null;
+}
+
+/** One meme as a reader sees it, with the words the layout draws itself. */
+export function memeText(layout: MemeLayout, o: Record<string, string>): string {
+  if (layout === "nobody-me") return `Nobody:\n${o.setup}: ${o.punch}`;
+  if (layout === "pov") return `POV: ${o.line}`;
+  if (layout === "expectation") return `Expectation: ${o.expectation}\nReality: ${o.reality}`;
+  return Object.values(o).join("\n");
+}
+
+/** Who posts it and to whom, for Jev's meme questions. */
+export function memeState(brand: Pick<BrandPack, "name" | "audience" | "speaker">) {
+  return {
+    poster: brand.speaker === "business" ? `${brand.name}, a business in Singapore` : "a licensed financial adviser in Singapore",
+    audience: brand.audience || "Singapore working adults aged 25 to 45",
+  };
+}
+
+/** formats-memes, one call: funny (score) and unsafe (noul) for each option, the option inside its own questions. */
+export function memeQuestions(layout: MemeLayout, options: Record<string, string>[]): Record<string, JevQuestion> {
+  const q: Record<string, JevQuestion> = {};
+  options.forEach((o, i) => {
+    const meme = memeText(layout, o);
+    q[`funny_${i}`] = {
+      type: "score",
+      instructions: { meme, question: "`poster` wants to post `meme` for `audience`. How likely is that audience to find it funny and relatable enough to share?" },
+      criteria: ["flat, no one would react", "mildly amusing", "relatable, some would like it", "very relatable, many would share it"],
+    };
+    q[`unsafe_${i}`] = {
+      type: "noul",
+      instructions: { meme, question: "Does `meme` mock a group of people, a race or religion, a named company or competitor, or someone's money troubles in a way that could offend or embarrass `poster`?" },
+    };
+  });
+  return q;
+}
+
+/** Unsafe at MEME_UNSAFE_AT or more is dropped; the funniest kept option is best. Jev null keeps all three with no best. */
+export function memeVerdict(answers: Record<string, JevAnswer> | null, count: number): { best: number | null; dropped: number[] } {
+  const all = Array.from({ length: count }, (_, i) => i);
+  const dropped = all.filter((i) => (noulOf(answers, `unsafe_${i}`) ?? 0) >= MEME_UNSAFE_AT);
+  let best: number | null = null;
+  let top = -Infinity;
+  for (const i of all) {
+    const funny = scoreOf(answers, `funny_${i}`);
+    if (!dropped.includes(i) && funny !== null && funny > top) [best, top] = [i, funny];
+  }
+  return { best, dropped };
+}
+
+/** The words Jev's MAS question reads: an image's words and caption, or the best meme and the caption; null when there are none. */
+export function masText(r: MakeResult): string | null {
+  if (r.as === "image") return textFields(r).join("\n");
+  if (r.as === "meme") return r.best === null ? null : [Object.values(r.options[r.best]).join("\n"), r.caption].join("\n");
+  return null;
+}
 
 /**
  * The floor every level shares: one rewrite when the result repeats the original (kept only when it validates),

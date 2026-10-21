@@ -69,6 +69,10 @@ export const AS_LABELS: Record<RemixAs, string> = {
   explainer: "Explainer video",
   slideshow: "Slideshow",
   wall: "Wall of text",
+  notes: "Note list",
+  hooks: "Hooks",
+  image: "Static ad",
+  meme: "Meme",
 };
 
 /** "Writing your script", "Your carousel is ready". */
@@ -80,6 +84,10 @@ export const AS_NOUN: Record<RemixAs, string> = {
   explainer: "explainer video",
   slideshow: "slideshow",
   wall: "wall of text",
+  notes: "note list",
+  hooks: "hooks",
+  image: "image",
+  meme: "memes",
 };
 
 const FORMAT_WORDS: Record<RemixAs, string> = {
@@ -91,6 +99,10 @@ const FORMAT_WORDS: Record<RemixAs, string> = {
   explainer: "an explainer video",
   slideshow: "a slideshow",
   wall: "a wall of text",
+  notes: "a note list",
+  hooks: "three hooks",
+  image: "the words for an image",
+  meme: "three memes",
 };
 
 const CLOSE_PHRASE: Record<Close, string> = { loose: "loosely based on it", balanced: "with new words", close: "close to it, with every line new" };

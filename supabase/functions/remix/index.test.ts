@@ -226,3 +226,120 @@ describe("the fit check (dogfood 21 Oct: Thomson Medical's TCM ad for ActivityTr
     expect(jev.questions[0]).toEqual(["serves", "retell", "masSafe"]);
   });
 });
+
+// ---- phase 3's shapes: one remix-make use per make, Jev's picks inside it, a refund only when OpenAI never answered ----
+
+const CAP = { caption: "Small habits fill a pipeline. Track them daily and the pattern shows.", cta: "Save this for Monday.", hashtags: ["sales"] };
+const BRAND = { name: "MoneyBees", audience: "fresh grads", topics: ["CPF"] };
+const AD = { key: "ad:2095783381019179", kind: "ad", format: "image", text: "Protect your family today with a plan that grows with you. Get a free quote." };
+const MEMES = [
+  { top: "When the bank says pre-approved", bottom: "Me checking my CPF statement" },
+  { top: "Payday at noon", bottom: "Bills by one" },
+  { top: "Me saving for a BTO", bottom: "Also me buying bubble tea" },
+];
+const meme = { refuse: false, reason: "", options: MEMES, ...CAP };
+const words = { headline: "", line: "", button: "", quote: "", statLabel: "" };
+
+describe("phase 3's shapes", () => {
+  it("answer 403 for anyone not on NORTH_STAR_USERS, before any count, OpenAI or Jev", async () => {
+    openai.mode = "queue";
+    for (const b of [
+      { as: "notes", topic: "Overspending" },
+      { as: "image", source: AD },
+      { as: "meme", layout: "pov", topic: "Payday" },
+      { as: "speaking", seconds: 15, topic: "Why I review cover yearly" },
+    ]) {
+      const r = await db.handler!(new Request("http://x/remix", { method: "POST", headers: { Authorization: "Bearer someone-else" }, body: JSON.stringify({ mode: "make", brand: BRAND, ...b }) }));
+      expect(r.status, b.as).toBe(403);
+      expect(await r.json()).toEqual({ code: "not_enabled", error: "This isn't switched on for your account yet." });
+    }
+    expect([db.rows.size, openai.calls, jev.states.length]).toEqual([0, 0, 0]);
+  });
+
+  it("picks an image's layout with Jev inside the make's one use, and writes for that layout", async () => {
+    openai.mode = "queue";
+    openai.answers = [{ refuse: false, reason: "", words: { ...words, statLabel: "of reps say follow-ups slip" }, ...CAP }];
+    jev.answers = { layout: { type: "choice", choice: "stat", probabilities: { stat: 0.8 } } as never, mas: { noul: 0.7 } };
+    const r = await send({ mode: "make", as: "image", source: AD, shows: "A big number on an orange block", brand: BRAND });
+    expect(r).toMatchObject({ status: 200, body: { result: { as: "image", layout: "stat", layoutBy: "jev", words: { statLabel: "of reps say follow-ups slip" } }, flags: { mas: true } } });
+    expect(jev.states[0]).toEqual({ ad: "A big number on an orange block" });
+    expect(openai.sent[0].messages[0].content).toContain("Its layout is one big number");
+    expect(used()).toBe(1);
+  });
+
+  it("falls back to Headline ad when Jev has no answer, and gives no MAS flag", async () => {
+    openai.mode = "queue";
+    openai.answers = [{ refuse: false, reason: "", words: { ...words, headline: "Your hospital bill, split in two", line: "Why a plan has a co-pay.", button: "Message me" }, ...CAP }];
+    const r = await send({ mode: "make", as: "image", source: AD, brand: BRAND });
+    expect(r).toMatchObject({ status: 200, body: { result: { layout: "headline", layoutBy: "default" }, flags: { mas: null } } });
+    expect(jev.states[0]).toEqual({ ad: AD.text });
+    expect(used()).toBe(1);
+  });
+
+  it("sends an image that kept 4 words of the ad back once, and refuses it with the use kept when it still does", async () => {
+    openai.mode = "queue";
+    const copied = { refuse: false, reason: "", words: { ...words, headline: "Cover that lasts", line: "Get a free quote in under a minute.", button: "Message me" }, ...CAP };
+    openai.answers = [copied, copied];
+    expect(await send({ mode: "make", as: "image", layout: "headline", source: AD, brand: BRAND })).toMatchObject({ status: 422, body: { code: "refused", error: "The words kept too much of the original ad. Try again." } });
+    expect(openai.sent[1].messages.at(-1)!.content).toContain("- Get a free quote");
+    expect(used()).toBe(1);
+  });
+
+  it("drops an unsafe meme, marks the funniest kept one best and asks MAS of it alone", async () => {
+    openai.mode = "queue";
+    openai.answers = [meme];
+    jev.answers = {
+      unsafe_0: { noul: 0.1 }, unsafe_1: { noul: 0.6 }, unsafe_2: { noul: 0.2 },
+      funny_0: { score: 1.2 }, funny_1: { score: 3 }, funny_2: { score: 2.1 },
+      mas: { noul: 0.2 },
+    } as never;
+    const r = await send({ mode: "make", as: "meme", layout: "top-bottom", topic: "Saving for a flat", brand: BRAND });
+    expect(r).toMatchObject({ status: 200, body: { result: { as: "meme", options: MEMES, best: 2, dropped: [1] }, flags: { mas: false } } });
+    const asked = jev.questions.findIndex((q) => q.includes("funny_0"));
+    expect(jev.questions[asked]).toEqual(["funny_0", "unsafe_0", "funny_1", "unsafe_1", "funny_2", "unsafe_2"]);
+    expect(jev.states.at(-1)).toEqual({ post: `Me saving for a BTO\nAlso me buying bubble tea\n${CAP.caption}\n\n${CAP.cta}\n\n#sales` });
+    expect(used()).toBe(1);
+  });
+
+  it("refuses a meme set when all three are unsafe, and keeps the use since the model answered", async () => {
+    openai.mode = "queue";
+    openai.answers = [meme];
+    jev.answers = { unsafe_0: { noul: 0.9 }, unsafe_1: { noul: 0.5 }, unsafe_2: { noul: 0.4 } } as never;
+    expect(await send({ mode: "make", as: "meme", layout: "top-bottom", topic: "Saving for a flat", brand: BRAND })).toMatchObject({
+      status: 422,
+      body: { code: "refused", error: "None of these were safe to post. Try another topic." },
+    });
+    expect(used()).toBe(1);
+  });
+
+  it("keeps all three memes with no best when Jev has no answer", async () => {
+    openai.mode = "queue";
+    openai.answers = [meme];
+    expect(await send({ mode: "make", as: "meme", layout: "top-bottom", topic: "Saving for a flat", brand: BRAND })).toMatchObject({ status: 200, body: { result: { best: null, dropped: [] }, flags: { mas: null } } });
+  });
+
+  it("gives the use back only when OpenAI never answered", async () => {
+    openai.mode = "down";
+    expect(await send({ mode: "make", as: "meme", layout: "pov", topic: "Payday", brand: BRAND })).toMatchObject({ status: 502, body: { code: "failed" } });
+    expect(used()).toBe(0);
+    openai.mode = "junk";
+    expect(await send({ mode: "make", as: "notes", topic: "Overspending", brand: BRAND })).toMatchObject({ status: 422, body: { code: "unusable" } });
+    expect(used()).toBe(1);
+    openai.mode = "queue";
+    openai.answers = [{ refuse: true, reason: "It promises returns.", title: "", items: [], ...CAP }];
+    expect(await send({ mode: "make", as: "notes", topic: "Guaranteed returns", brand: BRAND })).toMatchObject({ status: 422, body: { code: "refused" } });
+    expect(used()).toBe(2);
+  });
+
+  it("sends a talking head's short script back once for its length, and refuses hooks without three formulas before any count", async () => {
+    openai.mode = "queue";
+    const said = (k: number) => Array.from({ length: k }, () => "word").join(" ");
+    openai.answers = [{ refuse: false, reason: "", script: `${said(29)} end.`, caption: "Caption here." }, { refuse: false, reason: "", script: `${said(39)} end.`, caption: "Caption here." }];
+    const r = await send({ mode: "make", as: "speaking", seconds: 15, topic: "Why I review my cover", brand: BRAND });
+    expect(r.status).toBe(200);
+    expect(openai.sent[1].messages.at(-1)!.content).toContain("36 to 48 words");
+    expect(openai.sent[0].response_format).toMatchObject({ json_schema: { name: "remix_speaking" } });
+    expect(await send({ mode: "make", as: "hooks", formulas: [], topic: "x", brand: BRAND })).toMatchObject({ status: 400, body: { code: "bad_request", error: "Send three hook formulas." } });
+    expect(used()).toBe(1);
+  });
+});

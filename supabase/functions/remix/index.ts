@@ -1,9 +1,13 @@
 // Remix (docs/north-star/items/remix-everywhere.md). A signed-in adviser on the north-star list sends one source
-// (a post, ad or trend, its words already read on the device; a slideshow or wall may send a typed topic instead), what to
+// (a post, ad or trend, its words already read on the device; the TOPIC_AS formats may send a typed topic instead), what to
 // keep, how close, the brand block and their voice; this writes one format (post, carousel, script, a speaking
-// script, explainer scenes, slideshow slides or a wall of text) in their brand, checks it against the original (one
-// rewrite when it repeats it, then one Jev call for claims and invented facts) and sends it back. The app saves it
-// as a draft; nothing is stored here.
+// script, explainer scenes, slideshow slides, a wall of text, or phase 3's note list, three hooks, an ad image's
+// words or three memes) in their brand, checks it against the original (one rewrite when it repeats it, then one
+// Jev call for claims and invented facts) and sends it back. The app saves it as a draft; nothing is stored here.
+// Phase 3's Jev decisions ride the same one use: an image with no layout gets Jev's layout pick before writing
+// (AD_LAYOUT_AT, else Headline ad); a meme's options get funny and unsafe in one call after (unsafe ones dropped,
+// all three dropped is 422 with the use kept); an image's words and the best meme get the shared MAS question
+// (_shared/mas.ts) for a person's brand, as flags.mas.
 //
 // Order: JWT, NORTH_STAR_USERS, validate, the cached transcript of a reel or TikTok (cs_reel_sources, never a new read),
 // consumeUsage "remix-make", OpenAI, validate, holdTheLine, respond. A call
@@ -25,6 +29,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { consumeUsage, refundUsage, usageRefusal } from "../_shared/usageCaps.ts";
 import { openaiChat } from "../_shared/openaiChat.ts";
 import { askJev, noulOf } from "../_shared/jev.ts";
+import { MAS_QUESTION, masWarn } from "../_shared/mas.ts";
 import { isAllowed } from "../market/logic.ts";
 import { mostlyEnglish } from "../post-score/logic.ts";
 import { FETCH_BUDGET_MS, parseReelUrl } from "../clone-reel/logic.ts";
@@ -38,18 +43,26 @@ import {
   fitVerdict,
   parseFitRequest,
   makeQuestions,
-  MAKE_RESPONSE_FORMATS,
+  adLayoutQuestion,
   buildMakePrompt,
   dontReuseFor,
+  floorOf,
   holdTheLine,
+  masText,
+  memeQuestions,
+  memeState,
+  memeVerdict,
   parseMakeRequest,
+  pickAdLayout,
   refusalOf,
+  responseFormat,
   rewriteMessage,
-  RUN_FLOOR,
   makeProblem,
   validateMake,
   withSpoken,
+  type MakeOpts,
   type MakeResult,
+  type MemeLayout,
 } from "./logic.ts";
 
 const FALLBACK_MODEL = "gpt-4.1";
@@ -162,6 +175,15 @@ Deno.serve(async (req) => {
     // the counter's day (UTC), as cs_consume_ai_usage keeps it, so a refund near midnight finds the row
     charged = { uid, day: today() };
 
+    // an image with no layout: Jev picks it from what the ad's picture shows, else its words; Headline ad otherwise
+    const opts: MakeOpts = { ...make, layoutBy: "default" };
+    if (make.as === "image" && !make.layout) {
+      const over = make.shows || make.source?.text;
+      const pick = over ? pickAdLayout(await askJev({ ad: over }, adLayoutQuestion(make.brand.speaker), { who: "remix image layout" }), make.brand.speaker) : null;
+      make.layout = opts.layout = pick ?? "headline";
+      if (pick) opts.layoutBy = "jev";
+    }
+
     const { system, user } = buildMakePrompt(make);
     const messages: { role: string; content: string }[] = [
       { role: "system", content: system },
@@ -175,7 +197,7 @@ Deno.serve(async (req) => {
     const said: { refusal: string | null } = { refusal: null };
     const write = async (msgs: typeof messages): Promise<{ result: MakeResult; raw: string } | null> => {
       const res = await openaiChat(
-        { model: FALLBACK_MODEL, temperature: 0.7, max_tokens: 1800, response_format: MAKE_RESPONSE_FORMATS[make.as as keyof typeof MAKE_RESPONSE_FORMATS], messages: msgs },
+        { model: FALLBACK_MODEL, temperature: 0.7, max_tokens: 1800, response_format: responseFormat(make), messages: msgs },
         { signal: AbortSignal.timeout(AI_TIMEOUT_MS) },
       );
       if (!res.ok) {
@@ -192,7 +214,7 @@ Deno.serve(async (req) => {
         console.log("remix refused", make.as, said.refusal.slice(0, 200));
         return null;
       }
-      const result = validateMake(make.as, content);
+      const result = validateMake(make.as, content, opts);
       rejected = !result;
       if (!result) console.error("openai output rejected", String(content ?? "").slice(0, 300));
       return result ? { result, raw: String(content) } : null;
@@ -235,9 +257,23 @@ Deno.serve(async (req) => {
         const answers = await askJev({ ...(state as object), facts: make.brand.facts }, makeQuestions(make.brand.speaker), { who: "remix make" });
         return answers ? { claim: noulOf(answers, "copied_claim"), invented: noulOf(answers, "invented_self") } : null;
       },
-    }, RUN_FLOOR[make.close ?? "balanced"]);
-    console.log("remix ok", make.as, make.keep, make.close, `copied ${held.flags.copied.length}`, `rewrote ${rewrote}`, `tokens ${tokens.join(" | ")}`, `${Date.now() - startedAt}ms`);
-    return json({ as: make.as, result: held.result, flags: held.flags, usage: { used: usage.used, limit: usage.limit } });
+    }, floorOf(make));
+    let { result, flags } = held;
+    if (result.as === "meme") {
+      const { best, dropped } = memeVerdict(await askJev(memeState(make.brand), memeQuestions(make.layout as MemeLayout, result.options), { who: "remix meme" }), result.options.length);
+      console.log("remix meme", `best ${best}`, `dropped ${dropped.join(",") || "-"}`);
+      // the model answered, so the use stays (decision 3)
+      if (dropped.length === result.options.length) return fail("refused", "None of these were safe to post. Try another topic.", 422);
+      result = { ...result, best, dropped };
+    }
+    if (result.as === "image" || result.as === "meme") {
+      // the shared MAS question warns and never blocks; a business isn't a licensed adviser, so it isn't asked
+      const text = make.brand.speaker === "person" ? masText(result) : null;
+      const answers = text ? await askJev({ post: text }, { mas: { type: "noul", instructions: MAS_QUESTION } }, { who: `remix ${result.as} mas` }) : null;
+      flags = { ...flags, mas: masWarn(noulOf(answers, "mas")) };
+    }
+    console.log("remix ok", make.as, make.keep, make.close, `copied ${flags.copied.length}`, `rewrote ${rewrote}`, `tokens ${tokens.join(" | ")}`, `${Date.now() - startedAt}ms`);
+    return json({ as: make.as, result, flags, usage: { used: usage.used, limit: usage.limit } });
   } catch (e) {
     console.error("remix failed", e);
     // 500, not 502: the app reads 502 as "nothing was used", which is only true before the model answered
