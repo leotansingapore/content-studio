@@ -1148,3 +1148,60 @@ describe("the brand's name in the captions", () => {
     expect(out.words[0].w).toBe("Activity Tracker app");
   });
 });
+
+describe("caption key words and the caption look (edit-captions)", () => {
+  const w = (word: string, s: number, e: number) => ({ w: word, s, e });
+
+  it("keeps stored key words only when well formed: a time each, emoji from the pop-ups' set, at most 200", async () => {
+    const { sanitizeKeyWords, MAX_KEY_WORDS } = await import("./videoEdit");
+    expect(sanitizeKeyWords([{ at: 1.2, emoji: "⏰" }, { at: 2, emoji: "\u{1F680}" }, { at: -1 }, { at: "x" }, null, { at: 3, emoji: 5 }])).toEqual([{ at: 1.2, emoji: "⏰" }, { at: 2 }, { at: 3 }]);
+    expect(sanitizeKeyWords(Array.from({ length: 250 }, (_, i) => ({ at: i })))).toHaveLength(MAX_KEY_WORDS);
+    expect(sanitizeKeyWords(undefined)).toBeUndefined();
+    expect(sanitizeKeyWords([])).toEqual([]);
+  });
+
+  it("saves the two switches in a look, never this video's key words", async () => {
+    const { captionLookOf } = await import("./videoEdit");
+    const mine = { ...defaultSettings("native"), keyWordsOn: true, captionEmoji: true, keyWords: [{ at: 1 }], hook: "3 CPF mistakes", trimStart: 2, aspect: "4:5" as const, logo: true };
+    expect(lookOf(mine)).toMatchObject({ keyWordsOn: true, captionEmoji: true });
+    expect(lookOf(mine)).not.toHaveProperty("keyWords");
+    expect(withLook(defaultSettings("bold"), lookOf(mine))).toMatchObject({ style: "native", keyWordsOn: true, captionEmoji: true });
+    expect(withLook(defaultSettings("bold"), lookOf(mine)).keyWords).toBeUndefined();
+    // the captions alone: none of the cut, frame, hook or brand keys
+    expect(Object.keys(captionLookOf(mine)).sort()).toEqual(["activeColor", "baseColor", "captionEmoji", "captions", "highlightNumbers", "keyWordsOn", "position", "size", "style", "uppercase", "wordsPerCaption"]);
+    // an edit with neither switch has the same look as before they existed
+    expect(Object.keys(lookOf(defaultSettings("bold")))).not.toContain("keyWordsOn");
+  });
+
+  it("names the TikTok style Outline for Leo only", async () => {
+    const { styleLabel } = await import("./videoEdit");
+    expect(styleLabel("native", true)).toBe("Outline");
+    expect(styleLabel("native", false)).toBe("TikTok");
+    expect(styleLabel("bold", true)).toBe("Bold");
+  });
+
+  it("lights a word by its start, with its emoji only when emoji are on", async () => {
+    const { keyWordOf } = await import("./videoEdit");
+    const s = { keyWordsOn: true, captionEmoji: false, keyWords: [{ at: 1.5, emoji: "⏰" }] };
+    expect(keyWordOf(s, { s: 1.5 })).toEqual({ emoji: "" });
+    expect(keyWordOf({ ...s, captionEmoji: true }, { s: 1.5 })).toEqual({ emoji: "⏰" });
+    expect(keyWordOf(s, { s: 1.6 })).toBeNull();
+    expect(keyWordOf({ ...s, keyWordsOn: false }, { s: 1.5 })).toBeNull();
+  });
+
+  it("reads the lines as the edit plays them, each with its words from the source", async () => {
+    const { keyLines } = await import("./videoEdit");
+    const words = [w("Most", 0, 0.3), w("people", 0.3, 0.7), w("um", 0.8, 1.0), w("overpay.", 1.1, 1.6), w("Check", 4.0, 4.3), w("yours.", 4.3, 4.8)];
+    const segs = keepSegments(words, 6, { trimStart: 0, trimEnd: 0, removeFillers: true, maxPause: 0.6 });
+    const lines = keyLines(words, segs, 1);
+    expect(lines.map((l) => l.text)).toEqual(editedSentences(words, segs, 1).map((x) => x.text));
+    expect(lines.map((l) => l.words.map((x) => x.w))).toEqual([["Most", "people", "overpay."], ["Check", "yours."]]);
+    expect(lines[1].words[0]).toBe(words[4]);
+  });
+
+  it("gives Whisper the right spelling of each saved fix, newest first, at most 20 of up to 30 characters", async () => {
+    const { captionTerms } = await import("./videoEdit");
+    expect(captionTerms([{ from: "medi shield", to: "MediShield" }, { from: "activity tracker", to: "ActivityTracker" }, { from: "x", to: "a".repeat(31) }, { from: "y", to: "Tan, Leo" }, { from: "medishield", to: "mediShield" }])).toEqual(["mediShield", "ActivityTracker"]);
+    expect(captionTerms(Array.from({ length: 30 }, (_, i) => ({ from: `w${i}`, to: `W${i}` })))).toHaveLength(20);
+  });
+});

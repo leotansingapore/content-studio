@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource } from "./videoProjects";
+import { loadFixes, loadProjects, removeProject, saveFixes, saveProject, swapSource, transcribe } from "./videoProjects";
 import { addProfile, setActiveProfile } from "@/lib/profiles";
 
 const deleted: string[] = [];
-vi.mock("@/lib/supabase", () => ({ supabase: {}, SUPABASE_ANON_KEY: "", SUPABASE_URL: "" }));
+vi.mock("@/lib/supabase", () => ({ supabase: { auth: { getSession: async () => ({ data: { session: null } }) } }, SUPABASE_ANON_KEY: "", SUPABASE_URL: "" }));
 vi.mock("@/lib/edgeFn", () => ({ callFn: vi.fn() }));
 const put: string[] = [];
 vi.mock("@/lib/videoMedia", () => ({
@@ -218,5 +218,23 @@ describe("swapping the video under a project", () => {
     expect(deleted).toEqual(["up0", "up0-s1"]);
     saveProject("u", p("clip", "up5-s1"));
     expect(loadProjects("u")).toHaveLength(13);
+  });
+});
+
+describe("transcribe", () => {
+  const asked: string[] = [];
+  beforeEach(() => {
+    asked.length = 0;
+    vi.stubGlobal("fetch", async (u: string) => (asked.push(u), Response.json({ words: [], text: "", duration: 1 })));
+  });
+
+  it("puts Leo's terms in the query, URL-encoded, next to lang", async () => {
+    await transcribe(new Blob(["wav"]), "en", ["MediShield Life", "O'Brien & Co"]);
+    expect(asked).toEqual(["/functions/v1/video-assist?mode=transcribe&lang=en&terms=MediShield%20Life%2CO'Brien%20%26%20Co"]);
+  });
+  it("asks as before with no terms", async () => {
+    await transcribe(new Blob(["wav"]));
+    await transcribe(new Blob(["wav"]), "ms", []);
+    expect(asked).toEqual(["/functions/v1/video-assist?mode=transcribe", "/functions/v1/video-assist?mode=transcribe&lang=ms"]);
   });
 });

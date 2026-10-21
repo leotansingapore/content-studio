@@ -11,6 +11,7 @@ import { callFn } from "@/lib/edgeFn";
 import { removePlatformCaptions } from "@/lib/platformCaptions";
 import { sanitizeFixes, type CaptionFix, type Clip, type Cutaway, type EditSettings, type PublishIdea, type Sentence, type Word } from "@/lib/videoEdit";
 import type { WatchFinding } from "../../supabase/functions/video-assist/watch.ts";
+import type { KeywordPick } from "../../supabase/functions/video-assist/keywords.ts";
 import type { RemixSource } from "@/lib/remixSource";
 
 export interface VideoProject {
@@ -120,7 +121,7 @@ export function swapped(p: VideoProject, f: { fileId: string; duration: number; 
   });
   return {
     ...p, ...f, words: [],
-    settings: { ...s, trimStart, trimEnd, overlays, faceTrack: undefined, followFace: undefined, textBand: undefined, cropBottom: undefined, faceBox: undefined, level: undefined, motion: undefined, removed: undefined, keepCuts: undefined, coldOpen: undefined },
+    settings: { ...s, trimStart, trimEnd, overlays, faceTrack: undefined, followFace: undefined, textBand: undefined, cropBottom: undefined, faceBox: undefined, level: undefined, motion: undefined, removed: undefined, keepCuts: undefined, coldOpen: undefined, keyWords: undefined },
   };
 }
 
@@ -193,9 +194,17 @@ async function call(path: string, init: RequestInit): Promise<Response> {
   return res;
 }
 
-export async function transcribe(wav: Blob, lang?: string): Promise<{ words: Word[]; text: string; duration: number; lang?: string }> {
-  const res = await call(`?mode=transcribe${lang ? `&lang=${encodeURIComponent(lang)}` : ""}`, { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav });
+/** Word-timed captions; `terms` (Leo's sign-ins: captionTerms) are words to spell as given, which the server takes only from NORTH_STAR_USERS. */
+export async function transcribe(wav: Blob, lang?: string, terms?: string[]): Promise<{ words: Word[]; text: string; duration: number; lang?: string }> {
+  const q = `${lang ? `&lang=${encodeURIComponent(lang)}` : ""}${terms?.length ? `&terms=${encodeURIComponent(terms.join(","))}` : ""}`;
+  const res = await call(`?mode=transcribe${q}`, { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav });
   return res.json();
+}
+
+/** Jev's key word in each caption line (and an emoji on a lit line unless emoji is "off"); one "caption-keywords" use. Leo only. */
+export async function pickKeyWords(lines: { text: string; words: string[]; s: number }[], emoji: boolean | "one"): Promise<KeywordPick[]> {
+  const r = await callFn<{ picks: KeywordPick[] }>("video-assist", { mode: "keywords", lines, emoji }, "Couldn't pick key words right now. Try again in a minute.");
+  return Array.isArray(r?.picks) ? r.picks : [];
 }
 
 /** What a viewer would trip on in an exported file, with the seconds (Gemini watches it; about a minute). */

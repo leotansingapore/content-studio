@@ -80,6 +80,9 @@ export const PRESETS: Preset[] = [
   },
 ];
 
+/** A preset's name on its chip: plain names for Leo's sign-ins (no platform names), today's for everyone else. */
+export const presetLabel = (p: Pick<Preset, "id" | "label">, leo: boolean) => (leo && p.id === "native" ? "Quick and plain" : p.label);
+
 /** The settings with a recipe laid over them: the style's own looks first, then every recipe key (one it leaves out is cleared). */
 export function applyRecipe(s: EditSettings, r: Recipe): EditSettings {
   const next: EditSettings = r.style === s.style ? { ...s } : withStyle(s, r.style);

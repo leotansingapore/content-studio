@@ -13,6 +13,7 @@ import type { Chart } from "@/lib/videoCharts";
 import { mergeSlivers, pauseCut } from "@/lib/cutRules";
 import { findRetakes } from "@/lib/retakes";
 import { outWithin, segLength, srcWithin, withFast } from "@/lib/fastPauses";
+import { EMOJI } from "../../supabase/functions/video-assist/motion.ts";
 
 export interface Word {
   w: string;
@@ -143,6 +144,17 @@ export interface EditSettings {
   popups?: boolean;
   /** Words over a video: captions off, the words in one block sticker, the short panel in the editor. Never part of a look. */
   wall?: boolean;
+  /** The key word Jev picked in each caption line drawn bigger in the highlight colour (underlined in line styles). Leo only. */
+  keyWordsOn?: boolean;
+  /** The emoji picked for a key word drawn after it. */
+  captionEmoji?: boolean;
+  /** This video's key words: the source start of each lit word, with its emoji. Never part of a look. */
+  keyWords?: KeyWord[];
+}
+
+export interface KeyWord {
+  at: number;
+  emoji?: string;
 }
 
 export const END_CARD_SECONDS = 2.5;
@@ -242,6 +254,9 @@ export const STYLES: Record<StyleId, StyleSpec> = {
 };
 
 export const STYLE_IDS = Object.keys(STYLES) as StyleId[];
+
+/** A style's name on its tile: plain names for Leo's sign-ins (no platform names), today's for everyone else. */
+export const styleLabel = (id: StyleId, leo: boolean) => (leo && id === "native" ? "Outline" : STYLES[id].label);
 
 export function defaultSettings(style: StyleId = "bold"): EditSettings {
   const s = STYLES[style];
@@ -542,7 +557,7 @@ export function applyPatch(s: EditSettings, patch: Record<string, unknown>): { n
   if ("wordsPerCaption" in p) set("wordsPerCaption", Math.round(clamp(p.wordsPerCaption, 1, 6, s.wordsPerCaption)));
   if (typeof p.baseColor === "string" && HEX.test(p.baseColor)) set("baseColor", p.baseColor.toUpperCase());
   if (typeof p.activeColor === "string" && HEX.test(p.activeColor)) set("activeColor", p.activeColor.toUpperCase());
-  for (const k of ["uppercase", "captions", "removeFillers", "removeRetakes", "pauseFast", "denoise", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish", "loudness", "keyZooms", "numberCards", "sfx", "musicDrop", "popups"] as const) {
+  for (const k of ["uppercase", "captions", "removeFillers", "removeRetakes", "pauseFast", "denoise", "punchIn", "progressBar", "grade", "highlightNumbers", "logo", "endCard", "voicePolish", "loudness", "keyZooms", "numberCards", "sfx", "musicDrop", "popups", "keyWordsOn", "captionEmoji"] as const) {
     if (typeof p[k] === "boolean") set(k, p[k] as boolean);
   }
   if (typeof p.hook === "string") set("hook", p.hook.replace(/—/g, ",").slice(0, 90));
@@ -574,7 +589,25 @@ const LOOK_KEYS = [
   "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
   "highlightNumbers", "progressBar", "grade", "punchIn", "removeFillers", "removeRetakes", "maxPause", "pauseFast", "hookSeconds", "aspect", "fit",
   "nameTag", "roleTag", "nameSeconds", "logo", "endCard", "captionBox", "font", "filter", "transition", "voicePolish", "denoise", "loudness", "speed", "captionAnim", "keyZooms", "numberCards", "sfx", "musicDrop", "popups",
+  "keyWordsOn", "captionEmoji",
 ] as const satisfies readonly (keyof EditSettings)[];
+
+/** How the captions look and nothing else: what "Use for every new video" saves into the default skill. */
+const CAPTION_KEYS = [
+  "style", "position", "captionY", "size", "wordsPerCaption", "baseColor", "activeColor", "uppercase", "captions",
+  "highlightNumbers", "captionBox", "font", "captionAnim", "keyWordsOn", "captionEmoji",
+] as const satisfies readonly (typeof LOOK_KEYS)[number][];
+
+export function captionLookOf(s: EditSettings): Record<string, unknown> {
+  const look: Record<string, unknown> = {};
+  for (const k of CAPTION_KEYS) if (s[k] !== undefined) look[k] = s[k];
+  return look;
+}
+
+/** A look with its caption keys taken out, so a caption look can replace them and keep the rest. */
+export function withoutCaptions(look: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(look).filter(([k]) => !(CAPTION_KEYS as readonly string[]).includes(k)));
+}
 
 export function lookOf(s: EditSettings): Record<string, unknown> {
   const look: Record<string, unknown> = {};
@@ -617,10 +650,15 @@ export interface Sentence {
 
 /** Sentences on the source timeline: break at . ! ? or a pause over a second. Feeds clip finding. */
 export function sentencesOf(words: Word[]): Sentence[] {
-  const out: Sentence[] = [];
-  let cur: Word[] = [];
+  return sentenceRuns(words).map((r) => ({ s: r[0].s, e: r[r.length - 1].e, text: r.map((w) => w.w).join(" ") }));
+}
+
+/** The words of each sentence, as sentencesOf splits them. */
+function sentenceRuns<T extends Word>(words: T[]): T[][] {
+  const out: T[][] = [];
+  let cur: T[] = [];
   const flush = () => {
-    if (cur.length) out.push({ s: cur[0].s, e: cur[cur.length - 1].e, text: cur.map((w) => w.w).join(" ") });
+    if (cur.length) out.push(cur);
     cur = [];
   };
   for (const w of words) {
@@ -1492,6 +1530,55 @@ export interface Cutaway {
 /** The sentences still in the edit, timed on the edited timeline, which is where stickers sit. */
 export function editedSentences(words: Word[], segs: Segment[], speed = 1): Sentence[] {
   return sentencesOf(heardWords(words, segs, speed));
+}
+
+// ---------- key words in the captions (edit-captions) ----------
+
+export interface CaptionLine {
+  text: string;
+  /** Where it starts on the edited timeline. */
+  s: number;
+  /** Its words as heard, from the source. */
+  words: Word[];
+}
+
+/** The caption lines Jev reads for key words: editedSentences, keeping each line's source words. */
+export function keyLines(words: Word[], segs: Segment[], speed = 1): CaptionLine[] {
+  return sentenceRuns(heardWords(words, segs, speed)).map((r) => ({ text: r.map((w) => w.w).join(" "), s: r[0].s, words: r.map((w) => w.src) }));
+}
+
+export const MAX_KEY_WORDS = 200;
+// the pop-ups' emoji (video-assist motion.ts), the only ones a stored key word may carry
+const KEY_EMOJI = new Set(Object.values(EMOJI).map((e) => e.emoji));
+
+/** Stored key words: at most 200, a time each, emoji only from the set. */
+export function sanitizeKeyWords(raw: unknown): KeyWord[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.slice(0, MAX_KEY_WORDS).flatMap((r): KeyWord[] => {
+    const at = Number(r?.at);
+    if (!Number.isFinite(at) || at < 0) return [];
+    return [typeof r.emoji === "string" && KEY_EMOJI.has(r.emoji) ? { at, emoji: r.emoji } : { at }];
+  });
+}
+
+/** A key word is the word that starts at its time (fixes keep a word's start; times are kept to the millisecond). */
+export const isKeyAt = (k: KeyWord, w: Pick<Word, "s">) => Math.abs(k.at - w.s) < 0.001;
+
+/** The key word at a source word, with its emoji when emoji are on; null when key words are off or it is none. */
+export function keyWordOf(s: Pick<EditSettings, "keyWordsOn" | "captionEmoji" | "keyWords">, w: Pick<Word, "s">): { emoji: string } | null {
+  if (!s.keyWordsOn || !s.keyWords?.length) return null;
+  const k = s.keyWords.find((x) => isKeyAt(x, w));
+  return k ? { emoji: s.captionEmoji && k.emoji ? k.emoji : "" } : null;
+}
+
+/** The adviser's own fixed words for the transcription prompt: the right spelling of each fix, newest first, at most 20 of up to 30 characters. */
+export function captionTerms(fixes: CaptionFix[]): string[] {
+  const out: string[] = [];
+  for (const f of [...fixes].reverse()) {
+    const t = f.to.trim();
+    if (t && t.length <= 30 && !t.includes(",") && !out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
+  }
+  return out.slice(0, 20);
 }
 
 /** Stored suggestions, kept only when well formed. */

@@ -28,6 +28,7 @@ import {
   gradeOf,
   integratedLoudness,
   isNumberWord,
+  keyWordOf,
   levelFits,
   musicGainAt,
   duckSpans,
@@ -287,6 +288,23 @@ function wrap(g: CanvasRenderingContext2D, words: string[], maxW: number): strin
     if (line.length && g.measureText([...line, w].join(" ")).width > maxW) lines.push([w]);
     else line.push(w);
   }
+  return lines;
+}
+
+/** wrap, for words of known widths: a caption with a bigger key word and its emoji. */
+function wrapWidths(words: string[], widths: number[], space: number, maxW: number): string[][] {
+  const lines: string[][] = [[]];
+  let lw = 0;
+  words.forEach((w, i) => {
+    const line = lines[lines.length - 1];
+    if (line.length && lw + space + widths[i] > maxW) {
+      lines.push([w]);
+      lw = widths[i];
+    } else {
+      lw += (line.length ? space : 0) + widths[i];
+      line.push(w);
+    }
+  });
   return lines;
 }
 
@@ -657,11 +675,26 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     const px = BASE_PX[s.style] * s.size * k;
     const font = captionFont(s);
     const box = captionBoxOf(s);
-    g.font = font.replace("{px}", String(Math.round(px)));
+    const base = font.replace("{px}", String(Math.round(px)));
+    g.font = base;
     g.textAlign = "left";
     g.textBaseline = "middle";
     const text = cap.words.map((w) => (s.uppercase ? w.w.toUpperCase() : w.w));
-    const lines = wrap(g, text, W * (spec.mode === "words" ? 0.86 : 0.84));
+    // key words (edit-captions): the lit word 1.2 times bigger in word styles, underlined in line styles, its emoji
+    // after it at 1.1 times; a caption with none draws exactly as before
+    const keys = cap.words.map((w) => keyWordOf(s, w));
+    const big = spec.mode === "words" ? font.replace("{px}", String(Math.round(px * 1.2))) : base;
+    const emojiFont = `${Math.round(px * 1.1)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+    const measureAs = (f: string, t: string) => {
+      g.font = f;
+      const n = g.measureText(t).width;
+      g.font = base;
+      return n;
+    };
+    const widths = keys.some(Boolean) ? text.map((t, i) => (keys[i] ? measureAs(big, t) + (keys[i]!.emoji ? measureAs(emojiFont, ` ${keys[i]!.emoji}`) : 0) : g.measureText(t).width)) : null;
+    const space = widths ? g.measureText(" ").width : 0;
+    const maxW = W * (spec.mode === "words" ? 0.86 : 0.84);
+    const lines = widths ? wrapWidths(text, widths, space, maxW) : wrap(g, text, maxW);
     // the way in, over the first 150 ms of each caption: pop scales up from 85%, slide rises a
     // little, both fading in; typewriter shows each word as it's said (below)
     const anim = animOf(s);
@@ -683,20 +716,39 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
     if (hook && captionCenter(s) < 0.4 && hook.top < H * 0.3) y = Math.max(y, hook.top + hook.bh + lh * 0.75);
     let wi = 0;
     for (const line of lines) {
+      const from = wi;
       const full = line.join(" ");
-      const lw = g.measureText(full).width;
+      const lw = widths ? line.reduce((n, _, j) => n + widths[from + j], 0) + space * (line.length - 1) : g.measureText(full).width;
       let x = (W - lw) / 2;
       if (box === "pill") {
         g.fillStyle = "rgba(10,12,18,0.72)";
         roundRect(g, x - px * 0.55, y - lh * 0.55, lw + px * 1.1, lh * 1.1, px * 0.5);
       }
       for (const word of line) {
-        const w = cap.words[wi++];
+        const i = wi++;
+        const w = cap.words[i];
+        const key = keys[i];
+        const step = () => (widths ? widths[i] + space : g.measureText(word + " ").width);
+        // the lit word's underline (line styles) and emoji, then back to the caption font
+        const decorate = () => {
+          if (!key) return;
+          const ww = g.measureText(word).width;
+          if (spec.mode === "line") {
+            g.fillStyle = s.activeColor;
+            g.fillRect(x, y + px * 0.5, ww, Math.max(2, px * 0.09));
+          }
+          if (key.emoji) {
+            g.font = emojiFont;
+            g.fillText(` ${key.emoji}`, x + ww, y);
+          }
+          g.font = base;
+        };
         if (anim === "type" && !f.still && f.src < w.s - 0.02) {
           // not said yet: keep its space so the line doesn't shift as words arrive
-          x += g.measureText(word + " ").width;
+          x += step();
           continue;
         }
+        if (key) g.font = big;
         const active = spec.mode === "words" && f.src >= w.s && f.src <= w.e + 0.05;
         if (active && box === "word") {
           // a highlight block behind the word being said, the word in dark ink on it
@@ -705,7 +757,8 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
           roundRect(g, x - px * 0.14, y - lh * 0.5, ww + px * 0.28, lh, px * 0.18);
           g.fillStyle = "#0B0B0B";
           g.fillText(word, x, y);
-          x += g.measureText(word + " ").width;
+          decorate();
+          x += step();
           continue;
         }
         if (spec.stroke) {
@@ -715,9 +768,10 @@ export function drawFrame(g: CanvasRenderingContext2D, f: Frame) {
           g.strokeText(word, x, y);
         }
         const num = s.highlightNumbers && isNumberWord(word);
-        g.fillStyle = active || num ? s.activeColor : s.baseColor;
+        g.fillStyle = active || num || (key && spec.mode === "words") ? s.activeColor : s.baseColor;
         g.fillText(word, x, y);
-        x += g.measureText(word + " ").width;
+        decorate();
+        x += step();
       }
       y += lh;
     }
