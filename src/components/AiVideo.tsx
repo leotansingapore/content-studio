@@ -18,6 +18,9 @@ import {
   onTalkScript, pickOffer, presenterFits, presenterSet, savedSet, saveTalk, takeScript, talkExtra, talkScript, writeTalkScript, type Talk,
 } from "@/lib/presenter";
 import { getDraftById } from "@/lib/draftHistory";
+import { PictureTile } from "@/components/brand/ProductEditor";
+import { loadProducts, productLabel, type Product } from "@/lib/products";
+import { PICTURE_FAILED, pictureFile } from "@/lib/productScan";
 import { fitScript, postFill, type PostFill } from "@/lib/scriptCaption";
 import { useLeoOnly, useLeoUser } from "@/lib/useLeoOnly";
 import { useUrlItem, useUrlState, useUrlUpdate } from "@/lib/urlState";
@@ -225,6 +228,34 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
     if (name) setFields((f) => ({ ...f, product: name }));
     update({ offer: null });
   }, [user, offerParam, templateId, update]);
+  // brand-products, Leo only: a saved product fills the product slot with its first picture (fetched again when this
+  // device lacks it) and the product field with its name, or its general kind for a named insurer product. One photo a
+  // clip, so a person photo goes. ?product=<id> does it once, then leaves; "From your products" does it on a press.
+  const saved = useMemo(() => (user ? loadProducts(user.id).items : []), [user]);
+  const [taking, setTaking] = useState<string | null>(null);
+  const [productId, setProductId] = useState<string | null>(null);
+  const [productLine, setProductLine] = useState("");
+  const takeProduct = async (p: Product) => {
+    if (!user) return;
+    setTaking(p.id);
+    setProductLine("");
+    setFields((f) => ({ ...f, product: productLabel(p).slice(0, MAX_FIELD) }));
+    const file = await pictureFile(user.id, p).catch(() => null);
+    setTaking(null);
+    if (!file) return setProductLine(p.pictures[0] ? PICTURE_FAILED : "");
+    const url = URL.createObjectURL(file);
+    urls.current.push(url);
+    setPhotos({ product: { file, url } });
+    setProductId(p.id);
+  };
+  const productParam = params.get("product");
+  useEffect(() => {
+    if (!user || productParam === null) return;
+    update({ product: null });
+    const p = loadProducts(user.id).items.find((x) => x.id === productParam);
+    if (p && pick?.photos.includes("product")) void takeProduct(p);
+    // read once per link: takeProduct and pick are this render's
+  }, [user, productParam, update]);
   // Leo is asked before a clip that costs a dollar or more (the default 8 s at 720p does), as You speaking and Narrated video ask
   const [asking, setAsking] = useState(false);
   const clipPrice = priceOf("ai-clip", { seconds, quality });
@@ -279,6 +310,25 @@ function Templates({ busy, left, fill }: { busy: boolean; left: Left; fill: Post
             onChange={(e) => setFields({ ...fields, [f.key]: e.target.value })} />
         </label>
       ))}
+      {user && saved.length > 0 && pick.photos.includes("product") && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium">From your products</p>
+          <ul className="flex flex-wrap gap-2">
+            {saved.slice(0, 6).map((p) => (
+              <li key={p.id}>
+                <button type="button" onClick={() => void takeProduct(p)} disabled={busy || !!taking} aria-label={`Use ${p.name}`} aria-pressed={productId === p.id && !!photos.product}
+                  className={`relative block w-14 space-y-0.5 rounded-lg text-left disabled:opacity-60 ${productId === p.id && photos.product ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/40"}`}>
+                  {p.pictures[0] ? <PictureTile userId={user.id} pictureKey={p.pictures[0]} source={p.sources[0]} name={p.name} className="h-14 w-14" fetchMissing={false} />
+                    : <span className="block h-14 w-14 rounded-lg border border-border/60 bg-muted" aria-hidden />}
+                  {taking === p.id && <span className="absolute inset-x-0 top-0 flex h-14 items-center justify-center rounded-lg bg-background/60"><ThinkingOrb state="working" size={20} theme="light" aria-hidden /></span>}
+                  <span className="block truncate text-[10px] text-muted-foreground">{p.name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {productLine && <p className="text-xs text-destructive" role="alert">{productLine}</p>}
+        </div>
+      )}
       <div className="flex flex-wrap gap-3">
         {(chosen ? [chosen] : pick.photos).map((role) => {
           const ph = photos[role];
