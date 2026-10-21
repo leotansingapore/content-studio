@@ -54,6 +54,26 @@ describe("brandPack", () => {
     expect(other).toMatchObject({ name: "MoneyBees", oneLiner: "", topics: [], facts: "", offer: null });
   });
 
+  it("gives the invented check the brand's own one-liner, offers, edge and audience when there is no coach profile", () => {
+    // the 21 Oct dogfood: ActivityTracker has a one-liner and no coach profile, and its one-liner came back flagged
+    const p = addProfile(UID, "ActivityTracker");
+    setActiveProfile(UID, p.id);
+    const scope = `${UID}~${p.id}`;
+    kit(scope, { name: "ActivityTracker", offers: [{ name: "Free trial", url: "https://activity-tracker.io/trial" }] });
+    set(`content-studio-positioning-${scope}`, { oneLiner: "We help sales reps manage clients in one app.", audience: "working-adult", audienceDetail: "", topics: [], edge: "Built for WhatsApp", platform: "linkedin" });
+    set(`content-studio-market-${scope}`, { name: "", site: "", audience: "Sales-oriented self-employed professionals", topics: [] });
+    const { facts } = brandPack(UID, { platform: "linkedin", mention: true, offer: null });
+    expect(facts).toContain("Free trial. We help sales reps manage clients in one app. Built for WhatsApp");
+    expect(facts).toContain("Who it serves: working adults");
+    expect(facts).not.toContain("activity-tracker.io");
+  });
+
+  it("puts the coach profile after the brand's own facts when there is one", () => {
+    set(`content-studio-positioning-${UID}`, { oneLiner: "I help fresh grads", audience: "general", audienceDetail: "", topics: [], platform: "linkedin" });
+    set(`content-studio-coachprofile-${UID}`, { origin: "I left banking in 2019" });
+    expect(brandPack(UID, { platform: "linkedin", mention: true, offer: null }).facts).toMatch(/^- What it offers: I help fresh grads\nAbout me .*\n- My story: I left banking in 2019$/);
+  });
+
   it("sends no name and no mention when the brand has no name, never 'your business'", () => {
     const pack = brandPack(UID, { platform: "linkedin", mention: true, offer: null });
     expect(pack).toMatchObject({ name: "", mention: false, offer: null });

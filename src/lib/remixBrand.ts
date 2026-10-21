@@ -1,10 +1,11 @@
 // What a remix wears (docs/north-star/items/remix-your-brand.md): the switches the sheet's For row remembers per
-// brand, and the one brand block each make call carries, built from the brand kit, positioning and the coach
-// profile of the brand open now.
+// brand, and the one brand block each make call carries, built from the brand kit, positioning, Your market and the
+// coach profile of the brand open now.
 
 import { brandOffers, brandRulesLine } from "@/lib/brandRules";
 import { loadBrand } from "@/lib/carousel";
 import { coachContext, loadCoachProfile } from "@/lib/coachProfile";
+import { brandFacts } from "@/lib/competitors";
 import { loadPositioning } from "@/lib/positioning";
 import { DEFAULT_PROFILE_ID, activeProfile, activeProfileId, scoped } from "@/lib/profiles";
 import { VOICE_IDS, type VoiceId } from "@/lib/textVoice";
@@ -81,6 +82,16 @@ export function ownBrandName(userId: string): string {
 /** For the sheet's copy only; the prompt never gets "your business" as a name. */
 export const brandName = (userId: string) => ownBrandName(userId) || "your business";
 
+/**
+ * What the post may say about the brand: what it sells and who it serves (kit offers, one-liner, edge, Your market),
+ * then the coach profile when there is one. The invented check reads only this, so a brand with no coach profile
+ * had its own one-liner flagged as invented (dogfood 21 Oct: 7 of 11 drafts).
+ */
+function brandFactsLine(userId: string): string {
+  const { sells, serves } = brandFacts(userId);
+  return [sells && `- What it offers: ${sells}`, serves && `- Who it serves: ${serves}`, coachContext(loadCoachProfile(userId))].filter(Boolean).join("\n");
+}
+
 /** The make call's brand block. The offer goes only by name, and only with mention on and a real name to mention. */
 export function brandPack(userId: string, o: { platform: string; mention: boolean; offer: string | null; speaker?: Speaker }): BrandPack {
   const kit = loadBrand(userId);
@@ -93,7 +104,7 @@ export function brandPack(userId: string, o: { platform: string; mention: boolea
     oneLiner: p?.oneLiner.trim() ?? "",
     audience: [p && p.audience !== "general" ? p.audience.replace(/-/g, " ") : "", p?.audienceDetail.trim()].filter(Boolean).join(": "),
     topics: (p?.topics ?? []).map((t) => t.trim()).filter(Boolean),
-    facts: coachContext(loadCoachProfile(userId)),
+    facts: brandFactsLine(userId),
     mention,
     offer,
     rules: brandRulesLine(kit, o.platform),
