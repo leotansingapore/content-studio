@@ -1478,7 +1478,8 @@ export default function CarouselPage() {
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
-                    <div id={`slide-editor-${one.id}`} className="space-y-2 rounded-xl border border-border/70 bg-card p-3 sm:p-4">
+                    {/* keyed, so an open menu or picker stays with its slide */}
+                    <div key={one.id} id={`slide-editor-${one.id}`} className="space-y-2 rounded-xl border border-border/70 bg-card p-3 sm:p-4">
                       <SlideFields label={`Slide ${at + 1} of ${slides.length}`} {...fieldsFor(one, at)} />
                       <div className="flex flex-wrap gap-2 border-t border-border/60 pt-3">
                         <Button type="button" size="sm" variant="outline" className={SMALL} onClick={() => duplicate(at)} disabled={slides.length >= MAX_SLIDES || busy}>
