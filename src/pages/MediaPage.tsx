@@ -207,7 +207,7 @@ export default function MediaPage() {
               </div>
               <div className="flex items-center gap-1">
                 <Select value={type || "any"} onValueChange={(v) => setType(v === "any" ? "" : (v as MediaType))}>
-                  <SelectTrigger aria-label="Type" className="h-9 w-[9.5rem] text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
+                  <SelectTrigger aria-label="Type" className="h-9 w-auto gap-1.5 text-xs sm:h-8 [@media(pointer:coarse)]:h-11">
                     <span className="text-muted-foreground">Type:</span> <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
