@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addMedia, filterMedia, foldersOf, loadMedia, removeMedia, updateMedia } from "@/lib/mediaLibrary";
+import { addMedia, applySort, filterMedia, foldersOf, loadMedia, mediaRoom, removeMedia, updateMedia } from "@/lib/mediaLibrary";
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -60,6 +60,87 @@ describe("media library", () => {
     const keys = loadMedia("u1").map((m) => m.key);
     expect(keys).toHaveLength(300);
     expect(keys[0]).toBe("cimg-newest1");
+    expect(keys).not.toContain("cimg-p00000");
+  });
+
+  it("loads cvid- videos only for a caller that asks, so photo pickers never see them", () => {
+    addMedia("u1", item("cimg-aaaaaa1"));
+    addMedia("u1", { ...item("cvid-bbbbbb2"), kind: "video", seconds: 24.04, bytes: 3_000_000 });
+    expect(loadMedia("u1").map((m) => m.key)).toEqual(["cimg-aaaaaa1"]);
+    expect(loadMedia("u1", { videos: true })).toEqual([
+      { ...item("cvid-bbbbbb2"), kind: "video", seconds: 24.04, bytes: 3_000_000 },
+      item("cimg-aaaaaa1"),
+    ]);
+  });
+
+  it("drops unknown types, a who-set without a type, and a video's fields on a photo", () => {
+    store.set("cs-media-u1", JSON.stringify([
+      { ...item("cimg-aaaaaa1"), kind: "photo", type: "logo", typeBy: "you" },
+      { ...item("cimg-bbbbbb2"), kind: "video", type: "selfie", typeBy: "ai", seconds: 9, demo: { start: 0, end: 10, shows: "x" } },
+      { ...item("cvid-cccccc3"), type: "screen", typeBy: "robot", seconds: -2, bytes: "big" },
+    ]));
+    expect(loadMedia("u1", { videos: true })).toEqual([
+      { ...item("cimg-aaaaaa1"), kind: "photo", type: "logo", typeBy: "you" },
+      item("cimg-bbbbbb2"),
+      { ...item("cvid-cccccc3"), kind: "video", type: "screen" },
+    ]);
+  });
+
+  it("clamps a demo's window into the file: 0 or more, within its length, 3 to 30 seconds", () => {
+    const demo = (d: Record<string, unknown>, seconds = 120) => {
+      store.set("cs-media-u1", JSON.stringify([{ ...item("cvid-dddddd4"), seconds, demo: { shows: "A budget sheet", ...d } }]));
+      return loadMedia("u1", { videos: true })[0].demo;
+    };
+    expect(demo({ start: 20, end: 50, flags: ["returns", "made-up"] })).toEqual({ start: 20, end: 50, shows: "A budget sheet", flags: ["returns"] });
+    expect(demo({ start: -5, end: 10 })).toMatchObject({ start: 0, end: 10 });
+    expect(demo({ start: 100, end: 200 })).toMatchObject({ start: 100, end: 120 });
+    expect(demo({ start: 10, end: 90 })).toMatchObject({ start: 10, end: 40 });
+    expect(demo({ start: 10, end: 11 })).toMatchObject({ start: 10, end: 13 });
+    expect(demo({ start: 119, end: 120 })).toMatchObject({ start: 117, end: 120 });
+    expect(demo({ start: 0, end: 2 }, 2)).toBeUndefined();
+    expect(demo({ start: 0, end: 30, shows: "s".repeat(130) })!.shows).toHaveLength(120);
+    expect(demo({ start: 0, end: 20 }).flags).toBeUndefined();
+  });
+
+  it("filters by kind and type, an unsorted file counting as other, with today's three arguments unchanged", () => {
+    const list = [
+      { ...item("cimg-a00001", { name: "Logo" }), kind: "photo" as const, type: "logo" as const },
+      { ...item("cvid-a00002", { name: "Walk" }), kind: "video" as const, type: "footage" as const },
+      item("cimg-a00003", { name: "Old photo" }),
+    ];
+    expect(filterMedia(list, "", "").map((m) => m.name)).toEqual(["Logo", "Walk", "Old photo"]);
+    expect(filterMedia(list, "", "", { kind: "photos" }).map((m) => m.name)).toEqual(["Logo", "Old photo"]);
+    expect(filterMedia(list, "", "", { kind: "videos" }).map((m) => m.name)).toEqual(["Walk"]);
+    expect(filterMedia(list, "", "", { type: "footage" }).map((m) => m.name)).toEqual(["Walk"]);
+    expect(filterMedia(list, "", "", { type: "other" }).map((m) => m.name)).toEqual(["Old photo"]);
+    expect(filterMedia(list, "old", "", { kind: "photos", type: "other" }).map((m) => m.name)).toEqual(["Old photo"]);
+  });
+
+  it("a sort answer never replaces a type the person picked, and fills alt text only where there is none", () => {
+    addMedia("u1", { ...item("cimg-aaaaaa1"), kind: "photo" });
+    addMedia("u1", { ...item("cimg-bbbbbb2", { alt: "Pexels' own words" }), kind: "photo" });
+    updateMedia("u1", "cimg-aaaaaa1", { type: "person", typeBy: "you" });
+    applySort("u1", "cimg-aaaaaa1", { type: "logo", alt: "A man at a desk" });
+    applySort("u1", "cimg-bbbbbb2", { type: "footage", alt: "A city street" });
+    const [b, a] = loadMedia("u1");
+    expect(a).toMatchObject({ type: "person", typeBy: "you", alt: "A man at a desk" });
+    expect(b).toMatchObject({ type: "footage", typeBy: "ai", alt: "Pexels' own words" });
+  });
+
+  it("refuses the 301st upload instead of dropping the oldest, and never drops an upload to make room", () => {
+    addMedia("u1", { ...item("cvid-oldest1"), kind: "video" });
+    for (let i = 0; i < 299; i++) addMedia("u1", item(`cimg-p${String(i).padStart(5, "0")}`));
+    expect(mediaRoom("u1")).toBe(0);
+    addMedia("u1", { ...item("cimg-upload1"), kind: "photo" });
+    let keys = loadMedia("u1", { videos: true }).map((m) => m.key);
+    expect(keys).toHaveLength(300);
+    expect(keys).not.toContain("cimg-upload1");
+    expect(keys.at(-1)).toBe("cvid-oldest1");
+    // another writer (an AI picture) still adds, by dropping the oldest picture that wasn't uploaded
+    addMedia("u1", item("cimg-aipic01"));
+    keys = loadMedia("u1", { videos: true }).map((m) => m.key);
+    expect(keys[0]).toBe("cimg-aipic01");
+    expect(keys).toContain("cvid-oldest1");
     expect(keys).not.toContain("cimg-p00000");
   });
 
