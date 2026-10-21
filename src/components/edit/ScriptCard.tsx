@@ -437,6 +437,7 @@ export default function ScriptCard({ userId, project, onPut }: { userId: string;
               {k > 0 && <p className="flex flex-wrap items-center gap-x-2 text-sm">Remakes {k} {k === 1 ? "part" : "parts"} of {parts.length}. <PriceChip price={price} left={left("ai-video")} /></p>}
               {fixing?.state === "working" ? status : (
                 <>
+                  {k > 0 && short && <p className="text-xs text-muted-foreground">Write at least {MIN_LINE} characters in each changed line.</p>}
                   {k > 0 && unheard && !short && <p className="text-xs text-muted-foreground">{premade ? "Hear each changed line first." : "Record each changed line first."}</p>}
                   {k > 0 && red && <p className="text-xs text-destructive">Check the flagged words first.</p>}
                   {k > 0 && (asking && askFirst(price) ? confirm(`remakes ${k === 1 ? "1 part" : `${k} parts`}`, price as Price, doRemake) : (

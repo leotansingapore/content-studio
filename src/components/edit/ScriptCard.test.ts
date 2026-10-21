@@ -75,6 +75,13 @@ describe("the Script card", () => {
     expect(one).toContain("Hear it");
     expect(one).toContain("Hear each changed line first.");
     expect(one).toMatch(/<button[^>]*disabled=""[^>]*>Remake changed parts<\/button>/);
+    expect(one).not.toContain("Write at least 5 characters");
+
+    // a line too short to speak says why nothing can be made
+    store.set("cs-script-v1", JSON.stringify({ edits: ["Most people overpay.", "Ok."] }));
+    const short = html(project, "/edit?p=v1&script=1");
+    expect(short).toContain("Write at least 5 characters in each changed line.");
+    expect(short).not.toContain("Hear it");
 
     store.set("cs-script-v1", JSON.stringify({ edits: ["It's risk-free.", "Get one plan you understand."] }));
     const red = html(project, "/edit?p=v1&script=1");
