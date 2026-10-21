@@ -7,7 +7,8 @@ import { Link } from "react-router-dom";
 import { AlertCircle, Clock, Download, FileText, Film, GalleryHorizontal, Image as ImageIcon, Loader2, Shuffle } from "lucide-react";
 import { imageJob, onImageJob } from "@/lib/aiImage";
 import { aiJob, onAiJob, pendingAvatar } from "@/lib/aiVideo";
-import { aiJobs, exportJobs, FORMAT_LABELS, imageJobs, joinJobs, madeCount, montageJobs, remixJobs, slideshowJobs, wallJobs, type LibraryItem, type LibraryJob } from "@/lib/library";
+import { formatJobs, onFormatJob } from "@/lib/formatJob";
+import { aiJobs, exportJobs, FORMAT_LABELS, formatLibraryJobs, imageJobs, joinJobs, madeCount, montageJobs, remixJobs, slideshowJobs, wallJobs, type LibraryItem, type LibraryJob } from "@/lib/library";
 import { montageJob, onMontageJob } from "@/lib/montage";
 import { onRemixJob, remixJob } from "@/lib/remixJob";
 import { ago } from "@/lib/slideshow";
@@ -25,7 +26,7 @@ const iconOf = (j: LibraryJob) => (j.kind === "export" ? Download : j.kind === "
 export function useLibraryJobs(base: string): LibraryJob[] {
   const [, bump] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
-    const offs = [onAiJob(bump), onMontageJob(bump), onImageJob(bump), onExportJob(bump), onJoinJob(bump), onRemixJob(bump), onSlideshowJob(bump), onWallJob(bump)];
+    const offs = [onAiJob(bump), onMontageJob(bump), onImageJob(bump), onExportJob(bump), onJoinJob(bump), onRemixJob(bump), onSlideshowJob(bump), onWallJob(bump), onFormatJob(bump)];
     return () => offs.forEach((off) => void off());
   }, []);
   const key = JSON.stringify([
@@ -37,6 +38,7 @@ export function useLibraryJobs(base: string): LibraryJob[] {
     ...remixJobs(remixJob(), base),
     ...slideshowJobs(slideshowJob()),
     ...wallJobs(wallJob()),
+    ...formatLibraryJobs(formatJobs()),
   ]);
   // the same list keeps the same array, so the page rebuilds only when a job really changed
   return useMemo(() => JSON.parse(key) as LibraryJob[], [key]);

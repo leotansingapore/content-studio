@@ -16,6 +16,7 @@ import {
   countBy,
   exportJobs,
   filterLibrary,
+  formatLibraryJobs,
   imageJobs,
   joinJobs,
   madeCount,
@@ -294,6 +295,26 @@ describe("job mappers", () => {
     expect(joinJobs({ progress: 0.5, state: "running" })).toEqual([]);
     expect(joinJobs({ progress: 1, state: "done" })).toEqual([]);
     expect(joinJobs(null)).toEqual([]);
+  });
+
+  it("maps a working, failed and ready format job to rows with their href, apart from the other job kinds", () => {
+    const jobs = formatLibraryJobs([
+      { slug: "talking-head", label: "Talking head", format: "video", state: "working", step: "Making the voiceover", href: "/make/talking-head?length=20" },
+      { slug: "slideshow", label: "Slideshow", format: "carousel", state: "failed", error: "No uses left today.", href: "/make/slideshow" },
+      { slug: "hook-demo", label: "Hook plus demo", format: "video", state: "ready", step: "Open it in the editor", href: "/edit" },
+    ]);
+    expect(jobs).toEqual([
+      { kind: "format-talking-head", label: "Talking head", format: "video", state: "working", step: "Making the voiceover", href: "/make/talking-head?length=20" },
+      { kind: "format-slideshow", label: "Slideshow", format: "carousel", state: "failed", error: "No uses left today.", href: "/make/slideshow" },
+      { kind: "format-hook-demo", label: "Hook plus demo", format: "video", state: "ready", step: "Open it in the editor", href: "/edit" },
+    ]);
+    const ask: SlideshowAsk = { source: null, topic: "cpf", mention: true, note: "", size: "9x16", pictures: "stock" };
+    const list = build({ jobs: [...jobs, ...slideshowJobs({ id: 1, state: "writing", done: 0, of: 0, ask })] });
+    expect(byKey(list, "j:slideshow")).toMatchObject({ status: "making", note: "Writing the slides" });
+    expect(byKey(list, "j:format-talking-head")).toMatchObject({ status: "making", note: "Making the voiceover", href: "/make/talking-head?length=20" });
+    expect(byKey(list, "j:format-slideshow")).toMatchObject({ status: "failed", note: "No uses left today.", retryHref: "/make/slideshow" });
+    expect(byKey(list, "j:format-hook-demo")).toMatchObject({ status: "ready", href: "/edit" });
+    expect(formatLibraryJobs([])).toEqual([]);
   });
 
   it("brings remix rows in, linked to the sheet on the run's own choices", () => {

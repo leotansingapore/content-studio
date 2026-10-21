@@ -7,6 +7,7 @@ import type { AiJob } from "@/lib/aiVideo";
 import type { SavedCarousel } from "@/lib/carousel";
 import { draftStatus, type DraftEntry } from "@/lib/draftHistory";
 import { daysOverdue, keyToDate, localDateKey, overdueLabel, postedDay, scheduleTime, timeLabel } from "@/lib/dueDates";
+import type { FormatJob } from "@/lib/formatJob";
 import { links } from "@/lib/links";
 import type { MediaItem } from "@/lib/mediaLibrary";
 import type { MontageJob } from "@/lib/montage";
@@ -350,4 +351,9 @@ export function wallJobs(j: WallJob | null): LibraryJob[] {
   const base = { kind: "wall", label: "Wall of text", format: "video" as const, href: links.makeFormat("wall-of-text", wallParams(j.ask)) };
   if (j.state === "failed") return [{ ...base, state: "failed", error: j.error }];
   return [{ ...base, ...(j.state === "joining" ? { href: links.edit() } : {}), state: "working", step: wallStep(j).replace(/\.\.\.$/, "") }];
+}
+
+/** Phase 3 format jobs (formatJob.ts), keyed by slug apart from the job kinds above, so a "slideshow" format job never collides. */
+export function formatLibraryJobs(list: FormatJob[]): LibraryJob[] {
+  return list.map(({ slug, ...j }) => ({ ...j, kind: `format-${slug}` }));
 }
