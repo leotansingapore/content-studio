@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NotYours, ZernioError, type ZAccount, type Zernio, type ZernioRequest } from "../_shared/zernio";
-import { checkSchedule, checkUpload, parsePostRequest, platformProblem, postBody, postErrorReply, runPost, type PostRequest, type ScheduleInput } from "./posts";
+import { THREAD_MIXED, checkSchedule, checkUpload, parsePostRequest, platformProblem, postBody, postErrorReply, runPost, type PostRequest, type ScheduleInput } from "./posts";
 
 const MINE = "0123456789abcdef01234561";
 const THEIRS = "0123456789abcdef01234569";
@@ -343,5 +343,80 @@ describe("Zernio's refusals in plain words", () => {
     // a 403 with no code is a key or scope problem: left to the shared reply, never Zernio's words
     expect(postErrorReply(new ZernioError(403, "", "Account belongs to someone else"))).toBeNull();
     expect(postErrorReply(new Error("x"))).toBeNull();
+  });
+});
+
+describe("a thread on Threads (Leo only)", () => {
+  const TH = "65000000000000000000a005";
+  const withThreads = (req?: ZernioRequest) => ({ accounts: [...TEAM, acct(TH, "threads")].filter((a) => a.profileId === req?.query?.profileId) });
+  const posts = ["Most people pay for their hospital stay twice.", "First through the premium.", "Then through the co-pay. Check yours."];
+  const body = (extra: Record<string, unknown> = {}) => ({ clientKey: KEY, content: "ignored", scheduledFor: LATER, thread: posts, ...extra });
+  const listed = (uids: string) => vi.stubGlobal("Deno", { env: { get: (k: string) => (k === "NORTH_STAR_USERS" ? uids : undefined) } });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("takes 2 to 10 posts, each up to Threads' 500, and shows its first post as the content", () => {
+    const ok = checkSchedule(body({ thread: [` ${posts[0]} `, ...posts.slice(1)] }), NOW);
+    expect(ok).toMatchObject({ value: { content: posts[0], thread: posts } });
+    expect(checkSchedule(body({ thread: [posts[0]] }), NOW)).toEqual({ error: "A thread has 2 to 10 posts." });
+    expect(checkSchedule(body({ thread: Array(11).fill("Post.") }), NOW)).toEqual({ error: "A thread has 2 to 10 posts." });
+    expect(checkSchedule(body({ thread: [posts[0], "  "] }), NOW)).toEqual({ error: "Fill in every post in the thread, or take the empty one out." });
+    expect(checkSchedule(body({ thread: [posts[0], "x".repeat(501)] }), NOW)).toEqual({ error: "Keep each post in the thread under 501 characters." });
+    expect(checkSchedule(body({ thread: "one post" }), NOW)).toEqual({ error: "A thread has 2 to 10 posts." });
+    // no thread: the draft as before, with no thread key at all
+    expect(checkSchedule(body({ thread: undefined }), NOW)).toEqual({ value: { ...input({ content: "ignored", mediaUrls: [] }) } });
+  });
+
+  it("goes to Threads on its own: beside LinkedIn or Instagram it is refused", () => {
+    const t = input({ thread: posts, content: posts[0] });
+    expect(platformProblem(t, ["threads"])).toBeNull();
+    expect(platformProblem(t, ["threads", "linkedin"])).toBe(THREAD_MIXED);
+    expect(platformProblem(t, ["instagram"])).toBe(THREAD_MIXED);
+    expect(THREAD_MIXED).toBe("Send the thread to Threads on its own, then the post to the others.");
+  });
+
+  it("builds threadItems in order on the Threads entry, the media on the first post only", () => {
+    const b = postBody(input({ thread: posts, content: posts[0], mediaUrls: [PNG, "https://media.zernio.com/temp/2.png"], firstComment: "More: https://x.sg" }), [{ _id: TH, platform: "threads" }]);
+    expect(b.content).toBe(posts[0]);
+    expect(b.platforms).toEqual([
+      {
+        platform: "threads",
+        accountId: TH,
+        customContent: posts[0],
+        platformSpecificData: {
+          threadItems: [{ content: posts[0], mediaItems: [{ url: PNG }, { url: "https://media.zernio.com/temp/2.png" }] }, { content: posts[1] }, { content: posts[2] }],
+          firstComment: "More: https://x.sg",
+        },
+      },
+    ]);
+    const plain = postBody(input({ thread: posts, content: posts[0], mediaUrls: [] }), [{ _id: TH, platform: "threads" }]);
+    expect((plain.platforms as { platformSpecificData: { threadItems: unknown[] } }[])[0].platformSpecificData.threadItems).toEqual(posts.map((content) => ({ content })));
+  });
+
+  it("is refused for an account not on NORTH_STAR_USERS before Zernio hears of it", async () => {
+    listed("13b28b1d-2ecb-40be-b3a9-aefc90366f9b");
+    const f = fake({});
+    const reply = await runPost(f.z, MINE, UID, schedule([TH], input({ thread: posts, content: posts[0], mediaUrls: [] })), NOW);
+    expect(reply).toEqual({ status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } });
+    expect(f.keys()).toEqual([]);
+    vi.unstubAllGlobals();
+    expect((await runPost(f.z, MINE, UID, schedule([TH], input({ thread: posts, content: posts[0], mediaUrls: [] })), NOW)).status).toBe(403);
+  });
+
+  it("sends the thread for a listed account, and refuses it beside LinkedIn before posting", async () => {
+    listed(`x, ${UID}`);
+    const f = fake({ "GET /accounts": withThreads, "POST /posts": zPost(POST, [TH]) });
+    const reply = await runPost(f.z, MINE, UID, schedule([TH], input({ thread: posts, content: posts[0], mediaUrls: [] })), NOW);
+    expect(reply.status).toBe(200);
+    const sent = f.req("POST /posts")!.body as { platforms: { platformSpecificData: { threadItems: { content: string }[] } }[] };
+    expect(sent.platforms[0].platformSpecificData.threadItems.map((t) => t.content)).toEqual(posts);
+    const mixed = fake({ "GET /accounts": withThreads });
+    expect(await runPost(mixed.z, MINE, UID, schedule([TH, LI], input({ thread: posts, content: posts[0], mediaUrls: [] })), NOW)).toEqual({ status: 400, body: { error: THREAD_MIXED } });
+    expect(mixed.keys()).toEqual(["GET /accounts"]);
+  });
+
+  it("leaves a post with no thread alone for everyone", async () => {
+    const f = fake({ "GET /accounts": accounts, "POST /posts": zPost(POST, [LI]) });
+    expect((await runPost(f.z, MINE, OTHER_UID, schedule([LI], input({ mediaUrls: [] })), NOW)).status).toBe(200);
+    expect(JSON.stringify(f.req("POST /posts")!.body)).not.toContain("threadItems");
   });
 });

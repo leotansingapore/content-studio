@@ -21,6 +21,7 @@ import {
   type SocialPlatform,
   type Zernio,
 } from "../_shared/zernio.ts";
+import { isAllowed } from "./logic.ts";
 
 export const POST_ACTIONS = ["presign", "schedule", "post", "cancel", "retry", "tiktok-creator-info"] as const;
 export type PostAction = (typeof POST_ACTIONS)[number];
@@ -80,7 +81,13 @@ export interface ScheduleInput {
   firstComment: string;
   tiktok: TikTokInput | null;
   youtube: YouTubeInput | null;
+  /** A Threads thread, 2 to 10 posts, the first the root (Leo only, formats-text-threads). content is then its first post. */
+  thread?: string[];
 }
+
+/** A thread's posts, the first the root. Zernio's ThreadsPlatformData.threadItems (zernio.com/openapi.json, read 2026-10-21). */
+export const THREAD_POSTS = { min: 2, max: 10 } as const;
+export const THREAD_MIXED = "Send the thread to Threads on its own, then the post to the others.";
 
 // narrowed with "error" in r: the app compiles without strictNullChecks, where an ok flag would not narrow
 type Checked<T> = { value: T } | { error: string };
@@ -109,7 +116,15 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
   if (!raw || typeof raw !== "object") return refuse("Fill in the post first.");
   const b = raw as Record<string, unknown>;
   if (typeof b.clientKey !== "string" || !UUID.test(b.clientKey)) return refuse("Close this and try again.");
-  const content = text(b.content);
+  let thread: string[] | undefined;
+  if (b.thread !== undefined && b.thread !== null) {
+    if (!Array.isArray(b.thread) || b.thread.length < THREAD_POSTS.min || b.thread.length > THREAD_POSTS.max) return refuse(`A thread has ${THREAD_POSTS.min} to ${THREAD_POSTS.max} posts.`);
+    thread = b.thread.map(text);
+    if (thread.some((p) => !p)) return refuse("Fill in every post in the thread, or take the empty one out.");
+    if (thread.some((p) => p.length > CAPTION_MAX.threads)) return refuse(`Keep each post in the thread under ${CAPTION_MAX.threads + 1} characters.`);
+  }
+  // a thread's first post is the post Zernio shows; the thread itself is what goes out
+  const content = thread ? thread[0] : text(b.content);
   if (content.length > CAPTION_MAX.facebook) return refuse("The post is too long for any platform.");
   const captions: ScheduleInput["captions"] = {};
   const rawCaptions = b.captions && typeof b.captions === "object" ? (b.captions as Record<string, unknown>) : {};
@@ -144,7 +159,7 @@ export function checkSchedule(raw: unknown, now = Date.now()): Checked<ScheduleI
     const visibility = y.visibility === "unlisted" || y.visibility === "private" ? y.visibility : "public";
     youtube = { title, visibility };
   }
-  return { value: { clientKey: b.clientKey.toLowerCase(), content, captions, mediaUrls: mediaUrls as string[], scheduledFor, firstComment, tiktok, youtube } };
+  return { value: { clientKey: b.clientKey.toLowerCase(), content, captions, mediaUrls: mediaUrls as string[], scheduledFor, firstComment, tiktok, youtube, ...(thread ? { thread } : {}) } };
 }
 
 export const captionFor = (input: ScheduleInput, platform: string) => input.captions[platform as SocialPlatform] ?? input.content;
@@ -152,6 +167,7 @@ export const captionFor = (input: ScheduleInput, platform: string) => input.capt
 /** What these platforms can't take, or null when it fits. Before Zernio's own 400. */
 export function platformProblem(input: ScheduleInput, platforms: string[]): string | null {
   if (!platforms.length) return "Pick an account to post to.";
+  if (input.thread && platforms.some((p) => p !== "threads")) return THREAD_MIXED;
   const kinds = input.mediaUrls.map(mediaKind);
   const video = kinds.includes("video");
   for (const p of platforms) {
@@ -188,6 +204,10 @@ function platformData(input: ScheduleInput, platform: string): Record<string, un
   if (platform === "youtube") {
     Object.assign(data, { visibility: input.youtube?.visibility ?? "public", madeForKids: false });
     if (input.youtube?.title) data.title = input.youtube.title;
+  }
+  if (platform === "threads" && input.thread) {
+    // item 0 is the root post and carries the media; the rest are chained as replies
+    data.threadItems = input.thread.map((content, i) => (i === 0 && input.mediaUrls.length ? { content, mediaItems: input.mediaUrls.map((url) => ({ url })) } : { content }));
   }
   if (input.firstComment && FIRST_COMMENT_PLATFORMS.includes(platform)) data.firstComment = input.firstComment;
   return Object.keys(data).length ? data : null;
@@ -335,10 +355,16 @@ export function creatorInfoView(d: Record<string, unknown>): CreatorInfo {
 // ---- the actions ----
 
 type Reply = { status: number; body: Record<string, unknown> };
+// read when called: the app imports this file too, where there is no Deno
+const northStarUsers = () => (globalThis as { Deno?: { env: { get(k: string): string | undefined } } }).Deno?.env.get("NORTH_STAR_USERS");
 const ok = (body: Record<string, unknown>): Reply => ({ status: 200, body });
 
 /** Runs one posting action for the caller's brand. mapped: the brand's Zernio profile, or null before its first connect. */
 export async function runPost(z: Zernio, mapped: string | null, uid: string, q: PostRequest, now = Date.now()): Promise<Reply> {
+  // a thread is Leo's (NORTH_STAR_USERS) on top of SOCIAL_CONNECT_USERS, refused before Zernio hears of it
+  if (q.action === "schedule" && q.input.thread && !isAllowed(northStarUsers(), uid)) {
+    return { status: 403, body: { code: "not_enabled", error: "This isn't switched on for your account yet." } };
+  }
   if (!mapped) throw new NotYours("no profile");
 
   if (q.action === "presign") {
