@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { BLANKS_RULE, blankRanges, checkLimits, findBlanks, findWords, findLinks, foldAt, moveLinksToComment, reelLengthRule, reelTooLong, reelTooShort, reelWordRange, spokenLines, spokenWords } from "@/lib/platformCounters";
+import { createHash } from "node:crypto";
+import { BLANKS_RULE, readout, type PlatformId, blankRanges, checkLimits, findBlanks, findWords, findLinks, foldAt, moveLinksToComment, reelLengthRule, reelTooLong, reelTooShort, reelWordRange, spokenLines, spokenWords } from "@/lib/platformCounters";
+
+describe("readout (pinned at b65fc14f, before Chinese versions count characters)", () => {
+  it("reads every platform and length the same way as before, Chinese text included", () => {
+    const word = (n: number) => Array.from({ length: n }, (_, i) => `w${i % 7}`).join(" ");
+    const texts = ["", word(10), word(45), word(90), word(120), word(170), word(200), word(300), "x".repeat(60), "x".repeat(140), "x ".repeat(600), "x".repeat(2300), "\u5927\u591a\u6570\u4eba".repeat(60)];
+    const out = (["linkedin", "instagram", "facebook", "tiktok"] as PlatformId[]).flatMap((p) => texts.map((t) => JSON.stringify(readout(t, p))));
+    expect(createHash("sha256").update(out.join("\n")).digest("hex")).toBe("62c7d645ccae693ab3421bfc9c44670cfc1002202dc120df1b287707e4f5e635");
+  });
+});
 
 describe("foldAt", () => {
   it("shows a short post whole", () => {
